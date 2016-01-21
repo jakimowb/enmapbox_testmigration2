@@ -3,6 +3,7 @@ from osgeo import ogr, osr, gdal, gdal_array
 import xml.etree
 
 import os, re, fnmatch, sys, subprocess
+import collections
 
 #CONSTANSTS, GLOBAL VALUES
 
@@ -16,6 +17,11 @@ S2_PRODUCTS = [ ('L0_Granule'   , 'MSI_L0__GR') \
               , ('L1C_Granule'  , 'MSI_L1C_TL') \
               , ('L1C_Datastrip', 'MSI_L1C_DS') \
             ]
+
+#see https://sentinel.esa.int/web/sentinel/user-guides/sentinel-2-msi/naming-convention
+#S2_GRANULE_REGEX = re.compile('S2[ABCD]_(OPER|TEST|USER)_(MSI_)_MSI_(L0__(GR|DS)|L1A_(GR|DS)|L1B_(GR|DS)|L1C_(TL|DS))_')
+
+
 
 #see table 1: https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-2/instrument-payload/resolution-and-swath
 S2_MSI_DATA = [ (10,'B02',490,65) \
@@ -60,6 +66,7 @@ if is_windows:
             parts = re.split(r'[ ]+', line)
             drive = parts[1]
             path =  parts[2]
+            #drive_map[drive] = '\\\\?\\\\UNC\\'+path[2:]
             drive_map[drive] = path
 
 
@@ -70,7 +77,15 @@ def getUNCPath(path):
     if is_windows:
         match = regex_is_win_drive.search(path)
         if match:
-            path = drive_map[match.group()] + path[2:]
+            pathUNC = drive_map[match.group()] + path[2:]
+            #pathUNC = '\\\\?\\UNC\\' + drive_map[match.group()][2:] + path[2:]
+
+            if False and os.path.exists(path):
+                if os.path.exists(pathUNC):
+                    path = pathUNC
+                else:
+                    print('Failed to convert\n{}\n into UNC path\n{}'.format(path, pathUNC), file=sys.stderr)
+
     return path
 
 
@@ -101,35 +116,137 @@ def parse_S2_product(text):
 
 
 def copyMetadata(src,dst,domain):
-    data = src.GetMetadata(domain)
+    data = src.GetMetadata_Dict(domain)
     for key, value in data.items():
         #print('Copy metadata: {} : {} {}'.format(domain, key, value))
         #print((key, value, domain))
         dst.SetMetadataItem(key, value, domain)
 
-def callback(a):
-    print('callback')
-    s  = ""
+def callback_progress(a, b, c):
+    #print('callback')
+    sys.stdout.write('\r{:.1f} %'.format(a*100))
+    if a >= 1.0:
+        print('')
+
     pass
 
 
-def sentinel2_stip_to_vrt(pathXML, dirDst):
-    pass
+def gdal_to_gdal(pathSrc, pathDst, drv='ENVI', options=None):
+    """
+    Creates a copy from gdal raster to gdal raster but takes additional care on metadata issues.
+    :param pathSrc:
+    :param pathDst:
+    :param drv:
+    :param options:
+    :return:
+    """
+    if options is None:
+        options = []
+    assert isinstance(options, list)
+
+    drvDst = gdal.GetDriverByName(drv)
+    assert drvDst is not None
+
+    os.makedirs(os.path.dirname(pathDst), exist_ok=True)
+
+    print('Copy {} \n  to {} ...'.format(pathSrc, pathDst))
+
+    dsSrc = gdal.Open(pathSrc)
+    assert dsSrc is not None
+
+    #CreateCopy(Driver self, char const * utf8_path, Dataset src, int strict=1, char ** options=None, GDALProgressFunc callback=0,
+    dsDst = drvDst.CreateCopy(pathDst, dsSrc, 1, options, callback_progress, 'gdal_to_gdal:copy')
+
+    assert dsDst is not None
+
+    for domain in dsSrc.GetMetadataDomainList():
+       copyMetadata(dsSrc,dsDst, domain)
+
+    for b in range(dsSrc.RasterCount):
+        bandSrc =dsSrc.GetRasterBand(b+1)
+        bandDst = dsDst.GetRasterBand(b+1)
+        bandDst.SetDescription(bandSrc.GetDescription())
+        no_data = bandSrc.GetNoDataValue()
+        if no_data is not None:
+            bandDst.SetNoDataValue(no_data)
+
+    return dsDst
+
+
+class S2_Granule(object):
+
+    def __init__(self, text):
+        text = os.path.basename(text)
+
+
+def sentinel2_strip_to_envi(pathXML, dirDst ,resolutions=[10,20,60], unc=False, tiledirs=False, mosaic_vrt=True):
+    vrts = sentinel2_strip_to_vrt(pathXML, dirDst, resolutions=resolutions, unc=unc, block_size = 256, tiledirs=tiledirs)
+
+    for pathSrc in vrts:
+        dn = os.path.dirname(pathSrc)
+        bn = os.path.basename(pathSrc)
+        pathDst = os.path.join(dn, '{}.bsq'.format(os.path.splitext(bn)[0]))
+        gdal_to_gdal(pathSrc, pathDst, drv='ENVI')
+
+    if mosaic_vrt:
+        pathVRT = os.path.join(dirDst, 'Tile_Overview.vrt')
 
 
 
-def sentinel2_granule_to_vrt(pathXML, pathDst, mode='all'):
+def sentinel2_strip_to_vrt(pathXML, dirDst ,resolutions=[10,20,60], unc=False, block_size = 256, tiledirs=False):
     assert os.path.splitext(pathXML)[1].lower() == '.xml'
-
     import xml.etree.ElementTree as ET
+    tree = ET.parse(pathXML).getroot()
 
-    #fileType, typeID = parse_S2_product(os.path.basename(pathXML))
+    granuleIDs = collections.OrderedDict()
 
+    for elem in tree.findall('*//Product_Organisation/Granule_List/Granules'):
+        id = elem.get('granuleIdentifier')
+        image_ids = list()
+        for image_id in elem.findall('IMAGE_ID'):
+            image_ids.append(image_id.text)
+        granuleIDs[id] = image_ids
+
+    vrts = list()
+
+    dn = os.path.dirname(pathXML)
+    dir_granules = os.path.join(dn, 'GRANULE')
+    for granuleID in granuleIDs.keys():
+        dir_granule = os.path.join(dir_granules, granuleID)
+        assert os.path.exists(dir_granule)
+        parts = granuleID.split('_')
+        parts[2] = 'MTD'
+        granuleID2 = '_'.join(parts[0:10])
+        pathXMLGranule = os.path.join(dir_granule, granuleID2+'.xml')
+
+        assert os.path.exists(pathXMLGranule)
+
+        if tiledirs:
+            pathDst = os.path.join(dirDst, *[parts[9],granuleID+'.vrt'])
+        else:
+            pathDst = os.path.join(dirDst, granuleID+'.vrt')
+        vrts.extend(sentinel2_granule_to_vrt(pathXMLGranule, pathDst, resolutions=resolutions, unc=unc, block_size=block_size))
+
+    vrts = [v for v in vrts if v is not None]
+
+    return vrts
+
+
+
+def sentinel2_granule_to_vrt(pathXML, pathDst, resolutions=[10,20,60], mode='all', unc=False, block_size = 256):
+    """
+    Create a VRt representation that accesses the S2 SNAP File structure
+    :param pathXML: xml on granule / tile level
+    :param pathDst: target file name. Will be appended by spatial resolution hint: <file name>_20m.vrt
+    :param mode:
+    :param unc:
+    :param block_size: vrt block size parameter
+    :return:
+    """
+    assert os.path.splitext(pathXML)[1].lower() == '.xml'
+    import xml.etree.ElementTree as ET
     tree = ET.parse(pathXML)
-
-    block_size= 256
-
-
+    #fileType, typeID = parse_S2_product(os.path.basename(pathXML))
 
     def getChild(tag_name, text=None, attrib={}):
         e = ET.Element(tag_name, attrib=attrib)
@@ -177,20 +294,30 @@ def sentinel2_granule_to_vrt(pathXML, pathDst, mode='all'):
             assert ds.RasterCount == 1
             gt = ds.GetGeoTransform()
             pr = ds.GetProjection()
+
+            if abs(gt[1]) not in resolutions:
+
+                continue
+
             dt = ds.GetRasterBand(1).DataType
             key = (ns, nl, gt, pr, dt)
             if key not in sources.keys():
                 sources[key] = list()
             #todo: improve path handling to allow for absolute paths
 
-            #sources[key].append(getUNCPath(path))
+            if unc:
+                path = getUNCPath(path)
 
             sources[key].append(path)
+
+            #sources[key].append(path)
 
     else:
         raise Exception('Unsupported product type:{}'.format(typeID))
 
     dn = os.path.dirname(pathDst)
+    os.makedirs(dn, exist_ok=True)
+
     bn = os.path.basename(pathDst)
     rn = os.path.splitext(bn)[0]
 
@@ -264,12 +391,10 @@ def sentinel2_granule_to_vrt(pathXML, pathDst, mode='all'):
 
         vrtDS = None
 
-    if len(results) == 0:
-        results = None
-
     return results
 
-def sentinel2_granule_to_envi(pathXML, pathDst, delete_temporary_vrt=True):
+
+def sentinel2_granule_to_envi(pathXML, pathDst, delete_temporary_vrt=True, resolutions=[10,20,60]):
     """
     Reads an S2 granule XML and copies the data into the ENVI format
     :param pathXML:
@@ -277,47 +402,75 @@ def sentinel2_granule_to_envi(pathXML, pathDst, delete_temporary_vrt=True):
     :param delete_temporary_vrt:
     :return:
     """
-    drvDst = gdal.GetDriverByName('ENVI')
+    drv = 'ENVI'
 
-    vrts = sorted(sentinel2_granule_to_vrt(pathXML, pathDst))
+    vrts = sentinel2_granule_to_vrt(pathXML, pathDst, resolutions=resolutions)
+    if vrts:
+        vrts = sorted(vrts)
 
-    for pathVRT in vrts:
-        dn = os.path.dirname(pathVRT)
-        os.makedirs(dn, exist_ok=True)
-        bn = os.path.splitext(os.path.basename(pathVRT))[0]
+        for pathVRT in vrts:
+            dn = os.path.dirname(pathVRT)
+            bn = os.path.splitext(os.path.basename(pathVRT))[0]
 
-        pathDst = os.path.join(dn, '{}.bsq'.format(bn))
-        print('Copy {} -> {}...'.format(pathVRT, pathDst))
-        dsVRT = gdal.Open(pathVRT)
-        dsDst = drvDst.CreateCopy(pathDst, dsVRT)
+            pathDst = os.path.join(dn, '{}.bsq'.format(bn))
+            gdal_to_gdal(pathVRT, pathDst, drv=drv)
 
-        for domain in dsVRT.GetMetadataDomainList():
-           copyMetadata(dsVRT,dsDst, domain)
-
-        for b in range(dsVRT.RasterCount):
-            bandSrc =dsVRT.GetRasterBand(b+1)
-            bandDst = dsDst.GetRasterBand(b+1)
-            bandDst.SetDescription(bandSrc.GetDescription())
-            no_data = bandSrc.GetNoDataValue()
-            if no_data is not None:
-                bandDst.SetNoDataValue(no_data)
-        dsDst = None
-        if delete_temporary_vrt:
-            os.remove(pathVRT)
+            if delete_temporary_vrt:
+                os.remove(pathVRT)
     pass
 
+def printAllMetadata(p):
+    ds = gdal.Open(p)
+
+    import xml.etree.ElementTree as ET
+
+    def printMetadata(gdalObject):
+        for domain in gdalObject.GetMetadataDomainList():
+            print('Metadata domain: "{}"'.format(domain))
+            domainData = gdalObject.GetMetadata_Dict(domain)
+            for key, value in domainData.items():
+                if key.startswith('<?xml'):
+                    xmlText = key+'='+value
+                    tree = ET.fromstring(xmlText)
+
+                    print(key, ' XML Dump:')
+                    ET.dump(tree)
+
+                else:
+                    print(key,'=',value)
+            print('')
+
+    print('Image metadata')
+    printMetadata(ds)
+    for b in range(ds.RasterCount):
+        print('Band {} metadata:'.format(b+1))
+        band = ds.GetRasterBand(b+1)
+        printMetadata(band)
+        print('---')
 
 
 def test():
-    pathXML = r'Q:\Rohdaten\S2A\S2A_OPER_PRD_MSIL1C_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.SAFE'
-    pathXML = r'Q:\Rohdaten\S2A\S2A_OPER_PRD_MSIL1C_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.SAFE\GRANULE\S2A_OPER_MSI_L1C_TL_SGS__20151224T161331_A002636_T32UPD_N02.01\S2A_OPER_MTD_L1C_TL_SGS__20151224T161331_A002636_T32UPD.xml'
-    pathDst = r'C:\Users\geo_beja\Documents\testS2.vrt'
-    pathDst = r'T:\BJ_S2_L1C_Import\importedGranule.vrt'
 
-    sentinel2_granule_to_envi(pathXML, pathDst, delete_temporary_vrt=False)
+    p = r'Q:\Rohdaten\S2A\S2A_OPER_PRD_MSIL1C_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.SAFE\GRANULE\S2A_OPER_MSI_L1C_TL_SGS__20151224T161331_A002636_T32UNC_N02.01\IMG_DATA\S2A_OPER_MSI_L1C_TL_SGS__20151224T161331_A002636_T32UNC_B02.jp2'
+    printAllMetadata(p)
+    #for drv in [gdal.GetDriver(i) for i in range(gdal.GetDriverCount())]: drv.GetDescription()
+    resolutions = [20]
+    if False:
+        pathXML_Granule = r'Q:\Rohdaten\S2A\S2A_OPER_PRD_MSIL1C_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.SAFE'
+        pathXML_Granule = r'Q:\Rohdaten\S2A\S2A_OPER_PRD_MSIL1C_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.SAFE\GRANULE\S2A_OPER_MSI_L1C_TL_SGS__20151224T161331_A002636_T32UPD_N02.01\S2A_OPER_MTD_L1C_TL_SGS__20151224T161331_A002636_T32UPD.xml'
+        pathDst = r'C:\Users\geo_beja\Documents\testS2.vrt'
+        pathDst = r'T:\BJ_S2_L1C_Import\importedGranule.vrt'
 
+        sentinel2_granule_to_envi(pathXML_Granule, pathDst, delete_temporary_vrt=False, resolutions=resolutions)
+
+    if True:
+        pathXML_Strip = r'Q:\Rohdaten\S2A\S2A_OPER_PRD_MSIL1C_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.SAFE\S2A_OPER_MTD_SAFL1C_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.xml'
+        dirDstStrip = r'T:\BJ_S2_L1C_Import\importedStrip'
+        #sentinel2_strip_to_vrt(pathXML_Strip, dirDstStrip, tiledirs=True)
+        sentinel2_strip_to_envi(pathXML_Strip, dirDstStrip, resolutions=resolutions, tiledirs=True)
 
 if __name__ == '__main__':
-
+    import enmapbox.gdal_tools
+    enmapbox.gdal_tools.initializeGDAL()
     test()
     print('Done')
