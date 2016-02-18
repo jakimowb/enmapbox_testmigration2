@@ -1,9 +1,11 @@
-from osgeo import ogr, osr, gdal, gdal_array
-
-import xml.etree
-
-import os, re, fnmatch, sys, subprocess
 import collections
+import fnmatch
+import os
+import re
+import subprocess
+import sys
+
+from osgeo import gdal, gdal_array
 
 #CONSTANSTS, GLOBAL VALUES
 
@@ -470,7 +472,7 @@ def test():
         sentinel2_strip_to_envi(pathXML_Strip, dirDstStrip, resolutions=resolutions, tiledirs=True)
 
 if __name__ == '__main__':
-    import enmapbox.gdal_tools
-    enmapbox.gdal_tools.initializeGDAL()
+    import io.gdal_tools
+    io.gdal_tools.initializeGDAL()
     test()
     print('Done')
