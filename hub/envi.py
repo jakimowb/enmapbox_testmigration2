@@ -1,9 +1,10 @@
-__author__ = 'janzandr'
-import xmlparser.etree.ElementTree, os, gzip, numpy, copy
+from __future__ import absolute_import
+#import xml.etree.ElementTree, os, gzip, numpy, copy
+import xml.etree.ElementTree, os, numpy, copy
 import hub.collections
 
 def vrt2mos(vrtfile, hdr={}):
-    root = xmlparser.etree.ElementTree.parse(vrtfile).getroot()
+    root = xml.etree.ElementTree.parse(vrtfile).getroot()
     samples = root.attrib['rasterXSize']
     lines = root.attrib['rasterYSize']
     result = 'ENVI MOSAIC TEMPLATE (G)'
@@ -59,7 +60,7 @@ def readHeader(hdrfile):
             i += 1
             continue
 
-        (key, val) = lines[i].split("=", maxsplit=1)
+        (key, val) = lines[i].split("=", 1)
 
         key = key.strip()
         val = val.strip()
@@ -77,7 +78,7 @@ def readHeader(hdrfile):
 def writeHeader(hdrfile, hdr_):
 
     hdr = copy.deepcopy(hdr_)
-    sortedKeys = ['description','samples','lines','bands','header offset','file type','data type','interleave',
+    sortedKeys = ['description','samples','lines','bands','header offset','file type','data type','interleave','data ignore value',
                   'sensor type','byte order','map info','projection info','coordinate system string','acquisition time',
                   'wavelength units','wavelength','band names']
 
@@ -100,28 +101,28 @@ def updateHeader(hdrfile, hdr):
     hdr1.update(hdr)
     writeHeader(hdrfile, hdr1)
 
-def compress(infile, outfile=None):
-    if not outfile:
-        outfile = infile
-
-    hdr = readHeader(infile[:-4]+'.hdr')
-    if 'file compression' in hdr.keys() and int(hdr['file compression']):
-        print('File is already compressed.')
-        return
-
-    f_in = open(infile, 'rb')
-    data = f_in.readlines()
-    f_in.close()
-
-    f_out = gzip.open(outfile, 'wb')
-    f_out.writelines(data)
-    f_out.close()
-
-    hdr['file compression'] = '1'
-    writeHeader(outfile[:-4]+'.hdr', hdr)
+# def compress(infile, outfile=None):
+#     if not outfile:
+#         outfile = infile
+#
+#     hdr = readHeader(infile[:-4]+'.hdr')
+#     if 'file compression' in hdr.keys() and int(hdr['file compression']):
+#         print('File is already compressed.')
+#         return
+#
+#     f_in = open(infile, 'rb')
+#     data = f_in.readlines()
+#     f_in.close()
+#
+#     f_out = gzip.open(outfile, 'wb')
+#     f_out.writelines(data)
+#     f_out.close()
+#
+#     hdr['file compression'] = '1'
+#     writeHeader(outfile[:-4]+'.hdr', hdr)
 
 if __name__ == '__main__':
 
     infile = r'F:\Geomultisens\data\smallCaseExample\myClearObs\tiles\UL_50000_-4250000\clearObs2005.img'
     outfile = r't:\compressed.img'
-    compress(infile)#, outfile)
+  #  compress(infile)#, outfile)
