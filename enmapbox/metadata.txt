@@ -1,0 +1,16 @@
+[general]
+name=EnMAP-Box
+description=Imaging Spectroscopy and Remote Sensing for QGIS
+about=A toolbox to visualize and analyze remote sensing data.
+category=Analysis
+version=3.0 beta
+qgisMinimumVersion=2.14
+
+author=Benjamin Jakimow
+email=benjamin.jakimow@geo.hu-berlin.de
+
+icon=gui/icons/enmapbox_icon.png
+
+homepage=https://bitbucket.org/hu-geomatics/enmap-box
+tracker=https://bitbucket.org/hu-geomatics/enmap-box/issues
+repository=https://bitbucket.org/hu-geomatics/enmap-box.git
