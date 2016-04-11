@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="enmapbox">
+    <file>icons/enmapbox_icon.png</file>
+  </qresource>
+</RCC>
