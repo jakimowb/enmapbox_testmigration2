@@ -6,12 +6,22 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
-if cmd_folder not in sys.path:
-    sys.path.insert(0, cmd_folder)
-
 jp = os.path.join
 
+if False:
+    to_add = [cmd_folder]
+
+    to_add.append(jp(cmd_folder, *['apps','exampleapp']))
+    to_add.append(jp(cmd_folder, *['gui']))
+    to_add.append(jp(cmd_folder, *['hub']))
+
+    for folder in reversed(to_add):
+        assert os.path.isdir(folder)
+        if folder not in sys.path:
+            sys.path.insert(0, folder)
+
 from enmapbox.enmapbox import EnMAPBox
+from processing.core.Processing import Processing
 
 class EnMAPBoxPlugin:
     # initialize and unload all the stuff that comes under the umbrella of the EnMAP-Box:
@@ -33,17 +43,23 @@ class EnMAPBoxPlugin:
         action.triggered.connect(self.enmapbox.run)
         self.toolbarActions.append(action)
 
-        #2. other stuff
+        #2. tbd...
 
         for action in self.toolbarActions:
             self.iface.addToolBarIcon(action)
 
 
-        self.initProcessingAlgs()
+        # init processing provider
 
-        pass
+        self.processingProviders = []
+        #add example app
+        from enmapbox.apps.exampleapp.ExampleAlgorithmProvider import ExampleAlgorithmProvider
+        self.processingProviders.append(ExampleAlgorithmProvider())
 
-    def initProcessingAlgs(self):
+        #2.tbd...
+
+        for provider in self.processingProviders:
+            Processing.addProvider(provider)
         pass
 
 
@@ -52,6 +68,9 @@ class EnMAPBoxPlugin:
         for action in self.toolbarActions:
             print(action)
             self.iface.removeToolBarIcon(action)
+
+        for provider in self.processingProviders:
+            Processing.removeProvider(provider)
 
     def openGUI(self):
         pass
