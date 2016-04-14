@@ -6,9 +6,8 @@ import six, sys, os
 jp = os.path.join
 
 DIR = os.path.dirname(__file__)
-DIR_GUI = jp(DIR, 'gui')
-sys.path.append(DIR)
-sys.path.append(DIR_GUI)
+import gui
+DIR_GUI = os.path.dirname(gui.__file__)
 
 if six.PY3:
     rc_suffix = '_py3'
@@ -27,7 +26,15 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.setWindowIcon(QtGui.QIcon(getIcon()))
 
+def getQIcon():
+    return QtGui.QIcon(self.getIcon())
+
+def getIcon():
+    p = jp(DIR_GUI, *['icons', 'enmapbox.png'])
+    assert os.path.exists(p)
+    return p
 
 class EnMAPBox:
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""

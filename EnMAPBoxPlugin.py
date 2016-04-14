@@ -7,20 +7,21 @@ from PyQt4.QtGui import *
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 jp = os.path.join
-
+root = jp(cmd_folder, 'enmapbox')
 if False:
-    to_add = [cmd_folder]
-
-    to_add.append(jp(cmd_folder, *['apps','exampleapp']))
-    to_add.append(jp(cmd_folder, *['gui']))
-    to_add.append(jp(cmd_folder, *['hub']))
+    to_add = [root]
+    #to_add.append(jp(root, *['apps']))
+    #to_add.append(jp(root, *['gui']))
+    #to_add.append(jp(root, *['hub']))
 
     for folder in reversed(to_add):
         assert os.path.isdir(folder)
         if folder not in sys.path:
             sys.path.insert(0, folder)
 
-from enmapbox.enmapbox import EnMAPBox
+
+#import enmapbox module from project module
+import enmapbox.enmapbox
 from processing.core.Processing import Processing
 
 class EnMAPBoxPlugin:
@@ -37,9 +38,9 @@ class EnMAPBoxPlugin:
         self.toolbarActions = []
 
         #1. EnMAP-Box main window
-        self.enmapbox = EnMAPBox(self.iface)
-        path_icon = jp(cmd_folder, *['enmapbox','gui','icons','enmapbox.png'])
-        action = QAction(QIcon(path_icon), u'EnMAP-Box', self.iface)
+        self.enmapbox = enmapbox.EnMAPBox(self.iface)
+
+        action = QAction(QIcon(enmapbox.getIcon()), u'EnMAP-Box', self.iface)
         action.triggered.connect(self.enmapbox.run)
         self.toolbarActions.append(action)
 
@@ -83,9 +84,11 @@ class EnMAPBoxPlugin:
 if __name__ == '__main__':
 
     #start a QGIS instance
+
     from qgis.gui import *
     from qgis.core import *
 
+    PATH_QGS = ''
     PATH_QGS = os.environ['QGIS_PREFIX_PATH']
     app = QgsApplication([], False)
     app.setPrefixPath(PATH_QGS, True)
