@@ -54,7 +54,7 @@ class ExampleAlgorithmProvider(AlgorithmProvider):
         deactivating the algorithms in the provider.
         """
         AlgorithmProvider.initializeSettings(self)
-        ProcessingConfig.addSetting(Setting('Example algorithms',
+        ProcessingConfig.addSetting(Setting('EnMAP Box',
                                             ExampleAlgorithmProvider.MY_DUMMY_SETTING,
                                             'Example setting', 'Default value'))
 
@@ -72,12 +72,12 @@ class ExampleAlgorithmProvider(AlgorithmProvider):
         It is also used to create the command line name of all the
         algorithms from this provider.
         """
-        return 'Example provider'
+        return 'EnMAP Box'
 
     def getDescription(self):
         """This is the provired full name.
         """
-        return 'Example algorithms'
+        return 'EnMAP Box'
 
     def getIcon(self):
         """We return the default icon.

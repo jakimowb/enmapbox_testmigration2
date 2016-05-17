@@ -6,8 +6,8 @@ import sys, os, re
 try:
     from qgis.gui import *
     from qgis.core import *
-    import qgis
-    import qgis_add_ins
+    #import qgis
+    #import qgis_add_ins
 
     qgis_available = True
 except:
@@ -15,8 +15,7 @@ except:
 
 print('QGIS?:{}'.format(qgis_available))
 
-import numpy as np
-import tsv_widgets
+
 import six
 import multiprocessing
 
@@ -29,7 +28,8 @@ if os.path.exists(path):
     multiprocessing.set_executable(path)
     sys.argv = [ None ]
 
-pluginDir = os.path.dirname(__file__)
+import enmapbox
+pluginDir = os.path.dirname(enmapbox.__file__)
 sys.path.append(pluginDir)
 sys.path.append(os.path.join(pluginDir, 'libs'))
 sys.path.append(os.path.join(pluginDir, *['libs','pyqtgraph']))
@@ -41,9 +41,9 @@ from PyQt4.QtGui import *
 
 
 def basic_3d_example():
+    import pyqtgraph as pg
     ## build a QApplication before building other widgets
     app = pg.mkQApp()
-
 
     ## make a widget for displaying 3D objects
     import pyqtgraph.opengl as gl
@@ -120,34 +120,57 @@ def multiview_example():
     app.exec_()
 
 def qgis_map_canvas():
-    app = pg.mkQApp()
-    QgsApplication.setPrefixPath(PATH_QGS, True)
-    QgsApplication.initQgis()
+    import qgis.core
+    import qgis.gui
+
+    PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    qgsApp = QgsApplication([], True)
+    qgsApp.setPrefixPath(PATH_QGS, True)
+    qgsApp.initQgis()
 
     w = QMainWindow()
-    c = QgsMapCanvas()
-    c.setCanvasColor(Qt.black)
-    c.enableAntiAliasing(True)
-
-    reg = QgsMapLayerRegistry.instance()
-    w.setCentralWidget(c)
+    w.setWindowTitle('QgsMapCanvas Example')
+    canvas = QgsMapCanvas()
+    w.setCentralWidget(canvas)
+    #... add image + vector data to the canvas...
     w.show()
+    registry = QgsMapLayerRegistry.instance()
 
 
+    PATH_EXAMPLE_IMG = r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_Image'
     lyr =  QgsRasterLayer(PATH_EXAMPLE_IMG)
-    reg.addMapLayer(lyr, True)
+    renderer = lyr.renderer()
 
-    c.setExtent(lyr.extent())
-    c.setLayerSet([QgsMapCanvasLayer(lyr)])
+    rgb = [65,151,45]
+    provider = lyr.dataProvider()
+    stats = [provider.bandStatistics(b) for b in rgb]
+    renderer.setRedBand(rgb[0])
+    renderer.setGreenBand(rgb[1])
+    renderer.setBlueBand(rgb[2])
 
-    app.exec_()
+    def setContrast(c, stats):
+        c.setContrastEnhancementAlgorithm(qgis.core.QgsContrastEnhancement.StretchToMinimumMaximum)
+        c.setMinimumValue(stats.minimumValue)
+        c.setMaximumValue(stats.maximumValue)
+
+    setContrast(renderer.redContrastEnhancement(), stats[0])
+    setContrast(renderer.greenContrastEnhancement(), stats[1])
+    setContrast(renderer.blueContrastEnhancement(), stats[2])
+
+    registry.addMapLayer(lyr, True)
+    canvas.setExtent(lyr.extent())
+    canvas.setLayerSet([QgsMapCanvasLayer(lyr)])
+
+    qgsApp.exec_()
+    #qgsApp.exitQgis()
+    #app.exec_()
     pass
 
 def main():
 
-    #basic_3d_example()
+    basic_3d_example()
     #multiview_example()
-    qgis_map_canvas()
+    #qgis_map_canvas()
 
     pass
 

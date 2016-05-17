@@ -8,10 +8,11 @@ from PyQt4.QtGui import *
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 jp = os.path.join
 root = jp(cmd_folder, 'enmapbox')
+
 if False:
     to_add = [root]
     #to_add.append(jp(root, *['apps']))
-    #to_add.append(jp(root, *['gui']))
+    to_add.append(jp(root, *['gui']))
     #to_add.append(jp(root, *['hub']))
 
     for folder in reversed(to_add):
@@ -20,9 +21,10 @@ if False:
             sys.path.insert(0, folder)
 
 
-#import enmapbox module from project module
-import enmapbox.enmapbox
-from processing.core.Processing import Processing
+
+
+from enmapbox.enmapbox import EnMAPBox
+
 
 class EnMAPBoxPlugin:
     # initialize and unload all the stuff that comes under the umbrella of the EnMAP-Box:
@@ -30,6 +32,19 @@ class EnMAPBoxPlugin:
 
     def __init__(self, iface):
         self.iface = iface
+        import qgis.gui
+        #open QGIS python console. this is required to not endup with print() statements as errors.
+        if isinstance(self.iface, qgis.gui.QgisInterface):
+            import console
+            console.show_console()
+
+
+    def has_processing_framework(self):
+        try:
+            from processing.core.Processing import Processing
+            return True
+        except:
+            return False
 
     def initGui(self):
 
@@ -38,14 +53,16 @@ class EnMAPBoxPlugin:
         self.toolbarActions = []
 
         #1. EnMAP-Box main window
-        self.enmapbox = enmapbox.EnMAPBox(self.iface)
+        for p in sys.path:
+            print(p)
 
-        action = QAction(QIcon(enmapbox.getIcon()), u'EnMAP-Box', self.iface)
+        self.enmapbox = EnMAPBox(self.iface)
+
+        action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)
         action.triggered.connect(self.enmapbox.run)
         self.toolbarActions.append(action)
 
         #2. tbd...
-
         for action in self.toolbarActions:
             self.iface.addToolBarIcon(action)
 
@@ -53,15 +70,15 @@ class EnMAPBoxPlugin:
         # init processing provider
 
         self.processingProviders = []
-        #add example app
-        from enmapbox.apps.exampleapp.ExampleAlgorithmProvider import ExampleAlgorithmProvider
-        self.processingProviders.append(ExampleAlgorithmProvider())
+        if self.has_processing_framework():
+            # add example app
+            from processing.core.Processing import Processing
+            from enmapbox.apps.exampleapp.ExampleAlgorithmProvider import ExampleAlgorithmProvider
+            self.processingProviders.append(ExampleAlgorithmProvider())
 
-        #2.tbd...
+            for provider in self.processingProviders:
+                Processing.addProvider(provider)
 
-        for provider in self.processingProviders:
-            Processing.addProvider(provider)
-        pass
 
 
 
@@ -70,8 +87,10 @@ class EnMAPBoxPlugin:
             print(action)
             self.iface.removeToolBarIcon(action)
 
-        for provider in self.processingProviders:
-            Processing.removeProvider(provider)
+        if self.has_processing_framework():
+            from processing.core.Processing import Processing
+            for provider in self.processingProviders:
+                Processing.removeProvider(provider)
 
     def openGUI(self):
         pass
@@ -88,19 +107,25 @@ if __name__ == '__main__':
     from qgis.gui import *
     from qgis.core import *
 
-    PATH_QGS = ''
+
     PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    app = QgsApplication([], False)
-    app.setPrefixPath(PATH_QGS, True)
-    app.initQgis()
+    qgsApp = QgsApplication([], True)
+    qgsApp.setPrefixPath(PATH_QGS, True)
+    qgsApp.initQgis()
+
+    import enmapbox.enmapbox
 
     w = QMainWindow()
-    c = QgsMapCanvas()
-    c.setCanvasColor(Qt.black)
-    c.enableAntiAliasing(True)
-
-    reg = QgsMapLayerRegistry.instance()
-    w.setCentralWidget(c)
+    w.setWindowTitle('QgsMapCanvas Example')
     w.show()
+    EB = enmapbox.enmapbox.EnMAPBox(w)
+    EB.run()
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
+    # qgsApp.exitQgis()
+    # app.exec_()
+    pass
+
     #load the plugin
     print('Done')
