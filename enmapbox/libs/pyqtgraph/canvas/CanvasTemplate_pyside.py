@@ -9,7 +9,7 @@
 
 from PySide import QtCore, QtGui
 
-class Ui_Form(object):
+class   Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(490, 414)

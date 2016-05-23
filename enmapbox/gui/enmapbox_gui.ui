@@ -6,44 +6,76 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1042</width>
-    <height>658</height>
+    <width>698</width>
+    <height>476</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>EnMAP-Box</string>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QWidget" name="widget" native="true"/>
+    </item>
+   </layout>
+  </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1042</width>
+     <width>698</width>
      <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
-     <string>About</string>
+     <string>Help</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>Files</string>
     </property>
+    <addaction name="actionOpen_Raster"/>
+    <addaction name="actionImport"/>
+    <addaction name="actionExport"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
-     <string>View</string>
+     <string>Views</string>
     </property>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionGDAL"/>
+   </widget>
+   <widget class="QMenu" name="menuApplications">
+    <property name="title">
+     <string>Applications</string>
+    </property>
+    <addaction name="actionImageML"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuApplications"/>
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
+   <property name="floating">
+    <bool>false</bool>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea</set>
+   </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
@@ -52,16 +84,34 @@
      <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
-         <string>Files</string>
+         <string>Data</string>
         </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="margin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QTreeView" name="treeView">
+           <property name="frameShape">
+            <enum>QFrame::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
        <widget class="QWidget" name="tab_2">
         <attribute name="title">
-         <string>Project</string>
+         <string>Views</string>
         </attribute>
        </widget>
       </widget>
@@ -69,6 +119,31 @@
     </layout>
    </widget>
   </widget>
+  <action name="actionOpen_Raster">
+   <property name="text">
+    <string>Open Raster</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>Import</string>
+   </property>
+  </action>
+  <action name="actionExport">
+   <property name="text">
+    <string>Export</string>
+   </property>
+  </action>
+  <action name="actionGDAL">
+   <property name="text">
+    <string>Spectral/Spatial Subset</string>
+   </property>
+  </action>
+  <action name="actionImageML">
+   <property name="text">
+    <string>imageML</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="resources.qrc"/>

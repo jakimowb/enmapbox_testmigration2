@@ -4,10 +4,9 @@
 ***************************************************************************
     __init__.py
     ---------------------
-    Date                 : April 2016
-    Copyright            : (C) 2013 by Benjamin Jakimow
-                         This file is derived from the the ExampleAlgorithmProvider.py
-                         originally written by Victor Olaya for the QGIS Processing framework
+    Date                 : July 2013
+    Copyright            : (C) 2013 by Victor Olaya
+    Email                : volayaf at gmail dot com
 ***************************************************************************
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
@@ -18,12 +17,18 @@
 ***************************************************************************
 """
 
+__author__ = 'Victor Olaya'
+__date__ = 'July 2013'
+__copyright__ = '(C) 2013, Victor Olaya'
+
+# This will get replaced with a git SHA1 when you do a git archive
+
+__revision__ = '$Format:%H$'
 
 from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.ProcessingConfig import Setting, ProcessingConfig
 from ExampleAlgorithm import ExampleAlgorithm
 
-import enmapbox
 
 class ExampleAlgorithmProvider(AlgorithmProvider):
 
@@ -33,7 +38,7 @@ class ExampleAlgorithmProvider(AlgorithmProvider):
         AlgorithmProvider.__init__(self)
 
         # Deactivate provider by default
-        self.activate = True
+        self.activate = False
 
         # Load algorithms
         self.alglist = [ExampleAlgorithm()]
@@ -49,7 +54,7 @@ class ExampleAlgorithmProvider(AlgorithmProvider):
         deactivating the algorithms in the provider.
         """
         AlgorithmProvider.initializeSettings(self)
-        ProcessingConfig.addSetting(Setting('EnMAP-Box',
+        ProcessingConfig.addSetting(Setting('EnMAP Box',
                                             ExampleAlgorithmProvider.MY_DUMMY_SETTING,
                                             'Example setting', 'Default value'))
 
@@ -67,19 +72,17 @@ class ExampleAlgorithmProvider(AlgorithmProvider):
         It is also used to create the command line name of all the
         algorithms from this provider.
         """
-        return 'EnMAP-Box'
+        return 'EnMAP Box'
 
     def getDescription(self):
         """This is the provired full name.
         """
-        return 'Example app'
+        return 'EnMAP Box'
 
     def getIcon(self):
-        """Return the default EnMAP-Box Icon
+        """We return the default icon.
         """
-
-        return enmapbox.getQIcon()
-        #return AlgorithmProvider.getIcon(self)
+        return AlgorithmProvider.getIcon(self)
 
     def _loadAlgorithms(self):
         """Here we fill the list of algorithms in self.algs.
