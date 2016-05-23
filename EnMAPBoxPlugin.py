@@ -106,9 +106,11 @@ if __name__ == '__main__':
 
     from qgis.gui import *
     from qgis.core import *
-
-
-    PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    if sys.platform == 'darwin':
+        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+    else:
+        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    assert os.path.exists(PATH_QGS)
     qgsApp = QgsApplication([], True)
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()

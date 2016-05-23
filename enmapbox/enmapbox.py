@@ -18,7 +18,10 @@ else:
     rc_suffix = '_py2'
     import gui.resources_py2
 
+from qgis.gui import *
+from qgis.core import *
 
+VERSION = '2016-0.beta'
 ENMAPBOX_GUI_UI, _ = uic.loadUiType(jp(DIR_GUI, 'enmapbox_gui.ui'), from_imports=False, resource_suffix=rc_suffix)
 
 class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
@@ -32,6 +35,7 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.setWindowIcon(QtGui.QIcon(getIcon()))
+
 
 def getQIcon():
     return QtGui.QIcon(getIcon())
@@ -48,6 +52,10 @@ class EnMAPBox:
     def __init__(self, iface):
         self.iface = iface
         self.gui = EnMAPBox_GUI()
+        self.gui.setWindowTitle('EnMAP-Box ' + VERSION)
+
+        self.ViewManager = EnMAPBoxViewManager(self.gui.centralWidget())
+        self.DataSourceManager = EnMAPBoxDataSourceManager()
         pass
 
     @staticmethod
@@ -57,3 +65,75 @@ class EnMAPBox:
     def run(self):
         self.gui.show()
         pass
+
+    def addImage(self, path):
+        pass
+
+    def addView(self, path):
+        pass
+
+
+class EnMAPBoxDataSourceManager(QtCore.QObject):
+
+    def __init__(self):
+        pass
+
+    def addSource(self, source):
+
+        #switch to differentiate between sources
+        if isinstance(source, str):
+            #handle strings
+
+            pass
+        elif isinstance(source, qgis.core):
+            pass
+        pass
+
+    def removeSource(self, source):
+        pass
+
+    pass
+
+
+
+
+class EnMAPBoxViewManager(QtCore.QObject):
+
+    def __init__(self, centralwidget):
+        self.views = dict()
+        self.centralwidget = centralwidget
+        pass
+
+    def addView(self, view):
+        assert isinstance(view, EnMAPBoxView)
+
+    def removeView(self, view_name):
+        if view_name in self.views.keys():
+            self.views.pop(view_name)
+        else:
+            print("view does not exist:"+view_name)
+
+    def getView(self, name):
+        return self.views[name]
+
+
+
+class EnMAPBoxView(QtGui.QFrame):
+
+    def __init__(self):
+        pass
+
+    def close(self):
+        pass
+
+    def detach(self):
+        pass
+        w = QtGui.QWidget()
+        #add GUI to detached widget
+
+    def attach(self, viewManager):
+        assert isinstance(viewManager, EnMAPBoxViewManager)
+
+
+
+
