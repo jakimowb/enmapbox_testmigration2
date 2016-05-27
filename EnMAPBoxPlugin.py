@@ -5,6 +5,8 @@ import sys
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+import qgis.gui
+
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 jp = os.path.join
 root = jp(cmd_folder, 'enmapbox')
@@ -32,8 +34,9 @@ class EnMAPBoxPlugin:
 
     def __init__(self, iface):
         self.iface = iface
-        import qgis.gui
-        #open QGIS python console. this is required to not endup with print() statements as errors.
+
+
+        #open QGIS python console. this is required to allow for print() statements in the source code.
         if isinstance(self.iface, qgis.gui.QgisInterface):
             import console
             console.show_console()
