@@ -6,18 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>698</width>
-    <height>476</height>
+    <width>1276</width>
+    <height>755</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>EnMAP-Box</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QWidget" name="widget" native="true"/>
-    </item>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="margin">
+     <number>0</number>
+    </property>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -25,7 +28,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>698</width>
+     <width>1276</width>
      <height>22</height>
     </rect>
    </property>
@@ -59,14 +62,30 @@
     </property>
     <addaction name="actionImageML"/>
    </widget>
+   <widget class="QMenu" name="menuSandbox">
+    <property name="title">
+     <string>Sandbox</string>
+    </property>
+    <addaction name="actionAddView"/>
+    <addaction name="actionAddMapView"/>
+    <addaction name="actionAddTextView"/>
+    <addaction name="actionAddGraphView"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
    <addaction name="menuTools"/>
    <addaction name="menuApplications"/>
    <addaction name="menuAbout"/>
+   <addaction name="menuSandbox"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="floating">
     <bool>false</bool>
    </property>
@@ -74,7 +93,7 @@
     <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
    </property>
    <property name="allowedAreas">
-    <set>Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea</set>
+    <set>Qt::AllDockWidgetAreas</set>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
@@ -119,6 +138,34 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>true</bool>
+   </attribute>
+   <addaction name="actionAddMapView"/>
+   <addaction name="actionAddTextView"/>
+   <addaction name="separator"/>
+   <addaction name="actionZoomIn"/>
+   <addaction name="actionZoomOut"/>
+   <addaction name="actionPan"/>
+   <addaction name="actionSelectPixel"/>
+   <addaction name="separator"/>
+  </widget>
   <action name="actionOpen_Raster">
    <property name="text">
     <string>Open Raster</string>
@@ -144,9 +191,58 @@
     <string>imageML</string>
    </property>
   </action>
+  <action name="actionAddView">
+   <property name="text">
+    <string>addView</string>
+   </property>
+  </action>
+  <action name="actionAddMapView">
+   <property name="icon">
+    <iconset>
+     <normalon>:/enmapbox/icons/enmapbox.png</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>addMapView</string>
+   </property>
+  </action>
+  <action name="actionAddTextView">
+   <property name="icon">
+    <iconset>
+     <normalon>:/enmapbox/icons/enmapbox.png</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>addTextView</string>
+   </property>
+  </action>
+  <action name="actionAddGraphView">
+   <property name="text">
+    <string>addGraphView</string>
+   </property>
+  </action>
+  <action name="actionZoomIn">
+   <property name="text">
+    <string>zoomIn</string>
+   </property>
+  </action>
+  <action name="actionZoomOut">
+   <property name="text">
+    <string>zoomOut</string>
+   </property>
+  </action>
+  <action name="actionPan">
+   <property name="text">
+    <string>pan</string>
+   </property>
+  </action>
+  <action name="actionSelectPixel">
+   <property name="text">
+    <string>selectPixel</string>
+   </property>
+  </action>
  </widget>
  <resources>
-  <include location="resources.qrc"/>
   <include location="resources.qrc"/>
  </resources>
  <connections/>

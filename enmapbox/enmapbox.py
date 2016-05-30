@@ -159,14 +159,14 @@ class EnMAPBoxDock(Dock):
     def __init__(self, enmapbox, name='view', closable=True, *args, **kwds):
         super(EnMAPBoxDock, self).__init__(name=name, closable=False, *args, **kwds)
         self.enmapbox = enmapbox
-
+        self.title = name
         self.setStyleSheet('background:#FFF')
         #change the enmapbox-like things
         self.topLayout.removeWidget(self.label)
         del self.label
 
 
-        self.label = EnMAPBoxDockLabel(name, self, closable)
+        self.label = self._getLabel()
         self.topLayout.addWidget(self.label, 0, 1)
 
         if closable:
@@ -207,6 +207,12 @@ class EnMAPBoxDock(Dock):
         self.widgetArea.setStyleSheet(self.hStyle)
         self.topLayout.update()
 
+    def _getLabel(self):
+        """
+        This functions returns the Label that is used to style the Dock
+        :return:
+        """
+        return EnMAPBoxDockLabel(self)
 
     def append_hv_style(self, stylestr):
         obj_name = type(self).__name__
@@ -220,23 +226,24 @@ class EnMAPBoxDockLabel(VerticalLabel):
     sigCloseClicked = QtCore.Signal()
     sigNormalClicked = QtCore.Signal()
 
-    def __init__(self, text, dock, showCloseButton):
+    def __init__(self, dock):
         assert isinstance(dock, EnMAPBoxDock)
         self.dim = False
         self.fixedWidth = False
-        VerticalLabel.__init__(self, text, orientation='horizontal', forceWidth=False)
-        self.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
         self.dock = dock
+        VerticalLabel.__init__(self, self.dock.title, orientation='horizontal', forceWidth=False)
+        self.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
+
         self.updateStyle()
         self.setAutoFillBackground(False)
         self.startedDrag = False
         self.buttons = list() #think from right to left
         self.pressPos = QtCore.QPoint()
-        if showCloseButton:
-            closeButton = QtGui.QToolButton(self)
-            closeButton.clicked.connect(self.sigCloseClicked)
-            closeButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_TitleBarCloseButton))
-            self.buttons.append(closeButton)
+
+        closeButton = QtGui.QToolButton(self)
+        closeButton.clicked.connect(self.sigCloseClicked)
+        closeButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_TitleBarCloseButton))
+        self.buttons.append(closeButton)
 
         if True:
             testButton = QtGui.QToolButton(self)
@@ -331,6 +338,19 @@ class EnMAPBoxDockLabel(VerticalLabel):
 
         super(EnMAPBoxDockLabel, self).resizeEvent(ev)
 
+class EnMAPBoxMapDockLabel(EnMAPBoxDockLabel):
+
+    def __init__(self, *args, **kwds):
+
+        super(EnMAPBoxMapDockLabel, self).__init__(*args, **kwds)
+
+        linkButton = QtGui.QToolButton(self)
+        # testButton.clicked.connect(self.sigNormalClicked)
+
+        linkButton.clicked.connect(lambda: self.dock.linkWithMapDock())
+        linkButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
+        self.buttons.append(linkButton)
+
 
 class EnMAPBoxMapDock(EnMAPBoxDock):
     """
@@ -378,6 +398,13 @@ class EnMAPBoxMapDock(EnMAPBoxDock):
 
         if initSrc:
             self.addLayer(initSrc)
+
+    def _getLabel(self):
+        return EnMAPBoxMapDockLabel(self)
+
+    def linkWithMapDock(self, mapDock):
+        assert isinstance(mapDock, EnMAPBoxMapDock)
+
 
 
 
