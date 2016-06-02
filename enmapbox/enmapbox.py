@@ -241,16 +241,18 @@ class EnMAPBoxDockLabel(VerticalLabel):
         self.pressPos = QtCore.QPoint()
 
         closeButton = QtGui.QToolButton(self)
+        closeButton.setToolTip('Close window')
         closeButton.clicked.connect(self.sigCloseClicked)
         closeButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_TitleBarCloseButton))
         self.buttons.append(closeButton)
 
         if True:
-            testButton = QtGui.QToolButton(self)
+            floatButton = QtGui.QToolButton(self)
             #testButton.clicked.connect(self.sigNormalClicked)
-            testButton.clicked.connect(lambda : self.dock.float())
-            testButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_TitleBarNormalButton))
-            self.buttons.append(testButton)
+            floatButton.setToolTip('Float this window')
+            floatButton.clicked.connect(lambda : self.dock.float())
+            floatButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_TitleBarNormalButton))
+            self.buttons.append(floatButton)
 
     def updateStyle(self):
         r = '3px'
@@ -346,7 +348,7 @@ class EnMAPBoxMapDockLabel(EnMAPBoxDockLabel):
 
         linkButton = QtGui.QToolButton(self)
         # testButton.clicked.connect(self.sigNormalClicked)
-
+        linkButton.setToolTip('Link map window with other map windows')
         linkButton.clicked.connect(lambda: self.dock.linkWithMapDock())
         linkButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
         self.buttons.append(linkButton)
