@@ -211,9 +211,9 @@ class EnMAPBox:
 
 
         #link action objects to action behaviour
-        self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addView(EnMAPBoxDock(self)))
-        self.gui.actionAddMapView.triggered.connect(lambda : self.dockarea.addView(EnMAPBoxMapDock(self)))
-        self.gui.actionAddTextView.triggered.connect(lambda: self.dockarea.addView(EnMAPBoxTextDock(self)))
+        self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
+        self.gui.actionAddMapView.triggered.connect(lambda : self.dockarea.addDock(EnMAPBoxMapDock(self)))
+        self.gui.actionAddTextView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxTextDock(self)))
 
 
     def isLinkedWithQGIS(self):
@@ -230,12 +230,6 @@ class EnMAPBox:
 
     def run(self):
         self.gui.show()
-        pass
-
-    def addImage(self, path):
-        pass
-
-    def addView(self, path):
         pass
 
 
@@ -293,11 +287,10 @@ class EnMAPBoxDockArea(pyqtgraph.dockarea.DockArea):
     def __init__(self, *args, **kwds):
         super(EnMAPBoxDockArea, self).__init__(*args, **kwds)
 
-
-
-    def addView(self, enmapboxdock, **kwds):
+    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
+        assert enmapboxdock is not None
         assert isinstance(enmapboxdock, EnMAPBoxDock)
-        return self.addDock(dock=enmapboxdock, **kwds)
+        return super(EnMAPBoxDockArea,self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
 
 
 import pyqtgraph.dockarea.Dock
@@ -306,6 +299,7 @@ class EnMAPBoxDock(pyqtgraph.dockarea.Dock):
     Handle style sheets etc., basic stuff that differs from pyqtgraph dockarea
     '''
 
+    #todo: a registry to handle EnMAPBoxDock windows
     def __init__(self, enmapbox, name='view', closable=True, *args, **kwds):
         super(EnMAPBoxDock, self).__init__(name=name, closable=False, *args, **kwds)
         self.enmapbox = enmapbox
@@ -357,6 +351,7 @@ class EnMAPBoxDock(pyqtgraph.dockarea.Dock):
 
         self.widgetArea.setStyleSheet(self.hStyle)
         self.topLayout.update()
+
 
 
 
@@ -658,9 +653,9 @@ class EnMAPBoxMapDock(EnMAPBoxDock):
 
         #link canvas to map tools
         g = self.enmapbox.gui
-        g.actionAddView.triggered.connect(lambda: self.dockarea.addView(EnMAPBoxDock(self)))
-        g.actionAddMapView.triggered.connect(lambda : self.dockarea.addView(EnMAPBoxMapDock(self)))
-        g.actionAddTextView.triggered.connect(lambda: self.dockarea.addView(EnMAPBoxTextDock(self)))
+        #g.actionAddView.triggered.connect(lambda: self.enmapbox.dockarea.addDock(EnMAPBoxDock(self)))
+        #g.actionAddMapView.triggered.connect(lambda : self.enmapbox.dockarea.addDock(EnMAPBoxMapDock(self)))
+        #g.actionAddTextView.triggered.connect(lambda: self.enmapbox.dockarea.addDock(EnMAPBoxTextDock(self)))
 
         # create the map tools and linke them to the toolbar actions
         self.toolPan = qgis.gui.QgsMapToolPan(self.canvas)
@@ -787,13 +782,13 @@ if __name__ == '__main__':
 
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
-    EB.dockarea.addView(EnMAPBoxDock(EB, name='view1 Default'))
-    md1 = EB.dockarea.addView(EnMAPBoxMapDock(EB, name='view2: a map', initSrc=TestData.Image()))
-    EB.dockarea.addView(EnMAPBoxTextDock(EB,
+    EB.dockarea.addDock(EnMAPBoxDock(EB, name='view1 Default'))
+    md1 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view2: a map', initSrc=TestData.Image()))
+    EB.dockarea.addDock(EnMAPBoxTextDock(EB,
                                          name='view3: a text/info window',
                                          html='Lore <i>ipsum</i> tralalla<br/> '
                                               '<a href="http://www.enmap.org">www.enmap.org</a>'))
-    md2 = EB.dockarea.addView(EnMAPBoxMapDock(EB, name='view4: another map', initSrc=TestData.Image()))
+    md2 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view4: another map', initSrc=TestData.Image()))
 
     #md1.linkWithMapDock(md2, linktype='center')
     #EB.show()
