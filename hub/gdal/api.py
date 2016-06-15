@@ -1,5 +1,5 @@
 __author__ = 'janzandr'
-import gdal, numpy, osgeo, hub.file, yaml, hub.envi
+import gdal, numpy, osgeo, hub.file, hub.envi
 from gdalconst import *
 from hub.collections import Bunch
 
@@ -15,6 +15,7 @@ def geoInfo(file):
     result.ul = result.geoTie+result.rasterSize*result.pixelTie
     result.lr = result.ul+result.rasterSize*result.pixelSize
     result.boundingBox = numpy.append(result.ul, result.lr)
+    return result
 
 def readCube(filename):
     driver = gdal.GetDriverByName('MEM')
@@ -86,7 +87,7 @@ class GDALBandmeta():
     def setMetadataDict(self, value): self.metadata = value
     def getMetadataDict(self): return self.metadata
 
-    def setMetadataItem(self, key, value): self.metadata[key] = value
+    def setMetadataItem(self, key, value): self.metadata[key] = str(value)
     def getMetadataItem(self, key): return self.metadata[key]
 
 class GDALMeta():
@@ -99,30 +100,58 @@ class GDALMeta():
 
     def readMeta(self, filename):
         ds = gdal.Open(filename)
+        if ds is None:
+            Exception('Can not open file: '+filename)
 
         # read data source meta
         self.domain = Bunch()
-        for domain in ds.GetMetadataDomainList():
-            self.domain[domain if domain != '' else 'DEFAULT'] = Bunch(ds.GetMetadata(domain))
+        if ds.GetMetadataDomainList() is not None:
+            for domain in ds.GetMetadataDomainList():
+                self.domain[domain if domain != '' else 'DEFAULT'] = Bunch(ds.GetMetadata(domain))
+                if domain == 'ENVI':
+                    # convert arrays given as strings into lists
+                    for k,v in self.domain.ENVI.items():
+                        if k in ['coordinate_system_string']: continue
+                        isArray = v[0] == '{' and v[-1] == '}'
+                        if isArray:
+                            v = v[1:-1].split(',')
+                            v = [vi.strip(" '") for vi in v]
+                        else:
+                            v = v.strip(' ')
+                        self.domain.ENVI[k] = v
+                        #if v[0] == '{' and v[-1] == '}': v = '['+v[1:-1]+']'
+                        #self.domain.ENVI[k] = yaml.load(v)
 
         # read band meta
         self.rb = list()
         for band in range(1,ds.RasterCount+1):
             self.rb.append(GDALBandmeta(ds.GetRasterBand(band)))
 
-        ds = None
+        #
+        self.Projection = ds.GetProjection()
+        self.RasterXSize = ds.RasterXSize
+        self.RasterYSize = ds.RasterYSize
+        self.RasterCount = ds.RasterCount
+        self.GeoTransform = ds.GetGeoTransform()
+        self.pixelXSize = self.GeoTransform[1]
+        self.pixelYSize = self.GeoTransform[5]
+        self.xmin = self.GeoTransform[0]-self.GeoTransform[2]
+        self.ymin = self.GeoTransform[3]-self.GeoTransform[4]
+        self.xmax = self.xmin+self.RasterXSize*self.pixelXSize
+        self.ymax = self.ymin+self.RasterXSize*self.pixelYSize
+        self.boundingBox  = [self.xmin, self.ymin, self.xmax, self.ymax]
+        self.boundingBox2 = [self.xmin, self.ymax, self.xmax, self.ymin]
 
     def writeMeta(self, filename):
 
         ds = gdal.Open(filename, GA_Update)
-        print 'write:', filename, ds.GetFileList()
+        if ds is None:
+            print 'Unable to open '+filename
+            raise
 
-        ds.SetDescription(self.ds.description) # note that this will alter the filename returned by ds.GetFileList(), which is strange
-
-
-        for domain, bunch in self.ds.domain.items():
+        for domain, bunch in self.domain.items():
             # convert values to string
-            bunch = {key:str(value) for key,value in bunch.items()} # this also makes a copy of the bunch!
+            bunch = {key: '['+', '.join(map(str, value))+']' if hasattr(value,'__iter__') else str(value) for key,value in bunch.items()}
             # for ENVI domain replace [] with {} if needed
             if domain == 'ENVI':
                 for key, value in bunch.items():
@@ -133,7 +162,7 @@ class GDALMeta():
 
         for band in range(1,ds.RasterCount+1):
             rb = ds.GetRasterBand(band)
-            rb.SetDescription(self.rb[band-1].description)
+            rb.SetDescription(self.rb[band-1].getDescription())
             rb.SetMetadata(self.rb[band-1].metadata)
             if self.rb[band-1].noDataValue is not None:   rb.SetNoDataValue(float(self.rb[band-1].noDataValue))
             if self.rb[band-1].categoryNames is not None: rb.SetCategoryNames(self.rb[band-1].categoryNames)
@@ -151,6 +180,9 @@ class GDALMeta():
             ds.FlushCache()
             ds = None
             hdr = hub.envi.readHeader(hdrfile)
+            # GDAL skips some metadata when writing the HDR file, don't know why
+            for key in ['file type','class names']:
+                hdr[key] = self.getMetadataItem(key)
             hub.envi.writeHeader(hdrfile, hdr)
         else:
             ds.FlushCache()
@@ -159,10 +191,70 @@ class GDALMeta():
     def setMetadataDict(self, value, domain='ENVI'): self.domain[domain] = value
     def getMetadataDict(self, domain='ENVI'): return self.domain[domain]
 
-    def setMetadataItem(self, key, value, domain='ENVI'):
+    def createDomain(self, domain):
         if not self.domain.has_key(domain): self.domain[domain] = Bunch()
+
+    def setMetadataItem(self, key, value, domain='ENVI', mapToBands=False):
+        key = key.lower().replace(' ','_')
+        self.createDomain(domain)
         self.domain[domain][key] = value
-    def getMetadataItem(self, key, domain): return self.domain[domain][key]
+        if mapToBands:
+            for rb, ivalue in zip(self.rb, value):
+                rb.setMetadataItem(key, ivalue)
+
+    def copyMetadataItem(self, key, gdalMeta, domain='ENVI', mapToBands=False):
+        value = gdalMeta.getMetadataItem(key, default=None, domain=domain, fromBands=mapToBands)
+        self.setMetadataItem(key, value, domain=domain, mapToBands=mapToBands)
+
+    def getMetadataItem(self, key, default=None, domain='ENVI', fromBands=False):
+        #key = key.lower().replace(' ','_')
+        if fromBands:
+            result = list()
+            for rb in self.rb:
+                result.append(rb.getMetadataItem(key))
+        else:
+            if domain == 'ENVI': # GDAL casts ENVI keys to all lower letters when writing to disk :-(, need to consider that here
+                key = key.replace(' ', '_')
+                if not self.domain.ENVI.has_key(key):
+                    key = key.lower()
+                result = self.domain.ENVI.get(key, self.domain.ENVI.get(key.lower(), default))
+            else:
+                result = self.domain[domain].get(key, default)
+        return result
+
+    def setNoDataValue(self, value):
+        self.createDomain('ENVI')
+        self.domain.ENVI.data_ignore_value = value
+        for rb in self.rb:
+            rb.setNoDataValue(value)
+
+    def getNoDataValue(self, default=None):
+        if self.getMetadataItem('file type').lower() == 'envi classification':
+            noDataValue = 0
+        else:
+            noDataValue = self.getMetadataItem('data ignore value', default)
+
+        return float(noDataValue) if noDataValue is not None else None
+
+
+    def setBandNames(self, values):
+
+        if values is None:
+            return
+
+        for rb, value in zip(self.rb, values):
+            rb.setDescription(value)
+        self.createDomain('ENVI')
+        self.domain.ENVI.band_names = values
+
+
+    def getBandNames(self):
+
+        bandNames = self.getMetadataItem('band_names')
+        if bandNames is None:
+            bandNames = ['Band '+str(i) for i in range(1, self.RasterCount+1)]
+        return bandNames
+
 
 if __name__ == '__main__':
     #meta = GDALMeta(r'D:\work\EnMap-Box\EnMAP-Box_1.4\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')

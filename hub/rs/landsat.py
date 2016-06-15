@@ -1,6 +1,6 @@
 __author__ = 'janzandr'
 import hub.collections
-import yaml, calendar, gdal
+import calendar, gdal
 import xml.etree.ElementTree as ElementTree
 
 def parseMTL(mtlfilename, filter=False):
@@ -17,9 +17,9 @@ def parseMTL(mtlfilename, filter=False):
             'SPACECRAFT_ID', 'STATION_ID', 'SUN_AZIMUTH', 'SUN_ELEVATION', 'UTM_ZONE', 'WRS_PATH', 'WRS_ROW']
 
     if filter:
-        metas = {key:yaml.load(value) for (key, value) in metas if key in keyfilter}
+        metas = {key:value.strip('"') for (key, value) in metas if key in keyfilter}
     else:
-        metas = {key:yaml.load(value) for (key, value) in metas}
+        metas = {key:value.strip('"') for (key, value) in metas}
 
     #metas = {key:value for (key, value) in metas if key in keyfilter}
     return metas

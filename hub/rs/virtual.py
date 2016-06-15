@@ -1,6 +1,5 @@
 __author__ = 'janzandr'
 import hub.rs.landsat
-import calendar, gdal, yaml
 import xml.etree.ElementTree as ElementTree
 
 def parseLandsatMeta(mtlfilename, espafilename):

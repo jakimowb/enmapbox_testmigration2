@@ -1,2 +1,0 @@
-#this file is used to collect external packages / libraries that need to be shipped with enmap-box
-#

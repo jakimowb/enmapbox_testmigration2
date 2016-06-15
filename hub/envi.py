@@ -2,6 +2,7 @@ from __future__ import absolute_import
 #import xml.etree.ElementTree, os, gzip, numpy, copy
 import xml.etree.ElementTree, os, numpy, copy
 import hub.collections
+import gzip
 
 def vrt2mos(vrtfile, hdr={}):
     root = xml.etree.ElementTree.parse(vrtfile).getroot()
@@ -101,25 +102,21 @@ def updateHeader(hdrfile, hdr):
     hdr1.update(hdr)
     writeHeader(hdrfile, hdr1)
 
-# def compress(infile, outfile=None):
-#     if not outfile:
-#         outfile = infile
-#
-#     hdr = readHeader(infile[:-4]+'.hdr')
-#     if 'file compression' in hdr.keys() and int(hdr['file compression']):
-#         print('File is already compressed.')
-#         return
-#
-#     f_in = open(infile, 'rb')
-#     data = f_in.readlines()
-#     f_in.close()
-#
-#     f_out = gzip.open(outfile, 'wb')
-#     f_out.writelines(data)
-#     f_out.close()
-#
-#     hdr['file compression'] = '1'
-#     writeHeader(outfile[:-4]+'.hdr', hdr)
+def compress(infile, outfile=None):
+    if not outfile: outfile = infile
+
+    hdr = readHeader(infile[:-4]+'.hdr')
+
+    f_in = open(infile, 'rb')
+    data = f_in.readlines()
+    f_in.close()
+
+    f_out = gzip.open(outfile, 'wb')
+    f_out.writelines(data)
+    f_out.close()
+
+    hdr['file compression'] = '1'
+    writeHeader(outfile[:-4]+'.hdr', hdr)
 
 if __name__ == '__main__':
 

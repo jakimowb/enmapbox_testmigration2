@@ -1,5 +1,5 @@
 import numpy, os, hub.file, subprocess, gdal, xml.etree.ElementTree, copy
-from gdalconst import *
+#from gdalconst import *
 
 def gdal_translate(outfile, infile, options, verbose=True):
 
@@ -37,6 +37,30 @@ def gdalbuildvrt(outfile, infiles, options, verbose=True):
 
     cmd = 'gdalbuildvrt '+options+' -input_file_list '+infiles_file+' '+outfile
     #cmd = r'"C:\Program Files\QGIS Wien\bin\gdalbuildvrt" '+options+' -input_file_list '+infiles_file+' '+outfile
+
+    if verbose:
+        print(cmd)
+    else:
+        cmd += ' -q'
+    subprocess.call(cmd, shell=True)
+
+def gdaldem(outfile, infile, options, verbose=True):
+
+    hub.file.mkdir(os.path.dirname(outfile))
+
+    cmd = 'gdaldem '+options+' '+infile+' '+outfile
+
+    if verbose:
+        print(cmd)
+    else:
+        cmd += ' -q'
+    subprocess.call(cmd, shell=True)
+
+def gdal_proximity(outfile, infile, options, verbose=True):
+
+    hub.file.mkdir(os.path.dirname(outfile))
+
+    cmd = 'gdal_proximity '+infile+' '+outfile+' '+options
 
     if verbose:
         print(cmd)
@@ -117,6 +141,7 @@ def stack(outfile, infiles, options='', verbose=True):
 def mosaic(outfile, infiles, options='', verbose=True):
     gdalbuildvrt(outfile, infiles, options, verbose)
 
+'''
 def warp(outfile, infile, of='VRT'):
 
     hub.file.mkdir(os.path.dirname(outfile))
@@ -136,6 +161,7 @@ def subset(outfile, infile, xmin, ymin, xmax, ymax, of='VRT', verbose=True):
     else:
         cmd += ' -q'
     subprocess.call(cmd, shell=True)
+'''
 
 if __name__ == '__main__':
 

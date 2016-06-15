@@ -1,5 +1,5 @@
 __author__ = 'janzandr'
-import os, fnmatch, json, pickle, hub.collections, numpy, hub.file
+import os, fnmatch, json, pickle, hub.collections, numpy, hub.file, sys
 
 def filesearch(dir, pattern):
     files = []
