@@ -95,6 +95,8 @@ class Image(Type):
 
 class ImgeStatistics():
 
+
+ds
         def __init__(self):
 
 
