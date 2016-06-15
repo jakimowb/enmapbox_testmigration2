@@ -88,14 +88,14 @@ class Image(Type):
         return self.__class__(filename)
 
 
-    def statistics(self):
+   # def statistics(self):
 
-        return IamgeStatistics()
+      #  return IamgeStatistics()
 
 
-class ImgeStatistics():
+#class ImgeStatistics():
 
-        def __init__(self):
+#        def __init__(self):
 
 
 class SpectralImage(Image):

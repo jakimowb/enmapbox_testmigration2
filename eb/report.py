@@ -171,10 +171,30 @@ class ReportImage():
         html.append('    <br /><i>' + self.caption + '</i></p>')
         return html
 
+class ReportPlot(ReportImage):
+
+    def __init__(self, figure, caption=''):
+
+        import matplotlib.pyplot as plt
+
+        def fig2rgb_array():
+
+            figure.canvas.draw()
+            buf = figure.canvas.tostring_rgb()
+            ncols, nrows = figure.canvas.get_width_height()
+            return numpy.fromstring(buf, dtype=numpy.uint8).reshape(nrows, ncols, 3)
+
+        array = fig2rgb_array()
+        ReportImage.__init__(self, array, caption)
 
 class ReportTable():
 
     def __init__(self, data, caption='', colHeaders=None, rowHeaders=None, colSpans=None, rowSpans=None):
+
+        if isinstance(data, numpy.ndarray):
+            if data.ndim == 1:
+                data = data.reshape((1,-1))
+            assert data.ndim == 2
 
         table = [TableRow([TableCell(str(v)) for v in row]) for row in data]
 

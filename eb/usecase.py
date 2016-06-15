@@ -9,23 +9,18 @@ root = r'c:\work\outputs'
 
 def classification():
 
-    image = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask =  eb.Image(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    trainingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
-#    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-
+    image = eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
+    mask =  eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Mask')
+    trainingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Training-Sample')
+    testingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
 
     classifier = eb.estimators.Classifiers.RandomForestClassifier()
     classifier = classifier.fit(image, trainingLabels)
     prediction = classifier.predict(image, mask)
     print(prediction)
-    return
 
 
-
-    classifiers = eb.estimators.all(eb.estimators.Classifiers)
-
-
+    #classifiers = eb.estimators.all(eb.estimators.Classifiers)
     classifiers = [eb.estimators.Classifiers.RandomForestClassifier()]
 
     for classifier in classifiers:
@@ -161,7 +156,7 @@ def statisticsClassification():
 
 if __name__ == '__main__':
     #eb.env.cleanupTempdir()
-    #classification()
+    classification()
     #regression()
     #clusterer()
     #transformer()
@@ -169,6 +164,6 @@ if __name__ == '__main__':
     #uncertaintyClassifier()
     #uncertaintyRegressor()
     #classificationAccAss()
-    classificationAccAssAdjusted()
+    #classificationAccAssAdjusted()
 
     #  print(eb.env.tempdir)

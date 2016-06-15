@@ -9,6 +9,7 @@ from eb.report import *
 from HTML import Table, TableRow, TableCell
 from eb.env import PrintProgress, SilentProgress
 import numpy
+import matplotlib.pyplot as plt
 
 def all(estimators):
 
@@ -155,18 +156,20 @@ class Classifiers():
 
             rfc = self.finalEstimator()
 
-            self.sample.image.meta.getMetadataItem('wavelength', default=range(1, rfc.n_features_+1))
+
 
             report = Report('')
             report.append(ReportHeading('Information'))
 
             bandNames = [''] + self.sample.image.meta.getBandNames()
-            featureImportances = ['<b>Feature Importance [%]</b>'] + list((numpy.round(rfc.feature_importances_, 4)*100).astype(numpy.str))
-            table = Table([featureImportances], header_row=bandNames)
-            report.append(ReportTable(table))
+            data = numpy.round(rfc.feature_importances_, 4)*100
+            rowHeaders = [['Feature Importance [%]']]
+            report.append(ReportTable(data, rowHeaders=rowHeaders))
 
             if rfc.oob_score:
                 report.append(ReportParagraph('### ToDo - insert out-of-bag accuracies ###', font_color='red'))
+                fig = MH.RandomForestClassifier(rfc, self)
+                report.append(ReportPlot(fig, 'Hello World'))
 
             return report
 
@@ -510,6 +513,24 @@ class SklearnRegressors:
             yError = numpy.abs(y-yCV)
             sklearn.ensemble.RandomForestRegressor.fit(self, X, yError)
 
+
+class MH:
+
+    @staticmethod
+    def RandomForestClassifier(rfc, self):
+
+        wl = self.sample.image.meta.getMetadataItem('wavelength')
+        fig, ax = plt.subplots(facecolor='white')
+
+        #plt.vlines(numpy.arange(rfc.n_features_)+1,0,rfc.feature_importances_*100)
+        plt.vlines(wl,0,rfc.feature_importances_*100)
+
+        plt.ylabel('Variable Importance')
+        plt.xlabel('Variable Index')
+        return fig
+       # ax1 = fig.add_subplot(211)
+        #ax1.xcorr(rfc.feature_importances_*100, rfc.feature_importances_*100, usevlines=True, maxlags=50, normed=True, lw=2)
+  #self.sample.image.meta.getMetadataItem('wavelength', default=range(1, rfc.n_features_+1))
 
 if __name__ == '__main__':
 
