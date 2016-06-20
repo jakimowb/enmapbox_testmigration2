@@ -61,22 +61,6 @@ class env():
             env.isRunning = []
             env.isNotRunning = [1]
 
-    class ApplierControls(rios.applier.ApplierControls):
-
-        def __init__(self):
-
-            rios.applier.ApplierControls.__init__(self)
-            self.setNumThreads(1)
-            self.setJobManagerType('multiprocessing')
-            self.setOutputDriverName("ENVI")
-            self.setCreationOptions(["INTERLEAVE=BSQ"])
-            self.setCalcStats(False)
-            self.setOmitPyramids(True)
-
-        def __repr__(self):
-
-            d = self.__dict__
-            return 'ApplierControls('+', '.join([k+'='+str(d[k]) for k in sorted(d.keys())])
 
 
 

@@ -22,7 +22,10 @@ class Report():
     def appendReport(self, report):
 
         assert isinstance(report, Report)
-        self.items = self.items + report.items
+        self.append(ReportHeading(report.title))
+        for item in report.items:
+            self.append(item)
+
         return self
 
 

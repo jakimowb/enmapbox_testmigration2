@@ -188,8 +188,17 @@ class GDALMeta():
             ds.FlushCache()
             ds = None
 
-    def setMetadataDict(self, value, domain='ENVI'): self.domain[domain] = value
-    def getMetadataDict(self, domain='ENVI'): return self.domain[domain]
+    def setMetadataDict(self, value, domain='ENVI'):
+        self.domain[domain] = value
+
+
+    def getMetadataDict(self, domain='ENVI'):
+        if self.domain.has_key(domain):
+            result = self.domain[domain]
+        else:
+            result = dict()
+
+        return result
 
     def createDomain(self, domain):
         if not self.domain.has_key(domain): self.domain[domain] = Bunch()
@@ -246,14 +255,6 @@ class GDALMeta():
             rb.setDescription(value)
         self.createDomain('ENVI')
         self.domain.ENVI.band_names = values
-
-
-    def getBandNames(self):
-
-        bandNames = self.getMetadataItem('band_names')
-        if bandNames is None:
-            bandNames = ['Band '+str(i) for i in range(1, self.RasterCount+1)]
-        return bandNames
 
 
 if __name__ == '__main__':

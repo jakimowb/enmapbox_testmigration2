@@ -109,7 +109,7 @@ def stack(outfile, infiles, options='', verbose=True):
 
     gdalbuildvrt(outfile, infiles, options+' -separate', verbose)
 
-    bandss = [gdal.Open(infile, GA_ReadOnly).RasterCount for infile in infiles]
+    bandss = [gdal.Open(infile, gdal.GA_ReadOnly).RasterCount for infile in infiles]
 
     tree = xml.etree.ElementTree.parse(outfile)
     root = tree.getroot()
@@ -126,7 +126,7 @@ def stack(outfile, infiles, options='', verbose=True):
                 VRTRasterBand = copy.deepcopy(child)
                 VRTRasterBand.set('band',str(vrtbandindex+1))
                 vrtbandindex += 1
-                Source =  VRTRasterBand.find('SimpleSource') if VRTRasterBand.find('SimpleSource') else VRTRasterBand.find('ComplexSource')
+                Source =  VRTRasterBand.find('SimpleSource') if VRTRasterBand.find('SimpleSource') is not None else VRTRasterBand.find('ComplexSource')
                 SourceBand = Source.find('SourceBand')
                 SourceBand.text = str(band+1)
                 root2.append(VRTRasterBand)
