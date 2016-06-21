@@ -27,6 +27,8 @@ def gdalwarp(outfile, infile, options, verbose=True):
         cmd += ' -q'
     subprocess.call(cmd, shell=True)
 
+    return outfile
+
 def gdalbuildvrt(outfile, infiles, options, verbose=True):
 
     hub.file.mkdir(os.path.dirname(outfile))

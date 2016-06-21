@@ -20,7 +20,7 @@ import sklearn.pipeline
 import eb.report
 from eb.report import *
 import shutil
-
+import gdal, ogr
 
 # set default progress object
 progress = SilentProgress
@@ -53,12 +53,22 @@ class Meta(GDALMeta):
 
     def report(self):
 
-        report = Report('ENVI Domain')
+        report = Report('GDAL Datasource')
+
+        text = ''
+        text +=   'Projection  = ' + str(self.Projection)
+        text += '\nRasterSize  = ' + str(self.RasterXSize) + ' ' + str(self.RasterYSize)
+        text += '\nRasterCount = ' + str(self.RasterCount)
+        text += '\nPixelSize   = ' + str(self.pixelXSize) + ' ' + str(self.pixelYSize)
+        report.append(ReportMonospace(text))
+
         d = self.getMetadataDict()
         text = '\n'.join([k + ' = ' + str(d[k]) for k in sorted(d.keys())])
-        report.append(ReportMonospace(text))
-        report.append(ReportHeading('GDAL Domains'))
+        if text != '':
+            report.append(ReportHeading('ENVI Domain'))
+            report.append(ReportMonospace(text))
 
+        report.append(ReportHeading('GDAL Domains'))
         for name, d in self.domain.items():
             if name == 'ENVI': continue
             report.append(ReportHeading(name, 1))
@@ -154,13 +164,91 @@ class Image(Type):
         return ImageStatistics(self, mask=mask,  mode=mode)
 
 
-    def stack(self, images=[], filename=None):
+    def stack(self, images=[], resolution=None, filename=None):
 
 
         if filename is None: filename = env.tempfile('stack', '.vrt')
         infiles = [image.filename for image in [self] + images]
-        hub.gdal.util.stack(filename, infiles)
+        options =  ' -resolution user -tr ' + str(self.meta.pixelXSize) + ' ' + str(abs(self.meta.pixelYSize))
+        options += ' -vrtnodata 0'
+        hub.gdal.util.stack(filename, infiles, options)
+
+
         return Image(filename)
+
+    @property
+    def SpatialReference(self):
+
+        return None
+
+
+    @property
+    def BoundingBox(self):
+
+        upperLeft = (self.meta.xmin, self.meta.ymin)
+        lowerRight = (self.meta.xmax, self.meta.ymax)
+        return (upperLeft, lowerRight)
+
+
+    @property
+    def PixelSize(self):
+
+        return (self.meta.pixelXSize, abs(self.meta.pixelYSize))
+
+
+    @property
+    def PixelGrid(self):
+
+        return PixelGrid(self.SpatialReference, self.BoundingBox[0], self.PixelSize)
+
+
+class PixelGrid():
+
+    def __init__(self, spatialReference, pixelCorner, pixelSize):
+
+        #assert isinstance(spatialReference, ogr)
+        self.spatialReference = spatialReference
+        self.pixelCorner = pixelCorner
+        self.pixelSize = pixelSize
+
+
+    def project(self, image, boundingBox=None, filename=None):
+
+        assert isinstance(image, Image)
+
+        if filename is None: filename = env.tempfile(suffix='.vrt')
+
+        # calculate exact output bounding box
+        # - get image bounding box in target SRS
+        if boundingBox is None:
+            boundingBox = Image(hub.gdal.util.gdalwarp(env.tempfile(suffix='.vrt'), image.filename, options='-of VRT', verbose=False)).BoundingBox
+
+        # - snap bounding box to target pixel grid
+        xoff = (boundingBox[0][0] - self.pixelCorner[0]) % self.pixelSize[0]
+        yoff = (boundingBox[0][1] - self.pixelCorner[1]) % abs(self.pixelSize[1])
+        boundingBox = ((boundingBox[0][0]-xoff, boundingBox[0][1]-yoff),
+                       (boundingBox[1][0]-xoff, boundingBox[1][1]-yoff))
+
+        options  = ' -of VRT'
+        options += ' -tr ' + repr(self.pixelSize[0]) + ' ' + repr(self.pixelSize[1])
+        options += ' -r average'
+        options += ' -te' + ' ' + repr(boundingBox[0][0]) \
+                          + ' ' + repr(min(boundingBox[0][1], boundingBox[1][1])) \
+                          + ' ' + repr(boundingBox[1][0]) \
+                          + ' ' + repr(max(boundingBox[0][1], boundingBox[1][1]))
+
+        hub.gdal.util.gdalwarp(filename, image.filename, options)
+
+
+        # set up ENVI Metadata
+        metaTmp = Meta(filename)
+        meta = Meta(image.filename)
+        meta.setMetadataItem('samples', metaTmp.RasterXSize)
+        meta.setMetadataItem('lines', metaTmp.RasterXSize)
+        meta.writeMeta(filename)
+
+        return Image(filename)
+
 
 
 class ImageStatistics():

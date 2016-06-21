@@ -218,13 +218,16 @@ def stackImages():
     imageA = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
     imageB = eb.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
     stack = imageA.stack([imageB])
-    imageA.report().saveHTML().open()
+    stack.report().saveHTML().open()
 #    image.saveAs(r'c:\work\saved').report().saveHTML().open()
 
+def projectImageToPixelGrid():
 
-
-
-
+    imageA = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    imageB = eb.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
+    imageSpot = eb.Image(r'C:\Work\data\Spot_Berlin')
+    image = imageSpot.PixelGrid.project(imageA)#, imageB.BoundingBox)
+    image.report().saveHTML().open()
 
 if __name__ == '__main__':
 
@@ -246,4 +249,5 @@ if __name__ == '__main__':
     #statisticsAndHistogramforClassification()
     #mportENVISpeclib()
     #saveImageAs()
-    stackImages()
+    #stackImages()
+    projectImageToPixelGrid()
