@@ -1,9 +1,11 @@
+from email.errors import NoBoundaryInMultipartDefect
 
 from PyQt4 import QtCore, QtGui, uic
 
 import six, sys, os, gc
 
 def add_to_sys_path(path):
+    assert os.path.isdir(path)
     if path not in sys.path:
         sys.path.append(path)
 
@@ -11,14 +13,12 @@ jp = os.path.join
 
 DIR = os.path.dirname(__file__)
 import gui
-DIR_GUI = os.path.dirname(gui.__file__)
+DIR_GUI = jp(DIR,'gui')
 add_to_sys_path(DIR_GUI)
+add_to_sys_path(jp(DIR, 'libs'))
 
-try:
-    import pyqtgraph as pg
-except:
-    add_to_sys_path(jp(DIR, 'libs'))
-    import pyqtgraph as pg
+
+import pyqtgraph as pg
 
 
 if six.PY3:
@@ -265,13 +265,18 @@ class TestData():
     def Image():
         return os.path.join(TestData.prefix, 'SF_20x20.tif')
 
+    @staticmethod
+    def Diagrams():
+        return os.path.join(TestData.prefix, 'diagrams.png')
 
     @staticmethod
     def AF_Image():
+        raise NotImplementedError()
         return os.path.join(TestData.prefix, 'AF_Image')
 
     @staticmethod
     def Landsat_Image():
+        raise NotImplementedError()
         return os.path.join(TestData.prefix, 'xyz.img')
     pass
 
