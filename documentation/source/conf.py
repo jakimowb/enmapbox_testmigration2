@@ -12,21 +12,20 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('C:\\Users\\enmap-box\\enmap-box-git\\hub\\'))
-
-#sourceDir = os.path.abspath(os.path.join(os.path.dirname(hub.__file__),'..'))
-sourceDir = r'C:\Users\enmap-box\enmap-box-git'
-
-sys.path.insert(0,sourceDir)
-sys.path.insert(0,r'C:\OSGeo4W64\apps\qgis\python\plugins')
-sys.path.insert(0,r'C:\OSGeo4W64\apps\qgis\python\qgis')
-sys.path.insert(0,r'C:\myVirtualEnv\Lib\site-packages')
+import sys
+import getpass
+user = getpass.getuser()
+if user == 'janzandr':
+    sys.path.insert(0, r'C:\Work\source\enmap-box')
+    sys.path.insert(0, r'C:\Work\source\site-packages')
+    sys.path.insert(0, r'C:\Program Files\QGIS Essen\apps\qgis\python')
+elif user == 'enmap-box': # dit is der MHeld :-)
+	sourceDir = r'C:\Users\enmap-box\enmap-box-git'
+	sys.path.insert(0,r'C:\OSGeo4W64\apps\qgis\python\plugins')
+	sys.path.insert(0,r'C:\OSGeo4W64\apps\qgis\python\qgis')
+	sys.path.insert(0,r'C:\myVirtualEnv\Lib\site-packages')
+	sys.path.insert(0,sourceDir)
 
 # -- General configuration ------------------------------------------------
 
