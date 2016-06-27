@@ -65,6 +65,255 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
 
         pass
 
+class DataSourceManager(QObject):
+    class SourceTypes:
+        Raster=1
+        Vector=2
+        Mapable=3
+        Model=4
+        Text=5
+
+
+    def __init__(self):
+        self.sources = list()
+        self.qgsMapRegistry = qgis.core.QgsMapLayerRegistry.instance()
+        self.qgsMapRegistry.layersRemoved.connect(self.removeQgisLayers)
+        self.updateQgsMapLayers()
+        pass
+
+    def _createKey(self, source):
+        key = None
+        if isinstance(source, qgis.core.QgsRasterLayer):
+            key = (DataSourceManager.SourceTypes.Raster, source, source.name())
+        elif isinstance(source, qgis.core.QgsVectorLayer):
+            key = (DataSourceManager.SourceTypes.Vector, source, source.name())
+        else:
+            key = (DataSourceManager.SourceTypes.Mapable, source, source.name())
+        return key
+
+    def updateQgsMapLayers(self):
+        toAdd = list()
+        for id in self.qgsMapRegistry.mapLayers():
+            lyr = self.qgsMapRegistry.mapLayer(id)
+            toAdd.append(self._createKey(lyr))
+
+        for key in toAdd:
+            if key not in self.sources:
+                self.sources.append(key)
+
+
+    def removeQgisLayers(self, args):
+        s  = ""
+
+
+    def addSource(self, uri, name=None):
+        #switch to add different data sources
+        if isinstance(uri, str):
+            if os.path.exists(uri):
+                if name is None:
+                    name = os.path.basename(uri)
+                #1. test mapable sources
+                for c in [qgis.core.QgsRasterLayer, qgis.core.QgsVectorLayer]:
+                    lyr = c(uri, name)
+
+                    if lyr.isValid():
+                        self.qgsMapRegistry.addMapLayer(lyr, False)
+                        self.sources.append(self._createKey(lyr))
+                        return lyr
+
+        s  =""
+
+
+
+class DataSourceTreeItem():
+
+    def __init__(self, data, parent):
+
+        self.parent = parent
+        self.childs = list()
+        if data is None:
+            data = list()
+        self.data=data
+
+    def parentItem(self):
+        return self.parent
+
+    def child(self, row):
+        if row > len(self.childs) - 1:
+            return None
+        return self.childs[row]
+
+    def appendChild(self, child):
+        self.childs.append(child)
+
+    def row(self):
+        if self.parent != None:
+            return self.parent.childs.index(self)
+        return 0
+
+    def childCount(self):
+        return len(self.childs)
+
+    def columnCount(self):
+        return len(self.data)
+
+    def data(self, column):
+        return self.data[column]
+
+class DataSourceManagerTreeModel(QAbstractItemModel):
+    """
+    See http://doc.qt.io/qt-5/qtwidgets-itemviews-simpletreemodel-example.html
+
+    """
+    def __init__(self, dataSourceManager):
+        assert isinstance(dataSourceManager, DataSourceManager)
+        QAbstractItemModel.__init__(self)
+        self.rootItem = DataSourceTreeItem(None, None)
+        self.DSM = dataSourceManager
+
+    #read only access functions
+    """
+    Used by other components to obtain information about each item provided by the model.
+    In many models, the combination of flags should include Qt::ItemIsEnabled and Qt::ItemIsSelectable.
+    """
+    def flags(self, index):
+        if not index.isValid():
+            return 0
+
+        return QAbstractItemModel.flags(index)
+
+    """
+    Used to supply item data to views and delegates. Generally, models only need to supply data for
+    Qt::DisplayRole and any application-specific user roles, but it is also good practice to provide
+    data for Qt::ToolTipRole, Qt::AccessibleTextRole, and Qt::AccessibleDescriptionRole.
+    See the Qt::ItemDataRole enum documentation for information about the types associated with each role.
+    """
+    def data(self, index, role=None):
+
+        if not index.isValid():
+            return None;
+        if role == Qt.DisplayRole:
+            return index.internalPointer().data(index.column())
+
+        return None
+        s = ""
+        pass
+
+    """
+    Provides views with information to show in their headers. The information is only retrieved by views that can display header information.
+    """
+    def headerData(self, p_int, Qt_Orientation, int_role=None):
+        s = ""
+        pass
+
+    """
+    Provides the number of rows of data exposed by the model.
+    """
+    def rowCount(self, parent=None, *args, **kwargs):
+        if parent.column() > 0:
+            return 0
+
+        if not parent.isValid():
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+        return parentItem.childCount()
+
+
+    """
+    Provides the number of columns of data exposed by the model.
+    """
+    def columnCount(self, parent=None, *args, **kwargs):
+        if parent.isValid():
+            return parent.internalPointer().columnCount()
+        else:
+            return self.rootItem.columnCount()
+
+    #editable items
+    """
+    Must return an appropriate combination of flags for each item. In particular, the value returned by this function must include Qt::ItemIsEditable in addition to the values applied to items in a read-only model.
+    """
+    #def flags(self):
+    #    pass
+
+    """
+    Used to modify the item of data associated with a specified model index. To be able to accept user input, provided by user interface elements, this function must handle data associated with Qt::EditRole. The implementation may also accept data associated with many different kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models must emit the dataChanged() signal to inform other components of the change.
+    """
+    #def setData(self, QModelIndex, QVariant, int_role=None):
+    #    pass
+
+    """
+    Used to modify horizontal and vertical header information. After changing the item of data, models must emit the headerDataChanged() signal to inform other components of the change.
+    """
+    #def setHeaderData(self, p_int, Qt_Orientation, QVariant, int_role=None):
+    #    pass
+
+    #resizable models
+
+    """
+    Used to add new rows and items of data to all types of model. Implementations must call beginInsertRows() before inserting new rows into any underlying data structures, and call endInsertRows() immediately afterwards.
+    """
+    #def insertRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+    #    pass
+
+
+    """
+    Used to remove rows and the items of data they contain from all types of model. Implementations must call beginRemoveRows() before inserting new columns into any underlying data structures, and call endRemoveRows() immediately afterwards.
+    """
+    #def removeRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+    #    pass
+
+    """
+    Used to add new columns and items of data to table models and hierarchical models. Implementations must call beginInsertColumns() before rows are removed from any underlying data structures, and call endInsertColumns() immediately afterwards.
+    """
+    #def insertColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+    #    pass
+
+    """
+    Used to remove columns and the items of data they contain from table models and hierarchical models. Implementations must call beginRemoveColumns() before columns are removed from any underlying data structures, and call endRemoveColumns() immediately afterwards.
+    """
+    #def removeColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+
+    #    pass
+
+    #lazy population
+    #def hasChildren(self, QModelIndex_parent=None, *args, **kwargs):
+     #   pass
+
+    #parents and childrens
+
+
+
+    """
+    Given a model index for a parent item, this function allows views and delegates to access children of that item.
+    If no valid child item - corresponding to the specified row, column, and parent model index, can be found,
+    the function must return QModelIndex(), which is an invalid model index.
+    """
+    def index(self, row, column, parent):
+
+        if not self.hasIndex(row, column, parent):
+            return QModelIndex()
+
+        if not parent.isValid():
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+
+        childItem = parentItem.child(row)
+        if childItem:
+            return self.createIndex(row, column, childItem)
+        else:
+            return QModelIndex()
+
+    """
+    Provides a model index corresponding to the parent of any given child item. If the model index specified
+    corresponds to a top-level item in the model, or if there is no valid parent item in the model,
+    the function must return an invalid model index, created with the empty QModelIndex() constructor.
+    """
+    def parent(self, index):
+        s = ""
+        pass
+
 
 
 def getQIcon(name=EnMAPBoxIcons.Logo):
@@ -214,7 +463,9 @@ class EnMAPBox:
         self.iface = iface
         self.gui = EnMAPBox_GUI()
         self.gui.setWindowTitle('EnMAP-Box ' + VERSION)
-        self.layerregistry = qgis.core.QgsMapLayerRegistry.instance()
+        self.dataSourceManager = DataSourceManager()
+        model = DataSourceManagerTreeModel(self.dataSourceManager)
+        self.gui.dataSourceTreeView.setModel(model)
         self.dockarea = EnMAPBoxDockArea()
         self.gui.centralWidget().layout().addWidget(self.dockarea)
         #self.gui.centralWidget().addWidget(self.dockarea)
@@ -269,34 +520,14 @@ class EnMAPBoxDataSourceManager(QtCore.QObject):
 class TestData():
 
     prefix = jp(DIR, 'testdata')
-    def __init__(self):
-        pass
-
-
-    @staticmethod
-    def Image():
-        return os.path.join(TestData.prefix, 'SF_20x20.tif')
-
-    @staticmethod
-    def Diagrams():
-        return os.path.join(TestData.prefix, 'diagrams.png')
-
-    @staticmethod
-    def AF_Image():
-        raise NotImplementedError()
-        return os.path.join(TestData.prefix, 'AF_Image')
-
-    @staticmethod
-    def Landsat_Image():
-        raise NotImplementedError()
-        return os.path.join(TestData.prefix, 'xyz.img')
-    pass
+    assert os.path.isdir(prefix)
+    Image = os.path.join(prefix, 'SF_20x20.tif')
+    Diagrams = os.path.join(prefix, 'diagrams.png')
+    AlpineForelandSubset = os.path.join(prefix, 'AlpineForelandSubset.img')
+    AF_Image = os.path.join(prefix, 'AF_Image')
 
 
 
-class DataSourceRegistry():
-
-    pass
 
 import pyqtgraph.dockarea.DockArea
 class EnMAPBoxDockArea(pyqtgraph.dockarea.DockArea):
@@ -736,23 +967,15 @@ class EnMAPBoxMapDock(EnMAPBoxDock):
 
         CanvasLink.CreateLink(canvas, self.canvas, linktype=linktype)
 
-    def addLayer(self, layerSrc):
+    def addLayer(self, mapLayer):
 
-        #todo: handle input src
-        lyr = None
-        if type(layerSrc) is str:
-            if os.path.exists(layerSrc):
-                lyr = qgis.core.QgsRasterLayer(layerSrc)
-
-        if lyr is not None:
-            self.enmapbox.layerregistry.addMapLayer(lyr, True)
-            self.canvas.setExtent(lyr.extent())
-            #todo: handle multiple layers
+        lyr = self.enmapbox.dataSourceManager.addSource(mapLayer)
+        if isinstance(lyr, QgsMapLayer):
             canvasLayers = self.canvas.layers()
-            canvasLayers.append(qgis.gui.QgsMapCanvasLayer(lyr))
+            canvasLayers.append(QgsMapCanvasLayer(lyr))
             self.canvas.setLayerSet(canvasLayers)
 
-        pass
+
 
 
 class EnMAPBoxTextDock(EnMAPBoxDock):
@@ -809,16 +1032,27 @@ if __name__ == '__main__':
         w.layout().addWidget(CanvasLinkTargetWidget(None, None, parent=w))
         w.show()
 
+    qgsReg = qgis.core.QgsMapLayerRegistry.instance()
+    # add example images
+
+    # todo: handle input src
+    if True:
+        # add test files
+        qgsReg.addMapLayer(qgis.core.QgsRasterLayer(TestData.AlpineForelandSubset, 'AFForeland'))
+        qgsReg.addMapLayer(qgis.core.QgsRasterLayer(TestData.AlpineForelandSubset, 'AFForeland'))
+
+
+
 
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
     EB.dockarea.addDock(EnMAPBoxDock(EB, name='view1 Default'))
-    md1 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view2: a map', initSrc=TestData.Image()))
+    md1 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view2: a map', initSrc=TestData.AlpineForelandSubset))
     EB.dockarea.addDock(EnMAPBoxTextDock(EB,
                                          name='view3: a text/info window',
                                          html='Lore <i>ipsum</i> tralalla<br/> '
                                               '<a href="http://www.enmap.org">www.enmap.org</a>'))
-    md2 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view4: another map', initSrc=TestData.Image()))
+    md2 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view4: another map', initSrc=TestData.Image))
 
     #md1.linkWithMapDock(md2, linktype='center')
     #EB.show()
