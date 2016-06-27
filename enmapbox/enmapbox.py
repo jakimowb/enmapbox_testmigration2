@@ -38,6 +38,19 @@ from PyQt4.Qt import *
 VERSION = '2016-0.beta'
 ENMAPBOX_GUI_UI, _ = uic.loadUiType(jp(DIR_GUI, 'enmapbox_gui.ui'), from_imports=False, resource_suffix=rc_suffix)
 
+
+class EnMAPBoxIcons:
+
+    Logo = ':/enmapbox/icons/enmapbox.png'
+    Map_Link = ':/enmapbox/icons/link_basic.svg'
+    Map_Link_Center = ':/enmapbox/icons/link_center.svg'
+    Map_Link_Extent = ':/enmapbox/icons/link_mapextent.svg'
+    Map_Zoom_In = ':/enmapbox/icons/mActionZoomOut.svg'
+    Map_Zoom_Out = ':/enmapbox/icons/mActionZoomIn.svg'
+    Map_Pan = ''
+
+
+
 class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
     def __init__(self, parent=None):
         """Constructor."""
@@ -52,13 +65,12 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
 
         pass
 
-def getQIcon():
-    return QtGui.QIcon(getIcon())
 
-def getIcon():
-    p = jp(DIR_GUI, *['icons', 'enmapbox.png'])
-    assert os.path.exists(p)
-    return p
+
+def getQIcon(name=EnMAPBoxIcons.Logo):
+    return QtGui.QIcon(name)
+
+
 
 class CanvasLink(QObject):
     """
@@ -499,22 +511,22 @@ class CanvasLinkTargetWidget(QFrame):
     LINK_TARGET_WIDGETS = set()
 
     @staticmethod
-    def ShowMapLinkTargets(canvas1):
+    def ShowMapLinkTargets(canvas_targed):
 
-        assert isinstance(canvas1, qgis.gui.QgsMapCanvas)
+        assert isinstance(canvas_targed, qgis.gui.QgsMapCanvas)
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
 
 
         target_canvases = [c for c in gc.get_referrers(qgis.gui.QgsMapCanvas)
-                           if isinstance(c, qgis.gui.QgsMapCanvas) and c is not canvas1]
+                           if isinstance(c, qgis.gui.QgsMapCanvas) and c is not canvas_targed]
 
-        for canvas in target_canvases:
+        for canvas_source in target_canvases:
 
-            w = CanvasLinkTargetWidget(canvas1, canvas)
+            w = CanvasLinkTargetWidget(canvas_targed, canvas_source)
             w.setAutoFillBackground(True)
             w.show()
             CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
-            canvas.freeze()
+            canvas_source.freeze()
             s = ""
 
         s = ""
@@ -539,43 +551,45 @@ class CanvasLinkTargetWidget(QFrame):
             qApp.processEvents()
 
     def __init__(self, canvas1, canvas2):
+        assert isinstance(canvas1, qgis.gui.QgsMapCanvas)
+        assert isinstance(canvas2, qgis.gui.QgsMapCanvas)
+
         QFrame.__init__(self, parent=canvas2)
         self.canvas1 = canvas1
         self.canvas2 = canvas2
+        #self.canvas1.installEventFilter(self)
+        self.canvas2.installEventFilter(self)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
 
         self.setCursor(Qt.ArrowCursor)
 
         ly = QHBoxLayout()
-        self.linkCenter = QtGui.QToolButton(self)
-        self.linkCenter.setToolTip('Link to map center')
-        self.linkCenter.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
-        self.linkCenter.setAttribute(Qt.WA_PaintOnScreen)
-        self.linkCenter.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirLinkIcon))
+        #add buttons with link functions
+        self.buttons = list()
+        bt = QtGui.QToolButton(self)
+        bt.setToolTip('Link to map center')
+        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
+        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Center))
+        self.buttons.append(bt)
 
-        self.linkExtent = QtGui.QToolButton(self)
-        self.linkExtent.setToolTip('Link to map extent')
-        self.linkExtent.setAttribute(Qt.WA_PaintOnScreen)
-        self.linkExtent.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
-        self.linkExtent.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
+        bt = QtGui.QToolButton(self)
+        bt.setToolTip('Link to map extent')
+        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
+        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Extent))
+        self.buttons.append(bt)
 
-        ly.addWidget(self.linkCenter)
-        ly.addWidget(self.linkExtent)
+        for bt in self.buttons:
+            bt.setAttribute(Qt.WA_PaintOnScreen)
+            #bt.setIconSize(QSize(100, 100))
+            bt.setAutoRaise(True)
+            ly.addWidget(bt)
 
-        self.layout.addLayout(ly, 1,1)
+        self.layout.addLayout(ly, 0,0)
 
-        #sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        #sizePolicy.setHorizontalStretch(0)
-        #sizePolicy.setVerticalStretch(0)
-        #self.setSizePolicy(sizePolicy)
-        #self.resize(100, 50)
-        #self.setAutoFillBackground(True)
         self.setStyleSheet('background-color:rgba(200, 200, 200, 180)')
         self.setAttribute(Qt.WA_PaintOnScreen)
-        #self.setBackgroundRole(QPalette.Window)
 
-        s = ""
         self.updatePosition()
 
     def updatePosition(self):
@@ -592,6 +606,10 @@ class CanvasLinkTargetWidget(QFrame):
         x = int(parentRect.width() / 2 - self.width() / 2)
         y = int(parentRect.height() / 2 - self.height() / 2)
 
+        mw = int(min([self.width(),self.height()]) * 0.9)
+        for bt in self.buttons:
+            bt.setIconSize(QSize(mw, mw))
+
         #self.setGeometry(x, y, self.width(), self.height())
         self.setGeometry(parentRect)
 
@@ -607,6 +625,12 @@ class CanvasLinkTargetWidget(QFrame):
         self.updatePosition()
         return super(CanvasLinkTargetWidget, self).showEvent(event)
 
+    def eventFilter(self, obj, event):
+
+        if event.type() == QEvent.Resize:
+            s  = ""
+            self.updatePosition()
+        return False
 
     def mousePressEvent(self, ev):
 
@@ -625,7 +649,8 @@ class EnMAPBoxMapDockLabel(EnMAPBoxDockLabel):
         self.linkMap = QtGui.QToolButton(self)
         self.linkMap.setToolTip('Link with other map')
         #linkExtent.clicked.connect(lambda: self.dock.linkWithMapDock())
-        self.linkMap.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
+        #self.linkMap.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
+        self.linkMap.setIcon(getQIcon(EnMAPBoxIcons.Map_Link))
 
         self.buttons.append(self.linkMap)
 
