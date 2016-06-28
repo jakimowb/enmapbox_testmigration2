@@ -20,7 +20,6 @@ add_to_sys_path(jp(DIR, 'libs'))
 
 import pyqtgraph as pg
 
-
 if six.PY3:
     rc_suffix = '_py3'
     import gui.resources_py3
@@ -40,7 +39,9 @@ ENMAPBOX_GUI_UI, _ = uic.loadUiType(jp(DIR_GUI, 'enmapbox_gui.ui'), from_imports
 
 
 class EnMAPBoxIcons:
-
+    """
+    Stores icons resource paths
+    """
     Logo = ':/enmapbox/icons/enmapbox.png'
     Map_Link = ':/enmapbox/icons/link_basic.svg'
     Map_Link_Center = ':/enmapbox/icons/link_center.svg'
@@ -65,78 +66,32 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
 
         pass
 
-class DataSourceManager(QObject):
-    class SourceTypes:
-        Raster=1
-        Vector=2
-        Mapable=3
-        Model=4
-        Text=5
 
-
-    def __init__(self):
-        self.sources = list()
-        self.qgsMapRegistry = qgis.core.QgsMapLayerRegistry.instance()
-        self.qgsMapRegistry.layersRemoved.connect(self.removeQgisLayers)
-        self.updateQgsMapLayers()
-        pass
-
-    def _createKey(self, source):
-        key = None
-        if isinstance(source, qgis.core.QgsRasterLayer):
-            key = (DataSourceManager.SourceTypes.Raster, source, source.name())
-        elif isinstance(source, qgis.core.QgsVectorLayer):
-            key = (DataSourceManager.SourceTypes.Vector, source, source.name())
-        else:
-            key = (DataSourceManager.SourceTypes.Mapable, source, source.name())
-        return key
-
-    def updateQgsMapLayers(self):
-        toAdd = list()
-        for id in self.qgsMapRegistry.mapLayers():
-            lyr = self.qgsMapRegistry.mapLayer(id)
-            toAdd.append(self._createKey(lyr))
-
-        for key in toAdd:
-            if key not in self.sources:
-                self.sources.append(key)
-
-
-    def removeQgisLayers(self, args):
-        s  = ""
-
-
-    def addSource(self, uri, name=None):
-        #switch to add different data sources
-        if isinstance(uri, str):
-            if os.path.exists(uri):
-                if name is None:
-                    name = os.path.basename(uri)
-                #1. test mapable sources
-                for c in [qgis.core.QgsRasterLayer, qgis.core.QgsVectorLayer]:
-                    lyr = c(uri, name)
-
-                    if lyr.isValid():
-                        self.qgsMapRegistry.addMapLayer(lyr, False)
-                        self.sources.append(self._createKey(lyr))
-                        return lyr
-
-        s  =""
-
-
-
-class DataSourceTreeItem():
-
-    def __init__(self, data, parent):
-
+class TreeItem(QObject):
+    def __init__(self, parent, name, data=None, icon=None, description=None,
+                 infos=None, tooltip=None, tag=None, asChild=False):
         self.parent = parent
+        self.name = name
         self.childs = list()
-        if data is None:
-            data = list()
-        self.data=data
+        self.data = data
+        self.icon = icon
+        self.description = description
+        self.tooltip = tooltip
+        if infos:
+            self.addInfos(infos)
 
-    def parentItem(self):
-        return self.parent
+        if asChild and parent is not None:
+            parent.appendChild(self)
+
+    def addInfos(self, infolist):
+        if not isinstance(infolist, list):
+            infolist = list(infolist)
+        for line in infolist:
+            item = TreeItem(self, line, tooltip=line)
+            self.appendChild(item)
+
+
+
 
     def child(self, row):
         if row > len(self.childs) - 1:
@@ -144,6 +99,7 @@ class DataSourceTreeItem():
         return self.childs[row]
 
     def appendChild(self, child):
+        assert isinstance(child, TreeItem)
         self.childs.append(child)
 
     def row(self):
@@ -155,32 +111,243 @@ class DataSourceTreeItem():
         return len(self.childs)
 
     def columnCount(self):
-        return len(self.data)
+
+        return 1
+
+        #if isinstance(self.infos, list):
+        #    return len(self.infos)
+        #else:
+        #    return 1
 
     def data(self, column):
-        return self.data[column]
+        return self.infos[column]
+
+
+class DataSource(object):
+    """Base class to describe file/stream/IO sources in a GUI context"""
+
+    def __init__(self, source_type, source, name):
+        """
+
+        :param source_type: a string description of the data source type.
+        :param source: the source itself.
+        :param name: name as it appears in the source file list
+        """
+        assert source is not None
+        if isinstance(name, QString):
+            name = str(name)
+
+        assert type(name) is str
+        assert source_type in DataSourceManager.SourceTypes
+
+        self.type = source_type
+        self.source = source
+        self.name = name
+
+    def getIcon(self):
+        return QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_FileIcon)
+
+    def getTreeItem(self, parentItem):
+        return TreeItem(parentItem, self.name,
+                        data=self,
+                        icon=self.getIcon(),
+                        tooltip = str(self),
+                        description=None, asChild=False)
+
+    def __repr__(self):
+        return 'DataSource: {} {}'.format(self.name, str(self.source))
+
+
+
+
+class DataSourceRaster(DataSource):
+
+    def __init__(self, source, name ):
+        assert type(source) is qgis.core.QgsRasterLayer
+        super(DataSourceRaster, self).__init__('Raster', source, name)
+
+
+    def getIcon(self):
+        #todo: overload
+        return  super(DataSourceRaster, self).getIcon()
+
+    def getTreeItem(self, parent):
+        itemTop = super(DataSourceRaster, self).getTreeItem(parent)
+
+        #itemTop = TreeItem(parent, self.name, icon=self.getIcon())
+        assert type(self.source) is qgis.core.QgsRasterLayer
+
+        src = self.source
+        srs = src.crs()
+        dp = src.dataProvider()
+
+        assert isinstance(dp, qgis.core.QgsRasterDataProvider)
+
+        infos = list()
+        infos.append('Path: {}'.format(src.source()))
+        infos.append('ID: {}'.format(src.id()))
+        infos.append('DIMS: {}x{}x{}'.format(dp.xSize(), dp.ySize(), dp.bandCount()))
+        TreeItem(itemTop, 'File Information', infos=infos, tooltip='\n'.join(infos), asChild=True)
+
+        if srs is not None:
+            infos = list()
+            infos.append('SRS: {}'.format(src.crs().description()))
+
+            infos.append('Extent: {}'.format(dp.extent().toString(True)))
+            TreeItem(itemTop, 'Spatial Reference', infos=infos, asChild=True, tooltip='\n'.join(infos))
+
+
+        itemBands = TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()), asChild=True)
+        for b in range(1, dp.bandCount()+1):
+            infos=list()
+            datatype = dp.dataType(b)
+            colortable = dp.colorTable(b)
+            colorint = dp.colorInterpretation(b)
+            nodata = None
+            if dp.srcHasNoDataValue(b):
+                nodata = dp.srcNoDataValue(b)
+            infos.append('No data : {}'.format(nodata))
+
+            TreeItem(itemBands, 'Band {}'.format(b), tooltip = '\n'.join(infos), infos=infos, asChild=True)
+
+
+        return itemTop
+
+
+
+class DataSourceManager(QObject):
+
+
+    sigDataSourceAdded = pyqtSignal(object)
+    sigDataSourceRemoved = pyqtSignal(object)
+
+
+
+    SourceTypes = ['Raster','Vector','File','Modelfile','Textfile']
+
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.sources = list()
+        self.qgsMapRegistry = qgis.core.QgsMapLayerRegistry.instance()
+        self.qgsMapRegistry.layersRemoved.connect(self.removeQgisLayers)
+        self.updateQgsMapLayers()
+
+
+    def updateQgsMapLayers(self):
+
+        existing_sources = [ds.source for ds in self.sources]
+        for id in self.qgsMapRegistry.mapLayers():
+            lyr = self.qgsMapRegistry.mapLayer(id)
+            if lyr not in existing_sources:
+                self.addSource(lyr, lyr.name())
+
+
+    def removeQgisLayers(self, args):
+        s  = ""
+
+
+    def addSource(self, src, name=None):
+        #switch to add different data sources
+        ds = None
+        #1. check string types
+        if isinstance(src, str):
+            if os.path.exists(src):
+                if name is None:
+                    name = os.path.basename(src)
+                # 1. test mapable sources
+                lyr = qgis.core.QgsRasterLayer(src, name)
+                if lyr.isValid():
+                    return self.addSource(lyr, name)
+                lyr = qgis.core.QgsVectorLayer(src, name)
+                if lyr.isValid():
+                    return self.addSource(lyr, name)
+
+                #todo: check for model files,
+                # implement file tests here
+
+                # 2. normal files -> return file path
+                ds = DataSource('File', src, name)
+
+        #check QGIS data sources
+        elif isinstance(src, qgis.core.QgsMapLayer):
+            if name is None:
+                name = src.name()
+            if isinstance(src, qgis.core.QgsRasterLayer):
+                ds = DataSourceRaster(src, name)
+            elif isinstance(src, qgis.core.QgsVectorLayer):
+                src_type = 'Vector'
+                ds = DataSource('Vector', src, name)
+            else:
+                src_type = 'MapLayer'
+                ds = DataSource('Vector', src, name)
+
+        else:
+            #todo: add GDAL dataset object
+            #todo: add QFileObjects
+            raise NotImplementedError
+
+        if ds is not None and ds not in self.sources:
+            self.sources.append(ds)
+            self.sigDataSourceAdded.emit(ds)
+            """
+            src_group = DataSourceTreeItem([src_type,'description'], self)
+            for src in [ds for ds in self.sources if ds.type == src_type]:
+                src_group.appendChild(src.getTreeItem(src_group))
+            """
+
+
+    #ovwerwrite TreeItem functions
+
+    def getSourceTypes(self):
+        return sorted(list(set([ds.type for ds in self.sources])))
+
+
+
 
 class DataSourceManagerTreeModel(QAbstractItemModel):
     """
     See http://doc.qt.io/qt-5/qtwidgets-itemviews-simpletreemodel-example.html
-
     """
+    columnames = ['Name','Description']
+    columnames = ['Name']
+
     def __init__(self, dataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
         QAbstractItemModel.__init__(self)
-        self.rootItem = DataSourceTreeItem(None, None)
         self.DSM = dataSourceManager
+        self.DSM.sigDataSourceAdded.connect(self.updateTreeItems)
+        self.rootItem = TreeItem(None, None)
+
+
+
+    def updateTreeItems(self, dataSource):
+
+        if dataSource.type not in [c.name for c in self.rootItem.childs]:
+            src_grp = TreeItem(self.rootItem, dataSource.type,
+                               icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon)
+                               )
+            self.rootItem.appendChild(src_grp)
+
+        src_grp = self.rootItem.child(self.DSM.getSourceTypes().index(dataSource.type))
+        assert src_grp.name == dataSource.type
+        src_grp.appendChild(dataSource.getTreeItem(src_grp))
+        print(src_grp)
+
 
     #read only access functions
     """
     Used by other components to obtain information about each item provided by the model.
     In many models, the combination of flags should include Qt::ItemIsEnabled and Qt::ItemIsSelectable.
     """
+
+    """
     def flags(self, index):
         if not index.isValid():
             return 0
 
         return QAbstractItemModel.flags(index)
+    """
 
     """
     Used to supply item data to views and delegates. Generally, models only need to supply data for
@@ -192,18 +359,43 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
 
         if not index.isValid():
             return None;
+
+        item = index.internalPointer()
+        columnname = self.columnames[index.column()].lower()
+
         if role == Qt.DisplayRole:
-            return index.internalPointer().data(index.column())
+            #return index.internalPointer().info(index.column())
+            for attr in item.__dict__.keys():
+                if attr.lower() == columnname:
+                    value = item.__dict__[attr]
+                    if value is not None:
+                        return '{}'.format(value)
+                    else:
+                        return None
+            return None
+        if role == Qt.ToolTipRole:
+            tt = item.tooltip
+            if tt is None:
+                tt = item.description
+            return tt
+        if role == Qt.DecorationRole and index.column() == 0:
+            if isinstance(item.icon, QIcon):
+                return item.icon
 
         return None
-        s = ""
-        pass
 
     """
-    Provides views with information to show in their headers. The information is only retrieved by views that can display header information.
+    Provides views with information to show in their headers. The information is only
+    retrieved by views that can display header information.
     """
-    def headerData(self, p_int, Qt_Orientation, int_role=None):
-        s = ""
+    def headerData(self, section, orientation, role=None):
+
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.columnames[section]
+        elif role == Qt.ToolTipRole:
+            return None
+        else:
+            return None
         pass
 
     """
@@ -214,16 +406,21 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
             return 0
 
         if not parent.isValid():
+            #return len(set([ds.type for ds in self.DSM.sources]))
+
             parentItem = self.rootItem
         else:
             parentItem = parent.internalPointer()
+        #print((parentItem, parentItem.childCount()))
         return parentItem.childCount()
 
 
     """
     Provides the number of columns of data exposed by the model.
     """
-    def columnCount(self, parent=None, *args, **kwargs):
+    def columnCount(self, parent):
+        return len(self.columnames)
+
         if parent.isValid():
             return parent.internalPointer().columnCount()
         else:
@@ -231,19 +428,26 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
 
     #editable items
     """
-    Must return an appropriate combination of flags for each item. In particular, the value returned by this function must include Qt::ItemIsEditable in addition to the values applied to items in a read-only model.
+    Must return an appropriate combination of flags for each item. In particular, the value returned
+    by this function must include Qt::ItemIsEditable in addition to the values applied to
+    items in a read-only model.
     """
     #def flags(self):
     #    pass
 
     """
-    Used to modify the item of data associated with a specified model index. To be able to accept user input, provided by user interface elements, this function must handle data associated with Qt::EditRole. The implementation may also accept data associated with many different kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models must emit the dataChanged() signal to inform other components of the change.
+    Used to modify the item of data associated with a specified model index. To be able to accept
+    user input, provided by user interface elements, this function must handle data associated
+    with Qt::EditRole. The implementation may also accept data associated with many different
+    kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models
+    must emit the dataChanged() signal to inform other components of the change.
     """
     #def setData(self, QModelIndex, QVariant, int_role=None):
     #    pass
 
     """
-    Used to modify horizontal and vertical header information. After changing the item of data, models must emit the headerDataChanged() signal to inform other components of the change.
+    Used to modify horizontal and vertical header information. After changing the item of data,
+    models must emit the headerDataChanged() signal to inform other components of the change.
     """
     #def setHeaderData(self, p_int, Qt_Orientation, QVariant, int_role=None):
     #    pass
@@ -251,34 +455,49 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     #resizable models
 
     """
-    Used to add new rows and items of data to all types of model. Implementations must call beginInsertRows() before inserting new rows into any underlying data structures, and call endInsertRows() immediately afterwards.
+    Used to add new rows and items of data to all types of model. Implementations must call
+    beginInsertRows() before inserting new rows into any underlying data structures, and call
+    endInsertRows() immediately afterwards.
     """
     #def insertRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
     #    pass
 
 
     """
-    Used to remove rows and the items of data they contain from all types of model. Implementations must call beginRemoveRows() before inserting new columns into any underlying data structures, and call endRemoveRows() immediately afterwards.
+    Used to remove rows and the items of data they contain from all types of model. Implementations must
+    call beginRemoveRows() before inserting new columns into any underlying data structures, and call
+    endRemoveRows() immediately afterwards.
     """
     #def removeRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
     #    pass
 
     """
-    Used to add new columns and items of data to table models and hierarchical models. Implementations must call beginInsertColumns() before rows are removed from any underlying data structures, and call endInsertColumns() immediately afterwards.
+    Used to add new columns and items of data to table models and hierarchical models. Implementations must
+    call beginInsertColumns() before rows are removed from any underlying data structures, and call
+    endInsertColumns() immediately afterwards.
     """
     #def insertColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
     #    pass
 
     """
-    Used to remove columns and the items of data they contain from table models and hierarchical models. Implementations must call beginRemoveColumns() before columns are removed from any underlying data structures, and call endRemoveColumns() immediately afterwards.
+    Used to remove columns and the items of data they contain from table models and hierarchical models.
+    Implementations must call beginRemoveColumns() before columns are removed from any underlying data
+    structures, and call endRemoveColumns() immediately afterwards.
     """
     #def removeColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
 
     #    pass
 
     #lazy population
-    #def hasChildren(self, QModelIndex_parent=None, *args, **kwargs):
-     #   pass
+
+    def hasChildren(self, parent):
+        if not parent.isValid():
+            return self.rootItem.childCount() > 0
+        else:
+            item = parent.internalPointer()
+
+            return item.childCount() > 0
+        pass
 
     #parents and childrens
 
@@ -311,8 +530,16 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     the function must return an invalid model index, created with the empty QModelIndex() constructor.
     """
     def parent(self, index):
-        s = ""
-        pass
+
+        if not index.isValid():
+            return QModelIndex()
+        else:
+            childItem = index.internalPointer()
+            parentItem = childItem.parent
+        if parentItem == self.rootItem:
+            return QModelIndex()
+        return self.createIndex(parentItem.row(), 0, parentItem)
+
 
 
 
@@ -469,7 +696,6 @@ class EnMAPBox:
         self.dockarea = EnMAPBoxDockArea()
         self.gui.centralWidget().layout().addWidget(self.dockarea)
         #self.gui.centralWidget().addWidget(self.dockarea)
-        self.DataSourceManager = EnMAPBoxDataSourceManager()
 
 
 
@@ -483,9 +709,8 @@ class EnMAPBox:
         return self.iface is not None and isinstance(self.iface, qgis.gui.QgisInterface)
 
 
-    def addFile(self):
-        s = ""
-        pass
+    def addSource(self, source, name=None):
+        self.dataSourceManager.addSource(source, name=name)
 
     @staticmethod
     def getIcon():
@@ -1056,6 +1281,7 @@ if __name__ == '__main__':
 
     #md1.linkWithMapDock(md2, linktype='center')
     #EB.show()
+    EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_Mask')
     EB.run()
 
 
