@@ -49,6 +49,11 @@ class EnMAPBoxIcons:
     Map_Zoom_In = ':/enmapbox/icons/mActionZoomOut.svg'
     Map_Zoom_Out = ':/enmapbox/icons/mActionZoomIn.svg'
     Map_Pan = ''
+    File_RasterMask = ':/enmapbox/icons/filelist_mask.svg'
+    File_RasterRegression = ':/enmapbox/icons/filelist_regression.svg'
+    File_RasterClassification = ':/enmapbox/icons/filelist_classification.svg'
+    File_Raster = ':/enmapbox/icons/filelist_image.svg'
+
 
 
 
@@ -169,6 +174,33 @@ class DataSourceRaster(DataSource):
 
     def getIcon(self):
         #todo: overload
+
+        src = self.source
+        srs = src.crs()
+        dp = src.dataProvider()
+        assert isinstance(dp, qgis.core.QgsRasterDataProvider)
+        assert isinstance(src, qgis.core.QgsRasterLayer)
+        nb = src.bandCount()
+
+        icon = QIcon(EnMAPBoxIcons.File_Raster)
+        if nb == 1:
+            dt = dp.dataType(1)
+
+            cat_types = [QGis.CInt16, QGis.CInt32, QGis.Byte, QGis.UInt16, QGis.UInt32, QGis.Int16, QGis.Int32]
+            if dt in cat_types:
+                if len(dp.colorTable(1)) != 0:
+                    icon = QIcon(EnMAPBoxIcons.File_RasterClassification)
+                else:
+                    icon = QIcon(EnMAPBoxIcons.File_RasterMask)
+            elif dt in [QGis.Float32, QGis.Float64, QGis.CFloat32, QGis.CFloat64]:
+                icon = QIcon(EnMAPBoxIcons.File_RasterRegression)
+        else:
+            icon = QIcon(EnMAPBoxIcons.File_Raster)
+
+        return icon
+
+
+
         return  super(DataSourceRaster, self).getIcon()
 
     def getTreeItem(self, parent):
@@ -239,6 +271,7 @@ class DataSourceManager(QObject):
         existing_sources = [ds.source for ds in self.sources]
         for id in self.qgsMapRegistry.mapLayers():
             lyr = self.qgsMapRegistry.mapLayer(id)
+            print(id)
             if lyr not in existing_sources:
                 self.addSource(lyr, lyr.name())
 
@@ -306,6 +339,7 @@ class DataSourceManager(QObject):
 
 
 class DataSourceManagerTreeModel(QAbstractItemModel):
+
     """
     See http://doc.qt.io/qt-5/qtwidgets-itemviews-simpletreemodel-example.html
     """
@@ -317,6 +351,7 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
         QAbstractItemModel.__init__(self)
         self.DSM = dataSourceManager
         self.DSM.sigDataSourceAdded.connect(self.updateTreeItems)
+        self.DSM.sigDataSourceRemoved.connect(self.updateTreeItems)
         self.rootItem = TreeItem(None, None)
 
 
@@ -702,7 +737,16 @@ class CanvasLink(QObject):
     def panCenter(self, c1, c2):
         pass
 
+
+
+
 class EnMAPBox:
+    _instance = None
+    @staticmethod
+    def instance():
+        return EnMAPBox._instance
+
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
         print(iface)
@@ -729,6 +773,7 @@ class EnMAPBox:
         self.gui.actionAddMapView.triggered.connect(lambda : self.dockarea.addDock(EnMAPBoxMapDock(self)))
         self.gui.actionAddTextView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxTextDock(self)))
 
+        EnMAPBox._instance = self
 
     def isLinkedWithQGIS(self):
         return self.iface is not None and isinstance(self.iface, qgis.gui.QgisInterface)
@@ -1274,6 +1319,7 @@ if __name__ == '__main__':
     qgsApp.initQgis()
 
 
+
     if False:
         w = QMainWindow()
         w.setWindowTitle('QgsMapCanvas Example')
@@ -1307,6 +1353,9 @@ if __name__ == '__main__':
     #md1.linkWithMapDock(md2, linktype='center')
     #EB.show()
     EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_Mask')
+    EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LAI')
+    EB.addSource(
+        r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
     EB.run()
 
 
