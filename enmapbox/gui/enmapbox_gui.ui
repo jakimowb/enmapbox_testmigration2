@@ -29,7 +29,7 @@
      <x>0</x>
      <y>0</y>
      <width>1276</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -117,12 +117,15 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QTreeView" name="treeView">
+          <widget class="QTreeView" name="dataSourceTreeView">
            <property name="frameShape">
             <enum>QFrame::Box</enum>
            </property>
            <property name="frameShadow">
             <enum>QFrame::Sunken</enum>
+           </property>
+           <property name="dragDropMode">
+            <enum>QAbstractItemView::DragDrop</enum>
            </property>
           </widget>
          </item>
@@ -155,16 +158,17 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>true</bool>
+    <bool>false</bool>
    </attribute>
    <addaction name="actionAddMapView"/>
    <addaction name="actionAddTextView"/>
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
-   <addaction name="actionPan"/>
    <addaction name="actionSelectPixel"/>
+   <addaction name="actionPan"/>
    <addaction name="separator"/>
+   <addaction name="actionSandbox"/>
   </widget>
   <action name="actionOpen_Raster">
    <property name="text">
@@ -222,11 +226,19 @@
    </property>
   </action>
   <action name="actionZoomIn">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomIn.svg</normaloff>:/enmapbox/icons/mActionZoomIn.svg</iconset>
+   </property>
    <property name="text">
     <string>zoomIn</string>
    </property>
   </action>
   <action name="actionZoomOut">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomOut.svg</normaloff>:/enmapbox/icons/mActionZoomOut.svg</iconset>
+   </property>
    <property name="text">
     <string>zoomOut</string>
    </property>
@@ -239,6 +251,19 @@
   <action name="actionSelectPixel">
    <property name="text">
     <string>selectPixel</string>
+   </property>
+  </action>
+  <action name="actionSandbox">
+   <property name="icon">
+    <iconset>
+     <normalon>:/enmapbox/icons/link_center.svg</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Sandbox</string>
+   </property>
+   <property name="toolTip">
+    <string>selectSandbox</string>
    </property>
   </action>
  </widget>
