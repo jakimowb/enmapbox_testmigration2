@@ -25,23 +25,6 @@
          inkscape:connector-curvature="0"
          d="M 2362.38,3289.96 3754.11,6.80078 3641.8,151.695 2640.37,2534.35 3412.13,445.691 3334.48,520.086 2556,2631.38 3172.66,695.02 l -18.02,-0.004 -48.52,39.734 -622.04,1973.96 477.78,-1855.796 -59.5,44.93 -489.59,1907.296 353.27,-1804.34 -55.73,34.08 -355.81,1835.76 209.8,-1746.44 -51.89,28.52 -207.45,1766.52 72.29,-1692.23 -53.51,24.09 -66.25,1704.29 -86.87,-1635.36 -48.91,16.08 94.6,1658.46 -257.22,-1604.98 -45.65,12.57 259.68,1627.16 -445.14,-1576.09 -50.91,8.91 455.88,1590.29 -656.68,-1555.14 -53.13,2.14 666.01,1572.08 -928.64,-1561.46 -47.53,1.93 1056.19,1777.98 193.21,0 z" />
     </clipPath>
-    <font
-       inkscape:label="Schrift 1"
-       id="font3412"
-       horiz-adv-x="1024"
-       horiz-origin-x="0"
-       horiz-origin-y="0"
-       vert-origin-x="45"
-       vert-origin-y="90"
-       vert-adv-y="90">
-      <font-face
-         font-family="SVGFont 1"
-         id="font-face3414"
-         units-per-em="1024" />
-      <missing-glyph
-         id="missing-glyph3416"
-         d="M0,0h1000v1024h-1000z" />
-    </font>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -50,16 +33,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.35"
-     inkscape:cx="-245.39783"
-     inkscape:cy="-437.2021"
+     inkscape:zoom="1.979899"
+     inkscape:cx="-151.2316"
+     inkscape:cy="72.354968"
      inkscape:document-units="px"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g22"
      showgrid="false"
      inkscape:window-width="1280"
-     inkscape:window-height="962"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:window-height="1002"
+     inkscape:window-x="1272"
+     inkscape:window-y="112"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata7">
