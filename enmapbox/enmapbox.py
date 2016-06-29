@@ -334,20 +334,36 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
         src_grp.appendChild(dataSource.getTreeItem(src_grp))
         print(src_grp)
 
+    def supportedDragActions(self):
+        return Qt.CopyAction | Qt.MoveAction
 
+    def supportedDropActions(self):
+        return Qt.CopyAction | Qt.MoveAction
+
+
+
+    def dropMimeData(self, mimeData, Qt_DropAction, row, column, parent):
+
+        s = ""
+
+    def mimeData(self, list_of_QModelIndex):
+        s = ""
+        mimeData = QMimeData()
+        #todo:
+        return mimeData
     #read only access functions
     """
     Used by other components to obtain information about each item provided by the model.
     In many models, the combination of flags should include Qt::ItemIsEnabled and Qt::ItemIsSelectable.
     """
-
-    """
     def flags(self, index):
-        if not index.isValid():
-            return 0
+        default = super(DataSourceManagerTreeModel, self).flags(index)
+        if index.isValid():
+            return Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | default
+        else:
+            return default
 
-        return QAbstractItemModel.flags(index)
-    """
+
 
     """
     Used to supply item data to views and delegates. Generally, models only need to supply data for
@@ -442,8 +458,9 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models
     must emit the dataChanged() signal to inform other components of the change.
     """
-    #def setData(self, QModelIndex, QVariant, int_role=None):
-    #    pass
+    def setData(self, QModelIndex, QVariant, int_role=None):
+        s = ""
+        pass
 
     """
     Used to modify horizontal and vertical header information. After changing the item of data,
@@ -498,6 +515,8 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
 
             return item.childCount() > 0
         pass
+
+
 
     #parents and childrens
 
@@ -689,10 +708,16 @@ class EnMAPBox:
         print(iface)
         self.iface = iface
         self.gui = EnMAPBox_GUI()
+        self.gui.setAcceptDrops(True)
         self.gui.setWindowTitle('EnMAP-Box ' + VERSION)
         self.dataSourceManager = DataSourceManager()
         model = DataSourceManagerTreeModel(self.dataSourceManager)
         self.gui.dataSourceTreeView.setModel(model)
+
+        self.gui.dataSourceTreeView.setDragEnabled(True)
+        self.gui.dataSourceTreeView.setAcceptDrops(True)
+        self.gui.dataSourceTreeView.viewport().setAcceptDrops(True)
+        self.gui.dataSourceTreeView.setDropIndicatorShown(True)
         self.dockarea = EnMAPBoxDockArea()
         self.gui.centralWidget().layout().addWidget(self.dockarea)
         #self.gui.centralWidget().addWidget(self.dockarea)
