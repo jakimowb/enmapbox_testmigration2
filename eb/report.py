@@ -22,10 +22,7 @@ class Report():
     def appendReport(self, report):
 
         assert isinstance(report, Report)
-        self.append(ReportHeading(report.title))
-        for item in report.items:
-            self.append(item)
-
+        self.items = self.items + report.items
         return self
 
 
@@ -199,13 +196,13 @@ class ReportTable():
                 data = data.reshape((1,-1))
             assert data.ndim == 2
 
-        table = [TableRow([TableCell(str(v)) for v in row]) for row in data]
+        table = [TableRow([TableCell(str(v), attribs = {'align': 'right'}) for v in row]) for row in data]
 
         if colHeaders is not None:
 
             if colSpans is None:
                  colSpans = [[None for v in vr] for vr in colHeaders]
-            table = [TableRow([TableCell(cell, header=True,  attribs = {'colspan': cscell})
+            table = [TableRow([TableCell(cell, header=True,  attribs = {'colspan': cscell, 'align': 'center'})
                                  for cell, cscell in zip(row, colSpan)], header=True) for row, colSpan in zip(colHeaders, colSpans)] + table
 
         if rowHeaders is not None:
@@ -214,13 +211,13 @@ class ReportTable():
                 rowSpans = [[None for v in vr] for vr in rowHeaders]
 
             if colHeaders is not None:
-                table[0].cells.insert(0, TableCell('', header=True, attribs={'colspan':len(colHeaders), 'rowspan': len(rowHeaders)}))
+                table[0].cells.insert(0, TableCell('', header=True, attribs={'colspan':len(rowHeaders), 'rowspan': len(colHeaders)}))
 
             for rowheader, rowspan  in reversed(zip(rowHeaders, rowSpans)):
                 i = len(colHeaders) if colHeaders is not None else 0
                 for header, span in zip(rowheader, rowspan):
 
-                    table[i].cells.insert(0, TableCell(header, header=True, attribs={'rowspan': span}))
+                    table[i].cells.insert(0, TableCell(header, header=True, attribs={'rowspan': span, 'align': 'left'}))
                     i += span if span is not None else 1
 
         self.table = Table(table)
