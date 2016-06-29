@@ -28,7 +28,12 @@ if False:
 from enmapbox.enmapbox import EnMAPBox
 
 
+
 class EnMAPBoxPlugin:
+    _enmapBoxInstance = None
+
+    def enmapBoxInstance(self):
+        return self._enmapBoxInstance
     # initialize and unload all the stuff that comes under the umbrella of the EnMAP-Box:
     # main gui, maybe smaller GUIs and QGIS extensions, processing routines....
 
@@ -41,7 +46,6 @@ class EnMAPBoxPlugin:
             import console
             console.show_console()
 
-
     def has_processing_framework(self):
         try:
             from processing.core.Processing import Processing
@@ -49,9 +53,8 @@ class EnMAPBoxPlugin:
         except:
             return False
 
+
     def initGui(self):
-
-
         # add toolbar actions
         self.toolbarActions = []
 
@@ -60,6 +63,7 @@ class EnMAPBoxPlugin:
             print(p)
 
         self.enmapbox = EnMAPBox(self.iface)
+        EnMAPBoxPlugin._enmapBoxInstance = self.enmapbox
 
         action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)
         action.triggered.connect(self.enmapbox.run)
