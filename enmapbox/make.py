@@ -30,8 +30,9 @@ def make():
         bn = os.path.splitext(bn)[0]
         pathPy2 = os.path.join(dn, bn+'_py2.py' )
         pathPy3 = os.path.join(dn, bn+'_py3.py' )
-
+        print('Make {}'.format(pathPy2))
         subprocess.call(['pyrcc4','-py2','-o',pathPy2, f])
+        print('Make {}'.format(pathPy3))
         subprocess.call(['pyrcc4','-py3','-o',pathPy3, f])
 
 
