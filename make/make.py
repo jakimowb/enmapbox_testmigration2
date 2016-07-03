@@ -22,7 +22,7 @@ def file_search(rootdir, wildcard, recursive=False, ignoreCase=False):
 
 def make():
 
-    #compile resource files
+    #compile Qt resource files
     resourcefiles = file_search(ROOT, 'resource*.qrc', recursive=True)
     for f in resourcefiles:
         dn = os.path.dirname(f)
