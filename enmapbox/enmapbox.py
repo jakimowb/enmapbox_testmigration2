@@ -815,7 +815,7 @@ class EnMAPBoxDataSourceManager(QtCore.QObject):
 class TestData():
 
     prefix = jp(DIR, 'testdata')
-    assert os.path.isdir(prefix)
+    #assert os.path.isdir(prefix)
     Image = os.path.join(prefix, 'SF_20x20.tif')
     Diagrams = os.path.join(prefix, 'diagrams.png')
     AlpineForelandSubset = os.path.join(prefix, 'AlpineForelandSubset.img')
