@@ -1,9 +1,7 @@
 __author__ = 'janzandr'
-import calendar
-import yaml
-
-import enmapbox.hub.collections
-
+import hub.collections
+import calendar, gdal
+import xml.etree.ElementTree as ElementTree
 
 def parseMTL(mtlfilename, filter=False):
     with open(mtlfilename) as file:
@@ -19,15 +17,15 @@ def parseMTL(mtlfilename, filter=False):
             'SPACECRAFT_ID', 'STATION_ID', 'SUN_AZIMUTH', 'SUN_ELEVATION', 'UTM_ZONE', 'WRS_PATH', 'WRS_ROW']
 
     if filter:
-        metas = {key:yaml.load(value) for (key, value) in metas if key in keyfilter}
+        metas = {key:value.strip('"') for (key, value) in metas if key in keyfilter}
     else:
-        metas = {key:yaml.load(value) for (key, value) in metas}
+        metas = {key:value.strip('"') for (key, value) in metas}
 
     #metas = {key:value for (key, value) in metas if key in keyfilter}
     return metas
 
 def getSceneIDInfo(sceneID):
-    result = enmapbox.hub.collections.Bunch()
+    result = hub.collections.Bunch()
     result.id      = sceneID
     result.sensor  = sceneID[0:3]
     result.pathrow = sceneID[3:9]

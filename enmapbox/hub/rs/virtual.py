@@ -1,12 +1,10 @@
 __author__ = 'janzandr'
+import hub.rs.landsat
 import xml.etree.ElementTree as ElementTree
-
-import enmapbox.hub.rs.landsat
-
 
 def parseLandsatMeta(mtlfilename, espafilename):
 
-    mtl = enmapbox.hub.rs.landsat.parseMTL(mtlfilename)
+    mtl = hub.rs.landsat.parseMTL(mtlfilename)
     tree = ElementTree.parse(espafilename)
     root = tree.getroot()
 

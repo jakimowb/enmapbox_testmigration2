@@ -1,11 +1,5 @@
 __author__ = 'janzandr'
-import fnmatch
-import json
-import os
-import pickle
-
-import enmapbox.hub.collections
-
+import os, fnmatch, json, pickle, hub.collections, numpy, hub.file, sys
 
 def filesearch(dir, pattern):
     files = []
@@ -40,10 +34,10 @@ def saveJSON(var, file):
 
 def restoreJSON(file):
     with open(file, 'r') as file: var = json.load(file)
-    return enmapbox.hub.collections.Bunch(var)
+    return hub.collections.Bunch(var)
 
 def savePickle(var, file):
-    enmapbox.hub.file.mkfiledir(file)
+    hub.file.mkfiledir(file)
     with open(file, 'wb') as file: pickle.dump(var, file)
 
 def restorePickle(file):

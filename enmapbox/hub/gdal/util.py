@@ -1,16 +1,9 @@
-import copy
-import enmapbox.hub.file
-import gdal
-import numpy
-import os
-import subprocess
-import xml.etree.ElementTree
-from gdalconst import *
-
+import numpy, os, hub.file, subprocess, gdal, xml.etree.ElementTree, copy
+#from gdalconst import *
 
 def gdal_translate(outfile, infile, options, verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.mkdir(os.path.dirname(outfile))
     cmd = 'gdal_translate '+options+' '+infile+' '+outfile
     #cmd = r'"C:\Program Files\QGIS Wien\bin\gdal_translate" '+options+' '+infile+' '+outfile
 
@@ -22,7 +15,7 @@ def gdal_translate(outfile, infile, options, verbose=True):
 
 def gdalwarp(outfile, infile, options, verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.mkdir(os.path.dirname(outfile))
 
     cmd = 'gdalwarp '+options+' '+infile+' '+outfile
     #cmd = r'"C:\Program Files\QGIS Wien\bin\gdalwarp" '+options+' '+infile+' '+outfile
@@ -34,9 +27,11 @@ def gdalwarp(outfile, infile, options, verbose=True):
         cmd += ' -q'
     subprocess.call(cmd, shell=True)
 
+    return outfile
+
 def gdalbuildvrt(outfile, infiles, options, verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.mkdir(os.path.dirname(outfile))
 
     # create filelist file
     infiles_file = outfile[:-4]+'.txt'
@@ -51,9 +46,33 @@ def gdalbuildvrt(outfile, infiles, options, verbose=True):
         cmd += ' -q'
     subprocess.call(cmd, shell=True)
 
+def gdaldem(outfile, infile, options, verbose=True):
+
+    hub.file.mkdir(os.path.dirname(outfile))
+
+    cmd = 'gdaldem '+options+' '+infile+' '+outfile
+
+    if verbose:
+        print(cmd)
+    else:
+        cmd += ' -q'
+    subprocess.call(cmd, shell=True)
+
+def gdal_proximity(outfile, infile, options, verbose=True):
+
+    hub.file.mkdir(os.path.dirname(outfile))
+
+    cmd = 'gdal_proximity '+infile+' '+outfile+' '+options
+
+    if verbose:
+        print(cmd)
+    else:
+        cmd += ' -q'
+    subprocess.call(cmd, shell=True)
+
 def gdaltindex(outfile, infiles, options, verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.mkdir(os.path.dirname(outfile))
     for file in infiles:
         cmd = 'gdaltindex '+options+' '+outfile+' '+file
         if verbose:
@@ -65,7 +84,7 @@ def gdaltindex(outfile, infiles, options, verbose=True):
 
 def gdal_rasterize(rasterfile, ogrfile, options, verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(rasterfile))
+    hub.file.mkdir(os.path.dirname(rasterfile))
 
     cmd = 'gdal_rasterize '+options+' '+ogrfile+' '+rasterfile
     if verbose:
@@ -76,7 +95,7 @@ def gdal_rasterize(rasterfile, ogrfile, options, verbose=True):
 
 def gdal_calc(outfile, infile1, options, verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.mkdir(os.path.dirname(outfile))
 
     cmd = 'gdal_calc'#+options+' '+ogrfile+' '+rasterfile
 #          gdal_calc.py -A input1.tif -B input2.tif --outfile=result.tif --calc="A+B"
@@ -92,7 +111,7 @@ def stack(outfile, infiles, options='', verbose=True):
 
     gdalbuildvrt(outfile, infiles, options+' -separate', verbose)
 
-    bandss = [gdal.Open(infile, GA_ReadOnly).RasterCount for infile in infiles]
+    bandss = [gdal.Open(infile, gdal.GA_ReadOnly).RasterCount for infile in infiles]
 
     tree = xml.etree.ElementTree.parse(outfile)
     root = tree.getroot()
@@ -109,7 +128,7 @@ def stack(outfile, infiles, options='', verbose=True):
                 VRTRasterBand = copy.deepcopy(child)
                 VRTRasterBand.set('band',str(vrtbandindex+1))
                 vrtbandindex += 1
-                Source =  VRTRasterBand.find('SimpleSource') if VRTRasterBand.find('SimpleSource') else VRTRasterBand.find('ComplexSource')
+                Source =  VRTRasterBand.find('SimpleSource') if VRTRasterBand.find('SimpleSource') is not None else VRTRasterBand.find('ComplexSource')
                 SourceBand = Source.find('SourceBand')
                 SourceBand.text = str(band+1)
                 root2.append(VRTRasterBand)
@@ -124,9 +143,10 @@ def stack(outfile, infiles, options='', verbose=True):
 def mosaic(outfile, infiles, options='', verbose=True):
     gdalbuildvrt(outfile, infiles, options, verbose)
 
+'''
 def warp(outfile, infile, of='VRT'):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.mkdir(os.path.dirname(outfile))
 
     cmd = 'gdalwarp -of '+of+' -t_srs EPSG:3575 -tr 30 30 -overwrite -r near -wm 2000 '+infile+' '+outfile
     print(cmd)
@@ -135,7 +155,7 @@ def warp(outfile, infile, of='VRT'):
 
 def subset(outfile, infile, xmin, ymin, xmax, ymax, of='VRT', verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.mkdir(os.path.dirname(outfile))
 
     cmd = 'gdal_translate -of '+of+' -projwin '+xmin+' '+ymin+' '+xmax+' '+ymax+' -eco '+infile+' '+outfile
     if verbose:
@@ -143,6 +163,7 @@ def subset(outfile, infile, xmin, ymin, xmax, ymax, of='VRT', verbose=True):
     else:
         cmd += ' -q'
     subprocess.call(cmd, shell=True)
+'''
 
 if __name__ == '__main__':
 
