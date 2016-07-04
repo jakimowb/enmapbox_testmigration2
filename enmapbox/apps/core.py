@@ -122,7 +122,7 @@ class ToyAllParameters(GeoAlgorithm):
         progress.setPercentage(42)
 
         filename = self.getParameterValue(self.OUTPUT_MODEL)
-        qgis.core.QgsMessageLog.logMessage('Hello', 'EnMAP-Box')
+        #qgis.core.QgsMessageLog.logMessage('Hello', 'EnMAP-Box')
         raise Exception('Filename: ' + str(self.getParameterValue(self.OUTPUT_MODEL)))
 
         raise GeoAlgorithmExecutionException('Hello World')

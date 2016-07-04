@@ -27,6 +27,12 @@ if False:
 
 from enmapbox.enmapbox import EnMAPBox
 
+#for p in sorted(sys.path):
+#    print(p)
+
+#import enmapbox.apps
+#import enmapbox.apps.core
+#import enmapbox.processing
 
 
 class EnMAPBoxPlugin:
