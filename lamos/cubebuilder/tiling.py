@@ -55,6 +55,7 @@ def tileScene((scenefolder, outfolder, mgrstiles)):
 
     print('  cut '+sceneID)
     for layername, nodata in layers:
+
         infile = os.path.join(scenefolder, sceneID+layername)
 
         if not os.path.exists(infile):
