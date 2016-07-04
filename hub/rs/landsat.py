@@ -34,6 +34,7 @@ def getSceneIDInfo(sceneID):
     result.yeardoy = sceneID[9:16]
     result.station = sceneID[16:19]
     result.decimalyear = result.year+result.doy/(366. if calendar.isleap(result.year) else 365.)
+
     date= calendar.datetime.datetime(result.year, 1, 1) + calendar.datetime.timedelta(result.doy - 1)
     result.day = date.day
     result.month = date.month

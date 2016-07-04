@@ -14,7 +14,7 @@ def parseLandsatMeta(mtlfilename, espafilename):
              #'EarthSunDist': mtl['EARTH_SUN_DISTANCE'],#0.99455305154098',
              #'FieldOfView': '14.92',
              #'IncidenceAngle': '-9999.99',
-             'Metafile': mtlfilename,
+             #'Metafile': mtlfilename,
              #'PhysUnit': 'TOA_Reflectance in [0-10000]',
              'ProcLCode': mtl['DATA_TYPE'], #'L1T',
              #'Quality': ["['STRIPING_BAND1'- 'NONE']", "['STRIPING_BAND2'- 'NONE']", "['STRIPING_BAND3'- 'NONE']", "['STRIPING_BAND4'- 'NONE']", "['STRIPING_BAND5'- 'NONE']", "['STRIPING_BAND6'- 'NONE']", "['STRIPING_BAND7'- 'NONE']", "['BANDING'- 'N']", "['COHERENT_NOISE'- 'N']", "['MEMORY_EFFECT'- 'Y']", "['SCAN_CORRELATED_SHIFT'- 'Y']", "['INOPERABLE_DETECTORS'- 'N']", "['DROPPED_LINES'- 'N']"],
@@ -30,8 +30,8 @@ def parseLandsatMeta(mtlfilename, espafilename):
              #'byte order': '0',
              #'coordinate system string': 'PROJCS["WGS_1984_UTM_Zone_43N",GEOGCS["GCS_WGS_1984",DATUM["WGS_1984",SPHEROID["WGS_84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",75],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]',
              #'corner coordinates lonlat': '[[72.0968572, 41.2628323], [75.0585286, 41.2994376], [72.1808746, 39.2706455], [75.056832, 39.304773]]',
-             'band names' : [i.get('name') for i in root.findall("./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band")],
-             'reflectance gain values' : [i.get('scale_factor', '') for i in root.findall("./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band")],
+             #'band names' : [i.get('name') for i in root.findall("./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band")],
+             #'reflectance gain values' : [i.get('scale_factor', '') for i in root.findall("./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band")],
              #'data gain values': ['0.7658267716535433', '1.4481889763779527', '1.043976377952756', '0.876023622047244', '0.12035433070866142', '0.0655511811023622'],
              #'data offset values': ['-2.2858267716535434', '-4.288188976377953', '-2.213976377952756', '-2.386023622047244', '-0.4903543307086614', '-0.2155511811023622'],
              #'LayerBandsAssignment': ['1', '2', '3', '4', '5', '7'],
@@ -48,7 +48,7 @@ def parseLandsatMeta(mtlfilename, espafilename):
              }
 
     # new keys (not used by Daniel)
-    metas['software version'] = [i.text for i in root.findall("./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band/{http://espa.cr.usgs.gov/v1.2}app_version")]
+    #metas['software version'] = [i.text for i in root.findall("./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band/{http://espa.cr.usgs.gov/v1.2}app_version")]
     metas['geometric accuracy'] = mtl.get('GEOMETRIC_RMSE_MODEL', 0)
 
     #'bandwidths': ['64.0', '80.0', '66.0', '127.0', '216.0', '251.0'],

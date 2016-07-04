@@ -1,7 +1,5 @@
 __author__ = 'janzandr'
 import numpy
-import hub.debug
-import sys
 from hub.timing import tic, toc
 
 def nanargpercentile(a, q, axis=0, out=None, overwrite_input=False, interpolation='linear'):

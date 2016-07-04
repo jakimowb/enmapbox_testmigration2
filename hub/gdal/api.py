@@ -238,10 +238,10 @@ class GDALMeta():
             rb.setNoDataValue(value)
 
     def getNoDataValue(self, default=None):
-        if self.getMetadataItem('file type').lower() == 'envi classification':
+        if self.getMetadataItem('file_type', default='').lower() == 'envi classification':
             noDataValue = 0
         else:
-            noDataValue = self.getMetadataItem('data ignore value', default)
+            noDataValue = self.getMetadataItem('data_ignore_value', default)
 
         return float(noDataValue) if noDataValue is not None else None
 

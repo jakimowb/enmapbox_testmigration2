@@ -12,6 +12,7 @@ def gdal_translate(outfile, infile, options, verbose=True):
     else:
         cmd += ' -q'
     subprocess.call(cmd, shell=True)
+    return outfile
 
 def gdalwarp(outfile, infile, options, verbose=True):
 
@@ -106,8 +107,7 @@ def gdal_calc(outfile, infile1, options, verbose=True):
     subprocess.call(cmd, shell=True)
 
 
-
-def stack(outfile, infiles, options='', verbose=True):
+def stack_images(outfile, infiles, options='', verbose=True):
 
     gdalbuildvrt(outfile, infiles, options+' -separate', verbose)
 
@@ -139,6 +139,33 @@ def stack(outfile, infiles, options='', verbose=True):
     #xml.etree.ElementTree.dump(root2)
     tree2 = xml.etree.ElementTree.ElementTree(root2)
     tree2.write(outfile)
+
+    return outfile
+
+
+def stack_bands(outfile, infiles, inbands, options='', verbose=True):
+
+    assert len(infiles) == len(inbands)
+
+    # create VRT stack with band 1 for each input file
+    gdalbuildvrt(outfile, infiles, options+' -separate -b 1', verbose)
+
+    # manipulate VRT
+    with open(outfile) as f:
+        text = f.readlines()
+
+    bandIndex = 0
+    for i, line in enumerate(text):
+        if line.strip() == '<SourceBand>1</SourceBand>':
+            text[i] = '      <SourceBand>' + str(inbands[bandIndex]) + '</SourceBand>\n'
+            bandIndex += 1
+
+    with open(outfile, 'w') as f:
+        f.writelines(text)
+
+
+    return outfile
+
 
 def mosaic(outfile, infiles, options='', verbose=True):
     gdalbuildvrt(outfile, infiles, options, verbose)

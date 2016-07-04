@@ -1,3 +1,4 @@
+'''
 __author__ = 'janzandr'
 
 class Rectangle:
@@ -33,3 +34,5 @@ if __name__ == '__main__':
 
 
     print(overlap(rect1, rect2))
+
+'''
