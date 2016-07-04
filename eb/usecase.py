@@ -12,7 +12,7 @@ def classification():
    # image = eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
     image = eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_Image')
     trainingLabels =  eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_LC_Training')
-   # mask =  eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Mask')
+    mask =  eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_Mask')
   #  trainingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Training-Sample')
   #  testingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
 
@@ -40,10 +40,10 @@ def classification():
 
 def regression():
 
-    image = eb.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
-    mask = eb.Image(r'C:\Work\data\Hymap_Berlin-B_Mask')
-    trainingLabels = eb.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Training-Sample')
-    testingLabels = eb.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Validation-Sample')
+    image = eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Image')
+    mask = eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Mask')
+    trainingLabels = eb.Regression(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Regression-Training-Sample')
+    testingLabels = eb.Regression(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Regression-Validation-Sample')
 
     regressors = eb.estimators.all(eb.estimators.Regressors)
 
