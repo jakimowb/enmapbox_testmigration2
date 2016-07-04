@@ -8,3 +8,4 @@
 *.pyd
 *.so
 *.pyc
+/documentation/build
