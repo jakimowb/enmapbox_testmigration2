@@ -49,6 +49,15 @@ class Type():
         return self
 
 
+    def report(self):
+
+        return Report('')
+
+
+    def info(self):
+
+        self.report().saveHTML().open()
+
 class Meta(GDALMeta):
 
     def report(self):
