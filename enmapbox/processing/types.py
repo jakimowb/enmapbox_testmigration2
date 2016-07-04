@@ -3,19 +3,15 @@ from __future__ import print_function, division
 __author__ = 'janzandr'
 
 import operator
-import tempfile
 import hub
-from eb.env import env
-from eb.env import PrintProgress, SilentProgress
+from enmapbox.processing.env import SilentProgress
 from hub.gdal.api import GDALMeta
 import hub.gdal.util
 import hub.file
 import rios.applier
-import numpy
 import sklearn.metrics
 import sklearn.pipeline
-import eb.report
-from eb.report import *
+from enmapbox.processing.report import *
 
 
 # set default progress object
@@ -604,7 +600,7 @@ class UncertaintyClassifier(Classifier):
     def __init__(self, classifier, mode):
 
         assert isinstance(classifier, Classifier)
-        from eb.estimators import SklearnClassifiers
+        from enmapbox.processing import SklearnClassifiers
         pipe = sklearn.pipeline.make_pipeline(SklearnClassifiers.UncertaintyClassifier(classifier.sklEstimator, mode=mode))
         Classifier.__init__(self, pipe)
 
@@ -652,7 +648,7 @@ class UncertaintyRegressor(Regressor):
 
         assert isinstance(regressor, Regressor)
 
-        from eb.estimators import SklearnRegressors
+        from enmapbox.processing import SklearnRegressors
         pipe = sklearn.pipeline.make_pipeline(SklearnRegressors.UncertaintyRegressor(regressor.sklEstimator))
         Regressor.__init__(self, pipe)
 

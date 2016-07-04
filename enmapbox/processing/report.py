@@ -1,7 +1,11 @@
-import os, scipy.misc, numpy, time
+import numpy
+import os
+import scipy.misc
 import subprocess
+import time
+
 from HTML import Table, TableRow, TableCell
-from eb.env import env
+from enmapbox.processing.env import env
 
 
 class Report():
@@ -175,8 +179,6 @@ class ReportPlot(ReportImage):
 
     def __init__(self, figure, caption=''):
 
-        import matplotlib.pyplot as plt
-
         def fig2rgb_array():
 
             figure.canvas.draw()
@@ -268,8 +270,6 @@ class ReportHTML():
 
 
 if __name__ == '__main__':
-
-    import eb
 
     array = numpy.random.randint(0, 255, [3, 300, 300])
     colHeaders = [['Hello World'], ['A', 'B'], ['a1', 'a2', 'b1', 'b2']]

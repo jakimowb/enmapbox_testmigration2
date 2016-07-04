@@ -1,8 +1,15 @@
 from __future__ import division
+
 import os
-import hub.gdal.util, hub.file, hub.rs.landsat
+
 import eb
-import ogr, gdal
+import gdal
+import ogr
+
+import hub.file
+import hub.gdal.util
+import hub.rs.landsat
+
 
 class Type:
 
@@ -24,8 +31,8 @@ class Image(Type):
     def report(self, title='Image'):
 
         report = eb.Report(title)
-        report.append(eb.ReportParagraph('name = '+self.name))
-        report.append(eb.ReportParagraph('filename = '+str(self.filename)))
+        report.append(eb.ReportParagraph('name = ' + self.name))
+        report.append(eb.ReportParagraph('filename = ' + str(self.filename)))
         return report
 
 
@@ -256,7 +263,8 @@ class Archive(Type):
         report.append(eb.ReportHeading('Footprints'))
         for footprint in self.footprints():
             report.append(eb.ReportHeading(footprint, 1))
-            report.append(eb.ReportParagraph('Products = ' + str([product.sceneId for product in self.products[footprint]])))
+            report.append(
+                eb.ReportParagraph('Products = ' + str([product.sceneId for product in self.products[footprint]])))
 
         return report
 

@@ -1,14 +1,21 @@
 from __future__ import division
+
 import os
-import hub.gdal.util, hub.file, hub.rs.virtual, hub.datetime
-import eb
-import ogr, gdal
+
+import ogr
+
+import hub.datetime
+import hub.file
+import hub.gdal.util
+import hub.rs.virtual
 import rios.applier
+from enmapbox import processing
+
 
 class Type:
 
     def report(self):
-        return eb.Report(str(self.__class__).split('.')[-1])
+        return processing.Report(str(self.__class__).split('.')[-1])
 
     def info(self):
         self.report().saveHTML().open()
@@ -24,11 +31,11 @@ class Image(Type):
 
     def report(self, title='Image'):
 
-        report = eb.Report(title)
-        report.append(eb.ReportParagraph('name = '+self.name))
-        report.append(eb.ReportParagraph('filename = '+str(self.filename)))
+        report = processing.Report(title)
+        report.append(processing.ReportParagraph('name = ' + self.name))
+        report.append(processing.ReportParagraph('filename = ' + str(self.filename)))
         for k, v in self.meta.items():
-            report.append(eb.ReportParagraph(k + ' = ' + str(v)))
+            report.append(processing.ReportParagraph(k + ' = ' + str(v)))
         return report
 
 
@@ -74,8 +81,8 @@ class Product(Type):
     def report(self):
 
         report = Type.report(self)
-        report.append(eb.ReportParagraph('folder = ' + self.folder))
-        report.append(eb.ReportParagraph('scene = ' + self.scene))
+        report.append(processing.ReportParagraph('folder = ' + self.folder))
+        report.append(processing.ReportParagraph('scene = ' + self.scene))
 
         for image in self.yieldImages():
             report.appendReport(image.report(image.name))
@@ -132,9 +139,9 @@ class MGRSFootprint(Footprint):
     def report(self):
 
         report = Type.report(self)
-        report.append(eb.ReportParagraph('name =     ' + self.name))
-        report.append(eb.ReportParagraph('utm zone = ' + self.utm))
-        report.append(eb.ReportParagraph('bounding box ul, lr = ' + str(self.ul) + ' ' + str(self.lr)))
+        report.append(processing.ReportParagraph('name =     ' + self.name))
+        report.append(processing.ReportParagraph('utm zone = ' + self.utm))
+        report.append(processing.ReportParagraph('bounding box ul, lr = ' + str(self.ul) + ' ' + str(self.lr)))
         return report
 
 
@@ -158,11 +165,11 @@ class WRS2Footprint(Footprint):
     def report(self):
 
         report = Type.report(self)
-        report.append(eb.ReportParagraph('name =     ' + self.name))
-        report.append(eb.ReportParagraph('utm zone = ' + self.utm))
-        report.append(eb.ReportParagraph('path = ' + self.path))
-        report.append(eb.ReportParagraph('row = ' + self.row))
-        report.append(eb.ReportParagraph('bounding box ul, lr = ' + str(self.ul) + ' ' + str(self.lr)))
+        report.append(processing.ReportParagraph('name =     ' + self.name))
+        report.append(processing.ReportParagraph('utm zone = ' + self.utm))
+        report.append(processing.ReportParagraph('path = ' + self.path))
+        report.append(processing.ReportParagraph('row = ' + self.row))
+        report.append(processing.ReportParagraph('bounding box ul, lr = ' + str(self.ul) + ' ' + str(self.lr)))
         return report
 
 
@@ -291,7 +298,7 @@ class SensorXComposer:
 
         assert isinstance(product, Product)
 
-        if folder is None: folder = os.path.join(eb.env.tempfile(), product.scene)
+        if folder is None: folder = os.path.join(processing.env.tempfile(), product.scene)
 
         for ufunc in self.ufuncs:
 
@@ -301,7 +308,7 @@ class SensorXComposer:
             infiles = [band.filename for band in imageStack.images]
             hub.gdal.util.stack(outfile=outfile, infiles=infiles)
 
-            meta = eb.Meta(outfile)
+            meta = processing.Meta(outfile)
             meta.setBandNames(imageStack.metas['band names'])
             meta.setNoDataValue(imageStack.metas['data ignore value'])
             for key, value in imageStack.metas.items():
@@ -427,12 +434,13 @@ class Archive(Type):
 
     def report(self):
 
-        report = eb.Report(str(self.__class__).split('.')[-1])
-        report.append(eb.ReportParagraph('foldername = ' + self.folder))
-        report.append(eb.ReportHeading('Footprints'))
+        report = processing.Report(str(self.__class__).split('.')[-1])
+        report.append(processing.ReportParagraph('foldername = ' + self.folder))
+        report.append(processing.ReportHeading('Footprints'))
         for footprint in self.yieldFootprints():
-            report.append(eb.ReportHeading(footprint.name, 1))
-            report.append(eb.ReportParagraph('Products = ' + str([product.scene for product in self.yieldProducts(footprint)])))
+            report.append(processing.ReportHeading(footprint.name, 1))
+            report.append(
+                processing.ReportParagraph('Products = ' + str([product.scene for product in self.yieldProducts(footprint)])))
 
         return report
 
@@ -548,8 +556,8 @@ class MGRSTilingScheme(Type):
                         hub.envi.compress(infile=outfile, outfile=outfile)
 
                 # prepare meta information
-                inmeta = eb.Meta(infile)
-                outmeta = eb.Meta(outfile)
+                inmeta = processing.Meta(infile)
+                outmeta = processing.Meta(outfile)
                 outmeta.setMetadataDict(inmeta.getMetadataDict())
                 outmeta.writeMeta(outfile)
 
@@ -571,10 +579,10 @@ class MGRSTilingScheme(Type):
     def report(self):
 
         report = Type.report(self)
-        report.append(eb.ReportHeading('MGRS Tiles by WRS-2 Footprints'))
+        report.append(processing.ReportHeading('MGRS Tiles by WRS-2 Footprints'))
         for footprint in self.mgrstilesByWRS2Footprint.keys():
-            report.append(eb.ReportHeading(footprint, 1))
-            report.append(eb.ReportParagraph('MGRS Tiles = ' + str([product.name for product in self.mgrstilesByWRS2Footprint[footprint]])))
+            report.append(processing.ReportHeading(footprint, 1))
+            report.append(processing.ReportParagraph('MGRS Tiles = ' + str([product.name for product in self.mgrstilesByWRS2Footprint[footprint]])))
         return report
 
 
@@ -600,7 +608,7 @@ class TimeseriesBuilder(Type):
 
         infiles_sr = [image.filename for image in images_sr]
         infiles_qa = [image.filename for image in images_qa]
-        inmetas = [eb.Meta(infile) for infile in infiles_sr]
+        inmetas = [processing.Meta(infile) for infile in infiles_sr]
 
         indecimalyear = [hub.datetime.Date(int(inmeta.getMetadataItem('acqdate')[0:4]), int(inmeta.getMetadataItem('acqdate')[5:7]), int(inmeta.getMetadataItem('acqdate')[8:10])).decimalYear() for inmeta in inmetas]
 
@@ -616,7 +624,7 @@ class TimeseriesBuilder(Type):
             hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands)
 
             # prepare output meta information
-            outmeta = eb.Meta(outfile)
+            outmeta = processing.Meta(outfile)
             for metaKey in metaKeys:
                 outmeta.setMetadataItem(metaKey, [meta.getMetadataItem(metaKey) for meta in inmetas])
             outmeta.setMetadataItem('wavelength', indecimalyear)

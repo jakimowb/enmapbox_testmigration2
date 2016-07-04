@@ -30,6 +30,9 @@ from enmapbox.enmapbox import EnMAPBox
 
 
 class EnMAPBoxPlugin:
+
+
+
     _enmapBoxInstance = None
 
     def enmapBoxInstance(self):
@@ -80,8 +83,14 @@ class EnMAPBoxPlugin:
         if self.has_processing_framework():
             # add example app
             from processing.core.Processing import Processing
-            from enmapbox.apps.exampleapp.ExampleAlgorithmProvider import ExampleAlgorithmProvider
-            self.processingProviders.append(ExampleAlgorithmProvider())
+
+            #from enmapbox.apps.exampleapp.ExampleAlgorithmProvider import ExampleAlgorithmProvider
+            #self.processingProviders.append(ExampleAlgorithmProvider())
+            from enmapbox.apps.core import EnMAPBoxProvider
+            self.processingProviders.append(EnMAPBoxProvider())
+            #for provider in enmapbox.apps.core.get_providers():
+            #    self.processingProviders.append(provider)
+
 
             for provider in self.processingProviders:
                 Processing.addProvider(provider)
@@ -110,31 +119,31 @@ class EnMAPBoxPlugin:
 if __name__ == '__main__':
 
     #start a QGIS instance
+    if True:
+        from qgis.gui import *
+        from qgis.core import *
+        if sys.platform == 'darwin':
+            PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+        else:
+            PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+        assert os.path.exists(PATH_QGS)
+        qgsApp = QgsApplication([], True)
+        qgsApp.setPrefixPath(PATH_QGS, True)
+        qgsApp.initQgis()
 
-    from qgis.gui import *
-    from qgis.core import *
-    if sys.platform == 'darwin':
-        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-    else:
-        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    assert os.path.exists(PATH_QGS)
-    qgsApp = QgsApplication([], True)
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
+        import enmapbox.enmapbox
 
-    import enmapbox.enmapbox
+        w = QMainWindow()
+        w.setWindowTitle('QgsMapCanvas Example')
+        w.show()
+        EB = enmapbox.enmapbox.EnMAPBox(w)
+        EB.run()
+        qgsApp.exec_()
+        qgsApp.exitQgis()
 
-    w = QMainWindow()
-    w.setWindowTitle('QgsMapCanvas Example')
-    w.show()
-    EB = enmapbox.enmapbox.EnMAPBox(w)
-    EB.run()
-    qgsApp.exec_()
-    qgsApp.exitQgis()
+        # qgsApp.exitQgis()
+        # app.exec_()
+        pass
 
-    # qgsApp.exitQgis()
-    # app.exec_()
-    pass
-
-    #load the plugin
+        #load the plugin
     print('Done')

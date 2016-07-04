@@ -1,15 +1,16 @@
-from eb.types import Classifier, Regressor, Transformer, Clusterer, ClassificationSample
+import matplotlib.pyplot as plt
+import numpy
+from eb.report import *
+from eb.types import Classifier, Regressor, Transformer, Clusterer
+
+import sklearn.cluster
+import sklearn.ensemble
+import sklearn.grid_search
 import sklearn.pipeline
 import sklearn.preprocessing
-import sklearn.grid_search
 import sklearn.svm
-import sklearn.ensemble
-import sklearn.cluster
-from eb.report import *
-from HTML import Table, TableRow, TableCell
-from eb.env import PrintProgress, SilentProgress
-import numpy
-import matplotlib.pyplot as plt
+from HTML import Table
+
 
 def all(estimators):
 
@@ -305,7 +306,6 @@ class Clusterers():
 
             kMeans = self.finalEstimator()
 
-            import numpy as np
             import matplotlib.pyplot as plt
 
             for spectra in kMeans.cluster_centers_:
