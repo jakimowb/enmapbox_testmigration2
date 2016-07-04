@@ -1,26 +1,22 @@
 from __future__ import print_function, division
 
-from matplotlib.pyplot import axes
-
 __author__ = 'janzandr'
 
 import operator
 import tempfile
 import hub
+from eb.env import env
 from eb.env import PrintProgress, SilentProgress
-from eb.applier import ApplierHelper, ApplierControls
 from hub.gdal.api import GDALMeta
-import hub.gdal.util, hub.gdal.api, hub.envi
+import hub.gdal.util
 import hub.file
 import rios.applier
 import numpy
-#import numpy.ma
 import sklearn.metrics
 import sklearn.pipeline
 import eb.report
 from eb.report import *
-import shutil
-import gdal, ogr
+
 
 # set default progress object
 progress = SilentProgress
@@ -60,57 +56,7 @@ class Type():
 
 class Meta(GDALMeta):
 
-    def report(self):
-
-        report = Report('GDAL Datasource')
-
-        text = ''
-        text +=   'Projection  = ' + str(self.Projection)
-        text += '\nRasterSize  = ' + str(self.RasterXSize) + ' ' + str(self.RasterYSize)
-        text += '\nRasterCount = ' + str(self.RasterCount)
-        text += '\nPixelSize   = ' + str(self.pixelXSize) + ' ' + str(self.pixelYSize)
-        report.append(ReportMonospace(text))
-
-        d = self.getMetadataDict()
-        text = '\n'.join([k + ' = ' + str(d[k]) for k in sorted(d.keys())])
-        if text != '':
-            report.append(ReportHeading('ENVI Domain'))
-            report.append(ReportMonospace(text))
-
-        report.append(ReportHeading('GDAL Domains'))
-        for name, d in self.domain.items():
-            if name == 'ENVI': continue
-            report.append(ReportHeading(name, 1))
-            text = '\n'.join([k + ' = ' + str(d[k]) for k in sorted(d.keys())])
-            report.append(ReportMonospace(text))
-
-        return report
-
-    @property
-    def Bands(self): return int(self.getMetadataItem('bands'))
-
-
-    @property
-    def BandNames(self):
-        bandNames = self.getMetadataItem('band_names')
-        if bandNames is None:
-            bandNames = ['Band ' + str(i) for i in range(1, self.RasterCount + 1)]
-        return bandNames
-
-
-    @property
-    def Classes(self):
-        return int(self.getMetadataItem('classes'))
-
-
-    @property
-    def ClassNames(self):
-        return self.getMetadataItem('class_names')
-
-
-    @property
-    def ClassLookup(self):
-        return numpy.array(self.getMetadataItem('class_lookup'), dtype=numpy.uint8).reshape(self.Classes, 3)
+    pass
 
 
 class Image(Type):
@@ -118,27 +64,12 @@ class Image(Type):
     An GDAL conform image with no further assumptions about the image meta data.
     """
 
-    @staticmethod
-    def fromENVISpectralLibrary(filename):
-
-        filenameHdr = os.path.splitext(filename)[0]+'.hdr'
-        tempfilename = eb.env.tempfile()
-        temptilenameHdr = tempfilename+'.hdr'
-        shutil.copy(filename, tempfilename)
-        meta = hub.envi.readHeader(filenameHdr)
-        meta['file type'] = 'ENVI Standard'
-        meta['interleave'] = 'bip'
-        meta['bands'], meta['samples'] = meta['samples'], meta['bands']
-        hub.envi.writeHeader(temptilenameHdr, meta)
-        return Image(tempfilename)
-
-
     def __init__(self, filename):
 
         assert isinstance(filename, basestring), 'Incorrect filename!'
         assert os.path.exists(filename), 'Incorrect filename!'
         self.filename = filename
-        self.meta = Meta(filename)
+        self.meta = GDALMeta(filename)
         self._assert()
 
 
@@ -150,233 +81,30 @@ class Image(Type):
         pass
 
 
-    def report(self):
-
-        reportMeta = self.meta.report()
-        report = Report('Image Information')
-        report.append(ReportMonospace('Filename: ' + self.filename))
-        report.appendReport(reportMeta)
-        return report
-
-
     def saveAs(self, filename=None, options='-of ENVI'):
+
+        """
+        Save a copy of the image using `GDAL_TRANSLATE <http://www.gdal.org/gdal_translate.html/>`_
+
+        :param filename: Output filename
+        :param options:
+        :return: Image(filename)
+        :rtype: Image
+        """
 
         if filename is None: filename = env.tempfile()
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
-        meta = Meta(self.filename)
-        meta.writeMeta(filename)
         return self.__class__(filename)
 
 
-    def statistics(self, mask=None, mode='with histo'):
+   # def statistics(self):
 
-        return ImageStatistics(self, mask=mask,  mode=mode)
-
-
-    def stack(self, images=[], resolution=None, filename=None):
+      #  return IamgeStatistics()
 
 
-        if filename is None: filename = env.tempfile('stack', '.vrt')
-        infiles = [image.filename for image in [self] + images]
-        options =  ' -resolution user -tr ' + str(self.meta.pixelXSize) + ' ' + str(abs(self.meta.pixelYSize))
-        options += ' -vrtnodata 0'
-        hub.gdal.util.stack(filename, infiles, options)
+#class ImgeStatistics():
 
-
-        return Image(filename)
-
-    @property
-    def SpatialReference(self):
-
-        return None
-
-
-    @property
-    def BoundingBox(self):
-
-        upperLeft = (self.meta.xmin, self.meta.ymin)
-        lowerRight = (self.meta.xmax, self.meta.ymax)
-        return (upperLeft, lowerRight)
-
-
-    @property
-    def PixelSize(self):
-
-        return (self.meta.pixelXSize, abs(self.meta.pixelYSize))
-
-
-    @property
-    def PixelGrid(self):
-
-        return PixelGrid(self.SpatialReference, self.BoundingBox[0], self.PixelSize)
-
-
-class PixelGrid():
-
-    def __init__(self, spatialReference, pixelCorner, pixelSize):
-
-        #assert isinstance(spatialReference, ogr)
-        self.spatialReference = spatialReference
-        self.pixelCorner = pixelCorner
-        self.pixelSize = pixelSize
-
-
-    def project(self, image, boundingBox=None, filename=None):
-
-        assert isinstance(image, Image)
-
-        if filename is None: filename = env.tempfile(suffix='.vrt')
-
-        # calculate exact output bounding box
-        # - get image bounding box in target SRS
-        if boundingBox is None:
-            boundingBox = Image(hub.gdal.util.gdalwarp(env.tempfile(suffix='.vrt'), image.filename, options='-of VRT', verbose=False)).BoundingBox
-
-        # - snap bounding box to target pixel grid
-        xoff = (boundingBox[0][0] - self.pixelCorner[0]) % self.pixelSize[0]
-        yoff = (boundingBox[0][1] - self.pixelCorner[1]) % abs(self.pixelSize[1])
-        boundingBox = ((boundingBox[0][0]-xoff, boundingBox[0][1]-yoff),
-                       (boundingBox[1][0]-xoff, boundingBox[1][1]-yoff))
-
-        options  = ' -of VRT'
-        options += ' -tr ' + repr(self.pixelSize[0]) + ' ' + repr(self.pixelSize[1])
-        options += ' -r average'
-        options += ' -te' + ' ' + repr(boundingBox[0][0]) \
-                          + ' ' + repr(min(boundingBox[0][1], boundingBox[1][1])) \
-                          + ' ' + repr(boundingBox[1][0]) \
-                          + ' ' + repr(max(boundingBox[0][1], boundingBox[1][1]))
-
-        hub.gdal.util.gdalwarp(filename, image.filename, options)
-
-
-        # set up ENVI Metadata
-        metaTmp = Meta(filename)
-        meta = Meta(image.filename)
-        meta.setMetadataItem('samples', metaTmp.RasterXSize)
-        meta.setMetadataItem('lines', metaTmp.RasterXSize)
-        meta.writeMeta(filename)
-
-        return Image(filename)
-
-
-
-class ImageStatistics():
-
-    def __init__(self, image, mode='simple', histoMin=None, histoMax=None, histoBins=100, mask=None):
-
-        assert isinstance(image, Image)
-        assert mode in ['simple', 'with histo', 'only histo']
-        if mask is not None: assert isinstance(mask, Mask)
-
-        self.image = image
-        self.mask = mask
-        self.mode = mode
-        if mode == 'simple':
-            self.doit(firstRun=True)
-            self.histoMin = self.min
-            self.histoMax = self.max
-        elif mode == 'with histo':
-            if histoMin is None or histoMax is None:
-                self.doit(firstRun=True)
-                self.histoMin = self.min
-                self.histoMax = self.max
-            if histoMin is not None:
-                self.histoMin = histoMin
-            if histoMax is not None:
-                self.histoMax = histoMax
-            self.histoBins = histoBins
-            self.doit(firstRun=False)
-        elif mode == 'only histo':
-            self.histoMin = histoMin
-            self.histoMax = histoMax
-            self.histoBins = histoBins
-            self.doit(firstRun=False)
-
-    def doit(self, firstRun=True, progress=progress):
-
-        progress.setText('calculate statistics')
-
-        infiles = rios.applier.FilenameAssociations()
-        outfiles = rios.applier.FilenameAssociations()
-        args = rios.applier.OtherInputs()
-        controls = ApplierControls()
-
-        infiles.image = self.image.filename
-        args.useMask = self.mask is not None
-        if args.useMask: infiles.mask = self.mask.filename
-        args.image = self.image
-        args.mask = self.mask
-        args.progress = progress
-        args.progress.setDebugInfo(str(controls))
-
-        # set up the function to be applied
-        def ufunc(info, inputs, outputs, args):
-
-            args.progress.setPercentage(ApplierHelper.progress(info))
-
-            ApplierHelper.reshape2d(inputs)
-
-            # create mask
-            mask = numpy.bool(False)
-            mask += ApplierHelper.mask(inputs.image, args.image.meta.getNoDataValue())
-            if args.useMask:
-                mask += ApplierHelper.mask(inputs.mask, args.mask.meta.getNoDataValue(0))
-
-            # extract values
-            image = ApplierHelper.maskedArray(inputs.image, mask)
-
-            # calculate statistics
-            if ApplierHelper.firstBlock(info):
-                self.nvalid = 0
-                self.min = numpy.full([self.image.meta.RasterCount], fill_value=+numpy.Inf)
-                self.max = numpy.full([self.image.meta.RasterCount], fill_value=-numpy.Inf)
-                self.sum = numpy.zeros([self.image.meta.RasterCount], dtype=numpy.float64)
-                if not firstRun:
-                    self.sumSquaredDeviation = numpy.zeros([self.image.meta.RasterCount], dtype=numpy.float64)
-                    self.counts = list()
-                    self.binEdges = list()
-                    for i in range(self.image.meta.RasterCount):
-                        self.counts.append(numpy.full([self.histoBins], fill_value=0, dtype=numpy.uint64))
-                        self.binEdges.append(numpy.histogram(numpy.array([numpy.nan]), self.histoBins, range=[self.histoMin[i], self.histoMax[i]])[1])
-
-
-            self.nvalid += image.shape[1]-numpy.ma.count_masked(image[0,:])
-            self.min = numpy.minimum(numpy.min(image, axis=1), self.min)
-            self.max = numpy.maximum(numpy.max(image, axis=1), self.max)
-            self.sum += numpy.sum(image, axis=1)
-            if not firstRun:
-                if self.mode != 'only histo':
-                    self.sumSquaredDeviation += numpy.sum((image-self.mean.reshape(-1, 1))**2, axis=1)
-                for i in range(self.image.meta.RasterCount):
-                    counts, binEdges = numpy.histogram(image[i], self.histoBins, range=[self.histoMin[i], self.histoMax[i]])
-                    self.counts[i] += counts
-
-        # Apply the function to the inputs, creating the outputs.
-        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
-
-        self.mean = self.sum / self.nvalid
-        if not firstRun:
-            self.stddev = numpy.sqrt(self.sumSquaredDeviation / self.nvalid)
-
-    def report(self):
-
-        report = Report('Image Statistics')
-
-        report.append(ReportMonospace('min: '+str(self.min)))
-        report.append(ReportMonospace('max: '+str(self.max)))
-        report.append(ReportMonospace('mean: ' + str(self.mean)))
-        if self.mode == 'with histo':
-            report.append(ReportMonospace('stddev: ' + str(self.stddev)))
-
-        if self.mode != 'simple':
-
-            report.append(ReportHeading('Band Histograms'))
-            for i, (counts, binEdges) in enumerate(zip(self.counts, self.binEdges)):
-                report.append(ReportHeading('Band '+str(i+1), 1))
-                report.append(ReportMonospace('bin edges: ' + str(binEdges)
-                                           +'\ncounts:    ' + str(counts)))
-
-        return report
+#        def __init__(self):
 
 
 class SpectralImage(Image):
@@ -396,7 +124,6 @@ class Mask(Image):
 
 
 class Classification(Mask):
-
 
     def _assert(self):
 
@@ -423,43 +150,8 @@ class Classification(Mask):
 
 
     def assessClusteringPerformance(self, classification):
-
-
-        assert isinstance(classification, Classification)
         sample = ClassificationSample(self, classification)
-        return ClusteringPerformance.fromSample(sample)
-
-
-    def statistics(self, mask=None):
-
-        if mask is not None:
-            assert isinstance(mask, Mask)
-
-        return ClassificationStatistics(self, mask=mask)
-
-
-class ClassificationStatistics(ImageStatistics):
-
-    def __init__(self, classification, mask=None):
-
-        assert isinstance(classification, Classification)
-        if mask is not None: assert isinstance(mask, Mask)
-
-        ImageStatistics.__init__(self, classification, mode='only histo', histoMin=[1], histoMax=[classification.meta.Classes], histoBins=classification.meta.Classes-1, mask=mask)
-
-
-    def report(self):
-
-        report = Report('Classification Statistics')
-
-        report.append(ReportMonospace('class names: ' + str(self.image.meta.ClassNames[1:])))
-        report.append(ReportMonospace('class labels: ' + str(range(1, self.image.meta.Classes))))
-
-        report.append(ReportMonospace('class counts: ' + str(self.counts)))
-        report.append(ReportMonospace('class colors: ' + str(self.image.meta.ClassLookup[1:])))
-
-
-        return report
+        return ClusteringPerformance(sample)
 
 
 class Regression(Mask):
@@ -471,10 +163,9 @@ class Regression(Mask):
         assert envi['data_ignore_value'] is not None
 
 
-    def assessRegressionPerformance(self, regression):
-
+    def assessPerformance(self, regression):
         sample = RegressionSample(self, regression)
-        return RegressionPerformance.fromSample(sample)
+        return RegressionPerformance(sample)
 
 
 class Probability(Image):
@@ -485,78 +176,6 @@ class Probability(Image):
         assert int(envi['classes']) == len(envi['class_names'])
         assert int(envi['classes'])*3 == len(envi['class_lookup'])
         Image._assert(self)
-
-
-    def assessProbabilityPerformance(self, classification):
-        assert isinstance(classification, Classification)
-        sample = ClassificationSample(self, classification)
-        return ProbabilityPerformance.fromSample(sample)
-
-
-class ProbabilityPerformance(Type):
-
-    @staticmethod
-    def fromSample(sample):
-
-        assert isinstance(sample, ImageSample), 'Image sample is requiered!'
-        assert isinstance(sample.image, Probability), 'Prediction is not a probability image!'
-        result = ProbabilityPerformance(sample.mask.meta.Classes-1)
-        result.update(yScore=sample.imageData, yTruth=sample.labelData)
-        result.assessPerformance()
-        result.sample = sample
-        return result
-
-
-    def __init__(self, classes):
-        self.yScore = numpy.array([], dtype=numpy.float32).reshape(0, classes)
-        self.yTruth = numpy.array([], dtype=numpy.float32)
-
-
-    def update(self, yScore, yTruth):
-
-        assert isinstance(yScore, numpy.ndarray)
-        assert isinstance(yTruth, numpy.ndarray)
-        self.yScore = numpy.vstack((self.yScore, yScore))
-        self.yTruth = numpy.append(self.yTruth, yTruth)
-
-
-    def assessPerformance(self):
-
-        self.roc_fpr = dict()
-        self.roc_tpr = dict()
-        self.roc_thresholds = dict()
-        self.roc_auc = dict()
-        self.prc_precision = dict()
-        self.prc_recall = dict()
-        self.prc_thresholds = dict()
-
-        for i in range(self.yScore.shape[1]):
-            self.roc_fpr[i], self.roc_tpr[i], self.roc_thresholds[i] = sklearn.metrics.roc_curve(self.yTruth, self.yScore[:,i], pos_label=i+1)
-            self.roc_auc[i] = sklearn.metrics.auc(self.roc_fpr[i], self.roc_tpr[i])
-
-            self.prc_precision[i], self.prc_recall[i], self.prc_thresholds[i] = sklearn.metrics.precision_recall_curve(self.yTruth, self.yScore[:,i], pos_label=i+1)
-
-
-    def report(self):
-
-        report = Report('Probability Performance')
-
-        report.append(ReportHeading('Receiver Operating Characteristic (ROC) Curve'))
-        for i, className in enumerate(self.sample.mask.meta.ClassNames[1:]):
-            report.append(ReportHeading(className, 1))
-            report.append(ReportMonospace('fpr = ' + str(self.roc_fpr[i])))
-            report.append(ReportMonospace('tpr = ' + str(self.roc_tpr[i])))
-            report.append(ReportMonospace('thresholds = ' + str(self.roc_thresholds[i])))
-            report.append(ReportMonospace('auc = ' + str(self.roc_auc[i])))
-
-        report.append(ReportHeading('Precision-Recall Curve'))
-        for i, className in enumerate(self.sample.mask.meta.ClassNames[1:]):
-            report.append(ReportHeading(className, 1))
-            report.append(ReportMonospace('precision = ' + str(self.prc_precision[i])))
-            report.append(ReportMonospace('recall = ' + str(self.prc_recall[i])))
-            report.append(ReportMonospace('thresholds = ' + str(self.prc_thresholds[i])))
-
-        return report
 
 
 class Estimator(Type):
@@ -604,7 +223,7 @@ class Estimator(Type):
         except:
             args.estimator_type = self.sklEstimator._final_estimator.__class__
 
-        controls = ApplierControls()
+        controls = env.ApplierControls()
         controls.setNumThreads(1)
         controls.windowxsize = 50
         controls.windowysize = 50
@@ -620,7 +239,8 @@ class Estimator(Type):
         # set up the function to be applied
         def ufunc(info, inputs, outputs, args):
 
-            args.progress.setPercentage(ApplierHelper.progress(info))
+            percentage = int((info.xblock + info.yblock * info.xtotalblocks) / float(info.xtotalblocks * info.ytotalblocks) * 100)
+            args.progress.setPercentage(percentage)
 
 
             # reshape to 2d
@@ -1048,7 +668,7 @@ class Transformer(Estimator):
 
         assert isinstance(image, Image)
         assert isinstance(mask, Mask)
-        sample = ImageSample(image, mask)
+        sample = UnsupervisedSample(image, mask)
         return self._fit(sample, progress=progress)
 
 
@@ -1079,7 +699,7 @@ class Clusterer(Estimator):
 
         assert isinstance(image, Image)
         assert isinstance(mask, Mask)
-        sample = ImageSample(image, mask)
+        sample = UnsupervisedSample(image, mask)
         return self._fit(sample, progress=progress)
 
 
@@ -1110,7 +730,7 @@ class Clusterer(Estimator):
         return 0
 
 
-class ImageSample(Type):
+class UnsupervisedSample(Type):
 
     def __init__(self, image, mask):
         self.image = image
@@ -1133,8 +753,6 @@ class ImageSample(Type):
 
         infiles = rios.applier.FilenameAssociations()
         outfiles = rios.applier.FilenameAssociations()
-        controls = ApplierControls()
-
         args = rios.applier.OtherInputs()
 
         infiles.x = self.image.filename
@@ -1147,28 +765,39 @@ class ImageSample(Type):
 
         def ufunc(info, inputs, outputs, args):
 
-            ApplierHelper.reshape2d(inputs)
-            mask = ApplierHelper.mask(inputs.y, args.yMeta.getNoDataValue(default=0), inverse=True)
-            args.x.append(ApplierHelper.extract(inputs.x, mask))
-            args.y.append(ApplierHelper.extract(inputs.y, mask))
+            # reshape to 2d
+            #for k, v in inputs.__dict__.items(): inputs.__dict__[k] = inputs.__dict__[k].reshape((v.shape[0], -1))
+            inputs.x = inputs.x.reshape((inputs.x.shape[0], -1))
+            inputs.y = inputs.y.reshape((1, -1))
 
+            # create mask
+            valid = inputs.y[0] != args.yMeta.getNoDataValue(default=0)
+            #valid = numpy.ravel(valid)
+
+            # exclude invalid samples if needed
+            if valid.all():
+                args.x.append(inputs.x)
+                args.y.append(inputs.y)
+            else:
+                args.x.append(inputs.x[:, valid])
+                args.y.append(inputs.y[0, valid])
 
         rios.applier.apply(ufunc, infiles, outfiles, args)
 
-        return (numpy.hstack(args.x).T, numpy.hstack(args.y)[0])
+        return (numpy.hstack(args.x).T, numpy.hstack(args.y))
 
 
-class ClassificationSample(ImageSample):
+class ClassificationSample(UnsupervisedSample):
 
     def _assert(self):
-        ImageSample._assert(self)
+        UnsupervisedSample._assert(self)
         assert isinstance(self.mask, Classification), 'Mask is not a Classification!'
 
 
-class RegressionSample(ImageSample):
+class RegressionSample(UnsupervisedSample):
 
     def _assert(self):
-        ImageSample._assert(self)
+        UnsupervisedSample._assert(self)
         assert isinstance(self.mask, Regression), 'Mask is not a Regression!'
 
 
@@ -1180,12 +809,9 @@ class ClassificationPerformance(Type):
         assert isinstance(sample, ClassificationSample), 'Classification sample is requiered!'
         assert isinstance(sample.image, Classification), 'Prediction is not a classification!'
         assert int(sample.image.meta.getMetadataItem('classes')) == int(sample.mask.meta.getMetadataItem('classes')), 'Number of classes in prediction and reference do not match!'
-        mappedClassSizes = sample.image.statistics().counts[0]
-        mappedClassProportions = mappedClassSizes/mappedClassSizes.sum()
         result = ClassificationPerformance(classes=int(sample.mask.meta.getMetadataItem('classes'))-1,
-                                           classNames=sample.mask.meta.getMetadataItem('class names')[1:],
-                                           mappedClassProportions=mappedClassProportions)
-        result.update(yPrediction=sample.imageData, yTruth=sample.labelData)
+                                           classNames=sample.mask.meta.getMetadataItem('class names')[1:])
+        result.update(yP=sample.imageData, yT=sample.labelData)
         result.assessPerformance()
         result.sample = sample
         return result
@@ -1202,7 +828,7 @@ class ClassificationPerformance(Type):
 
         return a
 
-    def __init__(self, classes, classNames=None, mappedClassProportions=None):
+    def __init__(self, classes, classNames=None, classProportions=None):
 
         assert isinstance(classes, int)
         if classNames is None:
@@ -1214,15 +840,15 @@ class ClassificationPerformance(Type):
         self.classNames = classNames
         self.mij = numpy.zeros((classes, classes), dtype=numpy.int64)
         self.m = numpy.int64(0)
-        self.Wi = mappedClassProportions
+        self.Wi = classProportions
 
 
-    def update(self, yPrediction, yTruth):
+    def update(self, yP, yT):
 
-        assert isinstance(yPrediction, numpy.ndarray)
-        assert isinstance(yTruth, numpy.ndarray)
-        self.mij += sklearn.metrics.confusion_matrix(yTruth, yPrediction, labels=self.classLabels).T
-        self.m += yPrediction.size
+        assert isinstance(yP, numpy.ndarray)
+        assert isinstance(yT, numpy.ndarray)
+        self.mij += sklearn.metrics.confusion_matrix(yT, yP, labels=self.classLabels).T
+        self.m += yP.size
 
 
     def assessPerformance(self):
@@ -1251,8 +877,9 @@ class ClassificationPerformance(Type):
         self.pii = numpy.diag(self.pij)
 
         # calculate performance measures
-        self.UserAccuracy = self._fix(self.mii/self.mi_)
-        self.ProducerAccuracy = self._fix(self.mii / self.m_j)
+        self.ProducerAccuracy = self._fix(self.mii/self.mi_)
+        self.UserAccuracy = self._fix(self.mii / self.m_j)
+
         self.F1Accuracy = self._fix(2 * self.UserAccuracy * self.ProducerAccuracy / (self.UserAccuracy + self.ProducerAccuracy))
         self.ConditionalKappaAccuracy = self._fix((self.m * self.mii - self.mi_ * self.m_j) / (self.m * self.mi_ - self.mi_ * self.m_j))
         self.OverallAccuracy = self._fix(self.mii.sum() / self.m)
@@ -1308,9 +935,49 @@ class ClassificationPerformance(Type):
         upper = scipy.stats.norm.ppf(1 - alpha / 2.)*se + mean
         return lower, upper
 
+    @property
     def report(self):
 
+       # colHeaders = [['Hello World'], ['A', 'B'], ['a1', 'a2', 'b1', 'b2']]
+       # colSpans =   [[4],             [2, 2],     [1, 1, 1, 1]]
+       # rowHeaders = [['Hello World'], ['X', 'Y', 'Z'], ['x1', 'x2', 'y1', 'y2', 'z1', 'z2']]
+        # rowSpans = [[6], [2, 2, 2], [1, 1, 1, 1, 1, 1]]
+        #data = numpy.random.randint(0, 5, (6, 4))
+
+
         report = Report('Classification Performance')
+
+        rowSpans = None
+        classNumbers = []
+        for i in range(self.classes): classNumbers.append('('+str(i+1)+')')
+        colHeaders = [['Reference Class'],classNumbers + ['Sum']]
+        colSpans = [[self.classes],numpy.ones(self.classes+1,dtype=int)]
+        classNamesColumn = []
+        for i in range(self.classes): classNamesColumn.append('('+str(i+1)+') '+self.classNames[i])
+        rowHeaders = [classNamesColumn+['Sum']]
+        data = numpy.vstack(((numpy.hstack((self.mij,self.m_j[:, None]))),numpy.hstack((self.mi_,self.m))))
+        report.append(ReportTable(data, 'Confusion Matrix', colHeaders, rowHeaders, colSpans, rowSpans))
+
+        colHeaders = [['Measure', 'Estimate [%]', '95 % Confidence Interval [%]']]
+        colSpans = [[1,1,2]]
+        rowHeaders = None
+        data = [['Overall Accuracy',numpy.round(self.OverallAccuracy*100,2),numpy.round(self.confidenceIntervall(self.OverallAccuracy, self.OverallAccuracySSE, 0.05)[0]*100),round(self.confidenceIntervall(self.OverallAccuracy, self.OverallAccuracySSE, 0.05)[1]*100,2)],
+                ['Kappa Accuracy',numpy.round(self.KappaAccuracy*100,2),numpy.round(self.confidenceIntervall(self.KappaAccuracy, self.KappaAccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.KappaAccuracy, self.KappaAccuracySSE, 0.05)[1]*100,2)],
+                ['Mean F1 Accuracy',numpy.round(numpy.mean(self.F1Accuracy)*100,2),'-','-']
+               ]
+        report.append(ReportTable(data, 'Overview', colHeaders, rowHeaders, colSpans, rowSpans)) \
+
+        colSpans = [[1,3,3,3],[1,1,2,1,2,1,2]]
+        colHeaders = [['','User\'s Accuracy [%]','Producer\'s Accuracy [%]','F1 Accuracy'],['Map class','Estimate','95 % Interval','Estimate','95% Interval','Estimate','95% Interval']]
+        data = [classNamesColumn,numpy.round(self.UserAccuracy*100,2),numpy.round(self.confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[1]*100,2),numpy.round(self.ProducerAccuracy*100,2),numpy.round(self.confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[1]*100,2),numpy.round(self.F1Accuracy*100,2),numpy.round(self.confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[1]*100,2)]
+        data = [list(x) for x in zip(*data)]
+        report.append(ReportTable(data, 'Class-wise accs', colHeaders, rowHeaders, colSpans, rowSpans))
+
+        colHeaders = [['Reference Class'],classNumbers + ['Sum']]
+        colSpans = [[self.classes],numpy.ones(self.classes+1,dtype=int)]
+        rowHeaders = [classNamesColumn+['Sum']]
+        data = numpy.vstack(((numpy.hstack((self.pij*100,self.p_j[:, None]*100))),numpy.hstack((self.pi_*100,100))))
+        report.append(ReportTable(numpy.round(data,2), 'Proportion Matrix', colHeaders, rowHeaders, colSpans, rowSpans)) \
 
 
 #        report.append(ReportHeading('Input Files'))
@@ -1356,7 +1023,6 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
 
     @staticmethod
     def fromSample(samplePrediction, sampleStratification):
-
         assert isinstance(samplePrediction, ClassificationSample), 'Classification sample is requiered!'
         assert isinstance(sampleStratification, ClassificationSample), 'Classification sample is requiered!'
         assert isinstance(samplePrediction.image, Classification), 'Prediction is not a classification!'
@@ -1365,193 +1031,98 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
         assert int(samplePrediction.image.meta.getMetadataItem('classes')) == int(samplePrediction.mask.meta.getMetadataItem('classes')), 'Number of classes in prediction and reference do not match!'
 
         import numpy
-        strataClasses = sampleStratification.image.meta.Classes - 1
-        strataSizes = sampleStratification.image.statistics().counts[0]
-        strataSampleSizes = numpy.histogram(sampleStratification.imageData, bins=range(1,strataClasses+2))[0]
+        strataClasses = int(sampleStratification.image.meta.getMetadataItem('classes')) - 1
+        strataSizes = sampleStratification.image.histogram()
+        pass
+        strataSampleSizes = numpy.histogram(sampleStratification.labelData, bins=range(1,strataClasses+2))
         strataWeights = (strataSizes/strataSizes.sum()) / (strataSampleSizes/strataSampleSizes.sum())
+        strataWeights
 
-        result = ClassificationPerformanceAdjusted(classes=samplePrediction.mask.meta.Classes-1,
-                                                   classNames=samplePrediction.mask.meta.ClassNames[1:],
+
+        result = ClassificationPerformanceAdjusted(classes=int(samplePrediction.mask.meta.getMetadataItem('classes'))-1,
+                                                   classNames=samplePrediction.mask.meta.getMetadataItem('class names')[1:],
                                                    strataClasses=strataClasses,
-                                                   strataClassNames=sampleStratification.image.meta.ClassNames[1:],
-                                                   strataWeights=strataWeights)
+                                                   strataClassNames=sampleStratification.image.meta.getMetadataItem('class names')[1:])
         result.sample = samplePrediction
         result.sampleStratification = sampleStratification
-        result.strataSizes = strataSizes
-        result.strataSampleSizes = strataSampleSizes
 
-        result.update(yPrediction=samplePrediction.imageData.ravel(), yTruth=samplePrediction.labelData.ravel(), yS=sampleStratification.imageData.ravel())
+        result.update(yP=samplePrediction.imageData.ravel(), yT=samplePrediction.labelData.ravel(), yS=sampleStratification.imageData.ravel())
         result.assessPerformance()
         return result
 
+    def __init__(self, classes, strata, classNames=None, strataNames=None):
 
-    def __init__(self, classes, strataClasses, strataWeights, classNames=None, strataClassNames=None):
-
-        self.strataClasses = strataClasses
-        self.strataClassNames = strataClassNames
-        self.classificationPerformances = [ClassificationPerformance(classes, classNames) for i in range(1, strataClasses+1)]
+        assert isinstance(strata, int)
+        self.strate = strata
+        self.classificationPerformances = [ClassificationPerformance(classes, classNames) for i in range(1, strata+1)]
         ClassificationPerformance.__init__(self, classes, classNames)
-        self.mij = self.mij.astype(numpy.float32)
-        self.strataWeights = strataWeights
 
 
-    def update(self, yPrediction, yTruth, yS):
+    def update(self, yP, yT, yS):
 
-        assert isinstance(yPrediction, numpy.ndarray)
-        assert isinstance(yTruth, numpy.ndarray)
+        assert isinstance(yP, numpy.ndarray)
+        assert isinstance(yT, numpy.ndarray)
         assert isinstance(yS, numpy.ndarray)
 
         self.mij *= 0.
         self.m *= 0.
-        x=list()
         for stratum, classificationPerformance in enumerate(self.classificationPerformances, 1):
             indices = yS == stratum
-            classificationPerformance.update(yTruth[indices], yPrediction[indices])
-            self.mij += classificationPerformance.mij * self.strataWeights[stratum-1]
-            x.append(classificationPerformance.m)
-            self.m += classificationPerformance.m * self.strataWeights[stratum-1]
-
-
-    def report(self):
-
-        report = ClassificationPerformance.report(self)
-        report.title = 'Adjusted '+report.title
-
-        items = list()
-        items.append(ReportHeading('Stratification Overview'))
-        items.append(ReportMonospace(str('Strata names: ' + str(self.strataClassNames))))
-        items.append(ReportMonospace(str('Strata weights: ' + str(self.strataWeights))))
-        items.append(ReportMonospace(str('Strata sample sizes: ' + str(self.strataSampleSizes))))
-        items.append(ReportMonospace(str('Strata sizes: ' + str(self.strataSizes))))
-
-        report.items = items+report.items
-
-        return report
-
+            classificationPerformance.update(yT[indices], yP[indices])
+            self.mij += classificationPerformance.mij
+            self.m += classificationPerformance.m
 
 
 class RegressionPerformance(Type):
 
-
-    @staticmethod
-    def fromSample(sample):
+    def __init__(self, sample):
 
         assert isinstance(sample, RegressionSample), 'Regression sample is requiered!'
         assert isinstance(sample.image, Regression), 'Prediction is not a regression!'
-        result = RegressionPerformance()
-        result.update(yPrediction=sample.imageData, yTruth=sample.labelData)
-        result.assessPerformance()
-        result.sample = sample
-        return result
-
-    def __init__(self):
-        self.yPrediction = numpy.array([], dtype=numpy.float32)
-        self.yTruth = numpy.array([], dtype=numpy.float32)
+        self.sample = sample
+        self._assessPerformance()
 
 
-    def update(self, yPrediction, yTruth):
+    def __str__(self):
 
-        assert isinstance(yPrediction, numpy.ndarray)
-        assert isinstance(yTruth, numpy.ndarray)
-        self.yPrediction = numpy.append(self.yPrediction, yPrediction)
-        self.yTruth = numpy.append(self.yTruth, yTruth)
+        return  self.report
 
 
-    def assessPerformance(self):
+    def _assessPerformance(self):
 
-        self.ExplainedVarianceScore = sklearn.metrics.explained_variance_score(self.yTruth, self.yPrediction)
-        self.MeanAbsoluteError = sklearn.metrics.mean_absolute_error(self.yTruth, self.yPrediction)
-        self.MedianAbsoluteError = sklearn.metrics.median_absolute_error(self.yTruth, self.yPrediction)
-        self.RootMeanSquaredError = numpy.sqrt(sklearn.metrics.mean_squared_error(self.yTruth, self.yPrediction))
-
-
-    def report(self):
-
-        report = Report('Regression Performance')
-
-        report.append(ReportHeading('Accuracies'))
-        report.append(ReportMonospace('ExplainedVarianceScore = ' + str(self.ExplainedVarianceScore)))
-        report.append(ReportMonospace('MeanAbsoluteError = ' + str(self.MeanAbsoluteError)))
-        report.append(ReportMonospace('MedianAbsoluteError = ' + str(self.MedianAbsoluteError)))
-        report.append(ReportMonospace('RootMeanSquaredError = ' + str(self.RootMeanSquaredError)))
-
-        report.append(ReportHeading('Scatter Plot'))
-        report.append(ReportMonospace('reference =  ' + ', '.join(self.yTruth.astype(str))))
-        report.append(ReportMonospace('prediction = ' + ', '.join(self.yPrediction.astype(str))))
-
-        return report
-
+        prediction = self.sample.imageData
+        reference = self.sample.labelData
+        self.report = 'explained variance =        ' + str(sklearn.metrics.explained_variance_score(reference, prediction))\
+                    + '\nmean absolute error =     ' + str(sklearn.metrics.mean_absolute_error(reference, prediction))\
+                    + '\nmedian absolute error =   ' + str(sklearn.metrics.median_absolute_error(reference, prediction))\
+                    + '\nroot mean squared error = ' + str(sklearn.metrics.mean_squared_error(reference, prediction)**0.5)
 
 class ClusteringPerformance(Type):
 
-    @staticmethod
-    def fromSample(sample):
+    def __init__(self, sample):
 
         assert isinstance(sample, ClassificationSample), 'Classification sample is requiered!'
         assert isinstance(sample.image, Classification), 'Prediction is not a classification!'
-        result = ClusteringPerformance()
-        result.update(yPrediction=sample.imageData, yTruth=sample.labelData)
-        result.assessPerformance()
-        result.sample = sample
-        return result
+        self.sample = sample
+        self._assessPerformance()
 
 
-    def __init__(self):
+    def __str__(self):
 
-        self.yPrediction = numpy.array([], dtype=numpy.uint32)
-        self.yTruth = numpy.array([], dtype=numpy.uint32)
-
-
-    def update(self, yPrediction, yTruth):
-
-        assert isinstance(yPrediction, numpy.ndarray)
-        assert isinstance(yTruth, numpy.ndarray)
-        self.yPrediction = numpy.append(self.yPrediction, yPrediction)
-        self.yTruth = numpy.append(self.yTruth, yTruth)
-
-
-    def assessPerformance(self):
-
-        self.AdjustedRandScore = sklearn.metrics.cluster.adjusted_rand_score(self.yTruth, self.yPrediction)
-
-        self.AdjustedMutualInfoScore = sklearn.metrics.cluster.adjusted_mutual_info_score(self.yTruth, self.yPrediction)
-        self.NormalizedMutualInfoScore = sklearn.metrics.cluster.normalized_mutual_info_score(self.yTruth, self.yPrediction)
-        self.MutualInfoScore = sklearn.metrics.cluster.mutual_info_score(self.yTruth, self.yPrediction)
-
-        self.CompletenessScore = sklearn.metrics.cluster.completeness_score(self.yTruth, self.yPrediction)
-        self.HomogeneityScore = sklearn.metrics.cluster.homogeneity_score(self.yTruth, self.yPrediction)
-        self.VMeasureScore = sklearn.metrics.cluster.v_measure_score(self.yTruth, self.yPrediction)
-
-
-    def report(self):
-
-        report = Report('Clustering Performance')
-
-        report.append(ReportHeading('Adjusted Rand index'))
-        report.append(ReportMonospace('adjusted rand score = ' + str(self.AdjustedRandScore)))
-
-        report.append(ReportHeading('Mutual Information based scores'))
-        report.append(ReportMonospace('mutual information score =            ' + str(self.MutualInfoScore)))
-        report.append(ReportMonospace('adjusted mutual information score =   ' + str(self.AdjustedMutualInfoScore)))
-        report.append(ReportMonospace('normalized mutual information score = ' + str(self.NormalizedMutualInfoScore)))
-
-        report.append(ReportHeading('Homogeneity, completeness and V-measure'))
-        report.append(ReportMonospace('homogeneity score =  ' + str(self.HomogeneityScore)))
-        report.append(ReportMonospace('completeness score = ' + str(self.CompletenessScore)))
-        report.append(ReportMonospace('V-measure score =    ' + str(self.VMeasureScore)))
-
-        report.append(ReportHorizontalLine())
-        report.append(ReportHeading('Scikit-Learn Documentation', -1))
-        report.append(ReportHyperlink(r'http://scikit-learn.org/stable/modules/clustering.html#adjusted-rand-index', 'Adjusted Rand index'))
-        report.append(ReportHyperlink(r'http://scikit-learn.org/stable/modules/clustering.html#mutual-information-based-scores', 'Mutual Information based scores'))
-        report.append(ReportHyperlink(r'http://scikit-learn.org/stable/modules/clustering.html#homogeneity-completeness-and-v-measure', 'Homogeneity, completeness and V-measure'))
-
-        return report
+        return  self.report
 
 
     def _assessPerformance(self):
 
         prediction = self.sample.imageData.ravel()
         reference = self.sample.labelData
+        self.report = 'adjusted_mutual_info_score = ' + str(sklearn.metrics.cluster.adjusted_mutual_info_score(reference, prediction))\
+                    + '\nadjusted_rand_score =      ' + str(sklearn.metrics.cluster.adjusted_rand_score(reference, prediction))\
+                    + '\ncompleteness_score =       ' + str(sklearn.metrics.cluster.completeness_score(reference, prediction))
 
-
+'''
+ImageStatistics
+SpatialReference
+PixelGrid
+BoundingBox
+'''

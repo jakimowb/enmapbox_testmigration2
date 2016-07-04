@@ -25,7 +25,11 @@ if user == 'janzandr':
     sys.path.insert(0, r'C:\Work\source\site-packages')
     sys.path.insert(0, r'C:\Program Files\QGIS Essen\apps\qgis\python')
 elif user == 'enmap-box': # dit is der MHeld :-)
-    sys.path.insert(0, r'')
+	sourceDir = r'C:\Users\enmap-box\enmap-box-git'
+	sys.path.insert(0,r'C:\OSGeo4W64\apps\qgis\python\plugins')
+	sys.path.insert(0,r'C:\OSGeo4W64\apps\qgis\python\qgis')
+	sys.path.insert(0,r'C:\myVirtualEnv\Lib\site-packages')
+	sys.path.insert(0,sourceDir)
 
 # -- General configuration ------------------------------------------------
 
@@ -130,7 +134,7 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'haiku'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -153,7 +157,7 @@ html_theme = 'alabaster'
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #
-# html_logo = None
+html_logo = 'img/enmap_logo2.png'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
