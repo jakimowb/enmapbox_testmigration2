@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1276</width>
+    <height>755</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>EnMAP-Box</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="margin">
+     <number>0</number>
+    </property>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1276</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>Help</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>Files</string>
+    </property>
+    <addaction name="actionOpen_Raster"/>
+    <addaction name="actionImport"/>
+    <addaction name="actionExport"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>Views</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionGDAL"/>
+   </widget>
+   <widget class="QMenu" name="menuApplications">
+    <property name="title">
+     <string>Applications</string>
+    </property>
+    <addaction name="actionImageML"/>
+   </widget>
+   <widget class="QMenu" name="menuSandbox">
+    <property name="title">
+     <string>Sandbox</string>
+    </property>
+    <addaction name="actionAddView"/>
+    <addaction name="actionAddMapView"/>
+    <addaction name="actionAddTextView"/>
+    <addaction name="actionAddGraphView"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuView"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuApplications"/>
+   <addaction name="menuAbout"/>
+   <addaction name="menuSandbox"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="dockWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="floating">
+    <bool>false</bool>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::AllDockWidgetAreas</set>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="tab">
+        <attribute name="title">
+         <string>Data</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="margin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QTreeView" name="dataSourceTreeView">
+           <property name="frameShape">
+            <enum>QFrame::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+           <property name="dragDropMode">
+            <enum>QAbstractItemView::DragDrop</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tab_2">
+        <attribute name="title">
+         <string>Views</string>
+        </attribute>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionAddMapView"/>
+   <addaction name="actionAddTextView"/>
+   <addaction name="separator"/>
+   <addaction name="actionZoomIn"/>
+   <addaction name="actionZoomOut"/>
+   <addaction name="actionSelectPixel"/>
+   <addaction name="actionPan"/>
+   <addaction name="separator"/>
+   <addaction name="actionSandbox"/>
+  </widget>
+  <action name="actionOpen_Raster">
+   <property name="text">
+    <string>Open Raster</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>Import</string>
+   </property>
+  </action>
+  <action name="actionExport">
+   <property name="text">
+    <string>Export</string>
+   </property>
+  </action>
+  <action name="actionGDAL">
+   <property name="text">
+    <string>Spectral/Spatial Subset</string>
+   </property>
+  </action>
+  <action name="actionImageML">
+   <property name="text">
+    <string>imageML</string>
+   </property>
+  </action>
+  <action name="actionAddView">
+   <property name="text">
+    <string>addView</string>
+   </property>
+  </action>
+  <action name="actionAddMapView">
+   <property name="icon">
+    <iconset>
+     <normalon>:/enmapbox/icons/enmapbox.png</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>addMapView</string>
+   </property>
+  </action>
+  <action name="actionAddTextView">
+   <property name="icon">
+    <iconset>
+     <normalon>:/enmapbox/icons/enmapbox.png</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>addTextView</string>
+   </property>
+  </action>
+  <action name="actionAddGraphView">
+   <property name="text">
+    <string>addGraphView</string>
+   </property>
+  </action>
+  <action name="actionZoomIn">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomIn.svg</normaloff>:/enmapbox/icons/mActionZoomIn.svg</iconset>
+   </property>
+   <property name="text">
+    <string>zoomIn</string>
+   </property>
+  </action>
+  <action name="actionZoomOut">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomOut.svg</normaloff>:/enmapbox/icons/mActionZoomOut.svg</iconset>
+   </property>
+   <property name="text">
+    <string>zoomOut</string>
+   </property>
+  </action>
+  <action name="actionPan">
+   <property name="text">
+    <string>pan</string>
+   </property>
+  </action>
+  <action name="actionSelectPixel">
+   <property name="text">
+    <string>selectPixel</string>
+   </property>
+  </action>
+  <action name="actionSandbox">
+   <property name="icon">
+    <iconset>
+     <normalon>:/enmapbox/icons/link_center.svg</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Sandbox</string>
+   </property>
+   <property name="toolTip">
+    <string>selectSandbox</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>
