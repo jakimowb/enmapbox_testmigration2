@@ -7,41 +7,29 @@ from eb.env import PrintProgress as Progress
 
 root = r'c:\work\outputs'
 
-def sample():
-
-    image = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    sample = eb.ClassificationSample(image, testingLabels)
-    print(sample.labelData.shape)
-    print(sample.imageData.shape)
-
-
 def classification():
 
-    image = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask =  eb.Image(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    trainingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
-#    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-
+   # image = eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
+    image = eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_Image')
+    trainingLabels =  eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_LC_Training')
+   # mask =  eb.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Mask')
+  #  trainingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Training-Sample')
+  #  testingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
 
     classifier = eb.estimators.Classifiers.RandomForestClassifier()
     classifier = classifier.fit(image, trainingLabels)
     prediction = classifier.predict(image, mask)
     print(prediction)
-    return
 
 
-
-    classifiers = eb.estimators.all(eb.estimators.Classifiers)
-
-
+    #classifiers = eb.estimators.all(eb.estimators.Classifiers)
     classifiers = [eb.estimators.Classifiers.RandomForestClassifier()]
 
     for classifier in classifiers:
         assert isinstance(classifier, eb.Classifier)
         Progress.setInfo(classifier.name())
         classifier = classifier.fit(image, trainingLabels, progress=Progress)
-        classifier.report().saveHTML().open()
+        classifier.report.saveHTML().open()
         continue
         classifier.predict(image, mask, filename=os.path.join(root, classifier.name()), progress=Progress)
         try:
@@ -79,7 +67,7 @@ def clusterer():
     for clusterer in clusterers:
         assert isinstance(clusterer, eb.Clusterer)
         Progress.setInfo(clusterer.name())
-        clusterer.fit(image, trainingLabels).report().saveHTML().open()
+        clusterer.fit(image, trainingLabels).report.saveHTML().open()
         #clusterer.predict(image, mask, filename=os.path.join(root, clusterer.name()))
 
 
@@ -96,10 +84,21 @@ def transformer():
 
         assert isinstance(transformer, eb.Transformer)
         Progress.setInfo(transformer.name())
-        transformer.fit(image, trainingLabels).report().saveHTML().open()
+        transformer.fit(image, trainingLabels).report.saveHTML().open()
         transformedImage = transformer.transform(image, mask, filename=os.path.join(root, transformer.name()))
         inverseTransformedImage = transformer.transformInverse(transformedImage, mask, filename=os.path.join(root, transformer.name()+'Inverse'))
 
+def performance():
+
+    image = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    mask =  eb.Image(r'C:\Work\data\Hymap_Berlin-A_Mask')
+    trainingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
+    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
+
+    classifier = eb.estimators.Classifiers.RandomForestClassifier()
+    classifier.fit(image, trainingLabels)
+    classification = classifier.predict(image, mask)
+    classification.assessClassificationPerformance(testingLabels).report.saveHTML().open()
 
 def uncertaintyClassifier():
 
@@ -130,108 +129,34 @@ def uncertaintyRegressor():
 
     svr = eb.estimators.Regressors.SVRTuned()
     uncertaintyRegressor = svr.UncertaintyRegressor()
-    uncertaintyRegressor.fit(image, trainingLabels).report().saveHTML().open()
+    uncertaintyRegressor.fit(image, trainingLabels).report.saveHTML().open()
     uncertaintyRegressor.predict(image, mask, filename=r'c:\work\_svrUncertainty')
 
 def classificationAccAss():
 
-    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    prediction = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Estimation')
+    testingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_LC_Validation')
+    prediction = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_LC')
 
     accAss = prediction.assessClassificationPerformance(testingLabels)
-    accAss.report().saveHTML().open()
+    accAss.report.saveHTML().open()
 
 
 def classificationAccAssAdjusted():
 
-    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    prediction = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Estimation')
-    stratification = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-GroundTruth')
+    testingLabels = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
+    prediction = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Estimation')
+    stratification = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-GroundTruth')
     accAss = prediction.assessClassificationPerformance(testingLabels, stratification)
-    accAss.report().saveHTML().open()
+    accAss.report.saveHTML().open()
 
 
-def regressionAccAss():
+def statisticsClassification():
 
-    testingLabels = eb.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Validation-Sample')
-    prediction = eb.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Estimation')
-    accAss = prediction.assessRegressionPerformance(testingLabels)
-    accAss.report().saveHTML().open()
-
-
-def clusteringAccAss():
-
-    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    prediction = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Estimation')
-
-    accAss = prediction.assessClusteringPerformance(testingLabels)
-    accAss.report().saveHTML().open()
-
-
-def probabilityAccAss():
-
-
-    image = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    trainingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
-    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-
-    classifier = eb.estimators.Classifiers.RandomForestClassifier().fit(image, trainingLabels)
-    probability = classifier.predictProbability(image, testingLabels)
-    accAss = probability.assessProbabilityPerformance(testingLabels)
-    accAss.report().saveHTML().open()
-
-
-def statisticsAndHistogramForImage():
-
-    image = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask =  eb.Mask(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    mask = None
-
-    statistics = image.statistics(mask)
-    statistics.report().saveHTML().open()
-
-def statisticsAndHistogramforClassification():
-
-    classification = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    mask = None
-    statistics = classification.statistics(mask)
-    statistics.report().saveHTML().open()
-
-
-def importENVISpeclib():
-
-    speclib = eb.Image.fromENVISpectralLibrary(r'C:\Work\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\speclib\ClassificationSpeclib')
-    print(speclib.filename)
-    speclib = speclib.saveAs(r'c:\work\speclib')
-    speclib.report().saveHTML().open()
-
-
-def saveImageAs():
-
-    image = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    image.report().saveHTML().open()
-    image.saveAs(r'c:\work\saved').report().saveHTML().open()
-
-
-def stackImages():
-
-    imageA = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    imageB = eb.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
-    stack = imageA.stack([imageB])
-    stack.report().saveHTML().open()
-#    image.saveAs(r'c:\work\saved').report().saveHTML().open()
-
-def projectImageToPixelGrid():
-
-    imageA = eb.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    imageB = eb.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
-    imageSpot = eb.Image(r'C:\Work\data\Spot_Berlin')
-    image = imageSpot.PixelGrid.project(imageA)#, imageB.BoundingBox)
-    image.report().saveHTML().open()
+    classification = eb.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
+    statistics = classification.statistics()
+    statistics.report.saveHTML().open()
 
 if __name__ == '__main__':
-
-    #sample()
     #eb.env.cleanupTempdir()
     #classification()
     #regression()
@@ -240,14 +165,7 @@ if __name__ == '__main__':
     #performance()
     #uncertaintyClassifier()
     #uncertaintyRegressor()
-    #classificationAccAss()
+    classificationAccAss()
     #classificationAccAssAdjusted()
-    #regressionAccAss()
-    #clusteringAccAss()
-    #probabilityAccAss()
-    #statisticsAndHistogramForImage()
-    #statisticsAndHistogramforClassification()
-    #mportENVISpeclib()
-    #saveImageAs()
-    #stackImages()
-    projectImageToPixelGrid()
+
+    #  print(eb.env.tempdir)
