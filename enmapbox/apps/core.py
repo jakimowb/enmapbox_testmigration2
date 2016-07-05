@@ -1,5 +1,6 @@
 # Import Processing libraries to add the algorithms to Processing toolbox
 import enmapbox.processing
+import enmapbox.processing.estimators
 from processing.core.Processing import Processing
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import *

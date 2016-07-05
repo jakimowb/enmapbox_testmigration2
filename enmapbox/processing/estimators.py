@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy
-from eb.report import *
-from eb.types import Classifier, Regressor, Transformer, Clusterer
+from enmapbox.processing.report import *
+from enmapbox.processing.types import Classifier, Regressor, Transformer, Clusterer
 
 import sklearn.cluster
 import sklearn.ensemble
