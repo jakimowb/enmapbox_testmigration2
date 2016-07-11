@@ -941,8 +941,12 @@ class ClassificationPerformance(Type):
         #data = numpy.random.randint(0, 5, (6, 4))
 
 
-        report = Report('Classification Performance')
+      report = Report('Classification Performance')
+        # prediction filename -> self.sample.image.filename
+        # reference sample filename -> self.sample.mask.filename
 
+        # Confusion Matrix Table
+        report.append(ReportHeading('Confusion Matrix'))
         rowSpans = None
         classNumbers = []
         for i in range(self.classes): classNumbers.append('('+str(i+1)+')')
@@ -952,28 +956,41 @@ class ClassificationPerformance(Type):
         for i in range(self.classes): classNamesColumn.append('('+str(i+1)+') '+self.classNames[i])
         rowHeaders = [classNamesColumn+['Sum']]
         data = numpy.vstack(((numpy.hstack((self.mij,self.m_j[:, None]))),numpy.hstack((self.mi_,self.m))))
-        report.append(ReportTable(data, 'Confusion Matrix', colHeaders, rowHeaders, colSpans, rowSpans))
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
+        # Accuracies Overview Table
+        report.append(ReportHeading('Overview'))
         colHeaders = [['Measure', 'Estimate [%]', '95 % Confidence Interval [%]']]
         colSpans = [[1,1,2]]
         rowHeaders = None
         data = [['Overall Accuracy',numpy.round(self.OverallAccuracy*100,2),numpy.round(self.confidenceIntervall(self.OverallAccuracy, self.OverallAccuracySSE, 0.05)[0]*100),round(self.confidenceIntervall(self.OverallAccuracy, self.OverallAccuracySSE, 0.05)[1]*100,2)],
                 ['Kappa Accuracy',numpy.round(self.KappaAccuracy*100,2),numpy.round(self.confidenceIntervall(self.KappaAccuracy, self.KappaAccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.KappaAccuracy, self.KappaAccuracySSE, 0.05)[1]*100,2)],
-                ['Mean F1 Accuracy',numpy.round(numpy.mean(self.F1Accuracy)*100,2),'-','-']
-               ]
-        report.append(ReportTable(data, 'Overview', colHeaders, rowHeaders, colSpans, rowSpans)) \
+                ['Mean F1 Accuracy',numpy.round(numpy.mean(self.F1Accuracy)*100,2),'-','-']]
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
+        # Class-wise Accuracies Table
+        report.append(ReportHeading('Class-wise Accuracies'))
         colSpans = [[1,3,3,3],[1,1,2,1,2,1,2]]
         colHeaders = [['','User\'s Accuracy [%]','Producer\'s Accuracy [%]','F1 Accuracy'],['Map class','Estimate','95 % Interval','Estimate','95% Interval','Estimate','95% Interval']]
-        data = [classNamesColumn,numpy.round(self.UserAccuracy*100,2),numpy.round(self.confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[1]*100,2),numpy.round(self.ProducerAccuracy*100,2),numpy.round(self.confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[1]*100,2),numpy.round(self.F1Accuracy*100,2),numpy.round(self.confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[0]*100,2),numpy.round(self.confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[1]*100,2)]
+        data = [classNamesColumn,numpy.round(self.UserAccuracy*100,2)
+               ,numpy.round(self.confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[0]*100,2)
+               ,numpy.round(self.confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[1]*100,2)
+               ,numpy.round(self.ProducerAccuracy*100,2)
+               ,numpy.round(self.confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[0]*100,2)
+               ,numpy.round(self.confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[1]*100,2)
+               ,numpy.round(self.F1Accuracy*100,2)
+               ,numpy.round(self.confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[0]*100,2)
+               ,numpy.round(self.confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[1]*100,2)]
         data = [list(x) for x in zip(*data)]
-        report.append(ReportTable(data, 'Class-wise accs', colHeaders, rowHeaders, colSpans, rowSpans))
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
+        # Proportion Matrix Table
+        report.append(ReportHeading('Proportion Matrix'))
         colHeaders = [['Reference Class'],classNumbers + ['Sum']]
         colSpans = [[self.classes],numpy.ones(self.classes+1,dtype=int)]
         rowHeaders = [classNamesColumn+['Sum']]
         data = numpy.vstack(((numpy.hstack((self.pij*100,self.p_j[:, None]*100))),numpy.hstack((self.pi_*100,100))))
-        report.append(ReportTable(numpy.round(data,2), 'Proportion Matrix', colHeaders, rowHeaders, colSpans, rowSpans)) \
+        report.append(ReportTable(numpy.round(data,2), '', colHeaders, rowHeaders, colSpans, rowSpans)) \
 
 
 #        report.append(ReportHeading('Input Files'))

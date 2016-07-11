@@ -136,8 +136,8 @@ def uncertaintyRegressor():
 
 def classificationAccAss():
 
-    testingLabels = processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    prediction = processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Estimation')
+    testingLabels = processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
+    prediction = processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Estimation')
 
     accAss = prediction.assessClassificationPerformance(testingLabels)
     accAss.report().saveHTML().open()
@@ -242,7 +242,7 @@ if __name__ == '__main__':
     #performance()
     #uncertaintyClassifier()
     #uncertaintyRegressor()
-    #classificationAccAss()
+    classificationAccAss()
     #classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
@@ -252,4 +252,4 @@ if __name__ == '__main__':
     #mportENVISpeclib()
     #saveImageAs()
     #stackImages()
-    projectImageToPixelGrid()
+    #projectImageToPixelGrid()
