@@ -600,7 +600,7 @@ class UncertaintyClassifier(Classifier):
     def __init__(self, classifier, mode):
 
         assert isinstance(classifier, Classifier)
-        from enmapbox.processing import SklearnClassifiers
+        from enmapbox.processing.estimators import SklearnClassifiers
         pipe = sklearn.pipeline.make_pipeline(SklearnClassifiers.UncertaintyClassifier(classifier.sklEstimator, mode=mode))
         Classifier.__init__(self, pipe)
 
@@ -648,7 +648,7 @@ class UncertaintyRegressor(Regressor):
 
         assert isinstance(regressor, Regressor)
 
-        from enmapbox.processing import SklearnRegressors
+        from enmapbox.processing.estimators import SklearnRegressors
         pipe = sklearn.pipeline.make_pipeline(SklearnRegressors.UncertaintyRegressor(regressor.sklEstimator))
         Regressor.__init__(self, pipe)
 
@@ -941,7 +941,7 @@ class ClassificationPerformance(Type):
         #data = numpy.random.randint(0, 5, (6, 4))
 
 
-      report = Report('Classification Performance')
+        report = Report('Classification Performance')
         # prediction filename -> self.sample.image.filename
         # reference sample filename -> self.sample.mask.filename
 
