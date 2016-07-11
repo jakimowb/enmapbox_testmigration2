@@ -532,6 +532,8 @@ class MH:
         #ax1.xcorr(rfc.feature_importances_*100, rfc.feature_importances_*100, usevlines=True, maxlags=50, normed=True, lw=2)
   #self.sample.image.meta.getMetadataItem('wavelength', default=range(1, rfc.n_features_+1))
 
+    # contour plot for svm tune
+
 if __name__ == '__main__':
 
 
