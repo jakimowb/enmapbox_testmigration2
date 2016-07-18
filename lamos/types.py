@@ -287,8 +287,9 @@ class LandsatXComposer(SensorXComposer):
 
 class Archive(Type):
 
-    def __init__(self, folder):
+    def __init__(self, folder, filterFootprints=None):
         self.folder = folder
+        self.filterFootprints = filterFootprints
 
 
     def yieldFootprints(self, filter=None):
@@ -302,6 +303,8 @@ class Archive(Type):
     def report(self):
         report = processing.Report(str(self.__class__).split('.')[-1])
         report.append(processing.ReportParagraph('foldername = ' + self.folder))
+        report.append(processing.ReportParagraph('filterFootprints = ' + str(self.filterFootprints)))
+
         report.append(processing.ReportHeading('Footprints'))
         for footprint in self.yieldFootprints():
             report.append(processing.ReportHeading(footprint.name, 1))
@@ -334,10 +337,16 @@ class WRS2Archive(Archive):
 
     def yieldFootprints(self, filter=None):
         for path in os.listdir(self.folder):
+            if os.path.isfile(os.path.join(self.folder, path)): continue
+            if path.startswith('.'): continue
             for row in os.listdir(os.path.join(self.folder, path)):
+
                 if (filter is not None):
-                    if path+row not in filter:
-                        continue
+                    if path + row not in filter: continue
+
+                if (self.filterFootprints is not None):
+                    if path + row not in self.filterFootprints: continue
+
                 yield WRS2Footprint(path+row)
 
     def yieldProducts(self, footprint, extensions=['.vrt','.img']):

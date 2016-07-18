@@ -5,7 +5,7 @@ import hub.file
 import hub.gdal.util, hub.gdal.api
 import hub.rs.virtual
 from enmapbox import processing
-from lamos.types import SensorXComposer, Product, Image, ImageStack, WRS2Archive, MGRSArchive, Archive, MGRSTilingScheme
+from lamos.types import SensorXComposer, Product, Image, ImageStack, Archive
 
 
 class LandsatXComposer(SensorXComposer):
@@ -136,45 +136,3 @@ class TimeseriesBuilder():
 
         return archive.__class__(folder=folder)
 
-
-def test_sensorX():
-
-    landsatArchive = WRS2Archive(r'C:\Work\data\gms\landsat')
-    composer = LandsatXComposer()
-
-    footprints = ['193024']
-    lsXArchive = composer.composeArchive(archive=landsatArchive,
-                                         folder=r'C:\Work\data\gms\landsatX',
-                                         footprints=footprints)
-    lsXArchive.info()
-
-
-def test_tiling():
-
-    lsXWRS2Archive = WRS2Archive(r'C:\Work\data\gms\landsatX')
-    tilingScheme = MGRSTilingScheme(pixelSize=30)
-    lsXMGRSArchive = tilingScheme.tileWRS2Archive(archive=lsXWRS2Archive,
-                                                  folder=r'c:\work\data\gms\landsatXMGRS',
-                                                  buffer=300,
-                                                  wrs2Footprints=['193024'], mgrsFootprints=['32UPB', '32UPC'])
-    lsXMGRSArchive.info()
-
-
-def test_buildTimeseries():
-
-    lsXMGRSArchive = MGRSArchive(r'c:\work\data\gms\landsatXMGRS')
-    tsBuilder = TimeseriesBuilder(names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
-                                  bands=[1,2,3,4,5,6])
-    lstsMGRSArchive = tsBuilder.buildArchive(lsXMGRSArchive, r'c:\work\data\gms\landsatTimeseriesMGRS', envi=False,
-                                             footprints=['32UPB'])
-    lstsMGRSArchive.info()
-
-
-if __name__ == '__main__':
-
-    import hub.timing
-    hub.timing.tic()
-#   test_sensorX()
-#    test_tiling()
-    test_buildTimeseries()
-    hub.timing.toc()
