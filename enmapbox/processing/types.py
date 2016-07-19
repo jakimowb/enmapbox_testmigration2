@@ -762,13 +762,11 @@ class UnsupervisedSample(Type):
         def ufunc(info, inputs, outputs, args):
 
             # reshape to 2d
-            #for k, v in inputs.__dict__.items(): inputs.__dict__[k] = inputs.__dict__[k].reshape((v.shape[0], -1))
             inputs.x = inputs.x.reshape((inputs.x.shape[0], -1))
             inputs.y = inputs.y.reshape((1, -1))
 
             # create mask
             valid = inputs.y[0] != args.yMeta.getNoDataValue(default=0)
-            #valid = numpy.ravel(valid)
 
             # exclude invalid samples if needed
             if valid.all():

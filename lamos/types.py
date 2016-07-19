@@ -107,6 +107,7 @@ class Footprint(Type):
 class MGRSFootprint(Footprint):
 
     bb = dict()
+    shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
 
     @staticmethod
     def fromShp(name):
@@ -114,8 +115,8 @@ class MGRSFootprint(Footprint):
         if MGRSFootprint.bb.has_key(name):
             bb = MGRSFootprint.bb[name]
         else:
-            shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
-            shp = os.path.join(shpRoot, r'MGRS_100kmSQ_ID_' + name[0:3] + '\MGRS_100kmSQ_ID_' + name[0:3] + '.shp')
+
+            shp = os.path.join(MGRSFootprint.shpRoot, r'MGRS_100kmSQ_ID_' + name[0:3] + '\MGRS_100kmSQ_ID_' + name[0:3] + '.shp')
             dataSource = ogr.Open(shp)
             layer = dataSource.GetLayer(0)
             found = False
@@ -189,12 +190,11 @@ class SensorXComposer:
         self.ufuncs = ufuncs
 
 
-    def composeProduct(self, product, folder=None):
+    def composeProduct(self, product, folder):
 
         assert isinstance(product, Product)
 
-        if folder is None: folder = os.path.join(processing.env.tempfile(), product.name)
-
+        print(product.name)
         for ufunc in self.ufuncs:
 
             imageStack = ufunc(product)
@@ -202,6 +202,8 @@ class SensorXComposer:
             outfile = os.path.join(folder, imageStack.name)
             infiles = [band.filename for band in imageStack.images]
             inbands = [1] * len(infiles)
+
+            if os.path.exists(outfile): continue
             hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
 
             meta = processing.Meta(outfile)
@@ -306,7 +308,8 @@ class MGRSTilingScheme(Type):
 
         wrs2FootprintNames = [wrs2Footprint.name for wrs2Footprint in wrs2Footprints]
 
-        dataSource = ogr.Open(self.shp)
+        assert os.path.exists(MGRSTilingScheme.shp), MGRSTilingScheme.shp
+        dataSource = ogr.Open(MGRSTilingScheme.shp)
         layer = dataSource.GetLayer(0)
         for feature in layer:
             wrs2FootprintName = str(int(feature.GetField('WRSPR')))
@@ -495,8 +498,9 @@ class Applier:
         outmetas.write()
 
 
-    def __init__(self, compressed=False):
+    def __init__(self, footprints=None, compressed=False):
         self.compressed = compressed
+        self.footprints = footprints
         self.inputs = list()
         self.outputs = list()
         self.controls = self.defaultControls()
@@ -523,6 +527,8 @@ class Applier:
         controls.setJobManagerType('multiprocessing')
         controls.setOutputDriverName("ENVI")
         controls.setCreationOptions(["INTERLEAVE=BSQ"])
+#        controls.setOutputDriverName("GTiff")
+#        controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256", "COMPRESS=LZW"])
         controls.setCalcStats(False)
         controls.setOmitPyramids(True)
         return controls
@@ -571,7 +577,7 @@ class Applier:
 
     def apply(self):
         print('Apply '+str(self.__class__).split('.')[-1])
-        for footprint in self.inputs[0].archive.yieldFootprints(): # first input defines the footprints to be processed
+        for footprint in self.inputs[0].archive.yieldFootprints(filter=self.footprints): # first input defines the footprints to be processed
             self.applyToFootprint(footprint=footprint)
 
 
