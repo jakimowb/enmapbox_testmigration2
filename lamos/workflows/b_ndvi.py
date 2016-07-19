@@ -5,7 +5,7 @@ import numpy
 class NDVIApplier(Applier):
 
     @staticmethod
-    def userFunction(info, inputs, outputs, otherArgs):
+    def userFunction(info, inputs, outputs, inmetas, otherArgs):
 
         nir = inputs.timeseries_nir.astype(numpy.float32)
         red = inputs.timeseries_red.astype(numpy.float32)
@@ -25,20 +25,28 @@ class NDVIApplier(Applier):
         outmetas.vi_ndvi.setNoDataValue(-1)
 
 
+    def __init__(self, infolder, outfolder, compressed=False):
+
+        Applier.__init__(self, compressed=compressed)
+        self.appendInput(ApplierInput(archive=MGRSArchive(folder=infolder),
+                                         productName='timeseries', imageNames=['nir', 'red', 'cfmask'], extension='.img'))
+        self.appendOutput(ApplierOutput(folder=outfolder,
+                                           productName='vi', imageNames=['ndvi'], extension='.img'))
+
+
     def apply(self):
 
+        Applier.apply(self)
         return MGRSArchive(self.outputs[0].folder)
 
 
 def test():
 
-    applier = NDVIApplier()
+    applier = NDVIApplier(infolder=r'c:\work\data\gms\landsatTimeseriesMGRS',
+                          outfolder=r'c:\work\data\gms\products',
+                          compressed=True)
     applier.controls.setWindowXsize(100)
     applier.controls.setWindowYsize(100)
-
-    applier.appendInput(ApplierInput(archive=MGRSArchive(r'c:\work\data\gms\landsatTimeseriesMGRS'),
-                                     productName='timeseries', imageNames=['nir', 'red', 'cfmask']))
-    applier.appendOutput(ApplierOutput(folder=r'c:\work\data\gms\products', productName='vi', imageNames=['ndvi']))
     archive = applier.apply()
     archive.info()
 

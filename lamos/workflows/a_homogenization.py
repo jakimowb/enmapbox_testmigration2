@@ -4,6 +4,7 @@ import hub.datetime
 import hub.file
 import hub.gdal.util, hub.gdal.api
 import hub.rs.virtual
+from hub.datetime import Date
 from enmapbox import processing
 from lamos.types import SensorXComposer, Product, Image, ImageStack, WRS2Archive, MGRSArchive, Archive, MGRSTilingScheme
 
@@ -74,19 +75,34 @@ class LandsatXComposer(SensorXComposer):
 
 class TimeseriesBuilder():
 
-    def __init__(self, names, bands):
+    def __init__(self, names, bands, start=None, end=None):
+
+        if start is None:
+            start = Date(1, 1, 1)
+        if end is None:
+            end = Date(9999, 1, 1)
+
+        assert isinstance(start, Date)
+        assert isinstance(end, Date)
 
         self.names = names
         self.bands = bands
+        self.start = start
+        self.end = end
 
 
-    def buildProduct(self, products, folder, envi=False):
+    def buildProduct(self, products, folder, envi=False, compressed=False):
 
         # surface reflectance stacks
         images_sr = list()
         images_qa = list()
         for product in products:
             assert isinstance(product, Product)
+            date = hub.datetime.Date.fromYearDoy(year=int(product.name[9:13]),
+                                                 doy=int(product.name[13:16]))
+            if (date < self.start) or (date > self.end):
+                continue
+
             images_sr += product.yieldImages('_sr.vrt')
             images_sr += product.yieldImages('_sr.img')
             images_qa += product.yieldImages('_qa.vrt')
@@ -107,6 +123,10 @@ class TimeseriesBuilder():
         for name, band, infiles in zip(self.names+['cfmask'], self.bands+[1], [infiles_sr]*len(self.bands)+[infiles_qa]):
             outfile = os.path.join(folder, name+'.vrt')
             inbands = [band]*len(infiles_sr)
+
+            if os.path.exists(outfile):
+                continue
+
             hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
 
             # prepare output meta information
@@ -124,57 +144,96 @@ class TimeseriesBuilder():
             if envi:
                 outfile = hub.gdal.util.gdal_translate(outfile=outfile.replace('.vrt', '.img'), infile=outfile, options='-of ENVI')
                 outmeta.writeMeta(outfile)
+                if compressed:
+                    hub.envi.compress(infile=outfile, outfile=outfile)
 
-    def buildArchive(self, archive, folder, name='timeseries', footprints=None, envi=False):
+
+    def buildArchive(self, archive, folder, name='timeseries', footprints=None, envi=False, compressed=False):
 
         assert isinstance(archive, Archive)
         print('Build Timeseries')
         for footprint in archive.yieldFootprints(filter=footprints):
             print(footprint.name)
             products = list(archive.yieldProducts(footprint))
-            self.buildProduct(products, os.path.join(folder, footprint.subfolders(), name), envi=envi)
+            self.buildProduct(products, os.path.join(folder, footprint.subfolders(), name), envi=envi, compressed=compressed)
 
         return archive.__class__(folder=folder)
 
 
-def test_sensorX():
+def test_sensorX(root, wrs2Footprints):
 
     landsatArchive = WRS2Archive(r'C:\Work\data\gms\landsat')
     composer = LandsatXComposer()
-
-    footprints = ['193024']
     lsXArchive = composer.composeArchive(archive=landsatArchive,
                                          folder=r'C:\Work\data\gms\landsatX',
-                                         footprints=footprints)
+                                         footprints=wrs2Footprints)
     lsXArchive.info()
 
 
-def test_tiling():
+def test_tiling(wrs2Footprints, mgrsFootprints):
 
     lsXWRS2Archive = WRS2Archive(r'C:\Work\data\gms\landsatX')
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     lsXMGRSArchive = tilingScheme.tileWRS2Archive(archive=lsXWRS2Archive,
                                                   folder=r'c:\work\data\gms\landsatXMGRS',
                                                   buffer=300,
-                                                  wrs2Footprints=['193024'], mgrsFootprints=['32UPB', '32UPC'])
+                                                  wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
     lsXMGRSArchive.info()
 
 
-def test_buildTimeseries():
+def test_buildTimeseries(mgrsFootprints):
 
     lsXMGRSArchive = MGRSArchive(r'c:\work\data\gms\landsatXMGRS')
     tsBuilder = TimeseriesBuilder(names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
-                                  bands=[1,2,3,4,5,6])
-    lstsMGRSArchive = tsBuilder.buildArchive(lsXMGRSArchive, r'c:\work\data\gms\landsatTimeseriesMGRS', envi=False,
-                                             footprints=['32UPB'])
+                                  bands=[1,2,3,4,5,6],
+                                  start=Date(2015, 1, 1),
+                                  end=Date(2017, 1, 1))
+    lstsMGRSArchive = tsBuilder.buildArchive(lsXMGRSArchive, r'c:\work\data\gms\landsatTimeseriesMGRS',
+                                             envi=True, compressed=True,
+                                             footprints=mgrsFootprints)
     lstsMGRSArchive.info()
 
 
-if __name__ == '__main__':
+def test_pr():
 
+
+    wrs2Footprints = ['172034','173034','169032','170032','178034','177034','176034','173035','172035']
+    mgrsFootprints = ['37SEB','36SVG','38TMK','38SMK','37SEA','','','','','','','']
+    '''
+    landsatArchive = WRS2Archive(r'M:\LandsatData\Landsat_Turkey\04_Landsat')
+    composer = LandsatXComposer()
+    lsXArchive = composer.composeArchive(archive=landsatArchive,
+                                         folder=r'M:\LandsatData\Landsat_Turkey\landsatX',
+                                         footprints=wrs2Footprints)
+
+    tilingScheme = MGRSTilingScheme(pixelSize=30)
+    lsXMGRSArchive = tilingScheme.tileWRS2Archive(archive=lsXArchive,
+                                                  folder=r'M:\LandsatData\Landsat_Turkey\landsatXMGRS',
+                                                  buffer=300,
+                                                  wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
+    '''
+    lsXMGRSArchive = MGRSArchive(r'M:\LandsatData\Landsat_Turkey\landsatXMGRS')
+
+    tsBuilder = TimeseriesBuilder(names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
+                                  bands=[1, 2, 3, 4, 5, 6],
+                                  start=Date(2000, 1, 1),
+                                  end=Date(3000, 1, 1))
+    lstsMGRSArchive = tsBuilder.buildArchive(lsXMGRSArchive, r'M:\LandsatData\Landsat_Turkey\landsatTimeseriesMGRS',
+                                             envi=False, compressed=False,
+                                             footprints=mgrsFootprints)
+
+
+if __name__ == '__main__':
     import hub.timing
     hub.timing.tic()
-#   test_sensorX()
-#    test_tiling()
-    test_buildTimeseries()
+
+    landsatArchive = WRS2Archive(r'M:\LandsatData\Landsat_Turkey\04_Landsat')
+    wrs2Footprints = ['193024','194024']
+    mgrsFootprints = ['32UPC', '32UQC', '33UTT', '33UUT']
+
+    test_sensorX(wrs2Footprints=wrs2Footprints)
+    test_tiling(wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
+    test_buildTimeseries(mgrsFootprints=mgrsFootprints)
+
+#    test_pr()
     hub.timing.toc()

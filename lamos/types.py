@@ -5,6 +5,7 @@ import hub.datetime
 import hub.file
 import hub.gdal.util, hub.gdal.api
 import hub.rs.virtual
+import hub.envi
 import rios.applier
 import numpy
 from enmapbox import processing
@@ -113,7 +114,7 @@ class MGRSFootprint(Footprint):
         if MGRSFootprint.bb.has_key(name):
             bb = MGRSFootprint.bb[name]
         else:
-            shpRoot = r'C:\Work\data\gms\MGRS_100km_1MIL_Files'
+            shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
             shp = os.path.join(shpRoot, r'MGRS_100kmSQ_ID_' + name[0:3] + '\MGRS_100kmSQ_ID_' + name[0:3] + '.shp')
             dataSource = ogr.Open(shp)
             layer = dataSource.GetLayer(0)
@@ -152,7 +153,10 @@ class MGRSFootprint(Footprint):
 
 class WRS2Footprint(Footprint):
 
-    utmLookup = {'193024': '33', '194024': '32'}
+    utmLookup = {'193024': '33', '194024': '32',
+                 '172034': '37', '173034': '37',
+                 '169032': '38', '170032': '38',
+                 '178034': '36', '177034': '36', '176034': '36', '173035': '37', '172035': '37'}
 
     def __init__(self, name, ul=None, lr=None):
 
@@ -221,73 +225,10 @@ class SensorXComposer:
         return archive.__class__(folder=folder)
 
 
-class LandsatXComposer(SensorXComposer):
-
-    def __init__(self):
-
-        FMaskFile = lambda product: os.path.join(product.folder, product.name + '_cfmask.img')
-        SRBandFile = lambda product, i: os.path.join(product.folder, product.name + '_sr_band' + str(i) + '.img')
-        TOABandFile = lambda product, i: os.path.join(product.folder, product.name + '_toa_band' + str(i) + '.img')
-
-        def sr(product):
-
-            assert isinstance(product, Product)
-
-            # landsat band assignments
-            if product.name.startswith('LT'):
-                bandNames =       ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'tir']
-                wavelengthLower = [ 450,    520,     630,   760,   1550,    2080,    10400]
-                wavelengthUpper = [ 520,    600,     690,   900,   1750,    2350,    12500]
-                filenames       = [SRBandFile(product, i) for i in [1,2,3,4,5,7]] + [TOABandFile(product, 6)]
-                noDataValue        = -9999
-            elif product.name.startswith('LE7'):
-                bandNames       = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'tir',               'pan']
-                wavelengthLower = [ 450,    520,     630,   770,   1550,    2090,    10400,               520]
-                wavelengthUpper = [ 520,    600,     690,   900,   1750,    2350,    12500,               900]
-                filenames       = [SRBandFile(product, i) for i in [1,2,3,4,5,7]] + [TOABandFile(product, 6), None]
-                noDataValue        = -9999
-            elif product.name.startswith('LC8'):
-                bandNames          = ['aerosol', 'blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'pan', 'cirrus', 'tir1', 'tir2']
-                wavelengthLower    = [ 430,       450,    530,     640,   850,   1570,    2110,    500,   1360,     10600,  11500 ]
-                wavelengthUpper    = [ 450,       510,    590,     670,   880,   1600,    2290,    680,   1380,     11190,  12510 ]
-                filenames          = [SRBandFile(product, i) for i in [1,2,3,4,5,6,7]] +          [None,  None] +  [TOABandFile(product, i) for i in [10,11]]
-                noDataValue        = -9999
-            else:
-                raise Exception('not a landsat product!')
-
-            images = list()
-            bandNamesFiltered = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']
-            wavelengthFiltered = list()
-
-            for bn, wl, wu, fn in zip(bandNames, wavelengthLower, wavelengthUpper, filenames):
-                if bn in bandNamesFiltered:
-                    wavelengthFiltered.append((wl+wu)/2.)
-                    images.append(Image(name=bn, filename=fn))
-
-            # prepare meta information
-            MTLFile = os.path.join(product.folder, product.name + '_MTL.txt')
-            ESPAFile = os.path.join(product.folder, product.name + '.xml')
-            metas = hub.rs.virtual.parseLandsatMeta(mtlfilename=MTLFile, espafilename=ESPAFile)
-            metas['band names'] = bandNamesFiltered
-            metas['wavelength'] = wavelengthFiltered
-            metas['data ignore value'] = noDataValue
-            return ImageStack(name=product.name + '_sr.vrt', images=images, metas=metas)
-
-
-        def qa(product):
-
-            assert isinstance(product, Product)
-
-            metas = {'band names' : ['cfmask'], 'data ignore value' : 255}
-
-            return ImageStack(name=product.name + '_qa.vrt', images=[Image('cfmask', FMaskFile(product))], metas=metas)
-
-        SensorXComposer.__init__(self, [sr, qa])
-
-
 class Archive(Type):
 
     def __init__(self, folder):
+        assert os.path.exists(folder)
         self.folder = folder
 
 
@@ -348,7 +289,7 @@ class WRS2Archive(Archive):
 
 class MGRSTilingScheme(Type):
 
-    shp = r'C:\Work\data\gms\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
+    shp = r'C:\Work\data\gms\gis\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
     MGRSFootprints = dict()
 
     def __init__(self, pixelSize):
@@ -397,32 +338,31 @@ class MGRSTilingScheme(Type):
 
                 infile = image.filename
 
+                of, extension = ' -of VRT', '.vrt'
+                outfile = os.path.join(folder, mgrsFootprint.utm, mgrsFootprint.name, product.name,
+                                       os.path.splitext(os.path.basename(infile))[0] + extension)
+
+                if os.path.exists(outfile):
+                    continue
+
                 if wrs2Footprint.utm == mgrsFootprint.utm:
-                    of, extension = [(' -of ENVI', '.img'), (' -of VRT', '.vrt')][1]
+
                     projwin = ' -projwin ' + str(ul[0]) + ' ' + str(max(lr[1],ul[1])) + ' ' + str(lr[0]) + ' ' + str(min(lr[1],ul[1]))
-                    outfile = os.path.join(folder, mgrsFootprint.utm, mgrsFootprint.name, product.name,
-                                           os.path.splitext(os.path.basename(infile))[0] + extension)
+
 
                     hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=of+projwin, verbose=False)
 
                 else:
-                    envi = False
-                    of, extension = [(' -of VRT', '.vrt'), (' -of ENVI', '.img')][envi]
                     te = ' -te ' + str(ul[0]) + ' ' + str(min(ul[1],lr[1])) + ' ' + str(lr[0]) + ' ' + str(max(ul[1], lr[1]))
                     t_srs = ' -t_srs  EPSG:326' + mgrsFootprint.utm
                     tr = ' -tr ' + str(self.pixelSize) + ' ' + str(self.pixelSize)
                     overwrite = ' -overwrite'
                     multi = ' -multi'
                     wm = ' -wm 5000'
-                    outfile = os.path.join(folder, mgrsFootprint.utm, mgrsFootprint.name, product.name,
-                                           os.path.splitext(os.path.basename(infile))[0] + extension)
 
                     hub.gdal.util.gdalwarp(outfile=outfile,
                                            infile=infile,
                                            options=of+overwrite+t_srs+tr+te+multi+wm, verbose=False)
-
-                    if envi:
-                        hub.envi.compress(infile=outfile, outfile=outfile)
 
                 # prepare meta information
                 inmeta = processing.Meta(infile)
@@ -457,76 +397,6 @@ class MGRSTilingScheme(Type):
         return report
 
 
-class TimeseriesBuilder(Type):
-
-    def __init__(self, names, bands):
-
-        self.names = names
-        self.bands = bands
-
-
-    def buildProduct(self, products, folder, envi=False):
-
-        # surface reflectance stacks
-        images_sr = list()
-        images_qa = list()
-        for product in products:
-            assert isinstance(product, Product)
-            images_sr += product.yieldImages('_sr.vrt')
-            images_sr += product.yieldImages('_sr.img')
-            images_qa += product.yieldImages('_qa.vrt')
-            images_qa += product.yieldImages('_qa.img')
-
-        infiles_sr = [image.filename for image in images_sr]
-        infiles_qa = [image.filename for image in images_qa]
-        inmetas = [processing.Meta(infile) for infile in infiles_sr]
-
-        indecimalyear = [hub.datetime.Date(int(inmeta.getMetadataItem('acqdate')[0:4]), int(inmeta.getMetadataItem('acqdate')[5:7]), int(inmeta.getMetadataItem('acqdate')[8:10])).decimalYear() for inmeta in inmetas]
-
-        insorted = sorted(list(zip(infiles_sr, infiles_qa, inmetas, indecimalyear)), key=lambda tup: tup[3])
-        infiles_sr, infiles_qa, inmetas, indecimalyear = zip(*insorted)
-
-        metaKeysIgnore = {'band_names', 'data_ignore_value', 'wavelength'}
-        metaKeys = set(inmetas[0].getMetadataDict().keys()) - metaKeysIgnore
-
-        for name, band, infiles in zip(self.names+['cfmask'], self.bands+[1], [infiles_sr]*len(self.bands)+[infiles_qa]):
-            outfile = os.path.join(folder, name+'.vrt')
-            inbands = [band]*len(infiles_sr)
-            hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands)
-
-            # prepare output meta information
-            outmeta = processing.Meta(outfile)
-            for metaKey in metaKeys:
-                outmeta.setMetadataItem(metaKey, [meta.getMetadataItem(metaKey) for meta in inmetas])
-            outmeta.setMetadataItem('wavelength', indecimalyear)
-            outmeta.setBandNames([meta.getMetadataItem('sceneid') for meta in inmetas])
-            if name == 'cfmask':
-                outmeta.setNoDataValue(255)
-            else:
-                outmeta.setNoDataValue(inmetas[0].getNoDataValue())
-            outmeta.writeMeta(outfile)
-
-            if envi:
-                outfile = hub.gdal.util.gdal_translate(outfile=outfile.replace('.vrt', '.img'), infile=outfile, options='-of ENVI')
-                outmeta.writeMeta(outfile)
-
-    def buildArchive(self, archive, folder, name='timeseries', envi=False):
-
-        assert isinstance(archive, Archive)
-        for footprint in archive.yieldFootprints():
-            products = list(archive.yieldProducts(footprint))
-            self.buildProduct(products, os.path.join(folder, footprint.subfolders(), name), envi=envi)
-            break
-
-        extensions = ['.vrt', '.img'][envi]
-        if archive.type == 'mgrs':
-            return Archive.fromMGRS(folder=folder, extensions=extensions)
-        elif archive.type == 'wrs2':
-            return Archive.fromWRS2(folder=folder, extensions=extensions)
-        else:
-            raise Exception('unknown archive type!')
-
-
 class BlockAssociations(rios.applier.BlockAssociations):
 
     def __init__(self, riosBlockAssociations):
@@ -547,17 +417,18 @@ class BlockAssociations(rios.applier.BlockAssociations):
 
 class ApplierInput():
 
-    def __init__(self, archive, productName, imageNames):
+    def __init__(self, archive, productName, imageNames, extension):
         assert isinstance(archive, Archive)
         assert isinstance(productName, basestring)
         assert isinstance(imageNames, list)
         self.archive = archive
         self.productName = productName
         self.imageNames = imageNames
+        self.extension = extension
 
     def getFilenameAssociations(self, footprint):
 
-        for product in self.archive.yieldProducts(footprint):
+        for product in self.archive.yieldProducts(footprint=footprint, extensions=[self.extension]):
             assert isinstance(product, Product)
             if product.name == self.productName:
                 return product.getFilenameAssociations(self.imageNames, prefix=self.productName+'_')
@@ -566,27 +437,43 @@ class ApplierInput():
 
 class ApplierOutput():
 
-    def __init__(self, folder, productName, imageNames):
+    def __init__(self, folder, productName, imageNames, extension):
         assert isinstance(folder, basestring)
         assert isinstance(productName, basestring)
         assert isinstance(imageNames, list)
         self.folder = folder
         self.productName = productName
         self.imageNames = imageNames
+        self.extension = extension
 
 
-    def getFilenameAssociations(self, footprint, extension='.img'):
+    def getFilenameAssociations(self, footprint):
 
         filenameAssociations = rios.applier.FilenameAssociations()
 
         for imageName in self.imageNames:
-            filename = os.path.join(self.folder, footprint.subfolders(), self.productName, imageName+extension)
+            filename = os.path.join(self.folder, footprint.subfolders(), self.productName, imageName+self.extension)
             filenameAssociations.__dict__[self.productName+'_'+imageName] = filename
 
         return filenameAssociations
 
 
 class Applier:
+
+    class Metas:
+
+        def __init__(self, riosFilenameAssociations):
+
+            assert isinstance(riosFilenameAssociations, rios.applier.FilenameAssociations)
+            self._filenames = dict()
+            for key, filename in riosFilenameAssociations.__dict__.items():
+                self.__dict__[key] = hub.gdal.api.GDALMeta(filename)
+                self._filenames[key] = filename
+
+        def write(self):
+            for key, filename in self._filenames.items():
+                self.__dict__[key].writeMeta(filename)
+
 
     @staticmethod
     def userFunctionWrapper(info, riosInputs, riosOutputs, riosOtherArgs):
@@ -597,32 +484,19 @@ class Applier:
             outputs.__dict__[key] = None
             hub.file.mkfiledir(value)
 
-        riosOtherArgs.userFunction(info=info, inputs=inputs, outputs=outputs, otherArgs=riosOtherArgs.otherArgs)
+        riosOtherArgs.userFunction(info=info, inputs=inputs, outputs=outputs, inmetas=riosOtherArgs.inmetas, otherArgs=riosOtherArgs.otherArgs)
 
 
     @staticmethod
     def userFunctionMetaWrapper(riosOtherArgs):
 
-
-        class Metas:
-
-            def __init__(self, riosFilenameAssociations):
-                self._filenames = dict()
-                for key, filename in riosFilenameAssociations.__dict__.items():
-                    self.__dict__[key] = hub.gdal.api.GDALMeta(filename)
-                    self._filenames[key] = filename
-
-            def write(self):
-                for key, filename in self._filenames.items():
-                    self.__dict__[key].writeMeta(filename)
-
-        inmetas = Metas(riosOtherArgs.infiles)
-        outmetas = Metas(riosOtherArgs.outfiles)
-        riosOtherArgs.userFunctionMeta(inmetas=inmetas, outmetas=outmetas, otherArgs=riosOtherArgs.otherArgs)
+        outmetas = Applier.Metas(riosOtherArgs.outfiles)
+        riosOtherArgs.userFunctionMeta(inmetas=riosOtherArgs.inmetas, outmetas=outmetas, otherArgs=riosOtherArgs.otherArgs)
         outmetas.write()
 
 
-    def __init__(self):
+    def __init__(self, compressed=False):
+        self.compressed = compressed
         self.inputs = list()
         self.outputs = list()
         self.controls = self.defaultControls()
@@ -656,6 +530,8 @@ class Applier:
 
     def applyToFootprint(self, footprint):
 
+        print(footprint.name)
+
         infiles = rios.applier.FilenameAssociations()
         for input in self.inputs:
             assert isinstance(input, ApplierInput)
@@ -666,7 +542,12 @@ class Applier:
             assert isinstance(output, ApplierOutput)
             outfiles = rios.applier.FilenameAssociations()
             outfiles.__dict__.update(output.getFilenameAssociations(footprint).__dict__)
-            print
+
+        exists = True
+        for outfile in outfiles.__dict__.values():
+            exists = exists and os.path.exists(outfile)
+        if exists:
+            return
 
         riosOtherArgs = rios.applier.OtherInputs()
         riosOtherArgs.otherArgs = self.otherArgs
@@ -674,6 +555,7 @@ class Applier:
         riosOtherArgs.userFunctionMeta = self.userFunctionMeta
         riosOtherArgs.infiles = infiles
         riosOtherArgs.outfiles = outfiles
+        riosOtherArgs.inmetas = Applier.Metas(riosOtherArgs.infiles)
 
         # apply the user function
         rios.applier.apply(userFunction=Applier.userFunctionWrapper, infiles=infiles, outfiles=outfiles, otherArgs=riosOtherArgs, controls=self.controls)
@@ -681,41 +563,16 @@ class Applier:
         # set user defined meta information
         Applier.userFunctionMetaWrapper(riosOtherArgs=riosOtherArgs)
 
-    def apply(self):
+        # compress output if needed
+        if self.compressed:
+            print('compress')
+            for outfile in outfiles.__dict__.values():
+                hub.envi.compress(infile=outfile, outfile=outfile)
 
+    def apply(self):
+        print('Apply '+str(self.__class__).split('.')[-1])
         for footprint in self.inputs[0].archive.yieldFootprints(): # first input defines the footprints to be processed
             self.applyToFootprint(footprint=footprint)
-
-
-class NDVIApplier(Applier):
-
-    @staticmethod
-    def userFunction(info, inputs, outputs, otherArgs):
-
-        nir = inputs.timeseries_nir.astype(numpy.float32)
-        red = inputs.timeseries_red.astype(numpy.float32)
-        ndvi = (nir-red)/(nir+red)
-
-        cfmask = inputs.timeseries_cfmask
-        invalid = cfmask != 0
-        ndvi[invalid] = -1
-
-        outputs.vi_ndvi = ndvi
-
-
-    @staticmethod
-    def userFunctionMeta(inmetas, outmetas, otherArgs):
-
-        #assert isinstance(outmetas.vi_ndvi, hub.gdal.api.GDALMeta)
-        outmetas.vi_ndvi = inmetas.timeseries_cfmask
-        outmetas.vi_ndvi.setNoDataValue(-1)
-
-
-    def apply(self):
-
-        Applier.apply(self)
-        return Archive.fromMGRS(self.outputs[0].folder)
-
 
 
 def test_footprint():
@@ -739,68 +596,6 @@ def test_archive():
     archive.info()
 
 
-def test_composeProduct():
-
-    lc8 = Product(r'C:\Work\data\gms\landsat\193\024\LC81930242015276LGN00')
-    composer = LandsatXComposer()
-    lsX = composer.composeProduct(lc8, r'c:\work\data\gms\test\LandsatComposition\LC81930242015276LGN00')
-    lsX.info()
-
-
-def test_composeArchive():
-
-    landsatArchive = Archive.fromWRS2(r'C:\Work\data\gms\landsat')
-    composer = LandsatXComposer()
-    lsXArchive = composer.composeArchive(landsatArchive, r'C:\Work\data\gms\landsatX')
-    lsXArchive.info()
-
-
-def test_tileProduct():
-
-    lsX = Product(r'c:\work\data\gms\test\LandsatComposition\LC81930242015276LGN00')
-    tilingScheme = MGRSTilingScheme(pixelSize=30)
-    tilingScheme.tileWRS2Product(lsX, r'c:\work\data\gms\test\tiles', buffer=300)
-
-
-def test_tileArchive():
-
-    lsXArchive = Archive.fromWRS2(r'C:\Work\data\gms\landsatX')
-    tilingScheme = MGRSTilingScheme(pixelSize=30)
-    lsXMGRSArchive = tilingScheme.tileWRS2Archive(lsXArchive, r'c:\work\data\gms\landsatXMGRS', buffer=300)
-
-    lsXMGRSArchive.info()
-
-
-def test_buildTimeseries():
-
-    lsXMGRSArchive = Archive.fromMGRS(r'c:\work\data\gms\landsatXMGRS')
-    tsBuilder = TimeseriesBuilder(names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
-                                  bands=[1,2,3,4,5,6])
-    lstsMGRSArchive = tsBuilder.buildArchive(lsXMGRSArchive, r'c:\work\data\gms\landsatTimeseriesMGRS', envi=False)
-    lstsMGRSArchive.info()
-
-def test_applierInput():
-
-    input = ApplierInput(key='ts', archive=Archive.fromMGRS(r'c:\work\data\gms\landsatTimeseriesMGRS'),
-                           productName='timeseries', imageNames=['nir', 'red'])
-    print input.getFilenameAssociations(MGRSFootprint.fromShp('32UNB')).__dict__
-
-
-def test_applierOutput():
-
-    output = ApplierOutput(folder=r'c:\work\data\gms\products', productName='vi', imageNames=['ndvi'])
-    print output.getFilenameAssociations(MGRSFootprint.fromShp('32UNB')).__dict__
-
-
-def test_ndvi():
-
-    applier = NDVIApplier()
-    applier.appendInput(ApplierInput(archive=Archive.fromMGRS(r'c:\work\data\gms\landsatTimeseriesMGRS'),
-                                     productName='timeseries', imageNames=['nir', 'red', 'cfmask']))
-    applier.appendOutput(ApplierOutput(folder=r'c:\work\data\gms\products', productName='vi', imageNames=['ndvi']))
-    archive = applier.apply()
-    archive.info()
-
 if __name__ == '__main__':
 
     import hub.timing
@@ -808,15 +603,4 @@ if __name__ == '__main__':
     #test_footprint()
     #test_product()
     #test_archive()
-    #test_composeProduct()
-    #test_composeArchive()
-    #test_tileProduct()
-    #test_tileArchive()
-    #test_buildTimeseries()
-    #test_applierInput()
-    #test_applierOutput()
-    test_ndvi()
-
-
-
     hub.timing.toc()

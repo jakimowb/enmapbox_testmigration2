@@ -1,16 +1,11 @@
 import numpy
-import scipy
-import scipy.optimize
 import yaml
-from hub.timing import tic, toc
 import lamos.cubebuilder.cube
 import lamos.cubebuilder.applier
 import datetime
 from hub.collections import Bunch
 import hub.numpy.ma
-import sys
 import os
-import warnings
 
 def getCube(name, inputs, bbl=None):
 
