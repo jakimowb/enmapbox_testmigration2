@@ -198,7 +198,7 @@ def test_pr():
 
 
     wrs2Footprints = ['172034','173034','169032','170032','178034','177034','176034','173035','172035']
-    mgrsFootprints = ['37SEB','36SVG','38TMK','38SMK','37SEA','','','','','','','']
+    mgrsFootprints = ['37SEB','36SVG','38TMK','38SMK','37SEA']
     '''
     landsatArchive = WRS2Archive(r'M:\LandsatData\Landsat_Turkey\04_Landsat')
     composer = LandsatXComposer()
