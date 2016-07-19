@@ -3,6 +3,7 @@ import os
 import scipy.misc
 import subprocess
 import time
+import hub.file
 
 from HTML import Table, TableRow, TableCell
 from enmapbox.processing.env import env
@@ -70,7 +71,7 @@ class Report():
         self.filename = filename
         dirname = os.path.splitext(filename)[0] + '_files'
         if not os.path.exists(dirname):
-            os.mkdir(dirname)
+            hub.file.mkdir(dirname)
 
         html = self.generateHTML(dirname)
         import codecs
