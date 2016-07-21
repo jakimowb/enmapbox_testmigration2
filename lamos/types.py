@@ -1,6 +1,6 @@
-from __future__ import division
+from __future__ import division, print_function
 import os
-import ogr
+import ogr, gdal, osr
 import hub.datetime
 import hub.file
 import hub.gdal.util, hub.gdal.api
@@ -9,6 +9,7 @@ import hub.envi
 import rios.applier
 import numpy
 from enmapbox import processing
+from enmapbox.processing.applier import ApplierHelper
 
 
 class Type:
@@ -107,7 +108,7 @@ class Footprint(Type):
 class MGRSFootprint(Footprint):
 
     bb = dict()
-    shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
+    shpRoot = r'<insert path>\MGRS_100km_1MIL_Files'
 
     @staticmethod
     def fromShp(name):
@@ -115,7 +116,7 @@ class MGRSFootprint(Footprint):
         if MGRSFootprint.bb.has_key(name):
             bb = MGRSFootprint.bb[name]
         else:
-
+            assert os.path.exists(MGRSFootprint.shpRoot), MGRSFootprint.shpRoot
             shp = os.path.join(MGRSFootprint.shpRoot, r'MGRS_100kmSQ_ID_' + name[0:3] + '\MGRS_100kmSQ_ID_' + name[0:3] + '.shp')
             dataSource = ogr.Open(shp)
             layer = dataSource.GetLayer(0)
@@ -154,10 +155,28 @@ class MGRSFootprint(Footprint):
 
 class WRS2Footprint(Footprint):
 
-    utmLookup = {'193024': '33', '194024': '32',
-                 '172034': '37', '173034': '37',
-                 '169032': '38', '170032': '38',
-                 '178034': '36', '177034': '36', '176034': '36', '173035': '37', '172035': '37'}
+    utmLookup = {}#{'193024': '33', '194024': '32',
+#                 '172034': '37', '173034': '37',
+#                 '169032': '38', '170032': '38',
+#                 '178034': '36', '177034': '36', '176034': '36', '173035': '37', '172035': '37'}
+
+    @staticmethod
+    def createUtmLookup(infolder):
+
+        archive = WRS2Archive(infolder)
+        for footprintFolder in archive.yieldFootprintFolders():
+            sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
+            firstProduct = Product(sceneFolder, extensions=['.img'])
+            for firstImage in firstProduct.yieldImages(): break
+            ds = gdal.Open(firstImage.filename)
+            wkt = ds.GetProjection()
+            ds = None
+            assert wkt.startswith('PROJCS["UTM Zone')
+            utm = wkt[17:19]
+            row = os.path.basename(footprintFolder)
+            path = os.path.basename(os.path.dirname(footprintFolder))
+
+            WRS2Footprint.utmLookup[path+row] = utm
 
     def __init__(self, name, ul=None, lr=None):
 
@@ -165,7 +184,6 @@ class WRS2Footprint(Footprint):
         self.utm = WRS2Footprint.utmLookup[name]
         self.path = self.name[ :3]
         self.row =  self.name[3: ]
-
 
     def subfolders(self):
 
@@ -216,15 +234,16 @@ class SensorXComposer:
         return Product(folder)
 
 
-    def composeArchive(self, archive, folder, footprints=None):
+    def composeWRS2Archive(self, infolder, outfolder, footprints=None):
 
-        assert isinstance(archive, Archive)
-        print('Compose Landsat X')
+        archive = WRS2Archive(infolder)
+
+        print('Compose Sensor X')
         for footprint in archive.yieldFootprints(filter=footprints):
             print(footprint.name)
             for product in archive.yieldProducts(footprint):
-                self.composeProduct(product, os.path.join(folder, footprint.subfolders(), product.name))
-        return archive.__class__(folder=folder)
+                self.composeProduct(product, os.path.join(outfolder, footprint.subfolders(), product.name))
+        return archive.__class__(folder=outfolder)
 
 
 class Archive(Type):
@@ -275,7 +294,13 @@ class MGRSArchive(Archive):
 
 class WRS2Archive(Archive):
 
+    def yieldFootprintFolders(self):
+        for path in os.listdir(self.folder):
+            for row in os.listdir(os.path.join(self.folder, path)):
+                yield os.path.join(self.folder, path, row)
+
     def yieldFootprints(self, filter=None):
+
         for path in os.listdir(self.folder):
             for row in os.listdir(os.path.join(self.folder, path)):
                 if (filter is not None):
@@ -291,7 +316,7 @@ class WRS2Archive(Archive):
 
 class MGRSTilingScheme(Type):
 
-    shp = r'C:\Work\data\gms\gis\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
+    shp = r'<insert path>\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
     MGRSFootprints = dict()
 
     def __init__(self, pixelSize):
@@ -374,21 +399,18 @@ class MGRSTilingScheme(Type):
                 outmeta.writeMeta(outfile)
 
 
-    def tileWRS2Archive(self, archive, folder, wrs2Footprints=None, mgrsFootprints=None, buffer=0):
+    def tileWRS2Archive(self, infolder, outfolder, wrs2Footprints=None, mgrsFootprints=None, buffer=0):
 
-        assert isinstance(archive, Archive)
-
+        archive = WRS2Archive(infolder)
         self.cacheMGRSFootprints(list(archive.yieldFootprints()))
+
         print('Cut WRS2 into MGRS Footprints')
         for footprint in archive.yieldFootprints(filter=wrs2Footprints):
-            print footprint.name
+            print(footprint.name)
             for product in archive.yieldProducts(footprint):
-                print product.name
-                self.tileWRS2Product(product=product, wrs2Footprint=footprint, folder=folder, buffer=buffer,
+                print(product.name)
+                self.tileWRS2Product(product=product, wrs2Footprint=footprint, folder=outfolder, buffer=buffer,
                                      mgrsFootprints=mgrsFootprints)
-
-        return MGRSArchive(folder)
-
 
     def report(self):
 
@@ -481,6 +503,8 @@ class Applier:
     @staticmethod
     def userFunctionWrapper(info, riosInputs, riosOutputs, riosOtherArgs):
 
+        progress = str(ApplierHelper.progress(info))+'%'
+        print(progress, end='..')
         inputs = BlockAssociations(riosInputs)
         outputs = BlockAssociations(riosOutputs)
         for key, value in riosOtherArgs.outfiles.__dict__.items():
@@ -489,6 +513,8 @@ class Applier:
 
         riosOtherArgs.userFunction(info=info, inputs=inputs, outputs=outputs, inmetas=riosOtherArgs.inmetas, otherArgs=riosOtherArgs.otherArgs)
 
+        if ApplierHelper.lastBlock(info):
+            print('100%')
 
     @staticmethod
     def userFunctionMetaWrapper(riosOtherArgs):
@@ -593,7 +619,7 @@ def test_product():
     product = Product(r'C:\Work\data\gms\landsatTimeseriesMGRS\32\32UNB\timeseries')
     #product.info()
     inputs = product.getFilenameAssociations()
-    print inputs.__dict__.keys()
+    print(inputs.__dict__.keys())
 
 def test_archive():
     archive = Archive.fromWRS2(r'C:\Work\data\gms\landsat')

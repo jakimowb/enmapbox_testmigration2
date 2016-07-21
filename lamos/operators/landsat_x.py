@@ -7,7 +7,7 @@ import hub.rs.virtual
 from hub.timing import tic, toc
 from hub.datetime import Date
 from enmapbox import processing
-from lamos.types import SensorXComposer, Product, Image, ImageStack, WRS2Archive, MGRSArchive, Archive, MGRSTilingScheme, MGRSFootprint
+from lamos.types import SensorXComposer, Product, Image, ImageStack, MGRSArchive, MGRSTilingScheme, MGRSFootprint, WRS2Footprint
 
 
 class LandsatXComposer(SensorXComposer):
@@ -76,7 +76,7 @@ class LandsatXComposer(SensorXComposer):
 
 class TimeseriesBuilder():
 
-    def __init__(self, names, bands, start=None, end=None):
+    def __init__(self, names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2'], bands=[1, 2, 3, 4, 5, 6], start=None, end=None):
 
         if start is None:
             start = Date(1, 1, 1)
@@ -149,85 +149,43 @@ class TimeseriesBuilder():
                     hub.envi.compress(infile=outfile, outfile=outfile)
 
 
-    def buildArchive(self, archive, folder, name='timeseries', footprints=None, envi=False, compressed=False):
+    def build(self, infolder, outfolder, name='timeseries', footprints=None, envi=False, compressed=False):
 
-        assert isinstance(archive, Archive)
+        archive = MGRSArchive(infolder)
         print('Build Timeseries')
         for footprint in archive.yieldFootprints(filter=footprints):
             print(footprint.name)
             products = list(archive.yieldProducts(footprint))
-            self.buildProduct(products, os.path.join(folder, footprint.subfolders(), name), envi=envi, compressed=compressed)
-
-        return archive.__class__(folder=folder)
+            self.buildProduct(products, os.path.join(outfolder, footprint.subfolders(), name), envi=envi, compressed=compressed)
 
 
-def test_sensorX(root, wrs2Footprints):
+def test():
 
-    landsatArchive = WRS2Archive(r'C:\Work\data\gms\landsat')
+    MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
+    MGRSTilingScheme.shp = r'C:\Work\data\gms\gis\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
+
+    folder1 = r'C:\Work\data\gms\landsat'
+    folder2 = r'C:\Work\data\gms\landsatX'
+    folder3 = r'C:\Work\data\gms\landsatXMGRS'
+    folder4 = r'C:\Work\data\gms\landsatTimeseriesMGRS'
+    WRS2Footprint.createUtmLookup(infolder=folder1)
+
+    wrs2Footprints = None#['193024']
+    mgrsFootprints = None#['32UPC']
+
     composer = LandsatXComposer()
-    lsXArchive = composer.composeArchive(archive=landsatArchive,
-                                         folder=r'C:\Work\data\gms\landsatX',
-                                         footprints=wrs2Footprints)
-    lsXArchive.info()
-
-
-def test_tiling(wrs2Footprints, mgrsFootprints):
-
-    lsXWRS2Archive = WRS2Archive(r'C:\Work\data\gms\landsatX')
-    tilingScheme = MGRSTilingScheme(pixelSize=30)
-    lsXMGRSArchive = tilingScheme.tileWRS2Archive(archive=lsXWRS2Archive,
-                                                  folder=r'c:\work\data\gms\landsatXMGRS',
-                                                  buffer=300,
-                                                  wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
-    lsXMGRSArchive.info()
-
-
-def test_buildTimeseries(mgrsFootprints):
-
-    lsXMGRSArchive = MGRSArchive(r'c:\work\data\gms\landsatXMGRS')
-    tsBuilder = TimeseriesBuilder(names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
-                                  bands=[1,2,3,4,5,6],
-                                  start=Date(2015, 1, 1),
-                                  end=Date(2017, 1, 1))
-    lstsMGRSArchive = tsBuilder.buildArchive(lsXMGRSArchive, r'c:\work\data\gms\landsatTimeseriesMGRS',
-                                             envi=True, compressed=True,
-                                             footprints=mgrsFootprints)
-    lstsMGRSArchive.info()
-
-
-def test_pr():
-
-    MGRSFootprint.shpRoot = r'\\141.20.140.91\SAN_RSDBrazil\LandsatData\Landsat_Turkey\02_OutputData\LandsatX\gis\MGRS_100km_1MIL_Files'
-    MGRSTilingScheme.shp = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gis\reference_systems\mgrs\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
-
-    wrs2Footprints = ['172034','173034','169032','170032','178034','177034','176034','173035','172035']
-    mgrsFootprints = ['37SEB','36SVG','38TMK','38SMK','37SEA']
-
-    landsatArchive = WRS2Archive(r'\\141.20.140.91\SAN_RSDBrazil\LandsatData\Landsat_Turkey\02_OutputData\LandsatX\04_Landsat')
-    composer = LandsatXComposer()
-    lsXArchive = composer.composeArchive(archive=landsatArchive,
-                                         folder=r'\\141.20.140.91\SAN_RSDBrazil\LandsatData\Landsat_Turkey\02_OutputData\LandsatX\ar_landsatX',
-                                         footprints=wrs2Footprints)
+    composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
-    lsXMGRSArchive = tilingScheme.tileWRS2Archive(archive=lsXArchive,
-                                                  folder=r'\\141.20.140.91\SAN_RSDBrazil\LandsatData\Landsat_Turkey\02_OutputData\LandsatX\ar_landsatXMGRS',
-                                                  buffer=300,
-                                                  wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
+    tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300,
+                                 wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
 
-    lsXMGRSArchive = MGRSArchive(r'\\141.20.140.91\SAN_RSDBrazil\LandsatData\Landsat_Turkey\02_OutputData\LandsatX\ar_landsatXMGRS')
-
-    tsBuilder = TimeseriesBuilder(names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
-                                  bands=[1, 2, 3, 4, 5, 6],
-                                  start=Date(2000, 1, 1),
-                                  end=Date(3000, 1, 1))
-    lstsMGRSArchive = tsBuilder.buildArchive(lsXMGRSArchive, r'\\141.20.140.91\SAN_RSDBrazil\LandsatData\Landsat_Turkey\02_OutputData\LandsatX\ar_landsatTimeseriesMGRS',
-                                             envi=True, compressed=False,
-                                             footprints=mgrsFootprints)
+    tsBuilder = TimeseriesBuilder(start=Date(1900, 1, 1), end=Date(2017, 1, 1))
+    tsBuilder.build(infolder=folder3, outfolder=folder4, envi=True, compressed=False, footprints=mgrsFootprints)
 
 
 if __name__ == '__main__':
 
     hub.timing.tic()
-    test_pr()
+    test()
     hub.timing.toc()
