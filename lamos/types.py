@@ -165,6 +165,7 @@ class WRS2Footprint(Footprint):
 
         archive = WRS2Archive(infolder)
         for footprintFolder in archive.yieldFootprintFolders():
+
             sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
             firstProduct = Product(sceneFolder, extensions=['.img'])
             for firstImage in firstProduct.yieldImages(): break
@@ -295,14 +296,27 @@ class MGRSArchive(Archive):
 class WRS2Archive(Archive):
 
     def yieldFootprintFolders(self):
+
         for path in os.listdir(self.folder):
+            if path.startswith('.'): continue
+            folder = os.path.join(self.folder, path)
+            if not os.path.isdir(folder): continue
             for row in os.listdir(os.path.join(self.folder, path)):
-                yield os.path.join(self.folder, path, row)
+                if row.startswith('.'): continue
+                folder = os.path.join(self.folder, path, row)
+                if not os.path.isdir(folder): continue
+                yield folder
 
     def yieldFootprints(self, filter=None):
 
         for path in os.listdir(self.folder):
+            if path.startswith('.'): continue
+            folder = os.path.join(self.folder, path)
+            if not os.path.isdir(folder): continue
             for row in os.listdir(os.path.join(self.folder, path)):
+                if row.startswith('.'): continue
+                folder = os.path.join(self.folder, path, row)
+                if not os.path.isdir(folder): continue
                 if (filter is not None):
                     if path+row not in filter:
                         continue

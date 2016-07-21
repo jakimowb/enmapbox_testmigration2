@@ -125,28 +125,32 @@ class TimeseriesBuilder():
             outfile = os.path.join(folder, name+'.vrt')
             inbands = [band]*len(infiles_sr)
 
-            if os.path.exists(outfile):
-                continue
-
-            hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
-
             # prepare output meta information
-            outmeta = processing.Meta(outfile)
-            for metaKey in metaKeys:
-                outmeta.setMetadataItem(metaKey, [meta.getMetadataItem(metaKey) for meta in inmetas])
-            outmeta.setMetadataItem('wavelength', indecimalyear)
-            outmeta.setBandNames([meta.getMetadataItem('sceneid') for meta in inmetas])
-            if name == 'cfmask':
-                outmeta.setNoDataValue(255)
-            else:
-                outmeta.setNoDataValue(inmetas[0].getNoDataValue())
-            outmeta.writeMeta(outfile)
+            def prepareMeta(outfile):
+                outmeta = processing.Meta(outfile)
+                for metaKey in metaKeys:
+                    outmeta.setMetadataItem(metaKey, [meta.getMetadataItem(metaKey) for meta in inmetas])
+                outmeta.setMetadataItem('wavelength', indecimalyear)
+                outmeta.setBandNames([meta.getMetadataItem('sceneid') for meta in inmetas])
+                if name == 'cfmask':
+                    outmeta.setNoDataValue(255)
+                else:
+                    outmeta.setNoDataValue(inmetas[0].getNoDataValue())
+                return outmeta
+
+            if not os.path.exists(outfile):
+                hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
+                outmeta = prepareMeta(outfile)
+                outmeta.writeMeta(outfile)
 
             if envi:
-                outfile = hub.gdal.util.gdal_translate(outfile=outfile.replace('.vrt', '.img'), infile=outfile, options='-of ENVI')
-                outmeta.writeMeta(outfile)
-                if compressed:
-                    hub.envi.compress(infile=outfile, outfile=outfile)
+                outfile2 = outfile.replace('.vrt', '.img')
+                if not os.path.exists(outfile2):
+                    hub.gdal.util.gdal_translate(outfile=outfile2, infile=outfile, options='-of ENVI')
+                    outmeta = prepareMeta(outfile2)
+                    outmeta.writeMeta(outfile2)
+                    if compressed:
+                        hub.envi.compress(infile=outfile2, outfile=outfile2)
 
 
     def build(self, infolder, outfolder, name='timeseries', footprints=None, envi=False, compressed=False):
@@ -186,6 +190,6 @@ def test():
 
 if __name__ == '__main__':
 
-    hub.timing.tic()
+    tic()
     test()
-    hub.timing.toc()
+    toc()
