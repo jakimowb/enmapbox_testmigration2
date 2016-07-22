@@ -1,4 +1,3 @@
-from __future__ import division
 from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.ndvi import NDVIApplier
