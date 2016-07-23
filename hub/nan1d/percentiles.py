@@ -4,10 +4,13 @@ def zvalue_from_index(arr, ind):
 
     assert arr.ndim == 3
 
-    _, nC, nR = arr.shape
+    #_, nC, nR = arr.shape
+    #idx = nC * nR * ind + nR * numpy.arange(nR)[:, None] + numpy.arange(nC)
 
-    # get linear indices and extract elements with np.take()
-    idx = nC * nR * ind + nR * numpy.arange(nR)[:, None] + numpy.arange(nC)
+    nB, nL, nS = arr.shape
+    idx = nS * nL * ind + nS * numpy.arange(nL)[:, None] + numpy.arange(nS)[None, :]
+
+
     return numpy.take(arr, idx)
 
 
@@ -87,12 +90,12 @@ def test_nanargpercentiles(arr):
 
 if __name__ == '__main__':
 
-    arr = numpy.array([[[numpy.NaN, numpy.NaN],
-                        [1, 1]],
-                       [[numpy.NaN, 2],
-                        [2, 2]],
-                       [[numpy.NaN, 3],
-                        [numpy.NaN, 3]]])
+    arr = numpy.array([[[numpy.NaN, numpy.NaN, 1],
+                        [numpy.NaN, 1, 1]],
+                       [[numpy.NaN, 2, 2],
+                        [2, 2, 2]],
+                       [[numpy.NaN, 3, 3],
+                        [numpy.NaN, 3, 3]]])
 
     print('\nArray')
     print(arr)

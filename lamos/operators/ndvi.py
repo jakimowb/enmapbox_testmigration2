@@ -43,8 +43,8 @@ def test():
     MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
     infolder = r'C:\Work\data\gms\landsatTimeseriesMGRS'
     outfolder = r'C:\Work\data\gms\products'
-    mgrsFootprints = ['32UPC']
-    mgrsFootprints = None
+
+    mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
 
     applier = NDVIApplier(infolder=infolder,
                           outfolder=outfolder,

@@ -174,8 +174,8 @@ def test():
     folder4 = r'C:\Work\data\gms\landsatTimeseriesMGRS'
     WRS2Footprint.createUtmLookup(infolder=folder1)
 
-    wrs2Footprints = None#['193024']
-    mgrsFootprints = None#['32UPC']
+    wrs2Footprints = ['193024','194024']
+    mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
 
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)

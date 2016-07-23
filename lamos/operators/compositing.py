@@ -1,10 +1,7 @@
-import lamos.cubebuilder.cube
-import lamos.cubebuilder.applier
 import datetime
 from hub.collections import Bunch
 import hub.numpy.ma
-import os
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive
+from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
 import numpy
 
 def getCube(name, inputs, bbl=None):
@@ -204,7 +201,9 @@ def scoreTargetDoy(inputs, inmeta, info):
 
     # calc distances to target doy
     # - need to consider 3 cases and take the minimum of all
-    distances = [__builtins__.min((doy-targetDoy),(doy-365-targetDoy),(doy+365-targetDoy))  for doy in doys]
+    #distances = [__builtins__.min((doy - targetDoy), (doy - 365 - targetDoy), (doy + 365 - targetDoy)) for doy in doys]
+    distances = [numpy.min(((doy - targetDoy), (doy - 365 - targetDoy), (doy + 365 - targetDoy))) for doy in doys]
+
     # - create index cube
     index = getCubeFromVector(distances, inputs, info.bbl)
 
@@ -221,7 +220,7 @@ def scoreTargetYear(inputs, inmeta, info):
     index = getCubeFromVector(distances, inputs, info.bbl)
 
     # translate to scores
-    min = __builtins__.max(distances)
+    min = numpy.max(distances)
     max = 0
     score = scaleLinearMinMax(index, min, max)
     return score
@@ -324,6 +323,12 @@ class StatisticsCompositeParameters():
     def getBandNames(self):
         return self.statisticsParameters.getBandNames()
 
+def zvalue_from_index(arr, ind):
+
+    nB, nL, nS = arr.shape
+    idx = nS * nL * ind + nS * numpy.arange(nL)[:, None] + numpy.arange(nS)[None, :]
+    return numpy.take(arr, idx)
+
 
 class CompositingApplier(Applier):
 
@@ -339,11 +344,12 @@ class CompositingApplier(Applier):
         bands, samples, lines = inputs.timeseries_cfmask.shape
 
         # cast to float and set invalid observations to NaN
-        invalid = getCube('invalid', inputs)
-        invalidAll = numpy.all(invalid, axis=0)
-        for key in ['timeseries_'+name for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']]:
-            inputs.__dict__[key] = inputs.__dict__[key].astype(numpy.float32)
-            inputs.__dict__[key][invalid] = numpy.NaN
+        invalidValues = getCube('invalid', inputs)
+        invalidPixel = numpy.all(invalidValues, axis=0)
+
+#        for key in ['timeseries_'+name for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']]:
+#            inputs.__dict__[key] = inputs.__dict__[key].astype(numpy.float32)
+#            inputs.__dict__[key][invalidValues] = numpy.NaN
 
         # calculate quality composites
         for qualityCompositeParameters in otherArgs.qualityCompositeParametersList:
@@ -361,27 +367,31 @@ class CompositingApplier(Applier):
                 assert bbl.sum() == qualityCube.shape[0], 'inconsistent score cube, check scoring function: '+ qualityCompositeParameters.qualityParameters.scoreFunction.__name__
 
                 # - find best observation
-                qualityCube[invalid] = -numpy.Inf
+                qualityCube[invalidValues] = -numpy.Inf
                 bestObs = numpy.nanargmax(qualityCube, axis=0)
-                bestObs[invalidAll] = 0
+                bestObs[invalidPixel] = 0
 
 
                 # - create composite
-                cubes = [inputs.sr[key][bbl] for key in otherArgs.bandNamesSubset]
-                cubes.append(inputDoys.reshape((-1,1))[bbl]) # add Flag:doy
-                cubes.append(inputSensorInfos[:,0:1][bbl])   # add Flag:sensor
-                cubes.append(inputSensorInfos[:,1:2][bbl])   # add Flag:path
-                cubes.append(inputSensorInfos[:,2:3][bbl])   # add Flag:row
-                cubes.append((qualityCube*10000).astype(numpy.int16))# add Flag:score
+                result = list()
+                for key in ['timeseries_' + name for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']]:
+                    band = zvalue_from_index(arr=inputs.__dict__[key], ind=bestObs)
+                    band[invalidPixel] = -9999
+                    result.append(band.reshape((1, samples, lines)))
 
-                # - create composite cube
-                qualityCompositeCube = hub.numpy.ma.qualityCompositeCube(cubes,  qualityCube)
+                result = numpy.vstack(result)
+
+#                cubes = [inputs.sr[key][bbl] for key in otherArgs.bandNamesSubset]
+#                cubes.append(inputDoys.reshape((-1,1))[bbl]) # add Flag:doy
+#                cubes.append(inputSensorInfos[:,0:1][bbl])   # add Flag:sensor
+#                cubes.append(inputSensorInfos[:,1:2][bbl])   # add Flag:path
+#                cubes.append(inputSensorInfos[:,2:3][bbl])   # add Flag:row
+#                cubes.append((qualityCube*10000).astype(numpy.int16))# add Flag:score
+
 
                 # - fill masked values with -9999
-                qualityCompositeCube = qualityCompositeCube.filled(-9999)
+                #qualityCompositeCube = qualityCompositeCube.filled(-9999)
 
-                # - convert back to 3d cubes
-                qualityCompositeCube = hub.numpy.ma.unflatten(qualityCompositeCube, samples, lines)
 
             else:
                 # - handle special case when no observation is available
@@ -389,20 +399,22 @@ class CompositingApplier(Applier):
                 qualityCompositeCube = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
                 print('Warning: No Observation available for target date '+qualityCompositeParameters.getTargetDate()+'.')
 
-            outputs.qualityComposites[qualityCompositeParameters.getName()] = qualityCompositeCube
+            outputs.__dict__['composite_'+qualityCompositeParameters.getName()] = result
+
 
 
 
     @staticmethod
     def userFunctionMeta(inmetas, outmetas, otherArgs):
 
-        outmetas.vi_ndvi = inmetas.timeseries_cfmask
-        outmetas.vi_ndvi.setNoDataValue(-1)
+        pass
+        #outmetas.vi_ndvi = inmetas.timeseries_cfmask
+        #outmetas.vi_ndvi.setNoDataValue(-1)
 
 
-    def __init__(self, infolder, outfolder, compressed=False):
+    def __init__(self, infolder, outfolder, years, months, days, bufferDays, bufferYears, footprints=None, compressed=False):
 
-        Applier.__init__(self, compressed=compressed)
+        Applier.__init__(self, compressed=compressed, footprints=footprints)
         self.composites = list()
         self.infolder = infolder
         self.outfolder = outfolder
@@ -410,7 +422,13 @@ class CompositingApplier(Applier):
                                       productName='timeseries',
                                       imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'],
                                       extension='.img'))
+        for year in years:
+            for month in months:
+                for day in days:
+                    self.appendComposite(year=year, month=month, day=day,
+                                         bufferYears=bufferYears, bufferDays=bufferDays)
 
+        self.otherArgs.qualityCompositeParametersList = self.composites
 
     def appendComposite(self, year, month, day, bufferDays, bufferYears=0):
 
@@ -422,32 +440,27 @@ class CompositingApplier(Applier):
         self.appendOutput(ApplierOutput(folder=self.outfolder,
                                         productName='composite', imageNames=[compositeParameters.getName()], extension='.img'))
 
-    def apply(self):
-
-        self.otherArgs.qualityCompositeParametersList = self.composites
-        Applier.apply(self)
-        return MGRSArchive(self.outputs[0].folder)
-
 
 def test():
 
-    applier = CompositingApplier(infolder=r'c:\work\data\gms\landsatTimeseriesMGRS',
-                                 outfolder=r'c:\work\data\gms\landsatComposites',
-                                 compressed=False)
-    applier.controls.setWindowXsize(100)
+    MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
+    infolder = r'c:\work\data\gms\landsatTimeseriesMGRS'
+    outfolder= r'c:\work\data\gms\composites'
+
+    mgrsFootprints = ['33UUT']
+
+    years = [2000, 2001]
+    months = [2,5,8,11]
+    days = [15]
+    bufferDays = 190
+    bufferYears = 30
+    applier = CompositingApplier(infolder=infolder, outfolder=outfolder, compressed=False,
+                                 years=years, months=months, days=days,
+                                 bufferDays=bufferDays, bufferYears=bufferYears,
+                                 footprints=mgrsFootprints)
+    applier.controls.setWindowXsize(10000)
     applier.controls.setWindowYsize(100)
-
-    for year in [2000]:
-        for month in [1]:
-            day = 1
-            bufferDays = 183
-            bufferYears = 30
-            applier.appendComposite(year=year, month=month, day=day,
-                                    bufferYears = bufferYears, bufferDays=bufferDays)
-
-    archive = applier.apply()
-    archive.info()
-
+    applier.apply()
 
 if __name__ == '__main__':
 

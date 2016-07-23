@@ -567,6 +567,7 @@ class Applier:
         controls.setJobManagerType('multiprocessing')
         controls.setOutputDriverName("ENVI")
         controls.setCreationOptions(["INTERLEAVE=BSQ"])
+
 #        controls.setOutputDriverName("GTiff")
 #        controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256", "COMPRESS=LZW"])
         controls.setCalcStats(False)
@@ -586,7 +587,6 @@ class Applier:
         outfiles = rios.applier.FilenameAssociations()
         for output in self.outputs:
             assert isinstance(output, ApplierOutput)
-            outfiles = rios.applier.FilenameAssociations()
             outfiles.__dict__.update(output.getFilenameAssociations(footprint).__dict__)
 
         exists = True
