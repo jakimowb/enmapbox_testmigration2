@@ -47,7 +47,7 @@ def nanpercentiles(arr, percentiles, copy=True):
         # fill with Nan if all inputs are Nan
         quant_arr[valid_obs == 0] = numpy.NaN
 
-        result.append(quant_arr)
+        result.append(quant_arr[None])
 
     return result
 

@@ -41,15 +41,19 @@ def test():
     applier.controls.setWindowYsize(100)
     applier.apply()
 
-    years = [2000, 2001]
-    months = [2, 5, 8, 11]
+    years = [2000]#, 2001]
+    months = [2]#, 5, 8, 11]
     days = [15]
     bufferDays = 190
     bufferYears = 30
+
+    folder5 = r'C:\Work\data\gms\comp'
+#    mgrsFootprints = ['32UQC']
+
     applier = CompositingApplier(infolder=folder4, outfolder=folder5, compressed=False,
                                  years=years, months=months, days=days,
                                  bufferDays=bufferDays, bufferYears=bufferYears,
-                                 footprints=mgrsFootprints)
+                                 footprints=mgrsFootprints, inextension='.img')
     applier.controls.setWindowXsize(10000)
     applier.controls.setWindowYsize(100)
     applier.apply()
