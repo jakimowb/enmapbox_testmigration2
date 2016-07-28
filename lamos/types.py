@@ -10,6 +10,7 @@ import rios.applier
 import numpy
 from enmapbox import processing
 from enmapbox.processing.applier import ApplierHelper
+from hub.timing import tic, toc
 
 
 class Type:
@@ -260,6 +261,30 @@ class Archive(Type):
 
     def yieldProducts(self, footprint, extensions):
         pass
+
+
+    def saveAsGTiff(self, outfolder, compress='DEFLATE', interleave='BAND', predictor='2', filter=None):
+        '''
+        see http://www.gdal.org/frmt_gtiff.html
+            https://havecamerawilltravel.com/photographer/tiff-image-compression
+        '''
+        print('Save as GTiff')
+
+        def yieldFiles():
+            for footprint in self.yieldFootprints(filter):
+                for product in self.yieldProducts(footprint=footprint, extensions=['.vrt']):
+                    for image in product.yieldImages():
+                        infile = image.filename
+                        outfile = os.path.join(outfolder, footprint.subfolders(), product.name, image.name).replace('.vrt', '.img')
+                        yield outfile, infile
+
+
+                    #filter=self.footprints
+
+        for outfile, infile in yieldFiles():
+            #options = '-of ENVI'
+            options = '-co TILED=NO -co COMPRESS='+compress+' -co PREDICTOR='+predictor+' -co INTERLEAVE='+interleave
+            hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=options)
 
 
     def report(self):
@@ -538,13 +563,14 @@ class Applier:
         outmetas.write()
 
 
-    def __init__(self, footprints=None, compressed=False):
+    def __init__(self, footprints=None, compressed=False, overwrite=False):
         self.compressed = compressed
         self.footprints = footprints
         self.inputs = list()
         self.outputs = list()
         self.controls = self.defaultControls()
         self.otherArgs = self.defaultOtherArgs()
+        self.overwrite = overwrite
 
 
     def appendInput(self, input):
@@ -589,11 +615,12 @@ class Applier:
             assert isinstance(output, ApplierOutput)
             outfiles.__dict__.update(output.getFilenameAssociations(footprint).__dict__)
 
-        exists = True
-        for outfile in outfiles.__dict__.values():
-            exists = exists and os.path.exists(outfile)
-        if exists:
-            return
+        if not self.overwrite:
+            exists = True
+            for outfile in outfiles.__dict__.values():
+                exists = exists and os.path.exists(outfile)
+            if exists:
+                return
 
         riosOtherArgs = rios.applier.OtherInputs()
         riosOtherArgs.otherArgs = self.otherArgs
@@ -636,17 +663,34 @@ def test_product():
     print(inputs.__dict__.keys())
 
 def test_archive():
-    archive = Archive.fromWRS2(r'C:\Work\data\gms\landsat')
-    #archive = MGRSArchive(r'c:\work\data\gms\sensorXMGRS')
+    #archive = Archive.fromWRS2(r'C:\Work\data\gms\landsat')
+    archive = MGRSArchive(r'c:\work\data\gms\landsatTimeseriesMGRS')
+    archive.saveAsGTiff(r'c:\work\data\gms\landsatTimeseriesMGRS_GTIFF_ZIP')
+
     #archive = WRS2Archive(r'c:\work\data\gms\landsatX', extensions=['.img', '.vrt'])
     archive.info()
+
+def test_save_archive():
+    #archive = MGRSArchive(r'c:\work\data\gms\landsatTimeseriesMGRS')
+    archive = MGRSArchive(r'c:\work\data\gms\landsatXMGRS')
+    filter = '33UTT'
+    for interleave in ['BAND','PIXEL']:
+        for compress in ['DEFLATE', 'LZW', 'NONE']:
+            for predictor in ['1', '2', '3']:
+                outfolder = archive.folder+'_'+interleave+'_'+compress+predictor
+                archive.saveAsGTiff(outfolder=outfolder, filter=filter,
+                                    compress=compress, interleave=interleave, predictor=predictor)
 
 
 if __name__ == '__main__':
 
-    import hub.timing
-    hub.timing.tic()
+    MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
+    MGRSTilingScheme.shp = r'C:\Work\data\gms\gis\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
+
+
+    tic()
     #test_footprint()
     #test_product()
     #test_archive()
-    hub.timing.toc()
+    test_save_archive()
+    toc()
