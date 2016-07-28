@@ -162,13 +162,15 @@ class WRS2Footprint(Footprint):
 
     @staticmethod
     def createUtmLookup(infolder):
-
+        print('Create UTM Zone lookup')
         archive = WRS2Archive(infolder)
         for footprintFolder in archive.yieldFootprintFolders():
-
             sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
             firstProduct = Product(sceneFolder, extensions=['.img'])
+            firstImage = None
             for firstImage in firstProduct.yieldImages(): break
+            if firstImage is None: continue
+
             ds = gdal.Open(firstImage.filename)
             wkt = ds.GetProjection()
             ds = None
