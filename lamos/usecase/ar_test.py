@@ -2,7 +2,7 @@ from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.ndvi import NDVIApplier
 from lamos.operators.mean import MeanApplier
-from lamos.operators.compositing import CompositingApplier
+from lamos.operators.compositing import CompositingApplier, StatisticsApplier
 from hub.timing import tic, toc
 from hub.datetime import Date
 
@@ -21,6 +21,8 @@ def test():
 
     wrs2Footprints = ['193024','194024']
     mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
+    #mgrsFootprints = ['32UQC']
+
 
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
@@ -28,34 +30,40 @@ def test():
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
 
-    tsBuilder = TimeseriesBuilder(start=Date(2014, 1, 1), end=None)
-    tsBuilder.build(infolder=folder3, outfolder=folder4, envi=True, compressed=False, footprints=mgrsFootprints)
+    tsBuilder = TimeseriesBuilder(start=None, end=None)
+    tsBuilder.build(infolder=folder3, outfolder=folder4, envi=False, compressed=False, footprints=mgrsFootprints)
 
-    applier = NDVIApplier(infolder=folder4, outfolder=folder5, inextension='.img', footprints=mgrsFootprints, compressed=False)
+    '''applier = NDVIApplier(infolder=folder4, outfolder=folder5, inextension='.vrt', footprints=mgrsFootprints, compressed=False)
     applier.controls.setWindowXsize(10000)
     applier.controls.setWindowYsize(100)
     applier.apply()
 
-    applier = MeanApplier(infolder=folder4, outfolder=folder5, inextension='.img', footprints=mgrsFootprints, compressed=False)
+    applier = MeanApplier(infolder=folder4, outfolder=folder5, inextension='.vrt', footprints=mgrsFootprints, compressed=False)
     applier.controls.setWindowXsize(10000)
     applier.controls.setWindowYsize(100)
-    applier.apply()
+    applier.apply()'''
 
-    years = [2000]#, 2001]
-    months = [2]#, 5, 8, 11]
-    days = [15]
+    years = [2000, 2001]
+    months = [7]
+    days = [1]
     bufferDays = 190
     bufferYears = 30
 
-    folder5 = r'C:\Work\data\gms\comp'
-#    mgrsFootprints = ['32UQC']
-
-    applier = CompositingApplier(infolder=folder4, outfolder=folder5, compressed=False,
+    '''applier = CompositingApplier(infolder=folder4, outfolder=folder5, compressed=False,
                                  years=years, months=months, days=days,
                                  bufferDays=bufferDays, bufferYears=bufferYears,
-                                 footprints=mgrsFootprints, inextension='.img')
+                                 footprints=mgrsFootprints, inextension='.vrt')
     applier.controls.setWindowXsize(10000)
     applier.controls.setWindowYsize(100)
+    applier.apply()'''
+
+    applier = StatisticsApplier(infolder=folder4, outfolder=folder5, compressed=False,
+                                 years=years, months=months, days=days,
+                                 bufferDays=bufferDays, bufferYears=bufferYears,
+                                 footprints=mgrsFootprints, inextension='.vrt')
+    applier.controls.setWindowXsize(10000)
+    applier.controls.setWindowYsize(100)
+    applier.controls.setNumThreads(10)
     applier.apply()
 
 if __name__ == '__main__':

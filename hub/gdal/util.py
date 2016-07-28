@@ -83,11 +83,11 @@ def gdaltindex(outfile, infiles, options, verbose=True):
         subprocess.call(cmd, shell=True)
 
 
-def gdal_rasterize(rasterfile, ogrfile, options, verbose=True):
+def gdal_rasterize(outfile, infile, options, verbose=True):
 
-    hub.file.mkdir(os.path.dirname(rasterfile))
+    hub.file.mkdir(os.path.dirname(outfile))
 
-    cmd = 'gdal_rasterize '+options+' '+ogrfile+' '+rasterfile
+    cmd = 'gdal_rasterize '+options+' '+infile+' '+outfile
     if verbose:
         print(cmd)
     else:
