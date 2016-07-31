@@ -8,8 +8,8 @@ def test_read_ts_tif():
     infolder = r'c:\work\data\gms\landsatTimeseriesMGRS_SavedAsGTiff'
     mgrsFootprints = ['33UTT']
     applier = DummyReadApplier(infolder=infolder, inextension='.img', footprints=mgrsFootprints)
-    applier.controls.setWindowXsize(10000)
-    applier.controls.setWindowYsize(10)
+    applier.controls.setWindowXsize(100)
+    applier.controls.setWindowYsize(100)
     applier.controls.setNumThreads(40)
     applier.apply()
 
@@ -17,9 +17,9 @@ def test_read_ts_vrt():
     infolder = r'c:\work\data\gms\landsatTimeseriesMGRS'
     mgrsFootprints = ['33UTT']
     applier = DummyReadApplier(infolder=infolder, inextension='.vrt', footprints=mgrsFootprints)
-    applier.controls.setWindowXsize(10000)
+    applier.controls.setWindowXsize(100)
     applier.controls.setWindowYsize(100)
-    applier.controls.setNumThreads(5)
+    #applier.controls.setNumThreads(5)
     applier.apply()
 
 def test_read_ts_vrt2():
@@ -67,8 +67,8 @@ if __name__ == '__main__':
 
     tic()
     #test()
-    test_read_ts_tif()    # 1s
-    #test_read_ts_vrt()   # 100 lines -> 166s, 165s       all -> 69s, 69
+    #test_read_ts_tif()    # 1s
+    test_read_ts_vrt()   # 100 lines -> 166s, 165s       all -> 69s, 69
                         # 100*40 lines -> 167s
                         # 100*5 lines -> 164s
 

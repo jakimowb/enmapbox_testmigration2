@@ -15,6 +15,7 @@ def test():
     folder2 = r'C:\Work\data\gms\landsatX'
     folder3 = r'C:\Work\data\gms\landsatXMGRS'
     folder4 = r'C:\Work\data\gms\landsatTimeseriesMGRS'
+    folder4b = r'C:\Work\data\gms\landsatTimeseriesMGRS_SavedAsGTiff'
     folder5 = r'C:\Work\data\gms\productsMGRS'
 
     WRS2Footprint.createUtmLookup(infolder=folder1)
@@ -25,25 +26,26 @@ def test():
 
 
     composer = LandsatXComposer()
-    composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
+    #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
-    tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
+    #tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
 
     tsBuilder = TimeseriesBuilder(start=None, end=None)
-    tsBuilder.build(infolder=folder3, outfolder=folder4, envi=False, compressed=False, footprints=mgrsFootprints)
+    #tsBuilder.build(infolder=folder3, outfolder=folder4, envi=False, compressed=False, footprints=mgrsFootprints)
+
 
     '''applier = NDVIApplier(infolder=folder4, outfolder=folder5, inextension='.vrt', footprints=mgrsFootprints, compressed=False)
     applier.controls.setWindowXsize(10000)
     applier.controls.setWindowYsize(100)
-    applier.apply()
-
-    applier = MeanApplier(infolder=folder4, outfolder=folder5, inextension='.vrt', footprints=mgrsFootprints, compressed=False)
-    applier.controls.setWindowXsize(10000)
-    applier.controls.setWindowYsize(100)
     applier.apply()'''
 
-    years = [2000, 2001]
+    applier = MeanApplier(infolder=folder4b, outfolder=folder5, inextension='.img', footprints=mgrsFootprints, compressed=False)
+    applier.controls.setWindowXsize(256)
+    applier.controls.setWindowYsize(256)
+    applier.apply()
+
+    years = [2000]
     months = [7]
     days = [1]
     bufferDays = 190
@@ -57,13 +59,13 @@ def test():
     applier.controls.setWindowYsize(100)
     applier.apply()'''
 
-    applier = StatisticsApplier(infolder=folder4, outfolder=folder5, compressed=False,
+    applier = StatisticsApplier(infolder=folder4b, outfolder=folder5, compressed=False,
                                  years=years, months=months, days=days,
                                  bufferDays=bufferDays, bufferYears=bufferYears,
-                                 footprints=mgrsFootprints, inextension='.vrt')
-    applier.controls.setWindowXsize(10000)
-    applier.controls.setWindowYsize(100)
-    applier.controls.setNumThreads(10)
+                                 footprints=mgrsFootprints, inextension='.img')
+    applier.controls.setWindowXsize(256)
+    applier.controls.setWindowYsize(256)
+    #applier.controls.setNumThreads(10)
     applier.apply()
 
 if __name__ == '__main__':
