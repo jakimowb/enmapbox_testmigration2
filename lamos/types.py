@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import os
 import ogr, gdal, osr
-import hub.datetime
+from hub.datetime import Date
 import hub.file
 import hub.gdal.util, hub.gdal.api
 import hub.rs.virtual
@@ -11,7 +11,7 @@ import numpy
 from enmapbox import processing
 from enmapbox.processing.applier import ApplierHelper
 from hub.timing import tic, toc
-
+from multiprocessing.pool import ThreadPool
 
 class Type:
 
@@ -207,8 +207,18 @@ class WRS2Footprint(Footprint):
 
 class SensorXComposer:
 
-    def __init__(self, ufuncs):
+    def __init__(self, ufuncs, start=None, end=None):
 
+        if start is None:
+            start = Date(1, 1, 1)
+        if end is None:
+            end = Date(9999, 1, 1)
+
+        assert isinstance(start, Date)
+        assert isinstance(end, Date)
+
+        self.start = start
+        self.end = end
         self.ufuncs = ufuncs
 
 
@@ -246,7 +256,8 @@ class SensorXComposer:
         for footprint in archive.yieldFootprints(filter=footprints):
             print(footprint.name)
             for product in archive.yieldProducts(footprint):
-                self.composeProduct(product, os.path.join(outfolder, footprint.subfolders(), product.name))
+                if self.filterDate(product):
+                    self.composeProduct(product, os.path.join(outfolder, footprint.subfolders(), product.name))
         return archive.__class__(folder=outfolder)
 
 
@@ -265,28 +276,37 @@ class Archive(Type):
         pass
 
 
-    def saveAsGTiff(self, outfolder, compress='DEFLATE', interleave='BAND', predictor='2', filter=None):
+    def saveAsGTiff(self, outfolder, compress='DEFLATE', interleave='BAND', predictor='2', filter=None, processes=1):
         '''
         see http://www.gdal.org/frmt_gtiff.html
             https://havecamerawilltravel.com/photographer/tiff-image-compression
         '''
         print('Save as GTiff')
 
-        def yieldFiles():
+        def yieldArgs():
             for footprint in self.yieldFootprints(filter):
                 for product in self.yieldProducts(footprint=footprint, extensions=['.vrt']):
                     for image in product.yieldImages():
                         infile = image.filename
-                        outfile = os.path.join(outfolder, footprint.subfolders(), product.name, image.name).replace('.vrt', '.img')
-                        yield outfile, infile
+                        outfile = os.path.join(outfolder, footprint.subfolders(), product.name, image.name).replace('.vrt', '.tif')
+                        if not os.path.exists(outfile):
+                            yield outfile, infile
 
-
-                    #filter=self.footprints
-
-        for outfile, infile in yieldFiles():
+        def save(args):
+            outfile, infile = args
+            options =  '-co "TILED=YES" -co "BLOCKXSIZE=256" -co "BLOCKYSIZE=256" '
+            options += '-co "COMPRESS=' + compress + '" -co "PREDICTOR=' + predictor + '" -co "INTERLEAVE=' + interleave+'" '
             #options = '-of ENVI'
-            options = '-co TILED=NO -co COMPRESS='+compress+' -co PREDICTOR='+predictor+' -co INTERLEAVE='+interleave
             hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=options)
+            meta = hub.gdal.api.GDALMeta(infile)
+            meta.writeMeta(outfile)
+
+        if processes==1:
+            for args in yieldArgs():
+                save(args)
+        else:
+            pool = ThreadPool(processes=processes)
+            pool.map(save, yieldArgs())
 
 
     def report(self):
@@ -313,7 +333,7 @@ class MGRSArchive(Archive):
                 yield MGRSFootprint.fromShp(mgrs)
 
 
-    def yieldProducts(self, footprint, extensions=['.vrt','.img']):
+    def yieldProducts(self, footprint, extensions):
 
         assert isinstance(footprint, MGRSFootprint)
         for scene in os.listdir(os.path.join(self.folder, footprint.utm, footprint.name)):
