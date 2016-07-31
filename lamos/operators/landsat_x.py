@@ -12,7 +12,7 @@ from lamos.types import SensorXComposer, Product, Image, ImageStack, MGRSArchive
 
 class LandsatXComposer(SensorXComposer):
 
-    def __init__(self):
+    def __init__(self, start=None, end=None):
 
         FMaskFile = lambda product: os.path.join(product.folder, product.name + '_cfmask.img')
         SRBandFile = lambda product, i: os.path.join(product.folder, product.name + '_sr_band' + str(i) + '.img')
@@ -71,7 +71,13 @@ class LandsatXComposer(SensorXComposer):
 
             return ImageStack(name=product.name + '_qa.vrt', images=[Image('cfmask', FMaskFile(product))], metas=metas)
 
-        SensorXComposer.__init__(self, [sr, qa])
+        SensorXComposer.__init__(self, [sr, qa], start=start, end=end)
+
+    def filterDate(self, product):
+        year = int(product.name[9:13])
+        doy = int(product.name[13:16])
+        date = Date.fromYearDoy(year, doy)
+        return (date >= self.start) and (date <= self.end)
 
 
 class TimeseriesBuilder():
@@ -92,7 +98,7 @@ class TimeseriesBuilder():
         self.end = end
 
 
-    def buildProduct(self, products, folder, envi=False, compressed=False):
+    def buildProduct(self, products, folder, inextension):
 
         # surface reflectance stacks
         images_sr = list()
@@ -104,10 +110,8 @@ class TimeseriesBuilder():
             if (date < self.start) or (date > self.end):
                 continue
 
-            images_sr += product.yieldImages('_sr.vrt')
-            images_sr += product.yieldImages('_sr.img')
-            images_qa += product.yieldImages('_qa.vrt')
-            images_qa += product.yieldImages('_qa.img')
+            images_sr += product.yieldImages('_sr'+inextension)
+            images_qa += product.yieldImages('_qa'+inextension)
 
         infiles_sr = [image.filename for image in images_sr]
         infiles_qa = [image.filename for image in images_qa]
@@ -125,8 +129,8 @@ class TimeseriesBuilder():
             outfile = os.path.join(folder, name+'.vrt')
             inbands = [band]*len(infiles_sr)
 
-            # prepare output meta information
-            def prepareMeta(outfile):
+            if not os.path.exists(outfile):
+                hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
                 outmeta = processing.Meta(outfile)
                 for metaKey in metaKeys:
                     outmeta.setMetadataItem(metaKey, [meta.getMetadataItem(metaKey) for meta in inmetas])
@@ -136,31 +140,17 @@ class TimeseriesBuilder():
                     outmeta.setNoDataValue(255)
                 else:
                     outmeta.setNoDataValue(inmetas[0].getNoDataValue())
-                return outmeta
-
-            if not os.path.exists(outfile):
-                hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
-                outmeta = prepareMeta(outfile)
                 outmeta.writeMeta(outfile)
 
-            if envi:
-                outfile2 = outfile.replace('.vrt', '.img')
-                if not os.path.exists(outfile2):
-                    hub.gdal.util.gdal_translate(outfile=outfile2, infile=outfile, options='-of ENVI')
-                    outmeta = prepareMeta(outfile2)
-                    outmeta.writeMeta(outfile2)
-                    if compressed:
-                        hub.envi.compress(infile=outfile2, outfile=outfile2)
 
-
-    def build(self, infolder, outfolder, name='timeseries', footprints=None, envi=False, compressed=False):
+    def build(self, infolder, outfolder, inextension, name='timeseries', footprints=None):
 
         archive = MGRSArchive(infolder)
         print('Build Timeseries')
         for footprint in archive.yieldFootprints(filter=footprints):
             print(footprint.name)
-            products = list(archive.yieldProducts(footprint))
-            self.buildProduct(products, os.path.join(outfolder, footprint.subfolders(), name), envi=envi, compressed=compressed)
+            products = list(archive.yieldProducts(footprint=footprint, extensions=[inextension]))
+            self.buildProduct(products=products, folder=os.path.join(outfolder, footprint.subfolders(), name), inextension=inextension)
 
 
 def test():
