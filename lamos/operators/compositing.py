@@ -3,6 +3,8 @@ from hub.collections import Bunch
 import hub.numpy.ma
 from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
 import numpy
+import hub.nan1d.percentiles
+
 
 def getCube(name, inputs, bbl=None):
 
@@ -467,10 +469,7 @@ class StatisticsApplier(Applier):
         # prepare some meta infos
         import hub.datetime
         inputDates = numpy.array(getMeta('date', inmetas))
-        inputDoys = numpy.array(getMeta('doy', inmetas)).astype(numpy.int16)
         inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
-        inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
-        bands, samples, lines = inputs.timeseries_cfmask.shape
 
         # cast to float and set invalid observations to NaN
         invalidValues = getCube('invalid', inputs)
@@ -488,20 +487,31 @@ class StatisticsApplier(Applier):
 
             if bbl.any():
 
-                # calculate distribution
-                import hub.nan1d.percentiles
+                # calculate statistics
                 for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
-                    #input = inputs.__dict__['timeseries_'+key]
+
                     input = getCube(name=key, inputs=inputs, bbl=bbl)
                     if key in ['ndvi', 'nbr']:
                         input *= 10000
-                    percentiles = hub.nan1d.percentiles.nanpercentiles(input, [0,25,50,75,100], copy=False)
-                    for i, p in enumerate(percentiles):
-                        p = p.astype(numpy.int16)
-                        p[invalidPixel[None]] = -9999
-                        percentiles[i] = p
-                    output = numpy.vstack(percentiles)
+
+                    # - percentiles
+                    statistics = hub.nan1d.percentiles.nanpercentiles(input, [0,25,50,75,100], copy=True)
+
+                    # - moments
+                    statistics.append(numpy.nanmean(input, axis=0, dtype=numpy.float32, keepdims=True))
+                    statistics.append(numpy.nanstd(input, axis=0, dtype=numpy.float32, keepdims=True))
+
+                    for i, band in enumerate(statistics):
+                        band = band.astype(numpy.int16)
+                        band[invalidPixel[None]] = -9999
+                        statistics[i] = band
+
+                    output = numpy.vstack(statistics)
                     outputs.__dict__['statistics_' + key + '_' + dateParameters.getName()] = output
+
+            # - valid observation counts
+            outputs.__dict__['statistics_count_' + dateParameters.getName()] = numpy.sum(numpy.logical_not(getCube('invalid', inputs, bbl)), axis=0, dtype=numpy.int16, keepdims=True)
+
 
     @staticmethod
     def userFunctionMeta(inmetas, outmetas, otherArgs):
@@ -511,7 +521,11 @@ class StatisticsApplier(Applier):
                 outmeta = outmetas.__dict__['statistics_'+key+'_'+dateParameters.getName()]
                 outmeta.setNoDataValue(-9999)
                 outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
-                outmeta.setBandNames(['min','p25','median','p75','max'])
+                outmeta.setBandNames(['min','p25','median','p75','max','mean', 'stdev'])
+
+            outmeta = outmetas.__dict__['statistics_count_' + dateParameters.getName()]
+            outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
+            outmeta.setBandNames(['valid observations'])
 
     def __init__(self, infolder, outfolder, years, months, days, bufferDays, bufferYears, inextension, footprints=None, compressed=False):
 
@@ -536,7 +550,7 @@ class StatisticsApplier(Applier):
         targetDate = datetime.date(year, month, day)
         dateParameters = DateParameters(targetDate, bufferDays, bufferYears)
         self.dateParameters.append(dateParameters)
-        for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+        for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'count']:
             self.appendOutput(ApplierOutput(folder=self.outfolder,
                                             productName='statistics', imageNames=[name+'_'+dateParameters.getName()], extension='.img'))
 

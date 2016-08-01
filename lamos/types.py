@@ -613,11 +613,12 @@ class Applier:
         controls = rios.applier.ApplierControls()
         controls.setNumThreads(1)
         controls.setJobManagerType('multiprocessing')
-        controls.setOutputDriverName("ENVI")
-        controls.setCreationOptions(["INTERLEAVE=BSQ"])
+        #controls.setOutputDriverName("ENVI")
+        #controls.setCreationOptions(["INTERLEAVE=BSQ"])
 
-#        controls.setOutputDriverName("GTiff")
-#        controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256", "COMPRESS=LZW"])
+        controls.setOutputDriverName("GTiff")
+        controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256",
+                                     "COMPRESS=DEFLATE", "PREDICTOR=2"])
         controls.setCalcStats(False)
         controls.setOmitPyramids(True)
         return controls
