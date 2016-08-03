@@ -613,12 +613,13 @@ class Applier:
         controls = rios.applier.ApplierControls()
         controls.setNumThreads(1)
         controls.setJobManagerType('multiprocessing')
-        #controls.setOutputDriverName("ENVI")
-        #controls.setCreationOptions(["INTERLEAVE=BSQ"])
+        controls.setOutputDriverName("ENVI")
+        controls.setCreationOptions(["INTERLEAVE=BSQ"])
 
-        controls.setOutputDriverName("GTiff")
-        controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256",
-                                     "COMPRESS=DEFLATE", "PREDICTOR=2"])
+        #controls.setOutputDriverName("GTiff")
+        #controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256",
+        #                             "COMPRESS=DEFLATE", "PREDICTOR=2"])
+
         controls.setCalcStats(False)
         controls.setOmitPyramids(True)
         return controls
@@ -637,6 +638,9 @@ class Applier:
         for output in self.outputs:
             assert isinstance(output, ApplierOutput)
             outfiles.__dict__.update(output.getFilenameAssociations(footprint).__dict__)
+
+        for k,v in outfiles.__dict__.items():
+            outfiles.__dict__[k] = os.path.join(os.path.dirname(v),footprint.name + '_' + os.path.basename(outfiles.__dict__[k]))
 
         if not self.overwrite:
             exists = True

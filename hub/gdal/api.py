@@ -224,8 +224,11 @@ class GDALMeta():
         else:
             if domain == 'ENVI': # GDAL casts ENVI keys to all lower letters when writing to disk :-(, need to consider that here
                 key = key.replace(' ', '_')
-                if not self.domain.ENVI.has_key(key):
-                    key = key.lower()
+                try:
+                    if not self.domain.ENVI.has_key(key):
+                        key = key.lower()
+                except:
+                    pass
                 result = self.domain.ENVI.get(key, self.domain.ENVI.get(key.lower(), default))
             else:
                 result = self.domain[domain].get(key, default)
