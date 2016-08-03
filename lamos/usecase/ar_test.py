@@ -19,12 +19,13 @@ def test():
     folder4b = r'C:\Work\data\gms\landsatTimeseriesMGRS_GTiff'
 
     folder5 = r'C:\Work\data\gms\productsMGRS'
+    folder5b = r'C:\Work\data\gms\productsMGRS_ENVI'
 
     WRS2Footprint.createUtmLookup(infolder=folder1)
 
     wrs2Footprints = ['193024','194024']
-    #mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
-    mgrsFootprints = ['33UTT']
+    mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
+    #mgrsFootprints = ['33UTT']
 
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
@@ -39,16 +40,6 @@ def test():
 
     MGRSArchive(folder4).saveAsGTiff(folder4b, compress='NONE', interleave='PIXEL', processes=10)
 
-    '''applier = NDVIApplier(infolder=folder4, outfolder=folder5, inextension='.vrt', footprints=mgrsFootprints, compressed=False)
-    applier.controls.setWindowXsize(10000)
-    applier.controls.setWindowYsize(100)
-    applier.apply()
-
-    applier = MeanApplier(infolder=folder4b, outfolder=folder5, inextension='.tif', footprints=mgrsFootprints, compressed=False)
-    applier.controls.setWindowXsize(256)
-    applier.controls.setWindowYsize(256)
-    applier.apply()'''
-
     years = [2000]
     months = [7]
     days = [1]
@@ -61,7 +52,8 @@ def test():
                                  footprints=mgrsFootprints, inextension='.tif')
     applier.controls.setWindowXsize(256)
     applier.controls.setWindowYsize(256)
-    applier.apply()
+    applier.controls.setNumThreads(10)
+    #applier.apply()
 
     applier = StatisticsApplier(infolder=folder4b, outfolder=folder5, compressed=False,
                                  years=years, months=months, days=days,
@@ -69,8 +61,9 @@ def test():
                                  footprints=mgrsFootprints, inextension='.tif')
     applier.controls.setWindowXsize(256)
     applier.controls.setWindowYsize(256)
-    #applier.controls.setNumThreads(10)
+    applier.controls.setNumThreads(10)
     applier.apply()
+
 
 if __name__ == '__main__':
 

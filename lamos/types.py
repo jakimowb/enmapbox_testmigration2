@@ -102,9 +102,17 @@ class Footprint(Type):
         self.ul = ul
         self.lr = lr
 
+    def getUL(self):
+        return self.ul
+
+
+    def getLR(self):
+        return self.lr
+
 
     def subfolders(self):
         raise Exception('must be overwritten')
+
 
 class MGRSFootprint(Footprint):
 
@@ -138,6 +146,28 @@ class MGRSFootprint(Footprint):
 
         Footprint.__init__(self, name, ul, lr)
         self.utm = name[0:2]
+
+
+    def getBoundingBox(self, buffer=0, snap=None):
+
+        if snap is None:
+            ul, lr = self.ul, self.lr
+        elif snap == 'landsat':
+            pixelSize = 30
+            pixelOrigin = [15, 15]
+            xoff = (self.ul[0] - pixelOrigin[0]) % pixelSize
+            yoff = (self.ul[1] - pixelOrigin[1]) % pixelSize
+            ul = (self.ul[0] - xoff - buffer, self.ul[1] - yoff + buffer)
+            lr = (self.lr[0] - xoff + buffer, self.lr[1] - yoff - buffer)
+        else:
+            raise Exception('unknown option')
+
+        return ul, lr
+
+
+    def getLR(self):
+        return self.lr
+
 
 
     def subfolders(self):
@@ -276,38 +306,51 @@ class Archive(Type):
         pass
 
 
-    def saveAsGTiff(self, outfolder, compress='DEFLATE', interleave='BAND', predictor='2', filter=None, processes=1):
+
+    def saveAsGTiff(self, outfolder, inextensions=['.vrt'], outextension='.img', compress='DEFLATE', interleave='BAND', predictor='2', filter=None, processes=1):
         '''
         see http://www.gdal.org/frmt_gtiff.html
             https://havecamerawilltravel.com/photographer/tiff-image-compression
         '''
+
         print('Save as GTiff')
+        options = '-co "TILED=YES" -co "BLOCKXSIZE=256" -co "BLOCKYSIZE=256" -co "PROFILE=GeoTIFF" '
+        options += '-co "COMPRESS=' + compress + '" -co "PREDICTOR=' + predictor + '" -co "INTERLEAVE=' + interleave + '" '
+        self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension='.tif', options=options,
+                    filter=filter, processes=processes)
+
+
+    def saveAsENVI(self, outfolder, inextensions=['.vrt'], outextension='.img', filter=None, processes=1):
+
+        print('Save as ENVI')
+        options = '-of ENVI'
+        self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension=outextension, options=options, filter=filter, processes=processes)
+
+
+    def _saveAs(self, outfolder, inextensions, outextension, options, filter=None, processes=1):
 
         def yieldArgs():
             for footprint in self.yieldFootprints(filter):
-                for product in self.yieldProducts(footprint=footprint, extensions=['.vrt']):
+                for product in self.yieldProducts(footprint=footprint, extensions=inextensions):
                     for image in product.yieldImages():
                         infile = image.filename
-                        outfile = os.path.join(outfolder, footprint.subfolders(), product.name, image.name).replace('.vrt', '.tif')
+                        outfile = os.path.join(outfolder, footprint.subfolders(), product.name, image.name)
+                        outfile = outfile[:-4] + outextension
                         if not os.path.exists(outfile):
                             yield outfile, infile
 
         def save(args):
             outfile, infile = args
-            options =  '-co "TILED=YES" -co "BLOCKXSIZE=256" -co "BLOCKYSIZE=256" '
-            options += '-co "COMPRESS=' + compress + '" -co "PREDICTOR=' + predictor + '" -co "INTERLEAVE=' + interleave+'" '
-            #options = '-of ENVI'
             hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=options)
             meta = hub.gdal.api.GDALMeta(infile)
             meta.writeMeta(outfile)
 
-        if processes==1:
+        if processes == 1:
             for args in yieldArgs():
                 save(args)
         else:
             pool = ThreadPool(processes=processes)
             pool.map(save, yieldArgs())
-
 
     def report(self):
         report = processing.Report(str(self.__class__).split('.')[-1])
@@ -586,6 +629,8 @@ class Applier:
 
 
     def __init__(self, footprints=None, compressed=False, overwrite=False):
+
+        self.driverName = 'GTiff' # 'ENVI'
         self.compressed = compressed
         self.footprints = footprints
         self.inputs = list()
@@ -613,12 +658,17 @@ class Applier:
         controls = rios.applier.ApplierControls()
         controls.setNumThreads(1)
         controls.setJobManagerType('multiprocessing')
-        #controls.setOutputDriverName("ENVI")
-        #controls.setCreationOptions(["INTERLEAVE=BSQ"])
 
-        controls.setOutputDriverName("GTiff")
-        controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256",
-                                     "COMPRESS=DEFLATE", "PREDICTOR=2"])
+        if self.driverName == 'ENVI':
+            controls.setOutputDriverName("ENVI")
+            controls.setCreationOptions(["INTERLEAVE=BSQ"])
+        elif self.driverName == 'GTiff':
+            controls.setOutputDriverName("GTiff")
+            controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256", "PROFILE=GeoTIFF",
+                                         "COMPRESS=DEFLATE", "PREDICTOR=2"])
+        else:
+            raise Exception('unknown option')
+
         controls.setCalcStats(False)
         controls.setOmitPyramids(True)
         return controls
