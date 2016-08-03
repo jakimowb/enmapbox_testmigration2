@@ -21,19 +21,28 @@ def test():
     wrs2Footprints = ['192023','193023','194023','192024','193024','194024']
     mgrsFootprints = ['33UUU', '33UVU', '33UUT', '33UVT']
 
+    start = Date(2014, 1, 1)
+    end = Date(2016, 6, 30)
+
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
 
-    tsBuilder = TimeseriesBuilder(start=Date(2014, 1, 1), end=None)
-    tsBuilder.build(infolder=folder3, outfolder=folder4, envi=True, compressed=False, footprints=mgrsFootprints)
+    tsBuilder = TimeseriesBuilder(start=start, end=None)
+    tsBuilder.build(infolder=folder3, outfolder=folder4, footprints=mgrsFootprints)
 
-    applier = NDVIApplier(infolder=folder4, outfolder=folder5, inextension='.img', footprints=mgrsFootprints, compressed=False)
-    applier.controls.setWindowXsize(10000)
-    applier.controls.setWindowYsize(100)
-    applier.apply()
+
+    # - Treffen mit Dirk -
+    # 3, 6, 12 Monatskomposite
+    # define timeintervals explicitly: [Date(...), Date(...)] instead of targetDoy+buffer
+
+
+#    applier = NDVIApplier(infolder=folder4, outfolder=folder5, inextension='.img', footprints=mgrsFootprints, compressed=False)
+#    applier.controls.setWindowXsize(10000)
+#    applier.controls.setWindowYsize(100)
+#    applier.apply()
 
 
 if __name__ == '__main__':

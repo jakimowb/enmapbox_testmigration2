@@ -197,7 +197,7 @@ class WRS2Footprint(Footprint):
         archive = WRS2Archive(infolder)
         for footprintFolder in archive.yieldFootprintFolders():
             sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
-            firstProduct = Product(sceneFolder, extensions=['.img'])
+            firstProduct = Product(sceneFolder, extensions=['.img','.tif'])
             firstImage = None
             for firstImage in firstProduct.yieldImages(): break
             if firstImage is None: continue
@@ -205,8 +205,13 @@ class WRS2Footprint(Footprint):
             ds = gdal.Open(firstImage.filename)
             wkt = ds.GetProjection()
             ds = None
-            assert wkt.startswith('PROJCS["UTM Zone')
-            utm = wkt[17:19]
+            if wkt.startswith('PROJCS["UTM Zone'):
+                utm = wkt[17:19]
+            elif wkt.startswith('PROJCS["WGS 84 / UTM zone'):
+                utm = wkt[26:28]
+            else:
+                raise Exception('check wkt')
+
             row = os.path.basename(footprintFolder)
             path = os.path.basename(os.path.dirname(footprintFolder))
 

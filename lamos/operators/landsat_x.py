@@ -12,11 +12,11 @@ from lamos.types import SensorXComposer, Product, Image, ImageStack, MGRSArchive
 
 class LandsatXComposer(SensorXComposer):
 
-    def __init__(self, start=None, end=None):
+    def __init__(self, start=None, end=None, inextension='.img'):
 
-        FMaskFile = lambda product: os.path.join(product.folder, product.name + '_cfmask.img')
-        SRBandFile = lambda product, i: os.path.join(product.folder, product.name + '_sr_band' + str(i) + '.img')
-        TOABandFile = lambda product, i: os.path.join(product.folder, product.name + '_toa_band' + str(i) + '.img')
+        FMaskFile = lambda product: os.path.join(product.folder, product.name + '_cfmask' + inextension)
+        SRBandFile = lambda product, i: os.path.join(product.folder, product.name + '_sr_band' + str(i) + inextension)
+        TOABandFile = lambda product, i: os.path.join(product.folder, product.name + '_toa_band' + str(i) + inextension)
 
         def sr(product):
 

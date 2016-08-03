@@ -20,7 +20,7 @@ def getCube(name, inputs, bbl=None):
         elif name=='nbr'     : result = (inputs.timeseries_nir-inputs.timeseries_swir2).__truediv__(inputs.timeseries_nir+inputs.timeseries_swir2)
         elif name=='vis'     : result = inputs.timeseries_blue/3+inputs.timeseries_green/3+inputs.timeseries_red/3
         elif name=='ir'      : result = inputs.timeseries_nir/3 +inputs.timeseries_swir1/3+inputs.timeseries_swir2/3
-        elif name=='invalid' : result = inputs.timeseries_cfmask != 0
+        elif name=='invalid' : result = inputs.timeseries_cfmask > 1
         else:
             raise Exception('Unknown cube requested: '+name)
         inputs.__dict__[name] = result
@@ -469,7 +469,6 @@ class StatisticsApplier(Applier):
         # prepare some meta infos
         import hub.datetime
         inputDates = numpy.array(getMeta('date', inmetas))
-        inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
 
         # cast to float and set invalid observations to NaN
         invalidValues = getCube('invalid', inputs)

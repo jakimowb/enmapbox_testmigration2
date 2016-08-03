@@ -27,9 +27,11 @@ def test():
     mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
     #mgrsFootprints = ['33UTT']
 
+    # todo  processes=10
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
 
+    # todo  processes=10
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
 
