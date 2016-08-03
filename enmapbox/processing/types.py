@@ -12,6 +12,7 @@ import rios.applier
 import sklearn.metrics
 import sklearn.pipeline
 from enmapbox.processing.report import *
+from enmapbox.processing.applier import ApplierControls
 
 
 # set default progress object
@@ -219,10 +220,11 @@ class Estimator(Type):
         except:
             args.estimator_type = self.sklEstimator._final_estimator.__class__
 
-        controls = env.ApplierControls()
+
+        controls = ApplierControls()
         controls.setNumThreads(1)
-        controls.windowxsize = 50
-        controls.windowysize = 50
+        controls.windowxsize = 256
+        controls.windowysize = 256
 
         progress.setDebugInfo(str(controls))
 
