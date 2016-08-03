@@ -21,6 +21,8 @@ def test():
     wrs2Footprints = ['192023','193023','194023','192024','193024','194024']
     mgrsFootprints = ['33UUU', '33UVU', '33UUT', '33UVT']
 
+    # 2014 1.1 – 30.6.2016 ein komposite
+
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
 
