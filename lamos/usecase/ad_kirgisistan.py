@@ -39,12 +39,10 @@ def test():
     #MGRSArchive(folder3).saveAsGTiff(outfolder=folder3b, compress='NONE', filter=mgrsFootprints, processes=50)
 
     tsBuilder = TimeseriesBuilder(start=start, end=end)
-    #tsBuilder.build(infolder=folder3b, outfolder=folder4, inextension='.tif', footprints=mgrsFootprints)
     tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints)
 
-    MGRSArchive(folder4).saveAsENVI(outfolder=folder4b, filter=mgrsFootprints, processes=100)
+    #MGRSArchive(folder4).saveAsENVI(outfolder=folder4b, filter=mgrsFootprints, processes=100)
 
-    return
     applier = StatisticsApplier(infolder=folder4b, outfolder=folder5, compressed=False,
                                 years=[], months=[], days=[],
                                 bufferDays=None, bufferYears=None,

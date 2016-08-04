@@ -20,7 +20,8 @@ class DummyReadApplier(Applier):
 
         Applier.__init__(self, footprints=footprints, overwrite=True)
         self.appendInput(ApplierInput(archive=MGRSArchive(folder=infolder),
-                                         productName='timeseries', imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'], extension=inextension))
+                                         productName='timeseries', imageNames=['cfmask'], extension=inextension))
+                                         #productName='timeseries', imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'], extension=inextension))
 
 
 
