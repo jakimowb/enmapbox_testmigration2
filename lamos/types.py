@@ -12,6 +12,7 @@ from enmapbox import processing
 from enmapbox.processing.applier import ApplierHelper
 from hub.timing import tic, toc
 from multiprocessing.pool import ThreadPool
+import subprocess
 
 class Type:
 
@@ -283,16 +284,31 @@ class SensorXComposer:
         return Product(folder)
 
 
-    def composeWRS2Archive(self, infolder, outfolder, footprints=None):
+    def composeWRS2Archive(self, infolder, outfolder, footprints=None, processes=1):
 
         archive = WRS2Archive(infolder)
 
         print('Compose Sensor X')
-        for footprint in archive.yieldFootprints(filter=footprints):
-            print(footprint.name)
-            for product in archive.yieldProducts(footprint):
-                if self.filterDate(product):
-                    self.composeProduct(product, os.path.join(outfolder, footprint.subfolders(), product.name))
+
+        def yieldArgs():
+            for footprint in archive.yieldFootprints(filter=footprints):
+                print(footprint.name)
+                for product in archive.yieldProducts(footprint):
+                    if self.filterDate(product):
+                        folder = os.path.join(outfolder, footprint.subfolders(), product.name)
+                        yield product, folder
+
+        def job(args):
+            product, folder = args
+            self.composeProduct(product=product, folder=folder)
+
+        if processes == 1:
+            for args in yieldArgs():
+                job(args)
+        else:
+            pool = ThreadPool(processes=processes)
+            pool.map(job, yieldArgs())
+
         return archive.__class__(folder=outfolder)
 
 
@@ -312,7 +328,7 @@ class Archive(Type):
 
 
 
-    def saveAsGTiff(self, outfolder, inextensions=['.vrt'], outextension='.img', compress='DEFLATE', interleave='BAND', predictor='2', filter=None, processes=1):
+    def saveAsGTiff(self, outfolder, inextensions=['.vrt'], outextension='.img', compress='LZW', interleave='BAND', predictor='2', filter=None, processes=1):
         '''
         see http://www.gdal.org/frmt_gtiff.html
             https://havecamerawilltravel.com/photographer/tiff-image-compression
@@ -322,17 +338,18 @@ class Archive(Type):
         options = '-co "TILED=YES" -co "BLOCKXSIZE=256" -co "BLOCKYSIZE=256" -co "PROFILE=GeoTIFF" '
         options += '-co "COMPRESS=' + compress + '" -co "PREDICTOR=' + predictor + '" -co "INTERLEAVE=' + interleave + '" '
         self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension='.tif', options=options,
-                    filter=filter, processes=processes)
+                     compress=None, filter=filter, processes=processes)
 
 
-    def saveAsENVI(self, outfolder, inextensions=['.vrt'], outextension='.img', filter=None, processes=1):
+    def saveAsENVI(self, outfolder, inextensions=['.vrt'], outextension='.img', compress=False, filter=None, processes=1):
 
         print('Save as ENVI')
         options = '-of ENVI'
-        self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension=outextension, options=options, filter=filter, processes=processes)
+        self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension=outextension, options=options,
+                     compressENVI=compress, filter=filter, processes=processes)
 
 
-    def _saveAs(self, outfolder, inextensions, outextension, options, filter=None, processes=1):
+    def _saveAs(self, outfolder, inextensions, outextension, options, compressENVI=False, filter=None, processes=1):
 
         def yieldArgs():
             for footprint in self.yieldFootprints(filter):
@@ -348,6 +365,12 @@ class Archive(Type):
             outfile, infile = args
             hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=options)
             meta = hub.gdal.api.GDALMeta(infile)
+            if compressENVI:
+                cmd = ['C:\Program Files\gzip\gzip', '-q', outfile]
+                print(' '.join(cmd))
+                subprocess.call(cmd)
+                os.rename(outfile + '.gz', outfile)
+                meta.setMetadataItem('file_compression', 1)
             meta.writeMeta(outfile)
 
         if processes == 1:
@@ -476,6 +499,7 @@ class MGRSTilingScheme(Type):
                 infile = image.filename
 
                 of, extension = ' -of VRT', '.vrt'
+                tr = ' -tr ' + str(self.pixelSize) + ' ' + str(self.pixelSize)
                 outfile = os.path.join(folder, mgrsFootprint.utm, mgrsFootprint.name, product.name,
                                        os.path.splitext(os.path.basename(infile))[0] + extension)
 
@@ -485,21 +509,20 @@ class MGRSTilingScheme(Type):
                 if wrs2Footprint.utm == mgrsFootprint.utm:
 
                     projwin = ' -projwin ' + str(ul[0]) + ' ' + str(max(lr[1],ul[1])) + ' ' + str(lr[0]) + ' ' + str(min(lr[1],ul[1]))
-
-
-                    hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=of+projwin, verbose=False)
+                    strict  = ' -strict'
+                    options = of+projwin+strict+tr
+                    hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=options, verbose=False)
 
                 else:
                     te = ' -te ' + str(ul[0]) + ' ' + str(min(ul[1],lr[1])) + ' ' + str(lr[0]) + ' ' + str(max(ul[1], lr[1]))
                     t_srs = ' -t_srs  EPSG:326' + mgrsFootprint.utm
-                    tr = ' -tr ' + str(self.pixelSize) + ' ' + str(self.pixelSize)
                     overwrite = ' -overwrite'
                     multi = ' -multi'
-                    wm = ' -wm 5000'
-
+                    wm = ' --config GDAL_CACHEMAX 5000 -wm 5000'
+                    options = of + overwrite + t_srs + tr + te + multi + wm
                     hub.gdal.util.gdalwarp(outfile=outfile,
                                            infile=infile,
-                                           options=of+overwrite+t_srs+tr+te+multi+wm, verbose=False)
+                                           options=options, verbose=False)
 
                 # prepare meta information
                 inmeta = processing.Meta(infile)
@@ -508,18 +531,32 @@ class MGRSTilingScheme(Type):
                 outmeta.writeMeta(outfile)
 
 
-    def tileWRS2Archive(self, infolder, outfolder, wrs2Footprints=None, mgrsFootprints=None, buffer=0):
+    def tileWRS2Archive(self, infolder, outfolder, wrs2Footprints=None, mgrsFootprints=None, buffer=0, processes=1):
 
         archive = WRS2Archive(infolder)
         self.cacheMGRSFootprints(list(archive.yieldFootprints()))
 
         print('Cut WRS2 into MGRS Footprints')
-        for footprint in archive.yieldFootprints(filter=wrs2Footprints):
-            print(footprint.name)
-            for product in archive.yieldProducts(footprint):
-                print(product.name)
-                self.tileWRS2Product(product=product, wrs2Footprint=footprint, folder=outfolder, buffer=buffer,
-                                     mgrsFootprints=mgrsFootprints)
+
+        def yieldArgs():
+            for footprint in archive.yieldFootprints(filter=wrs2Footprints):
+                print(footprint.name)
+                for product in archive.yieldProducts(footprint):
+                    print(product.name)
+                    yield product, footprint, outfolder, buffer, mgrsFootprints
+
+        def job(args):
+            product, footprint, outfolder, buffer, mgrsFootprints = args
+            self.tileWRS2Product(product=product, wrs2Footprint=footprint, folder=outfolder, buffer=buffer,
+                                 mgrsFootprints=mgrsFootprints)
+
+
+        if processes == 1:
+            for args in yieldArgs():
+                job(args)
+        else:
+            pool = ThreadPool(processes=processes)
+            pool.map(job, yieldArgs())
 
     def report(self):
 
@@ -633,16 +670,21 @@ class Applier:
         outmetas.write()
 
 
-    def __init__(self, footprints=None, compressed=False, overwrite=False):
+    def __init__(self, footprints=None, of='ENVI'):
 
-        self.driverName = 'GTiff' # 'ENVI'
-        self.compressed = compressed
+        assert of in ['ENVI', 'GTiff']
+        self.driverName = of
+        if self.driverName == 'ENVI':
+            self.outextension = '.img'
+        elif self.driverName == 'GTiff':
+            self.outextension = '.tif'
+
         self.footprints = footprints
         self.inputs = list()
         self.outputs = list()
         self.controls = self.defaultControls()
         self.otherArgs = self.defaultOtherArgs()
-        self.overwrite = overwrite
+        self.overwrite = False
 
 
     def appendInput(self, input):
@@ -693,12 +735,11 @@ class Applier:
             assert isinstance(output, ApplierOutput)
             outfiles.__dict__.update(output.getFilenameAssociations(footprint).__dict__)
 
-        if not self.overwrite:
-            exists = True
-            for outfile in outfiles.__dict__.values():
-                exists = exists and os.path.exists(outfile)
-            if exists:
-                return
+        exists = True
+        for outfile in outfiles.__dict__.values():
+            exists = exists and os.path.exists(outfile)
+        if exists and self.overwrite==False:
+            return
 
         riosOtherArgs = rios.applier.OtherInputs()
         riosOtherArgs.otherArgs = self.otherArgs
@@ -715,10 +756,10 @@ class Applier:
         Applier.userFunctionMetaWrapper(riosOtherArgs=riosOtherArgs)
 
         # compress output if needed
-        if self.compressed:
-            print('compress')
-            for outfile in outfiles.__dict__.values():
-                hub.envi.compress(infile=outfile, outfile=outfile)
+#        if self.compressed:
+#            print('compress')
+#            for outfile in outfiles.__dict__.values():
+#                hub.envi.compress(infile=outfile, outfile=outfile)
 
     def apply(self):
         print('Apply '+str(self.__class__).split('.')[-1])

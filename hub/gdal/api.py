@@ -100,10 +100,12 @@ class GDALMeta():
 
     def readMeta(self, filename):
         ds = gdal.Open(filename)
+
         if ds is None:
             Exception('Can not open file: '+filename)
 
         # read data source meta
+        self.driver = ds.GetDriver().ShortName
         self.domain = Bunch()
         if ds.GetMetadataDomainList() is not None:
             for domain in ds.GetMetadataDomainList():
