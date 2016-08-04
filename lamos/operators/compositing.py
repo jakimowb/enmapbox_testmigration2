@@ -458,6 +458,8 @@ class StatisticsApplier(Applier):
             inputs.__dict__[key] = inputs.__dict__[key].astype(numpy.float32)
             inputs.__dict__[key][invalidValues] = numpy.NaN
 
+        bands, samples, lines = inputs.timeseries_cfmask.shape
+
         # calculate statistics
         for dateParameters in otherArgs.dateParameters:
 
@@ -488,9 +490,19 @@ class StatisticsApplier(Applier):
                     output = numpy.vstack(statistics)
                     outputs.__dict__['statistics_' + key + '_' + dateParameters.getName()] = output
 
+            else:
+                # - handle special case when no observation is available
+                for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+                    shape = (7, samples, lines)
+                    output = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
+                    outputs.__dict__['statistics_' + key + '_' + dateParameters.getName()] = output
+
+                    #print('Warning: No Observation available for target date: '+str(dateParameters.getTargetDate()))
+
+
+
             # - valid observation counts
             outputs.__dict__['statistics_count_' + dateParameters.getName()] = numpy.sum(numpy.logical_not(getCube('invalid', inputs, bbl)), axis=0, dtype=numpy.int16, keepdims=True)
-
 
     @staticmethod
     def userFunctionMeta(inmetas, outmetas, otherArgs):
@@ -526,8 +538,9 @@ class StatisticsApplier(Applier):
 
         dateParameters = DateParameters(date1=date1, date2=date2, bufferYears=bufferYears)
         self.dateParameters.append(dateParameters)
-        self.appendOutput(ApplierOutput(folder=self.outfolder,
-                                        productName='composite', imageNames=[dateParameters.getName()], extension=self.outextension))
+        for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'count']:
+            self.appendOutput(ApplierOutput(folder=self.outfolder,
+                                            productName='statistics', imageNames=[key+'_'+dateParameters.getName()], extension=self.outextension))
 
 
 def test():

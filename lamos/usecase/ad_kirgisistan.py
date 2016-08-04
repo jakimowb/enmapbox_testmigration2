@@ -26,8 +26,8 @@ def test():
     start = Date(1984, 1, 1)
     end = Date(2015, 12, 31)
 
-    #i=3
-    #mgrsFootprints = mgrsFootprints[i:i+1]
+    i=0
+    mgrsFootprints = mgrsFootprints[i:i+1]
 
     composer = LandsatXComposer(inextension='.tif')
     #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
@@ -39,40 +39,18 @@ def test():
     #MGRSArchive(folder3).saveAsGTiff(outfolder=folder3b, compress='NONE', filter=mgrsFootprints, processes=50)
 
     tsBuilder = TimeseriesBuilder(start=start, end=end)
-    tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints)
+    #tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints)
 
     #MGRSArchive(folder4).saveAsENVI(outfolder=folder4b, filter=mgrsFootprints, processes=100)
 
-    applier = StatisticsApplier(infolder=folder4b, outfolder=folder5, compressed=False,
-                                years=[], months=[], days=[],
-                                bufferDays=None, bufferYears=None,
-                                footprints=mgrsFootprints, inextension='.tif')
-
-    years = range(start.year, end.year + 1)
-    for year in years:
-
-
-        months = [7]
-        days = [1]
-        bufferDays = 183
-        bufferYears = 0
-        for month in months:
-                    for day in days:
-                        applier.appendDateParameters(year=year, month=month, day=day,
-                                                  bufferYears=bufferYears, bufferDays=bufferDays)
-
-        months = [7]
-        days = [15]
-        bufferDays = 46
-        bufferYears = 0
-        for month in months:
-                    for day in days:
-                        applier.appendDateParameters(year=year, month=month, day=day,
-                                                  bufferYears=bufferYears, bufferDays=bufferDays)
-
+    applier = StatisticsApplier(infolder=folder4b, outfolder=folder5, of='ENVI',
+                                footprints=mgrsFootprints, inextension='.img')
+    bufferYears = 0
+    for year in range(start.year, end.year+1):
+        applier.appendDateParameters(date1=Date(year, 1, 1), date2=Date(year, 12, 31), bufferYears=bufferYears)
     applier.controls.setWindowXsize(256)
     applier.controls.setWindowYsize(256)
-#    applier.controls.setNumThreads(50)
+    applier.controls.setNumThreads(10)
     applier.apply()
 
 
