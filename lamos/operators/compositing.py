@@ -20,7 +20,7 @@ def getCube(name, inputs, bbl=None):
         elif name=='nbr'     : result = (inputs.timeseries_nir-inputs.timeseries_swir2).__truediv__(inputs.timeseries_nir+inputs.timeseries_swir2)
         elif name=='vis'     : result = inputs.timeseries_blue/3+inputs.timeseries_green/3+inputs.timeseries_red/3
         elif name=='ir'      : result = inputs.timeseries_nir/3 +inputs.timeseries_swir1/3+inputs.timeseries_swir2/3
-        elif name=='invalid' : result = inputs.timeseries_cfmask != 0
+        elif name=='invalid' : result = inputs.timeseries_cfmask > 1
         else:
             raise Exception('Unknown cube requested: '+name)
         inputs.__dict__[name] = result
@@ -269,15 +269,14 @@ def scorePG(inputs, inmeta, info):
 
 
 class DateParameters():
-    def __init__(self, targetDate, bufferDays, bufferYears):
-        self.targetDate = targetDate
-        self.targetDoy  = (targetDate-datetime.date(targetDate.year,1,1)).days
-        self.bufferDays = bufferDays
+    def __init__(self, date1, date2, bufferYears):
+        self.date1 = date1
+        self.date2 = date2
         self.bufferYears = bufferYears
         self.intervals = list()
-        for yearOffset in range(-bufferYears,bufferYears+1):
-            self.intervals.append((datetime.date(targetDate.year+yearOffset,targetDate.month,targetDate.day) - datetime.timedelta(bufferDays), # first date
-                                   datetime.date(targetDate.year+yearOffset,targetDate.month,targetDate.day) + datetime.timedelta(bufferDays))) # last date
+        for yearOffset in range(-bufferYears, bufferYears+1):
+            self.intervals.append(((datetime.date(date1.year + yearOffset, date1.month, date1.day)),
+                                   (datetime.date(date2.year + yearOffset, date2.month, date2.day))))
 
     def matchInputDates(self, dates):
         validDates = numpy.zeros_like(dates, numpy.bool)
@@ -287,11 +286,11 @@ class DateParameters():
 
 
     def getName(self):
-        return str(self.targetDate) + '_' + str(self.bufferDays * 2) + 'd_' + str(self.bufferYears * 2 + 1) + 'y'
+        return str(self.date1) + '_to_' + str(self.date2) + '_' + str(self.bufferYears * 2 + 1) + 'y'
 
 
     def getTargetDate(self):
-        return str(self.targetDate)
+        return self.date1 + (self.date2-self.date1)/2
 
 
 '''class QualityCompositeParameters():
@@ -367,10 +366,6 @@ class CompositingApplier(Applier):
         invalidValues = getCube('invalid', inputs)
         invalidPixel = numpy.all(invalidValues, axis=0)
 
-#        for key in ['timeseries_'+name for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']]:
-#            inputs.__dict__[key] = inputs.__dict__[key].astype(numpy.float32)
-#            inputs.__dict__[key][invalidValues] = numpy.NaN
-
         # calculate quality composites
         for dateParameters in otherArgs.dateParameters:
 
@@ -381,16 +376,15 @@ class CompositingApplier(Applier):
 
                 # - calculate quality score
                 info2 = Bunch()
-                info2.targetDate = dateParameters.targetDate
+                info2.targetDate = dateParameters.getTargetDate()
                 info2.bbl = bbl
                 qualityCube = scorePG(inputs, inmetas, info2)
                 assert bbl.sum() == qualityCube.shape[0], 'inconsistent score cube, check scoring function: '
 
                 # - find best observation
-                qualityCube[invalidValues] = -numpy.Inf
+                qualityCube[invalidValues[bbl]] = -numpy.Inf
                 bestObs = numpy.nanargmax(qualityCube, axis=0)
                 bestObs[invalidPixel] = 0
-
 
                 # - create composite
                 result = list()
@@ -401,23 +395,12 @@ class CompositingApplier(Applier):
 
                 result = numpy.vstack(result)
 
-#                cubes = [inputs.sr[key][bbl] for key in otherArgs.bandNamesSubset]
-#                cubes.append(inputDoys.reshape((-1,1))[bbl]) # add Flag:doy
-#                cubes.append(inputSensorInfos[:,0:1][bbl])   # add Flag:sensor
-#                cubes.append(inputSensorInfos[:,1:2][bbl])   # add Flag:path
-#                cubes.append(inputSensorInfos[:,2:3][bbl])   # add Flag:row
-#                cubes.append((qualityCube*10000).astype(numpy.int16))# add Flag:score
-
-
-                # - fill masked values with -9999
-                #qualityCompositeCube = qualityCompositeCube.filled(-9999)
-
-
             else:
+
                 # - handle special case when no observation is available
-                shape = (len(otherArgs.bandNamesSubset)+5, samples, lines)
-                qualityCompositeCube = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
-                print('Warning: No Observation available for target date '+dateParameters.getTargetDate()+'.')
+                shape = (6, samples, lines)
+                result = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
+                #print('Warning: No Observation available for target date: '+str(dateParameters.getTargetDate()))
 
             outputs.__dict__['composite_'+dateParameters.getName()] = result
 
@@ -435,9 +418,9 @@ class CompositingApplier(Applier):
             outmeta.setBandNames(['blue', 'green', 'red', 'nir', 'swir1', 'swir2'])#+['Flag:doy','Flag:sensor','Flag:path','Flag:row','Flag:score'])
 
 
-    def __init__(self, infolder, outfolder, years, months, days, bufferDays, bufferYears, inextension, footprints=None, compressed=False):
+    def __init__(self, infolder, outfolder, inextension, footprints=None, compressed=False, of='ENVI'):
 
-        Applier.__init__(self, compressed=compressed, footprints=footprints)
+        Applier.__init__(self, footprints=footprints, of=of)
         self.dateParameters = list()
         self.infolder = infolder
         self.outfolder = outfolder
@@ -445,18 +428,15 @@ class CompositingApplier(Applier):
                                       productName='timeseries',
                                       imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'],
                                       extension=inextension))
-        for year in years:
-            for month in months:
-                for day in days:
-                    self.appendDateParameters(year=year, month=month, day=day,
-                                              bufferYears=bufferYears, bufferDays=bufferDays)
 
         self.otherArgs.dateParameters = self.dateParameters
 
-    def appendDateParameters(self, year, month, day, bufferDays, bufferYears=0):
+    def appendDateParameters(self, date1, date2, bufferYears=0):
 
-        targetDate = datetime.date(year, month, day)
-        dateParameters = DateParameters(targetDate, bufferDays, bufferYears)
+        assert isinstance(date1, datetime.date)
+        assert isinstance(date2, datetime.date)
+
+        dateParameters = DateParameters(date1=date1, date2=date2, bufferYears=bufferYears)
         self.dateParameters.append(dateParameters)
         self.appendOutput(ApplierOutput(folder=self.outfolder,
                                         productName='composite', imageNames=[dateParameters.getName()], extension='.img'))
@@ -469,7 +449,6 @@ class StatisticsApplier(Applier):
         # prepare some meta infos
         import hub.datetime
         inputDates = numpy.array(getMeta('date', inmetas))
-        inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
 
         # cast to float and set invalid observations to NaN
         invalidValues = getCube('invalid', inputs)
@@ -527,9 +506,9 @@ class StatisticsApplier(Applier):
             outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
             outmeta.setBandNames(['valid observations'])
 
-    def __init__(self, infolder, outfolder, years, months, days, bufferDays, bufferYears, inextension, footprints=None, compressed=False):
+    def __init__(self, infolder, outfolder, inextension, footprints=None, of='ENVI'):
 
-        Applier.__init__(self, compressed=compressed, footprints=footprints)
+        Applier.__init__(self, footprints=footprints, of=of)
         self.dateParameters = list()
         self.infolder = infolder
         self.outfolder = outfolder
@@ -537,22 +516,18 @@ class StatisticsApplier(Applier):
                                       productName='timeseries',
                                       imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'],
                                       extension=inextension))
-        for year in years:
-            for month in months:
-                for day in days:
-                    self.appendDateParameters(year=year, month=month, day=day,
-                                              bufferYears=bufferYears, bufferDays=bufferDays)
 
         self.otherArgs.dateParameters = self.dateParameters
 
-    def appendDateParameters(self, year, month, day, bufferDays, bufferYears=0):
+    def appendDateParameters(self, date1, date2, bufferYears=0):
 
-        targetDate = datetime.date(year, month, day)
-        dateParameters = DateParameters(targetDate, bufferDays, bufferYears)
+        assert isinstance(date1, datetime.date)
+        assert isinstance(date2, datetime.date)
+
+        dateParameters = DateParameters(date1=date1, date2=date2, bufferYears=bufferYears)
         self.dateParameters.append(dateParameters)
-        for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'count']:
-            self.appendOutput(ApplierOutput(folder=self.outfolder,
-                                            productName='statistics', imageNames=[name+'_'+dateParameters.getName()], extension='.img'))
+        self.appendOutput(ApplierOutput(folder=self.outfolder,
+                                        productName='composite', imageNames=[dateParameters.getName()], extension=self.outextension))
 
 
 def test():

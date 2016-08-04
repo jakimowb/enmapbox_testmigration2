@@ -18,10 +18,10 @@ class DummyReadApplier(Applier):
 
     def __init__(self, infolder, inextension, footprints=None):
 
-        Applier.__init__(self, footprints=footprints, overwrite=True)
+        Applier.__init__(self, footprints=footprints)
         self.appendInput(ApplierInput(archive=MGRSArchive(folder=infolder),
                                          productName='timeseries', imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'], extension=inextension))
-
+        self.overwrite = True
 
 
 def test():

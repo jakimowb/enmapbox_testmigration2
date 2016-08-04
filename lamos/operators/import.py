@@ -19,8 +19,9 @@ class LucasImportApplier:
 
     def apply(self):
 
-        class_names =  ['unclassified', 'artificial land', 'cropland', 'forest broadleaved', 'forest coniferous', 'forest mixed', 'shrubland', 'grasland', 'bare land', 'water', 'wetland']
-        class_lookup = [0, 0, 0] + list(numpy.random.randint(0, 255, 10 * 3))
+        class_names =  ['unclassified', 'artificial land', 'cropland',  'forest broadleaved', 'forest coniferous', 'forest mixed', 'shrubland', 'grasland',    'bare land',   'water',   'wetland',   'snow ice']
+        class_lookup = [0, 0, 0,        255, 0, 0,         255, 255, 0, 0, 230, 0,            0, 100, 150,         0, 150, 50,     255, 150, 0, 210, 210, 100, 150, 150, 150, 0, 0, 255, 170, 0, 170, 255, 255, 255]
+        classes = len(class_names)
 
         for mgrsFootprint in [MGRSFootprint.fromShp(name) for name in self.footprints]:
             outfile = os.path.join(self.outfolder, mgrsFootprint.subfolders(), 'lucas', 'lucas.shp')
@@ -46,7 +47,7 @@ class LucasImportApplier:
             hub.gdal.util.gdal_rasterize(outfile=outfile2, infile=outfile, options=options)
             meta = GDALMeta(outfile2)
             meta.setMetadataItem('file_type', 'ENVI Classification')
-            meta.setMetadataItem('classes', 11)
+            meta.setMetadataItem('classes', classes)
             meta.setMetadataItem('class_names', class_names)
             meta.setMetadataItem('class lookup', class_lookup)
             meta.setNoDataValue(0)

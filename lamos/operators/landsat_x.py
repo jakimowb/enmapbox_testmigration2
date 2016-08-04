@@ -8,15 +8,15 @@ from hub.timing import tic, toc
 from hub.datetime import Date
 from enmapbox import processing
 from lamos.types import SensorXComposer, Product, Image, ImageStack, MGRSArchive, MGRSTilingScheme, MGRSFootprint, WRS2Footprint
-
+from multiprocessing.pool import ThreadPool
 
 class LandsatXComposer(SensorXComposer):
 
-    def __init__(self, start=None, end=None):
+    def __init__(self, start=None, end=None, inextension='.img'):
 
-        FMaskFile = lambda product: os.path.join(product.folder, product.name + '_cfmask.img')
-        SRBandFile = lambda product, i: os.path.join(product.folder, product.name + '_sr_band' + str(i) + '.img')
-        TOABandFile = lambda product, i: os.path.join(product.folder, product.name + '_toa_band' + str(i) + '.img')
+        FMaskFile = lambda product: os.path.join(product.folder, product.name + '_cfmask' + inextension)
+        SRBandFile = lambda product, i: os.path.join(product.folder, product.name + '_sr_band' + str(i) + inextension)
+        TOABandFile = lambda product, i: os.path.join(product.folder, product.name + '_toa_band' + str(i) + inextension)
 
         def sr(product):
 
@@ -143,14 +143,29 @@ class TimeseriesBuilder():
                 outmeta.writeMeta(outfile)
 
 
-    def build(self, infolder, outfolder, inextension, name='timeseries', footprints=None):
+    def build(self, infolder, outfolder, inextension, name='timeseries', footprints=None, processes=1):
 
         archive = MGRSArchive(infolder)
         print('Build Timeseries')
-        for footprint in archive.yieldFootprints(filter=footprints):
-            print(footprint.name)
-            products = list(archive.yieldProducts(footprint=footprint, extensions=[inextension]))
-            self.buildProduct(products=products, folder=os.path.join(outfolder, footprint.subfolders(), name), inextension=inextension)
+
+        def yieldArgs():
+            for footprint in archive.yieldFootprints(filter=footprints):
+                print(footprint.name)
+                products = list(archive.yieldProducts(footprint=footprint, extensions=[inextension]))
+                folder = os.path.join(outfolder, footprint.subfolders(), name)
+                yield products, folder, inextension
+
+
+        def job(args):
+            products, folder, inextension = args
+            self.buildProduct(products=products, folder=folder, inextension=inextension)
+
+        if processes == 1:
+            for args in yieldArgs():
+                job(args)
+        else:
+            pool = ThreadPool(processes=processes)
+            pool.map(job, yieldArgs())
 
 
 def test():
