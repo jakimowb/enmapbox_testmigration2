@@ -9,6 +9,8 @@ class ApplierControls(rios.applier.ApplierControls):
         self.setJobManagerType('multiprocessing')
         self.setOutputDriverName("ENVI")
         self.setCreationOptions(["INTERLEAVE=BSQ"])
+        self.setWindowXsize(256)
+        self.setWindowYsize(256)
         self.setCalcStats(False)
         self.setOmitPyramids(True)
 

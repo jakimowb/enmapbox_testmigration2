@@ -588,7 +588,7 @@ class BlockAssociations(rios.applier.BlockAssociations):
 
 class ApplierInput():
 
-    def __init__(self, archive, productName, imageNames, extension):
+    def __init__(self, archive, productName, imageNames, extension, bands=None):
         assert isinstance(archive, Archive)
         assert isinstance(productName, basestring)
         assert isinstance(imageNames, list)
@@ -596,6 +596,7 @@ class ApplierInput():
         self.productName = productName
         self.imageNames = imageNames
         self.extension = extension
+        self.bands = bands
 
     def getFilenameAssociations(self, footprint):
 
