@@ -366,6 +366,8 @@ class Archive(Type):
             hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=options)
             meta = hub.gdal.api.GDALMeta(infile)
             if compressENVI:
+                #gzips = ['D:\work\AR']
+
                 cmd = ['C:\Program Files\gzip\gzip', '-q', outfile]
                 print(' '.join(cmd))
                 subprocess.call(cmd)

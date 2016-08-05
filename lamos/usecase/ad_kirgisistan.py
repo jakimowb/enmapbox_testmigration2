@@ -26,8 +26,9 @@ def test():
     start = Date(1984, 1, 1)
     end = Date(2015, 12, 31)
 
-    i=0
-    mgrsFootprints = mgrsFootprints[i:i+1]
+    #i=0
+    #mgrsFootprints = mgrsFootprints[i:i+1]
+    mgrsFootprints = ['41UMS']
 
     composer = LandsatXComposer(inextension='.tif')
     #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
