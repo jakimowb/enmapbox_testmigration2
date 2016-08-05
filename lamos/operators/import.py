@@ -24,7 +24,11 @@ class LucasImportApplier:
         classes = len(class_names)
 
         for mgrsFootprint in [MGRSFootprint.fromShp(name) for name in self.footprints]:
+            print(mgrsFootprint.name)
             outfile = os.path.join(self.outfolder, mgrsFootprint.subfolders(), 'lucas', 'lucas.shp')
+            outfile2 = outfile.replace('.shp', '_lc4.img')
+            if os.path.exists(outfile2):
+                continue
 
             # clip shp
             ul, lr = mgrsFootprint.getBoundingBox()
@@ -34,7 +38,6 @@ class LucasImportApplier:
             hub.ogr.util.ogr2ogr(outfile=outfile, infile=self.inshapefile, options=options)
 
             # rasterize cliped shape
-            outfile2 = outfile.replace('.shp', '_lc4.img')
             a = '-a LC4_ID '
             a_nodata = '-a_nodata 0 '
             init = '-init 0 '
