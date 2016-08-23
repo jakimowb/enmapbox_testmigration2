@@ -6,7 +6,6 @@ import hub.file
 import enmapbox.processing
 from enmapbox.processing.estimators import Classifiers
 from enmapbox.processing.env import PrintProgress
-import sklearn.cross_validation
 
 class SampleReadApplier(Applier):
 
@@ -64,6 +63,7 @@ def exportSampleAsJSON(sample, rfc, outfile):
     result['feature names'] = sample.image.meta.getMetadataItem('band_names')
     result['classes'] = int(sample.mask.meta.getMetadataItem('classes'))
     result['class names'] = sample.mask.meta.getMetadataItem('class_names')
+    result['class ids'] = map(int, rfc.sklEstimator.classes_)
     result['class lookup'] = map(int, sample.mask.meta.getMetadataItem('class_lookup'))
     result['rfc feature_importances'] = map(float, rfc.sklEstimator._final_estimator.feature_importances_)
     result['rfc oob probabilities'] = [map(float, v) for v in rfc.sklEstimator._final_estimator.oob_decision_function_]

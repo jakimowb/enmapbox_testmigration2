@@ -338,7 +338,7 @@ class Archive(Type):
         options = '-co "TILED=YES" -co "BLOCKXSIZE=256" -co "BLOCKYSIZE=256" -co "PROFILE=GeoTIFF" '
         options += '-co "COMPRESS=' + compress + '" -co "PREDICTOR=' + predictor + '" -co "INTERLEAVE=' + interleave + '" '
         self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension='.tif', options=options,
-                     compress=None, filter=filter, processes=processes)
+                     filter=filter, processes=processes)
 
 
     def saveAsENVI(self, outfolder, inextensions=['.vrt'], outextension='.img', compress=False, filter=None, processes=1):
