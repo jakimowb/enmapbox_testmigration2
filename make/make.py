@@ -1,6 +1,8 @@
 import os, sys, fnmatch, six, subprocess
 
-ROOT = os.path.dirname(__file__)
+
+
+ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
 def file_search(rootdir, wildcard, recursive=False, ignoreCase=False):
@@ -24,6 +26,7 @@ def make():
 
     #compile Qt resource files
     resourcefiles = file_search(ROOT, 'resource*.qrc', recursive=True)
+    assert len(resourcefiles) > 0
     for f in resourcefiles:
         dn = os.path.dirname(f)
         bn = os.path.basename(f)
