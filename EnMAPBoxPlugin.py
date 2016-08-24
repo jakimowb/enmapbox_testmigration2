@@ -96,8 +96,11 @@ class EnMAPBoxPlugin:
 
             #from enmapbox.apps.exampleapp.ExampleAlgorithmProvider import ExampleAlgorithmProvider
             #self.processingProviders.append(ExampleAlgorithmProvider())
-            from enmapbox.apps.core import EnMAPBoxProvider
-            self.processingProviders.append(EnMAPBoxProvider())
+            try:
+                from enmapbox.apps.core import EnMAPBoxProvider
+                self.processingProviders.append(EnMAPBoxProvider())
+            except:
+                pass
             #for provider in enmapbox.apps.core.get_providers():
             #    self.processingProviders.append(provider)
 
