@@ -831,14 +831,20 @@ class EnMAPBoxDataSourceManager(QtCore.QObject):
 
     pass
 
+
+
 class TestData():
+
 
     prefix = jp(DIR, 'testdata')
     #assert os.path.isdir(prefix)
-    Image = os.path.join(prefix, 'SF_20x20.tif')
-    Diagrams = os.path.join(prefix, 'diagrams.png')
-    AlpineForelandSubset = os.path.join(prefix, 'AlpineForelandSubset.img')
-    AF_Image = os.path.join(prefix, 'AF_Image')
+    Image = jp(prefix, 'SF_20x20.tif')
+    Diagrams = jp(prefix, 'diagrams.png')
+    AlpineForelandSubset = jp(prefix, 'AlpineForelandSubset.img')
+    AF_Image = jp(prefix, 'AF_Image')
+
+    Landsat_Image = jp(prefix, 'landsat_img.tif')
+    Landsat_Fmask = jp(prefix, 'landsat_fmask.tif')
 
 
 
@@ -1358,20 +1364,15 @@ if __name__ == '__main__':
     qgsReg = qgis.core.QgsMapLayerRegistry.instance()
     # add example images
 
-    # todo: handle input src
-    if False:
-        # add test files
-        qgsReg.addMapLayer(qgis.core.QgsRasterLayer(TestData.AlpineForelandSubset, 'AFForeland'))
-        qgsReg.addMapLayer(qgis.core.QgsRasterLayer(TestData.AlpineForelandSubset, 'AFForeland'))
 
 
 
-    pLS = r'C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\testdata\example_landsat.tif'
+
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
     EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
-    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 1', initSrc=pLS))
-    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 2', initSrc=TestData.AlpineForelandSubset))
+    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 1', initSrc=TestData.Landsat_Fmask))
+    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 2', initSrc=TestData.Landsat_Image))
 
     EB.dockarea.addDock(EnMAPBoxTextDock(EB,
                                          name='TextDock',
