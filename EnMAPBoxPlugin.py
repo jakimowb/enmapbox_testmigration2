@@ -2,10 +2,14 @@ import inspect
 import os
 import sys
 
+
+
+#from qgis.gui import *
+#from qgis.core import *
+import qgis.gui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-import qgis.gui
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 jp = os.path.join
@@ -126,14 +130,12 @@ if __name__ == '__main__':
 
     #start a QGIS instance
     if True:
-        from qgis.gui import *
-        from qgis.core import *
         if sys.platform == 'darwin':
             PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
         else:
             PATH_QGS = os.environ['QGIS_PREFIX_PATH']
         assert os.path.exists(PATH_QGS)
-        qgsApp = QgsApplication([], True)
+        qgsApp = qgis.core.QgsApplication([], True)
         qgsApp.setPrefixPath(PATH_QGS, True)
         qgsApp.initQgis()
 
