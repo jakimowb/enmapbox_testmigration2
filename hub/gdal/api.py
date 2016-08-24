@@ -100,10 +100,12 @@ class GDALMeta():
 
     def readMeta(self, filename):
         ds = gdal.Open(filename)
+
         if ds is None:
             Exception('Can not open file: '+filename)
 
         # read data source meta
+        self.driver = ds.GetDriver().ShortName
         self.domain = Bunch()
         if ds.GetMetadataDomainList() is not None:
             for domain in ds.GetMetadataDomainList():
@@ -224,8 +226,11 @@ class GDALMeta():
         else:
             if domain == 'ENVI': # GDAL casts ENVI keys to all lower letters when writing to disk :-(, need to consider that here
                 key = key.replace(' ', '_')
-                if not self.domain.ENVI.has_key(key):
-                    key = key.lower()
+                try:
+                    if not self.domain.ENVI.has_key(key):
+                        key = key.lower()
+                except:
+                    pass
                 result = self.domain.ENVI.get(key, self.domain.ENVI.get(key.lower(), default))
             else:
                 result = self.domain[domain].get(key, default)

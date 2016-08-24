@@ -1,23 +1,26 @@
-import lamos.cubebuilder.cube
-import lamos.cubebuilder.applier
 import datetime
 from hub.collections import Bunch
 import hub.numpy.ma
-import os
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive
+from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
 import numpy
+import hub.nan1d.percentiles
+
 
 def getCube(name, inputs, bbl=None):
 
     # return cube if already exist...
     if inputs.__dict__.has_key(name):
         result = inputs.__dict__[name]
+    elif inputs.__dict__.has_key('timeseries_'+name):
+        result = inputs.__dict__['timeseries_'+name]
+
     # ...or create and cache it otherwise
     else:
-        if   name=='ndvi' : result = (inputs.timeseries_nir-inputs.timeseries_red).__truediv__(inputs.timeseries_nir+inputs.timeseries_red)
-        elif name=='vis'  : result = inputs.timeseries_blue/3+inputs.timeseries_green/3+inputs.timeseries_red/3
-        elif name=='ir'   : result = inputs.timeseries_nir/3 +inputs.timeseries_swir1/3+inputs.timeseries_swir2/3
-        elif name=='invalid' : result = inputs.timeseries_cfmask != 0
+        if   name=='ndvi'    : result = (inputs.timeseries_nir-inputs.timeseries_red).__truediv__(inputs.timeseries_nir+inputs.timeseries_red)
+        elif name=='nbr'     : result = (inputs.timeseries_nir-inputs.timeseries_swir2).__truediv__(inputs.timeseries_nir+inputs.timeseries_swir2)
+        elif name=='vis'     : result = inputs.timeseries_blue/3+inputs.timeseries_green/3+inputs.timeseries_red/3
+        elif name=='ir'      : result = inputs.timeseries_nir/3 +inputs.timeseries_swir1/3+inputs.timeseries_swir2/3
+        elif name=='invalid' : result = inputs.timeseries_cfmask > 1
         else:
             raise Exception('Unknown cube requested: '+name)
         inputs.__dict__[name] = result
@@ -153,8 +156,12 @@ def scoreSensor(inputs, inmeta, info):
 
 def scoreSynopticity(inputs, inmeta, info):
 
+    raise Exception('')
+    # this is not really a good implementation, because the data tile can be arbitrary small
+    # and the cloud fraction is more and more meaningless
+
     mask = getCube('mask', inputs, info.bbl)
-    cloudFractionVector = numpy.sum(mask, axis=1, keepdims=True)/float(mask.shape[1])
+    cloudFractionVector = numpy.sum(numpy.sum(mask, axis=1, keepdims=True), axis=2, keepdims=True)/float(mask.shape[1]*mask.shape[2])
     clearFractionVector = 1.-cloudFractionVector
 
     scoreA = clearFractionVector
@@ -164,13 +171,14 @@ def scoreSynopticity(inputs, inmeta, info):
 
 def scoreCosBeta(inputs, inmeta, info):
 
+    # todo talk to Dirk were slope/aspect data is coming from
+
     # sza - solar zenith angle
     # tsa - terrain slope angle
     # saa - solar azimuth angle
     # taa - topographic aspect angles
     # cosBeta = cos(sza)*cos(tsa)+sin(sza)*sin(tsa)*cos(saa-taa)
 
-    # todo check correct usage of degrees/rads ask Patrick, need to convert!
     degreeToRadiance = 0.0174533
     tsa = getCube('slope', inputs, info.bbl)*degreeToRadiance
     taa = getCube('aspect', inputs, info.bbl)*degreeToRadiance
@@ -204,7 +212,8 @@ def scoreTargetDoy(inputs, inmeta, info):
 
     # calc distances to target doy
     # - need to consider 3 cases and take the minimum of all
-    distances = [__builtins__.min((doy-targetDoy),(doy-365-targetDoy),(doy+365-targetDoy))  for doy in doys]
+    distances = [numpy.min(((doy - targetDoy), (doy - 365 - targetDoy), (doy + 365 - targetDoy))) for doy in doys]
+
     # - create index cube
     index = getCubeFromVector(distances, inputs, info.bbl)
 
@@ -221,7 +230,7 @@ def scoreTargetYear(inputs, inmeta, info):
     index = getCubeFromVector(distances, inputs, info.bbl)
 
     # translate to scores
-    min = __builtins__.max(distances)
+    min = numpy.max(distances)
     max = 0
     score = scaleLinearMinMax(index, min, max)
     return score
@@ -247,12 +256,12 @@ def scorePG(inputs, inmeta, info):
           #(scoreCloudDistance,               {}, 0.75),
           #(scoreCosBeta,                     {}, 0.50),
 
-          #(scoreHazeOptimizedTransformation, {}, 0.75),
-          #(scoreNDVI,                        {}, 0.25),
-          #(scoreSensor,                      {}, 0.75),
+          (scoreHazeOptimizedTransformation, {}, 0.75),
+          (scoreNDVI,                        {}, 0.25),
+          (scoreSensor,                      {}, 0.75),
           #(scoreSynopticity,                 {}, 0.75),
           (scoreTargetDoy,                   {}, 1.00),
-          #(scoreTargetYear,                  {}, 1.00)
+          (scoreTargetYear,                  {}, 1.00)
           #(scoreThermal,                     {}, 0.50)
         ])
 
@@ -260,15 +269,14 @@ def scorePG(inputs, inmeta, info):
 
 
 class DateParameters():
-    def __init__(self, targetDate, bufferDays, bufferYears):
-        self.targetDate = targetDate
-        self.targetDoy  = (targetDate-datetime.date(targetDate.year,1,1)).days
-        self.bufferDays = bufferDays
+    def __init__(self, date1, date2, bufferYears):
+        self.date1 = date1
+        self.date2 = date2
         self.bufferYears = bufferYears
         self.intervals = list()
-        for yearOffset in range(-bufferYears,bufferYears+1):
-            self.intervals.append((datetime.date(targetDate.year+yearOffset,targetDate.month,targetDate.day) - datetime.timedelta(bufferDays), # first date
-                                   datetime.date(targetDate.year+yearOffset,targetDate.month,targetDate.day) + datetime.timedelta(bufferDays))) # last date
+        for yearOffset in range(-bufferYears, bufferYears+1):
+            self.intervals.append(((datetime.date(date1.year + yearOffset, date1.month, date1.day)),
+                                   (datetime.date(date2.year + yearOffset, date2.month, date2.day))))
 
     def matchInputDates(self, dates):
         validDates = numpy.zeros_like(dates, numpy.bool)
@@ -276,7 +284,16 @@ class DateParameters():
             validDates += (dates >= first) * (dates <= last)
         return validDates
 
-class QualityCompositeParameters():
+
+    def getName(self):
+        return str(self.date1) + '_to_' + str(self.date2) + '_' + str(self.bufferYears * 2 + 1) + 'y'
+
+
+    def getTargetDate(self):
+        return self.date1 + (self.date2-self.date1)/2
+
+
+'''class QualityCompositeParameters():
 
     def __init__(self, dateParameters):
         self.dateParameters = dateParameters
@@ -323,6 +340,13 @@ class StatisticsCompositeParameters():
 
     def getBandNames(self):
         return self.statisticsParameters.getBandNames()
+'''
+
+def zvalue_from_index(arr, ind):
+
+    nB, nL, nS = arr.shape
+    idx = nS * nL * ind + nS * numpy.arange(nL)[:, None] + numpy.arange(nS)[None, :]
+    return numpy.take(arr, idx)
 
 
 class CompositingApplier(Applier):
@@ -339,115 +363,216 @@ class CompositingApplier(Applier):
         bands, samples, lines = inputs.timeseries_cfmask.shape
 
         # cast to float and set invalid observations to NaN
-        invalid = getCube('invalid', inputs)
-        invalidAll = numpy.all(invalid, axis=0)
-        for key in ['timeseries_'+name for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']]:
-            inputs.__dict__[key] = inputs.__dict__[key].astype(numpy.float32)
-            inputs.__dict__[key][invalid] = numpy.NaN
+        invalidValues = getCube('invalid', inputs)
+        invalidPixel = numpy.all(invalidValues, axis=0)
 
         # calculate quality composites
-        for qualityCompositeParameters in otherArgs.qualityCompositeParametersList:
+        for dateParameters in otherArgs.dateParameters:
 
             # - calculate valid date range around target date
-            bbl = qualityCompositeParameters.dateParameters.matchInputDates(inputDates)
+            bbl = dateParameters.matchInputDates(inputDates)
 
             if bbl.any():
 
                 # - calculate quality score
                 info2 = Bunch()
-                info2.targetDate = qualityCompositeParameters.dateParameters.targetDate
+                info2.targetDate = dateParameters.getTargetDate()
                 info2.bbl = bbl
                 qualityCube = scorePG(inputs, inmetas, info2)
-                assert bbl.sum() == qualityCube.shape[0], 'inconsistent score cube, check scoring function: '+ qualityCompositeParameters.qualityParameters.scoreFunction.__name__
+                assert bbl.sum() == qualityCube.shape[0], 'inconsistent score cube, check scoring function: '
 
                 # - find best observation
-                qualityCube[invalid] = -numpy.Inf
+                qualityCube[invalidValues[bbl]] = -numpy.Inf
                 bestObs = numpy.nanargmax(qualityCube, axis=0)
-                bestObs[invalidAll] = 0
-
+                bestObs[invalidPixel] = 0
 
                 # - create composite
-                cubes = [inputs.sr[key][bbl] for key in otherArgs.bandNamesSubset]
-                cubes.append(inputDoys.reshape((-1,1))[bbl]) # add Flag:doy
-                cubes.append(inputSensorInfos[:,0:1][bbl])   # add Flag:sensor
-                cubes.append(inputSensorInfos[:,1:2][bbl])   # add Flag:path
-                cubes.append(inputSensorInfos[:,2:3][bbl])   # add Flag:row
-                cubes.append((qualityCube*10000).astype(numpy.int16))# add Flag:score
+                result = list()
+                for key in ['timeseries_' + name for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']]:
+                    band = zvalue_from_index(arr=inputs.__dict__[key], ind=bestObs)
+                    band[invalidPixel] = -9999
+                    result.append(band.reshape((1, samples, lines)))
 
-                # - create composite cube
-                qualityCompositeCube = hub.numpy.ma.qualityCompositeCube(cubes,  qualityCube)
-
-                # - fill masked values with -9999
-                qualityCompositeCube = qualityCompositeCube.filled(-9999)
-
-                # - convert back to 3d cubes
-                qualityCompositeCube = hub.numpy.ma.unflatten(qualityCompositeCube, samples, lines)
+                result = numpy.vstack(result)
 
             else:
+
                 # - handle special case when no observation is available
-                shape = (len(otherArgs.bandNamesSubset)+5, samples, lines)
-                qualityCompositeCube = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
-                print('Warning: No Observation available for target date '+qualityCompositeParameters.getTargetDate()+'.')
+                shape = (6, samples, lines)
+                result = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
+                #print('Warning: No Observation available for target date: '+str(dateParameters.getTargetDate()))
 
-            outputs.qualityComposites[qualityCompositeParameters.getName()] = qualityCompositeCube
-
+            outputs.__dict__['composite_'+dateParameters.getName()] = result
 
 
     @staticmethod
     def userFunctionMeta(inmetas, outmetas, otherArgs):
+        for dateParameters in otherArgs.dateParameters:
+            outmeta = outmetas.__dict__['composite_'+dateParameters.getName()]
+            outmeta.setNoDataValue(-9999)
+            outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
+            outmeta.setMetadataItem('wavelength units', 'nanometers')
+            outmeta.setMetadataItem('wavelength', [480, 560, 655, 865, 1585, 2200])#+5*[99999], mapToBands=True) # set flag bands wavelength to 99,999
+            bbl = 6*[1] #+ 5*[0] # mark flag bands as bad bands to exclude them from ENVI Z Plot
+            outmeta.setMetadataItem('bbl', bbl, mapToBands=True)
+            outmeta.setBandNames(['blue', 'green', 'red', 'nir', 'swir1', 'swir2'])#+['Flag:doy','Flag:sensor','Flag:path','Flag:row','Flag:score'])
 
-        outmetas.vi_ndvi = inmetas.timeseries_cfmask
-        outmetas.vi_ndvi.setNoDataValue(-1)
 
+    def __init__(self, infolder, outfolder, inextension, footprints=None, compressed=False, of='ENVI'):
 
-    def __init__(self, infolder, outfolder, compressed=False):
-
-        Applier.__init__(self, compressed=compressed)
-        self.composites = list()
+        Applier.__init__(self, footprints=footprints, of=of)
+        self.dateParameters = list()
         self.infolder = infolder
         self.outfolder = outfolder
         self.appendInput(ApplierInput(archive=MGRSArchive(folder=infolder),
                                       productName='timeseries',
                                       imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'],
-                                      extension='.img'))
+                                      extension=inextension))
 
+        self.otherArgs.dateParameters = self.dateParameters
 
-    def appendComposite(self, year, month, day, bufferDays, bufferYears=0):
+    def appendDateParameters(self, date1, date2, bufferYears=0):
 
-        targetDate = datetime.date(year, month, day)
-        dateParameters = DateParameters(targetDate, bufferDays, bufferYears)
-        compositeParameters = QualityCompositeParameters(dateParameters)
-        self.composites.append(compositeParameters)
+        assert isinstance(date1, datetime.date)
+        assert isinstance(date2, datetime.date)
 
+        dateParameters = DateParameters(date1=date1, date2=date2, bufferYears=bufferYears)
+        self.dateParameters.append(dateParameters)
         self.appendOutput(ApplierOutput(folder=self.outfolder,
-                                        productName='composite', imageNames=[compositeParameters.getName()], extension='.img'))
+                                        productName='composite', imageNames=[dateParameters.getName()], extension='.img'))
 
-    def apply(self):
+class StatisticsApplier(Applier):
 
-        self.otherArgs.qualityCompositeParametersList = self.composites
-        Applier.apply(self)
-        return MGRSArchive(self.outputs[0].folder)
+    @staticmethod
+    def userFunction(info, inputs, outputs, inmetas, otherArgs):
+
+        # prepare some meta infos
+        import hub.datetime
+        inputDates = numpy.array(getMeta('date', inmetas))
+
+        # cast to float and set invalid observations to NaN
+        invalidValues = getCube('invalid', inputs)
+        invalidPixel = numpy.all(invalidValues, axis=0)
+
+        for key in ['timeseries_'+name for name in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']]:
+            inputs.__dict__[key] = inputs.__dict__[key].astype(numpy.float32)
+            inputs.__dict__[key][invalidValues] = numpy.NaN
+
+        bands, samples, lines = inputs.timeseries_cfmask.shape
+
+        # calculate statistics
+        for dateParameters in otherArgs.dateParameters:
+
+            # - calculate valid date range around target date
+            bbl = dateParameters.matchInputDates(inputDates)
+
+            if bbl.any():
+
+                # calculate statistics
+                for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+
+                    input = getCube(name=key, inputs=inputs, bbl=bbl)
+                    if key in ['ndvi', 'nbr']:
+                        input *= 10000
+
+                    # - percentiles
+                    statistics = hub.nan1d.percentiles.nanpercentiles(input, [0,25,50,75,100], copy=True)
+
+                    # - moments
+                    statistics.append(numpy.nanmean(input, axis=0, dtype=numpy.float32, keepdims=True))
+                    statistics.append(numpy.nanstd(input, axis=0, dtype=numpy.float32, keepdims=True))
+
+                    for i, band in enumerate(statistics):
+                        band = band.astype(numpy.int16)
+                        band[invalidPixel[None]] = -9999
+                        statistics[i] = band
+
+                    output = numpy.vstack(statistics)
+                    outputs.__dict__['statistics_' + key + '_' + dateParameters.getName()] = output
+
+            else:
+                # - handle special case when no observation is available
+                for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+                    shape = (7, samples, lines)
+                    output = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
+                    outputs.__dict__['statistics_' + key + '_' + dateParameters.getName()] = output
+
+                    #print('Warning: No Observation available for target date: '+str(dateParameters.getTargetDate()))
+
+
+
+            # - valid observation counts
+            outputs.__dict__['statistics_count_' + dateParameters.getName()] = numpy.sum(numpy.logical_not(getCube('invalid', inputs, bbl)), axis=0, dtype=numpy.int16, keepdims=True)
+
+    @staticmethod
+    def userFunctionMeta(inmetas, outmetas, otherArgs):
+
+        for dateParameters in otherArgs.dateParameters:
+            for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+                outmeta = outmetas.__dict__['statistics_'+key+'_'+dateParameters.getName()]
+                outmeta.setNoDataValue(-9999)
+                outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
+                outmeta.setBandNames(['min','p25','median','p75','max','mean', 'stdev'])
+
+            outmeta = outmetas.__dict__['statistics_count_' + dateParameters.getName()]
+            outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
+            outmeta.setBandNames(['valid observations'])
+
+    def __init__(self, infolder, outfolder, inextension, footprints=None, of='ENVI'):
+
+        Applier.__init__(self, footprints=footprints, of=of)
+        self.dateParameters = list()
+        self.infolder = infolder
+        self.outfolder = outfolder
+        self.appendInput(ApplierInput(archive=MGRSArchive(folder=infolder),
+                                      productName='timeseries',
+                                      imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'],
+                                      extension=inextension))
+
+        self.otherArgs.dateParameters = self.dateParameters
+
+    def appendDateParameters(self, date1, date2, bufferYears=0):
+
+        assert isinstance(date1, datetime.date)
+        assert isinstance(date2, datetime.date)
+
+        dateParameters = DateParameters(date1=date1, date2=date2, bufferYears=bufferYears)
+        self.dateParameters.append(dateParameters)
+        for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'count']:
+            self.appendOutput(ApplierOutput(folder=self.outfolder,
+                                            productName='statistics', imageNames=[key+'_'+dateParameters.getName()], extension=self.outextension))
 
 
 def test():
 
-    applier = CompositingApplier(infolder=r'c:\work\data\gms\landsatTimeseriesMGRS',
-                                 outfolder=r'c:\work\data\gms\landsatComposites',
-                                 compressed=False)
-    applier.controls.setWindowXsize(100)
+    MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
+    infolder = r'c:\work\data\gms\landsatTimeseriesMGRS'
+    outfolder= r'c:\work\data\gms\composites'
+
+    mgrsFootprints = ['33UUT']
+
+    years = [2000]#, 2001]
+    months = [2]#,5,8,11]
+    days = [15]
+    bufferDays = 190
+    bufferYears = 30
+    applier = CompositingApplier(infolder=infolder, outfolder=outfolder, inextension='.img', compressed=False,
+                                 years=years, months=months, days=days,
+                                 bufferDays=bufferDays, bufferYears=bufferYears,
+                                 footprints=mgrsFootprints)
+
+
+    applier.controls.setWindowXsize(10000)
     applier.controls.setWindowYsize(100)
+    applier.apply()
 
-    for year in [2000]:
-        for month in [1]:
-            day = 1
-            bufferDays = 183
-            bufferYears = 30
-            applier.appendComposite(year=year, month=month, day=day,
-                                    bufferYears = bufferYears, bufferDays=bufferDays)
-
-    archive = applier.apply()
-    archive.info()
-
+    applier = StatisticsApplier(infolder=infolder, outfolder=outfolder, inextension='.img', compressed=False,
+                                 years=years, months=months, days=days,
+                                 bufferDays=bufferDays, bufferYears=bufferYears,
+                                 footprints=mgrsFootprints)
+    applier.controls.setWindowXsize(10000)
+    applier.controls.setWindowYsize(100)
+    applier.apply()
 
 if __name__ == '__main__':
 
