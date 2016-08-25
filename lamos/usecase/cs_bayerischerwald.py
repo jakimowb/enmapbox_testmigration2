@@ -3,7 +3,7 @@ from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.compositing import StatisticsApplier
 from hub.timing import tic, toc
 from hub.datetime import Date
-
+import os, gdal
 
 def test():
 
@@ -26,24 +26,28 @@ def test():
     start = Date(1985, 1, 1)
     end = Date(2015, 12, 31)
 
-    i=3
-    mgrsFootprints = mgrsFootprints[i:i+1]
+    #i=0
+    #mgrsFootprints = mgrsFootprints[i:i+1]
 
     composer = LandsatXComposer()
-    #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints)
+    #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=50)
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
-    #tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints)
+    #tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
 
     #MGRSArchive(folder3).saveAsGTiff(outfolder=folder3b, compress='NONE', filter=mgrsFootprints, processes=100)
 
 
-
     tsBuilder = TimeseriesBuilder(start=start, end=end)
     #tsBuilder.build(infolder=folder3b, outfolder=folder4, inextension='.tif', footprints=mgrsFootprints)
-    #tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints)
+    #tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=50)
 
-    #MGRSArchive(folder4).saveAsGTiff(outfolder=folder4b, compress='NONE', filter=mgrsFootprints, processes=100)
+    MGRSArchive(folder4).saveAsGTiff(outfolder=folder4b, compress='NONE', filter=mgrsFootprints, processes=5)
+
+
+    #MGRSArchive(folder4).saveAsENVI(outfolder=folder4b, filter=mgrsFootprints, processes=10)
+
+    return
 
     applier = StatisticsApplier(infolder=folder4b, outfolder=folder5, compressed=False,
                                 years=[], months=[], days=[],
@@ -83,3 +87,18 @@ if __name__ == '__main__':
     tic()
     test()
     toc()
+
+'''
+Ich hba mal ein paar config options ausprobiert https://trac.osgeo.org/gdal/wiki/ConfigOptions
+set GDAL_CACHE_MAX=100000
+set GDAL_SWATH_SIZE = 100000
+set GDAL_MAX_DATASET_POOL_SIZE=5
+set GDAL_FORCE_CACHING=TRUE
+set VSI_CACHE=TRUE
+set VSI_CACHE_SIZE=1000
+
+gdal_translate -of ENVI red.vrt red_bj.bsq
+
+Auf dem GSX bleibt die RAM auslatung nun < 400 mb. Ausschlaggebend dafür ist glaube ich einzig der GDAL_MAX_DATASET_POOL_SIZE Wert, da sonst wohl zuviele VRTs gecached werden.
+Müsste man nochmal genauer probieren wie sich das auswirkt...
+'''

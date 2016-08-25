@@ -62,7 +62,7 @@ def test():
     applier.controls.setWindowXsize(256)
     applier.controls.setWindowYsize(256)
 #    applier.controls.setNumThreads(10)
-    applier.apply()
+#    applier.apply()
 
     applier = StatisticsApplier(infolder=folder4b, outfolder=folder5,
                                 footprints=mgrsFootprints, inextension='.img', of='ENVI')
@@ -85,6 +85,7 @@ def test():
 #    applier.controls.setNumThreads(10)
     applier.apply()
 
+    return
     stacker = StackApplier(outfolder=folder6, outproduct='stack', outimage='stack', footprints=mgrsFootprints)
     stacker.appendFeatures(infolder=folder5, inproduct='composite', inimage='2000-01-01_to_2000-12-31_61y', inextension='.img', inbands=None)
     for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:

@@ -520,7 +520,7 @@ class MGRSTilingScheme(Type):
                     t_srs = ' -t_srs  EPSG:326' + mgrsFootprint.utm
                     overwrite = ' -overwrite'
                     multi = ' -multi'
-                    wm = ' --config GDAL_CACHEMAX 5000 -wm 5000'
+                    wm = '' #'' --config GDAL_CACHEMAX 1000 -wm 1000'
                     options = of + overwrite + t_srs + tr + te + multi + wm
                     hub.gdal.util.gdalwarp(outfile=outfile,
                                            infile=infile,
