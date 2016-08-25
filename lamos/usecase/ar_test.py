@@ -1,11 +1,13 @@
 from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.compositing import CompositingApplier, StatisticsApplier
-from lamos.operators.ml import ClassifierPredictApplier, SampleReadApplier, randomForestFit
+from lamos.operators.ml import ClassifierPredictApplier, SampleReadApplier
 from lamos.operators.stack import StackApplier
 
 from hub.timing import tic, toc
 from hub.datetime import Date
+
+import sys
 
 def test():
 
@@ -62,14 +64,15 @@ def test():
     applier.controls.setWindowXsize(256)
     applier.controls.setWindowYsize(256)
 #    applier.controls.setNumThreads(10)
-#    applier.apply()
+    #applier.apply()
 
     applier = StatisticsApplier(infolder=folder4b, outfolder=folder5,
-                                footprints=mgrsFootprints, inextension='.img', of='ENVI')
+                                footprints=mgrsFootprints, inextension='.img', of='ENVI',
+                                percentiles=[5,25,50,75,95], variables=['tcb','tcg','tcw'], mean=False, stddev=False)
 
     # - add yearly composites
     bufferYears = 30
-    for year in [2000, 2001]:
+    for year in [2000]:#, 2001]:
         applier.appendDateParameters(date1=Date(year, 1, 1), date2=Date(year, 12, 31), bufferYears=bufferYears)
 
     # - add 3 month composites
@@ -80,7 +83,7 @@ def test():
         applier.appendDateParameters(date1=Date(year, 7, 1), date2=Date(year, 9, 30), bufferYears=bufferYears)
         applier.appendDateParameters(date1=Date(year, 10, 1), date2=Date(year, 12, 31), bufferYears=bufferYears)'''
 
-    applier.controls.setWindowXsize(256)
+    applier.controls.setWindowXsize(256*100)
     applier.controls.setWindowYsize(256)
 #    applier.controls.setNumThreads(10)
     applier.apply()
