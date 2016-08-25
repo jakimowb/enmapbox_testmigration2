@@ -24,20 +24,14 @@ def readCube(filename):
     return cube
 
 def writeCube(cube, filename, srsfilename=None, nodatavalue=None):
+
     hub.file.mkfiledir(filename)
-    #bands, lines, samples  = cube.shape
-    '''
-    GDALType = osgeo.gdal_array.NumericTypeCodeToGDALTypeCode(cube.dtype)
-    driver = gdal.GetDriverByName('ENVI')
-    dataset = driver.Create(filename, samples, lines, bands, GDALType)
-    for i in range(bands):
-        band = dataset.GetRasterBand(i + 1)
-        band.WriteArray(cube[i])
-    dataset = None
-    '''
+
     if srsfilename == None:
+        # create file without SRS (spatial reference system)
         datasource = osgeo.gdal_array.SaveArray(cube, filename, format='ENVI')
     else:
+        # use SRS (spatial reference system) from another image
         datasource = osgeo.gdal_array.SaveArray(cube, filename, format='ENVI', prototype=gdal.Open(srsfilename))
 
     # set no data value
@@ -49,6 +43,7 @@ def writeCube(cube, filename, srsfilename=None, nodatavalue=None):
         datasource.SetMetadataItem('data_ignore_value', str(nodatavalue), 'ENVI')
         datasource.FlushCache()
     datasource = None
+
 
 class GDALBandmeta():
 
