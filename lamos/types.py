@@ -572,8 +572,9 @@ class MGRSTilingScheme(Type):
 
 class BlockAssociations(rios.applier.BlockAssociations):
 
-    def __init__(self, riosBlockAssociations):
-        self.__dict__ = riosBlockAssociations.__dict__
+    def __init__(self, riosBlockAssociations=None):
+        if riosBlockAssociations is not None:
+            self.__dict__ = riosBlockAssociations.__dict__
 
 
     def reshape2d(self):
