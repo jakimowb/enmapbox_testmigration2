@@ -1,13 +1,17 @@
 from email.errors import NoBoundaryInMultipartDefect
 
-from PyQt4 import QtCore, QtGui, uic
+#
 
 import six, sys, os, gc
+#from qgis.gui import *
+#from qgis.core import *
+import qgis.core
+import qgis.gui
 
 def add_to_sys_path(path):
     assert os.path.isdir(path)
     if path not in sys.path:
-        #sys.path.append(path)
+        sys.path.append(path)
         pass
 
 jp = os.path.join
@@ -15,11 +19,10 @@ jp = os.path.join
 DIR = os.path.dirname(__file__)
 import gui
 DIR_GUI = jp(DIR,'gui')
-#add_to_sys_path(DIR_GUI)
+add_to_sys_path(DIR_GUI)
 #add_to_sys_path(jp(DIR, 'libs'))
 
-
-import pyqtgraph as pg
+LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
 if six.PY3:
     rc_suffix = '_py3'
@@ -29,14 +32,26 @@ else:
     import gui.resources_py2
 
 #todo: reduce imports to minimum
-from qgis.gui import *
-from qgis.core import *
-import qgis.core
-import qgis.gui
 from PyQt4.Qt import *
+try:
+    import pyqtgraph
+    import pyqtgraph.dockarea.DockArea
+    import pyqtgraph.dockarea.Dock
+    from pyqtgraph.widgets.VerticalLabel import VerticalLabel
+except:
+    import libs.pyqtgraph as pyqtgraph
+
+    import libs.pyqtgraph.dockarea.DockArea
+    import libs.pyqtgraph.dockarea.Dock
+    from libs.pyqtgraph.widgets.VerticalLabel import VerticalLabel
+
 
 VERSION = '2016-0.beta'
-ENMAPBOX_GUI_UI, _ = uic.loadUiType(jp(DIR_GUI, 'enmapbox_gui.ui'), from_imports=False, resource_suffix=rc_suffix)
+
+from PyQt4 import QtCore, QtGui, uic
+
+ENMAPBOX_GUI_UI, _ = uic.loadUiType(jp(DIR_GUI, 'enmapbox_gui.ui'),
+                                    from_imports=False, resource_suffix=rc_suffix)
 
 
 class EnMAPBoxIcons:
@@ -140,10 +155,9 @@ class DataSource(object):
         :param name: name as it appears in the source file list
         """
         assert source is not None
-        if isinstance(name, QString):
+        if not isinstance(name, str):
             name = str(name)
 
-        assert type(name) is str
         assert source_type in DataSourceManager.SourceTypes
 
         self.type = source_type
@@ -292,6 +306,7 @@ class DataSourceManager(QObject):
                 # 1. test mapable sources
                 lyr = qgis.core.QgsRasterLayer(src, name)
                 if lyr.isValid():
+                    self.qgsMapRegistry.addMapLayer(lyr)
                     return self.addSource(lyr, name)
                 lyr = qgis.core.QgsVectorLayer(src, name)
                 if lyr.isValid():
@@ -324,11 +339,14 @@ class DataSourceManager(QObject):
         if ds is not None and ds not in self.sources:
             self.sources.append(ds)
             self.sigDataSourceAdded.emit(ds)
+            return ds
+
             """
             src_group = DataSourceTreeItem([src_type,'description'], self)
             for src in [ds for ds in self.sources if ds.type == src_type]:
                 src_group.appendChild(src.getTreeItem(src_group))
             """
+        return None
 
 
     #ovwerwrite TreeItem functions
@@ -813,19 +831,25 @@ class EnMAPBoxDataSourceManager(QtCore.QObject):
 
     pass
 
+
+
 class TestData():
+
 
     prefix = jp(DIR, 'testdata')
     #assert os.path.isdir(prefix)
-    Image = os.path.join(prefix, 'SF_20x20.tif')
-    Diagrams = os.path.join(prefix, 'diagrams.png')
-    AlpineForelandSubset = os.path.join(prefix, 'AlpineForelandSubset.img')
-    AF_Image = os.path.join(prefix, 'AF_Image')
+    Image = jp(prefix, 'SF_20x20.tif')
+    Diagrams = jp(prefix, 'diagrams.png')
+    AlpineForelandSubset = jp(prefix, 'AlpineForelandSubset.img')
+    AF_Image = jp(prefix, 'AF_Image')
+
+    Landsat_Image = jp(prefix, 'landsat_img.tif')
+    Landsat_Fmask = jp(prefix, 'landsat_fmask.tif')
 
 
 
 
-import pyqtgraph.dockarea.DockArea
+
 class EnMAPBoxDockArea(pyqtgraph.dockarea.DockArea):
 
     def __init__(self, *args, **kwds):
@@ -837,7 +861,6 @@ class EnMAPBoxDockArea(pyqtgraph.dockarea.DockArea):
         return super(EnMAPBoxDockArea,self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
 
 
-import pyqtgraph.dockarea.Dock
 class EnMAPBoxDock(pyqtgraph.dockarea.Dock):
     '''
     Handle style sheets etc., basic stuff that differs from pyqtgraph dockarea
@@ -912,7 +935,7 @@ class EnMAPBoxDock(pyqtgraph.dockarea.Dock):
         self.hStyle += style
         self.vStyle += style
 
-from pyqtgraph.widgets.VerticalLabel import VerticalLabel
+
 class EnMAPBoxDockLabel(VerticalLabel):
     sigClicked = QtCore.Signal(object, object)
     sigCloseClicked = QtCore.Signal()
@@ -1265,12 +1288,21 @@ class EnMAPBoxMapDock(EnMAPBoxDock):
 
     def addLayer(self, mapLayer):
 
-        lyr = self.enmapbox.dataSourceManager.addSource(mapLayer)
-        if isinstance(lyr, QgsMapLayer):
+        ds = self.enmapbox.dataSourceManager.addSource(mapLayer)
+        if isinstance(ds, DataSource) and isinstance(ds.source, QgsMapLayer):
+
             canvasLayers = self.canvas.layers()
-            canvasLayers.append(QgsMapCanvasLayer(lyr))
+            mapLyr = QgsMapCanvasLayer(ds.source)
+            mapLyr.setVisible(True)
+
+            canvasLayers.append(mapLyr)
+
+            if len(canvasLayers) == 1:
+                self.canvas.setExtent(ds.source.extent())
+
             self.canvas.setLayerSet(canvasLayers)
 
+            s  =""
 
 
 
@@ -1332,31 +1364,29 @@ if __name__ == '__main__':
     qgsReg = qgis.core.QgsMapLayerRegistry.instance()
     # add example images
 
-    # todo: handle input src
-    if True:
-        # add test files
-        qgsReg.addMapLayer(qgis.core.QgsRasterLayer(TestData.AlpineForelandSubset, 'AFForeland'))
-        qgsReg.addMapLayer(qgis.core.QgsRasterLayer(TestData.AlpineForelandSubset, 'AFForeland'))
 
 
 
 
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
-    EB.dockarea.addDock(EnMAPBoxDock(EB, name='view1 Default'))
-    md1 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view2: a map', initSrc=TestData.AlpineForelandSubset))
+    EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
+    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 1', initSrc=TestData.Landsat_Fmask))
+    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 2', initSrc=TestData.Landsat_Image))
+
     EB.dockarea.addDock(EnMAPBoxTextDock(EB,
-                                         name='view3: a text/info window',
-                                         html='Lore <i>ipsum</i> tralalla<br/> '
-                                              '<a href="http://www.enmap.org">www.enmap.org</a>'))
-    md2 = EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='view4: another map', initSrc=TestData.Image))
+                                         name='TextDock',
+                                         html='Here we can show HTML like text:'
+                                              '<a href="http://www.enmap.org">www.enmap.org</a>'
+                                              '</br>'+LORE_IPSUM))
+
 
     #md1.linkWithMapDock(md2, linktype='center')
     #EB.show()
-    EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_Mask')
-    EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LAI')
-    EB.addSource(
-        r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
+    #EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_Mask')
+    #EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LAI')
+    #EB.addSource(
+    #   r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
     EB.run()
 
 
