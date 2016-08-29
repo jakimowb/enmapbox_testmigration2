@@ -12,6 +12,7 @@ import rios.applier
 import sklearn.metrics
 import sklearn.pipeline
 from enmapbox.processing.report import *
+import enmapbox.processing.applier
 
 
 # set default progress object
@@ -219,7 +220,7 @@ class Estimator(Type):
         except:
             args.estimator_type = self.sklEstimator._final_estimator.__class__
 
-        controls = env.ApplierControls()
+        controls = enmapbox.processing.applier.ApplierControls()
         controls.setNumThreads(1)
         controls.windowxsize = 50
         controls.windowysize = 50
@@ -495,8 +496,8 @@ class Estimator(Type):
                     report.append(ReportHeading('Search History', 2))
                     data = [[round(v.mean_validation_score*estimator.scorer_._sign, 4)] + v.parameters.values() for v in estimator.grid_scores_]
                     data = sorted(data, key=operator.itemgetter(0), reverse=estimator.scorer_._sign != -1)
-                    table = Table(data, header_row=[str(estimator.scoring)]+estimator.best_params_.keys())
-                    report.append(ReportTable(table))
+                    colHeaders = [[str(estimator.scoring)]+estimator.best_params_.keys()]
+                    report.append(ReportTable(data=data, colHeaders=colHeaders))
 
         report.append(ReportHorizontalLine())
         report.append(ReportHeading('Scikit-Learn Documentation', -1))
@@ -931,7 +932,7 @@ class ClassificationPerformance(Type):
         upper = scipy.stats.norm.ppf(1 - alpha / 2.)*se + mean
         return lower, upper
 
-    @property
+
     def report(self):
 
        # colHeaders = [['Hello World'], ['A', 'B'], ['a1', 'a2', 'b1', 'b2']]

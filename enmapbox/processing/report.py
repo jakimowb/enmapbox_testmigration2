@@ -213,7 +213,7 @@ class ReportTable():
                 rowSpans = [[None for v in vr] for vr in rowHeaders]
 
             if colHeaders is not None:
-                table[0].cells.insert(0, TableCell('', header=True, attribs={'colspan':len(rowHeaders), 'rowspan': len(colHeaders)}))
+                table[0].cells.insert(0, TableCell('', header=True, attribs={'colspan': len(rowHeaders), 'rowspan': len(colHeaders)}))
 
             for rowheader, rowspan  in reversed(zip(rowHeaders, rowSpans)):
                 i = len(colHeaders) if colHeaders is not None else 0

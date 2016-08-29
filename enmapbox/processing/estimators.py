@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy
+from docutils.nodes import row
+
 from enmapbox.processing.report import *
 from enmapbox.processing.types import Classifier, Regressor, Transformer, Clusterer
 
@@ -73,6 +75,20 @@ class Classifiers():
             pipe = sklearn.pipeline.make_pipeline(scaler, svcTuned)
             Classifier.__init__(self, pipe)
 
+        def reportDetails(self):
+
+            C_Values = [t.parameters['C'] for t in self.sklEstimator._final_estimator.grid_scores_]
+            Score_Values = [t.mean_validation_score for t in self.sklEstimator._final_estimator.grid_scores_]
+            report = Report('')
+            report.append(ReportHeading('Information'))
+
+            fig = MH.LinearSVCTuned(C_Values,Score_Values, self)
+            report.append(ReportPlot(fig, 'Hello World'))
+
+            return report
+
+
+
 
     class SVC(Classifier):
 
@@ -99,16 +115,18 @@ class Classifiers():
 
             report = Report('')
             report.append(ReportHeading('Information'))
-            classNames = [''] + self.sample.mask.meta.getMetadataItem('class_names')[1:]
-            nsv = ['<b>Number of Support Vectors</b>'] + list(svc.n_support_)
-            table = Table([nsv], header_row=classNames)
-            report.append(ReportTable(table))
+            classNames = [self.sample.mask.meta.getMetadataItem('class_names')[1:]]
+            nsv = list(svc.n_support_)
+            data = [nsv]
+            colHeaders = classNames
+            rowHeaders = [['Number of Support Vectors']]
+            report.append(ReportTable(data, colHeaders=colHeaders, rowHeaders=rowHeaders))
             return report
 
 
     class SVCTuned(SVC):
-
-        def __init__(self, C=[0.001, 0.01, 0.1, 1, 10, 1000], gamma=[0.001, 0.01, 0.1, 1, 10, 1000],
+        def __init__(self, C=[0.001, 0.01, .1,.3,.5,.7, 1, 10,100,1000], gamma=[0.001, 100,1000],
+        #def __init__(self, C=[0.001, 0.01, 0.1, 1,5,6,7,8, 10, 1000], gamma=[0.001, 0.01, .1,.3,.5,.7, 1, 10, 1000],
                  cache_size=200, class_weight=None, coef0=0.0,
                  decision_function_shape=None, degree=3,
                  max_iter=-1, probability=False, random_state=None, shrinking=True,
@@ -130,6 +148,22 @@ class Classifiers():
 
             pipe = sklearn.pipeline.make_pipeline(scaler, svcTuned)
             Classifier.__init__(self, pipe)
+
+        def reportDetails(self):
+
+            C_Values = [t.parameters['C'] for t in self.sklEstimator._final_estimator.grid_scores_]
+            gamma_Values = [t.parameters['gamma'] for t in self.sklEstimator._final_estimator.grid_scores_]
+            Score_Values = [t.mean_validation_score for t in self.sklEstimator._final_estimator.grid_scores_]
+            report = Report('')
+            report.append(ReportHeading('Information'))
+
+            fig = MH.SVCTuned(C_Values,gamma_Values,Score_Values, self)
+            report.append(ReportPlot(fig, 'Hello World'))
+
+            return report
+
+
+
 
 
     class RandomForestClassifier(Classifier):
@@ -162,9 +196,11 @@ class Classifiers():
             report = Report('')
             report.append(ReportHeading('Information'))
 
-            bandNames = [''] + self.sample.image.meta.getBandNames()
-            data = numpy.round(rfc.feature_importances_, 4)*100
-            rowHeaders = [['Feature Importance [%]']]
+            bandNames = self.sample.image.meta.getMetadataItem('band names',default=numpy.array([]))
+            if len(bandNames) == 0:
+                for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
+            data = numpy.vstack((bandNames,numpy.round(rfc.feature_importances_, 4)*100))
+            rowHeaders = [['Band Names','Feature Importance [%]']]
             report.append(ReportTable(data, rowHeaders=rowHeaders))
 
             if rfc.oob_score:
@@ -306,16 +342,16 @@ class Clusterers():
 
             kMeans = self.finalEstimator()
 
-            import matplotlib.pyplot as plt
 
-            for spectra in kMeans.cluster_centers_:
-                x = self.sample.image.meta.getMetadataItem('wavelength')
-                y = spectra
-                plt.plot(x, y)
-                plt.show()
 
             report = Report('')
             report.append(ReportHeading('Information'))
+
+            i=0
+            for spectra in kMeans.cluster_centers_:
+                fig = MH.KMeans(self, spectra)
+                report.append(ReportPlot(fig, 'Cluster '+ str((numpy.arange(kMeans.n_clusters)+1)[i])))
+                i+=1
 #            bandNames = [''] + [str(i) + '. PC' for i in range(1, pca.n_components_ + 1)]
 
          #   explainedVariance = ['<b>Explained Variance [%]</b>'] + list(
@@ -519,20 +555,99 @@ class MH:
     @staticmethod
     def RandomForestClassifier(rfc, self):
 
-        wl = self.sample.image.meta.getMetadataItem('wavelength')
+        wl = self.sample.image.meta.getMetadataItem('wavelength',default=numpy.array([]))
         fig, ax = plt.subplots(facecolor='white')
+        ax.tick_params(direction='out', length=5, pad=5)
 
-        #plt.vlines(numpy.arange(rfc.n_features_)+1,0,rfc.feature_importances_*100)
-        plt.vlines(wl,0,rfc.feature_importances_*100)
+        if len(wl) == 0:
+            plt.vlines(numpy.arange(rfc.n_features_)+1,0,rfc.feature_importances_*100)
+            plt.xlim(0,rfc.n_features_)
+            plt.xlabel('Feature Number')
+        else:
+            plt.vlines(wl,0,rfc.feature_importances_*100)
+            plt.xlim(float(wl[0]),float(wl[-1]))
+            plt.xlabel('Feature Wavelength')
 
-        plt.ylabel('Variable Importance')
-        plt.xlabel('Variable Index')
+        plt.ylabel('Feature Importance')
+
         return fig
        # ax1 = fig.add_subplot(211)
         #ax1.xcorr(rfc.feature_importances_*100, rfc.feature_importances_*100, usevlines=True, maxlags=50, normed=True, lw=2)
   #self.sample.image.meta.getMetadataItem('wavelength', default=range(1, rfc.n_features_+1))
 
-    # contour plot for svm tune
+    @staticmethod
+    def SVCTuned(C_Values,gamma_Values,Score_Values, self):
+
+        from scipy.interpolate import griddata
+        fig, ax = plt.subplots(facecolor='white')
+
+        xi = numpy.linspace(min(gamma_Values),max(gamma_Values),1000)
+        yi = numpy.linspace(min(C_Values),max(C_Values),1000)
+       # xi, yi = numpy.meshgrid(xi, yi)
+        zi = griddata((C_Values, gamma_Values), Score_Values, (xi[None,:], yi[:,None]),method='linear')
+
+       # cScale = plt.contourf(C_Values,gamma_Values,Score_Values,cmap=plt.cm.bone)
+       # CS = plt.contour(xi,yi,zi,linewidths=0.5,colors='k')
+        CS = plt.contourf(xi,yi,zi,cmap=plt.cm.Blues_r)
+
+        #
+        #
+        # look for http://matplotlib.org/examples/pylab_examples/tripcolor_demo.html
+        #cScale = plt.contourf(gridSearchScoreArray,cmap=plt.cm.bone)
+        #plt.clabel(cScale, inline=1, fontsize=10)
+        cBar = plt.colorbar(CS, shrink=1, extend='neither', drawedges=True)
+        cBar.ax.set_ylabel(self.sklEstimator._final_estimator.scoring)
+
+        plt.scatter(C_Values,gamma_Values, color="black")
+
+        plt.plot(self.sklEstimator._final_estimator.best_params_['C']
+               , self.sklEstimator._final_estimator.best_params_['gamma']
+               , color="red", marker="o", zorder=10,
+                 markersize=15, clip_on=False)
+
+
+        ax.set_xscale("log", nonposx='clip')
+        ax.set_yscale("log", nonposx='clip')
+        plt.gca().invert_yaxis()
+        ax.xaxis.set_label_text('C')
+        ax.yaxis.set_label_text('gamma')
+        ax.tick_params(which = 'both', direction = 'out')
+
+       # ax.yaxis.set_ticklabels(self.sklEstimator._final_estimator.param_grid[0]['C'])
+       # ax.xaxis.set_ticklabels(self.sklEstimator._final_estimator.param_grid[0]['gamma'])
+
+        return fig
+
+    @staticmethod
+    def LinearSVCTuned(C_Values,Score_Values, self):
+
+        fig, ax = plt.subplots(facecolor='white')
+        plt.plot(C_Values,Score_Values, marker='o', color='black')
+        ax.set_xscale("log", nonposx='clip')
+        ax.xaxis.set_label_text('C')
+        ax.yaxis.set_label_text(self.sklEstimator._final_estimator.scoring)
+        ax.tick_params(which = 'both', direction = 'out')
+        plt.grid()
+
+        return fig
+
+    @staticmethod
+    def KMeans(self, spectra):
+
+        fig, ax = plt.subplots(facecolor='white')
+
+        x = self.sample.image.meta.getMetadataItem('wavelength')
+        y = spectra
+        plt.plot(x, y)
+
+
+
+     #   plt.plot()
+
+        return fig
+
+
+
 
 if __name__ == '__main__':
 
