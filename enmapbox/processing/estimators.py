@@ -83,7 +83,7 @@ class Classifiers():
             report.append(ReportHeading('Information'))
 
             fig = MH.LinearSVCTuned(C_Values,Score_Values, self)
-            report.append(ReportPlot(fig, 'Hello World'))
+            report.append(ReportPlot(fig, 'Performance Curve'))
 
             return report
 
@@ -158,7 +158,7 @@ class Classifiers():
             report.append(ReportHeading('Information'))
 
             fig = MH.SVCTuned(C_Values,gamma_Values,Score_Values, self)
-            report.append(ReportPlot(fig, 'Hello World'))
+            report.append(ReportPlot(fig, 'Performance Surface'))
 
             return report
 
@@ -187,11 +187,7 @@ class Classifiers():
 
         def reportDetails(self):
 
-
-
             rfc = self.finalEstimator()
-
-
 
             report = Report('')
             report.append(ReportHeading('Information'))
@@ -206,7 +202,7 @@ class Classifiers():
             if rfc.oob_score:
                 report.append(ReportParagraph('### ToDo - insert out-of-bag accuracies ###', font_color='red'))
                 fig = MH.RandomForestClassifier(rfc, self)
-                report.append(ReportPlot(fig, 'Hello World'))
+                report.append(ReportPlot(fig, ''))
 
             return report
 
@@ -385,20 +381,21 @@ class Transformers():
 
             pca = self.finalEstimator()
 
+            n_components = pca.n_components_
             report = Report('')
             report.append(ReportHeading('Information'))
-            bandNames = [''] + [str(i) + '. PC' for i in range(1, pca.n_components_+1)]
+            bandNames = [str(i) + '. PC' for i in range(1, pca.n_components_+1)]
 
-            #explainedVariance = ['<b>Explained Variance [%]</b>'] + list(numpy.round(pca.explained_variance_ratio_ * 100, 2))
-            #cumulatedExplainedVariance = ['<b>Cumulated Explained Variance [%]</b>'] + list(numpy.round(numpy.cumsum(pca.explained_variance_ratio_) * 100, 2))
+            explainedVariance = numpy.round(pca.explained_variance_ratio_, 2)
+            cumulatedExplainedVariance = numpy.round(numpy.cumsum(pca.explained_variance_ratio_), 2)
 
-            explainedVariance = numpy.round(pca.explained_variance_ratio_ * 100, 2)
-            cumulatedExplainedVariance = numpy.round(numpy.cumsum(pca.explained_variance_ratio_) * 100, 2)
+            data = numpy.vstack((bandNames,numpy.round(explainedVariance, 4)*100,numpy.round(cumulatedExplainedVariance, 4)*100))
+            rowHeaders = [['Components','Explained Variance','Cumulated Explained Variance']]
+            report.append(ReportTable(data, rowHeaders=rowHeaders))
 
-            table = list([explainedVariance, cumulatedExplainedVariance])
+            fig = MH.KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self)
+            report.append(ReportPlot(fig, 'Explained Variances'))
 
-            # todo insert headings
-            report.append(ReportTable(table))
             return report
 
 
@@ -432,12 +429,16 @@ class Transformers():
             report = Report('')
             report.append(ReportHeading('Information'))
             n_components = kpca.lambdas_.size
-            bandNames = [''] + [str(i) + '. KernelPC' for i in range(1, n_components+1)]
-            explainedVariance = ['<b>Explained Variance [%]</b>'] + list(numpy.round(kpca.lambdas_/kpca.lambdas_.sum() * 100, 2))
-            cumulatedExplainedVariance = ['<b>Cumulated Explained Variance [%]</b>'] + list(numpy.round(numpy.cumsum(kpca.lambdas_/kpca.lambdas_.sum()) * 100, 2))
+            bandNames = [str(i) + '. kernelPC' for i in range(1, n_components+1)]
+            explainedVariance = numpy.round(kpca.lambdas_/kpca.lambdas_.sum(), 2)
+            cumulatedExplainedVariance = numpy.round(numpy.cumsum(kpca.lambdas_/kpca.lambdas_.sum()), 2)
+            data = numpy.vstack((bandNames,numpy.round(explainedVariance, 4)*100,numpy.round(cumulatedExplainedVariance, 4)*100))
+            rowHeaders = [['Components','Explained Variance','Cumulated Explained Variance']]
+            report.append(ReportTable(data, rowHeaders=rowHeaders))
 
-            table = Table([explainedVariance, cumulatedExplainedVariance], header_row=bandNames)
-            report.append(ReportTable(table))
+            fig = MH.KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self)
+            report.append(ReportPlot(fig, 'Explained Variances'))
+
             return report
 
 
@@ -571,9 +572,9 @@ class MH:
         else:
             plt.vlines(wl,0,rfc.feature_importances_*100)
             plt.xlim(float(wl[0]),float(wl[-1]))
-            plt.xlabel('Feature Wavelength')
+            plt.xlabel('Wavelength ['+self.sample.image.meta.getMetadataItem('wavelength units')+']')
 
-        plt.ylabel('Feature Importance')
+        plt.ylabel('Feature Importance [%]')
 
         return fig
        # ax1 = fig.add_subplot(211)
@@ -588,21 +589,9 @@ class MH:
 
         yi = numpy.logspace(numpy.log2(min(gamma_Values)), numpy.log2(max(gamma_Values)), base=2, num=1000)
         xi = numpy.logspace(numpy.log2(min(C_Values)), numpy.log2(max(C_Values)), base=2, num=1000)
-        print xi
-        #yi = numpy.logspace(numpy.log2(0.00001), numpy.log2(1000.), base=2)
-
-       # xi, yi = numpy.meshgrid(xi, yi)
         zi = griddata((C_Values, gamma_Values), Score_Values, (xi[None,:], yi[:,None]),method='linear')
 
-       # cScale = plt.contourf(C_Values,gamma_Values,Score_Values,cmap=plt.cm.bone)
-       # CS = plt.contour(xi,yi,zi,linewidths=0.5,colors='k')
         CS = plt.contourf(xi,yi,zi,cmap=plt.cm.Blues_r)
-
-        #
-        #
-        # look for http://matplotlib.org/examples/pylab_examples/tripcolor_demo.html
-        #cScale = plt.contourf(gridSearchScoreArray,cmap=plt.cm.bone)
-        #plt.clabel(cScale, inline=1, fontsize=10)
         cBar = plt.colorbar(CS, shrink=1, extend='neither', drawedges=True)
         cBar.ax.set_ylabel(self.sklEstimator._final_estimator.scoring)
 
@@ -613,16 +602,12 @@ class MH:
                , color="red", marker="o", zorder=10,
                  markersize=15, clip_on=False)
 
-
         ax.set_xscale("log", nonposx='clip')
         ax.set_yscale("log", nonposx='clip')
         plt.gca().invert_yaxis()
         ax.xaxis.set_label_text('C')
         ax.yaxis.set_label_text('gamma')
         ax.tick_params(which = 'both', direction = 'out')
-
-       # ax.yaxis.set_ticklabels(self.sklEstimator._final_estimator.param_grid[0]['C'])
-       # ax.xaxis.set_ticklabels(self.sklEstimator._final_estimator.param_grid[0]['gamma'])
 
         return fig
 
@@ -643,18 +628,38 @@ class MH:
     def KMeans(self, spectra):
 
         fig, ax = plt.subplots(facecolor='white')
+        ax.set_xlabel('Number of PCs')
+        wavelength_units = self.sample.image.meta.getMetadataItem('wavelength units',default=numpy.array([]))
 
-        x = self.sample.image.meta.getMetadataItem('wavelength')
-        y = spectra
-        plt.plot(x, y)
-
-
-
-     #   plt.plot()
+        if len(wavelength_units) == 0:
+            x = numpy.arange(len(spectra)) + 1
+            y = spectra
+            plt.plot(x, y)
+            plt.xlim(0,len(spectra))
+            plt.xlabel('Feature Number')
+        else:
+            x = self.sample.image.meta.getMetadataItem('wavelength')
+            y = spectra
+            plt.plot(x, y)
+            plt.xlim(float(x[0]),float(x[-1]))
+            plt.xlabel(wavelength_units)
 
         return fig
 
+    @staticmethod
+    def KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self):
 
+        fig, ax1 = plt.subplots(facecolor='white')
+        ax2 = ax1.twinx()
+        ax1.plot(numpy.arange(n_components)+1,explainedVariance[:], 'black')
+        ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance[:], 'red')
+        ax1.set_xlabel('Number of PCs')
+        ax1.set_xlim([0, 5])
+        ax1.set_ylabel('Explained Variance [%]', color='black')
+        ax2.set_ylabel('Cumulated Explained Variance [%]', color='r')
+        ax1.tick_params(axis='y', colors='black')
+        ax2.tick_params(axis='y', colors='red')
+        return fig
 
 
 if __name__ == '__main__':
