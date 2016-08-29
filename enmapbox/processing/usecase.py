@@ -11,8 +11,8 @@ root = r'c:\work\outputs'
 
 def sample():
 
-    image = enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    testingLabels = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
+    image = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
+    testingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
     sample = enmapbox.processing.ClassificationSample(image, testingLabels)
     print(sample.labelData.shape)
     print(sample.imageData.shape)
@@ -21,24 +21,30 @@ def sample():
 def classification():
 
 
-    image = enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask =  enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    trainingLabels = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
-#    testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
+    image = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
+    mask =  enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Mask')
+    trainingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Training-Sample')
+    #image = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_Image')
+    #trainingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_LC_Training')
+    #mask = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_Mask')
+
+    #testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
 
 
-    classifier = enmapbox.processing.estimators.Classifiers.RandomForestClassifier()
-    classifier = classifier.fit(image, trainingLabels)
-    prediction = classifier.predict(image, mask)
-    print(prediction)
-    return
+   # classifier = enmapbox.processing.estimators.Classifiers.RandomForestClassifier()
+   # classifier = classifier.fit(image, trainingLabels)
+   # prediction = classifier.predict(image, mask)
+    #print(prediction)
 
-
-
-    classifiers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Classifiers)
+  #  return
 
 
     classifiers = [enmapbox.processing.estimators.Classifiers.RandomForestClassifier()]
+    #classifiers = [enmapbox.processing.estimators.Classifiers.LinearSVCTuned()]
+    #classifiers = [enmapbox.processing.estimators.Classifiers.SVCTuned()]
+    # classifiers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Classifiers)
+
+
 
     for classifier in classifiers:
         assert isinstance(classifier, enmapbox.processing.Classifier)
@@ -55,10 +61,10 @@ def classification():
 
 def regression():
 
-    image = enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
-    mask = enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-B_Mask')
-    trainingLabels = enmapbox.processing.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Training-Sample')
-    testingLabels = enmapbox.processing.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Validation-Sample')
+    image = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Image')
+    mask = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Mask')
+    trainingLabels = enmapbox.processing.Regression(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Regression-Training-Sample')
+    testingLabels = enmapbox.processing.Regression(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Regression-Validation-Sample')
 
     regressors = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Regressors)
 
@@ -71,10 +77,10 @@ def regression():
 
 def clusterer():
 
-    image = enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask = enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    trainingLabels = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
-    testingLabels = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
+    image = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
+    mask = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Mask')
+    trainingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Training-Sample')
+    testingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
 
     clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
     clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=False, with_std=False)]
@@ -88,12 +94,13 @@ def clusterer():
 
 def transformer():
 
-    image = enmapbox.processing.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask = enmapbox.processing.Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    trainingLabels = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
+    image = enmapbox.processing.Image(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
+    mask = enmapbox.processing.Mask(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Mask')
+    trainingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Training-Sample')
 
     transformers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Transformers)
     transformers = [enmapbox.processing.estimators.Transformers.KernelPCA()]
+    transformers = [enmapbox.processing.estimators.Transformers.PCA()]
 
     for transformer in transformers:
 
@@ -142,30 +149,30 @@ def classificationAccAss():
     prediction = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Estimation')
 
     accAss = prediction.assessClassificationPerformance(testingLabels)
-    accAss.report().saveHTML().open()
+    accAss.info() #.report().saveHTML().open()
 
 
 def classificationAccAssAdjusted():
 
-    testingLabels = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    prediction = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Estimation')
-    stratification = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-GroundTruth')
+    testingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
+    prediction = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Estimation')
+    stratification = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-GroundTruth')
     accAss = prediction.assessClassificationPerformance(testingLabels, stratification)
     accAss.report().saveHTML().open()
 
 
 def regressionAccAss():
 
-    testingLabels = enmapbox.processing.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Validation-Sample')
-    prediction = enmapbox.processing.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Estimation')
+    testingLabels = enmapbox.processing.Regression(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Regression-Validation-Sample')
+    prediction = enmapbox.processing.Regression(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-B_Regression-Estimation')
     accAss = prediction.assessRegressionPerformance(testingLabels)
     accAss.report().saveHTML().open()
 
 
 def clusteringAccAss():
 
-    testingLabels = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    prediction = enmapbox.processing.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Estimation')
+    testingLabels = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Validation-Sample')
+    prediction = enmapbox.processing.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-Estimation')
 
     accAss = prediction.assessClusteringPerformance(testingLabels)
     accAss.report().saveHTML().open()
@@ -237,14 +244,14 @@ if __name__ == '__main__':
 
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    #classification()
+    classification()
     #regression()
     #clusterer()
     #transformer()
     #performance()
     #uncertaintyClassifier()
     #uncertaintyRegressor()
-    classificationAccAss()
+    #classificationAccAss()
     #classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
