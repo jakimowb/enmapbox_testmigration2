@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy
-from docutils.nodes import row
+#from docutils.nodes import row
 
 from enmapbox.processing.report import *
 from enmapbox.processing.types import Classifier, Regressor, Transformer, Clusterer
@@ -125,8 +125,8 @@ class Classifiers():
 
 
     class SVCTuned(SVC):
-        def __init__(self, C=[0.001, 0.01, .1,.3,.5,.7, 1, 10,100,1000], gamma=[0.001, 100,1000],
-        #def __init__(self, C=[0.001, 0.01, 0.1, 1,5,6,7,8, 10, 1000], gamma=[0.001, 0.01, .1,.3,.5,.7, 1, 10, 1000],
+
+        def __init__(self, C=[0.001, 0.01, 0.1, 1, 10, 100, 1000], gamma=[0.001, 0.01, 0.1, 1, 10, 100, 1000],
                  cache_size=200, class_weight=None, coef0=0.0,
                  decision_function_shape=None, degree=3,
                  max_iter=-1, probability=False, random_state=None, shrinking=True,
@@ -389,10 +389,15 @@ class Transformers():
             report.append(ReportHeading('Information'))
             bandNames = [''] + [str(i) + '. PC' for i in range(1, pca.n_components_+1)]
 
-            explainedVariance = ['<b>Explained Variance [%]</b>'] + list(numpy.round(pca.explained_variance_ratio_ * 100, 2))
-            cumulatedExplainedVariance = ['<b>Cumulated Explained Variance [%]</b>'] + list(numpy.round(numpy.cumsum(pca.explained_variance_ratio_) * 100, 2))
+            #explainedVariance = ['<b>Explained Variance [%]</b>'] + list(numpy.round(pca.explained_variance_ratio_ * 100, 2))
+            #cumulatedExplainedVariance = ['<b>Cumulated Explained Variance [%]</b>'] + list(numpy.round(numpy.cumsum(pca.explained_variance_ratio_) * 100, 2))
 
-            table = Table([explainedVariance, cumulatedExplainedVariance], header_row=bandNames)
+            explainedVariance = numpy.round(pca.explained_variance_ratio_ * 100, 2)
+            cumulatedExplainedVariance = numpy.round(numpy.cumsum(pca.explained_variance_ratio_) * 100, 2)
+
+            table = list([explainedVariance, cumulatedExplainedVariance])
+
+            # todo insert headings
             report.append(ReportTable(table))
             return report
 
@@ -581,8 +586,11 @@ class MH:
         from scipy.interpolate import griddata
         fig, ax = plt.subplots(facecolor='white')
 
-        xi = numpy.linspace(min(gamma_Values),max(gamma_Values),1000)
-        yi = numpy.linspace(min(C_Values),max(C_Values),1000)
+        yi = numpy.logspace(numpy.log2(min(gamma_Values)), numpy.log2(max(gamma_Values)), base=2, num=1000)
+        xi = numpy.logspace(numpy.log2(min(C_Values)), numpy.log2(max(C_Values)), base=2, num=1000)
+        print xi
+        #yi = numpy.logspace(numpy.log2(0.00001), numpy.log2(1000.), base=2)
+
        # xi, yi = numpy.meshgrid(xi, yi)
         zi = griddata((C_Values, gamma_Values), Score_Values, (xi[None,:], yi[:,None]),method='linear')
 
