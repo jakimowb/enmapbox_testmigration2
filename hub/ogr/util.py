@@ -1,12 +1,12 @@
-import enmapbox.hub.file
+import hub.file
 import os
 import subprocess
 
 
 def ogr2ogr(outfile, infile, options, verbose=True):
 
-    enmapbox.hub.file.mkdir(os.path.dirname(outfile))
-    enmapbox.hub.file.remove(outfile)
+    hub.file.mkdir(os.path.dirname(outfile))
+    hub.file.remove(outfile)
 
     cmd = 'ogr2ogr '+options+' '+outfile+' '+infile
     if verbose: print(cmd)

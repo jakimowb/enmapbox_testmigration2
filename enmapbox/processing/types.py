@@ -12,7 +12,7 @@ import rios.applier
 import sklearn.metrics
 import sklearn.pipeline
 from enmapbox.processing.report import *
-import enmapbox.processing.applier
+from enmapbox.processing.applier import ApplierControls
 
 
 # set default progress object
@@ -220,10 +220,11 @@ class Estimator(Type):
         except:
             args.estimator_type = self.sklEstimator._final_estimator.__class__
 
-        controls = enmapbox.processing.applier.ApplierControls()
+
+        controls = ApplierControls()
         controls.setNumThreads(1)
-        controls.windowxsize = 50
-        controls.windowysize = 50
+        controls.windowxsize = 256
+        controls.windowysize = 256
 
         progress.setDebugInfo(str(controls))
 
@@ -763,13 +764,11 @@ class UnsupervisedSample(Type):
         def ufunc(info, inputs, outputs, args):
 
             # reshape to 2d
-            #for k, v in inputs.__dict__.items(): inputs.__dict__[k] = inputs.__dict__[k].reshape((v.shape[0], -1))
             inputs.x = inputs.x.reshape((inputs.x.shape[0], -1))
             inputs.y = inputs.y.reshape((1, -1))
 
             # create mask
             valid = inputs.y[0] != args.yMeta.getNoDataValue(default=0)
-            #valid = numpy.ravel(valid)
 
             # exclude invalid samples if needed
             if valid.all():

@@ -9,6 +9,8 @@ class ApplierControls(rios.applier.ApplierControls):
         self.setJobManagerType('multiprocessing')
         self.setOutputDriverName("ENVI")
         self.setCreationOptions(["INTERLEAVE=BSQ"])
+        self.setWindowXsize(256)
+        self.setWindowYsize(256)
         self.setCalcStats(False)
         self.setOmitPyramids(True)
 
@@ -74,8 +76,13 @@ class ApplierHelper:
 
     @staticmethod
     def firstBlock(info):
-
         return (info.xblock == 0) and (info.yblock == 0)
+
+
+    @staticmethod
+    def lastBlock(info):
+        return (info.xblock == info.xtotalblocks-1) and (info.yblock == info.ytotalblocks-1)
+
 
 
 if __name__ == '__main__':

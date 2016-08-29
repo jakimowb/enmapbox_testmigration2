@@ -1,10 +1,10 @@
 __author__ = 'janzandr'
 import gdal, numpy, osgeo, hub.file, hub.envi
 from gdalconst import *
-from hub.collections import Bunch
+#from hub.collections import Bunch
 
 def geoInfo(file):
-    result = Bunch()
+    result = dict()
     dataset = gdal.Open(file, GA_ReadOnly)
     result.geoTransform = numpy.array(dataset.GetGeoTransform())
     result.projection = dataset.GetProjection()
@@ -24,20 +24,14 @@ def readCube(filename):
     return cube
 
 def writeCube(cube, filename, srsfilename=None, nodatavalue=None):
+
     hub.file.mkfiledir(filename)
-    #bands, lines, samples  = cube.shape
-    '''
-    GDALType = osgeo.gdal_array.NumericTypeCodeToGDALTypeCode(cube.dtype)
-    driver = gdal.GetDriverByName('ENVI')
-    dataset = driver.Create(filename, samples, lines, bands, GDALType)
-    for i in range(bands):
-        band = dataset.GetRasterBand(i + 1)
-        band.WriteArray(cube[i])
-    dataset = None
-    '''
+
     if srsfilename == None:
+        # create file without SRS (spatial reference system)
         datasource = osgeo.gdal_array.SaveArray(cube, filename, format='ENVI')
     else:
+        # use SRS (spatial reference system) from another image
         datasource = osgeo.gdal_array.SaveArray(cube, filename, format='ENVI', prototype=gdal.Open(srsfilename))
 
     # set no data value
@@ -58,7 +52,7 @@ class GDALBandmeta():
         self.setCategoryNames(None)
         self.setColorInterpretation(None)
         self.setColorTable(None)
-        self.setMetadataDict(Bunch())
+        self.setMetadataDict(dict())
         if rb is not None: self.readMeta(rb)
 
     def readMeta(self, rb):
@@ -67,7 +61,7 @@ class GDALBandmeta():
         self.categoryNames = rb.GetRasterCategoryNames()
         self.colorInterpretation = rb.GetRasterColorInterpretation()
         self.colorTable = [rb.GetColorTable().GetColorEntry(i) for i in range(len(self.categoryNames))] if self.categoryNames is not None else None
-        self.metadata = Bunch(rb.GetMetadata_Dict())
+        self.metadata = rb.GetMetadata_Dict()
 
     def setDescription(self, value): self.description = value
     def getDescription(self): return self.description
@@ -92,25 +86,29 @@ class GDALBandmeta():
 
 class GDALMeta():
 
-    def __init__(self, filename):
-        if filename is not None: self.readMeta(filename)
+    def __init__(self, filename=None):
+        self.domain = dict()
+        self.rb = list()
+        if filename is not None:
+            self.readMeta(filename)
 
     def __getitem__(self, i):
         return self.rb[i]
 
     def readMeta(self, filename):
         ds = gdal.Open(filename)
+
         if ds is None:
             Exception('Can not open file: '+filename)
 
         # read data source meta
-        self.domain = Bunch()
+        self.driver = ds.GetDriver().ShortName
         if ds.GetMetadataDomainList() is not None:
             for domain in ds.GetMetadataDomainList():
-                self.domain[domain if domain != '' else 'DEFAULT'] = Bunch(ds.GetMetadata(domain))
+                self.domain[domain if domain != '' else 'DEFAULT'] = ds.GetMetadata(domain)
                 if domain == 'ENVI':
                     # convert arrays given as strings into lists
-                    for k,v in self.domain.ENVI.items():
+                    for k,v in self.domain['ENVI'].items():
                         if k in ['coordinate_system_string']: continue
                         isArray = v[0] == '{' and v[-1] == '}'
                         if isArray:
@@ -118,12 +116,9 @@ class GDALMeta():
                             v = [vi.strip(" '") for vi in v]
                         else:
                             v = v.strip(' ')
-                        self.domain.ENVI[k] = v
-                        #if v[0] == '{' and v[-1] == '}': v = '['+v[1:-1]+']'
-                        #self.domain.ENVI[k] = yaml.load(v)
+                        self.domain['ENVI'][k] = v
 
         # read band meta
-        self.rb = list()
         for band in range(1,ds.RasterCount+1):
             self.rb.append(GDALBandmeta(ds.GetRasterBand(band)))
 
@@ -201,7 +196,8 @@ class GDALMeta():
         return result
 
     def createDomain(self, domain):
-        if not self.domain.has_key(domain): self.domain[domain] = Bunch()
+
+        if not self.domain.has_key(domain): self.domain[domain] = dict()
 
     def setMetadataItem(self, key, value, domain='ENVI', mapToBands=False):
         key = key.lower().replace(' ','_')
@@ -224,16 +220,19 @@ class GDALMeta():
         else:
             if domain == 'ENVI': # GDAL casts ENVI keys to all lower letters when writing to disk :-(, need to consider that here
                 key = key.replace(' ', '_')
-                if not self.domain.ENVI.has_key(key):
-                    key = key.lower()
-                result = self.domain.ENVI.get(key, self.domain.ENVI.get(key.lower(), default))
+                try:
+                    if not self.domain['ENVI'].has_key(key):
+                        key = key.lower()
+                except:
+                    pass
+                result = self.domain['ENVI'].get(key, self.domain['ENVI'].get(key.lower(), default))
             else:
                 result = self.domain[domain].get(key, default)
         return result
 
     def setNoDataValue(self, value):
         self.createDomain('ENVI')
-        self.domain.ENVI.data_ignore_value = value
+        self.domain['ENVI']['data_ignore_value'] = value
         for rb in self.rb:
             rb.setNoDataValue(value)
 
@@ -254,7 +253,7 @@ class GDALMeta():
         for rb, value in zip(self.rb, values):
             rb.setDescription(value)
         self.createDomain('ENVI')
-        self.domain.ENVI.band_names = values
+        self.domain['ENVI']['band_names'] = values
 
 
 if __name__ == '__main__':
@@ -288,7 +287,7 @@ if __name__ == '__main__':
     print(type(meta))
     print 'Is correct type?:', isinstance(meta, GDALMeta)
     print
-    for k,v in meta.ds.domain.ENVI.items(): print k+':',v
+    for k,v in meta.ds.domain['ENVI'].items(): print k+':',v
 
     filename = r'H:\EuropeanDataCube\testCaseAR\cubes\32\32UNB\band2.vrt'
     cube = readCube(filename)
