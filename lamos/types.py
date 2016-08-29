@@ -315,7 +315,8 @@ class SensorXComposer:
 class Archive(Type):
 
     def __init__(self, folder):
-        assert os.path.exists(folder)
+        if folder is not None:
+            assert os.path.exists(folder)
         self.folder = folder
 
 
@@ -613,7 +614,8 @@ class ApplierInput():
 class ApplierOutput():
 
     def __init__(self, folder, productName, imageNames, extension):
-        assert isinstance(folder, basestring)
+        if folder is not None:
+            assert isinstance(folder, basestring)
         assert isinstance(productName, basestring)
         assert isinstance(imageNames, list)
         self.folder = folder
@@ -637,13 +639,14 @@ class Applier:
 
     class Metas:
 
-        def __init__(self, riosFilenameAssociations):
+        def __init__(self, riosFilenameAssociations=None):
 
-            assert isinstance(riosFilenameAssociations, rios.applier.FilenameAssociations)
-            self._filenames = dict()
-            for key, filename in riosFilenameAssociations.__dict__.items():
-                self.__dict__[key] = hub.gdal.api.GDALMeta(filename)
-                self._filenames[key] = filename
+            if riosFilenameAssociations is not None:
+                assert isinstance(riosFilenameAssociations, rios.applier.FilenameAssociations)
+                self._filenames = dict()
+                for key, filename in riosFilenameAssociations.__dict__.items():
+                    self.__dict__[key] = hub.gdal.api.GDALMeta(filename)
+                    self._filenames[key] = filename
 
         def write(self):
             for key, filename in self._filenames.items():

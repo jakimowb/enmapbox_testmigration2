@@ -274,7 +274,7 @@ def scorePG(inputs, inmeta, info):
 
           (scoreHazeOptimizedTransformation, {}, 0.75),
           (scoreNDVI,                        {}, 0.25),
-          (scoreSensor,                      {}, 0.75),
+          #(scoreSensor,                      {}, 0.75),
           #(scoreSynopticity,                 {}, 0.75),
           (scoreTargetDoy,                   {}, 1.00),
           (scoreTargetYear,                  {}, 1.00)
@@ -374,8 +374,8 @@ class CompositingApplier(Applier):
         import hub.datetime
         inputDates = numpy.array(getMeta('date', inmetas))
         inputDoys = numpy.array(getMeta('doy', inmetas)).astype(numpy.int16)
-        inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
-        inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
+        #inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
+        #inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
         bands, samples, lines = inputs.timeseries_cfmask.shape
 
         # cast to float and set invalid observations to NaN

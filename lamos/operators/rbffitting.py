@@ -113,6 +113,7 @@ def test_1dfit():
         m = numpy.isfinite(z)
         z[numpy.logical_not(m)] = 0
         w = convolve(v, kernel.array*0+1., boundary='fill', fill_value=0, normalize_kernel=False)
+        print kernel.array.shape[0]/8.
         return z, m, w
 
     plt.plot(x, y, 'k.')
@@ -121,8 +122,10 @@ def test_1dfit():
     z = numpy.zeros_like(y)
     m = numpy.zeros_like(y)
     w = numpy.zeros_like(y)
-    for stddev, weight in zip([5,10,15,20,25,30,35,40,50,60],
-                              [100,100,100, 30, 10, 5, 1, 1, 1, 1]):
+#    for stddev, weight in zip([5, 10, 15, 20, 25, 30, 35, 40, 50, 60],
+#                              [100, 100, 100, 30, 10, 5, 1, 1, 1, 1]):
+    for stddev, weight in zip([3*8, 5*8, 7*8],
+                              [5, 2, 1]):
         zi, mi, wi = conv(stddev)
         z += zi*wi*weight
         #m += mi
