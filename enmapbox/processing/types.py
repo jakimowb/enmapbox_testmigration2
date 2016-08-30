@@ -934,16 +934,19 @@ class ClassificationPerformance(Type):
 
     def report(self):
 
-       # colHeaders = [['Hello World'], ['A', 'B'], ['a1', 'a2', 'b1', 'b2']]
-       # colSpans =   [[4],             [2, 2],     [1, 1, 1, 1]]
-       # rowHeaders = [['Hello World'], ['X', 'Y', 'Z'], ['x1', 'x2', 'y1', 'y2', 'z1', 'z2']]
-        # rowSpans = [[6], [2, 2, 2], [1, 1, 1, 1, 1, 1]]
-        #data = numpy.random.randint(0, 5, (6, 4))
-
 
         report = Report('Classification Performance')
-        # prediction filename -> self.sample.image.filename
-        # reference sample filename -> self.sample.mask.filename
+
+        report.append(ReportHeading('Input Files'))
+        report.append(ReportMonospace('Reference:  ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
+
+        report.append(ReportHeading('Classification Label Overview'))
+        colHeaders = None
+        rowSpans = [[1,2],[1,1,1]]
+        colSpans = [[1,1,1,1,1]]
+        rowHeaders = [['','Class Names'],['Class ID','Reference', 'Prediction']]
+        data = [numpy.hstack((0,self.classLabels)),self.sample.mask.meta.getMetadataItem('class names'),self.sample.image.meta.getMetadataItem('class names')]
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
         # Confusion Matrix Table
         report.append(ReportHeading('Confusion Matrix'))
@@ -955,11 +958,12 @@ class ClassificationPerformance(Type):
         classNamesColumn = []
         for i in range(self.classes): classNamesColumn.append('('+str(i+1)+') '+self.classNames[i])
         rowHeaders = [classNamesColumn+['Sum']]
-        data = numpy.vstack(((numpy.hstack((self.mij,self.m_j[:, None]))),numpy.hstack((self.mi_,self.m))))
+        data = numpy.vstack(((numpy.hstack((self.mij,self.m_j[:, None]))),numpy.hstack((self.mi_,self.m)))).astype(int)
+
         report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
-        # Accuracies Overview Table
-        report.append(ReportHeading('Overview'))
+        # Accuracies Table
+        report.append(ReportHeading('Accuracies'))
         colHeaders = [['Measure', 'Estimate [%]', '95 % Confidence Interval [%]']]
         colSpans = [[1,1,2]]
         rowHeaders = None
@@ -992,13 +996,6 @@ class ClassificationPerformance(Type):
         data = numpy.vstack(((numpy.hstack((self.pij*100,self.p_j[:, None]*100))),numpy.hstack((self.pi_*100,100))))
         report.append(ReportTable(numpy.round(data,2), '', colHeaders, rowHeaders, colSpans, rowSpans)) \
 
-
-#        report.append(ReportHeading('Input Files'))
-#        report.append(ReportMonospace('Reference   ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
-
-        report.append(ReportHeading('Classification Label Overview'))
-        report.append(ReportMonospace(str(['Reference: ']+self.sample.mask.meta.getMetadataItem('class names'))))
-        report.append(ReportMonospace(str(['Prediction: ']+self.sample.image.meta.getMetadataItem('class names'))))
 
         report.append(ReportHeading('Confusion Matrix'))
         report.append(ReportMonospace('mij = '+ str(self.mij)))

@@ -10,8 +10,9 @@ from enmapbox.processing.environment import PrintProgress as Progress
 if os.environ['USERNAME'] == 'janzandr':
     inroot = r'c:\work\data'
     outroot = r'c:\work\outputs'
-elif os.environ['USERNAME'] == 'geo_mahe':
-    pass #todo
+elif os.environ['USERNAME'] == 'enmap-box':
+    inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
+
 
 
 def sample():
@@ -45,7 +46,7 @@ def classification():
 
 
     #classifiers = [enmapbox.processing.estimators.Classifiers.RandomForestClassifier()]
-    #classifiers = [enmapbox.processing.estimators.Classifiers.LinearSVCTuned()]
+    classifiers = [enmapbox.processing.estimators.Classifiers.LinearSVCTuned()]
     #classifiers = [enmapbox.processing.estimators.Classifiers.SVCTuned(C=[1, 10, 100], gamma=[0.001, 100,1000])]
     # classifiers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Classifiers)
 
@@ -104,8 +105,8 @@ def transformer():
     trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
     #transformers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Transformers)
-    transformers = [enmapbox.processing.estimators.Transformers.KernelPCA()]
-    #transformers = [enmapbox.processing.estimators.Transformers.PCA()]
+    #transformers = [enmapbox.processing.estimators.Transformers.KernelPCA()]
+    transformers = [enmapbox.processing.estimators.Transformers.PCA()]
 
     for transformer in transformers:
 
@@ -261,7 +262,7 @@ if __name__ == '__main__':
 
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    #classification()
+    classification()
     #regression()
     #clusterer()
     #transformer()
