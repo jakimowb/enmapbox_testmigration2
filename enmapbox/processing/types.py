@@ -4,7 +4,7 @@ __author__ = 'janzandr'
 
 import operator
 import hub
-from enmapbox.processing.env import SilentProgress
+from enmapbox.processing.environment import SilentProgress
 from hub.gdal.api import GDALMeta
 import hub.gdal.util
 import hub.file
@@ -63,8 +63,8 @@ class Image(Type):
 
     def __init__(self, filename):
 
-        assert isinstance(filename, basestring), 'Incorrect filename!'
-        assert os.path.exists(filename), 'Incorrect filename!'
+        assert isinstance(filename, basestring), 'Incorrect filename! '+str(filename)
+        assert os.path.exists(filename), 'Incorrect filename! '+str(filename)
         self.filename = filename
         self.meta = GDALMeta(filename)
         self._assert()
@@ -89,7 +89,7 @@ class Image(Type):
         :rtype: Image
         """
 
-        if filename is None: filename = env.tempfile()
+        if filename is None: filename = Environment.tempfile()
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
         return self.__class__(filename)
 
@@ -529,7 +529,7 @@ class Classifier(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask=None, filename=env.tempfile('classification'), progress=progress):
+    def predict(self, image, mask=None, filename=Environment.tempfile('classification'), progress=progress):
 
         assert isinstance(image, Image)
         if mask is not None:
@@ -559,7 +559,7 @@ class Classifier(Estimator):
         return -1
 
 
-    def predictProbability(self, image, mask=None, filename=env.tempfile('probability'), progress=progress):
+    def predictProbability(self, image, mask=None, filename=Environment.tempfile('probability'), progress=progress):
 
         assert isinstance(image, Image)
         if mask is not None:
@@ -623,7 +623,7 @@ class Regressor(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask, filename=env.tempfile('regression')):
+    def predict(self, image, mask, filename=Environment.tempfile('regression')):
 
         self._predict(image, mask, predictfile=filename)
         return Regression(filename)
@@ -670,12 +670,12 @@ class Transformer(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def transform(self, image, mask=None, filename=env.tempfile('transformation'), progress=progress):
+    def transform(self, image, mask=None, filename=Environment.tempfile('transformation'), progress=progress):
 
         self._predict(image, mask, transformfile=filename, progress=progress)
         return Image(filename)
 
-    def transformInverse(self, image, mask=None, filename=env.tempfile('inverseTransformation'), progress=progress):
+    def transformInverse(self, image, mask=None, filename=Environment.tempfile('inverseTransformation'), progress=progress):
 
         self._predict(image, mask, inversetransformfile=filename, progress=progress)
         return Image(filename)
@@ -701,7 +701,7 @@ class Clusterer(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask=None, filename=env.tempfile('clustering')):
+    def predict(self, image, mask=None, filename=Environment.tempfile('clustering')):
 
         self._predict(image, mask, predictfile=filename)
         return Classification(filename)
@@ -1133,9 +1133,3 @@ class ClusteringPerformance(Type):
                     + '\nadjusted_rand_score =      ' + str(sklearn.metrics.cluster.adjusted_rand_score(reference, prediction))\
                     + '\ncompleteness_score =       ' + str(sklearn.metrics.cluster.completeness_score(reference, prediction))
 
-'''
-ImageStatistics
-SpatialReference
-PixelGrid
-BoundingBox
-'''

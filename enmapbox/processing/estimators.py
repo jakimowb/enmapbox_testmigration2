@@ -14,7 +14,7 @@ import sklearn.svm
 from HTML import Table
 
 
-def all(estimators):
+def _allEstimators(estimators):
 
 #    for k, v in estimators.__dict__.items():
 #        if not k.startswith('_'):
@@ -24,6 +24,13 @@ def all(estimators):
 
 
 class Classifiers():
+
+    def yieldAll(self):
+        for k in dir(self):
+            if k.startswith('_'): continue
+            if k == 'yieldAll': continue
+            estimator = eval('self.'+k+'()')
+            yield estimator
 
     class LinearSVC(Classifier):
 
@@ -658,8 +665,4 @@ class MH:
 
 
 if __name__ == '__main__':
-
-
-
-    for est in all(Classifiers)+all(Regressors):
-        print est.name()
+    print list(Classifiers().yieldAll())

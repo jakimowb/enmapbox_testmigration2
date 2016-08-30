@@ -104,7 +104,4 @@ def statisticsCompositeCube(cube, statisticsParameters, stack=True):
 if __name__ == '__main__':
     ma = numpy.ma.array([[10,10,10],[20,20,20]],mask=[[1,0,0],[1,0,1]])
 
-    print ma
-    print
-    print qualityCompositeCube([ma,ma], [0,100], ma)
     #print statisticsCompositeCube(ma, percentages=[0,100], mean=True, dtype=numpy.int16)

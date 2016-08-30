@@ -1,28 +1,28 @@
 # Import Processing libraries to add the algorithms to Processing toolbox
-import enmapbox.processing
-import enmapbox.processing.estimators
 from processing.core.Processing import Processing
 from processing.core.GeoAlgorithm import GeoAlgorithm
+from processing.core.AlgorithmProvider import AlgorithmProvider
+from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
+from processing.gui.AlgorithmDialog import AlgorithmDialog
 from processing.core.parameters import *
 from processing.core.outputs import *
-from processing.core.AlgorithmProvider import AlgorithmProvider
-from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
-from processing.gui.AlgorithmDialog import AlgorithmDialog
-from processing.core.outputs import *
-from processing.core.AlgorithmProvider import AlgorithmProvider
-from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
-from processing.gui.AlgorithmDialog import AlgorithmDialog
 
+import traceback
+
+from enmapbox.processing.estimators import Classifiers
+from enmapbox.processing.environment import Environment
+from enmapbox.processing.types import Image, Classification, Mask, Estimator, unpickle
 
 class EnMAPBoxProvider(AlgorithmProvider):
     def __init__(self):
+
         AlgorithmProvider.__init__(self)
         self.alglist = [ImageMLFit('imageML Fit', 'imageML', ''), ImageMLPredict(),
                         ImageMLOpenHyMapA()]
 
-        for estimator in enmapbox.processing.estimators.all(enmapbox.processing.estimators.Classifiers):
+        for estimator in Classifiers().yieldAll():
             self.alglist.append(
-                ImageMLFit(estimator.name() + ' Fit', 'imageML Classifier', 'eb.Classifiers.' + estimator.signature()))
+                ImageMLFit(estimator.name() + ' Fit', 'imageML Classifier', 'Classifiers.' + estimator.signature()))
 
             #        for name, statement in eb.regressor.AllSignatures():
             #            self.alglist.append(ImageMLFit(name + ' Fit', 'imageML Regressors', statement))
@@ -52,7 +52,51 @@ class EnMAPBoxProvider(AlgorithmProvider):
         self.algs = self.alglist
 
 
-class ToyAllParameters(GeoAlgorithm):
+class EnmapBoxParameterSelection(ParameterSelection):
+
+    def __init__(self, options, name='', description='', default=-1):
+        ParameterSelection.__init__(self, name=name, description=description, options=options, default=default)
+
+
+class EnmapBoxParameterSelectionImage(EnmapBoxParameterSelection):
+
+    def __init__(self, name='', description='', default=-1, optional=False):
+        options = Environment.rasterFilenames
+        EnmapBoxParameterSelection.__init__(self, options=options, name=name, description=description, default=default)
+
+
+class EnmapBoxParameterSelectionModel(EnmapBoxParameterSelection):
+
+    def __init__(self, name='', description='', default=-1, optional=False):
+        options = Environment.modelFilenames
+        EnmapBoxParameterSelection.__init__(self, options=options, name=name, description=description, default=default)
+
+
+class EnmapBoxOutputFileModel(OutputFile):
+
+    def __init__(self, name='', description='', ext=None):
+        OutputFile.__init__(self, name=name, description=description, ext=ext)
+
+
+class EnMAPBoxGeoAlgorithm(GeoAlgorithm):
+
+    def getParameterValue(self, name):
+        for param in self.parameters:
+            if param.name == name:
+                if isinstance(param, EnmapBoxParameterSelection):
+                    return param.options[param.value]
+                return param.value
+        return None
+
+    def getOutputValue(self, name):
+        for out in self.outputs:
+            if out.name == name:
+                if isinstance(out, EnmapBoxOutputFileModel):
+                     Environment.openModel(out.value)
+                return out.value
+        return None
+
+class ToyAllParameters(EnMAPBoxGeoAlgorithm):
     INPUT_IMAGE = 'INPUT_IMAGE'
     INPUT_LABELS = 'INPUT_LABELS'
     INPUT_ESTIMATOR = 'INPUT_ESTIMATOR'
@@ -97,10 +141,6 @@ class ToyAllParameters(GeoAlgorithm):
         self.addParameter(ParameterNumber(self.INPUT_NUMBER, 'ParameterNumber'))
         self.addParameter(ParameterRange(self.INPUT_RANGE, 'ParameterRange'))
         self.addParameter(ParameterRaster(self.INPUT_RASTER, 'ParameterRaster'))
-        self.addParameter(
-            ParameterSelection(self.INPUT_SELECTION, 'ParameterSelection', options=enmapbox.processing.env.filelist))
-        self.addParameter(
-            ParameterString(self.INPUT_STRING, 'ParameterString', default=''.join(enmapbox.processing.env.filelist)))
         self.addParameter(ParameterTable(self.INPUT_TABLE, 'ParameterTable'))
         self.addParameter(ParameterTableField(self.INPUT_TABLEFIELD, 'ParameterTableField'))
         self.addParameter(ParameterVector(self.INPUT_VECTOR, 'ParameterVector'))
@@ -135,8 +175,8 @@ class ToyAllParameters(GeoAlgorithm):
         classifier = processing.classifier.SVCTuned()
         classifier.pickle(filename)
 
+class ImageMLOpenHyMapA(EnMAPBoxGeoAlgorithm):
 
-class ImageMLOpenHyMapA(GeoAlgorithm):
     def defineCharacteristics(self):
         self.name = 'Open HyMap A'
         self.group = 'Management'
@@ -144,21 +184,22 @@ class ImageMLOpenHyMapA(GeoAlgorithm):
         self.addOutput(OutputRaster('image', 'Image'))
         self.addOutput(OutputRaster('mask', 'Mask'))
         self.addOutput(OutputRaster('labels', 'Labels'))
-        # self.addOutput(OutputHTML('html', 'HTML Report'))
 
     def processAlgorithm(self, progress):
-        self.setOutputValue('image', r'C:\Work\data\Hymap_Berlin-A_Image')
-        self.setOutputValue('mask', r'C:\Work\data\Hymap_Berlin-A_Mask')
-        self.setOutputValue('labels', r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
 
+        root = r'C:\Work\data'
+        image = os.path.join(root, 'Hymap_Berlin-A_Image')
+        mask = os.path.join(root, 'Hymap_Berlin-A_Mask')
+        labels = os.path.join(root, 'Hymap_Berlin-A_Classification-Training-Sample')
 
-class ImageMLFit(GeoAlgorithm):
-    INPUT_IMAGE = 'INPUT_IMAGE'
-    INPUT_LABELS = 'INPUT_LABELS'
-    INPUT_PARAMS = 'INPUT_PARAMS'
-    INPUT_OPENHTML = 'INPUT_OPENHTML'
-    OUTPUT_MODEL = 'OUTPUT_MODEL'
-    OUTPUT_HTML = 'OUTPUT_HTML'
+        self.setOutputValue('image', image)
+        self.setOutputValue('mask', mask)
+        self.setOutputValue('labels', labels)
+
+        for filename in [image, mask, labels]:
+            Environment.openRaster(filename)
+
+class ImageMLFit(EnMAPBoxGeoAlgorithm):
 
     def __init__(self, name, group, statement):
 
@@ -171,55 +212,55 @@ class ImageMLFit(GeoAlgorithm):
 
         self.name = self.name_
         self.group = self.group_
-        self.addParameter(ParameterRaster(self.INPUT_IMAGE, 'Image', optional=False))
-        self.addParameter(ParameterRaster(self.INPUT_LABELS, 'Labels', optional=False))
-        self.addParameter(ParameterString(self.INPUT_PARAMS, 'Parameters', self.statement, multiline=True))
-        self.addOutput(OutputFile(self.OUTPUT_MODEL, 'Fitted Model'))
-        self.addOutput(OutputHTML(self.OUTPUT_HTML, 'ImageML Fit Report'))
-        self.addParameter(ParameterBoolean(self.INPUT_OPENHTML, 'Open Report in Web Browser?', True))
+        self.addParameter(EnmapBoxParameterSelectionImage('image', 'Image'))
+        self.addParameter(EnmapBoxParameterSelectionImage('labels', 'Labels'))
+
+        self.addParameter(ParameterString('parameters', 'Parameters', self.statement, multiline=True))
+        self.addOutput(EnmapBoxOutputFileModel('model', 'Fitted Model'))
 
     def processAlgorithm(self, progress):
+        image = Image(self.getParameterValue('image'))
 
-        image = enmapbox.processing.Image(self.getParameterValue(self.INPUT_IMAGE))
-        labels = enmapbox.processing.Classification(self.getParameterValue(self.INPUT_LABELS))
         try:
-            estimator = eval(self.getParameterValue(self.INPUT_PARAMS))
+            filename = self.getParameterValue('labels')
+            labels = Classification(filename)
         except:
-            raise GeoAlgorithmExecutionException('Parameters statement could not be evaluated!')
+            traceback.print_exc()
+            raise GeoAlgorithmExecutionException(r'Labels (' + filename + ') is not a correct classification image!')
 
-        assert isinstance(estimator, enmapbox.processing.Estimator), 'Model is not an estimator!'
+        try:
+            estimator = eval(self.getParameterValue('parameters'))
+        except:
+            traceback.print_exc()
+            raise GeoAlgorithmExecutionException('Statement could not be evaluated!')
+
+        assert isinstance(estimator, Estimator), 'Model is not an estimator!'
         estimator.fit(image, labels, progress=progress)
-        estimator.pickle(self.getOutputValue(self.OUTPUT_MODEL), progress=progress)
-        report = estimator.report().saveHTML(self.getOutputValue(self.OUTPUT_HTML))
-        if self.getParameterValue(self.INPUT_OPENHTML):
-            report.open()
+        estimator.pickle(self.getOutputValue('model'), progress=progress)
+        estimator.info()
 
 
-class ImageMLPredict(GeoAlgorithm):
-    INPUT_IMAGE = 'INPUT_IMAGE'
-    INPUT_MASK = 'INPUT_MASK'
-    INPUT_MODEL = 'INPUT_MODEL'
-    OUTPUT_PREDICTION = 'OUTPUT_PREDICTION'
+class ImageMLPredict(EnMAPBoxGeoAlgorithm):
 
     def defineCharacteristics(self):
 
         self.name = 'imageML Predict'
         self.group = 'imageML'
 
-        self.addParameter(ParameterRaster(self.INPUT_IMAGE, 'Image', optional=False))
-        self.addParameter(ParameterRaster(self.INPUT_MASK, 'Mask', optional=True))
-        self.addParameter(ParameterFile(self.INPUT_MODEL, 'Model'))
-        self.addOutput(OutputRaster(self.OUTPUT_PREDICTION, 'Prediction'))
+        self.addParameter(EnmapBoxParameterSelectionImage('image', 'Image', optional=True))
+        self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
+        self.addParameter(EnmapBoxParameterSelectionModel('model', 'Model'))
+        self.addOutput(OutputRaster('prediction', 'Prediction'))
 
     def processAlgorithm(self, progress):
 
-        image = enmapbox.processing.Image(self.getParameterValue(self.INPUT_IMAGE))
-        if self.getParameterValue(self.INPUT_MASK):
-            mask = enmapbox.processing.Mask(self.getParameterValue(self.INPUT_MASK))
+        image = Image(self.getParameterValue('image'))
+        if self.getParameterValue('mask'):
+            mask = Mask(self.getParameterValue('mask'))
         else:
             mask = None
 
-        estimator = enmapbox.processing.unpickle(str(self.getParameterValue(self.INPUT_MODEL)), progress=progress)
-        assert isinstance(estimator, enmapbox.processing.Estimator), 'Model is not an estimator!'
+        estimator = unpickle(str(self.getParameterValue('model')), progress=progress)
+        assert isinstance(estimator, Estimator), 'Model is not an estimator!'
 
-        estimator.predict(image, mask, filename=self.getOutputValue(self.OUTPUT_PREDICTION), progress=progress)
+        estimator.predict(image, mask, filename=self.getOutputValue('prediction'), progress=progress)

@@ -594,7 +594,7 @@ class ApplierInput():
 
     def __init__(self, archive, productName, imageNames, extension, bands=None):
         assert isinstance(archive, Archive)
-        assert isinstance(productName, basestring)
+        assert isinstance(productName, str)
         assert isinstance(imageNames, list)
         self.archive = archive
         self.productName = productName
@@ -616,7 +616,7 @@ class ApplierOutput():
     def __init__(self, folder, productName, imageNames, extension):
         if folder is not None:
             assert isinstance(folder, basestring)
-        assert isinstance(productName, basestring)
+        assert isinstance(productName, str)
         assert isinstance(imageNames, list)
         self.folder = folder
         self.productName = productName

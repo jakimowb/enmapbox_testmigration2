@@ -141,7 +141,7 @@ class GDALMeta():
 
         ds = gdal.Open(filename, GA_Update)
         if ds is None:
-            print 'Unable to open '+filename
+            print('Unable to open '+filename)
             raise
 
         for domain, bunch in self.domain.items():
@@ -188,7 +188,7 @@ class GDALMeta():
 
 
     def getMetadataDict(self, domain='ENVI'):
-        if self.domain.has_key(domain):
+        if domain in self.domain:
             result = self.domain[domain]
         else:
             result = dict()
@@ -197,7 +197,7 @@ class GDALMeta():
 
     def createDomain(self, domain):
 
-        if not self.domain.has_key(domain): self.domain[domain] = dict()
+        if not domain in self.domain: self.domain[domain] = dict()
 
     def setMetadataItem(self, key, value, domain='ENVI', mapToBands=False):
         key = key.lower().replace(' ','_')
@@ -221,7 +221,7 @@ class GDALMeta():
             if domain == 'ENVI': # GDAL casts ENVI keys to all lower letters when writing to disk :-(, need to consider that here
                 key = key.replace(' ', '_')
                 try:
-                    if not self.domain['ENVI'].has_key(key):
+                    if not key in self.domain['ENVI']:
                         key = key.lower()
                 except:
                     pass
@@ -265,13 +265,13 @@ if __name__ == '__main__':
     meta.setMetadataDict({'key1':'hello 1', 'key2':'hello 2'}) # this goes to the ENVI domain per default
     meta.setMetadataItem('key3', 'hello 3') # this goes to the ENVI domain per default
     meta.setMetadataItem('key4', 'hello 4', 'myDomain')
-    print meta.getMetadataDict() # this comes from ENVI domain per default
-    print meta.getMetadataDict('myDomain')
+    print(meta.getMetadataDict()) # this comes from ENVI domain per default
+    print(meta.getMetadataDict('myDomain'))
 
     # set band metas
     meta[0].setMetadataDict({'key1':'hello 1', 'key2':'hello 2'})
     meta[0].setMetadataItem('key3', 'hello 3')
-    print meta[0].getMetadataDict()
+    print(meta[0].getMetadataDict())
 
 #    meta[0].setMetadataItem('key1', 'hello 1')
 #    meta[0].metadata.key2 = 'hello 2'
