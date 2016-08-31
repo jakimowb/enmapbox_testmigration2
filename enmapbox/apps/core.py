@@ -240,6 +240,8 @@ class ImageMLOpenHyMapA(EnMAPBoxGeoAlgorithm):
     def processAlgorithm(self, progress):
 
         root = r'C:\Work\data'
+        root = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
+
         image = os.path.join(root, 'Hymap_Berlin-A_Image')
         mask = os.path.join(root, 'Hymap_Berlin-A_Mask')
         labels = os.path.join(root, 'Hymap_Berlin-A_Classification-Training-Sample')
