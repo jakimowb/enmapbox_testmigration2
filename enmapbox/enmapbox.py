@@ -26,13 +26,14 @@ LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
 
 if six.PY3:
     rc_suffix = '_py3'
-    import gui.resources_py3
+    #import gui.resources_py3
 else:
     rc_suffix = '_py2'
-    import gui.resources_py2
+    #import gui.resources_py2
 
 #todo: reduce imports to minimum
-from PyQt4.Qt import *
+#from PyQt4.Qt import *
+import PyQt4
 try:
     import pyqtgraph
     import pyqtgraph.dockarea.DockArea
@@ -48,7 +49,8 @@ except:
 
 VERSION = '2016-0.beta'
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt4.QtCore import *
+from PyQt4 import QtGui, QtCore, uic
 
 ENMAPBOX_GUI_UI, _ = uic.loadUiType(jp(DIR_GUI, 'enmapbox_gui.ui'),
                                     from_imports=False, resource_suffix=rc_suffix)
@@ -197,20 +199,20 @@ class DataSourceRaster(DataSource):
         assert isinstance(src, qgis.core.QgsRasterLayer)
         nb = src.bandCount()
 
-        icon = QIcon(EnMAPBoxIcons.File_Raster)
+        icon = QtGui.QIcon(EnMAPBoxIcons.File_Raster)
         if nb == 1:
             dt = dp.dataType(1)
 
             cat_types = [QGis.CInt16, QGis.CInt32, QGis.Byte, QGis.UInt16, QGis.UInt32, QGis.Int16, QGis.Int32]
             if dt in cat_types:
                 if len(dp.colorTable(1)) != 0:
-                    icon = QIcon(EnMAPBoxIcons.File_RasterClassification)
+                    icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterClassification)
                 else:
-                    icon = QIcon(EnMAPBoxIcons.File_RasterMask)
+                    icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterMask)
             elif dt in [QGis.Float32, QGis.Float64, QGis.CFloat32, QGis.CFloat64]:
-                icon = QIcon(EnMAPBoxIcons.File_RasterRegression)
+                icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterRegression)
         else:
-            icon = QIcon(EnMAPBoxIcons.File_Raster)
+            icon = QtGui.QIcon(EnMAPBoxIcons.File_Raster)
 
         return icon
 
@@ -449,7 +451,7 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
                 tt = item.description
             return tt
         if role == Qt.DecorationRole and index.column() == 0:
-            if isinstance(item.icon, QIcon):
+            if isinstance(item.icon, QtGui.QIcon):
                 return item.icon
 
         return None
@@ -810,7 +812,7 @@ class EnMAPBox:
         pass
 
 
-class EnMAPBoxDataSourceManager(QtCore.QObject):
+class EnMAPBoxDataSourceManager(QObject):
 
     def __init__(self):
         pass
@@ -1056,7 +1058,7 @@ class EnMAPBoxDockLabel(VerticalLabel):
         super(EnMAPBoxDockLabel, self).resizeEvent(ev)
 
 
-class CanvasLinkTargetWidget(QFrame):
+class CanvasLinkTargetWidget(QtGui.QFrame):
 
     LINK_TARGET_WIDGETS = set()
 
