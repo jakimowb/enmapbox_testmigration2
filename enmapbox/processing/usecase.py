@@ -72,7 +72,9 @@ def regression():
     trainingLabels = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Training-Sample'))
     testingLabels = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
 
-    regressors = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Regressors)
+    #regressors = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Regressors)
+    regressors = [enmapbox.processing.estimators.Regressors.LinearSVRTuned()]
+
 
     for regressor in regressors:
         assert isinstance(regressor, enmapbox.processing.types.Regressor)
@@ -262,8 +264,8 @@ if __name__ == '__main__':
 
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    classification()
-    #regression()
+    #classification()
+    regression()
     #clusterer()
     #transformer()
     #performance()
@@ -280,4 +282,4 @@ if __name__ == '__main__':
     #saveImageAs()
     #stackImages()
     #projectImageToPixelGrid()
-    ar_debug()
+    #ar_debug()
