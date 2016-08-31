@@ -22,15 +22,17 @@ def _allEstimators(estimators):
 #            print v()
     return [v() for k, v in estimators.__dict__.items() if not k.startswith('_')]
 
-
-class Classifiers():
+class Estimators():
 
     def yieldAll(self):
         for k in dir(self):
             if k.startswith('_'): continue
             if k == 'yieldAll': continue
-            estimator = eval('self.'+k+'()')
+            estimator = eval('self.' + k + '()')
             yield estimator
+
+
+class Classifiers(Estimators):
 
     class LinearSVC(Classifier):
 
@@ -55,7 +57,6 @@ class Classifiers():
             svc = self.finalEstimator()
             report = Report('')
             return report
-
 
     class LinearSVCTuned(LinearSVC):
 
@@ -94,9 +95,6 @@ class Classifiers():
 
             return report
 
-
-
-
     class SVC(Classifier):
 
         def __init__(self, C=1.0, cache_size=200, class_weight=None, coef0=0.0,
@@ -129,7 +127,6 @@ class Classifiers():
             rowHeaders = [['Number of Support Vectors']]
             report.append(ReportTable(data, colHeaders=colHeaders, rowHeaders=rowHeaders))
             return report
-
 
     class SVCTuned(SVC):
 
@@ -168,10 +165,6 @@ class Classifiers():
             report.append(ReportPlot(fig, 'Performance Surface'))
 
             return report
-
-
-
-
 
     class RandomForestClassifier(Classifier):
 
@@ -213,11 +206,14 @@ class Classifiers():
 
             return report
 
+# need to copy classes outside of Classifiers to be able to pickle the models
+LinearSVC = Classifiers.LinearSVC
+LinearSVCTuned = Classifiers.LinearSVCTuned
+SVC = Classifiers.SVC
+SVCTuned = Classifiers.SVCTuned
+RandomForestClassifier = Classifiers.RandomForestClassifier
 
-
-
-
-class Regressors():
+class Regressors(Estimators):
 
     class LinearSVR(Regressor):
 
@@ -233,7 +229,6 @@ class Regressors():
 
             pipe = sklearn.pipeline.make_pipeline(scaler, svr)
             Regressor.__init__(self, pipe)
-
 
     class LinearSVRTuned(Regressor):
 
@@ -258,7 +253,6 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(scaler, svrTuned)
             Regressor.__init__(self, pipe)
 
-
     class SVR(Regressor):
 
         def __init__(self, C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma='auto',
@@ -271,7 +265,6 @@ class Regressors():
 
             pipe = sklearn.pipeline.make_pipeline(scaler, svr)
             Regressor.__init__(self, pipe)
-
 
     class SVRTuned(Regressor):
 
@@ -294,7 +287,6 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(scaler, svrTuned)
             Regressor.__init__(self, pipe)
 
-
     class RandomForestRegressor(Regressor):
 
         def __init__(self, bootstrap=True, criterion='mse', max_depth=None,
@@ -312,7 +304,6 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(rfr)
             Regressor.__init__(self, pipe)
 
-
     class LinearRegression(Regressor):
 
         def __init__(self, copy_X=True, fit_intercept=True, n_jobs=1, normalize=True):
@@ -323,8 +314,14 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(linearRegression)
             Regressor.__init__(self, pipe)
 
+LinearSVR = Regressors.LinearSVR
+LinearSVRTuned = Regressors.LinearSVRTuned
+SVR = Regressors.SVR
+SVRTuned = Regressors.SVRTuned
+RandomForestRegressor = Regressors.RandomForestRegressor
+LinearRegression = Regressors.LinearRegression
 
-class Clusterers():
+class Clusterers(Estimators):
 
     class KMeans(Clusterer):
 
@@ -366,8 +363,9 @@ class Clusterers():
         #    report.append(ReportTable(table))
             return report
 
+KMeans = Clusterers.KMeans
 
-class Transformers():
+class Transformers(Estimators):
 
     class PCA(Transformer):
 
@@ -404,7 +402,6 @@ class Transformers():
             report.append(ReportPlot(fig, 'Explained Variances'))
 
             return report
-
 
     class KernelPCA(Transformer):
 
@@ -448,7 +445,6 @@ class Transformers():
 
             return report
 
-
     class FastICA(Transformer):
 
         def __init__(self, algorithm='parallel', fun='logcosh', fun_args=None, max_iter=200,
@@ -477,7 +473,6 @@ class Transformers():
             #report.append(ReportHeading('Information'))
             return report
 
-
     class StandardScaler(Transformer):
 
         def __init__(self, copy=True, with_mean=True, with_std=True):
@@ -491,7 +486,6 @@ class Transformers():
 
             Transformer.transformMeta(self, meta, iimeta, immeta)
             meta.setBandNames(iimeta.getMetadataItem('band names'))
-
 
     class RobustScaler(Transformer):
 
@@ -514,8 +508,13 @@ class Transformers():
             report.append(ReportTable(table))
             return report
 
+PCA = Transformers.PCA
+KernelPCA = Transformers.KernelPCA
+FastICA = Transformers.FastICA
+StandardScaler = Transformers.StandardScaler
+RobustScaler = Transformers.RobustScaler
 
-class SklearnClassifiers:
+class SklearnClassifiers(Estimators):
 
     class UncertaintyClassifier(sklearn.ensemble.RandomForestClassifier):
 
@@ -542,8 +541,9 @@ class SklearnClassifiers:
 
             sklearn.ensemble.RandomForestClassifier.fit(self, X, yFalse)
 
+UncertaintyClassifier = SklearnClassifiers.UncertaintyClassifier
 
-class SklearnRegressors:
+class SklearnRegressors(Estimators):
 
     class UncertaintyRegressor(sklearn.ensemble.RandomForestRegressor):
 
@@ -562,6 +562,7 @@ class SklearnRegressors:
             yError = numpy.abs(y-yCV)
             sklearn.ensemble.RandomForestRegressor.fit(self, X, yError)
 
+UncertaintyRegressor = SklearnRegressors.UncertaintyRegressor
 
 class MH:
 
@@ -670,4 +671,4 @@ class MH:
 
 
 if __name__ == '__main__':
-    print list(Classifiers().yieldAll())
+    print SVCTuned().name()
