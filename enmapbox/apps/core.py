@@ -8,7 +8,7 @@ from processing.core.parameters import *
 from processing.core.outputs import *
 
 import traceback
-
+#import enmapbox.enmapbox
 from enmapbox.processing.estimators import Classifiers
 from enmapbox.processing.environment import Environment
 from enmapbox.processing.types import Image, Classification, Mask, Estimator, unpickle
@@ -45,8 +45,9 @@ class EnMAPBoxProvider(AlgorithmProvider):
     def getDescription(self):
         return 'EnMAP-Box'
 
-#    def getIcon(self):
-#        return QIcon(":/plugins/EnMAP-Box/icon.svg")
+    def getIcon(self):
+        import enmapbox.enmapbox
+        return enmapbox.enmapbox.getQIcon()
 
     def _loadAlgorithms(self):
         self.algs = self.alglist
