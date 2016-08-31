@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+from astropy._erfa.core import p2s
+
 __author__ = 'janzandr'
 import os
 import enmapbox.processing.types
@@ -253,19 +255,21 @@ def ar_debug():
 
     from enmapbox.processing.types import unpickle
     image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    classifier = enmapbox.processing.estimators.Classifiers.LinearSVC()
-    classifier = classifier.fit(image, trainingLabels)
-    classifier.pickle(r'C:\Users\janzandr\AppData\Local\Temp\processing\1ad642222af14226a7d4238739be2d2b\model.file2')
-    c2 = unpickle(r'C:\Users\janzandr\AppData\Local\Temp\processing\1ad642222af14226a7d4238739be2d2b\model.file2')
+    trainingLtabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    mask = enmapbox.processing.types.Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
+    noMask = enmapbox.processing.types.NoMask()
+    est = enmapbox.processing.estimators.Transformers.PCA()
+    est = est.fit(image, mask=noMask)
+    est.pred .fit(image, mask=noMask)
 
+    est.info()
 
 if __name__ == '__main__':
 
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
     #classification()
-    regression()
+    #regression()
     #clusterer()
     #transformer()
     #performance()
@@ -282,4 +286,5 @@ if __name__ == '__main__':
     #saveImageAs()
     #stackImages()
     #projectImageToPixelGrid()
-    #ar_debug()
+    ar_debug()
+

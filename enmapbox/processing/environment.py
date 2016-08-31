@@ -41,8 +41,8 @@ _tempdir = os.path.join(tempfile.gettempdir(), 'EnMAPBox')
 
 class Environment():
 
-    rasterFilenames = list()
-    modelFilenames = list()
+    rasterFilenames = [r'< select a raster file >']
+    modelFilenames = [r'< select a model file>']
     tempdir = _tempdir
 
     @staticmethod
