@@ -315,7 +315,8 @@ class SensorXComposer:
 class Archive(Type):
 
     def __init__(self, folder):
-        assert os.path.exists(folder)
+        if folder is not None:
+            assert os.path.exists(folder)
         self.folder = folder
 
 
@@ -572,8 +573,9 @@ class MGRSTilingScheme(Type):
 
 class BlockAssociations(rios.applier.BlockAssociations):
 
-    def __init__(self, riosBlockAssociations):
-        self.__dict__ = riosBlockAssociations.__dict__
+    def __init__(self, riosBlockAssociations=None):
+        if riosBlockAssociations is not None:
+            self.__dict__ = riosBlockAssociations.__dict__
 
 
     def reshape2d(self):
@@ -592,7 +594,7 @@ class ApplierInput():
 
     def __init__(self, archive, productName, imageNames, extension, bands=None):
         assert isinstance(archive, Archive)
-        assert isinstance(productName, basestring)
+        assert isinstance(productName, str)
         assert isinstance(imageNames, list)
         self.archive = archive
         self.productName = productName
@@ -612,8 +614,9 @@ class ApplierInput():
 class ApplierOutput():
 
     def __init__(self, folder, productName, imageNames, extension):
-        assert isinstance(folder, basestring)
-        assert isinstance(productName, basestring)
+        if folder is not None:
+            assert isinstance(folder, basestring)
+        assert isinstance(productName, str)
         assert isinstance(imageNames, list)
         self.folder = folder
         self.productName = productName
@@ -636,13 +639,14 @@ class Applier:
 
     class Metas:
 
-        def __init__(self, riosFilenameAssociations):
+        def __init__(self, riosFilenameAssociations=None):
 
-            assert isinstance(riosFilenameAssociations, rios.applier.FilenameAssociations)
-            self._filenames = dict()
-            for key, filename in riosFilenameAssociations.__dict__.items():
-                self.__dict__[key] = hub.gdal.api.GDALMeta(filename)
-                self._filenames[key] = filename
+            if riosFilenameAssociations is not None:
+                assert isinstance(riosFilenameAssociations, rios.applier.FilenameAssociations)
+                self._filenames = dict()
+                for key, filename in riosFilenameAssociations.__dict__.items():
+                    self.__dict__[key] = hub.gdal.api.GDALMeta(filename)
+                    self._filenames[key] = filename
 
         def write(self):
             for key, filename in self._filenames.items():

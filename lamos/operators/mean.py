@@ -29,7 +29,7 @@ class MeanApplier(Applier):
 
     def __init__(self, infolder, inextension, outfolder, footprints=None, compressed=False):
 
-        Applier.__init__(self, footprints=footprints, compressed=compressed)
+        Applier.__init__(self, footprints=footprints)
         self.appendInput(ApplierInput(archive=MGRSArchive(folder=infolder),
                                          productName='timeseries', imageNames=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask'], extension=inextension))
         self.appendOutput(ApplierOutput(folder=outfolder,
@@ -46,10 +46,10 @@ def test():
 
     applier = MeanApplier(infolder=infolder,
                           outfolder=outfolder,
-                          inextension='.img',
+                          inextension='.vrt',
                           footprints=mgrsFootprints,
                           compressed=False)
-    applier.controls.setWindowXsize(10000)
+    applier.controls.setWindowXsize(100)
     applier.controls.setWindowYsize(100)
     applier.apply()
 

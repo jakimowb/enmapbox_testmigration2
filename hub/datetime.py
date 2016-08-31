@@ -28,6 +28,3 @@ class Date(datetime.date):
 if __name__ == '__main__':
 
     date = Date(2000,7,1)
-    print date.decimalYear()
-    print Date.fromYearDoy(2000, 365)
-    print Date.fromText('2000-12-31')

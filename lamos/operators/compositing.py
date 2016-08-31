@@ -9,9 +9,9 @@ import hub.nan1d.percentiles
 def getCube(name, inputs, bbl=None):
 
     # return cube if already exist...
-    if inputs.__dict__.has_key(name):
+    if name in inputs.__dict__:
         result = inputs.__dict__[name]
-    elif inputs.__dict__.has_key('timeseries_'+name):
+    elif 'timeseries_'+name in inputs.__dict__:
         result = inputs.__dict__['timeseries_'+name]
 
     # ...or create and cache it otherwise
@@ -21,8 +21,24 @@ def getCube(name, inputs, bbl=None):
         elif name=='vis'     : result = inputs.timeseries_blue/3+inputs.timeseries_green/3+inputs.timeseries_red/3
         elif name=='ir'      : result = inputs.timeseries_nir/3 +inputs.timeseries_swir1/3+inputs.timeseries_swir2/3
         elif name=='invalid' : result = inputs.timeseries_cfmask > 1
+        elif name=='tcb':
+            coeff = [0.2043, 0.4158, 0.5524, 0.5741, 0.3124, 0.2303]
+            result = numpy.zeros_like(inputs.timeseries_cfmask, dtype=numpy.float32)
+            for i, name in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
+                result += coeff[i] * inputs.__dict__['timeseries_' + name]
+        elif name=='tcg':
+            coeff = [-0.1603, -0.2819, -0.4934, 0.7940, 0.0002, 0.1446]
+            result = numpy.zeros_like(inputs.timeseries_cfmask, dtype=numpy.float32)
+            for i, name in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
+                result += coeff[i] * inputs.__dict__['timeseries_' + name]
+        elif name=='tcw':
+            coeff = [0.0315, 0.2021, 0.3102, 0.1594, -0.6806, -0.6109]
+            result = numpy.zeros_like(inputs.timeseries_cfmask, dtype=numpy.float32)
+            for i, name in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
+                result += coeff[i] * inputs.__dict__['timeseries_' + name]
+
         else:
-            raise Exception('Unknown cube requested: '+name)
+                raise Exception('Unknown cube requested: '+name)
         inputs.__dict__[name] = result
 
     # subset bands if needed and return cube
@@ -95,7 +111,7 @@ def plotScaleFunctions():
     plotScaleFunction(x, scaleLinearMinMax(x, min, max))
 
 def plotScaleFunction(x, y):
-    for xi,yi in zip(x,y): print xi, ',', round(yi,2)
+    for xi,yi in zip(x,y): print(xi, ',', round(yi,2))
 
     import matplotlib.pyplot as plt
     plt.plot(x, y, linewidth=2)
@@ -258,7 +274,7 @@ def scorePG(inputs, inmeta, info):
 
           (scoreHazeOptimizedTransformation, {}, 0.75),
           (scoreNDVI,                        {}, 0.25),
-          (scoreSensor,                      {}, 0.75),
+          #(scoreSensor,                      {}, 0.75),
           #(scoreSynopticity,                 {}, 0.75),
           (scoreTargetDoy,                   {}, 1.00),
           (scoreTargetYear,                  {}, 1.00)
@@ -358,8 +374,8 @@ class CompositingApplier(Applier):
         import hub.datetime
         inputDates = numpy.array(getMeta('date', inmetas))
         inputDoys = numpy.array(getMeta('doy', inmetas)).astype(numpy.int16)
-        inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
-        inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
+        #inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
+        #inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
         bands, samples, lines = inputs.timeseries_cfmask.shape
 
         # cast to float and set invalid observations to NaN
@@ -447,7 +463,6 @@ class StatisticsApplier(Applier):
     def userFunction(info, inputs, outputs, inmetas, otherArgs):
 
         # prepare some meta infos
-        import hub.datetime
         inputDates = numpy.array(getMeta('date', inmetas))
 
         # cast to float and set invalid observations to NaN
@@ -469,22 +484,25 @@ class StatisticsApplier(Applier):
             if bbl.any():
 
                 # calculate statistics
-                for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+                #for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+                for key in otherArgs.variables:
 
                     input = getCube(name=key, inputs=inputs, bbl=bbl)
                     if key in ['ndvi', 'nbr']:
                         input *= 10000
 
                     # - percentiles
-                    statistics = hub.nan1d.percentiles.nanpercentiles(input, [0,25,50,75,100], copy=True)
+                    statistics = hub.nan1d.percentiles.nanpercentiles(input, otherArgs.percentiles, copy=True)
 
                     # - moments
-                    statistics.append(numpy.nanmean(input, axis=0, dtype=numpy.float32, keepdims=True))
-                    statistics.append(numpy.nanstd(input, axis=0, dtype=numpy.float32, keepdims=True))
+                    if otherArgs.mean:
+                        statistics.append(numpy.nanmean(input, axis=0, dtype=numpy.float32, keepdims=True))
+                    if otherArgs.stddev:
+                        statistics.append(numpy.nanstd(input, axis=0, dtype=numpy.float32, keepdims=True))
 
                     for i, band in enumerate(statistics):
                         band = band.astype(numpy.int16)
-                        band[invalidPixel[None]] = -9999
+                        band[invalidPixel[None]] = -30000
                         statistics[i] = band
 
                     output = numpy.vstack(statistics)
@@ -492,9 +510,11 @@ class StatisticsApplier(Applier):
 
             else:
                 # - handle special case when no observation is available
-                for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
-                    shape = (7, samples, lines)
-                    output = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)
+                #for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+                for key in otherArgs.variables:
+                    outbands = len(otherArgs.percentiles) + otherArgs.mean + otherArgs.stddev
+                    shape = (outbands, samples, lines)
+                    output = numpy.full(shape, dtype=numpy.int16, fill_value=-30000)
                     outputs.__dict__['statistics_' + key + '_' + dateParameters.getName()] = output
 
                     #print('Warning: No Observation available for target date: '+str(dateParameters.getTargetDate()))
@@ -508,17 +528,24 @@ class StatisticsApplier(Applier):
     def userFunctionMeta(inmetas, outmetas, otherArgs):
 
         for dateParameters in otherArgs.dateParameters:
-            for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr']:
+            bandNames = otherArgs.percentileNames
+            if otherArgs.mean: bandNames.append('mean')
+            if otherArgs.stddev: bandNames.append('stddev')
+
+            for key in otherArgs.variables:
                 outmeta = outmetas.__dict__['statistics_'+key+'_'+dateParameters.getName()]
-                outmeta.setNoDataValue(-9999)
+                outmeta.setNoDataValue(-30000)
                 outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
-                outmeta.setBandNames(['min','p25','median','p75','max','mean', 'stdev'])
+                outmeta.setBandNames(bandNames)
 
             outmeta = outmetas.__dict__['statistics_count_' + dateParameters.getName()]
             outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
             outmeta.setBandNames(['valid observations'])
 
-    def __init__(self, infolder, outfolder, inextension, footprints=None, of='ENVI'):
+    def __init__(self, infolder, outfolder, inextension, footprints=None, of='ENVI',
+                 percentiles=[0,5,25,50,75,95,100],
+                 variables=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr'],
+                 mean=True, stddev=True):
 
         Applier.__init__(self, footprints=footprints, of=of)
         self.dateParameters = list()
@@ -530,6 +557,16 @@ class StatisticsApplier(Applier):
                                       extension=inextension))
 
         self.otherArgs.dateParameters = self.dateParameters
+        self.otherArgs.percentiles = percentiles
+        def percentileName(p):
+            if p == 0: return 'min'
+            elif p == 50: return 'median'
+            elif p == 100: return 'max'
+            else: return 'p'+str(p)
+        self.otherArgs.percentileNames = [percentileName(p) for p in percentiles]
+        self.otherArgs.variables = variables
+        self.otherArgs.mean = mean
+        self.otherArgs.stddev = stddev
 
     def appendDateParameters(self, date1, date2, bufferYears=0):
 
@@ -538,7 +575,8 @@ class StatisticsApplier(Applier):
 
         dateParameters = DateParameters(date1=date1, date2=date2, bufferYears=bufferYears)
         self.dateParameters.append(dateParameters)
-        for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'count']:
+        #for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'count']:
+        for key in self.otherArgs.variables+['count']:
             self.appendOutput(ApplierOutput(folder=self.outfolder,
                                             productName='statistics', imageNames=[key+'_'+dateParameters.getName()], extension=self.outextension))
 

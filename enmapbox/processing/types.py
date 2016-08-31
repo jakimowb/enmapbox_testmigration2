@@ -4,7 +4,7 @@ __author__ = 'janzandr'
 
 import operator
 import hub
-from enmapbox.processing.env import SilentProgress
+from enmapbox.processing.environment import SilentProgress
 from hub.gdal.api import GDALMeta
 import hub.gdal.util
 import hub.file
@@ -63,8 +63,8 @@ class Image(Type):
 
     def __init__(self, filename):
 
-        assert isinstance(filename, basestring), 'Incorrect filename!'
-        assert os.path.exists(filename), 'Incorrect filename!'
+        assert isinstance(filename, basestring), 'Incorrect filename! '+str(filename)
+        assert os.path.exists(filename), 'Incorrect filename! '+str(filename)
         self.filename = filename
         self.meta = GDALMeta(filename)
         self._assert()
@@ -89,7 +89,7 @@ class Image(Type):
         :rtype: Image
         """
 
-        if filename is None: filename = env.tempfile()
+        if filename is None: filename = Environment.tempfile()
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
         return self.__class__(filename)
 
@@ -497,8 +497,8 @@ class Estimator(Type):
                     report.append(ReportHeading('Search History', 2))
                     data = [[round(v.mean_validation_score*estimator.scorer_._sign, 4)] + v.parameters.values() for v in estimator.grid_scores_]
                     data = sorted(data, key=operator.itemgetter(0), reverse=estimator.scorer_._sign != -1)
-                    table = Table(data, header_row=[str(estimator.scoring)]+estimator.best_params_.keys())
-                    report.append(ReportTable(table))
+                    colHeaders = [[str(estimator.scoring)]+estimator.best_params_.keys()]
+                    report.append(ReportTable(data=data, colHeaders=colHeaders))
 
         report.append(ReportHorizontalLine())
         report.append(ReportHeading('Scikit-Learn Documentation', -1))
@@ -529,7 +529,7 @@ class Classifier(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask=None, filename=env.tempfile('classification'), progress=progress):
+    def predict(self, image, mask=None, filename=Environment.tempfile('classification'), progress=progress):
 
         assert isinstance(image, Image)
         if mask is not None:
@@ -559,7 +559,7 @@ class Classifier(Estimator):
         return -1
 
 
-    def predictProbability(self, image, mask=None, filename=env.tempfile('probability'), progress=progress):
+    def predictProbability(self, image, mask=None, filename=Environment.tempfile('probability'), progress=progress):
 
         assert isinstance(image, Image)
         if mask is not None:
@@ -623,7 +623,7 @@ class Regressor(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask, filename=env.tempfile('regression')):
+    def predict(self, image, mask, filename=Environment.tempfile('regression')):
 
         self._predict(image, mask, predictfile=filename)
         return Regression(filename)
@@ -670,12 +670,12 @@ class Transformer(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def transform(self, image, mask=None, filename=env.tempfile('transformation'), progress=progress):
+    def transform(self, image, mask=None, filename=Environment.tempfile('transformation'), progress=progress):
 
         self._predict(image, mask, transformfile=filename, progress=progress)
         return Image(filename)
 
-    def transformInverse(self, image, mask=None, filename=env.tempfile('inverseTransformation'), progress=progress):
+    def transformInverse(self, image, mask=None, filename=Environment.tempfile('inverseTransformation'), progress=progress):
 
         self._predict(image, mask, inversetransformfile=filename, progress=progress)
         return Image(filename)
@@ -701,7 +701,7 @@ class Clusterer(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask=None, filename=env.tempfile('clustering')):
+    def predict(self, image, mask=None, filename=Environment.tempfile('clustering')):
 
         self._predict(image, mask, predictfile=filename)
         return Classification(filename)
@@ -931,19 +931,22 @@ class ClassificationPerformance(Type):
         upper = scipy.stats.norm.ppf(1 - alpha / 2.)*se + mean
         return lower, upper
 
-    @property
-    def report(self):
 
-       # colHeaders = [['Hello World'], ['A', 'B'], ['a1', 'a2', 'b1', 'b2']]
-       # colSpans =   [[4],             [2, 2],     [1, 1, 1, 1]]
-       # rowHeaders = [['Hello World'], ['X', 'Y', 'Z'], ['x1', 'x2', 'y1', 'y2', 'z1', 'z2']]
-        # rowSpans = [[6], [2, 2, 2], [1, 1, 1, 1, 1, 1]]
-        #data = numpy.random.randint(0, 5, (6, 4))
+    def report(self):
 
 
         report = Report('Classification Performance')
-        # prediction filename -> self.sample.image.filename
-        # reference sample filename -> self.sample.mask.filename
+
+        report.append(ReportHeading('Input Files'))
+        report.append(ReportMonospace('Reference:  ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
+
+        report.append(ReportHeading('Classification Label Overview'))
+        colHeaders = None
+        rowSpans = [[1,2],[1,1,1]]
+        colSpans = [[1,1,1,1,1]]
+        rowHeaders = [['','Class Names'],['Class ID','Reference', 'Prediction']]
+        data = [numpy.hstack((0,self.classLabels)),self.sample.mask.meta.getMetadataItem('class names'),self.sample.image.meta.getMetadataItem('class names')]
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
         # Confusion Matrix Table
         report.append(ReportHeading('Confusion Matrix'))
@@ -955,11 +958,12 @@ class ClassificationPerformance(Type):
         classNamesColumn = []
         for i in range(self.classes): classNamesColumn.append('('+str(i+1)+') '+self.classNames[i])
         rowHeaders = [classNamesColumn+['Sum']]
-        data = numpy.vstack(((numpy.hstack((self.mij,self.m_j[:, None]))),numpy.hstack((self.mi_,self.m))))
+        data = numpy.vstack(((numpy.hstack((self.mij,self.m_j[:, None]))),numpy.hstack((self.mi_,self.m)))).astype(int)
+
         report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
-        # Accuracies Overview Table
-        report.append(ReportHeading('Overview'))
+        # Accuracies Table
+        report.append(ReportHeading('Accuracies'))
         colHeaders = [['Measure', 'Estimate [%]', '95 % Confidence Interval [%]']]
         colSpans = [[1,1,2]]
         rowHeaders = None
@@ -992,13 +996,6 @@ class ClassificationPerformance(Type):
         data = numpy.vstack(((numpy.hstack((self.pij*100,self.p_j[:, None]*100))),numpy.hstack((self.pi_*100,100))))
         report.append(ReportTable(numpy.round(data,2), '', colHeaders, rowHeaders, colSpans, rowSpans)) \
 
-
-#        report.append(ReportHeading('Input Files'))
-#        report.append(ReportMonospace('Reference   ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
-
-        report.append(ReportHeading('Classification Label Overview'))
-        report.append(ReportMonospace(str(['Reference: ']+self.sample.mask.meta.getMetadataItem('class names'))))
-        report.append(ReportMonospace(str(['Prediction: ']+self.sample.image.meta.getMetadataItem('class names'))))
 
         report.append(ReportHeading('Confusion Matrix'))
         report.append(ReportMonospace('mij = '+ str(self.mij)))
@@ -1133,9 +1130,3 @@ class ClusteringPerformance(Type):
                     + '\nadjusted_rand_score =      ' + str(sklearn.metrics.cluster.adjusted_rand_score(reference, prediction))\
                     + '\ncompleteness_score =       ' + str(sklearn.metrics.cluster.completeness_score(reference, prediction))
 
-'''
-ImageStatistics
-SpatialReference
-PixelGrid
-BoundingBox
-'''
