@@ -248,19 +248,27 @@ def projectImageToPixelGrid():
     newImage = pixelGrid.project(imageA)#, imageB.BoundingBox)
     newImage.report().saveHTML().open()
 
+def maximumProbability():
+
+    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    mask = enmapbox.processing.types.Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
+    classifier = enmapbox.processing.estimators.Classifiers.RandomForestClassifier()
+    classifier = classifier.fit(image, labels=trainingLabels)
+    propability = classifier.predictProbability(image, mask=mask)
+    classification = propability.argmax()
+
 
 def ar_debug():
 
     from enmapbox.processing.types import unpickle
     image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    trainingLtabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
     mask = enmapbox.processing.types.Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
     noMask = enmapbox.processing.types.NoMask()
-    est = enmapbox.processing.estimators.Transformers.PCA()
-    est = est.fit(image, mask=noMask)
-    est.pred .fit(image, mask=noMask)
-
-    est.info()
+    trf = enmapbox.processing.estimators.Transformers.PCA()
+    trf = trf.fit(image, labels=None)
+    transformation = trf.transform(image)
 
 if __name__ == '__main__':
 
@@ -284,5 +292,14 @@ if __name__ == '__main__':
     #saveImageAs()
     #stackImages()
     #projectImageToPixelGrid()
-    ar_debug()
+    #maximumProbability()
+    #ar_debug()
 
+    class A:
+        pass
+    class B:
+        pass
+    class C(A,B):
+        pass
+
+    print(isinstance(C(), B))

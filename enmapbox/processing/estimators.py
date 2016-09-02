@@ -327,7 +327,7 @@ class Clusterers(Estimators):
 
         def __init__(self, copy_x=True, init='k-means++', max_iter=300, n_clusters=8, n_init=10,
                n_jobs=1, precompute_distances='auto', random_state=None, tol=0.0001, verbose=0,
-               copy=True, with_mean=True, with_std=True):
+               copy=True, with_mean=False, with_std=False):
 
             scaler = sklearn.preprocessing.StandardScaler(copy=copy, with_mean=with_mean, with_std=with_std)
             kMeans = sklearn.cluster.KMeans(copy_x=copy_x, init=init, max_iter=max_iter, n_clusters=n_clusters,

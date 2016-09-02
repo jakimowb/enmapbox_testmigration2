@@ -12,7 +12,7 @@ import rios.applier
 import sklearn.metrics
 import sklearn.pipeline
 from enmapbox.processing.report import *
-from enmapbox.processing.applier import ApplierControls
+from enmapbox.processing.applier import ApplierControls, ApplierHelper
 import numpy
 
 # set default progress object
@@ -134,10 +134,9 @@ class Classification(Mask):
     def _assert(self):
 
         Mask._assert(self)
-        envi = self.meta.getMetadataDict()
-        assert envi['file_type'].lower() == 'envi classification'
-        assert int(envi['classes']) == len(envi['class_names'])
-        assert int(envi['classes'])*3 == len(envi['class_lookup'])
+        assert self.meta.getMetadataItem('file_type').lower() == 'envi classification'
+        assert int(self.meta.getMetadataItem('classes')) == len(self.meta.getMetadataItem('class_names'))
+        assert int(self.meta.getMetadataItem('classes'))*3 == len(self.meta.getMetadataItem('class_lookup'))
 
 
     def assessClassificationPerformance(self, classification, stratification=None):
@@ -181,8 +180,52 @@ class Probability(Image):
         envi = self.meta.getMetadataDict()
         assert int(envi['classes']) == len(envi['class_names'])
         assert int(envi['classes'])*3 == len(envi['class_lookup'])
+        assert self.meta.getNoDataValue('data_ignore_value') is not None
         Image._assert(self)
 
+    def argmax(self, filename=Environment.tempfile('classification'), progress=progress):
+
+        progress.setText('calculate argmax probability')
+
+        infiles = rios.applier.FilenameAssociations()
+        outfiles = rios.applier.FilenameAssociations()
+        args = rios.applier.OtherInputs()
+
+        infiles.p = self.filename
+        outfiles.c = filename
+        args.meta = self.meta
+
+        controls = ApplierControls()
+        progress.setDebugInfo(str(controls))
+
+        if controls.numThreads > 1:
+            args.progress = SilentProgress
+        else:
+            args.progress = progress
+        args.progress = progress
+
+        # set up the function to be applied
+        def ufunc(info, inputs, outputs, args):
+
+            percentage = ApplierHelper.progress(info)
+            args.progress.setPercentage(percentage)
+
+            invalid = numpy.any(inputs.p == args.meta.getNoDataValue(), axis=0, keepdims=True)
+            outputs.c = numpy.argmax(inputs.p, axis=0).reshape(invalid.shape).astype(numpy.uint8) + 1
+            outputs.c[invalid] = 0
+
+        # Apply the function to the inputs, creating the outputs.
+        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+
+        # Set Metadata for output images
+
+        meta = Meta(outfiles.c)
+        meta.setMetadataItem('file type', 'ENVI Classification')
+        for key in ['classes', 'class_names', 'class_lookup']:
+            meta.copyMetadataItem(key, self.meta)
+        meta.writeMeta(filename)
+
+        return Classification(filename)
 
 class Estimator(Type):
 
@@ -542,7 +585,7 @@ class Classifier(Estimator):
 
         assert isinstance(image, Image)
         if mask is not None:
-            assert isinstance(mask, Image)
+            assert isinstance(mask, Mask)
 
         self._predict(image, mask, predictfile=filename, progress=progress)
         return Classification(filename)
@@ -671,11 +714,12 @@ class UncertaintyRegressor(Regressor):
 
 class Transformer(Estimator):
 
-    def fit(self, image, mask, progress=progress):
+    def fit(self, image, labels, progress=progress):
 
+        if labels is None: labels = NoMask()
         assert isinstance(image, Image)
-        assert isinstance(mask, Mask)
-        sample = UnsupervisedSample(image, mask)
+        assert isinstance(labels, Mask)
+        sample = UnsupervisedSample(image, labels)
         return self._fit(sample, progress=progress)
 
 
