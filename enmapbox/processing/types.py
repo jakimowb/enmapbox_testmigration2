@@ -13,7 +13,7 @@ import sklearn.metrics
 import sklearn.pipeline
 from enmapbox.processing.report import *
 from enmapbox.processing.applier import ApplierControls
-
+import numpy
 
 # set default progress object
 progress = SilentProgress
@@ -118,6 +118,15 @@ class Mask(Image):
 
         Image._assert(self)
         assert self.meta.RasterCount == 1
+
+
+class NoMask(Mask):
+
+    def __init__(self):
+
+        self.filename = 'no mask selected'
+        self.meta = GDALMeta()
+        self.meta.setNoDataValue(0)
 
 
 class Classification(Mask):
@@ -754,8 +763,11 @@ class UnsupervisedSample(Type):
         args = rios.applier.OtherInputs()
 
         infiles.x = self.image.filename
-        infiles.y = self.mask.filename
         args.xMeta = self.image.meta
+
+        if not isinstance(self.mask, NoMask):
+            infiles.y = self.mask.filename
+
         args.yMeta = self.mask.meta
 
         args.x = list()
@@ -765,15 +777,18 @@ class UnsupervisedSample(Type):
 
             # reshape to 2d
             inputs.x = inputs.x.reshape((inputs.x.shape[0], -1))
-            inputs.y = inputs.y.reshape((1, -1))
+            if not isinstance(self.mask, NoMask):
+                inputs.y = inputs.y.reshape((1, -1))
+            else:
+                inputs.y = numpy.ones([1,inputs.x.shape[1]], dtype=numpy.uint8)
 
-            # create mask
+                # create mask
             valid = inputs.y[0] != args.yMeta.getNoDataValue(default=0)
 
             # exclude invalid samples if needed
             if valid.all():
                 args.x.append(inputs.x)
-                args.y.append(inputs.y)
+                args.y.append(inputs.y[0, :])
             else:
                 args.x.append(inputs.x[:, valid])
                 args.y.append(inputs.y[0, valid])
@@ -1040,7 +1055,6 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
 
         assert int(samplePrediction.image.meta.getMetadataItem('classes')) == int(samplePrediction.mask.meta.getMetadataItem('classes')), 'Number of classes in prediction and reference do not match!'
 
-        import numpy
         strataClasses = int(sampleStratification.image.meta.getMetadataItem('classes')) - 1
         strataSizes = sampleStratification.image.histogram()
         pass

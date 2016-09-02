@@ -22,15 +22,17 @@ def _allEstimators(estimators):
 #            print v()
     return [v() for k, v in estimators.__dict__.items() if not k.startswith('_')]
 
-
-class Classifiers():
+class Estimators():
 
     def yieldAll(self):
         for k in dir(self):
             if k.startswith('_'): continue
             if k == 'yieldAll': continue
-            estimator = eval('self.'+k+'()')
+            estimator = eval('self.' + k + '()')
             yield estimator
+
+
+class Classifiers(Estimators):
 
     class LinearSVC(Classifier):
 
@@ -55,7 +57,6 @@ class Classifiers():
             svc = self.finalEstimator()
             report = Report('')
             return report
-
 
     class LinearSVCTuned(LinearSVC):
 
@@ -94,9 +95,6 @@ class Classifiers():
 
             return report
 
-
-
-
     class SVC(Classifier):
 
         def __init__(self, C=1.0, cache_size=200, class_weight=None, coef0=0.0,
@@ -129,7 +127,6 @@ class Classifiers():
             rowHeaders = [['Number of Support Vectors']]
             report.append(ReportTable(data, colHeaders=colHeaders, rowHeaders=rowHeaders))
             return report
-
 
     class SVCTuned(SVC):
 
@@ -168,10 +165,6 @@ class Classifiers():
             report.append(ReportPlot(fig, 'Performance Surface'))
 
             return report
-
-
-
-
 
     class RandomForestClassifier(Classifier):
 
@@ -213,11 +206,14 @@ class Classifiers():
 
             return report
 
+# need to copy classes outside of Classifiers to be able to pickle the models
+LinearSVC = Classifiers.LinearSVC
+LinearSVCTuned = Classifiers.LinearSVCTuned
+SVC = Classifiers.SVC
+SVCTuned = Classifiers.SVCTuned
+RandomForestClassifier = Classifiers.RandomForestClassifier
 
-
-
-
-class Regressors():
+class Regressors(Estimators):
 
     class LinearSVR(Regressor):
 
@@ -233,7 +229,6 @@ class Regressors():
 
             pipe = sklearn.pipeline.make_pipeline(scaler, svr)
             Regressor.__init__(self, pipe)
-
 
     class LinearSVRTuned(Regressor):
 
@@ -258,6 +253,17 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(scaler, svrTuned)
             Regressor.__init__(self, pipe)
 
+        def reportDetails(self):
+
+            C_Values = [t.parameters['C'] for t in self.sklEstimator._final_estimator.grid_scores_]
+            Score_Values = [t.mean_validation_score for t in self.sklEstimator._final_estimator.grid_scores_]
+            report = Report('')
+            report.append(ReportHeading('Information'))
+
+            fig = MH.LinearSVCTuned(C_Values,numpy.array(Score_Values)*self.sklEstimator._final_estimator.scorer_._sign, self)
+            report.append(ReportPlot(fig, 'Performance Curve'))
+
+            return report
 
     class SVR(Regressor):
 
@@ -271,7 +277,6 @@ class Regressors():
 
             pipe = sklearn.pipeline.make_pipeline(scaler, svr)
             Regressor.__init__(self, pipe)
-
 
     class SVRTuned(Regressor):
 
@@ -294,6 +299,18 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(scaler, svrTuned)
             Regressor.__init__(self, pipe)
 
+        def reportDetails(self):
+
+            C_Values = [t.parameters['C'] for t in self.sklEstimator._final_estimator.grid_scores_]
+            gamma_Values = [t.parameters['gamma'] for t in self.sklEstimator._final_estimator.grid_scores_]
+            Score_Values = [t.mean_validation_score for t in self.sklEstimator._final_estimator.grid_scores_]
+            report = Report('')
+            report.append(ReportHeading('Information'))
+
+            fig = MH.SVCTuned(C_Values,gamma_Values,numpy.array(Score_Values)*self.sklEstimator._final_estimator.scorer_._sign, self)
+            report.append(ReportPlot(fig, 'Performance Surface'))
+
+            return report
 
     class RandomForestRegressor(Regressor):
 
@@ -312,6 +329,26 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(rfr)
             Regressor.__init__(self, pipe)
 
+        def reportDetails(self):
+
+            rfc = self.finalEstimator()
+
+            report = Report('')
+            report.append(ReportHeading('Information'))
+
+            bandNames = self.sample.image.meta.getMetadataItem('band names',default=numpy.array([]))
+            if len(bandNames) == 0:
+                for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
+            data = numpy.vstack((bandNames,numpy.round(rfc.feature_importances_, 4)*100))
+            rowHeaders = [['Band Names','Feature Importance [%]']]
+            report.append(ReportTable(data, rowHeaders=rowHeaders))
+
+            if rfc.oob_score:
+                report.append(ReportParagraph('### ToDo - insert out-of-bag accuracies ###', font_color='red'))
+                fig = MH.RandomForestClassifier(rfc, self)
+                report.append(ReportPlot(fig, ''))
+
+            return report
 
     class LinearRegression(Regressor):
 
@@ -323,8 +360,14 @@ class Regressors():
             pipe = sklearn.pipeline.make_pipeline(linearRegression)
             Regressor.__init__(self, pipe)
 
+LinearSVR = Regressors.LinearSVR
+LinearSVRTuned = Regressors.LinearSVRTuned
+SVR = Regressors.SVR
+SVRTuned = Regressors.SVRTuned
+RandomForestRegressor = Regressors.RandomForestRegressor
+LinearRegression = Regressors.LinearRegression
 
-class Clusterers():
+class Clusterers(Estimators):
 
     class KMeans(Clusterer):
 
@@ -366,8 +409,9 @@ class Clusterers():
         #    report.append(ReportTable(table))
             return report
 
+KMeans = Clusterers.KMeans
 
-class Transformers():
+class Transformers(Estimators):
 
     class PCA(Transformer):
 
@@ -401,10 +445,9 @@ class Transformers():
             report.append(ReportTable(data, rowHeaders=rowHeaders))
 
             fig = MH.KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self)
-            report.append(ReportPlot(fig, 'Explained Variances'))
+            report.append(ReportPlot(fig, 'Explained Variance'))
 
             return report
-
 
     class KernelPCA(Transformer):
 
@@ -444,10 +487,9 @@ class Transformers():
             report.append(ReportTable(data, rowHeaders=rowHeaders))
 
             fig = MH.KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self)
-            report.append(ReportPlot(fig, 'Explained Variances'))
+            report.append(ReportPlot(fig, 'Explained Variance'))
 
             return report
-
 
     class FastICA(Transformer):
 
@@ -477,7 +519,6 @@ class Transformers():
             #report.append(ReportHeading('Information'))
             return report
 
-
     class StandardScaler(Transformer):
 
         def __init__(self, copy=True, with_mean=True, with_std=True):
@@ -491,7 +532,6 @@ class Transformers():
 
             Transformer.transformMeta(self, meta, iimeta, immeta)
             meta.setBandNames(iimeta.getMetadataItem('band names'))
-
 
     class RobustScaler(Transformer):
 
@@ -514,8 +554,13 @@ class Transformers():
             report.append(ReportTable(table))
             return report
 
+PCA = Transformers.PCA
+KernelPCA = Transformers.KernelPCA
+FastICA = Transformers.FastICA
+StandardScaler = Transformers.StandardScaler
+RobustScaler = Transformers.RobustScaler
 
-class SklearnClassifiers:
+class SklearnClassifiers(Estimators):
 
     class UncertaintyClassifier(sklearn.ensemble.RandomForestClassifier):
 
@@ -542,8 +587,9 @@ class SklearnClassifiers:
 
             sklearn.ensemble.RandomForestClassifier.fit(self, X, yFalse)
 
+UncertaintyClassifier = SklearnClassifiers.UncertaintyClassifier
 
-class SklearnRegressors:
+class SklearnRegressors(Estimators):
 
     class UncertaintyRegressor(sklearn.ensemble.RandomForestRegressor):
 
@@ -562,6 +608,7 @@ class SklearnRegressors:
             yError = numpy.abs(y-yCV)
             sklearn.ensemble.RandomForestRegressor.fit(self, X, yError)
 
+UncertaintyRegressor = SklearnRegressors.UncertaintyRegressor
 
 class MH:
 
@@ -569,24 +616,22 @@ class MH:
     def RandomForestClassifier(rfc, self):
 
         wl = self.sample.image.meta.getMetadataItem('wavelength',default=numpy.array([]))
-        fig, ax = plt.subplots(facecolor='white')
+        fig, ax = plt.subplots(facecolor='white',figsize=(15, 6))
         ax.tick_params(direction='out', length=5, pad=5)
 
         if len(wl) == 0:
-            plt.vlines(numpy.arange(rfc.n_features_)+1,0,rfc.feature_importances_*100)
-            plt.xlim(0,rfc.n_features_)
+            plt.vlines(numpy.arange(rfc.n_features_)+1,0,rfc.feature_importances_*100,lw=3,colors='b')
+            plt.xlim(0,rfc.n_features_+1)
             plt.xlabel('Feature Number')
         else:
-            plt.vlines(wl,0,rfc.feature_importances_*100)
-            plt.xlim(float(wl[0]),float(wl[-1]))
+            plt.vlines(wl,0,rfc.feature_importances_*100,lw=3,colors='b')
+            plt.xlim(float(wl[0])-float(wl[-1])*.03,float(wl[-1])+float(wl[-1])*.03)
             plt.xlabel('Wavelength ['+self.sample.image.meta.getMetadataItem('wavelength units')+']')
 
         plt.ylabel('Feature Importance [%]')
+        plt.grid()
 
         return fig
-       # ax1 = fig.add_subplot(211)
-        #ax1.xcorr(rfc.feature_importances_*100, rfc.feature_importances_*100, usevlines=True, maxlags=50, normed=True, lw=2)
-  #self.sample.image.meta.getMetadataItem('wavelength', default=range(1, rfc.n_features_+1))
 
     @staticmethod
     def SVCTuned(C_Values,gamma_Values,Score_Values, self):
@@ -598,7 +643,11 @@ class MH:
         xi = numpy.logspace(numpy.log2(min(C_Values)), numpy.log2(max(C_Values)), base=2, num=1000)
         zi = griddata((C_Values, gamma_Values), Score_Values, (xi[None,:], yi[:,None]),method='linear')
 
-        CS = plt.contourf(xi,yi,zi,cmap=plt.cm.Blues_r)
+        #reverse color table
+        colormap=plt.cm.Blues_r
+        if self.sklEstimator._estimator_type == 'regressor' : colormap=plt.cm.Blues
+
+        CS = plt.contourf(xi,yi,zi,cmap=colormap)
         cBar = plt.colorbar(CS, shrink=1, extend='neither', drawedges=True)
         cBar.ax.set_ylabel(self.sklEstimator._final_estimator.scoring)
 
@@ -656,12 +705,17 @@ class MH:
     @staticmethod
     def KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self):
 
+        xrange = [0, numpy.where(cumulatedExplainedVariance >= .999)[0][0]]
         fig, ax1 = plt.subplots(facecolor='white')
         ax2 = ax1.twinx()
-        ax1.plot(numpy.arange(n_components)+1,explainedVariance[:], 'black')
-        ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance[:], 'red')
-        ax1.set_xlabel('Number of PCs')
-        ax1.set_xlim([0, 5])
+        ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k.', markersize=15)
+        ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k--')
+        ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r.', markersize=15)
+        ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r--')
+        ax1.set_xlabel('Number of Principal Components')
+        ax1.set_xlim(xrange)
+        ax1.xaxis.set_ticks(range(1, max(xrange)+1))
+        ax1.set_ylim([0, 100])
         ax1.set_ylabel('Explained Variance [%]', color='black')
         ax2.set_ylabel('Cumulated Explained Variance [%]', color='r')
         ax1.tick_params(axis='y', colors='black')
@@ -670,4 +724,4 @@ class MH:
 
 
 if __name__ == '__main__':
-    print list(Classifiers().yieldAll())
+    print SVCTuned().name()

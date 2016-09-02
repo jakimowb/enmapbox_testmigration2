@@ -11,9 +11,9 @@ if os.environ['USERNAME'] == 'janzandr':
     inroot = r'c:\work\data'
     outroot = r'c:\work\outputs'
 elif os.environ['USERNAME'] == 'enmap-box':
-    inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
-
-
+    #inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
+    inroot = r'C:\Users\enmap-box\Desktop'
+    outroot = r'C:\Users\enmap-box\Desktop\outputs'
 
 def sample():
 
@@ -45,8 +45,8 @@ def classification():
   #  return
 
 
-    #classifiers = [enmapbox.processing.estimators.Classifiers.RandomForestClassifier()]
-    classifiers = [enmapbox.processing.estimators.Classifiers.LinearSVCTuned()]
+    classifiers = [enmapbox.processing.estimators.Classifiers.RandomForestClassifier()]
+    #classifiers = [enmapbox.processing.estimators.Classifiers.LinearSVCTuned()]
     #classifiers = [enmapbox.processing.estimators.Classifiers.SVCTuned(C=[1, 10, 100], gamma=[0.001, 100,1000])]
     # classifiers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Classifiers)
 
@@ -72,12 +72,16 @@ def regression():
     trainingLabels = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Training-Sample'))
     testingLabels = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
 
-    regressors = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Regressors)
+    #regressors = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Regressors)
+    #regressors = [enmapbox.processing.estimators.Regressors.LinearSVRTuned()]
+    #regressors = [enmapbox.processing.estimators.Regressors.SVRTuned()]
+    regressors = [enmapbox.processing.estimators.Regressors.RandomForestRegressor(oob_score=True)]
 
     for regressor in regressors:
         assert isinstance(regressor, enmapbox.processing.types.Regressor)
         Progress.setInfo(regressor.name())
         regressor = regressor.fit(image, trainingLabels)
+        regressor.report().saveHTML().open()
         regressor.predict(image, mask, filename=os.path.join(outroot, regressor.name()))
 
 
@@ -90,6 +94,7 @@ def clusterer():
 
     #clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
     clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=False, with_std=False)]
+    #clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=True, with_std=True)]
 
     for clusterer in clusterers:
         assert isinstance(clusterer, enmapbox.processing.types.Clusterer)
@@ -251,20 +256,22 @@ def ar_debug():
 
     from enmapbox.processing.types import unpickle
     image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    classifier = enmapbox.processing.estimators.Classifiers.LinearSVC()
-    classifier = classifier.fit(image, trainingLabels)
-    classifier.pickle(r'C:\Users\janzandr\AppData\Local\Temp\processing\1ad642222af14226a7d4238739be2d2b\model.file2')
-    c2 = unpickle(r'C:\Users\janzandr\AppData\Local\Temp\processing\1ad642222af14226a7d4238739be2d2b\model.file2')
+    trainingLtabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    mask = enmapbox.processing.types.Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
+    noMask = enmapbox.processing.types.NoMask()
+    est = enmapbox.processing.estimators.Transformers.PCA()
+    est = est.fit(image, mask=noMask)
+    est.pred .fit(image, mask=noMask)
 
+    est.info()
 
 if __name__ == '__main__':
 
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    classification()
+    #classification()
     #regression()
-    #clusterer()
+    clusterer()
     #transformer()
     #performance()
     #uncertaintyClassifier()
@@ -280,4 +287,5 @@ if __name__ == '__main__':
     #saveImageAs()
     #stackImages()
     #projectImageToPixelGrid()
-    ar_debug()
+    #ar_debug()
+

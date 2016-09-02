@@ -36,12 +36,16 @@ def restoreJSON(file):
     with open(file, 'r') as file: var = json.load(file)
     return hub.collections.Bunch(var)
 
-def savePickle(var, file):
-    hub.file.mkfiledir(file)
-    with open(file, 'wb') as file: pickle.dump(var, file)
+def savePickle(var, filename):
+    hub.file.mkfiledir(filename)
 
-def restorePickle(file):
-    with open(file, 'rb') as file: var = pickle.load(file)
+    #with open(file, 'wb') as file: pickle.dump(var, file)
+    with open(filename, 'wb') as file:
+        pickle.dump(obj=var, file=file, protocol=1)
+
+def restorePickle(filename):
+    with open(filename, 'rb') as file:
+        var = pickle.load(file=file)
     return var
 
 if __name__ == '__main__':
