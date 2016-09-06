@@ -37,6 +37,7 @@ def getCube(name, inputs, bbl=None):
             for i, name in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
                 result += coeff[i] * inputs.__dict__['timeseries_' + name]
 
+
         else:
                 raise Exception('Unknown cube requested: '+name)
         inputs.__dict__[name] = result

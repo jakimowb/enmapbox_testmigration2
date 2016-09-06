@@ -195,6 +195,10 @@ class GDALMeta():
 
         return result
 
+    def getMetadataDomains(self):
+        return self.domain.keys()
+
+
     def createDomain(self, domain):
 
         if not domain in self.domain: self.domain[domain] = dict()

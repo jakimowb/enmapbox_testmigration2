@@ -44,6 +44,7 @@ def savePickle(var, filename):
         pickle.dump(obj=var, file=file, protocol=1)
 
 def restorePickle(filename):
+
     with open(filename, 'rb') as file:
         var = pickle.load(file=file)
     return var

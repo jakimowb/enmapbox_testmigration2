@@ -2,7 +2,7 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-import enmapbox.processing.types
+from enmapbox.processing.types import Image, Mask
 import enmapbox.processing.estimators
 
 from enmapbox.processing.environment import PrintProgress as Progress
@@ -23,39 +23,32 @@ def sample():
     print(sample.labelData.shape)
     print(sample.imageData.shape)
 
+def image():
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    #image = Image(r'C:\Work\data\test\cfmask.tif')
+
+    image.info()
+
+def importENVISpeclib():
+    pseudoImage = Image.importENVISpectralLibrary(r'C:\Work\data\ClassificationSpeclib')
+    pseudoImage.info()
 
 def classification():
 
 
     image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
     mask =  enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
-    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    #image = enmapbox.processing.types.Image(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_Image')
-    #trainingLabels = enmapbox.processing.types.Classification(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_LC_Training')
-    #mask = enmapbox.processing.types.Image(r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image\AF_Mask')
+    labels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
-    #testingLabels = eb.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-
-
-   # classifier = enmapbox.processing.estimators.Classifiers.RandomForestClassifier()
-   # classifier = classifier.fit(image, trainingLabels)
-   # prediction = classifier.predict(image, mask)
-    #print(prediction)
-
-  #  return
-
-
-    classifiers = [enmapbox.processing.estimators.Classifiers.RandomForestClassifier()]
+    classifiers = [enmapbox.processing.estimators.Classifiers.RandomForestClassifier(n_estimators=100)]
     #classifiers = [enmapbox.processing.estimators.Classifiers.LinearSVCTuned()]
     #classifiers = [enmapbox.processing.estimators.Classifiers.SVCTuned(C=[1, 10, 100], gamma=[0.001, 100,1000])]
     # classifiers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Classifiers)
 
-
-
     for classifier in classifiers:
         assert isinstance(classifier, enmapbox.processing.types.Classifier)
         Progress.setInfo(classifier.name())
-        classifier = classifier.fit(image, trainingLabels, progress=Progress)
+        classifier = classifier.fit(image, labels, progress=Progress)
         classifier.report().saveHTML().open()
         continue
         classifier.predict(image, mask, filename=os.path.join(outroot, classifier.name()), progress=Progress)
@@ -89,8 +82,8 @@ def clusterer():
 
     image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
     mask = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
-    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    testingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
+    train = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    test = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
 
     #clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
     clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=False, with_std=False)]
@@ -99,8 +92,8 @@ def clusterer():
     for clusterer in clusterers:
         assert isinstance(clusterer, enmapbox.processing.types.Clusterer)
         Progress.setInfo(clusterer.name())
-        clusterer.fit(image, trainingLabels).report().saveHTML().open()
-        #clusterer.predict(image, mask, filename=os.path.join(outroot, clusterer.name()))
+        clusterer.fit(image, train).report().saveHTML().open()
+        clusterer.predict(image, mask, filename=os.path.join(outroot, clusterer.name()))
 
 
 def transformer():
@@ -121,6 +114,12 @@ def transformer():
         transformedImage = transformer.transform(image, mask, filename=os.path.join(outroot, transformer.name()))
         inverseTransformedImage = transformer.transformInverse(transformedImage, mask, filename=os.path.join(outroot, transformer.name()+'Inverse'))
 
+def showEstimator():
+
+    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    labels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    pca = enmapbox.processing.estimators.Transformers.PCA()
+    pca.info()
 
 def uncertaintyClassifier():
 
@@ -202,30 +201,18 @@ def probabilityAccAss():
     accAss.report().saveHTML().open()
 
 
-def statisticsAndHistogramForImage():
+def statisticsForImage():
 
-    image = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask =  enmapbox.processing.types.Mask(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    mask = None
+    image = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    statistics = image.statistics()
+    statistics.info()
 
-    statistics = image.statistics(mask)
-    statistics.report().saveHTML().open()
-
-def statisticsAndHistogramforClassification():
+def statisticsForClassification():
 
     classification = enmapbox.processing.types.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
     mask = None
     statistics = classification.statistics(mask)
     statistics.report().saveHTML().open()
-
-
-def importENVISpeclib():
-
-    speclib = enmapbox.processing.types.Image.fromENVISpectralLibrary(r'C:\Work\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\speclib\ClassificationSpeclib')
-    print(speclib.filename)
-    speclib = speclib.saveAs(r'c:\work\speclib')
-    speclib.report().saveHTML().open()
-
 
 def saveImageAs():
 
@@ -275,12 +262,15 @@ def ar_debug():
 
 if __name__ == '__main__':
 
+    #importENVISpeclib()
+    #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
     #classification()
     #regression()
-    clusterer()
+    #clusterer()
     #transformer()
+    #showEstimator()
     #performance()
     #uncertaintyClassifier()
     #uncertaintyRegressor()
@@ -289,20 +279,11 @@ if __name__ == '__main__':
     #regressionAccAss()
     #clusteringAccAss()
     #probabilityAccAss()
-    #statisticsAndHistogramForImage()
-    #statisticsAndHistogramforClassification()
+    statisticsForImage()
+    #statisticsforClassification()
     #mportENVISpeclib()
     #saveImageAs()
     #stackImages()
     #projectImageToPixelGrid()
     #maximumProbability()
     #ar_debug()
-
-    class A:
-        pass
-    class B:
-        pass
-    class C(A,B):
-        pass
-
-    print(isinstance(C(), B))

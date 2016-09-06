@@ -2,12 +2,13 @@ from __future__ import print_function, division
 
 __author__ = 'janzandr'
 
+import shutil
 import operator
 import hub
 from enmapbox.processing.environment import SilentProgress
 from hub.gdal.api import GDALMeta
-import hub.gdal.util
-import hub.file
+import hub.gdal.util, hub.gdal.api
+import hub.file, hub.envi
 import rios.applier
 import sklearn.metrics
 import sklearn.pipeline
@@ -47,9 +48,9 @@ class Type():
         return Report('')
 
 
-    def info(self):
+    def info(self, filename=Environment.tempfile('report', '.html')):
 
-        self.report().saveHTML().open()
+        self.report().saveHTML(filename=filename).open()
 
 class Meta(GDALMeta):
 
@@ -57,9 +58,22 @@ class Meta(GDALMeta):
 
 
 class Image(Type):
-    """
-    An GDAL conform image with no further assumptions about the image meta data.
-    """
+
+    @staticmethod
+    def importENVISpectralLibrary(infilename, outfilename=Environment.tempfile('ENVISpectralLibrary_')):
+
+        hdrfilename = hub.envi.findHeader(infilename)
+
+        outmeta = hub.envi.readHeader(hdrfilename)
+        outmeta['file type'] = 'ENVI Standard'
+        outmeta['bands'], outmeta['samples'] = outmeta['samples'], outmeta['bands']
+        outmeta['interleave'] = 'bip'
+
+        shutil.copyfile(infilename, outfilename)
+        hub.envi.writeHeader(outfilename+'.hdr', outmeta)
+        image = Image(outfilename)
+
+        return image
 
     def __init__(self, filename):
 
@@ -93,23 +107,137 @@ class Image(Type):
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
         return self.__class__(filename)
 
+    def statistics(self, bands=None):
+        if bands is None:
+            bands = range(self.meta.RasterCount)
+        imageStatistics = ImageStatistics(self)
+        for band in bands:
+            imageStatistics.calculateBandStatistics(band=band)
+        return imageStatistics
 
-   # def statistics(self):
+    def report(self):
 
-      #  return IamgeStatistics()
+        report = Report('View Image Matadata')
+        report.append(ReportMonospace(self.filename))
+
+        def addDomain(domain):
+            report.append(ReportHeading(domain + ' Domain'))
+            for key, value in self.meta.getMetadataDict(domain=domain).items():
+                report.append(ReportParagraph(key + ' = ' + str(value)))
+
+        addDomain('IMAGE_STRUCTURE')
+        addDomain('ENVI')
+        for domain in self.meta.getMetadataDomains():
+            if domain in ['DEFAULT', 'ENVI', 'IMAGE_STRUCTURE']: continue
+            addDomain(domain)
+        addDomain('DEFAULT')
+
+        return report
 
 
-#class ImgeStatistics():
-
-#        def __init__(self):
 
 
-class SpectralImage(Image):
-    pass
+class ImageStatistics(Type):
 
+    def __init__(self, image):
+        assert isinstance(image, Image)
+        self.image = image
+        self.bandStatistics = dict()
 
-class SpectralLibrary(SpectralImage):
-    pass
+    def getStatistic(self, key, bands=None):
+        if bands is None:
+            bands = sorted(self.bandStatistics.keys())
+        result = [self.bandStatistics[band].__dict__[key] for band in bands]
+        return result
+
+    def calculateBandStatistics(self, band, progress=progress):
+
+        progress.setText('calculate band ' + str(band+1) + ' min/max')
+
+        infiles = rios.applier.FilenameAssociations()
+        outfiles = rios.applier.FilenameAssociations()
+        args = rios.applier.OtherInputs()
+        controls = ApplierControls()
+
+        infiles.band = self.image.filename
+        controls.selectInputImageLayers([band+1], imagename='band')
+
+        args.noDataValue = self.image.meta.getNoDataValue(default=None)
+        args.min = +numpy.inf
+        args.max = -numpy.inf
+        args.countValid = 0
+        args.countNegInf = 0
+        args.countPosInf = 0
+        args.countNan = 0
+        args.countNoDataValue = 0
+        args.count = self.image.meta.RasterXSize * self.image.meta.RasterYSize
+        args.band = band+1
+
+        args.bins = 256
+        args.hist = numpy.zeros([args.bins], dtype=numpy.uint64)
+
+        args.progress = progress
+        progress.setDebugInfo(str(controls))
+
+        # set up the function to be applied
+        def ufunc(info, inputs, outputs, args):
+
+            args.progress.setPercentage(ApplierHelper.progress(info))
+
+            neginfMask = numpy.isneginf(inputs.band)
+            posinfMask = numpy.isposinf(inputs.band)
+            nanMask = numpy.isnan(inputs.band)
+            noDataValueMask = inputs.band == args.noDataValue
+            validMask = numpy.logical_not(neginfMask+posinfMask+nanMask+noDataValueMask)
+
+            if args.firstRun:
+                args.countValid += validMask.sum()
+                args.countNegInf += neginfMask.sum()
+                args.countPosInf += posinfMask.sum()
+                args.countNan = nanMask.sum()
+                args.countNoDataValue = noDataValueMask.sum()
+                args.min = min(inputs.band[validMask].min(), args.min)
+                args.max = max(inputs.band[validMask].max(), args.max)
+            else:
+                hist, bin_edges = numpy.histogram(inputs.band[validMask], bins=args.bins, range=[args.min, args.max])
+                args.hist += hist.astype(numpy.uint64)
+                args.bin_edges = bin_edges
+
+        # Apply the function to the inputs, creating the outputs.
+        args.firstRun = True
+        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+        args.firstRun = False
+        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+
+        del args.firstRun
+        del args.progress
+        self.bandStatistics[band] = args
+
+    def report(self):
+
+        report = Report('Image Statistics')
+        report.append(ReportMonospace(self.image.filename))
+        report.append(ReportHeading('Basic Statistics'))
+
+        #n total	n ignored	n used	min	max
+
+        report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
+        report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
+        report.append(ReportParagraph('maxs = ' + str(self.getStatistic('max'))))
+
+        report.append(ReportParagraph('countValids = ' + str(self.getStatistic('countValid'))))
+        report.append(ReportParagraph('countNegInfs = ' + str(self.getStatistic('countNegInf'))))
+        report.append(ReportParagraph('countPosInfs = ' + str(self.getStatistic('countPosInf'))))
+        report.append(ReportParagraph('countNans = ' + str(self.getStatistic('countNan'))))
+        report.append(ReportParagraph('countNoDataValues = ' + str(self.getStatistic('countNoDataValue'))))
+        report.append(ReportParagraph('counts = ' + str(self.getStatistic('count'))))
+        report.append(ReportParagraph('noDataValues = ' + str(self.getStatistic('noDataValue'))))
+
+        report.append(ReportHeading('Histograms'))
+        report.append(ReportParagraph('hists = ' + str(self.getStatistic('hist'))))
+        report.append(ReportParagraph('bin_edgess = ' + str(self.getStatistic('bin_edges'))))
+
+        return report
 
 
 class Mask(Image):
@@ -233,6 +361,7 @@ class Estimator(Type):
 
         assert isinstance(sklEstimator, sklearn.pipeline.Pipeline)
         self.sklEstimator = sklEstimator
+        self.sample = None
         self._assert()
 
 
@@ -502,26 +631,30 @@ class Estimator(Type):
 
         report = Report('View ' + finalEstimatorName + ' Model')
 
-        report.append(ReportHeading('Input Files'))
-        report.append(ReportMonospace('Image:  ' + self.sample.image.filename + '\nLabels: ' + self.sample.mask.filename))
+        if self.sample is not None:
+            report.append(ReportHeading('Input Files'))
+            report.append(ReportMonospace('Image:  ' + self.sample.image.filename + '\nLabels: ' + self.sample.mask.filename))
 
-        report.append(ReportHeading('Training Data'))
+            report.append(ReportHeading('Training Data'))
 
-        text = 'Number of Samples:  '+str(self.sample.labelData.shape[0])+'\n'
-        text += 'Number of Features: '+str(self.sample.imageData.shape[1])+'\n'
-        if isinstance(self, Classifier):
-            text += 'Number of Classes:  ' + str(int(self.sample.mask.meta.getMetadataItem('classes')) - 1) + '\n'
-            text += 'Class Names:        ' + ', '.join(self.sample.mask.meta.getMetadataItem('class names')[1:])
+            text = 'Number of Samples:  '+str(self.sample.labelData.shape[0])+'\n'
+            text += 'Number of Features: '+str(self.sample.imageData.shape[1])+'\n'
+            if isinstance(self, Classifier):
+                text += 'Number of Classes:  ' + str(int(self.sample.mask.meta.getMetadataItem('classes')) - 1) + '\n'
+                text += 'Class Names:        ' + ', '.join(self.sample.mask.meta.getMetadataItem('class names')[1:])
 
-        report.append(ReportMonospace(text))
+            report.append(ReportMonospace(text))
 
-        report.appendReport(self.reportDetails())
+            report.appendReport(self.reportDetails())
 
-        report.append(ReportHorizontalLine())
-        report.append(ReportHeading('Advanced Information', -1))
+            report.append(ReportHorizontalLine())
+            report.append(ReportHeading('Advanced Information', -1))
 
-        report.append(ReportHeading('Final Model Parameter'))
-        report.append(ReportMonospace(str(finalEstimator)))
+            report.append(ReportHeading('Final Model Parameter'))
+            report.append(ReportMonospace(str(finalEstimator)))
+        else:
+            report.append(ReportHeading('Unfitted Model Parameter'))
+            report.append(ReportMonospace(str(finalEstimator)))
 
         hyperlinks[sklearnName(finalEstimator)] = sklearnURL(finalEstimator)
 
@@ -607,7 +740,6 @@ class Classifier(Estimator):
 
 
     def predictProbabilityNoDataValue(self):
-
         return -1
 
 
@@ -675,9 +807,9 @@ class Regressor(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask, filename=Environment.tempfile('regression')):
+    def predict(self, image, mask, filename=Environment.tempfile('regression'), progress=progress):
 
-        self._predict(image, mask, predictfile=filename)
+        self._predict(image, mask, predictfile=filename, progress=progress)
         return Regression(filename)
 
 
@@ -754,13 +886,13 @@ class Clusterer(Estimator):
         return self._fit(sample, progress=progress)
 
 
-    def predict(self, image, mask=None, filename=Environment.tempfile('clustering')):
+    def predict(self, image, mask=None, filename=Environment.tempfile('clustering'), progress=progress):
 
-        self._predict(image, mask, predictfile=filename)
+        self._predict(image, mask, predictfile=filename, progress=progress)
         return Classification(filename)
 
 
-    def predictMeta(self, meta):
+    def predictMeta(self, meta, imeta, mmeta):
 
         assert isinstance(meta, Meta)
         n_clusters = self.sklEstimator._final_estimator.n_clusters

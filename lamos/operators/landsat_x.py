@@ -6,7 +6,7 @@ import hub.gdal.util, hub.gdal.api
 import hub.rs.virtual
 from hub.timing import tic, toc
 from hub.datetime import Date
-from enmapbox import processing
+from enmapbox.processing.types import Meta
 from lamos.types import SensorXComposer, Product, Image, ImageStack, MGRSArchive, MGRSTilingScheme, MGRSFootprint, WRS2Footprint
 from multiprocessing.pool import ThreadPool
 
@@ -115,7 +115,7 @@ class TimeseriesBuilder():
 
         infiles_sr = [image.filename for image in images_sr]
         infiles_qa = [image.filename for image in images_qa]
-        inmetas = [processing.Meta(infile) for infile in infiles_sr]
+        inmetas = [Meta(infile) for infile in infiles_sr]
 
         indecimalyear = [hub.datetime.Date(int(inmeta.getMetadataItem('acqdate')[0:4]), int(inmeta.getMetadataItem('acqdate')[5:7]), int(inmeta.getMetadataItem('acqdate')[8:10])).decimalYear() for inmeta in inmetas]
 
@@ -131,7 +131,7 @@ class TimeseriesBuilder():
 
             if not os.path.exists(outfile):
                 hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
-                outmeta = processing.Meta(outfile)
+                outmeta = Meta(outfile)
                 for metaKey in metaKeys:
                     outmeta.setMetadataItem(metaKey, [meta.getMetadataItem(metaKey) for meta in inmetas])
                 outmeta.setMetadataItem('wavelength', indecimalyear)

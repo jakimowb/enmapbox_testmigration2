@@ -18,7 +18,9 @@ def test():
     folder2 = r'C:\Work\data\gms\landsatX'
     folder3 = r'C:\Work\data\gms\landsatXMGRS'
     folder4 = r'C:\Work\data\gms\landsatTimeseriesMGRS'
-    folder4b = r'C:\Work\data\gms\landsatTimeseriesMGRS_ENVI'
+    folder4a = r'C:\Work\data\gms\landsatTimeseriesMGRS_ENVI'
+    folder4b = r'C:\Work\data\gms\landsatTimeseriesMGRS_GTiff'
+
     folder5 = r'C:\Work\data\gms\productsMGRS'
     folder6 = r'C:\Work\data\gms\stacksMGRS'
 
@@ -41,10 +43,11 @@ def test():
     #MGRSArchive(folder3).saveAsGTiff(folder3b, processes=10)
 
     tsBuilder = TimeseriesBuilder(start=None, end=None)
-    #tsBuilder.build(infolder=folder3b, outfolder=folder4, inextension='.tif', footprints=mgrsFootprints)
     tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=10)
 
-    MGRSArchive(folder4).saveAsENVI(folder4b, compress=False, processes=10)
+    MGRSArchive(folder4).saveAsENVI(folder4a, processes=10)
+    MGRSArchive(folder4).saveAsGTiff(folder4b, processes=10)
+
 
     applier = CompositingApplier(infolder=folder4b, outfolder=folder5,
                                  footprints=mgrsFootprints, inextension='.img', of='ENVI')
