@@ -173,11 +173,19 @@ class ImageStatistics(Type):
         args.count = self.image.meta.RasterXSize * self.image.meta.RasterYSize
         args.band = band+1
 
-        args.bins = 256
-        args.hist = numpy.zeros([args.bins], dtype=numpy.uint64)
-
         args.progress = progress
         progress.setDebugInfo(str(controls))
+
+        args.classification = isinstance(self.image, Classification)
+        if args.classification:
+            classes = int(self.image.meta.getMetadataItem('classes'))
+            args.min = 1
+            args.max = classes
+            args.bins = classes-1
+            args.noDataValue = 0
+        else:
+            args.bins = 256
+        args.hist = numpy.zeros([args.bins], dtype=numpy.uint64)
 
         # set up the function to be applied
         def ufunc(info, inputs, outputs, args):
@@ -194,10 +202,11 @@ class ImageStatistics(Type):
                 args.countValid += validMask.sum()
                 args.countNegInf += neginfMask.sum()
                 args.countPosInf += posinfMask.sum()
-                args.countNan = nanMask.sum()
-                args.countNoDataValue = noDataValueMask.sum()
-                args.min = min(inputs.band[validMask].min(), args.min)
-                args.max = max(inputs.band[validMask].max(), args.max)
+                args.countNan += nanMask.sum()
+                args.countNoDataValue += noDataValueMask.sum()
+                if not args.classification:
+                    args.min = min(inputs.band[validMask].min(), args.min)
+                    args.max = max(inputs.band[validMask].max(), args.max)
             else:
                 hist, bin_edges = numpy.histogram(inputs.band[validMask], bins=args.bins, range=[args.min, args.max])
                 args.hist += hist.astype(numpy.uint64)
@@ -207,6 +216,7 @@ class ImageStatistics(Type):
         args.firstRun = True
         rios.applier.apply(ufunc, infiles, outfiles, args, controls)
         args.firstRun = False
+
         rios.applier.apply(ufunc, infiles, outfiles, args, controls)
 
         del args.firstRun

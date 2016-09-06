@@ -19,7 +19,7 @@ class EnMAPBoxProvider(AlgorithmProvider):
         AlgorithmProvider.__init__(self)
         self.alglist = list()
 
-        Alglist = [ImageViewMetadata,
+        Alglist = [ImageViewMetadata, ImageViewStatistics,
                    ImportENVISpectralLibrary,
                    ImageMLOpenHyMapA, ImageMLOpenHyMapB, ImageMLPredict, ImageMLPredictProbability, ImageMLViewModel,
                    ImageMLTransform, ImageMLTransformInverse, ImageMLArgmaxProbability]
@@ -365,6 +365,19 @@ class ImageViewMetadata(EnMAPBoxGeoAlgorithm):
 
         image = self.getParameterRaster('image')
         image.info()
+
+class ImageViewStatistics(EnMAPBoxGeoAlgorithm):
+
+    def defineCharacteristics(self):
+
+        self.setName('View Image Statistics')
+        self.setGroup('Management')
+        self.addParameter(ParameterRaster('image', 'Image'))
+
+    def processAlgorithm(self, progress):
+
+        image = self.getParameterRaster('image')
+        image.statistics().info()
 
 
 class ImportENVISpectralLibrary(EnMAPBoxGeoAlgorithm):

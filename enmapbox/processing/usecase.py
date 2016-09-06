@@ -2,7 +2,7 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-from enmapbox.processing.types import Image, Mask
+from enmapbox.processing.types import Image, Mask, Classification
 import enmapbox.processing.estimators
 
 from enmapbox.processing.environment import PrintProgress as Progress
@@ -203,16 +203,13 @@ def probabilityAccAss():
 
 def statisticsForImage():
 
-    image = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    statistics = image.statistics()
-    statistics.info()
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    image.statistics().info()
 
 def statisticsForClassification():
 
-    classification = enmapbox.processing.types.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
-    mask = None
-    statistics = classification.statistics(mask)
-    statistics.report().saveHTML().open()
+    image = Classification(os.path.join(inroot,  'Hymap_Berlin-A_Classification-Training-Sample'))
+    image.statistics().info()
 
 def saveImageAs():
 
@@ -279,8 +276,8 @@ if __name__ == '__main__':
     #regressionAccAss()
     #clusteringAccAss()
     #probabilityAccAss()
-    statisticsForImage()
-    #statisticsforClassification()
+    #statisticsForImage()
+    statisticsForClassification()
     #mportENVISpeclib()
     #saveImageAs()
     #stackImages()
