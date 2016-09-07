@@ -1,0 +1,14 @@
+<PAMDataset>
+  <Metadata>
+    <MDI key="Band_1">cfmask_band</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <Description>cfmask_band</Description>
+    <Metadata>
+      <MDI key="STATISTICS_MAXIMUM">255</MDI>
+      <MDI key="STATISTICS_MEAN">27.684440559441</MDI>
+      <MDI key="STATISTICS_MINIMUM">0</MDI>
+      <MDI key="STATISTICS_STDDEV">79.329087310823</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

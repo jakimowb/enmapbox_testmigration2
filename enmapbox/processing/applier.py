@@ -3,17 +3,21 @@ import numpy
 
 class ApplierControls(rios.applier.ApplierControls):
 
+    defaultOutputDriverName = "ENVI"
+    defaultCreationOptions = ["INTERLEAVE=BSQ"]
+    defaultWindowXsize = 256
+    defaultWindowYsize = 256
+
     def __init__(self):
         rios.applier.ApplierControls.__init__(self)
         self.setNumThreads(1)
         self.setJobManagerType('multiprocessing')
-        self.setOutputDriverName("ENVI")
-        self.setCreationOptions(["INTERLEAVE=BSQ"])
-        self.setWindowXsize(256)
-        self.setWindowYsize(256)
+        self.setOutputDriverName(ApplierControls.defaultOutputDriverName)
+        self.setCreationOptions(ApplierControls.defaultCreationOptions)
+        self.setWindowXsize(ApplierControls.defaultWindowXsize)
+        self.setWindowYsize(ApplierControls.defaultWindowYsize)
         self.setCalcStats(False)
         self.setOmitPyramids(True)
-
 
     def __repr__(self):
         d = self.__dict__

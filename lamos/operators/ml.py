@@ -5,7 +5,7 @@ from hub.timing import tic, toc
 import hub.file
 import enmapbox.processing
 from enmapbox.processing.estimators import Classifiers
-from enmapbox.processing.env import PrintProgress
+from enmapbox.processing.environment import PrintProgress
 
 class SampleReadApplier(Applier):
 

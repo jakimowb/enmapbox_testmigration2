@@ -6,7 +6,7 @@ import time
 import hub.file
 
 from HTML import Table, TableRow, TableCell
-from enmapbox.processing.env import env
+from enmapbox.processing.environment import Environment
 
 
 class Report():
@@ -66,7 +66,7 @@ class Report():
         return html
 
 
-    def saveHTML(self, filename=env.tempfile('report', '.html')):
+    def saveHTML(self, filename=Environment.tempfile('report', '.html')):
 
         self.filename = filename
         dirname = os.path.splitext(filename)[0] + '_files'
@@ -89,9 +89,16 @@ class Report():
 
     def open(self):
 
-        cmd = self.filename
-        subprocess.call(cmd, shell=True)
+        import webbrowser
+        url = self.filename
+        webbrowser.open_new(url)
         return self
+
+        '''cmd = self.filename
+        #subprocess.call(cmd, shell=True)
+        sp = subprocess.Popen(cmd, shell=True)
+        sp.wait()
+        return self'''
 
 
 class ReportHeading():
@@ -214,7 +221,7 @@ class ReportTable():
                 rowSpans = [[None for v in vr] for vr in rowHeaders]
 
             if colHeaders is not None:
-                table[0].cells.insert(0, TableCell('', header=True, attribs={'colspan':len(rowHeaders), 'rowspan': len(colHeaders)}))
+                table[0].cells.insert(0, TableCell('', header=True, attribs={'colspan': len(rowHeaders), 'rowspan': len(colHeaders)}))
 
             for rowheader, rowspan  in reversed(zip(rowHeaders, rowSpans)):
                 i = len(colHeaders) if colHeaders is not None else 0

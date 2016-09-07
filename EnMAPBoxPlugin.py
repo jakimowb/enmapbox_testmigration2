@@ -2,25 +2,36 @@ import inspect
 import os
 import sys
 
+
+
+#from qgis.gui import *
+#from qgis.core import *
+import qgis.gui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-import qgis.gui
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 jp = os.path.join
 root = jp(cmd_folder, 'enmapbox')
 
-if False:
-    to_add = [root]
+if True:
+    to_add = []
+    to_add.append(cmd_folder)
+    dir_libs = jp(cmd_folder, 'site-packages')
+    for p in os.listdir(dir_libs):
+        path = jp(dir_libs,p)
+        if os.path.isdir(path):
+            to_add.append(path)
+            pass
     #to_add.append(jp(root, *['apps']))
-    to_add.append(jp(root, *['gui']))
+    #to_add.append(jp(root, *['gui']))
     #to_add.append(jp(root, *['hub']))
 
-    for folder in reversed(to_add):
+    for folder in to_add:
         assert os.path.isdir(folder)
         if folder not in sys.path:
-            sys.path.insert(0, folder)
+            sys.path.append(folder)
 
 
 
@@ -88,21 +99,29 @@ class EnMAPBoxPlugin:
         self.processingProviders = []
         if self.has_processing_framework():
             # add example app
-            from processing.core.Processing import Processing
-
-            #from enmapbox.apps.exampleapp.ExampleAlgorithmProvider import ExampleAlgorithmProvider
-            #self.processingProviders.append(ExampleAlgorithmProvider())
-            from enmapbox.apps.core import EnMAPBoxProvider
-            self.processingProviders.append(EnMAPBoxProvider())
-            #for provider in enmapbox.apps.core.get_providers():
-            #    self.processingProviders.append(provider)
+            try:
+                from processing.core.Processing import Processing
+                from enmapbox.apps.core import EnMAPBoxProvider
 
 
-            for provider in self.processingProviders:
-                Processing.addProvider(provider)
+                p = EnMAPBoxProvider()
+                print(p.getIcon())
+                self.processingProviders.append(EnMAPBoxProvider())
 
+                #todo: add other providers here
 
+                #add providers to processing framework
+                for provider in self.processingProviders:
+                    Processing.addProvider(provider)
 
+            except Exception, e:
+                import six
+                import traceback
+                tb = traceback.format_exc()
+                six.print_('ERROR occurred while loading EnMAPBoxProvider for processing frame work:', file=sys.stderr)
+                six.print_(str(e))
+                six.print_(tb)
+            print('Processing Framework done')
 
     def unload(self):
         for action in self.toolbarActions:
@@ -126,14 +145,12 @@ if __name__ == '__main__':
 
     #start a QGIS instance
     if True:
-        from qgis.gui import *
-        from qgis.core import *
         if sys.platform == 'darwin':
             PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
         else:
             PATH_QGS = os.environ['QGIS_PREFIX_PATH']
         assert os.path.exists(PATH_QGS)
-        qgsApp = QgsApplication([], True)
+        qgsApp = qgis.core.QgsApplication([], True)
         qgsApp.setPrefixPath(PATH_QGS, True)
         qgsApp.initQgis()
 
