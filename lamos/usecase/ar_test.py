@@ -1,7 +1,7 @@
 from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.compositing import CompositingApplier, StatisticsApplier
-from lamos.operators.ml import ClassifierPredictApplier, SampleReadApplier
+from lamos.operators.ml import ClassifierPredictApplier, SampleReadApplier, rand
 from lamos.operators.stack import StackApplier
 
 from hub.timing import tic, toc
@@ -99,7 +99,7 @@ def test():
     sampleReader.appendFeatures()
     samples = sampleReader.apply()
 
-    rfc = randomForestFit(samples)
+    rfc = randomForestFrandomForestit(samples)
 
     predictor = ClassifierPredictApplier(infolder=folder1, inextension='.img', outfolder=folder3, classifier=rfc)
     predictor.apply()

@@ -16,7 +16,7 @@ def test():
     folder3b = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4cs\landsatXMGRS_GTiff'
     folder4 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4cs\landsatTimeseriesMGRS'
     folder4b = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4cs\landsatTimeseriesMGRS_GTiff'
-    folder5 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4cs\statisticsMGRS_2'
+    folder5 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4cs\statisticsMGRS'
 
     WRS2Footprint.createUtmLookup(infolder=folder1)
 
@@ -26,8 +26,8 @@ def test():
     start = Date(1985, 1, 1)
     end = Date(2015, 12, 31)
 
-    #i=0
-    #mgrsFootprints = mgrsFootprints[i:i+1]
+    i=3
+    mgrsFootprints = mgrsFootprints[i:i+1]
 
     composer = LandsatXComposer()
     #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=50)
@@ -42,43 +42,22 @@ def test():
     #tsBuilder.build(infolder=folder3b, outfolder=folder4, inextension='.tif', footprints=mgrsFootprints)
     #tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=50)
 
-    MGRSArchive(folder4).saveAsGTiff(outfolder=folder4b, compress='NONE', filter=mgrsFootprints, processes=5)
+    #MGRSArchive(folder4).saveAsGTiff(outfolder=folder4b, compress='NONE', filter=mgrsFootprints, processes=5)
 
 
     #MGRSArchive(folder4).saveAsENVI(outfolder=folder4b, filter=mgrsFootprints, processes=10)
 
-    return
+    applier = StatisticsApplier(infolder=folder4b, outfolder=folder5,
+                                footprints=mgrsFootprints, inextension='.tif', of='ENVI',
+                                percentiles=[5,25,50,75,95], variables=['tcb','tcg','tcw'], mean=False, stddev=False)
 
-    applier = StatisticsApplier(infolder=folder4b, outfolder=folder5, compressed=False,
-                                years=[], months=[], days=[],
-                                bufferDays=None, bufferYears=None,
-                                footprints=mgrsFootprints, inextension='.tif')
-
+    bufferYears = 1
     years = range(start.year, end.year + 1)
     for year in years:
-
-
-        months = [7]
-        days = [1]
-        bufferDays = 183
-        bufferYears = 0
-        for month in months:
-                    for day in days:
-                        applier.appendDateParameters(year=year, month=month, day=day,
-                                                  bufferYears=bufferYears, bufferDays=bufferDays)
-
-        months = [7]
-        days = [15]
-        bufferDays = 46
-        bufferYears = 0
-        for month in months:
-                    for day in days:
-                        applier.appendDateParameters(year=year, month=month, day=day,
-                                                  bufferYears=bufferYears, bufferDays=bufferDays)
+        applier.appendDateParameters(date1=Date(year, 1, 1), date2=Date(year, 12, 31), bufferYears=bufferYears)
 
     applier.controls.setWindowXsize(256)
     applier.controls.setWindowYsize(256)
-#    applier.controls.setNumThreads(50)
     applier.apply()
 
 
@@ -87,18 +66,3 @@ if __name__ == '__main__':
     tic()
     test()
     toc()
-
-'''
-Ich hba mal ein paar config options ausprobiert https://trac.osgeo.org/gdal/wiki/ConfigOptions
-set GDAL_CACHE_MAX=100000
-set GDAL_SWATH_SIZE = 100000
-set GDAL_MAX_DATASET_POOL_SIZE=5
-set GDAL_FORCE_CACHING=TRUE
-set VSI_CACHE=TRUE
-set VSI_CACHE_SIZE=1000
-
-gdal_translate -of ENVI red.vrt red_bj.bsq
-
-Auf dem GSX bleibt die RAM auslatung nun < 400 mb. Ausschlaggebend dafür ist glaube ich einzig der GDAL_MAX_DATASET_POOL_SIZE Wert, da sonst wohl zuviele VRTs gecached werden.
-Müsste man nochmal genauer probieren wie sich das auswirkt...
-'''

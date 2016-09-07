@@ -36,7 +36,12 @@ def getCube(name, inputs, bbl=None):
             result = numpy.zeros_like(inputs.timeseries_cfmask, dtype=numpy.float32)
             for i, name in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
                 result += coeff[i] * inputs.__dict__['timeseries_' + name]
-
+        elif name=='msavi2':
+            #msavi2 = (2*nir + 1 - sqrt((2*nir+1)^2 - 8*(nir-red))) / 2
+            nir = inputs.timeseries_nir / 10000.
+            red = inputs.timeseries_red / 10000.
+            result = (2*nir + 1 - numpy.sqrt((2*nir+1)**2 - 8*(nir-red))) / 2
+        # http: // wiki.landscapetoolbox.org / doku.php / remote_sensing_methods:modified_soil - adjusted_vegetation_index
         else:
                 raise Exception('Unknown cube requested: '+name)
         inputs.__dict__[name] = result
@@ -488,7 +493,7 @@ class StatisticsApplier(Applier):
                 for key in otherArgs.variables:
 
                     input = getCube(name=key, inputs=inputs, bbl=bbl)
-                    if key in ['ndvi', 'nbr']:
+                    if key in ['ndvi', 'nbr', 'msavi2']:
                         input *= 10000
 
                     # - percentiles
@@ -544,7 +549,7 @@ class StatisticsApplier(Applier):
 
     def __init__(self, infolder, outfolder, inextension, footprints=None, of='ENVI',
                  percentiles=[0,5,25,50,75,95,100],
-                 variables=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr'],
+                 variables=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'msavi2'],
                  mean=True, stddev=True):
 
         Applier.__init__(self, footprints=footprints, of=of)

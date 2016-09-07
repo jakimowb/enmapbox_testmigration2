@@ -4,6 +4,8 @@ import numpy
 from hub.timing import tic, toc
 import hub.ogr.util, os, hub.gdal.util
 from hub.gdal.api import GDALMeta
+from osgeo import ogr
+
 
 class LucasImportApplier:
 
@@ -84,7 +86,15 @@ class AndreyDaraImportApplier:
             options = clipdst + t_srs
             hub.ogr.util.ogr2ogr(outfile=outfile, infile=self.inshapefile, options=options)
 
-            # rasterize cliped shape
+            # rasterize cliped shape (if not empty)
+
+            driver = ogr.GetDriverByName('ESRI Shapefile')
+            dataSource = driver.Open(outfile, 0)
+            layer = dataSource.GetLayer()
+            featureCount = layer.GetFeatureCount()
+            if featureCount == 0:
+                continue
+
             a = '-a class_ '
             a_nodata = '-a_nodata 0 '
             init = '-init 0 '
@@ -122,6 +132,9 @@ def testAD():
     inshapefile = r'\\141.20.140.91\NAS_Projects\Baltrak\Andrey\SHP\2007.shp'
     outfolder = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\referenceMGRS'
     mgrsFootprints = ['41ULS','41ULT','41ULU','41UMS','41UMT','41UMU','41UMV','41UNS','41UNT','41UNU','41UNV','41UPS','41UPT','41UPU','41UPV']
+
+
+    #mgrsFootprints = ['41UPV']
 
     importer = AndreyDaraImportApplier(inshapefile=inshapefile, outfolder=outfolder, footprints=mgrsFootprints, buffer=300)
     importer.apply()

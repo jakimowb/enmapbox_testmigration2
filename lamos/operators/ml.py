@@ -28,11 +28,14 @@ class SampleReadApplier(Applier):
 
         print(footprint.name)
 
-        labelfile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-        imagefile = self.inputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
-        image = enmapbox.processing.Image(imagefile)
-        labels = enmapbox.processing.Classification(labelfile)
-        sample = enmapbox.processing.ClassificationSample(image, labels)
+        if len(self.inputs[0].getFilenameAssociations(footprint).__dict__.values()) == 1:
+            labelfile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
+            imagefile = self.inputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
+            image = enmapbox.processing.Image(imagefile)
+            labels = enmapbox.processing.Classification(labelfile)
+            sample = enmapbox.processing.ClassificationSample(image, labels)
+        else:
+            sample = None
         return sample
 
 
@@ -45,8 +48,8 @@ class SampleReadApplier(Applier):
             samples[footprint.name] = self.applyToFootprint(footprint=footprint)
 
         # merge all samples
-        x = numpy.vstack([sample.imageData for sample in samples.values()])
-        y = numpy.hstack([sample.labelData for sample in samples.values()])
+        x = numpy.vstack([sample.imageData for sample in samples.values() if sample is not None])
+        y = numpy.hstack([sample.labelData for sample in samples.values() if sample is not None])
 
         sample = samples.values()[0]  # it is assumed, that the meta data in all samples match, so simply the meta data of the first sample is used
         sample.imageData = x # store all features
@@ -74,7 +77,7 @@ def exportSampleAsJSON(sample, rfc, outfile):
 class ClassifierPredictApplier(Applier):
 
     def __init__(self, featureFolder, featureProduct, featureImage, featureExtension,
-                 labelFolder, labelProduct, labelImage, labelExtension,
+                 outFolder, outProduct, outClassification, outProbability, outExtension,
                  classifier, footprints=None):
 
         Applier.__init__(self, footprints=footprints)
@@ -82,10 +85,10 @@ class ClassifierPredictApplier(Applier):
                                       productName=featureProduct,
                                       imageNames=[featureImage],
                                       extension=featureExtension))
-        self.appendOutput(ApplierOutput(folder=labelFolder,
-                                        productName=labelProduct,
-                                        imageNames=[labelImage],
-                                        extension=labelExtension))
+        self.appendOutput(ApplierOutput(folder=outFolder,
+                                        productName=outProduct,
+                                        imageNames=[outClassification, outProbability],
+                                        extension=outExtension))
 
         assert isinstance(classifier, enmapbox.processing.Classifier)
         self.classifier = classifier
@@ -95,10 +98,12 @@ class ClassifierPredictApplier(Applier):
 
         print(footprint.name)
         imagefile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-        outfile = self.outputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
+        outfileProbability = self.outputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
         image = enmapbox.processing.Image(imagefile)
-        hub.file.mkfiledir(outfile)
-        self.classifier.predict(image=image, mask=None, filename=outfile, progress=PrintProgress)
+        hub.file.mkfiledir(outfileProbability)
+        probability = self.classifier.predictProbability(image=image, mask=None, filename=outfileProbability, progress=PrintProgress)
+        classification = probability.xyz
+
 
 
 def test():
