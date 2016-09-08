@@ -155,19 +155,19 @@ def uncertaintyRegressor():
 
 def classificationAccAss():
 
-    testingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
-    prediction = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
+    testingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
+    prediction = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
 
-    accAss = prediction.assessClassificationPerformance(testingLabels)
-    accAss.info() #.report().saveHTML().open()
+    accAss = prediction.assessClassificationPerformance(classification=testingLabels)
+    accAss.info()
 
 
 def classificationAccAssAdjusted():
 
-    testingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
-    prediction = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
-    stratification = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-GroundTruth'))
-    accAss = prediction.assessClassificationPerformance(testingLabels, stratification)
+    test = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
+    prediction = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
+    stratification = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-GroundTruth'))
+    accAss = prediction.assessClassificationPerformance(classification=test, stratification=stratification)
     accAss.report().saveHTML().open()
 
 
@@ -181,11 +181,11 @@ def regressionAccAss():
 
 def clusteringAccAss():
 
-    testingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
-    prediction = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
+    testingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
+    prediction = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
 
     accAss = prediction.assessClusteringPerformance(testingLabels)
-    accAss.report().saveHTML().open()
+    accAss.info()
 
 
 def probabilityAccAss():
@@ -257,6 +257,38 @@ def ar_debug():
     trf = trf.fit(image, labels=None)
     transformation = trf.transform(image)
 
+def ar_debug2():
+
+    import numpy, gdal
+    filename = r'C:\Work\data\test\myimage.img'
+    samples = 500
+    lines = 200
+    bands = 3
+    data = numpy.full((100,100), 1, dtype=numpy.int32)
+
+    # create file, set some meta infos to the ENVI domain and close it
+    driver = gdal.GetDriverByName('ENVI')
+    ds = driver.Create(filename, samples, lines, bands, gdal.GDT_Int16)
+    ds.SetMetadataItem('my_scalar', 'Hello World', 'ENVI')
+    myArray = '{'+str([1,2,3,4,5])[1:-1]+'}'
+    ds.SetMetadataItem('my_array', myArray, 'ENVI')
+    ds = None
+
+    # open it again, write data to xyoff = 0,0 and close it
+    ds = gdal.Open(filename, gdal.OF_UPDATE)
+    for rb in [ds.GetRasterBand(i+1) for i in range(bands)]:
+        rb.WriteArray(array=data, xoff=0, yoff=0)
+        rb.FlushCache()
+    ds = None
+
+    # open it again, write data to xyoff = 100,100 and close it
+    ds = gdal.Open(filename, gdal.OF_UPDATE)
+    for rb in [ds.GetRasterBand(i + 1) for i in range(bands)]:
+        rb.WriteArray(array=data, xoff=100, yoff=100)
+        rb.FlushCache()
+    ds = None
+
+
 if __name__ == '__main__':
 
     #importENVISpeclib()
@@ -272,15 +304,15 @@ if __name__ == '__main__':
     #uncertaintyClassifier()
     #uncertaintyRegressor()
     #classificationAccAss()
-    #classificationAccAssAdjusted()
+    classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
     #probabilityAccAss()
     #statisticsForImage()
-    statisticsForClassification()
-    #mportENVISpeclib()
+    #statisticsForClassification()
+    #importENVISpeclib()
     #saveImageAs()
     #stackImages()
     #projectImageToPixelGrid()
     #maximumProbability()
-    #ar_debug()
+    #ar_debug2()
