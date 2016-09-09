@@ -1,11 +1,11 @@
 __author__ = 'janzandr'
 import gdal, numpy, osgeo, hub.file, hub.envi
-from gdalconst import *
+#from gdalconst import *
 #from hub.collections import Bunch
 
 def geoInfo(file):
     result = dict()
-    dataset = gdal.Open(file, GA_ReadOnly)
+    dataset = gdal.Open(file, gdal.GA_ReadOnly)
     result.geoTransform = numpy.array(dataset.GetGeoTransform())
     result.projection = dataset.GetProjection()
     result.rasterSize = numpy.array((dataset.RasterXSize, dataset.RasterYSize))
@@ -139,7 +139,7 @@ class GDALMeta():
 
     def writeMeta(self, filename):
 
-        ds = gdal.Open(filename, GA_Update)
+        ds = gdal.Open(filename, gdal.GA_Update)
         if ds is None:
             print('Unable to open '+filename)
             raise
@@ -155,7 +155,8 @@ class GDALMeta():
 
             ds.SetMetadata(bunch, domain if domain != 'DEFAULT' else '')
 
-        for band in range(1,ds.RasterCount+1):
+        for band in range(1, len(self.rb)+1): # ds.RasterCount+1):
+
             rb = ds.GetRasterBand(band)
             rb.SetDescription(self.rb[band-1].getDescription())
             rb.SetMetadata(self.rb[band-1].metadata)

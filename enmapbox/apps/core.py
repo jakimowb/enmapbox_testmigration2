@@ -1,5 +1,5 @@
 # Import Processing libraries to add the algorithms to Processing toolbox
-from processing.core.Processing import Processing
+
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
@@ -13,13 +13,23 @@ from enmapbox.processing.estimators import Classifiers, Regressors, Clusterers, 
 from enmapbox.processing.environment import Environment
 from enmapbox.processing.types import Image, Classification, Probability, Regression, Mask, Estimator, Classifier, Regressor, Transformer, Clusterer, unpickle
 
+add = lambda main, sub: ' -> '.join([main, sub])
+group_file  = '1. File'
+group_tools = '2. Tools'
+group_apps  = '3. Applications'
+group_apps_ml = add(group_apps, 'Machine Learning')
+
+
 class EnMAPBoxProvider(AlgorithmProvider):
+
+
     def __init__(self):
 
         AlgorithmProvider.__init__(self)
         self.alglist = list()
 
-        Alglist = [ImageViewMetadata, ImageViewStatistics,
+        Alglist = [AccuracyAssessmentClassififcation, AccuracyAssessmentClassififcationAdjusted, AccuracyAssessmentRegression, AccuracyAssessmentClustering,
+                   ImageViewMetadata, ImageViewStatistics,
                    ImportENVISpectralLibrary,
                    ImageMLOpenHyMapA, ImageMLOpenHyMapB, ImageMLPredict, ImageMLPredictProbability, ImageMLViewModel,
                    ImageMLTransform, ImageMLTransformInverse, ImageMLArgmaxProbability]
@@ -30,17 +40,17 @@ class EnMAPBoxProvider(AlgorithmProvider):
 
         # insert generic Scikit-Learn estimators
         for estimator in Classifiers().yieldAll():
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Classifiers', 'Classifiers.' + estimator.signature(), estimator, showInToolbox=True))
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Classifiers', 'Classifiers.' + estimator.signature(), estimator, showInModeler=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Classification'), 'Classifiers.' + estimator.signature(), estimator, showInToolbox=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Classification'), 'Classifiers.' + estimator.signature(), estimator, showInModeler=True))
         for estimator in Regressors().yieldAll():
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Regressors', 'Regressors.' + estimator.signature(), estimator, showInToolbox=True))
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Regressors', 'Regressors.' + estimator.signature(), estimator, showInModeler=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Regression'), 'Regressors.' + estimator.signature(), estimator, showInToolbox=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Regression'), 'Regressors.' + estimator.signature(), estimator, showInModeler=True))
         for estimator in Clusterers().yieldAll():
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Clusterers', 'Clusterers.' + estimator.signature(), estimator, showInToolbox=True))
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Clusterers', 'Clusterers.' + estimator.signature(), estimator, showInModeler=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Clustering'), 'Clusterers.' + estimator.signature(), estimator, showInToolbox=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Clustering'), 'Clusterers.' + estimator.signature(), estimator, showInModeler=True))
         for estimator in Transformers().yieldAll():
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Transformers', 'Transformers.' + estimator.signature(), estimator, showInToolbox=True))
-            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', 'imageML Transformers', 'Transformers.' + estimator.signature(), estimator, showInModeler=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Transformation'), 'Transformers.' + estimator.signature(), estimator, showInToolbox=True))
+            self.alglist.append(ImageMLFit(estimator.name() + ' Fit', add(group_apps_ml, 'Transformation'), 'Transformers.' + estimator.signature(), estimator, showInModeler=True))
 
 
 
@@ -73,15 +83,6 @@ class EnMAPBoxProvider(AlgorithmProvider):
     def getSupportedOutputRasterLayerExtensions(self):
         return ['img']
 
-'''class EnmapBoxOutputFile(OutputFile):
-
-    def __init__(self, name='', description='', ext=None):
-        OutputFile.__init__(self, name=name, description=description, ext=ext)
-
-class EnmapBoxOutputRaster(OutputRaster):
-
-    def __init__(self, name='', description=''):
-        OutputRaster.__init__(self, name=name, description=description)'''
 
 class EnMAPBoxGeoAlgorithm(GeoAlgorithm):
 
@@ -95,6 +96,9 @@ class EnMAPBoxGeoAlgorithm(GeoAlgorithm):
         GeoAlgorithm.__init__(self)
         self.showInToolbox = showInToolbox
         self.showInModeler = showInModeler
+        # append group name to algo name to make it better searchable in the toolbox
+        #self.setName(self.name + ' '*(1000-len(self.name)) + '['+self.group+']')
+
 
     def setName(self, name):
         if self._showInToolbox:
@@ -112,7 +116,9 @@ class EnMAPBoxGeoAlgorithm(GeoAlgorithm):
     def addParameterFile(self, name='', description='', default=0, optional=False):
         if self._showInToolbox:
             if optional: description += ' [optional]'
-            param = ParameterSelection(name=name, description=description, options=Environment.modelFilenames, default=default)
+            options = Environment.modelBasenames
+            param = ParameterSelection(name=name, description=description, options=options, default=default)
+
         elif self._showInModeler:
             param = ParameterFile(name=name, description=description, optional=optional)
         param.required = not optional
@@ -127,11 +133,13 @@ class EnMAPBoxGeoAlgorithm(GeoAlgorithm):
                     raise GeoAlgorithmExecutionException(param.description + ': select a file')
                 else:
                     return None
-            return param.options[param.value]
-        if self._showInModeler:
+            return Environment.modelFilenames[param.value]
+        elif self._showInModeler:
             return param.value
+        else:
+            raise Exception('unexpected error')
 
-    def getParameterRaster(self, name, type=Image):
+    def getParameterRaster(self, name, type):
 
         param = self.getParameterFromName(name)
         assert isinstance(param, ParameterRaster)
@@ -146,21 +154,21 @@ class EnMAPBoxGeoAlgorithm(GeoAlgorithm):
             else:
                 return None
 
-    def getParameterSklearnStatement(self, name, type=Estimator):
-        statement = self.getParameterValue(name)
-        try:
-            estimator = eval(statement)
-        except:
-            traceback.print_exc()
-            param = self.getParameterFromName(name)
-            raise GeoAlgorithmExecutionException(param.description + ': statement could not be evaluated!')
+    def getParameterImage(self, name):
+        return self.getParameterRaster(name, type=Image)
 
-        if not isinstance(estimator, type):
-            param = self.getParameterFromName(name)
-            if param.required:
-                raise GeoAlgorithmExecutionException(param.description + ': is not a correct ' + str(type))
+    def getParameterClassification(self, name):
+        return self.getParameterRaster(name, type=Classification)
 
-        return estimator
+    def getParameterRegression(self, name):
+        return self.getParameterRaster(name, type=Regression)
+
+    def getParameterMask(self, name):
+        return self.getParameterRaster(name, type=Mask)
+
+    def getParameterProbability(self, name):
+        return self.getParameterRaster(name, type=Probability)
+
 
     def getParameterSklearnModel(self, name, progress, type=Estimator):
         filename = self.getParameterFile(name)
@@ -177,12 +185,11 @@ class EnMAPBoxGeoAlgorithm(GeoAlgorithm):
         self.setOutputValue(outputName=outputName, value=filename)
         #Environment.openRaster(filename)
 
-
     def setOutputEstimator(self, outputName, estimator, progress):
         filename = self.getOutputValue(outputName)
         estimator.pickle(filename, progress=progress)
         Environment.openModel(filename)
-        #self.setOutputValue(outputName, filename)
+        self.setOutputValue(outputName, filename)
 
 
 class ToyAllParameters(EnMAPBoxGeoAlgorithm):
@@ -268,26 +275,29 @@ class ImageMLOpenHyMapA(EnMAPBoxGeoAlgorithm):
 
     def defineCharacteristics(self):
         self.setName('Open HyMap A')
-        self.setGroup('Management')
+        self.setGroup(group_file)
 
         self.addOutput(OutputRaster('image', 'Image'))
         self.addOutput(OutputRaster('mask', 'Mask'))
         self.addOutput(OutputRaster('train', 'Train'))
         self.addOutput(OutputRaster('test', 'Test'))
+        self.addOutput(OutputRaster('predicted', 'Predicted'))
 
     def processAlgorithm(self, progress):
 
         root = r'C:\Work\data'
         self.setOutputRaster('image', Image(os.path.join(root, 'Hymap_Berlin-A_Image')))
         self.setOutputRaster('mask', Mask(os.path.join(root, 'Hymap_Berlin-A_Mask')))
-        self.setOutputRaster('train',Classification(os.path.join(root, 'Hymap_Berlin-A_Classification-Training-Sample')))
+        self.setOutputRaster('train', Classification(os.path.join(root, 'Hymap_Berlin-A_Classification-Training-Sample')))
         self.setOutputRaster('test', Classification(os.path.join(root, 'Hymap_Berlin-A_Classification-Validation-Sample')))
+        self.setOutputRaster('predicted', Classification(os.path.join(root, 'Hymap_Berlin-A_Classification-Estimation')))
+
 
 class ImageMLOpenHyMapB(EnMAPBoxGeoAlgorithm):
 
     def defineCharacteristics(self):
         self.setName('Open HyMap B')
-        self.setGroup('Management')
+        self.setGroup(group_file)
 
         self.addOutput(OutputRaster('image', 'Image'))
         self.addOutput(OutputRaster('mask', 'Mask'))
@@ -314,6 +324,34 @@ class ImageMLFit(EnMAPBoxGeoAlgorithm):
         self.MODEL = self.estimator.name()
         EnMAPBoxGeoAlgorithm.__init__(self, showInToolbox=showInToolbox, showInModeler=showInModeler)
 
+    def getParameterSklearnEstimator(self, name, type=Estimator):
+        statement = self.getParameterValue(name)
+        try:
+            estimator = eval(statement)
+        except:
+            traceback.print_exc()
+            param = self.getParameterFromName(name)
+            raise GeoAlgorithmExecutionException(param.description + ': statement could not be evaluated!')
+
+        if not isinstance(estimator, type):
+            param = self.getParameterFromName(name)
+            if param.required:
+                raise GeoAlgorithmExecutionException(param.description + ': is not a correct ' + str(type))
+
+        return estimator
+
+    def getParameterSklearnClassifier(self, name):
+        return self.getParameterSklearnEstimator(name, type=Classifier)
+
+    def getParameterSklearnRegressor(self, name):
+        return self.getParameterSklearnEstimator(name, type=Regressor)
+
+    def getParameterSklearnClusterer(self, name):
+        return self.getParameterSklearnEstimator(name, type=Clusterer)
+
+    def getParameterSklearnTransformer(self, name):
+        return self.getParameterSklearnEstimator(name, type=Transformer)
+
     def defineCharacteristics(self):
 
         self.setName(self.name_)
@@ -323,7 +361,9 @@ class ImageMLFit(EnMAPBoxGeoAlgorithm):
             self.addParameter(ParameterRaster('labels', 'Classification'))
         elif isinstance(self.estimator, Regressor):
             self.addParameter(ParameterRaster('labels', 'Regression'))
-        elif isinstance(self.estimator, Transformer) or isinstance(self.estimator, Clusterer):
+        elif isinstance(self.estimator, Clusterer):
+            self.addParameter(ParameterRaster('labels', 'Mask', optional=True))
+        elif isinstance(self.estimator, Transformer):
             self.addParameter(ParameterRaster('labels', 'Mask', optional=True))
         else:
             raise Exception('unknown estimator type')
@@ -333,19 +373,22 @@ class ImageMLFit(EnMAPBoxGeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        image = self.getParameterRaster('image')
+        image = self.getParameterImage('image')
 
         if isinstance(self.estimator, Classifier):
-            type = Classification
+            labels = self.getParameterClassification('labels')
+            estimator = self.getParameterSklearnClassifier('parameters')
         elif isinstance(self.estimator, Regressor):
-            type = Regression
-        elif isinstance(self.estimator, Transformer) or isinstance(self.estimator, Clusterer):
-            type = Mask
+            labels = self.getParameterRegression('labels')
+            estimator = self.getParameterSklearnRegressor('parameters')
+        elif isinstance(self.estimator, Clusterer):
+            labels = self.getParameterMask('labels')
+            estimator = self.getParameterSklearnClusterer('parameters')
+        elif isinstance(self.estimator, Transformer):
+            labels = self.getParameterMask('labels')
+            estimator = self.getParameterSklearnTransformer('parameters')
         else:
             raise Exception('unknown estimator type')
-        labels = self.getParameterRaster('labels', type=type)
-
-        estimator = self.getParameterSklearnStatement('parameters', self.estimator.__class__)
 
         estimator.fit(image, labels, progress=progress)
         if self.showInToolbox:
@@ -357,35 +400,104 @@ class ImageViewMetadata(EnMAPBoxGeoAlgorithm):
 
     def defineCharacteristics(self):
 
-        self.setName('View Image Metadata')
-        self.setGroup('Management')
+        self.setName('Image Metadata')
+        self.setGroup(group_tools)
         self.addParameter(ParameterRaster('image', 'Image'))
 
     def processAlgorithm(self, progress):
 
-        image = self.getParameterRaster('image')
+        image = self.getParameterImage('image')
         image.info()
 
 class ImageViewStatistics(EnMAPBoxGeoAlgorithm):
 
     def defineCharacteristics(self):
 
-        self.setName('View Image Statistics')
-        self.setGroup('Management')
+        self.setName('Image Statistics')
+        self.setGroup(group_tools)
         self.addParameter(ParameterRaster('image', 'Image'))
 
     def processAlgorithm(self, progress):
 
-        image = self.getParameterRaster('image')
+        try:
+            image = self.getParameterClassification('image')
+        except:
+            image = self.getParameterImage('image')
+
         image.statistics().info()
 
+class AccuracyAssessmentClassififcation(EnMAPBoxGeoAlgorithm):
+
+    def defineCharacteristics(self):
+
+        self.setName('Classification')
+        self.setGroup('3. Applications -> Accuracy Assessment')
+        self.addParameter(ParameterRaster('predicted', 'Predicted Classification'))
+        self.addParameter(ParameterRaster('observed', 'Observed Classification'))
+
+
+    def processAlgorithm(self, progress):
+
+        observed = self.getParameterClassification('observed')
+        predicted = self.getParameterClassification('predicted')
+        predicted.assessClassificationPerformance(observed).info()
+
+class AccuracyAssessmentClassififcationAdjusted(EnMAPBoxGeoAlgorithm):
+
+    def defineCharacteristics(self):
+
+        self.setName('Classification (adjusted)')
+        self.setGroup('3. Applications -> Accuracy Assessment')
+
+        self.addParameter(ParameterRaster('predicted', 'Predicted Classification'))
+        self.addParameter(ParameterRaster('observed', 'Observed Classification'))
+        self.addParameter(ParameterRaster('stratification', 'Stratification'))
+
+    def processAlgorithm(self, progress):
+
+        observed = self.getParameterClassification('observed')
+        predicted = self.getParameterClassification('predicted')
+        stratification = self.getParameterClassification('stratification')
+
+        predicted.assessClassificationPerformance(observed, stratification).info()
+
+
+class AccuracyAssessmentRegression(EnMAPBoxGeoAlgorithm):
+
+    def defineCharacteristics(self):
+
+        self.setName('Regression')
+        self.setGroup('3. Applications -> Accuracy Assessment')
+        self.addParameter(ParameterRaster('observed', 'Observed Regression'))
+        self.addParameter(ParameterRaster('predicted', 'Predicted Regression'))
+
+    def processAlgorithm(self, progress):
+
+        observed = self.getParameterRegression('observed')
+        predicted = self.getParameterRegression('predicted')
+        predicted.assessRegressionPerformance(observed).info()
+
+class AccuracyAssessmentClustering(EnMAPBoxGeoAlgorithm):
+
+    def defineCharacteristics(self):
+
+        self.setName('Clustering')
+        self.setGroup('3. Applications -> Accuracy Assessment')
+        self.addParameter(ParameterRaster('observed', 'Observed Clustering'))
+        self.addParameter(ParameterRaster('predicted', 'Predicted Clustering'))
+
+    def processAlgorithm(self, progress):
+
+        observed = self.getParameterClassification('observed')
+        predicted = self.getParameterClassification('predicted')
+        predicted.assessClusteringPerformance(observed).info()
 
 class ImportENVISpectralLibrary(EnMAPBoxGeoAlgorithm):
 
     def defineCharacteristics(self):
 
         self.setName('Import ENVI Spectral Library')
-        self.setGroup('Import')
+        self.setGroup(group_file)
 
         self.addParameter(ParameterFile('speclib', 'ENVI Spectral Library', optional=False))
         self.addOutput(OutputRaster('importedSpeclib', 'Pseudo Image'))
@@ -403,7 +515,7 @@ class ImageMLPredict(EnMAPBoxGeoAlgorithm):
     def defineCharacteristics(self):
 
         self.setName('Predict')
-        self.setGroup('imageML')
+        self.setGroup(group_apps_ml)
 
         self.addParameter(ParameterRaster('image', 'Image'))
         self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
@@ -413,8 +525,8 @@ class ImageMLPredict(EnMAPBoxGeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        image = self.getParameterRaster('image')
-        mask = self.getParameterRaster('mask', Mask)
+        image = self.getParameterImage('image')
+        mask = self.getParameterMask('mask')
         modelfilename = self.getParameterFile('model')
         estimator = unpickle(modelfilename, progress=progress)
         assert isinstance(estimator, Estimator), 'Model is not an estimator!'
@@ -428,7 +540,7 @@ class ImageMLViewModel(EnMAPBoxGeoAlgorithm):
     def defineCharacteristics(self):
 
         self.setName('View Model')
-        self.setGroup('imageML')
+        self.setGroup(group_apps_ml)
 
         self.addParameterFile('model', 'Model')
 
@@ -443,7 +555,7 @@ class ImageMLTransform(EnMAPBoxGeoAlgorithm):
     def defineCharacteristics(self):
 
         self.setName('Transform')
-        self.setGroup('imageML')
+        self.setGroup(group_apps_ml)
 
         self.addParameter(ParameterRaster('image', 'Image'))
         self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
@@ -452,8 +564,8 @@ class ImageMLTransform(EnMAPBoxGeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        image = self.getParameterRaster('image')
-        mask = self.getParameterRaster('mask', type=Mask)
+        image = self.getParameterImage('image')
+        mask = self.getParameterMask('mask')
         estimator = self.getParameterSklearnModel('model', progress=progress, type=Transformer)
         estimator.transform(image, mask, filename=self.getOutputValue('transformation'), progress=progress)
 
@@ -462,7 +574,7 @@ class ImageMLTransformInverse(EnMAPBoxGeoAlgorithm):
     def defineCharacteristics(self):
 
         self.setName('Transform Inverse')
-        self.setGroup('imageML')
+        self.setGroup(group_apps_ml)
 
         self.addParameter(ParameterRaster('transformation', 'Transformation'))
         self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
@@ -471,8 +583,8 @@ class ImageMLTransformInverse(EnMAPBoxGeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        transformation = self.getParameterRaster('transformation')
-        mask = self.getParameterRaster('mask')
+        transformation = self.getParameterImage('transformation')
+        mask = self.getParameterMask('mask')
         estimator = self.getParameterSklearnModel('model', progress=progress, type=Transformer)
         estimator.transformInverse(transformation, mask, filename=self.getOutputValue('inverseTransformation'), progress=progress)
 
@@ -482,7 +594,7 @@ class ImageMLPredictProbability(EnMAPBoxGeoAlgorithm):
     def defineCharacteristics(self):
 
         self.setName('Predict Probability')
-        self.setGroup('imageML')
+        self.setGroup(group_apps_ml)
 
         self.addParameter(ParameterRaster('image', 'Image'))
         self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
@@ -491,8 +603,8 @@ class ImageMLPredictProbability(EnMAPBoxGeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        image = self.getParameterRaster('image')
-        mask = self.getParameterRaster('mask', type=Mask)
+        image = self.getParameterImage('image')
+        mask = self.getParameterMask('mask')
         estimator = self.getParameterSklearnModel('model', type=Classifier, progress=progress)
         estimator.predictProbability(image, mask, filename=self.getOutputValue('probability'), progress=progress)
 
@@ -502,12 +614,15 @@ class ImageMLArgmaxProbability(EnMAPBoxGeoAlgorithm):
     def defineCharacteristics(self):
 
         self.setName('Argmax Probability Classification')
-        self.setGroup('imageML')
+        self.setGroup(group_apps_ml)
 
         self.addParameter(ParameterRaster('probability', 'Probability'))
         self.addOutput(OutputRaster('classification', 'Classification'))
 
     def processAlgorithm(self, progress):
 
-        propability = self.getParameterRaster('probability', Probability)
+        propability = self.getParameterProbability('probability')
         propability.argmax(filename=self.getOutputValue('classification'), progress=progress)
+
+if __name__ == '__main__':
+    print group_apps_ml

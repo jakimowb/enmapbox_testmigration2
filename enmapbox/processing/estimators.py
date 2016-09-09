@@ -372,15 +372,13 @@ class Clusterers(Estimators):
     class KMeans(Clusterer):
 
         def __init__(self, copy_x=True, init='k-means++', max_iter=300, n_clusters=8, n_init=10,
-               n_jobs=1, precompute_distances='auto', random_state=None, tol=0.0001, verbose=0,
-               copy=True, with_mean=False, with_std=False):
+               n_jobs=1, precompute_distances='auto', random_state=None, tol=0.0001, verbose=0):
 
-            scaler = sklearn.preprocessing.StandardScaler(copy=copy, with_mean=with_mean, with_std=with_std)
             kMeans = sklearn.cluster.KMeans(copy_x=copy_x, init=init, max_iter=max_iter, n_clusters=n_clusters,
                                             n_init=n_init, n_jobs=n_jobs, precompute_distances=precompute_distances,
                                             random_state=random_state, tol=tol, verbose=verbose)
 
-            pipe = sklearn.pipeline.make_pipeline(scaler, kMeans)
+            pipe = sklearn.pipeline.make_pipeline(kMeans)
             Clusterer.__init__(self, pipe)
 
 

@@ -328,7 +328,7 @@ class Regression(Mask):
         assert envi['data_ignore_value'] is not None
 
 
-    def assessPerformance(self, regression):
+    def assessRegressionPerformance(self, regression):
         sample = RegressionSample(self, regression)
         return RegressionPerformance(sample)
 
@@ -878,12 +878,12 @@ class UncertaintyRegressor(Regressor):
 
 class Transformer(Estimator):
 
-    def fit(self, image, labels, progress=progress):
+    def fit(self, image, mask, progress=progress):
 
-        if labels is None: labels = NoMask()
+        if mask is None: mask = NoMask()
         assert isinstance(image, Image)
-        assert isinstance(labels, Mask)
-        sample = UnsupervisedSample(image, labels)
+        assert isinstance(mask, Mask)
+        sample = UnsupervisedSample(image, mask)
         return self._fit(sample, progress=progress)
 
 
@@ -912,6 +912,7 @@ class Clusterer(Estimator):
 
     def fit(self, image, mask, progress=progress):
 
+        if mask is None: mask = NoMask()
         assert isinstance(image, Image)
         assert isinstance(mask, Mask)
         sample = UnsupervisedSample(image, mask)
@@ -1060,7 +1061,7 @@ class ClassificationPerformance(Type):
         self.mij = numpy.zeros((classes, classes), dtype=numpy.int64)
         self.m = numpy.int64(0)
         self.Wi = classProportions
-
+        self.adjusted = False
 
     def update(self, yP, yT):
 
@@ -1157,11 +1158,20 @@ class ClassificationPerformance(Type):
 
     def report(self):
 
-
         report = Report('Classification Performance')
 
         report.append(ReportHeading('Input Files'))
-        report.append(ReportMonospace('Reference:  ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
+        report.append(ReportParagraph('Reference: ' + self.sample.mask.filename))
+        report.append(ReportParagraph('Prediction: ' + self.sample.image.filename))
+        report.append(ReportParagraph('Stratification: ' + self.sampleStratification.image.filename) if self.adjusted else '')
+
+        if self.adjusted:
+            report.append(ReportHeading('Stratification'))
+            report.append(ReportParagraph('strataClasses: ' + str(self.strataClasses)))
+            report.append(ReportParagraph('strataClassNames: ' + str(self.strataClassNames)))
+            report.append(ReportParagraph('strataSizes: ' + str(self.strataSizes)))
+            report.append(ReportParagraph('strataSampleSizes: ' + str(self.strataSampleSizes)))
+            report.append(ReportParagraph('strataWeights: ' + str(self.strataWeights)))
 
         report.append(ReportHeading('Classification Label Overview'))
         colHeaders = None
@@ -1220,7 +1230,7 @@ class ClassificationPerformance(Type):
         report.append(ReportTable(numpy.round(data,2), '', colHeaders, rowHeaders, colSpans, rowSpans)) \
 
 
-        report.append(ReportHeading('Confusion Matrix'))
+        '''report.append(ReportHeading('Confusion Matrix'))
         report.append(ReportMonospace('mij = '+ str(self.mij)))
         report.append(ReportMonospace('mi_ = '+ str(self.mi_)))
         report.append(ReportMonospace('m_j = ' + str(self.m_j)))
@@ -1246,7 +1256,7 @@ class ClassificationPerformance(Type):
         report.append(ReportMonospace('ConditionalKappaAccuracy = '+str(self.confidenceIntervall(self.ConditionalKappaAccuracy, self.ConditionalKappaAccuracySSE, 0.05))))
         report.append(ReportMonospace('OverallAccuracy = '+str(self.confidenceIntervall(self.OverallAccuracy, self.OverallAccuracySSE, 0.05))))
         report.append(ReportMonospace('KappaAccuracy = '+str(self.confidenceIntervall(self.KappaAccuracy, self.KappaAccuracySSE, 0.05))))
-        report.append(ReportMonospace('ClassProportion = '+str(self.confidenceIntervall(self.ClassProportion, self.ClassProportionSSE, 0.05))))
+        report.append(ReportMonospace('ClassProportion = '+str(self.confidenceIntervall(self.ClassProportion, self.ClassProportionSSE, 0.05))))'''
 
 
         return report
@@ -1263,18 +1273,20 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
 
         assert int(samplePrediction.image.meta.getMetadataItem('classes')) == int(samplePrediction.mask.meta.getMetadataItem('classes')), 'Number of classes in prediction and reference do not match!'
 
+        classes=int(samplePrediction.mask.meta.getMetadataItem('classes')) - 1
+        classNames=samplePrediction.mask.meta.getMetadataItem('class names')[1:]
         strataClasses = int(sampleStratification.image.meta.getMetadataItem('classes')) - 1
-        strataSizes = sampleStratification.image.histogram()
-        pass
-        strataSampleSizes = numpy.histogram(sampleStratification.labelData, bins=range(1,strataClasses+2))
-        strataWeights = (strataSizes/strataSizes.sum()) / (strataSampleSizes/strataSampleSizes.sum())
-        strataWeights
+        strataClassNames = sampleStratification.image.meta.getMetadataItem('class names')[1:]
+        strataSizes = sampleStratification.image.statistics().getStatistic('hist', bands=[0])[0]
+        strataSampleSizes = numpy.histogram(sampleStratification.imageData, bins=strataClasses, range=[1,strataClasses+1])[0]
 
-
-        result = ClassificationPerformanceAdjusted(classes=int(samplePrediction.mask.meta.getMetadataItem('classes'))-1,
-                                                   classNames=samplePrediction.mask.meta.getMetadataItem('class names')[1:],
+        result = ClassificationPerformanceAdjusted(classes=classes,
+                                                   classNames=classNames,
                                                    strataClasses=strataClasses,
-                                                   strataClassNames=sampleStratification.image.meta.getMetadataItem('class names')[1:])
+                                                   strataClassNames=strataClassNames,
+                                                   strataSizes=strataSizes,
+                                                   strataSampleSizes=strataSampleSizes)
+
         result.sample = samplePrediction
         result.sampleStratification = sampleStratification
 
@@ -1282,13 +1294,22 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
         result.assessPerformance()
         return result
 
-    def __init__(self, classes, strata, classNames=None, strataNames=None):
+    def __init__(self, classes, classNames, strataClasses, strataClassNames, strataSizes, strataSampleSizes):
 
-        assert isinstance(strata, int)
-        self.strate = strata
-        self.classificationPerformances = [ClassificationPerformance(classes, classNames) for i in range(1, strata+1)]
+        assert isinstance(strataSizes, numpy.ndarray) and strataSizes.size == strataClasses
+        assert isinstance(strataSampleSizes, numpy.ndarray) and strataSampleSizes.size == strataClasses
+
+        self.strataClasses = strataClasses
+        self.strataClassNames = strataClassNames
+        self.strataSizes = strataSizes
+        self.strataSampleSizes = strataSampleSizes
+        self.strataWeights = (strataSizes/strataSizes.sum()) / (strataSampleSizes/strataSampleSizes.sum())
+
+        self.classificationPerformances = [ClassificationPerformance(classes, classNames) for i in range(1, strataClasses+1)]
         ClassificationPerformance.__init__(self, classes, classNames)
-
+        self.mij = self.mij.astype(numpy.float32)
+        self.m = float(self.m)
+        self.adjusted = True
 
     def update(self, yP, yT, yS):
 
@@ -1296,13 +1317,12 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
         assert isinstance(yT, numpy.ndarray)
         assert isinstance(yS, numpy.ndarray)
 
-        self.mij *= 0.
-        self.m *= 0.
         for stratum, classificationPerformance in enumerate(self.classificationPerformances, 1):
             indices = yS == stratum
             classificationPerformance.update(yT[indices], yP[indices])
-            self.mij += classificationPerformance.mij
-            self.m += classificationPerformance.m
+            stratumWeight = self.strataWeights[stratum-1]
+            self.mij += classificationPerformance.mij * stratumWeight
+            self.m += classificationPerformance.m * stratumWeight
 
 
 class RegressionPerformance(Type):
@@ -1314,20 +1334,40 @@ class RegressionPerformance(Type):
         self.sample = sample
         self._assessPerformance()
 
-
-    def __str__(self):
-
-        return  self.report
-
-
     def _assessPerformance(self):
 
-        prediction = self.sample.imageData
-        reference = self.sample.labelData
-        self.report = 'explained variance =        ' + str(sklearn.metrics.explained_variance_score(reference, prediction))\
-                    + '\nmean absolute error =     ' + str(sklearn.metrics.mean_absolute_error(reference, prediction))\
-                    + '\nmedian absolute error =   ' + str(sklearn.metrics.median_absolute_error(reference, prediction))\
-                    + '\nroot mean squared error = ' + str(sklearn.metrics.mean_squared_error(reference, prediction)**0.5)
+        self.prediction = self.sample.imageData.flatten()
+        self.reference = self.sample.labelData.flatten()
+        self.residuals = self.prediction
+        self.n = self.reference.size
+        self.explained_variance_score = str(sklearn.metrics.explained_variance_score(self.reference, self.prediction))
+        self.mean_absolute_error = str(sklearn.metrics.mean_absolute_error(self.reference, self.prediction))
+        self.median_absolute_error = str(sklearn.metrics.median_absolute_error(self.reference, self.prediction))
+        self.mean_squared_error = str(sklearn.metrics.mean_squared_error(self.reference, self.prediction)**0.5)
+
+    def report(self):
+
+        report = Report('Regression Performance')
+
+        report.append(ReportHeading('Input Files'))
+        report.append(ReportMonospace('Reference:  ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
+
+        report.append(ReportHeading('Performance Measures'))
+        report.append(ReportParagraph('n = ' + str(self.n)))
+        report.append(ReportParagraph('explained_variance_score = ' + str(self.explained_variance_score)))
+        report.append(ReportParagraph('mean_absolute_error = ' + str(self.mean_absolute_error)))
+        report.append(ReportParagraph('median_absolute_error = ' + str(self.median_absolute_error)))
+        report.append(ReportParagraph('mean_squared_error = ' + str(self.mean_squared_error)))
+
+        report.append(ReportHeading('Residuals'))
+        report.append(ReportParagraph('ToDo: Scatter Plot Reference vs. Predicted', font_color='red'))
+        report.append(ReportParagraph('ToDo: Plot Residuals Distribution', font_color='red'))
+
+        report.append(ReportParagraph('predicted = ' + str(self.prediction)))
+        report.append(ReportParagraph('reference = ' + str(self.reference)))
+        report.append(ReportParagraph('residuals = ' + str(self.residuals)))
+
+        return report
 
 class ClusteringPerformance(Type):
 
@@ -1346,9 +1386,96 @@ class ClusteringPerformance(Type):
 
     def _assessPerformance(self):
 
-        prediction = self.sample.imageData.ravel()
-        reference = self.sample.labelData
-        self.report = 'adjusted_mutual_info_score = ' + str(sklearn.metrics.cluster.adjusted_mutual_info_score(reference, prediction))\
-                    + '\nadjusted_rand_score =      ' + str(sklearn.metrics.cluster.adjusted_rand_score(reference, prediction))\
-                    + '\ncompleteness_score =       ' + str(sklearn.metrics.cluster.completeness_score(reference, prediction))
+        self.prediction = self.sample.imageData.flatten()
+        self.reference = self.sample.labelData.flatten()
+        self.n = self.prediction.size
+        self.adjusted_mutual_info_score = sklearn.metrics.cluster.adjusted_mutual_info_score(self.reference, self.prediction)
+        self.adjusted_rand_score = sklearn.metrics.cluster.adjusted_rand_score(self.reference, self.prediction)
+        self.completeness_score = sklearn.metrics.cluster.completeness_score(self.reference, self.prediction)
 
+    def report(self):
+
+        report = Report('Clustering Performance')
+
+        report.append(ReportHeading('Input Files'))
+        report.append(ReportMonospace('Reference:  ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
+
+        report.append(ReportHeading('Performance Measures'))
+        report.append(ReportParagraph('n = ' + str(self.n)))
+        report.append(ReportParagraph('adjusted_mutual_info_score = ' + str(self.adjusted_mutual_info_score)))
+        report.append(ReportParagraph('adjusted_rand_score = ' + str(self.adjusted_rand_score)))
+        report.append(ReportParagraph('completeness_score = ' + str(self.completeness_score)))
+        report.append(ReportParagraph('ToDo: include Scikit-Learn Hyperlinks!', font_color='red'))
+
+        return report
+
+
+class PixelExtractor():
+
+    def __init__(self, image, locationsType):
+        assert isinstance(image, Image)
+        self.locationsType = locationsType
+
+    def extract(self, mask):
+        assert isinstance(mask, Mask)
+        return
+
+class _UnsupervisedSample(Type):
+
+    def __init__(self, image, mask):
+        self.image = image
+        self.mask = mask
+        self._assert()
+        self.imageData, self.labelData = self._readData()
+
+    def __str__(self):
+        return '(' + str(self.__class__) + ')\n  ' + str(self.image) + '\n  ' + str(self.mask)+''
+
+    def _assert(self):
+        assert isinstance(self.image, Image), 'Image must be an Image'
+        assert isinstance(self.mask, Mask), 'Mask must be a Mask'
+        # assert image.pixelGrid.equalTo(mask.pixelGrid)
+        # assert image.boundingBox.equalTo(mask.boundingBox)
+
+    def _readData(self):
+
+        # use rios for reading the labeled data
+
+        infiles = rios.applier.FilenameAssociations()
+        outfiles = rios.applier.FilenameAssociations()
+        args = rios.applier.OtherInputs()
+
+        infiles.x = self.image.filename
+        args.xMeta = self.image.meta
+
+        if not isinstance(self.mask, NoMask):
+            infiles.y = self.mask.filename
+
+        args.yMeta = self.mask.meta
+
+        args.x = list()
+        args.y = list()
+
+        def ufunc(info, inputs, outputs, args):
+
+            # reshape to 2d
+            inputs.x = inputs.x.reshape((inputs.x.shape[0], -1))
+            if not isinstance(self.mask, NoMask):
+                inputs.y = inputs.y.reshape((1, -1))
+            else:
+                inputs.y = numpy.ones([1,inputs.x.shape[1]], dtype=numpy.uint8)
+
+                # create mask
+            valid = inputs.y[0] != args.yMeta.getNoDataValue(default=0)
+
+            # exclude invalid samples if needed
+            if valid.all():
+                args.x.append(inputs.x)
+                args.y.append(inputs.y[0, :])
+            else:
+                args.x.append(inputs.x[:, valid])
+                args.y.append(inputs.y[0, valid])
+
+        rios.applier.apply(ufunc, infiles, outfiles, args)
+
+        return (numpy.hstack(args.x).T, numpy.hstack(args.y))
