@@ -11,8 +11,8 @@ if os.environ['USERNAME'] == 'janzandr':
     inroot = r'c:\work\data'
     outroot = r'c:\work\outputs'
 elif os.environ['USERNAME'] == 'enmap-box':
-    #inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
-    inroot = r'C:\Users\enmap-box\Desktop'
+    inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
+    #inroot = r'C:\Users\enmap-box\Desktop'
     outroot = r'C:\Users\enmap-box\Desktop\outputs'
 
 def sample():
@@ -85,8 +85,8 @@ def clusterer():
     train = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
     test = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
 
-    #clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
-    clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=False, with_std=False)]
+    clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
+    #clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=False, with_std=False)]
     #clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=True, with_std=True)]
 
     for clusterer in clusterers:
@@ -274,10 +274,10 @@ if __name__ == '__main__':
     #classificationAccAss()
     #classificationAccAssAdjusted()
     #regressionAccAss()
-    #clusteringAccAss()
+    clusteringAccAss()
     #probabilityAccAss()
     #statisticsForImage()
-    statisticsForClassification()
+    #statisticsForClassification()
     #mportENVISpeclib()
     #saveImageAs()
     #stackImages()

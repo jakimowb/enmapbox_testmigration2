@@ -15,6 +15,7 @@ import sklearn.pipeline
 from enmapbox.processing.report import *
 from enmapbox.processing.applier import ApplierControls, ApplierHelper
 import numpy
+import matplotlib.pyplot as plt
 
 # set default progress object
 progress = SilentProgress
@@ -195,7 +196,10 @@ class ImageStatistics(Type):
             neginfMask = numpy.isneginf(inputs.band)
             posinfMask = numpy.isposinf(inputs.band)
             nanMask = numpy.isnan(inputs.band)
-            noDataValueMask = inputs.band == args.noDataValue
+            if args.noDataValue is None:
+                noDataValueMask = numpy.full_like(neginfMask, fill_value=False)
+            else:
+                noDataValueMask = inputs.band == args.noDataValue
             validMask = numpy.logical_not(neginfMask+posinfMask+nanMask+noDataValueMask)
 
             if args.firstRun:
@@ -231,6 +235,13 @@ class ImageStatistics(Type):
 
         #n total	n ignored	n used	min	max
 
+        colHeaders = [['Band','n total', 'n ignored','n used', 'min', 'max']]
+        rowSpans = None
+        colSpans = [[1,1,1,1,1,1]]
+        rowHeaders = None
+        data = numpy.transpose([self.getStatistic('band'),self.getStatistic('count'),numpy.array(self.getStatistic('count'))-numpy.array(self.getStatistic('countValid')),self.getStatistic('countValid'),self.getStatistic('min'),self.getStatistic('max')])
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
+
         report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
         report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
         report.append(ReportParagraph('maxs = ' + str(self.getStatistic('max'))))
@@ -244,8 +255,19 @@ class ImageStatistics(Type):
         report.append(ReportParagraph('noDataValues = ' + str(self.getStatistic('noDataValue'))))
 
         report.append(ReportHeading('Histograms'))
+        for i in range(0,self.bandStatistics.__len__()):
+            report.append(ReportHeading('Band ' + str(i+1),sub=1))
+            report.append(ReportParagraph('number of bins: ' + str(256)))
+            fig, ax = plt.subplots(facecolor='white')
+            #todo use band data to also have correct x-axis values instead of bin number, look for usability of bin_edges
+            #n, bins, patches = plt.hist(x, 256, facecolor='green', alpha=0.75)
+            plt.bar(range(0,256),self.getStatistic('hist')[i])
+            ax.set_xlabel('value')
+            ax.set_ylabel('counts')
+            report.append(ReportPlot(fig, ''))
+            plt.close()
         report.append(ReportParagraph('hists = ' + str(self.getStatistic('hist'))))
-        report.append(ReportParagraph('bin_edgess = ' + str(self.getStatistic('bin_edges'))))
+        report.append(ReportParagraph('bin_edges = ' + str(self.getStatistic('bin_edges'))))
 
         return report
 
@@ -1003,7 +1025,7 @@ class ClassificationPerformance(Type):
     @staticmethod
     def fromSample(sample):
 
-        assert isinstance(sample, ClassificationSample), 'Classification sample is requiered!'
+        assert isinstance(sample, ClassificationSample), 'Classification sample is required!'
         assert isinstance(sample.image, Classification), 'Prediction is not a classification!'
         assert int(sample.image.meta.getMetadataItem('classes')) == int(sample.mask.meta.getMetadataItem('classes')), 'Number of classes in prediction and reference do not match!'
         result = ClassificationPerformance(classes=int(sample.mask.meta.getMetadataItem('classes'))-1,
