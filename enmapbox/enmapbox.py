@@ -1,12 +1,16 @@
-from email.errors import NoBoundaryInMultipartDefect
 
-#
-
-import six, sys, os, gc
+import six, sys, os, gc, re
 #from qgis.gui import *
 #from qgis.core import *
 import qgis.core
 import qgis.gui
+from PyQt4 import *
+from PyQt4.QtGui import *
+from osgeo import gdal, ogr
+
+
+VERSION = '2016-0.beta'
+
 
 def add_to_sys_path(path):
     assert os.path.isdir(path)
@@ -47,7 +51,7 @@ except:
     from libs.pyqtgraph.widgets.VerticalLabel import VerticalLabel
 
 
-VERSION = '2016-0.beta'
+
 
 from PyQt4.QtCore import *
 from PyQt4 import QtGui, QtCore, uic
@@ -64,6 +68,8 @@ class EnMAPBoxIcons:
     Map_Link = ':/enmapbox/icons/link_basic.svg'
     Map_Link_Center = ':/enmapbox/icons/link_center.svg'
     Map_Link_Extent = ':/enmapbox/icons/link_mapextent.svg'
+    Map_Link_Scale = ':/enmapbox/icons/link_mapextent.svg'
+    Map_Link_Scale_Center = ':/enmapbox/icons/link_mapextent.svg'
     Map_Zoom_In = ':/enmapbox/icons/mActionZoomOut.svg'
     Map_Zoom_Out = ':/enmapbox/icons/mActionZoomIn.svg'
     Map_Pan = ''
@@ -71,6 +77,10 @@ class EnMAPBoxIcons:
     File_RasterRegression = ':/enmapbox/icons/filelist_regression.svg'
     File_RasterClassification = ':/enmapbox/icons/filelist_classification.svg'
     File_Raster = ':/enmapbox/icons/filelist_image.svg'
+    File_Vector_Point = ''
+    File_Vector_Line = ''
+    File_Vector_Polygon = ''
+
 
 
 
@@ -93,6 +103,7 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
 class TreeItem(QObject):
     def __init__(self, parent, name, data=None, icon=None, description=None,
                  infos=None, tooltip=None, tag=None, asChild=False):
+        super(TreeItem, self).__init__()
         self.parent = parent
         self.name = name
         self.childs = list()
@@ -106,6 +117,13 @@ class TreeItem(QObject):
         if asChild and parent is not None:
             parent.appendChild(self)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for child in self.childs:
+            del child
+
     def addInfos(self, infolist):
         if not isinstance(infolist, list):
             infolist = list(infolist)
@@ -114,16 +132,31 @@ class TreeItem(QObject):
             self.appendChild(item)
 
 
-
+    def parent(self):
+        return self.parent
 
     def child(self, row):
         if row > len(self.childs) - 1:
             return None
         return self.childs[row]
 
+    def childNumber(self):
+        if self.parent:
+            return self.parent.childs.index(self)
+        return 0
+
     def appendChild(self, child):
         assert isinstance(child, TreeItem)
         self.childs.append(child)
+
+    def insertChildren(self, position, count, columns):
+        if position < 0 or position > len(self.childs):
+            return False
+
+        for r in range(count):
+            self.childs.insert(r, TreeItem(self, 'empty'))
+
+
 
     def row(self):
         if self.parent != None:
@@ -134,42 +167,99 @@ class TreeItem(QObject):
         return len(self.childs)
 
     def columnCount(self):
+        return len(self.infos)
 
-        return 1
-
-        #if isinstance(self.infos, list):
-        #    return len(self.infos)
-        #else:
-        #    return 1
 
     def data(self, column):
         return self.infos[column]
 
 
 class DataSource(object):
-    """Base class to describe file/stream/IO sources in a GUI context"""
+    """Base class to describe file/stream/IO sources in EnMAP-GUI context"""
 
-    def __init__(self, source_type, source, name):
+    @staticmethod
+    def Factory(src, name=None, icon=None):
+        """
+        Factory method / switch to return the best suited DataSource Instance to an unknown source
+        :param source: anything
+        :param name: name, optional
+        :param icon: QIcon, optional
+        :return:
         """
 
-        :param source_type: a string description of the data source type.
-        :param source: the source itself.
+        reg = QgsMapLayerRegistry.instance()
+        for x in reg.mapLayers():
+            print(x)
+
+        ds = None
+        # 1. check string types
+        if isinstance(src, str):
+            if os.path.exists(src):
+                # 1. test mapable sources
+
+                lyr = qgis.core.QgsRasterLayer(src, name, 'gdal')
+                if lyr.isValid():
+                    return DataSource.Factory(lyr, name=name, icon=icon)
+
+                lyr = qgis.core.QgsVectorLayer(src, name, 'ogr')
+                if lyr.isValid():
+                    return DataSource.Factory(lyr, name=name, icon=icon)
+
+                #check model files
+                if re.search('\.model$', src):
+                    s = ""
+                    pass
+
+                #Any other file
+                return DataSourceFile(src, name=name, icon=icon)
+
+        # check QGIS data sources
+        if isinstance(src, qgis.core.QgsRasterLayer):
+            ds = DataSourceRaster(str(src.dataProvider().dataSourceUri()), name=name, icon=icon)
+        elif isinstance(src, qgis.core.QgsRasterDataProvider):
+            ds = DataSourceRaster(str(src.dataSourceUri()), name=name, icon=icon)
+        elif isinstance(src, qgis.core.QgsVectorLayer):
+            ds = DataSourceVector(str(src.dataProvider().dataSourceUri()), name=name, icon=icon)
+        elif isinstance(src, DataSource):
+            ds = src
+        else:
+            # todo: add GDAL dataset object
+            # todo: add QFileObjects
+            raise NotImplementedError
+
+        return ds
+
+    def __init__(self, src, name, icon):
+        """
+        :param uri: uri of data source
+        :param uri: the source itself.
         :param name: name as it appears in the source file list
         """
-        assert source is not None
-        if not isinstance(name, str):
-            name = str(name)
+        assert type(src) is str
+        if icon is None:
+            icon = QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_FileIcon)
+        if name is None:
+            name = os.path.basename(src)
+        assert name is not None
+        assert type(icon) is QIcon
 
-        assert source_type in DataSourceManager.SourceTypes
-
-        self.type = source_type
-        self.source = source
+        self.src = src
+        self.icon = icon
         self.name = name
 
+    def getUri(self):
+        return self.src
+
     def getIcon(self):
-        return QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_FileIcon)
+        return self.icon
+
 
     def getTreeItem(self, parentItem):
+        """
+        Returns a TreeItem to be used in TreeViews
+        :param parentItem:
+        :return:
+        """
         return TreeItem(parentItem, self.name,
                         data=self,
                         icon=self.getIcon(),
@@ -177,102 +267,159 @@ class DataSource(object):
                         description=None, asChild=False)
 
     def __repr__(self):
-        return 'DataSource: {} {}'.format(self.name, str(self.source))
+        return 'DataSource: {} {}'.format(self.name, str(self.src))
+
+class DataSourceFile(DataSource):
+
+    def __init__(self, uri, name=None, icon=None):
+        super(DataSourceFile, self).__init__(uri, name, icon)
+
+    def getTreeItem(self, parent):
+        itemTop = super(DataSourceFile, self).getTreeItem(parent)
+        infos = list()
+        infos.append('Path: {}'.format(self.src))
+        infos.append('Size: {}'.format(os.path.getsize(self.src)))
+        TreeItem(itemTop, 'File Information', infos=infos, tooltip='\n'.join(infos), asChild=True)
+        return itemTop
+
+class DataSourceSpatial(DataSource):
+    def __init__(self, uri, name=None, icon=None ):
+        super(DataSourceSpatial, self).__init__(uri, name, icon)
+        self.lyr = None
+
+    def getLayer(self):
+
+        return self.lyr
 
 
 
+class DataSourceRaster(DataSourceSpatial):
 
-class DataSourceRaster(DataSource):
+    def __init__(self, uri, name=None, icon=None ):
+        super(DataSourceSpatial, self).__init__(uri, name, icon)
+        lyr = QgsRasterLayer(self.src, self.name)
+        assert lyr.isValid()
+        self.lyr = lyr
 
-    def __init__(self, source, name ):
-        assert type(source) is qgis.core.QgsRasterLayer
-        super(DataSourceRaster, self).__init__('Raster', source, name)
+        QgsMapLayerRegistry.instance().addMapLayer(self.lyr)
 
+        dp = self.lyr.dataProvider()
 
-    def getIcon(self):
-        #todo: overload
-
-        src = self.source
-        srs = src.crs()
-        dp = src.dataProvider()
-        assert isinstance(dp, qgis.core.QgsRasterDataProvider)
-        assert isinstance(src, qgis.core.QgsRasterLayer)
-        nb = src.bandCount()
-
-        icon = QtGui.QIcon(EnMAPBoxIcons.File_Raster)
-        if nb == 1:
+        #change icon
+        if dp.bandCount() == 1:
             dt = dp.dataType(1)
-
             cat_types = [QGis.CInt16, QGis.CInt32, QGis.Byte, QGis.UInt16, QGis.UInt32, QGis.Int16, QGis.Int32]
             if dt in cat_types:
                 if len(dp.colorTable(1)) != 0:
-                    icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterClassification)
+                    self.icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterClassification)
                 else:
-                    icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterMask)
+                    self.icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterMask)
             elif dt in [QGis.Float32, QGis.Float64, QGis.CFloat32, QGis.CFloat64]:
-                icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterRegression)
+                self.icon = QtGui.QIcon(EnMAPBoxIcons.File_RasterRegression)
         else:
-            icon = QtGui.QIcon(EnMAPBoxIcons.File_Raster)
+            self.icon = QtGui.QIcon(EnMAPBoxIcons.File_Raster)
 
-        return icon
-
-
-
-        return  super(DataSourceRaster, self).getIcon()
 
     def getTreeItem(self, parent):
         itemTop = super(DataSourceRaster, self).getTreeItem(parent)
 
-        #itemTop = TreeItem(parent, self.name, icon=self.getIcon())
-        assert type(self.source) is qgis.core.QgsRasterLayer
 
-        src = self.source
-        srs = src.crs()
-        dp = src.dataProvider()
-
-        assert isinstance(dp, qgis.core.QgsRasterDataProvider)
+        dp = self.lyr.dataProvider()
+        crs = self.lyr.crs()
 
         infos = list()
-        infos.append('Path: {}'.format(src.source()))
-        infos.append('ID: {}'.format(src.id()))
+        infos.append('URI: {}'.format(dp.dataSourceUri()))
         infos.append('DIMS: {}x{}x{}'.format(dp.xSize(), dp.ySize(), dp.bandCount()))
         TreeItem(itemTop, 'File Information', infos=infos, tooltip='\n'.join(infos), asChild=True)
 
-        if srs is not None:
+        if crs is not None:
             infos = list()
-            infos.append('SRS: {}'.format(src.crs().description()))
+            infos.append('CRS: {}'.format(crs.description()))
 
             infos.append('Extent: {}'.format(dp.extent().toString(True)))
             TreeItem(itemTop, 'Spatial Reference', infos=infos, asChild=True, tooltip='\n'.join(infos))
 
 
         itemBands = TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()), asChild=True)
-        for b in range(1, dp.bandCount()+1):
+
+        bandnames = [self.lyr.bandName(b+1) for b in range(self.lyr.bandCount())]
+        if dp.name() == 'gdal':
+            ds = gdal.Open(dp.dataSourceUri())
+            for b in range(ds.RasterCount):
+                bandnames[b] = '{} "{}"'.format(bandnames[b], ds.GetRasterBand(b+1).GetDescription())
+
+        for b in range(dp.bandCount()):
             infos=list()
-            datatype = dp.dataType(b)
-            colortable = dp.colorTable(b)
-            colorint = dp.colorInterpretation(b)
             nodata = None
-            if dp.srcHasNoDataValue(b):
-                nodata = dp.srcNoDataValue(b)
+            if dp.srcHasNoDataValue(b+1):
+                nodata = dp.srcNoDataValue(b+1)
             infos.append('No data : {}'.format(nodata))
+            TreeItem(itemBands, bandnames[b], tooltip = '\n'.join(infos), infos=infos, asChild=True)
+        return itemTop
 
-            TreeItem(itemBands, 'Band {}'.format(b), tooltip = '\n'.join(infos), infos=infos, asChild=True)
+class DataSourceVector(DataSourceSpatial):
 
+
+    def __init__(self, uri,  name=None, icon=None ):
+        super(DataSourceVector, self).__init__(uri, name, icon)
+
+
+        lyr = QgsVectorLayer(uri, None, 'ogr')
+        self.lyr = lyr
+
+        dp = self.lyr.dataProvider()
+        assert isinstance(dp, qgis.core.QgsVectorDataProvider)
+
+        geomType = self.lyr.geometryType()
+        if geomType in [QGis.WKBPoint, QGis.WKBPoint25D]:
+            self.icon = QtGui.QIcon(EnMAPBoxIcons.File_Vector_Point)
+        elif geomType in [QGis.WKBLineString, QGis.WKBMultiLineString25D]:
+            self.icon = QtGui.QIcon(EnMAPBoxIcons.File_Vector_Polygon)
+        elif geomType in [QGis.WKBPolygon, QGis.WKBPoint25D]:
+            self.icon = QtGui.QIcon(EnMAPBoxIcons.File_Vector_Polygon)
+
+
+    def getTreeItem(self, parent):
+        itemTop = super(DataSourceVector, self).getTreeItem(parent)
+
+        #itemTop = TreeItem(parent, self.name, icon=self.getIcon())
+        assert type(self.lyr) is qgis.core.QgsVectorLayer
+        srs = self.lyr.crs()
+        dp = self.lyr.dataProvider()
+        assert isinstance(dp, qgis.core.QgsVectorDataProvider)
+
+        infos = list()
+        infos.append('Path: {}'.format(self.src))
+        infos.append('Features: {}'.format(dp.featureCount()))
+
+        TreeItem(itemTop, 'File Information', infos=infos, tooltip='\n'.join(infos), asChild=True)
+
+        if srs is not None:
+            infos = list()
+            infos.append('CRS: {}'.format(srs.description()))
+            infos.append('Extent: {}'.format(dp.extent().toString(True)))
+            TreeItem(itemTop, 'Spatial Reference', infos=infos, asChild=True,
+                     tooltip='\n'.join(infos))
+
+        fields = self.lyr.fields()
+        itemFields = TreeItem(itemTop, 'Fields [{}]'.format(len(fields)), asChild=True)
+        for i, field in enumerate(fields):
+            infos = list()
+            infos.append('Name : {}'.format(field.name()))
+            infos.append('Type : {}'.format(field.typeName()))
+            TreeItem(itemFields, '{} "{}" {}'.format(i+1, field.name(), field.typeName()),
+                     tooltip='\n'.join(infos), infos=infos, asChild=True)
 
         return itemTop
 
-
-
 class DataSourceManager(QObject):
-
+    """
+    Keeps overview on different data sources handled by EnMAP-Box.
+    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well
+    """
 
     sigDataSourceAdded = pyqtSignal(object)
     sigDataSourceRemoved = pyqtSignal(object)
-
-
-
-    SourceTypes = ['Raster','Vector','File','Modelfile','Textfile']
 
 
     def __init__(self):
@@ -297,64 +444,25 @@ class DataSourceManager(QObject):
         s  = ""
 
 
-    def addSource(self, src, name=None):
+    def addSource(self, src, name=None, icon=None):
         #switch to add different data sources
-        ds = None
-        #1. check string types
-        if isinstance(src, str):
-            if os.path.exists(src):
-                if name is None:
-                    name = os.path.basename(src)
-                # 1. test mapable sources
-                lyr = qgis.core.QgsRasterLayer(src, name)
-                if lyr.isValid():
-                    self.qgsMapRegistry.addMapLayer(lyr)
-                    return self.addSource(lyr, name)
-                lyr = qgis.core.QgsVectorLayer(src, name)
-                if lyr.isValid():
-                    return self.addSource(lyr, name)
+        ds = DataSource.Factory(src, name=name, icon=icon)
+        if isinstance(ds, DataSource):
 
-                #todo: check for model files,
-                # implement file tests here
+            if ds is not None and ds not in self.sources:
+                self.sources.append(ds)
+                self.sigDataSourceAdded.emit(ds)
 
-                # 2. normal files -> return file path
-                ds = DataSource('File', src, name)
+        return ds
 
-        #check QGIS data sources
-        elif isinstance(src, qgis.core.QgsMapLayer):
-            if name is None:
-                name = src.name()
-            if isinstance(src, qgis.core.QgsRasterLayer):
-                ds = DataSourceRaster(src, name)
-            elif isinstance(src, qgis.core.QgsVectorLayer):
-                src_type = 'Vector'
-                ds = DataSource('Vector', src, name)
-            else:
-                src_type = 'MapLayer'
-                ds = DataSource('Vector', src, name)
+    def removeSource(self, src):
+        assert isinstance(src, DataSource)
+        self.sources.remove(src)
+        self.sigDataSourceRemoved.emit(src)
 
-        else:
-            #todo: add GDAL dataset object
-            #todo: add QFileObjects
-            raise NotImplementedError
-
-        if ds is not None and ds not in self.sources:
-            self.sources.append(ds)
-            self.sigDataSourceAdded.emit(ds)
-            return ds
-
-            """
-            src_group = DataSourceTreeItem([src_type,'description'], self)
-            for src in [ds for ds in self.sources if ds.type == src_type]:
-                src_group.appendChild(src.getTreeItem(src_group))
-            """
-        return None
-
-
-    #ovwerwrite TreeItem functions
 
     def getSourceTypes(self):
-        return sorted(list(set([ds.type for ds in self.sources])))
+        return sorted(list(set([type(ds) for ds in self.sources])))
 
 
 
@@ -367,28 +475,62 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     columnames = ['Name','Description']
     columnames = ['Name']
 
+    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile]
+    SourceTypeNames = ['Raster', 'Vector', 'File']
+
+
+    def getSourceTypeName(self, dataSource):
+        assert type(dataSource) in DataSourceManagerTreeModel.SourceTypes
+        return DataSourceManagerTreeModel.SourceTypeNames[DataSourceManagerTreeModel.SourceTypes.index(type(dataSource))]
+
     def __init__(self, dataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
         QAbstractItemModel.__init__(self)
         self.DSM = dataSourceManager
-        self.DSM.sigDataSourceAdded.connect(self.updateTreeItems)
-        self.DSM.sigDataSourceRemoved.connect(self.updateTreeItems)
+        self.DSM.sigDataSourceAdded.connect(self.addDataSourceItems)
+        self.DSM.sigDataSourceRemoved.connect(self.removeDataSourceItems)
         self.rootItem = TreeItem(None, None)
 
 
 
-    def updateTreeItems(self, dataSource):
-
-        if dataSource.type not in [c.name for c in self.rootItem.childs]:
-            src_grp = TreeItem(self.rootItem, dataSource.type,
+    def addDataSourceItems(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        dsTypeName = self.getSourceTypeName(dataSource)
+        if dsTypeName not in [c.name for c in self.rootItem.childs]:
+            src_grp = TreeItem(self.rootItem,dsTypeName,
                                icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon)
                                )
             self.rootItem.appendChild(src_grp)
 
-        src_grp = self.rootItem.child(self.DSM.getSourceTypes().index(dataSource.type))
-        assert src_grp.name == dataSource.type
+
+
+        src_grp = [c for c in self.rootItem.childs if c.name == dsTypeName][0]
         src_grp.appendChild(dataSource.getTreeItem(src_grp))
-        print(src_grp)
+
+
+        #print(src_grp)
+    def removeDataSourceItems(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        dsTypeName = self.getSourceTypeName(dataSource)
+        src_grp = [c for c in self.rootItem.childs if c.name == dsTypeName]
+        if len(src_grp) == 1:
+            src_grp = src_grp[0]
+            assert isinstance(src_grp, TreeItem)
+
+            for row in range(src_grp.childCount()):
+                index = self.index(row, 1, None)
+                child = src_grp.childs[row]
+                if child.data == dataSource:
+                    self.beginRemoveRows(index, 1, 1)
+                    src_grp.childs.remove(c)
+                    del c
+                    self.endRemoveRows()
+
+            if src_grp.childCount() == 0:
+                #self.rootItem.childs.remove(src_grp)
+                s = ""
+
+
 
     def supportedDragActions(self):
         return Qt.CopyAction | Qt.MoveAction
@@ -453,7 +595,8 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
         if role == Qt.DecorationRole and index.column() == 0:
             if isinstance(item.icon, QtGui.QIcon):
                 return item.icon
-
+        if role == Qt.UserRole:
+            return item
         return None
 
     """
@@ -651,9 +794,10 @@ class CanvasLink(QObject):
         D e - z
 
     """
+    LINKTYPES = ['center','extent','scale','scale_center']
     class linkset(set):
         def __init__(self, linktype):
-            assert linktype in ['extent','center']
+            assert linktype in CanvasLink.LINKTYPES
             self.linktype = linktype
 
         def __add__(self, other):
@@ -662,7 +806,7 @@ class CanvasLink(QObject):
 
     @staticmethod
     def CreateLink(canvas1, canvas2, linktype='extent', bidirectional=True):
-        assert linktype in ['extent','center']
+        assert linktype in CanvasLink.LINKTYPES
         assert isinstance(canvas1, qgis.gui.QgsMapCanvas)
         assert isinstance(canvas1, qgis.gui.QgsMapCanvas)
         if canvas1 is canvas2:
@@ -701,18 +845,26 @@ class CanvasLink(QObject):
     @staticmethod
     def setLinks(canvas):
         #find linked canvases
+        assert isinstance(canvas, QgsMapCanvas)
         extents = canvas.extent()
         center = canvas.center()
+        scale = canvas.scale()
 
         already_changed = set([canvas])
 
         def applyLinkset(ls, blocksignals=True):
             if canvas in ls:
                 for c in [c for c in list(ls) if c not in already_changed]:
+                    assert isinstance(c, QgsMapCanvas)
                     c.blockSignals(blocksignals)
                     if ls.linktype == 'extent':
                         c.setExtent(extents)
                     elif ls.linktype == 'center':
+                        c.setCenter(center)
+                    elif ls.linktype == 'scale':
+                        c.zoomScale(scale)
+                    elif ls.linktype == 'scale_center':
+                        c.zoomScale(scale)
                         c.setCenter(center)
                     else:
                         raise NotImplementedError()
@@ -724,7 +876,13 @@ class CanvasLink(QObject):
             applyLinkset(ls, True)
 
         for ls in [ls for ls in CanvasLink.LINKSETS if ls.linktype == 'center']:
-            applyLinkset(ls)
+            applyLinkset(ls, True)
+
+        for ls in [ls for ls in CanvasLink.LINKSETS if ls.linktype == 'scale']:
+            applyLinkset(ls, True)
+
+        for ls in [ls for ls in CanvasLink.LINKSETS if ls.linktype == 'scale_center']:
+            applyLinkset(ls, True)
 
         s = ""
 
@@ -768,6 +926,7 @@ class EnMAPBox:
         return EnMAPBox._instance
 
 
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
         print(iface)
@@ -783,6 +942,9 @@ class EnMAPBox:
         self.gui.dataSourceTreeView.setAcceptDrops(True)
         self.gui.dataSourceTreeView.viewport().setAcceptDrops(True)
         self.gui.dataSourceTreeView.setDropIndicatorShown(True)
+        self.gui.dataSourceTreeView.customContextMenuRequested.connect(self.onDataSourceTreeViewCustomContextMenu)
+
+        self.DOCKS = set()
         self.dockarea = EnMAPBoxDockArea()
         self.gui.centralWidget().layout().addWidget(self.dockarea)
         #self.gui.centralWidget().addWidget(self.dockarea)
@@ -790,11 +952,25 @@ class EnMAPBox:
 
 
         #link action objects to action behaviour
-        self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
-        self.gui.actionAddMapView.triggered.connect(lambda : self.dockarea.addDock(EnMAPBoxMapDock(self)))
-        self.gui.actionAddTextView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxTextDock(self)))
-
+        #self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
+        self.gui.actionAddMapView.triggered.connect(lambda : self.createDock('MAP'))
+        self.gui.actionAddTextView.triggered.connect(lambda: self.createDock('TEXT'))
+        self.gui.actionAddDataSource.triggered.connect(lambda: self.addSource(str(QFileDialog.getOpenFileName(self.gui, "Open a data source"))))
         EnMAPBox._instance = self
+
+    def createDock(self, docktype,  *args, **kwds):
+        #todo: ensure unique mapdock names
+
+        assert docktype in ['MAP','TEXT']
+        if docktype == 'MAP':
+            dock = EnMAPBoxMapDock(self,  *args, **kwds)
+        elif docktype == 'TEXT':
+            dock = EnMAPBoxTextDock(self,  *args, **kwds)
+
+        self.dockarea.addDock(dock)
+        self.DOCKS.add(dock)
+
+        dock.sigClosed.connect(lambda : self.DOCKS.remove(dock))
 
     def isLinkedWithQGIS(self):
         return self.iface is not None and isinstance(self.iface, qgis.gui.QgisInterface)
@@ -812,26 +988,40 @@ class EnMAPBox:
         pass
 
 
-class EnMAPBoxDataSourceManager(QObject):
+    def onDataSourceTreeViewCustomContextMenu(self, point):
+        tv = self.gui.dataSourceTreeView
+        assert isinstance(tv, QTreeView)
+        index = tv.indexAt(point)
 
-    def __init__(self):
-        pass
 
-    def addSource(self, source):
+        m = tv.model()
+        if index.isValid():
 
-        #switch to differentiate between sources
-        if isinstance(source, str):
-            #handle strings
+            node = m.data(index, Qt.UserRole)
+            if isinstance(node.data, DataSource):
+                src = node.data
+                menu = QMenu()
+                if isinstance(node.data, DataSourceSpatial):
+                    mapDocks = [d for d in self.DOCKS if isinstance(d, EnMAPBoxMapDock)]
+                    for mapDock in mapDocks:
+                        action = QAction('Add to "{}"'.format(mapDock.name()), menu)
+                        action.triggered.connect(lambda : mapDock.addLayer(src))
+                        menu.addAction(action)
+                    action = QAction('Add to new map', menu)
+                    action.triggered.connect(lambda : self.createDock('MAP', initSrc=src))
+                    menu.addAction(action)
+                    action = QAction('Remove', menu)
+                    action.triggered.connect(lambda : self.dataSourceManager.removeSource(src))
 
-            pass
-        elif isinstance(source, qgis.core):
-            pass
-        pass
+                menu.addAction(action)
+                menu.exec_(tv.viewport().mapToGlobal(point))
 
-    def removeSource(self, source):
-        pass
 
-    pass
+
+
+        s = ""
+
+
 
 
 
@@ -844,7 +1034,7 @@ class TestData():
     Diagrams = jp(prefix, 'diagrams.png')
     AlpineForelandSubset = jp(prefix, 'AlpineForelandSubset.img')
     AF_Image = jp(prefix, 'AF_Image')
-
+    Landsat_Shp = jp(prefix, 'landsat_labels.shp')
     Landsat_Image = jp(prefix, 'landsat_img.tif')
     Landsat_Fmask = jp(prefix, 'landsat_fmask.tif')
 
@@ -868,10 +1058,14 @@ class EnMAPBoxDock(pyqtgraph.dockarea.Dock):
     Handle style sheets etc., basic stuff that differs from pyqtgraph dockarea
     '''
 
-    #todo: a registry to handle EnMAPBoxDock windows
+
     def __init__(self, enmapbox, name='view', closable=True, *args, **kwds):
         super(EnMAPBoxDock, self).__init__(name=name, closable=False, *args, **kwds)
+
+        assert isinstance(enmapbox, EnMAPBox)
         self.enmapbox = enmapbox
+
+
         self.title = name
         self.setStyleSheet('background:#FFF')
 
@@ -922,6 +1116,8 @@ class EnMAPBoxDock(pyqtgraph.dockarea.Dock):
         self.topLayout.update()
 
 
+        self.sigClosed.connect(lambda: self.enmapbox.DOCKS.remove(self))
+        self.enmapbox.DOCKS.add(self)
 
 
     def _getLabel(self):
@@ -1100,7 +1296,8 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
             p.update()
 
         if processEvents:
-            qApp.processEvents()
+            #qApp.processEvents()
+            QCoreApplication.instance().processEvents()
 
     def __init__(self, canvas1, canvas2):
         assert isinstance(canvas1, qgis.gui.QgsMapCanvas)
@@ -1120,16 +1317,31 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         #add buttons with link functions
         self.buttons = list()
         bt = QtGui.QToolButton(self)
-        bt.setToolTip('Link to map center')
+        bt.setToolTip('Link map center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
         bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Center))
         self.buttons.append(bt)
 
+        if False:
+            bt = QtGui.QToolButton(self)
+            bt.setToolTip('Link map extent')
+            bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
+            bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Extent))
+            self.buttons.append(bt)
+
         bt = QtGui.QToolButton(self)
-        bt.setToolTip('Link to map extent')
-        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
-        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Extent))
+        bt.setToolTip('Link map scale ("Zoom")')
+        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale'))
+        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Scale))
         self.buttons.append(bt)
+
+        bt = QtGui.QToolButton(self)
+        bt.setToolTip('Link map scale and center')
+        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale_center'))
+        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Scale_Center))
+        self.buttons.append(bt)
+
+
 
         for bt in self.buttons:
             bt.setAttribute(Qt.WA_PaintOnScreen)
@@ -1291,16 +1503,16 @@ class EnMAPBoxMapDock(EnMAPBoxDock):
     def addLayer(self, mapLayer):
 
         ds = self.enmapbox.dataSourceManager.addSource(mapLayer)
-        if isinstance(ds, DataSource) and isinstance(ds.source, QgsMapLayer):
+        if isinstance(ds, DataSourceSpatial):
 
             canvasLayers = self.canvas.layers()
-            mapLyr = QgsMapCanvasLayer(ds.source)
+            mapLyr = QgsMapCanvasLayer(ds.lyr)
             mapLyr.setVisible(True)
 
             canvasLayers.append(mapLyr)
 
             if len(canvasLayers) == 1:
-                self.canvas.setExtent(ds.source.extent())
+                self.canvas.setExtent(ds.lyr.extent())
 
             self.canvas.setLayerSet(canvasLayers)
 
@@ -1353,8 +1565,6 @@ if __name__ == '__main__':
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
-
-
     if False:
         w = QMainWindow()
         w.setWindowTitle('QgsMapCanvas Example')
@@ -1372,15 +1582,15 @@ if __name__ == '__main__':
 
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
-    EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
-    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 1', initSrc=TestData.Landsat_Fmask))
-    EB.dockarea.addDock(EnMAPBoxMapDock(EB, name='MapDock 2', initSrc=TestData.Landsat_Image))
-
-    EB.dockarea.addDock(EnMAPBoxTextDock(EB,
-                                         name='TextDock',
+    #EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
+    EB.createDock('MAP', name='MapDock 1', initSrc=TestData.Landsat_Fmask)
+    EB.createDock('MAP', name='MapDock 2', initSrc=TestData.Landsat_Image)
+    EB.createDock('MAP', name='MapDock 4', initSrc=TestData.AlpineForelandSubset)
+    EB.createDock('MAP', name='MapDock 3', initSrc=TestData.Landsat_Shp)
+    EB.createDock('TEXT', name='TextDock',
                                          html='Here we can show HTML like text:'
                                               '<a href="http://www.enmap.org">www.enmap.org</a>'
-                                              '</br>'+LORE_IPSUM))
+                                              '</br>'+LORE_IPSUM)
 
 
     #md1.linkWithMapDock(md2, linktype='center')
