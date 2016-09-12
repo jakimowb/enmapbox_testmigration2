@@ -105,7 +105,7 @@ class EnMAPBoxPlugin:
 
 
                 p = EnMAPBoxProvider()
-                print(p.getIcon())
+
                 self.processingProviders.append(EnMAPBoxProvider())
 
                 #todo: add other providers here
