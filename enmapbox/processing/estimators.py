@@ -11,6 +11,7 @@ import sklearn.grid_search
 import sklearn.pipeline
 import sklearn.preprocessing
 import sklearn.svm
+import sklearn.dummy
 from HTML import Table
 
 
@@ -192,9 +193,10 @@ class Classifiers(Estimators):
             report = Report('')
             report.append(ReportHeading('Information'))
 
-            bandNames = self.sample.image.meta.getMetadataItem('band names',default=numpy.array([]))
+            bandNames = self.sample.featureSample.dataSample.meta.getMetadataItem('band names',default=numpy.array([]))
             if len(bandNames) == 0:
                 for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
+
             data = numpy.vstack((bandNames,numpy.round(rfc.feature_importances_, 4)*100))
             rowHeaders = [['Band Names','Feature Importance [%]']]
             report.append(ReportTable(data, rowHeaders=rowHeaders))
@@ -206,12 +208,22 @@ class Classifiers(Estimators):
 
             return report
 
+    class DummyClassifier(Classifier):
+
+        def __init__(self, strategy="stratified", random_state=None, constant=None):
+
+            dummy = sklearn.dummy.DummyClassifier(strategy="stratified", random_state=None, constant=None)
+            pipe = sklearn.pipeline.make_pipeline(dummy)
+            Classifier.__init__(self, pipe)
+
+
 # need to copy classes outside of Classifiers to be able to pickle the models
 LinearSVC = Classifiers.LinearSVC
 LinearSVCTuned = Classifiers.LinearSVCTuned
 SVC = Classifiers.SVC
 SVCTuned = Classifiers.SVCTuned
 RandomForestClassifier = Classifiers.RandomForestClassifier
+DummyClassifier = Classifiers.DummyClassifier
 
 class Regressors(Estimators):
 
@@ -336,7 +348,7 @@ class Regressors(Estimators):
             report = Report('')
             report.append(ReportHeading('Information'))
 
-            bandNames = self.sample.image.meta.getMetadataItem('band names',default=numpy.array([]))
+            bandNames = self.sample.featureSample.dataSample.meta.getMetadataItem('band names',default=numpy.array([]))
             if len(bandNames) == 0:
                 for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
             data = numpy.vstack((bandNames,numpy.round(rfc.feature_importances_, 4)*100))
@@ -360,12 +372,21 @@ class Regressors(Estimators):
             pipe = sklearn.pipeline.make_pipeline(linearRegression)
             Regressor.__init__(self, pipe)
 
+    class DummyRegressor(Regressor):
+
+        def __init__(self, strategy="mean", constant=None, quantile=None):
+
+            dummy = sklearn.dummy.DummyRegressor(strategy="mean", constant=None, quantile=None)
+            pipe = sklearn.pipeline.make_pipeline(dummy)
+            Regressor.__init__(self, pipe)
+
 LinearSVR = Regressors.LinearSVR
 LinearSVRTuned = Regressors.LinearSVRTuned
 SVR = Regressors.SVR
 SVRTuned = Regressors.SVRTuned
 RandomForestRegressor = Regressors.RandomForestRegressor
 LinearRegression = Regressors.LinearRegression
+DummyRegressor = Regressors.DummyRegressor
 
 class Clusterers(Estimators):
 
@@ -546,7 +567,7 @@ class Transformers(Estimators):
 
             report = Report('')
             report.append(ReportHeading('Information'))
-            bandNames = self.sample.image.meta.getBandNames()
+            bandNames = self.sample.featureSample.dataSample.meta.getBandNames()
             table = Table([['<b>Median</b>']+list(scaler.center_),
                            ['<b>Interquartile Range</b>']+list(scaler.scale_)], header_row=['']+bandNames)
             report.append(ReportTable(table))
@@ -613,7 +634,7 @@ class MH:
     @staticmethod
     def RandomForestClassifier(rfc, self):
 
-        wl = self.sample.image.meta.getMetadataItem('wavelength',default=numpy.array([]))
+        wl = self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength',default=numpy.array([]))
         fig, ax = plt.subplots(facecolor='white',figsize=(15, 6))
         ax.tick_params(direction='out', length=5, pad=5)
 
@@ -624,7 +645,7 @@ class MH:
         else:
             plt.vlines(wl,0,rfc.feature_importances_*100,lw=3,colors='b')
             plt.xlim(float(wl[0])-float(wl[-1])*.03,float(wl[-1])+float(wl[-1])*.03)
-            plt.xlabel('Wavelength ['+self.sample.image.meta.getMetadataItem('wavelength units')+']')
+            plt.xlabel('Wavelength ['+self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units')+']')
 
         plt.ylabel('Feature Importance [%]')
         plt.grid()
@@ -683,7 +704,7 @@ class MH:
 
         fig, ax = plt.subplots(facecolor='white')
         ax.set_xlabel('Number of PCs')
-        wavelength_units = self.sample.image.meta.getMetadataItem('wavelength units',default=numpy.array([]))
+        wavelength_units = self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units',default=numpy.array([]))
 
         if len(wavelength_units) == 0:
             x = numpy.arange(len(spectra)) + 1
@@ -692,7 +713,7 @@ class MH:
             plt.xlim(0,len(spectra))
             plt.xlabel('Feature Number')
         else:
-            x = self.sample.image.meta.getMetadataItem('wavelength')
+            x = self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength')
             y = spectra
             plt.plot(x, y)
             plt.xlim(float(x[0]),float(x[-1]))

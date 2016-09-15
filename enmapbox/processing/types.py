@@ -54,8 +54,26 @@ class Type():
 
 class Meta(GDALMeta):
 
-    pass
+    def isMask(self):
 
+        return self.RasterCount == 1
+
+    def isClassification(self):
+
+        return (self.getMetadataItem('file_type').lower() == 'envi classification'
+                and int(self.getMetadataItem('classes')) == len(self.getMetadataItem('class_names'))
+                and int(self.getMetadataItem('classes')) * 3 == len(self.getMetadataItem('class_lookup')))
+
+    def isRegression(self):
+
+        return (self.isMask
+                and self.getNoDataValue('data_ignore_value') is not None)
+
+    def isProbability(self):
+
+        return (int(self.getMetadataItem('classes')) == len(self.getMetadataItem('class names'))
+                and int(self.getMetadataItem('classes'))*3 == len(self.getMetadataItem('class lookup'))
+                and self.getNoDataValue('data ignore value') is not None)
 
 class Image(Type):
 
@@ -77,32 +95,11 @@ class Image(Type):
 
     def __init__(self, filename):
 
-        assert isinstance(filename, basestring), 'Incorrect filename! '+str(filename)
-        assert os.path.exists(filename), 'Incorrect filename! '+str(filename)
+        assert os.path.exists(filename)
         self.filename = filename
-        self.meta = GDALMeta(filename)
-        self._assert()
-
-
-    def __str__(self):
-        return '('+str(self.__class__)+') = '+ self.filename
-
-
-    def _assert(self):
-        pass
-
+        self.meta = Meta(filename)
 
     def saveAs(self, filename=None, options='-of ENVI'):
-
-        """
-        Save a copy of the image using `GDAL_TRANSLATE <http://www.gdal.org/gdal_translate.html/>`_
-
-        :param filename: Output filename
-        :param options:
-        :return: Image(filename)
-        :rtype: Image
-        """
-
         if filename is None: filename = Environment.tempfile()
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
         return self.__class__(filename)
@@ -118,24 +115,25 @@ class Image(Type):
     def report(self):
 
         report = Report('View Image Matadata')
-        report.append(ReportMonospace(self.filename))
+        report.append(ReportParagraph(self.filename))
 
         def addDomain(domain):
             report.append(ReportHeading(domain + ' Domain'))
-            for key, value in self.meta.getMetadataDict(domain=domain).items():
+            for key, value in self.meta.getMetadataDict(domainName=domain).items():
                 report.append(ReportParagraph(key + ' = ' + str(value)))
 
         addDomain('IMAGE_STRUCTURE')
         addDomain('ENVI')
-        for domain in self.meta.getMetadataDomains():
-            if domain in ['DEFAULT', 'ENVI', 'IMAGE_STRUCTURE']: continue
+        for domain in self.meta.getMetadataDomainList():
+            if domain in ['', 'ENVI', 'IMAGE_STRUCTURE']: continue
             addDomain(domain)
-        addDomain('DEFAULT')
+        addDomain('')
+
+        info = hub.gdal.util.gdalinfo(self.filename)
+        report.append(ReportHeading('GDAL Info'))
+        report.append(ReportMonospace(info))
 
         return report
-
-
-
 
 class ImageStatistics(Type):
 
@@ -252,10 +250,15 @@ class ImageStatistics(Type):
 
 class Mask(Image):
 
-    def _assert(self):
+    def __init__(self, filename):
 
-        Image._assert(self)
-        assert self.meta.RasterCount == 1
+        Image.__init__(self, filename)
+        assert self.meta.isMask()
+
+    def getLocations(self):
+
+        dataSample = PixelExtractor(self).extractByMask(self)
+        return dataSample.locations
 
 
 class NoMask(Mask):
@@ -263,63 +266,76 @@ class NoMask(Mask):
     def __init__(self):
 
         self.filename = 'no mask selected'
-        self.meta = GDALMeta()
+        self.meta = Meta()
         self.meta.setNoDataValue(0)
 
 
 class Classification(Mask):
 
-    def _assert(self):
+    def __init__(self, filename):
 
-        Mask._assert(self)
-        assert self.meta.getMetadataItem('file_type').lower() == 'envi classification'
-        assert int(self.meta.getMetadataItem('classes')) == len(self.meta.getMetadataItem('class_names'))
-        assert int(self.meta.getMetadataItem('classes'))*3 == len(self.meta.getMetadataItem('class_lookup'))
+        Mask.__init__(self, filename)
+        assert self.meta.isClassification()
 
-
-    def assessClassificationPerformance(self, classification, stratification=None):
+    def assessClassificationPerformance(self, classification, stratification=None, useRandomAccessReader=True):
 
         assert isinstance(classification, Classification)
-        sample = ClassificationSample(self, classification)
+        if useRandomAccessReader:
+            sample = SupervisedSample.fromLocations(image=self, labels=classification, locations=classification.getLocations())
+        else:
+            sample = SupervisedSample.fromMask(image=self, labels=classification, mask=classification)
 
         if stratification is None:
             result = ClassificationPerformance.fromSample(sample)
         else:
             assert isinstance(stratification, Classification)
-            sampleStratification = ClassificationSample(stratification, classification)
+            if useRandomAccessReader:
+                sampleStratification = SupervisedSample.fromLocations(image=stratification, labels=classification, locations=classification.getLocations())
+            else:
+                sampleStratification = SupervisedSample.fromMask(image=stratification, labels=classification, mask=classification)
+
             result = ClassificationPerformanceAdjusted.fromSample(sample, sampleStratification)
 
         return result
 
 
-    def assessClusteringPerformance(self, classification):
-        sample = ClassificationSample(self, classification)
+    def assessClusteringPerformance(self, classification, useRandomAccessReader=True):
+
+        if useRandomAccessReader:
+            sample = SupervisedSample.fromLocations(image=self, labels=classification, locations=classification.getLocations())
+        else:
+            sample = SupervisedSample.fromMask(image=self, labels=classification, mask=classification)
         return ClusteringPerformance(sample)
 
 
 class Regression(Mask):
 
-    def _assert(self):
+    def __init__(self, filename):
 
-        Mask._assert(self)
-        envi = self.meta.getMetadataDict()
-        assert envi['data_ignore_value'] is not None
+        Mask.__init__(self, filename)
+        assert self.meta.isRegression()
 
-
-    def assessRegressionPerformance(self, regression):
-        sample = RegressionSample(self, regression)
+    def assessRegressionPerformance(self, regression, useRandomAccessReader=True):
+        if useRandomAccessReader:
+            sample = SupervisedSample.fromLocations(image=self, labels=regression, locations=regression.getLocations())
+        else:
+            sample = SupervisedSample.fromMask(image=self, labels=regression, mask=regression)
         return RegressionPerformance(sample)
 
 
 class Probability(Image):
 
-    def _assert(self):
+    def __init__(self, filename):
 
-        envi = self.meta.getMetadataDict()
-        assert int(envi['classes']) == len(envi['class_names'])
-        assert int(envi['classes'])*3 == len(envi['class_lookup'])
-        assert self.meta.getNoDataValue('data_ignore_value') is not None
-        Image._assert(self)
+        Image.__init__(self, filename)
+        assert self.meta.isProbability()
+
+    def assessProbabilityPerformance(self, classification, useRandomAccessReader=True):
+        if useRandomAccessReader:
+            sample = SupervisedSample.fromLocations(image=self, labels=classification, locations=classification.getLocations())
+        else:
+            sample = SupervisedSample.fromMask(image=self, labels=classification, mask=classification)
+        return ProbabilityPerformance(sample)
 
     def argmax(self, filename=Environment.tempfile('classification'), progress=progress):
 
@@ -372,19 +388,22 @@ class Estimator(Type):
         assert isinstance(sklEstimator, sklearn.pipeline.Pipeline)
         self.sklEstimator = sklEstimator
         self.sample = None
-        self._assert()
-
-
-    def _assert(self):
-
         assert callable(getattr(self.sklEstimator, 'fit', None))
 
+    def fit(self, image, labels, progress=progress):
 
-    def _fit(self, sample, progress=progress):
+        assert isinstance(image, Image)
+        sample = SupervisedSample.fromLocations(image, labels, labels.getLocations())
+        return self.fitSample(sample, progress=progress)
+
+    def fitSample(self, sample, progress=progress):
 
         progress.setText('fit model')
         self.sample = sample
-        self.sklEstimator.fit(sample.imageData.astype(numpy.float64), sample.labelData)
+
+        X = sample.featureSample.dataSample.data.astype(numpy.float64)
+        y = sample.labelsSample.dataSample.data
+        self.sklEstimator.fit(X=X, y=y)
         return self
 
 
@@ -540,25 +559,25 @@ class Estimator(Type):
         if predictfile:
 
             meta = Meta(outfiles.predict)
-            self.predictMeta(meta, args.xMeta, self.sample.mask.meta)
+            self.predictMeta(meta, args.xMeta, self.sample.labelsSample.dataSample.meta)
             meta.writeMeta(outfiles.predict)
 
         if transformfile:
 
             meta = Meta(outfiles.transform)
-            self.transformMeta(meta, args.xMeta, self.sample.mask.meta)
+            self.transformMeta(meta, args.xMeta, self.sample.labelsSample.dataSample.meta)
             meta.writeMeta(outfiles.transform)
 
         if inversetransformfile:
 
             meta = Meta(outfiles.inversetransform)
-            self.transformInverseMeta(meta, args.xMeta, self.sample.mask.meta)
+            self.transformInverseMeta(meta, args.xMeta, self.sample.labelsSample.dataSample.meta)
             meta.writeMeta(outfiles.inversetransform)
 
         if probafile:
 
             meta = Meta(outfiles.proba)
-            self.predictProbabilityMeta(meta, args.xMeta, self.sample.mask.meta)
+            self.predictProbabilityMeta(meta, args.xMeta, self.sample.labelsSample.dataSample.meta)
             meta.writeMeta(outfiles.proba)
 
 
@@ -643,15 +662,17 @@ class Estimator(Type):
 
         if self.sample is not None:
             report.append(ReportHeading('Input Files'))
-            report.append(ReportMonospace('Image:  ' + self.sample.image.filename + '\nLabels: ' + self.sample.mask.filename))
+            report.append(ReportParagraph('Image: ' + self.sample.featureSample.filename))
+            report.append(ReportParagraph('Labels: ' + self.sample.labelsSample.filename))
 
             report.append(ReportHeading('Training Data'))
 
-            text = 'Number of Samples:  '+str(self.sample.labelData.shape[0])+'\n'
-            text += 'Number of Features: '+str(self.sample.imageData.shape[1])+'\n'
+            shape = self.sample.featureSample.dataSample.data.shape
+            text = 'Number of Samples:  '+str(shape[0])+'\n'
+            text += 'Number of Features: '+str(shape[1])+'\n'
             if isinstance(self, Classifier):
-                text += 'Number of Classes:  ' + str(int(self.sample.mask.meta.getMetadataItem('classes')) - 1) + '\n'
-                text += 'Class Names:        ' + ', '.join(self.sample.mask.meta.getMetadataItem('class names')[1:])
+                text += 'Number of Classes:  ' + str(int(self.sample.labelsSample.dataSample.meta.getMetadataItem('classes')) - 1) + '\n'
+                text += 'Class Names:        ' + ', '.join(self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')[1:])
 
             report.append(ReportMonospace(text))
 
@@ -710,20 +731,6 @@ class Estimator(Type):
 
 class Classifier(Estimator):
 
-    def __assert(self):
-
-        Estimator._assert(self)
-        assert callable(getattr(self.sklEstimator, 'predict', None))
-
-
-    def fit(self, image, labels, progress=progress):
-
-        assert isinstance(image, Image)
-        assert isinstance(labels, Classification)
-        sample = ClassificationSample(image, labels)
-        return self._fit(sample, progress=progress)
-
-
     def predict(self, image, mask=None, filename=Environment.tempfile('classification'), progress=progress):
 
         assert isinstance(image, Image)
@@ -769,16 +776,16 @@ class Classifier(Estimator):
         Estimator.predictMeta(self, meta, imeta, mmeta)
         meta.setMetadataItem('file_type', 'envi classification')
         for key in ['class_names', 'class_lookup', 'classes']:
-            meta.copyMetadataItem(key, self.sample.mask.meta)
+            meta.copyMetadataItem(key, self.sample.labelsSample.dataSample.meta)
 
 
     def predictProbabilityMeta(self, meta, imeta, mmeta):
 
         assert isinstance(meta, Meta)
         meta.setNoDataValue(-1)
-        meta.setBandNames(self.sample.mask.meta.getMetadataItem('class names')[1:])
+        meta.setBandNames(self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')[1:])
         for key in ['class_names', 'class_lookup', 'classes']:
-            meta.copyMetadataItem(key, self.sample.mask.meta)
+            meta.copyMetadataItem(key, self.sample.labelsSample.dataSample.meta)
 
 
     def UncertaintyClassifierFP(self):
@@ -803,20 +810,6 @@ class UncertaintyClassifier(Classifier):
 
 class Regressor(Estimator):
 
-    def __assert(self):
-
-        Estimator._assert(self)
-        assert callable(getattr(self.sklEstimator, 'predict', None))
-
-
-    def fit(self, image, labels, progress=progress):
-
-        assert isinstance(image, Image)
-        assert isinstance(labels, Regression)
-        sample = RegressionSample(image, labels)
-        return self._fit(sample, progress=progress)
-
-
     def predict(self, image, mask, filename=Environment.tempfile('regression'), progress=progress):
 
         self._predict(image, mask, predictfile=filename, progress=progress)
@@ -830,7 +823,7 @@ class Regressor(Estimator):
 
     def predictNoDataValue(self):
 
-        return self.sample.mask.meta.getNoDataValue()
+        return self.sample.labelsSample.dataSample.meta.getNoDataValue()
 
 
     def UncertaintyRegressor(self):
@@ -856,15 +849,6 @@ class UncertaintyRegressor(Regressor):
 
 class Transformer(Estimator):
 
-    def fit(self, image, mask, progress=progress):
-
-        if mask is None: mask = NoMask()
-        assert isinstance(image, Image)
-        assert isinstance(mask, Mask)
-        sample = UnsupervisedSample(image, mask)
-        return self._fit(sample, progress=progress)
-
-
     def transform(self, image, mask=None, filename=Environment.tempfile('transformation'), progress=progress):
 
         self._predict(image, mask, transformfile=filename, progress=progress)
@@ -887,15 +871,6 @@ class Transformer(Estimator):
 
 
 class Clusterer(Estimator):
-
-    def fit(self, image, mask, progress=progress):
-
-        if mask is None: mask = NoMask()
-        assert isinstance(image, Image)
-        assert isinstance(mask, Mask)
-        sample = UnsupervisedSample(image, mask)
-        return self._fit(sample, progress=progress)
-
 
     def predict(self, image, mask=None, filename=Environment.tempfile('clustering'), progress=progress):
 
@@ -924,79 +899,181 @@ class Clusterer(Estimator):
         return 0
 
 
-class UnsupervisedSample(Type):
+class DataSample(Type):
 
-    def __init__(self, image, mask):
+    def __init__(self, data, meta):
+        assert isinstance(data, numpy.ndarray)
+        assert data.ndim <= 2
+
+        if data.ndim == 2:
+            assert data.shape[1] == meta.RasterCount
+        assert isinstance(meta, Meta)
+
+        self.data = data
+        self.meta = meta
+
+
+class ImageSample(Type):
+
+    def __init__(self, dataSample, locations, filename):
+        assert isinstance(dataSample, DataSample)
+        assert isinstance(locations, ImageLocations)
+        self.dataSample = dataSample
+        self.locations = locations
+        self.filename = filename
+
+class PixelExtractor():
+
+    def __init__(self, image):
+        assert isinstance(image, Image)
         self.image = image
-        self.mask = mask
-        self._assert()
-        self.imageData, self.labelData = self._readData()
 
-    def __str__(self):
-        return '(' + str(self.__class__) + ')\n  ' + str(self.image) + '\n  ' + str(self.mask)+''
+    def extractByMask(self, mask=None):
 
-    def _assert(self):
-        assert isinstance(self.image, Image), 'Image must be an Image'
-        assert isinstance(self.mask, Mask), 'Mask must be a Mask'
-        # assert image.pixelGrid.equalTo(mask.pixelGrid)
-        # assert image.boundingBox.equalTo(mask.boundingBox)
-
-    def _readData(self):
-
-        # use rios for reading the labeled data
+        if mask is None: mask=NoMask()
+        assert isinstance(mask, Mask)
 
         infiles = rios.applier.FilenameAssociations()
         outfiles = rios.applier.FilenameAssociations()
         args = rios.applier.OtherInputs()
+        controls = ApplierControls()
 
-        infiles.x = self.image.filename
-        args.xMeta = self.image.meta
+        infiles.image = self.image.filename
+        if not isinstance(mask, NoMask): infiles.mask = mask.filename
 
-        if not isinstance(self.mask, NoMask):
-            infiles.y = self.mask.filename
+        args.image = self.image
+        args.mask = mask
+        args.imageData = list()
+        args.maskData = list()
+        args.pixelX = list()
+        args.pixelY = list()
+        rios.applier.apply(userFunction=PixelExtractor._extractByMask_ufunc, infiles=infiles, outfiles=outfiles, otherArgs=args, controls=controls)
 
-        args.yMeta = self.mask.meta
+        imageData = numpy.hstack(args.imageData).T
+        maskData = numpy.hstack(args.maskData)
+        pixelX = numpy.hstack(args.pixelX)
+        pixelY = numpy.hstack(args.pixelY)
 
-        args.x = list()
-        args.y = list()
+        locations = ImageLocations(pixelX=pixelX, pixelY=pixelY)
+        imageDataSample = DataSample(imageData, self.image.meta)
+        maskDataSample = DataSample(maskData, mask.meta)
+        featureSample = ImageSample(dataSample=imageDataSample, locations=locations, filename=self.image.filename)
+        labelsSample = ImageSample(dataSample=maskDataSample, locations=locations, filename=mask.filename)
+        return featureSample
 
-        def ufunc(info, inputs, outputs, args):
+        #return SupervisedSample(featureSample=featureSample, labelsSample=labelsSample)
 
-            # reshape to 2d
-            inputs.x = inputs.x.reshape((inputs.x.shape[0], -1))
-            if not isinstance(self.mask, NoMask):
-                inputs.y = inputs.y.reshape((1, -1))
-            else:
-                inputs.y = numpy.ones([1,inputs.x.shape[1]], dtype=numpy.uint8)
+    @staticmethod
+    def _extractByMask_ufunc(info, inputs, outputs, args):
 
-                # create mask
-            valid = inputs.y[0] != args.yMeta.getNoDataValue(default=0)
+        bands, lines, samples = inputs.image.shape
+        if isinstance(args.mask, NoMask):
+            inputs.mask = numpy.ones((1, lines, samples), dtype=numpy.uint8)
 
-            # exclude invalid samples if needed
-            if valid.all():
-                args.x.append(inputs.x)
-                args.y.append(inputs.y[0, :])
-            else:
-                args.x.append(inputs.x[:, valid])
-                args.y.append(inputs.y[0, valid])
+        # find valid pixel
+        noDataValue = args.mask.meta.getNoDataValue(default=0)
+        valid = inputs.mask != noDataValue
 
-        rios.applier.apply(ufunc, infiles, outfiles, args)
+        # extract data
+        args.imageData.append(inputs.image[:, valid[0]])
+        args.maskData.append(inputs.mask[valid])
 
-        return (numpy.hstack(args.x).T, numpy.hstack(args.y))
+        # calculate pixel location
+        yindex_all, xindex_all = numpy.indices((lines, samples))
+#        xindex_all += info.blockwidth * info.xblock
+#        yindex_all += info.blockheight * info.yblock
+        xindex_all += info.windowxsize * info.xblock
+        yindex_all += info.windowysize * info.yblock
+
+        args.pixelX.append(xindex_all[valid[0]])
+        args.pixelY.append(yindex_all[valid[0]])
+
+    def extractByPixelLocation(self, locations):
+        import gdal
+        assert isinstance(locations, ImageLocations)
+        ds = gdal.Open(self.image.filename)
+        # init numpy array with correct type
+        dtype = ds.ReadAsArray(xoff=0, yoff=0, xsize=1, ysize=1).dtype
+        samples = locations.pixelX.size
+        bands = self.image.meta.RasterCount
+        imageData = numpy.zeros((samples, bands), dtype=dtype)
+        maskData = numpy.ones((samples), dtype=numpy.uint8)
+        for i, (xoff, yoff) in enumerate(locations):
+            profile = ds.ReadAsArray(xoff=xoff, yoff=yoff, xsize=1, ysize=1).flatten()
+            imageData[i,:] = profile
+
+        mask = NoMask()
+        imageDataSample = DataSample(data=imageData, meta=self.image.meta)
+        maskDataSample = DataSample(data=maskData, meta=mask.meta)
+        featureSample = ImageSample(dataSample=imageDataSample, locations=locations, filename=self.image.filename)
+        labelsSample = ImageSample(dataSample=maskDataSample, locations=locations, filename=mask.filename)
+        return featureSample
+        #return SupervisedSample(featureSample=featureSample, labelsSample=labelsSample)
 
 
-class ClassificationSample(UnsupervisedSample):
+class ImageLocations(Type):
 
-    def _assert(self):
-        UnsupervisedSample._assert(self)
-        assert isinstance(self.mask, Classification), 'Mask is not a Classification!'
+    def __init__(self, pixelX, pixelY):
+        assert isinstance(pixelX, numpy.ndarray)
+        assert isinstance(pixelY, numpy.ndarray)
+        assert pixelX.ndim == 1
+        assert pixelY.ndim == 1
+        assert pixelX.size == pixelY.size
+
+        self.pixelX = pixelX
+        self.pixelY = pixelY
+
+    def __iter__(self):
+        for xi, yi in zip(self.pixelX, self.pixelY):
+            yield xi, yi
 
 
-class RegressionSample(UnsupervisedSample):
+class SupervisedSample(Type):
 
-    def _assert(self):
-        UnsupervisedSample._assert(self)
-        assert isinstance(self.mask, Regression), 'Mask is not a Regression!'
+    @staticmethod
+    def fromMask(image, labels, mask):
+        assert isinstance(image, Image)
+        assert isinstance(labels, Mask)
+        assert isinstance(mask, Mask)
+
+        featureSample = PixelExtractor(image).extractByMask(mask)
+        labelsSample = PixelExtractor(labels).extractByMask(mask)
+        return SupervisedSample(featureSample=featureSample, labelsSample=labelsSample)
+
+    @staticmethod
+    def fromLocations(image, labels, locations):
+        assert isinstance(image, Image)
+        assert isinstance(labels, Mask)
+        assert isinstance(locations, ImageLocations)
+
+        featureSample = PixelExtractor(image).extractByPixelLocation(locations)
+        labelsSample = PixelExtractor(labels).extractByPixelLocation(locations)
+        return SupervisedSample(featureSample=featureSample, labelsSample=labelsSample)
+
+
+    def __init__(self, featureSample, labelsSample):
+        assert isinstance(featureSample, ImageSample)
+        assert isinstance(labelsSample, ImageSample)
+        self.featureSample = featureSample
+        self.labelsSample = labelsSample
+
+    def isClassificationSample(self):
+        return self.labelsSample.dataSample.meta.isClassification()
+
+    def isRegressionSample(self):
+        return self.labelsSample.dataSample.meta.isRegression()
+
+    def isClassificationValidationSample(self):
+        return (self.featureSample.dataSample.meta.isClassification()
+                and self.labelsSample.dataSample.meta.isClassification())
+
+    def isRegressionValidationSample(self):
+        return (self.featureSample.dataSample.meta.isRegression()
+                and self.labelsSample.dataSample.meta.isRegression())
+
+    def isProbabilityValidationSample(self):
+        return (self.featureSample.dataSample.meta.isProbability()
+                and self.labelsSample.dataSample.meta.isClassification())
 
 
 class ClassificationPerformance(Type):
@@ -1004,12 +1081,12 @@ class ClassificationPerformance(Type):
     @staticmethod
     def fromSample(sample):
 
-        assert isinstance(sample, ClassificationSample), 'Classification sample is requiered!'
-        assert isinstance(sample.image, Classification), 'Prediction is not a classification!'
-        assert int(sample.image.meta.getMetadataItem('classes')) == int(sample.mask.meta.getMetadataItem('classes')), 'Number of classes in prediction and reference do not match!'
-        result = ClassificationPerformance(classes=int(sample.mask.meta.getMetadataItem('classes'))-1,
-                                           classNames=sample.mask.meta.getMetadataItem('class names')[1:])
-        result.update(yP=sample.imageData, yT=sample.labelData)
+        assert isinstance(sample, SupervisedSample)
+        assert sample.isClassificationSample()
+        assert int(sample.featureSample.dataSample.meta.getMetadataItem('classes')) == int(sample.labelsSample.dataSample.meta.getMetadataItem('classes'))
+        result = ClassificationPerformance(classes=int(sample.labelsSample.dataSample.meta.getMetadataItem('classes'))-1,
+                                           classNames=sample.labelsSample.dataSample.meta.getMetadataItem('class names')[1:])
+        result.update(yP=sample.featureSample.dataSample.data, yT=sample.labelsSample.dataSample.data)
         result.assessPerformance()
         result.sample = sample
         return result
@@ -1136,12 +1213,18 @@ class ClassificationPerformance(Type):
 
     def report(self):
 
-        report = Report('Classification Performance')
+        assert isinstance(self.sample, SupervisedSample)
+        if self.adjusted:
+            assert isinstance(self.sampleStratification, SupervisedSample)
 
+
+        report = Report('Classification Performance')
         report.append(ReportHeading('Input Files'))
-        report.append(ReportParagraph('Reference: ' + self.sample.mask.filename))
-        report.append(ReportParagraph('Prediction: ' + self.sample.image.filename))
-        report.append(ReportParagraph('Stratification: ' + self.sampleStratification.image.filename) if self.adjusted else '')
+        report.append(ReportParagraph('Reference: ' + self.sample.labelsSample.filename))
+        report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
+
+        if self.adjusted:
+            report.append(ReportParagraph('Stratification: ' + self.sampleStratification.featureSample.filename))
 
         if self.adjusted:
             report.append(ReportHeading('Stratification'))
@@ -1156,7 +1239,7 @@ class ClassificationPerformance(Type):
         rowSpans = [[1,2],[1,1,1]]
         colSpans = [[1,1,1,1,1]]
         rowHeaders = [['','Class Names'],['Class ID','Reference', 'Prediction']]
-        data = [numpy.hstack((0,self.classLabels)),self.sample.mask.meta.getMetadataItem('class names'),self.sample.image.meta.getMetadataItem('class names')]
+        data = [numpy.hstack((0,self.classLabels)),self.sample.labelsSample.dataSample.meta.getMetadataItem('class names'),self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')]
         report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
 
         # Confusion Matrix Table
@@ -1244,19 +1327,18 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
 
     @staticmethod
     def fromSample(samplePrediction, sampleStratification):
-        assert isinstance(samplePrediction, ClassificationSample), 'Classification sample is requiered!'
-        assert isinstance(sampleStratification, ClassificationSample), 'Classification sample is requiered!'
-        assert isinstance(samplePrediction.image, Classification), 'Prediction is not a classification!'
-        assert isinstance(sampleStratification.image, Classification), 'Stratification is not a classification!'
+        assert isinstance(samplePrediction, SupervisedSample)
+        assert isinstance(sampleStratification, SupervisedSample)
+        assert samplePrediction.isClassificationSample()
+        assert sampleStratification.isClassificationSample()
+        assert int(samplePrediction.featureSample.dataSample.meta.getMetadataItem('classes')) == int(samplePrediction.labelsSample.dataSample.meta.getMetadataItem('classes'))
 
-        assert int(samplePrediction.image.meta.getMetadataItem('classes')) == int(samplePrediction.mask.meta.getMetadataItem('classes')), 'Number of classes in prediction and reference do not match!'
-
-        classes=int(samplePrediction.mask.meta.getMetadataItem('classes')) - 1
-        classNames=samplePrediction.mask.meta.getMetadataItem('class names')[1:]
-        strataClasses = int(sampleStratification.image.meta.getMetadataItem('classes')) - 1
-        strataClassNames = sampleStratification.image.meta.getMetadataItem('class names')[1:]
-        strataSizes = sampleStratification.image.statistics().getStatistic('hist', bands=[0])[0]
-        strataSampleSizes = numpy.histogram(sampleStratification.imageData, bins=strataClasses, range=[1,strataClasses+1])[0]
+        classes=int(samplePrediction.labelsSample.dataSample.meta.getMetadataItem('classes')) - 1
+        classNames=samplePrediction.labelsSample.dataSample.meta.getMetadataItem('class names')[1:]
+        strataClasses = int(sampleStratification.featureSample.dataSample.meta.getMetadataItem('classes')) - 1
+        strataClassNames = sampleStratification.featureSample.dataSample.meta.getMetadataItem('class names')[1:]
+        strataSizes = Classification(sampleStratification.featureSample.filename).statistics().getStatistic('hist', bands=[0])[0]
+        strataSampleSizes = numpy.histogram(sampleStratification.featureSample.dataSample.data, bins=strataClasses, range=[1,strataClasses+1])[0]
 
         result = ClassificationPerformanceAdjusted(classes=classes,
                                                    classNames=classNames,
@@ -1268,7 +1350,7 @@ class ClassificationPerformanceAdjusted(ClassificationPerformance):
         result.sample = samplePrediction
         result.sampleStratification = sampleStratification
 
-        result.update(yP=samplePrediction.imageData.ravel(), yT=samplePrediction.labelData.ravel(), yS=sampleStratification.imageData.ravel())
+        result.update(yP=samplePrediction.featureSample.dataSample.data.ravel(), yT=samplePrediction.labelsSample.dataSample.data.ravel(), yS=sampleStratification.featureSample.dataSample.data.ravel())
         result.assessPerformance()
         return result
 
@@ -1307,15 +1389,15 @@ class RegressionPerformance(Type):
 
     def __init__(self, sample):
 
-        assert isinstance(sample, RegressionSample), 'Regression sample is requiered!'
-        assert isinstance(sample.image, Regression), 'Prediction is not a regression!'
+        assert isinstance(sample, SupervisedSample)
+        assert sample.isRegressionSample()
         self.sample = sample
         self._assessPerformance()
 
     def _assessPerformance(self):
 
-        self.prediction = self.sample.imageData.flatten()
-        self.reference = self.sample.labelData.flatten()
+        self.prediction = self.sample.featureSample.dataSample.data.flatten()
+        self.reference = self.sample.labelsSample.dataSample.data.flatten()
         self.residuals = self.prediction
         self.n = self.reference.size
         self.explained_variance_score = str(sklearn.metrics.explained_variance_score(self.reference, self.prediction))
@@ -1328,7 +1410,8 @@ class RegressionPerformance(Type):
         report = Report('Regression Performance')
 
         report.append(ReportHeading('Input Files'))
-        report.append(ReportMonospace('Reference:  ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
+        report.append(ReportParagraph('Reference: ' + self.sample.labelsSample.filename))
+        report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
         report.append(ReportParagraph('n = ' + str(self.n)))
@@ -1351,21 +1434,15 @@ class ClusteringPerformance(Type):
 
     def __init__(self, sample):
 
-        assert isinstance(sample, ClassificationSample), 'Classification sample is requiered!'
-        assert isinstance(sample.image, Classification), 'Prediction is not a classification!'
+        assert isinstance(sample, SupervisedSample)
+        assert sample.isClassificationSample()
         self.sample = sample
         self._assessPerformance()
 
-
-    def __str__(self):
-
-        return  self.report
-
-
     def _assessPerformance(self):
 
-        self.prediction = self.sample.imageData.flatten()
-        self.reference = self.sample.labelData.flatten()
+        self.prediction = self.sample.featureSample.dataSample.data.flatten()
+        self.reference = self.sample.labelsSample.dataSample.data.flatten()
         self.n = self.prediction.size
         self.adjusted_mutual_info_score = sklearn.metrics.cluster.adjusted_mutual_info_score(self.reference, self.prediction)
         self.adjusted_rand_score = sklearn.metrics.cluster.adjusted_rand_score(self.reference, self.prediction)
@@ -1376,7 +1453,8 @@ class ClusteringPerformance(Type):
         report = Report('Clustering Performance')
 
         report.append(ReportHeading('Input Files'))
-        report.append(ReportMonospace('Reference:  ' + self.sample.mask.filename + '\nPrediction: ' + self.sample.image.filename))
+        report.append(ReportParagraph('Reference: ' + self.sample.labelsSample.filename))
+        report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
         report.append(ReportParagraph('n = ' + str(self.n)))
@@ -1387,73 +1465,54 @@ class ClusteringPerformance(Type):
 
         return report
 
+class ProbabilityPerformance(Type):
 
-class PixelExtractor():
+    def __init__(self, sample):
 
-    def __init__(self, image, locationsType):
-        assert isinstance(image, Image)
-        self.locationsType = locationsType
+        assert isinstance(sample, SupervisedSample)
+        assert sample.isProbabilityValidationSample()
+        self.sample = sample
+        self._assessPerformance()
 
-    def extract(self, mask):
-        assert isinstance(mask, Mask)
-        return
+    def _assessPerformance(self):
 
-class _UnsupervisedSample(Type):
+        self.prediction = self.sample.featureSample.dataSample.data
+        self.reference = self.sample.labelsSample.dataSample.data.flatten()
+        self.n = self.reference.size
+        self.log_loss = sklearn.metrics.log_loss(y_true=self.reference, y_pred=self.prediction)
+        classes = int(self.sample.labelsSample.dataSample.meta.getMetadataItem('classes'))
+        self.roc_curves = dict()
+        self.roc_auc_scores = dict()
 
-    def __init__(self, image, mask):
-        self.image = image
-        self.mask = mask
-        self._assert()
-        self.imageData, self.labelData = self._readData()
+        for i in range(1, classes):
+            self.roc_curves[i] = sklearn.metrics.roc_curve(y_true=self.reference, y_score=self.prediction[:,i-1], pos_label=i, drop_intermediate=True)
+            self.roc_auc_scores[i] = sklearn.metrics.roc_auc_score(y_true=self.reference == i, y_score=self.prediction[:, i-1])
 
-    def __str__(self):
-        return '(' + str(self.__class__) + ')\n  ' + str(self.image) + '\n  ' + str(self.mask)+''
+    def report(self):
 
-    def _assert(self):
-        assert isinstance(self.image, Image), 'Image must be an Image'
-        assert isinstance(self.mask, Mask), 'Mask must be a Mask'
-        # assert image.pixelGrid.equalTo(mask.pixelGrid)
-        # assert image.boundingBox.equalTo(mask.boundingBox)
+        report = Report('Probability Performance')
 
-    def _readData(self):
+        report.append(ReportHeading('Input Files'))
+        report.append(ReportParagraph('Reference: ' + self.sample.labelsSample.filename))
+        report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
-        # use rios for reading the labeled data
+        report.append(ReportHeading('Performance Measures'))
+        report.append(ReportParagraph('n = ' + str(self.n)))
+        report.append(ReportParagraph('log_loss = ' + str(self.log_loss)))
 
-        infiles = rios.applier.FilenameAssociations()
-        outfiles = rios.applier.FilenameAssociations()
-        args = rios.applier.OtherInputs()
+        report.append(ReportParagraph('roc_auc_scores = ' + str(self.roc_auc_scores)))
+        report.append(ReportParagraph('roc_curves = ' + str(self.roc_curves)))
 
-        infiles.x = self.image.filename
-        args.xMeta = self.image.meta
+        report.append(ReportParagraph('ToDo: include Scikit-Learn Hyperlinks!', font_color='red'))
 
-        if not isinstance(self.mask, NoMask):
-            infiles.y = self.mask.filename
+        return report
 
-        args.yMeta = self.mask.meta
+class ImageTools():
 
-        args.x = list()
-        args.y = list()
+    @staticmethod
+    def buildVRTImageStack(images, outfile=Environment.tempfile('imagestack', '.vrt')):
 
-        def ufunc(info, inputs, outputs, args):
+        for image in images:
+            assert(image, isinstance(Image))
+            hub.gdal.util.stack_images(outfile, infiles, options='', verbose=True)
 
-            # reshape to 2d
-            inputs.x = inputs.x.reshape((inputs.x.shape[0], -1))
-            if not isinstance(self.mask, NoMask):
-                inputs.y = inputs.y.reshape((1, -1))
-            else:
-                inputs.y = numpy.ones([1,inputs.x.shape[1]], dtype=numpy.uint8)
-
-                # create mask
-            valid = inputs.y[0] != args.yMeta.getNoDataValue(default=0)
-
-            # exclude invalid samples if needed
-            if valid.all():
-                args.x.append(inputs.x)
-                args.y.append(inputs.y[0, :])
-            else:
-                args.x.append(inputs.x[:, valid])
-                args.y.append(inputs.y[0, valid])
-
-        rios.applier.apply(ufunc, infiles, outfiles, args)
-
-        return (numpy.hstack(args.x).T, numpy.hstack(args.y))
