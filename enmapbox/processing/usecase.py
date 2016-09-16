@@ -85,8 +85,8 @@ def clusterer():
     train = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
     test = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
 
-    clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
-    #clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=False, with_std=False)]
+    #clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
+    clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5)]
     #clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=True, with_std=True)]
 
     for clusterer in clusterers:
@@ -304,7 +304,7 @@ if __name__ == '__main__':
     #uncertaintyClassifier()
     #uncertaintyRegressor()
     #classificationAccAss()
-    classificationAccAssAdjusted()
+    #classificationAccAssAdjusted()
     #regressionAccAss()
     clusteringAccAss()
     #probabilityAccAss()
