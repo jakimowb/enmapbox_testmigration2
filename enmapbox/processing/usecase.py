@@ -2,8 +2,9 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-from enmapbox.processing.types import Image, Mask, Classification
-import enmapbox.processing.estimators
+from enmapbox.processing.types import Image, Mask, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
+from enmapbox.processing.estimators import Classifiers, Regressors, Transformers, Clusterers
+from hub.timing import tic, toc
 
 from enmapbox.processing.environment import PrintProgress as Progress
 
@@ -11,17 +12,18 @@ if os.environ['USERNAME'] == 'janzandr':
     inroot = r'c:\work\data'
     outroot = r'c:\work\outputs'
 elif os.environ['USERNAME'] == 'enmap-box':
-    inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
-    #inroot = r'C:\Users\enmap-box\Desktop'
+    #inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
+    inroot = r'C:\Users\enmap-box\Desktop'
     outroot = r'C:\Users\enmap-box\Desktop\outputs'
 
 def sample():
 
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    testingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
-    sample = enmapbox.processing.types.ClassificationSample(image, testingLabels)
-    print(sample.labelData.shape)
-    print(sample.imageData.shape)
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    test = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
+    sample = SupervisedSample.fromMask(image, test)
+    print(sample.isClassificationSample())
+    print(sample.labelSample.filename)
+    print(sample.featureSample.filename)
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -36,17 +38,17 @@ def importENVISpeclib():
 def classification():
 
 
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    mask =  enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
-    labels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    mask =  Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
+    labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
-    classifiers = [enmapbox.processing.estimators.Classifiers.RandomForestClassifier(n_estimators=100)]
-    #classifiers = [enmapbox.processing.estimators.Classifiers.LinearSVCTuned()]
-    #classifiers = [enmapbox.processing.estimators.Classifiers.SVCTuned(C=[1, 10, 100], gamma=[0.001, 100,1000])]
-    # classifiers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Classifiers)
+    classifiers = [Classifiers.RandomForestClassifier(n_estimators=100)]
+    classifiers = [Classifiers.DummyClassifier()]
+    #classifiers = [Classifiers.SVCTuned(C=[1, 10, 100], gamma=[0.001, 100,1000])]
+    # classifiers = all(Classifiers)
 
     for classifier in classifiers:
-        assert isinstance(classifier, enmapbox.processing.types.Classifier)
+        assert isinstance(classifier, Classifier)
         Progress.setInfo(classifier.name())
         classifier = classifier.fit(image, labels, progress=Progress)
         classifier.report().saveHTML().open()
@@ -60,18 +62,18 @@ def classification():
 
 def regression():
 
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-B_Image'))
-    mask = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-B_Mask'))
-    trainingLabels = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Training-Sample'))
-    testingLabels = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-B_Image'))
+    mask = Image(os.path.join(inroot, 'Hymap_Berlin-B_Mask'))
+    trainingLabels = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Training-Sample'))
+    testingLabels = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
 
-    #regressors = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Regressors)
-    #regressors = [enmapbox.processing.estimators.Regressors.LinearSVRTuned()]
-    #regressors = [enmapbox.processing.estimators.Regressors.SVRTuned()]
-    regressors = [enmapbox.processing.estimators.Regressors.RandomForestRegressor(oob_score=True)]
+    #regressors = all(Regressors)
+    regressors = [Regressors.DummyRegressor()]
+    #regressors = [Regressors.SVRTuned()]
+    #regressors = [Regressors.RandomForestRegressor(oob_score=True)]
 
     for regressor in regressors:
-        assert isinstance(regressor, enmapbox.processing.types.Regressor)
+        assert isinstance(regressor, Regressor)
         Progress.setInfo(regressor.name())
         regressor = regressor.fit(image, trainingLabels)
         regressor.report().saveHTML().open()
@@ -80,54 +82,54 @@ def regression():
 
 def clusterer():
 
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    mask = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
-    train = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    test = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    mask = Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
+    train = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    test = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
 
-    #clusterers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Clusterers)
-    clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5)]
-    #clusterers = [enmapbox.processing.estimators.Clusterers.KMeans(n_clusters=5, with_mean=True, with_std=True)]
+    #clusterers = all(Clusterers)
+    clusterers = [Clusterers.KMeans(n_clusters=5)]
+    #clusterers = [Clusterers.KMeans(n_clusters=5, with_mean=True, with_std=True)]
 
     for clusterer in clusterers:
-        assert isinstance(clusterer, enmapbox.processing.types.Clusterer)
+        assert isinstance(clusterer, Clusterer)
         Progress.setInfo(clusterer.name())
-        clusterer.fit(image, train).report().saveHTML().open()
+        clusterer.fit(image, train).info()
         clusterer.predict(image, mask, filename=os.path.join(outroot, clusterer.name()))
 
 
 def transformer():
 
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    mask = enmapbox.processing.types.Mask(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
-    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    mask = Mask(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
+    trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
-    #transformers = enmapbox.processing.estimators.all(enmapbox.processing.estimators.Transformers)
-    #transformers = [enmapbox.processing.estimators.Transformers.KernelPCA()]
-    transformers = [enmapbox.processing.estimators.Transformers.PCA()]
+    #transformers = all(Transformers)
+    #transformers = [Transformers.KernelPCA()]
+    transformers = [Transformers.PCA()]
 
     for transformer in transformers:
 
-        assert isinstance(transformer, enmapbox.processing.types.Transformer)
+        assert isinstance(transformer, Transformer)
         Progress.setInfo(transformer.name())
-        transformer.fit(image, trainingLabels).report().saveHTML().open()
+        transformer.fit(image, trainingLabels).info()
         transformedImage = transformer.transform(image, mask, filename=os.path.join(outroot, transformer.name()))
         inverseTransformedImage = transformer.transformInverse(transformedImage, mask, filename=os.path.join(outroot, transformer.name()+'Inverse'))
 
 def showEstimator():
 
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    labels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    pca = enmapbox.processing.estimators.Transformers.PCA()
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    pca = Transformers.PCA()
     pca.info()
 
 def uncertaintyClassifier():
 
-    image = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    mask =  enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    trainingLabels = enmapbox.processing.types.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
+    image = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    mask =  Image(r'C:\Work\data\Hymap_Berlin-A_Mask')
+    trainingLabels = Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
 
-    svc = enmapbox.processing.estimators.Classifiers.SVCTuned()
+    svc = Classifiers.SVCTuned()
 
     # false negatives
     uncertaintyClassifier = svc.UncertaintyClassifierFN()
@@ -144,11 +146,11 @@ def uncertaintyClassifier():
 
 def uncertaintyRegressor():
 
-    image = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
-    mask = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-B_Mask')
-    trainingLabels = enmapbox.processing.types.Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Training-Sample')
+    image = Image(r'C:\Work\data\Hymap_Berlin-B_Image')
+    mask = Image(r'C:\Work\data\Hymap_Berlin-B_Mask')
+    trainingLabels = Regression(r'C:\Work\data\Hymap_Berlin-B_Regression-Training-Sample')
 
-    svr = enmapbox.processing.estimators.Regressors.SVRTuned()
+    svr = Regressors.SVRTuned()
     uncertaintyRegressor = svr.UncertaintyRegressor()
     uncertaintyRegressor.fit(image, trainingLabels).report().saveHTML().open()
     uncertaintyRegressor.predict(image, mask, filename=r'c:\work\_svrUncertainty')
@@ -158,7 +160,7 @@ def classificationAccAss():
     testingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
     prediction = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
 
-    accAss = prediction.assessClassificationPerformance(classification=testingLabels)
+    accAss = prediction.assessClassificationPerformance(classification=testingLabels, useRandomAccessReader=False)
     accAss.info()
 
 
@@ -167,14 +169,14 @@ def classificationAccAssAdjusted():
     test = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
     prediction = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Estimation'))
     stratification = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-GroundTruth'))
-    accAss = prediction.assessClassificationPerformance(classification=test, stratification=stratification)
+    accAss = prediction.assessClassificationPerformance(classification=test, stratification=stratification, useRandomAccessReader=False)
     accAss.report().saveHTML().open()
 
 
 def regressionAccAss():
 
-    testingLabels = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
-    prediction = enmapbox.processing.types.Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Estimation'))
+    testingLabels = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
+    prediction = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Estimation'))
     accAss = prediction.assessRegressionPerformance(testingLabels)
     accAss.report().saveHTML().open()
 
@@ -191,11 +193,11 @@ def clusteringAccAss():
 def probabilityAccAss():
 
 
-    image = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    trainingLabels = enmapbox.processing.types.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
-    testingLabels = enmapbox.processing.types.Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
+    image = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    trainingLabels = Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
+    testingLabels = Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
 
-    classifier = enmapbox.processing.estimators.Classifiers.RandomForestClassifier().fit(image, trainingLabels)
+    classifier = Classifiers.RandomForestClassifier().fit(image, trainingLabels)
     probability = classifier.predictProbability(image, testingLabels)
     accAss = probability.assessProbabilityPerformance(testingLabels)
     accAss.report().saveHTML().open()
@@ -213,47 +215,61 @@ def statisticsForClassification():
 
 def saveImageAs():
 
-    image = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    image.report().saveHTML().open()
-    image.saveAs(r'c:\work\saved').report().saveHTML().open()
+    image = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    image.saveAs(r'c:\work\saved').info()
 
 
 def stackImages():
 
-    imageA = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    imageB = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
+    imageA = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    imageB = Image(r'C:\Work\data\Hymap_Berlin-B_Image')
     stack = imageA.stack([imageB])
-    stack.report().saveHTML().open()
+    stack.info()
 #    image.saveAs(r'c:\work\saved').report().saveHTML().open()
 
 def projectImageToPixelGrid():
 
-    imageA = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    imageB = enmapbox.processing.types.Image(r'C:\Work\data\Hymap_Berlin-B_Image')
-    imageSpot = enmapbox.processing.types.Image(r'C:\Work\data\Spot_Berlin')
+    imageA = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
+    imageB = Image(r'C:\Work\data\Hymap_Berlin-B_Image')
+    imageSpot = Image(r'C:\Work\data\Spot_Berlin')
     pixelGrid = imageSpot.PixelGrid
     newImage = pixelGrid.project(imageA)#, imageB.BoundingBox)
     newImage.report().saveHTML().open()
 
 def maximumProbability():
 
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    mask = enmapbox.processing.types.Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    classifier = enmapbox.processing.estimators.Classifiers.RandomForestClassifier()
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    mask = Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
+    classifier = Classifiers.RandomForestClassifier()
     classifier = classifier.fit(image, labels=trainingLabels)
     propability = classifier.predictProbability(image, mask=mask)
     classification = propability.argmax()
 
+def pixel_extractor():
+
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    train = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+
+    labelSample1 = PixelExtractor(train).extractByMask(train)
+    labelSample2 = PixelExtractor(train).extractByPixelLocation(train.getLocations())
+    for y1,y2 in zip(labelSample1.dataSample.data, labelSample2.dataSample.data):
+        print(y1,y2)
+
+    return
+    y1 = PixelExtractor(image).extractByMask(train).maskData
+
+    y2 = PixelExtractor(train).extractByPixelLocation(imageSample.locations).imageData.flatten()
+    import numpy
+    print(numpy.all(y1==y2))
 
 def ar_debug():
 
     from enmapbox.processing.types import unpickle
-    image = enmapbox.processing.types.Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    trainingLabels = enmapbox.processing.types.Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
-    mask = enmapbox.processing.types.Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
-    noMask = enmapbox.processing.types.NoMask()
-    trf = enmapbox.processing.estimators.Transformers.PCA()
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    mask = Mask(r'C:\Work\data\Hymap_Berlin-A_Mask')
+    trf = Transformers.PCA()
     trf = trf.fit(image, labels=None)
     transformation = trf.transform(image)
 
@@ -288,9 +304,29 @@ def ar_debug2():
         rb.FlushCache()
     ds = None
 
+def ar_debug3():
+
+    import gdal
+
+    # get geo infos from source file
+    filename = r'C:\Work\data\gms\processed_mgrs_tiles\Landsat-8\OLI_TIRS\43\43SBD\LC81510322013152LGN00\OLI_TIRS__LC81510322013152LGN00__43SBD_mask_clouds_L2C.bsq'
+    ds = gdal.Open(filename)
+    projectionRef = ds.GetProjectionRef()
+    geoTransform = ds.GetGeoTransform()
+    ds = None
+
+    # create new image
+    filename = r'C:\Work\data\gms\processed_mgrs_tiles\Landsat-8\OLI_TIRS\43\43SBD\LC81510322013152LGN00\test.img'
+    samples, lines, bands, type = 100, 100, 5, gdal.GDT_Int16
+    driver = gdal.GetDriverByName('ENVI')
+    ds = driver.Create(filename, samples, lines, bands, type)
+    ds.SetProjection(projectionRef)
+    ds.SetGeoTransform(geoTransform)
+    ds = None
 
 if __name__ == '__main__':
 
+    tic()
     #importENVISpeclib()
     #image()
     #sample()
@@ -300,19 +336,20 @@ if __name__ == '__main__':
     #clusterer()
     #transformer()
     #showEstimator()
-    #performance()
     #uncertaintyClassifier()
     #uncertaintyRegressor()
     #classificationAccAss()
     #classificationAccAssAdjusted()
     #regressionAccAss()
-    clusteringAccAss()
+    #clusteringAccAss()
     #probabilityAccAss()
     #statisticsForImage()
     #statisticsForClassification()
     #importENVISpeclib()
-    #saveImageAs()
+    saveImageAs()
     #stackImages()
     #projectImageToPixelGrid()
     #maximumProbability()
-    #ar_debug2()
+    #ar_debug3()
+    #pixel_extractor()
+    toc()
