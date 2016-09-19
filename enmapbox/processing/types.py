@@ -17,6 +17,8 @@ import sklearn.pipeline
 from enmapbox.processing.report import *
 from enmapbox.processing.applier import ApplierControls, ApplierHelper
 import numpy
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 # set default progress object
 progress = SilentProgress
@@ -1492,7 +1494,7 @@ class RegressionPerformance(Type):
 
     def report(self):
 
-        from scipy.stats import gaussian_kde
+        #from scipy.stats import gaussian_kde
 
         report = Report('Regression Performance')
 
@@ -1501,50 +1503,74 @@ class RegressionPerformance(Type):
         report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
-        report.append(ReportParagraph('n = ' + str(self.n)))
-        report.append(ReportParagraph('explained_variance_score = ' + str(self.explained_variance_score)))
-        report.append(ReportParagraph('mean_absolute_error = ' + str(self.mean_absolute_error)))
-        report.append(ReportParagraph('median_absolute_error = ' + str(self.median_absolute_error)))
-        report.append(ReportParagraph('mean_squared_error = ' + str(self.mean_squared_error)))
+        # todo align Table cells to left
+        colHeaders = [['Metric','Abbr.','Value']]
+        data = numpy.transpose([['Number of sample pairs','Squared pearson correlation','Mean absolute error','Median absolute error','Median squared error']
+                               ,['n','r^2','MAE','MAD???','MSE']
+                               ,[self.n,numpy.round(numpy.array(self.explained_variance_score).astype(float),2),numpy.round(numpy.array(self.mean_absolute_error).astype(float),2),numpy.round(numpy.array(self.median_absolute_error).astype(float),2),numpy.round(numpy.array(self.mean_squared_error).astype(float),2)]])
+        report.append(ReportTable(data, 'Performance Metrics', colHeaders=colHeaders))
 
-        report.append(ReportHeading('Residuals'))
-        report.append(ReportParagraph('ToDo: Scatter Plot Reference vs. Predicted', font_color='red'))
-        report.append(ReportParagraph('ToDo: Plot Residuals Distribution', font_color='red'))
-
+        report.append(ReportHeading('Results'))
         # Estimate the point density
-       # xy = numpy.vstack([self.reference,self.prediction])
+        # xy = numpy.vstack([self.reference,self.prediction])
         #z = gaussian_kde(xy)(xy)
         # Sort the points so that densest are plotted last
         #idx = z.argsort()
         #x, y, z = self.reference[idx], self.prediction[idx], z[idx]
-        # todo look for x, y labels, change bin size of histograms, change size of histograms, plot residuals, how to plot the 1:1 line?        # Estimation vs. Reference Plot
-        fig, ax = plt.subplots(facecolor='white',figsize=(15, 7))
-        plt.subplot(223)
-        sct = plt.scatter(self.reference,self.prediction, s=100, edgecolor='')
-        ax.set_xlim([numpy.min(self.reference),numpy.max(self.reference)])
-        ax.set_ylim([numpy.min(self.prediction),numpy.max(self.prediction)])
-        ax.set_xlabel('Reference')
-        ax.set_ylabel('Estimation')
+
+        fig, ax = plt.subplots(facecolor='white',figsize=(7, 7))
+        # prepare 2x2 grid for plotting scatterplot on lower left, and adjacent histograms
+        gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3])
+
+        ax0 = plt.subplot(gs[0,0])
+        ax0.hist(self.reference,bins=256, edgecolor='None',)
+        plt.xlim([numpy.min(self.reference),numpy.max(self.reference)])
+        plt.tick_params(which = 'both', direction = 'out', length=10, pad=10)
+        # hide ticks and ticklabels
+        ax0.set_xticklabels([])
+        ax0.xaxis.set_ticks_position('bottom')
+        ax0.yaxis.set_ticks_position('left')
+        # plot only every second tick, starting with the second
+        for label in ax0.get_yticklabels()[1::2]: label.set_visible(False)
+
+        ax1 = plt.subplot(gs[1,1])
+        ax1.hist(self.prediction, orientation='horizontal',bins=256, edgecolor='None')
+        plt.tick_params(which = 'both', direction = 'out', length=10, pad=10)
+        plt.ylim([numpy.min(self.prediction),numpy.max(self.prediction)])
+        # hide ticks and ticklabels
+        ax1.set_yticklabels([])
+        ax1.yaxis.set_ticks_position('left')
+        ax1.xaxis.set_ticks_position('bottom')
+        # plot only every second tick, starting with the second
+        for label in ax1.get_xticklabels()[1::2]: label.set_visible(False)
+
+        ax2 = plt.subplot(gs[1,0])
+        ax2.scatter(self.reference,self.prediction, s=10, edgecolor='', color='navy')
+        plt.xlim([numpy.min(self.reference),numpy.max(self.reference)])
+        plt.ylim([numpy.min(self.prediction),numpy.max(self.prediction)])
+        plt.tick_params(which = 'both', direction = 'out')
+        plt.xlabel('Reference')
+        plt.ylabel('Estimation')
+
         # 1:1 line
-        plt.plot([0,100],[0,100], 'k-')
+        plt.plot([numpy.min(self.reference),numpy.max(self.reference)],[numpy.min(self.reference),numpy.max(self.reference)], 'k-')
+
         # Colorbar
         #cbaxes = fig.add_axes([0.05, 0.1, 0.05, 0.35])
         #cBar = plt.colorbar(sct, ticklocation='left', extend='neither', drawedges=False,cax = cbaxes)
         #cBar.ax.set_ylabel('label')
 
-        plt.subplot(221)
-        plt.hist(self.reference)
-        plt.subplot(224)
-        plt.hist(self.prediction, orientation='horizontal')
-
-        #plt.hist(self.prediction)
-        plt.tight_layout()
-        report.append(ReportPlot(fig, ''))
+        fig.tight_layout()
+        report.append(ReportPlot(fig, 'Estimation vs Reference Scatterplot and Histograms'))
         plt.close()
 
-        report.append(ReportParagraph('predicted = ' + str(self.prediction)))
-        report.append(ReportParagraph('reference = ' + str(self.reference)))
-        report.append(ReportParagraph('residuals = ' + str(self.residuals)))
+        fig, ax = plt.subplots(facecolor='white',figsize=(7, 5))
+        ax.hist(self.residuals, bins=256, edgecolor='None')
+        ax.set_xlabel('Residuals')
+        ax.set_ylabel('Counts')
+        fig.tight_layout()
+        report.append(ReportPlot(fig, 'Residuals Histogram'))
+        plt.close()
 
         return report
 

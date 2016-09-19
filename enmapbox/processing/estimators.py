@@ -434,7 +434,7 @@ class Transformers(Estimators):
 
     class PCA(Transformer):
 
-        def __init__(self, copy=True, n_components=0.999, whiten=False):
+        def __init__(self, copy=True, n_components=.999, whiten=False):
 
             pca = sklearn.decomposition.PCA(copy=copy, n_components=n_components, whiten=whiten)
             pipe = sklearn.pipeline.make_pipeline(pca)
@@ -724,21 +724,64 @@ class MH:
     @staticmethod
     def KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self):
 
-        xrange = [0, numpy.where(cumulatedExplainedVariance >= .999)[0][0]]
-        fig, ax1 = plt.subplots(facecolor='white')
-        ax2 = ax1.twinx()
-        ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k.', markersize=15)
-        ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k--')
-        ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r.', markersize=15)
-        ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r--')
-        ax1.set_xlabel('Number of Principal Components')
-        ax1.set_xlim(xrange)
-        ax1.xaxis.set_ticks(range(1, max(xrange)+1))
-        ax1.set_ylim([0, 100])
-        ax1.set_ylabel('Explained Variance [%]', color='black')
-        ax2.set_ylabel('Cumulated Explained Variance [%]', color='r')
-        ax1.tick_params(axis='y', colors='black')
-        ax2.tick_params(axis='y', colors='red')
+        if n_components <= 15:
+
+            xrange = [0, n_components]
+            fig, ax1 = plt.subplots(facecolor='white')
+            ax2 = ax1.twinx()
+            ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k.', markersize=15)
+            ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k--')
+            ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r.', markersize=15)
+            ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r--')
+            ax1.set_xlabel('Number of Principal Components')
+            ax1.set_xlim(xrange)
+            ax1.xaxis.set_ticks(range(1, max(xrange)+1))
+            ax1.set_ylim([0, 100])
+            ax1.set_ylabel('Explained Variance [%]', color='black')
+            ax2.set_ylabel('Cumulated Explained Variance [%]', color='r')
+            ax1.tick_params(axis='y', colors='black')
+            ax2.tick_params(axis='y', colors='red')
+        else:
+
+            fig, (ax1, ax2) = plt.subplots(1,2, facecolor='white',sharey=True)
+            fig.text(0.5, 0.02, 'Number of Principal Components', ha='center')
+
+            component999 = numpy.where(cumulatedExplainedVariance >= .999)[0][0]
+            xrange = [0, component999+1.5]
+
+            ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k.', markersize=15)
+            ax1.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k--')
+            ax1.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r.', markersize=10)
+            ax1.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r--')
+            ax2.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k.', markersize=15)
+            ax2.plot(numpy.arange(n_components)+1,explainedVariance*100, 'k--')
+            ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r.', markersize=10)
+            ax2.plot(numpy.arange(n_components)+1,cumulatedExplainedVariance*100, 'r--')
+            ax1.set_xlim(xrange)
+            ax1.xaxis.set_ticks(range(1, int(max(xrange))+1))
+
+            ax1.set_ylabel('Explained Variance [%]', color='black')
+            ax1.tick_params(axis='y', colors='black')
+
+            ax2.yaxis.set_label_position("right")
+            ax2.set_xlim(n_components-component999-1.5, n_components)
+            ax2.xaxis.set_ticks(range(n_components-component999-1, n_components+1))
+            ax2.set_ylabel('Cumulated Explained Variance [%]', color='r',)
+            ax2.tick_params(axis='y', colors='red')
+
+            ax1.spines['right'].set_visible(False)
+            ax2.spines['left'].set_visible(False)
+            ax1.yaxis.set_ticks_position('left')
+            ax2.yaxis.set_ticks_position('right')
+
+            d = .015
+            kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+            ax1.plot((1 - d , 1 + d), (1-2*d, 1+2*d), **kwargs)  # left plot, upper diagonal
+            ax1.plot((1 - d, 1 + d), (-2*d, +2*d), **kwargs)  # left plot, lower diagonal
+            kwargs.update(transform=ax2.transAxes)
+            ax2.plot((- d , + d), (-2*d, +2*d), **kwargs)  # right plot, upper diagonal
+            ax2.plot((- d,  + d), (1-2*d, 1+2*d), **kwargs)  # right plot, lower diagonal
+
         return fig
 
 
