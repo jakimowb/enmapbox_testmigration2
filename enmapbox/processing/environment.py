@@ -43,6 +43,7 @@ class Environment():
 
     rasterFilenames = [r'< select a raster file >']
     modelFilenames = [r'< select a model file>']
+    modelBasenames = [r'< select a model file>']
     tempdir = _tempdir
 
     @staticmethod
@@ -54,6 +55,7 @@ class Environment():
     def openModel(filename):
         if not filename in Environment.modelFilenames:
             Environment.modelFilenames.append(filename)
+            Environment.modelBasenames.append(os.path.basename(filename))
 
     @staticmethod
     def setTempdir(dirname):

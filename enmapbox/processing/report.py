@@ -89,9 +89,16 @@ class Report():
 
     def open(self):
 
-        cmd = self.filename
-        subprocess.call(cmd, shell=True)
+        import webbrowser
+        url = self.filename
+        webbrowser.open_new(url)
         return self
+
+        '''cmd = self.filename
+        #subprocess.call(cmd, shell=True)
+        sp = subprocess.Popen(cmd, shell=True)
+        sp.wait()
+        return self'''
 
 
 class ReportHeading():

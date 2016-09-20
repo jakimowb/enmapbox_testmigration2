@@ -6,7 +6,7 @@ from hub.gdal.util import stack_bands
 from hub.gdal.api import GDALMeta
 import enmapbox.processing
 from enmapbox.processing.estimators import Classifiers
-from enmapbox.processing.env import PrintProgress
+from enmapbox.processing.environment import PrintProgress
 import gdal
 import os
 

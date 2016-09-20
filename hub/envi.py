@@ -51,6 +51,14 @@ def vrt2mos(vrtfile, hdr={}):
 
     print('ENVI Virtual Mosaic created: '+mosfile)
 
+def findHeader(filename):
+    hdrfilenames = [filename + '.hdr',
+                    os.path.splitext(filename)[0] + '.hdr']
+    for hdrfilename in hdrfilenames:
+        if os.path.exists(hdrfilename):
+            return hdrfilename
+    raise Exception('Can not find ENVI header file for: '+ str(filename))
+
 def readHeader(hdrfile):
     with open(hdrfile, 'r') as file: lines = file.readlines()
 
@@ -63,7 +71,7 @@ def readHeader(hdrfile):
 
         (key, val) = lines[i].split("=", 1)
 
-        key = key.strip()
+        key = key.strip().lower()
         val = val.strip()
         if val[0] == '{':
             str = val
@@ -76,9 +84,8 @@ def readHeader(hdrfile):
         i += 1
     return result
 
-def writeHeader(hdrfile, hdr_):
+def writeHeader(hdrfile, hdr):
 
-    hdr = copy.deepcopy(hdr_)
     sortedKeys = ['description','samples','lines','bands','header offset','file type','data type','interleave','data ignore value',
                   'sensor type','byte order','map info','projection info','coordinate system string','acquisition time',
                   'wavelength units','wavelength','band names']
