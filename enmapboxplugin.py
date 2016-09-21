@@ -1,55 +1,62 @@
+from __future__ import absolute_import
 import inspect
 import os
+import six
+import traceback
 import sys
+import importlib
+import re
+import site
 
-
-
-#from qgis.gui import *
-#from qgis.core import *
 import qgis.gui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-
-cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 jp = os.path.join
-root = jp(cmd_folder, 'enmapbox')
+DIR_REPO = os.path.normpath(os.path.split(inspect.getfile(inspect.currentframe()))[0])
+DEPENDENCIES = ['numpy','foobar']
+DIR_LIBS = jp(DIR_REPO, 'site-packages')
 
-if True:
-    to_add = []
-    to_add.append(cmd_folder)
-    dir_libs = jp(cmd_folder, 'site-packages')
-    for p in os.listdir(dir_libs):
-        path = jp(dir_libs,p)
-        if os.path.isdir(path):
-            to_add.append(path)
-            pass
-    #to_add.append(jp(root, *['apps']))
-    #to_add.append(jp(root, *['gui']))
-    #to_add.append(jp(root, *['hub']))
-
-    for folder in to_add:
-        assert os.path.isdir(folder)
-        if folder not in sys.path:
-            sys.path.append(folder)
+s = 2
 
 
+class DependencyCheck:
+
+    @staticmethod
+    def test(name, package=None, verbose=True, stop_on_error=False):
+        try:
+            importlib.import_module(name, package)
+            if verbose:
+                print('Import {} successful'.format(name))
+        except Exception, e:
+            error_text = 'Unable to import {}'.format(name)
+            if stop_on_error:
+                raise Exception(error_text)
+            else:
+                six.print_(error_text, file=sys.stderr)
+                return False
+        return True
+
+def add_enmapbox_sitepackages(dir_sitepackages):
+    DIR_SITEPACKAGES = jp(DIR_REPO,'site-packages')
+    if DIR_SITEPACKAGES not in sys.path:
+        sys.path.append(DIR_SITEPACKAGES)
+
+    for root, dirs, files in os.walk(DIR_SITEPACKAGES):
+        for dirname in dirs:
+            path = jp(root, dirname)
+            #add normal folders that are not packages / dist-info or eggs
+            if not re.search(path, '\.(dist-info|egg)$') and \
+               not os.path.exists(jp(path,'_init_.py')):
+                sys.path.append(path)
+                s = ""
 
 
-from enmapbox.enmapbox import EnMAPBox
+add_enmapbox_sitepackages()
 
-#for p in sorted(sys.path):
-#    print(p)
-
-#import enmapbox.apps
-#import enmapbox.apps.core
-#import enmapbox.processing
-
+DependencyCheck.test(DEPENDENCIES)
 
 class EnMAPBoxPlugin:
-
-
-
     _enmapBoxInstance = None
 
     def enmapBoxInstance(self):
@@ -64,7 +71,8 @@ class EnMAPBoxPlugin:
         #open QGIS python console. this is required to allow for print() statements in the source code.
         if isinstance(self.iface, qgis.gui.QgisInterface):
             import console
-            console.show_console()
+            c = console.show_console()
+            c.setVisible(True)
 
     def has_processing_framework(self):
         try:
@@ -79,9 +87,25 @@ class EnMAPBoxPlugin:
         self.toolbarActions = []
 
         #1. EnMAP-Box main window
-        for p in sys.path:
-            print(p)
 
+
+        site_packages = jp(DIR_REPO, 'site-packages')
+        to_add = [site_packages]
+
+        #for name in os.listdir(site_packages):
+        #    path = jp(site_packages, name)
+        #    if os.path.isdir(path):
+        #        print(path)
+        #        to_add.append(path)
+        if DIR_REPO not in sys.path:
+            sys.path.append(DIR_REPO)
+        from enmapbox.utils import add_to_sys_path
+        add_to_sys_path(to_add)
+
+        print('INIT ENMAPBOX-GUI')
+        for p in sys.path: print(p)
+
+        from enmapbox.main import EnMAPBox
         self.enmapbox = EnMAPBox(self.iface)
         EnMAPBoxPlugin._enmapBoxInstance = self.enmapbox
 
@@ -91,13 +115,14 @@ class EnMAPBoxPlugin:
 
         #2. tbd...
         for action in self.toolbarActions:
+            print('ADD::{}'.format(action))
             self.iface.addToolBarIcon(action)
 
 
         # init processing provider
 
         self.processingProviders = []
-        if self.has_processing_framework():
+        if True and self.has_processing_framework():
             # add example app
             try:
                 from processing.core.Processing import Processing
@@ -115,13 +140,12 @@ class EnMAPBoxPlugin:
                     Processing.addProvider(provider)
 
             except Exception, e:
-                import six
-                import traceback
                 tb = traceback.format_exc()
                 six.print_('ERROR occurred while loading EnMAPBoxProvider for processing frame work:', file=sys.stderr)
                 six.print_(str(e))
                 six.print_(tb)
-            print('Processing Framework done')
+            print('Processing Framework initialization done')
+        print('EnMAP-Box initialization done')
 
     def unload(self):
         for action in self.toolbarActions:
@@ -154,12 +178,12 @@ if __name__ == '__main__':
         qgsApp.setPrefixPath(PATH_QGS, True)
         qgsApp.initQgis()
 
-        import enmapbox.enmapbox
+        import enmapbox.main
 
         w = QMainWindow()
         w.setWindowTitle('QgsMapCanvas Example')
         w.show()
-        EB = enmapbox.enmapbox.EnMAPBox(w)
+        EB = enmapbox.main.EnMAPBox(w)
         EB.run()
         qgsApp.exec_()
         qgsApp.exitQgis()
