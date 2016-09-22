@@ -7,7 +7,7 @@ from lamos.operators.ml import SampleReadApplier, ClassifierPredictApplier, expo
 import hub.file
 from hub.timing import tic, toc
 from hub.datetime import Date
-from enmapbox.processing.estimators import Classifiers
+from emb.processing.estimators import Classifiers
 
 
 def test():

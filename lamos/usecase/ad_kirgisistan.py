@@ -6,7 +6,7 @@ from hub.datetime import Date
 from lamos.operators.stack import StackApplier
 from lamos.operators.ml import SampleReadApplier, ClassifierPredictApplier, exportSampleAsJSON
 import hub.file
-from enmapbox.processing.estimators import Classifiers
+from emb.processing.estimators import Classifiers
 
 def test(i):
 
