@@ -23,8 +23,8 @@ def test(i):
     #folder5XXX = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\statisticsMGRS_XXX'
 
     folder6 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\referenceMGRS'
-    folder7 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\stackMGRS'
-    folder8 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\rfcMGRS'
+    folder7 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\stackMGRS_2'
+    folder8 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\rfcMGRS_2b'
 
     filename1 = r'\\141.20.140.91\NAS_Projects\Baltrak\Andrey\SHP\2007.shp'
     filename2 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\2007_2.pkl'
@@ -36,14 +36,15 @@ def test(i):
     WRS2Footprint.createUtmLookup(infolder=folder1)
 
     wrs2Footprints = ['160024','161023','161024']
-    mgrsFootprints = ['41ULS','41ULT','41ULU','41UMS','41UMT','41UMU','41UMV','41UNS','41UNT','41UNU','41UNV','41UPS','41UPT','41UPU','41UPV']
-    #mgrsFootprints = ['41ULS', '41UPV']
+    mgrsFootprints = ['41ULS', '41ULT', '41ULU', '41UMS', '41UMT', '41UMU', '41UMV', '41UNS', '41UNT', '41UNU', '41UNV',
+                      '41UPS', '41UPT', '41UPU', '41UPV']
+
 
     start = Date(1986, 1, 1)
     end = Date(2014, 12, 31)
 
     # mgrsFootprints = ['41UNS']
-    #mgrsFootprints = mgrsFootprints[i:i+1]
+    mgrsFootprints = mgrsFootprints[i:i+1]
 
     composer = LandsatXComposer(inextension='.tif')
     #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=50)
@@ -80,25 +81,24 @@ def test(i):
 
         stacker = StackApplier(outfolder=folder7, outproduct='stack', outimage=str(year)+'_stack', footprints=mgrsFootprints)
         for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'msavi2']:
-            stacker.appendFeatures(infolder=folder5, inproduct='statistics', inimage=key+'_'+str(year)+'-01-01_to_'+str(year)+'-12-31_1y', inextension='.img', inbands=None)
+            stacker.appendFeatures(infolder=folder5, inproduct='statistics', inimage=key+'_'+str(year)+'-01-01_to_'+str(year)+'-12-31_'+str(bufferYears*2+1)+'y', inextension='.tif', inbands=None)
         #stacker.apply()
 
     # draw sample for 2007
     sampleReader = SampleReadApplier(featureFolder=folder7, featureProduct='stack', featureImage='2007_stack', featureExtension='.vrt',
                                      labelFolder=folder6, labelProduct='reference', labelImage='2007_class', labelExtension='.img',
                                      footprints=mgrsFootprints)
-    if 1:
+    if 0:
         sample = sampleReader.apply()
-        hub.file.savePickle(var=sample, file=filename2)
+        hub.file.savePickle(var=sample, filename=filename2)
     else:
-        sample = hub.file.restorePickle(file=filename2)
+        sample = hub.file.restorePickle(filename=filename2)
 
-    return
     rfc = Classifiers.RandomForestClassifier(oob_score=True, n_estimators=100, class_weight='balanced', n_jobs=20)
     rfc._fit(sample)
-    exportSampleAsJSON(sample=sample, rfc=rfc, outfile=filename3)
+#    exportSampleAsJSON(sample=sample, rfc=rfc, outfile=filename3)
 
-    # build feature stacks for all years
+    # classification for all years
     for year in range(start.year, end.year+1):
 
         predictor = ClassifierPredictApplier(featureFolder=folder7, featureProduct='stack', featureImage=str(year)+'_stack', featureExtension='.vrt',
@@ -110,7 +110,7 @@ def test(i):
 if __name__ == '__main__':
 
     tic()
-    test(0)
+    test(15)
     toc()
 
 

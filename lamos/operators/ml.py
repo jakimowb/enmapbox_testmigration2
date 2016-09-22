@@ -3,7 +3,7 @@ from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSF
 import numpy
 from hub.timing import tic, toc
 import hub.file
-import enmapbox.processing
+from enmapbox.processing.types import Image, Classification, ClassificationSample, Classifier
 from enmapbox.processing.estimators import Classifiers
 from enmapbox.processing.environment import PrintProgress
 
@@ -31,9 +31,9 @@ class SampleReadApplier(Applier):
         if len(self.inputs[0].getFilenameAssociations(footprint).__dict__.values()) == 1:
             labelfile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
             imagefile = self.inputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
-            image = enmapbox.processing.Image(imagefile)
-            labels = enmapbox.processing.Classification(labelfile)
-            sample = enmapbox.processing.ClassificationSample(image, labels)
+            image = Image(imagefile)
+            labels = Classification(labelfile)
+            sample = ClassificationSample(image, labels)
         else:
             sample = None
         return sample
@@ -57,9 +57,9 @@ class SampleReadApplier(Applier):
         return sample
 
 def exportSampleAsJSON(sample, rfc, outfile):
-    assert isinstance(sample, enmapbox.processing.ClassificationSample)
+    assert isinstance(sample, ClassificationSample)
     result = dict()
-    result['x'] = [map(int, v) for v in sample.imageData]
+    result['x'] = [map(int, v) for v in sample.imageData.T]
     result['y'] = map(int, sample.labelData)
     result['samples'] = len(sample.labelData)
     result['features'] = len(sample.imageData[0])
@@ -69,7 +69,7 @@ def exportSampleAsJSON(sample, rfc, outfile):
     result['class ids'] = map(int, rfc.sklEstimator.classes_)
     result['class lookup'] = map(int, sample.mask.meta.getMetadataItem('class_lookup'))
     result['rfc feature_importances'] = map(float, rfc.sklEstimator._final_estimator.feature_importances_)
-    result['rfc oob probabilities'] = [map(float, v) for v in rfc.sklEstimator._final_estimator.oob_decision_function_]
+    result['rfc oob probabilities'] = [map(float, v) for v in rfc.sklEstimator._final_estimator.oob_decision_function_.T]
 
     hub.file.saveJSON(var=result, file=outfile)
 
@@ -85,12 +85,13 @@ class ClassifierPredictApplier(Applier):
                                       productName=featureProduct,
                                       imageNames=[featureImage],
                                       extension=featureExtension))
-        self.appendOutput(ApplierOutput(folder=outFolder,
-                                        productName=outProduct,
-                                        imageNames=[outClassification, outProbability],
-                                        extension=outExtension))
+        for imageName in [outClassification, outProbability]:
+            self.appendOutput(ApplierOutput(folder=outFolder,
+                                            productName=outProduct,
+                                            imageNames=[imageName],
+                                            extension=outExtension))
 
-        assert isinstance(classifier, enmapbox.processing.Classifier)
+        assert isinstance(classifier, Classifier)
         self.classifier = classifier
 
 
@@ -98,11 +99,13 @@ class ClassifierPredictApplier(Applier):
 
         print(footprint.name)
         imagefile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-        outfileProbability = self.outputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-        image = enmapbox.processing.Image(imagefile)
+        outfileClassification = self.outputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
+        outfileProbability= self.outputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
+
+        image = Image(imagefile)
         hub.file.mkfiledir(outfileProbability)
         probability = self.classifier.predictProbability(image=image, mask=None, filename=outfileProbability, progress=PrintProgress)
-        classification = probability.xyz
+        classification = probability.argmax(filename=outfileClassification, progress=PrintProgress)
 
 
 

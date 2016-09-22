@@ -204,3 +204,4 @@ if __name__ == '__main__':
 #    rasterfile = r'H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\_lucas_r60.img'
 #    ogrfile    = r'H:\EuropeanDataCube\sentinel2\user-consultation\data\lucas\eu27_lucas_2012.shp'
 #    gdal_rasterize(rasterfile, ogrfile, '-a LC3 -l eu27_lucas_2012')
+
