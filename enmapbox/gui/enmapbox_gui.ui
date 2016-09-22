@@ -186,11 +186,6 @@
    </property>
   </action>
   <action name="actionAddTextView">
-   <property name="icon">
-    <iconset>
-     <normalon>:/enmapbox/icons/enmapbox.png</normalon>
-    </iconset>
-   </property>
    <property name="text">
     <string>addTextView</string>
    </property>
@@ -203,7 +198,7 @@
   <action name="actionZoomIn">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomIn.svg</normaloff>:/enmapbox/icons/mActionZoomIn.svg</iconset>
+     <normaloff>:/enmapbox/svg/icons/mActionZoomIn.svg</normaloff>:/enmapbox/svg/icons/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
     <string>zoomIn</string>
@@ -212,7 +207,7 @@
   <action name="actionZoomOut">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomOut.svg</normaloff>:/enmapbox/icons/mActionZoomOut.svg</iconset>
+     <normaloff>:/enmapbox/svg/icons/mActionZoomOut.svg</normaloff>:/enmapbox/svg/icons/mActionZoomOut.svg</iconset>
    </property>
    <property name="text">
     <string>zoomOut</string>
@@ -221,7 +216,7 @@
   <action name="actionPan">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionPan.svg</normaloff>:/enmapbox/icons/mActionPan.svg</iconset>
+     <normaloff>:/enmapbox/svg/icons/mActionPan.svg</normaloff>:/enmapbox/svg/icons/mActionPan.svg</iconset>
    </property>
    <property name="text">
     <string>pan</string>
@@ -230,7 +225,7 @@
   <action name="actionSelectPixel">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionIdentify.svg</normaloff>:/enmapbox/icons/mActionIdentify.svg</iconset>
+     <normaloff>:/enmapbox/svg/icons/mActionIdentify.svg</normaloff>:/enmapbox/svg/icons/mActionIdentify.svg</iconset>
    </property>
    <property name="text">
     <string>selectPixel</string>
@@ -252,7 +247,7 @@
   <action name="actionAddDataSource">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/add_datasource.svg</normaloff>:/enmapbox/icons/add_datasource.svg</iconset>
+     <normaloff>:/enmapbox/svg/icons/add_datasource.svg</normaloff>:/enmapbox/svg/icons/add_datasource.svg</iconset>
    </property>
    <property name="text">
     <string>Add data source</string>

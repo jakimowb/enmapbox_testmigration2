@@ -6,11 +6,41 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    version="1.1"
    id="svg2"
    viewBox="0 0 85.03937 85.03937"
    height="24mm"
-   width="24mm">
+   width="24mm"
+   viewport-fill="green"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="add_datasource.svg"
+   inkscape:export-filename="C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\gui\icons\add_datasource_reference.png"
+   inkscape:export-xdpi="300"
+   inkscape:export-ydpi="300">
+  <sodipodi:namedview
+     pagecolor="#123456"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1280"
+     inkscape:window-height="962"
+     id="namedview592"
+     showgrid="false"
+     showborder="true"
+     inkscape:zoom="2.7751852"
+     inkscape:cx="-20.719338"
+     inkscape:cy="28.106233"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     inkscape:showpageshadow="false" />
   <defs
      id="defs4">
     <linearGradient
@@ -4178,6 +4208,13 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
+  <rect
+     style="fill:#44ffff;stroke:none;stroke-width:1;stroke-miterlimit:2;stroke-dasharray:none;fill-opacity:0"
+     id="rect4755"
+     width="85.399704"
+     height="85.039368"
+     x="0"
+     y="0.3603363" />
   <g
      id="layer1"
      transform="translate(0,-967.32283)">

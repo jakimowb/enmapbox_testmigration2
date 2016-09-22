@@ -1,16 +1,11 @@
 <RCC>
-  <qresource prefix="enmapbox">
-    <file>icons/filelist_classification.svg</file>
-    <file>icons/filelist_image.svg</file>
-    <file>icons/filelist_mask.svg</file>
-    <file>icons/filelist_regression.svg</file>
-    <file>icons/link_basic.svg</file>
-    <file>icons/enmap_logo_1.svg</file>
+  <qresource prefix="enmapbox/svg">
     <file>icons/add_datasource.svg</file>
-    <file>icons/enmap_logo_1.svg</file>
+    <file>icons/enmapbox.svg</file>
     <file>icons/filelist_classification.svg</file>
     <file>icons/filelist_image.svg</file>
     <file>icons/filelist_mask.svg</file>
+    <file>icons/filelist_regression - Kopie.svg</file>
     <file>icons/filelist_regression.svg</file>
     <file>icons/link_basic.svg</file>
     <file>icons/link_center.svg</file>
@@ -27,10 +22,31 @@
     <file>icons/mIconPointLayer.svg</file>
     <file>icons/mIconPolygonLayer.svg</file>
     <file>icons/mIconRasterLayer.svg</file>
-    <file>icons/link_center.svg</file>
-    <file>icons/link_mapextent.svg</file>
-    <file>icons/mActionZoomIn.svg</file>
-    <file>icons/mActionZoomOut.svg</file>
   </qresource>
-  <qresource prefix="newPrefix"/>
+  <qresource prefix="enmapbox/png">
+    <file>icons/add_datasource.png</file>
+    <file>icons/add_datasource_reference.png</file>
+    <file>icons/enmapbox.png</file>
+    <file>icons/filelist_classification.png</file>
+    <file>icons/filelist_image.png</file>
+    <file>icons/filelist_image_reference.png</file>
+    <file>icons/filelist_mask.png</file>
+    <file>icons/filelist_regression - Kopie.png</file>
+    <file>icons/filelist_regression.png</file>
+    <file>icons/link_basic.png</file>
+    <file>icons/link_center.png</file>
+    <file>icons/link_mapextent.png</file>
+    <file>icons/link_mapscale.png</file>
+    <file>icons/link_mapscale_center.png</file>
+    <file>icons/mActionIdentify.png</file>
+    <file>icons/mActionPan.png</file>
+    <file>icons/mActionTouch.png</file>
+    <file>icons/mActionZoomIn.png</file>
+    <file>icons/mActionZoomOut.png</file>
+    <file>icons/mIconLineLayer.png</file>
+    <file>icons/mIconModelFile.png</file>
+    <file>icons/mIconPointLayer.png</file>
+    <file>icons/mIconPolygonLayer.png</file>
+    <file>icons/mIconRasterLayer.png</file>
+  </qresource>
 </RCC>
