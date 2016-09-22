@@ -433,9 +433,9 @@ class CompositingApplier(Applier):
             outmeta.setNoDataValue(-9999)
             outmeta.setMetadataItem('acquisition time', dateParameters.getTargetDate())
             outmeta.setMetadataItem('wavelength units', 'nanometers')
-            outmeta.setMetadataItem('wavelength', [480, 560, 655, 865, 1585, 2200])#+5*[99999], mapToBands=True) # set flag bands wavelength to 99,999
+            outmeta.setMetadataItem('wavelength', [480, 560, 655, 865, 1585, 2200])#+5*[99999]) # set flag bands wavelength to 99,999
             bbl = 6*[1] #+ 5*[0] # mark flag bands as bad bands to exclude them from ENVI Z Plot
-            outmeta.setMetadataItem('bbl', bbl, mapToBands=True)
+            outmeta.setMetadataItem('bbl', bbl)
             outmeta.setBandNames(['blue', 'green', 'red', 'nir', 'swir1', 'swir2'])#+['Flag:doy','Flag:sensor','Flag:path','Flag:row','Flag:score'])
 
 

@@ -151,17 +151,37 @@ class MGRSFootprint(Footprint):
 
     def getBoundingBox(self, buffer=0, snap=None):
 
+        # apply buffer
+        ul_x, ul_y = (self.ul[0] - buffer, self.ul[1] + buffer)
+        lr_x, lr_y = (self.lr[0] + buffer, self.lr[1] - buffer)
+
+        # get snapping offset
         if snap is None:
-            ul, lr = self.ul, self.lr
+            ul_xoff = 0
+            ul_yoff = 0
+            lr_xoff = 0
+            lr_yoff = 0
         elif snap == 'landsat':
             pixelSize = 30
-            pixelOrigin = [15, 15]
-            xoff = (self.ul[0] - pixelOrigin[0]) % pixelSize
-            yoff = (self.ul[1] - pixelOrigin[1]) % pixelSize
-            ul = (self.ul[0] - xoff - buffer, self.ul[1] - yoff + buffer)
-            lr = (self.lr[0] - xoff + buffer, self.lr[1] - yoff - buffer)
+            pixelOrigin_x, pixelOrigin_y = 15, 15
+            ul_xoff = (ul_x - pixelOrigin_x) % pixelSize
+            ul_yoff = (ul_y - pixelOrigin_y) % pixelSize
+            lr_xoff = (lr_x - pixelOrigin_x) % pixelSize
+            lr_yoff = (lr_y - pixelOrigin_y) % pixelSize
         else:
-            raise Exception('unknown option')
+            raise Exception('snap: unknown option')
+
+        # round snapping offset
+        if ul_xoff > pixelSize / 2.: ul_xoff -= pixelSize
+        if ul_yoff > pixelSize / 2.: ul_yoff -= pixelSize
+        if lr_xoff > pixelSize / 2.: lr_xoff -= pixelSize
+        if lr_yoff > pixelSize / 2.: lr_yoff -= pixelSize
+
+        ul = (ul_x - ul_xoff, ul_y - ul_yoff)
+        lr = (lr_x - lr_xoff, lr_y - lr_yoff)
+
+        #ul = (self.ul[0] - ul_xoff - buffer, self.ul[1] - ul_yoff + buffer)
+        #lr = (self.lr[0] - lr_xoff + buffer, self.lr[1] - lr_yoff - buffer)
 
         return ul, lr
 
@@ -776,9 +796,13 @@ class Applier:
 
 def test_footprint():
 
-#    footprint = MGRSFootprint.fromShp('32UPB')
-    footprint = WRS2Footprint('193024')
-    footprint.info()
+    for key in ['33UUU', '33UVU', '33UUT', '33UVT']:
+        mgrs = MGRSFootprint.fromShp(key)
+        print(key)
+        print(mgrs.ul)
+        print(mgrs.lr)
+        bb = mgrs.getBoundingBox(buffer=300, snap='landsat')
+        print(bb)
 
 
 def test_product():
@@ -815,8 +839,8 @@ if __name__ == '__main__':
 
 
     tic()
-    #test_footprint()
+    test_footprint()
     #test_product()
     #test_archive()
-    test_save_archive()
+    #test_save_archive()
     toc()

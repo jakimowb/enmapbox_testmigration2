@@ -1,6 +1,14 @@
 import numpy, os, hub.file, subprocess, gdal, xml.etree.ElementTree, copy
 #from gdalconst import *
 
+def gdalinfo(infile, options='', verbose=True):
+
+    cmd = 'gdalinfo '+options+' '+infile
+#    subprocess.call(cmd, shell=True)
+    output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+    return output
+
+
 def gdal_translate(outfile, infile, options, verbose=True):
 
     hub.file.mkdir(os.path.dirname(outfile))
@@ -199,7 +207,8 @@ if __name__ == '__main__':
     infile = r'H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\MSIL1C_20150806T102902_viewstack_mosxx_ldcm.vrt'
     outfile = r'H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\cloudMask\stack_10m_ldcm.img'
 
-    gdal_translate(outfile, infile, '-of ENVI')
+    infile = r'C:\Work\data\Hymap_Berlin-A_Image'
+    gdalinfo(infile)
 
 #    rasterfile = r'H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\_lucas_r60.img'
 #    ogrfile    = r'H:\EuropeanDataCube\sentinel2\user-consultation\data\lucas\eu27_lucas_2012.shp'
