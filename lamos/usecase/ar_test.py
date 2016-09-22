@@ -17,6 +17,8 @@ def test():
     folder1 = r'C:\Work\data\gms\landsat'
     folder2 = r'C:\Work\data\gms\landsatX'
     folder3 = r'C:\Work\data\gms\landsatXMGRS'
+    folder3a = r'C:\Work\data\gms\landsatXMGRS_ENVI'
+
     folder4 = r'C:\Work\data\gms\landsatTimeseriesMGRS'
     folder4a = r'C:\Work\data\gms\landsatTimeseriesMGRS_ENVI'
     folder4b = r'C:\Work\data\gms\landsatTimeseriesMGRS_GTiff'
@@ -40,8 +42,8 @@ def test():
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=10)
 
-    #MGRSArchive(folder3).saveAsGTiff(folder3b, processes=10)
-
+    MGRSArchive(folder3).saveAsENVI(outfolder=folder3a, processes=1)
+    return
     tsBuilder = TimeseriesBuilder(start=None, end=None)
     tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=10)
 

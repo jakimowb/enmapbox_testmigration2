@@ -7,12 +7,13 @@ from hub.gdal.api import GDALMeta
 
 class LucasImportApplier:
 
-    def __init__(self, inshapefile, outfolder, footprints, buffer):
+    def __init__(self, inshapefile, outfolder, footprints, buffer, snap='landsat'):
 
         self.inshapefile = inshapefile
         self.outfolder = outfolder
         self.footprints = footprints
         self.buffer = buffer
+        self.snap = snap
 
 
     def apply(self):
@@ -20,7 +21,9 @@ class LucasImportApplier:
         class_names =  ['unclassified', 'artificial land', 'cropland',  'forest broadleaved', 'forest coniferous', 'forest mixed', 'shrubland', 'grasland',    'bare land',   'water',   'wetland',   'snow ice']
         class_lookup = [0, 0, 0,        255, 0, 0,         255, 255, 0, 0, 230, 0,            0, 100, 150,         0, 150, 50,     255, 150, 0, 210, 210, 100, 150, 150, 150, 0, 0, 255, 170, 0, 170, 255, 255, 255]
         classes = len(class_names)
-
+        print('Import Lucas Data')
+        print('buffer = ', self.buffer)
+        print('snap = ', self.snap)
         for mgrsFootprint in [MGRSFootprint.fromShp(name) for name in self.footprints]:
             print(mgrsFootprint.name)
             outfile = os.path.join(self.outfolder, mgrsFootprint.subfolders(), 'lucas', 'lucas.shp')
@@ -29,7 +32,7 @@ class LucasImportApplier:
                 continue
 
             # clip shp
-            ul, lr = mgrsFootprint.getBoundingBox()
+            ul, lr = mgrsFootprint.getBoundingBox(buffer=self.buffer, snap=self.snap)
             clipdst = '-clipdst ' + str(ul[0]) + ' ' + str(ul[1]) + ' ' + str(lr[0]) + ' ' + str(lr[1]) + ' '
             t_srs = '-t_srs EPSG:326' + mgrsFootprint.utm + ' '
             options = clipdst + t_srs
@@ -51,7 +54,6 @@ class LucasImportApplier:
             meta.setMetadataItem('classes', classes)
             meta.setMetadataItem('class_names', class_names)
             meta.setMetadataItem('class lookup', class_lookup)
-            meta.setNoDataValue(0)
             meta.writeMeta(outfile2)
 
 class AndreyDaraImportApplier:
@@ -114,6 +116,17 @@ def test():
     importer = LucasImportApplier(inshapefile=inshapefile, outfolder=outfolder, footprints=mgrsFootprints, buffer=300)
     importer.apply()
 
+def testGMSBeta():
+
+    MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
+
+    inshapefile = r'C:\Work\data\gms\lucas\eu27_lucas_2012_subset1.shp'
+    outfolder = r'C:\Work\data\gms\lucasMGRS'
+    mgrsFootprints = ['33UUU', '33UVU', '33UUT', '33UVT']
+
+    importer = LucasImportApplier(inshapefile=inshapefile, outfolder=outfolder, footprints=mgrsFootprints, buffer=300)
+    importer.apply()
+
 
 def testAD():
 
@@ -130,5 +143,5 @@ def testAD():
 if __name__ == '__main__':
 
     tic()
-    testAD()
+    testGMSBeta()
     toc()

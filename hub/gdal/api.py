@@ -54,11 +54,11 @@ class GDALMetaDomain():
     def formatKey(self, key):
         return key.lower().replace(' ', '_')
 
-    def setMetadataDict(self, meta, update=True):
+    def setMetadataDict(self, metaDict, update=True):
 
         if update is False:
             self.meta = dict()
-        for key, value in meta.items():
+        for key, value in metaDict.items():
             self.setMetadataItem(key, value)
 
     def setMetadataDictAsString(self, meta, update=True):
@@ -186,7 +186,7 @@ class GDALMeta():
             ds.FlushCache()
             ds = None
 
-    def getMetadataDomain(self, domainName):
+    def getMetadataDomain(self, domainName='ENVI'):
 
         if domainName in self.domain:
             domain = self.domain[domainName]
@@ -226,6 +226,7 @@ class GDALMeta():
 
         domain = self.getMetadataDomain(domainName='ENVI')
         domain.setMetadataItem('data ignore value', value)
+        return self
 
     def getNoDataValue(self, default=None):
 
