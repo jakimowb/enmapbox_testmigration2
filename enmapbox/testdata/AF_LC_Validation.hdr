@@ -1,0 +1,20 @@
+ENVI
+samples = 433
+lines = 267
+bands = 1
+data type = 1
+interleave = bip
+file type = ENVI Classification
+byte order = 0
+
+class lookup = { 0, 0, 0, 148, 105, 66, 24, 12, 198, 41, 113, 41, 247, 134, 8 }
+
+class names = { Unclassified, soils & manmade, water,
+forest & natural vegetation, agriculture }
+
+
+classes = 5
+map info = { UTM, 1.000, 1.000, 665645.367, 5304502.492, 3.0000000000e+001,
+3.0000000000e+001, 32, North, WGS-84, units=Meters }
+
+
