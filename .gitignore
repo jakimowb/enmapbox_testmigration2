@@ -1,18 +1,9 @@
 # Untracked directories
 .idea/
 
-# Untracked files
-*.bsq
-*.hdr
-*.tif
-*.tiff
-*.jpg
-*.jpeg
-*.png
-
 # Untrack compiled files
 *.pyc 
 *.pyd
-*.so
 *.pyc
-/documentation/build
+/documentation/bu
+*.soild
