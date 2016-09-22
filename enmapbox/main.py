@@ -1,31 +1,26 @@
-
+from __future__ import absolute_import
 import six, sys, os, gc, re, collections
 #from qgis.gui import *
 #from qgis.core import *
 import qgis.core
 import qgis.gui
-from PyQt4 import *
-from PyQt4.QtGui import *
+#from PyQt4.QtGui import *
 from osgeo import gdal, ogr
-
-from datasources import *
 
 VERSION = '2016-0.beta'
 
 
-def add_to_sys_path(path):
-    assert os.path.isdir(path)
-    if path not in sys.path:
-        sys.path.append(path)
-        pass
+
 
 jp = os.path.join
 
+from enmapbox.utils import *
 DIR = os.path.dirname(__file__)
-import gui
+DIR_REPO = os.path.dirname(DIR)
 DIR_GUI = jp(DIR,'gui')
-add_to_sys_path(DIR_GUI)
-#add_to_sys_path(jp(DIR, 'libs'))
+DIR_LIBS = jp(DIR_REPO, 'site-packages')
+add_to_sys_path([DIR_REPO, DIR_LIBS])
+
 
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
@@ -39,51 +34,316 @@ else:
 #todo: reduce imports to minimum
 #from PyQt4.Qt import *
 import PyQt4
-try:
-    import pyqtgraph
-    import pyqtgraph.dockarea.DockArea
-    import pyqtgraph.dockarea.Dock
-    from pyqtgraph.widgets.VerticalLabel import VerticalLabel
-except:
-    import libs.pyqtgraph as pyqtgraph
 
-    import libs.pyqtgraph.dockarea.DockArea
-    import libs.pyqtgraph.dockarea.Dock
-    from libs.pyqtgraph.widgets.VerticalLabel import VerticalLabel
+import pyqtgraph
+import pyqtgraph.dockarea.DockArea
+import pyqtgraph.dockarea.Dock
+from pyqtgraph.widgets.VerticalLabel import VerticalLabel
 
-
-
-
-from PyQt4.QtCore import *
 from PyQt4 import QtGui, QtCore, uic
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+from enmapbox.utils import *
+from enmapbox.datasources import *
 
-ENMAPBOX_GUI_UI, _ = uic.loadUiType(jp(DIR_GUI, 'enmapbox_gui.ui'),
+add_and_remove = DIR_GUI not in sys.path
+if add_and_remove:
+    sys.path.append(DIR_GUI)
+
+ENMAPBOX_GUI_UI, qt_base_class = uic.loadUiType(os.path.normpath(jp(DIR_GUI, 'enmapbox_gui.ui')),
                                     from_imports=False, resource_suffix=rc_suffix)
+if add_and_remove:
+    sys.path.remove(DIR_GUI)
 
 
-class EnMAPBoxIcons:
+class DataSourceManagerTreeModel(QAbstractItemModel):
+
     """
-    Stores icons resource paths
+    See http://doc.qt.io/qt-5/qtwidgets-itemviews-simpletreemodel-example.html
     """
-    Logo = ':/enmapbox/icons/enmapbox.png'
-    Map_Link = ':/enmapbox/icons/link_basic.svg'
-    Map_Link_Center = ':/enmapbox/icons/link_center.svg'
-    Map_Link_Extent = ':/enmapbox/icons/link_mapextent.svg'
-    Map_Link_Scale = ':/enmapbox/icons/link_mapscale.svg'
-    Map_Link_Scale_Center = ':/enmapbox/icons/link_mapscale_center.svg'
-    Map_Zoom_In = ':/enmapbox/icons/mActionZoomOut.svg'
-    Map_Zoom_Out = ':/enmapbox/icons/mActionZoomIn.svg'
-    Map_Pan = ':/enmapbox/icons/mActionPan.svg'
-    Map_Touch = ':/enmapbox/icons/mActionTouch.svg'
-    File_RasterMask = ':/enmapbox/icons/filelist_mask.svg'
-    File_RasterRegression = ':/enmapbox/icons/filelist_regression.svg'
-    File_RasterClassification = ':/enmapbox/icons/filelist_classification.svg'
-    File_Raster = ':/enmapbox/icons/filelist_image.svg'
-    File_Vector_Point = ':/enmapbox/icons/mIconPointLayer.svg'
-    File_Vector_Line = ':/enmapbox/icons/mIconLineLayer.svg'
-    File_Vector_Polygon = ':/enmapbox/icons/mIconPolygonLayer.svg'
+    columnames = ['Name','Description']
+    columnames = ['Name']
+
+    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile]
+    SourceTypeNames = ['Raster', 'Vector', 'File']
 
 
+    def getSourceTypeName(self, dataSource):
+        assert type(dataSource) in DataSourceManagerTreeModel.SourceTypes
+        return DataSourceManagerTreeModel.SourceTypeNames[DataSourceManagerTreeModel.SourceTypes.index(type(dataSource))]
+
+    def __init__(self, dataSourceManager):
+        assert isinstance(dataSourceManager, DataSourceManager)
+        QAbstractItemModel.__init__(self)
+        self.DSM = dataSourceManager
+        self.DSM.sigDataSourceAdded.connect(self.addDataSourceItems)
+        self.DSM.sigDataSourceRemoved.connect(self.removeDataSourceItems)
+        self.rootItem = TreeItem(None, None)
+
+    def addDataSourceItems(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        dsTypeName = self.getSourceTypeName(dataSource)
+        if dsTypeName not in [c.name for c in self.rootItem.childs]:
+            src_grp = TreeItem(self.rootItem,dsTypeName,
+                               icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon)
+                               )
+            self.rootItem.appendChild(src_grp)
+
+
+
+        src_grp = [c for c in self.rootItem.childs if c.name == dsTypeName][0]
+        src_grp.appendChild(dataSource.getTreeItem(src_grp))
+
+
+        #print(src_grp)
+    def removeDataSourceItems(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        dsTypeName = self.getSourceTypeName(dataSource)
+        src_grp = [c for c in self.rootItem.childs if c.name == dsTypeName]
+        if len(src_grp) == 1:
+            src_grp = src_grp[0]
+            assert isinstance(src_grp, TreeItem)
+
+            for row in range(src_grp.childCount()):
+                index = self.index(row, 1, None)
+                child = src_grp.childs[row]
+                if child.data == dataSource:
+                    self.beginRemoveRows(index, 1, 1)
+                    src_grp.childs.remove(c)
+                    del c
+                    self.endRemoveRows()
+
+            if src_grp.childCount() == 0:
+                #self.rootItem.childs.remove(src_grp)
+                s = ""
+
+
+
+    def supportedDragActions(self):
+        return Qt.CopyAction | Qt.MoveAction
+
+    def supportedDropActions(self):
+        return Qt.CopyAction | Qt.MoveAction
+
+
+
+    def dropMimeData(self, mimeData, Qt_DropAction, row, column, parent):
+
+        s = ""
+
+    def mimeData(self, list_of_QModelIndex):
+        s = ""
+        mimeData = QMimeData()
+        #todo:
+        return mimeData
+    #read only access functions
+    """
+    Used by other components to obtain information about each item provided by the model.
+    In many models, the combination of flags should include Qt::ItemIsEnabled and Qt::ItemIsSelectable.
+    """
+    def flags(self, index):
+        default = super(DataSourceManagerTreeModel, self).flags(index)
+        if index.isValid():
+            return Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | default
+        else:
+            return default
+
+
+
+    """
+    Used to supply item data to views and delegates. Generally, models only need to supply data for
+    Qt::DisplayRole and any application-specific user roles, but it is also good practice to provide
+    data for Qt::ToolTipRole, Qt::AccessibleTextRole, and Qt::AccessibleDescriptionRole.
+    See the Qt::ItemDataRole enum documentation for information about the types associated with each role.
+    """
+    def data(self, index, role=None):
+
+        if not index.isValid():
+            return None;
+
+        item = index.internalPointer()
+        columnname = self.columnames[index.column()].lower()
+
+        if role == Qt.DisplayRole:
+            #return index.internalPointer().info(index.column())
+            for attr in item.__dict__.keys():
+                if attr.lower() == columnname:
+                    value = item.__dict__[attr]
+                    if value is not None:
+                        return '{}'.format(value)
+                    else:
+                        return None
+            return None
+        if role == Qt.ToolTipRole:
+            tt = item.tooltip
+            if tt is None:
+                tt = item.description
+            return tt
+        if role == Qt.DecorationRole and index.column() == 0:
+            if isinstance(item.icon, QtGui.QIcon):
+                return item.icon
+        if role == Qt.UserRole:
+            return item
+        return None
+
+    """
+    Provides views with information to show in their headers. The information is only
+    retrieved by views that can display header information.
+    """
+    def headerData(self, section, orientation, role=None):
+
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.columnames[section]
+        elif role == Qt.ToolTipRole:
+            return None
+        else:
+            return None
+        pass
+
+    """
+    Provides the number of rows of data exposed by the model.
+    """
+    def rowCount(self, parent=None, *args, **kwargs):
+        if parent.column() > 0:
+            return 0
+
+        if not parent.isValid():
+            #return len(set([ds.type for ds in self.DSM.sources]))
+
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+        #print((parentItem, parentItem.childCount()))
+        return parentItem.childCount()
+
+
+    """
+    Provides the number of columns of data exposed by the model.
+    """
+    def columnCount(self, parent):
+        return len(self.columnames)
+
+        if parent.isValid():
+            return parent.internalPointer().columnCount()
+        else:
+            return self.rootItem.columnCount()
+
+    #editable items
+    """
+    Must return an appropriate combination of flags for each item. In particular, the value returned
+    by this function must include Qt::ItemIsEditable in addition to the values applied to
+    items in a read-only model.
+    """
+    #def flags(self):
+    #    pass
+
+    """
+    Used to modify the item of data associated with a specified model index. To be able to accept
+    user input, provided by user interface elements, this function must handle data associated
+    with Qt::EditRole. The implementation may also accept data associated with many different
+    kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models
+    must emit the dataChanged() signal to inform other components of the change.
+    """
+    def setData(self, QModelIndex, QVariant, int_role=None):
+        s = ""
+        pass
+
+    """
+    Used to modify horizontal and vertical header information. After changing the item of data,
+    models must emit the headerDataChanged() signal to inform other components of the change.
+    """
+    #def setHeaderData(self, p_int, Qt_Orientation, QVariant, int_role=None):
+    #    pass
+
+    #resizable models
+
+    """
+    Used to add new rows and items of data to all types of model. Implementations must call
+    beginInsertRows() before inserting new rows into any underlying data structures, and call
+    endInsertRows() immediately afterwards.
+    """
+    #def insertRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+    #    pass
+
+
+    """
+    Used to remove rows and the items of data they contain from all types of model. Implementations must
+    call beginRemoveRows() before inserting new columns into any underlying data structures, and call
+    endRemoveRows() immediately afterwards.
+    """
+    #def removeRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+    #    pass
+
+    """
+    Used to add new columns and items of data to table models and hierarchical models. Implementations must
+    call beginInsertColumns() before rows are removed from any underlying data structures, and call
+    endInsertColumns() immediately afterwards.
+    """
+    #def insertColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+    #    pass
+
+    """
+    Used to remove columns and the items of data they contain from table models and hierarchical models.
+    Implementations must call beginRemoveColumns() before columns are removed from any underlying data
+    structures, and call endRemoveColumns() immediately afterwards.
+    """
+    #def removeColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+
+    #    pass
+
+    #lazy population
+
+    def hasChildren(self, parent):
+        if not parent.isValid():
+            return self.rootItem.childCount() > 0
+        else:
+            item = parent.internalPointer()
+
+            return item.childCount() > 0
+        pass
+
+
+
+    #parents and childrens
+
+
+
+    """
+    Given a model index for a parent item, this function allows views and delegates to access children of that item.
+    If no valid child item - corresponding to the specified row, column, and parent model index, can be found,
+    the function must return QModelIndex(), which is an invalid model index.
+    """
+    def index(self, row, column, parent):
+
+        if not self.hasIndex(row, column, parent):
+            return QModelIndex()
+
+        if not parent.isValid():
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+
+        childItem = parentItem.child(row)
+        if childItem:
+            return self.createIndex(row, column, childItem)
+        else:
+            return QModelIndex()
+
+    """
+    Provides a model index corresponding to the parent of any given child item. If the model index specified
+    corresponds to a top-level item in the model, or if there is no valid parent item in the model,
+    the function must return an invalid model index, created with the empty QModelIndex() constructor.
+    """
+    def parent(self, index):
+
+        if not index.isValid():
+            return QModelIndex()
+        else:
+            childItem = index.internalPointer()
+            parentItem = childItem.parent
+        if parentItem == self.rootItem:
+            return QModelIndex()
+        return self.createIndex(parentItem.row(), 0, parentItem)
 
 
 
@@ -102,92 +362,9 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
         pass
 
 
-class TreeItem(QObject):
-    def __init__(self, parent, name, data=None, icon=None, description=None,
-                 infos=None, tooltip=None, tag=None, asChild=False):
-        super(TreeItem, self).__init__()
-        self.parent = parent
-        self.name = name
-        self.childs = list()
-        self.data = data
-        self.icon = icon
-        self.description = description
-        self.tooltip = tooltip
-
-        self.actions = []
-
-        if infos:
-            self.addInfos(infos)
-
-        if asChild and parent is not None:
-            parent.appendChild(self)
 
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.removeChilds()
-
-    def addInfos(self, infolist):
-        if not isinstance(infolist, list):
-            infolist = list(infolist)
-        for line in infolist:
-            item = TreeItem(self, line, tooltip=line)
-            self.appendChild(item)
-
-
-    def parent(self):
-        return self.parent
-
-    def child(self, row):
-        if row > len(self.childs) - 1:
-            return None
-        return self.childs[row]
-
-    def childNumber(self):
-        if self.parent:
-            return self.parent.childs.index(self)
-        return 0
-
-    def appendChild(self, child):
-        assert isinstance(child, TreeItem)
-        self.childs.append(child)
-
-
-    def removeChilds(self):
-        del self.childs[:]
-
-
-
-    def insertChildren(self, position, count, columns):
-        if position < 0 or position > len(self.childs):
-            return False
-
-        for r in range(count):
-            self.childs.insert(r, TreeItem(self, 'empty'))
-
-
-
-    def row(self):
-        if self.parent != None:
-            return self.parent.childs.index(self)
-        return 0
-
-    def childCount(self):
-        return len(self.childs)
-
-    def columnCount(self):
-        return len(self.infos)
-
-
-    def data(self, column):
-        return self.infos[column]
-
-
-
-
-def getQIcon(name=EnMAPBoxIcons.Logo):
+def getQIcon(name=Icons.Logo_png):
     return QtGui.QIcon(name)
 
 
@@ -368,9 +545,70 @@ class CanvasLink(QObject):
 
 
 
+from enmapbox.datasources import *
+class DataSourceManager(QObject):
+
+    """
+    Keeps overview on different data sources handled by EnMAP-Box.
+    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well
+    """
+
+    sigDataSourceAdded = pyqtSignal(object)
+    sigDataSourceRemoved = pyqtSignal(object)
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.sources = set()
+        self.qgsMapRegistry = QgsMapLayerRegistry.instance()
+        self.updateFromQgsMapLayerRegistry()
+
+
+    def updateFromQgsMapLayerRegistry(self):
+        """
+        Add data sources registered in the QgsMapLayerRegistry to the data source manager
+        :return: True, if a new source was added
+        """
+        r = False
+        existing_src = [ds.src for ds in self.sources if isinstance(ds, DataSourceSpatial)]
+        for lyr in self.qgsMapRegistry.mapLayers().values():
+            src = lyr.dataProvider().dataSourceUri()
+            if src not in existing_src:
+                r =  r or (self.addSource(ds) is not None)
+        return r
+
+
+    def addSource(self, src, name=None, icon=None):
+        """
+        Adds a new data source.
+        :param src: any object
+        :param name:
+        :param icon:
+        :return: a DataSource instance, if sucessfully added
+        """
+        ds = DataSource.Factory(src, name=name, icon=icon)
+        if isinstance(ds, DataSource):
+            self.sources.add(ds)
+            self.sigDataSourceAdded.emit(ds)
+
+        return ds
+
+    def removeSource(self, src):
+        assert isinstance(src, DataSource)
+        self.sources.remove(src)
+        self.sigDataSourceRemoved.emit(src)
+
+
+    def getSourceTypes(self):
+        return sorted(list(set([type(ds) for ds in self.sources])))
+
+
+
+
 
 class EnMAPBox:
+
     _instance = None
+
     @staticmethod
     def instance():
         return EnMAPBox._instance
@@ -413,9 +651,9 @@ class EnMAPBox:
 
         assert docktype in ['MAP','TEXT']
         if docktype == 'MAP':
-            dock = EnMAPBoxMapDock(self,  *args, **kwds)
+            dock = MapDock(self, *args, **kwds)
         elif docktype == 'TEXT':
-            dock = EnMAPBoxTextDock(self,  *args, **kwds)
+            dock = TextDock(self, *args, **kwds)
 
         existing = self.dockarea.findAll()
         self.dockarea.addDock(dock,*args, **kwds)
@@ -457,7 +695,7 @@ class EnMAPBox:
                 src = node.data
                 menu = QMenu()
                 if isinstance(src, DataSourceSpatial):
-                    mapDocks = [d for d in self.DOCKS if isinstance(d, EnMAPBoxMapDock)]
+                    mapDocks = [d for d in self.DOCKS if isinstance(d, MapDock)]
                     mapDocks = sorted(mapDocks, key=lambda d:d.name())
                     if len(mapDocks) > 0:
                         subMenu = QMenu()
@@ -628,9 +866,9 @@ class Dock(pyqtgraph.dockarea.Dock):
         return area
 
 class DockLabel(VerticalLabel):
-    sigClicked = QtCore.Signal(object, object)
-    sigCloseClicked = QtCore.Signal()
-    sigNormalClicked = QtCore.Signal()
+    sigClicked = pyqtSignal(object, object)
+    sigCloseClicked = pyqtSignal()
+    sigNormalClicked = pyqtSignal()
 
     def __init__(self, dock, allow_floating=True):
         assert isinstance(dock, Dock)
@@ -752,14 +990,15 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
     LINK_TARGET_WIDGETS = set()
 
     @staticmethod
-    def ShowMapLinkTargets(canvas_targed):
+    def ShowMapLinkTargets(mapDock):
 
+        assert isinstance(mapDock, MapDock)
+        canvas_targed = mapDock.canvas
         assert isinstance(canvas_targed, qgis.gui.QgsMapCanvas)
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
 
-
-        target_canvases = [c for c in gc.get_referrers(qgis.gui.QgsMapCanvas)
-                           if isinstance(c, qgis.gui.QgsMapCanvas) and c is not canvas_targed]
+        target_canvases = [d.canvas for d in mapDock.enmapbox.DOCKS
+                           if isinstance(d, MapDock) and d != mapDock]
 
         for canvas_source in target_canvases:
 
@@ -812,26 +1051,26 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
-        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Center))
+        bt.setIcon(getQIcon(Icons.Map_Link_Center))
         self.buttons.append(bt)
 
         if False:
             bt = QtGui.QToolButton(self)
             bt.setToolTip('Link map extent')
             bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
-            bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Extent))
+            bt.setIcon(getQIcon(Icons.Map_Link_Extent))
             self.buttons.append(bt)
 
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map scale ("Zoom")')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale'))
-        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Scale))
+        bt.setIcon(getQIcon(Icons.Map_Link_Scale))
         self.buttons.append(bt)
 
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map scale and center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale_center'))
-        bt.setIcon(getQIcon(EnMAPBoxIcons.Map_Link_Scale_Center))
+        bt.setIcon(getQIcon(Icons.Map_Link_Scale_Center))
         self.buttons.append(bt)
 
 
@@ -843,8 +1082,7 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
             ly.addWidget(bt)
 
         self.layout.addLayout(ly, 0,0)
-
-        self.setStyleSheet('background-color:rgba(200, 200, 200, 180)')
+        self.setStyleSheet('background-color:rgba(0, 0, 0, 25);')
         self.setAttribute(Qt.WA_PaintOnScreen)
 
         self.updatePosition()
@@ -907,7 +1145,7 @@ class MapDockLabel(DockLabel):
         self.linkMap.setToolTip('Link with other map')
         #linkExtent.clicked.connect(lambda: self.dock.linkWithMapDock())
         #self.linkMap.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
-        self.linkMap.setIcon(getQIcon(EnMAPBoxIcons.Map_Link))
+        self.linkMap.setIcon(getQIcon(Icons.Map_Link))
 
         self.buttons.append(self.linkMap)
 
@@ -916,7 +1154,7 @@ class MapCanvas(qgis.gui.QgsMapCanvas):
 
     def __init__(self, parentMapDock, *args, **kwds):
         super(MapCanvas, self).__init__(*args, **kwds)
-        assert isinstance(parentMapDock, EnMAPBoxMapDock)
+        assert isinstance(parentMapDock, MapDock)
         self.mapdock = parentMapDock
         self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
@@ -960,7 +1198,7 @@ class MapCanvas(qgis.gui.QgsMapCanvas):
 
         pass
 
-class EnMAPBoxMapDock(Dock):
+class MapDock(Dock):
     """
     A dock to visualize geodata that can be mapped
     """
@@ -973,7 +1211,7 @@ class EnMAPBoxMapDock(Dock):
 
 
 
-        super(EnMAPBoxMapDock, self).__init__(*args, **kwds)
+        super(MapDock, self).__init__(*args, **kwds)
 
         #self.actionLinkExtent = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Link to map extent', self)
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
@@ -1006,7 +1244,7 @@ class EnMAPBoxMapDock(Dock):
         self.toolZoomOut.action().triggered.connect(lambda: self.canvas.setMapTool(self.toolZoomOut))
 
 
-        self.label.linkMap.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self.canvas))
+        self.label.linkMap.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
 
         #set default map tool
         self.canvas.setMapTool(self.toolPan)
@@ -1031,10 +1269,10 @@ class EnMAPBoxMapDock(Dock):
         if event.button() == Qt.LeftButton:
                 s = ""
         else:
-            super(EnMAPBoxMapDock, self).mousePressEvent(event)
+            super(MapDock, self).mousePressEvent(event)
 
     def linkWithMapDock(self, mapDock, linktype='extent'):
-        assert isinstance(mapDock, EnMAPBoxMapDock)
+        assert isinstance(mapDock, MapDock)
         self.linkWithCanvas(mapDock.canvas, linktype=linktype)
 
 
@@ -1065,7 +1303,7 @@ class EnMAPBoxMapDock(Dock):
 
 
 
-class EnMAPBoxTextDock(Dock):
+class TextDock(Dock):
 
     """
     A dock to visualize textural data
@@ -1074,7 +1312,7 @@ class EnMAPBoxTextDock(Dock):
         html = kwds.pop('html', None)
         plainTxt = kwds.pop('plainTxt', None)
 
-        super(EnMAPBoxTextDock, self).__init__(*args, **kwds)
+        super(TextDock, self).__init__(*args, **kwds)
 
         self.edit = QtGui.QTextEdit(self)
 
