@@ -137,6 +137,11 @@ class GDALMeta():
         if ds is None:
             raise Exception('Can not open file: '+filename)
 
+        # band specific meta
+        for i in range(1, ds.RasterCount+1):
+            rb = ds.GetRasterBand(i)
+            rb
+
         # read data source meta
         self.driver = ds.GetDriver().ShortName
         if ds.GetMetadataDomainList() is not None:
@@ -170,6 +175,12 @@ class GDALMeta():
             meta = domain.getMetadataDictAsString()
             ds.SetMetadata(meta, domainName)
 
+        noDataValue = self.getNoDataValue()
+        bandNames = self.getBandNames()
+        for i in range(1, ds.RasterCount+1):
+            rb = ds.GetRasterBand(i)
+            if noDataValue is not None: rb.SetNoDataValue(noDataValue)
+            if bandNames is not None: rb.SetDescription(bandNames[i-1])
 
         # Workaround to eliminate duplicated keys inside ENVI header files produced by GDAL
         # Inside the resulting header file the duplicate that appeared last is used
@@ -243,10 +254,12 @@ class GDALMeta():
 
     def setBandNames(self, values):
 
-        if values is None:
-            return
-
+        if values is None: return
         self.getMetadataDomain(domainName='ENVI').setMetadataItem('band names', values)
+
+
+    def getBandNames(self):
+        return self.getMetadataDomain(domainName='ENVI').getMetadataItem('band names')
 
 
 if __name__ == '__main__':

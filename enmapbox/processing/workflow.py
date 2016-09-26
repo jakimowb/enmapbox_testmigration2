@@ -5,13 +5,12 @@ import rios.readerinfo
 import os
 from hub.gdal.api import GDALMeta
 from hub.file import mkdir, filesearch
+from hub.datetime import Date
 from hub.timing import tic, toc
 import numpy
 
 class ApplierControls(rios.applier.ApplierControls):
 
-    defaultOutputDriverName = "ENVI"
-    defaultCreationOptions = ["INTERLEAVE=BSQ"]
     defaultWindowXsize = 256
     defaultWindowYsize = 256
 
@@ -19,12 +18,28 @@ class ApplierControls(rios.applier.ApplierControls):
         rios.applier.ApplierControls.__init__(self)
         self.setNumThreads(1)
         self.setJobManagerType('multiprocessing')
-        self.setOutputDriverName(ApplierControls.defaultOutputDriverName)
-        self.setCreationOptions(ApplierControls.defaultCreationOptions)
         self.setWindowXsize(ApplierControls.defaultWindowXsize)
         self.setWindowYsize(ApplierControls.defaultWindowYsize)
         self.setCalcStats(False)
         self.setOmitPyramids(True)
+        self.setOutputDriverGTiff()
+
+    def setOutputDriverENVI(self, interleave='BSQ'):
+        assert interleave.lower() in ['bsq', 'bil', 'bip']
+        self.setOutputDriverName = 'ENVI'
+        self.setCreationOptions = ['INTERLEAVE=' + interleave]
+
+    def setOutputDriverGTiff(self, interleave='BAND', tiled='YES', blockxsize=256, blockysize=256,
+                             compress='LZW', predictor=2):
+        assert interleave.lower() in ['band']
+        assert tiled.lower() in ['yes', 'no']
+        assert compress.lower() in ['lzw', 'deflate', 'none']
+        assert predictor in [0, 1, 2]
+
+        self.setOutputDriverName('GTiff')
+        self.setCreationOptions(['INTERLEAVE='+interleave, 'TILED='+tiled,
+                                 'BLOCKXSIZE='+str(blockxsize), 'BLOCKYSIZE='+str(blockysize),
+                                 'COMPRESS='+compress, 'PREDICTOR='+str(predictor)])
 
 
 class BlockAssociations():
@@ -43,10 +58,23 @@ class BlockAssociations():
         self._meta[key] = meta
         return self
 
-    def __getitem__(self, item):
-        cube = self._blockAssociations.__dict__[item]
-        meta = self._meta[item]
+    def _getBlock(self, key):
+        cube = self._blockAssociations.__dict__[key]
+        meta = self._meta[key]
         return cube, meta
+
+    def addBlock(self, key, cube, meta):
+        return self._addBlock(key=key, cube=cube, meta=meta)
+
+    def getBlock(self, key):
+        return self._getBlock(key=key)
+
+    def __getitem__(self, key):
+        return self._getBlock(key=key)
+
+    def __setitem__(self, key, cube_meta):
+        cube, meta = cube_meta
+        return self._addBlock(key=key, cube=cube, meta=meta)
 
     def keys(self): return self._blockAssociations.__dict__.keys()
 
@@ -97,7 +125,7 @@ class FilenameAssociations():
     def _linkInputFiles(self):
         pass
 
-    def _linkOutputFiles(self, outputs):
+    def _linkOutputFiles(self, outputs, extension):
         pass
 
     def _readMetas(self):
@@ -121,7 +149,7 @@ class ImageBA(BlockAssociations):
     key = 'image'
 
     def addBlock(self, cube, meta):
-        BlockAssociations._addBlock(self, key=self.key, cube=cube, meta=meta)
+        self._addBlock(key=self.key, cube=cube, meta=meta)
         return self
 
     @property
@@ -130,7 +158,7 @@ class ImageBA(BlockAssociations):
 
     @property
     def meta(self):
-        return BlockAssociations.getMeta(self, key=self.key)
+        return self.getMeta(key=self.key)
 
 
 class ImageFA(FilenameAssociations):
@@ -145,189 +173,42 @@ class ImageFA(FilenameAssociations):
     def _linkInputFiles(self):
         self._addImage(key=self.key, filename=self.filename)
 
-    def _linkOutputFiles(self, outputs):
-        self._addImage(key=self.key, filename=self.filename)
+    def _linkOutputFiles(self, outputs, extension):
 
+        hasExtension = os.path.splitext(self.filename)[1] != ''
+        if hasExtension: extension = ''
+
+        # Note: output extension is ignored
+        self._addImage(key=self.key, filename=self.filename+extension)
+
+
+class ProductBA(BlockAssociations):
+    pass
 
 class ProductFA(FilenameAssociations):
 
-    BlockAssociationsClass = BlockAssociations
+    BlockAssociationsClass = ProductBA
+    #outExtension = '.img'
 
     def __init__(self, dirname, extensions=['.img', '.tif', '.vrt']):
         FilenameAssociations.__init__(self)
         self.dirname = dirname
+        self.productName = os.path.basename(dirname)
         self.extensions = extensions
 
     def _linkInputFiles(self):
         for extension in self.extensions:
             filenames = filesearch(self.dirname, '*'+extension)
             for filename in filenames:
-                key = os.path.splitext(os.path.basename(filename))[0]
-                self._addImage(key=key, filename=filename)
+                basename = os.path.splitext(os.path.basename(filename))[0]
+                self._addImage(key=basename, filename=filename)
 
-    def _linkOutputFiles(self, outputs):
-        raise Exception('ProductFA is read only!')
+    def _linkOutputFiles(self, outputs, extension):
 
-
-class LandsatBA(BlockAssociations):
-
-    def addBlock(self, sr_cube, qa_cube, sr_meta, qa_meta):
-
-        BlockAssociations._addBlock(self, 'sr', sr_cube, sr_meta)
-        BlockAssociations._addBlock(self, 'qa', qa_cube, qa_meta)
-        return self
-
-    @property
-    def sr(self):
-        return self.getCube('sr')
-
-    @property
-    def srMeta(self):
-        return self.getMeta('sr')
-
-    @property
-    def qa(self):
-        return self.getCube('qa')
-
-    @property
-    def qaMeta(self):
-        return self.getMeta('qa')
-
-    @property
-    def blue(self):
-        return self.getCube('sr')[0]
-
-    @property
-    def green(self):
-        return self.getCube('sr')[1]
-
-    @property
-    def red(self):
-        return self.getCube('sr')[2]
-
-    @property
-    def nir(self):
-        return self.getCube('sr')[3]
-
-    @property
-    def swir1(self):
-        return self.getCube('sr')[4]
-
-    @property
-    def swir2(self):
-        return self.getCube('sr')[5]
-
-    @property
-    def fmask(self):
-        return self.getCube('qa')[0]
-
-
-class LandsatFA(FilenameAssociations):
-
-    BlockAssociationsClass = LandsatBA
-    inExtensions = ['.img','.tif','.vrt']
-    outExtension = '.img'
-
-    def __init__(self, dirname):
-        FilenameAssociations.__init__(self)
-        self.dirname = dirname
-        self.scene = os.path.basename(dirname)
-
-    def _linkInputFiles(self):
-        for key in ['sr', 'qa']:
-            filename = None
-            for ext in self.inExtensions:
-                basename = self.scene + '_' + key + ext
-                filename = os.path.join(self.dirname, basename)
-                if os.path.exists(filename):
-                    break
-            if filename is None:
-                raise Exception('No filename found.')
-            self._addImage(key=key, filename=filename)
-
-    def _linkOutputFiles(self, outputs):
-        for key in ['sr', 'qa']:
-            basename = self.scene + '_' + key + self.outExtension
-            filename = os.path.join(self.dirname, basename)
-            self._addImage(key=key, filename=filename)
-
-class LandsatTimeseriesBA(BlockAssociations):
-    pass
-
-class LandsatTimeseriesFA(FilenameAssociations):
-
-    BlockAssociationsClass = LandsatTimeseriesBA
-
-    def __init__(self, dirname):
-        FilenameAssociations.__init__(self)
-        self.dirname = dirname
-
-    '''def _linkInputFiles(self, keyPrefix=''):
-        for key in ['sr', 'qa']:
-            filename = None
-            for ext in self.inExtensions:
-                basename = self.scene + '_' + key + ext
-                filename = os.path.join(self.dirname, basename)
-                if os.path.exists(filename):
-                    break
-            if filename is None:
-                raise Exception('No filename found.')
-            self._addImage(key=keyPrefix+key, filename=filename)'''
-
-    def _linkOutputFiles(self, outputs):
-        for key in ['sr', 'qa']:
-            basename = self.scene + '_' + key + self.outExtension
-            filename = os.path.join(self.dirname, basename)
-            self._addImage(key=key, filename=filename)
-
-
-'''class LandsatCollectionBA(BlockAssociations):
-
-    def __init__(self):
-        BlockAssociations.__init__(self)
-        self._collection = list()
-
-    def _addBlock(self, key, cube, meta):
-        BlockAssociations._addBlock(self, key=key, cube=cube, meta=meta)
-        return self
-
-
-    def buildTimeseries(self):
-        dates = [meta.getMetadataItem(key='acq') for meta in self._meta.values()]
-        return
-
-class LandsatCollectionFA(FilenameAssociations):
-
-    BlockAssociations = LandsatCollectionBA
-
-    def __init__(self, dirname):
-        FilenameAssociations.__init__(self)
-        self._collection = list()
-        self.dirname = dirname
-
-    def _linkInputFiles(self):
-
-        landsatDirnames = [os.path.join(self.dirname, scene) for scene in os.listdir(self.dirname)]
-
-        for landsatDirname in landsatDirnames:
-            landsatFA = LandsatFA(dirname=landsatDirname)
-            landsatFA._linkInputFiles(keyPrefix=landsatFA.scene+'_')
-            for filename, imageKey in landsatFA._keyLookup.items():
-                self._addImage(key=imageKey, filename=filename)
-
-
-    def _linkOutputFiles(self, outputs):
-        assert isinstance(outputs, BlockAssociations)
-
-        basenames = outputs._blockAssociations.__dict__.keys()
-
-        filenames = [os.path.join(self.dirname, basename[:-3], basename+LandsatFA.outExtension) for basename in basenames]
-        for filename, basename in zip(filenames, basenames):
+        for basename in outputs.keys():
+            filename = os.path.join(self.dirname, basename+extension)
             self._addImage(key=basename, filename=filename)
-            #landsatFA = LandsatFA(dirname=landsatDirname)
-            #landsatFA._linkOutputFiles()
-            #self._collection.append(landsatFA)
-'''
+
 
 class BlockAssociationsCollection():
 
@@ -346,10 +227,15 @@ class BlockAssociationsCollection():
         self._collection.append(blockAssociations)
         return self
 
+    def filter(self, filterFunction):
+        filteredCollection = filterFunction(self)
+        assert isinstance(filteredCollection, BlockAssociationsCollection)
+        return filteredCollection
 
 class FilenameAssociationsCollection():
 
     BlockAssociationsClass = BlockAssociationsCollection
+    outExtension = '.img'
 
     def __init__(self):
         self._collection = list()
@@ -373,27 +259,45 @@ class FilenameAssociationsCollection():
             inputs._linkInputFiles()
 
     def _linkOutputFiles(self, outputs):
-        assert isinstance(outputs, BlockAssociations)
+        raise Exception(self.__class__.__name__ +' type is read only.')
 
-        basenames = outputs._blockAssociations.__dict__.keys()
-
-        filenames = [os.path.join(self.dirname, basename[:-3], basename+LandsatFA.outExtension) for basename in basenames]
-        for filename, basename in zip(filenames, basenames):
-            self._addImage(key=basename, filename=filename)
-            #landsatFA = LandsatFA(dirname=landsatDirname)
-            #landsatFA._linkOutputFiles()
-            #self._collection.append(landsatFA)
 
     def _readMetas(self):
         for infiles in self._collection:
             infiles._readMetas()
-
 
     def append(self, filenameAssociations):
         assert isinstance(filenameAssociations, FilenameAssociations)
         self._collection.append(filenameAssociations)
         return self
 
+
+class ProductCollectionBA(BlockAssociationsCollection):
+
+    ProductBAClass = ProductBA
+
+    def append(self, productBA):
+        assert isinstance(productBA, self.ProductBAClass)
+        BlockAssociationsCollection.append(self, blockAssociations=productBA)
+
+
+class ProductCollectionFA(FilenameAssociationsCollection):
+
+    BlockAssociationsClass = ProductCollectionBA
+    ProductFAClass = ProductFA
+
+    def __init__(self, dirname):
+        FilenameAssociationsCollection.__init__(self)
+        self.dirname = dirname
+
+    def _linkInputFiles(self):
+
+        for productName in os.listdir(self.dirname):
+            dirname = os.path.join(self.dirname, productName)
+            productFA = self.ProductFAClass(dirname=dirname)
+            self.append(productFA)
+
+        FilenameAssociationsCollection._linkInputFiles(self)
 
 class WorkflowFilenameAssociations():
     # container for workflow input/output files
@@ -423,12 +327,15 @@ class Workflow:
         assert isinstance(riosOutfiles, rios.applier.FilenameAssociations)
 
         for key, outfiles in self.outfiles.__dict__.items():
-            try:
-                outputs = getattr(self.outputs, key)
-            except AttributeError:
-                raise Exception('Missing workflow output key: '+key)
-            assert isinstance(outputs, BlockAssociations)
-            outfiles._linkOutputFiles(outputs=outputs)
+            outputs = getattr(self.outputs, key)
+            if self.controls.drivername == 'ENVI':
+                extension = '.img'
+            elif self.controls.drivername == 'GTiff':
+                extension = '.tif'
+            else:
+                raise Exception('unknown driver')
+
+            outfiles._linkOutputFiles(outputs=outputs, extension=extension)
             riosOutfiles.__dict__.update(outfiles._filenameAssociations.__dict__)
 
     def getRiosFilenameAssociations(self):
@@ -457,6 +364,8 @@ class Workflow:
             outputs = getattr(self.outputs, key)
             assert isinstance(outfiles, FilenameAssociations)
             assert isinstance(outputs, BlockAssociations)
+            if not isinstance(outputs, outfiles.BlockAssociationsClass):
+                raise Exception('Output filename association type (' + outfiles.__class__.__name__ + ') does not match output block association type (' + outputs.__class__.__name__ + ')!')
             outfiles._mkdir()
             for filename, imageKey in outfiles._keyLookup.items():
                 cube = getattr(outputs._blockAssociations, imageKey)
@@ -544,26 +453,16 @@ class MyWorkflowIOProduct(Workflow):
 
     def apply(self, info):
 
-        pan = numpy.zeros((info.blockheight, info.blockwidth), dtype=numpy.float32)
-        productBA = self.inputs.product
-        for key, (cube, meta) in productBA.items():
-            if key.find('band') != -1:
-                pan += numpy.clip(cube[0], 0, numpy.inf)
-        meta = GDALMeta().setNoDataValue(0)
+        assert isinstance(self.inputs.product, ProductBA)
 
-        self.outputs.pan = ImageBA().addBlock(cube=pan, meta=meta)
+        inProductBA = self.inputs.product
 
+        outProductBA = ProductBA()
+        for key, (cube, meta) in inProductBA.items():
+            outProductBA[key] = (cube, meta)
 
-class MyWorkflowIOLandsat(Workflow):
-
-    def apply(self, info):
-
-        landsatBA = self.inputs.landsat
-        landsatCopyBA = LandsatBA().addBlock(sr_cube=landsatBA.sr,
-                                             qa_cube=landsatBA.qa,
-                                             sr_meta=landsatBA.srMeta,
-                                             qa_meta=landsatBA.qaMeta)
-        self.outputs.landsat = landsatCopyBA
+        self.outputs.product = outProductBA
+        #self.outputs.xyz = outProductBA
 
 
 class MyWorkflowIOCollection(Workflow):
@@ -578,65 +477,35 @@ class MyWorkflowIOCollection(Workflow):
         meta=GDALMeta().setNoDataValue(0)
         self.outputs.image = ImageBA().addBlock(cube=cube, meta=meta)
 
-
-class MyWorkflowIOLandsatCollection(Workflow):
+class MyWorkflowIOProductCollection(Workflow):
 
     def apply(self, info):
 
         collectionBA = self.inputs.collection
-        bands, lines, samples = collectionBA[0].sr.shape
-        sr = numpy.zeros((bands, lines, samples), dtype=numpy.float32)
-        count = numpy.zeros((lines, samples), dtype=numpy.float32)
-        for landsatBA in collectionBA:
-            valid = landsatBA.fmask <= 1
-            count += valid
-            sr += landsatBA.sr * valid
-        sr /= numpy.clip(count, 1, numpy.inf)
-        meta=GDALMeta().setNoDataValue(0)
-        self.outputs.image = ImageBA().addBlock(cube=sr, meta=meta)
-
-
-class MyWorkflowLandsatTimeseries(Workflow):
-
-    def apply(self, info):
-
-        landsatCollectionBA = self.inputs.landsatCollection
-        landsatTimeseriesBA = landsatCollectionBA.buildTimeseries()
-        self.outputs.landsatTimeseries = landsatTimeseriesBA
-
-
-def test1():
-
-    workflow = MyWorkflow()
-    workflow.infiles.landsat = LandsatFA(dirname=r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC\LC81930242015276LGN00')
-    workflow.outfiles.ndvi = ImageFA(filename=r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC_ndvi.img')
-    workflow.controls.setNumThreads(10)
-    workflow.run()
+        assert isinstance(collectionBA, ProductCollectionBA)
+        collectionCopyBA = ProductCollectionBA()
+        for productBA in collectionBA:
+            collectionCopyBA.append(productBA)
+        self.outputs.collection = collectionCopyBA
 
 def testIOImage():
 
     workflow = MyWorkflowIOImage()
-    workflow.infiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.img')
-    workflow.outfiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI_CopyImage\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.img')
+    #workflow.infiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.img')
+    workflow.infiles.image = ImageFA(r'C:\Work\data\Hymap_Berlin-A_Classification-Estimation')
+    workflow.outfiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI_CopyImage\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.tif')
     workflow.controls.setNumThreads(1)
+    workflow.controls.setOutputDriverGTiff()
+
     workflow.run()
 
 def testIOProduct():
 
     workflow = MyWorkflowIOProduct()
     workflow.infiles.product = ProductFA(r'C:\Work\data\gms\landsat\193\024\LC81930242015276LGN00')
-    workflow.outfiles.pan = ImageFA(r'C:\Work\data\gms\pan.img')
+    workflow.outfiles.product = ProductFA(r'C:\Work\data\gms\landsat_copyProduct\193\024\LC81930242015276LGN00')
     workflow.controls.setNumThreads(1)
-    workflow.run()
-
-def testIOLandsat():
-
-    workflow = MyWorkflowIOLandsat()
-    workflow.infiles.landsat = LandsatFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC\LC81930242015276LGN00')
-    #workflow.infiles.landsat = LandsatFA(r'C:\Work\data\gms\landsatXMGRS\32\32UPC\LC81930242015276LGN00')
-
-    workflow.outfiles.landsat = LandsatFA(r'C:\Work\data\gms\landsatXMGRS_ENVI_CopyLandsat\32\32UPC\LC81930242015276LGN00')
-    workflow.controls.setNumThreads(1)
+    workflow.controls.setOutputDriverGTiff(compress='DEFLATE')
     workflow.run()
 
 def testIOCollection():
@@ -650,34 +519,18 @@ def testIOCollection():
     workflow.controls.setNumThreads(1)
     workflow.run()
 
-def testIOLandsatCollection():
+def testIOProductCollection():
 
-    workflow = MyWorkflowIOLandsatCollection()
-    mgrs = r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC'
-    scenes = [os.path.join(mgrs, scene) for scene in os.listdir(mgrs)]
-    workflow.infiles.collection =  FilenameAssociationsCollection()
-    for scene in scenes:
-        workflow.infiles.collection.append(LandsatFA(scene))
-    workflow.outfiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI_ImageSum\sum_sr.img')
-    workflow.controls.setNumThreads(1)
-    workflow.run()
-
-def __testIOLandsatCollection():
-
-    workflow = MyWorkflowIOLandsatCollection()
-    workflow.infiles.landsatCollection =  LandsatCollectionFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC')
-    workflow.outfiles.landsatCollection = LandsatCollectionFA(r'C:\Work\data\gms\landsatXMGRS_ENVI_Copy\32\32UPC')
+    workflow = MyWorkflowIOProductCollection()
+    workflow.infiles.collection =  ProductCollectionFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC')
     workflow.controls.setNumThreads(1)
     workflow.run()
 
 
 if __name__ == '__main__':
     tic()
-    #test1()
-    #testIOImage()
-    #testIOLandsat()
+    testIOImage()
     #testIOCollection()
     #testIOProduct()
-    testIOLandsatCollection()
-    #testLandsatTimeseries()
+    #testIOProductCollection()
     toc()
