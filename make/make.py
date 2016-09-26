@@ -97,7 +97,7 @@ def svg2png(pathDir, overwrite=False):
 
             painter = QPainter(img)
             painter.setBackgroundMode(Qt.OpaqueMode)
-            print(frame.renderTreeDump())
+            #print(frame.renderTreeDump())
             frame.render(painter)
             painter.end()
 
@@ -110,7 +110,7 @@ def svg2png(pathDir, overwrite=False):
 
 if __name__ == '__main__':
     icondir = jp(ROOT, *['enmapbox','gui','icons'])
-    if False: svg2png(icondir, overwrite=True)
-    if True: make()
+    if True: svg2png(icondir, overwrite=True)
+    if False: make()
     print('Done')
 
