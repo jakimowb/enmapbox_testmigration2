@@ -573,7 +573,7 @@ class DataSourceManager(QObject):
         for lyr in self.qgsMapRegistry.mapLayers().values():
             src = lyr.dataProvider().dataSourceUri()
             if src not in existing_src:
-                r =  r or (self.addSource(ds) is not None)
+                r =  r or (self.addSource(src) is not None)
         return r
 
 
@@ -726,15 +726,16 @@ class EnMAPBox:
 class TestData():
 
 
-    prefix = jp(DIR, 'testdata')
+    prefix = jp(os.path.normpath(DIR), *['testdata', 'AlpineForeland'])
+    assert os.path.exists(prefix)
     #assert os.path.isdir(prefix)
-    Image = jp(prefix, 'SF_20x20.tif')
-    Diagrams = jp(prefix, 'diagrams.png')
-    AlpineForelandSubset = jp(prefix, 'AlpineForelandSubset.img')
-    AF_Image = jp(prefix, 'AF_Image')
-    Landsat_Shp = jp(prefix, 'landsat_labels.shp')
-    Landsat_Image = jp(prefix, 'landsat_img.tif')
-    Landsat_Fmask = jp(prefix, 'landsat_fmask.tif')
+
+    AF_Image = jp(prefix, 'AF_Image.bip')
+    AF_LAI = jp(prefix, r'AF_LAI.bsq')
+    AF_LC = jp(prefix, r'AF_LC.bsq')
+    AF_Mask = jp(prefix, r'AF_Mask.bsq')
+    AF_MaskVegetation = jp(prefix, r'AF_MaskVegetation.bsq')
+
 
 
 
@@ -1366,10 +1367,10 @@ if __name__ == '__main__':
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
     #EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
-    EB.createDock('MAP', name='MapDock 1', initSrc=TestData.Landsat_Fmask)
-    EB.createDock('MAP', name='MapDock 2', initSrc=TestData.Landsat_Image)
-    EB.createDock('MAP', name='MapDock 4', initSrc=TestData.AlpineForelandSubset)
-    EB.createDock('MAP', name='MapDock 3', initSrc=TestData.Landsat_Shp)
+    EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
+    EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
+    EB.createDock('MAP', name='MapDock 4', initSrc=TestData.AF_LC)
+    #EB.createDock('MAP', name='MapDock 3', initSrc=TestData.Landsat_Shp)
     EB.createDock('TEXT', name='TextDock',
                                          html='Here we can show HTML like text:'
                                               '<a href="http://www.enmap.org">www.enmap.org</a>'
