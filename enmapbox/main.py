@@ -132,8 +132,15 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
         s = ""
 
     def mimeData(self, list_of_QModelIndex):
-        s = ""
         mimeData = QMimeData()
+        if len(list_of_QModelIndex) > 0:
+            index = list_of_QModelIndex[0]
+            if not index.isValid():
+                return mimeData;
+            item = index.internalPointer()
+            if isinstance(item, TreeItem):
+                mimeData = item.mimeData
+
         #todo:
         return mimeData
     #read only access functions
@@ -1152,6 +1159,8 @@ class MapDockLabel(DockLabel):
 
 
 class MapCanvas(qgis.gui.QgsMapCanvas):
+    sigDragEnterEvent = pyqtSignal(object)
+    sigDropEvent = pyqtSignal(object)
 
     def __init__(self, parentMapDock, *args, **kwds):
         super(MapCanvas, self).__init__(*args, **kwds)
@@ -1162,22 +1171,10 @@ class MapCanvas(qgis.gui.QgsMapCanvas):
 
     def dragEnterEvent(self, event):
         assert isinstance(event, QDragEnterEvent)
-
-        mimedata = event.mimeData()
-        assert isinstance(mimedata, QMimeData)
-        for p in mimedata.formats(): print(p)
-        if mimedata.hasFormat('text/uri-list'):
-            event.acceptProposedAction()
-            s = ""
-        s = ""
-
-        pass
+        self.sigDragEnterEvent.emit(event)
 
     def dragMoveEvent(self, event):
         assert isinstance(event, QDragMoveEvent)
-
-
-        pass
 
     def dragLeaveEvent(self, *args, **kwargs):
 
@@ -1185,18 +1182,7 @@ class MapCanvas(qgis.gui.QgsMapCanvas):
 
     def dropEvent(self, event):
         assert isinstance(event, QDropEvent)
-        s = ""
-        mimedata = event.mimeData()
-        assert isinstance(mimedata, QMimeData)
-        if mimedata.hasUrls():
-            for url in mimedata.urls():
-                ds = self.enmapbox.addSource(url)
-                if ds is not None:
-                    self.mapdock.addLayer(ds.getMapLayer())
-
-
-
-
+        self.sigDropEvent(event)
         pass
 
 class MapDock(Dock):
@@ -1218,6 +1204,8 @@ class MapDock(Dock):
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
         self.canvas = MapCanvas(self)
+        self.canvas.sigDropEvent.connect(self.canvasDrop)
+        self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
         settings = QSettings()
         assert isinstance(self.canvas, qgis.gui.QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -1262,6 +1250,29 @@ class MapDock(Dock):
 
         w = CanvasLinkTargetWidget(self.enmapbox.gui)
         s = ""
+
+    def canvasDragEnter(self, event):
+        mimedata = event.mimeData()
+        assert isinstance(mimedata, QMimeData)
+        for p in mimedata.formats(): print(p)
+        if mimedata.hasFormat('text/uri-list'):
+            event.acceptProposedAction()
+            s = ""
+        s = ""
+
+    def canvasDrop(self, event):
+        s = ""
+
+
+        s = ""
+        mimedata = event.mimeData()
+        assert isinstance(mimedata, QMimeData)
+        if mimedata.hasUrls():
+            for url in mimedata.urls():
+                ds = self.enmapbox.addSource(url)
+                if ds is not None:
+                    self.addLayer(ds.getMapLayer())
+
 
     def _getLabel(self):
         return MapDockLabel(self)
