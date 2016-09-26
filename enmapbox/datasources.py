@@ -209,11 +209,6 @@ class DataSourceSpatial(DataSource):
         return ml
 
 
-
-
-
-
-
 class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None ):
@@ -271,6 +266,7 @@ class DataSourceRaster(DataSourceSpatial):
         itemBands = enmapbox.main.TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()), asChild=True)
 
         bandnames = [self._refLayer.bandName(b+1) for b in range(self._refLayer.bandCount())]
+
         if dp.name() == 'gdal':
             ds = gdal.Open(dp.dataSourceUri())
             for b in range(ds.RasterCount):
@@ -278,10 +274,8 @@ class DataSourceRaster(DataSourceSpatial):
 
         for b in range(dp.bandCount()):
             infos=list()
-            nodata = None
             if dp.srcHasNoDataValue(b+1):
-                nodata = dp.srcNoDataValue(b+1)
-            infos.append('No data : {}'.format(nodata))
+                infos.append('No data : {}'.format(dp.srcNoDataValue(b+1)))
             enmapbox.main.TreeItem(itemBands, bandnames[b], tooltip = '\n'.join(infos), infos=infos, asChild=True)
         return itemTop
 
