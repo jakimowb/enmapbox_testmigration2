@@ -14,47 +14,30 @@ from PyQt4.QtGui import *
 
 jp = os.path.join
 DIR_REPO = os.path.normpath(os.path.split(inspect.getfile(inspect.currentframe()))[0])
+site.addsitedir(jp(DIR_REPO, 'site-packages'))
+
 DEPENDENCIES = ['numpy','foobar']
-DIR_LIBS = jp(DIR_REPO, 'site-packages')
-
-s = 2
 
 
-class DependencyCheck:
-
-    @staticmethod
-    def test(name, package=None, verbose=True, stop_on_error=False):
-        try:
-            importlib.import_module(name, package)
-            if verbose:
-                print('Import {} successful'.format(name))
-        except Exception, e:
-            error_text = 'Unable to import {}'.format(name)
-            if stop_on_error:
-                raise Exception(error_text)
-            else:
-                six.print_(error_text, file=sys.stderr)
-                return False
-        return True
-
-def add_enmapbox_sitepackages(dir_sitepackages):
-    DIR_SITEPACKAGES = jp(DIR_REPO,'site-packages')
-    if DIR_SITEPACKAGES not in sys.path:
-        sys.path.append(DIR_SITEPACKAGES)
-
-    for root, dirs, files in os.walk(DIR_SITEPACKAGES):
-        for dirname in dirs:
-            path = jp(root, dirname)
-            #add normal folders that are not packages / dist-info or eggs
-            if not re.search(path, '\.(dist-info|egg)$') and \
-               not os.path.exists(jp(path,'_init_.py')):
-                sys.path.append(path)
-                s = ""
 
 
-add_enmapbox_sitepackages()
+def check_package(name, package=None, verbose=True, stop_on_error=False):
+    try:
+        importlib.import_module(name, package)
+        if verbose:
+            print('Import {} successful'.format(name))
+    except Exception, e:
+        error_text = 'Unable to import {}'.format(name)
+        if stop_on_error:
+            raise Exception(error_text)
+        else:
+            six.print_(error_text, file=sys.stderr)
+            return False
+    return True
 
-DependencyCheck.test(DEPENDENCIES)
+
+
+
 
 class EnMAPBoxPlugin:
     _enmapBoxInstance = None
