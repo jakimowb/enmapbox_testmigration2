@@ -47,7 +47,7 @@ class Icons:
 
 class TreeItem(QObject):
     def __init__(self, parent, name, data=None, icon=None, description=None,
-                 infos=None, tooltip=None, tag=None, asChild=False):
+                 infos=None, tooltip=None, tag=None, asChild=False, mimeData=None):
         super(TreeItem, self).__init__()
         self.parent = parent
         self.name = name
@@ -56,7 +56,9 @@ class TreeItem(QObject):
         self.icon = icon
         self.description = description
         self.tooltip = tooltip
-
+        if mimeData is None:
+            mimeData = QMimeData
+        self.mimeData = mimeData
         self.actions = []
 
         if infos:
@@ -127,3 +129,5 @@ class TreeItem(QObject):
     def data(self, column):
         return self.infos[column]
 
+    def mimeData(self):
+        return self.mimeData
