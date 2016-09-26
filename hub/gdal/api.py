@@ -244,9 +244,13 @@ class GDALMeta():
 
         if values is None:
             return
-
         self.getMetadataDomain(domainName='ENVI').setMetadataItem('band names', values)
 
+    def getBandNames(self):
+        bandNames = self.getMetadataDomain(domainName='ENVI').getMetadataItem('band names', default=None)
+        if bandNames is None:
+            bandNames = ['Band '+str(i) for i in range(1, self.RasterCount+1)]
+        return bandNames
 
 if __name__ == '__main__':
     #meta = GDALMeta(r'D:\work\EnMap-Box\EnMAP-Box_1.4\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')

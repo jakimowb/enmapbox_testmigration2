@@ -199,14 +199,14 @@ class ReportPlot(ReportImage):
 
 class ReportTable():
 
-    def __init__(self, data, caption='', colHeaders=None, rowHeaders=None, colSpans=None, rowSpans=None):
+    def __init__(self, data, caption='', colHeaders=None, rowHeaders=None, colSpans=None, rowSpans=None, attribs_align='right'):
 
         if isinstance(data, numpy.ndarray):
             if data.ndim == 1:
                 data = data.reshape((1,-1))
             assert data.ndim == 2
 
-        table = [TableRow([TableCell(str(v), attribs = {'align': 'right'}) for v in row]) for row in data]
+        table = [TableRow([TableCell(str(v), attribs = {'align': attribs_align}) for v in row]) for row in data]
 
         if colHeaders is not None:
 

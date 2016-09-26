@@ -164,7 +164,7 @@ class ImageStatistics(Type):
         infiles.band = self.image.filename
         controls.selectInputImageLayers([band+1], imagename='band')
 
-        args.noDataValue = self.image.meta.getNoDataValue(default=None)
+        args.noDataValue = self.image.meta.getNoDataValue(default=numpy.nan)
         args.min = +numpy.inf
         args.max = -numpy.inf
         args.countValid = 0
@@ -207,8 +207,9 @@ class ImageStatistics(Type):
                 args.countNan += nanMask.sum()
                 args.countNoDataValue += noDataValueMask.sum()
                 if not args.classification:
-                    args.min = min(inputs.band[validMask].min(), args.min)
-                    args.max = max(inputs.band[validMask].max(), args.max)
+                    if validMask.any():
+                        args.min = min(inputs.band[validMask].min(), args.min)
+                        args.max = max(inputs.band[validMask].max(), args.max)
             else:
                 hist, bin_edges = numpy.histogram(inputs.band[validMask], bins=args.bins, range=[args.min, args.max])
                 args.hist += hist.astype(numpy.uint64)
@@ -231,13 +232,33 @@ class ImageStatistics(Type):
         report.append(ReportMonospace(self.image.filename))
         report.append(ReportHeading('Basic Statistics'))
 
-        colHeaders = [['Band','n total', 'n ignored','n used', 'min', 'max']]
+        colHeaders = [['#Band','Band Name','n total', 'n ignored','n used', 'min', 'max']]
+        #convert band number list to string
+        bandColumn = [str(i) for i in self.getStatistic('band')]
+        #change strings of band column
+        bandColumn = ['#'+ s for s in bandColumn]
+        bandNames = self.image.meta.getBandNames()
+        #bandColumn = [a+b.lstrip() for a,b in zip(bandColumn,bandNames)]
+
+        if self.image.meta.getMetadataItem('wavelength') != None:
+            wl = numpy.round(numpy.array(self.image.meta.getMetadataItem('wavelength')).astype(float),3).astype(str)
+            bandNames = [a+' ('+b.lstrip()+')' for a,b in zip(bandNames,wl)]
+            colHeaders[0][1]=colHeaders[0][1]+', wl'
+        if self.image.meta.getMetadataItem('wavelength units') != None:
+            wlUnits = self.image.meta.getMetadataItem('wavelength units')
+            if wlUnits == 'micrometers': wlUnits = '&mu;m'
+            if wlUnits == 'nanometers': wlUnits = ' nm'
+            bandNames = [s + ' ' + wlUnits for s in bandNames]
+
         rowSpans = None
-        colSpans = [[1,1,1,1,1,1]]
+        colSpans = [[1,1,1,1,1,1,1]]
         rowHeaders = None
         # todo where does the max = 6 come from? there are only 5 classes
-        data = numpy.transpose([self.getStatistic('band'),self.getStatistic('count'),numpy.array(self.getStatistic('count'))-numpy.array(self.getStatistic('countValid')),self.getStatistic('countValid'),self.getStatistic('min'),self.getStatistic('max')])
-        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
+
+
+        data = numpy.transpose([bandColumn,bandNames,self.getStatistic('count'),numpy.array(self.getStatistic('count'))-numpy.array(self.getStatistic('countValid')),self.getStatistic('countValid'),self.getStatistic('min'),self.getStatistic('max')])
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans, attribs_align='left'))
+
 
         #report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
         #report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
@@ -283,7 +304,7 @@ class ImageStatistics(Type):
                 colHeaders = [['Classification scheme'],['DN','class name', 'counts']]
                 data = numpy.transpose([range(0,numpy.array(self.image.meta.getMetadataItem('classes')).astype(int))
                         ,self.image.meta.getMetadataItem('class names')
-                        ,numpy.hstack((0,self.getStatistic('hist')[i].astype(int)))])
+                        ,numpy.hstack((self.getStatistic('countNoDataValue')[i],self.getStatistic('hist')[i].astype(int)))])
                 report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
 
             # todo can we assume there is class lookup?
@@ -301,6 +322,9 @@ class ImageStatistics(Type):
                 ax.set_xticklabels((self.image.meta.getMetadataItem('class names')))
                 plt.xticks(rotation=35)
                 plt.tight_layout()
+                ax.tick_params('both', length=10, direction='out', pad=10)
+                report.append(ReportPlot(fig, ''))
+                plt.close()
             else:
                 fig, ax = plt.subplots(facecolor='white')
                 plt.bar(self.getStatistic('bin_edges')[i][0:-1]
@@ -310,22 +334,24 @@ class ImageStatistics(Type):
                        ,edgecolor = 'b')
                 ax.set_xlabel('value')
                 ax.set_ylabel('counts')
-            ax.tick_params('both', length=10, direction='out', pad=10)
-            report.append(ReportPlot(fig, ''))
-            plt.close()
+                ax.tick_params('both', length=10, direction='out', pad=10)
+                report.append(ReportPlot(fig, ''))
+                plt.close()
 
-            #for i in range(0,self.bandStatistics.__len__()):
-            # todo change some columns to integer, note: does not work?!
-            colHeaders = [['# bin','binStart','binEnd','count','cum. counts','prob. density','cum. distribution']]
-            data = numpy.transpose([numpy.array(range(0,self.getStatistic('hist')[i].__len__())).astype(int)
+                # todo change some columns to integer, note: does not work?!
+                colHeaders = [['# bin','binStart','binEnd','count','cum. counts','prob. density','cum. distribution']]
+                data = numpy.transpose([numpy.array(range(0,self.getStatistic('hist')[i].__len__())).astype(int)
                                        ,numpy.round(self.getStatistic('bin_edges')[i][0:-1],2)
-                                       ,numpy.round(self.getStatistic('bin_edges')[i][1:],2)
+                                       ,numpy.round(self.getStatistic('bin_edges')[i][1:],2).astype(str)
                                        ,numpy.array(self.getStatistic('hist')[i]).astype(int)
                                        ,numpy.round(numpy.cumsum(self.getStatistic('hist')[i]),0)
                                        ,numpy.round(self.getStatistic('hist')[i]/self.getStatistic('countValid')[i],2)
                                        ,numpy.round(numpy.cumsum(self.getStatistic('hist')[i]/self.getStatistic('countValid')[i]),2)
                                    ])
-            report.append(ReportTable(data, '', colHeaders=colHeaders))
+                report.append(ReportTable(data, '', colHeaders=colHeaders))
+
+
+
 
 
         #report.append(ReportParagraph('hists = ' + str(self.getStatistic('hist'))))
@@ -1523,7 +1549,7 @@ class RegressionPerformance(Type):
         gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3])
 
         ax0 = plt.subplot(gs[0,0])
-        ax0.hist(self.reference,bins=256, edgecolor='None',)
+        ax0.hist(self.reference,bins=100, edgecolor='None',)
         plt.xlim([numpy.min(self.reference),numpy.max(self.reference)])
         plt.tick_params(which = 'both', direction = 'out', length=10, pad=10)
         # hide ticks and ticklabels
@@ -1534,7 +1560,7 @@ class RegressionPerformance(Type):
         for label in ax0.get_yticklabels()[1::2]: label.set_visible(False)
 
         ax1 = plt.subplot(gs[1,1])
-        ax1.hist(self.prediction, orientation='horizontal',bins=256, edgecolor='None')
+        ax1.hist(self.prediction, orientation='horizontal',bins=100, edgecolor='None')
         plt.tick_params(which = 'both', direction = 'out', length=10, pad=10)
         plt.ylim([numpy.min(self.prediction),numpy.max(self.prediction)])
         # hide ticks and ticklabels
@@ -1565,7 +1591,7 @@ class RegressionPerformance(Type):
         plt.close()
 
         fig, ax = plt.subplots(facecolor='white',figsize=(7, 5))
-        ax.hist(self.residuals, bins=256, edgecolor='None')
+        ax.hist(self.residuals, bins=100, edgecolor='None')
         ax.set_xlabel('Residuals')
         ax.set_ylabel('Counts')
         fig.tight_layout()
@@ -1652,13 +1678,4 @@ class ProbabilityPerformance(Type):
         report.append(ReportParagraph('ToDo: include Scikit-Learn Hyperlinks!', font_color='red'))
 
         return report
-
-class ImageTools():
-
-    @staticmethod
-    def buildVRTImageStack(images, outfile=Environment.tempfile('imagestack', '.vrt')):
-
-        for image in images:
-            assert(image, isinstance(Image))
-            hub.gdal.util.stack_images(outfile, infiles, options='', verbose=True)
 
