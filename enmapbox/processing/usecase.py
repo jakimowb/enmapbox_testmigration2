@@ -326,7 +326,7 @@ def ar_debug3():
 
 if __name__ == '__main__':
 
-    tic()
+    #tic()
     #importENVISpeclib()
     #image()
     #sample()
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     #classification()
     #regression()
     #clusterer()
-    #transformer()
+    transformer()
     #showEstimator()
     #uncertaintyClassifier()
     #uncertaintyRegressor()
@@ -352,4 +352,4 @@ if __name__ == '__main__':
     #maximumProbability()
     #ar_debug3()
     #pixel_extractor()
-    toc()
+    #toc()

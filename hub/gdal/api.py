@@ -257,6 +257,11 @@ class GDALMeta():
         if values is None: return
         self.getMetadataDomain(domainName='ENVI').setMetadataItem('band names', values)
 
+    def getBandNames(self):
+        bandNames = self.getMetadataDomain(domainName='ENVI').getMetadataItem('band names', default=None)
+        if bandNames is None:
+            bandNames = ['Band '+str(i) for i in range(1, self.RasterCount+1)]
+        return bandNames
 
     def getBandNames(self):
         return self.getMetadataDomain(domainName='ENVI').getMetadataItem('band names')

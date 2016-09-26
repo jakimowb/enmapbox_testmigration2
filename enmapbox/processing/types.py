@@ -1,5 +1,7 @@
 from __future__ import print_function, division
 
+from adodbapi.ado_consts import directions
+
 __author__ = 'janzandr'
 
 import shutil
@@ -15,6 +17,8 @@ import sklearn.pipeline
 from enmapbox.processing.report import *
 from enmapbox.processing.applier import ApplierControls, ApplierHelper
 import numpy
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 # set default progress object
 progress = SilentProgress
@@ -160,7 +164,7 @@ class ImageStatistics(Type):
         infiles.band = self.image.filename
         controls.selectInputImageLayers([band+1], imagename='band')
 
-        args.noDataValue = self.image.meta.getNoDataValue(default=None)
+        args.noDataValue = self.image.meta.getNoDataValue(default=numpy.nan)
         args.min = +numpy.inf
         args.max = -numpy.inf
         args.countValid = 0
@@ -203,8 +207,9 @@ class ImageStatistics(Type):
                 args.countNan += nanMask.sum()
                 args.countNoDataValue += noDataValueMask.sum()
                 if not args.classification:
-                    args.min = min(inputs.band[validMask].min(), args.min)
-                    args.max = max(inputs.band[validMask].max(), args.max)
+                    if validMask.any():
+                        args.min = min(inputs.band[validMask].min(), args.min)
+                        args.max = max(inputs.band[validMask].max(), args.max)
             else:
                 hist, bin_edges = numpy.histogram(inputs.band[validMask], bins=args.bins, range=[args.min, args.max])
                 args.hist += hist.astype(numpy.uint64)
@@ -227,23 +232,131 @@ class ImageStatistics(Type):
         report.append(ReportMonospace(self.image.filename))
         report.append(ReportHeading('Basic Statistics'))
 
-        #n total	n ignored	n used	min	max
+        colHeaders = [['#Band','Band Name','n total', 'n ignored','n used', 'min', 'max']]
+        #convert band number list to string
+        bandColumn = [str(i) for i in self.getStatistic('band')]
+        #change strings of band column
+        bandColumn = ['#'+ s for s in bandColumn]
+        bandNames = self.image.meta.getBandNames()
+        #bandColumn = [a+b.lstrip() for a,b in zip(bandColumn,bandNames)]
 
-        report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
-        report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
-        report.append(ReportParagraph('maxs = ' + str(self.getStatistic('max'))))
+        if self.image.meta.getMetadataItem('wavelength') != None:
+            wl = numpy.round(numpy.array(self.image.meta.getMetadataItem('wavelength')).astype(float),3).astype(str)
+            bandNames = [a+' ('+b.lstrip()+')' for a,b in zip(bandNames,wl)]
+            colHeaders[0][1]=colHeaders[0][1]+', wl'
+        if self.image.meta.getMetadataItem('wavelength units') != None:
+            wlUnits = self.image.meta.getMetadataItem('wavelength units')
+            if wlUnits == 'micrometers': wlUnits = '&mu;m'
+            if wlUnits == 'nanometers': wlUnits = ' nm'
+            bandNames = [s + ' ' + wlUnits for s in bandNames]
 
-        report.append(ReportParagraph('countValids = ' + str(self.getStatistic('countValid'))))
-        report.append(ReportParagraph('countNegInfs = ' + str(self.getStatistic('countNegInf'))))
-        report.append(ReportParagraph('countPosInfs = ' + str(self.getStatistic('countPosInf'))))
-        report.append(ReportParagraph('countNans = ' + str(self.getStatistic('countNan'))))
-        report.append(ReportParagraph('countNoDataValues = ' + str(self.getStatistic('countNoDataValue'))))
-        report.append(ReportParagraph('counts = ' + str(self.getStatistic('count'))))
-        report.append(ReportParagraph('noDataValues = ' + str(self.getStatistic('noDataValue'))))
+        rowSpans = None
+        colSpans = [[1,1,1,1,1,1,1]]
+        rowHeaders = None
+        # todo where does the max = 6 come from? there are only 5 classes
+
+
+        data = numpy.transpose([bandColumn,bandNames,self.getStatistic('count'),numpy.array(self.getStatistic('count'))-numpy.array(self.getStatistic('countValid')),self.getStatistic('countValid'),self.getStatistic('min'),self.getStatistic('max')])
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans, attribs_align='left'))
+
+
+        #report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
+        #report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
+        #report.append(ReportParagraph('maxs = ' + str(self.getStatistic('max'))))
+
+        #report.append(ReportParagraph('countValids = ' + str(self.getStatistic('countValid'))))
+        #report.append(ReportParagraph('countNegInfs = ' + str(self.getStatistic('countNegInf'))))
+        #report.append(ReportParagraph('countPosInfs = ' + str(self.getStatistic('countPosInf'))))
+        #report.append(ReportParagraph('countNans = ' + str(self.getStatistic('countNan'))))
+        #report.append(ReportParagraph('countNoDataValues = ' + str(self.getStatistic('countNoDataValue'))))
+        #report.append(ReportParagraph('counts = ' + str(self.getStatistic('count'))))
+        #report.append(ReportParagraph('noDataValues = ' + str(self.getStatistic('noDataValue'))))
 
         report.append(ReportHeading('Histograms'))
-        report.append(ReportParagraph('hists = ' + str(self.getStatistic('hist'))))
-        report.append(ReportParagraph('bin_edgess = ' + str(self.getStatistic('bin_edges'))))
+
+        #for i in range(0,self.bandStatistics.__len__()):
+        for i in range(0,1):
+        # todo: test for alternating image - classification - image - classification - stacks
+        # todo order tables and plots, provide headlines for both cases
+            report.append(ReportHeading('Band ' + str(i+1),sub=1))
+
+            rowHeaders = [['number of bins'
+                          ,'bin size'
+                          ,'total pixels'
+                          ,'pixels used'
+                          ,'neg inf pixels'
+                          ,'pos inf pixels'
+                          ,'NaN pixels'
+                          ,'no data value pixels']]
+            data = numpy.vstack((str(self.getStatistic('hist')[i].__len__())
+                   ,str(round(numpy.array(self.getStatistic('bin_edges')[i])[1]-numpy.array(self.getStatistic('bin_edges')[i])[0],2))
+                   ,str(self.getStatistic('count')[i]) + ' (100.0%)'
+                   ,str(self.getStatistic('countValid')[i]) + ' (' + str(round(100*self.getStatistic('countValid')[i]/self.getStatistic('count')[i],2)) + '%)'
+                   ,str(self.getStatistic('countNegInf')[i]) + ' (' + str(round(100*self.getStatistic('countNegInf')[i]/self.getStatistic('count')[i],2)) + '%)'
+                   ,str(self.getStatistic('countPosInf')[i]) + ' (' + str(round(100*self.getStatistic('countPosInf')[i]/self.getStatistic('count')[i],2)) + '%)'
+                   ,str(self.getStatistic('countNan')[i]) + ' (' + str(round(100*self.getStatistic('countNan')[i]/self.getStatistic('count')[i],2)) + '%)'
+                   ,str(self.getStatistic('countNoDataValue')[i]) + ' (' + str(round(100*self.getStatistic('countNoDataValue')[i]/self.getStatistic('count')[i],2)) + '%)'
+                   ))
+            report.append(ReportTable(data, '', rowHeaders=rowHeaders))
+
+            if self.bandStatistics[0].classification == True:
+                colSpans = [[3],[1,1,1]]
+                colHeaders = [['Classification scheme'],['DN','class name', 'counts']]
+                data = numpy.transpose([range(0,numpy.array(self.image.meta.getMetadataItem('classes')).astype(int))
+                        ,self.image.meta.getMetadataItem('class names')
+                        ,numpy.hstack((self.getStatistic('countNoDataValue')[i],self.getStatistic('hist')[i].astype(int)))])
+                report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
+
+            # todo can we assume there is class lookup?
+                colorArray = numpy.array(self.image.meta.getMetadataItem('class lookup')[3:]).astype(float)/255
+                colorTuples = zip(colorArray[0::3],colorArray[1::3],colorArray[2::3])
+                fig, ax = plt.subplots(facecolor='white')
+                plt.bar(range(0,self.getStatistic('hist')[0].__len__()), self.getStatistic('hist')[0]
+                       ,color = colorTuples
+                       ,edgecolor = 'k'
+                       ,align='center')
+                xticks = ax.xaxis.get_major_ticks()
+                xticks[0].label1.set_visible(False)
+                ax.set_ylabel('counts')
+                ax.set_title('Pixel per class',y=1.05)
+                ax.set_xticklabels((self.image.meta.getMetadataItem('class names')))
+                plt.xticks(rotation=35)
+                plt.tight_layout()
+                ax.tick_params('both', length=10, direction='out', pad=10)
+                report.append(ReportPlot(fig, ''))
+                plt.close()
+            else:
+                fig, ax = plt.subplots(facecolor='white')
+                plt.bar(self.getStatistic('bin_edges')[i][0:-1]
+                       ,self.getStatistic('hist')[i]
+                       ,width = numpy.array(self.getStatistic('bin_edges')[i])[1]-numpy.array(self.getStatistic('bin_edges')[i])[0]
+                       ,color = 'b'
+                       ,edgecolor = 'b')
+                ax.set_xlabel('value')
+                ax.set_ylabel('counts')
+                ax.tick_params('both', length=10, direction='out', pad=10)
+                report.append(ReportPlot(fig, ''))
+                plt.close()
+
+                # todo change some columns to integer, note: does not work?!
+                colHeaders = [['# bin','binStart','binEnd','count','cum. counts','prob. density','cum. distribution']]
+                data = numpy.transpose([numpy.array(range(0,self.getStatistic('hist')[i].__len__())).astype(int)
+                                       ,numpy.round(self.getStatistic('bin_edges')[i][0:-1],2)
+                                       ,numpy.round(self.getStatistic('bin_edges')[i][1:],2).astype(str)
+                                       ,numpy.array(self.getStatistic('hist')[i]).astype(int)
+                                       ,numpy.round(numpy.cumsum(self.getStatistic('hist')[i]),0)
+                                       ,numpy.round(self.getStatistic('hist')[i]/self.getStatistic('countValid')[i],2)
+                                       ,numpy.round(numpy.cumsum(self.getStatistic('hist')[i]/self.getStatistic('countValid')[i]),2)
+                                   ])
+                report.append(ReportTable(data, '', colHeaders=colHeaders))
+
+
+
+
+
+        #report.append(ReportParagraph('hists = ' + str(self.getStatistic('hist'))))
+        #report.append(ReportParagraph('bin_edges = ' + str(self.getStatistic('bin_edges'))))
+        #report.append(ReportParagraph('bin_widths = ' + str(numpy.array(self.getStatistic('bin_edges')[0])[1:]-numpy.array(self.getStatistic('bin_edges')[0])[0:-1])))
 
         return report
 
@@ -1398,7 +1511,7 @@ class RegressionPerformance(Type):
 
         self.prediction = self.sample.featureSample.dataSample.data.flatten()
         self.reference = self.sample.labelsSample.dataSample.data.flatten()
-        self.residuals = self.prediction
+        self.residuals = self.prediction-self.reference
         self.n = self.reference.size
         self.explained_variance_score = str(sklearn.metrics.explained_variance_score(self.reference, self.prediction))
         self.mean_absolute_error = str(sklearn.metrics.mean_absolute_error(self.reference, self.prediction))
@@ -1407,6 +1520,8 @@ class RegressionPerformance(Type):
 
     def report(self):
 
+        #from scipy.stats import gaussian_kde
+
         report = Report('Regression Performance')
 
         report.append(ReportHeading('Input Files'))
@@ -1414,19 +1529,74 @@ class RegressionPerformance(Type):
         report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
-        report.append(ReportParagraph('n = ' + str(self.n)))
-        report.append(ReportParagraph('explained_variance_score = ' + str(self.explained_variance_score)))
-        report.append(ReportParagraph('mean_absolute_error = ' + str(self.mean_absolute_error)))
-        report.append(ReportParagraph('median_absolute_error = ' + str(self.median_absolute_error)))
-        report.append(ReportParagraph('mean_squared_error = ' + str(self.mean_squared_error)))
+        # todo align Table cells to left
+        colHeaders = [['Metric','Abbr.','Value']]
+        data = numpy.transpose([['Number of sample pairs','Squared pearson correlation','Mean absolute error','Median absolute error','Median squared error']
+                               ,['n','r^2','MAE','MAD???','MSE']
+                               ,[self.n,numpy.round(numpy.array(self.explained_variance_score).astype(float),2),numpy.round(numpy.array(self.mean_absolute_error).astype(float),2),numpy.round(numpy.array(self.median_absolute_error).astype(float),2),numpy.round(numpy.array(self.mean_squared_error).astype(float),2)]])
+        report.append(ReportTable(data, 'Performance Metrics', colHeaders=colHeaders))
 
-        report.append(ReportHeading('Residuals'))
-        report.append(ReportParagraph('ToDo: Scatter Plot Reference vs. Predicted', font_color='red'))
-        report.append(ReportParagraph('ToDo: Plot Residuals Distribution', font_color='red'))
+        report.append(ReportHeading('Results'))
+        # Estimate the point density
+        # xy = numpy.vstack([self.reference,self.prediction])
+        #z = gaussian_kde(xy)(xy)
+        # Sort the points so that densest are plotted last
+        #idx = z.argsort()
+        #x, y, z = self.reference[idx], self.prediction[idx], z[idx]
 
-        report.append(ReportParagraph('predicted = ' + str(self.prediction)))
-        report.append(ReportParagraph('reference = ' + str(self.reference)))
-        report.append(ReportParagraph('residuals = ' + str(self.residuals)))
+        fig, ax = plt.subplots(facecolor='white',figsize=(7, 7))
+        # prepare 2x2 grid for plotting scatterplot on lower left, and adjacent histograms
+        gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3])
+
+        ax0 = plt.subplot(gs[0,0])
+        ax0.hist(self.reference,bins=100, edgecolor='None',)
+        plt.xlim([numpy.min(self.reference),numpy.max(self.reference)])
+        plt.tick_params(which = 'both', direction = 'out', length=10, pad=10)
+        # hide ticks and ticklabels
+        ax0.set_xticklabels([])
+        ax0.xaxis.set_ticks_position('bottom')
+        ax0.yaxis.set_ticks_position('left')
+        # plot only every second tick, starting with the second
+        for label in ax0.get_yticklabels()[1::2]: label.set_visible(False)
+
+        ax1 = plt.subplot(gs[1,1])
+        ax1.hist(self.prediction, orientation='horizontal',bins=100, edgecolor='None')
+        plt.tick_params(which = 'both', direction = 'out', length=10, pad=10)
+        plt.ylim([numpy.min(self.prediction),numpy.max(self.prediction)])
+        # hide ticks and ticklabels
+        ax1.set_yticklabels([])
+        ax1.yaxis.set_ticks_position('left')
+        ax1.xaxis.set_ticks_position('bottom')
+        # plot only every second tick, starting with the second
+        for label in ax1.get_xticklabels()[1::2]: label.set_visible(False)
+
+        ax2 = plt.subplot(gs[1,0])
+        ax2.scatter(self.reference,self.prediction, s=10, edgecolor='', color='navy')
+        plt.xlim([numpy.min(self.reference),numpy.max(self.reference)])
+        plt.ylim([numpy.min(self.prediction),numpy.max(self.prediction)])
+        plt.tick_params(which = 'both', direction = 'out')
+        plt.xlabel('Reference')
+        plt.ylabel('Estimation')
+
+        # 1:1 line
+        plt.plot([numpy.min(self.reference),numpy.max(self.reference)],[numpy.min(self.reference),numpy.max(self.reference)], 'k-')
+
+        # Colorbar
+        #cbaxes = fig.add_axes([0.05, 0.1, 0.05, 0.35])
+        #cBar = plt.colorbar(sct, ticklocation='left', extend='neither', drawedges=False,cax = cbaxes)
+        #cBar.ax.set_ylabel('label')
+
+        fig.tight_layout()
+        report.append(ReportPlot(fig, 'Estimation vs Reference Scatterplot and Histograms'))
+        plt.close()
+
+        fig, ax = plt.subplots(facecolor='white',figsize=(7, 5))
+        ax.hist(self.residuals, bins=100, edgecolor='None')
+        ax.set_xlabel('Residuals')
+        ax.set_ylabel('Counts')
+        fig.tight_layout()
+        report.append(ReportPlot(fig, 'Residuals Histogram'))
+        plt.close()
 
         return report
 
@@ -1457,11 +1627,13 @@ class ClusteringPerformance(Type):
         report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
+
         report.append(ReportParagraph('n = ' + str(self.n)))
-        report.append(ReportParagraph('adjusted_mutual_info_score = ' + str(self.adjusted_mutual_info_score)))
-        report.append(ReportParagraph('adjusted_rand_score = ' + str(self.adjusted_rand_score)))
-        report.append(ReportParagraph('completeness_score = ' + str(self.completeness_score)))
-        report.append(ReportParagraph('ToDo: include Scikit-Learn Hyperlinks!', font_color='red'))
+        rowHeaders = [['Adjusted Mutual Information','Adjusted Rand index','Completeness Score']]
+        data = [[numpy.round(self.adjusted_mutual_info_score,3),numpy.round(self.adjusted_rand_score,3),numpy.round(self.completeness_score,3)]]
+        report.append(ReportTable(data, '', rowHeaders))
+        report.append(ReportHeading('Scikit-Learn Documentation'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation', 'Clustering Performance Evaluation'))
 
         return report
 
@@ -1506,13 +1678,4 @@ class ProbabilityPerformance(Type):
         report.append(ReportParagraph('ToDo: include Scikit-Learn Hyperlinks!', font_color='red'))
 
         return report
-
-class ImageTools():
-
-    @staticmethod
-    def buildVRTImageStack(images, outfile=Environment.tempfile('imagestack', '.vrt')):
-
-        for image in images:
-            assert(image, isinstance(Image))
-            hub.gdal.util.stack_images(outfile, infiles, options='', verbose=True)
 
