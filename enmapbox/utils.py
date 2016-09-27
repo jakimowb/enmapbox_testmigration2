@@ -1,11 +1,21 @@
 import os, sys
+import six
+import importlib
 from PyQt4.QtCore import *
-
 
 
 #jp = os.path.join
 def jp(*args, **kwds):
     return os.path.join(*args, **kwds)
+
+def check_package(name, package=None, stop_on_error=False):
+    try:
+        importlib.import_module(name, package)
+    except Exception, e:
+        if stop_on_error:
+            raise Exception('Unable to import package/module "{}"'.format(name))
+        return False
+    return True
 
 def add_to_sys_path(paths):
     if not isinstance(paths, list):
@@ -100,8 +110,14 @@ class TreeItem(QObject):
         self.childs.append(child)
 
 
-    def removeChilds(self):
-        del self.childs[:]
+    def removeChilds(self, childs=None):
+        if childs is None:
+            del self.childs[:]
+        else:
+            for c in [c for c in childs if c in self.childs]:
+                c.removeChilds()
+                self.childs.remove(c)
+                del c
 
 
 
