@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections
+import six, sys, os, gc, re, collections, site
 #from qgis.gui import *
 #from qgis.core import *
 import qgis.core
@@ -13,30 +13,21 @@ VERSION = '2016-0.beta'
 
 
 jp = os.path.join
-
 from enmapbox.utils import *
+
 DIR = os.path.dirname(__file__)
 DIR_REPO = os.path.dirname(DIR)
+DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
 DIR_GUI = jp(DIR,'gui')
-DIR_LIBS = jp(DIR_REPO, 'site-packages')
-add_to_sys_path([DIR_REPO, DIR_LIBS])
-
+site.addsitedir(DIR_SITE_PACKAGES)
 
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
-if six.PY3:
-    rc_suffix = '_py3'
-    #import gui.resources_py3
-else:
-    rc_suffix = '_py2'
-    #import gui.resources_py2
 
 #todo: reduce imports to minimum
-#from PyQt4.Qt import *
-import PyQt4
-
-import pyqtgraph
-import pyqtgraph.dockarea.DockArea
+#import PyQt4
+#import pyqtgraph
+#import pyqtgraph.dockarea.DockArea
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
 
@@ -46,15 +37,21 @@ from PyQt4.QtGui import *
 from enmapbox.utils import *
 from enmapbox.datasources import *
 
+RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
+
 add_and_remove = DIR_GUI not in sys.path
-if add_and_remove:
-    sys.path.append(DIR_GUI)
+if add_and_remove: sys.path.append(DIR_GUI)
 
 ENMAPBOX_GUI_UI, qt_base_class = uic.loadUiType(os.path.normpath(jp(DIR_GUI, 'enmapbox_gui.ui')),
-                                    from_imports=False, resource_suffix=rc_suffix)
-if add_and_remove:
-    sys.path.remove(DIR_GUI)
+                                    from_imports=False, resource_suffix=RC_SUFFIX)
+if add_and_remove: sys.path.remove(DIR_GUI)
+del add_and_remove, RC_SUFFIX
 
+DEBUG = False
+
+def dprint(text, file=None):
+    if DEBUG:
+        six._print('DEBUG::{}'.format(text), file=file)
 
 class DataSourceManagerTreeModel(QAbstractItemModel):
 
@@ -83,17 +80,15 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     def addDataSourceItems(self, dataSource):
         assert isinstance(dataSource, DataSource)
         dsTypeName = self.getSourceTypeName(dataSource)
+
         if dsTypeName not in [c.name for c in self.rootItem.childs]:
-            src_grp = TreeItem(self.rootItem,dsTypeName,
-                               icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon)
-                               )
-            self.rootItem.appendChild(src_grp)
-
-
+            TreeItem(self.rootItem,dsTypeName,
+                               icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon),
+                               asChild=True)
 
         src_grp = [c for c in self.rootItem.childs if c.name == dsTypeName][0]
         src_grp.appendChild(dataSource.getTreeItem(src_grp))
-
+        self.dataChanged.emit(QModelIndex(),QModelIndex())
 
         #print(src_grp)
     def removeDataSourceItems(self, dataSource):
@@ -104,19 +99,21 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
             src_grp = src_grp[0]
             assert isinstance(src_grp, TreeItem)
 
+
+
             for row in range(src_grp.childCount()):
-                index = self.index(row, 1, None)
+                #index = self.index(row, 1, QModelIndex())
+                #self.beginRemoveRows(index, 1, 1)
                 child = src_grp.childs[row]
                 if child.data == dataSource:
-                    self.beginRemoveRows(index, 1, 1)
-                    src_grp.childs.remove(c)
-                    del c
-                    self.endRemoveRows()
+                    src_grp.removeChilds(childs=[child])
+
+                #self.endRemoveRows()
 
             if src_grp.childCount() == 0:
                 #self.rootItem.childs.remove(src_grp)
                 s = ""
-
+        self.dataChanged.emit(QModelIndex(), QModelIndex())
 
 
     def supportedDragActions(self):
@@ -375,180 +372,115 @@ def getQIcon(name=Icons.Logo_png):
     return QtGui.QIcon(name)
 
 
-
-class CanvasLink(QObject):
-    """
-    Describes a bi-directional link between two QgsMapCanvas
-    """
-    #global list to store all links and avoid circular links
-    LINKSETS = list() #sets of canvases linked by extent
-
-    """
-    if one canvas has changed:
-        set all extents of canvases linked to = in same link group in LINK_EXTENTS
-        set all centers of canvases linked to = in same link group in LINK_ZOOM
-
-        a canvas can be either in a set of LINK_EXTENTS or LINK_CENTERS
-        LINK_CENTERS allows for different zoom levels
-        -> canvases can be linked by center
-        Example: c = linked by center, e = linked by extent
-        A c B
-        B e D
-        = linkset(e : {B,D})
-        = linkset(c : {A,B})
-
-          A B C D
-        A
-        B z
-        C - e
-        D e - z
-
-    """
-    LINKTYPES = ['center','extent','scale','scale_center']
-    class linkset(set):
-        def __init__(self, linktype):
-            assert linktype in CanvasLink.LINKTYPES
-            self.linktype = linktype
-
-        def __add__(self, other):
-            assert isinstance(other, qgis.gui.QgsMapCanvas)
-
+class CanvasLinkSet(set):
+    LINKTYPES = ['center', 'scale','center_scale']
+    LINK_SETS = list()
 
     @staticmethod
-    def CreateLink(canvas1, canvas2, linktype='extent', bidirectional=True):
-        assert linktype in CanvasLink.LINKTYPES
-        assert isinstance(canvas1, qgis.gui.QgsMapCanvas)
-        assert isinstance(canvas1, qgis.gui.QgsMapCanvas)
-        if canvas1 is canvas2:
-            return None
+    def addLink(canvas1, canvas2, linktype):
+        #remove canvas1 from sets with same link type
+        to_remove = []
+        for LS in CanvasLinkSet.LINK_SETS:
+            assert isinstance(LS, CanvasLinkSet)
+            if LS.linktype == linktype and canvas1 in LS:
+                LS.remove(canvas1)
+            if len(LS) == 0:
+                to_remove.append(LS)
 
-        register2 = not CanvasLink.containsCanvas(canvas2)
-        register1 = not CanvasLink.containsCanvas(canvas1)
-        #remove canvas1 from existing sets, since it can follow only one other canvas
-        for ls in [ls for ls in CanvasLink.LINKSETS if canvas1 in ls]:
-            ls.remove(canvas1)
+        for LS in to_remove: CanvasLinkSet.LINK_SETS.remove(LS)
 
-
-        ls = [ls for ls in CanvasLink.LINKSETS if ls.linktype==linktype and canvas2 in ls]
-        assert len(ls) <= 1
-        if len(ls) == 1:
-            ls[0].add(canvas1)
+        LS = [LS for LS in CanvasLinkSet.LINK_SETS if canvas2 in LS and LS.linktype == linktype]
+        if len(LS) == 0:
+            LS = CanvasLinkSet(linktype)
+        elif len(LS) > 1:
+            s = ""
         else:
-            ls = CanvasLink.linkset(linktype)
-            ls.add(canvas1)
-            ls.add(canvas2)
-            CanvasLink.LINKSETS.append(ls)
+            LS = LS[0]
+        LS.add(canvas1)
+        LS.add(canvas2)
 
-        # register events
-        if register2:
-            canvas2.extentsChanged.connect(lambda: CanvasLink.setLinks(canvas2))
-        if register1:
-            canvas1.extentsChanged.connect(lambda: CanvasLink.setLinks(canvas1))
 
-    @staticmethod
-    def containsCanvas(canvas):
-        for ls in CanvasLink.LINKSETS:
-            if canvas in ls:
-                return True
-        return False
+    """
+    Contains a set of linked QgsMapCanvas
+    """
+    def __init__(self, linktype):
+        super(CanvasLinkSet, self).__init__()
+        assert linktype in CanvasLinkSet.LINKTYPES
+        self.linktype = linktype
 
-    @staticmethod
-    def setLinks(canvas):
-        #find linked canvases
+
+    def add(self, canvas):
         assert isinstance(canvas, QgsMapCanvas)
-
-
-        already_changed = set([canvas])
-
-        def convert_CRS(c_src, c_dst):
-            src_ext = canvas.extent()
-            src_center = canvas.center()
-            src_scale = canvas.scale()
-
-            src_crs = c_src.mapRenderer().destinationCrs()
-            dst_crs = c_dst.mapRenderer().destinationCrs()
-
-            if src_crs == dst_crs:
-                dst_ext = src_ext
-                dst_center = src_center
-                dst_scale = src_scale
+        if canvas not in self:
+            if self.linktype == 'center':
+                canvas.extentsChanged.connect(lambda: self.setChanges(canvas))
+            elif self.linktype == 'scale':
+                canvas.scaleChanged.connect(lambda d: self.setChanges(canvas, d))
+            elif self.linktype == 'center_scale':
+                canvas.scaleChanged.connect(lambda d: self.setChanges(canvas, d))
+                canvas.extentsChanged.connect(lambda: self.setChanges(canvas))
+                s = ""
             else:
                 raise NotImplementedError()
 
-            return dst_ext, dst_center, dst_scale
+            super(CanvasLinkSet, self).add(canvas)
 
-        def applyLinkset(ls, blocksignals=True):
-            if canvas in ls:
-                for c in [c for c in list(ls) if c not in already_changed]:
-                    assert isinstance(c, QgsMapCanvas)
-                    c.blockSignals(blocksignals)
+    def delete(self, canvas):
+        assert isinstance(canvas, QgsMapCanvas)
+        if canvas in self:
+            #todo: disconnect linked signals
+            s = "dfghj"
+            if self.linktype == 'center':
+                s = ""
+            elif self.linktype == 'scale':
+                s = ""
+            else:
+                raise NotImplementedError()
 
-                    extents, center, scale = convert_CRS(canvas, c)
+    def setChanges(self, canvas, scale=None):
+        if canvas not in self:
+            s = ""
+
+        for c  in [c for c in self if c is not canvas]:
+            assert isinstance(c, QgsMapCanvas)
+            c.blockSignals(True)
+            dst_ext, dst_center, dst_scale = self.convert_CRS(canvas, c)
+            if scale is not None and dst_scale != scale:
+                s = ""
+
+            if self.linktype == 'center':
+                lockState = c.scaleLocked()
+                c.setScaleLocked(True)
+                c.setCenter(dst_center)
+                c.setScaleLocked(lockState)
+                s = ":"
+            elif self.linktype == 'scale':
+                c.zoomScale(dst_scale)
+            elif self.linktype == 'center_scale':
+                c.setCenter(dst_center)
+                c.zoomScale(dst_scale)
+            else:
+                raise NotImplementedError()
+
+            c.blockSignals(False)
 
 
-                    if ls.linktype == 'extent':
-                        c.setExtent(extents)
+    def convert_CRS(self, c_src, c_dst):
+        src_ext = c_src.extent()
+        src_center = c_src.center()
+        src_scale = c_src.scale()
+        print('CANVAS:: {} {} [{} {}]'.format(src_scale,src_center,src_ext.width(), src_ext.height() ))
+        src_crs = c_src.mapRenderer().destinationCrs()
+        dst_crs = c_dst.mapRenderer().destinationCrs()
 
-                    elif ls.linktype == 'center':
-                        c.setCenter(center)
+        if src_crs == dst_crs:
+            dst_ext = src_ext
+            dst_center = src_center
+            dst_scale = src_scale
+        else:
+            raise NotImplementedError()
 
-                    elif ls.linktype == 'scale':
-                        c.zoomScale(scale)
-
-                    elif ls.linktype == 'scale_center':
-                        c.zoomScale(scale)
-                        c.setCenter(center)
-
-                    else:
-                        raise NotImplementedError()
-                    c.blockSignals(False)
-                    already_changed.add(c)
-                    #c.refresh()
-
-
-        for ls in [ls for ls in CanvasLink.LINKSETS if ls.linktype == 'extent']:
-            applyLinkset(ls, True)
-
-        for ls in [ls for ls in CanvasLink.LINKSETS if ls.linktype == 'center']:
-            applyLinkset(ls, True)
-
-        for ls in [ls for ls in CanvasLink.LINKSETS if ls.linktype == 'scale']:
-            applyLinkset(ls, True)
-
-        for ls in [ls for ls in CanvasLink.LINKSETS if ls.linktype == 'scale_center']:
-            applyLinkset(ls, True)
-
-        s = ""
-
-    @staticmethod
-    def link_exists(canvas1, canvas2):
-        # check circular reference
-        linked1 = CanvasLink.get_linked_canvases(canvas1)
-        linked2 = CanvasLink.get_linked_canvases(canvas2)
-
-        return canvas2 in linked1 or canvas1 in linked2
-
-    @staticmethod
-    def get_linked_canvases(canvas):
-        linked = set()
-        linked.add(canvas)
-        n = len(linked)
-        changed = True
-        if changed == True:
-            for link in CanvasLink.LINK_SETS:
-                if link.canvas1 in linked:
-                    linked.add(link.canvas2)
-                if link.canvas2 in linked:
-                    linked.add(link.canvas1)
-            changed = len(linked) > n
-        linked.remove(canvas)
-        return linked
-
-    def setExtent(self, c1, c2):
-        pass
-
-    def panCenter(self, c1, c2):
-        pass
+        return dst_ext, dst_center, dst_scale
 
 
 
@@ -601,7 +533,10 @@ class DataSourceManager(QObject):
 
     def removeSource(self, src):
         assert isinstance(src, DataSource)
-        self.sources.remove(src)
+        if src in self.sources:
+            self.sources.remove(src)
+        else:
+            print('DEBUG: can not remove {}'.format(src))
         self.sigDataSourceRemoved.emit(src)
 
 
@@ -997,6 +932,7 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
 
     LINK_TARGET_WIDGETS = set()
 
+
     @staticmethod
     def ShowMapLinkTargets(mapDock):
 
@@ -1022,7 +958,11 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
     @staticmethod
     def linkMaps(maplinkwidget, linktype):
 
-        CanvasLink.CreateLink(maplinkwidget.canvas1, maplinkwidget.canvas2, linktype)
+
+
+        canvas1 = maplinkwidget.canvas1
+        canvas2 = maplinkwidget.canvas2
+        CanvasLinkSet.addLink(canvas1, canvas2, linktype)
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets()
 
     @staticmethod
@@ -1077,7 +1017,7 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
 
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map scale and center')
-        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale_center'))
+        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center_scale'))
         bt.setIcon(getQIcon(Icons.Map_Link_Scale_Center))
         self.buttons.append(bt)
 
@@ -1222,15 +1162,15 @@ class MapDock(Dock):
         # create the map tools and linke them to the toolbar actions
         self.toolPan = qgis.gui.QgsMapToolPan(self.canvas)
         self.toolPan.setAction(g.actionPan)
-        self.toolPan.action().triggered.connect(lambda: self.canvas.setMapTool(self.toolPan))
+        self.toolPan.action().triggered.connect(lambda: self.setMapTool(self.toolPan))
 
         self.toolZoomIn = qgis.gui.QgsMapToolZoom(self.canvas, False)  # false = in
         self.toolZoomIn.setAction(g.actionZoomIn)
-        self.toolZoomIn.action().triggered.connect(lambda: self.canvas.setMapTool(self.toolZoomIn))
+        self.toolZoomIn.action().triggered.connect(lambda: self.setMapTool(self.toolZoomIn))
 
         self.toolZoomOut = qgis.gui.QgsMapToolZoom(self.canvas, True)  # true = out
         self.toolZoomOut.setAction(g.actionZoomOut)
-        self.toolZoomOut.action().triggered.connect(lambda: self.canvas.setMapTool(self.toolZoomOut))
+        self.toolZoomOut.action().triggered.connect(lambda: self.setMapTool(self.toolZoomOut))
 
 
         self.label.linkMap.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
@@ -1244,6 +1184,15 @@ class MapDock(Dock):
             ds = self.enmapbox.addSource(initSrc)
             if isinstance(ds, DataSourceSpatial):
                 self.addLayer(ds.getMapLayer())
+
+    def setMapTool(self, mapTool):
+        if False:
+            if isinstance(mapTool, QgsMapToolPan):
+                self.canvas.setScaleLocked(True)
+            else:
+                self.canvas.setScaleLocked(False)
+
+        self.canvas.setMapTool(mapTool)
 
     def test(self):
         print('START LINKING')
@@ -1266,7 +1215,10 @@ class MapDock(Dock):
 
         s = ""
         mimedata = event.mimeData()
+
         assert isinstance(mimedata, QMimeData)
+        print(mimedata.text())
+        print(mimedata.urls())
         if mimedata.hasUrls():
             for url in mimedata.urls():
                 ds = self.enmapbox.addSource(url)
@@ -1283,15 +1235,15 @@ class MapDock(Dock):
         else:
             super(MapDock, self).mousePressEvent(event)
 
-    def linkWithMapDock(self, mapDock, linktype='extent'):
+    def linkWithMapDock(self, mapDock, linktype):
         assert isinstance(mapDock, MapDock)
-        self.linkWithCanvas(mapDock.canvas, linktype=linktype)
+        self.linkWithCanvas(mapDock.canvas, linktype)
 
 
-    def linkWithCanvas(self, canvas, linktype='extent'):
+    def linkWithCanvas(self, canvas, linktype):
         assert isinstance(canvas, qgis.gui.QgsMapCanvas)
+        CanvasLinkSet.addLink(self, canvas, linktype)
 
-        CanvasLink.CreateLink(canvas, self.canvas, linktype=linktype)
 
     def addLayer(self, mapLayer, index=0):
         assert isinstance(mapLayer, QgsMapLayer)
