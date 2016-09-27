@@ -12,31 +12,14 @@ import qgis.gui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+
+
 jp = os.path.join
 DIR_REPO = os.path.normpath(os.path.split(inspect.getfile(inspect.currentframe()))[0])
-site.addsitedir(jp(DIR_REPO, 'site-packages'))
+DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
 
-DEPENDENCIES = ['numpy','foobar']
-
-
-
-
-def check_package(name, package=None, verbose=True, stop_on_error=False):
-    try:
-        importlib.import_module(name, package)
-        if verbose:
-            print('Import {} successful'.format(name))
-    except Exception, e:
-        error_text = 'Unable to import {}'.format(name)
-        if stop_on_error:
-            raise Exception(error_text)
-        else:
-            six.print_(error_text, file=sys.stderr)
-            return False
-    return True
-
-
-
+DEPENDENCIES_MANDATORY = ['numpy','scipy','sklearn','matplotlib']
+DEPENDENCIES_OPTIONAL = ['foobar','astrolib']
 
 
 class EnMAPBoxPlugin:
@@ -71,24 +54,26 @@ class EnMAPBoxPlugin:
 
         #1. EnMAP-Box main window
 
+        syspaths = [os.path.normpath(p) for p in sys.path]
+        if DIR_REPO not in syspaths: sys.path.append(DIR_REPO)
+        site.addsitedir(DIR_SITE_PACKAGES)
 
-        site_packages = jp(DIR_REPO, 'site-packages')
-        to_add = [site_packages]
-
-        #for name in os.listdir(site_packages):
-        #    path = jp(site_packages, name)
-        #    if os.path.isdir(path):
-        #        print(path)
-        #        to_add.append(path)
-        if DIR_REPO not in sys.path:
-            sys.path.append(DIR_REPO)
-        from enmapbox.utils import add_to_sys_path
-        add_to_sys_path(to_add)
-
-        print('INIT ENMAPBOX-GUI')
-        for p in sys.path: print(p)
-
+        import enmapbox.main
+        import enmapbox.utils
         from enmapbox.main import EnMAPBox
+        dprint = enmapbox.main.dprint
+        dprint('INIT ENMAPBOX-GUI')
+
+        for p in DEPENDENCIES_MANDATORY:
+            enmapbox.utils.check_package(p, stop_on_error=True)
+        for p in DEPENDENCIES_OPTIONAL:
+            failed = []
+            if not enmapbox.utils.check_package(p):
+                failed.append(p)
+            if len(failed) > 0:
+                dprint('Unable to load the following optional packages : {}'.format(', '.join(failed)))
+
+
         self.enmapbox = EnMAPBox(self.iface)
         EnMAPBoxPlugin._enmapBoxInstance = self.enmapbox
 
@@ -96,23 +81,19 @@ class EnMAPBoxPlugin:
         action.triggered.connect(self.enmapbox.run)
         self.toolbarActions.append(action)
 
-        #2. tbd...
+        dprint('INIT ENMAPBOX QGIS TOOLBAR ACTION(S)')
         for action in self.toolbarActions:
-            print('ADD::{}'.format(action))
             self.iface.addToolBarIcon(action)
 
 
         # init processing provider
-
+        dprint('INIT ENMAPBOX PROCESSING PROVIDER(S)')
         self.processingProviders = []
-        if True and self.has_processing_framework():
+        if self.has_processing_framework():
             # add example app
             try:
                 from processing.core.Processing import Processing
                 from enmapbox.apps.core import EnMAPBoxProvider
-
-
-                p = EnMAPBoxProvider()
 
                 self.processingProviders.append(EnMAPBoxProvider())
 
@@ -127,8 +108,10 @@ class EnMAPBoxPlugin:
                 six.print_('ERROR occurred while loading EnMAPBoxProvider for processing frame work:', file=sys.stderr)
                 six.print_(str(e))
                 six.print_(tb)
-            print('Processing Framework initialization done')
-        print('EnMAP-Box initialization done')
+            dprint('Processing framework initialization done')
+        else:
+            dprint('Unable to fine processing framework')
+        dprint('EnMAP-Box initialization done')
 
     def unload(self):
         for action in self.toolbarActions:
@@ -139,6 +122,7 @@ class EnMAPBoxPlugin:
             from processing.core.Processing import Processing
             for provider in self.processingProviders:
                 Processing.removeProvider(provider)
+
 
     def openGUI(self):
         pass
