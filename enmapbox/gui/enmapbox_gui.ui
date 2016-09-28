@@ -41,32 +41,29 @@
     <property name="title">
      <string>Files</string>
     </property>
-    <addaction name="actionOpen_Raster"/>
-    <addaction name="actionImport"/>
-    <addaction name="actionExport"/>
+    <addaction name="actionAddDataSource"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
      <string>Views</string>
     </property>
+    <addaction name="actionAddMapView"/>
+    <addaction name="actionAddTextView"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
      <string>Tools</string>
     </property>
-    <addaction name="actionGDAL"/>
    </widget>
    <widget class="QMenu" name="menuApplications">
     <property name="title">
      <string>Applications</string>
     </property>
-    <addaction name="actionImageML"/>
    </widget>
    <widget class="QMenu" name="menuSandbox">
     <property name="title">
      <string>Sandbox</string>
     </property>
-    <addaction name="actionAddView"/>
     <addaction name="actionAddMapView"/>
     <addaction name="actionAddTextView"/>
     <addaction name="actionAddGraphView"/>
@@ -118,11 +115,20 @@
          </property>
          <item>
           <widget class="QTreeView" name="dataSourceTreeView">
+           <property name="contextMenuPolicy">
+            <enum>Qt::CustomContextMenu</enum>
+           </property>
+           <property name="acceptDrops">
+            <bool>true</bool>
+           </property>
            <property name="frameShape">
             <enum>QFrame::Box</enum>
            </property>
            <property name="frameShadow">
             <enum>QFrame::Sunken</enum>
+           </property>
+           <property name="dragEnabled">
+            <bool>true</bool>
            </property>
            <property name="dragDropMode">
             <enum>QAbstractItemView::DragDrop</enum>
@@ -160,8 +166,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionAddMapView"/>
-   <addaction name="actionAddTextView"/>
+   <addaction name="actionAddDataSource"/>
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
@@ -170,36 +175,6 @@
    <addaction name="separator"/>
    <addaction name="actionSandbox"/>
   </widget>
-  <action name="actionOpen_Raster">
-   <property name="text">
-    <string>Open Raster</string>
-   </property>
-  </action>
-  <action name="actionImport">
-   <property name="text">
-    <string>Import</string>
-   </property>
-  </action>
-  <action name="actionExport">
-   <property name="text">
-    <string>Export</string>
-   </property>
-  </action>
-  <action name="actionGDAL">
-   <property name="text">
-    <string>Spectral/Spatial Subset</string>
-   </property>
-  </action>
-  <action name="actionImageML">
-   <property name="text">
-    <string>imageML</string>
-   </property>
-  </action>
-  <action name="actionAddView">
-   <property name="text">
-    <string>addView</string>
-   </property>
-  </action>
   <action name="actionAddMapView">
    <property name="icon">
     <iconset>
@@ -211,11 +186,6 @@
    </property>
   </action>
   <action name="actionAddTextView">
-   <property name="icon">
-    <iconset>
-     <normalon>:/enmapbox/icons/enmapbox.png</normalon>
-    </iconset>
-   </property>
    <property name="text">
     <string>addTextView</string>
    </property>
@@ -228,7 +198,7 @@
   <action name="actionZoomIn">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomIn.svg</normaloff>:/enmapbox/icons/mActionZoomIn.svg</iconset>
+     <normaloff>:/enmapbox/svg/icons/mActionZoomIn.svg</normaloff>:/enmapbox/svg/icons/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
     <string>zoomIn</string>
@@ -237,18 +207,26 @@
   <action name="actionZoomOut">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomOut.svg</normaloff>:/enmapbox/icons/mActionZoomOut.svg</iconset>
+     <normaloff>:/enmapbox/svg/icons/mActionZoomOut.svg</normaloff>:/enmapbox/svg/icons/mActionZoomOut.svg</iconset>
    </property>
    <property name="text">
     <string>zoomOut</string>
    </property>
   </action>
   <action name="actionPan">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/svg/icons/mActionPan.svg</normaloff>:/enmapbox/svg/icons/mActionPan.svg</iconset>
+   </property>
    <property name="text">
     <string>pan</string>
    </property>
   </action>
   <action name="actionSelectPixel">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/svg/icons/mActionIdentify.svg</normaloff>:/enmapbox/svg/icons/mActionIdentify.svg</iconset>
+   </property>
    <property name="text">
     <string>selectPixel</string>
    </property>
@@ -264,6 +242,18 @@
    </property>
    <property name="toolTip">
     <string>selectSandbox</string>
+   </property>
+  </action>
+  <action name="actionAddDataSource">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/svg/icons/add_datasource.svg</normaloff>:/enmapbox/svg/icons/add_datasource.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Add data source</string>
+   </property>
+   <property name="toolTip">
+    <string>Adds a data sourc, e.g. raster or vector file</string>
    </property>
   </action>
  </widget>
