@@ -541,26 +541,26 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
-        bt.setIcon(QIcon(Icons.Map_Link_Center))
+        bt.setIcon(QIcon(IconProvider.Map_Link_Center))
         self.buttons.append(bt)
 
         if False:
             bt = QtGui.QToolButton(self)
             bt.setToolTip('Link map extent')
             bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
-            bt.setIcon(Icon(Icons.Map_Link_Extent))
+            bt.setIcon(Icon(IconProvider.Map_Link_Extent))
             self.buttons.append(bt)
 
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map scale ("Zoom")')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale'))
-        bt.setIcon(QIcon(Icons.Map_Link_Scale))
+        bt.setIcon(QIcon(IconProvider.Map_Link_Scale))
         self.buttons.append(bt)
 
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map scale and center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center_scale'))
-        bt.setIcon(QIcon(Icons.Map_Link_Scale_Center))
+        bt.setIcon(QIcon(IconProvider.Map_Link_Scale_Center))
         self.buttons.append(bt)
 
 
@@ -635,11 +635,11 @@ class MapDockLabel(DockLabel):
         self.linkMap.setToolTip('Link with other map')
         #linkExtent.clicked.connect(lambda: self.dock.linkWithMapDock())
         #self.linkMap.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
-        self.linkMap.setIcon(QIcon(Icons.Map_Link))
+        self.linkMap.setIcon(QIcon(IconProvider.Map_Link))
 
         self.removeMapLink = QtGui.QToolButton(self)
         self.removeMapLink.setToolTip('Remove links')
-        self.linkMap.setIcon(QIcon(Icons.Map_Link_Remove))
+        self.linkMap.setIcon(QIcon(IconProvider.Map_Link_Remove))
         self.buttons.extend([self.linkMap, self.removeMapLink])
 
 
@@ -681,6 +681,8 @@ class MapCanvas(QgsMapCanvas):
         self.sigDropEvent.emit(event)
 
 
+
+
 class MapDock(Dock):
 
     """
@@ -699,6 +701,7 @@ class MapDock(Dock):
         self.canvas = MapCanvas(self)
         self.canvas.sigDropEvent.connect(self.canvasDrop)
         self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
+        self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenu)
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -725,6 +728,9 @@ class MapDock(Dock):
         self.toolZoomOut.setAction(g.actionZoomOut)
         self.toolZoomOut.action().triggered.connect(lambda: self.setMapTool(self.toolZoomOut))
 
+        self.toolIdentify = QgsMapToolIdentify(self.canvas)
+        self.toolIdentify.setAction(g.actionIdentify)
+        self.toolIdentify.action().triggered.connect(lambda: self.setMapTool(self.toolIdentify))
 
         self.label.linkMap.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
         self.label.removeMapLink.clicked.connect(lambda: CanvasLinkManager.instance().removeFollowerLink(self.canvas))
@@ -737,6 +743,10 @@ class MapDock(Dock):
             ds = self.enmapbox.addSource(initSrc)
             if isinstance(ds, DataSourceSpatial):
                 self.addLayer(ds.createMapLayer())
+
+    def onCanvasContextMenu(self, point):
+        s  = ""
+        pass
 
     def setMapTool(self, mapTool):
         if False:
@@ -768,20 +778,21 @@ class MapDock(Dock):
         import enmapbox.utils
         ME = enmapbox.utils.MimeDataHelper(event.mimeData())
 
+        added_sources = []
         if ME.hasQgsLayerTree():
             for id, name in ME.getQgsLayerTreeLayers():
                 ds = DataSource.Factory(id, name=name)
                 if ds is not None:
-                    self.enmapbox.dataSourceManager.addSource(ds)
+                    added_sources.append(self.enmapbox.addSource(ds))
 
-            s = ""
 
         if ME.hasUriList():
             for url in ME.getUriList():
-                dprint(url)
-                ds = self.enmapbox.addSource(url)
+                ds = DataSource.Factory(url)
                 if ds is not None:
-                    self.addLayer(ds.createMapLayer())
+                    added_sources.append(self.enmapbox.addSource(ds))
+        for ds in added_sources:
+            self.addLayer(ds.createMapLayer())
 
 
     def _getLabel(self):
@@ -832,7 +843,6 @@ class MapDock(Dock):
 
 
 class TextDock(Dock):
-    import this
     """
     A dock to visualize textural data
     """
