@@ -1,9 +1,12 @@
 from __future__ import division
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
-import numpy
-from hub.timing import tic, toc
-import hub.ogr.util, os, hub.gdal.util
+
+import hub.gdal.util
+import hub.ogr.util
+import os
 from hub.gdal.api import GDALMeta
+from hub.timing import tic, toc
+from lamos.processing.types import MGRSFootprint
+
 
 class LucasImportApplier:
 

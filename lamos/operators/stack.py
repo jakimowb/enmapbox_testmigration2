@@ -1,14 +1,13 @@
 from __future__ import division
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
-import numpy
-from hub.timing import tic, toc
-from hub.gdal.util import stack_bands
-from hub.gdal.api import GDALMeta
-import enmapbox.processing
-from enmapbox.processing.estimators import Classifiers
-from enmapbox.processing.environment import PrintProgress
-import gdal
+
 import os
+
+import gdal
+from hub.gdal.api import GDALMeta
+from hub.gdal.util import stack_bands
+from hub.timing import tic, toc
+from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
+
 
 class StackApplier(Applier):
 

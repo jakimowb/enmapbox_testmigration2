@@ -1,7 +1,9 @@
 from __future__ import division
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
+
 import numpy
 from hub.timing import tic, toc
+from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
+
 
 class NDVIApplier(Applier):
 

@@ -90,19 +90,24 @@ def writeHeader(hdrfile, hdr):
                   'sensor type','byte order','map info','projection info','coordinate system string','acquisition time',
                   'wavelength units','wavelength','band names']
 
-    with open(hdrfile, 'w') as file:
-        def writeKeyValue(key, value):
-            if not value: return
-            if isinstance(value, list) or isinstance(value, numpy.ndarray):
-                value = [str(elem) for elem in value]
-            if isinstance(value, list) or isinstance(value, numpy.ndarray):
-                file.writelines(key+' = {'+','.join(value)+'}\n')
-            else:
-                file.writelines(key+' = '+str(value)+'\n')
+    def writeKeyValue(key, value):
+        if value is None: return
+        if isinstance(value, list) or isinstance(value, numpy.ndarray):
+            value = [str(elem) for elem in value]
+        if isinstance(value, list) or isinstance(value, numpy.ndarray):
+            file.writelines(key + ' = {' + ','.join(value) + '}\n')
+        else:
+            file.writelines(key + ' = ' + str(value) + '\n')
 
+    with open(hdrfile, 'w') as file:
         file.write('ENVI\n')
-        for key in sortedKeys: writeKeyValue(key, hdr.pop(key,None))
-        for key, value in zip(hdr.keys(),hdr.values()): writeKeyValue(key, value)
+        for key in sortedKeys:
+            writeKeyValue(key, hdr.pop(key, None))
+            writeKeyValue(key, hdr.pop(key.replace('_',' '), None))
+
+        for key, value in zip(hdr.keys(),hdr.values()):
+            writeKeyValue(key.replace('_',' '), value)
+
 
 def updateHeader(hdrfile, hdr):
     hdr1 = readHeader(hdrfile)
