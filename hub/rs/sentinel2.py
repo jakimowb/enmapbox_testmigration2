@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 import numpy
 from hub.timing import *
 
-import enmapbox.hub.gdal.util
+import emb.hub.gdal.util
 
 
 def importL1C(outfile, infolder, epsg):
@@ -28,17 +28,17 @@ def importL1C(outfile, infolder, epsg):
     for bname in bnames2:
 
         # find all jp2 files for the band
-        jp2files = enmapbox.hub.file.filesearch(os.path.join(infolder, 'GRANULE'), '*' + bname + '.jp2')
+        jp2files = emb.hub.file.filesearch(os.path.join(infolder, 'GRANULE'), '*' + bname + '.jp2')
 
         # warp all granuals to single projection
         tmpfolder = os.path.join(os.path.dirname(outfile), 'tmp')
         warpedjp2files = [os.path.join(tmpfolder, os.path.basename(jp2file)).replace('.jp2', '.vrt') for jp2file in jp2files]
         for jp2file, warpedjp2file in zip(jp2files,warpedjp2files):
-            enmapbox.hub.gdal.util.gdalwarp(warpedjp2file, jp2file, '-of VRT -overwrite -wm 2000 -s_srs epsg:' + str(epsg))
+            emb.hub.gdal.util.gdalwarp(warpedjp2file, jp2file, '-of VRT -overwrite -wm 2000 -s_srs epsg:' + str(epsg))
 
         outfileSingle = outfile+'_'+bname+'.vrt'
 
-        enmapbox.hub.gdal.util.mosaic(outfileSingle, warpedjp2files)
+        emb.hub.gdal.util.mosaic(outfileSingle, warpedjp2files)
 #        hub.envi.vrt2mos(outfileSingle)
         outfilesSingle.append(outfileSingle)
 
@@ -47,8 +47,8 @@ def importL1C(outfile, infolder, epsg):
         invrts = numpy.array(outfilesSingle)[resolutions == targetResolution]
         outvrt = outfile+'_'+str(targetResolution)+'m.vrt'
         outenvi = outfile+'_'+str(targetResolution)+'m.img'
-        enmapbox.hub.gdal.util.gdalbuildvrt(outvrt, invrts, '-separate')
-        enmapbox.hub.gdal.util.gdal_translate(outenvi, outvrt, '-of ENVI')
+        emb.hub.gdal.util.gdalbuildvrt(outvrt, invrts, '-separate')
+        emb.hub.gdal.util.gdal_translate(outenvi, outvrt, '-of ENVI')
 #        hub.gdal.util.gdalwarp(outenvi, outvrt, '-of ENVI  -overwrite -wm 2000')
 
 

@@ -1,7 +1,7 @@
 __author__ = 'janzandr'
 import numpy
 
-from enmapbox.hub.timing import tic, toc
+from emb.hub.timing import tic, toc
 
 
 def nanargpercentile(a, q, axis=0, out=None, overwrite_input=False, interpolation='linear'):
