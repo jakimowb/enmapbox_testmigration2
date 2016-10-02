@@ -89,7 +89,7 @@ class IconProvider:
     """
     Provides icons
     """
-    Logo_png = ':/enmapbox/png/icons/enmapbox.png'
+    EnMAP_Logo = ':/enmapbox/png/icons/enmapbox.png'
     Map_Link_Remove = ':/enmapbox/svg/icons/link_basic.svg'
     Map_Link = ':/enmapbox/svg/icons/link_basic.svg'
     Map_Link_Center = ':/enmapbox/svg/icons/link_center.svg'
@@ -108,17 +108,19 @@ class IconProvider:
     File_Vector_Line = ':/enmapbox/svg/icons/mIconLineLayer.svg'
     File_Vector_Polygon = ':/enmapbox/svg/icons/mIconPolygonLayer.svg'
 
+
+
     @staticmethod
     def resourceIconsPaths():
         import inspect
-        return inspect.getmembers(IconProvider, lambda a: not(inspect.isroutine(a)))
+        return inspect.getmembers(IconProvider, lambda a: not(inspect.isroutine(a)) and a.startswith(':'))
 
     @staticmethod
     def icon(path):
         if path is None:
-            path = IconProvider.Logo_png
-        assert isinstance(path, str)
+            path = IconProvider.EnMAP_Logo
 
+        assert isinstance(path, str)
         icon = None
         if path in IconProvider.resourceIconsPaths():
             icon = QIcon(path)
@@ -127,6 +129,28 @@ class IconProvider:
             icon = provider.icon(QFileInfo(path))
 
         return icon
+
+    @staticmethod
+    def test():
+        dprint('test QImageProviders')
+        required = set(['png','svg'])
+        available = set([str(p) for p in QImageReader.supportedImageFormats()])
+        missing = required - available
+        if len(missing) > 0:
+            dprint('Missing QImageFormat support : {}'.format(','.join(list(missing))))
+        s = ""
+
+
+
+        dprint('test resource file icons')
+        for name, uri in IconProvider.resourceIconsPaths():
+            icon = QIcon(uri)
+            w = h = 16
+            s = icon.actualSize(QSize(w,h))
+            if w != s.width() or h != s.height():
+                print((name, uri, s.width(), s.height()))
+                s = ""
+
 
 
 class TreeItem(QObject):
