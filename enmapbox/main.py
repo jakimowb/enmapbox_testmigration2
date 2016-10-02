@@ -27,9 +27,12 @@ LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
 #import pyqtgraph
 #import pyqtgraph.dockarea.DockArea
 
+import qgis.core
+
 from PyQt4 import QtGui, QtCore, uic
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+
 from enmapbox.utils import *
 from enmapbox.datasources import *
 
@@ -423,7 +426,7 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
 
 
 
-def getQIcon(name=IconProvider.Logo_png):
+def getQIcon(name=IconProvider.EnMAP_Logo):
     return QtGui.QIcon(name)
 
 
@@ -513,6 +516,7 @@ class EnMAPBox:
         print(iface)
         self.iface = iface
         self.gui = EnMAPBox_GUI()
+        self.gui.showMaximized()
         self.gui.setAcceptDrops(True)
         self.gui.setWindowTitle('EnMAP-Box ' + VERSION)
         self.dataSourceManager = DataSourceManager()
@@ -534,9 +538,6 @@ class EnMAPBox:
         self.dockarea.sigDropEvent.connect(self.dockAreaSignalHandler)
 
         self.gui.centralWidget().layout().addWidget(self.dockarea)
-        #self.gui.centralWidget().addWidget(self.dockarea)
-
-
 
         #link action objects to action behaviour
         #self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
@@ -686,9 +687,6 @@ if __name__ == '__main__':
 
     #start a QGIS instance
 
-    if False:
-        #sandbox area
-        exit()
 
 
     from qgis.gui import *
@@ -699,6 +697,13 @@ if __name__ == '__main__':
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
     assert os.path.exists(PATH_QGS)
     qgsApp = QgsApplication([], True)
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
+
+    if True:
+        IconProvider.test()
+        #exit()
+
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
@@ -720,15 +725,16 @@ if __name__ == '__main__':
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
     #EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
-    if False:
+    if True:
         EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
         EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
         EB.createDock('MAP', name='MapDock 4', initSrc=TestData.AF_LC)
         #EB.createDock('MAP', name='MapDock 3', initSrc=TestData.Landsat_Shp)
-        EB.createDock('TEXT', name='TextDock',
-                                             html='Here we can show HTML like text:'
-                                                  '<a href="http://www.enmap.org">www.enmap.org</a>'
-                                                  '</br>'+LORE_IPSUM)
+        if False:
+            EB.createDock('TEXT', name='TextDock',
+                                                 html='Here we can show HTML like text:'
+                                                      '<a href="http://www.enmap.org">www.enmap.org</a>'
+                                                      '</br>'+LORE_IPSUM)
 
 
     #md1.linkWithMapDock(md2, linktype='center')
