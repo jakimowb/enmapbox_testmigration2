@@ -874,6 +874,21 @@ class MapDock(Dock):
         action.triggered.connect(lambda: self.canvas.setExtent(self.canvas.fullExtent()))
         menu.addAction(action)
 
+        action = QAction('Refresh', menu)
+        action.triggered.connect(lambda: self.canvas.refresh())
+        menu.addAction(action)
+
+        action = QAction('Refresh all layers', menu)
+        action.triggered.connect(lambda: self.canvas.refreshAllLayers())
+        menu.addAction(action)
+
+        action = QAction('Link with other maps', menu)
+        action.triggered.connect(lambda: CanvasLinkTargetWidget.ShowMapLinkTargets(self))
+        menu.addAction(action)
+
+        action = QAction('Remove map links', menu)
+        action.triggered.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
+        menu.addAction(action)
 
         menu.exec_(event.globalPos())
 
