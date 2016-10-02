@@ -231,6 +231,7 @@ class CanvasLinkManager:
             dst_crs = dst.mapRenderer().destinationCrs()
             trans = QgsCoordinateTransform(mst_crs, dst_crs)
             trans.initialise()
+
             if trans.isShortCircuited():
                 new_extent = mst_extent
                 new_center = mst_center
@@ -240,8 +241,9 @@ class CanvasLinkManager:
 
             #the recent/old map center + extent
             new_muppx = new_extent.width() / master.width()
+            new_muppy = new_extent.height() / master.height()
             w = master.width() * new_muppx * 0.5
-            h = master.height() * new_muppx * 0.5
+            h = master.height() * new_muppy * 0.5
             x = dst.center().x()
             y = dst.center().y()
 
@@ -890,7 +892,28 @@ class MapDock(Dock):
         action.triggered.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
         menu.addAction(action)
 
+        action = QAction('Clear map', menu)
+        action.triggered.connect(lambda: self.canvas.setLayerSet([]))
+        menu.addAction(action)
+
+        action = QAction('Set CRS', menu)
+        action.triggered.connect(lambda: self.setCRSfromDialog())
+        menu.addAction(action)
+
+
         menu.exec_(event.globalPos())
+
+
+    def setCRSfromDialog(self):
+        w  = QgsProjectionSelectionWidget(self)
+        crs = self.canvas.mapRenderer().destinationCrs()
+        w.setLayerCrs(crs)
+        w.setCrs(crs)
+
+        d = w.dialog()
+        d.setMessage('Select CRS for {}'.format(self.title))
+        w.crsChanged.connect(lambda returned_crs: self.canvas.setDestinationCrs(returned_crs))
+        w.selectCrs()
 
 
     def onCanvasContextMenu(self, point):
