@@ -1,11 +1,16 @@
 from __future__ import absolute_import
 import six, sys, os, gc, re, collections, site
+import itertools
+from qgis.core import *
+from qgis.gui import *
+
 from PyQt4 import QtGui, QtCore, uic
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+import PyQt4.QtSvg
 
-from qgis.core import *
-from qgis.gui import *
+
+
 
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
@@ -14,35 +19,76 @@ from pyqtgraph.widgets.VerticalLabel import VerticalLabel
 from enmapbox.utils import *
 from enmapbox.datasources import *
 
-class CanvasLink(object):
+class CanvasLink():
+
+    def __init__(self, canvas1, canvas2, linktype):
+        assert linktype in CanvasLinkSet.LINKTYPES
+
+        self.linktype = linktype
+        self.canvases = set([canvas1, canvas2])
+
+    def theOtherCanvas(self, canvas):
+        assert canvas in self.canvases
+        assert len(self.canvases) == 2
+        diff = list(self.canvases - set([canvas]))
+        assert len(diff) == 1
+        return diff[0]
+
+    def __repr__(self):
+        cs = list(self.canvases)
+        return 'CanvasLink "{}" {} <-> {}'.format(self.linktype, cs[0], cs[1])
+
+class CanvasLinkSet(object):
     """
     A link between two QgsMapCanvases
     """
     LINKTYPES = ['center', 'scale', 'center_scale']
-    def __init__(self, follower, master, linktype):
-        assert isinstance(follower, QgsMapCanvas)
-        assert isinstance(master, QgsMapCanvas)
-        assert linktype in CanvasLink.LINKTYPES
-        self.follower = follower
-        self.master = master
+
+    def __init__(self, canvases, linktype):
+        assert linktype in CanvasLinkSet.LINKTYPES
+
+        for c in canvases:
+            assert isinstance(c, QgsMapCanvas)
+        self.links = set()
+        for c1, c2 in itertools.combinations(canvases,2):
+            self.links.add(CanvasLink(c1,c2, linktype))
         self.linktype = linktype
 
     def contains(self, canvas):
-        return self.follower == canvas or self.master == canvas
+        assert isinstance(canvas, QgsMapCanvas)
+        return canvas in self.canvases
+
+    def removeLinksBetween(self, canvases):
+        for c1, c2 in itertools.combinations(canvases, 2):
+            c = set([c1,c2])
+            to_remove = [link for link in self.links if c <= link.canvases]
+            for link in to_remove:
+                self.links.remove(link)
+
+
+    def removeCanvas(self, canvas):
+        assert isinstance(canvas, QgsMapCanvas)
+        to_remove = [l for l in self.links if canvas in l.canvases]
+        for l in to_remove:
+            self.links.remove(l)
+
+    def addCanvas(self, canvas):
+        assert isinstance(canvas, QgsMapCanvas)
+        canvases = self.canvases() - canvas
+        for c in canvases:
+            self.links.append(CanvasLink(canvas, c , self.linktype))
 
     def canvases(self):
-        return set([self.follower, self.master])
+        canvases = set()
+        for link in self.links:
+            canvases.update(link.canvases)
+        return canvases
 
-    def theOther(self, canvas):
-        if self.follower == canvas:
-            return self.master
-        elif self.master == canvas:
-            return self.follower
-        else:
-            raise Exception('Canvas {} not part of this link definition'.format(canvas))
+    def __len__(self):
+        return len(self.links)
 
     def __repr__(self):
-        return 'CanvasLink {}->{} on {}'.format(self.follower,self.master, self.linktype)
+        return 'CanvasLinkSet "{}" between {{{}}}'.format(self.linktype, ', '.join([str(c) for c in self.canvases() ]))
 
 
 class CanvasLinkManager:
@@ -59,74 +105,79 @@ class CanvasLinkManager:
         """
         Stores CanvasLinks and ensures integrity
         """
-        self.LINKS = set()
+        self.LINKSETS = set()
         self.registeredCanvases = set()
+        self.handledCanvases = set()
 
-    def addLink(self, canvasLink):
-        assert isinstance(canvasLink, CanvasLink)
 
-        # remove previous link of same follower, if exists
-        self.removeFollowerLink(canvasLink.follower)
 
-        # avoid circle dependencies
-        if canvasLink.follower in self.getMasters(canvasLink.master):
-            s = ""
-            dprint('CIRCLE MAPLINK:')
-            for l in self.dump(): dprint(l)
-            self.removeFollowerLink(canvasLink.master)
+    def addLinkSet(self, newLinkSet):
+        assert isinstance(newLinkSet, CanvasLinkSet)
+
+        # there can be only one link type between two canvases
+        # remove canvas links defined in this link set from previous link sets
+        for link in newLinkSet.links:
+            for linkSet in self.LINKSETS:
+                assert isinstance(linkSet, CanvasLinkSet)
+                linkSet.removeLinksBetween(link.canvases)
+
+        #remove empty link sets
+        self.removeEmptyLinkSets()
 
         # register signals
-        #allCanvases = self.getAllCanvases()
-        if canvasLink.master not in self.registeredCanvases:
-            canvasLink.master.extentsChanged.connect(lambda : self.setChanges(canvasLink.master))
-            self.registeredCanvases.add(canvasLink.master)
-        # add link to the link set
-        self.LINKS.add(canvasLink)
+        to_register = [canvas for canvas in newLinkSet.canvases() if canvas not in self.registeredCanvases]
+        for canvas in to_register:
+            dprint('register {}'.format(canvas))
+            canvas.sigExtentsChanged.connect(self.setChanges)
+            self.registeredCanvases.add(canvas)
 
-    def getAllCanvases(self):
-        canvases = set()
-        for link in self.LINKS:
-            assert isinstance(link, CanvasLink)
-            canvases.update([link.master,link.follower])
-        return canvases
+        # add link set to registered link sets
+        self.LINKSETS.add(newLinkSet)
+
+    def unlink(self, canvas):
+        """
+        Removes all links to a given canvas
+        :param canvas:
+        """
+        for linkSet in self.LINKSETS:
+            linkSet.removeCanvas(canvas)
+        self.removeEmptyLinkSets()
+
+    def removeEmptyLinkSets(self):
+        to_remove = [linkSet for linkSet in self.LINKSETS if len(linkSet) == 0]
+        for linkSet in to_remove:
+            self.LINKSETS.remove(linkSet)
+            del linkSet
 
 
-    def getDirectFollowerLinks(self, master_canvas):
+    def connectedLinks(self, canvas):
+
         links = set()
-        for link in self.LINKS:
-            if link.master == master_canvas:
-                links.add(link)
+        for linkSet in self.LINKSETS:
+            links.update(set([link for link in linkSet.links if canvas in link.canvases]))
         return links
 
-    def getMasters(self, following_canvas):
+    def canvases(self):
+        """
+        Returns all canvases handeled
+        :return:
+        """
         canvases = set()
-        for link in self.LINKS:
-            if link.follower == following_canvas:
-                canvases.add(link.master)
-        n_added = len(canvases)
-        while n_added > 0:
-            for c in canvases:
-                canvases.update(self.getMasters(c))
-            n_added = len(canvases) - n_added
-
+        for linkSet in self.LINKSETS:
+            assert isinstance(linkSet, CanvasLinkSet)
+            canvases.update(linkSet.canvases())
+        assert len(canvases - self.registeredCanvases) == 0
         return canvases
 
 
-
-    def removeFollowerLink(self, canvas):
-        to_remove = [l for l in self.LINKS if l.follower == canvas]
-        assert len(to_remove) <= 1
-        if len(to_remove) == 1:
-            dprint('REMOVE {}'.format(to_remove[0]))
-            self.LINKS.remove(to_remove[0])
 
     def dump(self):
         """
         prints the state of the link manager. For debugging
         """
         l = []
-        for link in self.LINKS:
-            l.append(str(link))
+        for linkSet in self.LINKSETS:
+            l.append(str(linkSet))
         return l
 
     def setChanges(self, master):
@@ -137,20 +188,48 @@ class CanvasLinkManager:
         #...
         #for c in all_canvases: c.blockSignals(False)
 
+        assert isinstance(master, MapCanvas)
+
+
+        if len(self.handledCanvases) == 0:
+            dprint('START LINKING FROM: {}'.format(master))
+            #dprint('EXISTING LINKSETS:')
+            #for i, line in enumerate(self.dump()):
+            #    dprint('#{}: {}'.format(i, line))
+
+        self.handledCanvases.add(master)
 
         mst_extent = master.extent()
         mst_center = master.center()
+        mst_crs = master.mapRenderer().destinationCrs()
 
-        for link in self.getDirectFollowerLinks(master):
+        changed = set()
+        #apply changes to L1 generation of connected canvases = directly connecte to canvas
+        to_change = [link for link in self.connectedLinks(master)
+                     if len(link.canvases.difference(self.handledCanvases)) > 0]
+
+        if False:
+            if len(to_change) == 0:
+                dprint('end of changes at {}'.format(master))
+            else:
+                dprint('setChanges({})'.format(master))
+
+
+        for link in to_change:
+
+
             assert isinstance(link, CanvasLink)
-            c = link.theOther(master)
-            assert isinstance(c, QgsMapCanvas)
-            c.blockSignals(True)
+            dst = link.theOtherCanvas(master)
+            assert isinstance(dst, QgsMapCanvas)
+
+            if True:
+                dst.blockSignals(True)
+
+            #dprint('Set {} from {} -> {}'.format(link.linktype, master, dst))
 
             #if necessary, transform to target CRS,
-            src_crs = master.mapRenderer().destinationCrs()
-            dst_crs = c.mapRenderer().destinationCrs()
-            trans = QgsCoordinateTransform(src_crs, dst_crs)
+            dst_crs = dst.mapRenderer().destinationCrs()
+            trans = QgsCoordinateTransform(mst_crs, dst_crs)
             trans.initialise()
             if trans.isShortCircuited():
                 new_extent = mst_extent
@@ -163,23 +242,50 @@ class CanvasLinkManager:
             new_muppx = new_extent.width() / master.width()
             w = master.width() * new_muppx * 0.5
             h = master.height() * new_muppx * 0.5
-            x = c.center().x()
-            y = c.center().y()
-            old_center_scaled = QgsRectangle(x-w,y-h,x+w,y+h)
+            x = dst.center().x()
+            y = dst.center().y()
+
+            dst_old_center = dst.center()
+            dst_old_extent = dst.extent()
+            dst_old_center_new_scale = QgsRectangle(x-w,y-h,x+w,y+h)
+
+
+            w = dst.extent().width() * 0.5
+            h = dst.extent().height() * 0.5
+            x = new_center.x()
+            y = new_center.y()
+            dst_new_center_old_scale = QgsRectangle(x-w,y-h,x+w,y+h)
+
 
             if link.linktype == 'center':
-                lockState = c.scaleLocked()
-                c.setScaleLocked(True)
-                c.setCenter(new_center)
-                c.setScaleLocked(lockState)
+                #dst.setCenter(new_center)
+                dst.setCenter(dst_new_center_old_scale.center())
+                #dprint('New center {}? {}'.format(dst, dst_new_center_old_scale != dst_old_extent))
             elif link.linktype == 'scale':
-                c.zoomToFeatureExtent(old_center_scaled)
-                #c.zoomScale(dst_scale)
+                dst.zoomToFeatureExtent(dst_old_center_new_scale)
+                #dprint('New scale {}? {}'.format(dst, dst_old_center_new_scale != dst_old_extent))
             elif link.linktype == 'center_scale':
-                c.zoomToFeatureExtent(new_extent)
+                dst.zoomToFeatureExtent(new_extent)
+                dst.setCenter(new_extent.center())
+                #dprint('New Extent {}? {}'.format(dst, new_extent != dst_old_extent))
+                #dst.setCenter(new_center)
+
+
             else:
                 raise NotImplementedError()
-            c.blockSignals(False)
+
+            dst.blockSignals(False)
+
+            #dst.refresh()
+            changed.add(dst)
+
+
+        #set applied changes to L2 generation of connected canvases
+        for canvas in changed:
+            self.setChanges(canvas)
+
+        self.handledCanvases.remove(master)
+
 
 
     def convert_CRS(self, c_src, c_dst):
@@ -358,12 +464,14 @@ class DockLabel(VerticalLabel):
     sigCloseClicked = pyqtSignal()
     sigNormalClicked = pyqtSignal()
 
-    def __init__(self, dock, allow_floating=True):
+    def __init__(self, dock, title=None, allow_floating=True):
         assert isinstance(dock, Dock)
         self.dim = False
         self.fixedWidth = False
         self.dock = dock
-        VerticalLabel.__init__(self, self.dock.title, orientation='horizontal', forceWidth=False)
+        if title is None:
+            title = self.dock.title
+        VerticalLabel.__init__(self, title, orientation='horizontal', forceWidth=False)
         self.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
 
         self.updateStyle()
@@ -492,7 +600,7 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         for canvas_source in target_canvases:
 
             w = CanvasLinkTargetWidget(canvas_targed, canvas_source)
-            w.setAutoFillBackground(True)
+            w.setAutoFillBackground(False)
             w.show()
             CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
             canvas_source.freeze()
@@ -502,9 +610,8 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
 
     @staticmethod
     def linkMaps(maplinkwidget, linktype):
-        follower = maplinkwidget.canvas1
-        master = maplinkwidget.canvas2
-        CanvasLinkManager.instance().addLink(CanvasLink(follower, master, linktype))
+        canvases = [maplinkwidget.canvas1, maplinkwidget.canvas2]
+        CanvasLinkManager.instance().addLinkSet(CanvasLinkSet(canvases, linktype))
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets()
 
     @staticmethod
@@ -541,7 +648,9 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         bt = QtGui.QToolButton(self)
         bt.setToolTip('Link map center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
-        bt.setIcon(QIcon(IconProvider.Map_Link_Center))
+        icon = QIcon(IconProvider.Map_Link_Center)
+        bt.setIcon(icon)
+        bt.setIconSize(QSize(16,16))
         self.buttons.append(bt)
 
         if False:
@@ -592,6 +701,7 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         y = int(parentRect.height() / 2 - self.height() / 2)
 
         mw = int(min([self.width(),self.height()]) * 0.9)
+        mw = min([mw, 120])
         for bt in self.buttons:
             bt.setIconSize(QSize(mw, mw))
 
@@ -631,16 +741,15 @@ class MapDockLabel(DockLabel):
 
         super(MapDockLabel, self).__init__(*args, **kwds)
 
-        self.linkMap = QtGui.QToolButton(self)
-        self.linkMap.setToolTip('Link with other map')
-        #linkExtent.clicked.connect(lambda: self.dock.linkWithMapDock())
-        #self.linkMap.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink))
-        self.linkMap.setIcon(QIcon(IconProvider.Map_Link))
+        self.addMapLink = QtGui.QToolButton(self)
+        self.addMapLink.setToolTip('Link with other map')
+        self.addMapLink.setIcon(QIcon(IconProvider.Map_Link))
+        self.buttons.append(self.addMapLink)
 
         self.removeMapLink = QtGui.QToolButton(self)
         self.removeMapLink.setToolTip('Remove links')
-        self.linkMap.setIcon(QIcon(IconProvider.Map_Link_Remove))
-        self.buttons.extend([self.linkMap, self.removeMapLink])
+        self.removeMapLink.setIcon(QIcon(IconProvider.Map_Link_Remove))
+        self.buttons.append(self.removeMapLink)
 
 
 class MapCanvas(QgsMapCanvas):
@@ -648,11 +757,15 @@ class MapCanvas(QgsMapCanvas):
     sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
     sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
     sigDropEvent = pyqtSignal(QDropEvent)
+    sigContextMenuEvent = pyqtSignal(QContextMenuEvent)
+    sigExtentsChanged = pyqtSignal(object)
 
     _cnt = 0
 
     def __init__(self, parentMapDock, *args, **kwds):
         super(MapCanvas, self).__init__(*args, **kwds)
+
+
         assert isinstance(parentMapDock, MapDock)
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
@@ -660,6 +773,10 @@ class MapCanvas(QgsMapCanvas):
         self.mapdock = parentMapDock
         self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
+        self.extentsChanged.connect(self.sandbox)
+
+    def sandbox(self):
+        self.sigExtentsChanged.emit(self)
 
     def __repr__(self):
         return self._id
@@ -680,6 +797,9 @@ class MapCanvas(QgsMapCanvas):
     def dropEvent(self, event):
         self.sigDropEvent.emit(event)
 
+    def contextMenuEvent(self, event):
+        self.sigContextMenuEvent.emit(event)
+
 
 
 
@@ -699,9 +819,12 @@ class MapDock(Dock):
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
         self.canvas = MapCanvas(self)
+        if 'title' not in kwds.keys():
+            self.label.setText(str(self.canvas))
         self.canvas.sigDropEvent.connect(self.canvasDrop)
         self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
         self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenu)
+        self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -732,8 +855,8 @@ class MapDock(Dock):
         self.toolIdentify.setAction(g.actionIdentify)
         self.toolIdentify.action().triggered.connect(lambda: self.setMapTool(self.toolIdentify))
 
-        self.label.linkMap.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
-        self.label.removeMapLink.clicked.connect(lambda: CanvasLinkManager.instance().removeFollowerLink(self.canvas))
+        self.label.addMapLink.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
+        self.label.removeMapLink.clicked.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
         #set default map tool
         self.canvas.setMapTool(self.toolPan)
 
@@ -743,6 +866,17 @@ class MapDock(Dock):
             ds = self.enmapbox.addSource(initSrc)
             if isinstance(ds, DataSourceSpatial):
                 self.addLayer(ds.createMapLayer())
+
+    def onCanvasContextMenuEvent(self, event):
+
+        menu = QMenu()
+        action = QAction('Zoom to full extent', menu)
+        action.triggered.connect(lambda: self.canvas.setExtent(self.canvas.fullExtent()))
+        menu.addAction(action)
+
+
+        menu.exec_(event.globalPos())
+
 
     def onCanvasContextMenu(self, point):
         s  = ""
@@ -811,7 +945,7 @@ class MapDock(Dock):
 
     def linkWithCanvas(self, canvas, linktype):
         assert isinstance(canvas, QgsMapCanvas)
-        CanvasLinkManager.instance().addLink(self, canvas, linktype)
+        CanvasLinkManager.instance().addLinkSet(self, canvas, linktype)
 
 
     def addLayer(self, mapLayer, index=0):
