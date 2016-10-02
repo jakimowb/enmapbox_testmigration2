@@ -29,7 +29,7 @@
      <x>0</x>
      <y>0</y>
      <width>1276</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -170,7 +170,7 @@
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
-   <addaction name="actionSelectPixel"/>
+   <addaction name="actionIdentify"/>
    <addaction name="actionPan"/>
    <addaction name="separator"/>
    <addaction name="actionSandbox"/>
@@ -222,7 +222,7 @@
     <string>pan</string>
    </property>
   </action>
-  <action name="actionSelectPixel">
+  <action name="actionIdentify">
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/enmapbox/svg/icons/mActionIdentify.svg</normaloff>:/enmapbox/svg/icons/mActionIdentify.svg</iconset>
