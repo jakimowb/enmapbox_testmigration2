@@ -592,16 +592,24 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
     def ShowMapLinkTargets(mapDock):
 
         assert isinstance(mapDock, MapDock)
-        canvas_targed = mapDock.canvas
-        assert isinstance(canvas_targed, QgsMapCanvas)
+        canvas1 = mapDock.canvas
+        assert isinstance(canvas1, QgsMapCanvas)
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
 
         target_canvases = [d.canvas for d in mapDock.enmapbox.DOCKS
                            if isinstance(d, MapDock) and d != mapDock]
 
+        #todo: offer link to all other open canvases
+        if False:
+            w = CanvasLinkTargetWidget(canvas1, canvas_source)
+            w.setAutoFillBackground(False)
+            w.show()
+            CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
+            canvas_source.freeze()
+
         for canvas_source in target_canvases:
 
-            w = CanvasLinkTargetWidget(canvas_targed, canvas_source)
+            w = CanvasLinkTargetWidget(canvas1, canvas_source)
             w.setAutoFillBackground(False)
             w.show()
             CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
@@ -744,12 +752,12 @@ class MapDockLabel(DockLabel):
         super(MapDockLabel, self).__init__(*args, **kwds)
 
         self.addMapLink = QtGui.QToolButton(self)
-        self.addMapLink.setToolTip('Link with other map')
+        self.addMapLink.setToolTip('Link with other map(s)')
         self.addMapLink.setIcon(QIcon(IconProvider.Map_Link))
         self.buttons.append(self.addMapLink)
 
         self.removeMapLink = QtGui.QToolButton(self)
-        self.removeMapLink.setToolTip('Remove links')
+        self.removeMapLink.setToolTip('Remove links to this map')
         self.removeMapLink.setIcon(QIcon(IconProvider.Map_Link_Remove))
         self.buttons.append(self.removeMapLink)
 
@@ -823,10 +831,12 @@ class MapDock(Dock):
         self.canvas = MapCanvas(self)
         if 'title' not in kwds.keys():
             self.label.setText(str(self.canvas))
+
         self.canvas.sigDropEvent.connect(self.canvasDrop)
         self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
         self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenu)
         self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
+
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -853,7 +863,26 @@ class MapDock(Dock):
         self.toolZoomOut.setAction(g.actionZoomOut)
         self.toolZoomOut.action().triggered.connect(lambda: self.setMapTool(self.toolZoomOut))
 
-        self.toolIdentify = QgsMapToolIdentify(self.canvas)
+        self.toolIdentify = IdentifyMapObjects(self.canvas)
+        self.toolIdentify.identifyMessage.connect(self.identifyMessage)
+        self.toolIdentify.identifyProgress.connect(self.identifyProgress)
+        self.toolIdentify.sigPixelIdentified.connect(self.identifyResults)
+
+        """
+        The problem still exists in QGis 2.0.1-3 available through OSGeo4W distribution. New style connection always return the same error:
+        TypeError: connect() failed between geometryChanged(QgsFeatureId,QgsGeometry) and unislot()
+        A possible workaround is to use old signal/slot code:
+
+        QObject.connect(my_vectlayer,SIGNAL("geometryChanged(QgsFeatureId, QgsGeometry&)"),mynicehandler)
+        instead of expected:
+
+        my_vectlayer.geometryChanged.connect(mynicehandler)
+        """
+        #QObject.connect(self.toolIdentify,
+        #                SIGNAL("changedRasterResults(QList<QgsMapToolIdentify::IdentifyResult>&)"),
+        #                self.identifyChangedRasterResults)
+        #self.toolIdentify.changedRasterResults.connect(self.identifyChangedRasterResults)
+
         self.toolIdentify.setAction(g.actionIdentify)
         self.toolIdentify.action().triggered.connect(lambda: self.setMapTool(self.toolIdentify))
 
@@ -869,9 +898,47 @@ class MapDock(Dock):
             if isinstance(ds, DataSourceSpatial):
                 self.addLayer(ds.createMapLayer())
 
+    def identifyMessage(self, message):
+        dprint('Identify message: {}'.format(message))
+        s = ""
+
+    def identifyProgress(self, args):
+        dprint('Identify progress: {}'.format(args))
+        s = ""
+
+
+    def identifyResults(self, identifyResults):
+        for iResult in identifyResults:
+            lyr =iResult.mLayer
+            dprint('mAttributes: {}'.format(len(iResult.mAttributes)))
+            for k, v in iResult.mAttributes.items():
+                dprint('{}:{}'.format(k,v))
+
+            dprint('mDerivedAttributes: {}'.format(len(iResult.mDerivedAttributes)))
+            for k, v in iResult.mDerivedAttributes.items():
+                dprint('{}:{}'.format(k,v))
+
+            dprint('mParams: {}'.format(len(iResult.mParams)))
+            for k, v in iResult.mParams.items():
+                dprint('{}:{}'.format(k,v))
+
+            s = ""
+
+        s  =""
+
     def onCanvasContextMenuEvent(self, event):
 
         menu = QMenu()
+
+        action = QAction('Link with other maps', menu)
+        action.triggered.connect(lambda: CanvasLinkTargetWidget.ShowMapLinkTargets(self))
+        menu.addAction(action)
+
+        action = QAction('Remove links to other maps', menu)
+        action.triggered.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
+        menu.addAction(action)
+        menu.addSeparator()
+
         action = QAction('Zoom to full extent', menu)
         action.triggered.connect(lambda: self.canvas.setExtent(self.canvas.fullExtent()))
         menu.addAction(action)
@@ -884,21 +951,15 @@ class MapDock(Dock):
         action.triggered.connect(lambda: self.canvas.refreshAllLayers())
         menu.addAction(action)
 
-        action = QAction('Link with other maps', menu)
-        action.triggered.connect(lambda: CanvasLinkTargetWidget.ShowMapLinkTargets(self))
-        menu.addAction(action)
-
-        action = QAction('Remove map links', menu)
-        action.triggered.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
-        menu.addAction(action)
-
         action = QAction('Clear map', menu)
         action.triggered.connect(lambda: self.canvas.setLayerSet([]))
         menu.addAction(action)
 
-        action = QAction('Set CRS', menu)
+        action = QAction('Change CRS', menu)
         action.triggered.connect(lambda: self.setCRSfromDialog())
         menu.addAction(action)
+
+
 
 
         menu.exec_(event.globalPos())
@@ -965,6 +1026,9 @@ class MapDock(Dock):
                     added_sources.append(self.enmapbox.addSource(ds))
         for ds in added_sources:
             self.addLayer(ds.createMapLayer())
+        if len(added_sources) > 0:
+            event.accept()
+            event.acceptProposedAction()
 
 
     def _getLabel(self):
@@ -1001,6 +1065,11 @@ class MapDock(Dock):
             newCanvasLayer = QgsMapCanvasLayer(mapLayer)
             newCanvasLayer.setVisible(True)
             canvasLayers = [QgsMapCanvasLayer(l) for l in self.canvas.layers()]
+
+            if len(canvasLayers) == 0:
+                #set canvas CRS to that of new layer
+                self.canvas.setDestinationCrs(mapLayer.crs())
+
             canvasLayers.insert(index, newCanvasLayer)
 
             if len(canvasLayers) == 1:
@@ -1041,3 +1110,18 @@ class MimeDataDock(TextDock):
 
         pass
 
+
+class IdentifyMapObjects(QgsMapToolIdentify):
+    sigPixelIdentified = pyqtSignal(list)
+
+    def __init__(self, canvas, identifyMode = QgsMapToolIdentify.TopDownStopAtFirst, layerType=QgsMapToolIdentify.RasterLayer):
+        self.canvas = canvas
+        self.layerType = layerType
+        self.identifyMode = identifyMode
+        QgsMapToolIdentify.__init__(self, canvas)
+
+
+    def canvasReleaseEvent(self, mouseEvent):
+        results = self.identify(mouseEvent.x(), mouseEvent.y(), self.identifyMode, self.layerType)
+        if len(results) > 0:
+            self.sigPixelIdentified.emit(results)
