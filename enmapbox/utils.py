@@ -170,12 +170,22 @@ class TreeItem(QObject):
         #decoration role stuff
         self.icon = icon
         self.tooltip = tooltip
-        self.mimeData = mimeData
+
+        self._mimeData = QMimeData() if mimeData is None else mimeData
         self.actions = []
 
         if parent:
             assert isinstance(parent, TreeItem)
             parent.appendChild(self)
+
+    def mimeData(self):
+        mimeCopy = QMimeData()
+
+        for format in self._mimeData.formats():
+            data = self._mimeData.data(format)
+            mimeCopy.setData(format, data)
+
+        return mimeCopy
 
 
     def __enter__(self):
@@ -314,5 +324,3 @@ class TreeItem(QObject):
             return False
         self.itemData[column] = value
 
-    def mimeData(self):
-        return self.mimeData
