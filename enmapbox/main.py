@@ -99,9 +99,9 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     Provides the number of rows of data exposed by the model.
     int TreeModel::rowCount(const QModelIndex &parent) const
     """
-    def rowCount(self, parent):
+    def rowCount(self, index):
         #assert isinstance(parent, QModelIndex)
-        parentItem = self.getItem(parent)
+        parentItem = self.getItem(index)
         return parentItem.childCount()
 
 
@@ -114,8 +114,8 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
         #assert isinstance(parent, QModelIndex)
         return len(self.columnames)
         #maybe worth?
-        parentItem = self.getItem(parent)
-        return parentItem.columnCount()
+        #parentItem = self.getItem(parent)
+        #return parentItem.columnCount()
 
         """
         return len(self.columnames)
@@ -147,14 +147,18 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
             return default
         """
 
+
+
     """
        Given a model index for a parent item, this function allows views and delegates to access children of that item.
        If no valid child item - corresponding to the specified row, column, and parent model index, can be found,
        the function must return QModelIndex(), which is an invalid model index.
     QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) const
     """
-    def index(self, row, column, parent):
+    def index(self, row, column, parent=None):
         #assert isinstance(parent, QModelIndex)
+        if parent is None:
+            parent = QModelIndex()
 
         if not self.hasIndex(row, column, parent):
             return QModelIndex()
@@ -238,6 +242,8 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
             return item.icon
         if role == Qt.UserRole:
             return item.data
+        if role == 'TreeItem':
+            return item
         return None
 
 
@@ -261,25 +267,47 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
         #self.dataChanged.emit(topLeft,bottomRight)
 
         #print(src_grp)
+
+    def indexOfTreeItem(self, item, idx = None):
+        if idx is None:
+            idx = QModelIndex()
+
+        item_b = self.data(idx, 'TreeItem')
+        if item is item_b:
+            return idx
+        else:
+            for r in range(self.rowCount(idx)):
+                idx2 = self.indexOfTreeItem(item, self.index(r, 0 , idx))
+                if idx2:
+                    return idx2
+
+        return None
+
+
+
     def removeDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
+
         dsTypeName = self.getSourceTypeName(dataSource)
-        typeItem = [c for c in self.rootItem.childs if c.name == dsTypeName]
-        if len(typeItem) == 1:
-            typeItem = typeItem[0]
-            assert isinstance(typeItem, TreeItem)
-            to_remove = [dsItem for dsItem in typeItem.childs if dsItem.data == dataSource]
-            for child in to_remove:
-                typeItem.removeChild(child)
-                del child
-                #typeItem.removeChildren(child.childNumber(),1)
 
-            if typeItem.childCount() == 0:
-                self.rootItem.removeChild(typeItem)
-                del typeItem
-                s = ""
-        self.dataChanged.emit(QModelIndex(), QModelIndex())
+        for r1 in range(self.rowCount(QModelIndex())):
+            idx1 = self.index(r1, 0, QModelIndex())
+            if dsTypeName == str(idx1.data()):
+                for r2 in range(self.rowCount(idx1)):
+                    idx2 = self.index(r2, 0 , idx1)
+                    ds = self.data(idx2, Qt.UserRole)
+                    if ds is dataSource:
+                        typeItem = self.data(idx1, 'TreeItem')
+                        dsItem = self.data(idx2, 'TreeItem')
+                        self.beginRemoveRows(idx1, r2, r2)
+                        typeItem.removeChild(dsItem)
+                        self.endRemoveRows()
 
+                        if typeItem.childCount() == 0:
+                            self.beginRemoveRows(QModelIndex(),r1,r1)
+                            self.rootItem.removeChild(typeItem)
+                            self.endRemoveRows()
+                        return
 
     def supportedDragActions(self):
         return Qt.CopyAction
@@ -341,14 +369,15 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models
     must emit the dataChanged() signal to inform other components of the change.
     """
+
+
     def setData(self, index, data, role=None):
         assert isinstance(index, QModelIndex)
         assert isinstance(data, TreeItem)
-        s = ""
-
-        return False
+        #return False
         self.dataChanged.emit()
-        pass
+
+    #    pass
 
     """
     Used to modify horizontal and vertical header information. After changing the item of data,
@@ -582,6 +611,7 @@ class EnMAPBox:
                         NEW_MAP_DOCK = self.createDock('MAP')
                     NEW_MAP_DOCK.addLayer(ds.createMapLayer())
 
+            event.acceptProposedAction()
                 #todo: handle non-spatial datasources
 
 
