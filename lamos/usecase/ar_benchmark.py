@@ -1,8 +1,11 @@
 from __future__ import print_function
-from lamos.types import MGRSTilingScheme, MGRSFootprint, MGRSArchive
-from lamos.operators.dummy import DummyReadApplier
+
+import os
+
 from hub.timing import tic, toc
-import os, gdal
+from lamos.operators.dummy import DummyReadApplier
+from lamos.processing.types import MGRSTilingScheme, MGRSFootprint, MGRSArchive
+
 
 def test():
     folder1 = r'c:\work\data\gms\landsatTimeseriesMGRS'

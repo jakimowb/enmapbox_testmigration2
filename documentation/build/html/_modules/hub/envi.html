@@ -1,0 +1,211 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hub.envi &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for hub.envi</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="c1">#import xml.etree.ElementTree, os, gzip, numpy, copy</span>
+<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span><span class="o">,</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">hub.collections</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+
+<div class="viewcode-block" id="vrt2mos"><a class="viewcode-back" href="../../hub.html#hub.envi.vrt2mos">[docs]</a><span class="k">def</span> <span class="nf">vrt2mos</span><span class="p">(</span><span class="n">vrtfile</span><span class="p">,</span> <span class="n">hdr</span><span class="o">=</span><span class="p">{}):</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">etree</span><span class="o">.</span><span class="n">ElementTree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">vrtfile</span><span class="p">)</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;rasterXSize&#39;</span><span class="p">]</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;rasterYSize&#39;</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="s1">&#39;ENVI MOSAIC TEMPLATE (G)&#39;</span>
+    <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Output Size: &#39;</span><span class="o">+</span><span class="n">samples</span><span class="o">+</span><span class="s1">&#39; x &#39;</span><span class="o">+</span><span class="n">lines</span>
+    <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="n">VRTRasterBands</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;VRTRasterBand&#39;</span><span class="p">)</span>
+    <span class="n">bands</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">VRTRasterBands</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">SimpleSource</span> <span class="ow">in</span> <span class="n">VRTRasterBands</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;SimpleSource&#39;</span><span class="p">):</span>
+        <span class="n">SourceFilename</span> <span class="o">=</span> <span class="n">SimpleSource</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;SourceFilename&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">SourceFilename</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;relativeToVRT&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">vrtfile</span><span class="p">),</span> <span class="n">SourceFilename</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">SourceFilename</span><span class="o">.</span><span class="n">text</span>
+
+        <span class="n">SourceProperties</span> <span class="o">=</span> <span class="n">SimpleSource</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;SourceProperties&#39;</span><span class="p">)</span>
+        <span class="n">DstRect</span> <span class="o">=</span> <span class="n">SimpleSource</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;DstRect&#39;</span><span class="p">)</span>
+        <span class="n">xoff</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">DstRect</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;xOff&#39;</span><span class="p">])</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">yoff</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">DstRect</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;yOff&#39;</span><span class="p">])</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">File : &#39;</span><span class="o">+</span><span class="n">filename</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Bands: 1-&#39;</span><span class="o">+</span><span class="n">bands</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Dims : 1-&#39;</span><span class="o">+</span><span class="n">SourceProperties</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;RasterXSize&#39;</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;,1-&#39;</span><span class="o">+</span><span class="n">SourceProperties</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;RasterYSize&#39;</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Info : (&#39;</span><span class="o">+</span><span class="n">xoff</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">+</span><span class="n">yoff</span><span class="o">+</span><span class="s1">&#39;) {0} [ {0}] {}&#39;</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="n">mosfile</span> <span class="o">=</span> <span class="n">vrtfile</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mos&#39;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">mosfile</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="nb">file</span><span class="p">:</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="c1"># create header file</span>
+    <span class="n">hdrfinal</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;description&#39;</span> <span class="p">:</span> <span class="s1">&#39;{Virtual Mosaic File}&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;samples&#39;</span><span class="p">:</span> <span class="n">samples</span><span class="p">,</span>
+                <span class="s1">&#39;lines&#39;</span> <span class="p">:</span> <span class="n">lines</span><span class="p">,</span>
+                <span class="s1">&#39;bands&#39;</span> <span class="p">:</span> <span class="n">bands</span><span class="p">,</span>
+                <span class="s1">&#39;file type&#39;</span> <span class="p">:</span> <span class="s1">&#39;ENVI Virtual Mosaic&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;read procedures&#39;</span> <span class="p">:</span> <span class="s1">&#39;{envi_read_spatial_sm, envi_read_spectral_sm}&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;subset procedure&#39;</span> <span class="p">:</span> <span class="s1">&#39;envi_read_scroll_sm&#39;</span><span class="p">}</span>
+    <span class="n">hdrfinal</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">hdr</span><span class="p">)</span>
+
+    <span class="n">hdrfile</span> <span class="o">=</span> <span class="n">vrtfile</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.hdr&#39;</span>
+    <span class="n">writeHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">,</span> <span class="n">hdrfinal</span><span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;ENVI Virtual Mosaic created: &#39;</span><span class="o">+</span><span class="n">mosfile</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="readHeader"><a class="viewcode-back" href="../../hub.html#hub.envi.readHeader">[docs]</a><span class="k">def</span> <span class="nf">readHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="nb">file</span><span class="p">:</span> <span class="n">lines</span> <span class="o">=</span> <span class="nb">file</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">Bunch</span><span class="p">()</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">continue</span>
+
+        <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;{&#39;</span><span class="p">:</span>
+            <span class="nb">str</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="k">while</span> <span class="nb">str</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;}&#39;</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="nb">str</span> <span class="o">+=</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="writeHeader"><a class="viewcode-back" href="../../hub.html#hub.envi.writeHeader">[docs]</a><span class="k">def</span> <span class="nf">writeHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">,</span> <span class="n">hdr_</span><span class="p">):</span>
+
+    <span class="n">hdr</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">hdr_</span><span class="p">)</span>
+    <span class="n">sortedKeys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">,</span><span class="s1">&#39;samples&#39;</span><span class="p">,</span><span class="s1">&#39;lines&#39;</span><span class="p">,</span><span class="s1">&#39;bands&#39;</span><span class="p">,</span><span class="s1">&#39;header offset&#39;</span><span class="p">,</span><span class="s1">&#39;file type&#39;</span><span class="p">,</span><span class="s1">&#39;data type&#39;</span><span class="p">,</span><span class="s1">&#39;interleave&#39;</span><span class="p">,</span><span class="s1">&#39;data ignore value&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;sensor type&#39;</span><span class="p">,</span><span class="s1">&#39;byte order&#39;</span><span class="p">,</span><span class="s1">&#39;map info&#39;</span><span class="p">,</span><span class="s1">&#39;projection info&#39;</span><span class="p">,</span><span class="s1">&#39;coordinate system string&#39;</span><span class="p">,</span><span class="s1">&#39;acquisition time&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;wavelength units&#39;</span><span class="p">,</span><span class="s1">&#39;wavelength&#39;</span><span class="p">,</span><span class="s1">&#39;band names&#39;</span><span class="p">]</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="nb">file</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">writeKeyValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span> <span class="k">return</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="nb">file</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="s1">&#39; = {&#39;</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">file</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="s1">&#39; = &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="nb">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;ENVI</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sortedKeys</span><span class="p">:</span> <span class="n">writeKeyValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">hdr</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="bp">None</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdr</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span><span class="n">hdr</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span> <span class="n">writeKeyValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="updateHeader"><a class="viewcode-back" href="../../hub.html#hub.envi.updateHeader">[docs]</a><span class="k">def</span> <span class="nf">updateHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">,</span> <span class="n">hdr</span><span class="p">):</span>
+    <span class="n">hdr1</span> <span class="o">=</span> <span class="n">readHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">)</span>
+    <span class="n">hdr1</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">hdr</span><span class="p">)</span>
+    <span class="n">writeHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">,</span> <span class="n">hdr1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="compress"><a class="viewcode-back" href="../../hub.html#hub.envi.compress">[docs]</a><span class="k">def</span> <span class="nf">compress</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">outfile</span><span class="p">:</span> <span class="n">outfile</span> <span class="o">=</span> <span class="n">infile</span>
+
+    <span class="n">hdr</span> <span class="o">=</span> <span class="n">readHeader</span><span class="p">(</span><span class="n">infile</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.hdr&#39;</span><span class="p">)</span>
+
+    <span class="n">f_in</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">f_in</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">f_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">f_out</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
+    <span class="n">f_out</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">f_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;file compression&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span>
+    <span class="n">writeHeader</span><span class="p">(</span><span class="n">outfile</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.hdr&#39;</span><span class="p">,</span> <span class="n">hdr</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="n">infile</span> <span class="o">=</span> <span class="s1">r&#39;F:\Geomultisens\data\smallCaseExample\myClearObs\tiles\UL_50000_-4250000\clearObs2005.img&#39;</span>
+    <span class="n">outfile</span> <span class="o">=</span> <span class="s1">r&#39;t:\compressed.img&#39;</span>
+  <span class="c1">#  compress(infile)#, outfile)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

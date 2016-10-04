@@ -1,0 +1,70 @@
+eb package
+==========
+
+Submodules
+----------
+
+eb.applier module
+-----------------
+
+.. automodule:: eb.applier
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+eb.env module
+-------------
+
+.. automodule:: eb.env
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+eb.estimators module
+--------------------
+
+.. automodule:: eb.estimators
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+eb.products module
+------------------
+
+.. automodule:: eb.products
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+eb.report module
+----------------
+
+.. automodule:: eb.report
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+eb.types module
+---------------
+
+.. automodule:: eb.types
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+eb.usecase module
+-----------------
+
+.. automodule:: eb.usecase
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: eb
+    :members:
+    :undoc-members:
+    :show-inheritance:

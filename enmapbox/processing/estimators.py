@@ -351,7 +351,7 @@ class Regressors(Estimators):
             bandNames = self.sample.featureSample.dataSample.meta.getMetadataItem('band names',default=numpy.array([]))
             if len(bandNames) == 0:
                 for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
-            data = numpy.vstack((bandNames,numpy.round(rfc.feature_importances_, 4)*100))
+            data = numpy.vstack((bandNames[numpy.argsort(rfc.feature_importances_)][::-1],numpy.round(rfc.feature_importances_[numpy.argsort(rfc.feature_importances_)][::-1], 4)*100))
             rowHeaders = [['Band Names','Feature Importance [%]']]
             report.append(ReportTable(data, rowHeaders=rowHeaders))
 

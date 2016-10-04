@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hub package &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="hub-package">
+<h1>hub package<a class="headerlink" href="#hub-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="hub.cookbook.html">hub.cookbook package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hub.cookbook.html#module-hub.cookbook">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hub.gdal.html">hub.gdal package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hub.gdal.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.gdal.html#module-hub.gdal.api">hub.gdal.api module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.gdal.html#module-hub.gdal.fromidl">hub.gdal.fromidl module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.gdal.html#module-hub.gdal.util">hub.gdal.util module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.gdal.html#module-hub.gdal">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hub.numpy.html">hub.numpy package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hub.numpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.numpy.html#module-hub.numpy.const">hub.numpy.const module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.numpy.html#module-hub.numpy.ma">hub.numpy.ma module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.numpy.html#module-hub.numpy.nanfunctions">hub.numpy.nanfunctions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.numpy.html#module-hub.numpy">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hub.ogr.html">hub.ogr package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hub.ogr.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.ogr.html#module-hub.ogr.api">hub.ogr.api module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.ogr.html#module-hub.ogr.util">hub.ogr.util module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.ogr.html#module-hub.ogr">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hub.rs.html">hub.rs package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hub.rs.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.rs.html#module-hub.rs.landsat">hub.rs.landsat module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.rs.html#module-hub.rs.sentinel2">hub.rs.sentinel2 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.rs.html#module-hub.rs.virtual">hub.rs.virtual module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hub.rs.html#module-hub.rs">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-hub.collections">
+<span id="hub-collections-module"></span><h2>hub.collections module<a class="headerlink" href="#module-hub.collections" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="hub.collections.Bunch">
+<em class="property">class </em><code class="descclassname">hub.collections.</code><code class="descname">Bunch</code><span class="sig-paren">(</span><em>dictionary=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/collections.html#Bunch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.collections.Bunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">dict</span></code></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-hub.envi">
+<span id="hub-envi-module"></span><h2>hub.envi module<a class="headerlink" href="#module-hub.envi" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="hub.envi.compress">
+<code class="descclassname">hub.envi.</code><code class="descname">compress</code><span class="sig-paren">(</span><em>infile</em>, <em>outfile=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/envi.html#compress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.envi.compress" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.envi.readHeader">
+<code class="descclassname">hub.envi.</code><code class="descname">readHeader</code><span class="sig-paren">(</span><em>hdrfile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/envi.html#readHeader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.envi.readHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.envi.updateHeader">
+<code class="descclassname">hub.envi.</code><code class="descname">updateHeader</code><span class="sig-paren">(</span><em>hdrfile</em>, <em>hdr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/envi.html#updateHeader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.envi.updateHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.envi.vrt2mos">
+<code class="descclassname">hub.envi.</code><code class="descname">vrt2mos</code><span class="sig-paren">(</span><em>vrtfile</em>, <em>hdr={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/envi.html#vrt2mos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.envi.vrt2mos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.envi.writeHeader">
+<code class="descclassname">hub.envi.</code><code class="descname">writeHeader</code><span class="sig-paren">(</span><em>hdrfile</em>, <em>hdr_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/envi.html#writeHeader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.envi.writeHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-hub.file">
+<span id="hub-file-module"></span><h2>hub.file module<a class="headerlink" href="#module-hub.file" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="hub.file.dirsearch">
+<code class="descclassname">hub.file.</code><code class="descname">dirsearch</code><span class="sig-paren">(</span><em>dir</em>, <em>pattern</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#dirsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.dirsearch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.filesearch">
+<code class="descclassname">hub.file.</code><code class="descname">filesearch</code><span class="sig-paren">(</span><em>dir</em>, <em>pattern</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#filesearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.filesearch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.mkdir">
+<code class="descclassname">hub.file.</code><code class="descname">mkdir</code><span class="sig-paren">(</span><em>dir</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#mkdir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.mkdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.mkfiledir">
+<code class="descclassname">hub.file.</code><code class="descname">mkfiledir</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#mkfiledir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.mkfiledir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.remove">
+<code class="descclassname">hub.file.</code><code class="descname">remove</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#remove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.remove" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.restoreJSON">
+<code class="descclassname">hub.file.</code><code class="descname">restoreJSON</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#restoreJSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.restoreJSON" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.restorePickle">
+<code class="descclassname">hub.file.</code><code class="descname">restorePickle</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#restorePickle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.restorePickle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.saveJSON">
+<code class="descclassname">hub.file.</code><code class="descname">saveJSON</code><span class="sig-paren">(</span><em>var</em>, <em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#saveJSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.saveJSON" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.file.savePickle">
+<code class="descclassname">hub.file.</code><code class="descname">savePickle</code><span class="sig-paren">(</span><em>var</em>, <em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/file.html#savePickle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.file.savePickle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-hub.hello">
+<span id="hub-hello-module"></span><h2>hub.hello module<a class="headerlink" href="#module-hub.hello" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-hub.rectangle">
+<span id="hub-rectangle-module"></span><h2>hub.rectangle module<a class="headerlink" href="#module-hub.rectangle" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="hub.rectangle.Rectangle">
+<em class="property">class </em><code class="descclassname">hub.rectangle.</code><code class="descname">Rectangle</code><span class="sig-paren">(</span><em>left</em>, <em>top</em>, <em>right</em>, <em>bottom</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/rectangle.html#Rectangle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.rectangle.Rectangle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.rectangle.isPointInsideRect">
+<code class="descclassname">hub.rectangle.</code><code class="descname">isPointInsideRect</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>rect</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/rectangle.html#isPointInsideRect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.rectangle.isPointInsideRect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.rectangle.overlap">
+<code class="descclassname">hub.rectangle.</code><code class="descname">overlap</code><span class="sig-paren">(</span><em>rect1</em>, <em>rect2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/rectangle.html#overlap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.rectangle.overlap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-hub.timing">
+<span id="hub-timing-module"></span><h2>hub.timing module<a class="headerlink" href="#module-hub.timing" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="hub.timing.progress">
+<code class="descclassname">hub.timing.</code><code class="descname">progress</code><span class="sig-paren">(</span><em>i</em>, <em>n</em>, <em>info=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/timing.html#progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.timing.progress" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.timing.tic">
+<code class="descclassname">hub.timing.</code><code class="descname">tic</code><span class="sig-paren">(</span><em>info=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/timing.html#tic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.timing.tic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hub.timing.toc">
+<code class="descclassname">hub.timing.</code><code class="descname">toc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/timing.html#toc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.timing.toc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-hub.xmlparser">
+<span id="hub-xmlparser-module"></span><h2>hub.xmlparser module<a class="headerlink" href="#module-hub.xmlparser" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="hub.xmlparser.XmlDictConfig">
+<em class="property">class </em><code class="descclassname">hub.xmlparser.</code><code class="descname">XmlDictConfig</code><span class="sig-paren">(</span><em>parent_element</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/xmlparser.html#XmlDictConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.xmlparser.XmlDictConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">dict</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="hub.xmlparser.XmlListConfig">
+<em class="property">class </em><code class="descclassname">hub.xmlparser.</code><code class="descname">XmlListConfig</code><span class="sig-paren">(</span><em>aList</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/xmlparser.html#XmlListConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.xmlparser.XmlListConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">list</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub.xmlparser.xmlToDict">
+<code class="descclassname">hub.xmlparser.</code><code class="descname">xmlToDict</code><span class="sig-paren">(</span><em>xmlfilename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub/xmlparser.html#xmlToDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub.xmlparser.xmlToDict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-hub">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-hub" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">hub package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-hub.collections">hub.collections module</a></li>
+<li><a class="reference internal" href="#module-hub.envi">hub.envi module</a></li>
+<li><a class="reference internal" href="#module-hub.file">hub.file module</a></li>
+<li><a class="reference internal" href="#module-hub.hello">hub.hello module</a></li>
+<li><a class="reference internal" href="#module-hub.rectangle">hub.rectangle module</a></li>
+<li><a class="reference internal" href="#module-hub.timing">hub.timing module</a></li>
+<li><a class="reference internal" href="#module-hub.xmlparser">hub.xmlparser module</a></li>
+<li><a class="reference internal" href="#module-hub">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/hub.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/hub.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

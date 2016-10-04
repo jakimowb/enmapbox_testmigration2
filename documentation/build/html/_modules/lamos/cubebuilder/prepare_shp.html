@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>lamos.cubebuilder.prepare_shp &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for lamos.cubebuilder.prepare_shp</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">hub.gdal.util</span><span class="o">,</span> <span class="nn">hub.ogr.util</span><span class="o">,</span> <span class="nn">hub.file</span><span class="o">,</span> <span class="nn">hub.rs.landsat</span>
+<span class="kn">from</span> <span class="nn">hub.timing</span> <span class="kn">import</span> <span class="n">tic</span><span class="p">,</span> <span class="n">toc</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">ogr</span>
+
+<div class="viewcode-block" id="moveShp"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.prepare_shp.moveShp">[docs]</a><span class="k">def</span> <span class="nf">moveShp</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+    <span class="n">shpfolder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;Shapefiles&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">shpfolder</span><span class="p">):</span>
+        <span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">filesearch</span><span class="p">(</span><span class="n">shpfolder</span><span class="p">,</span><span class="s1">&#39;*.*&#39;</span><span class="p">):</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="nb">file</span><span class="p">)))</span>
+    <span class="n">shpfolder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;GIS_Files&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">shpfolder</span><span class="p">):</span>
+        <span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">filesearch</span><span class="p">(</span><span class="n">shpfolder</span><span class="p">,</span><span class="s1">&#39;*.*&#39;</span><span class="p">):</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="nb">file</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="createBuffer"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.prepare_shp.createBuffer">[docs]</a><span class="k">def</span> <span class="nf">createBuffer</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">buffdist</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+    <span class="n">shpfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">folder</span><span class="p">))</span><span class="o">+</span><span class="s1">&#39;.shp&#39;</span>
+    <span class="n">shpfileBuffer</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">folder</span><span class="p">))</span><span class="o">+</span><span class="s1">&#39;_B&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">buffdist</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.shp&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">shpfile</span><span class="p">):</span> <span class="k">return</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">shpfile</span><span class="p">)</span>
+    <span class="n">ds</span><span class="o">=</span><span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">shpfile</span><span class="p">)</span>
+    <span class="n">drv</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">GetDriver</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">shpfileBuffer</span><span class="p">):</span>
+        <span class="n">drv</span><span class="o">.</span><span class="n">DeleteDataSource</span><span class="p">(</span><span class="n">shpfileBuffer</span><span class="p">)</span>
+    <span class="n">drv</span><span class="o">.</span><span class="n">CopyDataSource</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span><span class="n">shpfileBuffer</span><span class="p">)</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">Destroy</span><span class="p">()</span>
+
+    <span class="n">ds</span><span class="o">=</span><span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">shpfileBuffer</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">lyr</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">lyr</span><span class="o">.</span><span class="n">GetFeatureCount</span><span class="p">()):</span>
+        <span class="n">feat</span><span class="o">=</span><span class="n">lyr</span><span class="o">.</span><span class="n">GetFeature</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">lyr</span><span class="o">.</span><span class="n">DeleteFeature</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">geom</span><span class="o">=</span><span class="n">feat</span><span class="o">.</span><span class="n">GetGeometryRef</span><span class="p">()</span>
+        <span class="n">feat</span><span class="o">.</span><span class="n">SetGeometry</span><span class="p">(</span><span class="n">geom</span><span class="o">.</span><span class="n">Buffer</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">buffdist</span><span class="p">)))</span>
+        <span class="n">lyr</span><span class="o">.</span><span class="n">CreateFeature</span><span class="p">(</span><span class="n">feat</span><span class="p">)</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">Destroy</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="checkCRS"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.prepare_shp.checkCRS">[docs]</a><span class="k">def</span> <span class="nf">checkCRS</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+    <span class="n">shpfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">folder</span><span class="p">))</span><span class="o">+</span><span class="s1">&#39;.shp&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ds</span><span class="o">=</span><span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">shpfile</span><span class="p">)</span>
+        <span class="n">layer</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">layerSRS</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">GetSpatialRef</span><span class="p">()</span>
+        <span class="n">ds</span><span class="o">.</span><span class="n">Destroy</span><span class="p">()</span>
+        <span class="n">noSRS</span> <span class="o">=</span> <span class="n">layerSRS</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">()[</span><span class="mi">0</span><span class="p">:</span><span class="mi">25</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;PROJCS[&quot;WGS_1984_UTM_Zone&#39;</span>
+        <span class="k">if</span> <span class="n">noSRS</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">shpfile</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">layerSRS</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">()[</span><span class="mi">0</span><span class="p">:])</span>
+            <span class="c1">#outshpfile = os.path.join(r&#39;t:\test&#39;, os.path.basename(folder)+&#39;.shp&#39;)</span>
+            <span class="c1">#hub.ogr.util.ogr2ogr(outshpfile, shpfile, &#39;-a_srs EPSG:32632&#39;, verbose=True)</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;problem occured&#39;</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">shpfile</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="s1">&#39;H:\EuropeanDataCube\gis\MGRS_100km_1MIL_Files&#39;</span>
+    <span class="n">folders</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span> <span class="k">for</span> <span class="n">folder</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">folder</span> <span class="ow">in</span> <span class="n">folders</span><span class="p">:</span>
+        <span class="n">createBuffer</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span>
+
+
+
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -4,7 +4,7 @@ import os
 import numpy
 import ogr
 
-from enmapbox.hub.collections import Bunch
+from emb.hub.collections import Bunch
 
 
 def deleteShapefile(shp):

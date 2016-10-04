@@ -1,0 +1,81 @@
+hub package
+===========
+
+Subpackages
+-----------
+
+.. toctree::
+
+    hub.cookbook
+    hub.gdal
+    hub.numpy
+    hub.ogr
+    hub.rs
+
+Submodules
+----------
+
+hub.collections module
+----------------------
+
+.. automodule:: hub.collections
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hub.envi module
+---------------
+
+.. automodule:: hub.envi
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hub.file module
+---------------
+
+.. automodule:: hub.file
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hub.hello module
+----------------
+
+.. automodule:: hub.hello
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hub.rectangle module
+--------------------
+
+.. automodule:: hub.rectangle
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hub.timing module
+-----------------
+
+.. automodule:: hub.timing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hub.xmlparser module
+--------------------
+
+.. automodule:: hub.xmlparser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: hub
+    :members:
+    :undoc-members:
+    :show-inheritance:

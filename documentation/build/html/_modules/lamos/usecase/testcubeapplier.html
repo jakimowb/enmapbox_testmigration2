@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>lamos.usecase.testcubeapplier &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for lamos.usecase.testcubeapplier</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">from</span> <span class="nn">hub.timing</span> <span class="kn">import</span> <span class="n">tic</span><span class="p">,</span> <span class="n">toc</span>
+<span class="kn">import</span> <span class="nn">lamos.cubebuilder.cube</span>
+<span class="kn">import</span> <span class="nn">lamos.cubebuilder.applier</span>
+
+
+<div class="viewcode-block" id="testCubeIO"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcubeapplier.testCubeIO">[docs]</a><span class="k">def</span> <span class="nf">testCubeIO</span><span class="p">():</span>
+    <span class="n">tic</span><span class="p">(</span><span class="s1">&#39;running testCubeIO&#39;</span><span class="p">)</span>
+    <span class="c1"># read cube data and metadata</span>
+    <span class="n">incube</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">(</span><span class="s1">r&#39;</span><span class="se">\\</span><span class="s1">141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\cubes&#39;</span><span class="p">)</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;32UNB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UNC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UND&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPD&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQD&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTU&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUU&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVU&#39;</span><span class="p">]</span>
+<span class="c1">#    mgrstiles = [&#39;32UNB&#39;]</span>
+    <span class="k">for</span> <span class="n">mgrstile</span> <span class="ow">in</span> <span class="n">mgrstiles</span><span class="p">:</span>
+        <span class="c1">#print(mgrstile)</span>
+
+        <span class="n">indata</span><span class="p">,</span> <span class="n">inmeta</span> <span class="o">=</span> <span class="n">incube</span><span class="o">.</span><span class="n">readStack</span><span class="p">(</span><span class="n">mgrstile</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;band4&#39;</span><span class="p">,</span><span class="s1">&#39;band8&#39;</span><span class="p">])</span>
+
+        <span class="c1"># calculate ndvi</span>
+        <span class="n">red</span> <span class="o">=</span> <span class="n">indata</span><span class="p">[</span><span class="s1">&#39;band4&#39;</span><span class="p">]</span>
+        <span class="n">nir</span> <span class="o">=</span> <span class="n">indata</span><span class="p">[</span><span class="s1">&#39;band8&#39;</span><span class="p">]</span>
+        <span class="n">ndvi</span> <span class="o">=</span> <span class="p">(</span><span class="n">nir</span><span class="o">-</span><span class="n">red</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">nir</span><span class="o">+</span><span class="n">red</span><span class="p">)</span>
+
+        <span class="c1"># write result data cube and metadata</span>
+        <span class="n">outdata</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ndvi&#39;</span><span class="p">:</span><span class="n">ndvi</span><span class="p">}</span>
+        <span class="n">outmeta</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ndvi&#39;</span><span class="p">:</span><span class="n">inmeta</span><span class="p">[</span><span class="s1">&#39;band4&#39;</span><span class="p">],</span> <span class="s1">&#39;meta&#39;</span><span class="p">:</span><span class="n">inmeta</span><span class="p">[</span><span class="s1">&#39;meta&#39;</span><span class="p">]}</span>
+        <span class="n">outcube</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">(</span><span class="s1">r&#39;</span><span class="se">\\</span><span class="s1">141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\ndvi&#39;</span><span class="p">)</span>
+        <span class="n">outcube</span><span class="o">.</span><span class="n">writeStack</span><span class="p">(</span><span class="n">mgrstile</span><span class="p">,</span> <span class="n">outdata</span><span class="p">,</span> <span class="n">outmeta</span><span class="p">)</span>
+    <span class="n">toc</span><span class="p">()</span></div>
+
+<span class="c1"># Set up the function to be applied</span>
+<div class="viewcode-block" id="ndvi"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcubeapplier.ndvi">[docs]</a><span class="k">def</span> <span class="nf">ndvi</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+   <span class="c1"># prepare inputs</span>
+    <span class="n">red</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">landsatTimestack</span><span class="o">.</span><span class="n">band4</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">nir</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">landsatTimestack</span><span class="o">.</span><span class="n">band8</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">invalid</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">landsatTimestack</span><span class="o">.</span><span class="n">bandcfmask</span> <span class="o">!=</span> <span class="mi">0</span> <span class="c1"># use only clear land observations</span>
+
+    <span class="c1"># calculate the NDVI</span>
+    <span class="n">ndvi</span> <span class="o">=</span> <span class="p">(</span><span class="n">nir</span><span class="o">-</span><span class="n">red</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">nir</span><span class="o">+</span><span class="n">red</span><span class="p">)</span>
+
+    <span class="c1"># mask invalid pixels</span>
+    <span class="n">ndvi</span><span class="p">[</span><span class="n">invalid</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># prepare output cubes</span>
+    <span class="n">outputs</span><span class="o">.</span><span class="n">ndviTimestack</span><span class="o">.</span><span class="n">ndvi</span> <span class="o">=</span> <span class="n">ndvi</span>
+    <span class="n">outputs</span><span class="o">.</span><span class="n">ndviTimestack</span><span class="o">.</span><span class="n">ndvi</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">landsatTimestack</span><span class="o">.</span><span class="n">band4</span></div>
+
+<span class="c1"># Set up the function to specify output metadata</span>
+<div class="viewcode-block" id="ndvimeta"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcubeapplier.ndvimeta">[docs]</a><span class="k">def</span> <span class="nf">ndvimeta</span><span class="p">(</span><span class="n">inmeta</span><span class="p">,</span> <span class="n">outmeta</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="c1"># set data ignore value</span>
+    <span class="n">outmeta</span><span class="o">.</span><span class="n">ndviTimestack</span><span class="o">.</span><span class="n">ndvi</span><span class="o">.</span><span class="n">setNoDataValue</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># set AcqDates as band names</span>
+    <span class="n">bandNames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NDVI &#39;</span><span class="o">+</span><span class="n">date</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">landsatTimestack</span><span class="o">.</span><span class="n">band4</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="s1">&#39;AcqDate&#39;</span><span class="p">)]</span>
+    <span class="n">outmeta</span><span class="o">.</span><span class="n">ndviTimestack</span><span class="o">.</span><span class="n">ndvi</span><span class="o">.</span><span class="n">setBandNames</span><span class="p">(</span><span class="n">bandNames</span><span class="p">)</span>
+
+    <span class="c1"># copy some metadata</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;AcqTime&#39;</span><span class="p">,</span> <span class="s1">&#39;Sensor&#39;</span><span class="p">,</span> <span class="s1">&#39;Satellite&#39;</span><span class="p">,</span> <span class="s1">&#39;SunAzimuth&#39;</span><span class="p">,</span> <span class="s1">&#39;geometric accuracy&#39;</span><span class="p">,</span> <span class="s1">&#39;AcqDate&#39;</span><span class="p">,</span> <span class="s1">&#39;SceneID&#39;</span><span class="p">,</span> <span class="s1">&#39;SunElevation&#39;</span><span class="p">]:</span>
+        <span class="n">outmeta</span><span class="o">.</span><span class="n">ndviTimestack</span><span class="o">.</span><span class="n">ndvi</span><span class="o">.</span><span class="n">copyMetadataItem</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">landsatTimestack</span><span class="o">.</span><span class="n">band4</span><span class="p">,</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="testApplier"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcubeapplier.testApplier">[docs]</a><span class="k">def</span> <span class="nf">testApplier</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="c1"># Set up input and output filenames.</span>
+    <span class="n">infiles</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">CubenameAssociations</span><span class="p">()</span>
+    <span class="n">outfiles</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">CubenameAssociations</span><span class="p">()</span>
+    <span class="n">infiles</span><span class="o">.</span><span class="n">landsatTimestack</span> <span class="o">=</span> <span class="p">(</span><span class="s1">r&#39;</span><span class="se">\\</span><span class="s1">141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\cubes&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;band4&#39;</span><span class="p">,</span><span class="s1">&#39;band8&#39;</span><span class="p">,</span><span class="s1">&#39;bandcfmask&#39;</span><span class="p">])</span>
+    <span class="n">outfiles</span><span class="o">.</span><span class="n">ndviTimestack</span> <span class="o">=</span>   <span class="p">(</span><span class="s1">r&#39;</span><span class="se">\\</span><span class="s1">141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\ndvi2&#39;</span><span class="p">,</span>  <span class="p">[</span><span class="s1">&#39;ndvi&#39;</span><span class="p">])</span>
+
+    <span class="c1"># Set up tiles to be processed</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;32UNB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UNC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UND&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPD&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQD&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTU&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUU&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVU&#39;</span><span class="p">]</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;32UPB&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Set up processing controls (creates ENVI Files per default)</span>
+    <span class="n">controls</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">ApplierControls</span><span class="p">(</span><span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">controls</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">windowysize</span> <span class="o">=</span> <span class="mi">10000</span>
+
+    <span class="c1"># Apply the function to the inputs, creating the outputs.</span>
+    <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ndvi</span><span class="p">,</span> <span class="n">ndvimeta</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">outfiles</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">,</span> <span class="n">controls</span><span class="o">=</span><span class="n">controls</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">testApplier</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,11 +1,13 @@
 from __future__ import division
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
-import numpy
-from hub.timing import tic, toc
+
+import enmapbox.processing
 import hub.file
-from enmapbox.processing.types import Image, Classification, SupervisedSample, Classifier
-from enmapbox.processing.estimators import Classifiers
+import numpy
 from enmapbox.processing.environment import PrintProgress
+from enmapbox.processing.estimators import Classifiers
+from hub.timing import tic, toc
+from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
+
 
 class SampleReadApplier(Applier):
 
@@ -28,14 +30,11 @@ class SampleReadApplier(Applier):
 
         print(footprint.name)
 
-        if len(self.inputs[0].getFilenameAssociations(footprint).__dict__.values()) == 1:
-            labelfile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-            imagefile = self.inputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
-            image = Image(imagefile)
-            labels = Classification(labelfile)
-            sample = SupervisedSample.fromLocations(image=image, labels=labels, locations=labels.getLocations())
-        else:
-            sample = None
+        labelfile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
+        imagefile = self.inputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
+        image = enmapbox.processing.Image(imagefile)
+        labels = enmapbox.processing.Classification(labelfile)
+        sample = enmapbox.processing.ClassificationSample(image, labels)
         return sample
 
 
@@ -48,17 +47,18 @@ class SampleReadApplier(Applier):
             samples[footprint.name] = self.applyToFootprint(footprint=footprint)
 
         # merge all samples
-        x = numpy.vstack([sample.featureSample.dataSample.data for sample in samples.values() if sample is not None])
-        y = numpy.vstack([sample.labelsSample.dataSample.data for sample in samples.values() if sample is not None])
+        x = numpy.vstack([sample.imageData for sample in samples.values()])
+        y = numpy.hstack([sample.labelData for sample in samples.values()])
+
         sample = samples.values()[0]  # it is assumed, that the meta data in all samples match, so simply the meta data of the first sample is used
-        sample.featureSample.dataSample.data = x # store all features
-        sample.labelsSample.dataSample.data = y # store all labels
+        sample.imageData = x # store all features
+        sample.labelData = y # store all labels
         return sample
 
 def exportSampleAsJSON(sample, rfc, outfile):
-    assert isinstance(sample, SupervisedSample)
+    assert isinstance(sample, enmapbox.processing.ClassificationSample)
     result = dict()
-    result['x'] = [map(int, v) for v in sample.imageData.T]
+    result['x'] = [map(int, v) for v in sample.imageData]
     result['y'] = map(int, sample.labelData)
     result['samples'] = len(sample.labelData)
     result['features'] = len(sample.imageData[0])
@@ -68,7 +68,7 @@ def exportSampleAsJSON(sample, rfc, outfile):
     result['class ids'] = map(int, rfc.sklEstimator.classes_)
     result['class lookup'] = map(int, sample.mask.meta.getMetadataItem('class_lookup'))
     result['rfc feature_importances'] = map(float, rfc.sklEstimator._final_estimator.feature_importances_)
-    result['rfc oob probabilities'] = [map(float, v) for v in rfc.sklEstimator._final_estimator.oob_decision_function_.T]
+    result['rfc oob probabilities'] = [map(float, v) for v in rfc.sklEstimator._final_estimator.oob_decision_function_]
 
     hub.file.saveJSON(var=result, file=outfile)
 
@@ -76,7 +76,7 @@ def exportSampleAsJSON(sample, rfc, outfile):
 class ClassifierPredictApplier(Applier):
 
     def __init__(self, featureFolder, featureProduct, featureImage, featureExtension,
-                 outFolder, outProduct, outClassification, outProbability, outExtension,
+                 labelFolder, labelProduct, labelImage, labelExtension,
                  classifier, footprints=None):
 
         Applier.__init__(self, footprints=footprints)
@@ -84,13 +84,12 @@ class ClassifierPredictApplier(Applier):
                                       productName=featureProduct,
                                       imageNames=[featureImage],
                                       extension=featureExtension))
-        for imageName in [outClassification, outProbability]:
-            self.appendOutput(ApplierOutput(folder=outFolder,
-                                            productName=outProduct,
-                                            imageNames=[imageName],
-                                            extension=outExtension))
+        self.appendOutput(ApplierOutput(folder=labelFolder,
+                                        productName=labelProduct,
+                                        imageNames=[labelImage],
+                                        extension=labelExtension))
 
-        assert isinstance(classifier, Classifier)
+        assert isinstance(classifier, enmapbox.processing.Classifier)
         self.classifier = classifier
 
 
@@ -98,14 +97,10 @@ class ClassifierPredictApplier(Applier):
 
         print(footprint.name)
         imagefile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-        outfileClassification = self.outputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-        outfileProbability= self.outputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
-
-        image = Image(imagefile)
-        hub.file.mkfiledir(outfileProbability)
-        probability = self.classifier.predictProbability(image=image, mask=None, filename=outfileProbability, progress=PrintProgress)
-        classification = probability.argmax(filename=outfileClassification, progress=PrintProgress)
-
+        outfile = self.outputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
+        image = enmapbox.processing.Image(imagefile)
+        hub.file.mkfiledir(outfile)
+        self.classifier.predict(image=image, mask=None, filename=outfile, progress=PrintProgress)
 
 
 def test():
