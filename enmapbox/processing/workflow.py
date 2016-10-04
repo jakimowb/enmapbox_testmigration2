@@ -14,6 +14,8 @@ from hub.datetime import Date
 from hub.timing import tic, toc
 from hub.temp import Temporary
 from enmapbox.processing.types import Image, Mask
+from multiprocessing.pool import ThreadPool
+from multiprocessing import Pool
 
 def assertType(obj, type):
     assert isinstance(obj, type) # makes PyCharm aware of the type!
@@ -259,8 +261,8 @@ class ProductFA(FilenameAssociations):
     def extractByMask(self, maskFA, dirname):
 
         assert isinstance(maskFA, ImageFA)
-        self._linkInputFiles()
 
+        self._linkInputFiles()
         resultFA = self.__class__(dirname=dirname)
         mask = Mask(maskFA.filename)
         for infilename, imageKey in self._keyLookup.items():
@@ -364,7 +366,6 @@ class ProductCollectionBA(BlockAssociationsCollection):
         stack = ImageBA().addBlock(cube=outcube, meta=outmeta)
         return stack
 
-
 class ProductCollectionFA(FilenameAssociationsCollection):
 
     BlockAssociationsClass = ProductCollectionBA
@@ -416,18 +417,58 @@ class ProductCollectionFA(FilenameAssociationsCollection):
         self.filterDateEnd = end
         return self
 
-    def extractByMask(self, maskFA, dirname):
+    @staticmethod
+    def extractByMask_mapFunction(args):
+        indirname, outdirname, maskfilename, ProductFAClass = args
+        if not os.path.exists(outdirname):
+            print(outdirname)
+            maskFA = ImageFA(filename=maskfilename)
+            inproductFA = ProductFAClass(dirname=indirname)
+            inproductFA.extractByMask(maskFA=maskFA, dirname=outdirname)
+
+    def extractByMask(self, maskFA, dirname, processes=1):
         assert isinstance(maskFA, ImageFA)
         self._linkInputFiles()
 
         resultFA = self.__class__(dirname=dirname)
 
-        for inproductFA in self.collection:
+        '''for inproductFA in self.collection:
             outdirname = os.path.join(dirname, inproductFA.productName)
             outproductFA = inproductFA.extractByMask(maskFA=maskFA, dirname=outdirname)
+            resultFA.append(filenameAssociations=outproductFA)'''
+
+
+        def yieldArgs():
+            for inproductFA in self.collection:
+                indirname = inproductFA.dirname
+                outdirname = os.path.join(dirname, inproductFA.productName)
+                maskfilename = maskFA.filename
+                yield indirname, outdirname, maskfilename, self.ProductFAClass
+
+        if processes == 1:
+            for args in yieldArgs():
+                ProductCollectionFA_extractByMask_mapFunction(args)
+        else:
+            #pool = ThreadPool(processes=processes)
+            pool = Pool(processes=processes)
+            pool.map(ProductCollectionFA_extractByMask_mapFunction, yieldArgs())
+            pool.close()
+
+        for indirname, outdirname, maskfilename, ProductFAClass in yieldArgs():
+            outproductFA = self.ProductFAClass(dirname=outdirname)
             resultFA.append(filenameAssociations=outproductFA)
 
         return resultFA
+
+#ProductCollectionFA_extractByMask_mapFunction = ProductCollectionFA.extractByMask_mapFunction
+def ProductCollectionFA_extractByMask_mapFunction(args):
+    indirname, outdirname, maskfilename, ProductFAClass = args
+    if not os.path.exists(outdirname):
+        print(outdirname)
+        maskFA = ImageFA(filename=maskfilename)
+        inproductFA = ProductFAClass(dirname=indirname)
+        inproductFA.extractByMask(maskFA=maskFA, dirname=outdirname)
+
 
 class WorkflowFilenameAssociations():
     # container for workflow input/output files

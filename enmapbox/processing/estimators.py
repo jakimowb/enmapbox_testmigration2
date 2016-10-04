@@ -3,7 +3,7 @@ import numpy
 #from docutils.nodes import row
 
 from enmapbox.processing.report import *
-from enmapbox.processing.types import Classifier, Regressor, Transformer, Clusterer
+from enmapbox.processing.types import Classifier, Regressor, Transformer, Clusterer, unpickle
 
 import sklearn.cluster
 import sklearn.ensemble

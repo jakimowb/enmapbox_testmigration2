@@ -9,10 +9,11 @@ from lamos.operators.ml import SampleReadApplier, ClassifierPredictApplier, expo
 from lamos.operators.stack import StackApplier
 from lamos.operators.importer import LucasImportApplier
 from lamos.operators.ml import SampleReadApplier, ClassifierPredictApplier, exportSampleAsJSON
+from lamos.processing.types import MGRSFootprint, MGRSTilingScheme, MGRSArchive, WRS2Footprint
 import hub.file
 from hub.timing import tic, toc
 from hub.datetime import Date
-from emb.processing.estimators import Classifiers
+from enmapbox.processing.estimators import Classifiers
 
 
 def test():
@@ -23,6 +24,8 @@ def test():
     folder1 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\landsat'
     folder2 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gms\landsatX'
     folder3 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gms\landsatXMGRS'
+    folder3b = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gms\landsatXMGRS_GTiff'
+
     folder4 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gms\landsatTimeseriesMGRS'
     folder4b = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gms\landsatTimeseriesMGRS_ENVI'
     folder5 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gms\productsMGRS'
@@ -39,8 +42,8 @@ def test():
     wrs2Footprints = ['192023','193023','194023','192024','193024','194024']
     mgrsFootprints = ['33UUU', '33UVU', '33UUT', '33UVT']
 
-    i=3
-    mgrsFootprints = mgrsFootprints[i:i+1]
+    #i=3
+    #mgrsFootprints = mgrsFootprints[i:i+1]
 
     start = Date(2014, 1, 1)
     end = Date(2016, 6, 30)
@@ -50,7 +53,9 @@ def test():
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     #tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
+    MGRSArchive(folder3).saveAsGTiff(folder3b, filter=mgrsFootprints, processes=50)
 
+    return
 
     tsBuilder = TimeseriesBuilder(start=start, end=None)
     #tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints)
