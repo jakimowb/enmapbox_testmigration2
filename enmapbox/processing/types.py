@@ -1653,12 +1653,3 @@ class ProbabilityPerformance(Type):
 
         return report
 
-class ImageTools():
-
-    @staticmethod
-    def buildVRTImageStack(images, outfile=Environment.tempfile('imagestack', '.vrt')):
-
-        for image in images:
-            assert(image, isinstance(Image))
-            hub.gdal.util.stack_images(outfile, infiles, options='', verbose=True)
-

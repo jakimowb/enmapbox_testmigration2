@@ -117,8 +117,10 @@ class TimeseriesBuilder():
         infiles_qa = [image.filename for image in images_qa]
         inmetas = [Meta(infile) for infile in infiles_sr]
 
-        indecimalyear = [hub.datetime.Date(int(inmeta.getMetadataItem('acqdate')[0:4]), int(inmeta.getMetadataItem('acqdate')[5:7]), int(inmeta.getMetadataItem('acqdate')[8:10])).decimalYear() for inmeta in inmetas]
-
+        try:
+            indecimalyear = [hub.datetime.Date(int(inmeta.getMetadataItem('acqdate')[0:4]), int(inmeta.getMetadataItem('acqdate')[5:7]), int(inmeta.getMetadataItem('acqdate')[8:10])).decimalYear() for inmeta in inmetas]
+        except:
+            print
         insorted = sorted(list(zip(infiles_sr, infiles_qa, inmetas, indecimalyear)), key=lambda tup: tup[3])
         infiles_sr, infiles_qa, inmetas, indecimalyear = zip(*insorted)
 

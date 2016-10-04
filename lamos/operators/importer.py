@@ -130,7 +130,7 @@ def testAD():
     MGRSFootprint.shpRoot = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gis\reference_systems\mgrs\MGRS_100km_1MIL_Files'
 
     inshapefile = r'\\141.20.140.91\NAS_Projects\Baltrak\Andrey\SHP\2007.shp'
-    outfolder = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\referenceMGRS'
+    outfolder = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\referenceMGRS'
     mgrsFootprints = ['41ULS','41ULT','41ULU','41UMS','41UMT','41UMU','41UMV','41UNS','41UNT','41UNU','41UNV','41UPS','41UPT','41UPU','41UPV']
 
 

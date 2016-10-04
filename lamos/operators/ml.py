@@ -3,7 +3,7 @@ from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSF
 import numpy
 from hub.timing import tic, toc
 import hub.file
-from enmapbox.processing.types import Image, Classification, ClassificationSample, Classifier
+from enmapbox.processing.types import Image, Classification, SupervisedSample, Classifier
 from enmapbox.processing.estimators import Classifiers
 from enmapbox.processing.environment import PrintProgress
 
@@ -33,7 +33,7 @@ class SampleReadApplier(Applier):
             imagefile = self.inputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
             image = Image(imagefile)
             labels = Classification(labelfile)
-            sample = ClassificationSample(image, labels)
+            sample = SupervisedSample.fromLocations(image=image, labels=labels, locations=labels.getLocations())
         else:
             sample = None
         return sample
@@ -48,16 +48,15 @@ class SampleReadApplier(Applier):
             samples[footprint.name] = self.applyToFootprint(footprint=footprint)
 
         # merge all samples
-        x = numpy.vstack([sample.imageData for sample in samples.values() if sample is not None])
-        y = numpy.hstack([sample.labelData for sample in samples.values() if sample is not None])
-
+        x = numpy.vstack([sample.featureSample.dataSample.data for sample in samples.values() if sample is not None])
+        y = numpy.vstack([sample.labelsSample.dataSample.data for sample in samples.values() if sample is not None])
         sample = samples.values()[0]  # it is assumed, that the meta data in all samples match, so simply the meta data of the first sample is used
-        sample.imageData = x # store all features
-        sample.labelData = y # store all labels
+        sample.featureSample.dataSample.data = x # store all features
+        sample.labelsSample.dataSample.data = y # store all labels
         return sample
 
 def exportSampleAsJSON(sample, rfc, outfile):
-    assert isinstance(sample, ClassificationSample)
+    assert isinstance(sample, SupervisedSample)
     result = dict()
     result['x'] = [map(int, v) for v in sample.imageData.T]
     result['y'] = map(int, sample.labelData)
