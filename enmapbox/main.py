@@ -249,24 +249,34 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
 
     def addDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
-        typeName = self.getSourceTypeName(dataSource)
+        dsTypeName = self.getSourceTypeName(dataSource)
 
-        if typeName not in [c.name for c in self.rootItem.childs]:
+        existingNames = [c.name for c in self.rootItem.childs]
+        if dsTypeName not in existingNames:
+            r1 = len(existingNames)
+            #todo: insert in alphabetical order
+            self.beginInsertRows(QModelIndex(), r1, r1)
+            typeItem = TreeItem(None, dsTypeName,
+                                icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
+            self.rootItem.insertChild(r1, typeItem)
+            self.endInsertRows()
 
-            typeItem = TreeItem(self.rootItem,typeName,
-                               icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
-        else:
-            typeItem = [c for c in self.rootItem.childs if c.name == typeName][0]
+        #find TreeItem with dsTypeName
+        dsItem = dataSource.getTreeItem(None)
+        for r1 in range(self.rowCount(QModelIndex())):
+            idx1 = self.index(r1, 0, QModelIndex())
+            if dsTypeName == str(idx1.data()):
 
+                dsTypeItem = self.data(idx1, 'TreeItem')
+                assert isinstance(dsTypeItem, TreeItem)
 
-        dsItem = dataSource.getTreeItem(typeItem)
-        topLeft = self.createIndex(0, 0, self.rootItem)
-        bottomRight = self.createIndex(2,dsItem.childNumber(), dsItem)
-        #src_grp.appendChild(dataSource.getTreeItem(src_grp))
-        self.dataChanged.emit(QModelIndex(), QModelIndex())
-        #self.dataChanged.emit(topLeft,bottomRight)
+                #todo: alphabetical order?
+                r2 = dsTypeItem.childCount()
 
-        #print(src_grp)
+                self.beginInsertRows(idx1, r2, r2)
+                dsTypeItem.insertChild(r2, dsItem)
+                self.endInsertRows()
+
 
     def indexOfTreeItem(self, item, idx = None):
         if idx is None:
