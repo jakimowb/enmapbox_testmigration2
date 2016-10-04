@@ -733,7 +733,10 @@ if __name__ == '__main__':
     from qgis.core import *
     if sys.platform == 'darwin':
         PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+
     else:
+        #assume OSGeo4W startup
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
     assert os.path.exists(PATH_QGS)
     qgsApp = QgsApplication([], True)
