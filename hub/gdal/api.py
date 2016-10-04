@@ -222,10 +222,7 @@ class GDALMeta():
                 classes = len(classNames)
                 classLookup = self.colorTable.getRGBFlatList()[0:3*classes+1] # must trim color vector because color table might contain fill values for all 256 categories (problem occurs for GTiff only)
 
-                self.setMetadataItem('file type', 'ENVI Classification')
-                self.setMetadataItem('classes', classes)
-                self.setMetadataItem('class names', classNames)
-                self.setMetadataItem('class lookup', classLookup)
+                self.setClassificationMetadata(classes=classes, classNames=classNames, classLookup=classLookup)
 
         self.ProjectionRef = ds.GetProjectionRef()
         self.GeoTransform = ds.GetGeoTransform()
@@ -246,6 +243,10 @@ class GDALMeta():
         ds = gdal.Open(filename, gdal.GA_Update)
         if ds is None:
             raise Exception('Unable to open '+filename)
+
+        # if ENVI file type is ENVI Classification, then set color table and category names
+        if self.getMetadataItem('file type', default='').lower() == 'envi classification':
+            self.setClassificationMetadata(*self.getClassificationMetadata()) # color table is set inside setClassificationMetadata()!
 
         # write color table and category names only for single band images
         if ds.RasterCount == 1:
@@ -292,7 +293,7 @@ class GDALMeta():
             # Create an additional ENVI header to let ENVI know about important metadata like e.g. wavelength and band names.
             hdrfile = self.filename+'.hdr'
             hdr = self.getMetadataDict()
-            hdr['file type'] = 'TIFF'
+            hdr['file_type'] = 'TIFF'
             hdr['samples'] = self.RasterXSize
             hdr['lines'] = self.RasterYSize
             hdr['bands'] = self.RasterCount
@@ -375,37 +376,35 @@ class GDALMeta():
         date = Date.fromText(self.getMetadataItem('acqdate'))
         return date
 
+    def setClassificationMetadata(self, classes, classNames, classLookup):
+
+        assert len(classNames) == classes
+        assert len(classLookup) == classes*3
+        self.setMetadataItem('file type', 'ENVI Classification')
+        self.setMetadataItem('classes', classes)
+        self.setMetadataItem('class names', classNames)
+        self.setMetadataItem('class lookup', classLookup)
+        for i in range(classes):
+            r, g, b = classLookup[i*3], classLookup[i*3 + 1], classLookup[i*3 + 2]
+            self.colorTable.setColorEntry(i, (r,g,b))
+        self.categoryNames = classNames
+
+    def getClassificationMetadata(self):
+        return (self.getMetadataItem('classes'),
+                self.getMetadataItem('class names'),
+                self.getMetadataItem('class lookup'))
+
+
+def test_classification():
+    infilename = r'C:\Work\data\gms\new_timeseriesMetrics\32\32UQC\rfc\classification.tif'
+    outfilename = r'C:\Work\data\gms\new_timeseriesMetrics\32\32UQC\rfc\classificationCopy.tif'
+    meta = GDALMeta(outfilename)
+    classMeta = GDALMeta(infilename)
+    meta.writeMeta(outfilename)
+
+
 if __name__ == '__main__':
 
-    infilename = r'c:\work\data\Hymap_Berlin-A_Classification-GroundTruth'
-    outfilename = r'c:\work\data\iotest'
-
-    # read/write image
-    # - ENVI to GTiff
-    cube = readCube(infilename).astype(numpy.uint8)
-    writeCube(cube, outfilename+'.tif', srsfilename=infilename, format='GTiff')
-    meta = GDALMeta(infilename)
-
-    # - delete all ENVI Classification meta
-    meta.delMetadataItem('classes')
-    meta.delMetadataItem('class names')
-    meta.delMetadataItem('class lookup')
-    meta.delMetadataItem('file type')
-
-    # - add GDAL color table and category meta
-    meta.categoryNames = ['undef', 'c1', 'c2', 'c3', 'c4', 'c5']
-    meta.colorTable.setColorEntry(0, (0, 0, 0))
-    meta.colorTable.setColorEntry(1, (255, 0, 0))
-    meta.colorTable.setColorEntry(2, (0, 255, 0))
-    meta.colorTable.setColorEntry(3, (0, 0, 255))
-    meta.colorTable.setColorEntry(4, (0, 255, 0))
-    meta.colorTable.setColorEntry(5, (255, 0, 0))
-
-    meta.writeMeta(outfilename+'.tif')
-
-    # - GTiff back to ENVI
-    writeCube(cube, outfilename+'.img', srsfilename=infilename, format='ENVI')
-    meta = GDALMeta(outfilename+'.tif')
-    meta.writeMeta(outfilename+'.img')
+    test_classification()
 
 
