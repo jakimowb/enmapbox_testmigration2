@@ -1,0 +1,386 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>eb.report &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for eb.report</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">scipy.misc</span><span class="o">,</span> <span class="nn">numpy</span><span class="o">,</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">HTML</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">TableRow</span><span class="p">,</span> <span class="n">TableCell</span>
+<span class="kn">from</span> <span class="nn">eb.env</span> <span class="kn">import</span> <span class="n">env</span>
+
+
+<div class="viewcode-block" id="Report"><a class="viewcode-back" href="../../eb.html#eb.report.Report">[docs]</a><span class="k">class</span> <span class="nc">Report</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<div class="viewcode-block" id="Report.append"><a class="viewcode-back" href="../../eb.html#eb.report.Report.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Report.appendReport"><a class="viewcode-back" href="../../eb.html#eb.report.Report.appendReport">[docs]</a>    <span class="k">def</span> <span class="nf">appendReport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">report</span><span class="p">):</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="p">,</span> <span class="n">Report</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHeading</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">title</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Report.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.Report.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dirname</span><span class="p">):</span>
+
+        <span class="n">imageCount</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">relativeDirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+        <span class="n">html</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&lt;!DOCTYPE html&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&lt;html lang=&quot;en&quot;&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;  &lt;head&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;meta charset=&quot;ASCII&quot; /&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;title&gt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39;&lt;/title&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">relativeDirname</span><span class="p">,</span> <span class="s1">&#39;stylesheet.css&quot;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; media=&quot;all&quot; /&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;script type=&quot;text/javascript&quot; src=&quot;&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">relativeDirname</span><span class="p">,</span> <span class="s1">&#39;javascript.js&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot;&gt; &lt;/script&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;noscript&gt; &lt;/noscript&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;  &lt;/head&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;  &lt;body&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;  &lt;section class=&quot;report&quot; id=&quot;report0&quot; style=&quot;display:block&quot;&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;header&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;      &lt;h1&gt; &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39; &lt;/h1&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;/header&gt;&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">ReportImage</span><span class="p">):</span>
+                <span class="n">html</span> <span class="o">=</span> <span class="n">html</span> <span class="o">+</span> <span class="n">item</span><span class="o">.</span><span class="n">generateHTML</span><span class="p">(</span><span class="n">dirname</span><span class="p">,</span> <span class="n">imageCount</span><span class="p">)</span>
+                <span class="n">imageCount</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">html</span> <span class="o">=</span> <span class="n">html</span> <span class="o">+</span> <span class="n">item</span><span class="o">.</span><span class="n">generateHTML</span><span class="p">()</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;  &lt;/section&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;footer id=&quot;footer&quot;&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;      &lt;p&gt; generated by &lt;b&gt;&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;USERNAME&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&lt;/b&gt; on &#39;</span> <span class="o">+</span> <span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;&lt;/p&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;/footer&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;  &lt;/body&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&lt;/html&gt;&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">html</span></div>
+
+
+<div class="viewcode-block" id="Report.saveHTML"><a class="viewcode-back" href="../../eb.html#eb.report.Report.saveHTML">[docs]</a>    <span class="k">def</span> <span class="nf">saveHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">env</span><span class="o">.</span><span class="n">tempfile</span><span class="p">(</span><span class="s1">&#39;report&#39;</span><span class="p">,</span> <span class="s1">&#39;.html&#39;</span><span class="p">)):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_files&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dirname</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+
+        <span class="n">html</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generateHTML</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">codecs</span>
+        <span class="k">with</span> <span class="n">codecs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">html</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+
+        <span class="kn">import</span> <span class="nn">shutil</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;javascript.js&#39;</span><span class="p">),</span> <span class="n">dirname</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;stylesheet.css&#39;</span><span class="p">),</span> <span class="n">dirname</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Report.open"><a class="viewcode-back" href="../../eb.html#eb.report.Report.open">[docs]</a>    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div></div>
+
+
+<div class="viewcode-block" id="ReportHeading"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHeading">[docs]</a><span class="k">class</span> <span class="nc">ReportHeading</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span>
+
+
+<div class="viewcode-block" id="ReportHeading.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHeading.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1">#html.append(&#39;    &lt;header&gt;&#39;)</span>
+        <span class="c1">#html.append(&#39;      &lt;h1&gt; &#39; + self.title + &#39; &lt;/h1&gt;&#39;)</span>
+        <span class="c1">#html.append(&#39;    &lt;/header&gt;&#39;)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">html</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;    &lt;header&gt;&lt;h&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&gt; &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39; &lt;/h&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&gt;&lt;/header&gt;&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">html</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;    &lt;h&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&gt; &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39; &lt;/h&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">html</span></div></div>
+
+
+<div class="viewcode-block" id="ReportMonospace"><a class="viewcode-back" href="../../eb.html#eb.report.ReportMonospace">[docs]</a><span class="k">class</span> <span class="nc">ReportMonospace</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+
+
+<div class="viewcode-block" id="ReportMonospace.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportMonospace.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">html</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;pre&gt;&lt;code&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;/code&gt;&lt;/pre&gt;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">html</span></div></div>
+
+
+<div class="viewcode-block" id="ReportParagraph"><a class="viewcode-back" href="../../eb.html#eb.report.ReportParagraph">[docs]</a><span class="k">class</span> <span class="nc">ReportParagraph</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">font_color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">):</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">font_color</span> <span class="o">=</span> <span class="n">font_color</span>
+
+
+<div class="viewcode-block" id="ReportParagraph.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportParagraph.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">html</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;p&gt;&lt;font color=&quot;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">font_color</span> <span class="o">+</span><span class="s1">&#39;&quot;&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;/font&gt;&lt;/p&gt;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">html</span></div></div>
+
+
+<div class="viewcode-block" id="ReportImage"><a class="viewcode-back" href="../../eb.html#eb.report.ReportImage">[docs]</a><span class="k">class</span> <span class="nc">ReportImage</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">caption</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">caption</span> <span class="o">=</span> <span class="n">caption</span>
+
+
+<div class="viewcode-block" id="ReportImage.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportImage.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dirname</span><span class="p">,</span> <span class="n">imageCount</span><span class="p">):</span>
+
+        <span class="n">basename</span> <span class="o">=</span> <span class="s1">&#39;image&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">imageCount</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.png&#39;</span>
+        <span class="n">relativeDirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+        <span class="n">relativeImageFilename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">relativeDirname</span><span class="p">,</span> <span class="n">basename</span><span class="p">)</span>
+        <span class="n">absoluteImageFilename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">,</span> <span class="n">basename</span><span class="p">)</span>
+
+        <span class="n">scipy</span><span class="o">.</span><span class="n">misc</span><span class="o">.</span><span class="n">toimage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">)</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">absoluteImageFilename</span><span class="p">)</span>
+
+        <span class="n">html</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;p&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;      &lt;img src=&quot;&#39;</span> <span class="o">+</span> <span class="n">relativeImageFilename</span> <span class="o">+</span> <span class="s1">&#39;&quot;/&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;br /&gt;&lt;i&gt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">caption</span> <span class="o">+</span> <span class="s1">&#39;&lt;/i&gt;&lt;/p&gt;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">html</span></div></div>
+
+<div class="viewcode-block" id="ReportPlot"><a class="viewcode-back" href="../../eb.html#eb.report.ReportPlot">[docs]</a><span class="k">class</span> <span class="nc">ReportPlot</span><span class="p">(</span><span class="n">ReportImage</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">figure</span><span class="p">,</span> <span class="n">caption</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+        <span class="k">def</span> <span class="nf">fig2rgb_array</span><span class="p">():</span>
+
+            <span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+            <span class="n">buf</span> <span class="o">=</span> <span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">tostring_rgb</span><span class="p">()</span>
+            <span class="n">ncols</span><span class="p">,</span> <span class="n">nrows</span> <span class="o">=</span> <span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">get_width_height</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="n">array</span> <span class="o">=</span> <span class="n">fig2rgb_array</span><span class="p">()</span>
+        <span class="n">ReportImage</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">caption</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ReportTable"><a class="viewcode-back" href="../../eb.html#eb.report.ReportTable">[docs]</a><span class="k">class</span> <span class="nc">ReportTable</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">caption</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">colHeaders</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rowHeaders</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">colSpans</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rowSpans</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="p">[</span><span class="n">TableRow</span><span class="p">([</span><span class="n">TableCell</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">colHeaders</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">colSpans</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                 <span class="n">colSpans</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">None</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vr</span><span class="p">]</span> <span class="k">for</span> <span class="n">vr</span> <span class="ow">in</span> <span class="n">colHeaders</span><span class="p">]</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="p">[</span><span class="n">TableRow</span><span class="p">([</span><span class="n">TableCell</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>  <span class="n">attribs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;colspan&#39;</span><span class="p">:</span> <span class="n">cscell</span><span class="p">})</span>
+                                 <span class="k">for</span> <span class="n">cell</span><span class="p">,</span> <span class="n">cscell</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">colSpan</span><span class="p">)],</span> <span class="n">header</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">colSpan</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">colHeaders</span><span class="p">,</span> <span class="n">colSpans</span><span class="p">)]</span> <span class="o">+</span> <span class="n">table</span>
+
+        <span class="k">if</span> <span class="n">rowHeaders</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">rowSpans</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">rowSpans</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">None</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vr</span><span class="p">]</span> <span class="k">for</span> <span class="n">vr</span> <span class="ow">in</span> <span class="n">rowHeaders</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">colHeaders</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cells</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">TableCell</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">attribs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;colspan&#39;</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">colHeaders</span><span class="p">),</span> <span class="s1">&#39;rowspan&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">rowHeaders</span><span class="p">)}))</span>
+
+            <span class="k">for</span> <span class="n">rowheader</span><span class="p">,</span> <span class="n">rowspan</span>  <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">rowHeaders</span><span class="p">,</span> <span class="n">rowSpans</span><span class="p">)):</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">colHeaders</span><span class="p">)</span> <span class="k">if</span> <span class="n">colHeaders</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">header</span><span class="p">,</span> <span class="n">span</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rowheader</span><span class="p">,</span> <span class="n">rowspan</span><span class="p">):</span>
+
+                    <span class="n">table</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cells</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">TableCell</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">attribs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rowspan&#39;</span><span class="p">:</span> <span class="n">span</span><span class="p">}))</span>
+                    <span class="n">i</span> <span class="o">+=</span> <span class="n">span</span> <span class="k">if</span> <span class="n">span</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">caption</span> <span class="o">=</span> <span class="n">caption</span>
+
+<div class="viewcode-block" id="ReportTable.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportTable.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">html</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;p&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">caption</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;br /&gt;&lt;i&gt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">caption</span> <span class="o">+</span> <span class="s1">&#39;&lt;/i&gt;&lt;/p&gt;&#39;</span><span class="p">)</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    &lt;/p&gt;&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">html</span></div></div>
+
+
+<div class="viewcode-block" id="ReportHorizontalLine"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHorizontalLine">[docs]</a><span class="k">class</span> <span class="nc">ReportHorizontalLine</span><span class="p">():</span>
+
+<div class="viewcode-block" id="ReportHorizontalLine.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHorizontalLine.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">html</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;    &lt;hr&gt;&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">html</span></div></div>
+
+
+<div class="viewcode-block" id="ReportHyperlink"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHyperlink">[docs]</a><span class="k">class</span> <span class="nc">ReportHyperlink</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+
+<div class="viewcode-block" id="ReportHyperlink.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHyperlink.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">html</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&lt;p&gt;&lt;a href=&quot;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s1">&#39;&quot; target=&quot;_blank&quot;&gt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">+</span><span class="s1">&#39;&lt;/a&gt;&lt;/p&gt;&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">html</span></div></div>
+
+
+<div class="viewcode-block" id="ReportHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHTML">[docs]</a><span class="k">class</span> <span class="nc">ReportHTML</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">html</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">html</span> <span class="o">=</span> <span class="n">html</span>
+
+<div class="viewcode-block" id="ReportHTML.generateHTML"><a class="viewcode-back" href="../../eb.html#eb.report.ReportHTML.generateHTML">[docs]</a>    <span class="k">def</span> <span class="nf">generateHTML</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">html</span><span class="p">]</span></div></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="kn">import</span> <span class="nn">eb</span>
+
+    <span class="n">array</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">300</span><span class="p">])</span>
+    <span class="n">colHeaders</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;Hello World&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;a1&#39;</span><span class="p">,</span> <span class="s1">&#39;a2&#39;</span><span class="p">,</span> <span class="s1">&#39;b1&#39;</span><span class="p">,</span> <span class="s1">&#39;b2&#39;</span><span class="p">]]</span>
+    <span class="n">colSpans</span> <span class="o">=</span>   <span class="p">[[</span><span class="mi">4</span><span class="p">],</span>             <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>     <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+    <span class="n">rowHeaders</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;Hello World&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="s1">&#39;Z&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x1&#39;</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">,</span> <span class="s1">&#39;y1&#39;</span><span class="p">,</span> <span class="s1">&#39;y2&#39;</span><span class="p">,</span> <span class="s1">&#39;z1&#39;</span><span class="p">,</span> <span class="s1">&#39;z2&#39;</span><span class="p">]]</span>
+    <span class="n">rowSpans</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">6</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+    <span class="n">report</span> <span class="o">=</span> <span class="n">Report</span><span class="p">(</span><span class="s1">&#39;Title&#39;</span><span class="p">)</span> \
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHeading</span><span class="p">(</span><span class="s1">&#39;Heading&#39;</span><span class="p">))</span> \
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHorizontalLine</span><span class="p">())</span>\
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHeading</span><span class="p">(</span><span class="s1">&#39;SubHeading&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>\
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHeading</span><span class="p">(</span><span class="s1">&#39;SubSubHeading&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>\
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHeading</span><span class="p">(</span><span class="s1">&#39;SubSubSubHeading&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>\
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHeading</span><span class="p">(</span><span class="s1">&#39;SubSubSubSubHeading&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>\
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportMonospace</span><span class="p">(</span><span class="s1">&#39;Monospace text: a = 1 + 3&#39;</span><span class="p">))</span>\
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportParagraph</span><span class="p">(</span><span class="s1">&#39;Paragraph text: The joy of coding Python should be in seeing short, concise, readable classes that express a lot of action in a small amount of clear code -- not in reams of trivial code that bores the reader to death. - Guido van Rossum&#39;</span><span class="p">))</span>\
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportImage</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s1">&#39;This is a nice image&#39;</span><span class="p">))</span> \
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportTable</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;Table without headers.&#39;</span><span class="p">))</span>    \
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportTable</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;Table with column headers.&#39;</span><span class="p">,</span> <span class="n">colHeaders</span><span class="o">=</span><span class="n">colHeaders</span><span class="p">,</span> <span class="n">colSpans</span><span class="o">=</span><span class="n">colSpans</span><span class="p">))</span> \
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportTable</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;Table with row headers.&#39;</span><span class="p">,</span> <span class="n">rowHeaders</span><span class="o">=</span><span class="p">[</span><span class="n">rowHeaders</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]))</span> \
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportTable</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;Table with nested column and row headers&#39;</span><span class="p">,</span> <span class="n">colHeaders</span><span class="p">,</span> <span class="n">rowHeaders</span><span class="p">,</span> <span class="n">colSpans</span><span class="p">,</span> <span class="n">rowSpans</span><span class="p">))</span> \
+        <span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReportHyperlink</span><span class="p">(</span><span class="s1">&#39;http://www.enmap.org/&#39;</span><span class="p">,</span> <span class="s1">&#39;Visit EnMAP!&#39;</span><span class="p">))</span>\
+        <span class="o">.</span><span class="n">saveHTML</span><span class="p">()</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+    <span class="k">print</span> <span class="n">report</span><span class="o">.</span><span class="n">filename</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

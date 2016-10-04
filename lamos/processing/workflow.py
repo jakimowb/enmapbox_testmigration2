@@ -70,7 +70,7 @@ class LandsatCollectionBA(ProductCollectionBA):
 
         productBA = ProductBA(productName=productName)
         bandNames = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'fmask']
-        products = self._collection
+        products = self.collection
 
         # special handling for empty collection
         if len(products) == 0:
@@ -98,7 +98,7 @@ class LandsatCollectionBA(ProductCollectionBA):
 
             # create cube
             cube = list()
-            for landsatBA in self._collection:
+            for landsatBA in self.collection:
                 cube.append(landsatBA.getCubeByName(bandName))
             cube = numpy.array(cube)
 

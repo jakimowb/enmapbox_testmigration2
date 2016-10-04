@@ -1,0 +1,706 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>lamos.usecase.testcompositing_ar_big &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for lamos.usecase.testcompositing_ar_big</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">scipy.optimize</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">hub.timing</span> <span class="kn">import</span> <span class="n">tic</span><span class="p">,</span> <span class="n">toc</span>
+<span class="kn">import</span> <span class="nn">lamos.cubebuilder.cube</span>
+<span class="kn">import</span> <span class="nn">lamos.cubebuilder.applier</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">hub.collections</span> <span class="kn">import</span> <span class="n">Bunch</span>
+<span class="kn">import</span> <span class="nn">hub.numpy.ma</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<div class="viewcode-block" id="getCube"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.getCube">[docs]</a><span class="k">def</span> <span class="nf">getCube</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">bbl</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="c1"># return cube if already exist...</span>
+    <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="c1"># ...or create and cache it otherwise</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span>   <span class="n">name</span><span class="o">==</span><span class="s1">&#39;ndvi&#39;</span> <span class="p">:</span> <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">nir</span><span class="o">-</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">red</span><span class="p">)</span><span class="o">.</span><span class="n">__truediv__</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">nir</span><span class="o">+</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">red</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">==</span><span class="s1">&#39;vis&#39;</span>  <span class="p">:</span> <span class="n">result</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">blue</span><span class="o">/</span><span class="mi">3</span><span class="o">+</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">green</span><span class="o">/</span><span class="mi">3</span><span class="o">+</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">red</span><span class="o">/</span><span class="mi">3</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">==</span><span class="s1">&#39;ir&#39;</span>   <span class="p">:</span> <span class="n">result</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">nir</span><span class="o">/</span><span class="mi">3</span> <span class="o">+</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">swir1</span><span class="o">/</span><span class="mi">3</span><span class="o">+</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">swir2</span><span class="o">/</span><span class="mi">3</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">==</span><span class="s1">&#39;mask&#39;</span> <span class="p">:</span> <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">bandcfmask</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">bandcfmask</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unknown cube requested: &#39;</span><span class="o">+</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+
+    <span class="c1"># subset bands if needed and return cube</span>
+    <span class="k">if</span> <span class="n">bbl</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="n">bbl</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="getCubeFromVector"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.getCubeFromVector">[docs]</a><span class="k">def</span> <span class="nf">getCubeFromVector</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">bbl</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="c1"># reshape vector and subset required bands</span>
+    <span class="n">vectorCube</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="n">bbl</span><span class="p">]</span>
+
+    <span class="c1"># broadcast to full cube size and apply mask</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">bbl</span><span class="p">)</span>
+    <span class="n">cube</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">*</span><span class="n">vectorCube</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span> <span class="c1"># todo: in numpy v1.10 could use numpy.broadcast_to()</span>
+    <span class="k">return</span> <span class="n">cube</span></div>
+
+<div class="viewcode-block" id="getMeta"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.getMeta">[docs]</a><span class="k">def</span> <span class="nf">getMeta</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">):</span>
+
+    <span class="c1"># return cube if already exist...</span>
+    <span class="k">if</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="c1"># ...or create and cache it otherwise</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span>   <span class="n">name</span><span class="o">==</span><span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">acqDate</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">acqDate</span> <span class="ow">in</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">bandcfmask</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="s1">&#39;AcqDate&#39;</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">==</span><span class="s1">&#39;doy&#39;</span><span class="p">:</span>  <span class="n">result</span> <span class="o">=</span> <span class="p">[(</span><span class="n">date</span><span class="o">-</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">days</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">date</span><span class="o">.</span><span class="n">year</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;sensor&#39;</span><span class="p">:</span>  <span class="n">result</span> <span class="o">=</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">band2</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="s1">&#39;Sensor&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unknown metadate requested: &#39;</span><span class="o">+</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">inmeta</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="scaleLinearMinMax"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scaleLinearMinMax">[docs]</a><span class="k">def</span> <span class="nf">scaleLinearMinMax</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="c1"># scale index from range [min,max] to score range [0%,100%]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">index</span><span class="o">-</span><span class="nb">min</span><span class="p">)</span><span class="o">/</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="nb">max</span><span class="o">-</span><span class="nb">min</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">trim</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="fLogistic"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.fLogistic">[docs]</a><span class="k">def</span> <span class="nf">fLogistic</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+    <span class="c1"># f(x) = 1/(1+exp(-s*(x-m)))</span>
+    <span class="k">return</span> <span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="n">numpy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">s</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">m</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="scaleLogistic"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scaleLogistic">[docs]</a><span class="k">def</span> <span class="nf">scaleLogistic</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">fLogistic</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="scaleLogisticMinMax"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scaleLogisticMinMax">[docs]</a><span class="k">def</span> <span class="nf">scaleLogisticMinMax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mf">2.944</span> <span class="o">/</span> <span class="p">(</span><span class="nb">max</span> <span class="o">-</span> <span class="nb">min</span><span class="p">)</span> <span class="c1"># set s, so that min/max matches the 95% range of the sigmoid</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="nb">min</span><span class="o">+</span><span class="nb">max</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span>
+    <span class="k">return</span> <span class="n">scaleLogistic</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="fRBF"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.fRBF">[docs]</a><span class="k">def</span> <span class="nf">fRBF</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+    <span class="n">numpy</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="nb">all</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="p">((</span><span class="n">x</span><span class="o">-</span><span class="n">m</span><span class="p">)</span><span class="o">/</span><span class="n">s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="p">)</span></div>
+
+<div class="viewcode-block" id="scaleRBF"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scaleRBF">[docs]</a><span class="k">def</span> <span class="nf">scaleRBF</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+    <span class="c1"># rbf(x) = exp(|(x-m)/-s|^2)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">fRBF</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="scaleRBFMinMax"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scaleRBFMinMax">[docs]</a><span class="k">def</span> <span class="nf">scaleRBFMinMax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="p">(</span><span class="nb">max</span> <span class="o">-</span> <span class="nb">min</span><span class="p">)</span><span class="o">/</span><span class="mf">4.</span> <span class="c1"># set s, so that min/max matches the 95% range of the RBF</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="nb">min</span><span class="o">+</span><span class="nb">max</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span>
+    <span class="k">return</span> <span class="n">scaleRBF</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="plotScaleFunctions"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.plotScaleFunctions">[docs]</a><span class="k">def</span> <span class="nf">plotScaleFunctions</span><span class="p">():</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span><span class="mf">5.1</span><span class="p">,</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span>
+    <span class="n">plotScaleFunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scaleRBFMinMax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">))</span>
+    <span class="n">plotScaleFunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scaleLogisticMinMax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">))</span>
+    <span class="n">plotScaleFunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scaleLinearMinMax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="plotScaleFunction"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.plotScaleFunction">[docs]</a><span class="k">def</span> <span class="nf">plotScaleFunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">xi</span><span class="p">,</span><span class="n">yi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span> <span class="k">print</span> <span class="n">xi</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">yi</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="scoreCloudDistance"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreCloudDistance">[docs]</a><span class="k">def</span> <span class="nf">scoreCloudDistance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="c1"># todo waiting for Dirk (in m?)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;distToCloud&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+
+<span class="c1">#    logistisch min=0 max=500x30m</span>
+    <span class="c1">#score = scaleLogistic(index, min, max)</span>
+    <span class="c1">#return score</span>
+
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="scoreHazeOptimizedTransformation"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreHazeOptimizedTransformation">[docs]</a><span class="k">def</span> <span class="nf">scoreHazeOptimizedTransformation</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="n">blue</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+    <span class="n">red</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">blue</span> <span class="o">-</span> <span class="mf">5000.</span> <span class="o">*</span> <span class="n">red</span> <span class="o">-</span> <span class="mf">800.</span>
+
+    <span class="nb">min</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scaleLinearMinMax</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreThermal"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreThermal">[docs]</a><span class="k">def</span> <span class="nf">scoreThermal</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="c1"># todo build cube for &#39;tir&#39; -&gt; vrtBand12 (as definined by Dirk)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;tir&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+
+    <span class="nb">min</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="mi">6000</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scaleLinearMinMax</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreAerosolOpticalThickness"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreAerosolOpticalThickness">[docs]</a><span class="k">def</span> <span class="nf">scoreAerosolOpticalThickness</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="c1"># todo build cube for &#39;atmos_opacity&#39;</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;atmos_opacity&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+
+    <span class="nb">min</span> <span class="o">=</span> <span class="mi">10000</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scaleLinearMinMax</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreSensor"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreSensor">[docs]</a><span class="k">def</span> <span class="nf">scoreSensor</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="c1"># set score of ETM scenes after SLC-off 50%</span>
+    <span class="c1"># set all other scores to 100%</span>
+    <span class="n">slcOffDate</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="mi">2003</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">31</span><span class="p">)</span>
+    <span class="n">scoreVector</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.3</span> <span class="k">if</span> <span class="p">(</span><span class="n">sensor</span><span class="o">==</span><span class="s1">&#39;ETM&#39;</span> <span class="ow">and</span> <span class="n">date</span><span class="o">&gt;=</span><span class="n">slcOffDate</span><span class="p">)</span> <span class="k">else</span> <span class="mf">1.</span>
+              <span class="k">for</span> <span class="n">sensor</span><span class="p">,</span><span class="n">date</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;sensor&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">),</span> <span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">))]</span>
+
+    <span class="n">score</span> <span class="o">=</span> <span class="n">getCubeFromVector</span><span class="p">(</span><span class="n">scoreVector</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreSynopticity"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreSynopticity">[docs]</a><span class="k">def</span> <span class="nf">scoreSynopticity</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+    <span class="n">cloudFractionVector</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">clearFractionVector</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">-</span><span class="n">cloudFractionVector</span>
+
+    <span class="n">scoreA</span> <span class="o">=</span> <span class="n">clearFractionVector</span>
+    <span class="n">scoreB</span> <span class="o">=</span> <span class="n">scoreTargetDoy</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scoreA</span><span class="o">*</span><span class="n">scoreB</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreCosBeta"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreCosBeta">[docs]</a><span class="k">def</span> <span class="nf">scoreCosBeta</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="c1"># sza - solar zenith angle</span>
+    <span class="c1"># tsa - terrain slope angle</span>
+    <span class="c1"># saa - solar azimuth angle</span>
+    <span class="c1"># taa - topographic aspect angles</span>
+    <span class="c1"># cosBeta = cos(sza)*cos(tsa)+sin(sza)*sin(tsa)*cos(saa-taa)</span>
+
+    <span class="c1"># todo check correct usage of degrees/rads ask Patrick, need to convert!</span>
+    <span class="n">degreeToRadiance</span> <span class="o">=</span> <span class="mf">0.0174533</span>
+    <span class="n">tsa</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;slope&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span><span class="o">*</span><span class="n">degreeToRadiance</span>
+    <span class="n">taa</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;aspect&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span><span class="o">*</span><span class="n">degreeToRadiance</span>
+    <span class="n">sunElevation</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;SunElevation&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">sza</span> <span class="o">=</span> <span class="p">(</span><span class="mf">90.</span><span class="o">-</span><span class="n">sunElevation</span><span class="p">)</span><span class="o">*</span><span class="n">degreeToRadiance</span>
+
+    <span class="n">saa</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;SunAzimuth&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">degreeToRadiance</span>
+    <span class="n">cosBeta</span>  <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">sza</span><span class="p">)</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">tsa</span><span class="p">)</span>
+    <span class="n">cosBeta</span> <span class="o">+=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">sza</span><span class="p">)</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">tsa</span><span class="p">)</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">saa</span><span class="o">-</span><span class="n">taa</span><span class="p">)</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">cosBeta</span><span class="p">)</span>
+
+    <span class="nb">min</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+    <span class="nb">max</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scaleLinearMinMax</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreNDVI"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreNDVI">[docs]</a><span class="k">def</span> <span class="nf">scoreNDVI</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;ndvi&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+
+    <span class="nb">min</span><span class="o">=-</span><span class="mi">1</span>
+    <span class="nb">max</span><span class="o">=+</span><span class="mi">1</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scaleLinearMinMax</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreTargetDoy"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreTargetDoy">[docs]</a><span class="k">def</span> <span class="nf">scoreTargetDoy</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="c1"># calculate doys</span>
+    <span class="n">targetDoy</span> <span class="o">=</span> <span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">targetDate</span><span class="o">-</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">targetDate</span><span class="o">.</span><span class="n">year</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">days</span>
+    <span class="n">doys</span> <span class="o">=</span> <span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;doy&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">)</span>
+
+    <span class="c1"># calc distances to target doy</span>
+    <span class="c1"># - need to consider 3 cases and take the minimum of all</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="p">[</span><span class="n">__builtins__</span><span class="o">.</span><span class="n">min</span><span class="p">((</span><span class="n">doy</span><span class="o">-</span><span class="n">targetDoy</span><span class="p">),(</span><span class="n">doy</span><span class="o">-</span><span class="mi">365</span><span class="o">-</span><span class="n">targetDoy</span><span class="p">),(</span><span class="n">doy</span><span class="o">+</span><span class="mi">365</span><span class="o">-</span><span class="n">targetDoy</span><span class="p">))</span>  <span class="k">for</span> <span class="n">doy</span> <span class="ow">in</span> <span class="n">doys</span><span class="p">]</span>
+    <span class="c1"># - create index cube</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">getCubeFromVector</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+
+    <span class="nb">min</span><span class="o">=-</span><span class="mi">45</span>
+    <span class="nb">max</span><span class="o">=</span><span class="mi">45</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scaleRBFMinMax</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreTargetYear"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreTargetYear">[docs]</a><span class="k">def</span> <span class="nf">scoreTargetYear</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+
+    <span class="c1"># calculate distance to target year</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">year</span><span class="o">-</span><span class="n">info</span><span class="o">.</span><span class="n">targetDate</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">getMeta</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">)]</span>
+    <span class="c1"># - create index cube</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">getCubeFromVector</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">bbl</span><span class="p">)</span>
+
+    <span class="c1"># translate to scores</span>
+    <span class="nb">min</span> <span class="o">=</span> <span class="n">__builtins__</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scaleLinearMinMax</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scoreEnsemble"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scoreEnsemble">[docs]</a><span class="k">def</span> <span class="nf">scoreEnsemble</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">ufuncs</span><span class="o">=</span><span class="p">[],</span> <span class="n">uargs</span><span class="o">=</span><span class="p">[],</span> <span class="n">weights</span><span class="o">=</span><span class="p">[]):</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ufuncs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">uargs</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ufuncs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span> <span class="s1">&#39;inconsistent inputs&#39;</span>
+
+    <span class="c1"># scale weights to assure sum of weights are equal to 1</span>
+    <span class="n">ws</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span><span class="o">/</span><span class="nb">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="k">for</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">]</span>
+
+    <span class="c1"># calculate weighted average</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">ufuncs</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">uargs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">ws</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">ufunc</span><span class="p">,</span><span class="n">uarg</span><span class="p">,</span><span class="n">w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ufuncs</span><span class="p">,</span><span class="n">uargs</span><span class="p">,</span><span class="n">ws</span><span class="p">):</span>
+        <span class="n">score</span> <span class="o">+=</span> <span class="n">ufunc</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="o">**</span><span class="n">uarg</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span>
+
+    <span class="k">return</span> <span class="n">score</span></div>
+
+<div class="viewcode-block" id="scorePG"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.scorePG">[docs]</a><span class="k">def</span> <span class="nf">scorePG</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+    <span class="n">ufuncs</span><span class="p">,</span> <span class="n">uargs</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">[</span>
+          <span class="c1">#(scoreAerosolOpticalThickness,     {}, 0.75),</span>
+          <span class="c1">#(scoreCloudDistance,               {}, 0.75),</span>
+          <span class="c1">#(scoreCosBeta,                     {}, 0.50),</span>
+
+          <span class="c1">#(scoreHazeOptimizedTransformation, {}, 0.75),</span>
+          <span class="c1">#(scoreNDVI,                        {}, 0.25),</span>
+          <span class="c1">#(scoreSensor,                      {}, 0.75),</span>
+          <span class="c1">#(scoreSynopticity,                 {}, 0.75),</span>
+          <span class="p">(</span><span class="n">scoreTargetDoy</span><span class="p">,</span>                   <span class="p">{},</span> <span class="mf">1.00</span><span class="p">),</span>
+          <span class="c1">#(scoreTargetYear,                  {}, 1.00)</span>
+          <span class="c1">#(scoreThermal,                     {}, 0.50)</span>
+        <span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">scoreEnsemble</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">ufuncs</span><span class="o">=</span><span class="n">ufuncs</span><span class="p">,</span> <span class="n">uargs</span><span class="o">=</span><span class="n">uargs</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span></div>
+
+<span class="c1"># Set up the function to be applied</span>
+<div class="viewcode-block" id="compositingDoit"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.compositingDoit">[docs]</a><span class="k">def</span> <span class="nf">compositingDoit</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="c1"># prepare inputs</span>
+    <span class="c1"># - acquisition time as date array and gregorian days array</span>
+    <span class="c1"># NOTE: fix data set headers and remove the s.replace() stuff</span>
+    <span class="n">inputDates</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">acqDate</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">acqDate</span> <span class="ow">in</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">bandcfmask</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="s1">&#39;AcqDate&#39;</span><span class="p">)])</span>
+    <span class="n">inputDoys</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">date</span><span class="o">-</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">days</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">inputDates</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+    <span class="n">inputDatesGregorian</span> <span class="o">=</span>  <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">date</span><span class="o">.</span><span class="n">toordinal</span><span class="p">()</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">inputDates</span><span class="p">])</span>
+    <span class="n">inputSceneIDs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sceneID</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">sceneID</span> <span class="ow">in</span> <span class="n">inmeta</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">bandcfmask</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="s1">&#39;SceneID&#39;</span><span class="p">)])</span>
+    <span class="n">inputSensorInfos</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">sceneID</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">sceneID</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span><span class="n">sceneID</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">9</span><span class="p">]]</span> <span class="k">for</span> <span class="n">sceneID</span> <span class="ow">in</span> <span class="n">inputSceneIDs</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+
+    <span class="n">bands</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">bandcfmask</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># - create mask that excludes everythink that is not clear land or clear water,</span>
+    <span class="c1">#   and apply it to the input data</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">cube</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">mask</span><span class="o">=</span><span class="n">getCube</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))</span>
+
+    <span class="c1"># - remap band numbers to more meaningful names</span>
+    <span class="k">for</span> <span class="n">bandNumber</span><span class="p">,</span> <span class="n">bandName</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNumbersSubset</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="p">):</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">bandName</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="s1">&#39;band&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bandNumber</span><span class="p">)]</span>
+
+    <span class="c1"># - flatten 3d cubes to 2d</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+    <span class="c1"># - todo: fill missing observations for &#39;aerosol&#39; band</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;aerosol&#39;</span><span class="p">),</span> <span class="s1">&#39;not yet implemented/needed&#39;</span>
+
+    <span class="c1"># calculate quality composites</span>
+    <span class="k">for</span> <span class="n">qualityCompositeParameters</span> <span class="ow">in</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">qualityCompositeParametersList</span><span class="p">:</span>
+
+        <span class="c1"># - calculate valid date range around target date</span>
+        <span class="n">bbl</span> <span class="o">=</span> <span class="n">qualityCompositeParameters</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">matchInputDates</span><span class="p">(</span><span class="n">inputDates</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bbl</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="c1"># - call scoring function</span>
+            <span class="n">info2</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+            <span class="n">info2</span><span class="o">.</span><span class="n">targetDate</span> <span class="o">=</span> <span class="n">qualityCompositeParameters</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">targetDate</span>
+            <span class="n">info2</span><span class="o">.</span><span class="n">bbl</span> <span class="o">=</span> <span class="n">bbl</span>
+            <span class="n">qualityCube</span> <span class="o">=</span> <span class="n">qualityCompositeParameters</span><span class="o">.</span><span class="n">scoreFunction</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inmeta</span><span class="p">,</span> <span class="n">info2</span><span class="p">,</span> <span class="o">**</span><span class="n">qualityCompositeParameters</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">bbl</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">qualityCube</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;inconsistent score cube, check scoring function: &#39;</span><span class="o">+</span> <span class="n">qualityCompositeParameters</span><span class="o">.</span><span class="n">qualityParameters</span><span class="o">.</span><span class="n">scoreFunction</span><span class="o">.</span><span class="n">__name__</span>
+
+            <span class="c1"># - prepare list of input band cubes for compositing, each input cube will represent a band in the resulting composite cube</span>
+            <span class="n">cubes</span> <span class="o">=</span> <span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">sr</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">bbl</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="p">]</span>
+            <span class="n">cubes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputDoys</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))[</span><span class="n">bbl</span><span class="p">])</span> <span class="c1"># add Flag:doy</span>
+            <span class="n">cubes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputSensorInfos</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">][</span><span class="n">bbl</span><span class="p">])</span>   <span class="c1"># add Flag:sensor</span>
+            <span class="n">cubes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputSensorInfos</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">][</span><span class="n">bbl</span><span class="p">])</span>   <span class="c1"># add Flag:path</span>
+            <span class="n">cubes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputSensorInfos</span><span class="p">[:,</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">][</span><span class="n">bbl</span><span class="p">])</span>   <span class="c1"># add Flag:row</span>
+            <span class="n">cubes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">qualityCube</span><span class="o">*</span><span class="mi">10000</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">))</span><span class="c1"># add Flag:score</span>
+
+            <span class="c1"># - create composite cube</span>
+            <span class="n">qualityCompositeCube</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">qualityCompositeCube</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span>  <span class="n">qualityCube</span><span class="p">)</span>
+
+            <span class="c1"># - fill masked values with -9999</span>
+            <span class="n">qualityCompositeCube</span> <span class="o">=</span> <span class="n">qualityCompositeCube</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="o">-</span><span class="mi">9999</span><span class="p">)</span>
+
+            <span class="c1"># - convert back to 3d cubes</span>
+            <span class="n">qualityCompositeCube</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">unflatten</span><span class="p">(</span><span class="n">qualityCompositeCube</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># - handle special case when no observation is available</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="p">)</span><span class="o">+</span><span class="mi">5</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
+            <span class="n">qualityCompositeCube</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Warning: No Observation available for target date &#39;</span><span class="o">+</span><span class="n">qualityCompositeParameters</span><span class="o">.</span><span class="n">getTargetDate</span><span class="p">()</span><span class="o">+</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+        <span class="n">outputs</span><span class="o">.</span><span class="n">qualityComposites</span><span class="p">[</span><span class="n">qualityCompositeParameters</span><span class="o">.</span><span class="n">getName</span><span class="p">()]</span> <span class="o">=</span> <span class="n">qualityCompositeCube</span>
+
+    <span class="c1"># calculate statistics composites</span>
+    <span class="k">for</span> <span class="n">statisticsCompositeParameters</span> <span class="ow">in</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">statisticsCompositeParametersList</span><span class="p">:</span>
+
+        <span class="c1"># - calculate valid date range around target date</span>
+        <span class="n">bbl</span> <span class="o">=</span> <span class="n">statisticsCompositeParameters</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">matchInputDates</span><span class="p">(</span><span class="n">inputDates</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bbl</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+
+
+            <span class="c1"># - create VIS or IR band on the fly if needed</span>
+            <span class="n">bandName</span> <span class="o">=</span> <span class="n">statisticsCompositeParameters</span><span class="o">.</span><span class="n">statisticsParameters</span><span class="o">.</span><span class="n">bandName</span>
+            <span class="n">cube</span> <span class="o">=</span> <span class="n">getCube</span><span class="p">(</span><span class="n">bandName</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">bbl</span><span class="p">)</span>
+
+            <span class="c1"># - create composite cube</span>
+            <span class="n">statisticsCompositeCube</span><span class="p">,</span> <span class="n">dummy</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">statisticsCompositeCube</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">statisticsCompositeParameters</span><span class="o">.</span><span class="n">statisticsParameters</span><span class="p">)</span>
+
+            <span class="c1"># - fill masked values with -9999</span>
+            <span class="n">statisticsCompositeCube</span> <span class="o">=</span> <span class="n">statisticsCompositeCube</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="o">-</span><span class="mi">9999</span><span class="p">)</span>
+
+            <span class="c1"># - convert back to 3d cubes</span>
+            <span class="n">outputs</span><span class="o">.</span><span class="n">statisticsComposites</span><span class="p">[</span><span class="n">statisticsCompositeParameters</span><span class="o">.</span><span class="n">getName</span><span class="p">()]</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">unflatten</span><span class="p">(</span><span class="n">statisticsCompositeCube</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># - handle special case when no observation is available</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;ToDO no valid observations!!!&#39;</span><span class="p">)</span>
+            <span class="c1">#shape = (len(otherArgs.bandNamesSubset) + 5, samples, lines)</span>
+            <span class="c1">#qualityCompositeCube = numpy.full(shape, dtype=numpy.int16, fill_value=-9999)</span>
+            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Warning: No Observation available for target date &#39;</span> <span class="o">+</span> <span class="n">statisticsCompositeParameters</span><span class="o">.</span><span class="n">getTargetDate</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span></div>
+
+
+<span class="c1"># Set up the function to specify output metadata</span>
+<div class="viewcode-block" id="compositingMeta"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.compositingMeta">[docs]</a><span class="k">def</span> <span class="nf">compositingMeta</span><span class="p">(</span><span class="n">inmeta</span><span class="p">,</span> <span class="n">outmeta</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="c1"># set metadate for quality composites</span>
+    <span class="c1"># - use R,G,B = &#39;nir&#39;, &#39;swir1&#39;, &#39;red&#39; as default bands (corresponding virtual sensor bands are 8,10,4)</span>
+    <span class="n">default_bands</span> <span class="o">=</span> <span class="p">[</span><span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;nir&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;swir1&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">gdalMeta</span><span class="p">),</span> <span class="n">acquisition_time</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">outmeta</span><span class="o">.</span><span class="n">qualityComposites</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">outfiles_qualityComposites_acquisition_time</span><span class="p">):</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setNoDataValue</span><span class="p">(</span><span class="o">-</span><span class="mi">9999</span><span class="p">)</span>
+        <span class="c1">#gdalMeta.setMetadataItem(&#39;default_bands&#39;, default_bands)</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;acquisition time&#39;</span><span class="p">,</span> <span class="n">acquisition_time</span><span class="p">)</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;wavelength units&#39;</span><span class="p">,</span> <span class="s1">&#39;nanometers&#39;</span><span class="p">)</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;wavelength&#39;</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">wavelengthSubset</span><span class="o">+</span><span class="mi">5</span><span class="o">*</span><span class="p">[</span><span class="mi">99999</span><span class="p">],</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="c1"># set flag bands wavelength to 99,999</span>
+        <span class="n">bbl</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># mark flag bands as bad bands to exclude them from ENVI Z Plot</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;bbl&#39;</span><span class="p">,</span> <span class="n">bbl</span><span class="p">,</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setBandNames</span><span class="p">(</span><span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="o">+</span><span class="p">[</span><span class="s1">&#39;Flag:doy&#39;</span><span class="p">,</span><span class="s1">&#39;Flag:sensor&#39;</span><span class="p">,</span><span class="s1">&#39;Flag:path&#39;</span><span class="p">,</span><span class="s1">&#39;Flag:row&#39;</span><span class="p">,</span><span class="s1">&#39;Flag:score&#39;</span><span class="p">])</span>
+
+    <span class="c1"># set metadate for statistics composites</span>
+    <span class="n">acquisition_times</span> <span class="o">=</span><span class="n">otherArgs</span><span class="o">.</span><span class="n">outfiles_statisticsComposites_acquisition_time</span>
+    <span class="n">band_namess</span> <span class="o">=</span><span class="n">otherArgs</span><span class="o">.</span><span class="n">outfiles_statisticsComposites_band_names</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">gdalMeta</span><span class="p">),</span> <span class="n">acquisition_time</span><span class="p">,</span> <span class="n">band_names</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">outmeta</span><span class="o">.</span><span class="n">statisticsComposites</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">acquisition_times</span><span class="p">,</span> <span class="n">band_namess</span><span class="p">):</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setNoDataValue</span><span class="p">(</span><span class="o">-</span><span class="mi">9999</span><span class="p">)</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;acquisition time&#39;</span><span class="p">,</span> <span class="n">acquisition_time</span><span class="p">)</span>
+        <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setBandNames</span><span class="p">(</span><span class="n">band_names</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DateParameters"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.DateParameters">[docs]</a><span class="k">class</span> <span class="nc">DateParameters</span><span class="p">():</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targetDate</span><span class="p">,</span> <span class="n">bufferDays</span><span class="p">,</span> <span class="n">bufferYears</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">targetDate</span> <span class="o">=</span> <span class="n">targetDate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">targetDoy</span>  <span class="o">=</span> <span class="p">(</span><span class="n">targetDate</span><span class="o">-</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">targetDate</span><span class="o">.</span><span class="n">year</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">days</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bufferDays</span> <span class="o">=</span> <span class="n">bufferDays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bufferYears</span> <span class="o">=</span> <span class="n">bufferYears</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intervals</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">yearOffset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">bufferYears</span><span class="p">,</span><span class="n">bufferYears</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">targetDate</span><span class="o">.</span><span class="n">year</span><span class="o">+</span><span class="n">yearOffset</span><span class="p">,</span><span class="n">targetDate</span><span class="o">.</span><span class="n">month</span><span class="p">,</span><span class="n">targetDate</span><span class="o">.</span><span class="n">day</span><span class="p">)</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">bufferDays</span><span class="p">),</span> <span class="c1"># first date</span>
+                                   <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">targetDate</span><span class="o">.</span><span class="n">year</span><span class="o">+</span><span class="n">yearOffset</span><span class="p">,</span><span class="n">targetDate</span><span class="o">.</span><span class="n">month</span><span class="p">,</span><span class="n">targetDate</span><span class="o">.</span><span class="n">day</span><span class="p">)</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">bufferDays</span><span class="p">)))</span> <span class="c1"># last date</span>
+
+<div class="viewcode-block" id="DateParameters.matchInputDates"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.DateParameters.matchInputDates">[docs]</a>    <span class="k">def</span> <span class="nf">matchInputDates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
+        <span class="n">validDates</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dates</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">intervals</span><span class="p">:</span>
+            <span class="n">validDates</span> <span class="o">+=</span> <span class="p">(</span><span class="n">dates</span> <span class="o">&gt;=</span> <span class="n">first</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dates</span> <span class="o">&lt;=</span> <span class="n">last</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">validDates</span></div></div>
+
+<div class="viewcode-block" id="QualityCompositeParameters"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.QualityCompositeParameters">[docs]</a><span class="k">class</span> <span class="nc">QualityCompositeParameters</span><span class="p">():</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dateParameters</span><span class="p">,</span> <span class="n">scoreFunction</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span> <span class="o">=</span> <span class="n">dateParameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoreFunction</span> <span class="o">=</span> <span class="n">scoreFunction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+
+<div class="viewcode-block" id="QualityCompositeParameters.getName"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.QualityCompositeParameters.getName">[docs]</a>    <span class="k">def</span> <span class="nf">getName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scoreFunction</span><span class="o">.</span><span class="n">__name__</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">targetDate</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">bufferDays</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;d_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">bufferYears</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;y&#39;</span></div>
+
+<div class="viewcode-block" id="QualityCompositeParameters.getTargetDate"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.QualityCompositeParameters.getTargetDate">[docs]</a>    <span class="k">def</span> <span class="nf">getTargetDate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">targetDate</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="StatisticsParameters"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.StatisticsParameters">[docs]</a><span class="k">class</span> <span class="nc">StatisticsParameters</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bandName</span><span class="p">,</span> <span class="n">statistics</span><span class="p">,</span> <span class="n">trange</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dscale</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">statistics</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">([</span><span class="s1">&#39;distribution&#39;</span><span class="p">,</span><span class="s1">&#39;median&#39;</span><span class="p">,</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span><span class="s1">&#39;stdev&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distributionPercentages</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">25</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">75</span><span class="p">,</span><span class="mi">100</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bandName</span> <span class="o">=</span> <span class="n">bandName</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span> <span class="o">=</span> <span class="n">statistics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trange</span> <span class="o">=</span> <span class="n">trange</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dscale</span> <span class="o">=</span> <span class="n">dscale</span>
+
+<div class="viewcode-block" id="StatisticsParameters.getBandNames"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.StatisticsParameters.getBandNames">[docs]</a>    <span class="k">def</span> <span class="nf">getBandNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">statistic</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">statistic</span><span class="o">==</span><span class="s1">&#39;distribution&#39;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">percentage</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">distributionPercentages</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">percentage</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">statistic</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div></div>
+
+<div class="viewcode-block" id="StatisticsCompositeParameters"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.StatisticsCompositeParameters">[docs]</a><span class="k">class</span> <span class="nc">StatisticsCompositeParameters</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dateParameters</span><span class="p">,</span> <span class="n">statisticsParameters</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span> <span class="o">=</span> <span class="n">dateParameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statisticsParameters</span> <span class="o">=</span> <span class="n">statisticsParameters</span>
+
+<div class="viewcode-block" id="StatisticsCompositeParameters.getName"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.StatisticsCompositeParameters.getName">[docs]</a>    <span class="k">def</span> <span class="nf">getName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;statistics_&#39;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">statisticsParameters</span><span class="o">.</span><span class="n">bandName</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">targetDate</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">bufferDays</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;days_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">bufferYears</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;years&#39;</span></div>
+
+<div class="viewcode-block" id="StatisticsCompositeParameters.getTargetDate"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.StatisticsCompositeParameters.getTargetDate">[docs]</a>    <span class="k">def</span> <span class="nf">getTargetDate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dateParameters</span><span class="o">.</span><span class="n">targetDate</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StatisticsCompositeParameters.getBandNames"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.StatisticsCompositeParameters.getBandNames">[docs]</a>    <span class="k">def</span> <span class="nf">getBandNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">statisticsParameters</span><span class="o">.</span><span class="n">getBandNames</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="composite"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.composite">[docs]</a><span class="k">def</span> <span class="nf">composite</span><span class="p">(</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">,</span> <span class="n">qualityCompositeParametersList</span><span class="o">=</span><span class="p">[],</span> <span class="n">statisticsCompositeParametersList</span><span class="o">=</span><span class="p">[]):</span>
+
+    <span class="c1"># container for all additional information needed</span>
+    <span class="n">otherArgs</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">qualityCompositeParametersList</span> <span class="o">=</span> <span class="n">qualityCompositeParametersList</span>
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">statisticsCompositeParametersList</span> <span class="o">=</span> <span class="n">statisticsCompositeParametersList</span>
+
+    <span class="c1"># Set up input and output filenames.</span>
+    <span class="n">infiles</span>  <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">CubenameAssociations</span><span class="p">()</span>
+    <span class="n">outfiles</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">CubenameAssociations</span><span class="p">()</span>
+    <span class="n">bandNumbers</span>     <span class="o">=</span> <span class="p">[</span> <span class="mi">1</span><span class="p">,</span>         <span class="mi">2</span><span class="p">,</span>      <span class="mi">3</span><span class="p">,</span>       <span class="mi">4</span><span class="p">,</span>     <span class="mi">8</span><span class="p">,</span>     <span class="mi">10</span><span class="p">,</span>      <span class="mi">11</span><span class="p">]</span>
+    <span class="n">bandNames</span>       <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;aerosol&#39;</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;nir&#39;</span><span class="p">,</span> <span class="s1">&#39;swir1&#39;</span><span class="p">,</span> <span class="s1">&#39;swir2&#39;</span><span class="p">]</span>
+    <span class="n">wavelengthLower</span> <span class="o">=</span> <span class="p">[</span> <span class="mi">430</span><span class="p">,</span>       <span class="mi">450</span><span class="p">,</span>    <span class="mi">530</span><span class="p">,</span>     <span class="mi">640</span><span class="p">,</span>   <span class="mi">850</span><span class="p">,</span>   <span class="mi">1570</span><span class="p">,</span>    <span class="mi">2110</span><span class="p">]</span>
+    <span class="n">wavelengthUpper</span> <span class="o">=</span> <span class="p">[</span> <span class="mi">450</span><span class="p">,</span>       <span class="mi">510</span><span class="p">,</span>    <span class="mi">590</span><span class="p">,</span>     <span class="mi">670</span><span class="p">,</span>   <span class="mi">880</span><span class="p">,</span>   <span class="mi">1600</span><span class="p">,</span>    <span class="mi">2290</span><span class="p">]</span>
+    <span class="n">wavelength</span> <span class="o">=</span> <span class="p">[(</span><span class="n">lower</span><span class="o">+</span><span class="n">upper</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span> <span class="k">for</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">wavelengthLower</span><span class="p">,</span><span class="n">wavelengthUpper</span><span class="p">)]</span>
+
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span>  <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;nir&#39;</span><span class="p">,</span> <span class="s1">&#39;swir1&#39;</span><span class="p">,</span> <span class="s1">&#39;swir2&#39;</span><span class="p">]</span>
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNumbersSubset</span> <span class="o">=</span> <span class="p">[</span><span class="n">bandNumbers</span><span class="p">[</span><span class="n">bandNames</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">bandName</span><span class="p">)]</span> <span class="k">for</span> <span class="n">bandName</span> <span class="ow">in</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="p">]</span>
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">wavelengthSubset</span> <span class="o">=</span>  <span class="p">[</span> <span class="n">wavelength</span><span class="p">[</span><span class="n">bandNames</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">bandName</span><span class="p">)]</span> <span class="k">for</span> <span class="n">bandName</span> <span class="ow">in</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNamesSubset</span><span class="p">]</span>
+
+    <span class="c1"># prepare applier inputs and outputs</span>
+<span class="c1">#    rootdir = r&#39;\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR_Small&#39;</span>
+<span class="c1">#    rootdir = r&#39;\\141.20.140.91\RAM_Disk\testCaseAR_Small&#39;</span>
+    <span class="c1"># - infiles</span>
+    <span class="n">inBandNames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;band&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bandNumber</span><span class="p">)</span> <span class="k">for</span> <span class="n">bandNumber</span> <span class="ow">in</span> <span class="n">otherArgs</span><span class="o">.</span><span class="n">bandNumbersSubset</span><span class="p">]</span>
+    <span class="n">infiles</span><span class="o">.</span><span class="n">sr</span>  <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rootdir</span><span class="p">,</span> <span class="s1">&#39;cubes&#39;</span><span class="p">),</span> <span class="n">inBandNames</span><span class="o">+</span><span class="p">[</span><span class="s1">&#39;bandcfmask&#39;</span><span class="p">])</span>
+
+    <span class="c1"># - outfiles for qualityComposites</span>
+    <span class="n">outfiles</span><span class="o">.</span><span class="n">qualityComposites</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rootdir</span><span class="p">,</span> <span class="s1">&#39;composites&#39;</span><span class="p">),</span>
+                                  <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">getName</span><span class="p">()</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">qualityCompositeParametersList</span><span class="p">])</span>
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">outfiles_qualityComposites_acquisition_time</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">getTargetDate</span><span class="p">()</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">qualityCompositeParametersList</span><span class="p">]</span>
+
+    <span class="c1"># - outfiles for statisticsComposites</span>
+    <span class="n">outfiles</span><span class="o">.</span><span class="n">statisticsComposites</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rootdir</span><span class="p">,</span> <span class="s1">&#39;composites&#39;</span><span class="p">),</span>
+                                    <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">getName</span><span class="p">()</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">statisticsCompositeParametersList</span><span class="p">])</span>
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">outfiles_statisticsComposites_acquisition_time</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">getTargetDate</span><span class="p">()</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">statisticsCompositeParametersList</span><span class="p">]</span>
+    <span class="n">otherArgs</span><span class="o">.</span><span class="n">outfiles_statisticsComposites_band_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">getBandNames</span><span class="p">()</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">statisticsCompositeParametersList</span><span class="p">]</span>
+
+
+    <span class="c1"># Set up tiles to be processed</span>
+    <span class="c1">#mgrstiles = [&#39;32UNB&#39;, &#39;32UNC&#39;, &#39;32UND&#39;, &#39;32UPB&#39;, &#39;32UPC&#39;, &#39;32UPD&#39;, &#39;32UQB&#39;, &#39;32UQC&#39;, &#39;32UQD&#39;, &#39;33UTS&#39;, &#39;33UTT&#39;, &#39;33UTU&#39;, &#39;33UUS&#39;, &#39;33UUT&#39;, &#39;33UUU&#39;, &#39;33UVS&#39;, &#39;33UVT&#39;, &#39;33UVU&#39;]</span>
+    <span class="c1">#mgrstiles = [&#39;32UPB&#39;]</span>
+    <span class="c1">#mgrstiles = [&#39;32UQB&#39;]</span>
+
+    <span class="c1"># Set up processing controls (creates ENVI Files per default)</span>
+    <span class="n">controls</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">ApplierControls</span><span class="p">()</span>
+    <span class="c1">#controls.rios.windowysize = 100</span>
+
+    <span class="c1"># Apply the function to the inputs, creating the outputs.</span>
+    <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">compositingDoit</span><span class="p">,</span> <span class="n">compositingMeta</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">outfiles</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">,</span> <span class="n">controls</span><span class="o">=</span><span class="n">controls</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="n">otherArgs</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="test_ar"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.test_ar">[docs]</a><span class="k">def</span> <span class="nf">test_ar</span><span class="p">():</span>
+
+<span class="c1">#    sys.exit()</span>
+    <span class="c1"># create some quality observation composites...</span>
+    <span class="n">qualityCompositeParametersList</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2012</span><span class="p">,</span><span class="mi">2013</span><span class="p">,</span><span class="mi">2014</span><span class="p">]:</span> <span class="c1"># for some years,</span>
+        <span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">13</span><span class="p">):</span> <span class="c1">#[2,5,8,11]:  # for the four seasons (winter, spring, summer, autumn)</span>
+            <span class="n">day</span> <span class="o">=</span> <span class="mi">15</span>              <span class="c1">#   - target day is the center of the season</span>
+            <span class="n">bufferDays</span> <span class="o">=</span> <span class="mi">45</span>       <span class="c1">#   - use observations plus/minus 45 days (i.e. 3 month overall)</span>
+            <span class="n">bufferYear</span><span class="o">=</span> <span class="mi">1</span>        <span class="c1">#   - also use observations from plus/minus one year (i.e. 3 years overall)</span>
+            <span class="n">targetDate</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span><span class="n">month</span><span class="p">,</span><span class="n">day</span><span class="p">)</span>
+            <span class="n">dateParameters</span> <span class="o">=</span>     <span class="n">DateParameters</span><span class="p">(</span><span class="n">targetDate</span><span class="p">,</span> <span class="n">bufferDays</span><span class="p">,</span> <span class="n">bufferYear</span><span class="p">)</span>
+            <span class="c1"># for all target dates create the following observation composites...</span>
+            <span class="n">scoreFunction</span> <span class="o">=</span> <span class="n">scorePG</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">qualityCompositeParametersList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QualityCompositeParameters</span><span class="p">(</span><span class="n">dateParameters</span><span class="p">,</span> <span class="n">scoreFunction</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+
+    <span class="c1"># create some statistics composites...</span>
+    <span class="n">statisticsCompositeParametersList</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2012</span><span class="p">,</span><span class="mi">2013</span><span class="p">,</span><span class="mi">2014</span><span class="p">]:</span> <span class="c1"># for some years, take all observations of this year</span>
+        <span class="n">month</span><span class="p">,</span> <span class="n">day</span>  <span class="o">=</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span>    <span class="c1">#   - target day is the center of the year</span>
+        <span class="n">bufferDays</span> <span class="o">=</span> <span class="mi">183</span>      <span class="c1">#   - use observations plus/minus 183 days (i.e. ~1 year overall)</span>
+        <span class="n">bufferYear</span> <span class="o">=</span> <span class="mi">0</span>        <span class="c1">#   - do not use observations from other years</span>
+        <span class="n">dateParameters</span> <span class="o">=</span> <span class="n">DateParameters</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span><span class="n">month</span><span class="p">,</span><span class="n">day</span><span class="p">),</span> <span class="n">bufferDays</span><span class="p">,</span> <span class="n">bufferYear</span><span class="p">)</span>
+        <span class="c1"># for all target dates create the following statistics composites...</span>
+        <span class="k">for</span>  <span class="n">bandName</span><span class="p">,</span>  <span class="n">statistics</span><span class="p">,</span>       <span class="n">trange</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="p">[</span><span class="s1">&#39;nir&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;distribution&#39;</span><span class="p">,</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span><span class="s1">&#39;stdev&#39;</span><span class="p">],</span> <span class="bp">None</span><span class="p">]]:</span>
+
+
+<span class="c1">#            [&#39;ndvi&#39;,  [&#39;distribution&#39;],   None],         # ...NDVI distribution (min,q25,median,q75,max)</span>
+<span class="c1">#            [&#39;ir&#39;,    [&#39;median&#39;, &#39;mean&#39;], None],         # ...median/mean for infrared region &#39;ir&#39; = (&#39;nir&#39;+&#39;swir1&#39;+&#39;swir2&#39;)/3</span>
+<span class="c1">#            [&#39;vis&#39;,   [&#39;median&#39;, &#39;mean&#39;], None],         # ...median/mean for visible region &#39;vis&#39; = (&#39;blue&#39;+&#39;green&#39;+&#39;red&#39;)/3</span>
+<span class="c1">#            [&#39;swir1&#39;, [&#39;stdev&#39;],          [1000,8000]]]: # ...trimmed stddev for swir</span>
+
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">int16</span>                          <span class="c1"># cast all results to int16</span>
+            <span class="n">dscale</span> <span class="o">=</span> <span class="mi">1000</span> <span class="k">if</span> <span class="n">bandName</span><span class="o">==</span><span class="s1">&#39;ndvi&#39;</span> <span class="k">else</span> <span class="bp">None</span>  <span class="c1"># in case of NDVI, apply scale factor of 1000 before casting to int16</span>
+            <span class="n">statisticsParameters</span> <span class="o">=</span> <span class="n">StatisticsParameters</span><span class="p">(</span><span class="n">bandName</span><span class="p">,</span> <span class="n">statistics</span><span class="p">,</span> <span class="n">trange</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">dscale</span><span class="o">=</span><span class="n">dscale</span><span class="p">)</span>
+            <span class="n">statisticsCompositeParametersList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StatisticsCompositeParameters</span><span class="p">(</span><span class="n">dateParameters</span><span class="p">,</span> <span class="n">statisticsParameters</span><span class="p">))</span>
+
+    <span class="c1"># doit</span>
+    <span class="n">rootdir</span> <span class="o">=</span> <span class="s1">r&#39;</span><span class="se">\\</span><span class="s1">141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR_Small&#39;</span>
+    <span class="n">rootdir</span> <span class="o">=</span> <span class="s1">r&#39;</span><span class="se">\\</span><span class="s1">141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR_Big&#39;</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;32UQB&#39;</span><span class="p">]</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;32UNB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UNC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UND&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UPD&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQB&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQC&#39;</span><span class="p">,</span> <span class="s1">&#39;32UQD&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UTU&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUS&#39;</span><span class="p">,</span><span class="s1">&#39;33UUT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUU&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVS&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVT&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVU&#39;</span><span class="p">]</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="n">mgrstiles</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">11</span><span class="p">]</span>
+
+    <span class="n">composite</span><span class="p">(</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">,</span> <span class="n">qualityCompositeParametersList</span><span class="p">[</span><span class="mi">5</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">statisticsCompositeParametersList</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="test_cs"><a class="viewcode-back" href="../../../lamos.usecase.html#lamos.usecase.testcompositing_ar_big.test_cs">[docs]</a><span class="k">def</span> <span class="nf">test_cs</span><span class="p">():</span>
+
+    <span class="c1"># create some quality observation composites...</span>
+    <span class="n">qualityCompositeParametersList</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1987</span><span class="p">,</span><span class="mi">2012</span><span class="p">]:</span> <span class="c1"># for some years,</span>
+        <span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">7</span><span class="p">]:</span> <span class="c1">#[2,5,8,11]:  # for the four seasons (winter, spring, summer, autumn)</span>
+            <span class="n">day</span> <span class="o">=</span> <span class="mi">15</span>              <span class="c1">#   - target day is the center of the season</span>
+            <span class="n">bufferDays</span> <span class="o">=</span> <span class="mi">180</span>       <span class="c1">#   - use observations plus/minus 45 days (i.e. 3 month overall)</span>
+            <span class="n">bufferYear</span><span class="o">=</span> <span class="mi">0</span>        <span class="c1">#   - also use observations from plus/minus one year (i.e. 3 years overall)</span>
+            <span class="n">targetDate</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span><span class="n">month</span><span class="p">,</span><span class="n">day</span><span class="p">)</span>
+            <span class="n">dateParameters</span> <span class="o">=</span>     <span class="n">DateParameters</span><span class="p">(</span><span class="n">targetDate</span><span class="p">,</span> <span class="n">bufferDays</span><span class="p">,</span> <span class="n">bufferYear</span><span class="p">)</span>
+            <span class="c1"># for all target dates create the following observation composites...</span>
+            <span class="n">scoreFunction</span> <span class="o">=</span> <span class="n">scorePG</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">qualityCompositeParametersList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QualityCompositeParameters</span><span class="p">(</span><span class="n">dateParameters</span><span class="p">,</span> <span class="n">scoreFunction</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+
+    <span class="c1"># create some statistics composites...</span>
+    <span class="n">statisticsCompositeParametersList</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1987</span><span class="p">,</span><span class="mi">2012</span><span class="p">]:</span> <span class="c1"># for some years, take all observations of this year</span>
+        <span class="n">month</span><span class="p">,</span> <span class="n">day</span>  <span class="o">=</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span>    <span class="c1">#   - target day is the center of the year</span>
+        <span class="n">bufferDays</span> <span class="o">=</span> <span class="mi">183</span>      <span class="c1">#   - use observations plus/minus 183 days (i.e. ~1 year overall)</span>
+        <span class="n">bufferYear</span> <span class="o">=</span> <span class="mi">1</span>        <span class="c1">#   - do not use observations from other years</span>
+        <span class="n">dateParameters</span> <span class="o">=</span> <span class="n">DateParameters</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span><span class="n">month</span><span class="p">,</span><span class="n">day</span><span class="p">),</span> <span class="n">bufferDays</span><span class="p">,</span> <span class="n">bufferYear</span><span class="p">)</span>
+        <span class="c1"># for all target dates create the following statistics composites...</span>
+        <span class="k">for</span>  <span class="n">bandName</span><span class="p">,</span>  <span class="n">statistics</span><span class="p">,</span>       <span class="n">trange</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="p">[</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">],</span> <span class="bp">None</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">],</span> <span class="bp">None</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">],</span> <span class="bp">None</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;nir&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">],</span> <span class="bp">None</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;swir1&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">],</span> <span class="bp">None</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;swir2&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">],</span> <span class="bp">None</span><span class="p">]]:</span>
+<span class="c1">#            [&#39;blue&#39;, [&#39;distribution&#39;, &#39;mean&#39;, &#39;stdev&#39;], None],</span>
+<span class="c1">#            [&#39;green&#39;, [&#39;distribution&#39;, &#39;mean&#39;, &#39;stdev&#39;], None],</span>
+<span class="c1">#            [&#39;red&#39;, [&#39;distribution&#39;, &#39;mean&#39;, &#39;stdev&#39;], None],</span>
+<span class="c1">#            [&#39;nir&#39;, [&#39;distribution&#39;, &#39;mean&#39;, &#39;stdev&#39;], None],</span>
+<span class="c1">#            [&#39;swir1&#39;, [&#39;distribution&#39;, &#39;mean&#39;, &#39;stdev&#39;], None],</span>
+<span class="c1">#            [&#39;swir2&#39;, [&#39;distribution&#39;, &#39;mean&#39;, &#39;stdev&#39;], None]]:</span>
+
+            <span class="c1">#            [&#39;ndvi&#39;,  [&#39;distribution&#39;],   None],         # ...NDVI distribution (min,q25,median,q75,max)</span>
+<span class="c1">#            [&#39;ir&#39;,    [&#39;median&#39;, &#39;mean&#39;], None],         # ...median/mean for infrared region &#39;ir&#39; = (&#39;nir&#39;+&#39;swir1&#39;+&#39;swir2&#39;)/3</span>
+<span class="c1">#            [&#39;vis&#39;,   [&#39;median&#39;, &#39;mean&#39;], None],         # ...median/mean for visible region &#39;vis&#39; = (&#39;blue&#39;+&#39;green&#39;+&#39;red&#39;)/3</span>
+<span class="c1">#            [&#39;swir1&#39;, [&#39;stdev&#39;],          [1000,8000]]]: # ...trimmed stddev for swir</span>
+
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">int16</span>                          <span class="c1"># cast all results to int16</span>
+            <span class="n">dscale</span> <span class="o">=</span> <span class="mi">1000</span> <span class="k">if</span> <span class="n">bandName</span><span class="o">==</span><span class="s1">&#39;ndvi&#39;</span> <span class="k">else</span> <span class="bp">None</span>  <span class="c1"># in case of NDVI, apply scale factor of 1000 before casting to int16</span>
+            <span class="n">statisticsParameters</span> <span class="o">=</span> <span class="n">StatisticsParameters</span><span class="p">(</span><span class="n">bandName</span><span class="p">,</span> <span class="n">statistics</span><span class="p">,</span> <span class="n">trange</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">dscale</span><span class="o">=</span><span class="n">dscale</span><span class="p">)</span>
+            <span class="n">statisticsCompositeParametersList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StatisticsCompositeParameters</span><span class="p">(</span><span class="n">dateParameters</span><span class="p">,</span> <span class="n">statisticsParameters</span><span class="p">))</span>
+
+    <span class="c1"># doit</span>
+    <span class="n">rootdir</span> <span class="o">=</span> <span class="s1">r&#39;</span><span class="se">\\</span><span class="s1">141.20.140.91\NAS_Work\EuropeanDataCube\testCaseCS&#39;</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;33UUQ&#39;</span><span class="p">]</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;33UUQ&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVQ&#39;</span><span class="p">,</span> <span class="s1">&#39;33UUP&#39;</span><span class="p">,</span> <span class="s1">&#39;33UVP&#39;</span><span class="p">]</span>
+    <span class="n">composite</span><span class="p">(</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">,</span> <span class="n">qualityCompositeParametersList</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">statisticsCompositeParametersList</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="c1">#    test_ar()</span>
+
+    <span class="kn">import</span> <span class="nn">cProfile</span>
+    <span class="n">cProfile</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;test_ar()&#39;</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

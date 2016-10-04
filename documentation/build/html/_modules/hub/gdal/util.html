@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hub.gdal.util &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for hub.gdal.util</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">hub.file</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">gdal</span><span class="o">,</span> <span class="nn">xml.etree.ElementTree</span><span class="o">,</span> <span class="nn">copy</span>
+<span class="c1">#from gdalconst import *</span>
+
+<div class="viewcode-block" id="gdal_translate"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdal_translate">[docs]</a><span class="k">def</span> <span class="nf">gdal_translate</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infile</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdal_translate &#39;</span><span class="o">+</span><span class="n">options</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">infile</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">outfile</span>
+    <span class="c1">#cmd = r&#39;&quot;C:\Program Files\QGIS Wien\bin\gdal_translate&quot; &#39;+options+&#39; &#39;+infile+&#39; &#39;+outfile</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="gdalwarp"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdalwarp">[docs]</a><span class="k">def</span> <span class="nf">gdalwarp</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infile</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdalwarp &#39;</span><span class="o">+</span><span class="n">options</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">infile</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">outfile</span>
+    <span class="c1">#cmd = r&#39;&quot;C:\Program Files\QGIS Wien\bin\gdalwarp&quot; &#39;+options+&#39; &#39;+infile+&#39; &#39;+outfile</span>
+
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outfile</span></div>
+
+<div class="viewcode-block" id="gdalbuildvrt"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdalbuildvrt">[docs]</a><span class="k">def</span> <span class="nf">gdalbuildvrt</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+
+    <span class="c1"># create filelist file</span>
+    <span class="n">infiles_file</span> <span class="o">=</span> <span class="n">outfile</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.txt&#39;</span>
+    <span class="n">numpy</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">infiles_file</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdalbuildvrt &#39;</span><span class="o">+</span><span class="n">options</span><span class="o">+</span><span class="s1">&#39; -input_file_list &#39;</span><span class="o">+</span><span class="n">infiles_file</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">outfile</span>
+    <span class="c1">#cmd = r&#39;&quot;C:\Program Files\QGIS Wien\bin\gdalbuildvrt&quot; &#39;+options+&#39; -input_file_list &#39;+infiles_file+&#39; &#39;+outfile</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="gdaldem"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdaldem">[docs]</a><span class="k">def</span> <span class="nf">gdaldem</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infile</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdaldem &#39;</span><span class="o">+</span><span class="n">options</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">infile</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">outfile</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="gdal_proximity"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdal_proximity">[docs]</a><span class="k">def</span> <span class="nf">gdal_proximity</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infile</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdal_proximity &#39;</span><span class="o">+</span><span class="n">infile</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">outfile</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">options</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="gdaltindex"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdaltindex">[docs]</a><span class="k">def</span> <span class="nf">gdaltindex</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+    <span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">infiles</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdaltindex &#39;</span><span class="o">+</span><span class="n">options</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">outfile</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="nb">file</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="gdal_rasterize"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdal_rasterize">[docs]</a><span class="k">def</span> <span class="nf">gdal_rasterize</span><span class="p">(</span><span class="n">rasterfile</span><span class="p">,</span> <span class="n">ogrfile</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">rasterfile</span><span class="p">))</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdal_rasterize &#39;</span><span class="o">+</span><span class="n">options</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">ogrfile</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">rasterfile</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="gdal_calc"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.gdal_calc">[docs]</a><span class="k">def</span> <span class="nf">gdal_calc</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infile1</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdal_calc&#39;</span><span class="c1">#+options+&#39; &#39;+ogrfile+&#39; &#39;+rasterfile</span>
+<span class="c1">#          gdal_calc.py -A input1.tif -B input2.tif --outfile=result.tif --calc=&quot;A+B&quot;</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; -q&#39;</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="stack"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.stack">[docs]</a><span class="k">def</span> <span class="nf">stack</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">gdalbuildvrt</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">options</span><span class="o">+</span><span class="s1">&#39; -separate&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+
+    <span class="n">bandss</span> <span class="o">=</span> <span class="p">[</span><span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span><span class="o">.</span><span class="n">RasterCount</span> <span class="k">for</span> <span class="n">infile</span> <span class="ow">in</span> <span class="n">infiles</span><span class="p">]</span>
+
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">etree</span><span class="o">.</span><span class="n">ElementTree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+    <span class="n">root2</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">etree</span><span class="o">.</span><span class="n">ElementTree</span><span class="o">.</span><span class="n">Element</span><span class="p">(</span><span class="n">root</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">root2</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="n">vrtbandindex</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">vrtfileindex</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">getchildren</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s1">&#39;VRTRasterBand&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bandss</span><span class="p">[</span><span class="n">vrtfileindex</span><span class="p">]):</span>
+                <span class="n">VRTRasterBand</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+                <span class="n">VRTRasterBand</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;band&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">vrtbandindex</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">vrtbandindex</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">Source</span> <span class="o">=</span>  <span class="n">VRTRasterBand</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;SimpleSource&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">VRTRasterBand</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;SimpleSource&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">VRTRasterBand</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;ComplexSource&#39;</span><span class="p">)</span>
+                <span class="n">SourceBand</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;SourceBand&#39;</span><span class="p">)</span>
+                <span class="n">SourceBand</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">band</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">root2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">VRTRasterBand</span><span class="p">)</span>
+            <span class="n">vrtfileindex</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">root2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">child</span><span class="p">))</span>
+
+    <span class="c1">#xml.etree.ElementTree.dump(root2)</span>
+    <span class="n">tree2</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">etree</span><span class="o">.</span><span class="n">ElementTree</span><span class="o">.</span><span class="n">ElementTree</span><span class="p">(</span><span class="n">root2</span><span class="p">)</span>
+    <span class="n">tree2</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outfile</span></div>
+
+
+<div class="viewcode-block" id="mosaic"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.util.mosaic">[docs]</a><span class="k">def</span> <span class="nf">mosaic</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="n">gdalbuildvrt</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span></div>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">def warp(outfile, infile, of=&#39;VRT&#39;):</span>
+
+<span class="sd">    hub.file.mkdir(os.path.dirname(outfile))</span>
+
+<span class="sd">    cmd = &#39;gdalwarp -of &#39;+of+&#39; -t_srs EPSG:3575 -tr 30 30 -overwrite -r near -wm 2000 &#39;+infile+&#39; &#39;+outfile</span>
+<span class="sd">    print(cmd)</span>
+<span class="sd">    subprocess.call(cmd, shell=True)</span>
+
+
+<span class="sd">def subset(outfile, infile, xmin, ymin, xmax, ymax, of=&#39;VRT&#39;, verbose=True):</span>
+
+<span class="sd">    hub.file.mkdir(os.path.dirname(outfile))</span>
+
+<span class="sd">    cmd = &#39;gdal_translate -of &#39;+of+&#39; -projwin &#39;+xmin+&#39; &#39;+ymin+&#39; &#39;+xmax+&#39; &#39;+ymax+&#39; -eco &#39;+infile+&#39; &#39;+outfile</span>
+<span class="sd">    if verbose:</span>
+<span class="sd">        print(cmd)</span>
+<span class="sd">    else:</span>
+<span class="sd">        cmd += &#39; -q&#39;</span>
+<span class="sd">    subprocess.call(cmd, shell=True)</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+<span class="c1">#    infile = r&#39;H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\MSIL1C_20150806T102902_viewstack_mosxx_land.vrt&#39;</span>
+<span class="c1">#    outfile = r&#39;H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\cloudMask\stack_10m_land.img&#39;</span>
+    <span class="n">infile</span> <span class="o">=</span> <span class="s1">r&#39;H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\MSIL1C_20150806T102902_viewstack_mosxx_ldcm.vrt&#39;</span>
+    <span class="n">outfile</span> <span class="o">=</span> <span class="s1">r&#39;H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\cloudMask\stack_10m_ldcm.img&#39;</span>
+
+    <span class="n">gdal_translate</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infile</span><span class="p">,</span> <span class="s1">&#39;-of ENVI&#39;</span><span class="p">)</span>
+
+<span class="c1">#    rasterfile = r&#39;H:\EuropeanDataCube\sentinel2\imported_laea\S2A_OPER_PRD_MSIL1C_PDMC_20150812T211957_R065_V20150806T102902_20150806T102902\_lucas_r60.img&#39;</span>
+<span class="c1">#    ogrfile    = r&#39;H:\EuropeanDataCube\sentinel2\user-consultation\data\lucas\eu27_lucas_2012.shp&#39;</span>
+<span class="c1">#    gdal_rasterize(rasterfile, ogrfile, &#39;-a LC3 -l eu27_lucas_2012&#39;)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

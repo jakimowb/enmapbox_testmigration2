@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+from os.path import join
 import numpy
 from enmapbox.processing.estimators import Classifiers
 
@@ -11,6 +12,7 @@ from enmapbox.processing.workflow import (GDALMeta, Date, Workflow,
 from lamos.processing.workflow import LandsatFA, LandsatBA, LandsatCollectionFA, LandsatCollectionBA
 from hub.nan1d.percentiles import nanpercentiles
 from hub.timing import tic, toc
+from hub.gdal.api import readCube
 
 def assertType(obj, type):
     assert isinstance(obj, type) # makes PyCharm aware of the type!
@@ -89,7 +91,7 @@ def calculateTimeseriesMetrics(info, timeseriesBA, percentiles, start, end, mean
 
     return timeseriesMetricsBA
 
-def drawSample(info, featuresBA, labelsBA):
+'''def drawSample(info, featuresBA, labelsBA):
 
     features = featuresBA.cube
     labels = labelsBA.cube
@@ -97,13 +99,13 @@ def drawSample(info, featuresBA, labelsBA):
     featuresVector = features[:, valid[0]]
     labelsVector = labels[valid]
     sample = (featuresVector, labelsVector)
-    return sample
+    return sample'''
 
 def trainClassifier(sample):
 
-    featureList, labelsList = zip(*sample)
-    features = numpy.hstack(featureList)
-    labels = numpy.hstack(labelsList)
+    featureList, labelsList = sample
+    features = numpy.hstack(featureList)[:,:,0]
+    labels = numpy.vstack(labelsList)[:,0]
 
     rfc = Classifiers.RandomForestClassifier(oob_score=True, n_estimators=100, class_weight='balanced', n_jobs=1)
     rfc.sklEstimator.fit(X=features.T, y=labels)
@@ -127,7 +129,10 @@ class ClassificationWorkflowA(Workflow):
 
         # assert inputs
         landsatCollectionBA = assertType(self.inputs.landsatCollection, LandsatCollectionBA)
-        lucasBA = assertType(self.inputs.lucas, ImageBA)
+        #lucasBA = assertType(self.inputs.lucas, ImageBA)
+        if self.inargs.applyModel:
+            rfc = assertType(self.inargs.rfc, Classifiers.RandomForestClassifier)
+            classificationMeta = assertType(self.inargs.classificationMeta, GDALMeta)
 
         timeseriesMetricsCollectionBA = ProductCollectionBA()
 
@@ -142,16 +147,19 @@ class ClassificationWorkflowA(Workflow):
             # collect outputs
             timeseriesMetricsCollectionBA.append(timeseriesMetricsBA)
 
-        # prepare classification data
-        # - build feature stack
+        # prepare feature stack
         featureStackBA = timeseriesMetricsCollectionBA.getStack(productName='stack')
-        # - draw lucas samples
-        sample = drawSample(info, featuresBA=featureStackBA, labelsBA=lucasBA)
 
-        # return
-        self.outargs.sample = sample
+        # apply model
+        if self.inargs.applyModel:
+            classificationBA = applyClassifier(rfc, featureStackBA, classificationMeta)
+
+        # prepare outputs
         self.outputs.featureStack = featureStackBA
-        #self.outputs.timeseriesMetricsCollection = timeseriesMetricsCollectionBA
+        self.outputs.timeseriesMetricsCollection = timeseriesMetricsCollectionBA
+        if self.inargs.applyModel:
+            self.outputs.classification = classificationBA
+
 
 class ClassificationWorkflowB(Workflow):
 
@@ -169,49 +177,74 @@ class ClassificationWorkflowB(Workflow):
 
 def testClassificationWorkflow():
 
-    # sample lucas locations
-    landsatCollectionFA = LandsatCollectionFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\33\33UUT')
-    lucasFA = ProductFA(r'C:\Work\data\gms\lucasMGRS\33\33UUT\lucas')
-    lucasImageFA = ImageFA(r'C:\Work\data\gms\lucasMGRS\33\33UUT\lucas\lucas_lc4.img')
-    extractedLandsatCollectionFA = landsatCollectionFA.extractByMask(maskFA=lucasImageFA, dirname=r'C:\Work\data\gms\landsatXMGRS_ENVI_extracted\33\33UUT')
-    extractedLucasFA = lucasFA.extractByMask(maskFA=lucasImageFA, dirname=r'C:\Work\data\gms\lucasMGRS_extracted\33\33UUT\lucas')
-    extractedLucasImageFA = ImageFA(r'C:\Work\data\gms\lucasMGRS_extracted\33\33UUT\lucas\lucas_lc4.img')
-    extractedFeatureStackFA = ImageFA(r'C:\Work\data\gms\stack_extracted\33\33UUT\stack\stack.tif')
+    print('create metrics for trainings sample')
+    mgrsFootprints = ['33UUT','33UUT']
+    extractedFeatureStackFAList = list()
+    extractedLucasImageFAList = list()
+    for mgrsFootprint in mgrsFootprints:
+        subfolders = join(mgrsFootprint[0:2], mgrsFootprint)
+        print(mgrsFootprint)
 
-    # for lucas samples: create feature stack and sample lucas data
-    workflowA = ClassificationWorkflowA()
-    workflowA.infiles.landsatCollection = extractedLandsatCollectionFA
-    workflowA.infiles.lucas = extractedLucasImageFA
-    workflowA.outfiles.featureStack = extractedFeatureStackFA
-    workflowA.controls.setOutputDriverENVI()
-    workflowA.run()
+        # sample lucas locations
+        landsatCollectionFA = LandsatCollectionFA(join(r'C:\Work\data\gms\landsatXMGRS_ENVI', subfolders))
+        lucasFA = ProductFA(join(r'C:\Work\data\gms\lucasMGRS', subfolders, 'lucas'))
+        lucasImageFA = ImageFA(join(r'C:\Work\data\gms\lucasMGRS', subfolders, 'lucas\lucas_lc4.img'))
+        extractedLandsatCollectionFA = landsatCollectionFA.extractByMask(maskFA=lucasImageFA, dirname=join(r'C:\Work\data\gms\landsatXMGRS_ENVI_extracted', subfolders))
+        extractedLucasFA = lucasFA.extractByMask(maskFA=lucasImageFA, dirname=join(r'C:\Work\data\gms\lucasMGRS_extracted', subfolders, 'lucas'))
+        extractedLucasImageFA = ImageFA(join(r'C:\Work\data\gms\lucasMGRS_extracted', subfolders, 'lucas\lucas_lc4.img'))
+        extractedFeatureStackFA = ImageFA(join(r'C:\Work\data\gms\stack_extracted', subfolders, 'stack\stack.img'))
 
-    return
+        # for lucas samples: create feature stack
+        workflowA = ClassificationWorkflowA()
+        workflowA.infiles.landsatCollection = extractedLandsatCollectionFA
+        workflowA.infiles.lucas = extractedLucasImageFA
+        workflowA.outfiles.featureStack = extractedFeatureStackFA
+        workflowA.inargs.applyModel = False
+        workflowA.controls.setOutputDriverENVI()
+        workflowA.run()
 
-    # create feature stack and sample lucas data
-    workflowA = ClassificationWorkflowA()
-    workflowA.infiles.landsatCollection = LandsatCollectionFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\33\33UUT')\
-        .filterDate(start=Date(1960,1,1), end=Date.fromYearDoy(2990, 130))
-    workflowA.infiles.lucas = ImageFA(r'C:\Work\data\gms\lucasMGRS\33\33UUT\lucas\lucas_lc4.img')
-    #workflow.outfiles.timeseriesMetricsCollectionBA = ProductCollectionFA(r'C:\Work\data\gms\new_timeseriesMetrics\32\32UPC')
-    workflowA.outfiles.featureStack = ImageFA(r'C:\Work\data\gms\new_timeseriesMetrics\33\33UUT\stack\stack.tif')
-    workflowA.controls.setNumThreads(1)
-    workflowA.controls.setOutputDriverGTiff()
-    workflowA.run()
+        extractedFeatureStackFAList.append(extractedFeatureStackFA)
+        extractedLucasImageFAList.append(extractedLucasImageFA)
 
     # train classifier
-    rfc = trainClassifier(workflowA.outargs.sample)
+    print('train RFC')
+    sample = ([readCube(extractedFeatureStackFA.filename) for extractedFeatureStackFA in extractedFeatureStackFAList],
+              [readCube(extractedLucasImageFA.filename) for extractedLucasImageFA in extractedLucasImageFAList])
+    rfc = trainClassifier(sample)
+    classificationMeta = GDALMeta(filename=workflowA.infiles.lucas.filename)
+
+    print('create metrics for complete archive and apply RFC')
+    mgrsFootprints = ['32UPC', '32UQC', '33UTT', '33UUT']
+    for mgrsFootprint in mgrsFootprints:
+        subfolders = join(mgrsFootprint[0:2], mgrsFootprint)
+        print(mgrsFootprint)
+
+        # create feature stack and sample lucas data
+        workflowA = ClassificationWorkflowA()
+        workflowA.infiles.landsatCollection = LandsatCollectionFA(join(r'C:\Work\data\gms\landsatXMGRS_ENVI', subfolders))\
+            .filterDate(start=Date(1960,1,1), end=Date.fromYearDoy(2990, 130))
+        #workflowA.infiles.lucas = ImageFA(join(r'C:\Work\data\gms\lucasMGRS', subfolders, 'lucas\lucas_lc4.img'))
+        #workflow.outfiles.timeseriesMetricsCollectionBA = ProductCollectionFA(r'C:\Work\data\gms\new_timeseriesMetrics\32\32UPC')
+        workflowA.outfiles.featureStack = ImageFA(join(r'C:\Work\data\gms\new_timeseriesMetrics', subfolders, 'stack\stack.tif'))
+        workflowA.outfiles.classification = ImageFA(join(r'C:\Work\data\gms\new_timeseriesMetrics', subfolders, 'rfc\classification.img'))
+        workflowA.inargs.applyModel = True
+        workflowA.inargs.rfc = rfc
+        workflowA.inargs.classificationMeta = classificationMeta
+
+        workflowA.controls.setNumThreads(1)
+        workflowA.controls.setOutputDriverGTiff()
+        workflowA.run()
 
     # and apply model
-    workflowB = ClassificationWorkflowB()
+    '''workflowB = ClassificationWorkflowB()
     workflowB.infiles.featureStack = workflowA.outfiles.featureStack
-    workflowB.outfiles.classification = ImageFA(r'C:\Work\data\gms\new_timeseriesMetrics\33\33UUT\rfc\classification.img')
+    workflowB.outfiles.classification = ImageFA(r'C:\Work\data\gms\new_timeseriesMetrics\?\rfc\classification.img')
     workflowB.inargs.rfc = rfc
     workflowB.inargs.classificationMeta = GDALMeta(filename=workflowA.infiles.lucas.filename)
 
     workflowB.controls.setNumThreads(1)
     workflowB.controls.setOutputDriverENVI()
-    workflowB.run()
+    workflowB.run()'''
 
 
 

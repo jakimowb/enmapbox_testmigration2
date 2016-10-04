@@ -261,7 +261,7 @@ class ProductFA(FilenameAssociations):
         assert isinstance(maskFA, ImageFA)
         self._linkInputFiles()
 
-        resultFA = ProductFA(dirname=dirname)
+        resultFA = self.__class__(dirname=dirname)
         mask = Mask(maskFA.filename)
         for infilename, imageKey in self._keyLookup.items():
             outfilename = os.path.join(dirname, imageKey+'.img')
@@ -660,32 +660,11 @@ class MyWorkflowOutputParameters(Workflow):
 def testIOImage():
 
     workflow = MyWorkflowIOImage()
-    #workflow.infiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.img')
-    workflow.infiles.image = ImageFA(r'C:\Work\data\y_band.tif')
-
-    #workflow.outfiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI_CopyImage\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.tif')
-
-    workflow.outfiles.image = ImageFA(r'C:\Work\data\x_bsq.tif')
-    workflow.controls.setOutputDriverENVI(interleave='BSQ')
-    workflow.run()
-
-    workflow.outfiles.image = ImageFA(r'C:\Work\data\x_bip.tif')
-    workflow.controls.setOutputDriverENVI(interleave='BIP')
+    workflow.infiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.img')
+    workflow.outfiles.image = ImageFA(r'C:\Work\data\gms\landsatXMGRS_ENVI_CopyImage\32\32UPC\LC81930242015276LGN00\LC81930242015276LGN00_sr.tif')
     workflow.run()
 
     return
-
-    workflow.outfiles.image = ImageFA(r'C:\Work\data\y_band.tif')
-    workflow.controls.setNumThreads(1)
-    workflow.controls.setOutputDriverGTiff(interleave='BAND')
-    #workflow.run()
-
-
-    workflow.infiles.image = ImageFA(r'C:\Work\data\y_band.tif')
-    workflow.outfiles.image = ImageFA(r'C:\Work\data\y_pixel.tif')
-    workflow.controls.setNumThreads(1)
-    workflow.controls.setOutputDriverGTiff(interleave='PIXEL')
-    workflow.run()
 
 
 def testIOProduct():
@@ -774,7 +753,7 @@ def testExtractSampleFromProductCollection():
 
 if __name__ == '__main__':
     tic()
-    #testIOImage()
+    testIOImage()
     #testIOCollection()
     #testIOProduct()
     #testIOBenchmark()

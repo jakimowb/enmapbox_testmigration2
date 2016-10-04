@@ -42,7 +42,7 @@ def classification():
     mask =  Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
     labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
-    classifiers = [Classifiers.RandomForestClassifier(n_estimators=100)]
+    classifiers = [Classifiers.RandomForestClassifier(oob_score=True, n_estimators=100)]
     #classifiers = [Classifiers.DummyClassifier()]
     #classifiers = [Classifiers.SVCTuned()]
     # classifiers = all(Classifiers)
@@ -339,7 +339,7 @@ if __name__ == '__main__':
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    #classification()
+    classification()
     #regression()
     #clusterer()
     #transformer()
@@ -360,6 +360,6 @@ if __name__ == '__main__':
     #maximumProbability()
     #ar_debug3()
     #pixel_extractor()
-    pixel_extractor_image()
+    #pixel_extractor_image()
 
     #toc()
