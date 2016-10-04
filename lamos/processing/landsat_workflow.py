@@ -118,6 +118,9 @@ def applyClassifier(rfc, featuresBA, classificationMeta):
     featuresStack = featuresStack.reshape((shape[0], -1))
     classification = rfc.sklEstimator.predict(X=featuresStack.T)
     classification = classification.reshape(shape[1:])
+    #meta = GDALMeta()
+    #meta.setClassificationMetadata(*classificationMeta.getClassificationMetadata())
+    #classificationBA = ImageBA().addBlock(cube=classification, meta=meta)
     classificationBA = ImageBA().addBlock(cube=classification, meta=classificationMeta)
 
     return classificationBA
@@ -178,7 +181,7 @@ class ClassificationWorkflowB(Workflow):
 def testClassificationWorkflow():
 
     print('create metrics for trainings sample')
-    mgrsFootprints = ['33UUT','33UUT']
+    mgrsFootprints = ['33UUT']
     extractedFeatureStackFAList = list()
     extractedLucasImageFAList = list()
     for mgrsFootprint in mgrsFootprints:
@@ -215,6 +218,7 @@ def testClassificationWorkflow():
 
     print('create metrics for complete archive and apply RFC')
     mgrsFootprints = ['32UPC', '32UQC', '33UTT', '33UUT']
+    mgrsFootprints = ['32UQC']
     for mgrsFootprint in mgrsFootprints:
         subfolders = join(mgrsFootprint[0:2], mgrsFootprint)
         print(mgrsFootprint)
@@ -226,7 +230,7 @@ def testClassificationWorkflow():
         #workflowA.infiles.lucas = ImageFA(join(r'C:\Work\data\gms\lucasMGRS', subfolders, 'lucas\lucas_lc4.img'))
         #workflow.outfiles.timeseriesMetricsCollectionBA = ProductCollectionFA(r'C:\Work\data\gms\new_timeseriesMetrics\32\32UPC')
         workflowA.outfiles.featureStack = ImageFA(join(r'C:\Work\data\gms\new_timeseriesMetrics', subfolders, 'stack\stack.tif'))
-        workflowA.outfiles.classification = ImageFA(join(r'C:\Work\data\gms\new_timeseriesMetrics', subfolders, 'rfc\classification.img'))
+        workflowA.outfiles.classification = ImageFA(join(r'C:\Work\data\gms\new_timeseriesMetrics', subfolders, 'rfc\classification.tif'))
         workflowA.inargs.applyModel = True
         workflowA.inargs.rfc = rfc
         workflowA.inargs.classificationMeta = classificationMeta
