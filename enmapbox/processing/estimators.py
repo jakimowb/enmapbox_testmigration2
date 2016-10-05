@@ -531,7 +531,7 @@ class Transformers(Estimators):
 
 
         def reportDetails(self):
-
+            # todo report
             # anything to report?
             ica = self.finalEstimator()
             report = Report('')
@@ -564,13 +564,13 @@ class Transformers(Estimators):
         def reportDetails(self):
 
             scaler = self.finalEstimator()
-
+            # todo report
             report = Report('')
             report.append(ReportHeading('Information'))
             bandNames = self.sample.featureSample.dataSample.meta.getBandNames()
-            table = Table([['<b>Median</b>']+list(scaler.center_),
-                           ['<b>Interquartile Range</b>']+list(scaler.scale_)], header_row=['']+bandNames)
-            report.append(ReportTable(table))
+            #table = Table([['<b>Median</b>']+list(scaler.center_),
+                      #     ['<b>Interquartile Range</b>']+list(scaler.scale_)], header_row=['']+bandNames)
+            report.append(ReportTable(data))
             return report
 
 PCA = Transformers.PCA
