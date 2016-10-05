@@ -1,11 +1,13 @@
 from __future__ import division
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
-import numpy
-from hub.timing import tic, toc
-import hub.file
+
 import enmapbox.processing
-from enmapbox.processing.estimators import Classifiers
+import hub.file
+import numpy
 from enmapbox.processing.environment import PrintProgress
+from enmapbox.processing.estimators import Classifiers
+from hub.timing import tic, toc
+from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
+
 
 class SampleReadApplier(Applier):
 

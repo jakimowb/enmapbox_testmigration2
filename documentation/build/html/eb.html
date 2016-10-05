@@ -1,0 +1,1633 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>eb package &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="eb-package">
+<h1>eb package<a class="headerlink" href="#eb-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-eb.applier">
+<span id="eb-applier-module"></span><h2>eb.applier module<a class="headerlink" href="#module-eb.applier" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="eb.applier.ApplierControls">
+<em class="property">class </em><code class="descclassname">eb.applier.</code><code class="descname">ApplierControls</code><a class="reference internal" href="_modules/eb/applier.html#ApplierControls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierControls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rios.applier.ApplierControls</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.applier.ApplierHelper">
+<em class="property">class </em><code class="descclassname">eb.applier.</code><code class="descname">ApplierHelper</code><a class="reference internal" href="_modules/eb/applier.html#ApplierHelper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierHelper" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="staticmethod">
+<dt id="eb.applier.ApplierHelper.extract">
+<em class="property">static </em><code class="descname">extract</code><span class="sig-paren">(</span><em>input</em>, <em>mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/applier.html#ApplierHelper.extract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierHelper.extract" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.applier.ApplierHelper.firstBlock">
+<em class="property">static </em><code class="descname">firstBlock</code><span class="sig-paren">(</span><em>info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/applier.html#ApplierHelper.firstBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierHelper.firstBlock" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.applier.ApplierHelper.mask">
+<em class="property">static </em><code class="descname">mask</code><span class="sig-paren">(</span><em>input</em>, <em>noDataValue</em>, <em>all=False</em>, <em>inverse=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/applier.html#ApplierHelper.mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierHelper.mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.applier.ApplierHelper.maskedArray">
+<em class="property">static </em><code class="descname">maskedArray</code><span class="sig-paren">(</span><em>input</em>, <em>mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/applier.html#ApplierHelper.maskedArray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierHelper.maskedArray" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.applier.ApplierHelper.progress">
+<em class="property">static </em><code class="descname">progress</code><span class="sig-paren">(</span><em>info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/applier.html#ApplierHelper.progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierHelper.progress" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.applier.ApplierHelper.reshape2d">
+<em class="property">static </em><code class="descname">reshape2d</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/applier.html#ApplierHelper.reshape2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.applier.ApplierHelper.reshape2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-eb.env">
+<span id="eb-env-module"></span><h2>eb.env module<a class="headerlink" href="#module-eb.env" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="eb.env.PrintProgress">
+<em class="property">class </em><code class="descclassname">eb.env.</code><code class="descname">PrintProgress</code><a class="reference internal" href="_modules/eb/env.html#PrintProgress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.PrintProgress" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="staticmethod">
+<dt id="eb.env.PrintProgress.setConsoleInfo">
+<em class="property">static </em><code class="descname">setConsoleInfo</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#PrintProgress.setConsoleInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.PrintProgress.setConsoleInfo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.PrintProgress.setDebugInfo">
+<em class="property">static </em><code class="descname">setDebugInfo</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#PrintProgress.setDebugInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.PrintProgress.setDebugInfo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.PrintProgress.setInfo">
+<em class="property">static </em><code class="descname">setInfo</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#PrintProgress.setInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.PrintProgress.setInfo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.PrintProgress.setPercentage">
+<em class="property">static </em><code class="descname">setPercentage</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#PrintProgress.setPercentage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.PrintProgress.setPercentage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.PrintProgress.setText">
+<em class="property">static </em><code class="descname">setText</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#PrintProgress.setText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.PrintProgress.setText" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.env.SilentProgress">
+<em class="property">class </em><code class="descclassname">eb.env.</code><code class="descname">SilentProgress</code><a class="reference internal" href="_modules/eb/env.html#SilentProgress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.SilentProgress" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="staticmethod">
+<dt id="eb.env.SilentProgress.setConsoleInfo">
+<em class="property">static </em><code class="descname">setConsoleInfo</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#SilentProgress.setConsoleInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.SilentProgress.setConsoleInfo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.SilentProgress.setDebugInfo">
+<em class="property">static </em><code class="descname">setDebugInfo</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#SilentProgress.setDebugInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.SilentProgress.setDebugInfo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.SilentProgress.setInfo">
+<em class="property">static </em><code class="descname">setInfo</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#SilentProgress.setInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.SilentProgress.setInfo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.SilentProgress.setPercentage">
+<em class="property">static </em><code class="descname">setPercentage</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#SilentProgress.setPercentage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.SilentProgress.setPercentage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.SilentProgress.setText">
+<em class="property">static </em><code class="descname">setText</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#SilentProgress.setText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.SilentProgress.setText" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.env.env">
+<em class="property">class </em><code class="descclassname">eb.env.</code><code class="descname">env</code><a class="reference internal" href="_modules/eb/env.html#env"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.env" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="staticmethod">
+<dt id="eb.env.env.cleanupTempdir">
+<em class="property">static </em><code class="descname">cleanupTempdir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#env.cleanupTempdir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.env.cleanupTempdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.env.env.filelist">
+<code class="descname">filelist</code><em class="property"> = ['C:\\Work\\data\\model_svc.clf', 'C:\\Work\\data\\model_rfc.clf', 'C:\\Work\\data\\model_linearsvc.clf']</em><a class="headerlink" href="#eb.env.env.filelist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.env.env.isNotRunning">
+<code class="descname">isNotRunning</code><em class="property"> = []</em><a class="headerlink" href="#eb.env.env.isNotRunning" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.env.env.isRunning">
+<code class="descname">isRunning</code><em class="property"> = [1]</em><a class="headerlink" href="#eb.env.env.isRunning" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.env.setRunning">
+<em class="property">static </em><code class="descname">setRunning</code><span class="sig-paren">(</span><em>bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#env.setRunning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.env.setRunning" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.env.setTempdir">
+<em class="property">static </em><code class="descname">setTempdir</code><span class="sig-paren">(</span><em>dirname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#env.setTempdir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.env.setTempdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.env.env.tempdir">
+<code class="descname">tempdir</code><em class="property"> = 'c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox'</em><a class="headerlink" href="#eb.env.env.tempdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.env.env.tempfile">
+<em class="property">static </em><code class="descname">tempfile</code><span class="sig-paren">(</span><em>prefix='temp_'</em>, <em>suffix=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/env.html#env.tempfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.env.env.tempfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-eb.estimators">
+<span id="eb-estimators-module"></span><h2>eb.estimators module<a class="headerlink" href="#module-eb.estimators" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="eb.estimators.Classifiers">
+<em class="property">class </em><code class="descclassname">eb.estimators.</code><code class="descname">Classifiers</code><a class="reference internal" href="_modules/eb/estimators.html#Classifiers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="class">
+<dt id="eb.estimators.Classifiers.LinearSVC">
+<em class="property">class </em><code class="descname">LinearSVC</code><span class="sig-paren">(</span><em>C=1.0</em>, <em>class_weight=None</em>, <em>dual=True</em>, <em>fit_intercept=True</em>, <em>intercept_scaling=1</em>, <em>loss='squared_hinge'</em>, <em>max_iter=1000</em>, <em>multi_class='ovr'</em>, <em>penalty='l2'</em>, <em>random_state=None</em>, <em>tol=0.0001</em>, <em>verbose=0</em>, <em>copy=True</em>, <em>with_mean=True</em>, <em>with_std=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.LinearSVC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.LinearSVC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Classifier" title="eb.types.Classifier"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Classifier</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Classifiers.LinearSVC.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.LinearSVC.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.LinearSVC.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Classifiers.LinearSVCTuned">
+<em class="property">class </em><code class="descclassname">Classifiers.</code><code class="descname">LinearSVCTuned</code><span class="sig-paren">(</span><em>C=[0.001, 0.01, 0.1, 1, 10, 1000], class_weight=None, dual=True, fit_intercept=True, intercept_scaling=1, loss='squared_hinge', max_iter=1000, multi_class='ovr', penalty='l2', random_state=None, tol=0.0001, verbose=0, copy=True, with_mean=True, with_std=True, scoring='f1_weighted', fit_params=None, n_jobs=1, iid=True, refit=True, cv=3, pre_dispatch='2*n_jobs', error_score='raise'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.LinearSVCTuned"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.LinearSVCTuned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">eb.estimators.LinearSVC</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Classifiers.RandomForestClassifier">
+<em class="property">class </em><code class="descclassname">Classifiers.</code><code class="descname">RandomForestClassifier</code><span class="sig-paren">(</span><em>bootstrap=True</em>, <em>class_weight=None</em>, <em>criterion='gini'</em>, <em>max_depth=None</em>, <em>max_features='auto'</em>, <em>max_leaf_nodes=None</em>, <em>min_samples_leaf=1</em>, <em>min_samples_split=2</em>, <em>min_weight_fraction_leaf=0.0</em>, <em>n_estimators=10</em>, <em>n_jobs=1</em>, <em>oob_score=True</em>, <em>random_state=None</em>, <em>verbose=0</em>, <em>warm_start=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.RandomForestClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.RandomForestClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Classifier" title="eb.types.Classifier"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Classifier</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Classifiers.RandomForestClassifier.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.RandomForestClassifier.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.RandomForestClassifier.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Classifiers.SVC">
+<em class="property">class </em><code class="descclassname">Classifiers.</code><code class="descname">SVC</code><span class="sig-paren">(</span><em>C=1.0</em>, <em>cache_size=200</em>, <em>class_weight=None</em>, <em>coef0=0.0</em>, <em>decision_function_shape=None</em>, <em>degree=3</em>, <em>gamma='auto'</em>, <em>kernel='rbf'</em>, <em>max_iter=-1</em>, <em>probability=False</em>, <em>random_state=None</em>, <em>shrinking=True</em>, <em>tol=0.001</em>, <em>verbose=False</em>, <em>copy=True</em>, <em>with_mean=True</em>, <em>with_std=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.SVC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.SVC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Classifier" title="eb.types.Classifier"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Classifier</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Classifiers.SVC.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.SVC.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.SVC.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Classifiers.SVCTuned">
+<em class="property">class </em><code class="descclassname">Classifiers.</code><code class="descname">SVCTuned</code><span class="sig-paren">(</span><em>C=[0.001, 0.01, 0.1, 1, 10, 1000], gamma=[0.001, 0.01, 0.1, 1, 10, 1000], cache_size=200, class_weight=None, coef0=0.0, decision_function_shape=None, degree=3, max_iter=-1, probability=False, random_state=None, shrinking=True, tol=0.001, verbose=False, copy=True, with_mean=True, with_std=True, scoring='f1_macro', fit_params=None, n_jobs=1, iid=True, refit=True, cv=3, pre_dispatch='2*n_jobs', error_score='raise'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Classifiers.SVCTuned"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Classifiers.SVCTuned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">eb.estimators.SVC</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Clusterers">
+<em class="property">class </em><code class="descclassname">eb.estimators.</code><code class="descname">Clusterers</code><a class="reference internal" href="_modules/eb/estimators.html#Clusterers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Clusterers" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="class">
+<dt id="eb.estimators.Clusterers.KMeans">
+<em class="property">class </em><code class="descname">KMeans</code><span class="sig-paren">(</span><em>copy_x=True</em>, <em>init='k-means++'</em>, <em>max_iter=300</em>, <em>n_clusters=8</em>, <em>n_init=10</em>, <em>n_jobs=1</em>, <em>precompute_distances='auto'</em>, <em>random_state=None</em>, <em>tol=0.0001</em>, <em>verbose=0</em>, <em>copy=True</em>, <em>with_mean=True</em>, <em>with_std=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Clusterers.KMeans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Clusterers.KMeans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Clusterer" title="eb.types.Clusterer"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Clusterer</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Clusterers.KMeans.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Clusterers.KMeans.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Clusterers.KMeans.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.MH">
+<em class="property">class </em><code class="descclassname">eb.estimators.</code><code class="descname">MH</code><a class="reference internal" href="_modules/eb/estimators.html#MH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.MH" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="staticmethod">
+<dt id="eb.estimators.MH.RandomForestClassifier">
+<em class="property">static </em><code class="descname">RandomForestClassifier</code><span class="sig-paren">(</span><em>rfc</em>, <em>self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#MH.RandomForestClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.MH.RandomForestClassifier" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Regressors">
+<em class="property">class </em><code class="descclassname">eb.estimators.</code><code class="descname">Regressors</code><a class="reference internal" href="_modules/eb/estimators.html#Regressors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Regressors" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="class">
+<dt id="eb.estimators.Regressors.LinearRegression">
+<em class="property">class </em><code class="descname">LinearRegression</code><span class="sig-paren">(</span><em>copy_X=True</em>, <em>fit_intercept=True</em>, <em>n_jobs=1</em>, <em>normalize=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Regressors.LinearRegression"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Regressors.LinearRegression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Regressor" title="eb.types.Regressor"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Regressor</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Regressors.LinearSVR">
+<em class="property">class </em><code class="descclassname">Regressors.</code><code class="descname">LinearSVR</code><span class="sig-paren">(</span><em>C=1.0</em>, <em>dual=True</em>, <em>epsilon=0.0</em>, <em>fit_intercept=True</em>, <em>intercept_scaling=1.0</em>, <em>loss='epsilon_insensitive'</em>, <em>max_iter=1000</em>, <em>random_state=None</em>, <em>tol=0.0001</em>, <em>verbose=0</em>, <em>copy=True</em>, <em>with_mean=True</em>, <em>with_std=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Regressors.LinearSVR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Regressors.LinearSVR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Regressor" title="eb.types.Regressor"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Regressor</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Regressors.LinearSVRTuned">
+<em class="property">class </em><code class="descclassname">Regressors.</code><code class="descname">LinearSVRTuned</code><span class="sig-paren">(</span><em>C=[0.001, 0.01, 0.1, 1, 10, 1000], epsilon=[0.0], dual=True, fit_intercept=True, intercept_scaling=1.0, loss='epsilon_insensitive', max_iter=1000, random_state=None, tol=0.0001, verbose=0, copy=True, with_mean=True, with_std=True, scoring='mean_absolute_error', fit_params=None, n_jobs=1, iid=True, refit=True, cv=3, pre_dispatch='2*n_jobs', error_score='raise'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Regressors.LinearSVRTuned"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Regressors.LinearSVRTuned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Regressor" title="eb.types.Regressor"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Regressor</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Regressors.RandomForestRegressor">
+<em class="property">class </em><code class="descclassname">Regressors.</code><code class="descname">RandomForestRegressor</code><span class="sig-paren">(</span><em>bootstrap=True</em>, <em>criterion='mse'</em>, <em>max_depth=None</em>, <em>max_features='auto'</em>, <em>max_leaf_nodes=None</em>, <em>min_samples_leaf=1</em>, <em>min_samples_split=2</em>, <em>min_weight_fraction_leaf=0.0</em>, <em>n_estimators=10</em>, <em>n_jobs=1</em>, <em>oob_score=False</em>, <em>random_state=None</em>, <em>verbose=0</em>, <em>warm_start=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Regressors.RandomForestRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Regressors.RandomForestRegressor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Regressor" title="eb.types.Regressor"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Regressor</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Regressors.SVR">
+<em class="property">class </em><code class="descclassname">Regressors.</code><code class="descname">SVR</code><span class="sig-paren">(</span><em>C=1.0</em>, <em>cache_size=200</em>, <em>coef0=0.0</em>, <em>degree=3</em>, <em>epsilon=0.1</em>, <em>gamma='auto'</em>, <em>kernel='rbf'</em>, <em>max_iter=-1</em>, <em>shrinking=True</em>, <em>tol=0.001</em>, <em>verbose=False</em>, <em>copy=True</em>, <em>with_mean=True</em>, <em>with_std=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Regressors.SVR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Regressors.SVR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Regressor" title="eb.types.Regressor"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Regressor</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Regressors.SVRTuned">
+<em class="property">class </em><code class="descclassname">Regressors.</code><code class="descname">SVRTuned</code><span class="sig-paren">(</span><em>C=[0.001, 0.01, 0.1, 1, 10, 1000], gamma=[0.001, 0.01, 0.1, 1, 10, 1000], epsilon=[0.1], cache_size=200, coef0=0.0, degree=3, max_iter=-1, shrinking=True, tol=0.001, verbose=False, copy=True, with_mean=True, with_std=True, scoring='mean_absolute_error', fit_params=None, n_jobs=1, iid=True, refit=True, cv=3, pre_dispatch='2*n_jobs', error_score='raise'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Regressors.SVRTuned"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Regressors.SVRTuned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Regressor" title="eb.types.Regressor"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Regressor</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.SklearnClassifiers">
+<em class="property">class </em><code class="descclassname">eb.estimators.</code><code class="descname">SklearnClassifiers</code><a class="reference internal" href="_modules/eb/estimators.html#SklearnClassifiers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.SklearnClassifiers" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="class">
+<dt id="eb.estimators.SklearnClassifiers.UncertaintyClassifier">
+<em class="property">class </em><code class="descname">UncertaintyClassifier</code><span class="sig-paren">(</span><em>sklClassifier</em>, <em>mode</em>, <em>n_estimators=100</em>, <em>n_jobs=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#SklearnClassifiers.UncertaintyClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.SklearnClassifiers.UncertaintyClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">sklearn.ensemble.forest.RandomForestClassifier</span></code></p>
+<dl class="method">
+<dt id="eb.estimators.SklearnClassifiers.UncertaintyClassifier.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>X</em>, <em>y</em>, <em>fit_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#SklearnClassifiers.UncertaintyClassifier.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.SklearnClassifiers.UncertaintyClassifier.fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.SklearnRegressors">
+<em class="property">class </em><code class="descclassname">eb.estimators.</code><code class="descname">SklearnRegressors</code><a class="reference internal" href="_modules/eb/estimators.html#SklearnRegressors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.SklearnRegressors" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="class">
+<dt id="eb.estimators.SklearnRegressors.UncertaintyRegressor">
+<em class="property">class </em><code class="descname">UncertaintyRegressor</code><span class="sig-paren">(</span><em>sklRegressor</em>, <em>n_estimators=100</em>, <em>n_jobs=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#SklearnRegressors.UncertaintyRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.SklearnRegressors.UncertaintyRegressor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">sklearn.ensemble.forest.RandomForestRegressor</span></code></p>
+<dl class="method">
+<dt id="eb.estimators.SklearnRegressors.UncertaintyRegressor.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>X</em>, <em>y</em>, <em>fit_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#SklearnRegressors.UncertaintyRegressor.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.SklearnRegressors.UncertaintyRegressor.fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Transformers">
+<em class="property">class </em><code class="descclassname">eb.estimators.</code><code class="descname">Transformers</code><a class="reference internal" href="_modules/eb/estimators.html#Transformers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="class">
+<dt id="eb.estimators.Transformers.FastICA">
+<em class="property">class </em><code class="descname">FastICA</code><span class="sig-paren">(</span><em>algorithm='parallel'</em>, <em>fun='logcosh'</em>, <em>fun_args=None</em>, <em>max_iter=200</em>, <em>n_components=None</em>, <em>random_state=None</em>, <em>tol=0.0001</em>, <em>w_init=None</em>, <em>whiten=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.FastICA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.FastICA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Transformer" title="eb.types.Transformer"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Transformer</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Transformers.FastICA.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.FastICA.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.FastICA.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.estimators.Transformers.FastICA.transformMeta">
+<code class="descname">transformMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>iimeta</em>, <em>immeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.FastICA.transformMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.FastICA.transformMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Transformers.KernelPCA">
+<em class="property">class </em><code class="descclassname">Transformers.</code><code class="descname">KernelPCA</code><span class="sig-paren">(</span><em>alpha=1.0</em>, <em>coef0=1</em>, <em>degree=3</em>, <em>eigen_solver='auto'</em>, <em>fit_inverse_transform=False</em>, <em>gamma=None</em>, <em>kernel='linear'</em>, <em>kernel_params=None</em>, <em>max_iter=None</em>, <em>n_components=None</em>, <em>remove_zero_eig=False</em>, <em>tol=0</em>, <em>copy=True</em>, <em>with_mean=False</em>, <em>with_std=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.KernelPCA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.KernelPCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Transformer" title="eb.types.Transformer"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Transformer</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Transformers.KernelPCA.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.KernelPCA.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.KernelPCA.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.estimators.Transformers.KernelPCA.transformMeta">
+<code class="descname">transformMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>iimeta</em>, <em>immeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.KernelPCA.transformMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.KernelPCA.transformMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Transformers.PCA">
+<em class="property">class </em><code class="descclassname">Transformers.</code><code class="descname">PCA</code><span class="sig-paren">(</span><em>copy=True</em>, <em>n_components=0.999</em>, <em>whiten=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.PCA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.PCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Transformer" title="eb.types.Transformer"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Transformer</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Transformers.PCA.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.PCA.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.PCA.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.estimators.Transformers.PCA.transformMeta">
+<code class="descname">transformMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>iimeta</em>, <em>immeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.PCA.transformMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.PCA.transformMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Transformers.RobustScaler">
+<em class="property">class </em><code class="descclassname">Transformers.</code><code class="descname">RobustScaler</code><span class="sig-paren">(</span><em>copy=True</em>, <em>with_centering=True</em>, <em>with_scaling=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.RobustScaler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.RobustScaler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Transformer" title="eb.types.Transformer"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Transformer</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Transformers.RobustScaler.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.RobustScaler.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.RobustScaler.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.estimators.Transformers.StandardScaler">
+<em class="property">class </em><code class="descclassname">Transformers.</code><code class="descname">StandardScaler</code><span class="sig-paren">(</span><em>copy=True</em>, <em>with_mean=True</em>, <em>with_std=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.StandardScaler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.StandardScaler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Transformer" title="eb.types.Transformer"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Transformer</span></code></a></p>
+<dl class="method">
+<dt id="eb.estimators.Transformers.StandardScaler.transformMeta">
+<code class="descname">transformMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>iimeta</em>, <em>immeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#Transformers.StandardScaler.transformMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.Transformers.StandardScaler.transformMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="eb.estimators.all">
+<code class="descclassname">eb.estimators.</code><code class="descname">all</code><span class="sig-paren">(</span><em>estimators</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/estimators.html#all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.estimators.all" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-eb.products">
+<span id="eb-products-module"></span><h2>eb.products module<a class="headerlink" href="#module-eb.products" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="eb.products.Archive">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">Archive</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Archive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Type" title="eb.products.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.Archive.addProducts">
+<code class="descname">addProducts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Archive.addProducts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Archive.addProducts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Archive.footprints">
+<code class="descname">footprints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Archive.footprints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Archive.footprints" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Archive.getProducts">
+<code class="descname">getProducts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Archive.getProducts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Archive.getProducts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Archive.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Archive.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Archive.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.Image">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">Image</code><span class="sig-paren">(</span><em>name</em>, <em>filename</em>, <em>meta={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Type" title="eb.products.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.Image.report">
+<code class="descname">report</code><span class="sig-paren">(</span><em>title='Image'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Image.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Image.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.LandsatArchive">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">LandsatArchive</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatArchive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatArchive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Archive" title="eb.products.Archive"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Archive</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.LandsatArchive.getProducts">
+<code class="descname">getProducts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatArchive.getProducts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatArchive.getProducts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.LandsatArchive.openProduct">
+<code class="descname">openProduct</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatArchive.openProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatArchive.openProduct" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.LandsatLC8Product">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">LandsatLC8Product</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatLC8Product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatLC8Product" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.LandsatProduct" title="eb.products.LandsatProduct"><code class="xref py py-class docutils literal"><span class="pre">eb.products.LandsatProduct</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.LandsatLE7Product">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">LandsatLE7Product</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatLE7Product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatLE7Product" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.LandsatProduct" title="eb.products.LandsatProduct"><code class="xref py py-class docutils literal"><span class="pre">eb.products.LandsatProduct</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.LandsatLTProduct">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">LandsatLTProduct</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatLTProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatLTProduct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.LandsatProduct" title="eb.products.LandsatProduct"><code class="xref py py-class docutils literal"><span class="pre">eb.products.LandsatProduct</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.LandsatProduct">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">LandsatProduct</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatProduct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.WRS2Product" title="eb.products.WRS2Product"><code class="xref py py-class docutils literal"><span class="pre">eb.products.WRS2Product</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.LandsatProduct.FMaskFile">
+<code class="descname">FMaskFile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatProduct.FMaskFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatProduct.FMaskFile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.LandsatProduct.SRBandFile">
+<code class="descname">SRBandFile</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatProduct.SRBandFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatProduct.SRBandFile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.LandsatProduct.TOABandFile">
+<code class="descname">TOABandFile</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatProduct.TOABandFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatProduct.TOABandFile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.products.LandsatProduct.open">
+<em class="property">static </em><code class="descname">open</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#LandsatProduct.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.LandsatProduct.open" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.MGRSArchive">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">MGRSArchive</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSArchive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSArchive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Archive" title="eb.products.Archive"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Archive</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.MGRSArchive.getProducts">
+<code class="descname">getProducts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSArchive.getProducts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSArchive.getProducts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.MGRSArchive.openProduct">
+<code class="descname">openProduct</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSArchive.openProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSArchive.openProduct" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.MGRSProduct">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">MGRSProduct</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSProduct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Product" title="eb.products.Product"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Product</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.MGRSProduct.footprint">
+<code class="descname">footprint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSProduct.footprint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSProduct.footprint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.MGRSProduct.subfolders">
+<code class="descname">subfolders</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSProduct.subfolders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSProduct.subfolders" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.MGRSTile">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">MGRSTile</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTile" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.products.MGRSTile.getBoundingBox">
+<code class="descname">getBoundingBox</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTile.getBoundingBox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTile.getBoundingBox" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.MGRSTilingScheme">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">MGRSTilingScheme</code><span class="sig-paren">(</span><em>pixelSize</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTilingScheme"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTilingScheme" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Type" title="eb.products.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.MGRSTilingScheme.cacheWRS2Tiles">
+<code class="descname">cacheWRS2Tiles</code><span class="sig-paren">(</span><em>wrs2Footprint</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTilingScheme.cacheWRS2Tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTilingScheme.cacheWRS2Tiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.MGRSTilingScheme.info">
+<code class="descname">info</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTilingScheme.info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTilingScheme.info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.MGRSTilingScheme.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTilingScheme.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTilingScheme.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.products.MGRSTilingScheme.shp">
+<code class="descname">shp</code><em class="property"> = 'C:\\Work\\data\\gms\\MGRS-WRS2_Tiling_Scheme\\MGRS-WRS2_Tiling_Scheme.shp'</em><a class="headerlink" href="#eb.products.MGRSTilingScheme.shp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.MGRSTilingScheme.tileWRS2Archive">
+<code class="descname">tileWRS2Archive</code><span class="sig-paren">(</span><em>archive</em>, <em>folder</em>, <em>buffer=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTilingScheme.tileWRS2Archive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTilingScheme.tileWRS2Archive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.MGRSTilingScheme.tileWRS2Product">
+<code class="descname">tileWRS2Product</code><span class="sig-paren">(</span><em>product</em>, <em>folder</em>, <em>buffer=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#MGRSTilingScheme.tileWRS2Product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.MGRSTilingScheme.tileWRS2Product" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.Product">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">Product</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Product" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Type" title="eb.products.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.Product.Images">
+<code class="descname">Images</code><span class="sig-paren">(</span><em>names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Product.Images"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Product.Images" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Product.addImage">
+<code class="descname">addImage</code><span class="sig-paren">(</span><em>image</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Product.addImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Product.addImage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Product.footprint">
+<code class="descname">footprint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Product.footprint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Product.footprint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Product.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Product.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Product.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Product.subfolders">
+<code class="descname">subfolders</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Product.subfolders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Product.subfolders" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.SensorXArchive">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">SensorXArchive</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXArchive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXArchive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Archive" title="eb.products.Archive"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Archive</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.SensorXArchive.getProducts">
+<code class="descname">getProducts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXArchive.getProducts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXArchive.getProducts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.SensorXArchive.openProduct">
+<code class="descname">openProduct</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXArchive.openProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXArchive.openProduct" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.SensorXConverter">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">SensorXConverter</code><span class="sig-paren">(</span><em>imageNamesSR</em>, <em>imageNamesQA</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXConverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXConverter" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.products.SensorXConverter.convertArchive">
+<code class="descname">convertArchive</code><span class="sig-paren">(</span><em>archive</em>, <em>folder</em>, <em>WRS2=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXConverter.convertArchive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXConverter.convertArchive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.SensorXConverter.convertProduct">
+<code class="descname">convertProduct</code><span class="sig-paren">(</span><em>product</em>, <em>folder=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXConverter.convertProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXConverter.convertProduct" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.SensorXWRS2Product">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">SensorXWRS2Product</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXWRS2Product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXWRS2Product" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.WRS2Product" title="eb.products.WRS2Product"><code class="xref py py-class docutils literal"><span class="pre">eb.products.WRS2Product</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.SensorXWRS2Product.getUTMZone">
+<code class="descname">getUTMZone</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXWRS2Product.getUTMZone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXWRS2Product.getUTMZone" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.SensorXWRS2Product.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#SensorXWRS2Product.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.SensorXWRS2Product.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.Type">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">Type</code><a class="reference internal" href="_modules/eb/products.html#Type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Type" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.products.Type.info">
+<code class="descname">info</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Type.info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Type.info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.Type.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#Type.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.Type.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.products.WRS2Product">
+<em class="property">class </em><code class="descclassname">eb.products.</code><code class="descname">WRS2Product</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#WRS2Product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.WRS2Product" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.products.Product" title="eb.products.Product"><code class="xref py py-class docutils literal"><span class="pre">eb.products.Product</span></code></a></p>
+<dl class="method">
+<dt id="eb.products.WRS2Product.footprint">
+<code class="descname">footprint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#WRS2Product.footprint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.WRS2Product.footprint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.products.WRS2Product.subfolders">
+<code class="descname">subfolders</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#WRS2Product.subfolders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.WRS2Product.subfolders" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="eb.products.test_archive">
+<code class="descclassname">eb.products.</code><code class="descname">test_archive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#test_archive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.test_archive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.products.test_buildCube">
+<code class="descclassname">eb.products.</code><code class="descname">test_buildCube</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#test_buildCube"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.test_buildCube" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.products.test_product">
+<code class="descclassname">eb.products.</code><code class="descname">test_product</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#test_product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.test_product" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.products.test_sensorXConvertArchive">
+<code class="descclassname">eb.products.</code><code class="descname">test_sensorXConvertArchive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#test_sensorXConvertArchive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.test_sensorXConvertArchive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.products.test_sensorXConvertImage">
+<code class="descclassname">eb.products.</code><code class="descname">test_sensorXConvertImage</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#test_sensorXConvertImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.test_sensorXConvertImage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.products.test_tileArchive">
+<code class="descclassname">eb.products.</code><code class="descname">test_tileArchive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#test_tileArchive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.test_tileArchive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.products.test_tileProduct">
+<code class="descclassname">eb.products.</code><code class="descname">test_tileProduct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/products.html#test_tileProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.products.test_tileProduct" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-eb.report">
+<span id="eb-report-module"></span><h2>eb.report module<a class="headerlink" href="#module-eb.report" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="eb.report.Report">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">Report</code><span class="sig-paren">(</span><em>title</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#Report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.Report" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.Report.append">
+<code class="descname">append</code><span class="sig-paren">(</span><em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#Report.append"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.Report.append" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.report.Report.appendReport">
+<code class="descname">appendReport</code><span class="sig-paren">(</span><em>report</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#Report.appendReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.Report.appendReport" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.report.Report.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><em>dirname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#Report.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.Report.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.report.Report.open">
+<code class="descname">open</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#Report.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.Report.open" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.report.Report.saveHTML">
+<code class="descname">saveHTML</code><span class="sig-paren">(</span><em>filename='c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox\\reportu2al8d.html'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#Report.saveHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.Report.saveHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportHTML">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportHTML</code><span class="sig-paren">(</span><em>html</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHTML" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportHTML.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportHTML.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHTML.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportHeading">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportHeading</code><span class="sig-paren">(</span><em>title</em>, <em>sub=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportHeading"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHeading" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportHeading.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportHeading.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHeading.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportHorizontalLine">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportHorizontalLine</code><a class="reference internal" href="_modules/eb/report.html#ReportHorizontalLine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHorizontalLine" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportHorizontalLine.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportHorizontalLine.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHorizontalLine.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportHyperlink">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportHyperlink</code><span class="sig-paren">(</span><em>url</em>, <em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportHyperlink"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHyperlink" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportHyperlink.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportHyperlink.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportHyperlink.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportImage">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportImage</code><span class="sig-paren">(</span><em>array</em>, <em>caption=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportImage" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportImage.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><em>dirname</em>, <em>imageCount</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportImage.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportImage.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportMonospace">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportMonospace</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportMonospace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportMonospace" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportMonospace.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportMonospace.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportMonospace.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportParagraph">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportParagraph</code><span class="sig-paren">(</span><em>text</em>, <em>font_color='black'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportParagraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportParagraph" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportParagraph.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportParagraph.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportParagraph.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportPlot">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportPlot</code><span class="sig-paren">(</span><em>figure</em>, <em>caption=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.report.ReportImage" title="eb.report.ReportImage"><code class="xref py py-class docutils literal"><span class="pre">eb.report.ReportImage</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.report.ReportTable">
+<em class="property">class </em><code class="descclassname">eb.report.</code><code class="descname">ReportTable</code><span class="sig-paren">(</span><em>data</em>, <em>caption=''</em>, <em>colHeaders=None</em>, <em>rowHeaders=None</em>, <em>colSpans=None</em>, <em>rowSpans=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportTable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportTable" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.report.ReportTable.generateHTML">
+<code class="descname">generateHTML</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/report.html#ReportTable.generateHTML"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.report.ReportTable.generateHTML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-eb.types">
+<span id="eb-types-module"></span><h2>eb.types module<a class="headerlink" href="#module-eb.types" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="eb.types.Classification">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Classification</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Mask" title="eb.types.Mask"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Mask</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Classification.assessClassificationPerformance">
+<code class="descname">assessClassificationPerformance</code><span class="sig-paren">(</span><em>classification</em>, <em>stratification=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classification.assessClassificationPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classification.assessClassificationPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classification.assessClusteringPerformance">
+<code class="descname">assessClusteringPerformance</code><span class="sig-paren">(</span><em>classification</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classification.assessClusteringPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classification.assessClusteringPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classification.statistics">
+<code class="descname">statistics</code><span class="sig-paren">(</span><em>mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classification.statistics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classification.statistics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ClassificationPerformance">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ClassificationPerformance</code><span class="sig-paren">(</span><em>classes</em>, <em>classNames=None</em>, <em>mappedClassProportions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Type" title="eb.types.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.ClassificationPerformance.assessPerformance">
+<code class="descname">assessPerformance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformance.assessPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformance.assessPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ClassificationPerformance.confidenceIntervall">
+<code class="descname">confidenceIntervall</code><span class="sig-paren">(</span><em>mean</em>, <em>sse</em>, <em>alpha</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformance.confidenceIntervall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformance.confidenceIntervall" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.types.ClassificationPerformance.fromSample">
+<em class="property">static </em><code class="descname">fromSample</code><span class="sig-paren">(</span><em>sample</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformance.fromSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformance.fromSample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ClassificationPerformance.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformance.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformance.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ClassificationPerformance.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>yPrediction</em>, <em>yTruth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformance.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformance.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ClassificationPerformanceAdjusted">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ClassificationPerformanceAdjusted</code><span class="sig-paren">(</span><em>classes</em>, <em>strataClasses</em>, <em>strataWeights</em>, <em>classNames=None</em>, <em>strataClassNames=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformanceAdjusted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformanceAdjusted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.ClassificationPerformance" title="eb.types.ClassificationPerformance"><code class="xref py py-class docutils literal"><span class="pre">eb.types.ClassificationPerformance</span></code></a></p>
+<dl class="staticmethod">
+<dt id="eb.types.ClassificationPerformanceAdjusted.fromSample">
+<em class="property">static </em><code class="descname">fromSample</code><span class="sig-paren">(</span><em>samplePrediction</em>, <em>sampleStratification</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformanceAdjusted.fromSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformanceAdjusted.fromSample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ClassificationPerformanceAdjusted.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformanceAdjusted.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformanceAdjusted.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ClassificationPerformanceAdjusted.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>yPrediction</em>, <em>yTruth</em>, <em>yS</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationPerformanceAdjusted.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationPerformanceAdjusted.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ClassificationSample">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ClassificationSample</code><span class="sig-paren">(</span><em>image</em>, <em>mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationSample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.ImageSample" title="eb.types.ImageSample"><code class="xref py py-class docutils literal"><span class="pre">eb.types.ImageSample</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ClassificationStatistics">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ClassificationStatistics</code><span class="sig-paren">(</span><em>classification</em>, <em>mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationStatistics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationStatistics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.ImageStatistics" title="eb.types.ImageStatistics"><code class="xref py py-class docutils literal"><span class="pre">eb.types.ImageStatistics</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.ClassificationStatistics.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClassificationStatistics.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClassificationStatistics.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Classifier">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Classifier</code><span class="sig-paren">(</span><em>sklEstimator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Estimator" title="eb.types.Estimator"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Estimator</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Classifier.UncertaintyClassifierFN">
+<code class="descname">UncertaintyClassifierFN</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.UncertaintyClassifierFN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.UncertaintyClassifierFN" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.UncertaintyClassifierFP">
+<code class="descname">UncertaintyClassifierFP</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.UncertaintyClassifierFP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.UncertaintyClassifierFP" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>image</em>, <em>labels</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>image</em>, <em>mask=None</em>, <em>filename='c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox\\classificationfiykyx'</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predictDType">
+<code class="descname">predictDType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predictDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predictDType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predictMeta">
+<code class="descname">predictMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>imeta</em>, <em>mmeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predictMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predictMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predictNoDataValue">
+<code class="descname">predictNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predictNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predictNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predictProbability">
+<code class="descname">predictProbability</code><span class="sig-paren">(</span><em>image</em>, <em>mask=None</em>, <em>filename='c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox\\probabilitypkkunv'</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predictProbability"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predictProbability" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predictProbabilityDType">
+<code class="descname">predictProbabilityDType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predictProbabilityDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predictProbabilityDType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predictProbabilityMeta">
+<code class="descname">predictProbabilityMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>imeta</em>, <em>mmeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predictProbabilityMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predictProbabilityMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Classifier.predictProbabilityNoDataValue">
+<code class="descname">predictProbabilityNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Classifier.predictProbabilityNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Classifier.predictProbabilityNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Clusterer">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Clusterer</code><span class="sig-paren">(</span><em>sklEstimator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Clusterer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Clusterer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Estimator" title="eb.types.Estimator"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Estimator</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Clusterer.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>image</em>, <em>mask</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Clusterer.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Clusterer.fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Clusterer.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>image</em>, <em>mask=None</em>, <em>filename='c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox\\clusteringn_xqeb'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Clusterer.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Clusterer.predict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Clusterer.predictDType">
+<code class="descname">predictDType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Clusterer.predictDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Clusterer.predictDType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Clusterer.predictMeta">
+<code class="descname">predictMeta</code><span class="sig-paren">(</span><em>meta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Clusterer.predictMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Clusterer.predictMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Clusterer.predictNoDataValue">
+<code class="descname">predictNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Clusterer.predictNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Clusterer.predictNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ClusteringPerformance">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ClusteringPerformance</code><a class="reference internal" href="_modules/eb/types.html#ClusteringPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClusteringPerformance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Type" title="eb.types.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.ClusteringPerformance.assessPerformance">
+<code class="descname">assessPerformance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClusteringPerformance.assessPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClusteringPerformance.assessPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.types.ClusteringPerformance.fromSample">
+<em class="property">static </em><code class="descname">fromSample</code><span class="sig-paren">(</span><em>sample</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClusteringPerformance.fromSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClusteringPerformance.fromSample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ClusteringPerformance.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClusteringPerformance.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClusteringPerformance.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ClusteringPerformance.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>yPrediction</em>, <em>yTruth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ClusteringPerformance.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ClusteringPerformance.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Estimator">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Estimator</code><span class="sig-paren">(</span><em>sklEstimator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Type" title="eb.types.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Estimator.finalEstimator">
+<code class="descname">finalEstimator</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.finalEstimator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.finalEstimator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.name">
+<code class="descname">name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.predictDType">
+<code class="descname">predictDType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.predictDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.predictDType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.predictMeta">
+<code class="descname">predictMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>imate</em>, <em>mmeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.predictMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.predictMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.predictNoDataValue">
+<code class="descname">predictNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.predictNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.predictNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.reportDetails">
+<code class="descname">reportDetails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.reportDetails"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.reportDetails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.signature">
+<code class="descname">signature</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.signature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.transformInverseMeta">
+<code class="descname">transformInverseMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>iimeta</em>, <em>immeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.transformInverseMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.transformInverseMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.transformMeta">
+<code class="descname">transformMeta</code><span class="sig-paren">(</span><em>meta</em>, <em>iimeta</em>, <em>immeta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.transformMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.transformMeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Estimator.transformNoDataValue">
+<code class="descname">transformNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Estimator.transformNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Estimator.transformNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Image">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Image</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Type" title="eb.types.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Type</span></code></a></p>
+<p>An GDAL conform image with no further assumptions about the image meta data.</p>
+<dl class="attribute">
+<dt id="eb.types.Image.BoundingBox">
+<code class="descname">BoundingBox</code><a class="headerlink" href="#eb.types.Image.BoundingBox" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.types.Image.PixelGrid">
+<code class="descname">PixelGrid</code><a class="headerlink" href="#eb.types.Image.PixelGrid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.types.Image.PixelSize">
+<code class="descname">PixelSize</code><a class="headerlink" href="#eb.types.Image.PixelSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.types.Image.SpatialReference">
+<code class="descname">SpatialReference</code><a class="headerlink" href="#eb.types.Image.SpatialReference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.types.Image.fromENVISpectralLibrary">
+<em class="property">static </em><code class="descname">fromENVISpectralLibrary</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Image.fromENVISpectralLibrary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Image.fromENVISpectralLibrary" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Image.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Image.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Image.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Image.saveAs">
+<code class="descname">saveAs</code><span class="sig-paren">(</span><em>filename=None</em>, <em>options='-of ENVI'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Image.saveAs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Image.saveAs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Image.stack">
+<code class="descname">stack</code><span class="sig-paren">(</span><em>images=[]</em>, <em>resolution=None</em>, <em>filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Image.stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Image.stack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Image.statistics">
+<code class="descname">statistics</code><span class="sig-paren">(</span><em>mask=None</em>, <em>mode='with histo'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Image.statistics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Image.statistics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ImageSample">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ImageSample</code><span class="sig-paren">(</span><em>image</em>, <em>mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ImageSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ImageSample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Type" title="eb.types.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Type</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ImageStatistics">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ImageStatistics</code><span class="sig-paren">(</span><em>image</em>, <em>mode='simple'</em>, <em>histoMin=None</em>, <em>histoMax=None</em>, <em>histoBins=100</em>, <em>mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ImageStatistics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ImageStatistics" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.types.ImageStatistics.doit">
+<code class="descname">doit</code><span class="sig-paren">(</span><em>firstRun=True</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ImageStatistics.doit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ImageStatistics.doit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ImageStatistics.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ImageStatistics.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ImageStatistics.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Mask">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Mask</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Image" title="eb.types.Image"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Image</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Meta">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Meta</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Meta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="hub.gdal.html#hub.gdal.api.GDALMeta" title="hub.gdal.api.GDALMeta"><code class="xref py py-class docutils literal"><span class="pre">hub.gdal.api.GDALMeta</span></code></a></p>
+<dl class="attribute">
+<dt id="eb.types.Meta.BandNames">
+<code class="descname">BandNames</code><a class="headerlink" href="#eb.types.Meta.BandNames" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.types.Meta.Bands">
+<code class="descname">Bands</code><a class="headerlink" href="#eb.types.Meta.Bands" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.types.Meta.ClassLookup">
+<code class="descname">ClassLookup</code><a class="headerlink" href="#eb.types.Meta.ClassLookup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.types.Meta.ClassNames">
+<code class="descname">ClassNames</code><a class="headerlink" href="#eb.types.Meta.ClassNames" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="eb.types.Meta.Classes">
+<code class="descname">Classes</code><a class="headerlink" href="#eb.types.Meta.Classes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Meta.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Meta.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Meta.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.PixelGrid">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">PixelGrid</code><span class="sig-paren">(</span><em>spatialReference</em>, <em>pixelCorner</em>, <em>pixelSize</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#PixelGrid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.PixelGrid" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.types.PixelGrid.project">
+<code class="descname">project</code><span class="sig-paren">(</span><em>image</em>, <em>boundingBox=None</em>, <em>filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#PixelGrid.project"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.PixelGrid.project" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Probability">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Probability</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Probability"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Probability" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Image" title="eb.types.Image"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Image</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Probability.assessProbabilityPerformance">
+<code class="descname">assessProbabilityPerformance</code><span class="sig-paren">(</span><em>classification</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Probability.assessProbabilityPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Probability.assessProbabilityPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.ProbabilityPerformance">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">ProbabilityPerformance</code><span class="sig-paren">(</span><em>classes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ProbabilityPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ProbabilityPerformance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Type" title="eb.types.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.ProbabilityPerformance.assessPerformance">
+<code class="descname">assessPerformance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ProbabilityPerformance.assessPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ProbabilityPerformance.assessPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.types.ProbabilityPerformance.fromSample">
+<em class="property">static </em><code class="descname">fromSample</code><span class="sig-paren">(</span><em>sample</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ProbabilityPerformance.fromSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ProbabilityPerformance.fromSample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ProbabilityPerformance.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ProbabilityPerformance.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ProbabilityPerformance.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.ProbabilityPerformance.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>yScore</em>, <em>yTruth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#ProbabilityPerformance.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.ProbabilityPerformance.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Regression">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Regression</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regression"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Mask" title="eb.types.Mask"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Mask</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Regression.assessRegressionPerformance">
+<code class="descname">assessRegressionPerformance</code><span class="sig-paren">(</span><em>regression</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regression.assessRegressionPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regression.assessRegressionPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.RegressionPerformance">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">RegressionPerformance</code><a class="reference internal" href="_modules/eb/types.html#RegressionPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.RegressionPerformance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Type" title="eb.types.Type"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Type</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.RegressionPerformance.assessPerformance">
+<code class="descname">assessPerformance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#RegressionPerformance.assessPerformance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.RegressionPerformance.assessPerformance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="eb.types.RegressionPerformance.fromSample">
+<em class="property">static </em><code class="descname">fromSample</code><span class="sig-paren">(</span><em>sample</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#RegressionPerformance.fromSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.RegressionPerformance.fromSample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.RegressionPerformance.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#RegressionPerformance.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.RegressionPerformance.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.RegressionPerformance.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>yPrediction</em>, <em>yTruth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#RegressionPerformance.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.RegressionPerformance.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.RegressionSample">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">RegressionSample</code><span class="sig-paren">(</span><em>image</em>, <em>mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#RegressionSample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.RegressionSample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.ImageSample" title="eb.types.ImageSample"><code class="xref py py-class docutils literal"><span class="pre">eb.types.ImageSample</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Regressor">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Regressor</code><span class="sig-paren">(</span><em>sklEstimator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regressor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Estimator" title="eb.types.Estimator"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Estimator</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Regressor.UncertaintyRegressor">
+<code class="descname">UncertaintyRegressor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regressor.UncertaintyRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regressor.UncertaintyRegressor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Regressor.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>image</em>, <em>labels</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regressor.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regressor.fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Regressor.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>image</em>, <em>mask</em>, <em>filename='c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox\\regressiontrqzaf'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regressor.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regressor.predict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Regressor.predictDType">
+<code class="descname">predictDType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regressor.predictDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regressor.predictDType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Regressor.predictNoDataValue">
+<code class="descname">predictNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Regressor.predictNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Regressor.predictNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.SpectralImage">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">SpectralImage</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#SpectralImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.SpectralImage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Image" title="eb.types.Image"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Image</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.SpectralLibrary">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">SpectralLibrary</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#SpectralLibrary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.SpectralLibrary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.SpectralImage" title="eb.types.SpectralImage"><code class="xref py py-class docutils literal"><span class="pre">eb.types.SpectralImage</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Transformer">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Transformer</code><span class="sig-paren">(</span><em>sklEstimator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Transformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Transformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Estimator" title="eb.types.Estimator"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Estimator</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.Transformer.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>image</em>, <em>mask</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Transformer.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Transformer.fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Transformer.transform">
+<code class="descname">transform</code><span class="sig-paren">(</span><em>image</em>, <em>mask=None</em>, <em>filename='c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox\\transformationboppjj'</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Transformer.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Transformer.transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Transformer.transformDType">
+<code class="descname">transformDType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Transformer.transformDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Transformer.transformDType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Transformer.transformInverse">
+<code class="descname">transformInverse</code><span class="sig-paren">(</span><em>image</em>, <em>mask=None</em>, <em>filename='c:\\users\\janzandr\\appdata\\local\\temp\\EnMAPBox\\inverseTransformationrzr2xf'</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Transformer.transformInverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Transformer.transformInverse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Transformer.transformNoDataValue">
+<code class="descname">transformNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Transformer.transformNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Transformer.transformNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.Type">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">Type</code><a class="reference internal" href="_modules/eb/types.html#Type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Type" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="eb.types.Type.aside">
+<code class="descname">aside</code><span class="sig-paren">(</span><em>function</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Type.aside"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Type.aside" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Type.info">
+<code class="descname">info</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Type.info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Type.info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Type.pickle">
+<code class="descname">pickle</code><span class="sig-paren">(</span><em>filename</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Type.pickle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Type.pickle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="eb.types.Type.report">
+<code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#Type.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.Type.report" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.UncertaintyClassifier">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">UncertaintyClassifier</code><span class="sig-paren">(</span><em>classifier</em>, <em>mode</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#UncertaintyClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.UncertaintyClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Classifier" title="eb.types.Classifier"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Classifier</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="eb.types.UncertaintyRegressor">
+<em class="property">class </em><code class="descclassname">eb.types.</code><code class="descname">UncertaintyRegressor</code><span class="sig-paren">(</span><em>regressor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#UncertaintyRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.UncertaintyRegressor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#eb.types.Regressor" title="eb.types.Regressor"><code class="xref py py-class docutils literal"><span class="pre">eb.types.Regressor</span></code></a></p>
+<dl class="method">
+<dt id="eb.types.UncertaintyRegressor.predictNoDataValue">
+<code class="descname">predictNoDataValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#UncertaintyRegressor.predictNoDataValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.UncertaintyRegressor.predictNoDataValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="eb.types.unpickle">
+<code class="descclassname">eb.types.</code><code class="descname">unpickle</code><span class="sig-paren">(</span><em>filename</em>, <em>progress=&lt;class eb.env.SilentProgress at 0x00000000099F00A8&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/types.html#unpickle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.types.unpickle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-eb.usecase">
+<span id="eb-usecase-module"></span><h2>eb.usecase module<a class="headerlink" href="#module-eb.usecase" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="eb.usecase.classification">
+<code class="descclassname">eb.usecase.</code><code class="descname">classification</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#classification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.classification" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.classificationAccAss">
+<code class="descclassname">eb.usecase.</code><code class="descname">classificationAccAss</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#classificationAccAss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.classificationAccAss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.classificationAccAssAdjusted">
+<code class="descclassname">eb.usecase.</code><code class="descname">classificationAccAssAdjusted</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#classificationAccAssAdjusted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.classificationAccAssAdjusted" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.clusterer">
+<code class="descclassname">eb.usecase.</code><code class="descname">clusterer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#clusterer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.clusterer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.clusteringAccAss">
+<code class="descclassname">eb.usecase.</code><code class="descname">clusteringAccAss</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#clusteringAccAss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.clusteringAccAss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.importENVISpeclib">
+<code class="descclassname">eb.usecase.</code><code class="descname">importENVISpeclib</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#importENVISpeclib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.importENVISpeclib" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.probabilityAccAss">
+<code class="descclassname">eb.usecase.</code><code class="descname">probabilityAccAss</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#probabilityAccAss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.probabilityAccAss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.projectImageToPixelGrid">
+<code class="descclassname">eb.usecase.</code><code class="descname">projectImageToPixelGrid</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#projectImageToPixelGrid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.projectImageToPixelGrid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.regression">
+<code class="descclassname">eb.usecase.</code><code class="descname">regression</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#regression"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.regression" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.regressionAccAss">
+<code class="descclassname">eb.usecase.</code><code class="descname">regressionAccAss</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#regressionAccAss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.regressionAccAss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.sample">
+<code class="descclassname">eb.usecase.</code><code class="descname">sample</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.sample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.saveImageAs">
+<code class="descclassname">eb.usecase.</code><code class="descname">saveImageAs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#saveImageAs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.saveImageAs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.stackImages">
+<code class="descclassname">eb.usecase.</code><code class="descname">stackImages</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#stackImages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.stackImages" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.statisticsAndHistogramForImage">
+<code class="descclassname">eb.usecase.</code><code class="descname">statisticsAndHistogramForImage</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#statisticsAndHistogramForImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.statisticsAndHistogramForImage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.statisticsAndHistogramforClassification">
+<code class="descclassname">eb.usecase.</code><code class="descname">statisticsAndHistogramforClassification</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#statisticsAndHistogramforClassification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.statisticsAndHistogramforClassification" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.transformer">
+<code class="descclassname">eb.usecase.</code><code class="descname">transformer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#transformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.transformer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.uncertaintyClassifier">
+<code class="descclassname">eb.usecase.</code><code class="descname">uncertaintyClassifier</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#uncertaintyClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.uncertaintyClassifier" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="eb.usecase.uncertaintyRegressor">
+<code class="descclassname">eb.usecase.</code><code class="descname">uncertaintyRegressor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/eb/usecase.html#uncertaintyRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#eb.usecase.uncertaintyRegressor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-eb">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-eb" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">eb package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-eb.applier">eb.applier module</a></li>
+<li><a class="reference internal" href="#module-eb.env">eb.env module</a></li>
+<li><a class="reference internal" href="#module-eb.estimators">eb.estimators module</a></li>
+<li><a class="reference internal" href="#module-eb.products">eb.products module</a></li>
+<li><a class="reference internal" href="#module-eb.report">eb.report module</a></li>
+<li><a class="reference internal" href="#module-eb.types">eb.types module</a></li>
+<li><a class="reference internal" href="#module-eb.usecase">eb.usecase module</a></li>
+<li><a class="reference internal" href="#module-eb">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/eb.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/eb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

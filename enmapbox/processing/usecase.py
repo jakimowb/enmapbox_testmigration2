@@ -70,7 +70,7 @@ def regression():
 
     #regressors = all(Regressors)
     #regressors = [Regressors.DummyRegressor()]
-    #regressors = [Regressors.SVRTuned()]
+    regressors = [Regressors.LinearSVRTuned()]
     regressors = [Regressors.RandomForestRegressor(oob_score=True)]
 
     for regressor in regressors:
@@ -106,8 +106,8 @@ def transformer():
     trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
     #transformers = all(Transformers)
-    #transformers = [Transformers.KernelPCA()]
-    transformers = [Transformers.PCA()]
+    transformers = [Transformers.RobustScaler()]
+    #transformers = [Transformers.PCA(n_components=0.99999)]
 
     for transformer in transformers:
 
@@ -175,10 +175,9 @@ def classificationAccAssAdjusted():
 
 
 def regressionAccAss():
-
     testingLabels = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
     prediction = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Estimation'))
-    accAss = prediction.assessRegressionPerformance(testingLabels)
+    accAss = prediction.assessRegressionPerformance(prediction)
     accAss.report().saveHTML().open()
 
 
@@ -265,6 +264,15 @@ def pixel_extractor():
     import numpy
     print(numpy.all(y1==y2))
 
+
+def pixel_extractor_image():
+
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    mask = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    image.extractByMask(mask).info()
+
+
+
 def ar_debug():
 
     from enmapbox.processing.types import unpickle
@@ -333,7 +341,7 @@ if __name__ == '__main__':
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    #classification()
+    classification()
     #regression()
     #clusterer()
     #transformer()
@@ -354,4 +362,6 @@ if __name__ == '__main__':
     #maximumProbability()
     #ar_debug3()
     #pixel_extractor()
+    #pixel_extractor_image()
+
     #toc()

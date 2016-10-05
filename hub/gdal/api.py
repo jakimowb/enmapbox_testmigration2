@@ -1,6 +1,7 @@
 from __future__ import print_function
 import gdal, numpy, osgeo, hub.file, hub.envi
 import collections
+from hub.datetime import Date
 #from gdalconst import *
 #from hub.collections import Bunch
 
@@ -24,16 +25,16 @@ def readCube(filename):
     cube = dataset.ReadAsArray(xoff=0, yoff=0, xsize=dataset.RasterXSize, ysize=dataset.RasterYSize)
     return cube
 
-def writeCube(cube, filename, srsfilename=None, nodatavalue=None):
+def writeCube(cube, filename, srsfilename=None, nodatavalue=None, format='ENVI'):
 
     hub.file.mkfiledir(filename)
 
     if srsfilename == None:
         # create file without SRS (spatial reference system)
-        datasource = osgeo.gdal_array.SaveArray(cube, filename, format='ENVI')
+        datasource = osgeo.gdal_array.SaveArray(cube, filename, format=format)
     else:
         # use SRS (spatial reference system) from another image
-        datasource = osgeo.gdal_array.SaveArray(cube, filename, format='ENVI', prototype=gdal.Open(srsfilename))
+        datasource = osgeo.gdal_array.SaveArray(cube, filename, format=format, prototype=gdal.Open(srsfilename))
 
     # set no data value
     if nodatavalue != None:
@@ -54,11 +55,11 @@ class GDALMetaDomain():
     def formatKey(self, key):
         return key.lower().replace(' ', '_')
 
-    def setMetadataDict(self, meta, update=True):
+    def setMetadataDict(self, metaDict, update=True):
 
         if update is False:
             self.meta = dict()
-        for key, value in meta.items():
+        for key, value in metaDict.items():
             self.setMetadataItem(key, value)
 
     def setMetadataDictAsString(self, meta, update=True):
@@ -72,6 +73,11 @@ class GDALMetaDomain():
 
         key = self.formatKey(key)
         self.meta[key] = value
+        if value is None:
+            del self.meta[key]
+
+    def delMetadataItem(self, key):
+        self.setMetadataItem(key=key, value=None)
 
     def setMetadataItemAsString(self, key, string):
 
@@ -120,13 +126,61 @@ class GDALMetaDomain():
 
     def getMetadataItem(self, key, default=None):
         key = self.formatKey(key)
-        return self.meta.get(key, default)
+        value = self.meta.get(key, None)
+        if value is None:
+            return default
+        else:
+            return value
+
+class GDALColorTable():
+
+    def __init__(self):
+        self._colorEntries = [None]*257
+
+    def setSwigColorTable(self, swigColorTable):
+        assert isinstance(swigColorTable, gdal.ColorTable)
+        for i in range(swigColorTable.GetCount()):
+            self.setColorEntry(i, swigColorTable.GetColorEntry(i))
+
+    def getSwigColorTable(self):
+        swigColorTable = gdal.ColorTable()
+        for i in range(self.getCount()):
+            swigColorTable.SetColorEntry(i, self.getColorEntry(i))
+        return swigColorTable
+
+    def getColorEntry(self, i):
+        assert i >= 0 and i <= 255
+        assert self._colorEntries[i] is not None
+        return self._colorEntries[i]
+
+    def setColorEntry(self, i, entry):
+        assert i >= 0 and i <= 255
+        assert isinstance(entry, tuple)
+        assert len(entry) == 3 or len(entry) == 4 # (r, g, b) or (r, g, b, , alpha)
+        self._colorEntries[i] = entry
+        # fill up undefiened entries up to i
+        for k in range(i):
+            if self._colorEntries[k] is None:
+                self._colorEntries[k] = (0,0,0)
+
+    def getCount(self):
+        return self._colorEntries.index(None)
+
+    def getRGBFlatList(self):
+        rgb = list()
+        for rgba in self._colorEntries:
+            if rgba is None:
+                break
+            rgb.extend(rgba[:-1])
+        return rgb
 
 class GDALMeta():
 
     def __init__(self, filename=None):
         self.domain = dict()
         self.filename = filename
+        self.colorTable = GDALColorTable()
+        self.categoryNames = None
         if filename is not None:
             self.readMeta(filename)
 
@@ -145,6 +199,30 @@ class GDALMeta():
                 self.domain[domainName] = domain
                 domain.setMetadataDictAsString(ds.GetMetadata(domainName))
 
+        # read band specific meta
+        bandNames = list()
+        for i in range(1, ds.RasterCount + 1):
+            rb = ds.GetRasterBand(i)
+            bandName = rb.GetDescription()
+            if bandName == '':
+                bandName = 'Band ' + str(i)
+            bandNames.append(bandName)
+        self.setMetadataItem('band names', bandNames)
+
+        # Treat a single band image with color table and category names like an ENVI Classification image.
+        # Number of classes must be infered from the number of categories, because color tables from GTiff always
+        # contain 256 entries. If the category names are undefined, the image is not a valid classification image!
+        if ds.RasterCount == 1:
+            rb = ds.GetRasterBand(1)
+            if rb.GetCategoryNames() is not None:
+                self.colorTable.setSwigColorTable(rb.GetColorTable())
+                self.categoryNames = rb.GetCategoryNames()
+
+                classNames = self.categoryNames
+                classes = len(classNames)
+                classLookup = self.colorTable.getRGBFlatList()[0:3*classes+1] # must trim color vector because color table might contain fill values for all 256 categories (problem occurs for GTiff only)
+
+                self.setClassificationMetadata(classes=classes, classNames=classNames, classLookup=classLookup)
 
         self.ProjectionRef = ds.GetProjectionRef()
         self.GeoTransform = ds.GetGeoTransform()
@@ -166,14 +244,40 @@ class GDALMeta():
         if ds is None:
             raise Exception('Unable to open '+filename)
 
+        # if ENVI file type is ENVI Classification, then set color table and category names
+        if self.getMetadataItem('file type', default='').lower() == 'envi classification':
+            self.setClassificationMetadata(*self.getClassificationMetadata()) # color table is set inside setClassificationMetadata()!
+
+        # write color table and category names only for single band images
+        if ds.RasterCount == 1:
+            rb = ds.GetRasterBand(1)
+            if self.colorTable.getCount() > 0:
+                rb.SetColorTable(self.colorTable.getSwigColorTable())
+            if self.categoryNames is not None:
+                rb.SetCategoryNames(self.categoryNames)
+
+        # set metadata domains
         for domainName, domain in self.domain.items():
             meta = domain.getMetadataDictAsString()
             ds.SetMetadata(meta, domainName)
 
+        # prepare band specific information
+        noDataValue = self.getNoDataValue()
+        bandNames = self.getBandNames()
+        for i in range(1, ds.RasterCount+1):
+            rb = ds.GetRasterBand(i)
+            if noDataValue is not None:
+                rb.SetNoDataValue(noDataValue)
+            if bandNames is not None:
+                bandName = bandNames[i-1]
+                rb.SetDescription(bandName)
+                self.setMetadataItem('band_'+str(i), bandName, domainName='') # this will also overwrite the "band names" value in the ENVI domain
 
-        # Workaround to eliminate duplicated keys inside ENVI header files produced by GDAL
-        # Inside the resulting header file the duplicate that appeared last is used
-        if ds.GetDriver().ShortName == 'ENVI':
+
+        # driver specific manipulations
+        if self.driver == 'ENVI':
+            # workaround to eliminate duplicated keys inside ENVI header files produced by GDAL
+            # Inside the resulting header file the duplicate that appeared last is used
             hdrfile = ds.GetFileList()[-1]
             ds.FlushCache()
             ds = None
@@ -185,8 +289,20 @@ class GDALMeta():
         else:
             ds.FlushCache()
             ds = None
+        if self.driver == 'GTiff':
+            # Create an additional ENVI header to let ENVI know about important metadata like e.g. wavelength and band names.
+            hdrfile = self.filename+'.hdr'
+            hdr = self.getMetadataDict()
+            hdr['file_type'] = 'TIFF'
+            hdr['samples'] = self.RasterXSize
+            hdr['lines'] = self.RasterYSize
+            hdr['bands'] = self.RasterCount
+            hub.envi.writeHeader(hdrfile, hdr)
 
-    def getMetadataDomain(self, domainName):
+        # create
+
+
+    def getMetadataDomain(self, domainName='ENVI'):
 
         if domainName in self.domain:
             domain = self.domain[domainName]
@@ -212,6 +328,10 @@ class GDALMeta():
         domain = self.getMetadataDomain(domainName)
         domain.setMetadataItem(key, value)
 
+    def delMetadataItem(self, key, domainName='ENVI'):
+        domain = self.getMetadataDomain(domainName)
+        domain.delMetadataItem(key)
+
     def copyMetadataItem(self, key, gdalMeta, domainName='ENVI'):
 
         value = gdalMeta.getMetadataItem(key, default=None, domainName=domainName)
@@ -226,6 +346,7 @@ class GDALMeta():
 
         domain = self.getMetadataDomain(domainName='ENVI')
         domain.setMetadataItem('data ignore value', value)
+        return self
 
     def getNoDataValue(self, default=None):
 
@@ -242,8 +363,7 @@ class GDALMeta():
 
     def setBandNames(self, values):
 
-        if values is None:
-            return
+        if values is None: return
         self.getMetadataDomain(domainName='ENVI').setMetadataItem('band names', values)
 
     def getBandNames(self):
@@ -252,25 +372,39 @@ class GDALMeta():
             bandNames = ['Band '+str(i) for i in range(1, self.RasterCount+1)]
         return bandNames
 
-if __name__ == '__main__':
-    #meta = GDALMeta(r'D:\work\EnMap-Box\EnMAP-Box_1.4\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image')
+    def getAcquisitionDate(self):
+        date = Date.fromText(self.getMetadataItem('acqdate'))
+        return date
 
-    infilename = r'c:\work\data\Hymap_Berlin-A_Classification-GroundTruth'
-    outfilename = r'c:\work\data\iotest'
+    def setClassificationMetadata(self, classes, classNames, classLookup):
 
-    # read/write cube
-    cube = readCube(infilename)
-    writeCube(readCube(infilename), outfilename)
+        assert len(classNames) == classes
+        assert len(classLookup) == classes*3
+        self.setMetadataItem('file type', 'ENVI Classification')
+        self.setMetadataItem('classes', classes)
+        self.setMetadataItem('class names', classNames)
+        self.setMetadataItem('class lookup', classLookup)
+        for i in range(classes):
+            r, g, b = classLookup[i*3], classLookup[i*3 + 1], classLookup[i*3 + 2]
+            self.colorTable.setColorEntry(i, (r,g,b))
+        self.categoryNames = classNames
 
-    # copy metadata
+    def getClassificationMetadata(self):
+        return (self.getMetadataItem('classes'),
+                self.getMetadataItem('class names'),
+                self.getMetadataItem('class lookup'))
 
-    meta = GDALMeta(infilename)
 
-    # set data source metas
-    meta.setMetadataDict({'key1':'hello 1', 'key2':'hello 2'}) # this goes to the ENVI domain per default
-    meta.setMetadataItem('key3', 'hello 3') # this goes to the ENVI domain per default
-    meta.setMetadataItem('key4', 'hello 4', 'myDomain')
-    print(meta.getMetadataDict()) # this comes from ENVI domain per default
-    print(meta.getMetadataDict('myDomain'))
-
+def test_classification():
+    infilename = r'C:\Work\data\gms\new_timeseriesMetrics\32\32UQC\rfc\classification.tif'
+    outfilename = r'C:\Work\data\gms\new_timeseriesMetrics\32\32UQC\rfc\classificationCopy.tif'
+    meta = GDALMeta(outfilename)
+    classMeta = GDALMeta(infilename)
     meta.writeMeta(outfilename)
+
+
+if __name__ == '__main__':
+
+    test_classification()
+
+

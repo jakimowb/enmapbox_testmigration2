@@ -108,6 +108,20 @@ class Image(Type):
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
         return self.__class__(filename)
 
+    def extractByMask(self, mask, filename=None):
+        assert isinstance(mask, Mask)
+        if filename is None: filename = Environment.tempfile()
+
+        sample = PixelExtractor(self).extractByMask(mask)
+        lines, bands = sample.dataSample.data.shape
+        cube = sample.dataSample.data.T.reshape((bands, lines, 1))
+        hub.gdal.api.writeCube(cube=cube, filename=filename)
+        meta = Meta(filename)
+        meta.setMetadataDict(self.meta.getMetadataDict())
+        meta.writeMeta(filename)
+        return self.__class__(filename)
+
+
     def statistics(self, bands=None):
         if bands is None:
             bands = range(self.meta.RasterCount)
@@ -221,6 +235,9 @@ class ImageStatistics(Type):
         args.firstRun = False
 
         rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+
+        if args.classification:
+            args.max -= 1 # args.max+1 is needed for the histo calculation, now can be set to the correct value
 
         del args.firstRun
         del args.progress
@@ -507,7 +524,7 @@ class Estimator(Type):
 
         X = sample.featureSample.dataSample.data.astype(numpy.float64)
         y = sample.labelsSample.dataSample.data
-        self.sklEstimator.fit(X=X, y=y)
+        self.sklEstimator.fit(X=X, y=y[:,0])
         return self
 
 

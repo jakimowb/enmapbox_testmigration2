@@ -1,0 +1,10 @@
+hub.cookbook package
+====================
+
+Module contents
+---------------
+
+.. automodule:: hub.cookbook
+    :members:
+    :undoc-members:
+    :show-inheritance:
