@@ -153,7 +153,7 @@ class DataSource(object):
         self.name = name
 
     def __eq__(self, other):
-        return self.uri == other.uri
+        return other is not None and str(self.uri) == str(other.uri)
 
     def getUri(self):
         """Returns the URI string that describes the data source"""
@@ -175,10 +175,15 @@ class DataSource(object):
         :param parentItem:
         :return:
         """
+        mimeData = QMimeData()
+
+        mimeData.setUrls([QUrl(self.getUri())])
         return TreeItem(parentItem, self.name,
                         data=self,
                         icon=self.getIcon(),
-                        tooltip = str(self))
+                        tooltip = str(self),
+                        mimeData=mimeData
+                        )
 
     def __repr__(self):
         return 'DataSource: {} {}'.format(self.name, str(self.uri))

@@ -27,9 +27,12 @@ LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
 #import pyqtgraph
 #import pyqtgraph.dockarea.DockArea
 
+import qgis.core
+
 from PyQt4 import QtGui, QtCore, uic
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+
 from enmapbox.utils import *
 from enmapbox.datasources import *
 
@@ -96,9 +99,9 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     Provides the number of rows of data exposed by the model.
     int TreeModel::rowCount(const QModelIndex &parent) const
     """
-    def rowCount(self, parent):
+    def rowCount(self, index):
         #assert isinstance(parent, QModelIndex)
-        parentItem = self.getItem(parent)
+        parentItem = self.getItem(index)
         return parentItem.childCount()
 
 
@@ -111,8 +114,8 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
         #assert isinstance(parent, QModelIndex)
         return len(self.columnames)
         #maybe worth?
-        parentItem = self.getItem(parent)
-        return parentItem.columnCount()
+        #parentItem = self.getItem(parent)
+        #return parentItem.columnCount()
 
         """
         return len(self.columnames)
@@ -144,14 +147,18 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
             return default
         """
 
+
+
     """
        Given a model index for a parent item, this function allows views and delegates to access children of that item.
        If no valid child item - corresponding to the specified row, column, and parent model index, can be found,
        the function must return QModelIndex(), which is an invalid model index.
     QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) const
     """
-    def index(self, row, column, parent):
+    def index(self, row, column, parent=None):
         #assert isinstance(parent, QModelIndex)
+        if parent is None:
+            parent = QModelIndex()
 
         if not self.hasIndex(row, column, parent):
             return QModelIndex()
@@ -235,48 +242,82 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
             return item.icon
         if role == Qt.UserRole:
             return item.data
+        if role == 'TreeItem':
+            return item
         return None
 
 
     def addDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
-        typeName = self.getSourceTypeName(dataSource)
+        dsTypeName = self.getSourceTypeName(dataSource)
 
-        if typeName not in [c.name for c in self.rootItem.childs]:
+        existingNames = [c.name for c in self.rootItem.childs]
+        if dsTypeName not in existingNames:
+            r1 = len(existingNames)
+            #todo: insert in alphabetical order
+            self.beginInsertRows(QModelIndex(), r1, r1)
+            typeItem = TreeItem(None, dsTypeName,
+                                icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
+            self.rootItem.insertChild(r1, typeItem)
+            self.endInsertRows()
 
-            typeItem = TreeItem(self.rootItem,typeName,
-                               icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
+        #find TreeItem with dsTypeName
+        dsItem = dataSource.getTreeItem(None)
+        for r1 in range(self.rowCount(QModelIndex())):
+            idx1 = self.index(r1, 0, QModelIndex())
+            if dsTypeName == str(idx1.data()):
+
+                dsTypeItem = self.data(idx1, 'TreeItem')
+                assert isinstance(dsTypeItem, TreeItem)
+
+                #todo: alphabetical order?
+                r2 = dsTypeItem.childCount()
+
+                self.beginInsertRows(idx1, r2, r2)
+                dsTypeItem.insertChild(r2, dsItem)
+                self.endInsertRows()
+
+
+    def indexOfTreeItem(self, item, idx = None):
+        if idx is None:
+            idx = QModelIndex()
+
+        item_b = self.data(idx, 'TreeItem')
+        if item is item_b:
+            return idx
         else:
-            typeItem = [c for c in self.rootItem.childs if c.name == typeName][0]
+            for r in range(self.rowCount(idx)):
+                idx2 = self.indexOfTreeItem(item, self.index(r, 0 , idx))
+                if idx2:
+                    return idx2
+
+        return None
 
 
-        dsItem = dataSource.getTreeItem(typeItem)
-        topLeft = self.createIndex(0, 0, self.rootItem)
-        bottomRight = self.createIndex(2,dsItem.childNumber(), dsItem)
-        #src_grp.appendChild(dataSource.getTreeItem(src_grp))
-        self.dataChanged.emit(QModelIndex(), QModelIndex())
-        #self.dataChanged.emit(topLeft,bottomRight)
 
-        #print(src_grp)
     def removeDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
+
         dsTypeName = self.getSourceTypeName(dataSource)
-        typeItem = [c for c in self.rootItem.childs if c.name == dsTypeName]
-        if len(typeItem) == 1:
-            typeItem = typeItem[0]
-            assert isinstance(typeItem, TreeItem)
-            to_remove = [dsItem for dsItem in typeItem.childs if dsItem.data == dataSource]
-            for child in to_remove:
-                typeItem.removeChild(child)
-                del child
-                #typeItem.removeChildren(child.childNumber(),1)
 
-            if typeItem.childCount() == 0:
-                self.rootItem.removeChild(typeItem)
-                del typeItem
-                s = ""
-        self.dataChanged.emit(QModelIndex(), QModelIndex())
+        for r1 in range(self.rowCount(QModelIndex())):
+            idx1 = self.index(r1, 0, QModelIndex())
+            if dsTypeName == str(idx1.data()):
+                for r2 in range(self.rowCount(idx1)):
+                    idx2 = self.index(r2, 0 , idx1)
+                    ds = self.data(idx2, Qt.UserRole)
+                    if ds is dataSource:
+                        typeItem = self.data(idx1, 'TreeItem')
+                        dsItem = self.data(idx2, 'TreeItem')
+                        self.beginRemoveRows(idx1, r2, r2)
+                        typeItem.removeChild(dsItem)
+                        self.endRemoveRows()
 
+                        if typeItem.childCount() == 0:
+                            self.beginRemoveRows(QModelIndex(),r1,r1)
+                            self.rootItem.removeChild(typeItem)
+                            self.endRemoveRows()
+                        return
 
     def supportedDragActions(self):
         return Qt.CopyAction
@@ -338,14 +379,15 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models
     must emit the dataChanged() signal to inform other components of the change.
     """
+
+
     def setData(self, index, data, role=None):
         assert isinstance(index, QModelIndex)
         assert isinstance(data, TreeItem)
-        s = ""
-
-        return False
+        #return False
         self.dataChanged.emit()
-        pass
+
+    #    pass
 
     """
     Used to modify horizontal and vertical header information. After changing the item of data,
@@ -423,7 +465,7 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
 
 
 
-def getQIcon(name=IconProvider.Logo_png):
+def getQIcon(name=IconProvider.EnMAP_Logo):
     return QtGui.QIcon(name)
 
 
@@ -513,6 +555,7 @@ class EnMAPBox:
         print(iface)
         self.iface = iface
         self.gui = EnMAPBox_GUI()
+        self.gui.showMaximized()
         self.gui.setAcceptDrops(True)
         self.gui.setWindowTitle('EnMAP-Box ' + VERSION)
         self.dataSourceManager = DataSourceManager()
@@ -534,9 +577,6 @@ class EnMAPBox:
         self.dockarea.sigDropEvent.connect(self.dockAreaSignalHandler)
 
         self.gui.centralWidget().layout().addWidget(self.dockarea)
-        #self.gui.centralWidget().addWidget(self.dockarea)
-
-
 
         #link action objects to action behaviour
         #self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
@@ -581,6 +621,7 @@ class EnMAPBox:
                         NEW_MAP_DOCK = self.createDock('MAP')
                     NEW_MAP_DOCK.addLayer(ds.createMapLayer())
 
+            event.acceptProposedAction()
                 #todo: handle non-spatial datasources
 
 
@@ -686,19 +727,26 @@ if __name__ == '__main__':
 
     #start a QGIS instance
 
-    if False:
-        #sandbox area
-        exit()
 
 
     from qgis.gui import *
     from qgis.core import *
     if sys.platform == 'darwin':
         PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+
     else:
+        #assume OSGeo4W startup
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
     assert os.path.exists(PATH_QGS)
     qgsApp = QgsApplication([], True)
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
+
+    if True:
+        IconProvider.test()
+        #exit()
+
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
@@ -720,15 +768,16 @@ if __name__ == '__main__':
    # EB = EnMAPBox(w)
     EB = EnMAPBox(None)
     #EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
-    if False:
+    if True:
         EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
         EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
         EB.createDock('MAP', name='MapDock 4', initSrc=TestData.AF_LC)
         #EB.createDock('MAP', name='MapDock 3', initSrc=TestData.Landsat_Shp)
-        EB.createDock('TEXT', name='TextDock',
-                                             html='Here we can show HTML like text:'
-                                                  '<a href="http://www.enmap.org">www.enmap.org</a>'
-                                                  '</br>'+LORE_IPSUM)
+        if False:
+            EB.createDock('TEXT', name='TextDock',
+                                                 html='Here we can show HTML like text:'
+                                                      '<a href="http://www.enmap.org">www.enmap.org</a>'
+                                                      '</br>'+LORE_IPSUM)
 
 
     #md1.linkWithMapDock(md2, linktype='center')

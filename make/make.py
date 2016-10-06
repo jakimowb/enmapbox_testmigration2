@@ -110,7 +110,7 @@ def svg2png(pathDir, overwrite=False):
 
 if __name__ == '__main__':
     icondir = jp(ROOT, *['enmapbox','gui','icons'])
-    if True: svg2png(icondir, overwrite=True)
-    if False: make()
+    if False: svg2png(icondir, overwrite=True)
+    if True: make()
     print('Done')
 
