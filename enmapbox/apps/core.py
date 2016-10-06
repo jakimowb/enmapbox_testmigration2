@@ -21,7 +21,6 @@ group_apps_ml = add(group_apps, 'Machine Learning')
 
 
 class EnMAPBoxProvider(AlgorithmProvider):
-    sigFileCreated = PyQt4.QtCore.pyqtSignal(str)
     _instance = None
 
     @staticmethod
