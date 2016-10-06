@@ -58,8 +58,8 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     #columnames = ['Name','Description']
     columnames = ['Name']
 
-    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile]
-    SourceTypeNames = ['Raster', 'Vector', 'File']
+    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile, DataSourceModel]
+    SourceTypeNames = ['Raster', 'Vector', 'File','Model']
 
 
     def getSourceTypeName(self, dataSource):
@@ -487,6 +487,15 @@ class DataSourceManager(QObject):
         self.updateFromQgsMapLayerRegistry()
 
 
+        enmapbox.processing.sigFileCreated.connect(lambda file: self.addSource(file))
+        self.updateFromProcessingFramework()
+
+    def updateFromProcessingFramework(self):
+        import enmapbox.processing
+        for p,n in zip(enmapbox.processing.MODEL_URIS,
+                       enmapbox.processing.MODEL_NAMES):
+            self.addSource(p, name=n)
+
     def updateFromQgsMapLayerRegistry(self):
         """
         Add data sources registered in the QgsMapLayerRegistry to the data source manager
@@ -500,7 +509,28 @@ class DataSourceManager(QObject):
                 r =  r or (self.addSource(src) is not None)
         return r
 
+    def getUriList(self, sourcetype='All'):
+        """
+        Returns URIs of registered data sources
+        :param sourcetype: uri filter: 'ALL' (default),'RASTER''VECTOR' or 'MODEL' to return only uri's related to these sources
+        :return: uri as string (str), e.g. a file path
+        """
+        sourcetype = sourcetype.upper()
+        if isinstance(sourcetype, type):
+            return [ds.getUri() for ds in self.sources if type(ds) is sourcetype]
 
+        assert sourcetype in ['ALL','RASTER''VECTOR','MODEL']
+        if sourcetype == 'ALL':
+            return [ds.getUri() for ds in self.sources]
+        elif sourcetype == 'VECTOR':
+            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+        elif sourcetype == 'RASTER':
+            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+        elif sourcetype == 'MODEL':
+            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceModel)]
+
+    @pyqtSlot(str)
+    @pyqtSlot('QString')
     def addSource(self, src, name=None, icon=None):
         """
         Adds a new data source.
@@ -520,6 +550,9 @@ class DataSourceManager(QObject):
 
             self.sources.add(ds)
             self.sigDataSourceAdded.emit(ds)
+
+            if isinstance(ds, DataSourceModel):
+                enmapbox.processing.registerModel(ds.uri)
 
         return ds
 
@@ -647,9 +680,13 @@ class EnMAPBox:
     def isLinkedWithQGIS(self):
         return self.iface is not None and isinstance(self.iface, qgis.gui.QgisInterface)
 
-
     def addSource(self, source, name=None):
         return self.dataSourceManager.addSource(source, name=name)
+
+
+
+    def getURIList(self, *args, **kwds):
+        return self.dataSourceManager.getURIList(*args, **kwds)
 
     @staticmethod
     def getIcon():
@@ -706,6 +743,9 @@ class EnMAPBox:
 
 class TestData():
 
+    prefix = jp(os.path.normpath(DIR), *['testdata'])
+    assert os.path.exists(prefix)
+    RFC_Model = jp(prefix, 'rfc.model')
 
     prefix = jp(os.path.normpath(DIR), *['testdata', 'AlpineForeland'])
     assert os.path.exists(prefix)
@@ -716,6 +756,7 @@ class TestData():
     AF_LC = jp(prefix, r'AF_LC.bsq')
     AF_Mask = jp(prefix, r'AF_Mask.bsq')
     AF_MaskVegetation = jp(prefix, r'AF_MaskVegetation.bsq')
+
 
 
 
@@ -744,7 +785,11 @@ if __name__ == '__main__':
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
 
     if True:
-        IconProvider.test()
+        #register new model
+        path = r'C:\foo\bar.model'
+        import enmapbox.processing
+        enmapbox.processing.registerModel(path, 'MyModel')
+        #IconProvider.test()
         #exit()
 
     qgsApp.setPrefixPath(PATH_QGS, True)
@@ -779,6 +824,13 @@ if __name__ == '__main__':
                                                       '<a href="http://www.enmap.org">www.enmap.org</a>'
                                                       '</br>'+LORE_IPSUM)
 
+        if True:
+            # register new model
+            path = TestData.RFC_Model
+            import enmapbox.processing
+            enmapbox.processing.registerModel(path, 'MyModel')
+            # IconProvider.test()
+            # exit()
 
     #md1.linkWithMapDock(md2, linktype='center')
     #EB.show()
