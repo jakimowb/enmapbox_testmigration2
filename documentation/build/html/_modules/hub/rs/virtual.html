@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hub.rs.virtual &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for hub.rs.virtual</h1><div class="highlight"><pre>
+<span></span><span class="n">__author__</span> <span class="o">=</span> <span class="s1">&#39;janzandr&#39;</span>
+<span class="kn">import</span> <span class="nn">hub.rs.landsat</span>
+<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ElementTree</span>
+
+<div class="viewcode-block" id="parseLandsatMeta"><a class="viewcode-back" href="../../../hub.rs.html#hub.rs.virtual.parseLandsatMeta">[docs]</a><span class="k">def</span> <span class="nf">parseLandsatMeta</span><span class="p">(</span><span class="n">mtlfilename</span><span class="p">,</span> <span class="n">espafilename</span><span class="p">):</span>
+
+    <span class="n">mtl</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">rs</span><span class="o">.</span><span class="n">landsat</span><span class="o">.</span><span class="n">parseMTL</span><span class="p">(</span><span class="n">mtlfilename</span><span class="p">)</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">ElementTree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">espafilename</span><span class="p">)</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+
+    <span class="n">metas</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;AcqDate&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;DATE_ACQUIRED&#39;</span><span class="p">]),</span> <span class="c1">#&#39;1996-10-24&#39;,</span>
+             <span class="s1">&#39;AcqTime&#39;</span><span class="p">:</span> <span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;SCENE_CENTER_TIME&#39;</span><span class="p">],</span><span class="c1">#&#39;05:06:19&#39;,</span>
+             <span class="c1">#&#39;Additional&#39;: [&quot;[[&#39;LMAX&#39;- &#39;193.000&#39;- &#39;365.000&#39;- &#39;264.000&#39;- &#39;221.000&#39;- &#39;30.200&#39;- &#39;15.303&#39;- &#39;16.500&#39;]- [&#39;LMIN&#39;- &#39;-1.520&#39;- &#39;-2.840&#39;- &#39;-1.170&#39;- &#39;-1.510&#39;- &#39;-0.370&#39;- &#39;1.238&#39;- &#39;-0.150&#39;]- [&#39;QCALMAX&#39;- &#39;255.0&#39;- &#39;255.0&#39;- &#39;255.0&#39;- &#39;255.0&#39;- &#39;255.0&#39;- &#39;255.0&#39;- &#39;255.0&#39;]- [&#39;QCALMIN&#39;- &#39;1.0&#39;- &#39;1.0&#39;- &#39;1.0&#39;- &#39;1.0&#39;- &#39;1.0&#39;- &#39;1.0&#39;- &#39;1.0&#39;]]&quot;, &quot;[&#39;REFERENCE_DATUM&#39;- &#39;WGS84&#39;]&quot;, &quot;[&#39;REFERENCE_ELLIPSOID&#39;- &#39;WGS84&#39;]&quot;, &quot;[&#39;GRID_CELL_SIZE_THM&#39;- &#39;30.000&#39;]&quot;, &quot;[&#39;GRID_CELL_SIZE_REF&#39;- &#39;30.000&#39;]&quot;, &quot;[&#39;ORIENTATION&#39;- &#39;NUP&#39;]&quot;, &quot;[&#39;RESAMPLING_OPTION&#39;- &#39;CC&#39;]&quot;, &quot;[&#39;MAP_PROJECTION&#39;- &#39;UTM&#39;]&quot;, &quot;[&#39;ZONE_NUMBER&#39;- &#39;43&#39;]&quot;],</span>
+             <span class="c1">#&#39;EarthSunDist&#39;: mtl[&#39;EARTH_SUN_DISTANCE&#39;],#0.99455305154098&#39;,</span>
+             <span class="c1">#&#39;FieldOfView&#39;: &#39;14.92&#39;,</span>
+             <span class="c1">#&#39;IncidenceAngle&#39;: &#39;-9999.99&#39;,</span>
+             <span class="s1">&#39;Metafile&#39;</span><span class="p">:</span> <span class="n">mtlfilename</span><span class="p">,</span>
+             <span class="c1">#&#39;PhysUnit&#39;: &#39;TOA_Reflectance in [0-10000]&#39;,</span>
+             <span class="s1">&#39;ProcLCode&#39;</span><span class="p">:</span> <span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;DATA_TYPE&#39;</span><span class="p">],</span> <span class="c1">#&#39;L1T&#39;,</span>
+             <span class="c1">#&#39;Quality&#39;: [&quot;[&#39;STRIPING_BAND1&#39;- &#39;NONE&#39;]&quot;, &quot;[&#39;STRIPING_BAND2&#39;- &#39;NONE&#39;]&quot;, &quot;[&#39;STRIPING_BAND3&#39;- &#39;NONE&#39;]&quot;, &quot;[&#39;STRIPING_BAND4&#39;- &#39;NONE&#39;]&quot;, &quot;[&#39;STRIPING_BAND5&#39;- &#39;NONE&#39;]&quot;, &quot;[&#39;STRIPING_BAND6&#39;- &#39;NONE&#39;]&quot;, &quot;[&#39;STRIPING_BAND7&#39;- &#39;NONE&#39;]&quot;, &quot;[&#39;BANDING&#39;- &#39;N&#39;]&quot;, &quot;[&#39;COHERENT_NOISE&#39;- &#39;N&#39;]&quot;, &quot;[&#39;MEMORY_EFFECT&#39;- &#39;Y&#39;]&quot;, &quot;[&#39;SCAN_CORRELATED_SHIFT&#39;- &#39;Y&#39;]&quot;, &quot;[&#39;INOPERABLE_DETECTORS&#39;- &#39;N&#39;]&quot;, &quot;[&#39;DROPPED_LINES&#39;- &#39;N&#39;]&quot;],</span>
+             <span class="s1">&#39;Satellite&#39;</span><span class="p">:</span> <span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;SPACECRAFT_ID&#39;</span><span class="p">],</span><span class="c1">#&#39;Landsat-5&#39;,</span>
+             <span class="s1">&#39;SceneID&#39;</span><span class="p">:</span> <span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;LANDSAT_SCENE_ID&#39;</span><span class="p">],</span> <span class="c1">#&#39;L&#39;,</span>
+             <span class="s1">&#39;Sensor&#39;</span><span class="p">:</span> <span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;SENSOR_ID&#39;</span><span class="p">],</span> <span class="c1">#&#39;TM&#39;,</span>
+             <span class="c1">#&#39;SolIrradiance&#39;: [&#39;1962.56&#39;, &#39;1819.19&#39;, &#39;1545.76&#39;, &#39;1029.95&#39;, &#39;211.99&#39;, &#39;78.42&#39;],</span>
+             <span class="c1">#&#39;Subsystem&#39;: &#39;SAM&#39;,</span>
+             <span class="s1">&#39;SunAzimuth&#39;</span><span class="p">:</span> <span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;SUN_AZIMUTH&#39;</span><span class="p">],</span><span class="c1">#&#39;149.4789685&#39;,</span>
+             <span class="s1">&#39;SunElevation&#39;</span><span class="p">:</span> <span class="n">mtl</span><span class="p">[</span><span class="s1">&#39;SUN_ELEVATION&#39;</span><span class="p">],</span><span class="c1">#&#39;32.5736115&#39;,</span>
+             <span class="c1">#&#39;ViewingAngle&#39;: &#39;0&#39;,</span>
+             <span class="c1">#&#39;bands&#39;: &#39;6&#39;,</span>
+             <span class="c1">#&#39;byte order&#39;: &#39;0&#39;,</span>
+             <span class="c1">#&#39;coordinate system string&#39;: &#39;PROJCS[&quot;WGS_1984_UTM_Zone_43N&quot;,GEOGCS[&quot;GCS_WGS_1984&quot;,DATUM[&quot;WGS_1984&quot;,SPHEROID[&quot;WGS_84&quot;,6378137,298.257223563]],PRIMEM[&quot;Greenwich&quot;,0],UNIT[&quot;Degree&quot;,0.017453292519943295]],PROJECTION[&quot;Transverse_Mercator&quot;],PARAMETER[&quot;latitude_of_origin&quot;,0],PARAMETER[&quot;central_meridian&quot;,75],PARAMETER[&quot;scale_factor&quot;,0.9996],PARAMETER[&quot;false_easting&quot;,500000],PARAMETER[&quot;false_northing&quot;,0],UNIT[&quot;Meter&quot;,1]]&#39;,</span>
+             <span class="c1">#&#39;corner coordinates lonlat&#39;: &#39;[[72.0968572, 41.2628323], [75.0585286, 41.2994376], [72.1808746, 39.2706455], [75.056832, 39.304773]]&#39;,</span>
+             <span class="s1">&#39;band names&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band&quot;</span><span class="p">)],</span>
+             <span class="s1">&#39;reflectance gain values&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scale_factor&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band&quot;</span><span class="p">)],</span>
+             <span class="c1">#&#39;data gain values&#39;: [&#39;0.7658267716535433&#39;, &#39;1.4481889763779527&#39;, &#39;1.043976377952756&#39;, &#39;0.876023622047244&#39;, &#39;0.12035433070866142&#39;, &#39;0.0655511811023622&#39;],</span>
+             <span class="c1">#&#39;data offset values&#39;: [&#39;-2.2858267716535434&#39;, &#39;-4.288188976377953&#39;, &#39;-2.213976377952756&#39;, &#39;-2.386023622047244&#39;, &#39;-0.4903543307086614&#39;, &#39;-0.2155511811023622&#39;],</span>
+             <span class="c1">#&#39;LayerBandsAssignment&#39;: [&#39;1&#39;, &#39;2&#39;, &#39;3&#39;, &#39;4&#39;, &#39;5&#39;, &#39;7&#39;],</span>
+             <span class="c1">#&#39;data type&#39;: &#39;2&#39;,</span>
+             <span class="c1">#&#39;file type&#39;: &#39;ENVI Standard&#39;,</span>
+             <span class="c1">#&#39;gResolution&#39;: &#39;-99.0&#39;,</span>
+             <span class="c1">#&#39;header offset&#39;: &#39;0&#39;,</span>
+             <span class="c1">#&#39;interleave&#39;: &#39;bsq&#39;,</span>
+             <span class="c1">#&#39;lines&#39;: &#39;7381&#39;,</span>
+             <span class="c1">#&#39;map info&#39;: [&#39;UTM&#39;, &#39;1&#39;, &#39;1&#39;, &#39;256785.0&#39;, &#39;4572015.0&#39;, &#39;30.0&#39;, &#39;30.0&#39;, &#39;43&#39;, &#39;North&#39;, &#39;WGS-84&#39;],</span>
+             <span class="c1">#&#39;overpass duraction sec&#39;: &#39;24.6698677383&#39;,</span>
+             <span class="c1">#&#39;samples&#39;: &#39;8271&#39;,</span>
+             <span class="c1">#&#39;scene length&#39;: &#39;184.836174615&#39;,</span>
+             <span class="p">}</span>
+
+    <span class="c1"># new keys (not used by Daniel)</span>
+    <span class="n">metas</span><span class="p">[</span><span class="s1">&#39;software version&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;./{http://espa.cr.usgs.gov/v1.2}bands/{http://espa.cr.usgs.gov/v1.2}band/{http://espa.cr.usgs.gov/v1.2}app_version&quot;</span><span class="p">)]</span>
+    <span class="n">metas</span><span class="p">[</span><span class="s1">&#39;geometric accuracy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mtl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;GEOMETRIC_RMSE_MODEL&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#&#39;bandwidths&#39;: [&#39;64.0&#39;, &#39;80.0&#39;, &#39;66.0&#39;, &#39;127.0&#39;, &#39;216.0&#39;, &#39;251.0&#39;],</span>
+    <span class="c1">#&#39;wavelength&#39;: [&#39;486.3&#39;, &#39;570.57&#39;, &#39;660.6&#39;, &#39;838.15&#39;, &#39;1677.11&#39;, &#39;2217.24&#39;],</span>
+    <span class="c1">#&#39;wavelength units&#39;: &#39;Nanometers&#39;</span>
+
+    <span class="k">return</span> <span class="n">metas</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">mtlfilename</span> <span class="o">=</span> <span class="s1">r&#39;H:\EuropeanDataCube\landsat\184\026\LC81840262013159LGN00\LC81840262013159LGN00_MTL.txt&#39;</span>
+    <span class="n">espafilename</span> <span class="o">=</span> <span class="s1">r&#39;H:\EuropeanDataCube\landsat\184\026\LC81840262013159LGN00\LC81840262013159LGN00.xml&#39;</span>
+  <span class="c1">#  espafilename = r&#39;H:\EuropeanDataCube\landsat\184\026\LE71840261999337SGS00\LE71840261999337SGS00.xml&#39;</span>
+    <span class="n">espafilename</span> <span class="o">=</span> <span class="s1">r&#39;H:\EuropeanDataCube\landsat\184\026\LT41840261988195XXX04\LT41840261988195XXX04.xml&#39;</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">parseLandsatMeta</span><span class="p">(</span><span class="n">mtlfilename</span><span class="p">,</span> <span class="n">espafilename</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;band names&#39;</span><span class="p">])</span>
+<span class="c1">#    for key in sorted(meta.keys()):print(key+&#39;:&#39;,meta[key])</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

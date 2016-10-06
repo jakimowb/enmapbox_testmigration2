@@ -351,7 +351,7 @@ class Regressors(Estimators):
             bandNames = self.sample.featureSample.dataSample.meta.getMetadataItem('band names',default=numpy.array([]))
             if len(bandNames) == 0:
                 for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
-            data = numpy.vstack((bandNames,numpy.round(rfc.feature_importances_, 4)*100))
+            data = numpy.vstack((bandNames[numpy.argsort(rfc.feature_importances_)][::-1],numpy.round(rfc.feature_importances_[numpy.argsort(rfc.feature_importances_)][::-1], 4)*100))
             rowHeaders = [['Band Names','Feature Importance [%]']]
             report.append(ReportTable(data, rowHeaders=rowHeaders))
 
@@ -531,7 +531,7 @@ class Transformers(Estimators):
 
 
         def reportDetails(self):
-
+            # todo report
             # anything to report?
             ica = self.finalEstimator()
             report = Report('')
@@ -564,13 +564,13 @@ class Transformers(Estimators):
         def reportDetails(self):
 
             scaler = self.finalEstimator()
-
+            # todo report
             report = Report('')
             report.append(ReportHeading('Information'))
             bandNames = self.sample.featureSample.dataSample.meta.getBandNames()
-            table = Table([['<b>Median</b>']+list(scaler.center_),
-                           ['<b>Interquartile Range</b>']+list(scaler.scale_)], header_row=['']+bandNames)
-            report.append(ReportTable(table))
+            #table = Table([['<b>Median</b>']+list(scaler.center_),
+                      #     ['<b>Interquartile Range</b>']+list(scaler.scale_)], header_row=['']+bandNames)
+            report.append(ReportTable(data))
             return report
 
 PCA = Transformers.PCA

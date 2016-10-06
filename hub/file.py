@@ -8,15 +8,16 @@ def filesearch(dir, pattern):
            files.append(os.path.join(root, filename))
     return files
 
-def dirsearch(dir, pattern):
-    dirs = []
-    for root, dirnames, filenames in os.walk(dir):
-        for dirname in fnmatch.filter(dirnames, pattern):
-           dirs.append(os.path.join(root, dirname))
-    return dirs
+#def dirsearch(dir, pattern):
+#    dirs = []
+#    for root, dirnames, filenames in os.walk(dir):
+#        for dirname in fnmatch.filter(dirnames, pattern):
+#           dirs.append(os.path.join(root, dirname))
+#    return dirs
 
 def remove(file):
-    if os.path.exists(file): os.remove(file)
+    if os.path.exists(file):
+        os.remove(file)
     #try: os.remove(file)
     #except: pass
 

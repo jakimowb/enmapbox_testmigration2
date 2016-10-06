@@ -1,9 +1,10 @@
-from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint
+from hub.datetime import Date
+from hub.timing import tic, toc
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.ndvi import NDVIApplier
 from lamos.operators.tc import TCApplier
-from hub.timing import tic, toc
-from hub.datetime import Date
+from lamos.processing.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint
+
 
 def test():
 

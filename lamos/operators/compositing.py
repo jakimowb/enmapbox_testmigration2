@@ -1,9 +1,10 @@
 import datetime
-from hub.collections import Bunch
-import hub.numpy.ma
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
-import numpy
+
 import hub.nan1d.percentiles
+import hub.numpy.ma
+import numpy
+from hub.collections import Bunch
+from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
 
 
 def getCube(name, inputs, bbl=None):
@@ -372,7 +373,6 @@ class CompositingApplier(Applier):
     def userFunction(info, inputs, outputs, inmetas, otherArgs):
 
         # prepare some meta infos
-        import hub.datetime
         inputDates = numpy.array(getMeta('date', inmetas))
         inputDoys = numpy.array(getMeta('doy', inmetas)).astype(numpy.int16)
         #inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))

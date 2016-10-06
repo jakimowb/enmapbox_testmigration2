@@ -1,0 +1,30 @@
+hub.ogr package
+===============
+
+Submodules
+----------
+
+hub.ogr.api module
+------------------
+
+.. automodule:: hub.ogr.api
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hub.ogr.util module
+-------------------
+
+.. automodule:: hub.ogr.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: hub.ogr
+    :members:
+    :undoc-members:
+    :show-inheritance:

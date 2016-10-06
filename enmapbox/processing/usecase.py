@@ -12,8 +12,9 @@ if os.environ['USERNAME'] == 'janzandr':
     inroot = r'c:\work\data'
     outroot = r'c:\work\outputs'
 elif os.environ['USERNAME'] == 'enmap-box':
-    #inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
-    inroot = r'C:\Users\enmap-box\Desktop'
+    inroot = r'C:\Program Files\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image'
+    #inroot = r'C:\Users\enmap-box\Desktop'
+    #inroot = r'C:\Program Files\EnMAP-Box\enmapProject\enmapBox\resource\testData\image'
     outroot = r'C:\Users\enmap-box\Desktop\outputs'
 
 def sample():
@@ -42,9 +43,9 @@ def classification():
     mask =  Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
     labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
-    classifiers = [Classifiers.RandomForestClassifier(n_estimators=100)]
-    classifiers = [Classifiers.DummyClassifier()]
-    #classifiers = [Classifiers.SVCTuned(C=[1, 10, 100], gamma=[0.001, 100,1000])]
+    #classifiers = [Classifiers.RandomForestClassifier(n_estimators=100)]
+    #classifiers = [Classifiers.DummyClassifier()]
+    classifiers = [Classifiers.SVCTuned()]
     # classifiers = all(Classifiers)
 
     for classifier in classifiers:
@@ -68,9 +69,9 @@ def regression():
     testingLabels = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
 
     #regressors = all(Regressors)
-    regressors = [Regressors.DummyRegressor()]
-    #regressors = [Regressors.SVRTuned()]
-    #regressors = [Regressors.RandomForestRegressor(oob_score=True)]
+    #regressors = [Regressors.DummyRegressor()]
+    regressors = [Regressors.LinearSVRTuned()]
+    regressors = [Regressors.RandomForestRegressor(oob_score=True)]
 
     for regressor in regressors:
         assert isinstance(regressor, Regressor)
@@ -105,8 +106,8 @@ def transformer():
     trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
     #transformers = all(Transformers)
-    #transformers = [Transformers.KernelPCA()]
-    transformers = [Transformers.PCA()]
+    transformers = [Transformers.RobustScaler()]
+    #transformers = [Transformers.PCA(n_components=0.99999)]
 
     for transformer in transformers:
 
@@ -174,10 +175,9 @@ def classificationAccAssAdjusted():
 
 
 def regressionAccAss():
-
     testingLabels = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Validation-Sample'))
     prediction = Regression(os.path.join(inroot, 'Hymap_Berlin-B_Regression-Estimation'))
-    accAss = prediction.assessRegressionPerformance(testingLabels)
+    accAss = prediction.assessRegressionPerformance(prediction)
     accAss.report().saveHTML().open()
 
 
@@ -193,9 +193,9 @@ def clusteringAccAss():
 def probabilityAccAss():
 
 
-    image = Image(r'C:\Work\data\Hymap_Berlin-A_Image')
-    trainingLabels = Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Training-Sample')
-    testingLabels = Classification(r'C:\Work\data\Hymap_Berlin-A_Classification-Validation-Sample')
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    testingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
 
     classifier = Classifiers.RandomForestClassifier().fit(image, trainingLabels)
     probability = classifier.predictProbability(image, testingLabels)
@@ -205,6 +205,7 @@ def probabilityAccAss():
 
 def statisticsForImage():
 
+    #image = Image(os.path.join(inroot, 'AF_Image'))
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
     image.statistics().info()
 
@@ -262,6 +263,15 @@ def pixel_extractor():
     y2 = PixelExtractor(train).extractByPixelLocation(imageSample.locations).imageData.flatten()
     import numpy
     print(numpy.all(y1==y2))
+
+
+def pixel_extractor_image():
+
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    mask = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    image.extractByMask(mask).info()
+
+
 
 def ar_debug():
 
@@ -331,10 +341,10 @@ if __name__ == '__main__':
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    #classification()
+    classification()
     #regression()
     #clusterer()
-    transformer()
+    #transformer()
     #showEstimator()
     #uncertaintyClassifier()
     #uncertaintyRegressor()
@@ -342,7 +352,7 @@ if __name__ == '__main__':
     #classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
-    #probabilityAccAss()
+    probabilityAccAss()
     #statisticsForImage()
     #statisticsForClassification()
     #importENVISpeclib()
@@ -352,4 +362,6 @@ if __name__ == '__main__':
     #maximumProbability()
     #ar_debug3()
     #pixel_extractor()
+    #pixel_extractor_image()
+
     #toc()

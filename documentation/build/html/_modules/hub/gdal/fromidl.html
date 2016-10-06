@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hub.gdal.fromidl &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for hub.gdal.fromidl</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">osgeo.gdal</span> <span class="kn">as</span> <span class="nn">gdal</span>
+<span class="kn">import</span> <span class="nn">gdalconst</span>
+
+<div class="viewcode-block" id="openVRT"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.fromidl.openVRT">[docs]</a><span class="k">def</span> <span class="nf">openVRT</span><span class="p">(</span><span class="n">vrtfile</span><span class="p">):</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">vrtfile</span><span class="p">,</span> <span class="n">gdalconst</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+<div class="viewcode-block" id="readBand"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.fromidl.readBand">[docs]</a><span class="k">def</span> <span class="nf">readBand</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">xoff</span><span class="p">,</span> <span class="n">yoff</span><span class="p">,</span> <span class="n">xsize</span><span class="p">,</span> <span class="n">ysize</span><span class="p">):</span>
+    <span class="n">band</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">band</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">xoff</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">yoff</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">xsize</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">ysize</span><span class="p">))</span>
+    <span class="n">band</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">return</span> <span class="n">array</span></div>
+
+<div class="viewcode-block" id="readCube"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.fromidl.readCube">[docs]</a><span class="k">def</span> <span class="nf">readCube</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">xoff</span><span class="p">,</span> <span class="n">yoff</span><span class="p">,</span> <span class="n">xsize</span><span class="p">,</span> <span class="n">ysize</span><span class="p">):</span>
+    <span class="n">subset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">xoff</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">yoff</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">xsize</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">ysize</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">subset</span></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">vrtfile</span> <span class="o">=</span> <span class="s1">r&#39;A:\vrt\z21Landsat.clipped.vrt&#39;</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">openVRT</span><span class="p">(</span><span class="n">vrtfile</span><span class="p">)</span>
+    <span class="n">subset</span> <span class="o">=</span> <span class="n">readCube</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">subset</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="bp">None</span>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

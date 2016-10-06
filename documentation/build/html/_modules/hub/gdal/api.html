@@ -1,0 +1,384 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hub.gdal.api &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for hub.gdal.api</h1><div class="highlight"><pre>
+<span></span><span class="n">__author__</span> <span class="o">=</span> <span class="s1">&#39;janzandr&#39;</span>
+<span class="kn">import</span> <span class="nn">gdal</span><span class="o">,</span> <span class="nn">numpy</span><span class="o">,</span> <span class="nn">osgeo</span><span class="o">,</span> <span class="nn">hub.file</span><span class="o">,</span> <span class="nn">hub.envi</span>
+<span class="kn">from</span> <span class="nn">gdalconst</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">hub.collections</span> <span class="kn">import</span> <span class="n">Bunch</span>
+
+<div class="viewcode-block" id="geoInfo"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.geoInfo">[docs]</a><span class="k">def</span> <span class="nf">geoInfo</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="n">GA_ReadOnly</span><span class="p">)</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">geoTransform</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">())</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">GetProjection</span><span class="p">()</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">rasterSize</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="n">dataset</span><span class="o">.</span><span class="n">RasterXSize</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">RasterYSize</span><span class="p">))</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">pixelSize</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">geoTransform</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">]]</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">pixelTie</span>  <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">geoTransform</span><span class="p">[[</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">]]</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">geoTie</span>  <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">geoTransform</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">]]</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">ul</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">geoTie</span><span class="o">+</span><span class="n">result</span><span class="o">.</span><span class="n">rasterSize</span><span class="o">*</span><span class="n">result</span><span class="o">.</span><span class="n">pixelTie</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">lr</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">ul</span><span class="o">+</span><span class="n">result</span><span class="o">.</span><span class="n">rasterSize</span><span class="o">*</span><span class="n">result</span><span class="o">.</span><span class="n">pixelSize</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">boundingBox</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">ul</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">lr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="readCube"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.readCube">[docs]</a><span class="k">def</span> <span class="nf">readCube</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s1">&#39;MEM&#39;</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">CreateCopy</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="n">cube</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(</span><span class="n">xoff</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">yoff</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xsize</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">RasterXSize</span><span class="p">,</span> <span class="n">ysize</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">RasterYSize</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cube</span></div>
+
+<div class="viewcode-block" id="writeCube"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.writeCube">[docs]</a><span class="k">def</span> <span class="nf">writeCube</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">srsfilename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">nodatavalue</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkfiledir</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="c1">#bands, lines, samples  = cube.shape</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    GDALType = osgeo.gdal_array.NumericTypeCodeToGDALTypeCode(cube.dtype)</span>
+<span class="sd">    driver = gdal.GetDriverByName(&#39;ENVI&#39;)</span>
+<span class="sd">    dataset = driver.Create(filename, samples, lines, bands, GDALType)</span>
+<span class="sd">    for i in range(bands):</span>
+<span class="sd">        band = dataset.GetRasterBand(i + 1)</span>
+<span class="sd">        band.WriteArray(cube[i])</span>
+<span class="sd">    dataset = None</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">srsfilename</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">datasource</span> <span class="o">=</span> <span class="n">osgeo</span><span class="o">.</span><span class="n">gdal_array</span><span class="o">.</span><span class="n">SaveArray</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s1">&#39;ENVI&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">datasource</span> <span class="o">=</span> <span class="n">osgeo</span><span class="o">.</span><span class="n">gdal_array</span><span class="o">.</span><span class="n">SaveArray</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s1">&#39;ENVI&#39;</span><span class="p">,</span> <span class="n">prototype</span><span class="o">=</span><span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">srsfilename</span><span class="p">))</span>
+
+    <span class="c1"># set no data value</span>
+    <span class="k">if</span> <span class="n">nodatavalue</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="c1"># set GDAL no data value</span>
+        <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="p">[</span><span class="n">datasource</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">datasource</span><span class="o">.</span><span class="n">RasterCount</span><span class="p">)]:</span>
+            <span class="n">band</span><span class="o">.</span><span class="n">SetNoDataValue</span><span class="p">(</span><span class="n">nodatavalue</span><span class="p">)</span>
+        <span class="c1"># set ENVI data ignore value</span>
+        <span class="n">datasource</span><span class="o">.</span><span class="n">SetMetadataItem</span><span class="p">(</span><span class="s1">&#39;data_ignore_value&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">nodatavalue</span><span class="p">),</span> <span class="s1">&#39;ENVI&#39;</span><span class="p">)</span>
+        <span class="n">datasource</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+    <span class="n">datasource</span> <span class="o">=</span> <span class="bp">None</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta">[docs]</a><span class="k">class</span> <span class="nc">GDALBandmeta</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rb</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setDescription</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setNoDataValue</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setCategoryNames</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setColorInterpretation</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setColorTable</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setMetadataDict</span><span class="p">(</span><span class="n">Bunch</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">rb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">readMeta</span><span class="p">(</span><span class="n">rb</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GDALBandmeta.readMeta"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.readMeta">[docs]</a>    <span class="k">def</span> <span class="nf">readMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">rb</span><span class="o">.</span><span class="n">GetDescription</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noDataValue</span> <span class="o">=</span> <span class="n">rb</span><span class="o">.</span><span class="n">GetNoDataValue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">categoryNames</span> <span class="o">=</span> <span class="n">rb</span><span class="o">.</span><span class="n">GetRasterCategoryNames</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">colorInterpretation</span> <span class="o">=</span> <span class="n">rb</span><span class="o">.</span><span class="n">GetRasterColorInterpretation</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">colorTable</span> <span class="o">=</span> <span class="p">[</span><span class="n">rb</span><span class="o">.</span><span class="n">GetColorTable</span><span class="p">()</span><span class="o">.</span><span class="n">GetColorEntry</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">categoryNames</span><span class="p">))]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categoryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">(</span><span class="n">rb</span><span class="o">.</span><span class="n">GetMetadata_Dict</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta.setDescription"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.setDescription">[docs]</a>    <span class="k">def</span> <span class="nf">setDescription</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">value</span></div>
+<div class="viewcode-block" id="GDALBandmeta.getDescription"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.getDescription">[docs]</a>    <span class="k">def</span> <span class="nf">getDescription</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta.setNoDataValue"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.setNoDataValue">[docs]</a>    <span class="k">def</span> <span class="nf">setNoDataValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">noDataValue</span> <span class="o">=</span> <span class="n">value</span></div>
+<div class="viewcode-block" id="GDALBandmeta.getNoDataValue"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.getNoDataValue">[docs]</a>    <span class="k">def</span> <span class="nf">getNoDataValue</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">noDataValue</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta.setCategoryNames"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.setCategoryNames">[docs]</a>    <span class="k">def</span> <span class="nf">setCategoryNames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">categoryNames</span> <span class="o">=</span> <span class="n">value</span></div>
+<div class="viewcode-block" id="GDALBandmeta.getCategoryNames"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.getCategoryNames">[docs]</a>    <span class="k">def</span> <span class="nf">getCategoryNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">categoryNames</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta.setColorInterpretation"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.setColorInterpretation">[docs]</a>    <span class="k">def</span> <span class="nf">setColorInterpretation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">colorInterpretation</span> <span class="o">=</span> <span class="n">value</span></div>
+<div class="viewcode-block" id="GDALBandmeta.getColorInterpretation"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.getColorInterpretation">[docs]</a>    <span class="k">def</span> <span class="nf">getColorInterpretation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">colorInterpretation</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta.setColorTable"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.setColorTable">[docs]</a>    <span class="k">def</span> <span class="nf">setColorTable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">colorTable</span> <span class="o">=</span> <span class="n">value</span></div>
+<div class="viewcode-block" id="GDALBandmeta.getColorTable"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.getColorTable">[docs]</a>    <span class="k">def</span> <span class="nf">getColorTable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">colorTable</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta.setMetadataDict"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.setMetadataDict">[docs]</a>    <span class="k">def</span> <span class="nf">setMetadataDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">value</span></div>
+<div class="viewcode-block" id="GDALBandmeta.getMetadataDict"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.getMetadataDict">[docs]</a>    <span class="k">def</span> <span class="nf">getMetadataDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span></div>
+
+<div class="viewcode-block" id="GDALBandmeta.setMetadataItem"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.setMetadataItem">[docs]</a>    <span class="k">def</span> <span class="nf">setMetadataItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+<div class="viewcode-block" id="GDALBandmeta.getMetadataItem"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALBandmeta.getMetadataItem">[docs]</a>    <span class="k">def</span> <span class="nf">getMetadataItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div></div>
+
+<div class="viewcode-block" id="GDALMeta"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta">[docs]</a><span class="k">class</span> <span class="nc">GDALMeta</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">readMeta</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<div class="viewcode-block" id="GDALMeta.readMeta"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.readMeta">[docs]</a>    <span class="k">def</span> <span class="nf">readMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ds</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Can not open file: &#39;</span><span class="o">+</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="c1"># read data source meta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetMetadataDomainList</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">domain</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetMetadataDomainList</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">[</span><span class="n">domain</span> <span class="k">if</span> <span class="n">domain</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="s1">&#39;DEFAULT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">GetMetadata</span><span class="p">(</span><span class="n">domain</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;ENVI&#39;</span><span class="p">:</span>
+                    <span class="c1"># convert arrays given as strings into lists</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">ENVI</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;coordinate_system_string&#39;</span><span class="p">]:</span> <span class="k">continue</span>
+                        <span class="n">isArray</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;{&#39;</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;}&#39;</span>
+                        <span class="k">if</span> <span class="n">isArray</span><span class="p">:</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">vi</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot; &#39;&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">vi</span> <span class="ow">in</span> <span class="n">v</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">ENVI</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                        <span class="c1">#if v[0] == &#39;{&#39; and v[-1] == &#39;}&#39;: v = &#39;[&#39;+v[1:-1]+&#39;]&#39;</span>
+                        <span class="c1">#self.domain.ENVI[k] = yaml.load(v)</span>
+
+        <span class="c1"># read band meta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">ds</span><span class="o">.</span><span class="n">RasterCount</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GDALBandmeta</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">band</span><span class="p">)))</span>
+
+        <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Projection</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetProjection</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RasterXSize</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RasterXSize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RasterYSize</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RasterYSize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RasterCount</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RasterCount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">GeoTransform</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelXSize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GeoTransform</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelYSize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GeoTransform</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GeoTransform</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">GeoTransform</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ymin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GeoTransform</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">GeoTransform</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">RasterXSize</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelXSize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ymax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ymin</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">RasterXSize</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelYSize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">boundingBox</span>  <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">xmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ymin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ymax</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">boundingBox2</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">xmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ymax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ymin</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="GDALMeta.writeMeta"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.writeMeta">[docs]</a>    <span class="k">def</span> <span class="nf">writeMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">GA_Update</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ds</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s1">&#39;Unable to open &#39;</span><span class="o">+</span><span class="n">filename</span>
+            <span class="k">raise</span>
+
+        <span class="k">for</span> <span class="n">domain</span><span class="p">,</span> <span class="n">bunch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># convert values to string</span>
+            <span class="n">bunch</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span><span class="o">+</span><span class="s1">&#39;]&#39;</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="n">bunch</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="c1"># for ENVI domain replace [] with {} if needed</span>
+            <span class="k">if</span> <span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;ENVI&#39;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">bunch</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;[&#39;</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;]&#39;</span><span class="p">:</span>
+                        <span class="n">bunch</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;{&#39;</span><span class="o">+</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;}&#39;</span>
+
+            <span class="n">ds</span><span class="o">.</span><span class="n">SetMetadata</span><span class="p">(</span><span class="n">bunch</span><span class="p">,</span> <span class="n">domain</span> <span class="k">if</span> <span class="n">domain</span> <span class="o">!=</span> <span class="s1">&#39;DEFAULT&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">ds</span><span class="o">.</span><span class="n">RasterCount</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">rb</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">band</span><span class="p">)</span>
+            <span class="n">rb</span><span class="o">.</span><span class="n">SetDescription</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">getDescription</span><span class="p">())</span>
+            <span class="n">rb</span><span class="o">.</span><span class="n">SetMetadata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">noDataValue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>   <span class="n">rb</span><span class="o">.</span><span class="n">SetNoDataValue</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">noDataValue</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">categoryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="n">rb</span><span class="o">.</span><span class="n">SetCategoryNames</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">categoryNames</span><span class="p">)</span>
+            <span class="n">rb</span><span class="o">.</span><span class="n">SetColorInterpretation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">colorInterpretation</span><span class="p">)</span>
+            <span class="n">ct</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">ColorTable</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">colorTable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">rgb</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">colorTable</span><span class="p">)),</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">band</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">colorTable</span><span class="p">):</span>
+                    <span class="n">ct</span><span class="o">.</span><span class="n">SetColorEntry</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">rgb</span><span class="p">)</span>
+                <span class="n">rb</span><span class="o">.</span><span class="n">SetColorTable</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>
+
+        <span class="c1"># Workaround to eliminate duplicated keys inside ENVI header files produced bei GDAL</span>
+        <span class="c1"># Inside the resulting header file the duplicate that appeared last is used</span>
+        <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetDriver</span><span class="p">()</span><span class="o">.</span><span class="n">ShortName</span> <span class="o">==</span> <span class="s1">&#39;ENVI&#39;</span><span class="p">:</span>
+            <span class="n">hdrfile</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetFileList</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">hdr</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">envi</span><span class="o">.</span><span class="n">readHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">)</span>
+            <span class="c1"># GDAL skips some metadata when writing the HDR file, don&#39;t know why</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;file type&#39;</span><span class="p">,</span><span class="s1">&#39;class names&#39;</span><span class="p">]:</span>
+                <span class="n">hdr</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">hub</span><span class="o">.</span><span class="n">envi</span><span class="o">.</span><span class="n">writeHeader</span><span class="p">(</span><span class="n">hdrfile</span><span class="p">,</span> <span class="n">hdr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="bp">None</span></div>
+
+<div class="viewcode-block" id="GDALMeta.setMetadataDict"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.setMetadataDict">[docs]</a>    <span class="k">def</span> <span class="nf">setMetadataDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;ENVI&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">[</span><span class="n">domain</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="GDALMeta.getMetadataDict"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.getMetadataDict">[docs]</a>    <span class="k">def</span> <span class="nf">getMetadataDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;ENVI&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">[</span><span class="n">domain</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="GDALMeta.createDomain"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.createDomain">[docs]</a>    <span class="k">def</span> <span class="nf">createDomain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">[</span><span class="n">domain</span><span class="p">]</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GDALMeta.setMetadataItem"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.setMetadataItem">[docs]</a>    <span class="k">def</span> <span class="nf">setMetadataItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;ENVI&#39;</span><span class="p">,</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">createDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">[</span><span class="n">domain</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">mapToBands</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rb</span><span class="p">,</span> <span class="n">ivalue</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+                <span class="n">rb</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ivalue</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GDALMeta.copyMetadataItem"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.copyMetadataItem">[docs]</a>    <span class="k">def</span> <span class="nf">copyMetadataItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">gdalMeta</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;ENVI&#39;</span><span class="p">,</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">gdalMeta</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">fromBands</span><span class="o">=</span><span class="n">mapToBands</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">mapToBands</span><span class="o">=</span><span class="n">mapToBands</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GDALMeta.getMetadataItem"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.getMetadataItem">[docs]</a>    <span class="k">def</span> <span class="nf">getMetadataItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;ENVI&#39;</span><span class="p">,</span> <span class="n">fromBands</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="c1">#key = key.lower().replace(&#39; &#39;,&#39;_&#39;)</span>
+        <span class="k">if</span> <span class="n">fromBands</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">rb</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rb</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;ENVI&#39;</span><span class="p">:</span> <span class="c1"># GDAL casts ENVI keys to all lower letters when writing to disk :-(, need to consider that here</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">ENVI</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">ENVI</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">ENVI</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">default</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">[</span><span class="n">domain</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="GDALMeta.setNoDataValue"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.setNoDataValue">[docs]</a>    <span class="k">def</span> <span class="nf">setNoDataValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">createDomain</span><span class="p">(</span><span class="s1">&#39;ENVI&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">ENVI</span><span class="o">.</span><span class="n">data_ignore_value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">for</span> <span class="n">rb</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">:</span>
+            <span class="n">rb</span><span class="o">.</span><span class="n">setNoDataValue</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GDALMeta.getNoDataValue"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.getNoDataValue">[docs]</a>    <span class="k">def</span> <span class="nf">getNoDataValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="s1">&#39;file type&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;envi classification&#39;</span><span class="p">:</span>
+            <span class="n">noDataValue</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">noDataValue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getMetadataItem</span><span class="p">(</span><span class="s1">&#39;data ignore value&#39;</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">noDataValue</span><span class="p">)</span> <span class="k">if</span> <span class="n">noDataValue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span></div>
+
+
+<div class="viewcode-block" id="GDALMeta.setBandNames"><a class="viewcode-back" href="../../../hub.gdal.html#hub.gdal.api.GDALMeta.setBandNames">[docs]</a>    <span class="k">def</span> <span class="nf">setBandNames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">values</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">for</span> <span class="n">rb</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+            <span class="n">rb</span><span class="o">.</span><span class="n">setDescription</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">createDomain</span><span class="p">(</span><span class="s1">&#39;ENVI&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">ENVI</span><span class="o">.</span><span class="n">band_names</span> <span class="o">=</span> <span class="n">values</span></div></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1">#meta = GDALMeta(r&#39;D:\work\EnMap-Box\EnMAP-Box_1.4\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image&#39;)</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">GDALMeta</span><span class="p">(</span><span class="s1">r&#39;D:\work\EnMap-Box\EnMAP-Box_1.4\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Classification-GroundTruth&#39;</span><span class="p">)</span>
+
+    <span class="c1"># set data source metas</span>
+    <span class="n">meta</span><span class="o">.</span><span class="n">setMetadataDict</span><span class="p">({</span><span class="s1">&#39;key1&#39;</span><span class="p">:</span><span class="s1">&#39;hello 1&#39;</span><span class="p">,</span> <span class="s1">&#39;key2&#39;</span><span class="p">:</span><span class="s1">&#39;hello 2&#39;</span><span class="p">})</span> <span class="c1"># this goes to the ENVI domain per default</span>
+    <span class="n">meta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;key3&#39;</span><span class="p">,</span> <span class="s1">&#39;hello 3&#39;</span><span class="p">)</span> <span class="c1"># this goes to the ENVI domain per default</span>
+    <span class="n">meta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;key4&#39;</span><span class="p">,</span> <span class="s1">&#39;hello 4&#39;</span><span class="p">,</span> <span class="s1">&#39;myDomain&#39;</span><span class="p">)</span>
+    <span class="k">print</span> <span class="n">meta</span><span class="o">.</span><span class="n">getMetadataDict</span><span class="p">()</span> <span class="c1"># this comes from ENVI domain per default</span>
+    <span class="k">print</span> <span class="n">meta</span><span class="o">.</span><span class="n">getMetadataDict</span><span class="p">(</span><span class="s1">&#39;myDomain&#39;</span><span class="p">)</span>
+
+    <span class="c1"># set band metas</span>
+    <span class="n">meta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">setMetadataDict</span><span class="p">({</span><span class="s1">&#39;key1&#39;</span><span class="p">:</span><span class="s1">&#39;hello 1&#39;</span><span class="p">,</span> <span class="s1">&#39;key2&#39;</span><span class="p">:</span><span class="s1">&#39;hello 2&#39;</span><span class="p">})</span>
+    <span class="n">meta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;key3&#39;</span><span class="p">,</span> <span class="s1">&#39;hello 3&#39;</span><span class="p">)</span>
+    <span class="k">print</span> <span class="n">meta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">getMetadataDict</span><span class="p">()</span>
+
+<span class="c1">#    meta[0].setMetadataItem(&#39;key1&#39;, &#39;hello 1&#39;)</span>
+<span class="c1">#    meta[0].metadata.key2 = &#39;hello 2&#39;</span>
+<span class="c1">#    print meta[0].getMetadataDict()</span>
+    <span class="c1">#hub.file.remove(r&#39;T:\ar\copy.hdr&#39;)</span>
+<span class="c1">#    meta.writeMeta(r&#39;t:\ar\copy&#39;)</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">    meta = readMeta(r&#39;t:\ar\copy&#39;)</span>
+
+
+
+<span class="sd">    print(type(meta))</span>
+<span class="sd">    print &#39;Is correct type?:&#39;, isinstance(meta, GDALMeta)</span>
+<span class="sd">    print</span>
+<span class="sd">    for k,v in meta.ds.domain.ENVI.items(): print k+&#39;:&#39;,v</span>
+
+<span class="sd">    filename = r&#39;H:\EuropeanDataCube\testCaseAR\cubes\32\32UNB\band2.vrt&#39;</span>
+<span class="sd">    cube = readCube(filename)</span>
+<span class="sd">    print(cube.shape)</span>
+<span class="sd">    writeCube(cube,r&#39;t:\testCube.img&#39;, filename, nodatavalue=-9999)</span>
+<span class="sd">    print(&#39;...done&#39;)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

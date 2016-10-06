@@ -95,7 +95,7 @@ class EnMAPBoxPlugin:
                 from processing.core.Processing import Processing
                 from enmapbox.apps.core import EnMAPBoxProvider
 
-                self.processingProviders.append(EnMAPBoxProvider())
+                #self.processingProviders.append(EnMAPBoxProvider())
 
                 #todo: add other providers here
 

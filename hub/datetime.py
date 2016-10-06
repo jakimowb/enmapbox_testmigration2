@@ -20,7 +20,7 @@ class Date(datetime.date):
     def doy(self):
         return (self - datetime.date(self.year, 1, 1)).days +1
 
-
+    @property
     def decimalYear(self):
         return self.year + self.doy/(365.+calendar.isleap(self.year))
 
