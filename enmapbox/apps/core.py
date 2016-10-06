@@ -6,7 +6,7 @@ from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecution
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 from processing.core.parameters import *
 from processing.core.outputs import *
-
+import PyQt4.QtCore
 import traceback
 
 from enmapbox.processing.estimators import Classifiers, Regressors, Clusterers, Transformers
@@ -21,11 +21,20 @@ group_apps_ml = add(group_apps, 'Machine Learning')
 
 
 class EnMAPBoxProvider(AlgorithmProvider):
+    sigFileCreated = PyQt4.QtCore.pyqtSignal(str)
+    _instance = None
 
+    @staticmethod
+    def instance():
+        return EnMAPBoxProvider._instance
 
     def __init__(self):
 
         AlgorithmProvider.__init__(self)
+        if EnMAPBoxProvider.instance() is None:
+            print('Oh. It seems that the EnMAPBoxProvider was initialized twice.')
+        EnMAPBoxProvider._instance = self
+
         self.alglist = list()
 
         Alglist = [AccuracyAssessmentClassififcation, AccuracyAssessmentClassififcationAdjusted, AccuracyAssessmentRegression, AccuracyAssessmentClustering,
@@ -64,6 +73,23 @@ class EnMAPBoxProvider(AlgorithmProvider):
 
             #        for alg in self.alglist:
             #            alg.provider = self
+
+
+
+    def example_HowToSignalThatANewFileWasCreated(self):
+
+        newPath = r'C:/foo/bar.bsq'
+        provider = EnMAPBoxProvider.instance()
+        assert isinstance(provider, EnMAPBoxProvider) #for PyCharm intellisence only
+        provider.sigFileCreated.emit(newPath)
+
+    def example_HowToGetEnMAPBoxGUIRasterDataSources(self):
+        import enmapbox.main
+        emb = enmapbox.main.EnMAPBox.instance()
+        print('Raster files registered in EnMAPBox GUI DataSourceManager')
+        for uri in emb.getUriList(sourcetype = 'RASTER'):
+            print(uri)
+
 
     def unload(self):
         AlgorithmProvider.unload(self)
