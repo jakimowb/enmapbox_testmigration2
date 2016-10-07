@@ -269,11 +269,11 @@ class ImageStatistics(Type):
             bandNames = [s + ' ' + wlUnits for s in bandNames]
         if self.image.meta.getMetadataItem('wavelength') != None:
             bandNames = [s + ')' for s in bandNames]
-        rowSpans = None
+
         colSpans = [[1,1,1,1,1,1,1]]
-        rowHeaders = None
+
         data = numpy.transpose([bandColumn,bandNames,self.getStatistic('count'),numpy.array(self.getStatistic('count'))-numpy.array(self.getStatistic('countValid')),self.getStatistic('countValid'),self.getStatistic('min'),self.getStatistic('max')])
-        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans, attribs_align='left'))
+        report.append(ReportTable(data, '', colHeaders, colSpans, attribs_align='left'))
 
         #report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
         #report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
