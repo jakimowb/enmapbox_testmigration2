@@ -15,6 +15,16 @@ dprint = enmapbox.dprint
 class DataSource(object):
     """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
 
+    @staticmethod
+    def srctostring(src):
+        if isinstance(src, QUrl):
+            if src.isLocalFile():
+                src = str(src.toLocalFile())
+            else:
+                src = str(src.path())
+        if isinstance(src, unicode):
+            src = str(src)
+        return src
 
 
     @staticmethod
@@ -31,11 +41,8 @@ class DataSource(object):
             uri = src.dataSourceUri()
         if isinstance(src, ogr.DataSource):
             uri = src.GetName()
-        if isinstance(src, QUrl):
-            if src.isLocalFile():
-                uri = str(src.toLocalFile())
-            else:
-                uri = str(src.path())
+
+        src = DataSource.srctostring(src)
         if isinstance(src, str):
             #todo: check different providers, not only ogr
             result = None
@@ -65,15 +72,8 @@ class DataSource(object):
             uri = str(src.dataSourceUri())
         if isinstance(src, gdal.Dataset):
             uri = src.GetFileList()[0]
-        if isinstance(src, QUrl):
-            if src.isLocalFile():
-                uri = str(src.toLocalFile())
-            else:
-                uri = str(src.path())
 
-        if isinstance(src, unicode):
-            src = str(src)
-
+        src = DataSource.srctostring(src)
         if isinstance(src, str):
             # todo: check different providers, not only gdal
             try:
@@ -91,8 +91,20 @@ class DataSource(object):
         :param src: any type
         :return: uri (str) | None
         """
-        #todo: implement checks to test for model
-        return None
+
+
+        from enmapbox.processing import types
+        from enmapbox.processing.types import Estimator
+        uri = None
+        src = DataSource.srctostring(src)
+        if isinstance(src, str) and os.path.exists(src):
+            try:
+                obj = types.unpickle(src)
+                if isinstance(obj, Estimator):
+                    uri = src
+            except RuntimeError, e:
+                pass
+        return uri
 
 
     @staticmethod
@@ -119,7 +131,7 @@ class DataSource(object):
 
         uri = DataSource.isEnMAPBoxModel(src)
         if uri is not None:
-            raise NotImplementedError()
+            return DataSourceModel(uri, name=name, icon=icon)
 
         if isinstance(src, str):
             if os.path.isfile(src):
@@ -131,7 +143,7 @@ class DataSource(object):
                 mapLyr = reg.mapLayer(src)
                 dprint('MAP LAYER: {}'.format(mapLyr))
                 return DataSource.Factory(reg.mapLayer(src), name)
-            dprint('EXISTING REGISTRY IDS: {}'.format(','.join(ids)))
+
         dprint('Can not open {}'.format(str(src)))
         return None
 
@@ -200,7 +212,9 @@ class DataSourceFile(DataSource):
         infos = list()
         infos.append('Path: {}'.format(self.uri))
         infos.append('Size: {}'.format(os.path.getsize(self.uri)))
-        TreeItem(itemTop, 'File Information', infos=infos, tooltip='\n'.join(infos), asChild=True)
+        item = TreeItem(itemTop, 'File Information', tooltip='\n'.join(infos))
+        item.addTextChilds(infos)
+
         return itemTop
 
 class DataSourceTextFile(DataSourceFile):
@@ -242,6 +256,15 @@ class DataSourceSpatial(DataSource):
         QgsMapLayerRegistry.instance().addMapLayer(ml, False)
         self.mapLayers.append(ml)
         return ml
+
+class DataSourceModel(DataSourceFile):
+    def __init__(self, uri, name=None, icon=None):
+        super(DataSourceModel, self).__init__(uri, name, icon)
+        from enmapbox.processing import types
+        from enmapbox.processing.types import Estimator
+
+
+        self.mode = model = types.unpickle(uri)
 
 
 class DataSourceRaster(DataSourceSpatial):

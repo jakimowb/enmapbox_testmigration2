@@ -230,6 +230,9 @@
    <property name="text">
     <string>selectPixel</string>
    </property>
+   <property name="toolTip">
+    <string>identify</string>
+   </property>
   </action>
   <action name="actionSandbox">
    <property name="icon">
