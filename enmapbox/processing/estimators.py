@@ -484,12 +484,12 @@ class Transformers(Estimators):
             explainedVariance = numpy.round(pca.explained_variance_ratio_, 2)
             cumulatedExplainedVariance = numpy.round(numpy.cumsum(pca.explained_variance_ratio_), 2)
 
-            data = numpy.vstack((bandNames,numpy.round(explainedVariance, 4)*100,numpy.round(cumulatedExplainedVariance, 4)*100))
-            rowHeaders = [['Components','Explained Variance','Cumulated Explained Variance']]
-            report.append(ReportTable(data, rowHeaders=rowHeaders))
-
             fig = MH.KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self)
             report.append(ReportPlot(fig, 'Explained Variance'))
+
+            data = numpy.transpose([bandNames,numpy.round(explainedVariance, 4)*100,numpy.round(cumulatedExplainedVariance, 4)*100])
+            colHeaders = [['Components','Explained Variance','Cumulated Explained Variance']]
+            report.append(ReportTable(data, colHeaders=colHeaders))
 
             return report
 
