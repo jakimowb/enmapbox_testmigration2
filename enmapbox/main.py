@@ -58,8 +58,9 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     #columnames = ['Name','Description']
     columnames = ['Name']
 
-    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile, DataSourceModel]
-    SourceTypeNames = ['Raster', 'Vector', 'File','Model']
+    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile,
+                   DataSourceModel, DataSourceTextFile, DataSourceXMLFile]
+    SourceTypeNames = ['Raster', 'Vector', 'File','Model', 'Text', 'Text']
 
 
     def getSourceTypeName(self, dataSource):
@@ -713,10 +714,12 @@ class EnMAPBox:
 
         model = tv.model()
         if index.isValid():
+            treeItem = model.data(index, 'TreeItem')
             itemData = model.data(index, Qt.UserRole)
 
-            if itemData:
+            if itemData or len(treeItem.actions) > 0:
                 menu = QMenu()
+                #append dynamic parts reactive to opened docks etc
                 if isinstance(itemData, DataSource):
                     if isinstance(itemData, DataSourceSpatial):
                         mapDocks = [d for d in self.DOCKS if isinstance(d, MapDock)]
@@ -737,7 +740,12 @@ class EnMAPBox:
                 else:
                     action = QAction('Copy', menu)
                     action.triggered.connect(lambda: QApplication.clipboard().setText(str(itemData)))
-                menu.addAction(action)
+                #append item specific menue
+                if len(treeItem.actions) > 0:
+                    for action in treeItem.actions:
+                        #action.setParent(menu)
+                        menu.addAction(action)
+
                 menu.exec_(tv.viewport().mapToGlobal(point))
 
 
