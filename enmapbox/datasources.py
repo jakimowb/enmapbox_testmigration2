@@ -275,7 +275,9 @@ class DataSourceRaster(DataSourceSpatial):
         super(DataSourceRaster, self).__init__(uri, name, icon)
 
         self._refLayer = self._createMapLayer(self.uri)
+        #lyr =QgsRasterLayer(self.uri, self.name, False)
         dp = self._refLayer.dataProvider()
+
 
         #change icon
         if dp.bandCount() == 1:
@@ -323,10 +325,10 @@ class DataSourceRaster(DataSourceSpatial):
             item.tooltip = '\n'.join(infos)
             item.addTextChilds(infos)
 
-        item = TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()))
+        itemBands = TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()))
 
         bandnames = [self._refLayer.bandName(b+1) for b in range(self._refLayer.bandCount())]
-
+        ds = None
         if dp.name() == 'gdal':
             ds = gdal.Open(dp.dataSourceUri())
             for b in range(ds.RasterCount):
@@ -336,9 +338,24 @@ class DataSourceRaster(DataSourceSpatial):
             infos=list()
             if dp.srcHasNoDataValue(b+1):
                 infos.append('No data : {}'.format(dp.srcNoDataValue(b+1)))
-            itemBand = TreeItem(item, bandnames[b])
+            itemBand = TreeItem(itemBands, bandnames[b])
             itemBand.tooltip = '\n'.join(infos)
             itemBand.addTextChilds(infos)
+            ct = dp.colorTable(b+1)
+            if len(ct) > 0:
+                if dp.bandCount() > 1 :
+                    itemClasses = TreeItem(itemBand, 'Classes')
+                else:
+                    itemClasses = TreeItem(itemTop, 'Classes')
+                for colorRampItem in ct:
+                    pixmap = QPixmap(100,100)
+                    pixmap.fill(colorRampItem.color)
+
+                    itemClass = TreeItem(itemClasses, colorRampItem.label, icon=QIcon(pixmap))
+
+
+
+
         return itemTop
 
 class DataSourceVector(DataSourceSpatial):
