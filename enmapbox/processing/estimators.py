@@ -193,18 +193,30 @@ class Classifiers(Estimators):
             report = Report('')
             report.append(ReportHeading('Information'))
 
-            bandNames = self.sample.featureSample.dataSample.meta.getMetadataItem('band names',default=numpy.array([]))
-            if len(bandNames) == 0:
-                for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
-
-            data = numpy.vstack((bandNames,numpy.round(rfc.feature_importances_, 4)*100))
-            rowHeaders = [['Band Names','Feature Importance [%]']]
-            report.append(ReportTable(data, rowHeaders=rowHeaders))
-
             if rfc.oob_score:
-                report.append(ReportParagraph('### ToDo - insert out-of-bag accuracies ###', font_color='red'))
-                fig = MH.RandomForestClassifier(rfc, self)
-                report.append(ReportPlot(fig, ''))
+               report.append(ReportParagraph('### ToDo - insert out-of-bag accuracies ###', font_color='red'))
+               fig = MH.RandomForestClassifier(rfc, self)
+               report.append(ReportPlot(fig, ''))
+
+            bandNames = self.sample.featureSample.dataSample.meta.getBandNames()
+
+            if self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength') != None:
+                wl = numpy.round(numpy.array(self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength')).astype(float),3).astype(str)
+                bandNames = [a+' ('+b.lstrip() for a,b in zip(bandNames,wl)]
+                #colHeaders[0][1]=colHeaders[0][1]+', wl'
+            if self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units') != None:
+                wlUnits = self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units')
+                if wlUnits == 'micrometers': wlUnits = '&mu;m'
+                if wlUnits == 'nanometers': wlUnits = ' nm'
+                bandNames = [s + ' ' + wlUnits for s in bandNames]
+            if self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength') != None:
+                bandNames = [s + ')' for s in bandNames]
+
+            unSortedData = [range(1,rfc.feature_importances_.__len__()+1),bandNames,numpy.round(rfc.feature_importances_, 4)*100]
+            SortedData = sorted(zip(*unSortedData), key=lambda t: t[2], reverse=True)
+            colHeaders = [['Band','Band Name','Feature Importance [%]']]
+
+            report.append(ReportTable(SortedData, colHeaders=colHeaders))
 
             return report
 
@@ -348,17 +360,30 @@ class Regressors(Estimators):
             report = Report('')
             report.append(ReportHeading('Information'))
 
-            bandNames = self.sample.featureSample.dataSample.meta.getMetadataItem('band names',default=numpy.array([]))
-            if len(bandNames) == 0:
-                for i in range(len(rfc.feature_importances_)): bandNames = numpy.append(bandNames, 'Band ' + str(i+1))
-            data = numpy.vstack((bandNames[numpy.argsort(rfc.feature_importances_)][::-1],numpy.round(rfc.feature_importances_[numpy.argsort(rfc.feature_importances_)][::-1], 4)*100))
-            rowHeaders = [['Band Names','Feature Importance [%]']]
-            report.append(ReportTable(data, rowHeaders=rowHeaders))
-
             if rfc.oob_score:
-                report.append(ReportParagraph('### ToDo - insert out-of-bag accuracies ###', font_color='red'))
-                fig = MH.RandomForestClassifier(rfc, self)
-                report.append(ReportPlot(fig, ''))
+               report.append(ReportParagraph('### ToDo - insert out-of-bag accuracies ###', font_color='red'))
+               fig = MH.RandomForestClassifier(rfc, self)
+               report.append(ReportPlot(fig, ''))
+
+            bandNames = self.sample.featureSample.dataSample.meta.getBandNames()
+
+            if self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength') != None:
+                wl = numpy.round(numpy.array(self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength')).astype(float),3).astype(str)
+                bandNames = [a+' ('+b.lstrip() for a,b in zip(bandNames,wl)]
+                #colHeaders[0][1]=colHeaders[0][1]+', wl'
+            if self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units') != None:
+                wlUnits = self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units')
+                if wlUnits == 'micrometers': wlUnits = '&mu;m'
+                if wlUnits == 'nanometers': wlUnits = ' nm'
+                bandNames = [s + ' ' + wlUnits for s in bandNames]
+            if self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength') != None:
+                bandNames = [s + ')' for s in bandNames]
+
+            unSortedData = [range(1,rfc.feature_importances_.__len__()+1),bandNames,numpy.round(rfc.feature_importances_, 4)*100]
+            SortedData = sorted(zip(*unSortedData), key=lambda t: t[2], reverse=True)
+            colHeaders = [['Band','Band Name','Feature Importance [%]']]
+
+            report.append(ReportTable(SortedData, colHeaders=colHeaders))
 
             return report
 
@@ -459,12 +484,12 @@ class Transformers(Estimators):
             explainedVariance = numpy.round(pca.explained_variance_ratio_, 2)
             cumulatedExplainedVariance = numpy.round(numpy.cumsum(pca.explained_variance_ratio_), 2)
 
-            data = numpy.vstack((bandNames,numpy.round(explainedVariance, 4)*100,numpy.round(cumulatedExplainedVariance, 4)*100))
-            rowHeaders = [['Components','Explained Variance','Cumulated Explained Variance']]
-            report.append(ReportTable(data, rowHeaders=rowHeaders))
-
             fig = MH.KernelPCA(explainedVariance, cumulatedExplainedVariance, n_components, self)
             report.append(ReportPlot(fig, 'Explained Variance'))
+
+            data = numpy.transpose([bandNames,numpy.round(explainedVariance, 4)*100,numpy.round(cumulatedExplainedVariance, 4)*100])
+            colHeaders = [['Components','Explained Variance','Cumulated Explained Variance']]
+            report.append(ReportTable(data, colHeaders=colHeaders))
 
             return report
 
@@ -531,7 +556,6 @@ class Transformers(Estimators):
 
 
         def reportDetails(self):
-
             # anything to report?
             ica = self.finalEstimator()
             report = Report('')
@@ -568,9 +592,10 @@ class Transformers(Estimators):
             report = Report('')
             report.append(ReportHeading('Information'))
             bandNames = self.sample.featureSample.dataSample.meta.getBandNames()
-            table = Table([['<b>Median</b>']+list(scaler.center_),
-                           ['<b>Interquartile Range</b>']+list(scaler.scale_)], header_row=['']+bandNames)
-            report.append(ReportTable(table))
+            data = numpy.transpose([bandNames,scaler.center_,scaler.scale_])
+            colHeaders = [['Band Name','Median', 'Interquartile Range']]
+            report.append(ReportTable(data, colHeaders=colHeaders))
+
             return report
 
 PCA = Transformers.PCA
@@ -645,7 +670,10 @@ class MH:
         else:
             plt.vlines(wl,0,rfc.feature_importances_*100,lw=3,colors='b')
             plt.xlim(float(wl[0])-float(wl[-1])*.03,float(wl[-1])+float(wl[-1])*.03)
-            plt.xlabel('Wavelength ['+self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units')+']')
+            wUnits = self.sample.featureSample.dataSample.meta.getMetadataItem('wavelength units')
+            plt.xlabel('Wavelength')
+            if wUnits != None:
+                plt.xlabel('Wavelength [' + wUnits + ']')
 
         plt.ylabel('Feature Importance [%]')
         plt.grid()

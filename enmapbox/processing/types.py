@@ -269,11 +269,11 @@ class ImageStatistics(Type):
             bandNames = [s + ' ' + wlUnits for s in bandNames]
         if self.image.meta.getMetadataItem('wavelength') != None:
             bandNames = [s + ')' for s in bandNames]
-        rowSpans = None
-        colSpans = [[1,1,1,1,1,1,1]]
-        rowHeaders = None
+
+
+
         data = numpy.transpose([bandColumn,bandNames,self.getStatistic('count'),numpy.array(self.getStatistic('count'))-numpy.array(self.getStatistic('countValid')),self.getStatistic('countValid'),self.getStatistic('min'),self.getStatistic('max')])
-        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans, attribs_align='left'))
+        report.append(ReportTable(data, '', colHeaders=colHeaders, attribs_align='left'))
 
         #report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
         #report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
@@ -329,10 +329,11 @@ class ImageStatistics(Type):
                        ,edgecolor = 'k'
                        ,align='center')
                 xticks = ax.xaxis.get_major_ticks()
-                xticks[0].label1.set_visible(False)
+                #xticks[0].label1.set_visible(False)
                 ax.set_ylabel('counts')
                 ax.set_title('Pixel per class', y=1.05)
-                ax.set_xticklabels((self.image.meta.getMetadataItem('class names')))
+                ax.set_xticks(range(self.getStatistic('hist')[0].__len__()))
+                ax.set_xticklabels((self.image.meta.getMetadataItem('class names')[1:]))
                 plt.xticks(rotation=35)
                 plt.tight_layout()
                 ax.tick_params('both', length=10, direction='out', pad=10)
@@ -1690,13 +1691,27 @@ class ProbabilityPerformance(Type):
         report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
-        report.append(ReportParagraph('n = ' + str(self.n)))
-        report.append(ReportParagraph('log_loss = ' + str(self.log_loss)))
+        rowHeaders = [['n','Log loss']]
+        data = numpy.transpose([[str(self.n), numpy.round(self.log_loss,2)]])
+        report.append(ReportTable(data, '', rowHeaders=rowHeaders))
 
-        report.append(ReportParagraph('roc_auc_scores = ' + str(self.roc_auc_scores)))
-        report.append(ReportParagraph('roc_curves = ' + str(self.roc_curves)))
+        fig, ax = plt.subplots(facecolor='white',figsize=(9, 6))
+        for i in range(0,self.roc_curves.__len__()):
+           plt.plot(self.roc_curves[i+1][0],self.roc_curves[i+1][1]
+                    ,label='ROC curve of class {0} (area = {1:0.3f})'
+                    ''.format(i+1, self.roc_auc_scores[i+1]))
+        ax.set_xlabel('False Positive Rate')
+        ax.set_ylabel('True Positive Rate')
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.legend(loc="lower right")
+        fig.tight_layout()
+        report.append(ReportPlot(fig, 'ROC Curves'))
 
-        report.append(ReportParagraph('ToDo: include Scikit-Learn Hyperlinks!', font_color='red'))
+        report.append(ReportHeading('Scikit-Learn Documentation'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/model_evaluation.html#roc-metrics', 'ROC User Guide'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html', 'ROC Curve'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score', 'AUC score'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html', 'Log Loss Metric'))
 
         return report
 

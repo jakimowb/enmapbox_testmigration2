@@ -5,7 +5,6 @@
     <file>icons/filelist_classification.svg</file>
     <file>icons/filelist_image.svg</file>
     <file>icons/filelist_mask.svg</file>
-    <file>icons/filelist_regression - Kopie.svg</file>
     <file>icons/filelist_regression.svg</file>
     <file>icons/link_basic.svg</file>
     <file>icons/link_center.svg</file>
@@ -25,13 +24,10 @@
   </qresource>
   <qresource prefix="enmapbox/png">
     <file>icons/add_datasource.png</file>
-    <file>icons/add_datasource_reference.png</file>
     <file>icons/enmapbox.png</file>
     <file>icons/filelist_classification.png</file>
     <file>icons/filelist_image.png</file>
-    <file>icons/filelist_image_reference.png</file>
     <file>icons/filelist_mask.png</file>
-    <file>icons/filelist_regression - Kopie.png</file>
     <file>icons/filelist_regression.png</file>
     <file>icons/link_basic.png</file>
     <file>icons/link_center.png</file>
