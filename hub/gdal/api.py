@@ -207,7 +207,8 @@ class GDALMeta():
             if bandName == '':
                 bandName = 'Band ' + str(i)
             bandNames.append(bandName)
-        self.setMetadataItem('band names', bandNames)
+        if self.getMetadataItem('band names') is None:
+            self.setMetadataItem('band names', bandNames)
 
         # Treat a single band image with color table and category names like an ENVI Classification image.
         # Number of classes must be infered from the number of categories, because color tables from GTiff always
