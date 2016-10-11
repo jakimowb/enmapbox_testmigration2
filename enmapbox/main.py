@@ -662,14 +662,22 @@ class EnMAPBox:
         #todo: ensure unique mapdock names
 
         assert docktype in ['MAP','TEXT']
+        if 'name' not in kwds.keys():
+            kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
+
         if docktype == 'MAP':
             dock = MapDock(self, *args, **kwds)
         elif docktype == 'TEXT':
             dock = TextDock(self, *args, **kwds)
 
         existing = self.dockarea.findAll()
-        self.dockarea.addDock(dock,*args, **kwds)
+        state = self.dockarea.saveState()
+        main = state['main']
+        if main:
+            #todo: add "balanced" to existing docks
+            n_vertical = n_horizontal = 0
 
+        self.dockarea.addDock(dock, *args, **kwds)
         self.DOCKS.add(dock)
         return dock
         #dock.sigClosed.connect(lambda : self.removeDock(dock))
@@ -814,15 +822,16 @@ if __name__ == '__main__':
     EB = EnMAPBox(None)
     #EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
     if True:
-        EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
-        EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
-        EB.createDock('MAP', name='MapDock 4', initSrc=TestData.AF_LC)
+        #EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
+        # EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
+        EB.createDock('MAP', initSrc=TestData.AF_LC)
         #EB.createDock('MAP', name='MapDock 3', initSrc=TestData.Landsat_Shp)
         if False:
-            EB.createDock('TEXT', name='TextDock',
-                                                 html='Here we can show HTML like text:'
-                                                      '<a href="http://www.enmap.org">www.enmap.org</a>'
-                                                      '</br>'+LORE_IPSUM)
+            pass
+        EB.createDock('TEXT',
+                      html='Here we can show HTML like text:'
+                           '<a href="http://www.enmap.org">www.enmap.org</a>'
+                           '</br>'+LORE_IPSUM)
 
         if True:
             # register new model
