@@ -831,7 +831,7 @@ class MapDock(Dock):
         self.canvas = MapCanvas(self)
         if 'title' not in kwds.keys():
             self.label.setText(str(self.canvas))
-
+        #self.canvas.setScaleLocked(True)
         self.canvas.sigDropEvent.connect(self.canvasDrop)
         self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
         self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenu)

@@ -93,16 +93,18 @@ class DataSource(object):
         """
 
 
-        from enmapbox.processing import types
-        from enmapbox.processing.types import Estimator
         uri = None
         src = DataSource.srctostring(src)
         if isinstance(src, str) and os.path.exists(src):
+
             try:
+                from enmapbox.processing import types
+                from enmapbox.processing.types import Estimator
+
                 obj = types.unpickle(src)
                 if isinstance(obj, Estimator):
                     uri = src
-            except RuntimeError, e:
+            except Exception, e:
                 pass
         return uri
 
