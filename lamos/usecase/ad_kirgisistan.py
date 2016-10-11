@@ -1,4 +1,4 @@
-from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
+from lamos.processing.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.compositing import StatisticsApplier
 from hub.timing import tic, toc
