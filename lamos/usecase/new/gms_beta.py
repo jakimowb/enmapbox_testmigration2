@@ -240,11 +240,11 @@ def test_gms_beta():
         workflowA.inargs.rfc = rfc
         workflowA.inargs.classificationMeta = classificationMeta
 
-        workflowA.controls.setNumThreads(100)
+        workflowA.controls.setNumThreads(10)
         #workflowA.controls.setWindowXsize(64)
         #workflowA.controls.setWindowYsize(64)
-        #workflowA.controls.setOutputDriverGTiff()
-        workflowA.controls.setOutputDriverENVI()
+        workflowA.controls.setOutputDriverGTiff()
+        #workflowA.controls.setOutputDriverENVI()
         workflowA.run()
 
 
