@@ -1079,11 +1079,20 @@ class MapDock(Dock):
         self.updateTitle()
 
     def updateDockTitle(self):
+        """
+        Changes the dock title to "<initial name>:<basename 1st spatial layer>"
+         :return True if a new title was set
+        """
         layer = [QgsMapCanvasLayer(l).layer() for l in self.canvas.layers()]
+        newTitle = self.basename
         if len(layer) > 0:
             src = layer[0].source()
-            self.setTitle('{}:{}'.format(self.basename, os.path.basename(src)))
 
+            newTitle = '{}:{}'.format(self.basename, os.path.basename(src))
+        change = newTitle != self.title()
+        if change:
+            self.setTitle(newTitle)
+        return change
 
 
 class TextDock(Dock):
