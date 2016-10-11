@@ -821,9 +821,8 @@ class MapDock(Dock):
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
         self.canvas = MapCanvas(self)
-
-        if 'title' not in kwds.keys():
-            self.label.setText(str(self.canvas))
+        self.updateDockTitle()
+        #self.label.setText(self.basename)
         #self.canvas.setScaleLocked(True)
         self.canvas.sigDropEvent.connect(self.canvasDrop)
         self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
@@ -891,8 +890,7 @@ class MapDock(Dock):
             if isinstance(ds, DataSourceSpatial):
                 self.addLayer(ds.createMapLayer())
 
-    def updateTitle(self):
-        s = ""
+
 
     def identifyMessage(self, message):
         dprint('Identify message: {}'.format(message))
@@ -1076,7 +1074,7 @@ class MapDock(Dock):
                 mapLayer.setCacheImage(None)
                 newCanvasLayer.setCacheImage(None)
             self.canvas.refresh()
-        self.updateTitle()
+        self.updateDockTitle()
 
     def updateDockTitle(self):
         """
