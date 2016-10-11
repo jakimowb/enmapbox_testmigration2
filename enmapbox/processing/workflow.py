@@ -79,12 +79,12 @@ class BlockAssociations():
     def getBlock(self, key):
         return self._getBlock(key=key)
 
-    def __getitem__(self, key):
-        return self._getBlock(key=key)
+    #def __getitem__(self, key):
+    #    return self._getBlock(key=key)
 
-    def __setitem__(self, key, cube_meta):
-        cube, meta = cube_meta
-        return self._addBlock(key=key, cube=cube, meta=meta)
+    #def __setitem__(self, key, cube_meta):
+    #    cube, meta = cube_meta
+    #    return self._addBlock(key=key, cube=cube, meta=meta)
 
     def keys(self): return self._blockAssociations.__dict__.keys()
 
@@ -104,6 +104,24 @@ class BlockAssociations():
         assert isinstance(meta, GDALMeta)
         return meta
 
+    def getStackBA(self, filter=None):
+
+        outcube = list()
+        outmeta = GDALMeta()
+        bandNames = list()
+        if filter is None:
+            keys = self.keys()
+        else:
+            keys = filter(self)
+        for key in keys:
+            cube, meta = self.getBlock(key=key)
+            outcube.append(cube)
+            #bandNames.extend([key+'_'+bandName for bandName in meta.getBandNames()])
+            bandNames.extend(meta.getBandNames())
+        outcube = numpy.vstack(outcube)
+        outmeta.setBandNames(bandNames)
+        stack = ImageBA(cube=outcube, meta=outmeta)
+        return stack
 
 class FilenameAssociations():
 
@@ -179,10 +197,14 @@ class FilenameAssociations():
         for dirname in dirnames:
             mkdir(dirname)
 
-
 class ImageBA(BlockAssociations):
 
     key = 'image'
+
+    def __init__(self, cube=None, meta=None):
+        BlockAssociations.__init__(self)
+        if cube is not None and meta is not None:
+            self.addBlock(cube=cube, meta=meta)
 
     def addBlock(self, cube, meta):
         self._addBlock(key=self.key, cube=cube, meta=meta)
@@ -348,7 +370,7 @@ class ProductCollectionBA(BlockAssociationsCollection):
                 filteredCollection.append(productBA)
         return filteredCollection
 
-    def getStack(self, productName):
+    def getStack(self):
 
         outcube = list()
         bandNames = list()
@@ -750,10 +772,29 @@ def testExtractSampleFromProductCollection():
     labelsFA = ImageFA(r'C:\Work\data\gms\lucasMGRS\33\33UUT\lucas\lucas_lc4.img')
     sampledProductCollectionFA = productCollectionFA.extractByMask(maskFA=labelsFA, dirname=r'C:\Work\data\gms\landsatXMGRS_ENVI_extracted\33\33UUT')
 
+def testStackFromBlockAssociations():
+
+    class W(Workflow):
+        def apply(self, info):
+            landsatBandsBA = assertType(self.inputs.landsatBands, BlockAssociations)
+
+            # define filter function for stacking order
+            def filter(blockAssociations):
+                assert isinstance(blockAssociations, BlockAssociations)
+
+
+            self.outputs.landsatStack = landsatBandsBA.getStackBA()
+
+    w = W()
+    w.infiles.landsatBands = ProductFA(r'C:\Work\data\gms\landsat\193\024\LC81930242015276LGN00')
+    w.outfiles.landsatStack = ImageFA( r'C:\Work\data\gms\landsat_stack\193\024\LC81930242015276LGN00')
+    w.run()
+
+
 
 if __name__ == '__main__':
     tic()
-    testIOImage()
+    #testIOImage()
     #testIOCollection()
     #testIOProduct()
     #testIOBenchmark()
@@ -761,5 +802,18 @@ if __name__ == '__main__':
     #testIOParameters()
     #testExtractSampleFromProduct()
     #testExtractSampleFromProductCollection()
-
+    testStackFromBlockAssociations()
     toc()
+
+'''
+BlockAssociations
+-getBlocks() # (cube,meta) list
+
+FilenameAssociations
+-getFilenames() # filenames list
+
+
+ImageBA(BlockAssociations)
+ImageCollection(BlockAssociations)
+
+'''
