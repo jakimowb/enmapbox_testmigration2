@@ -325,7 +325,6 @@ class DockArea(pyqtgraph.dockarea.DockArea):
     sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
     sigDropEvent = pyqtSignal(QDropEvent)
 
-
     def __init__(self, *args, **kwds):
         super(DockArea, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
@@ -376,17 +375,13 @@ class Dock(pyqtgraph.dockarea.Dock):
         super(Dock, self).__init__(name=name, closable=False, *args, **kwds)
 
         self.enmapbox = enmapboxInstance
-
-
-        self.title = name
         self.setStyleSheet('background:#FFF')
 
-        #change the enmapbox-like things
+        #replace PyQtGraph Label by EnmapBox labels (could be done by inheritances as well)
+        title = self.title()
         self.topLayout.removeWidget(self.label)
         del self.label
-
-
-        self.label = self._getLabel()
+        self.label = self._createLabel(title=title)
         self.topLayout.addWidget(self.label, 0, 1)
 
         if closable:
@@ -432,12 +427,12 @@ class Dock(pyqtgraph.dockarea.Dock):
         self.enmapbox.DOCKS.add(self)
 
 
-    def _getLabel(self):
+    def _createLabel(self, *args, **kwds):
         """
-        This functions returns the Label that is used to style the Dock
+        Overide this function to provide a dock-specific label
         :return:
         """
-        return DockLabel(self)
+        return DockLabel(self,  *args, **kwds)
 
     def append_hv_style(self, stylestr):
         obj_name = type(self).__name__
@@ -472,7 +467,7 @@ class DockLabel(VerticalLabel):
         self.fixedWidth = False
         self.dock = dock
         if title is None:
-            title = self.dock.title
+            title = self.dock.title()
         VerticalLabel.__init__(self, title, orientation='horizontal', forceWidth=False)
         self.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
 
@@ -814,21 +809,19 @@ class MapCanvas(QgsMapCanvas):
 
 
 class MapDock(Dock):
-
     """
     A dock to visualize geodata that can be mapped
     """
     def __init__(self, *args, **kwds):
         initSrc = kwds.pop('initSrc', None)
-
-
-
         super(MapDock, self).__init__(*args, **kwds)
+        self.basename = self.title()
 
         #self.actionLinkExtent = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Link to map extent', self)
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
         self.canvas = MapCanvas(self)
+
         if 'title' not in kwds.keys():
             self.label.setText(str(self.canvas))
         #self.canvas.setScaleLocked(True)
@@ -897,6 +890,9 @@ class MapDock(Dock):
             ds = self.enmapbox.addSource(initSrc)
             if isinstance(ds, DataSourceSpatial):
                 self.addLayer(ds.createMapLayer())
+
+    def updateTitle(self):
+        s = ""
 
     def identifyMessage(self, message):
         dprint('Identify message: {}'.format(message))
@@ -1031,8 +1027,8 @@ class MapDock(Dock):
             event.acceptProposedAction()
 
 
-    def _getLabel(self):
-        return MapDockLabel(self)
+    def _createLabel(self, *args, **kwds):
+        return MapDockLabel(self, *args, **kwds)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -1080,6 +1076,13 @@ class MapDock(Dock):
                 mapLayer.setCacheImage(None)
                 newCanvasLayer.setCacheImage(None)
             self.canvas.refresh()
+        self.updateTitle()
+
+    def updateDockTitle(self):
+        layer = [QgsMapCanvasLayer(l).layer() for l in self.canvas.layers()]
+        if len(layer) > 0:
+            src = layer[0].source()
+            self.setTitle('{}:{}'.format(self.basename, os.path.basename(src)))
 
 
 
