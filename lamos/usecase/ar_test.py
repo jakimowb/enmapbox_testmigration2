@@ -1,11 +1,13 @@
-from hub.datetime import Date
-from hub.timing import tic, toc
-from lamos.operators.compositing import CompositingApplier, StatisticsApplier
+from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
-from lamos.operators.ml import ClassifierPredictApplier, SampleReadApplier
+from lamos.operators.compositing import CompositingApplier, StatisticsApplier
+from lamos.operators.ml import ClassifierPredictApplier, SampleReadApplier, rand
 from lamos.operators.stack import StackApplier
-from lamos.processing.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
 
+from hub.timing import tic, toc
+from hub.datetime import Date
+
+import sys
 
 def test():
 
@@ -15,8 +17,6 @@ def test():
     folder1 = r'C:\Work\data\gms\landsat'
     folder2 = r'C:\Work\data\gms\landsatX'
     folder3 = r'C:\Work\data\gms\landsatXMGRS'
-    folder3a = r'C:\Work\data\gms\landsatXMGRS_ENVI'
-
     folder4 = r'C:\Work\data\gms\landsatTimeseriesMGRS'
     folder4a = r'C:\Work\data\gms\landsatTimeseriesMGRS_ENVI'
     folder4b = r'C:\Work\data\gms\landsatTimeseriesMGRS_GTiff'
@@ -40,8 +40,8 @@ def test():
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=10)
 
-    MGRSArchive(folder3).saveAsENVI(outfolder=folder3a, processes=1)
-    return
+    #MGRSArchive(folder3).saveAsGTiff(folder3b, processes=10)
+
     tsBuilder = TimeseriesBuilder(start=None, end=None)
     tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=10)
 
@@ -102,7 +102,7 @@ def test():
     sampleReader.appendFeatures()
     samples = sampleReader.apply()
 
-    rfc = randomForestFit(samples)
+    rfc = randomForestFrandomForestit(samples)
 
     predictor = ClassifierPredictApplier(infolder=folder1, inextension='.img', outfolder=folder3, classifier=rfc)
     predictor.apply()

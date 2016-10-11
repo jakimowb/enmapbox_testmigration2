@@ -14,6 +14,8 @@ from hub.datetime import Date
 from hub.timing import tic, toc
 from hub.temp import Temporary
 from enmapbox.processing.types import Image, Mask
+from multiprocessing.pool import ThreadPool
+from multiprocessing import Pool
 
 def assertType(obj, type):
     assert isinstance(obj, type) # makes PyCharm aware of the type!
@@ -79,12 +81,12 @@ class BlockAssociations():
     def getBlock(self, key):
         return self._getBlock(key=key)
 
-    def __getitem__(self, key):
-        return self._getBlock(key=key)
+    #def __getitem__(self, key):
+    #    return self._getBlock(key=key)
 
-    def __setitem__(self, key, cube_meta):
-        cube, meta = cube_meta
-        return self._addBlock(key=key, cube=cube, meta=meta)
+    #def __setitem__(self, key, cube_meta):
+    #    cube, meta = cube_meta
+    #    return self._addBlock(key=key, cube=cube, meta=meta)
 
     def keys(self): return self._blockAssociations.__dict__.keys()
 
@@ -104,6 +106,24 @@ class BlockAssociations():
         assert isinstance(meta, GDALMeta)
         return meta
 
+    def getStackBA(self, filter=None):
+
+        outcube = list()
+        outmeta = GDALMeta()
+        bandNames = list()
+        if filter is None:
+            keys = self.keys()
+        else:
+            keys = filter(self)
+        for key in keys:
+            cube, meta = self.getBlock(key=key)
+            outcube.append(cube)
+            #bandNames.extend([key+'_'+bandName for bandName in meta.getBandNames()])
+            bandNames.extend(meta.getBandNames())
+        outcube = numpy.vstack(outcube)
+        outmeta.setBandNames(bandNames)
+        stack = ImageBA(cube=outcube, meta=outmeta)
+        return stack
 
 class FilenameAssociations():
 
@@ -179,10 +199,14 @@ class FilenameAssociations():
         for dirname in dirnames:
             mkdir(dirname)
 
-
 class ImageBA(BlockAssociations):
 
     key = 'image'
+
+    def __init__(self, cube=None, meta=None):
+        BlockAssociations.__init__(self)
+        if cube is not None and meta is not None:
+            self.addBlock(cube=cube, meta=meta)
 
     def addBlock(self, cube, meta):
         self._addBlock(key=self.key, cube=cube, meta=meta)
@@ -259,8 +283,8 @@ class ProductFA(FilenameAssociations):
     def extractByMask(self, maskFA, dirname):
 
         assert isinstance(maskFA, ImageFA)
-        self._linkInputFiles()
 
+        self._linkInputFiles()
         resultFA = self.__class__(dirname=dirname)
         mask = Mask(maskFA.filename)
         for infilename, imageKey in self._keyLookup.items():
@@ -348,7 +372,7 @@ class ProductCollectionBA(BlockAssociationsCollection):
                 filteredCollection.append(productBA)
         return filteredCollection
 
-    def getStack(self, productName):
+    def getStack(self):
 
         outcube = list()
         bandNames = list()
@@ -363,7 +387,6 @@ class ProductCollectionBA(BlockAssociationsCollection):
 
         stack = ImageBA().addBlock(cube=outcube, meta=outmeta)
         return stack
-
 
 class ProductCollectionFA(FilenameAssociationsCollection):
 
@@ -416,18 +439,58 @@ class ProductCollectionFA(FilenameAssociationsCollection):
         self.filterDateEnd = end
         return self
 
-    def extractByMask(self, maskFA, dirname):
+    @staticmethod
+    def extractByMask_mapFunction(args):
+        indirname, outdirname, maskfilename, ProductFAClass = args
+        if not os.path.exists(outdirname):
+            print(outdirname)
+            maskFA = ImageFA(filename=maskfilename)
+            inproductFA = ProductFAClass(dirname=indirname)
+            inproductFA.extractByMask(maskFA=maskFA, dirname=outdirname)
+
+    def extractByMask(self, maskFA, dirname, processes=1):
         assert isinstance(maskFA, ImageFA)
         self._linkInputFiles()
 
         resultFA = self.__class__(dirname=dirname)
 
-        for inproductFA in self.collection:
+        '''for inproductFA in self.collection:
             outdirname = os.path.join(dirname, inproductFA.productName)
             outproductFA = inproductFA.extractByMask(maskFA=maskFA, dirname=outdirname)
+            resultFA.append(filenameAssociations=outproductFA)'''
+
+
+        def yieldArgs():
+            for inproductFA in self.collection:
+                indirname = inproductFA.dirname
+                outdirname = os.path.join(dirname, inproductFA.productName)
+                maskfilename = maskFA.filename
+                yield indirname, outdirname, maskfilename, self.ProductFAClass
+
+        if processes == 1:
+            for args in yieldArgs():
+                ProductCollectionFA_extractByMask_mapFunction(args)
+        else:
+            #pool = ThreadPool(processes=processes)
+            pool = Pool(processes=processes)
+            pool.map(ProductCollectionFA_extractByMask_mapFunction, yieldArgs())
+            pool.close()
+
+        for indirname, outdirname, maskfilename, ProductFAClass in yieldArgs():
+            outproductFA = self.ProductFAClass(dirname=outdirname)
             resultFA.append(filenameAssociations=outproductFA)
 
         return resultFA
+
+#ProductCollectionFA_extractByMask_mapFunction = ProductCollectionFA.extractByMask_mapFunction
+def ProductCollectionFA_extractByMask_mapFunction(args):
+    indirname, outdirname, maskfilename, ProductFAClass = args
+    if not os.path.exists(outdirname):
+        print(outdirname)
+        maskFA = ImageFA(filename=maskfilename)
+        inproductFA = ProductFAClass(dirname=indirname)
+        inproductFA.extractByMask(maskFA=maskFA, dirname=outdirname)
+
 
 class WorkflowFilenameAssociations():
     # container for workflow input/output files
@@ -750,10 +813,29 @@ def testExtractSampleFromProductCollection():
     labelsFA = ImageFA(r'C:\Work\data\gms\lucasMGRS\33\33UUT\lucas\lucas_lc4.img')
     sampledProductCollectionFA = productCollectionFA.extractByMask(maskFA=labelsFA, dirname=r'C:\Work\data\gms\landsatXMGRS_ENVI_extracted\33\33UUT')
 
+def testStackFromBlockAssociations():
+
+    class W(Workflow):
+        def apply(self, info):
+            landsatBandsBA = assertType(self.inputs.landsatBands, BlockAssociations)
+
+            # define filter function for stacking order
+            def filter(blockAssociations):
+                assert isinstance(blockAssociations, BlockAssociations)
+
+
+            self.outputs.landsatStack = landsatBandsBA.getStackBA()
+
+    w = W()
+    w.infiles.landsatBands = ProductFA(r'C:\Work\data\gms\landsat\193\024\LC81930242015276LGN00')
+    w.outfiles.landsatStack = ImageFA( r'C:\Work\data\gms\landsat_stack\193\024\LC81930242015276LGN00')
+    w.run()
+
+
 
 if __name__ == '__main__':
     tic()
-    testIOImage()
+    #testIOImage()
     #testIOCollection()
     #testIOProduct()
     #testIOBenchmark()
@@ -761,5 +843,18 @@ if __name__ == '__main__':
     #testIOParameters()
     #testExtractSampleFromProduct()
     #testExtractSampleFromProductCollection()
-
+    testStackFromBlockAssociations()
     toc()
+
+'''
+BlockAssociations
+-getBlocks() # (cube,meta) list
+
+FilenameAssociations
+-getFilenames() # filenames list
+
+
+ImageBA(BlockAssociations)
+ImageCollection(BlockAssociations)
+
+'''

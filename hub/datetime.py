@@ -9,12 +9,15 @@ class Date(datetime.date):
         date = datetime.date(year=year, month=1, day=1) + datetime.timedelta(days=doy-1)
         return Date(year=date.year, month=date.month, day=date.day)
 
-
     @staticmethod
     def fromText(text):
         # text format: yyyy-mm-dd
         return Date(year=int(text[0:4]), month=int(text[5:7]), day=int(text[8:10]))
 
+    @staticmethod
+    def fromLandsatSceneID(sceneID):
+        # format e.g LE72240712013159CUB00
+        return Date.fromYearDoy(year=int(sceneID[9:13]), doy=int(sceneID[13:16]))
 
     @property
     def doy(self):

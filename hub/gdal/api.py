@@ -67,7 +67,7 @@ class GDALMetaDomain():
         if update is False:
             self.meta = dict()
         for key, value in meta.items():
-            self.setMetadataItemAsString(key, value)
+            self.setMetadataItemAsString(key, value.strip())
 
     def setMetadataItem(self, key, value):
 
@@ -94,9 +94,9 @@ class GDALMetaDomain():
 
         # convert arrays
         if string.startswith('{') and string.endswith('}'):
-            return string[1:-1].split(',')
+            return map(str.strip, string[1:-1].split(','))
 
-        return string.strip(' ')
+        return string.strip()
 
     def convertValueToString(self, key, value):
 
@@ -207,7 +207,8 @@ class GDALMeta():
             if bandName == '':
                 bandName = 'Band ' + str(i)
             bandNames.append(bandName)
-        self.setMetadataItem('band names', bandNames)
+        if self.getMetadataItem('band names') is None:
+            self.setMetadataItem('band names', bandNames)
 
         # Treat a single band image with color table and category names like an ENVI Classification image.
         # Number of classes must be infered from the number of categories, because color tables from GTiff always

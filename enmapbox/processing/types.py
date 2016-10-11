@@ -269,11 +269,11 @@ class ImageStatistics(Type):
             bandNames = [s + ' ' + wlUnits for s in bandNames]
         if self.image.meta.getMetadataItem('wavelength') != None:
             bandNames = [s + ')' for s in bandNames]
-        rowSpans = None
-        colSpans = [[1,1,1,1,1,1,1]]
-        rowHeaders = None
+
+
+
         data = numpy.transpose([bandColumn,bandNames,self.getStatistic('count'),numpy.array(self.getStatistic('count'))-numpy.array(self.getStatistic('countValid')),self.getStatistic('countValid'),self.getStatistic('min'),self.getStatistic('max')])
-        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans, attribs_align='left'))
+        report.append(ReportTable(data, '', colHeaders=colHeaders, attribs_align='left'))
 
         #report.append(ReportParagraph('bands = ' + str(self.getStatistic('band'))))
         #report.append(ReportParagraph('mins = ' + str(self.getStatistic('min'))))
@@ -329,10 +329,11 @@ class ImageStatistics(Type):
                        ,edgecolor = 'k'
                        ,align='center')
                 xticks = ax.xaxis.get_major_ticks()
-                xticks[0].label1.set_visible(False)
+                #xticks[0].label1.set_visible(False)
                 ax.set_ylabel('counts')
                 ax.set_title('Pixel per class', y=1.05)
-                ax.set_xticklabels((self.image.meta.getMetadataItem('class names')))
+                ax.set_xticks(range(self.getStatistic('hist')[0].__len__()))
+                ax.set_xticklabels((self.image.meta.getMetadataItem('class names')[1:]))
                 plt.xticks(rotation=35)
                 plt.tight_layout()
                 ax.tick_params('both', length=10, direction='out', pad=10)

@@ -9,6 +9,8 @@ import hub.envi
 import rios.applier
 import numpy
 from enmapbox import processing
+from enmapbox.processing.types import Meta
+
 from enmapbox.processing.applier import ApplierHelper
 from hub.timing import tic, toc
 from multiprocessing.pool import ThreadPool
@@ -171,17 +173,15 @@ class MGRSFootprint(Footprint):
         else:
             raise Exception('snap: unknown option')
 
-        # round snapping offset
-        if ul_xoff > pixelSize / 2.: ul_xoff -= pixelSize
-        if ul_yoff > pixelSize / 2.: ul_yoff -= pixelSize
-        if lr_xoff > pixelSize / 2.: lr_xoff -= pixelSize
-        if lr_yoff > pixelSize / 2.: lr_yoff -= pixelSize
+        if snap is not None:
+            # round snapping offset
+            if ul_xoff > pixelSize / 2.: ul_xoff -= pixelSize
+            if ul_yoff > pixelSize / 2.: ul_yoff -= pixelSize
+            if lr_xoff > pixelSize / 2.: lr_xoff -= pixelSize
+            if lr_yoff > pixelSize / 2.: lr_yoff -= pixelSize
 
         ul = (ul_x - ul_xoff, ul_y - ul_yoff)
         lr = (lr_x - lr_xoff, lr_y - lr_yoff)
-
-        #ul = (self.ul[0] - ul_xoff - buffer, self.ul[1] - ul_yoff + buffer)
-        #lr = (self.lr[0] - lr_xoff + buffer, self.lr[1] - lr_yoff - buffer)
 
         return ul, lr
 
@@ -292,9 +292,12 @@ class SensorXComposer:
             inbands = [1] * len(infiles)
 
             if os.path.exists(outfile): continue
+
+            # dirty quick fix to habdle .tif and .img extensions in one archive
+            if not os.path.exists(infiles[0]): continue
             hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
 
-            meta = processing.Meta(outfile)
+            meta = Meta(outfile)
             meta.setBandNames(imageStack.metas['band names'])
             meta.setNoDataValue(imageStack.metas['data ignore value'])
             for key, value in imageStack.metas.items():
@@ -541,15 +544,15 @@ class MGRSTilingScheme(Type):
                     t_srs = ' -t_srs  EPSG:326' + mgrsFootprint.utm
                     overwrite = ' -overwrite'
                     multi = ' -multi'
-                    wm = ' --config GDAL_CACHEMAX 5000 -wm 5000'
+                    wm = '' #'' --config GDAL_CACHEMAX 1000 -wm 1000'
                     options = of + overwrite + t_srs + tr + te + multi + wm
                     hub.gdal.util.gdalwarp(outfile=outfile,
                                            infile=infile,
                                            options=options, verbose=False)
 
                 # prepare meta information
-                inmeta = processing.Meta(infile)
-                outmeta = processing.Meta(outfile)
+                inmeta = Meta(infile)
+                outmeta = Meta(outfile)
                 outmeta.setMetadataDict(inmeta.getMetadataDict())
                 outmeta.writeMeta(outfile)
 
