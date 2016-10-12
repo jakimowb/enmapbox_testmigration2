@@ -10,9 +10,9 @@ from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArc
 def getCube(name, inputs, bbl=None):
 
     # return cube if already exist...
-    if name in inputs.__dict__:
+    if inputs.__dict__.has_key(name):
         result = inputs.__dict__[name]
-    elif 'timeseries_'+name in inputs.__dict__:
+    elif inputs.__dict__.has_key('timeseries_'+name):
         result = inputs.__dict__['timeseries_'+name]
 
     # ...or create and cache it otherwise
@@ -37,8 +37,12 @@ def getCube(name, inputs, bbl=None):
             result = numpy.zeros_like(inputs.timeseries_cfmask, dtype=numpy.float32)
             for i, name in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
                 result += coeff[i] * inputs.__dict__['timeseries_' + name]
-
-
+        elif name=='msavi2':
+            #msavi2 = (2*nir + 1 - sqrt((2*nir+1)^2 - 8*(nir-red))) / 2
+            nir = inputs.timeseries_nir / 10000.
+            red = inputs.timeseries_red / 10000.
+            result = (2*nir + 1 - numpy.sqrt((2*nir+1)**2 - 8*(nir-red))) / 2
+        # http: // wiki.landscapetoolbox.org / doku.php / remote_sensing_methods:modified_soil - adjusted_vegetation_index
         else:
                 raise Exception('Unknown cube requested: '+name)
         inputs.__dict__[name] = result
@@ -113,7 +117,7 @@ def plotScaleFunctions():
     plotScaleFunction(x, scaleLinearMinMax(x, min, max))
 
 def plotScaleFunction(x, y):
-    for xi,yi in zip(x,y): print(xi, ',', round(yi,2))
+    for xi,yi in zip(x,y): print xi, ',', round(yi,2)
 
     import matplotlib.pyplot as plt
     plt.plot(x, y, linewidth=2)
@@ -276,7 +280,7 @@ def scorePG(inputs, inmeta, info):
 
           (scoreHazeOptimizedTransformation, {}, 0.75),
           (scoreNDVI,                        {}, 0.25),
-          #(scoreSensor,                      {}, 0.75),
+          (scoreSensor,                      {}, 0.75),
           #(scoreSynopticity,                 {}, 0.75),
           (scoreTargetDoy,                   {}, 1.00),
           (scoreTargetYear,                  {}, 1.00)
@@ -375,8 +379,8 @@ class CompositingApplier(Applier):
         # prepare some meta infos
         inputDates = numpy.array(getMeta('date', inmetas))
         inputDoys = numpy.array(getMeta('doy', inmetas)).astype(numpy.int16)
-        #inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
-        #inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
+        inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
+        inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
         bands, samples, lines = inputs.timeseries_cfmask.shape
 
         # cast to float and set invalid observations to NaN
@@ -489,7 +493,7 @@ class StatisticsApplier(Applier):
                 for key in otherArgs.variables:
 
                     input = getCube(name=key, inputs=inputs, bbl=bbl)
-                    if key in ['ndvi', 'nbr']:
+                    if key in ['ndvi', 'nbr', 'msavi2']:
                         input *= 10000
 
                     # - percentiles
@@ -545,7 +549,7 @@ class StatisticsApplier(Applier):
 
     def __init__(self, infolder, outfolder, inextension, footprints=None, of='ENVI',
                  percentiles=[0,5,25,50,75,95,100],
-                 variables=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr'],
+                 variables=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'msavi2'],
                  mean=True, stddev=True):
 
         Applier.__init__(self, footprints=footprints, of=of)

@@ -53,6 +53,7 @@ def classification():
         Progress.setInfo(classifier.name())
         classifier = classifier.fit(image, labels, progress=Progress)
         classifier.report().saveHTML().open()
+        classifier.pickle(filename=r'c:\work\rfc.model')
         continue
         classifier.predict(image, mask, filename=os.path.join(outroot, classifier.name()), progress=Progress)
         try:
