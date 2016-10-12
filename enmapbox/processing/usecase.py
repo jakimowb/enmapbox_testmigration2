@@ -70,7 +70,7 @@ def regression():
 
     #regressors = all(Regressors)
     #regressors = [Regressors.DummyRegressor()]
-    regressors = [Regressors.LinearSVRTuned()]
+   # regressors = [Regressors.LinearSVRTuned()]
     regressors = [Regressors.RandomForestRegressor(oob_score=True)]
 
     for regressor in regressors:
@@ -106,8 +106,8 @@ def transformer():
     trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
     #transformers = all(Transformers)
-    transformers = [Transformers.RobustScaler()]
-    #transformers = [Transformers.PCA(n_components=0.99999)]
+    #transformers = [Transformers.RobustScaler()]
+    transformers = [Transformers.PCA(n_components=0.99999)]
 
     for transformer in transformers:
 
@@ -206,11 +206,12 @@ def probabilityAccAss():
 def statisticsForImage():
 
     #image = Image(os.path.join(inroot, 'AF_Image'))
-    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-B_Image'))
     image.statistics().info()
 
 def statisticsForClassification():
 
+    #image = Classification(os.path.join(inroot,  'AF_LC'))
     image = Classification(os.path.join(inroot,  'Hymap_Berlin-A_Classification-Training-Sample'))
     image.statistics().info()
 
@@ -341,7 +342,7 @@ if __name__ == '__main__':
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    classification()
+    #classification()
     #regression()
     #clusterer()
     #transformer()
@@ -352,8 +353,8 @@ if __name__ == '__main__':
     #classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
-    probabilityAccAss()
-    #statisticsForImage()
+    #probabilityAccAss()
+    statisticsForImage()
     #statisticsForClassification()
     #importENVISpeclib()
     #saveImageAs()
