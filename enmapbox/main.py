@@ -58,8 +58,9 @@ class DataSourceManagerTreeModel(QAbstractItemModel):
     #columnames = ['Name','Description']
     columnames = ['Name']
 
-    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile, DataSourceModel]
-    SourceTypeNames = ['Raster', 'Vector', 'File','Model']
+    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile,
+                   DataSourceModel, DataSourceTextFile, DataSourceXMLFile]
+    SourceTypeNames = ['Raster', 'Vector', 'File','Model', 'Text', 'Text']
 
 
     def getSourceTypeName(self, dataSource):
@@ -662,14 +663,22 @@ class EnMAPBox:
         #todo: ensure unique mapdock names
 
         assert docktype in ['MAP','TEXT']
+        if 'name' not in kwds.keys():
+            kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
+
         if docktype == 'MAP':
             dock = MapDock(self, *args, **kwds)
         elif docktype == 'TEXT':
             dock = TextDock(self, *args, **kwds)
 
         existing = self.dockarea.findAll()
-        self.dockarea.addDock(dock,*args, **kwds)
+        state = self.dockarea.saveState()
+        main = state['main']
+        if main:
+            #todo: add "balanced" to existing docks
+            n_vertical = n_horizontal = 0
 
+        self.dockarea.addDock(dock, *args, **kwds)
         self.DOCKS.add(dock)
         return dock
         #dock.sigClosed.connect(lambda : self.removeDock(dock))
@@ -705,10 +714,12 @@ class EnMAPBox:
 
         model = tv.model()
         if index.isValid():
+            treeItem = model.data(index, 'TreeItem')
             itemData = model.data(index, Qt.UserRole)
 
-            if itemData:
+            if itemData or len(treeItem.actions) > 0:
                 menu = QMenu()
+                #append dynamic parts reactive to opened docks etc
                 if isinstance(itemData, DataSource):
                     if isinstance(itemData, DataSourceSpatial):
                         mapDocks = [d for d in self.DOCKS if isinstance(d, MapDock)]
@@ -729,7 +740,12 @@ class EnMAPBox:
                 else:
                     action = QAction('Copy', menu)
                     action.triggered.connect(lambda: QApplication.clipboard().setText(str(itemData)))
-                menu.addAction(action)
+                #append item specific menue
+                if len(treeItem.actions) > 0:
+                    for action in treeItem.actions:
+                        #action.setParent(menu)
+                        menu.addAction(action)
+
                 menu.exec_(tv.viewport().mapToGlobal(point))
 
 
@@ -814,15 +830,16 @@ if __name__ == '__main__':
     EB = EnMAPBox(None)
     #EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
     if True:
-        EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
-        EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
-        EB.createDock('MAP', name='MapDock 4', initSrc=TestData.AF_LC)
+        #EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
+        # EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
+        EB.createDock('MAP', initSrc=TestData.AF_LC)
         #EB.createDock('MAP', name='MapDock 3', initSrc=TestData.Landsat_Shp)
         if False:
-            EB.createDock('TEXT', name='TextDock',
-                                                 html='Here we can show HTML like text:'
-                                                      '<a href="http://www.enmap.org">www.enmap.org</a>'
-                                                      '</br>'+LORE_IPSUM)
+            pass
+        EB.createDock('TEXT',
+                      html='Here we can show HTML like text:'
+                           '<a href="http://www.enmap.org">www.enmap.org</a>'
+                           '</br>'+LORE_IPSUM)
 
         if True:
             # register new model

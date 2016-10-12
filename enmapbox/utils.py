@@ -9,6 +9,7 @@ import enmapbox
 dprint = enmapbox.dprint
 
 
+
 def jp(*args, **kwds):
     return os.path.join(*args, **kwds)
 
@@ -158,7 +159,7 @@ class TreeItem(QObject):
     Item to be places in a TreeView
     """
     def __init__(self, parent, name, data=None, icon=None,
-                 tooltip=None, mimeData=None):
+                 tooltip=None, mimeData=None, actions=None):
         super(TreeItem, self).__init__()
         self._parent = parent
         self.name = name
@@ -170,13 +171,15 @@ class TreeItem(QObject):
         #decoration role stuff
         self.icon = icon
         self.tooltip = tooltip
-
+        self.actions = list() if actions is None else actions
         self._mimeData = QMimeData() if mimeData is None else mimeData
-        self.actions = []
+
+
 
         if parent:
             assert isinstance(parent, TreeItem)
             parent.appendChild(self)
+
 
     def mimeData(self):
         mimeCopy = QMimeData()

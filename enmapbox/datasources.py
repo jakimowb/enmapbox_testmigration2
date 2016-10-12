@@ -12,6 +12,19 @@ from osgeo import gdal, ogr
 import enmapbox
 dprint = enmapbox.dprint
 
+
+def openPlatformDefault(uri):
+    if os.path.isfile(uri):
+        if sys.platform == 'darwin':
+            os.system('open {}'.format(uri))
+
+        elif sys.platform.startswith('win'):
+            os.system('start {}'.format(uri))
+        else:
+            raise NotImplementedError('Unhandled platform {}'.format(sys.platform))
+    else:
+        raise NotImplementedError('Unhandled uri type {}'.format(uri))
+
 class DataSource(object):
     """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
 
@@ -84,6 +97,7 @@ class DataSource(object):
         assert uri is None or isinstance(uri, str)
         return uri
 
+
     @staticmethod
     def isEnMAPBoxModel(src):
         """
@@ -93,16 +107,18 @@ class DataSource(object):
         """
 
 
-        from enmapbox.processing import types
-        from enmapbox.processing.types import Estimator
         uri = None
         src = DataSource.srctostring(src)
         if isinstance(src, str) and os.path.exists(src):
+
             try:
+                from enmapbox.processing import types
+                from enmapbox.processing.types import Estimator
+
                 obj = types.unpickle(src)
                 if isinstance(obj, Estimator):
                     uri = src
-            except RuntimeError, e:
+            except Exception, e:
                 pass
         return uri
 
@@ -133,8 +149,14 @@ class DataSource(object):
         if uri is not None:
             return DataSourceModel(uri, name=name, icon=icon)
 
+        src = DataSource.srctostring(src)
         if isinstance(src, str):
             if os.path.isfile(src):
+                ext = os.path.splitext(src)[1].lower()
+                if ext in ['.csv','.txt']:
+                    return DataSourceTextFile(src, name=name, icon=icon)
+                if ext in ['.xml','.html']:
+                    return DataSourceXMLFile(src, name=name, icon=icon)
                 return DataSourceFile(src, name=name, icon=icon)
 
             reg = QgsMapLayerRegistry.instance()
@@ -188,7 +210,6 @@ class DataSource(object):
         :return:
         """
         mimeData = QMimeData()
-
         mimeData.setUrls([QUrl(self.getUri())])
         return TreeItem(parentItem, self.name,
                         data=self,
@@ -206,11 +227,9 @@ class DataSourceFile(DataSource):
         super(DataSourceFile, self).__init__(uri, name, icon)
 
     def getTreeItem(self, parent):
-        import enmapbox.main
-
         itemTop = super(DataSourceFile, self).getTreeItem(parent)
         infos = list()
-        infos.append('Path: {}'.format(self.uri))
+        infos.append('URI: {}'.format(self.uri))
         infos.append('Size: {}'.format(os.path.getsize(self.uri)))
         item = TreeItem(itemTop, 'File Information', tooltip='\n'.join(infos))
         item.addTextChilds(infos)
@@ -218,12 +237,37 @@ class DataSourceFile(DataSource):
         return itemTop
 
 class DataSourceTextFile(DataSourceFile):
-
+    """
+    Class to handle editable text files
+    """
     def __init__(self, uri, name=None, icon=None):
-        if icon is None:
-            icon = QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_FileIcon)
         super(DataSourceTextFile, self).__init__(uri, name, icon)
 
+    def getTreeItem(self, parent):
+        itemTop = super(DataSourceTextFile, self).getTreeItem(parent)
+
+        action = QAction('Open (default)', None)
+        action.triggered.connect(lambda: openPlatformDefault(self.uri))
+        itemTop.actions.append(action)
+        return itemTop
+
+
+
+class DataSourceXMLFile(DataSourceTextFile):
+    """
+    Class to specifically handle XML based files like XML, HTML etc.
+    """
+    def __init__(self, uri, name=None, icon=None):
+        super(DataSourceXMLFile, self).__init__(uri, name, icon)
+
+    def getTreeItem(self, parent):
+        itemTop = super(DataSourceXMLFile, self).getTreeItem(parent)
+
+        action = QAction('Open (web browser)', None)
+        import webbrowser
+        action.triggered.connect(lambda: webbrowser.open(self.uri))
+        itemTop.actions.append(action)
+        return itemTop
 
 
 class DataSourceSpatial(DataSource):
@@ -264,8 +308,29 @@ class DataSourceModel(DataSourceFile):
         from enmapbox.processing.types import Estimator
 
 
-        self.mode = model = types.unpickle(uri)
+        self.model = types.unpickle(uri)
 
+
+    def getTreeItem(self, parent):
+        itemTop = super(DataSourceModel, self).getTreeItem(parent)
+
+        itemModel = TreeItem(itemTop, self.model.name())
+
+
+        action = QAction('Open HTML Report', None)
+        action.triggered.connect(lambda: self.model.report().open())
+        itemModel.actions.append(action)
+
+        signature = self.model.signature()
+        signature = [s.strip() for s in re.split('[(,)]', signature)]
+        if len(signature) > 1:
+            itemSignature = TreeItem(itemModel, 'Signature')
+            itemSignature.addTextChilds(signature[1:])
+
+
+
+
+        return itemTop
 
 class DataSourceRaster(DataSourceSpatial):
 
@@ -273,7 +338,9 @@ class DataSourceRaster(DataSourceSpatial):
         super(DataSourceRaster, self).__init__(uri, name, icon)
 
         self._refLayer = self._createMapLayer(self.uri)
+        #lyr =QgsRasterLayer(self.uri, self.name, False)
         dp = self._refLayer.dataProvider()
+
 
         #change icon
         if dp.bandCount() == 1:
@@ -321,10 +388,10 @@ class DataSourceRaster(DataSourceSpatial):
             item.tooltip = '\n'.join(infos)
             item.addTextChilds(infos)
 
-        item = TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()))
+        itemBands = TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()))
 
         bandnames = [self._refLayer.bandName(b+1) for b in range(self._refLayer.bandCount())]
-
+        ds = None
         if dp.name() == 'gdal':
             ds = gdal.Open(dp.dataSourceUri())
             for b in range(ds.RasterCount):
@@ -334,9 +401,24 @@ class DataSourceRaster(DataSourceSpatial):
             infos=list()
             if dp.srcHasNoDataValue(b+1):
                 infos.append('No data : {}'.format(dp.srcNoDataValue(b+1)))
-            itemBand = TreeItem(item, bandnames[b])
+            itemBand = TreeItem(itemBands, bandnames[b])
             itemBand.tooltip = '\n'.join(infos)
             itemBand.addTextChilds(infos)
+            ct = dp.colorTable(b+1)
+            if len(ct) > 0:
+                if dp.bandCount() > 1 :
+                    itemClasses = TreeItem(itemBand, 'Classes')
+                else:
+                    itemClasses = TreeItem(itemTop, 'Classes')
+                for colorRampItem in ct:
+                    pixmap = QPixmap(100,100)
+                    pixmap.fill(colorRampItem.color)
+
+                    itemClass = TreeItem(itemClasses, colorRampItem.label, icon=QIcon(pixmap))
+
+
+
+
         return itemTop
 
 class DataSourceVector(DataSourceSpatial):
