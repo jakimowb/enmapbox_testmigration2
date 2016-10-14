@@ -136,7 +136,7 @@ class MGRSFootprint(Footprint):
             for feature in layer:
                 if feature.GetField('MGRS') == name:
                     e = feature.geometry().GetEnvelope()
-                    bb = map(int, map(round, (e[0], e[3], e[1], e[2])))
+                    bb = list(map(int, map(round, (e[0], e[3], e[1], e[2]))))
                     found = True
                     break
             if not found:

@@ -94,7 +94,7 @@ class GDALMetaDomain():
 
         # convert arrays
         if string.startswith('{') and string.endswith('}'):
-            return map(str.strip, string[1:-1].split(','))
+            return list(map(str.strip, string[1:-1].split(',')))
 
         return string.strip()
 
@@ -109,7 +109,7 @@ class GDALMetaDomain():
             return value
 
         if isinstance(value, collections.Sequence):
-            value = map(str, value)
+            value = list(map(str, value))
             return '{'+', '.join(value)+'}'
 
         return str(value)
