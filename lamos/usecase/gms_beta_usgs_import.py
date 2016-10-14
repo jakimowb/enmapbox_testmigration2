@@ -8,6 +8,7 @@ import argparse
 from lamos.processing.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
 from lamos.operators.landsat_x import LandsatXComposer
 from hub.timing import tic, toc
+from hub.datetime import Date
 
 def run(infolder, outfolder, tmpfolder, processes):
 
@@ -29,7 +30,7 @@ def run(infolder, outfolder, tmpfolder, processes):
     mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
 
     # create sensor x products
-    composer = LandsatXComposer()
+    composer = LandsatXComposer(start=Date(2015, 1, 1), end=Date(2016, 6, 30))
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=processes)
 
     # cut sensor x products
