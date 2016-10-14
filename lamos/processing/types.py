@@ -125,7 +125,7 @@ class MGRSFootprint(Footprint):
     @staticmethod
     def fromShp(name):
 
-        if MGRSFootprint.bb.has_key(name):
+        if name in MGRSFootprint.bb:
             bb = MGRSFootprint.bb[name]
         else:
             assert os.path.exists(MGRSFootprint.shpRoot), MGRSFootprint.shpRoot
