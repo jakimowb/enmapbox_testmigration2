@@ -176,6 +176,12 @@ class GDALColorTable():
 
 class GDALMeta():
 
+    @staticmethod
+    def fromGDALMeta(gdalMeta):
+        assert isinstance(gdalMeta, GDALMeta)
+        result = GDALMeta()
+
+
     def __init__(self, filename=None):
         self.domain = dict()
         self.filename = filename

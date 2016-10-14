@@ -482,8 +482,8 @@ class MGRSTilingScheme(Type):
         self.pixelSize = pixelSize
         self.pixelOrigin = [15,15]
 
-
-    def cacheMGRSFootprints(self, wrs2Footprints):
+    @staticmethod
+    def cacheMGRSFootprints(wrs2Footprints):
 
         for wrs2Footprint in wrs2Footprints:
             assert isinstance(wrs2Footprint, WRS2Footprint)
@@ -512,13 +512,7 @@ class MGRSTilingScheme(Type):
                 if mgrsFootprint.name not in mgrsFootprints:
                     continue
 
-            # - snap bounding box to target pixel grid
-            xoff = (mgrsFootprint.ul[0] - self.pixelOrigin[0]) % self.pixelSize
-            yoff = (mgrsFootprint.ul[1] - self.pixelOrigin[1]) % self.pixelSize
-
-            ul = (mgrsFootprint.ul[0] - xoff - buffer, mgrsFootprint.ul[1] - yoff + buffer)
-            lr = (mgrsFootprint.lr[0] - xoff + buffer, mgrsFootprint.lr[1] - yoff - buffer)
-
+            ul, lr = mgrsFootprint.getBoundingBox(buffer=buffer, snap='landsat')
 
             for image in product.yieldImages():
 
