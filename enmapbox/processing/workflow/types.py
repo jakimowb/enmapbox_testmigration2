@@ -47,7 +47,7 @@ class ApplierControls(rios.applier.ApplierControls):
         assert predictor in [0, 1, 2]
 
         self.setOutputDriverName('GTiff')
-        self.setCreationOptions(['INTERLEAVE='+interleave, 'TILED='+tiled,
+        self.setCreationOptions(['INTERLEAVE='+interleave, 'TILED='+tiled, 'BIGTIFF=YES',
                                  'BLOCKXSIZE='+str(blockxsize), 'BLOCKYSIZE='+str(blockysize),
                                  'COMPRESS='+compress, 'PREDICTOR='+str(predictor)])
 
@@ -70,7 +70,7 @@ class Image():
 
     def mapBlocksFromRios(self, riosBlockAssociations):
         assert isinstance(riosBlockAssociations, rios.applier.BlockAssociations)
-        imageBlock = ImageBlock(cube=getattr(riosBlockAssociations, self.filename), meta=self.meta)
+        imageBlock = ImageBlock(cube=getattr(riosBlockAssociations, self._filename), meta=self.meta)
         return imageBlock
 
     def mapBlocksToRios(self, imageBlock, riosBlockAssociations):

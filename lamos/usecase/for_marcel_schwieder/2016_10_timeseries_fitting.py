@@ -48,6 +48,7 @@ class Stacking(Workflow):
         for i, key in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
             setattr(self.outputs, key, ImageBlock(cube=sr[i], meta=srMeta))
 
+        print
 
 def test():
 
@@ -59,23 +60,11 @@ def test():
     composer.composeWRS2Archive(infolder=r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test', outfolder=r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_LandsatX', processes=20)
     return'''
 
-    workflow = Stacking()
-    workflow.infiles.scenes1 = ImageCollectionList(r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_LandsatX\221\070')
-    workflow.infiles.scenes2 = ImageCollectionList(r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_LandsatX\221\071')
-    workflow.outfiles.fmask = Image(r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_stacks\fmask')
-    for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2']:
-        setattr(workflow.outfiles, key, Image(os.path.join(r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_stacks_big', key)))
-
-    workflow.controls.setNumThreads(1)
-    workflow.controls.setOutputDriverGTiff()
-    #workflow.controls.setWindowXsize(10)
-    #workflow.controls.setWindowYsize(10)
-
     pixelGrid = pixelGridFromFile(r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test\221\071\LC82210712013162LGN00\LC82210712013162LGN00_cfmask.img')
 
-    print
     # very small test region inside the overlapping region of both footprints
     if 0:
+        outdir = r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_stacks_small'
         pixelGrid.xMin = 202425
         pixelGrid.yMin = -1680165
         pixelGrid.xMax = pixelGrid.xMin + 30*10
@@ -83,22 +72,33 @@ def test():
 
     # region provided by Marcel
     if 1:
+        outdir = r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_stacks_big_union'
         pixelGrid.xMin = 149655
         pixelGrid.xMax = 254025
-        pixelGrid.yMin = -1521285
-        pixelGrid.yMax = -1809825
-
-        pixelGrid.yMax = -1521285
         pixelGrid.yMin = -1809825
+        pixelGrid.yMax = -1521285
+
+    workflow = Stacking()
+    workflow.infiles.scenes1 = ImageCollectionList(r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_LandsatX\221\070')
+    workflow.infiles.scenes2 = ImageCollectionList(r'G:\Rohdaten\Brazil\Raster\LANDSAT\TS_RBF_test_LandsatX\221\071')
+    for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'fmask']:
+        setattr(workflow.outfiles, key, Image(os.path.join(outdir, key)))
+
+    workflow.controls.setNumThreads(1)
+    #workflow.controls.setOutputDriverGTiff()
+    workflow.controls.setOutputDriverENVI()
+
+    workflow.controls.setWindowXsize(256)
+    workflow.controls.setWindowYsize(256)
 
     workflow.controls.setReferencePixgrid(pixelGrid)
     workflow.controls.setResampleMethod('near')
+    workflow.controls.setFootprintType('UNION')
 
     workflow.run()
 
 if __name__ == '__main__':
 
     tic()
-
     test()
     toc()
