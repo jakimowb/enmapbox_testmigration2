@@ -302,4 +302,4 @@ if __name__ == '__main__':
         .append(ReportTable(data, 'Table with nested column and row headers', colHeaders, rowHeaders, colSpans, rowSpans)) \
         .append(ReportHyperlink('http://www.enmap.org/', 'Visit EnMAP!'))\
         .saveHTML().open()
-    print report.filename
+    print(report.filename)

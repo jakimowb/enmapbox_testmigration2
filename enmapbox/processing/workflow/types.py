@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 import rios.applier
 import rios.readerinfo
+from rios.pixelgrid import pixelGridFromFile, findCommonRegion, PixelGridDefn
 import numpy
 
 from hub.gdal.api import GDALMeta
@@ -237,7 +238,6 @@ class ImageCollectionList():
         for key, collection in self.collections.items():
             collectionBlock = listBlock.collections[key]
             collection.updateOutputMeta(collectionBlock=collectionBlock)
-
 
 class WorkflowFilenameAssociations():
     # container for workflow input/output files
@@ -495,6 +495,36 @@ def testIOImageCollectionList():
     workflow.controls.setOutputDriverGTiff()
     workflow.run()
 
+class MyWorkflowJustEnterAndHoldOnBreakPoint(Workflow):
+
+    def apply(self, info):
+        print()
+
+
+def testOnTheFlySubsetting():
+
+    workflow = MyWorkflowJustEnterAndHoldOnBreakPoint()
+    workflow.infiles.image1 = Image(r'C:\Work\data\gms\landsatX\194\024\LC81940242015235LGN00\LC81940242015235LGN00_qa.vrt')
+    workflow.infiles.image2 = Image(r'C:\Work\data\gms\landsatX\193\024\LC81930242015276LGN00\LC81930242015276LGN00_qa.vrt')
+    #workflow.infiles.image1 = ImageCollectionList(r'C:\Work\data\gms\landsatX\193\024')
+    #workflow.infiles.image2 = ImageCollectionList(r'C:\Work\data\gms\landsatX\194\024')
+
+    workflow.controls.setNumThreads(1)
+    workflow.controls.setOutputDriverGTiff()
+
+
+    pixelGrid1 = pixelGridFromFile(r'C:\Work\data\gms\landsatX\194\024\LC81940242015235LGN00\LC81940242015235LGN00_qa.vrt')
+    pixelGrid2 = pixelGridFromFile(r'C:\Work\data\gms\landsatX\193\024\LC81930242015276LGN00\LC81930242015276LGN00_qa.vrt')
+    pixelGrid2Reprojected = pixelGrid2.reproject(pixelGrid1)
+    pixelGrid = pixelGrid1.union(pixelGrid2Reprojected)
+    print(pixelGrid)
+    workflow.controls.setReferencePixgrid(pixelGrid)
+    workflow.controls.setResampleMethod('near')
+    workflow.controls.setFootprintType('UNION')
+    workflow.controls.setWindowXsize(99999)
+    workflow.controls.setWindowYsize(99999)
+    workflow.run()
+
 
 '''def testExtractSampleFromProduct():
 
@@ -532,7 +562,8 @@ if __name__ == '__main__':
     #testIOParameters()
     #testIOImage()
     #testIOImageCollection()
-    testIOImageCollectionList()
+    #testIOImageCollectionList()
+    testOnTheFlySubsetting()
 
 
     #testIOProductCollection()

@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from adodbapi.ado_consts import directions
+#from adodbapi.ado_consts import directions
 
 __author__ = 'janzandr'
 
