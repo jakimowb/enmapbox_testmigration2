@@ -213,11 +213,14 @@ class WRS2Footprint(Footprint):
 #                 '178034': '36', '177034': '36', '176034': '36', '173035': '37', '172035': '37'}
 
     @staticmethod
-    def createUtmLookup(infolder):
+    def createUtmLookup(infolder, filter=None):
         print('Create UTM Zone lookup')
         archive = WRS2Archive(infolder)
         for footprintFolder in archive.yieldFootprintFolders():
+            footprint = ''.join(os.path._abspath_split(footprintFolder)[2][2:])
+            if filter is not None and footprint not in filter: continue
             sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
+            if not os.path.isdir(sceneFolder): continue
             firstProduct = Product(sceneFolder, extensions=['.img','.tif'])
             firstImage = None
             for firstImage in firstProduct.yieldImages(): break
@@ -631,8 +634,6 @@ class ApplierInput():
 class ApplierOutput():
 
     def __init__(self, folder, productName, imageNames, extension):
-        if folder is not None:
-            assert isinstance(folder, basestring)
         assert isinstance(productName, str)
         assert isinstance(imageNames, list)
         self.folder = folder
