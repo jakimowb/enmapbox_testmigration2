@@ -94,7 +94,7 @@ class GDALMetaDomain():
 
         # convert arrays
         if string.startswith('{') and string.endswith('}'):
-            return map(str.strip, string[1:-1].split(','))
+            return list(map(str.strip, string[1:-1].split(',')))
 
         return string.strip()
 
@@ -109,7 +109,7 @@ class GDALMetaDomain():
             return value
 
         if isinstance(value, collections.Sequence):
-            value = map(str, value)
+            value = list(map(str, value))
             return '{'+', '.join(value)+'}'
 
         return str(value)
@@ -175,6 +175,12 @@ class GDALColorTable():
         return rgb
 
 class GDALMeta():
+
+    @staticmethod
+    def fromGDALMeta(gdalMeta):
+        assert isinstance(gdalMeta, GDALMeta)
+        result = GDALMeta()
+
 
     def __init__(self, filename=None):
         self.domain = dict()

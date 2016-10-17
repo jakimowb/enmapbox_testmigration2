@@ -125,7 +125,7 @@ class MGRSFootprint(Footprint):
     @staticmethod
     def fromShp(name):
 
-        if MGRSFootprint.bb.has_key(name):
+        if name in MGRSFootprint.bb:
             bb = MGRSFootprint.bb[name]
         else:
             assert os.path.exists(MGRSFootprint.shpRoot), MGRSFootprint.shpRoot
@@ -136,7 +136,7 @@ class MGRSFootprint(Footprint):
             for feature in layer:
                 if feature.GetField('MGRS') == name:
                     e = feature.geometry().GetEnvelope()
-                    bb = map(int, map(round, (e[0], e[3], e[1], e[2])))
+                    bb = list(map(int, map(round, (e[0], e[3], e[1], e[2]))))
                     found = True
                     break
             if not found:
@@ -213,11 +213,14 @@ class WRS2Footprint(Footprint):
 #                 '178034': '36', '177034': '36', '176034': '36', '173035': '37', '172035': '37'}
 
     @staticmethod
-    def createUtmLookup(infolder):
+    def createUtmLookup(infolder, filter=None):
         print('Create UTM Zone lookup')
         archive = WRS2Archive(infolder)
         for footprintFolder in archive.yieldFootprintFolders():
+            footprint = ''.join(os.path._abspath_split(footprintFolder)[2][2:])
+            if filter is not None and footprint not in filter: continue
             sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
+            if not os.path.isdir(sceneFolder): continue
             firstProduct = Product(sceneFolder, extensions=['.img','.tif'])
             firstImage = None
             for firstImage in firstProduct.yieldImages(): break
@@ -482,8 +485,8 @@ class MGRSTilingScheme(Type):
         self.pixelSize = pixelSize
         self.pixelOrigin = [15,15]
 
-
-    def cacheMGRSFootprints(self, wrs2Footprints):
+    @staticmethod
+    def cacheMGRSFootprints(wrs2Footprints):
 
         for wrs2Footprint in wrs2Footprints:
             assert isinstance(wrs2Footprint, WRS2Footprint)
@@ -512,13 +515,7 @@ class MGRSTilingScheme(Type):
                 if mgrsFootprint.name not in mgrsFootprints:
                     continue
 
-            # - snap bounding box to target pixel grid
-            xoff = (mgrsFootprint.ul[0] - self.pixelOrigin[0]) % self.pixelSize
-            yoff = (mgrsFootprint.ul[1] - self.pixelOrigin[1]) % self.pixelSize
-
-            ul = (mgrsFootprint.ul[0] - xoff - buffer, mgrsFootprint.ul[1] - yoff + buffer)
-            lr = (mgrsFootprint.lr[0] - xoff + buffer, mgrsFootprint.lr[1] - yoff - buffer)
-
+            ul, lr = mgrsFootprint.getBoundingBox(buffer=buffer, snap='landsat')
 
             for image in product.yieldImages():
 
@@ -637,8 +634,6 @@ class ApplierInput():
 class ApplierOutput():
 
     def __init__(self, folder, productName, imageNames, extension):
-        if folder is not None:
-            assert isinstance(folder, basestring)
         assert isinstance(productName, str)
         assert isinstance(imageNames, list)
         self.folder = folder

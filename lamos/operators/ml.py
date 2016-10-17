@@ -1,6 +1,6 @@
 from __future__ import division
 
-import enmapbox.processing
+from enmapbox.processing.types import Image, Classification, SupervisedSample, Classifier
 import hub.file
 import numpy
 from enmapbox.processing.environment import PrintProgress
@@ -32,9 +32,9 @@ class SampleReadApplier(Applier):
 
         labelfile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
         imagefile = self.inputs[1].getFilenameAssociations(footprint).__dict__.values()[0]
-        image = enmapbox.processing.Image(imagefile)
-        labels = enmapbox.processing.Classification(labelfile)
-        sample = enmapbox.processing.ClassificationSample(image, labels)
+        image = Image(imagefile)
+        labels = Classification(labelfile)
+        sample = SupervisedSample.fromMask(image=image, labels=labels, mask=labels)
         return sample
 
 
@@ -47,26 +47,26 @@ class SampleReadApplier(Applier):
             samples[footprint.name] = self.applyToFootprint(footprint=footprint)
 
         # merge all samples
-        x = numpy.vstack([sample.imageData for sample in samples.values()])
-        y = numpy.hstack([sample.labelData for sample in samples.values()])
+        x = numpy.vstack([sample.featureSample.dataSample.data for sample in samples.values()])
+        y = numpy.vstack([sample.labelsSample.dataSample.data for sample in samples.values()])
 
         sample = samples.values()[0]  # it is assumed, that the meta data in all samples match, so simply the meta data of the first sample is used
-        sample.imageData = x # store all features
-        sample.labelData = y # store all labels
+        sample.featureSample.dataSample.data = x # store all features
+        sample.labelsSample.dataSample.data = y # store all labels
         return sample
 
 def exportSampleAsJSON(sample, rfc, outfile):
-    assert isinstance(sample, enmapbox.processing.ClassificationSample)
+    assert isinstance(sample, SupervisedSample)
     result = dict()
-    result['x'] = [map(int, v) for v in sample.imageData]
-    result['y'] = map(int, sample.labelData)
-    result['samples'] = len(sample.labelData)
-    result['features'] = len(sample.imageData[0])
-    result['feature names'] = sample.image.meta.getMetadataItem('band_names')
-    result['classes'] = int(sample.mask.meta.getMetadataItem('classes'))
-    result['class names'] = sample.mask.meta.getMetadataItem('class_names')
+    result['x'] = [map(int, v) for v in sample.featureSample.dataSample.data]
+    result['y'] = map(int, sample.labelsSample.dataSample.data)
+    result['samples'] = len(sample.labelsSample.dataSample.data)
+    result['features'] = len(sample.featureSample.dataSample.data[0])
+    result['feature names'] = sample.featureSample.dataSample.meta.getMetadataItem('band_names')
+    result['classes'] = int(sample.labelsSample.dataSample.meta.getMetadataItem('classes'))
+    result['class names'] = sample.labelsSample.dataSample.meta.getMetadataItem('class_names')
     result['class ids'] = map(int, rfc.sklEstimator.classes_)
-    result['class lookup'] = map(int, sample.mask.meta.getMetadataItem('class_lookup'))
+    result['class lookup'] = map(int, sample.labelsSample.dataSample.meta.getMetadataItem('class_lookup'))
     result['rfc feature_importances'] = map(float, rfc.sklEstimator._final_estimator.feature_importances_)
     result['rfc oob probabilities'] = [map(float, v) for v in rfc.sklEstimator._final_estimator.oob_decision_function_]
 
@@ -89,7 +89,7 @@ class ClassifierPredictApplier(Applier):
                                         imageNames=[labelImage],
                                         extension=labelExtension))
 
-        assert isinstance(classifier, enmapbox.processing.Classifier)
+        assert isinstance(classifier, Classifier)
         self.classifier = classifier
 
 
@@ -98,7 +98,7 @@ class ClassifierPredictApplier(Applier):
         print(footprint.name)
         imagefile = self.inputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
         outfile = self.outputs[0].getFilenameAssociations(footprint).__dict__.values()[0]
-        image = enmapbox.processing.Image(imagefile)
+        image = Image(imagefile)
         hub.file.mkfiledir(outfile)
         self.classifier.predict(image=image, mask=None, filename=outfile, progress=PrintProgress)
 

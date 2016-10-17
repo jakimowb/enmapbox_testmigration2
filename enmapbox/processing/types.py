@@ -1,17 +1,19 @@
 from __future__ import print_function, division
 
-from adodbapi.ado_consts import directions
+#from adodbapi.ado_consts import directions
 
 __author__ = 'janzandr'
 
+from collections import OrderedDict
 import shutil
 import operator
 import hub
 from enmapbox.processing.environment import SilentProgress
 from hub.gdal.api import GDALMeta
-import hub.gdal.util, hub.gdal.api
+from hub.gdal.util import gdal_rasterize
 import hub.file, hub.envi
 import rios.applier
+from rios.pixelgrid import PixelGridDefn, pixelGridFromFile
 import sklearn.metrics
 import sklearn.pipeline
 from enmapbox.processing.report import *
@@ -34,27 +36,26 @@ def unpickle(filename, progress=progress):
 
 class Type():
 
-    def aside(self, function, *args, **kwargs):
-
-        function(*args, **kwargs)
-        return self
-
-
     def pickle(self, filename, progress=progress):
 
         progress.setText('pickle model to file: '+filename)
         hub.file.savePickle(self, filename)
         return self
 
-
     def report(self):
 
         return Report('')
 
-
     def info(self, filename=Environment.tempfile('report', '.html')):
 
         self.report().saveHTML(filename=filename).open()
+
+    def getMetadataDict(self):
+
+        result = OrderedDict()
+        result['Type'] = self.__class__.__name__
+        return result
+
 
 class Meta(GDALMeta):
 
@@ -79,6 +80,27 @@ class Meta(GDALMeta):
                 and int(self.getMetadataItem('classes'))*3 == len(self.getMetadataItem('class lookup'))
                 and self.getNoDataValue('data ignore value') is not None)
 
+class PixelGrid():
+
+    def __init__(self, pixelGridDefn):
+        assert isinstance(pixelGridDefn, PixelGridDefn)
+        self.pixelGridDefn = pixelGridDefn
+
+    @property
+    def bb_string(self):
+        return self.pixelGridDefn.xMin + ' ' + self.pixelGridDefn.yMin + ' ' + self.pixelGridDefn.xMax + ' ' + self.pixelGridDefn.yMax
+
+    def rasterize(self, shapefile, outfile=Environment.tempfile('raster_')):
+
+        options = ' -burn 1 -b 1 -where "Level_2=Tree" -of ENVI ot Byte -a_srs ' + self.pixelGridDefn.projection
+        options += ' -init 0'
+        options += ' -te xmin ymin xmax ymax'
+        options += '-tr xres yres'
+
+        gdal_rasterize(outfile=outfile, infile=shapefile, options=options, verbose=True)
+        return Image(outfile)
+
+
 class Image(Type):
 
     @staticmethod
@@ -102,6 +124,7 @@ class Image(Type):
         assert os.path.exists(filename)
         self.filename = filename
         self.meta = Meta(filename)
+        self.pixelGrid = PixelGrid(pixelGridFromFile(filename))
 
     def saveAs(self, filename=None, options='-of ENVI'):
         if filename is None: filename = Environment.tempfile()
@@ -120,7 +143,6 @@ class Image(Type):
         meta.setMetadataDict(self.meta.getMetadataDict())
         meta.writeMeta(filename)
         return self.__class__(filename)
-
 
     def statistics(self, bands=None):
         if bands is None:
@@ -846,10 +868,10 @@ class Estimator(Type):
 
         return report
 
-
     def reportDetails(self):
 
         return Report('')
+
 
 class Classifier(Estimator):
 
