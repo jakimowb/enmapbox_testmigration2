@@ -369,11 +369,13 @@ class Dock(pyqtgraph.dockarea.Dock):
     '''
     Handle style sheets etc., basic stuff that differs from pyqtgraph dockarea
     '''
+    sigTitleChanged = pyqtSignal(str)
 
 
     def __init__(self, enmapboxInstance, name='view', closable=True, *args, **kwds):
         super(Dock, self).__init__(name=name, closable=False, *args, **kwds)
 
+        assert enmapboxInstance is not None
         self.enmapbox = enmapboxInstance
         self.setStyleSheet('background:#FFF')
 
@@ -422,10 +424,14 @@ class Dock(pyqtgraph.dockarea.Dock):
         self.widgetArea.setStyleSheet(self.hStyle)
         self.topLayout.update()
 
-
-        self.sigClosed.connect(lambda: self.enmapbox.DOCKS.remove(self))
-        self.enmapbox.DOCKS.add(self)
-
+    def setTitle(self, title):
+        """
+        Overide setTitle to emit a signal after title was changed
+        :param title:
+        :return:
+        """
+        super(Dock, self).setTitle(title)
+        self.sigTitleChanged.emit(title)
 
     def _createLabel(self, *args, **kwds):
         """
@@ -885,10 +891,7 @@ class MapDock(Dock):
 
         #todo: context menu
 
-        if initSrc:
-            ds = self.enmapbox.addSource(initSrc)
-            if isinstance(ds, DataSourceSpatial):
-                self.addLayer(ds.createMapLayer())
+
 
 
 
