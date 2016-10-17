@@ -1691,15 +1691,17 @@ class ProbabilityPerformance(Type):
         report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
-        rowHeaders = [['n','Log loss']]
-        data = numpy.transpose([[str(self.n), numpy.round(self.log_loss,2)]])
-        report.append(ReportTable(data, '', rowHeaders=rowHeaders))
+        colHeaders = [['','AUC'],['n','Log loss']+self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')[1:]]
+        colSpans = [[2,self.sample.labelsSample.dataSample.meta.getMetadataItem('classes')-1],numpy.ones(self.sample.labelsSample.dataSample.meta.getMetadataItem('classes')+1,dtype=int)]
+        roc_auc_scores_rounded = [round(elem, 3) for elem in self.roc_auc_scores.values()]
+        data = [[str(self.n), numpy.round(self.log_loss,2)] + roc_auc_scores_rounded]
+        report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
 
         fig, ax = plt.subplots(facecolor='white',figsize=(9, 6))
         for i in range(0,self.roc_curves.__len__()):
            plt.plot(self.roc_curves[i+1][0],self.roc_curves[i+1][1]
-                    ,label='ROC curve of class {0} (area = {1:0.3f})'
-                    ''.format(i+1, self.roc_auc_scores[i+1]))
+                    ,label='ROC curve of class {0}'
+                        ''.format(self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')[i+1]))
         ax.set_xlabel('False Positive Rate')
         ax.set_ylabel('True Positive Rate')
         plt.plot([0, 1], [0, 1], 'k--')
