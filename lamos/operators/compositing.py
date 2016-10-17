@@ -10,9 +10,9 @@ from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArc
 def getCube(name, inputs, bbl=None):
 
     # return cube if already exist...
-    if inputs.__dict__.has_key(name):
+    if name in inputs.__dict__:
         result = inputs.__dict__[name]
-    elif inputs.__dict__.has_key('timeseries_'+name):
+    elif 'timeseries_'+name in inputs.__dict__:
         result = inputs.__dict__['timeseries_'+name]
 
     # ...or create and cache it otherwise
@@ -117,7 +117,7 @@ def plotScaleFunctions():
     plotScaleFunction(x, scaleLinearMinMax(x, min, max))
 
 def plotScaleFunction(x, y):
-    for xi,yi in zip(x,y): print xi, ',', round(yi,2)
+    for xi,yi in zip(x,y): print(xi, ',', round(yi,2))
 
     import matplotlib.pyplot as plt
     plt.plot(x, y, linewidth=2)

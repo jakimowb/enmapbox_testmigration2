@@ -48,7 +48,7 @@ class ApplierControls(rios.applier.ApplierControls):
         assert predictor in [0, 1, 2]
 
         self.setOutputDriverName('GTiff')
-        self.setCreationOptions(['INTERLEAVE='+interleave, 'TILED='+tiled,
+        self.setCreationOptions(['INTERLEAVE='+interleave, 'TILED='+tiled, 'BIGTIFF=YES',
                                  'BLOCKXSIZE='+str(blockxsize), 'BLOCKYSIZE='+str(blockysize),
                                  'COMPRESS='+compress, 'PREDICTOR='+str(predictor)])
 
