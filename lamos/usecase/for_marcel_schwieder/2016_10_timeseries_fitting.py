@@ -20,6 +20,19 @@ from hub.gdal.util import gdal_rasterize
 from hub.ogr.util import ogr2ogr
 from osgeo import ogr
 
+class Extracting(Workflow):
+
+    def apply(self, info):
+
+        pass
+
+def testExtracting():
+
+    pass
+    workflow = Extracting()
+    workflow.run()
+
+
 
 class Stacking(Workflow):
 

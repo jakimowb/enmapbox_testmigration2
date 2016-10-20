@@ -43,11 +43,12 @@ def test():
     #MGRSArchive(folder3).saveAsGTiff(folder3b, processes=10)
 
     tsBuilder = TimeseriesBuilder(start=None, end=None)
-    tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=10)
+    tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=1)
 
     MGRSArchive(folder4).saveAsENVI(folder4a, processes=10)
-    MGRSArchive(folder4).saveAsGTiff(folder4b, processes=10)
+    #MGRSArchive(folder4).saveAsGTiff(folder4b, processes=10)
 
+    return
 
     applier = CompositingApplier(infolder=folder4b, outfolder=folder5,
                                  footprints=mgrsFootprints, inextension='.img', of='ENVI')
