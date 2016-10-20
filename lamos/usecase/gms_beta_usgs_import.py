@@ -26,11 +26,14 @@ def run(infolder, outfolder, tmpfolder, processes):
     WRS2Footprint.createUtmLookup(infolder=folder1)
 
     # define which footprints to use
-    wrs2Footprints = ['193024','194024']
-    mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
+    #wrs2Footprints = ['193024','194024']
+    #mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
+    wrs2Footprints = ['192023','193023','194023','192024','193024','194024']
+    mgrsFootprints = ['33UUU', '33UVU', '33UUT', '33UVT']
+
 
     # create sensor x products
-    composer = LandsatXComposer(start=Date(2015, 1, 1), end=Date(2016, 6, 30))
+    composer = LandsatXComposer(start=Date(2014, 1, 1), end=Date(2016, 6, 30))
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=processes)
 
     # cut sensor x products
