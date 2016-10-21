@@ -195,6 +195,7 @@ def probabilityAccAss():
 
 
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+
     trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
     testingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
 
@@ -354,8 +355,8 @@ if __name__ == '__main__':
     #classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
-    #probabilityAccAss()
-    statisticsForImage()
+    probabilityAccAss()
+    #statisticsForImage()
     #statisticsForClassification()
     #importENVISpeclib()
     #saveImageAs()
