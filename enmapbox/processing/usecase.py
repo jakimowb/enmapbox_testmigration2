@@ -2,9 +2,10 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-from enmapbox.processing.types import Image, Mask, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
+from enmapbox.processing.types import Type, Vector, Image, Mask, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
 from enmapbox.processing.estimators import Classifiers, Regressors, Transformers, Clusterers
 from hub.timing import tic, toc
+from copy import deepcopy
 
 from enmapbox.processing.environment import PrintProgress as Progress
 
@@ -25,6 +26,35 @@ def sample():
     print(sample.isClassificationSample())
     print(sample.labelSample.filename)
     print(sample.featureSample.filename)
+
+def test_type():
+
+
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    classifier = Classifiers.SVCTuned()
+    classifier = classifier.fit(image, labels)
+    print(classifier.getMetadataDict())
+
+def pixel_grid():
+
+    hymap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\HyMap01_Berlin_Urban_Gradient_2009.bsq')
+    enmap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
+    vector = Vector(r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
+
+    # rasterize vector file with oversampling and resample back to original resolution to produce cover fractions
+    options = '''-where "Level_2"='Tree' -burn 1 -init 0 -a_nodata 0 -of GTiff -ot Byte'''
+    pixelGrid = deepcopy(enmap.getPixelGrid())
+    pixelGrid.xRes /= 20
+    pixelGrid.yRes /= 20
+    rasterOversampled = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=pixelGrid, options=options)
+    rasterFractions = rasterOversampled.translate(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options)
+
+    # create classification file from
+    raster = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options, oversamplingRate=20)
+
+
+    raster.info()
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -341,6 +371,8 @@ if __name__ == '__main__':
 
     #tic()
     #importENVISpeclib()
+    #test_type()
+    pixel_grid()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()

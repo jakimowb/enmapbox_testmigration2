@@ -80,24 +80,19 @@ class Meta(GDALMeta):
                 and int(self.getMetadataItem('classes'))*3 == len(self.getMetadataItem('class lookup'))
                 and self.getNoDataValue('data ignore value') is not None)
 
-class PixelGrid():
+class Vector(Type):
 
-    def __init__(self, pixelGridDefn):
-        assert isinstance(pixelGridDefn, PixelGridDefn)
-        self.pixelGridDefn = pixelGridDefn
+    def __init__(self, filename):
+        self.filename = filename
 
-    @property
-    def bb_string(self):
-        return self.pixelGridDefn.xMin + ' ' + self.pixelGridDefn.yMin + ' ' + self.pixelGridDefn.xMax + ' ' + self.pixelGridDefn.yMax
+    def rasterize(self, outfile, pixelGrid, options='-burn 1'):
+        assert isinstance(pixelGrid, PixelGridDefn)
 
-    def rasterize(self, shapefile, outfile=Environment.tempfile('raster_')):
+        options += ' -a_srs ' + pixelGrid.projection
+        options += ' -te '+ str(pixelGrid.xMin) + ' ' + str(pixelGrid.yMin) + ' ' + str(pixelGrid.xMax) + ' ' + str(pixelGrid.yMax)
+        options += ' -tr '+ str(pixelGrid.xRes) + ' ' + str(pixelGrid.yRes)
 
-        options = ' -burn 1 -b 1 -where "Level_2=Tree" -of ENVI ot Byte -a_srs ' + self.pixelGridDefn.projection
-        options += ' -init 0'
-        options += ' -te xmin ymin xmax ymax'
-        options += '-tr xres yres'
-
-        gdal_rasterize(outfile=outfile, infile=shapefile, options=options, verbose=True)
+        gdal_rasterize(outfile=outfile, infile=self.filename, options=options, verbose=True)
         return Image(outfile)
 
 
@@ -124,7 +119,7 @@ class Image(Type):
         assert os.path.exists(filename)
         self.filename = filename
         self.meta = Meta(filename)
-        self.pixelGrid = PixelGrid(pixelGridFromFile(filename))
+        self.pixelGrid = pixelGridFromFile(self.filename)
 
     def saveAs(self, filename=None, options='-of ENVI'):
         if filename is None: filename = Environment.tempfile()
@@ -940,6 +935,16 @@ class Classifier(Estimator):
     def UncertaintyClassifierFN(self):
 
         return UncertaintyClassifier(self, mode='fn')
+
+
+    def getMetadataDict(self):
+        meta = self.sample.labelsSample.dataSample.meta
+
+        result = OrderedDict()
+        result['class names'] = meta.getMetadataItem('class names')
+        result['class lookup'] = meta.getMetadataItem('class lookup')
+
+        return result
 
 
 class UncertaintyClassifier(Classifier):
