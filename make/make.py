@@ -126,7 +126,6 @@ def png2qrc(icondir, pathQrc):
     doc = QDomDocument()
     doc.setContent(QFile(pathQrc))
 
-
     query = QXmlQuery()
     #query.setQuery("doc('{}')/RCC/qresource/file".format(pathQrc))
     query.setQuery("doc('{}')/RCC/qresource[@prefix=\"enmapbox/png\"]/file".format(pathQrc))
@@ -168,6 +167,6 @@ if __name__ == '__main__':
         #convert SVG to PNG and add link them into the resource file
         svg2png(icondir, overwrite=True)
         png2qrc(icondir, pathQrc)
-    if False: make()
+    if True: make()
     print('Done')
 
