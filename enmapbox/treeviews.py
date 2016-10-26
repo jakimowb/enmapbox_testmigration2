@@ -10,133 +10,282 @@ import enmapbox
 dprint = enmapbox.dprint
 
 from enmapbox.docks import *
+from enmapbox.utils import *
 
 
-#class DockManagerTreeModel(QgsLayerTreeModel):
-class DockManagerTreeModel(TreeModel):
-    def __init__(self, dockManager, parent):
+class TreeNodeProvider():
 
-        super(DockManagerTreeModel, self).__init__(parent)
-
-        self.setFlag(QgsLayerTreeModel.ShowLegend, True)
-        self.setFlag(QgsLayerTreeModel.ShowSymbology, True)
-        #self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
-        self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
-        self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
-
-        assert isinstance(dockManager, DockManager)
-        self.dockManager = dockManager
-        dockManager.sigDockAdded.connect(self.addDock)
-        #dockManager.sigDockAdded.connect(self.sandboxslot)
-        dockManager.sigDockAdded.connect(lambda : self.sandboxslot2())
-        dockManager.sigDockRemoved.connect(self.removeDock)
-
-    def sandboxslot(self, dock):
-        s  =""
-    def sandboxslot2(self):
-        s  =""
-
-
-    @pyqtSlot(Dock)
-    def addDock(self, dock):
-        s = ""
-        rootNode = self.rootNode
-        newNode = None
-        if isinstance(dock, MapDock):
-            newNode = MapDockTreeNode(rootNode, dock)
-        elif isinstance(dock, TextDock):
-            newNode = TextDockTreeNode(rootNode, dock)
-
-        if newNode:
-            self.rootNode.addChildNode(newNode)
-
-
-    @pyqtSlot(Dock)
-    def removeDock(self, dock):
-        s  =""
-
-    def mimeTypes(self):
-        #specifies the mime types handled by this model
-        types = []
-        types.append("application/qgis.layertreemodeldata")
-        types.append("application/enmapbox.docktreemodeldata")
-        return types
-
-    def dropMimeData(self, data, action, row, column, parent):
-        if action == Qt.IgnoreAction:
-            return True
-        parentNode = self.index2node(parent)
-
-        assert isinstance(data, QMimeData)
-
-        if data.hasFormat("application/qgis.layertreemodeldata"):
+    @staticmethod
+    def CreateNodeFromInstance(o, parent):
+        node = None
+        if isinstance(o, DataSource):
+            node = TreeNodeProvider.CreateNodeFromDataSource(o, parent)
+        elif isinstance(o, Dock):
+            node = TreeNodeProvider.CreateNodeFromDock(o, parent)
+        elif isinstance(o, QMimeData):
             s = ""
-            return super(DockManagerTreeModel, self).dropMimeData(data, action, row, column, parent)
-        elif data.hasFormat("application/enmapbox.docktreemodeldata"):
-            doc = QDomDocument()
-            if not doc.setContent(data.data("application/enmapbox.docktreemodeldata")):
-                return False
+        return node
 
-            s = ""
-        else:
-            return False
+    @staticmethod
+    def CreateNodeFromDataSource(dataSource, parent):
+        assert isinstance(dataSource, DataSource)
+        node = DataSourceTreeNode(parent, dataSource)
+        node.setIcon(dataSource.icon)
+        return node
 
-    def mimeData(self, indexes):
-        indexes = sorted(indexes)
-        if len(indexes) == 0:
-            return None
 
-        nodesFinal = self.indexes2nodes(indexes, True)
-        mimeData = QMimeData()
+    @staticmethod
+    def CreateNodeFromDock(dock, parent):
+        t = type(dock)
+        classes = [MapDock, TextDock, MimeDataDock, Dock]
+        nodes   = [MapDockTreeNode, TextDockTreeNode, TextDockTreeNode, DockTreeNode]
+        for i, cls in enumerate(classes):
+            if t is cls:
+                return nodes[i](parent, dock)
+        return None
 
-        doc = QDomDocument()
-        rootElem = doc.createElement("emb_tree_model_data");
-        for node in nodesFinal:
-            node.writeXml(rootElem)
-        doc.appendChild(rootElem)
-        txt = doc.toString()
-        mimeData.setData("application/enmapbox.docktreemodeldata", txt)
-        # mimeData.setData("application/x-vnd.qgis.qgis.uri", QgsMimeDataUtils.layerTreeNodesToUriList(nodesFinal) );
+    @staticmethod
+    def CreateNodeFromXml(elem):
+        assert isinstance(elem, QDomElement), str(elem)
+        tagName = str(elem.tagName())
+        node = None
+        attributes = getDOMAttributes(elem)
+        for nodeClass in [TreeNode, DockTreeNode, MapDockTreeNode, TextDockTreeNode]:
+            if nodeClass.TAG_NAME == tagName:
+                node = nodeClass.readXml(elem)
+                break
+        if node is None and tagName in ['layer-tree-group','layer-tree-layer']:
+            node = QgsLayerTreeNode.readXml(elem)
 
-        return mimeData
+        return node
 
+
+class TreeNode(QgsLayerTreeGroup):
+
+    sigIconChanged = pyqtSignal()
+    sigRemoveMe = pyqtSignal()
+    def __init__(self, parent, name, checked=Qt.Unchecked, tooltip=None, icon=None):
+        #QObject.__init__(self)
+        super(TreeNode, self).__init__(name, checked)
+        self.mParent = parent
+        self.setName(name)
+
+        # set default properties using underlying customPropertySet
+        self.setTooltip(tooltip)
+        self.setCustomProperty('tooltip', '')
+
+        if tooltip: self.setTooltip(tooltip)
+        self.setIcon(icon)
+        if parent is not None:
+            parent.addChildNode(self)
+
+
+    def removeChildren(self, i0, cnt):
+        self.removeChildrenPrivate(i0, cnt)
+        self.updateVisibilityFromChildren()
+
+    def setTooltip(self, tooltip):
+        self.customProperty('tooltip', str(tooltip))
+    def tooltip(self, default=''):
+        return self.customProperty('tooltip',default)
+
+    def setIcon(self, icon):
+        if icon:
+            assert isinstance(icon, QIcon), str(icon)
+        self._icon = icon
+        self.sigIconChanged.emit()
+
+    def icon(self):
+        return self._icon
+
+    @staticmethod
+    def readXml(element):
+
+        raise NotImplementedError()
+
+        return None
+
+
+    def writeXML(self, parentElement, tagName='tree-node'):
+        assert isinstance(parentElement, QDomElement)
+        doc = parentElement.ownerDocument()
+        elem = doc.createElement(tagName)
+        elem.setAttribute('name', self.name())
+        elem.setAttribute('expanded', '1' if self.isExpanded() else '0')
+        elem.setAttribute('checked', QgsLayerTreeUtils.checkStateToXml(Qt.Checked))
+
+        #custom properties
+        self.writeCommonXML(elem)
+
+        for node in self.children():
+            node.writeXML(elem)
+        parentElement.appendChild(elem)
+        return elem
+
+    def readChildrenFromXml(self, element):
+        nodes = []
+        childElem = element.firstChildElement()
+        while(not childElem.isNull()):
+            print('READ {}/{}'.format(element.tagName(),childElem.tagName()))
+            node = TreeNodeProvider.CreateNodeFromXml(childElem)
+
+            if node:
+                nodes.append(node)
+            childElem = childElem.nextSibling()
+        if len(nodes) > 0:
+            self.insertChildNodes(-1, nodes)
+
+    def dropMimeData(self):
+        raise NotImplementedError()
+
+
+
+class TreeModel(QgsLayerTreeModel):
+
+    def __init__(self, parent, enmapboxInstance):
+        import enmapbox.main
+        self.rootNode = TreeNode(None, None)
+        assert isinstance(enmapboxInstance, enmapbox.main.EnMAPBox)
+        self.enmapbox = enmapboxInstance
+        super(TreeModel, self).__init__(self.rootNode, parent)
 
     def data(self, index, role ):
         node = self.index2node(index)
-        #todo: implement MapDock specific behaviour
+        if isinstance(node, TreeNode):
+            if role == Qt.DecorationRole:
+                return node.icon()
 
-        return super(DockManagerTreeModel, self).data(index, role)
+        #the last choice: default
+        return super(TreeModel, self).data(index, role)
 
+    def supportedDragActions(self):
+        return Qt.MoveAction | Qt.CopyAction
+
+    def supportedDropActions(self):
+        return Qt.MoveAction | Qt.CopyAction
+
+    def flags(self, index):
+        raise NotImplementedError()
+
+    def mimeTypes(self):
+        raise NotImplementedError()
+
+    def mimeData(self, indexes):
+        raise NotImplementedError()
+
+    def dropMimeData(self, data, action, row, column, parent):
+        raise NotImplementedError()
+
+    def removeDockNode(self, node):
+        idx = self.node2index(node)
+        p = self.index2node(idx.parent())
+        p.removeChildNode(node)
+
+
+class DataSourceGroupTreeNode(TreeNode):
+
+    def __init__(self, parent, groupName, classDef):
+        assert inspect.isclass(classDef)
+        icon = QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon)
+        super(DataSourceGroupTreeNode, self).__init__(parent, groupName, icon=icon)
+        self.childClass = classDef
+
+    def addChildNode(self, node):
+        """Ensure child types"""
+        assert isinstance(node, DataSourceTreeNode)
+        assert isinstance(node.dataSource, self.childClass)
+        super(DataSourceGroupTreeNode, self).addChildNode(node)
+
+    def writeXML(self, parentElement):
+        return super(DataSourceGroupTreeNode, self).writeXML(parentElement, 'data_source_group_tree_node')
+
+
+class DataSourceTreeNode(TreeNode):
+
+    def __init__(self, parent, dataSource):
+        super(DataSourceTreeNode, self).__init__(parent, dataSource.name)
+        self.dataSource = dataSource
+        self._icon = dataSource.getIcon()
+        self.setCustomProperty('uuid', str(self.dataSource.uuid))
+        self.setCustomProperty('uri', self.dataSource.uri)
+
+    def writeXML(self, parentElement):
+        return super(DataSourceTreeNode, self).writeXML(parentElement, 'data_source_tree_node')
 
 
 class DockTreeNode(TreeNode):
 
+    @staticmethod
+    def readXml(element):
+        if not DockTreeNode.inherited_xml_tag(element):
+            return None
 
+        tagName = element.tagName()
+        dock = None
+        node = DockTreeNode(None, dock)
+        dockName = element.attribute('name')
+        node.setName(dockName)
+        node.setExpanded(element.attribute('expanded') == '1')
+        node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
+        node.readCommonXML(element)
+        #node.readChildrenFromXml(element)
 
+        #try to find the dock by its uuid in dockmanager
+        from enmapbox.main import EnMAPBox
 
+        dockManager = EnMAPBox.instance().dockManager
+        uuid = node.customProperty('uuid', None)
+        if uuid:
+
+            dock = dockManager.getDockWithUUID(str(uuid))
+
+        if dock is None:
+            dock = dockManager.createDock('MAP', name=dockName)
+        node.connectDock(dock)
+
+        return node
+
+    """
+    Base TreeNode to symbolise a Dock
+    """
     def __init__(self, parent, dock):
-        name = dock.title()
-        super(DockTreeNode, self).__init__(parent, name)
 
-        self.dock = dock
-        #self.parent = parent
-        #self.dock.sigTitleChanged.connect(self.setName)
+        super(DockTreeNode, self).__init__(parent, '<dockname not available>')
+        self.dock = None
+        self._icon = QIcon(IconProvider.Dock)
+        if isinstance(dock, Dock):
+            self.connectDock(dock)
 
+
+    def writeXML(self, parentElement):
+        return super(DockTreeNode, self).writeXML(parentElement, 'dock-tree-node')
+
+
+    def connectDock(self, dock):
+        if isinstance(dock, Dock):
+            self.dock = dock
+            self.setName(dock.title())
+            self.dock.sigTitleChanged.connect(self.setName)
+            self.setCustomProperty('uuid', str(dock.uuid))
+            self.dock.sigClosed.connect(self.disconnectDock)
+
+
+    def disconnectDock(self):
+        self.dock = None
+        self.removeCustomProperty('uuid')
+        self.sigRemoveMe.emit()
 
 
 class TextDockTreeNode(DockTreeNode):
 
+
     def __init__(self, parent, dock):
         assert isinstance(dock, TextDock)
         super(TextDockTreeNode, self).__init__(parent, dock)
-        s  =  ""
+        self.setIcon(QIcon(IconProvider.Dock))
 
-    def icon(self):
-        return QIcon(IconProvider.File_Vector_Polygon)
-
+    def writeXML(self, parentElement):
+        return super(MapDockTreeNode, self).writeXML(parentElement, 'text-dock-tree-node')
 
 class MapDockTreeNode(DockTreeNode):
     """
@@ -147,7 +296,7 @@ class MapDockTreeNode(DockTreeNode):
         assert isinstance(dock, MapDock)
         super(MapDockTreeNode, self).__init__(parent, dock)
 
-
+        self.setIcon(QIcon(IconProvider.MapDock))
         #self.bridge = QgsLayerTreeMapCanvasBridge(self, self.dock.canvas, parent)
         #self.bridge.setAutoEnableCrsTransform(True)
         #self.bridge.setAutoSetupOnFirstLayer(True)
@@ -168,618 +317,312 @@ class MapDockTreeNode(DockTreeNode):
         self.insertChildNode(idx, ll)
         return ll
 
-    def icon(self):
-        return QIcon(IconProvider.File_Raster)
-
-
-
-class TreeNode(QgsLayerTreeGroup):
-    TAG_NAME = 'dock-tree-node'
-
-    @staticmethod
-    def readXml(element):
-        """
-        Returns the TreeNode
-        generalized counterpart of QgsLayerTreeNode* QgsLayerTreeNode::readXml( QDomElement& element )
-        :return: TreeNode instance
-        """
-        assert isinstance(element, QDomElement)
-        node = None
-        if element.tagName() in ["layer-tree-group","layer-tree-layer"]:
-            node = QgsLayerTreeNode.readXML(element)
-        elif element.tagName() == TreeNode.TAG_NAME:
-
-            raise NotImplementedError('Abstract TreeNode')
-        elif element.tagName() == DockTreeNode.TAG_NAME:
-
-            s = ""
-            pass
-        else:
-            raise NotImplementedError()
-        return node
-
-
-
-    def __init__(self, parent, name, checked=Qt.Unchecked, tooltip=None, icon=None):
-        #QObject.__init__(self)
-        super(TreeNode, self).__init__(name, checked)
-        self.mParent = parent
-        self.setName(name)
-
-        # set default properties using underlying customPropertySet
-        self.setTooltip(tooltip)
-        self.setCustomProperty('tooltip', '')
-
-        if tooltip: self.setTooltip(tooltip)
-        if icon: self.setIcon(icon)
-        #if parent is not None:
-        #    parent.addChildNode(self)
-
-
-    def setTooltip(self, tooltip):
-        self.customProperty('tooltip', str(tooltip))
-    def tooltip(self, default=''):
-        return self.customProperty('tooltip',default)
-
-    def setIcon(self, icon):
-        self._icon = icon
-    def icon(self):
-        return self._icon
-
-
-    def writeXml(self, parentElement):
-        assert  isinstance(parentElement, QDomElement)
-
-        doc = parentElement.ownerDocument()
-        elem = doc.createElement(TreeNode.TAG_NAME)
-        elem.setAttribute('name', self.name())
-        elem.setAttribute('expanded', '1' if self.isExpanded() else '0')
-        elem.setAttribute('checked', QgsLayerTreeUtils.checkStateToXml(Qt.Checked))
-
-        #self.writeCommonXML(elem)
-        self.writeCommonXML(elem)
-        for node in self.children():
-            node.writeXml(elem)
-        parentElement.appendChild(elem)
+    def writeXML(self, parentElement):
+        return super(MapDockTreeNode, self).writeXML(parentElement, 'map-dock-tree-node')
 
 
 
 class TreeView(QgsLayerTreeView):
-    """
-    Re-Implementation of QgsLayerTreeGroup:
-        - can have child nodes
-        - intends to implement more fine-grained control
-        - not map-layer specific
-    """
-    def __init__(self, parent, expanded=True, nodeType=3):
-        super(TreeNode, self).__init__(nodeType)
-
-        self.mName = ''
-        self.mVisible = Qt.Unchecked
-        self.icon = None
-
-
-        if parent is not None:
-            parent.addChildNode(self)
-
-    """
-    slot to set the name
-    """
-    def setName(self, name):
-        self.mName = name
-    def name(self):
-        return self.mName
-
-    def setVisible(self, state):
-        self.mVisible = state
-    def isVisible(self):
-        return self.mVisible
-
-    def insertChildNode(self, index, node):
-        self.insertChildNodes(index, [node])
-
-    def insertChildNodes(self, index, nodes):
-
-        self.insertChildrenPrivate(index, nodes)
-        self.updateVisibilityFromChildren()
-
-    def updateVisibilityFromChildren(self):
-
-        for child in self.children():
-
-            s  = ""
-            self.setVisible(Qt.Checked)
-        pass
-
-    def setVisible(self, state):
-        if state is not self.isVisible():
-            self.setVisible(state)
-            self.updateVisibilityFromChildren()
-
-
-
-    def removeAllChildren(self):
-        del self.children()[:]
-
-    @staticmethod
-    def readXML(QDomElement):
-
-        raise NotImplementedError()
-
-    def writeXML(self, QDomElement):
-        raise NotImplementedError()
 
     def __init__(self, parent):
         super(TreeView, self).__init__(parent)
 
 
-class TreeModel(QgsLayerTreeModel):
 
-    def __init__(self, parent):
-        self.rootNode = TreeNode(None, None)
-        super(TreeModel, self).__init__(self.rootNode, parent)
+class DockManagerTreeModel(TreeModel):
+    def __init__(self, parent, enmapboxInstance):
+
+        super(DockManagerTreeModel, self).__init__(parent, enmapboxInstance)
+
+        self.setFlag(QgsLayerTreeModel.ShowLegend, True)
+        self.setFlag(QgsLayerTreeModel.ShowSymbology, True)
+        #self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
+        self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
+        self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
+        self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
+        self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
+        self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
+
+        self.dockManager = self.enmapbox.dockManager
+        self.dockManager.sigDockAdded.connect(self.addDockNode)
+        self.dockManager.sigDockAdded.connect(lambda : self.sandboxslot2())
+        #dockManager.sigDockRemoved.connect(self.removeDock)
 
 
+    def sandboxslot(self, dock):
+        s  =""
+    def sandboxslot2(self):
+        s  =""
+
+
+    def addDockNode(self, dock):
+        rootNode = self.rootNode
+        newNode = TreeNodeProvider.CreateNodeFromDock(dock, rootNode)
+        newNode.sigRemoveMe.connect(lambda : self.removeDockNode(newNode))
+
+
+
+
+    def flags(self, parent):
+        if not parent.isValid():
+            return Qt.NoItemFlags
+
+        #specify TreeNode specific actions
+        parentNode = self.index2node(parent)
+        if parentNode is None:
+            return Qt.NoItemFlags
+
+        isL1 = parentNode.parent() == self.rootNode
+        if isinstance(parentNode, DockTreeNode):
+            flags = Qt.ItemIsEnabled | \
+                    Qt.ItemIsSelectable | \
+                    Qt.ItemIsUserCheckable
+            if isL1:
+                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | Qt.ItemIsEditable
+
+
+        else:
+            flags = Qt.NoItemFlags
+        return flags
+
+
+    def mimeTypes(self):
+        #specifies the mime types handled by this model
+        types = []
+        types.append("application/qgis.layertreemodeldata")
+        types.append("application/enmapbox.docktreemodeldata")
+        return types
+
+    def dropMimeData(self, data, action, row, column, parent):
+        assert isinstance(data, QMimeData)
+        parentNode = self.index2node(parent)
+        #L1 is the first level below the root tree -> to place dock trees
+        isL1Node = parentNode.parent() == self.rootNode
+
+        result = False
+        if action == Qt.MoveAction:
+            #collect nodes
+            nodes = []
+            if data.hasFormat("application/qgis.layertreemodeldata"):
+
+                result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
+                s = ""
+
+            elif data.hasFormat("application/enmapbox.docktreemodeldata"):
+                doc = QDomDocument()
+                if doc.setContent(data.data("application/enmapbox.docktreemodeldata")):
+                    print(str(doc.toString()))
+                    root = doc.documentElement()
+                    child = root.firstChildElement()
+                    while not child.isNull():
+                        if 'dock-tree-node' in str(child.tagName()):
+                            nodes.append(TreeNodeProvider.CreateNodeFromXml(child))
+                        child = child.nextSibling()
+
+            nodes = [n for n in nodes if n is not None]
+
+            #insert nodes, if possible
+            if len(nodes) > 0:
+                if row==-1 and column == -1:
+                    parentNode = parentNode.parent()
+                parentNode.insertChildNodes(-1, nodes)
+                result = True
+
+        return result
+
+    def mimeData(self, indexes):
+        indexes = sorted(indexes)
+        if len(indexes) == 0:
+            return None
+
+        nodesFinal = self.indexes2nodes(indexes, True)
+        mimeData = QMimeData()
+
+        doc = QDomDocument()
+        rootElem = doc.createElement("dock_tree_model_data");
+        for node in nodesFinal:
+            node.writeXML(rootElem)
+        doc.appendChild(rootElem)
+        txt = doc.toString()
+        mimeData.setData("application/enmapbox.docktreemodeldata", txt)
+        # mimeData.setData("application/x-vnd.qgis.qgis.uri", QgsMimeDataUtils.layerTreeNodesToUriList(nodesFinal) );
+
+        return mimeData
+
+
+
+    def data(self, index, role ):
+        node = self.index2node(index)
+        #todo: implement MapDock specific behaviour
+
+        if isinstance(node, DockTreeNode):
+            if role == Qt.CheckStateRole:
+                if isinstance(node.dock, Dock) and node.dock.isVisible():
+                    return Qt.Checked
+                else:
+                    return Qt.Unchecked
+            if role == Qt.DecorationRole:
+                return node.icon()
+
+        return super(DockManagerTreeModel, self).data(index, role)
+
+    def setData(self, index, value, role=None):
+        node = self.index2node(index)
+        if isinstance(node, DockTreeNode) and isinstance(node.dock, Dock):
+            if role == Qt.CheckStateRole:
+                if value == Qt.Unchecked:
+                    node.dock.setVisible(False)
+                else:
+                    node.dock.setVisible(True)
+                return True
+
+        return False
 
 
 class DataSourceManagerTreeModel(TreeModel):
 
-    def __init__(self,parent, dataSourceManager):
-        super(DataSourceManagerTreeModel, self).__init__(parent)
-        assert isinstance(dataSourceManager, DataSourceManager)
-        self.DSM = dataSourceManager
+    def __init__(self,parent, enmapboxInstance):
+
+        assert isinstance(enmapboxInstance, enmapbox.main.EnMAPBox)
+        super(DataSourceManagerTreeModel, self).__init__(parent, enmapboxInstance)
+
+        self.DSM = self.enmapbox.dataSourceManager
         self.DSM.sigDataSourceAdded.connect(self.addDataSource)
         self.DSM.sigDataSourceRemoved.connect(self.removeDataSource)
 
         for ds in self.DSM.sources:
             self.addDataSource(ds)
 
-
-    def addDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSource)
-        dsTypeName = self.getSourceTypeName(dataSource)
-
-        existingNames = [c.name() for c in self.children()]
-        if dsTypeName not in existingNames:
-            typeNode = TreeNode(self.rootNode, dsTypeName,
-                                icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
-            self.rootNode.insertChildNode(0, typeNode)
-
-        #find TreeNode realted to dsTypeName
-        typeNode = [c for c in self.rootNode.children() if c.name() == dsTypeName][0]
-
-        dsNode = dataSource.getTreeItem(typeNode)
-        typeNode.insertChildNode(0, dsNode)
-
-
-    def removeDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSource)
-
-        dsTypeName = self.getSourceTypeName(dataSource)
-
-        for r1 in range(self.rowCount(QModelIndex())):
-            idx1 = self.index(r1, 0, QModelIndex())
-            if dsTypeName == str(idx1.data()):
-                for r2 in range(self.rowCount(idx1)):
-                    idx2 = self.index(r2, 0, idx1)
-                    ds = self.data(idx2, Qt.UserRole)
-                    if ds is dataSource:
-                        typeItem = self.data(idx1, 'TreeItem')
-                        dsItem = self.data(idx2, 'TreeItem')
-                        self.beginRemoveRows(idx1, r2, r2)
-                        typeItem.removeChild(dsItem)
-                        self.endRemoveRows()
-
-                        if typeItem.childCount() == 0:
-                            self.beginRemoveRows(QModelIndex(), r1, r1)
-                            self.rootItem.removeChild(typeItem)
-                            self.endRemoveRows()
-                        return
-
-
-    def getSourceTypeName(self, dataSource):
-
-        assert isinstance(dataSource, DataSource)
-        return type(dataSource).__name__
-
-
-
-class DataSourceManagerTreeModelX(QAbstractItemModel):
-    """
-    View on DataSourceManager that implements QAbstractItemModel as TreeModel
-    See details described under:
-    http://doc.qt.io/qt-5/qtwidgets-itemviews-simpletreemodel-example.html
-    http://doc.qt.io/qt-5/model-view-programming.html#model-subclassing-reference
-    """
-    #columnames = ['Name','Description']
-    columnames = ['Name']
-
-    SourceTypes = [DataSourceRaster, DataSourceVector, DataSourceFile,
-                   DataSourceModel, DataSourceTextFile, DataSourceXMLFile]
-    SourceTypeNames = ['Raster', 'Vector', 'File','Model', 'Text', 'Text']
-
-
-    def getSourceTypeName(self, dataSource):
-        assert type(dataSource) in DataSourceManagerTreeModel.SourceTypes
-        return DataSourceManagerTreeModel.SourceTypeNames[DataSourceManagerTreeModel.SourceTypes.index(type(dataSource))]
-
-    def __init__(self, dataSourceManager):
-        assert isinstance(dataSourceManager, DataSourceManager)
-        QAbstractItemModel.__init__(self)
-        self.DSM = dataSourceManager
-        self.DSM.sigDataSourceAdded.connect(self.addDataSource)
-        self.DSM.sigDataSourceRemoved.connect(self.removeDataSource)
-        self.rootItem = TreeNode(None, None)
-        self.setupModelData(self.rootItem, None)
-
-    def setupModelData(self, parent, data):
-
-        for ds in self.DSM.sources:
-            self.addDataSource(ds)
-        s  =""
-        pass
-
-    """
-    TreeItem *TreeModel::getItem(const QModelIndex &index) const
-    """
-    def getItem(self, index):
-        #assert isinstance(index, QModelIndex)
-        item = None
-        if index.isValid():
-            item = index.internalPointer()
-        else:
-            item = self.rootItem
-        #assert isinstance(item, TreeItem)
-        return item
-
-    """
-    Provides the number of rows of data exposed by the model.
-    int TreeModel::rowCount(const QModelIndex &parent) const
-    """
-    def rowCount(self, index):
-        #assert isinstance(parent, QModelIndex)
-        parentItem = self.getItem(index)
-        return parentItem.childCount()
-
-
-
-    """
-    Provides the number of columns of data exposed by the model.
-    int TreeModel::columnCount(const QModelIndex & /* parent */) const
-    """
-    def columnCount(self, parent):
-        #assert isinstance(parent, QModelIndex)
-        return len(self.columnames)
-        #maybe worth?
-        #parentItem = self.getItem(parent)
-        #return parentItem.columnCount()
-
-        """
-        return len(self.columnames)
-
-        if parent.isValid():
-            return parent.internalPointer().columnCount()
-        else:
-            return self.rootItem.columnCount()
-        """
-
-    """
-    Used by other components to obtain information about each item provided by the model.
-    In many models, the combination of flags should include Qt::ItemIsEnabled and Qt::ItemIsSelectable.
-    Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
-    """
-    def flags(self, index):
-
-        #isinstance(index, QModelIndex)
-        default = super(DataSourceManagerTreeModel, self).flags(index)
-        if index.isValid():
-            return Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | default
-        else:
-            return default
-        """
-        default = super(DataSourceManagerTreeModel, self).flags(index)
-        if index.isValid():
-            return Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | default
-        else:
-            return default
-        """
-
-
-
-    """
-       Given a model index for a parent item, this function allows views and delegates to access children of that item.
-       If no valid child item - corresponding to the specified row, column, and parent model index, can be found,
-       the function must return QModelIndex(), which is an invalid model index.
-    QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) const
-    """
-    def index(self, row, column, parent=None):
-        #assert isinstance(parent, QModelIndex)
-        if parent is None:
-            parent = QModelIndex()
-
-        if not self.hasIndex(row, column, parent):
-            return QModelIndex()
-
-        parentItem = self.getItem(parent)
-        #assert isinstance(parentItem, TreeItem)
-        childItem = parentItem.child(row)
-        if childItem:
-            return self.createIndex(row, column, childItem)
-        else:
-            return QModelIndex()
-
-        """
-        if not self.hasIndex(row, column, parent):
-            return QModelIndex()
-
-        if not parent.isValid():
-            parentItem = self.rootItem
-        else:
-            parentItem = parent.internalPointer()
-
-        childItem = parentItem.child(row)
-        if childItem:
-            return self.createIndex(row, column, childItem)
-        else:
-            return QModelIndex()
-        """
-
-
-
-    """
-    Provides a model index corresponding to the parent of any given child item. If the model index specified
-    corresponds to a top-level item in the model, or if there is no valid parent item in the model,
-    the function must return an invalid model index, created with the empty QModelIndex() constructor.
-
-    QModelIndex TreeModel::parent(const QModelIndex &index) const
-    """
-    def parent(self, index):
-        #assert isinstance(index, QModelIndex)
-        if not index.isValid():
-            return QModelIndex()
-
-        childItem = self.getItem(index)
-        parentItem = childItem.parent()
-        if parentItem == self.rootItem or parentItem is None:
-            return QModelIndex()
-
-        return self.createIndex(parentItem.childNumber(), 0, parentItem)
-
-        """
-        if not index.isValid():
-            return QModelIndex()
-        else:
-            childItem = index.internalPointer()
-            parentItem = childItem.parent
-        if parentItem == self.rootItem:
-            return QModelIndex()
-        return self.createIndex(parentItem.row(), 0, parentItem)
-        """
-
-    """
-    Used to supply item data to views and delegates. Generally, models only need to supply data for
-    Qt::DisplayRole and any application-specific user roles, but it is also good practice to provide
-    data for Qt::ToolTipRole, Qt::AccessibleTextRole, and Qt::AccessibleDescriptionRole.
-    See the Qt::ItemDataRole enum documentation for information about the types associated with each role.
-    """
-    def data(self, index, role):
-        #assert isinstance(index, QModelIndex)
-        if not index.isValid():
-            return None;
-
-
-        item = self.getItem(index)
-        if role == Qt.DisplayRole:
-            columnname = self.columnames[index.column()].lower()
-            text = ''.join([str(item.__dict__[k]) for k in item.__dict__.keys() if k.lower() in columnname])
-            return text
-        if role == Qt.ToolTipRole:
-            return item.tooltip
-        if role == Qt.DecorationRole and index.column() == 0:
-            return item.icon
-        if role == Qt.UserRole:
-            return item.data
-        if role == 'TreeItem':
-            return item
-        return None
-
-
-    def addDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSource)
-        dsTypeName = self.getSourceTypeName(dataSource)
-
-        existingNames = [c.name for c in self.rootItem.childs]
-        if dsTypeName not in existingNames:
-            r1 = len(existingNames)
-            #todo: insert in alphabetical order
-            self.beginInsertRows(QModelIndex(), r1, r1)
-            typeItem = TreeNode(None, dsTypeName,
-                                   icon=QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
-            self.rootItem.insertChild(r1, typeItem)
-            self.endInsertRows()
-
-        #find TreeItem with dsTypeName
-        dsItem = dataSource.getTreeItem(None)
-        for r1 in range(self.rowCount(QModelIndex())):
-            idx1 = self.index(r1, 0, QModelIndex())
-            if dsTypeName == str(idx1.data()):
-
-                dsTypeItem = self.data(idx1, 'TreeItem')
-                assert isinstance(dsTypeItem, TreeItemOLD)
-
-                #todo: alphabetical order?
-                r2 = dsTypeItem.childCount()
-
-                self.beginInsertRows(idx1, r2, r2)
-                dsTypeItem.insertChild(r2, dsItem)
-                self.endInsertRows()
-
-
-    def indexOfTreeItem(self, item, idx = None):
-        if idx is None:
-            idx = QModelIndex()
-
-        item_b = self.data(idx, 'TreeItem')
-        if item is item_b:
-            return idx
-        else:
-            for r in range(self.rowCount(idx)):
-                idx2 = self.indexOfTreeItem(item, self.index(r, 0 , idx))
-                if idx2:
-                    return idx2
-
-        return None
-
-
-
-    def removeDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSource)
-
-        dsTypeName = self.getSourceTypeName(dataSource)
-
-        for r1 in range(self.rowCount(QModelIndex())):
-            idx1 = self.index(r1, 0, QModelIndex())
-            if dsTypeName == str(idx1.data()):
-                for r2 in range(self.rowCount(idx1)):
-                    idx2 = self.index(r2, 0 , idx1)
-                    ds = self.data(idx2, Qt.UserRole)
-                    if ds is dataSource:
-                        typeItem = self.data(idx1, 'TreeItem')
-                        dsItem = self.data(idx2, 'TreeItem')
-                        self.beginRemoveRows(idx1, r2, r2)
-                        typeItem.removeChild(dsItem)
-                        self.endRemoveRows()
-
-                        if typeItem.childCount() == 0:
-                            self.beginRemoveRows(QModelIndex(),r1,r1)
-                            self.rootItem.removeChild(typeItem)
-                            self.endRemoveRows()
-                        return
-
-    def supportedDragActions(self):
-        return Qt.CopyAction
-
-    def supportedDropActions(self):
-        return Qt.CopyAction
-
-
-
-    def dropMimeData(self, mimeData, Qt_DropAction, row, column, parent):
-
-        s = ""
-
-
-    def mimeData(self, indices):
+    def mimeTypes(self):
+        #specifies the mime types handled by this model
+        types = []
+        types.append("text/uri-list")
+        types.append("application/qgis.layertreemodeldata")
+        types.append("application/enmapbox.datasourcetreemodeldata")
+        return types
+
+    def dropMimeData(self, data, action, row, column, parent):
+        parentNode = self.index2node(parent)
+        assert isinstance(data, QMimeData)
+
+        isL1Node = parentNode.parent() == self.rootNode
+
+        result = False
+        if action == Qt.MoveAction:
+            # collect nodes
+            nodes = []
+
+            if data.hasFormat("application/enmapbox.datasourcetreemodeldata"):
+                return False #do not allow moving within DataSourceTree
+
+            # add new data from external
+            elif data.hasFormat('text/uri-list'):
+                for url in data.urls():
+                    self.DSM.addSource(url)
+
+            # add new from QGIS
+            elif data.hasFormat("application/qgis.layertreemodeldata"):
+                result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
+                s = ""
+
+
+            nodes = [n for n in nodes if n is not None]
+
+            # insert nodes, if possible
+            if len(nodes) > 0:
+                if row == -1 and column == -1:
+                    parentNode = parentNode.parent()
+                parentNode.insertChildNodes(-1, nodes)
+                result = True
+
+        return result
+
+    def mimeData(self, indexes):
+        indexes = sorted(indexes)
+        if len(indexes) == 0:
+            return None
+
+        nodesFinal = self.indexes2nodes(indexes, True)
         mimeData = QMimeData()
+        #define application/enmapbox.datasourcetreemodeldata
+        doc = QDomDocument()
+        uriList = list()
+        rootElem = doc.createElement("datasource_tree_model_data");
+        exportedNodes = []
+        for node in nodesFinal:
+            if isinstance(node, DataSourceTreeNode):
+                exportedNodes.append(node)
+            elif isinstance(node, DataSourceGroupTreeNode):
+                for n in node.children():
+                    exportedNodes.append(n)
 
-        for index in indices:
-            assert isinstance(index, QModelIndex)
-            item = self.getItem(index)
-            mimeData = item.mimeData()
+        for node in exportedNodes:
+            node.writeXML(rootElem)
+            uriList.append(QUrl(node.dataSource.uri))
 
-        #todo: handle collection of mimeData
+        doc.appendChild(rootElem)
+        txt = doc.toString()
+        mimeData.setData("application/enmapbox.datasourcetreemodeldata", txt)
+        mimeData.setUrls(uriList)
+
+        # mimeData.setData("application/x-vnd.qgis.qgis.uri", QgsMimeDataUtils.layerTreeNodesToUriList(nodesFinal) );
+
         return mimeData
-    #read only access functions
+
+    def getSourceGroup(self, dataSource):
+        """Returns the source group relate to a data source"""
+        assert isinstance(dataSource, DataSource)
+
+        groups = [(DataSourceRaster, 'Raster Data'),
+                  (DataSourceVector, 'Vector Data'),
+                  (DataSourceModel, 'Models'),
+                  (DataSourceFile, 'Files'),
+                  (DataSource, 'Other sources')]
+
+        srcGrp = None
+        for groupType, groupName in groups:
+            if isinstance(dataSource, groupType):
+                srcGrp = [c for c in self.rootNode.children() if c.name() == groupName]
+                if len(srcGrp) == 0:
+                    #create new group node and add it to the model
+                    srcGrp = DataSourceGroupTreeNode(self.rootNode, groupName, groupType)
+                elif len(srcGrp) == 1:
+                    srcGrp = srcGrp[0]
+                else:
+                    raise Exception()
+                break
+        if srcGrp is None:
+            s = ""
+        return srcGrp
 
 
+    def addDataSource(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        dataSourceNode = TreeNodeProvider.CreateNodeFromDataSource(dataSource, None)
+        sourceGroup = self.getSourceGroup(dataSource)
+        sourceGroup.addChildNode(dataSourceNode)
 
 
+    def removeDataSource(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        sourceGroup = self.getSourceGroup(dataSource)
+        to_remove = [c for c in sourceGroup.children() if c.source == dataSource]
+        if len(to_remove) > 0:
+            sourceGroup.removeChildNodes(to_remove)
 
-    """
-    Provides views with information to show in their headers. The information is only
-    retrieved by views that can display header information.
-    """
-    def headerData(self, section, orientation, role=None):
 
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self.columnames[section]
-        elif role == Qt.ToolTipRole:
-            return None
+    def flags(self, index):
+        if not index.isValid():
+            return Qt.NoItemFlags
+        #specify TreeNode specific actions
+        node = self.index2node(index)
+        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+        if isinstance(node, DataSourceGroupTreeNode):
+            flags |= Qt.ItemIsDropEnabled
+        elif isinstance(node, DataSourceTreeNode):
+            flags |= Qt.ItemIsDragEnabled
         else:
-            return None
-        pass
-
-
-    #editable items
-    """
-    Must return an appropriate combination of flags for each item. In particular, the value returned
-    by this function must include Qt::ItemIsEditable in addition to the values applied to
-    items in a read-only model.
-    """
-    #def flags(self):
-    #    pass
-
-    """
-    Used to modify the item of data associated with a specified model index. To be able to accept
-    user input, provided by user interface elements, this function must handle data associated
-    with Qt::EditRole. The implementation may also accept data associated with many different
-    kinds of roles specified by Qt::ItemDataRole. After changing the item of data, models
-    must emit the dataChanged() signal to inform other components of the change.
-    """
-
-
-    def setData(self, index, data, role=None):
-        assert isinstance(index, QModelIndex)
-        assert isinstance(data, TreeItemOLD)
-        #return False
-        self.dataChanged.emit()
-
-    #    pass
-
-    """
-    Used to modify horizontal and vertical header information. After changing the item of data,
-    models must emit the headerDataChanged() signal to inform other components of the change.
-    """
-    #def setHeaderData(self, p_int, Qt_Orientation, QVariant, int_role=None):
-    #    pass
-
-    #resizable models
-
-    """
-    Used to add new rows and items of data to all types of model. Implementations must call
-    beginInsertRows() before inserting new rows into any underlying data structures, and call
-    endInsertRows() immediately afterwards.
-    """
-    #def insertRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
-    #    pass
-
-
-    """
-    Used to remove rows and the items of data they contain from all types of model. Implementations must
-    call beginRemoveRows() before inserting new columns into any underlying data structures, and call
-    endRemoveRows() immediately afterwards.
-    """
-    #def removeRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
-    #    pass
-
-    """
-    Used to add new columns and items of data to table models and hierarchical models. Implementations must
-    call beginInsertColumns() before rows are removed from any underlying data structures, and call
-    endInsertColumns() immediately afterwards.
-    """
-    #def insertColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
-    #    pass
-
-    """
-    Used to remove columns and the items of data they contain from table models and hierarchical models.
-    Implementations must call beginRemoveColumns() before columns are removed from any underlying data
-    structures, and call endRemoveColumns() immediately afterwards.
-    """
-    #def removeColumns(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
-
-    #    pass
-
-    #lazy population
-
-    def hasChildren(self, parent):
-
-        item = self.getItem(parent)
-        return item.childCount() > 0
-
-
-
-    #parents and childrens
-
-
-
+            flags = Qt.NoItemFlags
+        return flags
 
