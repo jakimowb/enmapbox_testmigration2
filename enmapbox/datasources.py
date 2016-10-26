@@ -25,8 +25,7 @@ def openPlatformDefault(uri):
     else:
         raise NotImplementedError('Unhandled uri type {}'.format(uri))
 
-class DataSource(object):
-    """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
+class DataSourceFactory(object):
 
     @staticmethod
     def srctostring(src):
@@ -41,7 +40,6 @@ class DataSource(object):
         if isinstance(src, str):
             src = os.path.abspath(src)
         return src
-
 
     @staticmethod
     def isVectorSource(src):
@@ -58,9 +56,9 @@ class DataSource(object):
         if isinstance(src, ogr.DataSource):
             uri = src.GetName()
 
-        src = DataSource.srctostring(src)
+        src = DataSourceFactory.srctostring(src)
         if isinstance(src, str):
-            #todo: check different providers, not only ogr
+            # todo: check different providers, not only ogr
             result = None
             try:
                 result = DataSource.isVectorSource(ogr.Open(src))
@@ -83,23 +81,22 @@ class DataSource(object):
         gdal.UseExceptions()
         uri = None
         if isinstance(src, QgsRasterLayer) and src.isValid():
-            uri = DataSource.isRasterSource(src.dataProvider())
+            uri = DataSourceFactory.isRasterSource(src.dataProvider())
         if isinstance(src, QgsRasterDataProvider):
             uri = str(src.dataSourceUri())
         if isinstance(src, gdal.Dataset):
             uri = src.GetFileList()[0]
 
-        src = DataSource.srctostring(src)
+        src = DataSourceFactory.srctostring(src)
         if isinstance(src, str):
             # todo: check different providers, not only gdal
             try:
-                uri = DataSource.isRasterSource(gdal.Open(src))
+                uri = DataSourceFactory.isRasterSource(gdal.Open(src))
             except RuntimeError, e:
                 pass
 
         assert uri is None or isinstance(uri, str)
         return uri
-
 
     @staticmethod
     def isEnMAPBoxModel(src):
@@ -109,9 +106,8 @@ class DataSource(object):
         :return: uri (str) | None
         """
 
-
         uri = None
-        src = DataSource.srctostring(src)
+        src = DataSourceFactory.srctostring(src)
         if isinstance(src, str) and os.path.exists(src):
 
             try:
@@ -124,7 +120,6 @@ class DataSource(object):
             except Exception, e:
                 pass
         return uri
-
 
     @staticmethod
     def Factory(src, name=None, icon=None):
@@ -141,24 +136,24 @@ class DataSource(object):
 
         dprint('DataSourceFactory input: {} {}'.format(type(src), src))
 
-        uri = DataSource.isRasterSource(src)
+        uri = DataSourceFactory.isRasterSource(src)
         if uri is not None:
             return DataSourceRaster(uri, name=name, icon=icon)
-        uri = DataSource.isVectorSource(src)
+        uri = DataSourceFactory.isVectorSource(src)
         if uri is not None:
             return DataSourceVector(uri, name=name, icon=icon)
 
-        uri = DataSource.isEnMAPBoxModel(src)
+        uri = DataSourceFactory.isEnMAPBoxModel(src)
         if uri is not None:
             return DataSourceModel(uri, name=name, icon=icon)
 
-        src = DataSource.srctostring(src)
+        src = DataSourceFactory.srctostring(src)
         if isinstance(src, str):
             if os.path.isfile(src):
                 ext = os.path.splitext(src)[1].lower()
-                if ext in ['.csv','.txt']:
+                if ext in ['.csv', '.txt']:
                     return DataSourceTextFile(src, name=name, icon=icon)
-                if ext in ['.xml','.html']:
+                if ext in ['.xml', '.html']:
                     return DataSourceXMLFile(src, name=name, icon=icon)
                 return DataSourceFile(src, name=name, icon=icon)
 
@@ -167,10 +162,16 @@ class DataSource(object):
             if src in ids:
                 mapLyr = reg.mapLayer(src)
                 dprint('MAP LAYER: {}'.format(mapLyr))
-                return DataSource.Factory(reg.mapLayer(src), name)
+                return DataSourceFactory.Factory(reg.mapLayer(src), name)
 
         dprint('Can not open {}'.format(str(src)))
         return None
+
+
+class DataSource(object):
+    """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
+
+
 
     def __init__(self, uri, name=None, icon=None):
         """
@@ -413,7 +414,7 @@ class DataSourceManager(QObject):
         :param icon:
         :return: a DataSource instance, if sucessfully added
         """
-        ds = DataSource.Factory(src, name=name, icon=icon)
+        ds = DataSourceFactory.Factory(src, name=name, icon=icon)
 
 
         if isinstance(ds, DataSource):
