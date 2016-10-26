@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections
+import six, sys, os, gc, re, collections, uuid
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -37,6 +37,9 @@ class DataSource(object):
                 src = str(src.path())
         if isinstance(src, unicode):
             src = str(src)
+
+        if isinstance(src, str):
+            src = os.path.abspath(src)
         return src
 
 
@@ -181,7 +184,7 @@ class DataSource(object):
             name = os.path.basename(uri)
         assert name is not None
         assert type(icon) is QIcon
-
+        self.uuid = uuid.uuid4()
         self.uri = uri
         self.icon = icon
         self.name = name
@@ -200,23 +203,9 @@ class DataSource(object):
         """
         return self.icon
 
+    def writeXml(self, element):
 
-    def getTreeItem(self, parentItem):
-        import enmapbox.main
-
-        """
-        Returns a TreeItem to be used in TreeViews
-        :param parentItem:
-        :return:
-        """
-        mimeData = QMimeData()
-        mimeData.setUrls([QUrl(self.getUri())])
-        return TreeItem(parentItem, self.name,
-                        data=self,
-                        icon=self.getIcon(),
-                        tooltip = str(self),
-                        mimeData=mimeData
-                        )
+        s = ""
 
     def __repr__(self):
         return 'DataSource: {} {}'.format(self.name, str(self.uri))
@@ -226,15 +215,6 @@ class DataSourceFile(DataSource):
     def __init__(self, uri, name=None, icon=None):
         super(DataSourceFile, self).__init__(uri, name, icon)
 
-    def getTreeItem(self, parent):
-        itemTop = super(DataSourceFile, self).getTreeItem(parent)
-        infos = list()
-        infos.append('URI: {}'.format(self.uri))
-        infos.append('Size: {}'.format(os.path.getsize(self.uri)))
-        item = TreeItem(itemTop, 'File Information', tooltip='\n'.join(infos))
-        item.addTextChilds(infos)
-
-        return itemTop
 
 class DataSourceTextFile(DataSourceFile):
     """
@@ -243,13 +223,7 @@ class DataSourceTextFile(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
         super(DataSourceTextFile, self).__init__(uri, name, icon)
 
-    def getTreeItem(self, parent):
-        itemTop = super(DataSourceTextFile, self).getTreeItem(parent)
 
-        action = QAction('Open (default)', None)
-        action.triggered.connect(lambda: openPlatformDefault(self.uri))
-        itemTop.actions.append(action)
-        return itemTop
 
 
 
@@ -260,14 +234,7 @@ class DataSourceXMLFile(DataSourceTextFile):
     def __init__(self, uri, name=None, icon=None):
         super(DataSourceXMLFile, self).__init__(uri, name, icon)
 
-    def getTreeItem(self, parent):
-        itemTop = super(DataSourceXMLFile, self).getTreeItem(parent)
 
-        action = QAction('Open (web browser)', None)
-        import webbrowser
-        action.triggered.connect(lambda: webbrowser.open(self.uri))
-        itemTop.actions.append(action)
-        return itemTop
 
 
 class DataSourceSpatial(DataSource):
@@ -297,6 +264,7 @@ class DataSourceSpatial(DataSource):
         :return:
         """
         ml = self._createMapLayer(*args, **kwds)
+        ml.setName(self.name)
         QgsMapLayerRegistry.instance().addMapLayer(ml, False)
         self.mapLayers.append(ml)
         return ml
@@ -311,26 +279,6 @@ class DataSourceModel(DataSourceFile):
         self.model = types.unpickle(uri)
 
 
-    def getTreeItem(self, parent):
-        itemTop = super(DataSourceModel, self).getTreeItem(parent)
-
-        itemModel = TreeItem(itemTop, self.model.name())
-
-
-        action = QAction('Open HTML Report', None)
-        action.triggered.connect(lambda: self.model.report().open())
-        itemModel.actions.append(action)
-
-        signature = self.model.signature()
-        signature = [s.strip() for s in re.split('[(,)]', signature)]
-        if len(signature) > 1:
-            itemSignature = TreeItem(itemModel, 'Signature')
-            itemSignature.addTextChilds(signature[1:])
-
-
-
-
-        return itemTop
 
 class DataSourceRaster(DataSourceSpatial):
 
@@ -364,63 +312,6 @@ class DataSourceRaster(DataSourceSpatial):
         return QgsRasterLayer(self.uri, *args, **kwargs)
 
 
-    def getTreeItem(self, parent):
-        import enmapbox.main
-        itemTop = super(DataSourceRaster, self).getTreeItem(parent)
-
-
-        dp = self._refLayer.dataProvider()
-        crs = self._refLayer.crs()
-
-        infos = list()
-        infos.append('URI: {}'.format(dp.dataSourceUri()))
-        infos.append('DIMS: {}x{}x{}'.format(dp.xSize(), dp.ySize(), dp.bandCount()))
-        item = TreeItem(itemTop, 'File Information')
-        item.tooltip = '\n'.join(infos)
-        item.addTextChilds(infos)
-        #define actions related to top icon
-
-        if crs is not None:
-            infos = list()
-            infos.append('CRS: {}'.format(crs.description()))
-            infos.append('Extent: {}'.format(dp.extent().toString(True)))
-            item = TreeItem(itemTop, 'Spatial Reference')
-            item.tooltip = '\n'.join(infos)
-            item.addTextChilds(infos)
-
-        itemBands = TreeItem(itemTop, 'Bands [{}]'.format(dp.bandCount()))
-
-        bandnames = [self._refLayer.bandName(b+1) for b in range(self._refLayer.bandCount())]
-        ds = None
-        if dp.name() == 'gdal':
-            ds = gdal.Open(dp.dataSourceUri())
-            for b in range(ds.RasterCount):
-                bandnames[b] = '{} "{}"'.format(bandnames[b], ds.GetRasterBand(b+1).GetDescription())
-
-        for b in range(dp.bandCount()):
-            infos=list()
-            if dp.srcHasNoDataValue(b+1):
-                infos.append('No data : {}'.format(dp.srcNoDataValue(b+1)))
-            itemBand = TreeItem(itemBands, bandnames[b])
-            itemBand.tooltip = '\n'.join(infos)
-            itemBand.addTextChilds(infos)
-            ct = dp.colorTable(b+1)
-            if len(ct) > 0:
-                if dp.bandCount() > 1 :
-                    itemClasses = TreeItem(itemBand, 'Classes')
-                else:
-                    itemClasses = TreeItem(itemTop, 'Classes')
-                for colorRampItem in ct:
-                    pixmap = QPixmap(100,100)
-                    pixmap.fill(colorRampItem.color)
-
-                    itemClass = TreeItem(itemClasses, colorRampItem.label, icon=QIcon(pixmap))
-
-
-
-
-        return itemTop
-
 class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None ):
         super(DataSourceVector, self).__init__(uri, name, icon)
@@ -447,37 +338,109 @@ class DataSourceVector(DataSourceSpatial):
         else:
             return QgsVectorLayer(self.uri, **kwargs)
 
-    def getTreeItem(self, parent):
-        from enmapbox.main import TreeItem
-        itemTop = super(DataSourceVector, self).getTreeItem(parent)
 
-        #itemTop = TreeItem(parent, self.name, icon=self.getIcon())
-        assert type(self._refLayer) is QgsVectorLayer
-        srs = self._refLayer.crs()
-        dp = self._refLayer.dataProvider()
-        assert isinstance(dp, QgsVectorDataProvider)
 
-        infos = list()
-        infos.append('Path: {}'.format(self.uri))
-        infos.append('Features: {}'.format(dp.featureCount()))
 
-        TreeItem(itemTop, 'File Information', infos=infos,
-                 tooltip='\n'.join(infos), asChild=True)
 
-        if srs is not None:
-            infos = list()
-            infos.append('CRS: {}'.format(srs.description()))
-            infos.append('Extent: {}'.format(dp.extent().toString(True)))
-            TreeItem(itemTop, 'Spatial Reference', infos=infos, asChild=True,
-                     tooltip='\n'.join(infos))
+class DataSourceManager(QObject):
 
-        fields = self._refLayer.fields()
-        itemFields = TreeItem(itemTop, 'Fields [{}]'.format(len(fields)), asChild=True)
-        for i, field in enumerate(fields):
-            infos = list()
-            infos.append('Name : {}'.format(field.name()))
-            infos.append('Type : {}'.format(field.typeName()))
-            TreeItem(itemFields, '{} "{}" {}'.format(i+1, field.name(), field.typeName()),
-                     tooltip='\n'.join(infos), infos=infos, asChild=True)
+    """
+    Keeps overview on different data sources handled by EnMAP-Box.
+    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well.
+    """
 
-        return itemTop
+    sigDataSourceAdded = pyqtSignal(DataSource)
+    sigDataSourceRemoved = pyqtSignal(DataSource)
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.sources = set()
+        self.qgsMapLayerRegistry = QgsMapLayerRegistry.instance()
+        self.updateFromQgsMapLayerRegistry()
+
+
+        enmapbox.processing.sigFileCreated.connect(lambda file: self.addSource(file))
+        self.updateFromProcessingFramework()
+
+    def updateFromProcessingFramework(self):
+        import enmapbox.processing
+        for p,n in zip(enmapbox.processing.MODEL_URIS,
+                       enmapbox.processing.MODEL_NAMES):
+            self.addSource(p, name=n)
+
+    def updateFromQgsMapLayerRegistry(self):
+        """
+        Add data sources registered in the QgsMapLayerRegistry to the data source manager
+        :return: True, if a new source was added
+        """
+        r = False
+        existing_src = [ds.src for ds in self.sources if isinstance(ds, DataSourceSpatial)]
+        for lyr in self.qgsMapLayerRegistry.mapLayers().values():
+            src = lyr.dataProvider().dataSourceUri()
+            if src not in existing_src:
+                r =  r or (self.addSource(src) is not None)
+        return r
+
+    def getUriList(self, sourcetype='All'):
+        """
+        Returns URIs of registered data sources
+        :param sourcetype: uri filter: 'ALL' (default),'RASTER''VECTOR' or 'MODEL' to return only uri's related to these sources
+        :return: uri as string (str), e.g. a file path
+        """
+        sourcetype = sourcetype.upper()
+        if isinstance(sourcetype, type):
+            return [ds.getUri() for ds in self.sources if type(ds) is sourcetype]
+
+        assert sourcetype in ['ALL','RASTER''VECTOR','MODEL']
+        if sourcetype == 'ALL':
+            return [ds.getUri() for ds in self.sources]
+        elif sourcetype == 'VECTOR':
+            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+        elif sourcetype == 'RASTER':
+            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+        elif sourcetype == 'MODEL':
+            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceModel)]
+
+
+
+    @pyqtSlot(str)
+    @pyqtSlot('QString')
+    def addSource(self, src, name=None, icon=None):
+        """
+        Adds a new data source.
+        :param src: any object
+        :param name:
+        :param icon:
+        :return: a DataSource instance, if sucessfully added
+        """
+        ds = DataSource.Factory(src, name=name, icon=icon)
+
+
+        if isinstance(ds, DataSource):
+            # check if source is already registered
+            for src in self.sources:
+                if os.path.abspath(src.uri) == os.path.abspath(ds.uri):
+                    return src #return object reference of already existing source
+
+            self.sources.add(ds)
+            self.sigDataSourceAdded.emit(ds)
+
+            if isinstance(ds, DataSourceModel):
+                enmapbox.processing.registerModel(ds.uri)
+
+        return ds
+
+    def removeSource(self, src):
+        assert isinstance(src, DataSource)
+        if src in self.sources:
+            self.sources.remove(src)
+            self.sigDataSourceRemoved.emit(src)
+        else:
+            print('DEBUG: can not remove {}'.format(src))
+
+
+
+    def getSourceTypes(self):
+        return sorted(list(set([type(ds) for ds in self.sources])))
+
+
