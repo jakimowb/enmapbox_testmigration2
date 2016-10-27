@@ -6,6 +6,7 @@ from osgeo import gdal, ogr
 
 import enmapbox
 from enmapbox.utils import *
+from enmapbox.datasources import *
 dpring = enmapbox.dprint
 jp = os.path.join
 
@@ -469,8 +470,178 @@ class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
 def getQIcon(name=IconProvider.EnMAP_Logo):
     return QtGui.QIcon(name)
 
+class MapDockLayerTreeGroup(QgsLayerTreeGroup):
+    def __init__(self, parent, dock):
+        super(MapDockLayerTreeGroup, self).__init__()
 
-from enmapbox.datasources import *
+        assert isinstance(dock, MapDock)
+        self.dock = dock
+
+        #self.bridge = QgsLayerTreeMapCanvasBridge()
+        #synchronize own title with that of linked dock
+        lyrs = [QgsMapCanvasLayer(l) for l in dock.canvas.layers()]
+        self.dock.sigTitleChanged.connect(lambda x: self.setName(x))
+        self.setName(dock.title())
+        self.bridge = QgsLayerTreeMapCanvasBridge(self, self.dock.canvas, parent)
+        self.bridge.setAutoEnableCrsTransform(True)
+        self.bridge.setAutoSetupOnFirstLayer(True)
+        self.bridge.setCanvasLayers(self, lyrs)
+        s = ""
+
+    def icon(self):
+        """
+        Override to return dock specific icons
+        :return:
+        """
+        #todo: better icons
+        return QIcon(IconProvider.File_Raster)
+
+
+class DockViewBox(QgsCollapsibleGroupBox):
+
+    def __init__(self, parent, dock):
+        super(DockViewBox, self).__init__(parent)
+
+        assert isinstance(dock, MapDock)
+        self.dock = dock
+        #self.bridge = QgsLayerTreeMapCanvasBridge()
+        #synchronize own title with that of linked dock
+        self.dock.sigTitleChanged.connect(lambda x: self.setTitle(x))
+
+        s = ""
+
+
+class DockManagerTreeModel(QgsLayerTreeModel):
+
+    def __init__(self, dockManager):
+        self.rootNode = QgsLayerTreeGroup()
+        super(DockManagerTreeModel, self).__init__(self.rootNode)
+        assert isinstance(dockManager, DockManager)
+        self.dockManager = dockManager
+        self.dockManager.sigDockAdded.connect(self.addDock)
+        self.dockManager.sigDockRemoved.connect(self.removeDock)
+
+
+    def addDock(self, dock):
+        if isinstance(dock, MapDock):
+            rootNode = self.rootNode
+            grp  = MapDockLayerTreeGroup(rootNode, dock)
+
+            #QgsLayerTree.isGroup(grp)
+
+            rootNode.addChildNode(grp)
+            s  = ""
+
+    def removeDock(self, dock):
+        s  =""
+
+    def data(self, index, role ):
+        v = super(DockManagerTreeModel, self).data(index, role)
+        node = self.index2node(index)
+        if isinstance(node, MapDockLayerTreeGroup):
+            if role == Qt.DecorationRole:
+                return node.icon()
+
+        return v
+
+
+class DockManager(QObject):
+    """
+    Class to handle DOCK releated events
+    """
+
+    sigDockAdded = pyqtSignal(Dock)
+    sigDockRemoved = pyqtSignal(Dock)
+    sigDockTitleChanged = pyqtSignal(Dock)
+
+    def __init__(self, enmapbox):
+        QObject.__init__(self)
+        self.enmapbox = enmapbox
+        self.dockarea = self.enmapbox.dockarea
+        self.DOCKS = set()
+
+        self.dockarea.sigDragEnterEvent.connect(self.dockAreaSignalHandler)
+        self.dockarea.sigDragMoveEvent.connect(self.dockAreaSignalHandler)
+        self.dockarea.sigDragLeaveEvent.connect(self.dockAreaSignalHandler)
+        self.dockarea.sigDropEvent.connect(self.dockAreaSignalHandler)
+
+    def dockAreaSignalHandler(self, event):
+        M = MimeDataHelper(event.mimeData())
+        if type(event) is QDragEnterEvent:
+            # check mime types we can handle
+            if M.hasUriList() or M.hasQgsLayerTree():
+                event.setDropAction(Qt.CopyAction)
+                event.accept()
+            else:
+                event.ignore()
+        elif type(event) is QDragMoveEvent:
+            pass
+        elif type(event) is QDragLeaveEvent:
+            pass
+        elif type(event) is QDropEvent:
+
+            addedSources = set()
+            if M.hasQgsLayerTree():
+                for id, name in M.getQgsLayerTreeLayers():
+                    ds = DataSource.Factory(id, name=name)
+                    if ds is not None:
+                        addedSources.add(self.addSource(ds))
+
+            elif M.hasUriList():
+                for url in M.getUriList():
+                    ds = self.addSource(url)
+                    if ds is not None:
+                        addedSources.add(self.addSource(ds))
+
+            NEW_MAP_DOCK = None
+            for ds in addedSources:
+                if isinstance(ds, DataSourceSpatial):
+                    if NEW_MAP_DOCK is None:
+                        NEW_MAP_DOCK = self.createDock('MAP')
+                    NEW_MAP_DOCK.addLayer(ds.createMapLayer())
+
+            event.acceptProposedAction()
+            # todo: handle non-spatial datasources
+
+    def removeDock(self, dock):
+        if dock in self.DOCKS:
+            self.DOCKS.remove(dock)
+            self.sigDockRemoved.emit(dock)
+
+    def createDock(self, docktype, *args, **kwds):
+        # todo: ensure unique mapdock names
+
+        assert docktype in ['MAP', 'TEXT']
+        if 'name' not in kwds.keys():
+            kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
+
+        if docktype == 'MAP':
+            dock = MapDock(self.enmapbox, *args, **kwds)
+        elif docktype == 'TEXT':
+            dock = TextDock(self.enmapbox, *args, **kwds)
+
+
+
+        state = self.dockarea.saveState()
+        main = state['main']
+        if main:
+            # todo: add "balanced" to existing docks
+            n_vertical = n_horizontal = 0
+
+        dock.sigClosed.connect(self.removeDock)
+        self.DOCKS.add(dock)
+        self.dockarea.addDock(dock, *args, **kwds)
+
+        self.sigDockAdded.emit(dock)
+
+        if 'initSrc' in kwds.keys():
+            ds = self.enmapbox.addSource(kwds['initSrc'])
+            if isinstance(ds, DataSourceSpatial):
+                dock.addLayer(ds.createMapLayer())
+
+        return dock
+
+
 class DataSourceManager(QObject):
 
     """
@@ -592,99 +763,53 @@ class EnMAPBox:
         self.gui.showMaximized()
         self.gui.setAcceptDrops(True)
         self.gui.setWindowTitle('EnMAP-Box ' + VERSION)
-        self.dataSourceManager = DataSourceManager()
-        model = DataSourceManagerTreeModel(self.dataSourceManager)
-        self.gui.dataSourceTreeView.setModel(model)
 
-
-        self.gui.dataSourceTreeView.setDragEnabled(True)
-        self.gui.dataSourceTreeView.setAcceptDrops(True)
-        self.gui.dataSourceTreeView.viewport().setAcceptDrops(True)
-        self.gui.dataSourceTreeView.setDropIndicatorShown(True)
-        self.gui.dataSourceTreeView.customContextMenuRequested.connect(self.onDataSourceTreeViewCustomContextMenu)
-
-        self.DOCKS = set()
         self.dockarea = DockArea()
-        self.dockarea.sigDragEnterEvent.connect(self.dockAreaSignalHandler)
-        self.dockarea.sigDragMoveEvent.connect(self.dockAreaSignalHandler)
-        self.dockarea.sigDragLeaveEvent.connect(self.dockAreaSignalHandler)
-        self.dockarea.sigDropEvent.connect(self.dockAreaSignalHandler)
-
         self.gui.centralWidget().layout().addWidget(self.dockarea)
+
+
+        self.dataSourceManager = DataSourceManager()
+        self.dockManager = DockManager(self)
+
+        view = self.gui.dataSourceTreeView
+        view.setModel(DataSourceManagerTreeModel(self.dataSourceManager))
+        view.setDragEnabled(True)
+        view.setAcceptDrops(True)
+        view.viewport().setAcceptDrops(True)
+        view.setDropIndicatorShown(True)
+        view.customContextMenuRequested.connect(self.onDataSourceTreeViewCustomContextMenu)
+
+        #view = QgsLayerTreeView(self.gui.tabMapDockView)
+        view = self.gui.dockTreeView
+        #self.gui.tabMapDockView.layout().addWidget(view)
+        #view.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
+        #view.setMinimumWidth(150)
+        #view.setMinimumHeight(200)
+        #view.setFrameShadow(QFrame.Sunken)
+
+        #view.setHeaderHidden(False)
+        #view.setDragEnabled(True)
+        #view.setDragEnabled(True)
+        #view.setAcceptDrops(True)
+        view.viewport().setAcceptDrops(True)
+        #view.setDropIndicatorShown(True)
+        view.setModel(DockManagerTreeModel(self.dockManager))
+
+
 
         #link action objects to action behaviour
         #self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
-        self.gui.actionAddMapView.triggered.connect(lambda : self.createDock('MAP'))
-        self.gui.actionAddTextView.triggered.connect(lambda: self.createDock('TEXT'))
+        self.gui.actionAddMapView.triggered.connect(lambda : self.dockManager.createDock('MAP'))
+        self.gui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.gui.actionAddDataSource.triggered.connect(lambda: self.addSource(str(QFileDialog.getOpenFileName(self.gui, "Open a data source"))))
         EnMAPBox._instance = self
 
 
-    def dockAreaSignalHandler(self, event):
-        M = MimeDataHelper(event.mimeData())
-        if type(event) is QDragEnterEvent:
-            # check mime types we can handle
-            if M.hasUriList() or M.hasQgsLayerTree():
-                event.setDropAction(Qt.CopyAction)
-                event.accept()
-            else:
-                event.ignore()
-        elif type(event) is QDragMoveEvent:
-            pass
-        elif type(event) is QDragLeaveEvent:
-            pass
-        elif type(event) is QDropEvent:
+    def createDock(self, *args, **kwds):
+        self.dockManager.createDock(*args, **kwds)
 
-            addedSources = set()
-            if M.hasQgsLayerTree():
-                for id, name in M.getQgsLayerTreeLayers():
-                    ds = DataSource.Factory(id, name=name)
-                    if ds is not None:
-                        addedSources.add(self.addSource(ds))
-
-            elif M.hasUriList():
-                for url in M.getUriList():
-                    ds = self.addSource(url)
-                    if ds is not None:
-                        addedSources.add(self.addSource(ds))
-
-            NEW_MAP_DOCK = None
-            for ds in addedSources:
-                if isinstance(ds, DataSourceSpatial):
-                    if NEW_MAP_DOCK is None:
-                        NEW_MAP_DOCK = self.createDock('MAP')
-                    NEW_MAP_DOCK.addLayer(ds.createMapLayer())
-
-            event.acceptProposedAction()
-                #todo: handle non-spatial datasources
-
-
-    def createDock(self, docktype,  *args, **kwds):
-        #todo: ensure unique mapdock names
-
-        assert docktype in ['MAP','TEXT']
-        if 'name' not in kwds.keys():
-            kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
-
-        if docktype == 'MAP':
-            dock = MapDock(self, *args, **kwds)
-        elif docktype == 'TEXT':
-            dock = TextDock(self, *args, **kwds)
-
-        existing = self.dockarea.findAll()
-        state = self.dockarea.saveState()
-        main = state['main']
-        if main:
-            #todo: add "balanced" to existing docks
-            n_vertical = n_horizontal = 0
-
-        self.dockarea.addDock(dock, *args, **kwds)
-        self.DOCKS.add(dock)
-        return dock
-        #dock.sigClosed.connect(lambda : self.removeDock(dock))
-
-    #def removeDock(self, dock):
-        #self.DOCKS.remove(dock)
+    def removeDock(self, *args, **kwds):
+        self.dockManager.removeDock(*args, **kwds)
 
     def isLinkedWithQGIS(self):
         return self.iface is not None and isinstance(self.iface, qgis.gui.QgisInterface)
