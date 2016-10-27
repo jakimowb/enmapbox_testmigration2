@@ -30,7 +30,10 @@ def sample():
 def test_type():
 
 
-    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    image = Type()
+    image.report().saveHTML().open()
+
+    return
     labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
     classifier = Classifiers.SVCTuned()
     classifier = classifier.fit(image, labels)
@@ -370,8 +373,8 @@ if __name__ == '__main__':
 
     #tic()
     #importENVISpeclib()
-    #test_type()
-    pixel_grid()
+    test_type()
+    #pixel_grid()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()

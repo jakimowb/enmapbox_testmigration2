@@ -200,8 +200,8 @@ class Fitting(Workflow):
         for key, color in zip(['blue', 'green', 'red', 'nir', 'swir1', 'swir2'], ['b', 'g', 'r', 'm', 'cyan', 'lightskyblue']):
             y[key] = getattr(self.inputs, key).cube
             colors[key] = color
-        y['ndvi'] = numpy.true_divide(y['nir']-y['red'], y['nir']+y['red']) *10000
-        colors['ndvi'] = 'darkgreen'
+        #y['ndvi'] = numpy.true_divide(y['nir']-y['red'], y['nir']+y['red']) *10000
+        #colors['ndvi'] = 'darkgreen'
 
         # grid for plotting
         x_grid = numpy.linspace(x.min(), x.max(), (x.max()-x.min())*365., dtype=numpy.float64)[:, numpy.newaxis]
@@ -229,16 +229,22 @@ class Fitting(Workflow):
             for sample in range(samples):
 
                 ### 3d plot ###
-                '''X = list()
-                Z = list()
-                for name, cube in y.items():
-                    y_pred_grid, y_error_grid = p(name, x_grid, sample, line, krrFixed)
-                    X.append(x_grid)                                                    # time
-                    Z.append(y_pred_grid)                                               # sr
+                if 1:
+                    X = list()
+                    Z = list()
+                    sample_weight = None  # 1. - kde.X_fit_density_
+                    y_multi_pred_grid, y_multi_error_grid = p(None, x_grid, sample, line, krrFixed,
+                                                              sample_weight=sample_weight)
 
-                    #######
-                Y = numpy.array([480.0, 560.0, 655.0, 865.0, 1585.0, 2200.0])  # wavelength
-                plot3d(X, Y, Z)'''
+                    for i, (name, cube) in enumerate(y.items()):
+
+                        y_pred_grid = y_multi_pred_grid[i]
+                        X.append(x_grid)                                                    # time
+                        Z.append(y_pred_grid)                                               # sr
+
+                        #######
+                    Y = numpy.array([480.0, 560.0, 655.0, 865.0, 1585.0, 2200.0])  # wavelength
+                    plot3d(X, Y, Z)
 
                 # fit density
                 kde.fit(x[validCube[:, line, sample]])
@@ -251,7 +257,7 @@ class Fitting(Workflow):
                 #y_multiRefit_pred_grid, y_multiRefit_error_grid = p(None, x_grid, sample, line, krrFixed, refit=True)
 
                 for i, (name, cube) in enumerate(y.items()):
-                    if name != 'ndvi': continue
+                    #if name != 'ndvi': continue
 
                     #plt.figure(figsize=(15,10))
 

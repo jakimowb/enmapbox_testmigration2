@@ -340,9 +340,10 @@ class Workflow:
             self.outargs.__dict__[key] = [outargs.__dict__[key] for outargs in outargsList]
         shutil.rmtree(self.tempdir)
 
-    def run(self, verbose=True):
+    def run(self, userFunction=None, verbose=True):
 
         self.verbose = verbose
+        self.userFunction = userFunction # if is None, self.apply() must be provided
 
         # link input filenames
         self.linkInputFiles()
@@ -397,7 +398,10 @@ def workflowUserFunctionWrapper(riosInfo, riosInputs, riosOutputs, riosOtherArgs
     workflow.mapRiosInputs(riosInputs=riosInputs)
 
     # run the workflow
-    workflow.apply(riosInfo)
+    if workflow.userFunction is not None:
+        workflow.userFunction(riosInfo, workflow.inputs, workflow.outputs, workflow.inargs, workflow.outargs)
+    else:
+        workflow.apply(riosInfo)
 
     # link output files to RIOS
     # Note: this is redundantly done for each block, to be able to infere the filenames of more complex outputs types
@@ -410,6 +414,7 @@ def workflowUserFunctionWrapper(riosInfo, riosInputs, riosOutputs, riosOtherArgs
 
     # pickle output arguments to file (necessary for multi processing)
     workflow.pickleOutputArguments(xblock=riosInfo.xblock, yblock=riosInfo.yblock)
+
 
 ##############################
 ### define some test cases ###
