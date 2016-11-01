@@ -42,7 +42,7 @@ class EnMAPBoxPlugin:
 
     def has_processing_framework(self):
         try:
-            from processing.core.Processing import Processing
+            from processing.core import Processing
             return True
         except:
             return False
@@ -122,7 +122,9 @@ class EnMAPBoxPlugin:
             from processing.core.Processing import Processing
             for provider in self.processingProviders:
                 Processing.removeProvider(provider)
-
+        self.enmapbox = None
+        from enmapbox.main import EnMAPBox
+        EnMAPBox._instance = None
 
     def openGUI(self):
         pass
