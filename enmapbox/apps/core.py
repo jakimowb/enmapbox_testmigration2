@@ -30,7 +30,7 @@ class EnMAPBoxProvider(AlgorithmProvider):
     def __init__(self):
 
         AlgorithmProvider.__init__(self)
-        if EnMAPBoxProvider.instance() is None:
+        if EnMAPBoxProvider.instance() is not None:
             print('Oh. It seems that the EnMAPBoxProvider was initialized twice.')
         EnMAPBoxProvider._instance = self
 
