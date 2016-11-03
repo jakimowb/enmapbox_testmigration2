@@ -1009,7 +1009,7 @@ class MapDock(Dock):
         ME = enmapbox.utils.MimeDataHelper(event.mimeData())
         #check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
-        if ME.hasUriList() or ME.hasQgsLayerTree():
+        if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
             event.setDropAction(Qt.CopyAction) #copy but do not remove
             event.accept()
         else:
@@ -1019,24 +1019,21 @@ class MapDock(Dock):
         import enmapbox.utils
         ME = enmapbox.utils.MimeDataHelper(event.mimeData())
 
-        added_sources = []
-        if ME.hasQgsLayerTree():
-            for id, name in ME.getQgsLayerTreeLayers():
-                ds = DataSource.Factory(id, name=name)
-                if ds is not None:
-                    added_sources.append(self.enmapbox.addSource(ds))
+        if ME.hasMapLayers():
+            newLayers = ME.mapLayers()
 
-
-        if ME.hasUriList():
-            for url in ME.getUriList():
-                ds = DataSource.Factory(url)
-                if ds is not None:
-                    added_sources.append(self.enmapbox.addSource(ds))
-        for ds in added_sources:
-            self.addLayer(ds.createMapLayer())
-        if len(added_sources) > 0:
+            lyrs = self.canvas.layers()
+            self.setLayerSet(newLayers + lyrs)
             event.accept()
             event.acceptProposedAction()
+        if ME.hasDataSources():
+            dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
+            dataSources = [self.enmapbox.dataSourceManager.addSource(d) for d in dataSources]
+            layers = [d.createMapLayer() for d in dataSources]
+
+            self.addLayers(layers)
+
+
 
 
     def _createLabel(self, *args, **kwds):
@@ -1057,34 +1054,40 @@ class MapDock(Dock):
         assert isinstance(canvas, QgsMapCanvas)
         CanvasLinkManager.instance().addLinkSet(self, canvas, linktype)
 
-
-    def addLayer(self, mapLayer, index=0):
-
-        assert isinstance(mapLayer, QgsMapLayer)
-
+    def setLayerSet(self, mapLayers):
+        assert isinstance(mapLayers, list)
         reg = QgsMapLayerRegistry.instance()
-        reg.addMapLayer(mapLayer, False)
 
-        newCanvasLayer = QgsMapCanvasLayer(mapLayer)
-        newCanvasLayer.setVisible(True)
-        canvasLayers = [QgsMapCanvasLayer(l) for l in self.canvas.layers()]
-
-        if len(canvasLayers) == 0:
-            #set canvas CRS to that of new layer
-            self.canvas.setDestinationCrs(mapLayer.crs())
-
-        canvasLayers.insert(index, newCanvasLayer)
-
-        if len(canvasLayers) == 1:
-            self.canvas.setExtent(mapLayer.extent())
-
+        cnt0 = len(self.canvas.layers())
+        #register unregistered layers
+        for l in mapLayers:
+            assert isinstance(l, QgsMapLayer)
+            if not l in reg.children():
+                reg.addMapLayer(l, False)
+        canvasLayers = [QgsMapCanvasLayer(l) for l in mapLayers]
         self.canvas.setLayerSet(canvasLayers)
-        if self.canvas.isCachingEnabled():
-            mapLayer.setCacheImage(None)
-            newCanvasLayer.setCacheImage(None)
+        #if self.canvas.isCachingEnabled():
+        #    mapLayer.setCacheImage(None)
+        #    newCanvasLayer.setCacheImage(None)
+
+        if cnt0 == 0:
+            # set canvas CRS to that of new layer
+            self.canvas.setDestinationCrs(mapLayers[0].crs())
+            self.canvas.setExtent(mapLayers[0].extent())
+
         self.canvas.refresh()
 
         self.updateDockTitle()
+
+    def addLayers(self, mapLayers):
+        if not type(mapLayers) is list:
+            mapLayers = [mapLayers]
+        for l in mapLayers:
+            assert isinstance(l, QgsMapLayer)
+        self.setLayerSet(self.canvas.layers() + mapLayers)
+
+
+
 
     def updateDockTitle(self):
         """
@@ -1198,27 +1201,6 @@ class IdentifyMapObjects(QgsMapToolIdentify):
 
 
 
-class DockManagerTreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
-
-    def __init__(self, qgsLayerTreeView):
-        super(DockManagerTreeViewMenuProvider, self).__init__()
-        #assert isinstance(qgsLayerTreeView, TreeView)
-        self.view = qgsLayerTreeView
-
-    def createContextMenu(self):
-        menu = None
-        c_grp_node = self.view.currentGroupNode()
-        c_node = self.view.currentNode()
-        c_lyr = self.view.currentLayer()
-        c_leg = self.view.currentLegendNode()
-
-        if isinstance(c_node, DockTreeNode):
-            menu = c_grp_node.dock.getDockContentContextMenu()
-        elif isinstance(c_node , QgsLayerTreeLayer):
-            if isinstance(c_lyr, QgsMapLayer):
-                s = ""
-
-        return menu
 
 
 
@@ -1246,21 +1228,17 @@ class DockManager(QObject):
 
 
     def dockAreaSignalHandler(self, event):
-        mimeData = event.mimeData()
+        assert isinstance(event, QEvent)
+
         mimeTypes = ["application/qgis.layertreemodeldata",
                      "application/enmapbox.docktreemodeldata",
                      "application/enmapbox.datasourcetreemodeldata",
                      "text/uri-list"]
 
-        assert isinstance(mimeData, QMimeData)
         if type(event) is QDragEnterEvent:
             # check mime types we can handle
-            canHandle = False
-            for format in mimeData.formats():
-                if format in mimeTypes:
-                    canHandle = True
-
-            if canHandle:
+            MH = MimeDataHelper(event.mimeData())
+            if MH.hasMapLayers():
                     event.setDropAction(Qt.CopyAction)
                     event.accept()
             else:
@@ -1271,27 +1249,9 @@ class DockManager(QObject):
         elif type(event) is QDragLeaveEvent:
             pass
         elif type(event) is QDropEvent:
-            dsm =  self.enmapbox.dataSourceManager
-            droppedSources = set()
-            doc = QDomDocument()
-            def setContent(format):
-                if not mimeData.hasFormat(format):
-                    return None
-                r = doc.setContent(mimeData.data(format))
-                if r: print(doc.toString())
-                return r
+            MH = MimeDataHelper(event.mimeData())
 
-            if setContent("application/enmapbox.docktreemodeldata"):
-                s = ""
-            elif setContent("application/enmapbox.datasourcetreemodeldata"):
-                s = ""
-            elif setContent("application/qgis.layertreemodeldata"):
-                s = ""
-            elif mimeData.hasUrls():
-                for url in mimeData.urls():
-                    droppedSources.add(self.addSource)
-            else:
-                raise NotImplementedError()
+            s = ""
 
 
 
@@ -1352,6 +1312,6 @@ class DockManager(QObject):
         if 'initSrc' in kwds.keys():
             ds = self.enmapbox.addSource(kwds['initSrc'])
             if isinstance(ds, DataSourceSpatial):
-                dock.addLayer(ds.createMapLayer())
+                dock.addLayers(ds.createMapLayer())
 
         return dock
