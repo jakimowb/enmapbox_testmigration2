@@ -50,18 +50,23 @@ class TreeNodeProvider():
         tagName = str(elem.tagName())
         node = None
         attributes = getDOMAttributes(elem)
-        for nodeClass in [TreeNode, DockTreeNode, MapDockTreeNode, TextDockTreeNode]:
-            if nodeClass.TAG_NAME == tagName:
+        tagMap = [('tree-node', TreeNode),
+                  ('dock-tree-node', DockTreeNode),
+                  ('map-dock-tree-node', MapDockTreeNode),
+                  ('test-dock-tree-node', TextDockTreeNode),
+                  ('layer-tree-group', QgsLayerTreeGroup),
+                  ('layer-tree-layer', QgsLayerTreeLayer),
+                  ('datasource-tree-node', DataSourceTreeNode),
+                  ('datasource-tree-group', DataSourceGroupTreeNode)
+                  ]
+        for xmlTag, nodeClass in tagMap:
+            if xmlTag == tagName:
                 node = nodeClass.readXml(elem)
                 break
-        if node is None and tagName in ['layer-tree-group','layer-tree-layer']:
-            node = QgsLayerTreeNode.readXml(elem)
-
         return node
 
 
 class TreeNode(QgsLayerTreeGroup):
-
     sigIconChanged = pyqtSignal()
     sigRemoveMe = pyqtSignal()
     def __init__(self, parent, name, checked=Qt.Unchecked, tooltip=None, icon=None):
@@ -106,10 +111,20 @@ class TreeNode(QgsLayerTreeGroup):
         return None
 
 
-    def writeXML(self, parentElement, tagName='tree-node'):
+    @staticmethod
+    def attachCommonPropertiesFromXML(node, element):
+        assert 'tree-node' in element.tagName()
+
+        node.setName(element.attribute('name'))
+        node.setExpanded(element.attribute('expanded') == '1')
+        node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
+        node.readCommonXML(element)
+
+
+    def writeXML(self, parentElement):
         assert isinstance(parentElement, QDomElement)
         doc = parentElement.ownerDocument()
-        elem = doc.createElement(tagName)
+        elem = doc.createElement('tree-node')
         elem.setAttribute('name', self.name())
         elem.setAttribute('expanded', '1' if self.isExpanded() else '0')
         elem.setAttribute('checked', QgsLayerTreeUtils.checkStateToXml(Qt.Checked))
@@ -198,32 +213,80 @@ class DataSourceGroupTreeNode(TreeNode):
         super(DataSourceGroupTreeNode, self).addChildNode(node)
 
     def writeXML(self, parentElement):
-        return super(DataSourceGroupTreeNode, self).writeXML(parentElement, 'data_source_group_tree_node')
+        elem = super(DataSourceGroupTreeNode, self).writeXML(parentElement)
+        elem.setTagName('data_source_group_tree_node')
+        elem.setAttribute('datasourcetype', str(self.childClass))
+        return elem
 
+    @staticmethod
+    def readXml(element):
+
+        if element.tagName() != 'data_source_group_tree_node':
+            return None
+
+
+        name = None
+        classDef = None
+        node = DataSourceGroupTreeNode(None, name, classDef)
+
+        TreeNode.attachCommonPropertiesFromXML(node, element)
+
+        return node
 
 class DataSourceTreeNode(TreeNode):
 
     def __init__(self, parent, dataSource):
-        super(DataSourceTreeNode, self).__init__(parent, dataSource.name)
+        super(DataSourceTreeNode, self).__init__(parent, '<empty>')
+        self.disconnectDataSource()
+        if dataSource:
+            self.connectDataSource(dataSource)
+
+    def connectDataSource(self, dataSource):
+        from enmapbox.datasources import DataSource
+        assert isinstance(dataSource, DataSource)
+        self.setName(dataSource.name)
         self.dataSource = dataSource
         self._icon = dataSource.getIcon()
         self.setCustomProperty('uuid', str(self.dataSource.uuid))
         self.setCustomProperty('uri', self.dataSource.uri)
 
+    def disconnectDataSource(self):
+        self.dataSource = None
+        self.setName('<empty>')
+        self._icon = None
+        for k in self.customProperties():
+            self.removeCustomProperty(k)
+
+    @staticmethod
+    def readXml(element):
+        if element.tagName() != 'datasource-tree-node':
+            return None
+
+        cp = QgsObjectCustomProperties()
+        cp.readXml(element)
+
+        from enmapbox.datasources import DataSourceFactory
+        dataSource = DataSourceFactory.Factory(cp.value('uri'), name=element.attribute('name'))
+        node = DataSourceTreeNode(None, dataSource)
+        TreeNode.attachCommonPropertiesFromXML(node, element)
+
+        return node
+
     def writeXML(self, parentElement):
-        return super(DataSourceTreeNode, self).writeXML(parentElement, 'data_source_tree_node')
+        elem = super(DataSourceTreeNode, self).writeXML(parentElement)
+        elem.setTagName('datasource-tree-node')
+        #elem.setAttribute('uuid', str(self.dataSource.uuid))
+        return elem
 
 
 class DockTreeNode(TreeNode):
 
     @staticmethod
     def readXml(element):
-        if not DockTreeNode.inherited_xml_tag(element):
+        if element.tagName() != 'dock-tree-node':
             return None
 
-        tagName = element.tagName()
-        dock = None
-        node = DockTreeNode(None, dock)
+        node = DockTreeNode(None, None)
         dockName = element.attribute('name')
         node.setName(dockName)
         node.setExpanded(element.attribute('expanded') == '1')
@@ -259,7 +322,9 @@ class DockTreeNode(TreeNode):
 
 
     def writeXML(self, parentElement):
-        return super(DockTreeNode, self).writeXML(parentElement, 'dock-tree-node')
+        elem = super(DockTreeNode, self).writeXML(parentElement)
+        elem.setTagName('dock-tree-node')
+        return elem
 
     def writeLayerTreeGroupXML(self,parentElement):
         QgsLayerTreeGroup.writeXML(self, parentElement)
@@ -299,23 +364,37 @@ class MapDockTreeNode(DockTreeNode):
     Acts like the QgsLayerTreeMapCanvasBridge
     """
     def __init__(self, parent, dock):
-        assert isinstance(dock, MapDock)
-        super(MapDockTreeNode, self).__init__(parent, dock)
 
+        super(MapDockTreeNode, self).__init__(parent, dock)
         self.setIcon(QIcon(IconProvider.MapDock))
-        self.dock.sigLayersChanged.connect(self.updateChildNodes)
+        self.blockSignals = False
+        if dock:
+            self.connectDock(dock)
+
         self.addedChildren.connect(lambda : self.updateCanvas())
-        self.removedChildren.connect(lambda :self.updateCanvas())
+        self.removedChildren.connect(lambda: self.updateCanvas())
+
+
+    def connectDock(self, dock):
+        assert isinstance(dock, MapDock)
+        super(MapDockTreeNode,self).connectDock(dock)
+        self.updateChildNodes()
+        self.dock.sigLayersChanged.connect(self.updateChildNodes)
+
 
     def updateChildNodes(self):
-        self.removeAllChildren()
-        for i, l in enumerate(self.dock.canvas.layers()):
-            self.insertLayer(i, l)
+        if self.dock:
+            self.blockSignals = True
+            self.removeAllChildren()
+            self.blockSignals = False
+            for i, l in enumerate(self.dock.canvas.layers()):
+                self.insertLayer(i, l)
 
     def updateCanvas(self):
-        self.dock.canvas.blockSignals(True)
-        self.dock.setLayerSet(self.visibleLayers(self))
-        self.dock.canvas.blockSignals(False)
+        if self.dock and not self.blockSignals:
+            self.dock.canvas.blockSignals(True)
+            self.dock.setLayerSet(self.visibleLayers(self))
+            self.dock.canvas.blockSignals(False)
 
     @staticmethod
     def visibleLayers(node):
@@ -349,8 +428,37 @@ class MapDockTreeNode(DockTreeNode):
         return ll
 
     def writeXML(self, parentElement):
-        return super(MapDockTreeNode, self).writeXML(parentElement, 'map-dock-tree-node')
+        elem = super(MapDockTreeNode, self).writeXML(parentElement)
+        elem.setTagName('map-dock-tree-node')
 
+    @staticmethod
+    def readXml(element):
+        if element.tagName() != 'map-dock-tree-node':
+            return None
+
+        from enmapbox.main import EnMAPBox
+        DSM = EnMAPBox.instance().dataSourceManager
+
+
+        node = MapDockTreeNode(None, None)
+        node.setName(element.attribute('name'))
+        node.setExpanded(element.attribute('expanded') == '1')
+        node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
+        node.readCommonXML(element)
+        # node.readChildrenFromXml(element)
+
+        # try to find the dock by its uuid in dockmanager
+        from enmapbox.main import EnMAPBox
+
+        dockManager = EnMAPBox.instance().dockManager
+        uuid = node.customProperty('uuid', None)
+        if uuid:
+            dock = dockManager.getDockWithUUID(str(uuid))
+        if dock is None:
+            dock = dockManager.createDock('MAP', name=dockName)
+        node.connectDock(dock)
+
+        return node
 
 
 
@@ -358,6 +466,61 @@ class TreeView(QgsLayerTreeView):
 
     def __init__(self, parent):
         super(TreeView, self).__init__(parent)
+
+class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
+
+    def __init__(self, treeView):
+        super(TreeViewMenuProvider,self).__init__()
+        assert isinstance(treeView, TreeView)
+        self.treeView = treeView
+        self.model = treeView.model()
+
+    def createContextMenu(self):
+        raise NotImplementedError()
+
+class DataSourceManagerTreeViewMenuProvider(TreeViewMenuProvider):
+    def __init__(self, treeView):
+        super(DockManagerTreeViewMenuProvider, self).__init__(treeView)
+
+    def createContextMenu(self):
+        node = self.treeView.currentNode()
+        menu = QMenu()
+        action = QAction('remove')
+        action.connect(node)
+        menu.addAction(action)
+
+
+        if type(node) is QgsLayerTreeLayer:
+            s = ""
+
+        elif isinstance(node, DataSourceGroupTreeNode):
+            s = ""
+        elif isinstance(node, DataSourceTreeNode):
+                s = ""
+
+        return menu
+class DockManagerTreeViewMenuProvider(TreeViewMenuProvider):
+
+    def __init__(self, treeView):
+        super(DockManagerTreeViewMenuProvider, self).__init__(treeView)
+
+    def createContextMenu(self):
+        node = self.treeView.currentNode()
+        menu = QMenu()
+        action = QAction('remove')
+        action.connect(node.)
+        menu.addAction(action)
+        t = type(node)
+
+
+        if t is QgsLayerTreeLayer:
+            s = ""
+
+        elif isinstance(node, DockTreeNode):
+            if isinstance(node, MapDockTreeNode):
+                s = ""
+
+        return menu
 
 
 
@@ -427,9 +590,8 @@ class DockManagerTreeModel(TreeModel):
 
     def mimeTypes(self):
         #specifies the mime types handled by this model
-        types = []
-        types.append("application/qgis.layertreemodeldata")
-        types.append("application/enmapbox.docktreemodeldata")
+        types = [MimeDataHelper.MIME_DOCKTREEMODELDATA,
+                 MimeDataHelper.MIME_LAYERTREEMODELDATA]
         return types
 
     def dropMimeData(self, mimeData, action, row, column, parent):
@@ -467,13 +629,8 @@ class DockManagerTreeModel(TreeModel):
 
 
         elif action == Qt.CopyAction:
+            raise NotImplementedError('Copy mimeData')
             s = ""
-        elif mimeData.hasFormat("application/qgis.layertreemodeldata"):
-
-            result = QgsLayerTreeModel.dropMimeData(self, mimeData, action, row, column, parent)
-            s = ""
-
-
 
         return False
 
@@ -486,7 +643,6 @@ class DockManagerTreeModel(TreeModel):
         nodesFinal = self.indexes2nodes(indexes, True)
 
         mimeData = QMimeData()
-
         doc = QDomDocument()
         rootElem = doc.createElement("dock_tree_model_data")
         for node in nodesFinal:
@@ -502,8 +658,8 @@ class DockManagerTreeModel(TreeModel):
                 dockNode.writeLayerTreeGroupXML(rootElem)
             doc.appendChild(rootElem)
             mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
-            #mimeData.setData('application/x-vnd.qgis.qgis.uri', QgsMimeDataUtils.layerTreeNodesToUriList(mapDockNodes))
-        # mimeData.setData("application/x-vnd.qgis.qgis.uri", QgsMimeDataUtils.layerTreeNodesToUriList(nodesFinal) );
+
+        #todo: support any URL
 
         return mimeData
 
@@ -552,7 +708,6 @@ class DockManagerTreeModel(TreeModel):
                     node.dock.setVisible(True)
                 return True
         if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-
 
             if role == Qt.CheckStateRole:
                 node.setVisible(value)
@@ -635,11 +790,15 @@ class DataSourceManagerTreeModel(TreeModel):
         #define application/enmapbox.datasourcetreemodeldata
         doc = QDomDocument()
         uriList = list()
+
         rootElem = doc.createElement("datasource_tree_model_data");
         exportedNodes = []
+
         for node in nodesFinal:
             if isinstance(node, DataSourceTreeNode):
+
                 exportedNodes.append(node)
+
             elif isinstance(node, DataSourceGroupTreeNode):
                 for n in node.children():
                     exportedNodes.append(n)
@@ -651,9 +810,10 @@ class DataSourceManagerTreeModel(TreeModel):
         doc.appendChild(rootElem)
         txt = doc.toString()
         mimeData.setData("application/enmapbox.datasourcetreemodeldata", txt)
-        mimeData.setUrls(uriList)
 
-        # mimeData.setData("application/x-vnd.qgis.qgis.uri", QgsMimeDataUtils.layerTreeNodesToUriList(nodesFinal) );
+        #set text/uri-list
+        if len(uriList) > 0:
+            mimeData.setUrls(uriList)
 
         return mimeData
 
