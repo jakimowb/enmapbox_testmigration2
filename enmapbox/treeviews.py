@@ -466,7 +466,6 @@ class TreeView(QgsLayerTreeView):
 
     def __init__(self, parent):
         super(TreeView, self).__init__(parent)
-        self.setMenuProvider(TreeViewMenuProvider(self))
 
 
 class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
@@ -474,16 +473,14 @@ class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
     def __init__(self, treeView):
         super(TreeViewMenuProvider,self).__init__()
         assert isinstance(treeView, TreeView)
+        assert isinstance(treeView.model(), TreeModel)
         self.treeView = treeView
         self.model = treeView.model()
-        assert isinstance(self.model, TreeModel)
-
-
 
     def createContextMenu(self):
         #redirect to model
+        return self.model.contextMenu(self.treeView.currentNode())
 
-        raise NotImplementedError()
 
 
 
@@ -515,7 +512,24 @@ class DockManagerTreeModel(TreeModel):
 
     def contextMenu(self, node):
         menu = QMenu()
+        parentNode = node.parent()
+        import qgis.utils
+        iface = qgis.utils.iface
+        dprint('IFACE:::')
+        dprint(iface)
+        if type(node) is QgsLayerTreeLayer:
 
+            lyr = node.layer()
+
+            if iface:
+                action = QAction('Properties', menu)
+                action.triggered.connect(lambda : iface.showLayerProperties(lyr))
+                menu.addAction(action)
+        elif isinstance(node, DockTreeNode):
+            # global
+            action = QAction('Remove Dock', menu)
+            action.triggered.connect()
+            menu.addAction(action)
 
         return menu
 
