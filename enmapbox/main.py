@@ -119,13 +119,14 @@ class EnMAPBox():
 
         view = TreeView(None)
         view.setModel(DataSourceManagerTreeModel(view, self))
-        view.setMenuProvider(DataSourceManagerTreeViewMenuProvider(view))
+        view.setMenuProvider(TreeViewMenuProvider(view))
 
         self.gui.dataSourceTreeView = replaceView(self.gui.dataSourceTreeView,view)
         #workaround to get QgsLayerTreeView
         view = TreeView(None)
         view.setModel(DockManagerTreeModel(view, self))
-        view.setMenuProvider(DockManagerTreeViewMenuProvider(view))
+        view.setMenuProvider(TreeViewMenuProvider(view))
+
 
         self.gui.dockTreeView = replaceView(self.gui.dockTreeView, view)
 
