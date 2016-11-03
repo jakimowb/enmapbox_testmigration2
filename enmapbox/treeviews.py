@@ -195,8 +195,8 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
-
-
+    def contextMenu(self, node):
+        raise NotImplementedError()
 
 class DataSourceGroupTreeNode(TreeNode):
 
@@ -466,6 +466,8 @@ class TreeView(QgsLayerTreeView):
 
     def __init__(self, parent):
         super(TreeView, self).__init__(parent)
+        self.setMenuProvider(TreeViewMenuProvider(self))
+
 
 class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
 
@@ -474,53 +476,14 @@ class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
         assert isinstance(treeView, TreeView)
         self.treeView = treeView
         self.model = treeView.model()
+        assert isinstance(self.model, TreeModel)
+
+
 
     def createContextMenu(self):
+        #redirect to model
+
         raise NotImplementedError()
-
-class DataSourceManagerTreeViewMenuProvider(TreeViewMenuProvider):
-    def __init__(self, treeView):
-        super(DockManagerTreeViewMenuProvider, self).__init__(treeView)
-
-    def createContextMenu(self):
-        node = self.treeView.currentNode()
-        menu = QMenu()
-        action = QAction('remove')
-        action.connect(node)
-        menu.addAction(action)
-
-
-        if type(node) is QgsLayerTreeLayer:
-            s = ""
-
-        elif isinstance(node, DataSourceGroupTreeNode):
-            s = ""
-        elif isinstance(node, DataSourceTreeNode):
-                s = ""
-
-        return menu
-class DockManagerTreeViewMenuProvider(TreeViewMenuProvider):
-
-    def __init__(self, treeView):
-        super(DockManagerTreeViewMenuProvider, self).__init__(treeView)
-
-    def createContextMenu(self):
-        node = self.treeView.currentNode()
-        menu = QMenu()
-        action = QAction('remove')
-        action.connect(node.)
-        menu.addAction(action)
-        t = type(node)
-
-
-        if t is QgsLayerTreeLayer:
-            s = ""
-
-        elif isinstance(node, DockTreeNode):
-            if isinstance(node, MapDockTreeNode):
-                s = ""
-
-        return menu
 
 
 
@@ -550,6 +513,11 @@ class DockManagerTreeModel(TreeModel):
     def sandboxslot2(self):
         s  =""
 
+    def contextMenu(self, node):
+        menu = QMenu()
+
+
+        return menu
 
     def addDockNode(self, dock):
         rootNode = self.rootNode
