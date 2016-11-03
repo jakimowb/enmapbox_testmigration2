@@ -122,6 +122,24 @@ class DataSourceFactory(object):
         return uri
 
     @staticmethod
+    def fromXML(domElement):
+        """
+        :param domElements:
+        :return:
+        """
+        assert isinstance(domElement, QDomElement)
+        tagName = domElement.tagName()
+        if tagName == 'dock-tree-node':
+            s = ""
+        elif tagName == 'custom':
+            return None
+        else:
+            return None
+
+        s = ""
+
+
+    @staticmethod
     def Factory(src, name=None, icon=None):
         assert not isinstance(src, list)
         """
@@ -358,8 +376,7 @@ class DataSourceManager(QObject):
         self.sources = set()
         self.qgsMapLayerRegistry = QgsMapLayerRegistry.instance()
         self.updateFromQgsMapLayerRegistry()
-
-
+        import enmapbox.processing
         enmapbox.processing.sigFileCreated.connect(lambda file: self.addSource(file))
         self.updateFromProcessingFramework()
 
