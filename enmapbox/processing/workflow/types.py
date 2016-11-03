@@ -14,7 +14,6 @@ from hub.file import mkdir, mkfiledir, filesearch, savePickle, restorePickle, re
 from hub.datetime import Date
 from hub.timing import tic, toc
 from hub.temp import Temporary
-#from enmapbox.processing.types import Image, Mask
 
 def assertType(obj, type):
     assert isinstance(obj, type) # makes PyCharm aware of the type!

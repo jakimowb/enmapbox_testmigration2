@@ -41,7 +41,8 @@ def run(infolder, outfolder, tmpfolder, processes):
     tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=processes)
 
     # save as ENVI
-    MGRSArchive(folder3).saveAsENVI(folder4, processes=processes)
+    #MGRSArchive(folder3).saveAsENVI(folder4, processes=processes)
+    MGRSArchive(folder3).saveAsGTiff(folder4, outextension='.img', compress='LZW', interleave='BAND', predictor='2', processes=processes)
 
 if __name__ == '__main__':
 

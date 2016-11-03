@@ -45,19 +45,24 @@ def pixel_grid():
     enmap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
     vector = Vector(r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
 
+    # ToDo: use only the polygon extents to calculate fractions, otherwise edge pixel will be wrong!
+    print('ToDO: handle edges corretly!')
+
     # rasterize vector file with oversampling and resample back to original resolution to produce cover fractions
     options = '''-where "Level_2"='Tree' -burn 1 -init 0 -a_nodata 0 -of GTiff -ot Byte'''
-    pixelGrid = deepcopy(enmap.getPixelGrid())
+    pixelGrid = deepcopy(enmap.pixelGrid)
     pixelGrid.xRes /= 20
     pixelGrid.yRes /= 20
-    rasterOversampled = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=pixelGrid, options=options)
-    rasterFractions = rasterOversampled.translate(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options)
+    #rasterOversampled = vector.rasterize(outfile=r'c:\work\data\raster.img', pixelGrid=pixelGrid, options=options)
+    rasterOversampled = Image(r'c:\work\data\raster.img')
+
+    rasterFractions = rasterOversampled.translate(filename=r'c:\work\data\rasterEnMAP.vrt', pixelGrid=enmap.pixelGrid)
 
     # create classification file from
-    raster = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options, oversamplingRate=20)
+    #raster = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options, oversamplingRate=20)
 
 
-    raster.info()
+    #raster.info()
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -374,8 +379,8 @@ if __name__ == '__main__':
 
     #tic()
     #importENVISpeclib()
-    test_type()
-    #pixel_grid()
+    #test_type()
+    pixel_grid()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
@@ -390,7 +395,7 @@ if __name__ == '__main__':
     #classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
-    probabilityAccAss()
+    #probabilityAccAss()
     #statisticsForImage()
     #statisticsForClassification()
     #importENVISpeclib()

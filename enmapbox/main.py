@@ -5,6 +5,7 @@ import qgis.gui
 from osgeo import gdal, ogr
 
 import enmapbox
+import enmapbox.processing
 from enmapbox.utils import *
 from enmapbox.datasources import *
 dpring = enmapbox.dprint
@@ -663,7 +664,6 @@ class DataSourceManager(QObject):
         self.updateFromProcessingFramework()
 
     def updateFromProcessingFramework(self):
-        import enmapbox.processing
         for p,n in zip(enmapbox.processing.MODEL_URIS,
                        enmapbox.processing.MODEL_NAMES):
             self.addSource(p, name=n)

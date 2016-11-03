@@ -213,12 +213,10 @@ class WRS2Footprint(Footprint):
 #                 '178034': '36', '177034': '36', '176034': '36', '173035': '37', '172035': '37'}
 
     @staticmethod
-    def createUtmLookup(infolder, filter=None):
+    def createUtmLookup(infolder):
         print('Create UTM Zone lookup')
         archive = WRS2Archive(infolder)
         for footprintFolder in archive.yieldFootprintFolders():
-            footprint = ''.join(os.path._abspath_split(footprintFolder)[2][2:])
-            if filter is not None and footprint not in filter: continue
             sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
             if not os.path.isdir(sceneFolder): continue
             firstProduct = Product(sceneFolder, extensions=['.img','.tif'])
@@ -834,10 +832,10 @@ if __name__ == '__main__':
 
     MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
     MGRSTilingScheme.shp = r'C:\Work\data\gms\gis\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
-
-
+    WRS2Footprint.createUtmLookup(r'c:\work\data\gms\landsat')
+    print(WRS2Footprint.utmLookup)
     tic()
-    test_footprint()
+    #test_footprint()
     #test_product()
     #test_archive()
     #test_save_archive()

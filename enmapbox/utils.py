@@ -6,7 +6,7 @@ from PyQt4.QtXml import *
 from PyQt4.QtGui import *
 
 import enmapbox
-dprint = enmapbox.dprint
+#dprint = enmapbox.dprint
 
 
 
