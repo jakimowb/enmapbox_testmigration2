@@ -119,12 +119,14 @@ class EnMAPBox():
 
         view = TreeView(None)
         view.setModel(DataSourceManagerTreeModel(view, self))
-        #view.customContextMenuRequested.connect(self.onDataSourceTreeViewCustomContextMenu)
+        view.setMenuProvider(DataSourceManagerTreeViewMenuProvider(view))
 
         self.gui.dataSourceTreeView = replaceView(self.gui.dataSourceTreeView,view)
         #workaround to get QgsLayerTreeView
         view = TreeView(None)
         view.setModel(DockManagerTreeModel(view, self))
+        view.setMenuProvider(DockManagerTreeViewMenuProvider(view))
+
         self.gui.dockTreeView = replaceView(self.gui.dockTreeView, view)
 
         #link action objects to action behaviour
@@ -132,7 +134,19 @@ class EnMAPBox():
         self.gui.actionAddMapView.triggered.connect(lambda : self.dockManager.createDock('MAP'))
         self.gui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.gui.actionAddDataSource.triggered.connect(lambda: self.addSource(str(QFileDialog.getOpenFileName(self.gui, "Open a data source"))))
+        self.gui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
+        self.gui.actionSave_Settings.triggered.connect(self.saveProject)
+        s = ""
 
+
+    def saveProject(self):
+        proj = QgsProject.instance()
+        proj.dumpObjectInfo()
+        proj.dumpObjectTree()
+        proj.dumpProperties()
+        s = ""
+
+    def restoreProject(self):
         s = ""
 
 
@@ -280,9 +294,11 @@ def moduletest():
     EB = EnMAPBox(None)
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
     if True:
-        # EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
 
-        if True: EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
+
+        if True:
+            EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
+            #EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
 
         if True: EB.createDock('MIME')
 
