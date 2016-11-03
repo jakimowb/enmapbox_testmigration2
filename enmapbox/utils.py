@@ -188,22 +188,26 @@ class MimeDataHelper():
         nodes = [n for n in nodes if n is not None]
         return nodes
 
+    def _readMapLayersFromXML(self, root):
+        nodeList = root.elementsByTagName('layer-tree-layer')
+        reg = QgsMapLayerRegistry.instance()
+        layers = []
+        for i in range(nodeList.count()):
+            node = nodeList.item(i).toElement()
+            name = node.attribute('name')
+            lyrid = node.attribute('id')
+            lyr = reg.mapLayer(lyrid)
+            lyr.setLayerName(name)
+            layers.append(lyr)
+        return lyr
+
+    def hasMapLayers(self):
+        return self.mimeTypeCheck([MimeDataHelper.MIME_LAYERTREEMODELDATA])
 
     def mapLayers(self):
         layers = []
         if self.setContent(MimeDataHelper.MIME_LAYERTREEMODELDATA):
-            root = self.doc.documentElement()
-            child = root.firstChildElement()
-            while not child.isNull():
-                tagName = str(child.tagName())
-                if tagName in ['layer-tree-layer', 'layer-tree-group']:
-                    node = QgsLayerTreeNode.readXML(child)
-                    s = ""
-                else:
-                    raise NotImplementedError()
-                child = child.nextSibling()
-
-
+            layers = self._readMapLayersFromXML(self.doc.documentElement())
         return layers
 
     def hasUrls(self):
@@ -220,7 +224,6 @@ class MimeDataHelper():
 
     def dataSources(self):
         dataSources = []
-        from enmapbox.treeviews import TreeNodeProvider, DataSourceTreeNode
         from enmapbox.datasources import DataSourceFactory
         if self.setContent(MimeDataHelper.MIME_DATASOURCETREEMODELDATA):
             root = self.doc.documentElement()
@@ -232,26 +235,15 @@ class MimeDataHelper():
                 name = node.attribute('name')
                 uri = cp.value('uri')
                 dataSources.append(DataSourceFactory.Factory(uri, name=name))
+
         elif MimeDataHelper.MIME_LAYERTREEMODELDATA in self.formats:
-            root = self.doc.documentElement()
-            nodeList = root.elementsByTagName('layer-tree-layer')
-            cp = QgsObjectCustomProperties()
-            reg = QgsMapLayerRegistry.instance()
-            for i in range(nodeList.count()):
-                node = nodeList.item(i).toElement()
-                cp.readXml(node)
-                name = node.attribute('name')
-                lyrid = node.attribute('id')
-                lyr = reg.mapLayer(lyrid)
-                dataSources.append(DataSourceFactory.Factory(lyr, name=name))
+            layers = self._readMapLayersFromXML(self.doc.documentElement())
+            dataSources = [DataSourceFactory.Factory(l) for l in layers]
 
         elif MimeDataHelper.MIME_URILIST in self.formats:
-            for uri in self.mimeData.urls():
-                dataSources.append(DataSourceFactory.Factory(uri))
-        dataSources = [d for d in dataSources if d is not None]
+            dataSources = [DataSourceFactory.Factory(uri) for uri in self.mimeData.urls()]
+
+        dataSources = list(set([d for d in dataSources if d is not None]))
         return dataSources
 
-
-    def hasMapLayers(self):
-        return self.mimeTypeCheck(MimeDataHelper.MIME_LAYERTREEMODELDATA)
 
