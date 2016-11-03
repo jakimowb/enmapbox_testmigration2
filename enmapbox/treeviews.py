@@ -138,7 +138,11 @@ class TreeNode(QgsLayerTreeGroup):
     def dropMimeData(self):
         raise NotImplementedError()
 
+    def __eq__(self, other):
+        return id(self) == id(other)
 
+    def __hash__(self):
+        return hash(id(self))
 
 class TreeModel(QgsLayerTreeModel):
 
@@ -176,10 +180,7 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
-    def removeDockNode(self, node):
-        idx = self.node2index(node)
-        p = self.index2node(idx.parent())
-        p.removeChildNode(node)
+
 
 
 class DataSourceGroupTreeNode(TreeNode):
@@ -260,6 +261,11 @@ class DockTreeNode(TreeNode):
     def writeXML(self, parentElement):
         return super(DockTreeNode, self).writeXML(parentElement, 'dock-tree-node')
 
+    def writeLayerTreeGroupXML(self,parentElement):
+        QgsLayerTreeGroup.writeXML(self, parentElement)
+
+        #return super(QgsLayerTreeNode,self).writeXml(parentElement)
+
 
     def connectDock(self, dock):
         if isinstance(dock, Dock):
@@ -297,16 +303,41 @@ class MapDockTreeNode(DockTreeNode):
         super(MapDockTreeNode, self).__init__(parent, dock)
 
         self.setIcon(QIcon(IconProvider.MapDock))
-        #self.bridge = QgsLayerTreeMapCanvasBridge(self, self.dock.canvas, parent)
-        #self.bridge.setAutoEnableCrsTransform(True)
-        #self.bridge.setAutoSetupOnFirstLayer(True)
-        self.dock.sigLayersChanged.connect(self.refreshLayerOrder)
-        self.refreshLayerOrder()
+        self.dock.sigLayersChanged.connect(self.updateChildNodes)
+        self.addedChildren.connect(lambda : self.updateCanvas())
+        self.removedChildren.connect(lambda :self.updateCanvas())
 
-    def refreshLayerOrder(self):
+    def updateChildNodes(self):
         self.removeAllChildren()
         for i, l in enumerate(self.dock.canvas.layers()):
             self.insertLayer(i, l)
+
+    def updateCanvas(self):
+        self.dock.canvas.blockSignals(True)
+        self.dock.setLayerSet(self.visibleLayers(self))
+        self.dock.canvas.blockSignals(False)
+
+    @staticmethod
+    def visibleLayers(node):
+        if isinstance(node, list):
+            lyrs = []
+            for child in node:
+                lyrs.extend(MapDockTreeNode.visibleLayers(child))
+            return lyrs
+        elif isinstance(node, QgsLayerTreeGroup):
+            lyrs = []
+            for child in node.children():
+                lyrs.extend(MapDockTreeNode.visibleLayers(child))
+            return lyrs
+        elif QgsLayerTree.isLayer(node):
+            if node.isVisible():
+                return [node.layer()]
+            else:
+                return []
+        else:
+            raise NotImplementedError()
+
+
 
     def insertLayer(self, idx, layer):
         assert isinstance(layer ,QgsMapLayer)
@@ -319,6 +350,7 @@ class MapDockTreeNode(DockTreeNode):
 
     def writeXML(self, parentElement):
         return super(MapDockTreeNode, self).writeXML(parentElement, 'map-dock-tree-node')
+
 
 
 
@@ -347,6 +379,7 @@ class DockManagerTreeModel(TreeModel):
         self.dockManager.sigDockAdded.connect(self.addDockNode)
         self.dockManager.sigDockAdded.connect(lambda : self.sandboxslot2())
         #dockManager.sigDockRemoved.connect(self.removeDock)
+        self.mimeIndices = []
 
 
     def sandboxslot(self, dock):
@@ -360,7 +393,10 @@ class DockManagerTreeModel(TreeModel):
         newNode = TreeNodeProvider.CreateNodeFromDock(dock, rootNode)
         newNode.sigRemoveMe.connect(lambda : self.removeDockNode(newNode))
 
-
+    def removeDockNode(self, node):
+        idx = self.node2index(node)
+        p = self.index2node(idx.parent())
+        p.removeChildNode(node)
 
 
     def flags(self, parent):
@@ -368,23 +404,26 @@ class DockManagerTreeModel(TreeModel):
             return Qt.NoItemFlags
 
         #specify TreeNode specific actions
-        parentNode = self.index2node(parent)
-        if parentNode is None:
+        node = self.index2node(parent)
+        if node is None:
             return Qt.NoItemFlags
 
-        isL1 = parentNode.parent() == self.rootNode
-        if isinstance(parentNode, DockTreeNode):
+        isL1 = node.parent() == self.rootNode
+        if isinstance(node, DockTreeNode):
             flags = Qt.ItemIsEnabled | \
                     Qt.ItemIsSelectable | \
                     Qt.ItemIsUserCheckable
             if isL1:
                 flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | Qt.ItemIsEditable
-
+        elif isinstance(node, QgsLayerTreeNode):
+            flags = Qt.ItemIsEnabled | \
+                    Qt.ItemIsSelectable | \
+                    Qt.ItemIsUserCheckable | \
+                    Qt.ItemIsDragEnabled
 
         else:
             flags = Qt.NoItemFlags
         return flags
-
 
     def mimeTypes(self):
         #specifies the mime types handled by this model
@@ -393,63 +432,99 @@ class DockManagerTreeModel(TreeModel):
         types.append("application/enmapbox.docktreemodeldata")
         return types
 
-    def dropMimeData(self, data, action, row, column, parent):
-        assert isinstance(data, QMimeData)
-        parentNode = self.index2node(parent)
+    def dropMimeData(self, mimeData, action, row, column, parent):
+        assert isinstance(mimeData, QMimeData)
+
+        MH = MimeDataHelper(mimeData)
+        node = self.index2node(parent)
+
         #L1 is the first level below the root tree -> to place dock trees
-        isL1Node = parentNode.parent() == self.rootNode
+        isL1Node = node.parent() == self.rootNode
 
-        result = False
+        #get parent DockNode
+        dockNode = self.parentNodesFromIndices(parent, nodeInstanceType=DockTreeNode)
+        if len(dockNode) != 1:
+            return False
+
+        dockNode = list(dockNode)[0]
+
         if action == Qt.MoveAction:
-            #collect nodes
-            nodes = []
-            if data.hasFormat("application/qgis.layertreemodeldata"):
+            if isinstance(dockNode, MapDockTreeNode):
+                if MH.hasLayerTreeModelData():
+                    nodes = MH.layerTreeModelNodes()
+                    if len(nodes) > 0:
+                        if parent.isValid() and row == -1:
+                            row = 0
+                        node.insertChildNodes(row, nodes)
+                        return True
+                else:
+                    s = ""
 
-                result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
+
+            elif isinstance(dockNode, TextDockTreeNode):
+
                 s = ""
 
-            elif data.hasFormat("application/enmapbox.docktreemodeldata"):
-                doc = QDomDocument()
-                if doc.setContent(data.data("application/enmapbox.docktreemodeldata")):
-                    print(str(doc.toString()))
-                    root = doc.documentElement()
-                    child = root.firstChildElement()
-                    while not child.isNull():
-                        if 'dock-tree-node' in str(child.tagName()):
-                            nodes.append(TreeNodeProvider.CreateNodeFromXml(child))
-                        child = child.nextSibling()
 
-            nodes = [n for n in nodes if n is not None]
+        elif action == Qt.CopyAction:
+            s = ""
+        elif mimeData.hasFormat("application/qgis.layertreemodeldata"):
 
-            #insert nodes, if possible
-            if len(nodes) > 0:
-                if row==-1 and column == -1:
-                    parentNode = parentNode.parent()
-                parentNode.insertChildNodes(-1, nodes)
-                result = True
+            result = QgsLayerTreeModel.dropMimeData(self, mimeData, action, row, column, parent)
+            s = ""
 
-        return result
+
+
+        return False
 
     def mimeData(self, indexes):
         indexes = sorted(indexes)
+        self.mimeIndexes = indexes
         if len(indexes) == 0:
             return None
 
         nodesFinal = self.indexes2nodes(indexes, True)
+
         mimeData = QMimeData()
 
         doc = QDomDocument()
-        rootElem = doc.createElement("dock_tree_model_data");
+        rootElem = doc.createElement("dock_tree_model_data")
         for node in nodesFinal:
             node.writeXML(rootElem)
         doc.appendChild(rootElem)
-        txt = doc.toString()
-        mimeData.setData("application/enmapbox.docktreemodeldata", txt)
+        mimeData.setData("application/enmapbox.docktreemodeldata", doc.toString())
+
+        mapDockNodes = self.parentNodesFromIndices(indexes, nodeInstanceType=MapDockTreeNode)
+        if len(mapDockNodes) > 0:
+            doc = QDomDocument()
+            rootElem = doc.createElement('layer_tree_model_data')
+            for dockNode in mapDockNodes:
+                dockNode.writeLayerTreeGroupXML(rootElem)
+            doc.appendChild(rootElem)
+            mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
+            #mimeData.setData('application/x-vnd.qgis.qgis.uri', QgsMimeDataUtils.layerTreeNodesToUriList(mapDockNodes))
         # mimeData.setData("application/x-vnd.qgis.qgis.uri", QgsMimeDataUtils.layerTreeNodesToUriList(nodesFinal) );
 
         return mimeData
 
+    def parentNodesFromIndices(self, indices, nodeInstanceType=DockTreeNode):
+        """
+        Returns all DockNodes contained or parent to the given indices
+        :param indices:
+        :return:
+        """
+        results = set()
+        if type(indices) is QModelIndex:
+            node = self.index2node(indices)
+            while node is not None and not isinstance(node, nodeInstanceType):
+                node = node.parent()
+            if node is not None:
+                results.add(node)
+        else:
+            for ind in indices:
+                results.update(self.parentNodesFromIndices(ind, nodeInstanceType=nodeInstanceType))
 
+        return results
 
     def data(self, index, role ):
         node = self.index2node(index)
@@ -468,6 +543,7 @@ class DockManagerTreeModel(TreeModel):
 
     def setData(self, index, value, role=None):
         node = self.index2node(index)
+        parentNode = node.parent()
         if isinstance(node, DockTreeNode) and isinstance(node.dock, Dock):
             if role == Qt.CheckStateRole:
                 if value == Qt.Unchecked:
@@ -475,6 +551,18 @@ class DockManagerTreeModel(TreeModel):
                 else:
                     node.dock.setVisible(True)
                 return True
+        if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
+
+
+            if role == Qt.CheckStateRole:
+                node.setVisible(value)
+                mapDockNode = node.parent()
+                while mapDockNode is not None and not isinstance(mapDockNode, MapDockTreeNode):
+                        mapDockNode = mapDockNode.parent()
+
+                assert isinstance(mapDockNode, MapDockTreeNode)
+                mapDockNode.updateCanvas()
+
 
         return False
 
