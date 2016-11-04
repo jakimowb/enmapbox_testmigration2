@@ -1,17 +1,19 @@
 from __future__ import print_function, division
 
-from adodbapi.ado_consts import directions
+#from adodbapi.ado_consts import directions
 
 __author__ = 'janzandr'
 
+from collections import OrderedDict
 import shutil
 import operator
 import hub
 from enmapbox.processing.environment import SilentProgress
 from hub.gdal.api import GDALMeta
-import hub.gdal.util, hub.gdal.api
+from hub.gdal.util import gdal_rasterize
 import hub.file, hub.envi
 import rios.applier
+from rios.pixelgrid import PixelGridDefn, pixelGridFromFile
 import sklearn.metrics
 import sklearn.pipeline
 from enmapbox.processing.report import *
@@ -34,27 +36,26 @@ def unpickle(filename, progress=progress):
 
 class Type():
 
-    def aside(self, function, *args, **kwargs):
-
-        function(*args, **kwargs)
-        return self
-
-
     def pickle(self, filename, progress=progress):
 
         progress.setText('pickle model to file: '+filename)
         hub.file.savePickle(self, filename)
         return self
 
-
     def report(self):
 
         return Report('')
 
-
     def info(self, filename=Environment.tempfile('report', '.html')):
 
         self.report().saveHTML(filename=filename).open()
+
+    def getMetadataDict(self):
+
+        result = OrderedDict()
+        result['Type'] = self.__class__.__name__
+        return result
+
 
 class Meta(GDALMeta):
 
@@ -79,6 +80,22 @@ class Meta(GDALMeta):
                 and int(self.getMetadataItem('classes'))*3 == len(self.getMetadataItem('class lookup'))
                 and self.getNoDataValue('data ignore value') is not None)
 
+class Vector(Type):
+
+    def __init__(self, filename):
+        self.filename = filename
+
+    def rasterize(self, outfile, pixelGrid, options='-burn 1'):
+        assert isinstance(pixelGrid, PixelGridDefn)
+
+        options += ' -a_srs ' + pixelGrid.projection
+        options += ' -te '+ str(pixelGrid.xMin) + ' ' + str(pixelGrid.yMin) + ' ' + str(pixelGrid.xMax) + ' ' + str(pixelGrid.yMax)
+        options += ' -tr '+ str(pixelGrid.xRes) + ' ' + str(pixelGrid.yRes)
+
+        gdal_rasterize(outfile=outfile, infile=self.filename, options=options, verbose=True)
+        return Image(outfile)
+
+
 class Image(Type):
 
     @staticmethod
@@ -102,11 +119,22 @@ class Image(Type):
         assert os.path.exists(filename)
         self.filename = filename
         self.meta = Meta(filename)
+        self.pixelGrid = pixelGridFromFile(self.filename)
 
     def saveAs(self, filename=None, options='-of ENVI'):
         if filename is None: filename = Environment.tempfile()
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
         return self.__class__(filename)
+
+    def translate(self, filename=None, pixelGrid=None):
+        if filename is None: filename = Environment.tempfile(suffix='.vrt')
+        if pixelGrid is None: pixelGrid = self.pixelGrid
+        options = '-of VRT -ot Float32'
+        options += ' -r average'
+        options += ' -projwin '+ str(pixelGrid.xMin) + ' ' + str(pixelGrid.yMax) + ' ' + str(pixelGrid.xMax) + ' ' + str(pixelGrid.yMin)
+        options += ' -tr '+ str(pixelGrid.xRes) + ' ' + str(pixelGrid.yRes)
+
+        hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
 
     def extractByMask(self, mask, filename=None):
         assert isinstance(mask, Mask)
@@ -120,7 +148,6 @@ class Image(Type):
         meta.setMetadataDict(self.meta.getMetadataDict())
         meta.writeMeta(filename)
         return self.__class__(filename)
-
 
     def statistics(self, bands=None):
         if bands is None:
@@ -846,10 +873,10 @@ class Estimator(Type):
 
         return report
 
-
     def reportDetails(self):
 
         return Report('')
+
 
 class Classifier(Estimator):
 
@@ -918,6 +945,16 @@ class Classifier(Estimator):
     def UncertaintyClassifierFN(self):
 
         return UncertaintyClassifier(self, mode='fn')
+
+
+    def getMetadataDict(self):
+        meta = self.sample.labelsSample.dataSample.meta
+
+        result = OrderedDict()
+        result['class names'] = meta.getMetadataItem('class names')
+        result['class lookup'] = meta.getMetadataItem('class lookup')
+
+        return result
 
 
 class UncertaintyClassifier(Classifier):
@@ -1691,15 +1728,17 @@ class ProbabilityPerformance(Type):
         report.append(ReportParagraph('Prediction: ' + self.sample.featureSample.filename))
 
         report.append(ReportHeading('Performance Measures'))
-        rowHeaders = [['n','Log loss']]
-        data = numpy.transpose([[str(self.n), numpy.round(self.log_loss,2)]])
-        report.append(ReportTable(data, '', rowHeaders=rowHeaders))
+        colHeaders = [['','AUC'],['n','Log loss']+self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')[1:]]
+        colSpans = [[2,self.sample.labelsSample.dataSample.meta.getMetadataItem('classes')-1],numpy.ones(self.sample.labelsSample.dataSample.meta.getMetadataItem('classes')+1,dtype=int)]
+        roc_auc_scores_rounded = [round(elem, 3) for elem in self.roc_auc_scores.values()]
+        data = [[str(self.n), numpy.round(self.log_loss,2)] + roc_auc_scores_rounded]
+        report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
 
         fig, ax = plt.subplots(facecolor='white',figsize=(9, 6))
         for i in range(0,self.roc_curves.__len__()):
            plt.plot(self.roc_curves[i+1][0],self.roc_curves[i+1][1]
-                    ,label='ROC curve of class {0} (area = {1:0.3f})'
-                    ''.format(i+1, self.roc_auc_scores[i+1]))
+                    ,label='ROC curve of class {0}'
+                        ''.format(self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')[i+1]))
         ax.set_xlabel('False Positive Rate')
         ax.set_ylabel('True Positive Rate')
         plt.plot([0, 1], [0, 1], 'k--')

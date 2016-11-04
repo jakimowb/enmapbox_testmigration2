@@ -1,5 +1,5 @@
 from __future__ import division
-#from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
+from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
 import numpy
 from hub.timing import tic, toc
 import numba
@@ -16,13 +16,21 @@ def test_1dfit():
 
     cfmaskFile = r'C:\Work\data\rbffit\cfmask.img'
     swir1File = r'C:\Work\data\rbffit\swir1.img'
+
+    cfmaskFile = r'C:\Work\data\marcel\TS_RBF_test_stacks_big_intersection\fmask.tif'
+    swir1File = r'C:\Work\data\marcel\TS_RBF_test_stacks_big_intersection\swir1.tif'
+
     meta = GDALMeta(swir1File)
-    cfmask = readCube(cfmaskFile).astype(float)
+    xoff = 0
+    yoff = 0
+    cfmask = readCube(cfmaskFile, xoff=xoff, yoff=yoff, xsize=1, ysize=1).astype(float)
+    swir1 = readCube(swir1File, xoff=xoff, yoff=yoff, xsize=1, ysize=1).astype(float)
     invalid = cfmask > 1
     valid = numpy.logical_not(invalid)
-    swir1 = readCube(swir1File).astype(float)
     swir1[invalid] = numpy.NaN
-    dates = [Date.fromText(bandName) for bandName in meta.getMetadataItem('band_names')]
+    #dates = [Date.fromText(bandName) for bandName in meta.getMetadataItem('band_names')]
+    dates = [Date.fromLandsatSceneID(bandName) for bandName in meta.getMetadataItem('band_names')]
+
     indices = [(date-dates[0]).days for date in dates]
     outshape = [indices[-1]+1] + list(swir1.shape[1:])
 
@@ -31,7 +39,9 @@ def test_1dfit():
         swir1_full[index] = swir1[i]
 
     x = map(float, range(indices[-1]+1))
-    y = swir1_full[:,1,1]
+    #x = [date.decimalYear for date in dates]
+
+    y = swir1_full[:,0,0]
     v = numpy.isfinite(y)
 
     def conv(stddev):
@@ -53,6 +63,8 @@ def test_1dfit():
 #                              [100, 100, 100, 30, 10, 5, 1, 1, 1, 1]):
     for stddev, weight in zip([3*8, 5*8, 7*8],
                               [5, 2, 1]):
+    #for stddev, weight in zip([10],
+    #                          [1]):
         zi, mi, wi = conv(stddev)
         z += zi*wi*weight
         #m += mi
@@ -65,24 +77,6 @@ def test_1dfit():
 
     plt.plot(x, z)
     plt.show()
-
-def test():
-
-    MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
-    infolder = r'C:\Work\data\gms\landsatTimeseriesMGRS'
-    outfolder = r'C:\Work\data\gms\products'
-
-    mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
-
-    applier = RBFFitApplier(infolder=infolder,
-                          outfolder=outfolder,
-                          inextension='.img',
-                          footprints=mgrsFootprints,
-                          compressed=False)
-    applier.controls.setWindowXsize(10000)
-    applier.controls.setWindowYsize(100)
-    applier.apply()
-
 
 if __name__ == '__main__':
 

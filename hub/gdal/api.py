@@ -19,10 +19,12 @@ def geoInfo(file):
     result.boundingBox = numpy.append(result.ul, result.lr)
     return result
 
-def readCube(filename):
+def readCube(filename, xoff=0, yoff=0, xsize=None, ysize=None):
     driver = gdal.GetDriverByName('MEM')
     dataset = driver.CreateCopy('', gdal.Open(filename))
-    cube = dataset.ReadAsArray(xoff=0, yoff=0, xsize=dataset.RasterXSize, ysize=dataset.RasterYSize)
+    if xsize is None: xsize = dataset.RasterXSize
+    if ysize is None: ysize = dataset.RasterYSize
+    cube = dataset.ReadAsArray(xoff=0, yoff=0, xsize=xsize, ysize=ysize)
     return cube
 
 def writeCube(cube, filename, srsfilename=None, nodatavalue=None, format='ENVI'):
@@ -94,7 +96,7 @@ class GDALMetaDomain():
 
         # convert arrays
         if string.startswith('{') and string.endswith('}'):
-            return map(str.strip, string[1:-1].split(','))
+            return list(map(str.strip, string[1:-1].split(',')))
 
         return string.strip()
 
@@ -109,7 +111,7 @@ class GDALMetaDomain():
             return value
 
         if isinstance(value, collections.Sequence):
-            value = map(str, value)
+            value = list(map(str, value))
             return '{'+', '.join(value)+'}'
 
         return str(value)
@@ -337,6 +339,15 @@ class GDALMeta():
 
         value = gdalMeta.getMetadataItem(key, default=None, domainName=domainName)
         self.setMetadataItem(key, value, domainName=domainName)
+
+    def copyMetadata(self, gdalMeta):
+        assert isinstance(gdalMeta, GDALMeta)
+        # iterate over all the available domains
+        # copy the domain dicts
+        for d in gdalMeta.getDomainNames():
+            domain = gdalMeta.getMetadataDict(d)
+            for key, value in domain.items():
+                self.setMetadataItem(key, value, d)
 
     def getMetadataItem(self, key, default=None, domainName='ENVI'):
 

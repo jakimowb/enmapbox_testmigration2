@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 import rios.applier
 import rios.readerinfo
+from rios.pixelgrid import pixelGridFromFile, findCommonRegion, PixelGridDefn
 import numpy
 
 from hub.gdal.api import GDALMeta
@@ -13,7 +14,6 @@ from hub.file import mkdir, mkfiledir, filesearch, savePickle, restorePickle, re
 from hub.datetime import Date
 from hub.timing import tic, toc
 from hub.temp import Temporary
-#from enmapbox.processing.types import Image, Mask
 
 def assertType(obj, type):
     assert isinstance(obj, type) # makes PyCharm aware of the type!
@@ -47,7 +47,7 @@ class ApplierControls(rios.applier.ApplierControls):
         assert predictor in [0, 1, 2]
 
         self.setOutputDriverName('GTiff')
-        self.setCreationOptions(['INTERLEAVE='+interleave, 'TILED='+tiled,
+        self.setCreationOptions(['INTERLEAVE='+interleave, 'TILED='+tiled, 'BIGTIFF=YES',
                                  'BLOCKXSIZE='+str(blockxsize), 'BLOCKYSIZE='+str(blockysize),
                                  'COMPRESS='+compress, 'PREDICTOR='+str(predictor)])
 
@@ -70,7 +70,7 @@ class Image():
 
     def mapBlocksFromRios(self, riosBlockAssociations):
         assert isinstance(riosBlockAssociations, rios.applier.BlockAssociations)
-        imageBlock = ImageBlock(cube=getattr(riosBlockAssociations, self.filename), meta=self.meta)
+        imageBlock = ImageBlock(cube=getattr(riosBlockAssociations, self._filename), meta=self.meta)
         return imageBlock
 
     def mapBlocksToRios(self, imageBlock, riosBlockAssociations):
@@ -238,7 +238,6 @@ class ImageCollectionList():
             collectionBlock = listBlock.collections[key]
             collection.updateOutputMeta(collectionBlock=collectionBlock)
 
-
 class WorkflowFilenameAssociations():
     # container for workflow input/output files
     # ToDo: implement as sorted dict
@@ -340,9 +339,10 @@ class Workflow:
             self.outargs.__dict__[key] = [outargs.__dict__[key] for outargs in outargsList]
         shutil.rmtree(self.tempdir)
 
-    def run(self, verbose=True):
+    def run(self, userFunction=None, verbose=True):
 
         self.verbose = verbose
+        self.userFunction = userFunction # if is None, self.apply() must be provided
 
         # link input filenames
         self.linkInputFiles()
@@ -397,7 +397,10 @@ def workflowUserFunctionWrapper(riosInfo, riosInputs, riosOutputs, riosOtherArgs
     workflow.mapRiosInputs(riosInputs=riosInputs)
 
     # run the workflow
-    workflow.apply(riosInfo)
+    if workflow.userFunction is not None:
+        workflow.userFunction(riosInfo, workflow.inputs, workflow.outputs, workflow.inargs, workflow.outargs)
+    else:
+        workflow.apply(riosInfo)
 
     # link output files to RIOS
     # Note: this is redundantly done for each block, to be able to infere the filenames of more complex outputs types
@@ -410,6 +413,7 @@ def workflowUserFunctionWrapper(riosInfo, riosInputs, riosOutputs, riosOtherArgs
 
     # pickle output arguments to file (necessary for multi processing)
     workflow.pickleOutputArguments(xblock=riosInfo.xblock, yblock=riosInfo.yblock)
+
 
 ##############################
 ### define some test cases ###
@@ -495,6 +499,36 @@ def testIOImageCollectionList():
     workflow.controls.setOutputDriverGTiff()
     workflow.run()
 
+class MyWorkflowJustEnterAndHoldOnBreakPoint(Workflow):
+
+    def apply(self, info):
+        print()
+
+
+def testOnTheFlySubsetting():
+
+    workflow = MyWorkflowJustEnterAndHoldOnBreakPoint()
+    workflow.infiles.image1 = Image(r'C:\Work\data\gms\landsatX\194\024\LC81940242015235LGN00\LC81940242015235LGN00_qa.vrt')
+    workflow.infiles.image2 = Image(r'C:\Work\data\gms\landsatX\193\024\LC81930242015276LGN00\LC81930242015276LGN00_qa.vrt')
+    #workflow.infiles.image1 = ImageCollectionList(r'C:\Work\data\gms\landsatX\193\024')
+    #workflow.infiles.image2 = ImageCollectionList(r'C:\Work\data\gms\landsatX\194\024')
+
+    workflow.controls.setNumThreads(1)
+    workflow.controls.setOutputDriverGTiff()
+
+
+    pixelGrid1 = pixelGridFromFile(r'C:\Work\data\gms\landsatX\194\024\LC81940242015235LGN00\LC81940242015235LGN00_qa.vrt')
+    pixelGrid2 = pixelGridFromFile(r'C:\Work\data\gms\landsatX\193\024\LC81930242015276LGN00\LC81930242015276LGN00_qa.vrt')
+    pixelGrid2Reprojected = pixelGrid2.reproject(pixelGrid1)
+    pixelGrid = pixelGrid1.union(pixelGrid2Reprojected)
+    print(pixelGrid)
+    workflow.controls.setReferencePixgrid(pixelGrid)
+    workflow.controls.setResampleMethod('near')
+    workflow.controls.setFootprintType('UNION')
+    workflow.controls.setWindowXsize(99999)
+    workflow.controls.setWindowYsize(99999)
+    workflow.run()
+
 
 '''def testExtractSampleFromProduct():
 
@@ -532,7 +566,8 @@ if __name__ == '__main__':
     #testIOParameters()
     #testIOImage()
     #testIOImageCollection()
-    testIOImageCollectionList()
+    #testIOImageCollectionList()
+    testOnTheFlySubsetting()
 
 
     #testIOProductCollection()

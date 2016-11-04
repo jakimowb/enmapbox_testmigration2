@@ -10,9 +10,9 @@ from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArc
 def getCube(name, inputs, bbl=None):
 
     # return cube if already exist...
-    if inputs.__dict__.has_key(name):
+    if name in inputs.__dict__:
         result = inputs.__dict__[name]
-    elif inputs.__dict__.has_key('timeseries_'+name):
+    elif 'timeseries_'+name in inputs.__dict__:
         result = inputs.__dict__['timeseries_'+name]
 
     # ...or create and cache it otherwise
@@ -117,7 +117,7 @@ def plotScaleFunctions():
     plotScaleFunction(x, scaleLinearMinMax(x, min, max))
 
 def plotScaleFunction(x, y):
-    for xi,yi in zip(x,y): print xi, ',', round(yi,2)
+    for xi,yi in zip(x,y): print(xi, ',', round(yi,2))
 
     import matplotlib.pyplot as plt
     plt.plot(x, y, linewidth=2)
@@ -379,8 +379,8 @@ class CompositingApplier(Applier):
         # prepare some meta infos
         inputDates = numpy.array(getMeta('date', inmetas))
         inputDoys = numpy.array(getMeta('doy', inmetas)).astype(numpy.int16)
-        inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
-        inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
+        #inputSceneIDs = numpy.array(inmetas.timeseries_cfmask.getMetadataItem('SceneID'))
+        #inputSensorInfos = numpy.array([[sceneID[2],sceneID[3:6],sceneID[6:9]] for sceneID in inputSceneIDs], dtype=numpy.int16)
         bands, samples, lines = inputs.timeseries_cfmask.shape
 
         # cast to float and set invalid observations to NaN

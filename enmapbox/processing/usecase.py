@@ -2,9 +2,10 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-from enmapbox.processing.types import Image, Mask, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
+from enmapbox.processing.types import Type, Vector, Image, Mask, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
 from enmapbox.processing.estimators import Classifiers, Regressors, Transformers, Clusterers
 from hub.timing import tic, toc
+from copy import deepcopy
 
 from enmapbox.processing.environment import PrintProgress as Progress
 
@@ -25,6 +26,43 @@ def sample():
     print(sample.isClassificationSample())
     print(sample.labelSample.filename)
     print(sample.featureSample.filename)
+
+def test_type():
+
+
+    image = Type()
+    image.report().saveHTML().open()
+
+    return
+    labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    classifier = Classifiers.SVCTuned()
+    classifier = classifier.fit(image, labels)
+    print(classifier.getMetadataDict())
+
+def pixel_grid():
+
+    hymap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\HyMap01_Berlin_Urban_Gradient_2009.bsq')
+    enmap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
+    vector = Vector(r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
+
+    # ToDo: use only the polygon extents to calculate fractions, otherwise edge pixel will be wrong!
+    print('ToDO: handle edges corretly!')
+
+    # rasterize vector file with oversampling and resample back to original resolution to produce cover fractions
+    options = '''-where "Level_2"='Tree' -burn 1 -init 0 -a_nodata 0 -of GTiff -ot Byte'''
+    pixelGrid = deepcopy(enmap.pixelGrid)
+    pixelGrid.xRes /= 20
+    pixelGrid.yRes /= 20
+    #rasterOversampled = vector.rasterize(outfile=r'c:\work\data\raster.img', pixelGrid=pixelGrid, options=options)
+    rasterOversampled = Image(r'c:\work\data\raster.img')
+
+    rasterFractions = rasterOversampled.translate(filename=r'c:\work\data\rasterEnMAP.vrt', pixelGrid=enmap.pixelGrid)
+
+    # create classification file from
+    #raster = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options, oversamplingRate=20)
+
+
+    #raster.info()
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -71,7 +109,7 @@ def regression():
 
     #regressors = all(Regressors)
     #regressors = [Regressors.DummyRegressor()]
-    regressors = [Regressors.LinearSVRTuned()]
+   # regressors = [Regressors.LinearSVRTuned()]
     regressors = [Regressors.RandomForestRegressor(oob_score=True)]
 
     for regressor in regressors:
@@ -107,8 +145,8 @@ def transformer():
     trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
     #transformers = all(Transformers)
-    transformers = [Transformers.RobustScaler()]
-    #transformers = [Transformers.PCA(n_components=0.99999)]
+    #transformers = [Transformers.RobustScaler()]
+    transformers = [Transformers.PCA(n_components=0.99999)]
 
     for transformer in transformers:
 
@@ -195,6 +233,7 @@ def probabilityAccAss():
 
 
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+
     trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
     testingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Validation-Sample'))
 
@@ -207,11 +246,12 @@ def probabilityAccAss():
 def statisticsForImage():
 
     #image = Image(os.path.join(inroot, 'AF_Image'))
-    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-B_Image'))
     image.statistics().info()
 
 def statisticsForClassification():
 
+    #image = Classification(os.path.join(inroot,  'AF_LC'))
     image = Classification(os.path.join(inroot,  'Hymap_Berlin-A_Classification-Training-Sample'))
     image.statistics().info()
 
@@ -339,10 +379,12 @@ if __name__ == '__main__':
 
     #tic()
     #importENVISpeclib()
+    #test_type()
+    pixel_grid()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
-    classification()
+    #classification()
     #regression()
     #clusterer()
     #transformer()
@@ -353,7 +395,7 @@ if __name__ == '__main__':
     #classificationAccAssAdjusted()
     #regressionAccAss()
     #clusteringAccAss()
-    probabilityAccAss()
+    #probabilityAccAss()
     #statisticsForImage()
     #statisticsForClassification()
     #importENVISpeclib()

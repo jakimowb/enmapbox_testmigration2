@@ -7,49 +7,48 @@ from lamos.operators.stack import StackApplier
 from lamos.operators.ml import SampleReadApplier, ClassifierPredictApplier, exportSampleAsJSON
 import hub.file
 from enmapbox.processing.estimators import Classifiers
-import os
+from os.path import join
 
 def test(i=None):
 
     MGRSFootprint.shpRoot = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gis\reference_systems\mgrs\MGRS_100km_1MIL_Files'
     MGRSTilingScheme.shp = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\gis\reference_systems\mgrs\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
 
+    bufferYears = 1
+    syears = str(bufferYears*2+1)+'years'
+
+    root = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new'
     folder1 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\landsat'
-    folder2 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\landsatX'
-    folder3 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\landsatXMGRS'
-    folder4 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\landsatTimeseriesMGRS'
-    folder4b = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\landsatTimeseriesMGRS_GTiff'
-    folder5 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\statisticsMGRS'
-    folder6 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\referenceMGRS'
-    folder7 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\stackMGRS'
-    folder8 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\rfcMGRS'
+    folder2 = join(root, 'landsatX')
+    folder3 = join(root, 'landsatXMGRS')
+    folder4 = join(root, 'landsatTimeseriesMGRS')
+    folder4b = join(root, 'landsatTimeseriesMGRS_GTiff')
+    folder5 = join(root, 'statisticsMGRS_'+syears)
+    folder6 = join(root, 'referenceMGRS')
+    folder7 = join(root, 'stackMGRS_'+syears)
+    folder8 = join(root, 'rfcMGRS_'+syears)
+    folder9 = join(root, 'samples_'+syears)
 
-    filename1 = r'\\141.20.140.91\NAS_Projects\Baltrak\Andrey\SHP\2007.shp'
-    folder9 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\Samples'
-    #filename3 = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\4ad\new\2007.json'
-
-
-
-
-    WRS2Footprint.createUtmLookup(infolder=folder1)
+    #filename1 = r'\\141.20.140.91\NAS_Projects\Baltrak\Andrey\SHP\2007.shp'
 
     wrs2Footprints = ['160024','161023','161024']
     mgrsFootprints = ['41ULS', '41ULT', '41ULU', '41UMS', '41UMT', '41UMU', '41UMV', '41UNS', '41UNT', '41UNU', '41UNV',
                       '41UPS', '41UPT', '41UPU', '41UPV']
 
+    # for sampling only
+    mgrsFootprints = mgrsFootprints[:-1]
+
+    WRS2Footprint.createUtmLookup(infolder=folder1, filter=wrs2Footprints)
 
     start = Date(1985, 1, 1)
     end = Date(2015, 12, 31)
 
     if i is not None:
         mgrsFootprints = mgrsFootprints[i:i+1]
-#    mgrsFootprints = ['41UPU','41UPV']
 
     for inextension in ['.tif','.img']:
         composer = LandsatXComposer(inextension=inextension)
         #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=20)
-
-
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     #tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
@@ -65,7 +64,6 @@ def test(i=None):
                                 percentiles=[0, 5, 25, 50, 75, 95, 100],
                                 variables=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'msavi2'],
                                 )
-    bufferYears = 3
     for year in range(start.year, end.year+1):
         applier.appendDateParameters(date1=Date(year, 1, 1), date2=Date(year, 12, 31), bufferYears=bufferYears)
     applier.controls.setWindowXsize(256)
@@ -81,35 +79,30 @@ def test(i=None):
         #stacker.apply()
 
 
-    # for all years
-
     for year in range(start.year, end.year + 1):
         print('draw sample', str(year))
         featureImage = str(year) + '_stack'
         labelImage = '2007_class'
 
-        # - draw sample
-
-        sampleReader = SampleReadApplier(featureFolder=folder7, featureProduct='stack', featureImage=featureImage, featureExtension='.vrt',
-                                         labelFolder=folder6, labelProduct='reference', labelImage=labelImage, labelExtension='.img',
-                                         footprints=mgrsFootprints)
-
-        filename = os.path.join(folder9, str(year) + '.pkl')
-        if 0:
+        filenameRFC = join(folder9, str(year) + '.rfc')
+        if 1:
+            # - draw sample and train RFC
+            sampleReader = SampleReadApplier(featureFolder=folder7, featureProduct='stack', featureImage=featureImage,
+                                             featureExtension='.vrt',
+                                             labelFolder=folder6, labelProduct='reference', labelImage=labelImage,
+                                             labelExtension='.img',
+                                             footprints=mgrsFootprints)
             sample = sampleReader.apply()
-            hub.file.savePickle(var=sample, filename=filename)
+            hub.file.savePickle(var=sample, filename=join(folder9, str(year) + '.pkl'))
+            rfc = Classifiers.RandomForestClassifier(oob_score=True, n_estimators=100, class_weight='balanced', n_jobs=20)
+            rfc.pickle(filename=filenameRFC)
+            rfc.fitSample(sample)
+            filename = join(folder9, str(year) + '.json')
+            exportSampleAsJSON(sample=sample, rfc=rfc, outfile=filename)
         else:
-            sample = hub.file.restorePickle(filename=filename)
+            rfc = hub.file.restorePickle(filename=filenameRFC)
 
-
-
-        # - classification
-        rfc = Classifiers.RandomForestClassifier(oob_score=True, n_estimators=100, class_weight='balanced', n_jobs=20)
-        rfc.fitSample(sample)
-
-        filename = os.path.join(folder9, str(year) + '.json')
-#        exportSampleAsJSON(sample=sample, rfc=rfc, outfile=filename)
-
+        continue
         predictor = ClassifierPredictApplier(featureFolder=folder7, featureProduct='stack', featureImage=str(year)+'_stack', featureExtension='.vrt',
                                              outFolder=folder8, outProduct='rfc', outClassification=str(year)+'_rfc', outProbability=str(year)+'_rfprob', outExtension='.img',
                                              classifier=rfc, footprints=mgrsFootprints)
@@ -119,7 +112,7 @@ def test(i=None):
 if __name__ == '__main__':
 
     tic()
-    test(15)
+    test()
     toc()
 
 
