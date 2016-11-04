@@ -1105,6 +1105,35 @@ class MapDock(Dock):
             self.setTitle(newTitle)
         return change
 
+class CursorLocationValueDock(Dock):
+
+    _instance = None
+
+    """
+    A dock to visualize cursor location values
+    """
+
+    def __init__(self, *args, **kwds):
+        super(CursorLocationValueDock, self).__init__(*args, **kwds)
+        from pyqtgraph.widgets.PlotWidget import PlotWidget
+        self.splitter = QSplitter(self)
+        self.updateSplitMode()
+        self.plotWidget = PlotWidget(self)
+        self.infobox = QTextEdit(self)
+        self.splitter.addWidget(self.plotWidget)
+        self.splitter.addWidget(self.infobox)
+        self.layout.addWidget(self.splitter)
+
+    def updateSplitMode(self):
+        s = self.size()
+        o = Qt.Vertical if s.width() < s.height() else Qt.Horizontal
+        self.splitter.setOrientation(o)
+
+
+    def resizeEvent(self, event):
+        super(CursorLocationValueDock, self).resizeEvent(event)
+        self.updateSplitMode()
+
 
 class TextDock(Dock):
     """
@@ -1282,9 +1311,7 @@ class DockManager(QObject):
             self.sigDockRemoved.emit(dock)
 
     def createDock(self, docktype, *args, **kwds):
-        # todo: ensure unique mapdock names
 
-        assert docktype in ['MAP', 'TEXT', 'MIME']
         if 'name' not in kwds.keys():
             kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
 
@@ -1294,8 +1321,10 @@ class DockManager(QObject):
             dock = TextDock(self.enmapbox, *args, **kwds)
         elif docktype == 'MIME':
             dock = MimeDataDock(self.enmapbox, *args, **kwds)
-
-
+        elif docktype == 'CURSORLOCATIONVALUE':
+            dock = CursorLocationValueDock(self.enmapbox, *args, **kwds)
+        else:
+            raise Exception('Unknown dock type: {}'.format(docktype))
 
         state = self.dockarea.saveState()
         main = state['main']
