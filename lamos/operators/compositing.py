@@ -37,6 +37,7 @@ def getCube(name, inputs, bbl=None):
             result = numpy.zeros_like(inputs.timeseries_cfmask, dtype=numpy.float32)
             for i, name in enumerate(['blue', 'green', 'red', 'nir', 'swir1', 'swir2']):
                 result += coeff[i] * inputs.__dict__['timeseries_' + name]
+                result += coeff[i] * getattr(inputs, 'timeseries_'+name)
         elif name=='msavi2':
             #msavi2 = (2*nir + 1 - sqrt((2*nir+1)^2 - 8*(nir-red))) / 2
             nir = inputs.timeseries_nir / 10000.
