@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import six, sys, os, gc, re, collections, site
 import itertools
+import uuid
 from qgis.core import *
 from qgis.gui import *
 
@@ -366,13 +367,19 @@ class DockArea(pyqtgraph.dockarea.DockArea):
 
 
 class Dock(pyqtgraph.dockarea.Dock):
+    @staticmethod
+    def readXml(elem):
+
+
+        return None
+
     '''
     Handle style sheets etc., basic stuff that differs from pyqtgraph dockarea
     '''
     sigTitleChanged = pyqtSignal(str)
 
 
-    def __init__(self, enmapboxInstance, name='view', closable=True, *args, **kwds):
+    def __init__(self, enmapboxInstance, name='dock', closable=True, *args, **kwds):
         super(Dock, self).__init__(name=name, closable=False, *args, **kwds)
 
         assert enmapboxInstance is not None
@@ -385,7 +392,8 @@ class Dock(pyqtgraph.dockarea.Dock):
         del self.label
         self.label = self._createLabel(title=title)
         self.topLayout.addWidget(self.label, 0, 1)
-
+        self.uuid = uuid.uuid4()
+        print('UUID: {}'.format(self.uuid))
         if closable:
             self.label.sigCloseClicked.connect(self.close)
 
@@ -423,6 +431,13 @@ class Dock(pyqtgraph.dockarea.Dock):
 
         self.widgetArea.setStyleSheet(self.hStyle)
         self.topLayout.update()
+
+    def getDockContentContextMenu(self):
+        """
+
+        :return: None or QMenu
+        """
+        return None
 
     def setTitle(self, title):
         """
@@ -597,16 +612,10 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         assert isinstance(canvas1, QgsMapCanvas)
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
 
-        target_canvases = [d.canvas for d in mapDock.enmapbox.DOCKS
+        target_canvases = [d.canvas for d in mapDock.enmapbox.dockManager.DOCKS
                            if isinstance(d, MapDock) and d != mapDock]
 
         #todo: offer link to all other open canvases
-        if False:
-            w = CanvasLinkTargetWidget(canvas1, canvas_source)
-            w.setAutoFillBackground(False)
-            w.show()
-            CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
-            canvas_source.freeze()
 
         for canvas_source in target_canvases:
 
@@ -818,6 +827,9 @@ class MapDock(Dock):
     """
     A dock to visualize geodata that can be mapped
     """
+
+    sigLayersChanged = pyqtSignal()
+
     def __init__(self, *args, **kwds):
         initSrc = kwds.pop('initSrc', None)
         super(MapDock, self).__init__(*args, **kwds)
@@ -832,9 +844,9 @@ class MapDock(Dock):
         #self.canvas.setScaleLocked(True)
         self.canvas.sigDropEvent.connect(self.canvasDrop)
         self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
-        self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenu)
+        #self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenuEvent)
         self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
-
+        self.canvas.layersChanged.connect(lambda : self.sigLayersChanged.emit())
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -923,8 +935,7 @@ class MapDock(Dock):
 
         s  =""
 
-    def onCanvasContextMenuEvent(self, event):
-
+    def getDockContentContextMenu(self):
         menu = QMenu()
 
         action = QAction('Link with other maps', menu)
@@ -956,9 +967,10 @@ class MapDock(Dock):
         action.triggered.connect(lambda: self.setCRSfromDialog())
         menu.addAction(action)
 
+        return menu
 
-
-
+    def onCanvasContextMenuEvent(self, event):
+        menu = self.getDockContentContextMenu()
         menu.exec_(event.globalPos())
 
 
@@ -973,10 +985,6 @@ class MapDock(Dock):
         w.crsChanged.connect(lambda returned_crs: self.canvas.setDestinationCrs(returned_crs))
         w.selectCrs()
 
-
-    def onCanvasContextMenu(self, point):
-        s  = ""
-        pass
 
     def setMapTool(self, mapTool):
         if False:
@@ -993,12 +1001,15 @@ class MapDock(Dock):
         w = CanvasLinkTargetWidget(self.enmapbox.gui)
         s = ""
 
+    def mimeData(self):
+        return ['']
+
     def canvasDragEnter(self, event):
         import enmapbox.utils
         ME = enmapbox.utils.MimeDataHelper(event.mimeData())
         #check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
-        if ME.hasUriList() or ME.hasQgsLayerTree():
+        if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
             event.setDropAction(Qt.CopyAction) #copy but do not remove
             event.accept()
         else:
@@ -1008,24 +1019,21 @@ class MapDock(Dock):
         import enmapbox.utils
         ME = enmapbox.utils.MimeDataHelper(event.mimeData())
 
-        added_sources = []
-        if ME.hasQgsLayerTree():
-            for id, name in ME.getQgsLayerTreeLayers():
-                ds = DataSource.Factory(id, name=name)
-                if ds is not None:
-                    added_sources.append(self.enmapbox.addSource(ds))
+        if ME.hasMapLayers():
+            newLayers = ME.mapLayers()
 
-
-        if ME.hasUriList():
-            for url in ME.getUriList():
-                ds = DataSource.Factory(url)
-                if ds is not None:
-                    added_sources.append(self.enmapbox.addSource(ds))
-        for ds in added_sources:
-            self.addLayer(ds.createMapLayer())
-        if len(added_sources) > 0:
+            lyrs = self.canvas.layers()
+            self.setLayerSet(newLayers + lyrs)
             event.accept()
             event.acceptProposedAction()
+        if ME.hasDataSources():
+            dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
+            dataSources = [self.enmapbox.dataSourceManager.addSource(d) for d in dataSources]
+            layers = [d.createMapLayer() for d in dataSources]
+
+            self.addLayers(layers)
+
+
 
 
     def _createLabel(self, *args, **kwds):
@@ -1046,38 +1054,40 @@ class MapDock(Dock):
         assert isinstance(canvas, QgsMapCanvas)
         CanvasLinkManager.instance().addLinkSet(self, canvas, linktype)
 
+    def setLayerSet(self, mapLayers):
+        assert isinstance(mapLayers, list)
+        reg = QgsMapLayerRegistry.instance()
 
-    def addLayer(self, mapLayer, index=0):
+        cnt0 = len(self.canvas.layers())
+        #register unregistered layers
+        for l in mapLayers:
+            assert isinstance(l, QgsMapLayer)
+            if not l in reg.children():
+                reg.addMapLayer(l, False)
+        canvasLayers = [QgsMapCanvasLayer(l) for l in mapLayers]
+        self.canvas.setLayerSet(canvasLayers)
+        #if self.canvas.isCachingEnabled():
+        #    mapLayer.setCacheImage(None)
+        #    newCanvasLayer.setCacheImage(None)
 
-        if isinstance(mapLayer, DataSourceSpatial):
+        if cnt0 == 0:
+            # set canvas CRS to that of new layer
+            self.canvas.setDestinationCrs(mapLayers[0].crs())
+            self.canvas.setExtent(mapLayers[0].extent())
 
+        self.canvas.refresh()
 
-            pass
-        else:
-            assert isinstance(mapLayer, QgsMapLayer)
-
-            reg = QgsMapLayerRegistry.instance()
-            reg.addMapLayer(mapLayer, False)
-
-            newCanvasLayer = QgsMapCanvasLayer(mapLayer)
-            newCanvasLayer.setVisible(True)
-            canvasLayers = [QgsMapCanvasLayer(l) for l in self.canvas.layers()]
-
-            if len(canvasLayers) == 0:
-                #set canvas CRS to that of new layer
-                self.canvas.setDestinationCrs(mapLayer.crs())
-
-            canvasLayers.insert(index, newCanvasLayer)
-
-            if len(canvasLayers) == 1:
-                self.canvas.setExtent(mapLayer.extent())
-
-            self.canvas.setLayerSet(canvasLayers)
-            if self.canvas.isCachingEnabled():
-                mapLayer.setCacheImage(None)
-                newCanvasLayer.setCacheImage(None)
-            self.canvas.refresh()
         self.updateDockTitle()
+
+    def addLayers(self, mapLayers):
+        if not type(mapLayers) is list:
+            mapLayers = [mapLayers]
+        for l in mapLayers:
+            assert isinstance(l, QgsMapLayer)
+        self.setLayerSet(self.canvas.layers() + mapLayers)
+
+
+
 
     def updateDockTitle(self):
         """
@@ -1106,22 +1116,72 @@ class TextDock(Dock):
 
         super(TextDock, self).__init__(*args, **kwds)
 
-        self.edit = QtGui.QTextEdit(self)
+        self.textEdit = QtGui.QTextEdit(self)
 
         if html:
-            self.edit.insertHtml(html)
+            self.textEdit.insertHtml(html)
         elif plainTxt:
-            self.edit.insertPlainText(plainTxt)
-        self.layout.addWidget(self.edit)
+            self.textEdit.insertPlainText(plainTxt)
+        self.layout.addWidget(self.textEdit)
 
+
+
+class MimeDataTextEdit(QtGui.QTextEdit):
+
+    def __init__(self, *args, **kwargs):
+        super(MimeDataTextEdit,self).__init__(*args, **kwargs)
+        #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
+        self.setOverwriteMode(False)
+
+    def canInsertFromMimeData(self, QMimeData):
+        return True
+
+    def insertFromMimeData(self, mimeData):
+        assert isinstance(mimeData, QMimeData)
+        formats = [str(f) for f in mimeData.formats()]
+        self.clear()
+        def append(txt):
+            self.moveCursor(QTextCursor.End)
+            self.insertPlainText(txt+'\n')
+            self.moveCursor(QTextCursor.End)
+
+        for format in formats:
+            append('####{}####'.format(format))
+            if format == 'text/uri-list':
+                self.insertPlainText(str(mimeData.data('text/uri-list')))
+            if format == 'text/html':
+                self.insertHtml(mimeData.html())
+            elif format == 'text/plain':
+                self.insertPlainText(mimeData.text())
+            else:
+                append('### (raw data as string) ###')
+                self.insertPlainText(str(mimeData.data(format)))
+            append('\n')
+
+    def dragEnterEvent(self, event):
+        event.setDropAction(Qt.CopyAction)  # copy but do not remove
+        event.accept()
+
+    def dropEvent(self, event):
+        self.insertFromMimeData(event.mimeData())
+        event.setDropAction(Qt.CopyAction)
+        event.accept()
 
 class MimeDataDock(TextDock):
     """
     A dock to show dropped mime data
     """
-    def __init__(self):
+    def __init__(self,*args, **kwds):
+        super(MimeDataDock, self).__init__(*args, **kwds)
 
-        pass
+
+
+        self.layout.removeWidget(self.textEdit)
+        self.textEdit = MimeDataTextEdit(self)
+        self.layout.addWidget(self.textEdit)
+
+
+
 
 
 class IdentifyMapObjects(QgsMapToolIdentify):
@@ -1138,3 +1198,120 @@ class IdentifyMapObjects(QgsMapToolIdentify):
         results = self.identify(mouseEvent.x(), mouseEvent.y(), self.identifyMode, self.layerType)
         if len(results) > 0:
             self.sigPixelIdentified.emit(results)
+
+
+
+
+
+
+class DockManager(QObject):
+    """
+    Class to handle all DOCK related events
+    """
+
+    sigDockAdded = pyqtSignal(Dock)
+    sigDockRemoved = pyqtSignal(Dock)
+    sigDockTitleChanged = pyqtSignal(Dock)
+
+    def __init__(self, enmapbox):
+        QObject.__init__(self)
+        self.enmapbox = enmapbox
+        self.dockarea = self.enmapbox.dockarea
+        self.DOCKS = set()
+
+        self.dockarea.sigDragEnterEvent.connect(self.dockAreaSignalHandler)
+        self.dockarea.sigDragMoveEvent.connect(self.dockAreaSignalHandler)
+        self.dockarea.sigDragLeaveEvent.connect(self.dockAreaSignalHandler)
+        self.dockarea.sigDropEvent.connect(self.dockAreaSignalHandler)
+
+
+
+
+    def dockAreaSignalHandler(self, event):
+        assert isinstance(event, QEvent)
+
+        mimeTypes = ["application/qgis.layertreemodeldata",
+                     "application/enmapbox.docktreemodeldata",
+                     "application/enmapbox.datasourcetreemodeldata",
+                     "text/uri-list"]
+
+        if type(event) is QDragEnterEvent:
+            # check mime types we can handle
+            MH = MimeDataHelper(event.mimeData())
+            if MH.hasMapLayers():
+                    event.setDropAction(Qt.CopyAction)
+                    event.accept()
+            else:
+                event.ignore()
+
+        elif type(event) is QDragMoveEvent:
+            pass
+        elif type(event) is QDragLeaveEvent:
+            pass
+        elif type(event) is QDropEvent:
+            MH = MimeDataHelper(event.mimeData())
+
+            s = ""
+
+
+
+            NEW_MAP_DOCK = None
+            NEW_TEXT_DOCK = None
+            for ds in droppedSources:
+                if isinstance(ds, DataSourceSpatial):
+                    if NEW_MAP_DOCK is None:
+                        NEW_MAP_DOCK = self.createDock('MAP')
+                    NEW_MAP_DOCK.addLayer(ds.createMapLayer())
+
+            event.acceptProposedAction()
+
+    def getDockWithUUID(self, uuid_):
+        if isinstance(uuid_, str):
+            uuid_ = uuid.UUID(uuid_)
+        assert isinstance(uuid_, uuid.UUID)
+        for dock in list(self.DOCKS):
+            assert isinstance(dock, Dock)
+            if dock.uuid == uuid_:
+                return dock
+
+        return None
+
+    def removeDock(self, dock):
+        if dock in self.DOCKS:
+            self.DOCKS.remove(dock)
+            self.sigDockRemoved.emit(dock)
+
+    def createDock(self, docktype, *args, **kwds):
+        # todo: ensure unique mapdock names
+
+        assert docktype in ['MAP', 'TEXT', 'MIME']
+        if 'name' not in kwds.keys():
+            kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
+
+        if docktype == 'MAP':
+            dock = MapDock(self.enmapbox, *args, **kwds)
+        elif docktype == 'TEXT':
+            dock = TextDock(self.enmapbox, *args, **kwds)
+        elif docktype == 'MIME':
+            dock = MimeDataDock(self.enmapbox, *args, **kwds)
+
+
+
+        state = self.dockarea.saveState()
+        main = state['main']
+        if main:
+            # todo: add "balanced" to existing docks
+            n_vertical = n_horizontal = 0
+
+        dock.sigClosed.connect(self.removeDock)
+        self.DOCKS.add(dock)
+        self.dockarea.addDock(dock, *args, **kwds)
+
+        self.sigDockAdded.emit(dock)
+
+        if 'initSrc' in kwds.keys():
+            ds = self.enmapbox.addSource(kwds['initSrc'])
+            if isinstance(ds, DataSourceSpatial):
+                dock.addLayers(ds.createMapLayer())
+
+        return dock

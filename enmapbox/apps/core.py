@@ -27,10 +27,13 @@ class EnMAPBoxProvider(AlgorithmProvider):
     def instance():
         return EnMAPBoxProvider._instance
 
+    def __del__(self):
+        EnMAPBoxProvider._instance = None
+
     def __init__(self):
 
         AlgorithmProvider.__init__(self)
-        if EnMAPBoxProvider.instance() is None:
+        if EnMAPBoxProvider.instance() is not None:
             print('Oh. It seems that the EnMAPBoxProvider was initialized twice.')
         EnMAPBoxProvider._instance = self
 
@@ -99,8 +102,10 @@ class EnMAPBoxProvider(AlgorithmProvider):
     def getDescription(self):
         return 'EnMAP-Box'
 
-#    def getIcon(self):
-#        return QIcon(":/plugins/EnMAP-Box/icon.svg")
+    def getIcon(self):
+        from enmapbox.utils import IconProvider
+        from PyQt4.Qt import QIcon
+        return QIcon(IconProvider.EnMAP_Logo)
 
     def _loadAlgorithms(self):
         self.algs = self.alglist
