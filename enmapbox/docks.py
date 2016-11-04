@@ -10,9 +10,8 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import PyQt4.QtSvg
 
-
-
-
+from enmapbox.main import DIR_GUI
+from enmapbox.datasources import *
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
 
@@ -827,7 +826,7 @@ class MapDock(Dock):
     """
     A dock to visualize geodata that can be mapped
     """
-
+    sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float)
     sigLayersChanged = pyqtSignal()
 
     def __init__(self, *args, **kwds):
@@ -873,10 +872,13 @@ class MapDock(Dock):
         self.toolZoomOut.setAction(g.actionZoomOut)
         self.toolZoomOut.action().triggered.connect(lambda: self.setMapTool(self.toolZoomOut))
 
-        self.toolIdentify = IdentifyMapObjects(self.canvas)
-        self.toolIdentify.identifyMessage.connect(self.identifyMessage)
-        self.toolIdentify.identifyProgress.connect(self.identifyProgress)
-        self.toolIdentify.sigPixelIdentified.connect(self.identifyResults)
+        self.toolCursorLocationValue = IdentifyCursorLocationValues(self.canvas)
+        self.toolCursorLocationValue.setAction(g.actionIdentify)
+        self.toolCursorLocationValue.action().triggered.connect(lambda: self.setMapTool(self.toolCursorLocationValue))
+        self.toolCursorLocationValue.sigLocationRequest.connect(self.cursorLocationValueRequest)
+        #self.toolIdentify.identifyMessage.connect(self.identifyMessage)
+        #self.toolIdentify.identifyProgress.connect(self.identifyProgress)
+        #self.toolIdentify.sigLocationIdentified.connect(self.identifyResults)
 
         """
         The problem still exists in QGis 2.0.1-3 available through OSGeo4W distribution. New style connection always return the same error:
@@ -893,8 +895,8 @@ class MapDock(Dock):
         #                self.identifyChangedRasterResults)
         #self.toolIdentify.changedRasterResults.connect(self.identifyChangedRasterResults)
 
-        self.toolIdentify.setAction(g.actionIdentify)
-        self.toolIdentify.action().triggered.connect(lambda: self.setMapTool(self.toolIdentify))
+        self.toolCursorLocationValue.setAction(g.actionIdentify)
+        self.toolCursorLocationValue.action().triggered.connect(lambda: self.setMapTool(self.toolCursorLocationValue))
 
         self.label.addMapLink.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
         self.label.removeMapLink.clicked.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
@@ -904,7 +906,8 @@ class MapDock(Dock):
         #todo: context menu
 
 
-
+    def cursorLocationValueRequest(self,*args):
+        self.sigCursorLocationValueRequest.emit(*args)
 
 
     def identifyMessage(self, message):
@@ -1106,6 +1109,90 @@ class MapDock(Dock):
         return change
 
 
+class CursorLocationValueWidget(QtGui.QMainWindow,
+                                loadUIFormClass(os.path.normpath(jp(DIR_GUI, 'cursorlocationinfo.ui')))):
+    def __init__(self, parent=None):
+        """Constructor."""
+        QWidget.__init__(self, parent)
+        #super(CursorLocationValueWidget, self).__init__(parent)
+        # Set up the user interface from Designer.
+        # After setupUI you can access any designer object by doing
+        # self.<objectname>, and you can use autoconnect slots - see
+        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
+        # #widgets-and-dialogs-with-auto-connect
+        self.setupUi(self)
+
+        self.dataSources = list()
+
+    def updateSplitMode(self):
+        s = self.size()
+        o = Qt.Vertical if s.width() < s.height() else Qt.Horizontal
+        self.splitter.setOrientation(o)
+
+    def connectDataSourceManager(self, dsm):
+        if dsm:
+            assert isinstance(dsm, DataSourceManager)
+            self.DSM = dsm
+            self.DSM.sigDataSourceAdded.connect(self.linkDataSource)
+            self.DSM.sigDataSourceRemoved.connect(self.unlinkDataSource)
+            for ds in self.DSM.sources:
+                self.linkDataSource(ds)
+        else:
+            for ds in self.DSM.sources:
+                self.unlinkDataSource(ds)
+            self.DSM = None
+
+    def resizeEvent(self, event):
+        super(CursorLocationValueWidget, self).resizeEvent(event)
+        self.updateSplitMode()
+
+    def linkDataSource(self, dataSource):
+        from enmapbox.datasources import DataSourceSpatial, DataSourceRaster, DataSourceVector
+        if isinstance(dataSource, DataSourceSpatial):
+            self.dataSources.append(dataSource)
+
+    def unlinkDataSource(self, dataSource):
+            if dataSource in self.dataSources:
+                self.dataSources.remove(dataSource)
+
+    def showLocationValues(self, point, viewExtent, mapUnitsPerPixel):
+        results = collections.OrderedDict()
+        for ds in self.dataSources:
+            #request info
+            lyr = ds.createMapLayer()
+            dprovider = lyr.dataProvider()
+
+            width = int(viewExtent.width() / mapUnitsPerPixel)
+            height = int(viewExtent.height() / mapUnitsPerPixel)
+
+            result = dprovider.identify(point, QgsRaster.IdentifyFormatValue, viewExtent, width, height)
+            results[str(lyr.name())] = result.results()
+
+        info = []
+        for dsName, res in results.items():
+            info.append(dsName)
+            for k, v in res.items():
+                info.append('{}:{}'.format(k,v))
+
+        self.locationValuesTextEdit.setText('\n'.join(info))
+class CursorLocationValueDock(Dock):
+
+    _instance = None
+
+    """
+    A dock to visualize cursor location values
+    """
+
+    def __init__(self, *args, **kwds):
+        super(CursorLocationValueDock, self).__init__(*args, **kwds)
+        self.w = CursorLocationValueWidget(self)
+        self.layout.addWidget(self.w)
+        self.w.connectDataSourceManager(self.enmapbox.dataSourceManager)
+        self.setTitle('Cursor Location Values')
+
+    def showLocationValues(self, *args):
+        self.w.showLocationValues(*args)
+
 class TextDock(Dock):
     """
     A dock to visualize textural data
@@ -1184,20 +1271,25 @@ class MimeDataDock(TextDock):
 
 
 
-class IdentifyMapObjects(QgsMapToolIdentify):
-    sigPixelIdentified = pyqtSignal(list)
-
-    def __init__(self, canvas, identifyMode = QgsMapToolIdentify.TopDownStopAtFirst, layerType=QgsMapToolIdentify.RasterLayer):
+class IdentifyCursorLocationValues(QgsMapTool):
+    sigLocationIdentified = pyqtSignal(list)
+    sigLocationRequest = pyqtSignal(QgsPoint, QgsRectangle, float)
+    def __init__(self, canvas):
         self.canvas = canvas
-        self.layerType = layerType
-        self.identifyMode = identifyMode
+        self.layerType = QgsMapToolIdentify.AllLayers
+        self.identifyMode = QgsMapToolIdentify.LayerSelection
         QgsMapToolIdentify.__init__(self, canvas)
 
 
     def canvasReleaseEvent(self, mouseEvent):
-        results = self.identify(mouseEvent.x(), mouseEvent.y(), self.identifyMode, self.layerType)
-        if len(results) > 0:
-            self.sigPixelIdentified.emit(results)
+        x = mouseEvent.x()
+        y = mouseEvent.y()
+        mapCoord = self.canvas.getCoordinateTransform().toMapCoordinates(x,y)
+        extent = self.canvas.extent()
+        unitsPerPx = self.canvas.mapUnitsPerPixel()
+        #coordPrecision = QgsCoordinateUtils.calculateCoordinatePrecision( mLastMapUnitsPerPixel, mCanvas->mapSettings().destinationCrs() )
+        self.sigLocationRequest.emit(mapCoord, extent, unitsPerPx)
+
 
 
 
@@ -1224,6 +1316,7 @@ class DockManager(QObject):
         self.dockarea.sigDragLeaveEvent.connect(self.dockAreaSignalHandler)
         self.dockarea.sigDropEvent.connect(self.dockAreaSignalHandler)
 
+        self.setCursorLocationValueDock(None)
 
 
 
@@ -1276,42 +1369,58 @@ class DockManager(QObject):
 
         return None
 
+    def showCursorLocationValues(self, *args):
+        if self.cursorLocationValueDock is not None:
+            self.cursorLocationValueDock.showLocationValues(*args)
+
+
+    def setCursorLocationValueDock(self, dock):
+        if dock is None:
+            self.cursorLocationValueDock = None
+        else:
+            assert isinstance(dock, CursorLocationValueDock)
+            self.cursorLocationValueDock = dock
+            self.cursorLocationValueDock.w.connectDataSourceManager(self.enmapbox.dataSourceManager)
+            dock.sigClosed.connect(lambda: self.setCursorLocationValueDoc(None))
+
     def removeDock(self, dock):
         if dock in self.DOCKS:
             self.DOCKS.remove(dock)
             self.sigDockRemoved.emit(dock)
 
     def createDock(self, docktype, *args, **kwds):
-        # todo: ensure unique mapdock names
 
-        assert docktype in ['MAP', 'TEXT', 'MIME']
         if 'name' not in kwds.keys():
             kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
 
+        is_new_dock = True
         if docktype == 'MAP':
             dock = MapDock(self.enmapbox, *args, **kwds)
+            dock.sigCursorLocationValueRequest.connect(self.showCursorLocationValues)
         elif docktype == 'TEXT':
             dock = TextDock(self.enmapbox, *args, **kwds)
         elif docktype == 'MIME':
             dock = MimeDataDock(self.enmapbox, *args, **kwds)
-
-
+        elif docktype == 'CURSORLOCATIONVALUE':
+            if self.cursorLocationValueDock is None:
+                self.setCursorLocationValueDock(CursorLocationValueDock(self.enmapbox, *args, **kwds))
+            else:
+                is_new_dock = False
+            dock = self.cursorLocationValueDock
+        else:
+            raise Exception('Unknown dock type: {}'.format(docktype))
 
         state = self.dockarea.saveState()
         main = state['main']
-        if main:
-            # todo: add "balanced" to existing docks
-            n_vertical = n_horizontal = 0
+        if is_new_dock:
+            dock.sigClosed.connect(self.removeDock)
+            self.DOCKS.add(dock)
+            self.dockarea.addDock(dock, *args, **kwds)
+            self.sigDockAdded.emit(dock)
 
-        dock.sigClosed.connect(self.removeDock)
-        self.DOCKS.add(dock)
-        self.dockarea.addDock(dock, *args, **kwds)
-
-        self.sigDockAdded.emit(dock)
-
-        if 'initSrc' in kwds.keys():
-            ds = self.enmapbox.addSource(kwds['initSrc'])
-            if isinstance(ds, DataSourceSpatial):
-                dock.addLayers(ds.createMapLayer())
+            if 'initSrc' in kwds.keys():
+                ds = self.enmapbox.addSource(kwds['initSrc'])
+                if isinstance(ds, DataSourceSpatial):
+                    dock.addLayers(ds.createMapLayer())
 
         return dock

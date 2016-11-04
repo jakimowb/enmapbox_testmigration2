@@ -37,8 +37,9 @@ class TreeNodeProvider():
     @staticmethod
     def CreateNodeFromDock(dock, parent):
         t = type(dock)
-        classes = [MapDock, TextDock, MimeDataDock, Dock]
-        nodes   = [MapDockTreeNode, TextDockTreeNode, TextDockTreeNode, DockTreeNode]
+        classes = [MapDock, TextDock, MimeDataDock, Dock, CursorLocationValueDock]
+        nodes   = [MapDockTreeNode, TextDockTreeNode, TextDockTreeNode, DockTreeNode, DockTreeNode]
+        assert t in classes
         for i, cls in enumerate(classes):
             if t is cls:
                 return nodes[i](parent, dock)
@@ -513,18 +514,18 @@ class DockManagerTreeModel(TreeModel):
     def contextMenu(self, node):
         menu = QMenu()
         parentNode = node.parent()
-        import qgis.utils
-        iface = qgis.utils.iface
-        dprint('IFACE:::')
-        dprint(iface)
         if type(node) is QgsLayerTreeLayer:
-
+            #get parent dock node -> related map canvas
+            mapNode = self.parentNodesFromIndices(self.node2index(node), nodeInstanceType = MapDockTreeNode)
+            mapNode = mapNode[0]
+            assert isinstance(mapNode, MapDockTreeNode)
+            assert isinstance(mapNode.dock, MapDock)
+            canvas = mapNode.dock.canvas
+            import enmapbox.dialogs
             lyr = node.layer()
-
-            if iface:
-                action = QAction('Properties', menu)
-                action.triggered.connect(lambda : iface.showLayerProperties(lyr))
-                menu.addAction(action)
+            action = QAction('Properties', menu)
+            action.triggered.connect(lambda : enmapbox.dialogs.showLayerPropertiesDialog(lyr, canvas, None))
+            menu.addAction(action)
         elif isinstance(node, DockTreeNode):
             # global
             action = QAction('Remove Dock', menu)
@@ -579,7 +580,7 @@ class DockManagerTreeModel(TreeModel):
     def dropMimeData(self, mimeData, action, row, column, parent):
         assert isinstance(mimeData, QMimeData)
 
-        MH = MimeDataHelper(mimeData)
+        MDH = MimeDataHelper(mimeData)
         node = self.index2node(parent)
 
         #L1 is the first level below the root tree -> to place dock trees
@@ -592,26 +593,17 @@ class DockManagerTreeModel(TreeModel):
 
         dockNode = list(dockNode)[0]
 
-        if action == Qt.MoveAction:
-            if isinstance(dockNode, MapDockTreeNode):
-                if MH.hasLayerTreeModelData():
-                    nodes = MH.layerTreeModelNodes()
-                    if len(nodes) > 0:
-                        if parent.isValid() and row == -1:
-                            row = 0
-                        node.insertChildNodes(row, nodes)
-                        return True
-                else:
-                    s = ""
+        if isinstance(dockNode, MapDockTreeNode):
+            if MDH.hasLayerTreeModelData():
+                nodes = MDH.layerTreeModelNodes()
+                if len(nodes) > 0:
+                    if parent.isValid() and row == -1:
+                        row = 0
+                    node.insertChildNodes(row, nodes)
+                    return True
 
+        elif isinstance(dockNode, TextDockTreeNode):
 
-            elif isinstance(dockNode, TextDockTreeNode):
-
-                s = ""
-
-
-        elif action == Qt.CopyAction:
-            raise NotImplementedError('Copy mimeData')
             s = ""
 
         return False
@@ -662,7 +654,7 @@ class DockManagerTreeModel(TreeModel):
             for ind in indices:
                 results.update(self.parentNodesFromIndices(ind, nodeInstanceType=nodeInstanceType))
 
-        return results
+        return list(results)
 
     def data(self, index, role ):
         node = self.index2node(index)

@@ -39,6 +39,8 @@ from enmapbox.datasources import *
 
 RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
 
+
+"""
 add_and_remove = DIR_GUI not in sys.path
 if add_and_remove: sys.path.append(DIR_GUI)
 
@@ -46,10 +48,11 @@ ENMAPBOX_GUI_UI, qt_base_class = uic.loadUiType(os.path.normpath(jp(DIR_GUI, 'en
                                     from_imports=False, resource_suffix=RC_SUFFIX)
 if add_and_remove: sys.path.remove(DIR_GUI)
 del add_and_remove, RC_SUFFIX
+"""
 
 
-
-class EnMAPBox_GUI(QtGui.QMainWindow, ENMAPBOX_GUI_UI):
+class EnMAPBox_GUI(QtGui.QMainWindow,
+                   loadUIFormClass(os.path.normpath(jp(DIR_GUI, 'enmapbox_gui.ui')))):
     def __init__(self, parent=None):
         """Constructor."""
         super(EnMAPBox_GUI, self).__init__(parent)
@@ -136,6 +139,7 @@ class EnMAPBox():
         self.gui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.gui.actionAddDataSource.triggered.connect(lambda: self.addSource(str(QFileDialog.getOpenFileName(self.gui, "Open a data source"))))
         self.gui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
+        self.gui.actionCursor_Location_Values.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
         self.gui.actionSave_Settings.triggered.connect(self.saveProject)
         s = ""
 
@@ -299,8 +303,8 @@ def moduletest():
 
         if True:
             EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
-            #EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_Image)
-
+            EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_Image)
+            EB.createDock('CURSORLOCATIONVALUE')
         if True: EB.createDock('MIME')
 
         if False:

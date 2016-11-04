@@ -7,7 +7,21 @@ from PyQt4.QtGui import *
 from qgis.gui import *
 from qgis.core import *
 import enmapbox
-#dprint = enmapbox.dprint
+dprint = enmapbox.dprint
+from PyQt4 import uic
+
+def loadUIFormClass(pathUi):
+    RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
+    DIR_GUI = os.path.dirname(pathUi)
+    add_and_remove = DIR_GUI not in sys.path
+    if add_and_remove:
+        sys.path.append(DIR_GUI)
+
+    FORM_CLASS, _ = uic.loadUiType(pathUi,
+                                    from_imports=False, resource_suffix=RC_SUFFIX)
+    if add_and_remove:
+        sys.path.remove(DIR_GUI)
+    return FORM_CLASS
 
 
 
@@ -40,6 +54,8 @@ def add_to_sys_path(paths):
            #sys.path.insert(0, p)
             sys.path.append(p)
             existing.append(p)
+
+
 
 class Singleton(type):
     _instances = {}
@@ -148,7 +164,16 @@ class MimeDataHelper():
         if not isinstance(types, list):
             types = [types]
         for t in types:
-            if t in self.formats:
+            if t == MimeDataHelper.MIME_LAYERTREEMODELDATA:
+                self.setContent(t)
+                root = self.doc.documentElement()
+                nodes = root.elementsByTagName('layer-tree-layer')
+                if nodes.count() > 0:
+                    id = nodes.item(0).toElement().attribute('id')
+                    # we can read layer-tree-layer xml format only if we use the same QgsMapLayerRegistry
+                    reg = QgsMapLayerRegistry.instance()
+                    return reg.mapLayer(id) is not None
+            elif t in self.formats:
                 return True
         return False
 
@@ -189,6 +214,8 @@ class MimeDataHelper():
         return nodes
 
     def _readMapLayersFromXML(self, root):
+        dprint(root.ownerDocument().toString())
+
         nodeList = root.elementsByTagName('layer-tree-layer')
         reg = QgsMapLayerRegistry.instance()
         layers = []
@@ -197,9 +224,10 @@ class MimeDataHelper():
             name = node.attribute('name')
             lyrid = node.attribute('id')
             lyr = reg.mapLayer(lyrid)
-            lyr.setLayerName(name)
-            layers.append(lyr)
-        return lyr
+            if lyr:
+                lyr.setLayerName(name)
+                layers.append(lyr)
+        return layers
 
     def hasMapLayers(self):
         return self.mimeTypeCheck([MimeDataHelper.MIME_LAYERTREEMODELDATA])
@@ -208,6 +236,8 @@ class MimeDataHelper():
         layers = []
         if self.setContent(MimeDataHelper.MIME_LAYERTREEMODELDATA):
             layers = self._readMapLayersFromXML(self.doc.documentElement())
+        if len(layers) == 0:
+            s= ""
         return layers
 
     def hasUrls(self):
