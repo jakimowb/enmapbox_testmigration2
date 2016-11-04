@@ -8,6 +8,20 @@ from qgis.gui import *
 from qgis.core import *
 import enmapbox
 dprint = enmapbox.dprint
+from PyQt4 import uic
+
+def loadUIFormClass(pathUi):
+    RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
+    DIR_GUI = os.path.dirname(pathUi)
+    add_and_remove = DIR_GUI not in sys.path
+    if add_and_remove:
+        sys.path.append(DIR_GUI)
+
+    FORM_CLASS, _ = uic.loadUiType(pathUi,
+                                    from_imports=False, resource_suffix=RC_SUFFIX)
+    if add_and_remove:
+        sys.path.remove(DIR_GUI)
+    return FORM_CLASS
 
 
 
@@ -40,6 +54,8 @@ def add_to_sys_path(paths):
            #sys.path.insert(0, p)
             sys.path.append(p)
             existing.append(p)
+
+
 
 class Singleton(type):
     _instances = {}
