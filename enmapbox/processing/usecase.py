@@ -49,13 +49,22 @@ def pixel_grid():
     print('ToDO: handle edges corretly!')
 
     # rasterize vector file with oversampling and resample back to original resolution to produce cover fractions
-    options = '''-where "Level_2"='Tree' -burn 1 -init 0 -a_nodata 0 -of GTiff -ot Byte'''
-    pixelGrid = deepcopy(enmap.pixelGrid)
-    pixelGrid.xRes /= 20
-    pixelGrid.yRes /= 20
-    #rasterOversampled = vector.rasterize(outfile=r'c:\work\data\raster.img', pixelGrid=pixelGrid, options=options)
-    rasterOversampled = Image(r'c:\work\data\raster.img')
+    pixelGridOversampling = deepcopy(enmap.pixelGrid)
+    pixelGridOversampling.xRes /= 10
+    pixelGridOversampling.yRes /= 10
 
+    # - oversampled mask and aggregate back
+    options = '''-at -burn 1 -init 0 -of GTiff -ot Byte'''
+    maskOversampled = vector.rasterize(outfile=r'c:\work\data\__mask_over.img', pixelGrid=pixelGridOversampling, options=options)
+    mask30m = maskOversampled.resample(filename=r'c:\work\data\__mask_30m.vrt', pixelGrid=enmap.pixelGrid, r='min', ot='Byte')
+
+    return
+    # - oversampled class occurrences
+    options = '''-where "Level_2"='Tree' -burn 1 -init 255 -a_nodata 255 -of GTiff -ot Byte'''
+    vector.rasterize(outfile=r'c:\work\data\raster2.img', pixelGrid=pixelGridOversampling, options=options)
+
+    # - aggregated mask
+    rasterOversampled = Image(r'c:\work\data\raster2.img')
     rasterFractions = rasterOversampled.translate(filename=r'c:\work\data\rasterEnMAP.vrt', pixelGrid=enmap.pixelGrid)
 
     # create classification file from

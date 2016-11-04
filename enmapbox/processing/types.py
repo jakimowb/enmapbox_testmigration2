@@ -126,15 +126,13 @@ class Image(Type):
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
         return self.__class__(filename)
 
-    def translate(self, filename=None, pixelGrid=None):
+    def resample(self, filename=None, pixelGrid=None, r='average', of='VRT', ot='Float32'):
         if filename is None: filename = Environment.tempfile(suffix='.vrt')
         if pixelGrid is None: pixelGrid = self.pixelGrid
-        options = '-of VRT -ot Float32'
-        options += ' -r average'
-        options += ' -projwin '+ str(pixelGrid.xMin) + ' ' + str(pixelGrid.yMax) + ' ' + str(pixelGrid.xMax) + ' ' + str(pixelGrid.yMin)
+        options = '-of '+of+' -ot '+ot+' -r '+r
+        options += ' -te '+ str(pixelGrid.xMin) + ' ' + str(pixelGrid.yMin) + ' ' + str(pixelGrid.xMax) + ' ' + str(pixelGrid.yMax)
         options += ' -tr '+ str(pixelGrid.xRes) + ' ' + str(pixelGrid.yRes)
-
-        hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
+        hub.gdal.util.gdalwarp(outfile=filename, infile=self.filename, options=options, verbose=True)
 
     def extractByMask(self, mask, filename=None):
         assert isinstance(mask, Mask)
