@@ -44,6 +44,28 @@ class VectorLayerProperties(QgsOptionsDialogBase):
         title = "Layer Properties - {}".format(lyr.name())
         self.restoreOptionsBaseUi(title)
 
+
+class CursorLocationValueMapTool(QgsMapTool):
+    sigLocationIdentified = pyqtSignal(list)
+
+    #sigLocationRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
+    sigLocationRequest = pyqtSignal(QgsPoint, QgsCoordinateReferenceSystem)
+    def __init__(self, canvas):
+        self.canvas = canvas
+        self.layerType = QgsMapToolIdentify.AllLayers
+        self.identifyMode = QgsMapToolIdentify.LayerSelection
+        QgsMapToolIdentify.__init__(self, canvas)
+
+
+    def canvasReleaseEvent(self, mouseEvent):
+        x = mouseEvent.x()
+        y = mouseEvent.y()
+        point = self.canvas.getCoordinateTransform().toMapCoordinates(x,y)
+        crs = self.canvas.mapRenderer().destinationCrs()
+        self.sigLocationRequest.emit(point, crs)
+
+
+
 class CursorLocationValues(object):
 
 
