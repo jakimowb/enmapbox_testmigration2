@@ -93,6 +93,7 @@ class EnMAPBoxPlugin:
                 six.print_('ERROR occurred while loading EnMAPBoxProvider for processing frame work:', file=sys.stderr)
                 six.print_(str(e))
                 six.print_(tb)
+
             dprint('Processing framework initialization done')
         else:
             dprint('Unable to fine processing framework')
