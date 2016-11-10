@@ -263,6 +263,8 @@ def moduletest():
     else:
         # assume OSGeo4W startup
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    os.environ['QGIS_DEBUG'] = '1'
+
     assert os.path.exists(PATH_QGS)
     qgsApp = QgsApplication([], True)
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
