@@ -1249,7 +1249,7 @@ class DockManager(QObject):
         if type(event) is QDragEnterEvent:
             # check mime types we can handle
             MH = MimeDataHelper(event.mimeData())
-            if MH.hasMapLayers():
+            if MH.hasMapLayers() or MH.hasDataSources():
                     event.setDropAction(Qt.CopyAction)
                     event.accept()
             else:
@@ -1261,20 +1261,21 @@ class DockManager(QObject):
             pass
         elif type(event) is QDropEvent:
             MH = MimeDataHelper(event.mimeData())
+            layers = []
+            if MH.hasMapLayers():
+                layers = MH.mapLayers()
+            elif MH.hasDataSources():
+                for ds in MH.dataSources():
+                    layers.append(ds.createMapLayer())
+            if len(layers) > 0:
 
-            s = ""
+                NEW_MAP_DOCK = self.createDock('MAP')
+                NEW_MAP_DOCK.addLayers(layers)
+                event.setDropAction(Qt.CopyAction)
+                event.dropAction()
 
 
 
-            NEW_MAP_DOCK = None
-            NEW_TEXT_DOCK = None
-            for ds in droppedSources:
-                if isinstance(ds, DataSourceSpatial):
-                    if NEW_MAP_DOCK is None:
-                        NEW_MAP_DOCK = self.createDock('MAP')
-                    NEW_MAP_DOCK.addLayer(ds.createMapLayer())
-
-            event.acceptProposedAction()
 
     def getDockWithUUID(self, uuid_):
         if isinstance(uuid_, str):
