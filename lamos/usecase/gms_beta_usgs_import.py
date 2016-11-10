@@ -5,7 +5,7 @@ sys.path.append(r'C:\Work\source\site-packages')
 
 import os
 import argparse
-from lamos.processing.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
+from lamos.processing.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive, Meta
 from lamos.operators.landsat_x import LandsatXComposer
 from hub.timing import tic, toc
 from hub.datetime import Date
@@ -42,7 +42,7 @@ def run(infolder, outfolder, tmpfolder, processes):
 
     # save as ENVI
     #MGRSArchive(folder3).saveAsENVI(folder4, processes=processes)
-    MGRSArchive(folder3).saveAsGTiff(folder4, outextension='.img', compress='LZW', interleave='BAND', predictor='2', processes=processes)
+    MGRSArchive(folder3).saveAsGTiff(folder4, outextension='.tif', compress='LZW', interleave='BAND', predictor='2', processes=processes)
 
 if __name__ == '__main__':
 
@@ -50,10 +50,11 @@ if __name__ == '__main__':
         infolder, outfolder, tmpfolder, processes = sys.argv
     except:
         infolder = r'C:\Work\data\gms\landsat'
-        outfolder = r'C:\Work\data\gms\landsatXMGRS_ENVI'
+        outfolder = r'C:\Work\data\gms\landsatXMGRS_GTiff'
         tmpfolder = r'C:\Work\data\gms\tmp'
-        processes=10
+        processes=1
 
     tic()
     run(infolder=infolder, outfolder=outfolder, tmpfolder=tmpfolder, processes=processes)
     toc()
+

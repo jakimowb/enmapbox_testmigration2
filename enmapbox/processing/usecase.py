@@ -2,7 +2,7 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-from enmapbox.processing.types import Type, Vector, Image, Mask, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
+from enmapbox.processing.types import Type, Meta, Vector, Image, Mask, Probability, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
 from enmapbox.processing.estimators import Classifiers, Regressors, Transformers, Clusterers
 from hub.timing import tic, toc
 from copy import deepcopy
@@ -41,34 +41,85 @@ def test_type():
 
 def pixel_grid():
 
+    from hub.gdal.util import stack_images, gdal_translate, gdal_rasterize
+
     hymap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\HyMap01_Berlin_Urban_Gradient_2009.bsq')
     enmap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
     vector = Vector(r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
 
-    # ToDo: use only the polygon extents to calculate fractions, otherwise edge pixel will be wrong!
-    print('ToDO: handle edges corretly!')
+    #outfile = r'c:\work\data\__eug_fractions.'
+
+    #ToDo make function!!!
 
     # rasterize vector file with oversampling and resample back to original resolution to produce cover fractions
     pixelGridOversampling = deepcopy(enmap.pixelGrid)
     pixelGridOversampling.xRes /= 10
     pixelGridOversampling.yRes /= 10
 
-    # - oversampled mask and aggregate back
-    options = '''-at -burn 1 -init 0 -of GTiff -ot Byte'''
-    maskOversampled = vector.rasterize(outfile=r'c:\work\data\__mask_over.img', pixelGrid=pixelGridOversampling, options=options)
-    mask30m = maskOversampled.resample(filename=r'c:\work\data\__mask_30m.vrt', pixelGrid=enmap.pixelGrid, r='min', ot='Byte')
+    # get classification scheme
+    from osgeo import ogr
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    dataSource = driver.Open(vector.filename, 0)
+    layer = dataSource.GetLayer()
+    class_names_attribute = 'Level_2'
+    class_color_attribute = 'RGB_L2'
+    class_id_attribute = 'ID_L2'
 
+    class_scheme = {0:('unclassified', [0,0,0])}
+    classes = 0
+    for feature in layer:
+        class_id = int(feature.GetField(class_id_attribute))
+        class_name = feature.GetField(class_names_attribute)
+        class_color = [int(v) for v in feature.GetField(class_color_attribute).split(',')]
+        class_scheme[class_id] = (class_name, class_color)
+        classes = max(class_id, classes)
+    classes += 1
+    class_names, class_lookup_ = zip(*[class_scheme[class_id] for class_id in range(classes)])
+    class_lookup = list()
+    for rgb in class_lookup_:
+        for v in rgb:
+            class_lookup.append(v)
+
+    #class_names =  ['unclassified', 'Roof',   'Pavement',   'Grass',    'Tree',    'Soil',     'Other'] # corresponds to id=1, 2, ...
+    #class_lookup = [0,0,0,          168,0,0,  156,156,156,  151,229,0,  35,114,0,  136,89,67,  236,214,0]
+    classes = len(class_names)
+
+    # create class occurence image at fine resolution
+    # - init image to burn into
+    #Image.from vector.createrasterizeBlankImage(outfile=r'c:\work\data\__class_over.tif', pixelGrid=pixelGridOversampling,
+    #                 options=options)
+
+
+    # - oversampled class occurrences and aggregate back
+    filenames = list()
+    for i, class_name in enumerate(class_names, start=0):
+        if i == 0: continue
+        where = ' -where "'+class_names_attribute+'"=\'' + class_name + "' "
+        options = '-burn 1'+where+'-init 0 -of GTiff -ot Byte'
+        classOversampled = vector.rasterize(outfile=r'c:\work\data\__class_over_'+str(i)+'.img', pixelGrid=pixelGridOversampling, options=options)
+        filenames.append(classOversampled.resample(filename=r'c:\work\data\__class_fraction_'+str(i)+'.vrt', pixelGrid=enmap.pixelGrid).filename)
+
+    # create fraction image
+    # - create VRT stack
+    filenameFractionVRT = stack_images(outfile=r'c:\work\data\__class_fraction.vrt', infiles=filenames)
+    # - set meta infos for classes
+    meta = Meta(filenameFractionVRT)
+    meta.setClassificationMetadata(classes=classes, classNames=class_names, classLookup=class_lookup, fileType='envi standard')
+    meta.setBandNames(class_names[1:])
+    meta.setNoDataValue(-1)
+    meta.writeMeta(filenameFractionVRT)
+
+    filenameFractionVRT = r'c:\work\data\__class_fraction.vrt'
+    fraction = Probability(filenameFractionVRT).saveAsGTiff(r'c:\work\data\__class_fraction.tif')
+
+    fraction = Probability(r'c:\work\data\__class_fraction.tif')
+    fraction.info()
     return
-    # - oversampled class occurrences
-    options = '''-where "Level_2"='Tree' -burn 1 -init 255 -a_nodata 255 -of GTiff -ot Byte'''
-    vector.rasterize(outfile=r'c:\work\data\raster2.img', pixelGrid=pixelGridOversampling, options=options)
+    #filenameFraction = r'c:\work\data\__class_fraction.vrt'
 
-    # - aggregated mask
-    rasterOversampled = Image(r'c:\work\data\raster2.img')
-    rasterFractions = rasterOversampled.translate(filename=r'c:\work\data\rasterEnMAP.vrt', pixelGrid=enmap.pixelGrid)
-
-    # create classification file from
-    #raster = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options, oversamplingRate=20)
+    # create classification file
+    fraction = Probability(r'c:\work\data\__class_fraction.vrt')
+    raster = fraction.argmax(filename=r'c:\work\data\__class_win01_cum01.img', minWinProb=0.5, minCumProb=0.75)
 
 
     #raster.info()

@@ -21,6 +21,7 @@ from enmapbox.processing.applier import ApplierControls, ApplierHelper
 import numpy
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import gdal
 
 # set default progress object
 progress = SilentProgress
@@ -78,7 +79,7 @@ class Meta(GDALMeta):
 
         return (int(self.getMetadataItem('classes')) == len(self.getMetadataItem('class names'))
                 and int(self.getMetadataItem('classes'))*3 == len(self.getMetadataItem('class lookup'))
-                and self.getNoDataValue('data ignore value') is not None)
+                and self.getNoDataValue() is not None)
 
 class Vector(Type):
 
@@ -95,11 +96,57 @@ class Vector(Type):
         gdal_rasterize(outfile=outfile, infile=self.filename, options=options, verbose=True)
         return Image(outfile)
 
+class VectorClassification(Vector):
+
+    def __init__(self, filename, classNames, classLookup=None):
+        self.filename = filename
+
+class PixelGrid(PixelGridDefn):
+
+    def __int__(self, pixelGrid):
+
+        assert isinstance(pixelGrid, PixelGridDefn)
+        PixelGridDefn.__init__(self, projection=pixelGrid.projection,
+            xMin=pixelGrid.xMin, xMax=pixelGrid.xMax, yMin=pixelGrid.yMin, yMax=pixelGrid.yMax, xRes=pixelGrid.xRes, yRes=pixelGrid.yRes)
+
+'''    def asImage(self, bands, filename=None, ot='Float32', of='GTiff'):
+
+        if filename is None: filename = Environment.tempfile()
+weiter!!!
+        # from MP
+        gdal.GetDriver()
+        ds = driver.Create(bsqFile, cols, rows, bands, type)
+        ds.SetGeoTransform(self.geo_transform)
+        ds.SetProjection(self.projection_ref)
+        file_meta = GDALMeta(bsqFile)
+        file_meta.fromGDALMeta(meta)
+        file_meta.writeMeta(bsqFile)
+        self.set_meta_data(ds, file_meta)
+
+        # write the cube by band
+        for b in range(ds.RasterCount):
+            band = ds.GetRasterBand(b + 1)
+            arr = entry[b]
+            band.WriteArray(arr, col_offset, row_offset)
+            band.FlushCache()
+
+        ds = None
+
+# Create the destination data source
+x_res = int((x_max - x_min) / pixel_size)
+y_res = int((y_max - y_min) / pixel_size)
+target_ds = gdal.GetDriverByName('GTiff').Create(raster_fn, x_res, y_res, 1, gdal.GDT_Byte)
+target_ds.SetGeoTransform((x_min, pixel_size, 0, y_max, 0, -pixel_size))
+band = target_ds.GetRasterBand(1)
+band.SetNoDataValue(NoData_value)'''
+
 
 class Image(Type):
 
     @staticmethod
-    def importENVISpectralLibrary(infilename, outfilename=Environment.tempfile('ENVISpectralLibrary_')):
+    def fromENVISpectralLibrary(infilename, filename=None):
+
+        if filename is None: filename = Environment.tempfile()
 
         hdrfilename = hub.envi.findHeader(infilename)
 
@@ -108,11 +155,21 @@ class Image(Type):
         outmeta['bands'], outmeta['samples'] = outmeta['samples'], outmeta['bands']
         outmeta['interleave'] = 'bip'
 
-        shutil.copyfile(infilename, outfilename)
-        hub.envi.writeHeader(outfilename+'.hdr', outmeta)
-        image = Image(outfilename)
+        shutil.copyfile(infilename, filename)
+        hub.envi.writeHeader(filename+'.hdr', outmeta)
+        image = Image(filename)
 
         return image
+
+    @staticmethod
+    def fromPixelGrid(pixelGrid, filename=None):
+
+        assert isinstance(pixelGrid, PixelGridDefn)
+        if filename is None: filename = Environment.tempfile()
+
+        assert 0, 'ToDo'
+        return Image(filename)
+
 
     def __init__(self, filename):
 
@@ -121,18 +178,39 @@ class Image(Type):
         self.meta = Meta(filename)
         self.pixelGrid = pixelGridFromFile(self.filename)
 
-    def saveAs(self, filename=None, options='-of ENVI'):
+    def saveAs(self, filename=None, options=''):
+
+        # create tmp filename if needed
         if filename is None: filename = Environment.tempfile()
+
+        # save the binary data
         hub.gdal.util.gdal_translate(outfile=filename, infile=self.filename, options=options, verbose=True)
+
+        # save the metadata
+        inmeta = Meta(self.filename)
+        outmeta = Meta(filename)
+        outmeta.copyMetadata(inmeta)
+        outmeta.writeMeta(filename)
+
+        # return as image object
         return self.__class__(filename)
+
+    def saveAsENVI(self, filename=None):
+        options = '-of ENVI'
+        return self.saveAs(filename=filename, options=options)
+
+    def saveAsGTiff(self, filename=None):
+        options = '-of GTiff -co INTERLEAVE=BAND'
+        return self.saveAs(filename=filename, options=options)
 
     def resample(self, filename=None, pixelGrid=None, r='average', of='VRT', ot='Float32'):
         if filename is None: filename = Environment.tempfile(suffix='.vrt')
         if pixelGrid is None: pixelGrid = self.pixelGrid
-        options = '-of '+of+' -ot '+ot+' -r '+r
+        options = '-overwrite -of '+of+' -ot '+ot+' -r '+r
         options += ' -te '+ str(pixelGrid.xMin) + ' ' + str(pixelGrid.yMin) + ' ' + str(pixelGrid.xMax) + ' ' + str(pixelGrid.yMax)
         options += ' -tr '+ str(pixelGrid.xRes) + ' ' + str(pixelGrid.yRes)
         hub.gdal.util.gdalwarp(outfile=filename, infile=self.filename, options=options, verbose=True)
+        return self.__class__(filename)
 
     def extractByMask(self, mask, filename=None):
         assert isinstance(mask, Mask)
@@ -484,7 +562,10 @@ class Probability(Image):
             sample = SupervisedSample.fromMask(image=self, labels=classification, mask=classification)
         return ProbabilityPerformance(sample)
 
-    def argmax(self, filename=Environment.tempfile('classification'), progress=progress):
+    def argmax(self, filename=Environment.tempfile('classification'), minWinProb=0., minCumProb=0.9999, progress=progress):
+
+        assert minWinProb >= 0. and minWinProb <= 1.
+        assert minCumProb >= 0. and minWinProb <= 1.
 
         progress.setText('calculate argmax probability')
 
@@ -495,6 +576,8 @@ class Probability(Image):
         infiles.p = self.filename
         outfiles.c = filename
         args.meta = self.meta
+        args.minWinProb = minWinProb
+        args.minCumProb = minCumProb
 
         controls = ApplierControls()
         progress.setDebugInfo(str(controls))
@@ -511,9 +594,24 @@ class Probability(Image):
             percentage = ApplierHelper.progress(info)
             args.progress.setPercentage(percentage)
 
-            invalid = numpy.any(inputs.p == args.meta.getNoDataValue(), axis=0, keepdims=True)
-            outputs.c = numpy.argmax(inputs.p, axis=0).reshape(invalid.shape).astype(numpy.uint8) + 1
-            outputs.c[invalid] = 0
+            # calculate arg max probability
+            argmax = numpy.argmax(inputs.p, axis=0).astype(numpy.uint8)+1
+
+            # mask out invalid pixel
+            # - add noData pixel
+            invalid = numpy.any(inputs.p == args.meta.getNoDataValue(), axis=0)
+            # - add pixel, where the winner probability is to low
+            if args.minWinProb > 0.:
+                winProb = numpy.max(inputs.p, axis=0)
+                invalid += winProb < args.minWinProb
+            if args.minCumProb < 0.9999:
+                cumProb = numpy.sum(inputs.p, axis=0)
+                invalid += cumProb < args.minCumProb
+
+            argmax[invalid] = 0
+            outputs.c = argmax[None]
+
+
 
         # Apply the function to the inputs, creating the outputs.
         rios.applier.apply(ufunc, infiles, outfiles, args, controls)

@@ -340,14 +340,16 @@ class GDALMeta():
         value = gdalMeta.getMetadataItem(key, default=None, domainName=domainName)
         self.setMetadataItem(key, value, domainName=domainName)
 
+    def copyMetadataDomain(self, gdalMeta, domainName='ENVI'):
+
+        domain = gdalMeta.getMetadataDomain(domainName=domainName)
+        for key, value in domain.getMetadataDict().items():
+            self.setMetadataItem(key=key, value=value, domainName=domainName)
+
     def copyMetadata(self, gdalMeta):
-        assert isinstance(gdalMeta, GDALMeta)
-        # iterate over all the available domains
-        # copy the domain dicts
-        for d in gdalMeta.getDomainNames():
-            domain = gdalMeta.getMetadataDict(d)
-            for key, value in domain.items():
-                self.setMetadataItem(key, value, d)
+
+        for domainName in gdalMeta.getMetadataDomainList():
+            self.copyMetadataDomain(gdalMeta=gdalMeta, domainName=domainName)
 
     def getMetadataItem(self, key, default=None, domainName='ENVI'):
 
@@ -388,23 +390,24 @@ class GDALMeta():
         date = Date.fromText(self.getMetadataItem('acqdate'))
         return date
 
-    def setClassificationMetadata(self, classes, classNames, classLookup):
+    def setClassificationMetadata(self, classes, classNames, classLookup, fileType='ENVI Classification'):
 
         assert len(classNames) == classes
         assert len(classLookup) == classes*3
-        self.setMetadataItem('file type', 'ENVI Classification')
+        self.setMetadataItem('file type', fileType)
         self.setMetadataItem('classes', classes)
         self.setMetadataItem('class names', classNames)
         self.setMetadataItem('class lookup', classLookup)
-        for i in range(classes):
-            r, g, b = classLookup[i*3], classLookup[i*3 + 1], classLookup[i*3 + 2]
-            self.colorTable.setColorEntry(i, (r,g,b))
-        self.categoryNames = classNames
+        if fileType.lower() == 'envi classification':
+            for i in range(classes):
+                r, g, b = classLookup[i*3], classLookup[i*3 + 1], classLookup[i*3 + 2]
+                self.colorTable.setColorEntry(i, (r,g,b))
+            self.categoryNames = classNames
 
     def getClassificationMetadata(self):
-        return (self.getMetadataItem('classes'),
+        return (int(self.getMetadataItem('classes')),
                 self.getMetadataItem('class names'),
-                self.getMetadataItem('class lookup'))
+                [int(v) for v in self.getMetadataItem('class lookup')])
 
 
 def test_classification():
