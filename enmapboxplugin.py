@@ -44,7 +44,12 @@ class EnMAPBoxPlugin:
 
         syspaths = [os.path.normpath(p) for p in sys.path]
         if DIR_REPO not in syspaths: sys.path.append(DIR_REPO)
+
+        #add platform independent site-packages
         site.addsitedir(DIR_SITE_PACKAGES)
+
+        #add platform specific site-packages
+        site.addsitedir(jp(DIR_SITE_PACKAGES, os.sys.platform))
 
         from enmapbox.main import EnMAPBox
         action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)
