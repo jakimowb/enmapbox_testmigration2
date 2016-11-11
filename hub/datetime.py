@@ -19,6 +19,12 @@ class Date(datetime.date):
         # format e.g LE72240712013159CUB00
         return Date.fromYearDoy(year=int(sceneID[9:13]), doy=int(sceneID[13:16]))
 
+    @staticmethod
+    def fromSentinel2SceneID(sceneID):
+        # format e.g S2A_20150627_R062_MSIL2A
+        return Date(year=int(sceneID[4:8]), month=int(sceneID[8:10]), day=int(sceneID[10:12]))
+
+
     @property
     def doy(self):
         return (self - datetime.date(self.year, 1, 1)).days +1

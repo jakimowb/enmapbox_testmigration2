@@ -2,7 +2,7 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-from enmapbox.processing.types import Type, Vector, Image, Mask, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
+from enmapbox.processing.types import Type, Meta, VectorClassification, PixelGrid, Image, Mask, Probability, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
 from enmapbox.processing.estimators import Classifiers, Regressors, Transformers, Clusterers
 from hub.timing import tic, toc
 from copy import deepcopy
@@ -40,29 +40,29 @@ def test_type():
     print(classifier.getMetadataDict())
 
 def pixel_grid():
+    pixelGrid = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq').pixelGrid
+    blank = pixelGrid.createImage(bands=5, filename=r'C:\Work\data\___test.img', of='ENVI', ot='Byte', fill=0)
+
+def pixel_grid2():
 
     hymap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\HyMap01_Berlin_Urban_Gradient_2009.bsq')
     enmap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
-    vector = Vector(r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
+    vector = VectorClassification(filename=r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp',
+                                  ids='ID_L2', names='Level_2', colors = 'RGB_L2', parse=True)
 
-    # ToDo: use only the polygon extents to calculate fractions, otherwise edge pixel will be wrong!
-    print('ToDO: handle edges corretly!')
+    # create class occurence image at finer resolution
+    occurrence = vector.createOccurrence(filename=r'c:\work\data\__class_occurrence.tif', pixelGrid=enmap.pixelGrid, oversamplingRate=30)
 
-    # rasterize vector file with oversampling and resample back to original resolution to produce cover fractions
-    options = '''-where "Level_2"='Tree' -burn 1 -init 0 -a_nodata 0 -of GTiff -ot Byte'''
-    pixelGrid = deepcopy(enmap.pixelGrid)
-    pixelGrid.xRes /= 20
-    pixelGrid.yRes /= 20
-    #rasterOversampled = vector.rasterize(outfile=r'c:\work\data\raster.img', pixelGrid=pixelGrid, options=options)
-    rasterOversampled = Image(r'c:\work\data\raster.img')
+    # create class fraction image at target resolution
+    fraction = occurrence.resample(filename=r'c:\work\data\__class_fraction.vrt', pixelGrid=enmap.pixelGrid)
 
-    rasterFractions = rasterOversampled.translate(filename=r'c:\work\data\rasterEnMAP.vrt', pixelGrid=enmap.pixelGrid)
+    # create classification file
+    classification = fraction.argmax(filename=r'c:\work\data\__class_win50_cum50.img', minWinProb=0.5, minCumProb=0.5)
 
-    # create classification file from
-    #raster = vector.rasterize(outfile=r'c:\work\data\raster5.img', pixelGrid=enmap.pixelGrid, options=options, oversamplingRate=20)
+    # create regression file
+    fraction = Probability(fraction.filename)
+    regression = fraction.applyMask(mask=classification, value=-1, filename=r'c:\work\data\__regress_win50_cum50.img')
 
-
-    #raster.info()
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -380,7 +380,7 @@ if __name__ == '__main__':
     #tic()
     #importENVISpeclib()
     #test_type()
-    pixel_grid()
+    pixel_grid2()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()

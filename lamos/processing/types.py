@@ -217,7 +217,9 @@ class WRS2Footprint(Footprint):
         print('Create UTM Zone lookup')
         archive = WRS2Archive(infolder)
         for footprintFolder in archive.yieldFootprintFolders():
-            sceneFolder = os.path.join(footprintFolder, os.listdir(footprintFolder)[0])
+            listdir = os.listdir(footprintFolder)
+            if len(listdir)==0: continue
+            sceneFolder = os.path.join(footprintFolder, listdir[0])
             if not os.path.isdir(sceneFolder): continue
             firstProduct = Product(sceneFolder, extensions=['.img','.tif'])
             firstImage = None
@@ -353,7 +355,7 @@ class Archive(Type):
 
 
 
-    def saveAsGTiff(self, outfolder, inextensions=['.vrt'], outextension='.img', compress='LZW', interleave='BAND', predictor='2', filter=None, processes=1):
+    def saveAsGTiff(self, outfolder, inextensions=['.vrt'], outextension='.tif', compress='LZW', interleave='BAND', predictor='2', filter=None, processes=1):
         '''
         see http://www.gdal.org/frmt_gtiff.html
             https://havecamerawilltravel.com/photographer/tiff-image-compression
@@ -362,9 +364,8 @@ class Archive(Type):
         print('Save as GTiff')
         options = '-co "TILED=YES" -co "BLOCKXSIZE=256" -co "BLOCKYSIZE=256" -co "PROFILE=GeoTIFF" '
         options += '-co "COMPRESS=' + compress + '" -co "PREDICTOR=' + predictor + '" -co "INTERLEAVE=' + interleave + '" '
-        self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension='.tif', options=options,
+        self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension=outextension, options=options,
                      filter=filter, processes=processes)
-
 
     def saveAsENVI(self, outfolder, inextensions=['.vrt'], outextension='.img', compress=False, filter=None, processes=1):
 
@@ -372,7 +373,6 @@ class Archive(Type):
         options = '-of ENVI'
         self._saveAs(outfolder=outfolder, inextensions=inextensions, outextension=outextension, options=options,
                      compressENVI=compress, filter=filter, processes=processes)
-
 
     def _saveAs(self, outfolder, inextensions, outextension, options, compressENVI=False, filter=None, processes=1):
 
@@ -389,7 +389,9 @@ class Archive(Type):
         def save(args):
             outfile, infile = args
             hub.gdal.util.gdal_translate(outfile=outfile, infile=infile, options=options)
-            meta = hub.gdal.api.GDALMeta(infile)
+            inmeta = hub.gdal.api.GDALMeta(infile)
+            outmeta = hub.gdal.api.GDALMeta(outfile)
+            outmeta.copyMetadata(inmeta)
             if compressENVI:
                 #gzips = ['D:\work\AR']
 
@@ -397,8 +399,9 @@ class Archive(Type):
                 print(' '.join(cmd))
                 subprocess.call(cmd)
                 os.rename(outfile + '.gz', outfile)
-                meta.setMetadataItem('file_compression', 1)
-            meta.writeMeta(outfile)
+                outmeta.setMetadataItem('file_compression', 1)
+
+            outmeta.writeMeta(outfile)
 
         if processes == 1:
             for args in yieldArgs():
@@ -832,7 +835,7 @@ if __name__ == '__main__':
 
     MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
     MGRSTilingScheme.shp = r'C:\Work\data\gms\gis\MGRS-WRS2_Tiling_Scheme\MGRS-WRS2_Tiling_Scheme.shp'
-    WRS2Footprint.createUtmLookup(r'c:\work\data\gms\landsat')
+    WRS2Footprint.createUtmLookup(r'c:\work\data\gms\landsat_')
     print(WRS2Footprint.utmLookup)
     tic()
     #test_footprint()
