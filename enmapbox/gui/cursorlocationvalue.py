@@ -273,11 +273,8 @@ class CursorLocationValueWidget(QtGui.QMainWindow,
             values.append(CursorLocationValues.fromDataSource(point, crs, ds))
             #request info
 
-
-
         #show info
         info = []
-
 
         pixel_profiles = []
         other_profiles = []
@@ -327,7 +324,7 @@ class CursorLocationValueWidget(QtGui.QMainWindow,
         self.showLegend(self.gbLegend.isChecked())
 
 
-        for p in other_profiles:
+        for p in other_profiles + pixel_profiles:
             info.append(os.path.basename(p.name))
             if isinstance(p, CursorLocationRasterValues):
                 for i in range(p.nb):
