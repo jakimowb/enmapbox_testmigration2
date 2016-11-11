@@ -78,19 +78,22 @@ class EnMAPBoxProvider(AlgorithmProvider):
 
 
 
-    def example_HowToSignalThatANewFileWasCreated(self):
+    def example_HowToSignalThatANewModelWasCreated(self):
 
-        newPath = r'C:/foo/bar.bsq'
-        provider = EnMAPBoxProvider.instance()
-        assert isinstance(provider, EnMAPBoxProvider) #for PyCharm intellisence only
-        provider.sigFileCreated.emit(newPath)
+        model_name ='My model'
+        model_path = r'C:/foo/bar.xyz'
+        import enmapbox.processing
+        enmapbox.processing.registerModel(model_path, model_name)
 
-    def example_HowToGetEnMAPBoxGUIRasterDataSources(self):
-        import enmapbox.main
-        emb = enmapbox.main.EnMAPBox.instance()
-        print('Raster files registered in EnMAPBox GUI DataSourceManager')
-        for uri in emb.getUriList(sourcetype = 'RASTER'):
-            print(uri)
+
+    def example_HowToGetEnMAPBoxGUIModelFiles(self):
+
+        import enmapbox.processing
+        NAMES = enmapbox.processing.MODEL_NAMES #<- implement your own lists in enmapbox/processing/__init__.py
+        URIS  = enmapbox.processing.MODEL_URIS
+        print('Available models')
+        for i in range(len()):
+            print((NAMES(i), URIS[i]))
 
 
     def unload(self):
