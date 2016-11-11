@@ -9,7 +9,7 @@ from qgis.core import *
 import enmapbox
 dprint = enmapbox.dprint
 
-from enmapbox.docks import *
+from enmapbox.gui.docks import *
 from enmapbox.utils import *
 
 

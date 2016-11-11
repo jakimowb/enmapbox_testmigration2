@@ -363,7 +363,7 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
     def __init__(self, dsm, parent=None, *args):
         super(QAbstractTableModel, self).__init__()
         from enmapbox.datasources import DataSourceManager, DataSourceSpatial
-        from enmapbox.treeviews import TreeNode
+
         assert isinstance(dsm, DataSourceManager)
         self.DSM = dsm
         self.columnnames = CursorLocationDataSourceItem.columns
