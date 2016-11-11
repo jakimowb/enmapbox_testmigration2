@@ -89,9 +89,12 @@ class DataSourceFactory(object):
 
         src = DataSourceFactory.srctostring(src)
         if isinstance(src, str):
+
             # todo: check different providers, not only gdal
             try:
+
                 uri = DataSourceFactory.isRasterSource(gdal.Open(src))
+
             except RuntimeError, e:
                 pass
 
@@ -115,8 +118,10 @@ class DataSourceFactory(object):
                 from enmapbox.processing.types import Estimator
 
                 obj = types.unpickle(src)
+
                 if isinstance(obj, Estimator):
                     uri = src
+
             except Exception, e:
                 pass
         return uri
