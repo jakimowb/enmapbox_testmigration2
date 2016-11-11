@@ -50,9 +50,9 @@ class DataSourceFactory(object):
         """
         uri = None
         if isinstance(src, QgsVectorLayer) and src.isValid():
-            uri = DataSource.isVectorSource(src.dataProvider())
+            uri = DataSourceFactory.isVectorSource(src.dataProvider())
         if isinstance(src, QgsVectorDataProvider):
-            uri = src.dataSourceUri()
+            uri = str(src.dataSourceUri())
         if isinstance(src, ogr.DataSource):
             uri = src.GetName()
 
@@ -61,7 +61,7 @@ class DataSourceFactory(object):
             # todo: check different providers, not only ogr
             result = None
             try:
-                result = DataSource.isVectorSource(ogr.Open(src))
+                result = DataSourceFactory.isVectorSource(ogr.Open(src))
             except:
                 pass
 
@@ -374,11 +374,18 @@ class DataSourceManager(QObject):
     def __init__(self):
         QObject.__init__(self)
         self.sources = set()
-        self.qgsMapLayerRegistry = QgsMapLayerRegistry.instance()
+
+
+        QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
         self.updateFromQgsMapLayerRegistry()
+
+        #signals
+
+
         import enmapbox.processing
         enmapbox.processing.sigFileCreated.connect(lambda file: self.addSource(file))
         self.updateFromProcessingFramework()
+
 
     def updateFromProcessingFramework(self):
         import enmapbox.processing
@@ -386,18 +393,16 @@ class DataSourceManager(QObject):
                        enmapbox.processing.MODEL_NAMES):
             self.addSource(p, name=n)
 
-    def updateFromQgsMapLayerRegistry(self):
+    def updateFromQgsMapLayerRegistry(self, mapLayers=None):
         """
         Add data sources registered in the QgsMapLayerRegistry to the data source manager
         :return: True, if a new source was added
         """
-        r = False
-        existing_src = [ds.src for ds in self.sources if isinstance(ds, DataSourceSpatial)]
-        for lyr in self.qgsMapLayerRegistry.mapLayers().values():
-            src = lyr.dataProvider().dataSourceUri()
-            if src not in existing_src:
-                r =  r or (self.addSource(src) is not None)
-        return r
+        if mapLayers is None:
+            mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
+
+        for lyr in mapLayers:
+            self.addSource(lyr)
 
     def getUriList(self, sourcetype='All'):
         """
@@ -438,7 +443,7 @@ class DataSourceManager(QObject):
             # check if source is already registered
             for src in self.sources:
                 if os.path.abspath(src.uri) == os.path.abspath(ds.uri):
-                    return src #return object reference of already existing source
+                    return src #return object reference of an already existing source
 
             self.sources.add(ds)
             self.sigDataSourceAdded.emit(ds)
