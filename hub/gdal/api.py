@@ -241,7 +241,10 @@ class GDALMeta():
         self.boundingBox  = [self.xmin, self.ymin, self.xmax, self.ymax]
         self.boundingBox2 = [self.xmin, self.ymax, self.xmax, self.ymin]
 
-    def writeMeta(self, filename):
+    def writeMeta(self, filename=None):
+
+        if filename is None:
+            filename = self.filename
 
         ds = gdal.Open(filename, gdal.GA_Update)
         if ds is None:
@@ -351,6 +354,8 @@ class GDALMeta():
         for domainName in gdalMeta.getMetadataDomainList():
             self.copyMetadataDomain(gdalMeta=gdalMeta, domainName=domainName)
 
+        return self
+
     def getMetadataItem(self, key, default=None, domainName='ENVI'):
 
         domain = self.getMetadataDomain(domainName)
@@ -390,25 +395,39 @@ class GDALMeta():
         date = Date.fromText(self.getMetadataItem('acqdate'))
         return date
 
-    def setClassificationMetadata(self, classes, classNames, classLookup, fileType='ENVI Classification'):
+    def setClassificationMetadata(self, classes, classNames, classLookup):
 
         assert len(classNames) == classes
         assert len(classLookup) == classes*3
-        self.setMetadataItem('file type', fileType)
+        self.setMetadataItem('file type', 'ENVI Classification')
         self.setMetadataItem('classes', classes)
         self.setMetadataItem('class names', classNames)
         self.setMetadataItem('class lookup', classLookup)
-        if fileType.lower() == 'envi classification':
-            for i in range(classes):
-                r, g, b = classLookup[i*3], classLookup[i*3 + 1], classLookup[i*3 + 2]
-                self.colorTable.setColorEntry(i, (r,g,b))
-            self.categoryNames = classNames
+        for i in range(classes):
+            r, g, b = classLookup[i*3], classLookup[i*3 + 1], classLookup[i*3 + 2]
+            self.colorTable.setColorEntry(i, (r,g,b))
+        self.categoryNames = classNames
+
+    def setProbabilityMetadata(self, classes, classNames, classLookup, noDataValue=-1):
+
+        assert len(classNames) == classes
+        assert len(classLookup) == classes*3
+        self.setMetadataItem('file type', 'ENVI Standard')
+        self.setMetadataItem('probability classes', classes)
+        self.setMetadataItem('probability class names', classNames)
+        self.setMetadataItem('probability class lookup', classLookup)
+        self.setBandNames(classNames[1:])
+        self.setNoDataValue(noDataValue)
 
     def getClassificationMetadata(self):
         return (int(self.getMetadataItem('classes')),
                 self.getMetadataItem('class names'),
                 [int(v) for v in self.getMetadataItem('class lookup')])
 
+    def getProbabilityMetadata(self):
+        return (int(self.getMetadataItem('probability classes')),
+                self.getMetadataItem('probability class names'),
+                [int(v) for v in self.getMetadataItem('probability class lookup')])
 
 def test_classification():
     infilename = r'C:\Work\data\gms\new_timeseriesMetrics\32\32UQC\rfc\classification.tif'
@@ -419,7 +438,6 @@ def test_classification():
 
 
 if __name__ == '__main__':
-
     test_classification()
 
 

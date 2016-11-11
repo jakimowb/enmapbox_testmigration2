@@ -2,7 +2,7 @@ from __future__ import print_function
 
 __author__ = 'janzandr'
 import os
-from enmapbox.processing.types import Type, Meta, Vector, Image, Mask, Probability, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
+from enmapbox.processing.types import Type, Meta, VectorClassification, PixelGrid, Image, Mask, Probability, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
 from enmapbox.processing.estimators import Classifiers, Regressors, Transformers, Clusterers
 from hub.timing import tic, toc
 from copy import deepcopy
@@ -40,89 +40,29 @@ def test_type():
     print(classifier.getMetadataDict())
 
 def pixel_grid():
+    pixelGrid = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq').pixelGrid
+    blank = pixelGrid.createImage(bands=5, filename=r'C:\Work\data\___test.img', of='ENVI', ot='Byte', fill=0)
 
-    from hub.gdal.util import stack_images, gdal_translate, gdal_rasterize
+def pixel_grid2():
 
     hymap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\HyMap01_Berlin_Urban_Gradient_2009.bsq')
     enmap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
-    vector = Vector(r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
+    vector = VectorClassification(filename=r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp',
+                                  ids='ID_L2', names='Level_2', colors = 'RGB_L2', parse=True)
 
-    #outfile = r'c:\work\data\__eug_fractions.'
+    # create class occurence image at finer resolution
+    occurrence = vector.createOccurrence(filename=r'c:\work\data\__class_occurrence.tif', pixelGrid=enmap.pixelGrid, oversamplingRate=30)
 
-    #ToDo make function!!!
-
-    # rasterize vector file with oversampling and resample back to original resolution to produce cover fractions
-    pixelGridOversampling = deepcopy(enmap.pixelGrid)
-    pixelGridOversampling.xRes /= 10
-    pixelGridOversampling.yRes /= 10
-
-    # get classification scheme
-    from osgeo import ogr
-    driver = ogr.GetDriverByName("ESRI Shapefile")
-    dataSource = driver.Open(vector.filename, 0)
-    layer = dataSource.GetLayer()
-    class_names_attribute = 'Level_2'
-    class_color_attribute = 'RGB_L2'
-    class_id_attribute = 'ID_L2'
-
-    class_scheme = {0:('unclassified', [0,0,0])}
-    classes = 0
-    for feature in layer:
-        class_id = int(feature.GetField(class_id_attribute))
-        class_name = feature.GetField(class_names_attribute)
-        class_color = [int(v) for v in feature.GetField(class_color_attribute).split(',')]
-        class_scheme[class_id] = (class_name, class_color)
-        classes = max(class_id, classes)
-    classes += 1
-    class_names, class_lookup_ = zip(*[class_scheme[class_id] for class_id in range(classes)])
-    class_lookup = list()
-    for rgb in class_lookup_:
-        for v in rgb:
-            class_lookup.append(v)
-
-    #class_names =  ['unclassified', 'Roof',   'Pavement',   'Grass',    'Tree',    'Soil',     'Other'] # corresponds to id=1, 2, ...
-    #class_lookup = [0,0,0,          168,0,0,  156,156,156,  151,229,0,  35,114,0,  136,89,67,  236,214,0]
-    classes = len(class_names)
-
-    # create class occurence image at fine resolution
-    # - init image to burn into
-    #Image.from vector.createrasterizeBlankImage(outfile=r'c:\work\data\__class_over.tif', pixelGrid=pixelGridOversampling,
-    #                 options=options)
-
-
-    # - oversampled class occurrences and aggregate back
-    filenames = list()
-    for i, class_name in enumerate(class_names, start=0):
-        if i == 0: continue
-        where = ' -where "'+class_names_attribute+'"=\'' + class_name + "' "
-        options = '-burn 1'+where+'-init 0 -of GTiff -ot Byte'
-        classOversampled = vector.rasterize(outfile=r'c:\work\data\__class_over_'+str(i)+'.img', pixelGrid=pixelGridOversampling, options=options)
-        filenames.append(classOversampled.resample(filename=r'c:\work\data\__class_fraction_'+str(i)+'.vrt', pixelGrid=enmap.pixelGrid).filename)
-
-    # create fraction image
-    # - create VRT stack
-    filenameFractionVRT = stack_images(outfile=r'c:\work\data\__class_fraction.vrt', infiles=filenames)
-    # - set meta infos for classes
-    meta = Meta(filenameFractionVRT)
-    meta.setClassificationMetadata(classes=classes, classNames=class_names, classLookup=class_lookup, fileType='envi standard')
-    meta.setBandNames(class_names[1:])
-    meta.setNoDataValue(-1)
-    meta.writeMeta(filenameFractionVRT)
-
-    filenameFractionVRT = r'c:\work\data\__class_fraction.vrt'
-    fraction = Probability(filenameFractionVRT).saveAsGTiff(r'c:\work\data\__class_fraction.tif')
-
-    fraction = Probability(r'c:\work\data\__class_fraction.tif')
-    fraction.info()
-    return
-    #filenameFraction = r'c:\work\data\__class_fraction.vrt'
+    # create class fraction image at target resolution
+    fraction = occurrence.resample(filename=r'c:\work\data\__class_fraction.vrt', pixelGrid=enmap.pixelGrid)
 
     # create classification file
-    fraction = Probability(r'c:\work\data\__class_fraction.vrt')
-    raster = fraction.argmax(filename=r'c:\work\data\__class_win01_cum01.img', minWinProb=0.5, minCumProb=0.75)
+    classification = fraction.argmax(filename=r'c:\work\data\__class_win50_cum50.img', minWinProb=0.5, minCumProb=0.5)
 
+    # create regression file
+    fraction = Probability(fraction.filename)
+    regression = fraction.applyMask(mask=classification, value=-1, filename=r'c:\work\data\__regress_win50_cum50.img')
 
-    #raster.info()
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -440,7 +380,7 @@ if __name__ == '__main__':
     #tic()
     #importENVISpeclib()
     #test_type()
-    pixel_grid()
+    pixel_grid2()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
