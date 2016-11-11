@@ -872,7 +872,7 @@ class MapDock(Dock):
         self.toolZoomOut = QgsMapToolZoom(self.canvas, True)  # true = out
         self.toolZoomOut.setAction(g.actionZoomOut)
         self.toolZoomOut.action().triggered.connect(lambda: self.setMapTool(self.toolZoomOut))
-        from enmapbox.gui.CursorLocationValue import CursorLocationValueMapTool
+        from enmapbox.gui.cursorlocationvalue import CursorLocationValueMapTool
         self.toolCursorLocationValue = CursorLocationValueMapTool(self.canvas)
         self.toolCursorLocationValue.setAction(g.actionIdentify)
         self.toolCursorLocationValue.action().triggered.connect(lambda: self.setMapTool(self.toolCursorLocationValue))
@@ -1122,7 +1122,7 @@ class CursorLocationValueDock(Dock):
 
     def __init__(self, *args, **kwds):
         super(CursorLocationValueDock, self).__init__(*args, **kwds)
-        from enmapbox.gui.CursorLocationValue import CursorLocationValueWidget
+        from enmapbox.gui.cursorlocationvalue import CursorLocationValueWidget
         self.w = CursorLocationValueWidget(self)
         self.layout.addWidget(self.w)
         self.w.connectDataSourceManager(self.enmapbox.dataSourceManager)
@@ -1229,16 +1229,18 @@ class DockManager(QObject):
         self.dockarea = self.enmapbox.dockarea
         self.DOCKS = set()
 
-        self.dockarea.sigDragEnterEvent.connect(self.dockAreaSignalHandler)
-        self.dockarea.sigDragMoveEvent.connect(self.dockAreaSignalHandler)
-        self.dockarea.sigDragLeaveEvent.connect(self.dockAreaSignalHandler)
-        self.dockarea.sigDropEvent.connect(self.dockAreaSignalHandler)
-
+        self.connectDockArea(self.dockarea)
         self.setCursorLocationValueDock(None)
 
+    def connectDockArea(self, dockArea):
+        assert isinstance(dockArea, DockArea)
+        dockArea.sigDragEnterEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
+        dockArea.sigDragMoveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
+        dockArea.sigDragLeaveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
+        dockArea.sigDropEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
 
-
-    def dockAreaSignalHandler(self, event):
+    def dockAreaSignalHandler(self, dockArea, event):
+        assert isinstance(dockArea, DockArea)
         assert isinstance(event, QEvent)
 
         mimeTypes = ["application/qgis.layertreemodeldata",
@@ -1262,15 +1264,24 @@ class DockManager(QObject):
         elif type(event) is QDropEvent:
             MH = MimeDataHelper(event.mimeData())
             layers = []
+            textfiles = []
+
             if MH.hasMapLayers():
                 layers = MH.mapLayers()
             elif MH.hasDataSources():
                 for ds in MH.dataSources():
                     layers.append(ds.createMapLayer())
+
+            #register datasources
+            for src in layers + textfiles:
+                self.enmapbox.dataSourceManager.addSource(src)
+
+            #open map dock for new layers
             if len(layers) > 0:
 
                 NEW_MAP_DOCK = self.createDock('MAP')
                 NEW_MAP_DOCK.addLayers(layers)
+
                 event.setDropAction(Qt.CopyAction)
                 event.dropAction()
 
@@ -1309,8 +1320,8 @@ class DockManager(QObject):
 
     def createDock(self, docktype, *args, **kwds):
 
-        if 'name' not in kwds.keys():
-            kwds['name'] = '#{}'.format(len(self.DOCKS) + 1)
+        #set default kwds
+        kwds['name'] = kwds.get('name', '#{}'.format(len(self.DOCKS) + 1))
 
         is_new_dock = True
         if docktype == 'MAP':
@@ -1329,7 +1340,8 @@ class DockManager(QObject):
         else:
             raise Exception('Unknown dock type: {}'.format(docktype))
 
-        state = self.dockarea.saveState()
+        dockArea = kwds.get('dockArea', self.dockarea)
+        state = dockArea.saveState()
         main = state['main']
         if is_new_dock:
             dock.sigClosed.connect(self.removeDock)
