@@ -344,7 +344,7 @@ class DockTreeNode(TreeNode):
 
     def disconnectDock(self):
         self.dock = None
-        self.removeCustomProperty('uuid')
+        #self.removeCustomProperty('uuid')
         self.sigRemoveMe.emit()
 
 
@@ -511,6 +511,10 @@ class DockManagerTreeModel(TreeModel):
     def sandboxslot2(self):
         s  =""
 
+    def setLayerStyle(self, layer, canvas):
+        w = QgsLayerPropertiesWidget.createWidget(layer, canvas, False)
+        s = ""
+
     def contextMenu(self, node):
         menu = QMenu()
         parentNode = node.parent()
@@ -521,10 +525,11 @@ class DockManagerTreeModel(TreeModel):
             assert isinstance(mapNode, MapDockTreeNode)
             assert isinstance(mapNode.dock, MapDock)
             canvas = mapNode.dock.canvas
-            import enmapbox.dialogs
+
             lyr = node.layer()
             action = QAction('Properties', menu)
-            action.triggered.connect(lambda : enmapbox.dialogs.showLayerPropertiesDialog(lyr, canvas, None))
+            action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
+            #action.triggered.connect(lambda : enmapbox.dialogs.showLayerPropertiesDialog(lyr, canvas, None))
             menu.addAction(action)
         elif isinstance(node, DockTreeNode):
             # global
