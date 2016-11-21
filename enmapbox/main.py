@@ -13,7 +13,7 @@ VERSION = '2016-0.beta'
 DIR = os.path.dirname(__file__)
 DIR_REPO = os.path.dirname(DIR)
 DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
-DIR_GUI = jp(DIR,'gui')
+DIR_UI = jp(DIR, *['gui','ui'])
 site.addsitedir(DIR_SITE_PACKAGES)
 
 from enmapbox.utils import *
@@ -49,9 +49,11 @@ if add_and_remove: sys.path.remove(DIR_GUI)
 del add_and_remove, RC_SUFFIX
 """
 
+import enmapbox.gui
 
 class EnMAPBox_GUI(QtGui.QMainWindow,
-                   loadUIFormClass(os.path.normpath(jp(DIR_GUI, 'enmapbox_gui.ui')))):
+                   loadUIFormClass(os.path.normpath(jp(DIR_UI, 'enmapbox_gui.ui')),
+                                   )):
     def __init__(self, parent=None):
         """Constructor."""
         super(EnMAPBox_GUI, self).__init__(parent)
