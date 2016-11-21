@@ -109,4 +109,12 @@ def test_GUI():
 
 
 if __name__ == '__main__':
+    import site, sys
+    #add site-packages to sys.path as done by enmapboxplugin.py
+    jp = os.path.join
+    DIR_ENMAPBOX = os.path.normpath(os.path.split(inspect.getfile(inspect.currentframe()))[0])
+    DIR_SITE_PACKAGES = jp(os.path.dirname(DIR_ENMAPBOX), 'site-packages')
+    site.addsitedir(DIR_SITE_PACKAGES)
+
+    #run tests
     if True: test_GUI()
