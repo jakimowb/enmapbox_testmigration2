@@ -10,7 +10,7 @@ import enmapbox
 dprint = enmapbox.dprint
 from PyQt4 import uic
 
-def loadUIFormClass(pathUi):
+def loadUIFormClass(pathUi, from_imports=False):
     RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
     DIR_GUI = os.path.dirname(pathUi)
     add_and_remove = DIR_GUI not in sys.path
@@ -18,7 +18,7 @@ def loadUIFormClass(pathUi):
         sys.path.append(DIR_GUI)
 
     FORM_CLASS, _ = uic.loadUiType(pathUi,
-                                    from_imports=False, resource_suffix=RC_SUFFIX)
+                                    from_imports=from_imports, resource_suffix=RC_SUFFIX)
     if add_and_remove:
         sys.path.remove(DIR_GUI)
     return FORM_CLASS
