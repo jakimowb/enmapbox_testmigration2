@@ -162,8 +162,8 @@ def png2qrc(icondir, pathQrc):
 
 if __name__ == '__main__':
     icondir = jp(ROOT, *['enmapbox','gui','icons'])
-    pathQrc = jp(ROOT, *['enmapbox','gui','resources.qrc'])
-    if True:
+    pathQrc = jp(ROOT, *['enmapbox','gui','ui','resources.qrc'])
+    if False:
         #convert SVG to PNG and add link them into the resource file
         svg2png(icondir, overwrite=True)
         png2qrc(icondir, pathQrc)
