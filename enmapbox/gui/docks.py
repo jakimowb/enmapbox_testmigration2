@@ -10,7 +10,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import PyQt4.QtSvg
 
-from enmapbox.main import DIR_GUI
+from enmapbox.main import DIR_UI
 from enmapbox.datasources import *
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
