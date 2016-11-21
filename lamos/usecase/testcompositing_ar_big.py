@@ -1,7 +1,7 @@
 import numpy
 import yaml
-import lamos.cubebuilder.cube
-import lamos.cubebuilder.applier
+import lamos._old_cubebuilder.cube
+import lamos._old_cubebuilder.applier
 import datetime
 from hub.collections import Bunch
 import hub.numpy.ma
@@ -463,8 +463,8 @@ def composite(rootdir, mgrstiles, qualityCompositeParametersList=[], statisticsC
     otherArgs.statisticsCompositeParametersList = statisticsCompositeParametersList
 
     # Set up input and output filenames.
-    infiles  = lamos.cubebuilder.applier.CubenameAssociations()
-    outfiles = lamos.cubebuilder.applier.CubenameAssociations()
+    infiles  = lamos._old_cubebuilder.applier.CubenameAssociations()
+    outfiles = lamos._old_cubebuilder.applier.CubenameAssociations()
     bandNumbers     = [ 1,         2,      3,       4,     8,     10,      11]
     bandNames       = ['aerosol', 'blue', 'green', 'red', 'nir', 'swir1', 'swir2']
     wavelengthLower = [ 430,       450,    530,     640,   850,   1570,    2110]
@@ -500,11 +500,11 @@ def composite(rootdir, mgrstiles, qualityCompositeParametersList=[], statisticsC
     #mgrstiles = ['32UQB']
 
     # Set up processing controls (creates ENVI Files per default)
-    controls = lamos.cubebuilder.applier.ApplierControls()
+    controls = lamos._old_cubebuilder.applier.ApplierControls()
     #controls.rios.windowysize = 100
 
     # Apply the function to the inputs, creating the outputs.
-    lamos.cubebuilder.applier.apply(compositingDoit, compositingMeta, infiles, outfiles, mgrstiles, controls=controls, otherArgs=otherArgs, verbose=True)
+    lamos._old_cubebuilder.applier.apply(compositingDoit, compositingMeta, infiles, outfiles, mgrstiles, controls=controls, otherArgs=otherArgs, verbose=True)
 
 def test_ar():
 

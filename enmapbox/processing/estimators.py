@@ -169,7 +169,7 @@ class Classifiers(Estimators):
 
     class RandomForestClassifier(Classifier):
 
-        def __init__(self, bootstrap=True, class_weight=None, criterion='gini',
+        def __init__(self, bootstrap=True, class_weight='balanced', criterion='gini',
             max_depth=None, max_features='auto', max_leaf_nodes=None,
             min_samples_leaf=1, min_samples_split=2,
             min_weight_fraction_leaf=0.0, n_estimators=10, n_jobs=1,

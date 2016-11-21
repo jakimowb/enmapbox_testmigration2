@@ -2,7 +2,7 @@ import multiprocessing
 import multiprocessing.pool
 import os
 import sys
-import lamos.cubebuilder
+import lamos._old_cubebuilder
 import hub.file
 import hub.gdal.api
 import hub.gdal.util
@@ -70,7 +70,7 @@ def applyToTile((ufunc, ufuncMeta, infiles, outfiles, mgrstile, i, n, controls, 
 
     inmeta = Bunch()
     for cubename,(filename,stacknames) in infiles.items():
-        cube = lamos.cubebuilder.cube.Cube(filename)
+        cube = lamos._old_cubebuilder.cube.Cube(filename)
         inmeta[cubename] = cube.readStackMeta(mgrstile, names=stacknames)
 
 
@@ -118,13 +118,13 @@ def applyToTile((ufunc, ufuncMeta, infiles, outfiles, mgrstile, i, n, controls, 
     #- read metadata from files produced by RIOS
     outmeta = Bunch()
     for cubename,(filename,stacknames) in outfiles.items():
-        cube = lamos.cubebuilder.cube.Cube(filename)
+        cube = lamos._old_cubebuilder.cube.Cube(filename)
         outmeta[cubename] = cube.readStackMeta(mgrstile, names=stacknames)
     #- call user function for metadata specification
     ufuncMeta(inmeta, outmeta, otherArgs=otherArgs)
     #- write metadata
     for cubename,(filename,stacknames) in outfiles.items():
-        cube = lamos.cubebuilder.cube.Cube(filename)
+        cube = lamos._old_cubebuilder.cube.Cube(filename)
         cube.writeStackMeta(mgrstile, outmeta[cubename])
 
     if verbose: print('100')

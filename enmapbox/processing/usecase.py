@@ -43,26 +43,59 @@ def pixel_grid():
     pixelGrid = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq').pixelGrid
     blank = pixelGrid.createImage(bands=5, filename=r'C:\Work\data\___test.img', of='ENVI', ot='Byte', fill=0)
 
-def pixel_grid2():
+def workflow_colloquium2016():
 
-    hymap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\HyMap01_Berlin_Urban_Gradient_2009.bsq')
     enmap = Image(r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
     vector = VectorClassification(filename=r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp',
-                                  ids='ID_L2', names='Level_2', colors = 'RGB_L2', parse=True)
+                                  idField='ID_L2', nameField='Level_2', colorField = 'RGB_L2', parse=True)
+
+    pixelGridTagret = enmap.pixelGrid
+    pixelGridOversampled = pixelGridTagret.newResolution(resolution=3)
 
     # create class occurence image at finer resolution
-    occurrence = vector.createOccurrence(filename=r'c:\work\data\__class_occurrence.tif', pixelGrid=enmap.pixelGrid, oversamplingRate=30)
+    classification = vector.asClassification(pixelGrid=pixelGridOversampled, filename=r'c:\work\data\__class_occurrenceClasses.tif')
+
+
+    return
+    # create class occurence image at finer resolution
+    occurrence = vector.createOccurrence(filename=r'c:\work\data\__class_occurrence.tif', pixelGrid=enmap.pixelGrid,
+                                         oversamplingRate=10)
+    occurrenceRGB = occurrence.rgbClassColorComposite(filename=r'c:\work\data\__class_occurrence_rgb.tif')
 
     # create class fraction image at target resolution
     fraction = occurrence.resample(filename=r'c:\work\data\__class_fraction.vrt', pixelGrid=enmap.pixelGrid)
+    fractionRGB = fraction.rgbClassColorComposite(filename=r'c:\work\data\__class_fraction_rgb.img')
 
-    # create classification file
-    classification = fraction.argmax(filename=r'c:\work\data\__class_win50_cum50.img', minWinProb=0.5, minCumProb=0.5)
+    # create classification sample
+    classification = fraction.argmaxProbabilityClassification(filename=r'c:\work\data\__class_win50_cum50.img', minWinProb=0.5, minCumProb=0.5)
 
-    # create regression file
+    # create regression sample
     fraction = Probability(fraction.filename)
     regression = fraction.applyMask(mask=classification, value=-1, filename=r'c:\work\data\__regress_win50_cum50.img')
 
+    # craete maps
+    rfc_proba = Classifiers.RandomForestClassifier(n_estimators=100).fit(image=enmap, labels=classification).predictProbability(image=enmap, filename=r'c:\work\data\__rfc_proba')
+    rfc_probaRGB = rfc_proba.rgbClassColorComposite(filename=r'c:\work\data\__rfc_proba_rgb')
+    rfc_map = rfc_proba.argmaxProbabilityClassification(filename=r'c:\work\data\__rfc_class')
+
+    print('done')
+
+def workflow_colloquium2016_short():
+
+    enmap = Image(filename=r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
+    vector = VectorClassification(filename=r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp',
+                                  idField='ID_L2', nameField='Level_2', colorField='RGB_L2')
+
+    train = vector.createOccurrence(pixelGrid=enmap.pixelGrid, oversamplingRate=10)\
+        .resample(pixelGrid=enmap.pixelGrid)\
+        .argmaxProbabilityClassification(minWinProb=0.5, minCumProb=0.5)
+
+    classification = Classifiers.RandomForestClassifier(n_estimators=100).fit(image=enmap, labels=train)\
+        .predictProbability(image=enmap)\
+        .rfc_proba.argmaxProbabilityClassification()
+
+
+    a=classification
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -71,7 +104,7 @@ def image():
     image.info()
 
 def importENVISpeclib():
-    pseudoImage = Image.importENVISpectralLibrary(r'C:\Work\data\ClassificationSpeclib')
+    pseudoImage = Image.fromENVISpectralLibrary(r'C:\Work\data\ClassificationSpeclib')
     pseudoImage.info()
 
 def classification():
@@ -81,7 +114,7 @@ def classification():
     mask =  Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
     labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
-    #classifiers = [Classifiers.RandomForestClassifier(n_estimators=100)]
+    classifiers = [Classifiers.RandomForestClassifier(n_estimators=100)]
     #classifiers = [Classifiers.DummyClassifier()]
     classifiers = [Classifiers.SVCTuned()]
     # classifiers = all(Classifiers)
@@ -242,6 +275,16 @@ def probabilityAccAss():
     accAss = probability.assessProbabilityPerformance(testingLabels)
     accAss.report().saveHTML().open()
 
+def probabilityToRGB():
+
+
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    train = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+
+    classifier = Classifiers.RandomForestClassifier(oob_score=True, n_estimators=100).fit(image, train)
+    probability = classifier.predictProbability(image, filename=r'c:\work\data\___rfc_prob.img')
+    classification = probability.argmaxProbabilityClassification(filename=r'c:\work\data\___rfc_class.img')
+    rgb = probability.rgbClassColorComposite(filename=r'c:\work\data\___rfc_rgb.img')
 
 def statisticsForImage():
 
@@ -286,7 +329,7 @@ def maximumProbability():
     classifier = Classifiers.RandomForestClassifier()
     classifier = classifier.fit(image, labels=trainingLabels)
     propability = classifier.predictProbability(image, mask=mask)
-    classification = propability.argmax()
+    classification = propability.argmaxProbabilityClassification()
 
 def pixel_extractor():
 
@@ -312,6 +355,42 @@ def pixel_extractor_image():
     mask = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
     image.extractByMask(mask).info()
 
+def recode_classification_scheme():
+
+    classification1 = Classification(os.path.join(inroot, r'C:\Work\data\Hymap_Berlin-A_Classification-GroundTruth'))
+
+    # existing classification scheme from classification1
+    # - get the following infos from the file
+    #   class_names = ['unclassified', 'vegetation', 'built-up', 'impervious', 'pervious', 'water']
+    #   class lookup = [0, 0, 0, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255]
+
+    classes1, class_names1, class_lookup1 = classification1.meta.getClassificationMetadata()
+
+    # do the recoding in an interactive dialog
+    # in this example, we want to map the existing classification scheme into the new classification scheme:
+    #   class_names =  ['unclassified', 'artifical', 'nature']
+    #   class lookup = [0, 0, 0,        255, 0, 0,   0, 255, 0]
+    #
+    # ids are mapped this way:
+    # - unclassified (0) -> unclassified (0)
+    # - vegetation (1) -> nature (2)
+    # - built-up (2) -> artifical (1)
+    # - impervious (3) -> artifical (1)
+    # - pervious(4) -> nature (2)
+    # - water (5) -> nature (2)
+
+    def dialog(class_names, class_lookup):
+
+        new_class_names  = ['unclassified', 'artifical', 'nature']
+        new_class_lookup = [0,0,0,          255,0,0,     0,255,0]
+        new_ids = {0:0, 1:2, 2:1, 3:1, 4:2, 5:2} # keys are the old IDs and the values are new IDs
+
+        return new_class_names, new_class_lookup, new_ids
+
+
+    class_names2, class_lookup2, ids2 = dialog(class_names1, class_lookup1)
+
+    classification2 = classification1.recode(class_names2, class_lookup2, ids2, filename=r'c:\work\data\__classRecoded.img')
 
 
 def ar_debug():
@@ -380,7 +459,7 @@ if __name__ == '__main__':
     #tic()
     #importENVISpeclib()
     #test_type()
-    pixel_grid2()
+    workflow_colloquium2016()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
@@ -396,6 +475,7 @@ if __name__ == '__main__':
     #regressionAccAss()
     #clusteringAccAss()
     #probabilityAccAss()
+    #probabilityToRGB()
     #statisticsForImage()
     #statisticsForClassification()
     #importENVISpeclib()
@@ -406,5 +486,6 @@ if __name__ == '__main__':
     #ar_debug3()
     #pixel_extractor()
     #pixel_extractor_image()
+    #recode_classification_scheme()
 
     #toc()

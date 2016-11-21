@@ -1,13 +1,13 @@
 import numpy
 from hub.timing import tic, toc
-import lamos.cubebuilder.cube
-import lamos.cubebuilder.applier
+import lamos._old_cubebuilder.cube
+import lamos._old_cubebuilder.applier
 
 
 def testCubeIO():
     tic('running testCubeIO')
     # read cube data and metadata
-    incube = lamos.cubebuilder.cube.Cube(r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\cubes')
+    incube = lamos._old_cubebuilder.cube.Cube(r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\cubes')
     mgrstiles = ['32UNB', '32UNC', '32UND', '32UPB', '32UPC', '32UPD', '32UQB', '32UQC', '32UQD', '33UTS', '33UTT', '33UTU', '33UUS', '33UUT', '33UUU', '33UVS', '33UVT', '33UVU']
 #    mgrstiles = ['32UNB']
     for mgrstile in mgrstiles:
@@ -23,7 +23,7 @@ def testCubeIO():
         # write result data cube and metadata
         outdata = {'ndvi':ndvi}
         outmeta = {'ndvi':inmeta['band4'], 'meta':inmeta['meta']}
-        outcube = lamos.cubebuilder.cube.Cube(r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\ndvi')
+        outcube = lamos._old_cubebuilder.cube.Cube(r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\ndvi')
         outcube.writeStack(mgrstile, outdata, outmeta)
     toc()
 
@@ -62,8 +62,8 @@ def ndvimeta(inmeta, outmeta, otherArgs=None):
 def testApplier(verbose=True):
 
     # Set up input and output filenames.
-    infiles = lamos.cubebuilder.applier.CubenameAssociations()
-    outfiles = lamos.cubebuilder.applier.CubenameAssociations()
+    infiles = lamos._old_cubebuilder.applier.CubenameAssociations()
+    outfiles = lamos._old_cubebuilder.applier.CubenameAssociations()
     infiles.landsatTimestack = (r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\cubes', ['band4','band8','bandcfmask'])
     outfiles.ndviTimestack =   (r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR\ndvi2',  ['ndvi'])
 
@@ -72,11 +72,11 @@ def testApplier(verbose=True):
     mgrstiles = ['32UPB']
 
     # Set up processing controls (creates ENVI Files per default)
-    controls = lamos.cubebuilder.applier.ApplierControls(numThreads=1)
+    controls = lamos._old_cubebuilder.applier.ApplierControls(numThreads=1)
     controls.rios.windowysize = 10000
 
     # Apply the function to the inputs, creating the outputs.
-    lamos.cubebuilder.applier.apply(ndvi, ndvimeta, infiles, outfiles, mgrstiles, controls=controls, verbose=verbose)
+    lamos._old_cubebuilder.applier.apply(ndvi, ndvimeta, infiles, outfiles, mgrstiles, controls=controls, verbose=verbose)
 
 
 if __name__ == '__main__':

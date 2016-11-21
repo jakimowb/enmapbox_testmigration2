@@ -1,5 +1,5 @@
 from hub.timing import tic, toc
-import lamos.cubebuilder.tiling
+import lamos._old_cubebuilder.tiling
 
 if __name__ == '__main__':
 
@@ -14,5 +14,5 @@ if __name__ == '__main__':
     # do the tiling for choosen footprints (all scenes inside a footprint will be processed)
     tic('tile Landsat Scenes')
     for footprint in [193024,194024]:
-        lamos.cubebuilder.tiling.tileFootprint(footprint, sensorfolder, tilesfolder, tilingshapefile)
+        lamos._old_cubebuilder.tiling.tileFootprint(footprint, sensorfolder, tilesfolder, tilingshapefile)
     toc()

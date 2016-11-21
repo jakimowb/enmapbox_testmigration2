@@ -79,20 +79,20 @@ class EnMAPBoxPlugin:
         dprint('INIT ENMAPBOX PROCESSING PROVIDER(S)')
         if self.has_processing_framework():
             # add example app
-            try:
-                from processing.core.Processing import Processing
-                from enmapbox.apps.core import EnMAPBoxProvider
-                self.processingProviders.append(EnMAPBoxProvider())
-                #add providers to processing framework
+            #try:
+            from processing.core.Processing import Processing
+            from enmapbox.apps.core import EnMAPBoxProvider
+            self.processingProviders.append(EnMAPBoxProvider())
+            #add providers to processing framework
 
-                for provider in self.processingProviders:
-                    Processing.addProvider(provider)
+            for provider in self.processingProviders:
+                Processing.addProvider(provider)
 
-            except Exception, e:
-                tb = traceback.format_exc()
-                six.print_('ERROR occurred while loading EnMAPBoxProvider for processing frame work:', file=sys.stderr)
-                six.print_(str(e))
-                six.print_(tb)
+            #except Exception, e:
+            #    tb = traceback.format_exc()
+            #    six.print_('ERROR occurred while loading EnMAPBoxProvider for processing frame work:', file=sys.stderr)
+            #    six.print_(str(e))
+            #    six.print_(tb)
             dprint('Processing framework initialization done')
         else:
             dprint('Unable to fine processing framework')

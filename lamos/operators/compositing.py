@@ -468,6 +468,12 @@ class StatisticsApplier(Applier):
     @staticmethod
     def userFunction(info, inputs, outputs, inmetas, otherArgs):
 
+        # - try to cast cfmask to uint8
+        inputs.timeseries_cfmask = inputs.timeseries_cfmask.astype(numpy.uint8)
+        print()
+        print(inputs.timeseries_cfmask[:,49,49])
+        print(getMeta('doy', inmetas))
+
         # prepare some meta infos
         inputDates = numpy.array(getMeta('date', inmetas))
 
@@ -528,7 +534,8 @@ class StatisticsApplier(Applier):
 
 
             # - valid observation counts
-            outputs.__dict__['statistics_count_' + dateParameters.getName()] = numpy.sum(numpy.logical_not(getCube('invalid', inputs, bbl)), axis=0, dtype=numpy.int16, keepdims=True)
+            count = numpy.sum(numpy.logical_not(getCube('invalid', inputs, bbl)), axis=0, dtype=numpy.int16, keepdims=True)
+            outputs.__dict__['statistics_count_' + dateParameters.getName()] = count
 
     @staticmethod
     def userFunctionMeta(inmetas, outmetas, otherArgs):

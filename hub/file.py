@@ -29,6 +29,8 @@ def mkfiledir(file):
     mkdir(os.path.dirname(file))
 
 def saveJSON(var, file):
+
+    hub.file.mkfiledir(file)
     with open(file, 'w') as file:
         json.dump(var, file)
         #json.dump(var, file, default=json_util.default, indent=4, sort_keys=False)

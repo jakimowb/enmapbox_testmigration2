@@ -1,6 +1,6 @@
 import os, sys
-import lamos.cubebuilder.tiling
-import lamos.cubebuilder.rasterdb
+import lamos._old_cubebuilder.tiling
+import lamos._old_cubebuilder.rasterdb
 import yaml
 from hub.timing import tic, toc
 
@@ -18,7 +18,7 @@ if __name__ == '__main__':
         # do the tiling for choosen footprints (all scenes inside a footprint will be processed)
         tic('tile Landsat Scenes')
         for footprint in [193024,194024]:
-            lamos.cubebuilder.tiling.tileFootprint(footprint, sensorfolder, tilesfolder, tilingshapefile)
+            lamos._old_cubebuilder.tiling.tileFootprint(footprint, sensorfolder, tilesfolder, tilingshapefile)
         toc()
 
     #sys.exit()
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # location for rasterDB (stores metadata and knows about the connection between original scenes and tiles)
     cubesfolder = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR_Big\cubes'
     dbfile = r'\\141.20.140.91\NAS_Work\EuropeanDataCube\testCaseAR_Big\rasterdb.pickle'
-    rasterDB = lamos.cubebuilder.rasterdb.RasterDB()
+    rasterDB = lamos._old_cubebuilder.rasterdb.RasterDB()
     # create new or load existing RasterDB. if already existing
     if 0: # load existing RasterDB?
         tic('load rasterDB')

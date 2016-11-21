@@ -71,6 +71,10 @@ class GDALMetaDomain():
         for key, value in meta.items():
             self.setMetadataItemAsString(key, value.strip())
 
+    def hasMetadataItem(self, key):
+
+        return key in self.meta
+
     def setMetadataItem(self, key, value):
 
         key = self.formatKey(key)
@@ -307,6 +311,8 @@ class GDALMeta():
 
         # create
 
+    def getMetadataDomainList(self):
+        return self.domain.keys()
 
     def getMetadataDomain(self, domainName='ENVI'):
 
@@ -327,8 +333,11 @@ class GDALMeta():
         domain = self.getMetadataDomain(domainName)
         return domain.getMetadataDict()
 
-    def getMetadataDomainList(self):
-        return self.domain.keys()
+    def hasMetadataItem(self, key, domainName='ENVI'):
+
+        domain = self.getMetadataDomain(domainName)
+        return domain.hasMetadataItem(key)
+
 
     def setMetadataItem(self, key, value, domainName='ENVI'):
         domain = self.getMetadataDomain(domainName)
@@ -391,9 +400,16 @@ class GDALMeta():
             bandNames = ['Band '+str(i) for i in range(1, self.RasterCount+1)]
         return bandNames
 
-    def getAcquisitionDate(self):
-        date = Date.fromText(self.getMetadataItem('acqdate'))
+    def setAcquisitionDate(self, date):
+        assert isinstance(date, Date)
+        self.setMetadataItem('acquisition time', str(date))
         return date
+
+    def getAcquisitionDate(self):
+        for key in ['acquisition time','acqdate']:
+            if self.hasMetadataItem(key):
+                return Date.fromText(self.getMetadataItem(key))
+        raise Exception('Acquisition Date not specified!')
 
     def setClassificationMetadata(self, classes, classNames, classLookup):
 
