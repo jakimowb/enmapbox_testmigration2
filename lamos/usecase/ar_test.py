@@ -32,7 +32,7 @@ def test():
 
     wrs2Footprints = ['193024','194024']
     mgrsFootprints = ['32UPC','32UQC','33UTT','33UUT']
-    mgrsFootprints = ['33UUT']
+#    mgrsFootprints = ['33UUT']
 
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=10)

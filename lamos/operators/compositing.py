@@ -21,7 +21,10 @@ def getCube(name, inputs, bbl=None):
         elif name=='nbr'     : result = (inputs.timeseries_nir-inputs.timeseries_swir2).__truediv__(inputs.timeseries_nir+inputs.timeseries_swir2)
         elif name=='vis'     : result = inputs.timeseries_blue/3+inputs.timeseries_green/3+inputs.timeseries_red/3
         elif name=='ir'      : result = inputs.timeseries_nir/3 +inputs.timeseries_swir1/3+inputs.timeseries_swir2/3
-        elif name=='invalid' : result = inputs.timeseries_cfmask > 1
+        elif name == 'invalid':
+            result = inputs.timeseries_cfmask > 1
+        elif name == 'clearWater':
+            result = inputs.timeseries_cfmask == 1
         elif name=='tcb':
             coeff = [0.2043, 0.4158, 0.5524, 0.5741, 0.3124, 0.2303]
             result = numpy.zeros_like(inputs.timeseries_cfmask, dtype=numpy.float32)
@@ -468,12 +471,6 @@ class StatisticsApplier(Applier):
     @staticmethod
     def userFunction(info, inputs, outputs, inmetas, otherArgs):
 
-        # - try to cast cfmask to uint8
-        inputs.timeseries_cfmask = inputs.timeseries_cfmask.astype(numpy.uint8)
-        print()
-        print(inputs.timeseries_cfmask[:,49,49])
-        print(getMeta('doy', inmetas))
-
         # prepare some meta infos
         inputDates = numpy.array(getMeta('date', inmetas))
 
@@ -531,11 +528,12 @@ class StatisticsApplier(Applier):
 
                     #print('Warning: No Observation available for target date: '+str(dateParameters.getTargetDate()))
 
-
-
             # - valid observation counts
             count = numpy.sum(numpy.logical_not(getCube('invalid', inputs, bbl)), axis=0, dtype=numpy.int16, keepdims=True)
+            count = numpy.sum(getCube('clearWater', inputs, bbl), axis=0, dtype=numpy.int16, keepdims=True)
+
             outputs.__dict__['statistics_count_' + dateParameters.getName()] = count
+            outputs.__dict__['statistics_countwater_' + dateParameters.getName()] = count
 
     @staticmethod
     def userFunctionMeta(inmetas, outmetas, otherArgs):
@@ -589,7 +587,7 @@ class StatisticsApplier(Applier):
         dateParameters = DateParameters(date1=date1, date2=date2, bufferYears=bufferYears)
         self.dateParameters.append(dateParameters)
         #for key in ['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'ndvi', 'nbr', 'count']:
-        for key in self.otherArgs.variables+['count']:
+        for key in self.otherArgs.variables+['count','countwater']:
             self.appendOutput(ApplierOutput(folder=self.outfolder,
                                             productName='statistics', imageNames=[key+'_'+dateParameters.getName()], extension=self.outextension))
 

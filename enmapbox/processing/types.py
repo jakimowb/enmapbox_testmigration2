@@ -2062,4 +2062,4 @@ class ProbabilityPerformance(Type):
         return report
 
 if __name__ == '__main__':
-    print(' '.join(['-co '+co for co in CO]))
+    print(' '.join(['-co '+co for co in CO_VALUE]))
