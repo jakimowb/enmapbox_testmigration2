@@ -1,8 +1,12 @@
 from __future__ import absolute_import
 import six, sys, os, gc, re, collections, site, inspect
 from osgeo import gdal, ogr
+
+from qgis import *
 from qgis.core import *
+from qgis.gui import *
 from PyQt4.QtGui import *
+from PyQt.QtCore import *
 import enmapbox
 enmapbox.DEBUG = True
 dpring = enmapbox.dprint
@@ -107,6 +111,57 @@ def test_GUI():
     # load the plugin
     print('Done')
 
+def test_dialog():
+
+    if sys.platform == 'darwin':
+        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+    else:
+        # assume OSGeo4W startup
+        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    os.environ['QGIS_DEBUG'] = '1'
+
+
+    assert os.path.exists(PATH_QGS)
+    qgsApp = QgsApplication([], True)
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
+
+
+    qgsApp.setPrefixPath(PATH_QGS, True)
+    qgsApp.initQgis()
+
+    w = QMainWindow()
+    w.setWindowTitle('Sandbox')
+    w.setLayout(QGridLayout())
+    canvas = QgsMapCanvas(w, 'Canvas')
+    canvas.setAutoFillBackground(True)
+    canvas.setCanvasColor(Qt.black)
+    w.layout().addWidget(canvas)
+    w.show()
+
+
+
+
+    from enmapbox.gui.layerproperties import showLayerPropertiesDialog
+    from enmapbox.main import TestData
+    lyr = QgsRasterLayer(TestData.AF_Image)
+    QgsMapLayerRegistry.instance().addMapLayer(lyr)
+    canvas.setLayerSet([QgsMapCanvasLayer(lyr)])
+
+    showLayerPropertiesDialog(lyr, canvas, w)
+
+    s = ""
+
+
+    import enmapbox.main
+
+    qgsApp.exec_()
+
+    qgsApp.exitQgis()
+
+
+
 
 if __name__ == '__main__':
     import site, sys
@@ -117,4 +172,5 @@ if __name__ == '__main__':
     site.addsitedir(DIR_SITE_PACKAGES)
 
     #run tests
-    if True: test_GUI()
+    if False: test_GUI()
+    if False: test_dialog()
