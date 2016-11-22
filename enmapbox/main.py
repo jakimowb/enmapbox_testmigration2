@@ -4,16 +4,17 @@ import qgis.core
 import qgis.gui
 from osgeo import gdal, ogr
 
-import enmapbox
-dpring = enmapbox.dprint
-jp = os.path.join
+from enmapbox import DIR, DIR_SITE_PACKAGES
+
 
 
 VERSION = '2016-0.beta'
-DIR = os.path.dirname(__file__)
-DIR_REPO = os.path.dirname(DIR)
-DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
-DIR_UI = jp(DIR, *['gui','ui'])
+
+
+#DIR = os.path.dirname(__file__)
+#DIR_REPO = os.path.dirname(DIR)
+#DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
+#DIR_UI = jp(DIR, *['gui','ui'])
 site.addsitedir(DIR_SITE_PACKAGES)
 
 from enmapbox.utils import *
