@@ -5,6 +5,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtXml import *
 from PyQt4.QtXmlPatterns import *
 ROOT = os.path.dirname(os.path.dirname(__file__))
+from enmapbox import DIR_UI
 jp = os.path.join
 
 
@@ -14,7 +15,7 @@ def getDOMAttributes(elem):
     attributes = elem.attributes()
     for a in range(attributes.count()):
         attr = attributes.item(a)
-        values[attr.nodeName()] = attr.nodeValue()
+        values[str(attr.nodeName())] = attr.nodeValue()
     return values
 
 def file_search(rootdir, wildcard, recursive=False, ignoreCase=False):
@@ -34,21 +35,42 @@ def file_search(rootdir, wildcard, recursive=False, ignoreCase=False):
     return results
 
 
+
+
 def make():
 
+    #find ui files
+    ui_files = file_search(ROOT, '*.ui', recursive=True)
+    qrcs = set()
+
+    doc = QDomDocument()
+    for ui_file in ui_files:
+        pathDir = os.path.dirname(ui_file)
+        if doc.setContent(QFile(ui_file)):
+            items = doc.elementsByTagName('iconset')
+            for i in range(items.count()):
+                nodeQRC = items.item(i)
+                attr = getDOMAttributes(nodeQRC.toElement())
+                if 'resource' in attr.keys():
+                    qrcs.add((pathDir, str(attr['resource'])))
+                s = ""
+
     #compile Qt resource files
-    resourcefiles = file_search(ROOT, 'resource*.qrc', recursive=True)
+    #resourcefiles = file_search(ROOT, '*.qrc', recursive=True)
+    resourcefiles = list(qrcs)
     assert len(resourcefiles) > 0
-    for f in resourcefiles:
-        dn = os.path.dirname(f)
+    for root_dir, f in resourcefiles:
+        #dn = os.path.dirname(f)
+        pathQrc = os.path.normpath(jp(root_dir, f))
+        assert os.path.exists(pathQrc)
         bn = os.path.basename(f)
         bn = os.path.splitext(bn)[0]
-        pathPy2 = os.path.join(dn, bn+'_py2.py' )
-        pathPy3 = os.path.join(dn, bn+'_py3.py' )
+        pathPy2 = os.path.join(DIR_UI, bn+'_py2.py' )
+        pathPy3 = os.path.join(DIR_UI, bn+'_py3.py' )
         print('Make {}'.format(pathPy2))
-        subprocess.call(['pyrcc4','-py2','-o',pathPy2, f])
+        subprocess.call(['pyrcc4','-py2','-o',pathPy2, pathQrc])
         print('Make {}'.format(pathPy3))
-        subprocess.call(['pyrcc4','-py3','-o',pathPy3, f])
+        subprocess.call(['pyrcc4','-py3','-o',pathPy3, pathQrc])
 
 
 def svg2png(pathDir, overwrite=False, mode='INKSCAPE'):
