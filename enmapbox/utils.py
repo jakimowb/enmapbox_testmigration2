@@ -191,7 +191,7 @@ class MimeDataHelper():
             MimeDataHelper.MIME_LAYERTREEMODELDATA])
 
     def layerTreeModelNodes(self):
-        from enmapbox.treeviews import TreeNodeProvider
+        from enmapbox.gui.treeviews import TreeNodeProvider
         assert self.hasLayerTreeModelData()
         nodes = []
         if self.mimeData.hasFormat(MimeDataHelper.MIME_DOCKTREEMODELDATA):
@@ -199,6 +199,7 @@ class MimeDataHelper():
             root = self.doc.documentElement()
             child = root.firstChildElement()
             while not child.isNull():
+                child = child.toElement()
                 tagName = str(child.tagName())
                 if 'dock-tree-node' in tagName:
                     nodes.append(TreeNodeProvider.CreateNodeFromXml(child))
