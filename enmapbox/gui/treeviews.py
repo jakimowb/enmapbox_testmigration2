@@ -321,7 +321,6 @@ class DockTreeNode(TreeNode):
         if isinstance(dock, Dock):
             self.connectDock(dock)
 
-
     def writeXML(self, parentElement):
         elem = super(DockTreeNode, self).writeXML(parentElement)
         elem.setTagName('dock-tree-node')
@@ -340,6 +339,7 @@ class DockTreeNode(TreeNode):
             self.dock.sigTitleChanged.connect(self.setName)
             self.setCustomProperty('uuid', str(dock.uuid))
             self.dock.sigClosed.connect(self.disconnectDock)
+
 
 
     def disconnectDock(self):
@@ -369,8 +369,8 @@ class MapDockTreeNode(DockTreeNode):
         super(MapDockTreeNode, self).__init__(parent, dock)
         self.setIcon(QIcon(IconProvider.MapDock))
         self.blockSignals = False
-        if dock:
-            self.connectDock(dock)
+        #if dock:
+        #    self.connectDock(dock)
 
         self.addedChildren.connect(lambda : self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
@@ -502,6 +502,7 @@ class DockManagerTreeModel(TreeModel):
         self.dockManager = self.enmapbox.dockManager
         self.dockManager.sigDockAdded.connect(self.addDockNode)
         self.dockManager.sigDockAdded.connect(lambda : self.sandboxslot2())
+        self.dockManager.sigDockRemoved.connect(lambda :self.sandboxslot)
         #dockManager.sigDockRemoved.connect(self.removeDock)
         self.mimeIndices = []
 
@@ -512,8 +513,8 @@ class DockManagerTreeModel(TreeModel):
         s  =""
 
     def setLayerStyle(self, layer, canvas):
-        w = QgsLayerPropertiesWidget.createWidget(layer, canvas, False)
-        s = ""
+        import enmapbox.gui.layerproperties
+        enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, canvas)
 
     def contextMenu(self, node):
         menu = QMenu()
@@ -529,25 +530,33 @@ class DockManagerTreeModel(TreeModel):
             lyr = node.layer()
             action = QAction('Properties', menu)
             action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
-            #action.triggered.connect(lambda : enmapbox.dialogs.showLayerPropertiesDialog(lyr, canvas, None))
+            menu.addAction(action)
+
+            action = QAction('Remove', menu)
+            action.triggered.connect(lambda: self.removeNode(node))
             menu.addAction(action)
         elif isinstance(node, DockTreeNode):
             # global
             action = QAction('Remove Dock', menu)
-            action.triggered.connect()
+            action.triggered.connect(lambda :self.removeDockNode(node))
             menu.addAction(action)
 
         return menu
+
 
     def addDockNode(self, dock):
         rootNode = self.rootNode
         newNode = TreeNodeProvider.CreateNodeFromDock(dock, rootNode)
         newNode.sigRemoveMe.connect(lambda : self.removeDockNode(newNode))
 
-    def removeDockNode(self, node):
+    def removeNode(self, node):
         idx = self.node2index(node)
         p = self.index2node(idx.parent())
         p.removeChildNode(node)
+
+    def removeDockNode(self, node):
+        self.dockManager.removeDock(node.dock)
+        self.removeNode(node)
 
 
     def flags(self, parent):
