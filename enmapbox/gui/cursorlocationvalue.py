@@ -253,7 +253,7 @@ class CursorLocationValueWidget(QtGui.QMainWindow,
             else:
                 other_profiles.append(p)
 
-        self.tabWidget.setCurrentWidget(self.tabLocationValues)
+        #self.tabWidget.setCurrentWidget(self.tabLocationValues)
         pi = self.plotItem
         legend = self.legend
 
