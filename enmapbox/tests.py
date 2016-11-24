@@ -72,10 +72,8 @@ def test_GUI():
     EB = EnMAPBox(None)
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
     if True:
-
-
         if True:
-            EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_LAI)
+            EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_LAI)
             EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_Image)
             EB.createDock('CURSORLOCATIONVALUE')
         if True: EB.createDock('MIME')
@@ -126,38 +124,39 @@ def test_dialog():
     qgsApp = QgsApplication([], True)
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-
+    #QT_PLUGIN_PATH = % OSGEO4W_ROOT %\apps\qgis\qtplugins;
+    # % OSGEO4W_ROOT %\apps\qt4\plugins
 
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
-    w = QMainWindow()
+    w = QDialog()
     w.setWindowTitle('Sandbox')
-    w.setLayout(QGridLayout())
+    w.setFixedSize(QSize(300,400))
+    l = QHBoxLayout()
+
     canvas = QgsMapCanvas(w, 'Canvas')
+    l.addWidget(canvas)
     canvas.setAutoFillBackground(True)
     canvas.setCanvasColor(Qt.black)
-    w.layout().addWidget(canvas)
+    canvas.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
+
+    w.setLayout(l)
+
     w.show()
-
-
 
 
     from enmapbox.gui.layerproperties import showLayerPropertiesDialog
     from enmapbox.main import TestData
+
     lyr = QgsRasterLayer(TestData.AF_Image)
+
     QgsMapLayerRegistry.instance().addMapLayer(lyr)
     canvas.setLayerSet([QgsMapCanvasLayer(lyr)])
-
-    showLayerPropertiesDialog(lyr, canvas, w)
-
-    s = ""
-
-
-    import enmapbox.main
+    canvas.setExtent(lyr.extent())
+    showLayerPropertiesDialog(lyr, canvas)
 
     qgsApp.exec_()
-
     qgsApp.exitQgis()
 
 
@@ -166,11 +165,10 @@ def test_dialog():
 if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
-    jp = os.path.join
-    DIR_ENMAPBOX = os.path.normpath(os.path.split(inspect.getfile(inspect.currentframe()))[0])
-    DIR_SITE_PACKAGES = jp(os.path.dirname(DIR_ENMAPBOX), 'site-packages')
+
+    from enmapbox import DIR_SITE_PACKAGES
     site.addsitedir(DIR_SITE_PACKAGES)
 
     #run tests
     if False: test_GUI()
-    if False: test_dialog()
+    if True: test_dialog()
