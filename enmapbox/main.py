@@ -64,14 +64,14 @@ class EnMAPBox_GUI(QtGui.QMainWindow,
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
-        self.setWindowIcon(getQIcon())
+        self.setWindowIcon(getIcon())
 
         pass
 
 
 
 
-def getQIcon(name=IconProvider.EnMAP_Logo):
+def getIcon(name=IconProvider.EnMAP_Logo):
     return QtGui.QIcon(name)
 
 
@@ -176,7 +176,7 @@ class EnMAPBox():
 
     @staticmethod
     def getIcon():
-        return getQIcon()
+        return getIcon()
 
     def run(self):
         self.gui.show()

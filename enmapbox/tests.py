@@ -170,5 +170,5 @@ if __name__ == '__main__':
     site.addsitedir(DIR_SITE_PACKAGES)
 
     #run tests
-    if False: test_GUI()
-    if True: test_dialog()
+    if True: test_GUI()
+    if False: test_dialog()

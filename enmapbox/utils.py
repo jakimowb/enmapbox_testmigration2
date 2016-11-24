@@ -20,7 +20,7 @@ def loadUIFormClass(pathUi, from_imports=False):
     """
     RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
     DIR_GUI = os.path.dirname(pathUi)
-
+    assert os.path.exists(pathUi)
     if pathUi not in FORM_CLASSES.keys():
         add_and_remove = DIR_GUI not in sys.path
         if add_and_remove:
@@ -30,23 +30,31 @@ def loadUIFormClass(pathUi, from_imports=False):
         #replace for <customwidget> with <class>Qgs...</class>
         #       <header>qgscolorbutton.h</header>
         # by    <header>qgis.gui</header>
-        doc = QDomDocument()
-        doc.setContent(QFile(pathUi))
-        elem = doc.elementsByTagName('customwidget')
-        for child in [elem.item(i) for i in range(elem.count())]:
-            child = child.toElement()
-            className = str(child.firstChildElement('class').firstChild().nodeValue())
-            if className.startswith('Qgs'):
-                cHeader = child.firstChildElement('header').firstChild()
-                cHeader.setNodeValue('qgis.gui')
 
-        #use in-memory file
-        file = QFile('qt_ui_in_memory.bj')
-        file.open(QFile.ReadWrite)
-        file.write(doc.toByteArray())
-        file.seek(0)
+        if True:
+            tmp = jp(os.path.dirname(pathUi), 'tmp.ui')
 
-        FORM_CLASS, _ = uic.loadUiType(file,from_imports=from_imports, resource_suffix=RC_SUFFIX)
+            doc = QDomDocument()
+            doc.setContent(QFile(pathUi))
+            elem = doc.elementsByTagName('customwidget')
+            overwrite = False
+            for child in [elem.item(i) for i in range(elem.count())]:
+                child = child.toElement()
+                className = str(child.firstChildElement('class').firstChild().nodeValue())
+                if className.startswith('Qgs'):
+                    cHeader = child.firstChildElement('header').firstChild()
+                    cHeader.setNodeValue('qgis.gui')
+                    overwrite=True
+            if overwrite:
+                s = str(doc.toString())
+                file = open(tmp, 'w')
+                file.write(s)
+                file.close()
+
+                pathUi = tmp
+        print(pathUi)
+        FORM_CLASS, _ = uic.loadUiType(pathUi,from_imports=from_imports, resource_suffix=RC_SUFFIX)
+
         if add_and_remove:
             sys.path.remove(DIR_GUI)
         FORM_CLASSES[pathUi] = FORM_CLASS
