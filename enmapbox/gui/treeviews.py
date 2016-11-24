@@ -514,7 +514,7 @@ class DockManagerTreeModel(TreeModel):
 
     def setLayerStyle(self, layer, canvas):
         import enmapbox.gui.layerproperties
-        enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, canvas)
+        enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas)
 
     def contextMenu(self, node):
         menu = QMenu()

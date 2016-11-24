@@ -10,7 +10,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import PyQt4.QtSvg
 
-from enmapbox.main import DIR_UI
+from enmapbox import DIR_UI
 from enmapbox.datasources import *
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
@@ -314,6 +314,8 @@ class DockWindow(QtGui.QMainWindow):
     def __init__(self, area, **kwargs):
         QtGui.QMainWindow.__init__(self, **kwargs)
         self.setWindowTitle('EnMAPBox')
+        import enmapbox.main
+        self.setWindowIcon(enmapbox.main.getIcon())
         self.setCentralWidget(area)
 
     def closeEvent(self, *args, **kwargs):
@@ -1227,7 +1229,7 @@ class DockManager(QObject):
         QObject.__init__(self)
         self.enmapbox = enmapbox
         self.dockarea = self.enmapbox.dockarea
-        self.DOCKS = set()
+        self.DOCKS = list()
 
         self.connectDockArea(self.dockarea)
         self.setCursorLocationValueDock(None)
@@ -1317,6 +1319,8 @@ class DockManager(QObject):
         if dock in self.DOCKS:
             self.DOCKS.remove(dock)
             self.sigDockRemoved.emit(dock)
+            return True
+        return False
 
     def createDock(self, docktype, *args, **kwds):
 
@@ -1345,7 +1349,7 @@ class DockManager(QObject):
         main = state['main']
         if is_new_dock:
             dock.sigClosed.connect(self.removeDock)
-            self.DOCKS.add(dock)
+            self.DOCKS.append(dock)
             self.dockarea.addDock(dock, *args, **kwds)
             self.sigDockAdded.emit(dock)
 
