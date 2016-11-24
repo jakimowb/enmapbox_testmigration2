@@ -65,15 +65,11 @@ def handleDialogSignals(info, data):
     print('Got data from dialog on {}: {}'.format(info,str(data)))
 
 
-
-if __name__ == '__main__':
-
-
+def run_example():
     # add site-packages to sys.path as done by enmapboxplugin.py
     jp = os.path.join
     from enmapbox import DIR_SITE_PACKAGES
     site.addsitedir(DIR_SITE_PACKAGES)
-
 
     # run tests
     PATH_QGS = os.environ['QGIS_PREFIX_PATH']
@@ -81,7 +77,7 @@ if __name__ == '__main__':
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
-    #use model -> blocking dialog
+    # use model -> blocking dialog
     D = TemplateDialogUI()
     result = D.exec_()
     if result == QDialog.Rejected:
@@ -89,14 +85,11 @@ if __name__ == '__main__':
     if result == QDialog.Accepted:
         print('Accepted Dialog Result: ' + str(D.my_result))
 
-
-
-
-    #use modeless -> non blocking dialog
-    #use signal to react on pressed buttons
+    # use modeless -> non blocking dialog
+    # use signal to react on pressed buttons
     D.sigApply.connect(lambda data: handleDialogSignals('apply', data))
-    D.rejected.connect(lambda : handleDialogSignals('canceled', D.my_result))
-    D.accepted.connect(lambda : handleDialogSignals('accepted', D.my_result))
+    D.rejected.connect(lambda data: handleDialogSignals('canceled', D.my_result))
+    D.accepted.connect(lambda data: handleDialogSignals('accepted', D.my_result))
 
     D.show()
     D.raise_()
@@ -104,8 +97,9 @@ if __name__ == '__main__':
 
     qgsApp.exec_()
 
-
-
-
     qgsApp.exitQgis()
+
+if __name__ == '__main__':
+    run_example()
+
 
