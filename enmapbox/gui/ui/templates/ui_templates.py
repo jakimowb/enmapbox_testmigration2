@@ -30,6 +30,7 @@ class TemplateDialogUI(QDialog,
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.setAttribute(Qt.WA_DeleteOnClose)
 
         #connect signals to (self defined) slots to implemente frontend-logic
 
@@ -84,12 +85,15 @@ def run_example():
         print('Canceled Dialog Result: ' + str(D.my_result))
     if result == QDialog.Accepted:
         print('Accepted Dialog Result: ' + str(D.my_result))
+    return
 
+
+    D = TemplateDialogUI()
     # use modeless -> non blocking dialog
     # use signal to react on pressed buttons
     D.sigApply.connect(lambda data: handleDialogSignals('apply', data))
-    D.rejected.connect(lambda data: handleDialogSignals('canceled', D.my_result))
-    D.accepted.connect(lambda data: handleDialogSignals('accepted', D.my_result))
+    #D.rejected.connect(lambda data: handleDialogSignals('canceled', D.my_result))
+    #D.accepted.connect(lambda data: handleDialogSignals('accepted', D.my_result))
 
     D.show()
     D.raise_()
