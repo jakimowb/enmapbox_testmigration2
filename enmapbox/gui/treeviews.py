@@ -483,8 +483,6 @@ class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
         return self.model.contextMenu(self.treeView.currentNode())
 
 
-
-
 class DockManagerTreeModel(TreeModel):
     def __init__(self, parent, enmapboxInstance):
 
@@ -514,7 +512,18 @@ class DockManagerTreeModel(TreeModel):
 
     def setLayerStyle(self, layer, canvas):
         import enmapbox.gui.layerproperties
-        enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas)
+        if True: #modal dialog
+            enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=True)
+        else:
+            #fix: we could use non-modal dialogs that do not block other windows
+            #this requires to store dialogs
+            d = enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=False)
+            global DIALOG
+            DIALOG = d
+            d.show()
+
+            #d.raise_()
+            #d.activateWindow()
 
     def contextMenu(self, node):
         menu = QMenu()
@@ -588,7 +597,10 @@ class DockManagerTreeModel(TreeModel):
     def mimeTypes(self):
         #specifies the mime types handled by this model
         types = [MimeDataHelper.MIME_DOCKTREEMODELDATA,
-                 MimeDataHelper.MIME_LAYERTREEMODELDATA]
+                 MimeDataHelper.MIME_LAYERTREEMODELDATA,
+                 MimeDataHelper.MIME_TEXT_HTML,
+                 MimeDataHelper.MIME_TEXT_PLAIN,
+                 MimeDataHelper.MIME_URILIST]
         return types
 
     def dropMimeData(self, mimeData, action, row, column, parent):

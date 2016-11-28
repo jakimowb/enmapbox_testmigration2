@@ -9,7 +9,7 @@ from PyQt4.QtGui import *
 from PyQt.QtCore import *
 import enmapbox
 enmapbox.DEBUG = True
-dpring = enmapbox.dprint
+dprint = enmapbox.dprint
 jp = os.path.join
 
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
@@ -59,7 +59,6 @@ def test_GUI():
         w.layout().addWidget(CanvasLinkTargetWidget(None, None, parent=w))
         w.show()
 
-    qgsReg = QgsMapLayerRegistry.instance()
     # add example images
 
 
@@ -98,6 +97,12 @@ def test_GUI():
     #   r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
     EB.run()
 
+    #how to get loaded data sources
+    from enmapbox.datasources import DataSourceRaster
+    rasterSources = [src for src in EnMAPBox.instance().dataSourceManager.sources if isinstance(src, DataSourceRaster)]
+    for src in rasterSources:
+        print(src.uri)
+
     qgsApp.exec_()
 
     qgsApp.exitQgis()
@@ -131,6 +136,7 @@ def test_dialog():
     qgsApp.initQgis()
 
     w = QDialog()
+
     w.setWindowTitle('Sandbox')
     w.setFixedSize(QSize(300,400))
     l = QHBoxLayout()
@@ -142,21 +148,27 @@ def test_dialog():
     canvas.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
     w.setLayout(l)
-
+    qgsApp.setActiveWindow(w)
     w.show()
+
+
+
 
 
     from enmapbox.gui.layerproperties import showLayerPropertiesDialog
     from enmapbox.main import TestData
 
-    lyr = QgsRasterLayer(TestData.AF_Image)
 
+    lyr = QgsRasterLayer(TestData.AF_Image)
     QgsMapLayerRegistry.instance().addMapLayer(lyr)
     canvas.setLayerSet([QgsMapCanvasLayer(lyr)])
     canvas.setExtent(lyr.extent())
-    showLayerPropertiesDialog(lyr, canvas)
 
-    qgsApp.exec_()
+
+    result = showLayerPropertiesDialog(lyr, canvas, modal=False)
+    print('Results {}'.format(result))
+
+    #qgsApp.exec_()
     qgsApp.exitQgis()
 
 

@@ -39,8 +39,13 @@ class TemplateDialogUI(QDialog,
         self.accepted.connect(self.onAccept)
         self.rejected.connect(self.onCancel)
 
+        self.myPushButton.clicked.connect(self.reactOnMyPushButton)
+
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.onApply)
         self.my_result = None
+
+    def reactOnMyPushButton(self):
+        print('MyPushButton clicked')
 
     def onApply(self):
         # implement what to do if user clicked on apply button
@@ -103,7 +108,39 @@ def run_example():
 
     qgsApp.exitQgis()
 
+def run_single_widget():
+    jp = os.path.join
+    from enmapbox import DIR_SITE_PACKAGES
+    site.addsitedir(DIR_SITE_PACKAGES)
+
+    # run tests
+    PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    qgsApp = QgsApplication([], True)
+    qgsApp.setPrefixPath(PATH_QGS, True)
+    qgsApp.initQgis()
+
+
+    w = QDialog()
+    w.setWindowTitle('My Sandbox')
+    w.setFixedSize(QSize(300,400))
+    l = QHBoxLayout()
+
+    from enmapbox.gui.layerproperties import MultiBandColorRendererWidget
+
+    my_ui = MultiBandColorRendererWidget.create(None, QgsRectangle())
+
+
+    l.addWidget(my_ui)
+    my_ui.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
+
+    w.setLayout(l)
+    qgsApp.setActiveWindow(w)
+    w.show()
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
 if __name__ == '__main__':
-    run_example()
+    #run_example()
 
-
+    run_single_widget()

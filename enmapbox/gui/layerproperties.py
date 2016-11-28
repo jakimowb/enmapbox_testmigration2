@@ -9,10 +9,13 @@ from PyQt4 import QtGui, QtCore, uic
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+import gdal, ogr
+
 from pyqtgraph.graphicsItems import *
+from enmapbox import dprint
 from enmapbox.utils import *
 from enmapbox.main import DIR_UI
-import gdal, ogr
+
 """
 class RasterLayerProperties(QgsOptionsDialogBase):
     def __init__(self, lyr, canvas, parent, fl=Qt.Widget):
@@ -61,9 +64,16 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
     def create(layer, extent):
         return MultiBandColorRendererWidget(layer, extent)
 
+
+    def closeEvent(self, event):
+        print('CLOSE EVENT')
+        event.accept()
+
+
     def __init__(self, layer, extent):
         super(MultiBandColorRendererWidget,self).__init__(layer, extent)
         self.setupUi(self)
+        self.setAttribute(Qt.WA_DeleteOnClose)
         self.createValidators()
 
         self.bandNames=None
@@ -285,13 +295,16 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
             self.mBlueBandComboBox.setCurrentIndex(self.mBlueBandComboBox.findText('Blue'))
 
 
+#class RasterLayerProperties(QDialog,
 class RasterLayerProperties(QgsOptionsDialogBase,
         loadUIFormClass(os.path.normpath(jp(DIR_UI, 'rasterlayerpropertiesdialog.ui')),
                                    )):
     def __init__(self, lyr, canvas, parent=None):
         """Constructor."""
         title = 'RasterLayerProperties'
-        super(RasterLayerProperties, self).__init__(title, parent, Qt.Dialog, settings=QSettings())
+        super(RasterLayerProperties, self).__init__(title, parent, Qt.Dialog, settings=None)
+        #super(RasterLayerProperties, self).__init__(parent, Qt.Dialog)
+
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use auto connect slots - see
@@ -403,21 +416,15 @@ def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
 
     if isinstance(layer, QgsRasterLayer):
         d = RasterLayerProperties(layer, canvas, parent)
-        d.setSettings(QSettings())
+        #d.setSettings(QSettings())
     elif isinstance(layer, QgsVectorLayer):
         d = VectorLayerProperties(layer, canvas, parent)
     else:
         assert NotImplementedError()
 
-    d.setModal(modal == True)
-    if modal:
-        d.exec_()
-
+    if modal == True:
+        d.setModal(True)
+        return  d.exec_()
     else:
-        d.show()
-        d.raise_()
-        d.activateWindow()
-
-    #return d.result()
-
-
+        d.setModal(False)
+        return d

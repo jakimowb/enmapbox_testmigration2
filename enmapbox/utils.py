@@ -52,7 +52,7 @@ def loadUIFormClass(pathUi, from_imports=False):
                 file.close()
 
                 pathUi = tmp
-        print(pathUi)
+        dprint('Load UI file: {}'.format(pathUi))
         FORM_CLASS, _ = uic.loadUiType(pathUi,from_imports=from_imports, resource_suffix=RC_SUFFIX)
 
         if add_and_remove:
