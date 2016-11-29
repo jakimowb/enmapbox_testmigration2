@@ -21,7 +21,7 @@ def test():
     folder4a = r'C:\Work\data\gms\landsatTimeseriesMGRS_ENVI'
     folder4b = r'C:\Work\data\gms\landsatTimeseriesMGRS_GTiff'
 
-    folder5 = r'C:\Work\data\gms\productsMGRS'
+    folder5 = r'C:\Work\data\gms\productsMGRS2'
     folder6 = r'C:\Work\data\gms\stacksMGRS'
 
     folderLucas = r'C:\Work\data\gms\lucasMGRS'

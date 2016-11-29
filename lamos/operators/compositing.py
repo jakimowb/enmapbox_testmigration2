@@ -530,10 +530,10 @@ class StatisticsApplier(Applier):
 
             # - valid observation counts
             count = numpy.sum(numpy.logical_not(getCube('invalid', inputs, bbl)), axis=0, dtype=numpy.int16, keepdims=True)
-            count = numpy.sum(getCube('clearWater', inputs, bbl), axis=0, dtype=numpy.int16, keepdims=True)
+            countWater = numpy.sum(getCube('clearWater', inputs, bbl), axis=0, dtype=numpy.int16, keepdims=True)
 
             outputs.__dict__['statistics_count_' + dateParameters.getName()] = count
-            outputs.__dict__['statistics_countwater_' + dateParameters.getName()] = count
+            outputs.__dict__['statistics_countwater_' + dateParameters.getName()] = countWater
 
     @staticmethod
     def userFunctionMeta(inmetas, outmetas, otherArgs):

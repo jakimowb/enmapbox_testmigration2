@@ -53,40 +53,47 @@ def workflow_colloquium2016():
     pixelGridOversampled = pixelGridTagret.newResolution(resolution=3)
 
     # create class occurence image at finer resolution
-    classification = vector.asClassification(pixelGrid=pixelGridOversampled, filename=r'c:\work\data\__class_occurrenceClasses.tif')
+    occurrenceC = vector.asClassification(pixelGrid=pixelGridOversampled, filename=r'c:\work\data\__class_occurrenceC.tif')
+    occurrenceP = occurrenceC.asProbability(filename=r'c:\work\data\__class_occurrenceP.tif')
 
-
-    return
-    # create class occurence image at finer resolution
-    occurrence = vector.createOccurrence(filename=r'c:\work\data\__class_occurrence.tif', pixelGrid=enmap.pixelGrid,
-                                         oversamplingRate=10)
-    occurrenceRGB = occurrence.rgbClassColorComposite(filename=r'c:\work\data\__class_occurrence_rgb.tif')
+    occurrenceP_RGB = occurrenceP.rgbClassColorComposite(filename=r'c:\work\data\__class_occurrenceP_rgb.tif')
 
     # create class fraction image at target resolution
-    fraction = occurrence.resample(filename=r'c:\work\data\__class_fraction.vrt', pixelGrid=enmap.pixelGrid)
+    fraction = occurrenceP.resample(filename=r'c:\work\data\__class_fraction.vrt', pixelGrid=enmap.pixelGrid)
     fractionRGB = fraction.rgbClassColorComposite(filename=r'c:\work\data\__class_fraction_rgb.img')
 
-    # create classification sample
-    classification = fraction.argmaxProbabilityClassification(filename=r'c:\work\data\__class_win50_cum50.img', minWinProb=0.5, minCumProb=0.5)
+    # create classification sample and map
+    '''trainC = fraction.argmaxProbabilityClassification(filename=r'c:\work\data\__class_win50_cum50.img', minWinProb=0.5, minCumProb=0.5)
+    rfc_proba = Classifiers.RandomForestClassifier(n_estimators=100).fit(image=enmap, labels=trainC).predictProbability(image=enmap, filename=r'c:\work\data\__rfc_proba')
+    rfc_probaRGB = rfc_proba.rgbClassColorComposite(filename=r'c:\work\data\__rfc_proba_rgb')
+    rfc_map = rfc_proba.argmaxProbabilityClassification(filename=r'c:\work\data\__rfc_class')'''
 
-    # create regression sample
-    fraction = Probability(fraction.filename)
-    regression = fraction.applyMask(mask=classification, value=-1, filename=r'c:\work\data\__regress_win50_cum50.img')
+    # create regression sample and map
+    trainC = fraction.argmaxProbabilityClassification(filename=r'c:\work\data\__class_win00_cum90.img', minWinProb=0., minCumProb=0.9)
+    trainR = fraction.applyMask(mask=trainC, value=-1, filename=r'c:\work\data\__regress_win00_cum90.img')
+    trainR.rgbClassColorComposite(filename=r'c:\work\data\__regress_win00_cum90_rgb')
+
+    rfr = Regressors.RandomForestRegressor(n_estimators=100)
+    rfr.fit(image=enmap, labels=trainR)
+    rfr_fraction = rfr.predict(image=enmap, filename=r'c:\work\data\__rfr_fraction').asProbability()
+    frf_fractionRGB = rfr_fraction.rgbClassColorComposite(filename=r'c:\work\data\__rfr_fraction_rgb')
+    rfr_map = rfr_fraction.argmaxProbabilityClassification(filename=r'c:\work\data\__rfr_class')
 
     # craete maps
-    rfc_proba = Classifiers.RandomForestClassifier(n_estimators=100).fit(image=enmap, labels=classification).predictProbability(image=enmap, filename=r'c:\work\data\__rfc_proba')
-    rfc_probaRGB = rfc_proba.rgbClassColorComposite(filename=r'c:\work\data\__rfc_proba_rgb')
-    rfc_map = rfc_proba.argmaxProbabilityClassification(filename=r'c:\work\data\__rfc_class')
 
     print('done')
 
+
+
 def workflow_colloquium2016_short():
 
-    enmap = Image(filename=r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq')
-    vector = VectorClassification(filename=r'C:\Work\data\EnMAPUrbanGradient2009\02_additional_data\land_cover\LandCov_Vec_Berlin_Urban_Gradient_2009.shp',
-                                  idField='ID_L2', nameField='Level_2', colorField='RGB_L2')
+    enmap = Image(filename='EnMAP02_Berlin_Urban_Gradient_2009.bsq')
+    vector = VectorClassification(filename='LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
 
-    train = vector.createOccurrence(pixelGrid=enmap.pixelGrid, oversamplingRate=10)\
+    pixelGridEnMAP = enmap.pixelGrid
+    pixelGridOversampled = pixelGridEnMAP.newResolution(resolution=3)
+
+    train = vector.createOccurrence(pixelGrid=pixelGridEnMAP, oversamplingRate=10)\
         .resample(pixelGrid=enmap.pixelGrid)\
         .argmaxProbabilityClassification(minWinProb=0.5, minCumProb=0.5)
 
@@ -94,8 +101,28 @@ def workflow_colloquium2016_short():
         .predictProbability(image=enmap)\
         .rfc_proba.argmaxProbabilityClassification()
 
+def workflow_colloquium2016_short2():
 
-    a=classification
+    enmap = Image(filename='EnMAP02_Berlin_Urban_Gradient_2009.bsq')
+    vector = VectorClassification(filename='LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
+
+    pixelGridEnmap = enmap.pixelGrid
+    pixelGridOversampled = pixelGridEnmap.newResolution(resolution=3)
+
+    fractions = vector.asClassification(pixelGrid=pixelGridOversampled)\
+        .asProbability()\
+        .resample(pixelGrid=pixelGridEnmap)
+    mask = fractions.argmaxProbabilityClassification(minCumProb=0.9)
+    train = fractions.applyMask(mask=mask)
+
+    mappedFractions = Regressors.RandomForestRegressor(n_estimators=100)\
+        .fit(image=enmap, labels=train)\
+        .predict(image=enmap)
+    mappedLandCover = mappedFractions.asProbability().argmaxProbabilityClassification()
+
+
+
+    a=mappedLandCover
 
 def image():
     image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
@@ -114,9 +141,14 @@ def classification():
     mask =  Image(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
     labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
 
+    Classifiers.RandomForestClassifier(n_estimators=100).fit(image, labels)\
+        .predictProbability(image, filename=r'c:\work\_prob.tif')\
+        .rgbClassColorComposite(filename=r'c:\work\_rgb.tif')
+    return
+
     classifiers = [Classifiers.RandomForestClassifier(n_estimators=100)]
     #classifiers = [Classifiers.DummyClassifier()]
-    classifiers = [Classifiers.SVCTuned()]
+    #classifiers = [Classifiers.SVCTuned()]
     # classifiers = all(Classifiers)
 
     for classifier in classifiers:
@@ -453,6 +485,32 @@ def ar_debug3():
     ds.SetProjection(projectionRef)
     ds.SetGeoTransform(geoTransform)
     ds = None
+
+def warp_stack():
+    from os.path import join
+    from hub.file import filesearch
+    from hub.gdal.util import gdalbuildvrt, gdalwarp
+    from hub.gdal.api import GDALMeta
+
+    # set paths
+    root = r'C:\Users\janzandr\Desktop\class_full22112016'
+    outfile = join(root, 'mosaick.vrt')
+    infilesUTM = filesearch(dir=root, pattern='classification.bsq')
+    infilesEPSG3035 = [infile.replace('.bsq', '_warped.vrt') for infile in infilesUTM]
+
+    # warp to EPSG:3035
+    for infileUTM, infileEPSG3035 in zip(infilesUTM, infilesEPSG3035):
+        gdalwarp(outfile=infileEPSG3035, infile=infileUTM, options='-of VRT -t_srs EPSG:3035 -overwrite -tr 30 30')
+
+    # mosaick
+    gdalbuildvrt(outfile=outfile, infiles=infilesEPSG3035)
+
+    # set meta data
+    inmeta = GDALMeta(infilesUTM[0]) # take meta from first file
+    outmeta = GDALMeta(outfile)
+    outmeta.setClassificationMetadata(*inmeta.getClassificationMetadata())
+    outmeta.writeMeta()
+
 
 if __name__ == '__main__':
 

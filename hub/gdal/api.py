@@ -216,21 +216,6 @@ class GDALMeta():
         if self.getMetadataItem('band names') is None:
             self.setMetadataItem('band names', bandNames)
 
-        # Treat a single band image with color table and category names like an ENVI Classification image.
-        # Number of classes must be infered from the number of categories, because color tables from GTiff always
-        # contain 256 entries. If the category names are undefined, the image is not a valid classification image!
-        if ds.RasterCount == 1:
-            rb = ds.GetRasterBand(1)
-            if rb.GetCategoryNames() is not None:
-                self.colorTable.setSwigColorTable(rb.GetColorTable())
-                self.categoryNames = rb.GetCategoryNames()
-
-                classNames = self.categoryNames
-                classes = len(classNames)
-                classLookup = self.colorTable.getRGBFlatList()[0:3*classes+1] # must trim color vector because color table might contain fill values for all 256 categories (problem occurs for GTiff only)
-
-                self.setClassificationMetadata(classes=classes, classNames=classNames, classLookup=classLookup)
-
         self.ProjectionRef = ds.GetProjectionRef()
         self.GeoTransform = ds.GetGeoTransform()
         self.RasterXSize = ds.RasterXSize
@@ -414,7 +399,7 @@ class GDALMeta():
     def setClassificationMetadata(self, classes, classNames, classLookup):
 
         assert len(classNames) == classes
-        assert len(classLookup) == classes*3
+        assert len(classLookup) == classes*3, str(len(classLookup))+'  '+str(classes*3)
         self.setMetadataItem('file type', 'ENVI Classification')
         self.setMetadataItem('classes', classes)
         self.setMetadataItem('class names', classNames)

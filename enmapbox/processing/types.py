@@ -24,10 +24,11 @@ from matplotlib import gridspec
 import gdal
 
 # global EnMAP-Box image format and creation options used by all operators
-CO_VALUE = ['TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256', 'COMPRESS=LZW', 'INTERLEAVE=BAND']
+OF = 'GTiff'
+CO = ['TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256', 'COMPRESS=LZW', 'INTERLEAVE=BAND']
 
-OF = ' -of GTiff'
-CO = ' '+' '.join(['-co '+co for co in CO_VALUE])
+OF_STR = ' -of '+OF
+CO_STR = ' '+' '.join(['-co '+co for co in CO])
 
 
 # set default progress object
@@ -67,10 +68,6 @@ class Type():
 
 class Meta(GDALMeta):
 
-    def isMask(self):
-
-        return self.RasterCount == 1
-
     def isClassification(self):
 
         return (self.getMetadataItem('file_type').lower() == 'envi classification'
@@ -79,8 +76,7 @@ class Meta(GDALMeta):
 
     def isRegression(self):
 
-        return (self.isMask
-                and self.getNoDataValue('data_ignore_value') is not None)
+        return self.getNoDataValue('data_ignore_value') is not None
 
     def isProbability(self):
 
@@ -149,7 +145,7 @@ class VectorClassification(Vector):
 
         self.setClassificationScheme(classNames, classLookup)
 
-    def occurrenceImage(self, pixelGrid, oversamplingRate=1., filename=None, of='GTiff', ot='Byte'):
+    '''def occurrenceImage(self, pixelGrid, oversamplingRate=1., filename=None, of='GTiff', ot='Byte'):
 
         if filename is None: filename = Environment.tempfile()
 
@@ -170,20 +166,16 @@ class VectorClassification(Vector):
         occurrence.meta.setProbabilityMetadata(classes=self.classes, classNames=self.classNames, classLookup=self.classLookup)
         occurrence.meta.writeMeta()
 
-        return Probability(occurrence.filename)
+        return Probability(occurrence.filename)'''
 
     def asClassification(self, pixelGrid, filename=None, verbose=True):
         if filename is None: filename = Environment.tempfile()
 
         # create image to burn into
-        occurrence = pixelGrid.createImage(bands=1, filename=filename, ot='Byte', fill=0)
-
+        pixelGrid.createImage(bands=1, filename=filename, ot='Byte', fill=0)
 
         # burn class geometries
-        options  = ' -a '+self.idField
-        options += OF
-        options += CO
-        options += ' -ot Byte'
+        options  = ' -b 1 -a '+self.idField
         gdal_rasterize(outfile=filename, infile=self.filename, options=options, verbose=verbose)
 
         # set metainfos
@@ -217,7 +209,7 @@ class PixelGrid(PixelGridDefn):
 
         dataType = eval('gdal.GDT_' + ot)
         ysize, xsize = self.getDimensions()
-        driver = gdal.GetDriverByName(of)
+        driver = gdal.GetDriverByName(OF)
         ds = driver.Create(filename, xsize, ysize, bands, dataType) #,creation_options)
         ds.SetGeoTransform(self.makeGeoTransform())
         ds.SetProjection(self.projection)
@@ -254,6 +246,9 @@ class Image(Type):
         self.filename = filename
         self.meta = Meta(filename)
         self.pixelGrid = PixelGrid(pixelGridFromFile(self.filename))
+
+    def asProbability(self):
+        return Probability(self.filename)
 
     def saveAs(self, filename=None, options=''):
 
@@ -609,13 +604,7 @@ class ImageStatistics(Type):
 
 class Mask(Image):
 
-    def __init__(self, filename):
-
-        Image.__init__(self, filename)
-        assert self.meta.isMask()
-
     def getLocations(self):
-
         dataSample = PixelExtractor(self).extractByMask(self)
         return dataSample.locations
 
@@ -635,6 +624,7 @@ class Classification(Mask):
 
         Mask.__init__(self, filename)
         assert self.meta.isClassification()
+        self.classes, self.classNames, self.classLookup = self.meta.getClassificationMetadata()
 
     def assessClassificationPerformance(self, classification, stratification=None, useRandomAccessReader=True):
 
@@ -703,6 +693,35 @@ class Classification(Mask):
 
         return self.__class__(filename)
 
+    def asProbability(self, filename=None):
+        if filename is None: filename = Environment.tempfile()
+
+        # binary encode classes
+        infiles = rios.applier.FilenameAssociations()
+        outfiles = rios.applier.FilenameAssociations()
+        args = rios.applier.OtherInputs()
+        infiles.c = self.filename
+        outfiles.p = filename
+        args.self = self
+        controls = ApplierControls()
+
+        def ufunc(info, inputs, outputs, args):
+
+            p_shape = (args.self.classes-1,)+inputs.c.shape[1:]
+            outputs.p = numpy.zeros(p_shape, dtype=numpy.float32)
+            # recode ids
+            for c in range(1, args.self.classes):
+                outputs.p[c-1] = inputs.c == c
+
+        # Apply the function to the inputs, creating the outputs.
+        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+
+        # set metainfos
+        outmeta = Meta(filename)
+        outmeta.setProbabilityMetadata(classes=self.classes, classNames=self.classNames, classLookup=self.classLookup)
+        outmeta.writeMeta()
+
+        return Probability(filename)
 
 class Regression(Mask):
 
@@ -844,7 +863,8 @@ class Estimator(Type):
     def fit(self, image, labels, progress=progress):
 
         assert isinstance(image, Image)
-        sample = SupervisedSample.fromLocations(image, labels, labels.getLocations())
+        locations = labels.getLocations()
+        sample = SupervisedSample.fromLocations(image, labels, locations)
         return self.fitSample(sample, progress=progress)
 
     def fitSample(self, sample, progress=progress):
@@ -854,7 +874,9 @@ class Estimator(Type):
 
         X = sample.featureSample.dataSample.data.astype(numpy.float64)
         y = sample.labelsSample.dataSample.data
-        self.sklEstimator.fit(X=X, y=y[:,0])
+        if y.shape[1] == 1:
+            y = y.ravel()
+        self.sklEstimator.fit(X=X, y=y)
         return self
 
 
@@ -901,19 +923,18 @@ class Estimator(Type):
             percentage = int((info.xblock + info.yblock * info.xtotalblocks) / float(info.xtotalblocks * info.ytotalblocks) * 100)
             args.progress.setPercentage(percentage)
 
-
             # reshape to 2d
             shape3d = inputs.x.shape
             for k, v in inputs.__dict__.items(): inputs.__dict__[k] = inputs.__dict__[k].reshape((v.shape[0], -1))
             shape2d = inputs.x.shape
 
             # create mask
-            valid = True
-            # - from x
-            if args.xMeta.getNoDataValue() is not None:
-                valid *= numpy.any(inputs.x != args.xMeta.getNoDataValue(), axis=0)
-            # - from m
-            if args.useMask: valid *= numpy.any(inputs.m != args.mMeta.getNoDataValue(0), axis=0)
+
+            if args.useMask:
+                valid = numpy.all(inputs.m != args.mMeta.getNoDataValue(0), axis=0)
+            else:
+                valid = numpy.ones(inputs.x[0].shape, dtype=numpy.bool)
+
             valid = numpy.ravel(valid)
 
             allValid = valid.all()
@@ -923,6 +944,7 @@ class Estimator(Type):
                 valid = [0]
 
             # predict valid samples
+            n_outputs_ = self.sklEstimator._final_estimator.n_outputs_
             if probafile:
 
                 if allValid:
@@ -931,11 +953,10 @@ class Estimator(Type):
                     valid_proba = self.sklEstimator.predict_proba(inputs.x.T[valid], )
 
             if predictfile:
-
                 if allValid:
-                    valid_predict = self.sklEstimator.predict(inputs.x.T.astype(numpy.float64)).reshape(-1, 1)
+                    valid_predict = self.sklEstimator.predict(inputs.x.T.astype(numpy.float64)).reshape(-1, n_outputs_)
                 else:
-                    valid_predict = self.sklEstimator.predict(inputs.x.T[valid].astype(numpy.float64)).reshape(-1, 1)
+                    valid_predict = self.sklEstimator.predict(inputs.x.T[valid].astype(numpy.float64)).reshape(-1, n_outputs_)
 
                 if isinstance(self, Clusterer):
                     valid_predict += 1
@@ -975,7 +996,7 @@ class Estimator(Type):
                 if allValid:
                     outputs.predict = valid_predict.astype(self.predictDType())
                 else:
-                    outputs.predict = numpy.full((shape2d[1], 1), dtype=self.predictDType(),
+                    outputs.predict = numpy.full((shape2d[1], n_outputs_), dtype=self.predictDType(),
                                                  fill_value=self.predictNoDataValue())
                     outputs.predict[valid] = valid_predict
 
@@ -1045,7 +1066,10 @@ class Estimator(Type):
     def predictMeta(self, meta, imate, mmeta):
 
         meta.setNoDataValue(self.predictNoDataValue())
-        meta.setBandNames([self.name()])
+        if self.sample.labelsSample.dataSample.meta.isProbability():
+            meta.setProbabilityMetadata(*self.sample.labelsSample.dataSample.meta.getProbabilityMetadata())
+        else:
+            meta.setBandNames(*self.sample.labelsSample.dataSample.meta.getBandNames())
 
 
     def transformNoDataValue(self):
@@ -1276,7 +1300,7 @@ class UncertaintyClassifier(Classifier):
 
 class Regressor(Estimator):
 
-    def predict(self, image, mask, filename=Environment.tempfile('regression'), progress=progress):
+    def predict(self, image, mask=None, filename=Environment.tempfile('regression'), progress=progress):
 
         self._predict(image, mask, predictfile=filename, progress=progress)
         return Regression(filename)
@@ -1416,7 +1440,7 @@ class PixelExtractor():
         rios.applier.apply(userFunction=PixelExtractor._extractByMask_ufunc, infiles=infiles, outfiles=outfiles, otherArgs=args, controls=controls)
 
         imageData = numpy.hstack(args.imageData).T
-        maskData = numpy.hstack(args.maskData)
+        maskData = numpy.hstack(args.maskData).T
         pixelX = numpy.hstack(args.pixelX)
         pixelY = numpy.hstack(args.pixelY)
 
@@ -1424,10 +1448,7 @@ class PixelExtractor():
         imageDataSample = DataSample(imageData, self.image.meta)
         maskDataSample = DataSample(maskData, mask.meta)
         featureSample = ImageSample(dataSample=imageDataSample, locations=locations, filename=self.image.filename)
-        labelsSample = ImageSample(dataSample=maskDataSample, locations=locations, filename=mask.filename)
         return featureSample
-
-        #return SupervisedSample(featureSample=featureSample, labelsSample=labelsSample)
 
     @staticmethod
     def _extractByMask_ufunc(info, inputs, outputs, args):
@@ -1438,11 +1459,11 @@ class PixelExtractor():
 
         # find valid pixel
         noDataValue = args.mask.meta.getNoDataValue(default=0)
-        valid = inputs.mask != noDataValue
+        valid = numpy.all(inputs.mask != noDataValue, axis=0, keepdims=True)
 
         # extract data
         args.imageData.append(inputs.image[:, valid[0]])
-        args.maskData.append(inputs.mask[valid])
+        args.maskData.append(inputs.mask[:, valid[0]])
 
         # calculate pixel location
         yindex_all, xindex_all = numpy.indices((lines, samples))
@@ -2061,5 +2082,3 @@ class ProbabilityPerformance(Type):
 
         return report
 
-if __name__ == '__main__':
-    print(' '.join(['-co '+co for co in CO_VALUE]))

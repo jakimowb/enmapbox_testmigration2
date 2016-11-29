@@ -41,7 +41,7 @@ def gdalwarp(outfile, infile, options, verbose=True):
 
     return outfile
 
-def gdalbuildvrt(outfile, infiles, options, verbose=True):
+def gdalbuildvrt(outfile, infiles, options='', verbose=True):
 
     hub.file.mkdir(os.path.dirname(outfile))
 
