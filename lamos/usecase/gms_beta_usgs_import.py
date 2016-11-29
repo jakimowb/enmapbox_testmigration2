@@ -10,7 +10,7 @@ from lamos.operators.landsat_x import LandsatXComposer
 from hub.timing import tic, toc
 from hub.datetime import Date
 
-def run(infolder, outfolder, tmpfolder, processes):
+def run(infolder, outfolder, tmpfolder, start, end, processes):
 
     # path to shapefiles with WRS2 and MGRS Geometries
     MGRSFootprint.shpRoot = r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files'
@@ -55,6 +55,8 @@ if __name__ == '__main__':
         processes=1
 
     tic()
-    run(infolder=infolder, outfolder=outfolder, tmpfolder=tmpfolder, processes=processes)
+    start = Date(2014, 1, 1)
+    end = Date(2016, 6, 30)
+    run(infolder=infolder, outfolder=outfolder, tmpfolder=tmpfolder, start=start, end=end, processes=processes)
     toc()
 

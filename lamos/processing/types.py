@@ -300,6 +300,13 @@ class SensorXComposer:
             if not os.path.exists(infiles[0]): continue
             hub.gdal.util.stack_bands(outfile=outfile, infiles=infiles, inbands=inbands, verbose=False)
 
+            # set metadate
+            meta = Meta(outfile)
+            meta.setBandNames(imageStack.metas['band names'])
+            meta.setNoDataValue(imageStack.metas['data ignore value'])
+            for key, value in imageStack.metas.items():
+                meta.setMetadataItem(key=key, value=value)
+            meta.writeMeta(outfile)
         return Product(folder)
 
 
@@ -335,7 +342,7 @@ class Archive(Type):
 
     def __init__(self, folder):
         if folder is not None:
-            assert os.path.exists(folder)
+            assert os.path.exists(folder), folder
         self.folder = folder
 
 
