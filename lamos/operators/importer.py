@@ -1,5 +1,5 @@
 from __future__ import division
-from lamos.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
+from lamos.processing.types import Applier, ApplierInput, ApplierOutput, MGRSArchive, MGRSFootprint
 import numpy
 from hub.timing import tic, toc
 import hub.ogr.util, os, hub.gdal.util
