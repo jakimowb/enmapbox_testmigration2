@@ -27,6 +27,12 @@ class EnMAPBoxPlugin:
     def __init__(self, iface):
         self.iface = iface
 
+        #activate python console. this is required to redirect all printouts done to stdout / stderr
+        import console.console as CONSOLE
+        if CONSOLE._console is None:
+            CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
+            QTimer.singleShot(0, CONSOLE._console.activate)
+
 
     def has_processing_framework(self):
         try:
@@ -106,13 +112,6 @@ class EnMAPBoxPlugin:
 
     def run(self):
         from enmapbox.main import EnMAPBox
-
-        # open QGIS python console. this is required to allow for print() statements in the source code.
-        if isinstance(self.iface, QgisInterface):
-            import console
-            c = console.show_console()
-            c.setVisible(True)
-
 
         self.enmapbox = EnMAPBox.instance()
         if not self.enmapbox:
