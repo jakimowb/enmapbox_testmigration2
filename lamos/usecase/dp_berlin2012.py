@@ -54,7 +54,7 @@ def test():
     #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=50)
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
-    #tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
+    tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
     #MGRSArchive(folder3).saveAsGTiff(folder3b, filter=mgrsFootprints, processes=50)
 
     tsBuilder = TimeseriesBuilder(start=start, end=None)
@@ -101,5 +101,16 @@ def test():
 if __name__ == '__main__':
 
     tic()
-    test()
+    #test()
     toc()
+
+    import gdal
+    from os import chdir
+
+    chdir(r'H:\EuropeanDataCube\sentinel2\Processing\L2A_TOI\S2A_USER_PRD_MSIL2A_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.SAFE')
+    ds = gdal.Open(r'SENTINEL2_L2A:S2A_USER_MTD_SAFL2A_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.xml:20m:EPSG_32633')
+    for i in range(ds.RasterCount):
+        print(ds.GetRasterBand(i+1).GetDescription())
+
+    ds = gdal.Open(r'S2A_USER_MTD_SAFL2A_PDMC_20151224T192602_R065_V20151224T103329_20151224T103329.xml')
+    print(ds.GetSubDatasets())

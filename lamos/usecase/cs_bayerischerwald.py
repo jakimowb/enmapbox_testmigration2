@@ -20,14 +20,18 @@ def test():
 
     WRS2Footprint.createUtmLookup(infolder=folder1)
 
-    wrs2Footprints = ['191026','192026','193026']
-    mgrsFootprints = ['33UUP', '33UUQ', '33UVP', '33UVQ']
 
-    start = Date(1985, 1, 1)
-    end = Date(2015, 12, 31)
+    #wrs2Footprints = ['191026','192026','193026']
+    #mgrsFootprints = ['33UUP', '33UUQ', '33UVP', '33UVQ']
 
-    i=3
-    mgrsFootprints = mgrsFootprints[i:i+1]
+
+    wrs2Footprints = ['188026']
+    mgrsFootprints = ['34UCV']
+
+    start = Date(2016, 1, 1)
+    end = Date(2016, 12, 31)
+
+    #mgrsFootprints = mgrsFootprints[i:i+1]
 
     composer = LandsatXComposer()
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=50)
@@ -35,26 +39,23 @@ def test():
     tilingScheme = MGRSTilingScheme(pixelSize=30)
     tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
 
-    MGRSArchive(folder3).saveAsGTiff(outfolder=folder3b, compress='NONE', filter=mgrsFootprints, processes=100)
-
+    MGRSArchive(folder3).saveAsGTiff(outfolder=folder3b, compress='LZW', filter=mgrsFootprints, processes=100)
 
     tsBuilder = TimeseriesBuilder(start=start, end=end)
-    #tsBuilder.build(infolder=folder3b, outfolder=folder4, inextension='.tif', footprints=mgrsFootprints)
+    tsBuilder.build(infolder=folder3b, outfolder=folder4, inextension='.tif', footprints=mgrsFootprints)
     #tsBuilder.build(infolder=folder3, outfolder=folder4, inextension='.vrt', footprints=mgrsFootprints, processes=50)
 
     #MGRSArchive(folder4).saveAsGTiff(outfolder=folder4b, compress='NONE', filter=mgrsFootprints, processes=5)
-
-
     #MGRSArchive(folder4).saveAsENVI(outfolder=folder4b, filter=mgrsFootprints, processes=10)
 
-    applier = StatisticsApplier(infolder=folder4b, outfolder=folder5,
-                                footprints=mgrsFootprints, inextension='.tif', of='ENVI',
-                                percentiles=[5,25,50,75,95], variables=['tcb','tcg','tcw'], mean=False, stddev=False)
+    applier = StatisticsApplier(infolder=folder4, outfolder=folder5,
+                                footprints=mgrsFootprints, inextension='.vrt', of='ENVI',
+                                percentiles=[50], variables=['tcb','tcg','tcw','nbr'], mean=True, stddev=True)
 
-    bufferYears = 1
+    bufferYears = 0
     years = range(start.year, end.year + 1)
     for year in years:
-        applier.appendDateParameters(date1=Date(year, 1, 1), date2=Date(year, 12, 31), bufferYears=bufferYears)
+        applier.appendDateParameters(date1=Date(year, 6, 1), date2=Date(year, 10, 31), bufferYears=bufferYears)
 
     applier.controls.setWindowXsize(256)
     applier.controls.setWindowYsize(256)
@@ -63,6 +64,7 @@ def test():
 
 if __name__ == '__main__':
 
+    gdal.SetCacheMax(10)  # MB
     tic()
     test()
     toc()
