@@ -765,7 +765,7 @@ class Image():
     def __init__(self, filename):
         self.filename = filename
 
-    def cutMGRSFootprintAndResample(self, dirname, productname, footprint, buffer, resolution, anchor, ot=None, r=None,
+    def cutMGRSFootprintAndResample(self, dirname, productname, imagename, footprint, buffer, resolution, anchor, ot=None, r=None,
                          north=True, west=True, south=True, east=True):
 
         assert isinstance(footprint, MGRSFootprint)
@@ -774,7 +774,7 @@ class Image():
                                            north=north, west=west, south=south, east=east)
         folder = join(dirname, productname)
 
-        outfile = join(folder, basename(self.filename))[:-4]+'.vrt'
+        outfile = join(folder, imagename+'.vrt')
         if not exists(outfile):
             options  = '-overwrite -of VRT'
             if ot is not None: options += ' -ot '+ot
@@ -785,19 +785,30 @@ class Image():
             gdalwarp(outfile=outfile, infile=self.filename, options=options, verbose=True)
             GDALMeta(outfile).copyMetadata(GDALMeta(self.filename)).writeMeta()
 
-        return Tile(folder=folder, footprint=footprint, imagename=basename(outfile)[:-4])
+        return Tile(folder=folder, footprint=footprint, imagename=imagename)
 
 
-    def importIntoDataCube(self, dirname, productname, footprints, resolution, buffer, anchor):
+    def importIntoDataCube(self, dirname, productname, imagename, footprints, resolution, buffer, anchor, bandnames=None, ot=None, r=None):
 
         assert isinstance(footprints, MGRSFootprintCollection)
         assert isinstance(resolution, int)
         assert isinstance(buffer, int)
 
+        tileCollection = TileCollection()
         for footprint in footprints:
             tile = self.cutMGRSFootprintAndResample(dirname=join(dirname, *footprint.subfolders),
                                                     productname=productname,
-                                                    footprint=footprint, buffer=buffer, resolution=resolution, anchor=anchor)
+                                                    imagename=imagename,
+                                                    footprint=footprint, buffer=buffer, resolution=resolution, anchor=anchor,
+                                                    ot=ot, r=r)
+            tileCollection.tiles.append(tile)
+            if bandnames is not None:
+                meta = GDALMeta(tile.filename)
+                meta.setBandNames(bandnames)
+                meta.writeMeta()
+
+        return tileCollection
+
 
 class Tile():
 
@@ -831,6 +842,17 @@ class Tile():
             outmeta = GDALMeta(outfile)
             outmeta.copyMetadata(inmeta).writeMeta()
 
+class TileCollection():
+
+    def __init__(self):
+
+        self.tiles = list()
+
+    def __iter__(self):
+        for tile in self.tiles:
+            assert isinstance(tile, Tile)
+            yield tile
+
 class MGRSFootprint():
 
     LOOKUP = None
@@ -840,6 +862,10 @@ class MGRSFootprint():
 
 
     def __init__(self, name):
+
+        if self.LOOKUP is None:
+            raise Exception('Must load lookup table first!')
+
         self.name = name
         self.subfolders = (name[:3], name[3:])
 
