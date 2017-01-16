@@ -142,7 +142,17 @@ class MGRSFootprint(Footprint):
             if not found:
                 raise Exception('wrong tile name: '+name)
 
-        return MGRSFootprint(name=name, ul=bb[0:2], lr=bb[2:4])
+        # quick fix: y coordinates from mgrs footprints below the equator are given in UTM South coordinates
+        # -> need to remove false northing of 10,000,000 m to have UMT North coordinates!
+        # if UTM band letter (the letter after the UTM zone number) is <= M, then we are below the equator
+
+        ul = bb[0:2]
+        lr = bb[2:4]
+        if name[2] <= 'M':
+            ul[1] -= 10000000
+            lr[1] -= 10000000
+
+        return MGRSFootprint(name=name, ul=ul, lr=lr)
 
 
     def __init__(self, name, ul, lr):
@@ -530,7 +540,9 @@ class MGRSTilingScheme(Type):
                 if os.path.exists(outfile):
                     continue
 
-                if wrs2Footprint.utm == mgrsFootprint.utm:
+                # always reproject to get ride of UTM North vs. South
+                if 0:
+                #if wrs2Footprint.utm == mgrsFootprint.utm:
 
                     projwin = ' -projwin ' + str(ul[0]) + ' ' + str(max(lr[1],ul[1])) + ' ' + str(lr[0]) + ' ' + str(min(lr[1],ul[1]))
                     strict  = ' -strict'
@@ -553,6 +565,7 @@ class MGRSTilingScheme(Type):
                 outmeta = Meta(outfile)
                 outmeta.setMetadataDict(inmeta.getMetadataDict())
                 outmeta.writeMeta(outfile)
+
 
 
     def tileWRS2Archive(self, infolder, outfolder, wrs2Footprints=None, mgrsFootprints=None, buffer=0, processes=1):
@@ -677,6 +690,9 @@ class Applier:
 
         progress = str(ApplierHelper.progress(info))+'%'
         print(progress, end='..')
+
+        #import gdal
+        #print('cacheUsed/Max[GB]:', gdal.GetCacheUsed() / 1024.)
         inputs = BlockAssociations(riosInputs)
         outputs = BlockAssociations(riosOutputs)
         for key, value in riosOtherArgs.outfiles.__dict__.items():
@@ -737,8 +753,8 @@ class Applier:
             controls.setCreationOptions(["INTERLEAVE=BSQ"])
         elif self.driverName == 'GTiff':
             controls.setOutputDriverName("GTiff")
-            controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256", "PROFILE=GeoTIFF",
-                                         "COMPRESS=DEFLATE", "PREDICTOR=2"])
+            controls.setCreationOptions(["INTERLEAVE=BAND", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256",
+                                         "COMPRESS=LZW", "PREDICTOR=2"])
         else:
             raise Exception('unknown option')
 
