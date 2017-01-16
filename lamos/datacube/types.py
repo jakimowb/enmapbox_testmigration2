@@ -929,7 +929,6 @@ def test_sentinel():
         for i in range(ds.RasterCount):
             print(ds.GetRasterBand(i + 1).GetDescription())
 
-
 def test_createMGRSFootprintLookup():
     createMGRSFootprintUTMLookup(shapedir=r'C:\Work\data\gms\gis\MGRS_100km_1MIL_Files',
                                  outfile=r'C:\Work\data\gms\gis\_lookup\mgrsFootprintUTMLookup.json')
