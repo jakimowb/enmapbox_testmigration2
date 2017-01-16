@@ -177,9 +177,10 @@ def stack_bands(outfile, infiles, inbands, options='', verbose=True):
 
     return outfile
 
-
 def mosaic(outfile, infiles, options='', verbose=True):
     gdalbuildvrt(outfile, infiles, options, verbose)
+
+
 
 '''
 def warp(outfile, infile, of='VRT'):

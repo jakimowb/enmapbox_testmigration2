@@ -37,8 +37,7 @@ def saveJSON(var, file):
 
 def restoreJSON(file):
     with open(file, 'r') as file: var = json.load(file)
-    return hub.collections.Bunch(var)
-
+    return var
 
 def savePickle(var, filename):
     hub.file.mkfiledir(filename)

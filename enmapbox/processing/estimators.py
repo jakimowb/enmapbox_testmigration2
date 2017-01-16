@@ -814,4 +814,4 @@ class MH:
 
 
 if __name__ == '__main__':
-    print SVCTuned().name()
+    print(SVCTuned().name())

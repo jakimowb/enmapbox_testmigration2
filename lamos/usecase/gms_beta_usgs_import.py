@@ -33,7 +33,7 @@ def run(infolder, outfolder, tmpfolder, start, end, processes):
 
 
     # create sensor x products
-    composer = LandsatXComposer(start=Date(2014, 1, 1), end=Date(2016, 6, 30))
+    composer = LandsatXComposer(start=start, end=end)
     composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=processes)
 
     # cut sensor x products
