@@ -1,4 +1,4 @@
-from lamos.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
+from lamos.processing.types import MGRSTilingScheme, WRS2Footprint, MGRSFootprint, MGRSArchive
 from lamos.operators.landsat_x import LandsatXComposer, TimeseriesBuilder
 from lamos.operators.compositing import StatisticsApplier
 from hub.timing import tic, toc
@@ -30,12 +30,12 @@ def test():
     mgrsFootprints = mgrsFootprints[i:i+1]
 
     composer = LandsatXComposer()
-    #composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=50)
+    composer.composeWRS2Archive(infolder=folder1, outfolder=folder2, footprints=wrs2Footprints, processes=50)
 
     tilingScheme = MGRSTilingScheme(pixelSize=30)
-    #tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
+    tilingScheme.tileWRS2Archive(infolder=folder2, outfolder=folder3, buffer=300, wrs2Footprints=wrs2Footprints, mgrsFootprints=mgrsFootprints, processes=50)
 
-    #MGRSArchive(folder3).saveAsGTiff(outfolder=folder3b, compress='NONE', filter=mgrsFootprints, processes=100)
+    MGRSArchive(folder3).saveAsGTiff(outfolder=folder3b, compress='NONE', filter=mgrsFootprints, processes=100)
 
 
     tsBuilder = TimeseriesBuilder(start=start, end=end)

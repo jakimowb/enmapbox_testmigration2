@@ -73,6 +73,7 @@ class GDALMetaDomain():
 
     def hasMetadataItem(self, key):
 
+        key = self.formatKey(key)
         return key in self.meta
 
     def setMetadataItem(self, key, value):
@@ -182,20 +183,24 @@ class GDALColorTable():
 
 class GDALMeta():
 
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, datacource=None):
         self.domain = dict()
         self.filename = filename
         self.colorTable = GDALColorTable()
         self.categoryNames = None
         if filename is not None:
-            self.readMeta(filename)
+            self.readMeta(filename=filename)
+        if datacource is not None:
+            self.readMetaFromDatasource(ds=datacource)
 
     def readMeta(self, filename):
         self.filename = filename
         ds = gdal.Open(filename)
-
         if ds is None:
             raise Exception('Can not open file: '+filename)
+        self.readMetaFromDatasource(ds)
+
+    def readMetaFromDatasource(self, ds):
 
         # read data source meta
         self.driver = ds.GetDriver().ShortName
@@ -239,6 +244,12 @@ class GDALMeta():
         if ds is None:
             raise Exception('Unable to open '+filename)
 
+        self.writeMetaToDatasource(ds)
+
+        ds = None
+
+    def writeMetaToDatasource(self, ds):
+
         # if ENVI file type is ENVI Classification, then set color table and category names
         if self.getMetadataItem('file type', default='').lower() == 'envi classification':
             self.setClassificationMetadata(*self.getClassificationMetadata()) # color table is set inside setClassificationMetadata()!
@@ -275,7 +286,6 @@ class GDALMeta():
             # Inside the resulting header file the duplicate that appeared last is used
             hdrfile = ds.GetFileList()[-1]
             ds.FlushCache()
-            ds = None
             hdr = hub.envi.readHeader(hdrfile)
             # GDAL skips some metadata when writing the HDR file, don't know why
             for key in ['file type','class names']:
@@ -283,7 +293,6 @@ class GDALMeta():
             hub.envi.writeHeader(hdrfile, hdr)
         else:
             ds.FlushCache()
-            ds = None
         if self.driver == 'GTiff':
             # Create an additional ENVI header to let ENVI know about important metadata like e.g. wavelength and band names.
             hdrfile = self.filename+'.hdr'
@@ -293,8 +302,6 @@ class GDALMeta():
             hdr['lines'] = self.RasterYSize
             hdr['bands'] = self.RasterCount
             hub.envi.writeHeader(hdrfile, hdr)
-
-        # create
 
     def getMetadataDomainList(self):
         return self.domain.keys()
@@ -398,6 +405,7 @@ class GDALMeta():
 
     def setClassificationMetadata(self, classes, classNames, classLookup):
 
+        classes = int(classes)
         assert len(classNames) == classes
         assert len(classLookup) == classes*3, str(len(classLookup))+'  '+str(classes*3)
         self.setMetadataItem('file type', 'ENVI Classification')

@@ -16,6 +16,7 @@ import rios.applier
 from rios.pixelgrid import PixelGridDefn, pixelGridFromFile
 import sklearn.metrics
 import sklearn.pipeline
+
 from enmapbox.processing.report import *
 from enmapbox.processing.applier import ApplierControls, ApplierHelper
 import numpy
@@ -201,6 +202,44 @@ class PixelGrid(PixelGridDefn):
         pixelGrid.xRes = resolution
         pixelGrid.yRes = resolution
         return pixelGrid
+
+    def buffer(self, buffer, north=True, west=True, south=True, east=True):
+
+        pixelGrid = PixelGrid(self)
+        if west: pixelGrid.xMin -= buffer
+        if east: pixelGrid.xMax += buffer
+        if south: pixelGrid.yMin -= buffer
+        if north: pixelGrid.yMax += buffer
+        return pixelGrid
+
+    def anchor(self, xAnchor, yAnchor):
+
+        pixelGrid = PixelGrid(self)
+
+        #ul_x = pixelGrid.xMin
+        #ul_y = pixelGrid.yMin
+        #lr_x = pixelGrid.xMax
+        #lr_y = pixelGrid.yMax
+
+        xMinOff = (pixelGrid.xMin - xAnchor) % pixelGrid.xRes
+        yMinOff = (pixelGrid.yMin - yAnchor) % pixelGrid.yRes
+        xMaxOff = (pixelGrid.xMax - xAnchor) % pixelGrid.xRes
+        yMaxOff = (pixelGrid.yMax - yAnchor) % pixelGrid.yRes
+
+        # round snapping offset
+        if xMinOff > pixelGrid.xRes / 2.: xMinOff -= pixelGrid.xRes
+        if yMinOff > pixelGrid.yRes / 2.: yMinOff -= pixelGrid.yRes
+        if xMaxOff > pixelGrid.xRes / 2.: xMaxOff -= pixelGrid.xRes
+        if yMaxOff > pixelGrid.yRes / 2.: yMaxOff -= pixelGrid.yRes
+
+        pixelGrid.xMin -= xMinOff
+        pixelGrid.yMin -= yMinOff
+        pixelGrid.xMax -= xMaxOff
+        pixelGrid.yMax -= yMaxOff
+
+        return pixelGrid
+
+
 
     def createImage(self, bands=1, filename=None, ot='Float32', fill=None):
 

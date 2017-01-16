@@ -150,7 +150,6 @@ class MGRSFootprint(Footprint):
         Footprint.__init__(self, name, ul, lr)
         self.utm = name[0:2]
 
-
     def getBoundingBox(self, buffer=0, snap=None):
 
         # apply buffer
@@ -677,13 +676,24 @@ class Applier:
 
         progress = str(ApplierHelper.progress(info))+'%'
         print(progress, end='..')
-        inputs = BlockAssociations(riosInputs)
-        outputs = BlockAssociations(riosOutputs)
+        #inputs = BlockAssociations(riosInputs)
+        #outputs = BlockAssociations(riosOutputs)
+        inputs = riosInputs
+        outputs = riosOutputs
         for key, value in riosOtherArgs.outfiles.__dict__.items():
             outputs.__dict__[key] = None
             hub.file.mkfiledir(value)
 
         riosOtherArgs.userFunction(info=info, inputs=inputs, outputs=outputs, inmetas=riosOtherArgs.inmetas, otherArgs=riosOtherArgs.otherArgs)
+
+        import gc
+        gc.collect()
+
+        #### debug: free memory
+        #for key, value in riosOtherArgs.outfiles.__dict__.items():
+        #    outputs.__dict__[key] = None
+        #    riosOutputs.__dict__[key] = None
+
 
         if ApplierHelper.lastBlock(info):
             print('100%')
