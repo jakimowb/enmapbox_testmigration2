@@ -63,6 +63,25 @@ class DateRange():
             isInside = isInside and (date <= self.end)
         return isInside
 
+class DateRangeCollection():
+
+    def __init__(self, starts=[], ends=[]):
+
+        self.dateRanges = list()
+        for start, end in zip(starts, ends):
+           self.dateRanges.append(DateRange(start=start, end=end))
+
+    def __iter__(self):
+        for dateRange in self.dateRanges:
+            assert isinstance(dateRange, DateRange)
+            yield dateRange
+
+    def inside(self, date):
+        for dateRange in self.dateRanges:
+            if dateRange.inside(date=date):
+                return True
+        return False
+
 if __name__ == '__main__':
 
     date = Date(2000,7,1)
