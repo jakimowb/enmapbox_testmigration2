@@ -25,6 +25,8 @@ def readCube(filename, xoff=0, yoff=0, xsize=None, ysize=None):
     if xsize is None: xsize = dataset.RasterXSize
     if ysize is None: ysize = dataset.RasterYSize
     cube = dataset.ReadAsArray(xoff=0, yoff=0, xsize=xsize, ysize=ysize)
+    if cube.ndim == 2:
+        cube = cube[None]
     return cube
 
 def writeCube(cube, filename, srsfilename=None, nodatavalue=None, format='ENVI'):

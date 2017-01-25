@@ -38,7 +38,7 @@ def typecheck(variable, type_):
 def check_package(name, package=None, stop_on_error=False):
     try:
         importlib.import_module(name, package)
-    except Exception, e:
+    except:
         if stop_on_error:
             raise Exception('Unable to import package/module "{}"'.format(name))
         return False
