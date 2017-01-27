@@ -63,6 +63,15 @@ class DateRange():
             isInside = isInside and (date <= self.end)
         return isInside
 
+    def extent(self, date):
+
+        assert isinstance(date, Date)
+        if self.start is None or date < self.start:
+            self.start = date
+        if self.end is None or date > self.end:
+            self.end = date
+        return self
+
 class DateRangeCollection():
 
     def __init__(self, starts=[], ends=[]):
