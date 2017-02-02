@@ -403,7 +403,7 @@ class GDALMeta():
         for key in ['acquisition time','acqdate']:
             if self.hasMetadataItem(key):
                 return Date.fromText(self.getMetadataItem(key))
-        raise Exception('Acquisition Date not specified!')
+        raise Exception('Acquisition Date not specified! '+self.filename)
 
     def setClassificationMetadata(self, classes, classNames, classLookup):
 
