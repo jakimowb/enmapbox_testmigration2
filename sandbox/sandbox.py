@@ -28,8 +28,8 @@ if os.path.exists(path):
     multiprocessing.set_executable(path)
     sys.argv = [ None ]
 
-import enmapbox
-pluginDir = os.path.dirname(enmapbox.__file__)
+import emb
+pluginDir = os.path.dirname(emb.__file__)
 sys.path.append(pluginDir)
 sys.path.append(os.path.join(pluginDir, 'libs'))
 sys.path.append(os.path.join(pluginDir, *['libs','pyqtgraph']))

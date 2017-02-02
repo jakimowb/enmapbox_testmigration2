@@ -1,0 +1,240 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>lamos.cubebuilder.applier &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for lamos.cubebuilder.applier</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">multiprocessing.pool</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">lamos.cubebuilder</span>
+<span class="kn">import</span> <span class="nn">hub.file</span>
+<span class="kn">import</span> <span class="nn">hub.gdal.api</span>
+<span class="kn">import</span> <span class="nn">hub.gdal.util</span>
+<span class="kn">import</span> <span class="nn">hub.rs.virtual</span>
+<span class="kn">import</span> <span class="nn">rios.applier</span>
+<span class="kn">from</span> <span class="nn">hub.collections</span> <span class="kn">import</span> <span class="n">Bunch</span>
+<span class="kn">from</span> <span class="nn">hub.timing</span> <span class="kn">import</span> <span class="n">tic</span><span class="p">,</span> <span class="n">toc</span>
+<span class="kn">import</span> <span class="nn">hub.envi</span>
+
+<div class="viewcode-block" id="CubenameAssociations"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.applier.CubenameAssociations">[docs]</a><span class="k">class</span> <span class="nc">CubenameAssociations</span><span class="p">(</span><span class="n">hub</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">Bunch</span><span class="p">):</span><span class="k">pass</span></div>
+
+<div class="viewcode-block" id="ApplierControls"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.applier.ApplierControls">[docs]</a><span class="k">class</span> <span class="nc">ApplierControls</span><span class="p">(</span><span class="n">rios</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">ApplierControls</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numThreads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numThreads</span> <span class="o">=</span> <span class="n">numThreads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compress</span> <span class="o">=</span> <span class="n">compress</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rios</span> <span class="o">=</span> <span class="n">rios</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">ApplierControls</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setNumThreads</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setJobManagerType</span><span class="p">(</span><span class="s1">&#39;multiprocessing&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numThreads</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setWindowXsize</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setWindowYsize</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setWindowXsize</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setWindowYsize</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setOutputDriverName</span><span class="p">(</span><span class="s2">&quot;ENVI&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setCreationOptions</span><span class="p">([</span><span class="s2">&quot;INTERLEAVE=BSQ&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setCalcStats</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rios</span><span class="o">.</span><span class="n">setOmitPyramids</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="riosapply"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.applier.riosapply">[docs]</a><span class="k">def</span> <span class="nf">riosapply</span><span class="p">(</span><span class="n">riosinfo</span><span class="p">,</span> <span class="n">riosinputs</span><span class="p">,</span> <span class="n">riosoutputs</span><span class="p">,</span> <span class="n">riosotherargs</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">riosotherargs</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="mf">100.</span><span class="o">*</span><span class="n">riosinfo</span><span class="o">.</span><span class="n">yblock</span><span class="o">/</span><span class="n">riosinfo</span><span class="o">.</span><span class="n">ytotalblocks</span><span class="p">))</span><span class="o">+</span><span class="s1">&#39;..&#39;</span><span class="p">)</span>
+
+    <span class="c1"># convert inputs</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">riosinfo</span>
+
+    <span class="c1"># map RIOS list of input images to a nicer Bunch representing the 4D cube</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">cubename</span><span class="p">,</span> <span class="n">stackname</span><span class="p">)</span> <span class="ow">in</span> <span class="n">riosotherargs</span><span class="o">.</span><span class="n">outfilekeys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">outputs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">cubename</span><span class="p">):</span> <span class="n">outputs</span><span class="p">[</span><span class="n">cubename</span><span class="p">]</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="n">cubename</span><span class="p">][</span><span class="n">stackname</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">for</span> <span class="p">((</span><span class="n">cubename</span><span class="p">,</span> <span class="n">stackname</span><span class="p">),</span> <span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">riosotherargs</span><span class="o">.</span><span class="n">infilekeys</span><span class="p">,</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">riosotherargs</span><span class="o">.</span><span class="n">infilekeys</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inputs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">cubename</span><span class="p">):</span> <span class="n">inputs</span><span class="p">[</span><span class="n">cubename</span><span class="p">]</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+        <span class="n">inputs</span><span class="p">[</span><span class="n">cubename</span><span class="p">][</span><span class="n">stackname</span><span class="p">]</span> <span class="o">=</span> <span class="n">riosinputs</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># call the 4D cube applier</span>
+
+    <span class="c1">#riosotherargs.ufunc(info, inputs, riosotherargs.outputs, riosotherargs.inmeta, otherArgs=riosotherargs.otherArgs)</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">ufunc</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">riosotherargs</span><span class="o">.</span><span class="n">inmeta</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="n">riosotherargs</span><span class="o">.</span><span class="n">otherArgs</span><span class="p">)</span>
+
+    <span class="c1"># map 4D cube applier results back to RIOS list of output images</span>
+    <span class="n">riosoutputs</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">outputs</span><span class="p">[</span><span class="n">cubename</span><span class="p">][</span><span class="n">stackname</span><span class="p">]</span> <span class="k">for</span> <span class="p">(</span><span class="n">cubename</span><span class="p">,</span> <span class="n">stackname</span><span class="p">)</span> <span class="ow">in</span> <span class="n">riosotherargs</span><span class="o">.</span><span class="n">outfilekeys</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="applyToTile"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.applier.applyToTile">[docs]</a><span class="k">def</span> <span class="nf">applyToTile</span><span class="p">((</span><span class="n">ufunc</span><span class="p">,</span> <span class="n">ufuncMeta</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">outfiles</span><span class="p">,</span> <span class="n">mgrstile</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">controls</span><span class="p">,</span> <span class="n">otherArgs</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)):</span>
+
+    <span class="c1"># report progress</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="k">print</span><span class="p">(</span><span class="s1">&#39;MGRS Tile: &#39;</span><span class="o">+</span><span class="n">mgrstile</span><span class="o">+</span><span class="s1">&#39; (&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;/&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+
+    <span class="c1"># prepare inputs for the applier function</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">({</span><span class="n">cubename</span><span class="p">:</span><span class="n">Bunch</span><span class="p">({</span><span class="n">stackname</span><span class="p">:</span><span class="bp">None</span> <span class="k">for</span> <span class="n">stackname</span> <span class="ow">in</span> <span class="n">stacknames</span><span class="p">})</span> <span class="k">for</span> <span class="p">(</span><span class="n">cubename</span><span class="p">,</span> <span class="p">(</span><span class="n">cubedir</span><span class="p">,</span> <span class="n">stacknames</span><span class="p">))</span> <span class="ow">in</span> <span class="n">outfiles</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+
+    <span class="n">inmeta</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">cubename</span><span class="p">,(</span><span class="n">filename</span><span class="p">,</span><span class="n">stacknames</span><span class="p">)</span> <span class="ow">in</span> <span class="n">infiles</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">cube</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">inmeta</span><span class="p">[</span><span class="n">cubename</span><span class="p">]</span> <span class="o">=</span> <span class="n">cube</span><span class="o">.</span><span class="n">readStackMeta</span><span class="p">(</span><span class="n">mgrstile</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">stacknames</span><span class="p">)</span>
+
+
+    <span class="c1"># set some infos that could be used inside the user function</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">Bunch</span><span class="p">()</span>
+    <span class="n">info</span><span class="o">.</span><span class="n">mgrstile</span> <span class="o">=</span> <span class="n">mgrstile</span>
+
+    <span class="c1">### use RIOS applier ###</span>
+    <span class="c1"># call user function</span>
+
+    <span class="c1"># Set up input and output filenames.</span>
+    <span class="c1"># Map 4D Cubes stack to rios filelist</span>
+    <span class="n">riosinfiles</span> <span class="o">=</span> <span class="n">rios</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">FilenameAssociations</span><span class="p">()</span>
+    <span class="n">riosoutfiles</span> <span class="o">=</span> <span class="n">rios</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">FilenameAssociations</span><span class="p">()</span>
+
+    <span class="n">riosinfiles</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cubename</span><span class="p">,</span> <span class="n">mgrstile</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">mgrstile</span><span class="p">,</span> <span class="n">stackname</span><span class="p">)</span> <span class="k">for</span> <span class="n">cubename</span><span class="p">,</span> <span class="n">stacknames</span> <span class="ow">in</span> <span class="n">infiles</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">stackname</span> <span class="ow">in</span> <span class="n">stacknames</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">filename</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">riosinfiles</span><span class="o">.</span><span class="n">images</span><span class="p">,</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">riosinfiles</span><span class="o">.</span><span class="n">images</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;.img&#39;</span><span class="p">):</span>
+            <span class="n">riosinfiles</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span><span class="o">+</span><span class="s1">&#39;.img&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">riosinfiles</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span><span class="o">+</span><span class="s1">&#39;.vrt&#39;</span>
+
+    <span class="n">riosoutfiles</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cubename</span><span class="p">,</span> <span class="n">mgrstile</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">mgrstile</span><span class="p">,</span> <span class="n">stackname</span><span class="o">+</span><span class="s1">&#39;.img&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">cubename</span><span class="p">,</span> <span class="n">stacknames</span> <span class="ow">in</span> <span class="n">outfiles</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">stackname</span> <span class="ow">in</span> <span class="n">stacknames</span><span class="p">]</span>
+
+    <span class="c1">#####</span>
+    <span class="c1">#riosoutfiles = rios.applier.FilenameAssociations()</span>
+
+    <span class="n">riosotherargs</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">ufunc</span> <span class="o">=</span> <span class="n">ufunc</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">infilekeys</span> <span class="o">=</span> <span class="p">[(</span><span class="n">cubename</span><span class="p">,</span> <span class="n">stackname</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">cubename</span><span class="p">,</span> <span class="p">(</span><span class="n">cubedir</span><span class="p">,</span> <span class="n">stacknames</span><span class="p">))</span> <span class="ow">in</span> <span class="n">infiles</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">stackname</span> <span class="ow">in</span> <span class="n">stacknames</span><span class="p">]</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">outfilekeys</span> <span class="o">=</span> <span class="p">[(</span><span class="n">cubename</span><span class="p">,</span> <span class="n">stackname</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">cubename</span><span class="p">,</span> <span class="p">(</span><span class="n">dubedir</span><span class="p">,</span> <span class="n">stacknames</span><span class="p">))</span> <span class="ow">in</span> <span class="n">outfiles</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">stackname</span> <span class="ow">in</span> <span class="n">stacknames</span><span class="p">]</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">inmeta</span> <span class="o">=</span> <span class="n">inmeta</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">otherArgs</span> <span class="o">=</span> <span class="n">otherArgs</span>
+    <span class="n">riosotherargs</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+    <span class="c1"># create output folders</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">riosoutfiles</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+        <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkfiledir</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="c1"># Apply the function to the inputs, creating the outputs.</span>
+    <span class="n">rios</span><span class="o">.</span><span class="n">applier</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">riosapply</span><span class="p">,</span> <span class="n">riosinfiles</span><span class="p">,</span> <span class="n">riosoutfiles</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="n">riosotherargs</span><span class="p">,</span> <span class="n">controls</span><span class="o">=</span><span class="n">controls</span><span class="o">.</span><span class="n">rios</span><span class="p">)</span>
+
+    <span class="c1"># prepare output metadata</span>
+    <span class="c1">#- read metadata from files produced by RIOS</span>
+    <span class="n">outmeta</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">cubename</span><span class="p">,(</span><span class="n">filename</span><span class="p">,</span><span class="n">stacknames</span><span class="p">)</span> <span class="ow">in</span> <span class="n">outfiles</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">cube</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">outmeta</span><span class="p">[</span><span class="n">cubename</span><span class="p">]</span> <span class="o">=</span> <span class="n">cube</span><span class="o">.</span><span class="n">readStackMeta</span><span class="p">(</span><span class="n">mgrstile</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">stacknames</span><span class="p">)</span>
+    <span class="c1">#- call user function for metadata specification</span>
+    <span class="n">ufuncMeta</span><span class="p">(</span><span class="n">inmeta</span><span class="p">,</span> <span class="n">outmeta</span><span class="p">,</span> <span class="n">otherArgs</span><span class="o">=</span><span class="n">otherArgs</span><span class="p">)</span>
+    <span class="c1">#- write metadata</span>
+    <span class="k">for</span> <span class="n">cubename</span><span class="p">,(</span><span class="n">filename</span><span class="p">,</span><span class="n">stacknames</span><span class="p">)</span> <span class="ow">in</span> <span class="n">outfiles</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">cube</span> <span class="o">=</span> <span class="n">lamos</span><span class="o">.</span><span class="n">cubebuilder</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">cube</span><span class="o">.</span><span class="n">writeStackMeta</span><span class="p">(</span><span class="n">mgrstile</span><span class="p">,</span> <span class="n">outmeta</span><span class="p">[</span><span class="n">cubename</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="k">print</span><span class="p">(</span><span class="s1">&#39;100&#39;</span><span class="p">)</span>
+
+    <span class="c1"># compress files if needed</span>
+    <span class="k">if</span> <span class="n">controls</span><span class="o">.</span><span class="n">compress</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="k">print</span><span class="p">(</span><span class="s1">&#39;compress files&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">riosoutfiles</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+            <span class="n">hub</span><span class="o">.</span><span class="n">envi</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="apply"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.applier.apply">[docs]</a><span class="k">def</span> <span class="nf">apply</span><span class="p">(</span><span class="n">ufunc</span><span class="p">,</span> <span class="n">ufuncMeta</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">outfiles</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">,</span> <span class="n">controls</span><span class="o">=</span><span class="n">ApplierControls</span><span class="p">(),</span> <span class="n">otherArgs</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">tic</span><span class="p">(</span><span class="s1">&#39;applying user function: &#39;</span><span class="o">+</span><span class="n">ufunc</span><span class="o">.</span><span class="n">func_name</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">ufunc</span><span class="p">,</span> <span class="n">ufuncMeta</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">outfiles</span><span class="p">,</span> <span class="n">mgrstile</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mgrstiles</span><span class="p">),</span> <span class="n">controls</span><span class="p">,</span> <span class="n">otherArgs</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span> <span class="k">for</span> <span class="n">mgrstile</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">mgrstiles</span><span class="p">,</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">mgrstiles</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">))]</span>
+    <span class="k">if</span> <span class="n">controls</span><span class="o">.</span><span class="n">numThreads</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span> <span class="n">applyToTile</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">ThreadPool</span><span class="p">(</span><span class="n">controls</span><span class="o">.</span><span class="n">numThreads</span><span class="p">)</span>
+<span class="c1">#        pool = multiprocessing.Pool(controls.numThreads)</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">applyToTile</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span> <span class="n">pool</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span> <span class="k">pass</span>
+    <span class="n">toc</span><span class="p">()</span></div>
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

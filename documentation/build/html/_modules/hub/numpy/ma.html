@@ -1,0 +1,196 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hub.numpy.ma &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for hub.numpy.ma</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="c1">#import scipy</span>
+<span class="kn">import</span> <span class="nn">scipy.stats.mstats</span>
+
+<div class="viewcode-block" id="flatten"><a class="viewcode-back" href="../../../hub.numpy.html#hub.numpy.ma.flatten">[docs]</a><span class="k">def</span> <span class="nf">flatten</span><span class="p">(</span><span class="n">cube3d</span><span class="p">):</span>
+    <span class="n">cube2d</span> <span class="o">=</span> <span class="n">cube3d</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">cube3d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">cube2d</span></div>
+
+<div class="viewcode-block" id="unflatten"><a class="viewcode-back" href="../../../hub.numpy.html#hub.numpy.ma.unflatten">[docs]</a><span class="k">def</span> <span class="nf">unflatten</span><span class="p">(</span><span class="n">cube2d</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+    <span class="n">cube3d</span> <span class="o">=</span> <span class="n">cube2d</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">cube2d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">samples</span><span class="p">,</span><span class="n">lines</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">cube3d</span></div>
+
+<div class="viewcode-block" id="argPercentilesBand"><a class="viewcode-back" href="../../../hub.numpy.html#hub.numpy.ma.argPercentilesBand">[docs]</a><span class="k">def</span> <span class="nf">argPercentilesBand</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">percentages</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param cube: Flat cube.</span>
+<span class="sd">    :param percentages:</span>
+<span class="sd">    :return: List of bands holding the band indices for the requested percentiles.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">cube</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+
+    <span class="c1"># if only percentiles for min or max are required use faster argmin/argmax functions</span>
+    <span class="n">onlyMinMax</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">==</span><span class="mi">0</span> <span class="ow">or</span> <span class="n">p</span><span class="o">==</span><span class="mi">100</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">percentages</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">onlyMinMax</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">percentage</span> <span class="ow">in</span> <span class="n">percentages</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">percentage</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>   <span class="n">argBand</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">percentage</span><span class="o">==</span><span class="mi">100</span><span class="p">:</span> <span class="n">argBand</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">argBand</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">probabilities</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">/</span><span class="mf">100.</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">percentages</span><span class="p">]</span>
+        <span class="n">percentilesCube</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">mstats</span><span class="o">.</span><span class="n">mquantiles</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">probabilities</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">percentilesBand</span> <span class="ow">in</span> <span class="n">percentilesCube</span><span class="p">:</span>
+            <span class="n">rankedCube</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">cube</span><span class="o">-</span><span class="n">percentilesBand</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+            <span class="n">argminBand</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">rankedCube</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">argminBand</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="compositeBand"><a class="viewcode-back" href="../../../hub.numpy.html#hub.numpy.ma.compositeBand">[docs]</a><span class="k">def</span> <span class="nf">compositeBand</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">argBand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param cube:</span>
+<span class="sd">    :param argBand:</span>
+<span class="sd">    :return: Band composite from band indices given by argBand.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">cube</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="n">bands</span><span class="p">,</span> <span class="n">samples</span> <span class="o">=</span> <span class="n">cube</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">cube</span><span class="p">[</span><span class="n">argBand</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span><span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">samples</span><span class="p">))]</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="qualityCompositeCube"><a class="viewcode-back" href="../../../hub.numpy.html#hub.numpy.ma.qualityCompositeCube">[docs]</a><span class="k">def</span> <span class="nf">qualityCompositeCube</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">qualityCube</span><span class="p">,</span> <span class="n">stack</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param cubes:</span>
+<span class="sd">    :param scoreCube:</span>
+<span class="sd">    :return: A dict of quality composites. One composite for each requested percentiles. Keys are given by &#39;percentages&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">argBand</span> <span class="o">=</span> <span class="n">argPercentilesBand</span><span class="p">(</span><span class="n">qualityCube</span><span class="p">,</span> <span class="n">percentages</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">mask</span> <span class="o">=</span>  <span class="n">compositeBand</span><span class="p">(</span><span class="n">qualityCube</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">argBand</span><span class="p">)</span>
+    <span class="n">composite</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">cube</span> <span class="ow">in</span> <span class="n">cubes</span><span class="p">:</span>
+        <span class="n">band</span> <span class="o">=</span> <span class="n">compositeBand</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">argBand</span><span class="p">)</span>
+        <span class="n">composite</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">band</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">stack</span><span class="p">:</span> <span class="n">composite</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">composite</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">composite</span></div>
+
+<div class="viewcode-block" id="statisticsCompositeCube"><a class="viewcode-back" href="../../../hub.numpy.html#hub.numpy.ma.statisticsCompositeCube">[docs]</a><span class="k">def</span> <span class="nf">statisticsCompositeCube</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">statisticsParameters</span><span class="p">,</span> <span class="n">stack</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+    <span class="n">composite</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="n">bandNames</span> <span class="o">=</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">getBandNames</span><span class="p">()</span>
+
+    <span class="c1"># mask outliers if needed</span>
+    <span class="k">if</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">trange</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">cube</span> <span class="o">&lt;</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">trange</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span><span class="n">cube</span> <span class="o">&gt;</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">trange</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">mcube</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="c1"># calculate some statistics (see http://docs.scipy.org/doc/numpy-1.8.1/reference/routines.ma.html#arithmetics)</span>
+    <span class="k">for</span> <span class="n">statistic</span> <span class="ow">in</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">statistics</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">statistic</span><span class="o">==</span><span class="s1">&#39;distribution&#39;</span><span class="p">:</span>
+            <span class="n">probabilities</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">/</span><span class="mf">100.</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">distributionPercentages</span><span class="p">]</span>
+            <span class="n">composite</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">mstats</span><span class="o">.</span><span class="n">mquantiles</span><span class="p">(</span><span class="n">mcube</span><span class="p">,</span> <span class="n">probabilities</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">statistic</span><span class="o">==</span><span class="s1">&#39;median&#39;</span><span class="p">:</span>
+            <span class="n">composite</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">mcube</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">statistic</span><span class="o">==</span><span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+            <span class="n">composite</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mcube</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">statistic</span><span class="o">==</span><span class="s1">&#39;stdev&#39;</span><span class="p">:</span>
+            <span class="n">composite</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">mcube</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># prepare result and return</span>
+    <span class="c1"># - cast to output dtype if needed</span>
+    <span class="k">for</span> <span class="n">icube</span><span class="p">,</span><span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">composite</span><span class="p">,</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">composite</span><span class="p">))):</span>
+        <span class="k">if</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">dscale</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="n">icube</span> <span class="o">*=</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">dscale</span>
+        <span class="k">if</span> <span class="n">statisticsParameters</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="n">icube</span> <span class="o">=</span> <span class="n">icube</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">statisticsParameters</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">composite</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">icube</span>
+
+    <span class="c1"># - stack if needed</span>
+    <span class="k">if</span> <span class="n">stack</span><span class="p">:</span> <span class="n">composite</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">composite</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">composite</span><span class="p">,</span> <span class="n">bandNames</span></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">ma</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">],[</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span><span class="p">]],</span><span class="n">mask</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]])</span>
+
+    <span class="k">print</span> <span class="n">ma</span>
+    <span class="k">print</span>
+    <span class="k">print</span> <span class="n">qualityCompositeCube</span><span class="p">([</span><span class="n">ma</span><span class="p">,</span><span class="n">ma</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">100</span><span class="p">],</span> <span class="n">ma</span><span class="p">)</span>
+    <span class="c1">#print statisticsCompositeCube(ma, percentages=[0,100], mean=True, dtype=numpy.int16)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

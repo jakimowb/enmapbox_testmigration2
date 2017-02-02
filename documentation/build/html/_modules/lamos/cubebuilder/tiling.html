@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>lamos.cubebuilder.tiling &mdash; EnMAP-Box 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="EnMAP-Box 3.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for lamos.cubebuilder.tiling</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">hub.gdal.util</span><span class="o">,</span> <span class="nn">hub.gdal.api</span><span class="o">,</span> <span class="nn">hub.file</span><span class="o">,</span> <span class="nn">hub.rs.landsat</span>
+<span class="kn">from</span> <span class="nn">hub.timing</span> <span class="kn">import</span> <span class="n">tic</span><span class="p">,</span> <span class="n">toc</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">ogr</span><span class="o">,</span> <span class="nn">osr</span><span class="o">,</span> <span class="nn">numpy</span><span class="o">,</span> <span class="nn">multiprocessing.pool</span><span class="o">,</span> <span class="nn">datetime</span>
+
+<div class="viewcode-block" id="getMGRSTiles"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.tiling.getMGRSTiles">[docs]</a><span class="k">def</span> <span class="nf">getMGRSTiles</span><span class="p">(</span><span class="n">pathrow</span><span class="p">,</span> <span class="n">shpfile</span><span class="p">):</span>
+
+    <span class="n">dataSource</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">shpfile</span><span class="p">)</span>
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">dataSource</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">GetField</span><span class="p">(</span><span class="s1">&#39;WRSPR&#39;</span><span class="p">)))</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathrow</span><span class="p">):</span>
+            <span class="n">tilename</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">GetField</span><span class="p">(</span><span class="s1">&#39;GRID1MIL&#39;</span><span class="p">)</span><span class="o">+</span> <span class="n">feature</span><span class="o">.</span><span class="n">GetField</span><span class="p">(</span><span class="s1">&#39;GRID100K&#39;</span><span class="p">)</span>
+            <span class="n">mgrstiles</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">tilename</span><span class="p">))</span> <span class="c1"># (name, geometry)</span>
+
+    <span class="k">return</span> <span class="n">mgrstiles</span></div>
+
+<div class="viewcode-block" id="tileScene"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.tiling.tileScene">[docs]</a><span class="k">def</span> <span class="nf">tileScene</span><span class="p">((</span><span class="n">scenefolder</span><span class="p">,</span> <span class="n">outfolder</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">)):</span>
+
+    <span class="n">sceneID</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">scenefolder</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># define layer</span>
+    <span class="c1">#               name               nodata</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;_BQA.img&#39;</span><span class="p">,</span>                   <span class="s1">&#39;0&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_cfmask.img&#39;</span><span class="p">,</span>                <span class="s1">&#39;255&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_cfmask_conf.img&#39;</span><span class="p">,</span>           <span class="s1">&#39;255&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_land_water_mask.img&#39;</span><span class="p">,</span>       <span class="s1">&#39;???&#39;</span><span class="p">),</span>   <span class="c1"># NoData nicht definiert</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_adjacent_cloud_qa.img&#39;</span><span class="p">,</span>  <span class="s1">&#39;???&#39;</span><span class="p">),</span>   <span class="c1"># NoData nicht definiert</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_atmos_opacity.img&#39;</span><span class="p">,</span>      <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+
+              <span class="p">(</span><span class="s1">&#39;_sr_band1.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_band2.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_band3.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_band4.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_band5.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_band6.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_band7.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+
+              <span class="p">(</span><span class="s1">&#39;_sr_cloud_qa.img&#39;</span><span class="p">,</span>        <span class="s1">&#39;???&#39;</span><span class="p">),</span>    <span class="c1"># NoData nicht definiert</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_cloud.img&#39;</span><span class="p">,</span>           <span class="s1">&#39;0&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_cloud_shadow_qa.img&#39;</span><span class="p">,</span> <span class="s1">&#39;???&#39;</span><span class="p">),</span> <span class="c1"># NoData nicht definiert</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_ddv_qa&#39;</span><span class="p">,</span>              <span class="s1">&#39;???&#39;</span><span class="p">),</span> <span class="c1"># NoData nicht definiert</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_fill_qa&#39;</span><span class="p">,</span>             <span class="s1">&#39;???&#39;</span><span class="p">),</span> <span class="c1"># NoData nicht definiert</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_land_water_qa.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;???&#39;</span><span class="p">),</span> <span class="c1"># NoData nicht definiert</span>
+              <span class="p">(</span><span class="s1">&#39;_sr_snow_qa.img&#39;</span><span class="p">,</span>         <span class="s1">&#39;???&#39;</span><span class="p">),</span> <span class="c1"># NoData nicht definiert</span>
+
+              <span class="p">(</span><span class="s1">&#39;_toa_band6.img&#39;</span><span class="p">,</span>    <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_toa_band10.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_toa_band11.img&#39;</span><span class="p">,</span>   <span class="s1">&#39;-9999&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_toa_band6_qa.img&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;_toa_qa.img&#39;</span><span class="p">,</span>       <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+              <span class="p">]</span>
+
+
+    <span class="c1">#layers = [(&#39;_sr_band3.img&#39;,   &#39;-9999&#39;, defaultResampling)]</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;  cut &#39;</span><span class="o">+</span><span class="n">sceneID</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">layername</span><span class="p">,</span> <span class="n">nodata</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+
+        <span class="n">infile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">scenefolder</span><span class="p">,</span> <span class="n">sceneID</span><span class="o">+</span><span class="n">layername</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">infile</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># outroot = os.path.join(scenefolder, &#39;mgrs&#39;)</span>
+
+        <span class="n">pixelGridOffset</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mi">15</span><span class="p">,</span><span class="mi">15</span><span class="p">))</span>
+        <span class="n">pixelGridSize</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mi">30</span><span class="p">,</span><span class="mi">30</span><span class="p">))</span>
+        <span class="n">resolution</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixelGridSize</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">pixelGridSize</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">tilename</span> <span class="ow">in</span> <span class="n">mgrstiles</span><span class="p">:</span>
+            <span class="n">shpfile</span> <span class="o">=</span> <span class="s1">r&#39;H:\EuropeanDataCube\gis\reference_systems\mgrs\MGRS_100km_1MIL_Files\MGRS_100kmSQ_ID_&#39;</span><span class="o">+</span><span class="n">tilename</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;\MGRS_100kmSQ_ID_&#39;</span><span class="o">+</span><span class="n">tilename</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_B100.shp&#39;</span>
+            <span class="n">utmzoneMGRS</span> <span class="o">=</span> <span class="n">tilename</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="n">outroot</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outfolder</span><span class="p">,</span> <span class="n">utmzoneMGRS</span><span class="p">,</span> <span class="n">tilename</span><span class="p">)</span>
+            <span class="n">hub</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">((</span><span class="n">outroot</span><span class="p">))</span>
+            <span class="n">outfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outroot</span><span class="p">,</span> <span class="n">sceneID</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">infile</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">tilename</span><span class="o">+</span><span class="s1">&#39;.vrt&#39;</span> <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outfile</span><span class="p">):</span>
+
+                <span class="n">t_srs</span> <span class="o">=</span> <span class="s1">&#39; -t_srs  EPSG:326&#39;</span><span class="o">+</span><span class="n">utmzoneMGRS</span> <span class="c1"># always reproject to assure UTM XXN Zone</span>
+
+                <span class="c1"># NoData option</span>
+                <span class="k">if</span> <span class="n">nodata</span> <span class="o">==</span> <span class="s1">&#39;???&#39;</span><span class="p">:</span>
+                    <span class="n">no_data</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">no_data</span> <span class="o">=</span> <span class="s1">&#39; -srcnodata &#39;</span><span class="o">+</span><span class="n">nodata</span><span class="o">+</span><span class="s1">&#39; -dstnodata &#39;</span><span class="o">+</span><span class="n">nodata</span>
+
+                <span class="c1"># snap tile to global pixel grid</span>
+
+                <span class="k">def</span> <span class="nf">getBoundingBox</span><span class="p">(</span><span class="n">tilename</span><span class="p">):</span>
+                    <span class="n">dataSource</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">shpfile</span><span class="p">)</span>
+                    <span class="n">layer</span> <span class="o">=</span> <span class="n">dataSource</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">feature</span><span class="o">.</span><span class="n">GetField</span><span class="p">(</span><span class="s1">&#39;MGRS&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">tilename</span><span class="p">:</span>
+                            <span class="n">points</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">GetGeometryRef</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">GetPoints</span><span class="p">()</span>
+                            <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">points</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">points</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="n">tileboundingbox</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;xmin&#39;</span><span class="p">:</span><span class="n">xmin</span><span class="p">,</span> <span class="s1">&#39;ymin&#39;</span><span class="p">:</span><span class="n">ymin</span><span class="p">,</span> <span class="s1">&#39;xmax&#39;</span><span class="p">:</span><span class="n">xmax</span><span class="p">,</span> <span class="s1">&#39;ymax&#39;</span><span class="p">:</span><span class="n">ymax</span><span class="p">}</span>
+                    <span class="k">return</span> <span class="n">tileboundingbox</span>
+
+                <span class="k">def</span> <span class="nf">snap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">x</span><span class="o">-</span><span class="p">((</span><span class="n">x</span><span class="o">-</span><span class="n">offset</span><span class="p">)</span> <span class="o">%</span> <span class="n">size</span><span class="p">)</span>
+
+                <span class="n">tileboundingbox</span> <span class="o">=</span> <span class="n">getBoundingBox</span><span class="p">(</span><span class="n">tilename</span><span class="p">)</span>
+
+                <span class="n">xmin</span> <span class="o">=</span> <span class="n">snap</span><span class="p">(</span><span class="n">tileboundingbox</span><span class="p">[</span><span class="s1">&#39;xmin&#39;</span><span class="p">],</span> <span class="n">pixelGridSize</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pixelGridOffset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">xmax</span> <span class="o">=</span> <span class="n">snap</span><span class="p">(</span><span class="n">tileboundingbox</span><span class="p">[</span><span class="s1">&#39;xmax&#39;</span><span class="p">],</span> <span class="n">pixelGridSize</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pixelGridOffset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">ymin</span> <span class="o">=</span> <span class="n">snap</span><span class="p">(</span><span class="n">tileboundingbox</span><span class="p">[</span><span class="s1">&#39;ymin&#39;</span><span class="p">],</span> <span class="n">pixelGridSize</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pixelGridOffset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">ymax</span> <span class="o">=</span> <span class="n">snap</span><span class="p">(</span><span class="n">tileboundingbox</span><span class="p">[</span><span class="s1">&#39;ymax&#39;</span><span class="p">],</span> <span class="n">pixelGridSize</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pixelGridOffset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+                <span class="n">te</span> <span class="o">=</span> <span class="s1">&#39; -te &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">xmin</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ymin</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">xmax</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ymax</span><span class="p">)</span>
+
+                <span class="c1"># create VRT file</span>
+                <span class="n">hub</span><span class="o">.</span><span class="n">gdal</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">gdalwarp</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">infile</span><span class="p">,</span> <span class="s1">&#39;-of VRT -overwrite &#39;</span><span class="o">+</span><span class="n">t_srs</span><span class="o">+</span><span class="s1">&#39; -tr &#39;</span><span class="o">+</span><span class="n">resolution</span><span class="o">+</span><span class="n">no_data</span><span class="o">+</span><span class="n">te</span><span class="o">+</span><span class="s1">&#39; -cwhere &quot;MGRS=</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="o">+</span><span class="n">tilename</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&quot; -cutline &#39;</span><span class="o">+</span><span class="n">shpfile</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># copy homogenised metadata from MTL and ESPA metafiles to VRT file</span>
+                <span class="n">mtlfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">scenefolder</span><span class="p">,</span> <span class="n">sceneID</span><span class="o">+</span><span class="s1">&#39;_MTL.txt&#39;</span><span class="p">)</span>
+                <span class="n">espafile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">scenefolder</span><span class="p">,</span> <span class="n">sceneID</span><span class="o">+</span><span class="s1">&#39;.xml&#39;</span><span class="p">)</span>
+                <span class="n">meta</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">rs</span><span class="o">.</span><span class="n">virtual</span><span class="o">.</span><span class="n">parseLandsatMeta</span><span class="p">(</span><span class="n">mtlfile</span><span class="p">,</span> <span class="n">espafile</span><span class="p">)</span>
+                <span class="n">gdalMeta</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">gdal</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">GDALMeta</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span>
+                <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setBandNames</span><span class="p">([</span><span class="n">infile</span><span class="p">])</span>
+                <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;MTLFile&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">mtlfile</span><span class="p">],</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="s1">&#39;ESPAFile&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">espafile</span><span class="p">],</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;AcqDate&#39;</span><span class="p">,</span> <span class="s1">&#39;AcqTime&#39;</span><span class="p">,</span> <span class="s1">&#39;ProcLCode&#39;</span><span class="p">,</span> <span class="s1">&#39;Satellite&#39;</span><span class="p">,</span> <span class="s1">&#39;SceneID&#39;</span><span class="p">,</span> <span class="s1">&#39;Sensor&#39;</span><span class="p">,</span> <span class="s1">&#39;SunAzimuth&#39;</span><span class="p">,</span> <span class="s1">&#39;SunElevation&#39;</span><span class="p">,</span> <span class="s1">&#39;geometric accuracy&#39;</span><span class="p">]:</span>
+                    <span class="n">gdalMeta</span><span class="o">.</span><span class="n">setMetadataItem</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]],</span> <span class="n">mapToBands</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">gdalMeta</span><span class="o">.</span><span class="n">writeMeta</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span></div>
+
+<span class="c1">#            print(&#39;  ...done &#39;+outfile)</span>
+<span class="c1">#        print(&#39;&#39;)</span>
+
+<div class="viewcode-block" id="tileFootprint"><a class="viewcode-back" href="../../../lamos.cubebuilder.html#lamos.cubebuilder.tiling.tileFootprint">[docs]</a><span class="k">def</span> <span class="nf">tileFootprint</span><span class="p">(</span><span class="n">footprint</span><span class="p">,</span> <span class="n">sensorfolder</span><span class="p">,</span> <span class="n">tilesfolder</span><span class="p">,</span> <span class="n">tilingshapefile</span><span class="p">,</span> <span class="n">timerange</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">footprintFolder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sensorfolder</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">footprint</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">footprint</span><span class="p">)[</span><span class="mi">3</span><span class="p">:])</span>
+    <span class="n">scenefolders</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">footprintFolder</span><span class="p">,</span> <span class="n">scenefolder</span><span class="p">)</span> <span class="k">for</span> <span class="n">scenefolder</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">footprintFolder</span><span class="p">)]</span>
+
+    <span class="c1"># get MGRS tiles covered by the footprint</span>
+    <span class="n">mgrstiles</span> <span class="o">=</span> <span class="n">getMGRSTiles</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">footprint</span><span class="p">),</span> <span class="n">tilingshapefile</span><span class="p">)</span>
+
+    <span class="n">tic</span><span class="p">(</span><span class="s1">&#39;tiling footprint &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">footprint</span><span class="p">))</span>
+    <span class="k">if</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># use multithreading?</span>
+        <span class="k">for</span> <span class="n">scenefolder</span> <span class="ow">in</span> <span class="n">scenefolders</span><span class="p">:</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">scenefolder</span><span class="p">[</span><span class="o">-</span><span class="mi">12</span><span class="p">:</span><span class="o">-</span><span class="mi">8</span><span class="p">]),</span><span class="mi">7</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">date</span> <span class="o">&gt;</span> <span class="n">timerange</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">date</span> <span class="o">&lt;</span> <span class="n">timerange</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">tileScene</span><span class="p">((</span><span class="n">scenefolder</span><span class="p">,</span> <span class="n">tilesfolder</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">scenefolder</span><span class="p">,</span> <span class="n">tilesfolder</span><span class="p">,</span> <span class="n">mgrstiles</span><span class="p">)</span> <span class="k">for</span> <span class="n">scenefolder</span> <span class="ow">in</span> <span class="n">scenefolders</span><span class="p">]</span>
+        <span class="kn">import</span> <span class="nn">multiprocessing.pool</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">ThreadPool</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">tileScene</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span> <span class="n">pool</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span> <span class="k">pass</span>
+    <span class="n">toc</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Authors et al..
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

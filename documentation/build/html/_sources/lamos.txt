@@ -1,0 +1,62 @@
+lamos package
+=============
+
+Subpackages
+-----------
+
+.. toctree::
+
+    lamos.cubebuilder
+    lamos.usecase
+
+Submodules
+----------
+
+lamos.espa_cdr module
+---------------------
+
+.. automodule:: lamos.espa_cdr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+lamos.espa_downloader module
+----------------------------
+
+.. automodule:: lamos.espa_downloader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+lamos.metacube module
+---------------------
+
+.. automodule:: lamos.metacube
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+lamos.sentinel module
+---------------------
+
+.. automodule:: lamos.sentinel
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+lamos.validation module
+-----------------------
+
+.. automodule:: lamos.validation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: lamos
+    :members:
+    :undoc-members:
+    :show-inheritance:

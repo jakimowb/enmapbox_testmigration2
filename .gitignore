@@ -1,18 +1,14 @@
 # Untracked directories
 .idea/
 
-# Untracked files
-*.bsq
-*.hdr
-*.tif
-*.tiff
-*.jpg
-*.jpeg
-*.png
-
 # Untrack compiled files
 *.pyc 
 *.pyd
-*.so
 *.pyc
+<<<<<<< HEAD
 /documentation/build
+=======
+/documentation/build/doctrees/
+enmapbox/testdata/AlpineForeland/AF_Image.bip.aux.xml
+enmapbox/testdata/AlpineForeland/AF_LAI.bsq.aux.xml
+>>>>>>> dev_gms
