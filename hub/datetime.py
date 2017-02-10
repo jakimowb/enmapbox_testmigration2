@@ -5,6 +5,10 @@ import calendar
 class Date(datetime_.date):
 
     @staticmethod
+    def fromDate(date):
+        return Date(year=date.year, month=date.month, day=date.day)
+
+    @staticmethod
     def fromYearDoy(year, doy):
         date = datetime_.date(year=year, month=1, day=1) + datetime_.timedelta(days=doy-1)
         return Date(year=date.year, month=date.month, day=date.day)

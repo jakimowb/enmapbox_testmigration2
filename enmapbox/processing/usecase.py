@@ -165,6 +165,18 @@ def classification():
             pass
 
 
+def rfc():
+
+    RandomForestClassifier = Classifiers.RandomForestClassifier
+
+    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
+    labels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    classifier = RandomForestClassifier(n_estimators=100)
+    classifier = classifier.fit(image, labels)
+    map = classifier.predict(image, filename=r'c:\result_classification')
+
+    map=map
+
 def regression():
 
     image = Image(os.path.join(inroot, 'Hymap_Berlin-B_Image'))
