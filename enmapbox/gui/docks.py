@@ -1113,7 +1113,6 @@ class MapDock(Dock):
 
 
 
-
 class CursorLocationValueDock(Dock):
 
     _instance = None
