@@ -363,9 +363,6 @@ class DataSourceVector(DataSourceSpatial):
             return QgsVectorLayer(self.uri, **kwargs)
 
 
-
-
-
 class DataSourceManager(QObject):
 
     """
