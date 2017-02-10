@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>511</width>
-    <height>234</height>
+    <height>262</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -145,12 +145,21 @@ enhancement</string>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
+       <property name="tickPosition">
+        <enum>QSlider::TicksAbove</enum>
+       </property>
       </widget>
      </item>
      <item row="3" column="1">
       <widget class="QSlider" name="mBlueBandSlider">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::TicksAbove</enum>
+       </property>
+       <property name="tickInterval">
+        <number>10</number>
        </property>
       </widget>
      </item>
@@ -164,6 +173,9 @@ enhancement</string>
        </property>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::TicksAbove</enum>
        </property>
       </widget>
      </item>
@@ -193,19 +205,59 @@ enhancement</string>
       <widget class="QComboBox" name="mBlueBandComboBox"/>
      </item>
      <item row="0" column="0" colspan="3">
-      <widget class="QLabel" name="mBlueMaxLabel_3">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
+      <widget class="QFrame" name="btnBar">
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
        </property>
-       <property name="text">
-        <string>Band</string>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
        </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="margin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QToolButton" name="btnDef">
+          <property name="text">
+           <string>Default</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="btnTrueColor">
+          <property name="text">
+           <string>True</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="btnCIR">
+          <property name="text">
+           <string>CIR</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="btn453">
+          <property name="text">
+           <string>SWIR</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </widget>
      </item>
     </layout>
@@ -221,6 +273,38 @@ enhancement</string>
     </widget>
    </item>
   </layout>
+  <action name="actionSet453">
+   <property name="text">
+    <string>453</string>
+   </property>
+   <property name="toolTip">
+    <string>Set to swIR-mwIR-red (Landsat 4-5-3)</string>
+   </property>
+  </action>
+  <action name="actionSetCIR">
+   <property name="text">
+    <string>CIR</string>
+   </property>
+   <property name="toolTip">
+    <string>Set to coloured infra red (swIR-red-green)</string>
+   </property>
+  </action>
+  <action name="actionSetTrueColor">
+   <property name="text">
+    <string>True</string>
+   </property>
+   <property name="toolTip">
+    <string>Set to true color (red-green-blue)</string>
+   </property>
+  </action>
+  <action name="actionSetDefault">
+   <property name="text">
+    <string>Def</string>
+   </property>
+   <property name="toolTip">
+    <string>Set default band selection</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
