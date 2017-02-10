@@ -394,7 +394,8 @@ class MapDockTreeNode(DockTreeNode):
     def updateCanvas(self):
         if self.dock and not self.blockSignals:
             self.dock.canvas.blockSignals(True)
-            self.dock.setLayerSet(self.visibleLayers(self))
+            layers = self.visibleLayers(self)
+            self.dock.setLayerSet(layers)
             self.dock.canvas.blockSignals(False)
 
     @staticmethod
@@ -619,6 +620,12 @@ class DockManagerTreeModel(TreeModel):
 
         dockNode = list(dockNode)[0]
 
+        if action == Qt.MoveAction:
+            s = ""
+
+        else:
+
+            s = ""
         if isinstance(dockNode, MapDockTreeNode):
             if MDH.hasLayerTreeModelData():
                 nodes = MDH.layerTreeModelNodes()
@@ -627,7 +634,13 @@ class DockManagerTreeModel(TreeModel):
                         row = 0
                     node.insertChildNodes(row, nodes)
                     return True
+            if MDH.hasDataSources():
+                dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
+                if len(dataSources) > 0:
+                    for ds in dataSources:
+                        dockNode.addLayer(ds.createMapLayer())
 
+                    return True
         elif isinstance(dockNode, TextDockTreeNode):
 
             s = ""
