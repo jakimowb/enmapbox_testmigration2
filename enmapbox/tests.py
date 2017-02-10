@@ -11,9 +11,15 @@ import enmapbox
 enmapbox.DEBUG = True
 dprint = enmapbox.dprint
 jp = os.path.join
-
+file_search = enmapbox.file_search
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
+
+def testFiles():
+
+    dir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
+    files = file_search(dir, '*.bsq', recursive=True)
+    return files
 
 def writelogmessage(message, tag, level):
     print('{}({}): {}'.format( tag, level, message ) )
@@ -70,18 +76,23 @@ def test_GUI():
     from enmapbox.main import EnMAPBox, TestData
     EB = EnMAPBox(None)
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
+
     if True:
         if True:
+            for f in testFiles():
+                EB.addSource(f)
+
+        if False:
             EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_LAI)
             EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_Image)
             EB.createDock('CURSORLOCATIONVALUE')
-        if True: EB.createDock('MIME')
+        if False: EB.createDock('MIME')
 
         if False:
             EB.createDock('TEXT',html=LORE_IPSUM)
             EB.createDock('TEXT', html=LORE_IPSUM)
 
-        if True:
+        if False:
             # register new model
             path = TestData.RFC_Model
             import enmapbox.processing
@@ -99,6 +110,8 @@ def test_GUI():
 
     #how to get loaded data sources
     from enmapbox.datasources import DataSourceRaster
+    DSM = EnMAPBox.instance().dataSourceManager
+
     rasterSources = [src for src in EnMAPBox.instance().dataSourceManager.sources if isinstance(src, DataSourceRaster)]
     for src in rasterSources:
         print(src.uri)
