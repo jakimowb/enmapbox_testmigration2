@@ -26,6 +26,27 @@ class RasterLayerProperties(QgsOptionsDialogBase):
         self.restoreOptionsBaseUi(title)
 """
 
+METRIC_EXPONENTS = {
+    "nm":-9,"um": -6, "mm":-3, "cm":-2, "dm":-1, "m": 0,"hm":2, "km":3
+}
+#add synonyms
+METRIC_EXPONENTS['nanometers'] = METRIC_EXPONENTS['nm']
+METRIC_EXPONENTS['micrometers'] = METRIC_EXPONENTS['um']
+METRIC_EXPONENTS['millimeters'] = METRIC_EXPONENTS['mm']
+METRIC_EXPONENTS['centimeters'] = METRIC_EXPONENTS['cm']
+METRIC_EXPONENTS['decimeters'] = METRIC_EXPONENTS['dm']
+METRIC_EXPONENTS['meters'] = METRIC_EXPONENTS['m']
+METRIC_EXPONENTS['hectometers'] = METRIC_EXPONENTS['hm']
+METRIC_EXPONENTS['kilometers'] = METRIC_EXPONENTS['km']
+
+def convertMetricUnit(value, u1, u2):
+    assert u1 in METRIC_EXPONENTS.keys()
+    assert u2 in METRIC_EXPONENTS.keys()
+
+    e1 = METRIC_EXPONENTS[u1]
+    e2 = METRIC_EXPONENTS[u2]
+
+    return value * 10**(e1-e2)
 
 def displayBandNames(provider_or_dataset, bands=None):
     results = None
@@ -56,6 +77,43 @@ def displayBandNames(provider_or_dataset, bands=None):
 
     return results
 
+def parseWavelength(provider):
+    wl = None
+    wlu = None
+    assert isinstance(provider, QgsRasterDataProvider)
+    md = [l.split('=') for l in str(provider.metadata()).splitlines() if 'wavelength' in l.lower()]
+    #see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
+
+    mdDict = {}
+
+    for kv in md:
+        key, value = kv
+        if key not in mdDict.keys():
+            mdDict[key] = list()
+        mdDict[key].append(value)
+
+    regWLU = re.compile('(^(micro|nano|centi)meters)|(um|nm|mm|cm|m|GHz|MHz)')
+
+    for key in mdDict.keys():
+        values = ';'.join(mdDict[key])
+        key = key.lower()
+        if re.search('wavelength$', key):
+            tmp = re.findall('\d*\.\d+|\d+', values) #find floats
+            if len(tmp) != provider.bandCount():
+                tmp = re.findall('\d+', values) #find integers
+            if len(tmp) == provider.bandCount():
+                wl = np.asarray([float(w) for w in tmp])
+
+        if re.search(r'wavelength.units?',key):
+            if re.search('Micrometers?', values, re.I):
+                wlu = 'um'
+            elif re.search('Nanometers?', values, re.I):
+                wlu = 'nm'
+            else:
+                wlu = 'nm'
+
+    return wl, wlu
+
 
 class MultiBandColorRendererWidget(QgsRasterRendererWidget,
     loadUIFormClass(os.path.normpath(jp(DIR_UI, 'multibandcolorrendererwidgetbase.ui')))):
@@ -76,14 +134,21 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.createValidators()
 
-        self.bandNames=None
+
+        self.bandNames = None
         self.bandRanges = dict()
+        r = layer.renderer()
+        self.defaultMB = [r.redBand()-1, r.greenBand()-1, r.blueBand()-1]
+        self.wavelengths = None
+        self.wavelengthUnit = None
         if self.rasterLayer() and self.rasterLayer().dataProvider():
             provider = self.rasterLayer().dataProvider()
+
             self.mMinMaxWidget = QgsRasterMinMaxWidget(layer, self)
             self.mMinMaxWidget.setExtent(extent)
             self.mMinMaxWidget.setMapCanvas(self.mapCanvas())
             self.mMinMaxWidget.load.connect(self.loadMinMax)
+
             layout = QHBoxLayout()
             self.mMinMaxContainerWidget.setLayout(layout)
             layout.addWidget(self.mMinMaxWidget)
@@ -101,6 +166,12 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
                 slider.valueChanged.connect(cbox.setCurrentIndex)
                 slider.setMinimum(1)
                 slider.setMaximum(nb)
+                intervals = [1,2,5,10,25,50]
+                for interval in intervals:
+                    if nb / interval < 10:
+                        break
+                slider.setTickInterval(interval)
+                slider.setPageStep(interval)
                 cbox.currentIndexChanged.connect(self.onBandChanged)
                 cbox.addItem('Not set',-1)
 
@@ -120,7 +191,69 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
             for edit in self.minEdits + self.maxEdits:
                 edit.textChanged.connect(self.widgetChanged)
 
+            self.initButtons(provider)
+
+
         s = ""
+
+    def initButtons(self, provider):
+        assert isinstance(provider, QgsRasterDataProvider)
+        wl, wlu = parseWavelength(provider)
+        self.wavelengths = wl
+        self.wavelengthUnit = wlu
+
+        self.actionSetDefault.triggered.connect(lambda : self.setBandSelection('defaultMB'))
+        self.actionSetTrueColor.triggered.connect(lambda : self.setBandSelection('TrueColor'))
+        self.actionSetCIR.triggered.connect(lambda : self.setBandSelection('CIR'))
+        self.actionSet453.triggered.connect(lambda : self.setBandSelection('453'))
+
+        self.btnDef.setDefaultAction(self.actionSetDefault)
+        self.btnTrueColor.setDefaultAction(self.actionSetTrueColor)
+        self.btnCIR.setDefaultAction(self.actionSetCIR)
+        self.btn453.setDefaultAction(self.actionSet453)
+
+        self.btnBar.setEnabled(self.wavelengths is not None)
+
+    def bandClosestToWavelength(self, wl, wl_unit='nm'):
+        if self.wavelengths is None or self.wavelengthUnit is None:
+            return 0
+
+        wl = float(wl)
+        if self.wavelengthUnit != wl_unit:
+            wl = convertMetricUnit(wl, wl_unit, self.wavelengthUnit)
+
+        return np.argmin(np.abs(self.wavelengths - wl))
+
+    def setBandSelection(self, key):
+
+        if key == 'defaultMB':
+            bands = self.defaultMB
+
+        else:
+            if key in ['R', 'G', 'B', 'nIR', 'swIR']:
+                colors = [key]
+            elif key == 'TrueColor':
+                colors = ['R', 'G', 'B']
+            elif key == 'CIR':
+                colors = ['nIR', 'R', 'G']
+            elif key == '453':
+                colors = ['nIR', 'swIR', 'R']
+
+            LUT_Wavelenghts = dict({'B': 480,
+                                    'G': 570,
+                                    'R': 660,
+                                    'nIR': 850,
+                                    'swIR': 1650,
+                                    'swIR1': 1650,
+                                    'swIR2': 2150
+                                    })
+
+            wls = [LUT_Wavelenghts[c] for c in colors]
+            bands = [self.bandClosestToWavelength(wl) for wl in wls]
+
+        if len(bands) == 3:
+            for i, b in enumerate(bands):
+                self.sliders[i].setValue(b + 1)
 
     def loadMinMax(self, theBandNo, theMin, theMax, theOrigin):
         myMinLineEdit = myMaxLineEdit = None
@@ -164,6 +297,7 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
 
         self.mGreenMinLineEdit.setValidator(QDoubleValidator(self.mGreenMinLineEdit))
         self.mGreenMaxLineEdit.setValidator(QDoubleValidator(self.mGreenMaxLineEdit))
+
 
 
     def displayBandName(self, band):
@@ -281,6 +415,8 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
 
     def setFromRenderer(self, r):
         if isinstance(r, QgsMultiBandColorRenderer):
+            #todo: check number of bands
+
             self.mRedBandComboBox.setCurrentIndex(r.redBand())
             self.mGreenBandComboBox.setCurrentIndex(r.greenBand())
             self.mBlueBandComboBox.setCurrentIndex(r.blueBand())
@@ -428,3 +564,41 @@ def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
     else:
         d.setModal(False)
         return d
+
+
+if __name__ == '__main__':
+    import site, sys
+    #add site-packages to sys.path as done by enmapboxplugin.py
+
+    from enmapbox import DIR_SITE_PACKAGES
+    site.addsitedir(DIR_SITE_PACKAGES)
+
+    #prepare QGIS environment
+    if sys.platform == 'darwin':
+        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+    else:
+        # assume OSGeo4W startup
+        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    assert os.path.exists(PATH_QGS)
+
+    qgsApp = QgsApplication([], True)
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
+    qgsApp.setPrefixPath(PATH_QGS, True)
+    qgsApp.initQgis()
+
+    #run tests
+    #d = AboutDialogUI()
+    #d.show()
+
+    from enmapbox.tests import testFiles
+    f = testFiles()
+
+    #todo: test case for layer dialog
+
+    try:
+        qgsApp.exec_()
+        qgsApp.exitQgis()
+    except:
+        s = ""
