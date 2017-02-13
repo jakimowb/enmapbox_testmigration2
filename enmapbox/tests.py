@@ -6,7 +6,6 @@ from qgis import *
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtGui import *
-from PyQt.QtCore import *
 import enmapbox
 enmapbox.DEBUG = True
 dprint = enmapbox.dprint
@@ -78,7 +77,7 @@ def test_GUI():
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
 
     if True:
-        if True:
+        if False:
             for f in testFiles():
                 EB.addSource(f)
 

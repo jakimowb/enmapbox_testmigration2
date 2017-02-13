@@ -1,22 +1,17 @@
 
-__name__ = 'enmapbox'
-
-__all__ = ['enmapbox', 'datasources','gui']
-from pkgutil import extend_path
-__path__ = extend_path(__path__, __name__)
-
-import os, fnmatch
+import os, fnmatch, six
 
 jp = os.path.join
 
+#globals
 DIR = os.path.dirname(__file__)
 DIR_REPO = os.path.dirname(DIR)
 DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
 DIR_UI = jp(DIR, *['gui','ui'])
 
-DEBUG = False
+DEBUG = True
 
-import six
+#convenience functions
 def dprint(text, file=None):
     if DEBUG:
         six._print('DEBUG::{}'.format(text), file=file)
@@ -37,11 +32,4 @@ def file_search(rootdir, wildcard, recursive=False, ignoreCase=False):
             break
             pass
     return results
-
-
-#DIR = os.path.dirname(__file__)
-#import gui
-#DIR_GUI = jp(DIR,'gui')
-#add_to_sys_path(DIR_GUI)
-#add_to_sys_path(jp(DIR, 'libs'))
 
