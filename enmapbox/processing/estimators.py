@@ -12,8 +12,9 @@ import sklearn.pipeline
 import sklearn.preprocessing
 import sklearn.svm
 import sklearn.dummy
-from HTML import Table
+import sklearn.neural_network
 
+from HTML import Table
 
 def _allEstimators(estimators):
 
@@ -229,6 +230,7 @@ class Classifiers(Estimators):
             Classifier.__init__(self, pipe)
 
 
+
 # need to copy classes outside of Classifiers to be able to pickle the models
 LinearSVC = Classifiers.LinearSVC
 LinearSVCTuned = Classifiers.LinearSVCTuned
@@ -236,6 +238,7 @@ SVC = Classifiers.SVC
 SVCTuned = Classifiers.SVCTuned
 RandomForestClassifier = Classifiers.RandomForestClassifier
 DummyClassifier = Classifiers.DummyClassifier
+from enmapbox.processing.estimator.mlp import MLPClassifier
 
 class Regressors(Estimators):
 
@@ -815,3 +818,4 @@ class MH:
 
 if __name__ == '__main__':
     print(SVCTuned().name())
+    print(sklearn.neural_network.MLPClassifier())

@@ -281,7 +281,7 @@ class Image(Type):
 
     def __init__(self, filename):
 
-        assert os.path.exists(filename)
+        assert os.path.exists(filename), filename
         self.filename = filename
         self.meta = Meta(filename)
         self.pixelGrid = PixelGrid(pixelGridFromFile(self.filename))
@@ -984,6 +984,10 @@ class Estimator(Type):
 
             # predict valid samples
             n_outputs_ = self.sklEstimator._final_estimator.n_outputs_
+            # todo: check the meaning of n_outputs. Seem to only work correcly for multitarget regression,
+            #       but makes problems with normal classification
+            # set it to 1 for now, need to fix this later
+            n_outputs_ = 1
             if probafile:
 
                 if allValid:
