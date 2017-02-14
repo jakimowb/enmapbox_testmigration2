@@ -73,7 +73,7 @@ def test_MLPRegressor():
     mlp = MLPRegressor()
     mlp.fit(image=image, labels=train)
     regression = mlp.predict(image=image,filename=r'C:\Work\data\_mlpRegression')
-    accAss = regression.assessRegressionPerformance(regression=regression)
+    accAss = regression.assessRegressionPerformance(regression=test)
     print('R^2:', accAss.explained_variance_score)
 
 if __name__ == '__main__':
