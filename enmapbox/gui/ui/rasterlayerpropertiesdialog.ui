@@ -20,7 +20,7 @@
    <string>Raster Layer Properties</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset>
     <normaloff>:/enmapbox/png/icons/enmapbox.png</normaloff>:/enmapbox/png/icons/enmapbox.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -170,8 +170,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>525</width>
-                <height>431</height>
+                <width>349</width>
+                <height>307</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -540,8 +540,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>527</width>
-                <height>433</height>
+                <width>447</width>
+                <height>292</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -1437,8 +1437,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>525</width>
-                <height>431</height>
+                <width>131</width>
+                <height>238</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_12">
