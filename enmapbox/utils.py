@@ -112,6 +112,99 @@ def getDOMAttributes(elem):
     return values
 
 
+class SpatialExtent(QgsRectangle):
+    """
+    Object to keep QgsRectangle and QgsCoordinateReferenceSystem together
+    """
+    @staticmethod
+    def fromMapCanvas(mapCanvas):
+        assert isinstance(mapCanvas, QgsMapCanvas)
+        extent = mapCanvas.extent()
+        crs = mapCanvas.mapSettings().destinationCrs()
+        return SpatialExtent(crs, extent)
+
+    @staticmethod
+    def fromLayer(mapLayer):
+        assert isinstance(mapLayer, QgsMapLayer)
+        extent = mapLayer.extent()
+        crs = mapLayer.crs()
+        return SpatialExtent(crs, extent)
+
+    def __init__(self, crs, *args):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        super(SpatialExtent, self).__init__(*args)
+        self.mCrs = crs
+
+    def setCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        self.mCrs = crs
+
+    def crs(self):
+        return self.mCrs
+
+    def toCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        box = QgsRectangle(self)
+        if self.mCrs != crs:
+            trans = QgsCoordinateTransform(self.mCrs, crs)
+            box = trans.transformBoundingBox(box)
+        return SpatialExtent(crs, box)
+
+    def __copy__(self):
+        return SpatialExtent(self.crs(), QgsRectangle(self))
+
+    def combineExtentWith(self, *args):
+        if args is None:
+            return
+        elif isinstance(args[0], SpatialExtent):
+            extent2 = args[0].toCrs(self.crs())
+            self.combineExtentWith(QgsRectangle(extent2))
+        else:
+            super(SpatialExtent, self).combineExtentWith(*args)
+
+    def setCenter(self, centerPoint, crs=None):
+
+        if crs and crs != self.crs():
+            trans = QgsCoordinateTransform(crs, self.crs())
+            centerPoint = trans.transform(centerPoint)
+
+        delta = centerPoint - self.center()
+        self.setXMaximum(self.xMaximum() + delta.x())
+        self.setXMinimum(self.xMinimum() + delta.x())
+        self.setYMaximum(self.yMaximum() + delta.y())
+        self.setYMinimum(self.yMinimum() + delta.y())
+
+
+    def __cmp__(self, other):
+        if other is None: return 1
+        s = ""
+
+    def __eq__(self, other):
+        s = ""
+
+    def __sub__(self, other):
+        raise NotImplementedError()
+
+    def __mul__(self, other):
+        raise NotImplementedError()
+
+    def upperRight(self):
+        return self.xMaximum(), self.yMaximum()
+
+    def upperLeft(self):
+        return self.xMinimum(), self.yMaximum()
+
+    def lowerRight(self):
+        return self.xMaximum(), self.yMinimum()
+
+    def lowerLeft(self):
+        return self.xMinimum(), self.yMinimum()
+
+
+    def __repr__(self):
+
+        return '{} {} {}'.format(self.upperLeft(), self.lowerRight(), self.crs().authid())
+
 
 class IconProvider:
     """
