@@ -11,7 +11,6 @@ from PyQt4.QtGui import *
 
 import gdal, ogr
 
-from pyqtgraph.graphicsItems import *
 from enmapbox import dprint
 from enmapbox.utils import *
 from enmapbox.main import DIR_UI
@@ -40,6 +39,7 @@ METRIC_EXPONENTS['hectometers'] = METRIC_EXPONENTS['hm']
 METRIC_EXPONENTS['kilometers'] = METRIC_EXPONENTS['km']
 
 def convertMetricUnit(value, u1, u2):
+    """converts value, given in unit u1, to u2"""
     assert u1 in METRIC_EXPONENTS.keys()
     assert u2 in METRIC_EXPONENTS.keys()
 
@@ -92,8 +92,6 @@ def parseWavelength(provider):
             mdDict[key] = list()
         mdDict[key].append(value)
 
-    regWLU = re.compile('(^(micro|nano|centi)meters)|(um|nm|mm|cm|m|GHz|MHz)')
-
     for key in mdDict.keys():
         values = ';'.join(mdDict[key])
         key = key.lower()
@@ -105,12 +103,26 @@ def parseWavelength(provider):
                 wl = np.asarray([float(w) for w in tmp])
 
         if re.search(r'wavelength.units?',key):
-            if re.search('Micrometers?', values, re.I):
-                wlu = 'um'
-            elif re.search('Nanometers?', values, re.I):
+            if re.search('(Micrometers?|um)', values, re.I):
+                wlu = 'um' #fix with python 3 UTF
+            elif re.search('(Nanometers?|nm)', values, re.I):
                 wlu = 'nm'
+            elif re.search('(Millimeters?|mm)', values, re.I):
+                wlu = 'nm'
+            elif re.search('(Centimeters?|cm)', values, re.I):
+                wlu = 'nm'
+            elif re.search('(Meters?|m)', values, re.I):
+                wlu = 'nm'
+            elif re.search('Wavenumber', values, re.I):
+                wlu = '-'
+            elif re.search('GHz', values, re.I):
+                wlu = 'GHz'
+            elif re.search('MHz', values, re.I):
+                wlu = 'MHz'
+            elif re.search('Index', values, re.I):
+                wlu = '-'
             else:
-                wlu = 'nm'
+                wlu = '-'
 
     return wl, wlu
 
@@ -122,11 +134,8 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
     def create(layer, extent):
         return MultiBandColorRendererWidget(layer, extent)
 
-
     def closeEvent(self, event):
-        print('CLOSE EVENT')
         event.accept()
-
 
     def __init__(self, layer, extent):
         super(MultiBandColorRendererWidget,self).__init__(layer, extent)
@@ -460,22 +469,70 @@ class RasterLayerProperties(QgsOptionsDialogBase,
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         #connect controls
 
+        self.initOptsGeneral()
+        self.initOptsStyle()
+        self.initOptsTransparency()
+        self.initOptsMetadata()
 
-        #insert renderer widgets into registry
+
+    def initOptsGeneral(self):
+        rl = self.rasterLayer
+
+        assert isinstance(rl, QgsRasterLayer)
+        dp = rl.dataProvider()
+        name = str(rl.name())
+        if name == '':
+            name = os.path.basename(rl.source())
+
+        self.tb_layername.setText(name)
+        self.tb_layersource.setText(rl.source())
+
+        self.tb_columns.setText('{}'.format(dp.xSize()))
+        self.tb_rows.setText('{}'.format(dp.ySize()))
+        self.tb_bands.setText('{}'.format(dp.bandCount()))
+
+        mapUnits = ['m','km','ft','nmi','yd','mi','deg','ukn']
+        mapUnit = rl.crs().mapUnits()
+        mapUnit = mapUnits[mapUnit] if mapUnit < len(mapUnits) else 'ukn'
+
+        self.tb_pixelsize.setText('{0}{2}x{1}{2}'.format(rl.rasterUnitsPerPixelX(),rl.rasterUnitsPerPixelY(), mapUnit))
+        self.tb_nodata.setText('{}'.format(dp.srcNoDataValue(2)))
+
+        from enmapbox.utils import SpatialExtent
+        se = SpatialExtent.fromLayer(rl)
+        pt2str = lambda xy: '{} {}'.format(xy[0], xy[1])
+        self.tb_upperLeft.setText(pt2str(se.upperLeft()))
+        self.tb_upperRight.setText(pt2str(se.upperRight()))
+        self.tb_lowerLeft.setText(pt2str(se.lowerLeft()))
+        self.tb_lowerRight.setText(pt2str(se.lowerRight()))
+
+        self.tb_width.setText('{} {}'.format(se.width(), mapUnit))
+        self.tb_height.setText('{} {}'.format(se.height(), mapUnit))
+        self.tb_center.setText(pt2str((se.center().x(), se.center().y())))
+
+        s = ""
+
+
+    def initOptsStyle(self):
+        # insert renderer widgets into registry
         for key, value in RASTERRENDERER_FUNC.items():
             self.mRenderTypeComboBox.addItem(key, key)
 
         pass
         renderer = self.rasterLayer.renderer()
 
-
         if renderer:
             idx = self.mRenderTypeComboBox.findText(str(renderer.type()))
             if idx != -1:
                 self.mRenderTypeComboBox.setCurrentIndex(idx)
-
-
         self.mRenderTypeComboBox.currentIndexChanged.connect(self.on_mRenderTypeComboBox_currentIndexChanged)
+
+    def initOptsTransparency(self):
+
+        s = ""
+    def initOptsMetadata(self):
+
+        s = ""
 
     @pyqtSlot(int)
     def on_mRenderTypeComboBox_currentIndexChanged(self, index):
@@ -588,17 +645,31 @@ if __name__ == '__main__':
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
-    #run tests
-    #d = AboutDialogUI()
-    #d.show()
+    from enmapbox.testdata.AlpineForeland import AF_Image
 
-    from enmapbox.tests import testFiles
-    f = testFiles()
+    l = QgsRasterLayer(AF_Image)
+    QgsMapLayerRegistry.instance().addMapLayer(l)
+    c = QgsMapCanvas()
+    c.setLayerSet([QgsMapCanvasLayer(l)])
+    c.setDestinationCrs(l.crs())
+    c.setExtent(l.extent())
+    c.refresh()
+    b = QPushButton()
+    b.setText('Show Properties')
+    b.clicked.connect(lambda: showLayerPropertiesDialog(l, c))
+    br = QPushButton()
+    br.setText('Refresh')
+    br.clicked.connect(lambda : c.refresh())
+    lh = QHBoxLayout()
+    lh.addWidget(b)
+    lh.addWidget(br)
+    lv = QVBoxLayout()
+    lv.addLayout(lh)
+    lv.addWidget(b)
+    lv.addWidget(c)
+    w = QWidget()
+    w.setLayout(lv)
+    w.show()
 
-    #todo: test case for layer dialog
-
-    try:
-        qgsApp.exec_()
-        qgsApp.exitQgis()
-    except:
-        s = ""
+    qgsApp.exec_()
+    qgsApp.exitQgis()
