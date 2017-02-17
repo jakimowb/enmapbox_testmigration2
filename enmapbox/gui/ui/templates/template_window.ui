@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>691</width>
+    <width>572</width>
     <height>348</height>
    </rect>
   </property>
@@ -74,8 +74,8 @@
             <string>Profiles</string>
            </property>
            <property name="icon">
-            <iconset resource="resources.qrc">
-             <normaloff>:/enmapbox/png/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/png/icons/viewlist_spectrumdock.png</iconset>
+            <iconset resource="../resources.qrc">
+             <normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</iconset>
            </property>
           </item>
           <item>
@@ -83,7 +83,7 @@
             <string>Values</string>
            </property>
            <property name="icon">
-            <iconset resource="../../../../../QGIS/images/images.qrc">
+            <iconset>
              <normaloff>:/images/themes/default/propertyicons/attributes.png</normaloff>:/images/themes/default/propertyicons/attributes.png</iconset>
            </property>
           </item>
@@ -92,7 +92,7 @@
             <string>Layers</string>
            </property>
            <property name="icon">
-            <iconset resource="../../../../../QGIS/images/images.qrc">
+            <iconset>
              <normaloff>:/images/themes/default/propertyicons/overlay.png</normaloff>:/images/themes/default/propertyicons/overlay.png</iconset>
            </property>
           </item>
@@ -101,15 +101,13 @@
             <string>Settings</string>
            </property>
            <property name="icon">
-            <iconset resource="../../../../../QGIS/images/images.qrc">
+            <iconset>
              <normaloff>:/images/themes/default/propertyicons/general.svg</normaloff>:/images/themes/default/propertyicons/general.svg</iconset>
            </property>
           </item>
          </widget>
         </item>
        </layout>
-       <zorder>listWidget</zorder>
-       <zorder>listWidget</zorder>
       </widget>
       <widget class="QFrame" name="stackFrame">
        <property name="sizePolicy">
@@ -295,8 +293,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="resources.qrc"/>
-  <include location="../../../../../QGIS/images/images.qrc"/>
+  <include location="../resources.qrc"/>
  </resources>
  <connections>
   <connection>

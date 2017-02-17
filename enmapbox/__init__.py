@@ -7,6 +7,7 @@ jp = os.path.join
 DIR = os.path.dirname(__file__)
 DIR_REPO = os.path.dirname(DIR)
 DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
+DIR_TESTDATA = jp(DIR, 'testdata')
 DIR_UI = jp(DIR, *['gui','ui'])
 
 DEBUG = True

@@ -148,10 +148,13 @@
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
-   <addaction name="actionIdentify"/>
-   <addaction name="actionPan"/>
+   <addaction name="actionZoomPixelScale"/>
    <addaction name="actionActionZoomExtent"/>
+   <addaction name="actionPan"/>
    <addaction name="separator"/>
+   <addaction name="actionIdentify"/>
+   <addaction name="actionSettings"/>
+   <addaction name="actionAbout"/>
   </widget>
   <widget class="QDockWidget" name="dockWidgetDocks">
    <property name="features">
@@ -190,7 +193,7 @@
   <action name="actionAddMapView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/viewlist_mapdock.png</normaloff>:/enmapbox/png/icons/viewlist_mapdock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_mapdock.png</normaloff>:/enmapbox/icons/viewlist_mapdock.png</iconset>
    </property>
    <property name="text">
     <string>Map Dock</string>
@@ -199,7 +202,7 @@
   <action name="actionAddTextView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/viewlist_dock.png</normaloff>:/enmapbox/png/icons/viewlist_dock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
    </property>
    <property name="text">
     <string>Text Dock</string>
@@ -208,7 +211,7 @@
   <action name="actionAddGraphView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/png/icons/viewlist_spectrumdock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</iconset>
    </property>
    <property name="text">
     <string>addGraphView</string>
@@ -217,7 +220,7 @@
   <action name="actionZoomIn">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/mActionZoomIn.png</normaloff>:/enmapbox/png/icons/mActionZoomIn.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomIn.png</normaloff>:/enmapbox/icons/mActionZoomIn.png</iconset>
    </property>
    <property name="text">
     <string>zoomIn</string>
@@ -226,7 +229,7 @@
   <action name="actionZoomOut">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/mActionZoomOut.png</normaloff>:/enmapbox/png/icons/mActionZoomOut.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomOut.png</normaloff>:/enmapbox/icons/mActionZoomOut.png</iconset>
    </property>
    <property name="text">
     <string>zoomOut</string>
@@ -235,7 +238,7 @@
   <action name="actionPan">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/mActionPan.png</normaloff>:/enmapbox/png/icons/mActionPan.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionPan.png</normaloff>:/enmapbox/icons/mActionPan.png</iconset>
    </property>
    <property name="text">
     <string>pan</string>
@@ -243,9 +246,9 @@
   </action>
   <action name="actionIdentify">
    <property name="icon">
-    <iconset>
-     <normaloff>:/enmapbox/svg/icons/mActionIdentify.svg</normaloff>
-     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/svg/icons/mActionIdentify.svg</iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>
+     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/mActionIdentify.png</iconset>
    </property>
    <property name="text">
     <string>selectPixel</string>
@@ -257,7 +260,7 @@
   <action name="actionAddDataSource">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/add_datasource.png</normaloff>:/enmapbox/png/icons/add_datasource.png</iconset>
+     <normaloff>:/enmapbox/icons/add_datasource.png</normaloff>:/enmapbox/icons/add_datasource.png</iconset>
    </property>
    <property name="text">
     <string>Add data source</string>
@@ -268,7 +271,7 @@
   </action>
   <action name="actionActionZoomExtent">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
    </property>
    <property name="text">
@@ -281,7 +284,7 @@
   <action name="actionAddMimeView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/png/icons/viewlist_dock.png</normaloff>:/enmapbox/png/icons/viewlist_dock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
    </property>
    <property name="text">
     <string>MimeData Viewer (experimental)</string>
@@ -293,14 +296,71 @@
    </property>
   </action>
   <action name="actionCursor_Location_Values">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.png</iconset>
+   </property>
    <property name="text">
     <string>Cursor Location Values</string>
+   </property>
+  </action>
+  <action name="actionZoomMaxExtent">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</iconset>
+   </property>
+   <property name="text">
+    <string>Zoom Max</string>
+   </property>
+   <property name="toolTip">
+    <string>Zoom to maximum extent of time series</string>
+   </property>
+  </action>
+  <action name="actionZoomPixelScale">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomActual.png</normaloff>:/enmapbox/icons/mActionZoomActual.png</iconset>
+   </property>
+   <property name="text">
+    <string>Zoom to pixel scale</string>
+   </property>
+   <property name="toolTip">
+    <string>Zoom to pixel scale</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/metadata.png</normaloff>:/enmapbox/icons/metadata.png</iconset>
+   </property>
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="actionIdentifyMapLayers">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/timeseriesviewer/icons/mActionIdentify.png</normaloff>:/timeseriesviewer/icons/mActionIdentify.png</iconset>
+   </property>
+   <property name="text">
+    <string>Identify</string>
+   </property>
+   <property name="toolTip">
+    <string>Identify map layers</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/system.png</normaloff>:/enmapbox/icons/system.png</iconset>
+   </property>
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>
  <resources>
   <include location="resources.qrc"/>
-  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>
