@@ -85,10 +85,9 @@ def fileNeedsUpdate(file1, file2):
         else:
             return os.path.getmtime(file1) > os.path.getmtime(file2)
 
-
 def createFilePackage(dirData):
     import numpy as np
-    from enmapbox import DIR_REPO, DIR
+    from timeseriesviewer import DIR_REPO
     pathInit = jp(dirData, '__init__.py')
     code = ['#!/usr/bin/env python',
             '"""',
@@ -106,23 +105,27 @@ def createFilePackage(dirData):
     files = file_search(dirData, '*', recursive=True)
 
     filePathAttributes = set()
-    def addFiles(files, comment=None):
+    def addFiles(files, comment=None, numberPrefix='File'):
         if len(files) > 0:
             if comment:
                 code.append('# '+comment)
             for f in files:
-                bn, ext = os.path.splitext(os.path.basename(f))
-                assert bn not in filePathAttributes
+                an, ext = os.path.splitext(os.path.basename(f))
+                if re.search('^\d', an):
+                    an = numberPrefix+an
+                an = re.sub(r'[-.]', '_',an)
+
+                assert an not in filePathAttributes
                 relpath = os.path.relpath(f, dirData)
-                code.append("{} = os.path.join(thisDir,r'{}')".format(bn, relpath))
-                filePathAttributes.add(bn)
+                code.append("{} = os.path.join(thisDir,r'{}')".format(an, relpath))
+                filePathAttributes.add(an)
             code.append('\n')
 
     raster = [f for f in files if re.search('.*\.(bsq|bip|bil|tif|tiff)$', f)]
     vector = [f for f in files if re.search('.*\.(shp|kml|kmz)$', f)]
 
-    addFiles(raster, 'Raster files:')
-    addFiles(vector, 'Vector files:')
+    addFiles(raster, 'Raster files:', numberPrefix='Img_')
+    addFiles(vector, 'Vector files:', numberPrefix='Shp_')
 
     #add self-test for file existence
     if len(filePathAttributes) > 0:
@@ -143,6 +146,7 @@ def createFilePackage(dirData):
 
     open(pathInit, 'w').write('\n'.join(code))
     print('Created '+pathInit)
+
 
 def createTestData(dirSrc, dirDst, BBOX, drv=None):
 
