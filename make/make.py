@@ -87,7 +87,7 @@ def fileNeedsUpdate(file1, file2):
 
 def createFilePackage(dirData):
     import numpy as np
-    from timeseriesviewer import DIR_REPO
+    from enmapbox import DIR_REPO
     pathInit = jp(dirData, '__init__.py')
     code = ['#!/usr/bin/env python',
             '"""',
