@@ -1,5 +1,5 @@
 __author__ = 'janzandr'
-import os, fnmatch, json, pickle, hub.collections, numpy, hub.file, sys
+import os, fnmatch, json, pickle, hub.collections
 
 def filesearch(dir, pattern):
     files = []
@@ -29,14 +29,15 @@ def mkfiledir(file):
     mkdir(os.path.dirname(file))
 
 def saveJSON(var, file):
+
+    hub.file.mkfiledir(file)
     with open(file, 'w') as file:
         json.dump(var, file)
         #json.dump(var, file, default=json_util.default, indent=4, sort_keys=False)
 
 def restoreJSON(file):
     with open(file, 'r') as file: var = json.load(file)
-    return hub.collections.Bunch(var)
-
+    return var
 
 def savePickle(var, filename):
     hub.file.mkfiledir(filename)

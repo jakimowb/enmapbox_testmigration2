@@ -16,12 +16,21 @@ import rios.applier
 from rios.pixelgrid import PixelGridDefn, pixelGridFromFile
 import sklearn.metrics
 import sklearn.pipeline
+
 from enmapbox.processing.report import *
 from enmapbox.processing.applier import ApplierControls, ApplierHelper
 import numpy
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import gdal
+
+# global EnMAP-Box image format and creation options used by all operators
+OF = 'GTiff'
+CO = ['TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256', 'COMPRESS=LZW', 'INTERLEAVE=BAND']
+
+OF_STR = ' -of '+OF
+CO_STR = ' '+' '.join(['-co '+co for co in CO])
+
 
 # set default progress object
 progress = SilentProgress
@@ -60,10 +69,6 @@ class Type():
 
 class Meta(GDALMeta):
 
-    def isMask(self):
-
-        return self.RasterCount == 1
-
     def isClassification(self):
 
         return (self.getMetadataItem('file_type').lower() == 'envi classification'
@@ -72,8 +77,7 @@ class Meta(GDALMeta):
 
     def isRegression(self):
 
-        return (self.isMask
-                and self.getNoDataValue('data_ignore_value') is not None)
+        return self.getNoDataValue('data_ignore_value') is not None
 
     def isProbability(self):
 
@@ -101,11 +105,11 @@ class Vector(Type):
 
 class VectorClassification(Vector):
 
-    def __init__(self, filename, ids, names, colors, parse=True):
+    def __init__(self, filename, idField, nameField, colorField, parse=True):
         self.filename = filename
-        self.ids = ids # attribute name that stores the class id
-        self.names = names # attribute name that stores the class name
-        self.colors = colors # attribute name that stores the class color, e.g. 0,0,0
+        self.idField = idField # attribute name that stores the class id
+        self.nameField = nameField # attribute name that stores the class name
+        self.colorField= colorField # attribute name that stores the class color, e.g. 0,0,0
         self.classNames = None
         self.classLookup = None
         self.classes = None
@@ -128,9 +132,9 @@ class VectorClassification(Vector):
         class_scheme = {0:('unclassified', [0,0,0])}
         classes = 0
         for feature in layer:
-            class_id = int(feature.GetField(self.ids))
-            class_name = feature.GetField(self.names)
-            class_color = [int(v) for v in feature.GetField(self.colors).split(',')]
+            class_id = int(feature.GetField(self.idField))
+            class_name = feature.GetField(self.nameField)
+            class_color = [int(v) for v in feature.GetField(self.colorField).split(',')]
             class_scheme[class_id] = (class_name, class_color)
             classes = max(class_id, classes)
         classes += 1
@@ -142,7 +146,7 @@ class VectorClassification(Vector):
 
         self.setClassificationScheme(classNames, classLookup)
 
-    def createOccurrence(self, pixelGrid, oversamplingRate=1., filename=None, of='GTiff', ot='Byte'):
+    '''def occurrenceImage(self, pixelGrid, oversamplingRate=1., filename=None, of='GTiff', ot='Byte'):
 
         if filename is None: filename = Environment.tempfile()
 
@@ -156,14 +160,33 @@ class VectorClassification(Vector):
         # burn class polygons
         for i, class_name in enumerate(self.classNames):
             if i == 0: continue
-            occurrence.burnVectorWhereAttrituteEqualsValue(band=i-1, vector=self, attributeName=self.names,
-                                                           attributeValue=class_name, burnValue=1)
+            occurrence.burnVectorWhereAttrituteEqualsValue(band=i-1, vector=self, nameField=self.nameField,
+                                                           valueField=class_name, burnValue=1)
 
         # set metainfos
         occurrence.meta.setProbabilityMetadata(classes=self.classes, classNames=self.classNames, classLookup=self.classLookup)
         occurrence.meta.writeMeta()
 
-        return Probability(occurrence.filename)
+        return Probability(occurrence.filename)'''
+
+    def asClassification(self, pixelGrid, filename=None, verbose=True):
+        if filename is None: filename = Environment.tempfile()
+
+        # create image to burn into
+        pixelGrid.createImage(bands=1, filename=filename, ot='Byte', fill=0)
+
+        # burn class geometries
+        options  = ' -b 1 -a '+self.idField
+        gdal_rasterize(outfile=filename, infile=self.filename, options=options, verbose=verbose)
+
+        # set metainfos
+        meta = Meta(filename)
+        meta.setClassificationMetadata(classes=self.classes, classNames=self.classNames,
+                                       classLookup=self.classLookup)
+        meta.writeMeta()
+
+        return Classification(filename)
+
 
 class PixelGrid(PixelGridDefn):
 
@@ -173,15 +196,59 @@ class PixelGrid(PixelGridDefn):
         PixelGridDefn.__init__(self, projection=pixelGrid.projection,
             xMin=pixelGrid.xMin, xMax=pixelGrid.xMax, yMin=pixelGrid.yMin, yMax=pixelGrid.yMax, xRes=pixelGrid.xRes, yRes=pixelGrid.yRes)
 
-    def createImage(self, bands=1, filename=None, ot='Float32', of='GTiff', fill=None):
+    def newResolution(self, resolution):
+
+        pixelGrid = PixelGrid(self)
+        pixelGrid.xRes = resolution
+        pixelGrid.yRes = resolution
+        return pixelGrid
+
+    def buffer(self, buffer, north=True, west=True, south=True, east=True):
+
+        pixelGrid = PixelGrid(self)
+        if west: pixelGrid.xMin -= buffer
+        if east: pixelGrid.xMax += buffer
+        if south: pixelGrid.yMin -= buffer
+        if north: pixelGrid.yMax += buffer
+        return pixelGrid
+
+    def anchor(self, xAnchor, yAnchor):
+
+        pixelGrid = PixelGrid(self)
+
+        #ul_x = pixelGrid.xMin
+        #ul_y = pixelGrid.yMin
+        #lr_x = pixelGrid.xMax
+        #lr_y = pixelGrid.yMax
+
+        xMinOff = (pixelGrid.xMin - xAnchor) % pixelGrid.xRes
+        yMinOff = (pixelGrid.yMin - yAnchor) % pixelGrid.yRes
+        xMaxOff = (pixelGrid.xMax - xAnchor) % pixelGrid.xRes
+        yMaxOff = (pixelGrid.yMax - yAnchor) % pixelGrid.yRes
+
+        # round snapping offset
+        if xMinOff > pixelGrid.xRes / 2.: xMinOff -= pixelGrid.xRes
+        if yMinOff > pixelGrid.yRes / 2.: yMinOff -= pixelGrid.yRes
+        if xMaxOff > pixelGrid.xRes / 2.: xMaxOff -= pixelGrid.xRes
+        if yMaxOff > pixelGrid.yRes / 2.: yMaxOff -= pixelGrid.yRes
+
+        pixelGrid.xMin -= xMinOff
+        pixelGrid.yMin -= yMinOff
+        pixelGrid.xMax -= xMaxOff
+        pixelGrid.yMax -= yMaxOff
+
+        return pixelGrid
+
+
+
+    def createImage(self, bands=1, filename=None, ot='Float32', fill=None):
 
         if filename is None: filename = Environment.tempfile()
         assert ot in ['Byte', 'Int16', 'UInt16', 'UInt32', 'Int32', 'Float32', 'Float64', 'CInt16', 'CInt32', 'CFloat32', 'CFloat64']
-        assert of in ['GTiff', 'ENVI']
 
         dataType = eval('gdal.GDT_' + ot)
         ysize, xsize = self.getDimensions()
-        driver = gdal.GetDriverByName(of)
+        driver = gdal.GetDriverByName(OF)
         ds = driver.Create(filename, xsize, ysize, bands, dataType) #,creation_options)
         ds.SetGeoTransform(self.makeGeoTransform())
         ds.SetProjection(self.projection)
@@ -212,22 +279,15 @@ class Image(Type):
 
         return image
 
-    @staticmethod
-    def fromPixelGrid(pixelGrid, filename=None):
-
-        assert isinstance(pixelGrid, PixelGridDefn)
-        if filename is None: filename = Environment.tempfile()
-
-        assert 0, 'ToDo'
-        return Image(filename)
-
-
     def __init__(self, filename):
 
-        assert os.path.exists(filename)
+        assert os.path.exists(filename), filename
         self.filename = filename
         self.meta = Meta(filename)
         self.pixelGrid = PixelGrid(pixelGridFromFile(self.filename))
+
+    def asProbability(self):
+        return Probability(self.filename)
 
     def saveAs(self, filename=None, options=''):
 
@@ -254,15 +314,18 @@ class Image(Type):
         options = '-of GTiff -co INTERLEAVE=BAND'
         return self.saveAs(filename=filename, options=options)
 
-    def resample(self, pixelGrid, filename=None, r='average', of='VRT', ot='Float32'):
+    def resample(self, pixelGrid, filename=None, r='average', of='VRT', ot=None):
 
         assert isinstance(pixelGrid, PixelGrid)
         if filename is None: filename = Environment.tempfile(suffix='.vrt')
 
         # do the resampling
-        options = '-overwrite -of '+of+' -ot '+ot+' -r '+r
+        options = '-overwrite -of '+of+' -r '+r
+        if ot is not None:
+            options += ' -ot '+ot
         options += ' -te '+ str(pixelGrid.xMin) + ' ' + str(pixelGrid.yMin) + ' ' + str(pixelGrid.xMax) + ' ' + str(pixelGrid.yMax)
         options += ' -tr '+ str(pixelGrid.xRes) + ' ' + str(pixelGrid.yRes)
+        options += ' -t_srs '+pixelGrid.projection
         hub.gdal.util.gdalwarp(outfile=filename, infile=self.filename, options=options, verbose=True)
 
         # copy metadata
@@ -314,12 +377,12 @@ class Image(Type):
 
         return report
 
-    def burnVectorWhereAttrituteEqualsValue(self, band, vector, attributeName, attributeValue, burnValue=1, verbose=True):
+    def burnVectorWhereAttrituteEqualsValue(self, band, vector, nameField, valueField, burnValue=1, verbose=True):
 
         assert isinstance(vector, Vector)
         options = ' -b ' + str(band+1)
         options += ' -burn '+str(burnValue)
-        options += ' -where "' + attributeName + '"' + '=' + "'" + attributeValue + "'"
+        options += ' -where "' + nameField + '"' + '=' + "'" + valueField + "'"
         gdal_rasterize(outfile=self.filename, infile=vector.filename, options=options, verbose=verbose)
         return self
 
@@ -580,13 +643,7 @@ class ImageStatistics(Type):
 
 class Mask(Image):
 
-    def __init__(self, filename):
-
-        Image.__init__(self, filename)
-        assert self.meta.isMask()
-
     def getLocations(self):
-
         dataSample = PixelExtractor(self).extractByMask(self)
         return dataSample.locations
 
@@ -606,6 +663,7 @@ class Classification(Mask):
 
         Mask.__init__(self, filename)
         assert self.meta.isClassification()
+        self.classes, self.classNames, self.classLookup = self.meta.getClassificationMetadata()
 
     def assessClassificationPerformance(self, classification, stratification=None, useRandomAccessReader=True):
 
@@ -637,6 +695,72 @@ class Classification(Mask):
             sample = SupervisedSample.fromMask(image=self, labels=classification, mask=classification)
         return ClusteringPerformance(sample)
 
+    def recode(self, class_names, class_lookup, ids, filename=None):
+
+        assert len(class_names)*3 == len(class_lookup)
+        assert isinstance(ids, dict)
+        classes = len(class_names)
+
+        if filename is None: filename = Environment.tempfile()
+
+        infiles = rios.applier.FilenameAssociations()
+        outfiles = rios.applier.FilenameAssociations()
+        args = rios.applier.OtherInputs()
+        infiles.image = self.filename
+        outfiles.result = filename
+        args.imageMeta = self.meta
+        args.class_names = class_names
+        args.class_lookup = class_lookup
+        args.ids = ids
+
+        controls = ApplierControls()
+
+        def ufunc(info, inputs, outputs, args):
+
+            outputs.result = numpy.zeros_like(inputs.image, dtype=numpy.uint8)
+            # recode ids
+            for old_id, new_id in ids.items():
+                outputs.result[inputs.image == old_id] = new_id
+
+        # Apply the function to the inputs, creating the outputs.
+        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+
+        # set metainfos
+        outmeta = Meta(filename)
+        outmeta.setClassificationMetadata(classes=classes, classNames=class_names, classLookup=class_lookup)
+        outmeta.writeMeta()
+
+        return self.__class__(filename)
+
+    def asProbability(self, filename=None):
+        if filename is None: filename = Environment.tempfile()
+
+        # binary encode classes
+        infiles = rios.applier.FilenameAssociations()
+        outfiles = rios.applier.FilenameAssociations()
+        args = rios.applier.OtherInputs()
+        infiles.c = self.filename
+        outfiles.p = filename
+        args.self = self
+        controls = ApplierControls()
+
+        def ufunc(info, inputs, outputs, args):
+
+            p_shape = (args.self.classes-1,)+inputs.c.shape[1:]
+            outputs.p = numpy.zeros(p_shape, dtype=numpy.float32)
+            # recode ids
+            for c in range(1, args.self.classes):
+                outputs.p[c-1] = inputs.c == c
+
+        # Apply the function to the inputs, creating the outputs.
+        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+
+        # set metainfos
+        outmeta = Meta(filename)
+        outmeta.setProbabilityMetadata(classes=self.classes, classNames=self.classNames, classLookup=self.classLookup)
+        outmeta.writeMeta()
+
+        return Probability(filename)
 
 class Regression(Mask):
 
@@ -667,12 +791,12 @@ class Probability(Image):
             sample = SupervisedSample.fromMask(image=self, labels=classification, mask=classification)
         return ProbabilityPerformance(sample)
 
-    def argmax(self, filename=Environment.tempfile('classification'), minWinProb=0., minCumProb=0.9999, progress=progress):
+    def argmaxProbabilityClassification(self, filename=Environment.tempfile('classification'), minWinProb=0., minCumProb=0.9999, progress=progress):
 
         assert minWinProb >= 0. and minWinProb <= 1.
         assert minCumProb >= 0. and minWinProb <= 1.
 
-        progress.setText('calculate argmax probability')
+        progress.setText('calculate argmax probability classification')
 
         infiles = rios.applier.FilenameAssociations()
         outfiles = rios.applier.FilenameAssociations()
@@ -727,6 +851,45 @@ class Probability(Image):
 
         return Classification(filename)
 
+    def rgbClassColorComposite(self, filename=Environment.tempfile('rgb'), progress=progress):
+
+        progress.setText('calculate probability RGB')
+
+        infiles = rios.applier.FilenameAssociations()
+        outfiles = rios.applier.FilenameAssociations()
+        args = rios.applier.OtherInputs()
+
+        infiles.p = self.filename
+        outfiles.rgb = filename
+        args.meta = self.meta
+        args.progress = progress
+
+        controls = ApplierControls()
+
+        # set up the function to be applied
+        def ufunc(info, inputs, outputs, args):
+
+            percentage = ApplierHelper.progress(info)
+            args.progress.setPercentage(percentage)
+
+            classes, classNames, classLookup = args.meta.getProbabilityMetadata()
+            classLookup = numpy.array(classLookup).reshape((classes, 3))
+            bands, lines, samples = inputs.p.shape
+            rgb = numpy.zeros((3,lines,samples), dtype=numpy.float32)
+            for i in range(1, classes):
+                p = inputs.p[i-1] # probability of class i
+                color = classLookup[i]
+                for channel in [0,1,2]:
+                    rgb[channel] += color[channel] * p
+
+            outputs.rgb = numpy.clip(rgb, 0, 255).astype(numpy.uint8)
+
+        # Apply the function to the inputs, creating the outputs.
+        rios.applier.apply(ufunc, infiles, outfiles, args, controls)
+
+        return Image(filename)
+
+
 class Estimator(Type):
 
     def __init__(self, sklEstimator):
@@ -739,7 +902,8 @@ class Estimator(Type):
     def fit(self, image, labels, progress=progress):
 
         assert isinstance(image, Image)
-        sample = SupervisedSample.fromLocations(image, labels, labels.getLocations())
+        locations = labels.getLocations()
+        sample = SupervisedSample.fromLocations(image, labels, locations)
         return self.fitSample(sample, progress=progress)
 
     def fitSample(self, sample, progress=progress):
@@ -749,7 +913,9 @@ class Estimator(Type):
 
         X = sample.featureSample.dataSample.data.astype(numpy.float64)
         y = sample.labelsSample.dataSample.data
-        self.sklEstimator.fit(X=X, y=y[:,0])
+        if y.shape[1] == 1:
+            y = y.ravel()
+        self.sklEstimator.fit(X=X, y=y)
         return self
 
 
@@ -796,19 +962,18 @@ class Estimator(Type):
             percentage = int((info.xblock + info.yblock * info.xtotalblocks) / float(info.xtotalblocks * info.ytotalblocks) * 100)
             args.progress.setPercentage(percentage)
 
-
             # reshape to 2d
             shape3d = inputs.x.shape
             for k, v in inputs.__dict__.items(): inputs.__dict__[k] = inputs.__dict__[k].reshape((v.shape[0], -1))
             shape2d = inputs.x.shape
 
             # create mask
-            valid = True
-            # - from x
-            if args.xMeta.getNoDataValue() is not None:
-                valid *= numpy.any(inputs.x != args.xMeta.getNoDataValue(), axis=0)
-            # - from m
-            if args.useMask: valid *= numpy.any(inputs.m != args.mMeta.getNoDataValue(0), axis=0)
+
+            if args.useMask:
+                valid = numpy.all(inputs.m != args.mMeta.getNoDataValue(0), axis=0)
+            else:
+                valid = numpy.ones(inputs.x[0].shape, dtype=numpy.bool)
+
             valid = numpy.ravel(valid)
 
             allValid = valid.all()
@@ -818,6 +983,11 @@ class Estimator(Type):
                 valid = [0]
 
             # predict valid samples
+            n_outputs_ = self.sklEstimator._final_estimator.n_outputs_
+            # todo: check the meaning of n_outputs. Seem to only work correcly for multitarget regression,
+            #       but makes problems with normal classification
+            # set it to 1 for now, need to fix this later
+            n_outputs_ = 1
             if probafile:
 
                 if allValid:
@@ -826,11 +996,10 @@ class Estimator(Type):
                     valid_proba = self.sklEstimator.predict_proba(inputs.x.T[valid], )
 
             if predictfile:
-
                 if allValid:
-                    valid_predict = self.sklEstimator.predict(inputs.x.T.astype(numpy.float64)).reshape(-1, 1)
+                    valid_predict = self.sklEstimator.predict(inputs.x.T.astype(numpy.float64)).reshape(-1, n_outputs_)
                 else:
-                    valid_predict = self.sklEstimator.predict(inputs.x.T[valid].astype(numpy.float64)).reshape(-1, 1)
+                    valid_predict = self.sklEstimator.predict(inputs.x.T[valid].astype(numpy.float64)).reshape(-1, n_outputs_)
 
                 if isinstance(self, Clusterer):
                     valid_predict += 1
@@ -870,7 +1039,7 @@ class Estimator(Type):
                 if allValid:
                     outputs.predict = valid_predict.astype(self.predictDType())
                 else:
-                    outputs.predict = numpy.full((shape2d[1], 1), dtype=self.predictDType(),
+                    outputs.predict = numpy.full((shape2d[1], n_outputs_), dtype=self.predictDType(),
                                                  fill_value=self.predictNoDataValue())
                     outputs.predict[valid] = valid_predict
 
@@ -940,7 +1109,10 @@ class Estimator(Type):
     def predictMeta(self, meta, imate, mmeta):
 
         meta.setNoDataValue(self.predictNoDataValue())
-        meta.setBandNames([self.name()])
+        if self.sample.labelsSample.dataSample.meta.isProbability():
+            meta.setProbabilityMetadata(*self.sample.labelsSample.dataSample.meta.getProbabilityMetadata())
+        else:
+            meta.setBandNames(*self.sample.labelsSample.dataSample.meta.getBandNames())
 
 
     def transformNoDataValue(self):
@@ -989,7 +1161,11 @@ class Estimator(Type):
 
         def sklearnURL(sklEstimator):
 
-            import urllib2
+            try:
+                import urllib.request as urllib2
+            except ImportError:
+                import urllib2
+
             try:
                 longname = os.path.splitext(sklEstimator.__class__.__module__)[0] + '.' + sklearnName(sklEstimator)
                 url = 'http://scikit-learn.org/stable/modules/generated/' + longname + '.html'
@@ -1130,9 +1306,10 @@ class Classifier(Estimator):
         assert isinstance(meta, Meta)
         meta.setNoDataValue(-1)
         meta.setBandNames(self.sample.labelsSample.dataSample.meta.getMetadataItem('class names')[1:])
-        assert 0, 'ToDo: use correct probability meta keys!!!'
-        for key in ['class_names', 'class_lookup', 'classes']:
-            meta.copyMetadataItem(key, self.sample.labelsSample.dataSample.meta)
+        classes, classeNames, classLookup = self.sample.labelsSample.dataSample.meta.getClassificationMetadata()
+        meta.setProbabilityMetadata(classes=classes, classNames=classeNames, classLookup=classLookup)
+        #for key in ['class_names', 'class_lookup', 'classes']:
+        #    meta.copyMetadataItem(key, self.sample.labelsSample.dataSample.meta)
 
     def UncertaintyClassifierFP(self):
 
@@ -1166,7 +1343,7 @@ class UncertaintyClassifier(Classifier):
 
 class Regressor(Estimator):
 
-    def predict(self, image, mask, filename=Environment.tempfile('regression'), progress=progress):
+    def predict(self, image, mask=None, filename=Environment.tempfile('regression'), progress=progress):
 
         self._predict(image, mask, predictfile=filename, progress=progress)
         return Regression(filename)
@@ -1306,7 +1483,7 @@ class PixelExtractor():
         rios.applier.apply(userFunction=PixelExtractor._extractByMask_ufunc, infiles=infiles, outfiles=outfiles, otherArgs=args, controls=controls)
 
         imageData = numpy.hstack(args.imageData).T
-        maskData = numpy.hstack(args.maskData)
+        maskData = numpy.hstack(args.maskData).T
         pixelX = numpy.hstack(args.pixelX)
         pixelY = numpy.hstack(args.pixelY)
 
@@ -1314,10 +1491,7 @@ class PixelExtractor():
         imageDataSample = DataSample(imageData, self.image.meta)
         maskDataSample = DataSample(maskData, mask.meta)
         featureSample = ImageSample(dataSample=imageDataSample, locations=locations, filename=self.image.filename)
-        labelsSample = ImageSample(dataSample=maskDataSample, locations=locations, filename=mask.filename)
         return featureSample
-
-        #return SupervisedSample(featureSample=featureSample, labelsSample=labelsSample)
 
     @staticmethod
     def _extractByMask_ufunc(info, inputs, outputs, args):
@@ -1328,11 +1502,11 @@ class PixelExtractor():
 
         # find valid pixel
         noDataValue = args.mask.meta.getNoDataValue(default=0)
-        valid = inputs.mask != noDataValue
+        valid = numpy.all(inputs.mask != noDataValue, axis=0, keepdims=True)
 
         # extract data
         args.imageData.append(inputs.image[:, valid[0]])
-        args.maskData.append(inputs.mask[valid])
+        args.maskData.append(inputs.mask[:, valid[0]])
 
         # calculate pixel location
         yindex_all, xindex_all = numpy.indices((lines, samples))

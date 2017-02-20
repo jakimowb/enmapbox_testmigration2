@@ -5,8 +5,7 @@ import subprocess
 
 def ogr2ogr(outfile, infile, options, verbose=True):
 
-    hub.file.mkdir(os.path.dirname(outfile))
-    hub.file.remove(outfile)
+    hub.file.mkfiledir(outfile)
 
     cmd = 'ogr2ogr '+options+' '+outfile+' '+infile
     if verbose: print(cmd)

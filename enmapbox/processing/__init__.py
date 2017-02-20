@@ -8,7 +8,7 @@ from enmapbox.processing.environment import Environment
 MODEL_URIS = []
 MODEL_NAMES = []
 
-_SIGNALS = None #object to bind signals
+_SIGNALS = None
 
 class _ProcessingSignals(PyQt4.QtCore.QObject):
     """
@@ -35,7 +35,7 @@ sigFileDeleted = _SIGNALS.sigFileDeleted
 
 def registerModel(uri, name=None):
     """
-    Function that wraps the calling of Qt signals.
+    Tell
     :param uri: path / uri of model file
     :param name: model name. Basename by default
     :return: uri, if model did not exist in model list, None if it was already there
@@ -53,8 +53,7 @@ def registerModel(uri, name=None):
 
 def deregisterModel(uri):
     """
-    Removes the model from the package list of models MODEL_URIS and emits related signals
-
+    Removes the model from the package list of models MODEL_URIS
     :param uri: uri of model to be removed
     :return: uri of removed model or None if it did not exist
     """
