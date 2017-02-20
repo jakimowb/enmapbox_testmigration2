@@ -1,6 +1,9 @@
 import numpy, os, hub.file, subprocess, gdal, xml.etree.ElementTree, copy
 #from gdalconst import *
 
+GDALWARP_OT_OPTIONS = ['Byte', 'Int16', 'UInt16', 'UInt32', 'Int32', 'Float32', 'Float64', 'CInt16', 'CInt32', 'CFloat32', 'CFloat64']
+GDALWARP_R_OPTIONS = ['near', 'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode', 'max', 'min', 'med', 'q1', 'q3']
+
 def gdalinfo(infile, options='', verbose=True):
 
     cmd = 'gdalinfo '+options+' '+infile
@@ -38,7 +41,7 @@ def gdalwarp(outfile, infile, options, verbose=True):
 
     return outfile
 
-def gdalbuildvrt(outfile, infiles, options, verbose=True):
+def gdalbuildvrt(outfile, infiles, options='', verbose=True):
 
     hub.file.mkdir(os.path.dirname(outfile))
 
@@ -174,9 +177,10 @@ def stack_bands(outfile, infiles, inbands, options='', verbose=True):
 
     return outfile
 
-
 def mosaic(outfile, infiles, options='', verbose=True):
     gdalbuildvrt(outfile, infiles, options, verbose)
+
+
 
 '''
 def warp(outfile, infile, of='VRT'):
@@ -199,6 +203,7 @@ def subset(outfile, infile, xmin, ymin, xmax, ymax, of='VRT', verbose=True):
         cmd += ' -q'
     subprocess.call(cmd, shell=True)
 '''
+
 
 if __name__ == '__main__':
 
