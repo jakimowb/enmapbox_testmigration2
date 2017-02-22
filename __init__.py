@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
+from site import addsitedir
+from enmapbox import DIR_REPO, DIR_SITE_PACKAGES, DIR_SITE_PACKAGES_OS_SPECIFIC
 
-__author__ = 'Benjamin Jakimow'
-__date__ = 'March 2016'
-__copyright__ = '(C) 2016, Benjamin Jakimow'
+for sitedir in [DIR_REPO, DIR_SITE_PACKAGES, DIR_SITE_PACKAGES_OS_SPECIFIC]:
+    addsitedir(sitedir)
 
-# This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
-
-#from pkgutil import extend_path
-#__path__ = extend_path(__path__, __name__)
+PROCESSING_ONLY = True
 
 def classFactory(iface):
-    from enmapboxplugin import EnMAPBoxPlugin
-    return EnMAPBoxPlugin(iface)
+
+    if PROCESSING_ONLY:
+        from enmapbox.processing.Plugin import Plugin
+        return Plugin(iface)
+    else:
+        from enmapboxplugin import EnMAPBoxPlugin
+        return EnMAPBoxPlugin(iface)
