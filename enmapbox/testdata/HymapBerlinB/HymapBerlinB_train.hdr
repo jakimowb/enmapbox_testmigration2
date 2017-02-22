@@ -1,0 +1,12 @@
+ENVI
+samples = 300
+lines   = 300
+bands   = 1
+file type = EnMAP-Box Regression
+data type = 4
+interleave = bsq
+byte order = 0
+map info = {UTM, 1.000, 1.000, 385271.750, 5821155.800, 1.0500010500e+001, 1.0500010500e+001, 33, North, WGS-84, units=Meters}
+data ignore value = -1.00000000e+000
+band names = {Regression Band}
+

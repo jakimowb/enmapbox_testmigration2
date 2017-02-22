@@ -1,0 +1,17 @@
+ENVI
+byte order = 0
+data type = 5
+interleave = bsq
+samples = 1
+lines = 250
+bands = 1
+file type = envi classification
+band names = {Classification Band}
+classes = 6
+class names = { Unclassified, vegetation, built-up, impervious, soil, water}
+class lookup = {        0,        0,        0,
+       0,      255,        0,
+     255,        0,        0,
+     255,      255,        0,
+       0,      255,      255,
+       0,        0,      255}
