@@ -23,9 +23,13 @@ DEPENDENCIES_MANDATORY = ['numpy','scipy','sklearn','matplotlib']
 DEPENDENCIES_OPTIONAL = ['foobar','astrolib']
 
 
-class EnMAPBoxPlugin:
+class ViewerPlugin:
     def __init__(self, iface):
         self.iface = iface
+
+        ##########################################
+        # Viewer integration is currently broken #
+        return
 
         #activate python console. this is required to redirect all printouts done to stdout / stderr
         import console.console as CONSOLE
@@ -43,6 +47,12 @@ class EnMAPBoxPlugin:
 
 
     def initGui(self):
+
+        ##########################################
+        # Viewer integration is currently broken #
+        return
+
+
         self.toolbarActions = []
         self.pluginLayerTypes = dict()
         self.processingProviders = []
@@ -119,6 +129,11 @@ class EnMAPBoxPlugin:
         self.enmapbox.run()
 
     def unload(self):
+
+        ##########################################
+        # Viewer integration is currently broken #
+        return
+
         import enmapbox.main
         dprint = enmapbox.main.dprint
 
