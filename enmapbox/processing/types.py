@@ -948,7 +948,7 @@ class Estimator(Type):
         controls.windowxsize = 256
         controls.windowysize = 256
 
-        progress.setDebugInfo(str(controls))
+        #progress.setDebugInfo(str(controls))
 
         if controls.numThreads > 1:
             args.progress = SilentProgress
