@@ -1,7 +1,7 @@
-from enmapboxplugin.EnMAPBoxGeoAlgorithm import EnMAPBoxGeoAlgorithm
+from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.outputs import OutputRaster
 
-class HymapBerlinA(EnMAPBoxGeoAlgorithm):
+class HymapBerlinAOpener(GeoAlgorithm):
 
     def defineCharacteristics(self):
         self.name = 'HymapBerlinA'
