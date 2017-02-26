@@ -1,7 +1,8 @@
 from __future__ import absolute_import
+
+from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
 from processing.core.Processing import Processing
-from enmapbox.apps.core import EnMAPBoxProvider
-from enmapboxplugin.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
+
 
 class ProcessingPlugin:
     def __init__(self, iface):
