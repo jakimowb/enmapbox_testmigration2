@@ -1,12 +1,11 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, site, inspect
-from osgeo import gdal, ogr
 
-from qgis import *
-from qgis.core import *
-from qgis.gui import *
+import os
+
 from PyQt4.QtGui import *
+
 import enmapbox
+
 enmapbox.DEBUG = True
 dprint = enmapbox.dprint
 jp = os.path.join
@@ -72,7 +71,7 @@ def test_GUI():
 
     # EB = EnMAPBox(w)
 
-    from enmapbox.main import EnMAPBox, TestData
+    from enmapbox.gui.main import EnMAPBox, TestData
     EB = EnMAPBox(None)
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
 
@@ -108,7 +107,7 @@ def test_GUI():
     EB.run()
 
     #how to get loaded data sources
-    from enmapbox.datasources import DataSourceRaster
+    from enmapbox.gui.datasources import DataSourceRaster
     DSM = EnMAPBox.instance().dataSourceManager
 
     rasterSources = [src for src in EnMAPBox.instance().dataSourceManager.sources if isinstance(src, DataSourceRaster)]
@@ -168,7 +167,7 @@ def test_dialog():
 
 
     from enmapbox.gui.layerproperties import showLayerPropertiesDialog
-    from enmapbox.main import TestData
+    from enmapbox.gui.main import TestData
 
 
     lyr = QgsRasterLayer(TestData.AF_Image)

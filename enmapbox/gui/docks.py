@@ -1,23 +1,19 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, site
-import itertools
-import uuid
-from qgis.core import *
-from qgis.gui import *
 
-from PyQt4 import QtGui, QtCore, uic
+import itertools
+import os
+import uuid
+
+from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-import PyQt4.QtSvg
-
-from enmapbox import DIR_UI
 from enmapbox.datasources import *
+from enmapbox.datasources import *
+
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
+from qgis.gui import *
 
-
-from enmapbox.utils import *
-from enmapbox.datasources import *
 
 class CanvasLink():
 
@@ -314,8 +310,8 @@ class DockWindow(QtGui.QMainWindow):
     def __init__(self, area, **kwargs):
         QtGui.QMainWindow.__init__(self, **kwargs)
         self.setWindowTitle('EnMAPBox')
-        import enmapbox.main
-        self.setWindowIcon(enmapbox.main.getIcon())
+        import enmapbox.gui.main
+        self.setWindowIcon(enmapbox.gui.main.getIcon())
         self.setCentralWidget(area)
 
     def closeEvent(self, *args, **kwargs):

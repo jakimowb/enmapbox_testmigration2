@@ -1,12 +1,10 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, site, inspect
+
+import site
+
 import qgis.core
 import qgis.gui
-from osgeo import gdal, ogr
-
 from enmapbox import DIR, DIR_SITE_PACKAGES
-
-
 
 VERSION = '2016-0.beta'
 
@@ -17,8 +15,6 @@ VERSION = '2016-0.beta'
 #DIR_UI = jp(DIR, *['gui','ui'])
 site.addsitedir(DIR_SITE_PACKAGES)
 
-from enmapbox.utils import *
-from enmapbox.datasources import *
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.docks import *
 
@@ -30,12 +26,9 @@ from enmapbox.gui.docks import *
 #import pyqtgraph.dockarea.DockArea
 
 
-from PyQt4 import QtGui, QtCore, uic
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt4 import QtGui
 
-from enmapbox.utils import *
-from enmapbox.datasources import *
+from enmapbox.gui.datasources import *
 
 RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
 
@@ -50,7 +43,6 @@ if add_and_remove: sys.path.remove(DIR_GUI)
 del add_and_remove, RC_SUFFIX
 """
 
-import enmapbox.gui
 
 class EnMAPBox_GUI(QtGui.QMainWindow,
                    loadUIFormClass(os.path.normpath(jp(DIR_UI, 'enmapbox_gui.ui')),

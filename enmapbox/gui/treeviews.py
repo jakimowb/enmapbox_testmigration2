@@ -1,16 +1,11 @@
-import os, sys
-import six
-import importlib
-from PyQt4.QtCore import *
 from PyQt4.QtXml import *
-from PyQt4.QtGui import *
-from qgis.gui import *
-from qgis.core import *
+
 import enmapbox
+from qgis.core import *
+
 dprint = enmapbox.dprint
 
 from enmapbox.gui.docks import *
-from enmapbox.utils import *
 
 
 class TreeNodeProvider():
@@ -163,9 +158,9 @@ class TreeNode(QgsLayerTreeGroup):
 class TreeModel(QgsLayerTreeModel):
 
     def __init__(self, parent, enmapboxInstance):
-        import enmapbox.main
+        import enmapbox.gui.main
         self.rootNode = TreeNode(None, None)
-        assert isinstance(enmapboxInstance, enmapbox.main.EnMAPBox)
+        assert isinstance(enmapboxInstance, enmapbox.gui.main.EnMAPBox)
         self.enmapbox = enmapboxInstance
         super(TreeModel, self).__init__(self.rootNode, parent)
 
@@ -243,7 +238,7 @@ class DataSourceTreeNode(TreeNode):
             self.connectDataSource(dataSource)
 
     def connectDataSource(self, dataSource):
-        from enmapbox.datasources import DataSource
+        from enmapbox.gui.datasources import DataSource
         assert isinstance(dataSource, DataSource)
         self.setName(dataSource.name)
         self.dataSource = dataSource
@@ -266,7 +261,7 @@ class DataSourceTreeNode(TreeNode):
         cp = QgsObjectCustomProperties()
         cp.readXml(element)
 
-        from enmapbox.datasources import DataSourceFactory
+        from enmapbox.gui.datasources import DataSourceFactory
         dataSource = DataSourceFactory.Factory(cp.value('uri'), name=element.attribute('name'))
         node = DataSourceTreeNode(None, dataSource)
         TreeNode.attachCommonPropertiesFromXML(node, element)
@@ -296,7 +291,7 @@ class DockTreeNode(TreeNode):
         #node.readChildrenFromXml(element)
 
         #try to find the dock by its uuid in dockmanager
-        from enmapbox.main import EnMAPBox
+        from enmapbox.gui.main import EnMAPBox
 
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
@@ -438,7 +433,7 @@ class MapDockTreeNode(DockTreeNode):
         if element.tagName() != 'map-dock-tree-node':
             return None
 
-        from enmapbox.main import EnMAPBox
+        from enmapbox.gui.main import EnMAPBox
         DSM = EnMAPBox.instance().dataSourceManager
 
 
@@ -450,7 +445,7 @@ class MapDockTreeNode(DockTreeNode):
         # node.readChildrenFromXml(element)
 
         # try to find the dock by its uuid in dockmanager
-        from enmapbox.main import EnMAPBox
+        from enmapbox.gui.main import EnMAPBox
 
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)

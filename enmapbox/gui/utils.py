@@ -1,12 +1,14 @@
-import os, sys
-import six
 import importlib
+import os
+import sys
+
 from PyQt4.QtCore import *
-from PyQt4.QtXml import *
 from PyQt4.QtGui import *
-from qgis.gui import *
-from qgis.core import *
+from PyQt4.QtXml import *
+
 import enmapbox
+import six
+
 dprint = enmapbox.dprint
 from PyQt4 import uic
 
@@ -386,7 +388,7 @@ class MimeDataHelper():
 
     def dataSources(self):
         dataSources = []
-        from enmapbox.datasources import DataSourceFactory
+        from enmapbox.gui.datasources import DataSourceFactory
         if self.setContent(MimeDataHelper.MIME_DATASOURCETREEMODELDATA):
             root = self.doc.documentElement()
             nodeList = root.elementsByTagName('datasource-tree-node')

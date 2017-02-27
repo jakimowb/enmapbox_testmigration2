@@ -1,19 +1,15 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, site
-import itertools
-import numpy as np
-from qgis.core import *
-from qgis.gui import *
 
-from PyQt4 import QtGui, QtCore, uic
+import collections
+import os
+import re
+
+import gdal
+import numpy as np
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-import gdal, ogr
-
-from enmapbox import dprint
-from enmapbox.utils import *
-from enmapbox.main import DIR_UI
+from enmapbox.gui.main import DIR_UI
 
 """
 class RasterLayerProperties(QgsOptionsDialogBase):

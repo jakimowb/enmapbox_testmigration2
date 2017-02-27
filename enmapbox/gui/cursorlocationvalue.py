@@ -1,17 +1,13 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, site
-import itertools
-import numpy as np
-from qgis.core import *
-from qgis.gui import *
 
-from PyQt4 import QtGui, QtCore, uic
+import os
+
+import numpy as np
+from PyQt4 import QtGui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from pyqtgraph.graphicsItems import *
-from enmapbox.utils import *
-from enmapbox.main import DIR_UI
 
+from enmapbox.gui.main import DIR_UI
 
 
 class CursorLocationValueMapTool(QgsMapTool):
@@ -117,7 +113,7 @@ class CursorLocationValues(object):
 
     @staticmethod
     def fromDataSource(coord_geo, crs, datasource):
-        from enmapbox.datasources import DataSourceSpatial, DataSourceRaster, DataSourceVector
+        from enmapbox.gui.datasources import DataSourceRaster, DataSourceVector
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         assert isinstance(coord_geo, QgsPoint)
         if isinstance(datasource, DataSourceRaster):
@@ -203,7 +199,7 @@ class CursorLocationValueWidget(QtGui.QMainWindow,
         self.splitter.setOrientation(o)
 
     def connectDataSourceManager(self, dsm):
-        from enmapbox.datasources import DataSourceManager
+        from enmapbox.gui.datasources import DataSourceManager
         if dsm:
 
             assert isinstance(dsm, DataSourceManager)
@@ -328,7 +324,7 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
 
     def __init__(self, dsm, parent=None, *args):
         super(QAbstractTableModel, self).__init__()
-        from enmapbox.datasources import DataSourceManager, DataSourceSpatial
+        from enmapbox.gui.datasources import DataSourceManager
 
         assert isinstance(dsm, DataSourceManager)
         self.DSM = dsm
@@ -341,7 +337,7 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
 
 
     def addCLDataSourceItem(self, src):
-        from enmapbox.datasources import DataSourceSpatial
+        from enmapbox.gui.datasources import DataSourceSpatial
         if isinstance(src, DataSourceSpatial):
             self.cursorLocationDataSourceItems.append(CursorLocationDataSourceItem(src))
 
@@ -366,7 +362,7 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
     def data(self, index, role = Qt.DisplayRole):
         if role is None or not index.isValid():
             return None
-        from enmapbox.datasources import DataSourceSpatial, DataSourceRaster, DataSourceVector
+        from enmapbox.gui.datasources import DataSourceSpatial
         clds = self.cursorLocationDataSourceItems[index.row()]
         ds = clds.src
         assert isinstance(ds, DataSourceSpatial)

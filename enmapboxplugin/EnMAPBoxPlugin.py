@@ -6,8 +6,15 @@ from ViewerPlugin import ViewerPlugin
 class EnMAPBoxPlugin:
 
     def __init__(self, iface):
-        self.processingPlugin = ProcessingPlugin(iface)
-        self.viewerPlugin = ViewerPlugin(iface)
+        try:
+            self.processingPlugin = ProcessingPlugin(iface)
+        except Exception, error:
+            self.processingPlugin = DefectPluginHandler(iface, error)
+
+        try:
+            self.viewerPlugin = ViewerPlugin(iface)
+        except Exception, error:
+            self.viewerPlugin = DefectPluginHandler(iface, error)
 
     def initGui(self):
 
@@ -18,3 +25,14 @@ class EnMAPBoxPlugin:
         self.processingPlugin.unload()
         self.viewerPlugin.unload()
 
+class DefectPluginHandler(object):
+
+    def __init__(self, iface, error):
+        self.iface = iface
+        self.error = error
+
+    def initGui(self):
+        pass
+
+    def unload(self):
+        pass

@@ -1,20 +1,17 @@
 # Import Processing libraries to add the algorithms to Processing toolbox
-from processing.core.GeoAlgorithm import GeoAlgorithm
-from processing.core.AlgorithmProvider import AlgorithmProvider
-from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
-from processing.gui.AlgorithmDialog import AlgorithmDialog
-from processing.core.parameters import *
-from processing.core.outputs import *
-import PyQt4.QtCore
-
-from os.path import join
 import traceback
+from os.path import join
 
-from enmapbox.processing.estimators import Classifiers, Regressors, Clusterers, Transformers
 from enmapbox.processing.environment import Environment
-from enmapbox.processing.types import Image, Classification, Probability, Regression, Mask, Vector, VectorClassification, Estimator, Classifier, Regressor, Transformer, Clusterer, unpickle
-
-from hub.gdal.util import GDALWARP_OT_OPTIONS, GDALWARP_R_OPTIONS
+from enmapbox.processing.estimators import Classifiers, Regressors, Clusterers, Transformers
+from enmapbox.processing.types import Image, Classification, Probability, Regression, Mask, VectorClassification, Estimator, Classifier, Regressor, Transformer, Clusterer, unpickle
+from hub.gdal.util import GDALWARP_R_OPTIONS
+from processing.core.AlgorithmProvider import AlgorithmProvider
+from processing.core.GeoAlgorithm import GeoAlgorithm
+from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
+from processing.core.outputs import *
+from processing.core.parameters import *
+from processing.gui.AlgorithmDialog import AlgorithmDialog
 
 GROUP_DATASET = 'Dataset'
 
@@ -107,8 +104,8 @@ class EnMAPBoxProvider(AlgorithmProvider):
         provider.sigFileCreated.emit(newPath)
 
     def example_HowToGetEnMAPBoxGUIRasterDataSources(self):
-        import enmapbox.main
-        emb = enmapbox.main.EnMAPBox.instance()
+        import enmapbox.gui.main
+        emb = enmapbox.gui.main.EnMAPBox.instance()
         print('Raster files registered in EnMAPBox GUI DataSourceManager')
         for uri in emb.getUriList(sourcetype = 'RASTER'):
             print(uri)

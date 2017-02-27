@@ -1,19 +1,15 @@
 from __future__ import absolute_import
-import inspect
-import os
-import six
-import traceback
-import sys
-import importlib
-import re
-import site
 
-from qgis.gui import *
-from qgis.core import *
+import os
+import site
+import sys
+import traceback
+
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-
+import six
+from qgis.core import *
 
 jp = os.path.join
 DIR_REPO = os.path.normpath(os.path.split(inspect.getfile(inspect.currentframe()))[0])
@@ -67,7 +63,7 @@ class ViewerPlugin:
         #add platform specific site-packages
         site.addsitedir(jp(DIR_SITE_PACKAGES, os.sys.platform))
 
-        from enmapbox.main import EnMAPBox
+        from enmapbox.gui.main import EnMAPBox
         action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)
         action.triggered.connect(self.run)
         self.toolbarActions.append(action)
@@ -121,7 +117,7 @@ class ViewerPlugin:
         dprint('EnMAP-Box initialization done')
 
     def run(self):
-        from enmapbox.main import EnMAPBox
+        from enmapbox.gui.main import EnMAPBox
 
         self.enmapbox = EnMAPBox.instance()
         if not self.enmapbox:
@@ -134,8 +130,8 @@ class ViewerPlugin:
         # Viewer integration is currently broken #
         return
 
-        import enmapbox.main
-        dprint = enmapbox.main.dprint
+        import enmapbox.gui.main
+        dprint = enmapbox.gui.main.dprint
 
         for action in self.toolbarActions:
             print(action)
@@ -150,7 +146,7 @@ class ViewerPlugin:
                 Processing.removeProvider(provider)
 
         dprint('UNLOAD ENMAPBOX INSTANCE')
-        from enmapbox.main import EnMAPBox
+        from enmapbox.gui.main import EnMAPBox
         if isinstance(self.enmapbox, EnMAPBox):
             self.enmapbox.gui.close()
             self.enmapbox = None
