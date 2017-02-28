@@ -1,15 +1,10 @@
 from __future__ import absolute_import
 
 import os
-
+from qgis.core import *
 from PyQt4.QtGui import *
+from enmapbox.gui.utils import *
 
-import enmapbox
-
-enmapbox.DEBUG = True
-dprint = enmapbox.dprint
-jp = os.path.join
-file_search = enmapbox.file_search
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
 
@@ -41,15 +36,6 @@ def test_GUI():
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
 
-    import enmapbox.processing
-
-    if False:
-        # register new model
-        path = r'C:\foo\bar.model'
-
-        enmapbox.processing.registerModel(path, 'MyModel')
-        # IconProvider.test()
-        # exit()
 
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
@@ -71,7 +57,7 @@ def test_GUI():
 
     # EB = EnMAPBox(w)
 
-    from enmapbox.gui.main import EnMAPBox, TestData
+    from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
 
@@ -80,9 +66,10 @@ def test_GUI():
             for f in testFiles():
                 EB.addSource(f)
 
-        if False:
-            EB.createDock('MAP', name='MapDock 1', initSrc=TestData.AF_LAI)
-            EB.createDock('MAP', name='MapDock 2', initSrc=TestData.AF_Image)
+        if True:
+            from enmapbox.testdata import UrbanGradient
+            EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009)
+            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.EnMAP02_Berlin_Urban_Gradient_2009)
             EB.createDock('CURSORLOCATIONVALUE')
         if False: EB.createDock('MIME')
 
@@ -189,8 +176,6 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox import DIR_SITE_PACKAGES
-    site.addsitedir(DIR_SITE_PACKAGES)
 
     #run tests
     if True: test_GUI()
