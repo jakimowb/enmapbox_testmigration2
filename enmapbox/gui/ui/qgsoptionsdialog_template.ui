@@ -130,8 +130,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>549</width>
-                <height>393</height>
+                <width>550</width>
+                <height>397</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -207,7 +207,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../../../images/images.qrc"/>
+  <include location="resources.qrc"/>
  </resources>
  <connections>
   <connection>

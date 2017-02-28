@@ -24,27 +24,18 @@
     <property name="spacing">
      <number>1</number>
     </property>
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <item>
-     <widget class="EmbTreeView" name="dataSourceTreeView"/>
+     <widget class="TreeView" name="dataSourceTreeView"/>
     </item>
    </layout>
   </widget>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>EmbTreeView</class>
+   <class>TreeView</class>
    <extends>QTreeView</extends>
    <header>enmapbox.gui.treeviews</header>
   </customwidget>
