@@ -10,7 +10,137 @@ from PyQt4.QtXmlPatterns import *
 ROOT = os.path.dirname(os.path.dirname(__file__))
 from enmapbox.gui.utils import DIR_UIFILES, DIR_ICONS, DIR_REPO, file_search
 jp = os.path.join
-import gdal, ogr
+import gdal, ogr, osr
+
+
+def rasterize_vector_labels(pathRef, pathDst, pathShp, label_field, band_ref=1, label_layer=0):
+    drvMemory = ogr.GetDriverByName('Memory')
+    drvMEM = gdal.GetDriverByName('MEM')
+
+    dsShp = drvMemory.CopyDataSource(ogr.Open(pathShp),'')
+    dsRef = gdal.Open(pathRef)
+
+    assert label_layer < dsShp.GetLayerCount()
+    lyr_tmp1 = dsShp.GetLayerByIndex(label_layer)
+    lyr_name1 = lyr_tmp1.GetName()
+    lyr_def1 = lyr_tmp1.GetLayerDefn()
+    field_names1 = [lyr_def1.GetFieldDefn(f).GetName() for f  in range(lyr_def1.GetFieldCount())]
+    assert label_field in field_names1, 'field {} does not exist. possible names are: {}'.format(label_field, ','.join(field_names1))
+    fieldDef = lyr_def1.GetFieldDefn(field_names1.index(label_field))
+
+    IS_CATEGORICAL = fieldDef.GetType() == ogr.OFTString
+    label_names = None
+    if IS_CATEGORICAL:
+        #label_names = dsRef.GetRasterBand(band_ref).GetCategoryNames()
+        label_names = set()
+        for feat in lyr_tmp1:
+            value = str(feat.GetField(label_field)).strip()
+            if len(value) > 0:
+                label_names.add(value)
+            #get label names from values
+        lyr_tmp1.ResetReading()
+        label_names = sorted(list(label_names))
+        if not 'unclassified' in label_names:
+            label_names.insert(0, 'unclassified')
+        label_values = list(range(len(label_names)))
+
+
+    # transform geometries into target reference system
+    for name in [lyr.GetName() for lyr in dsShp if lyr.GetName() != lyr_name1]:
+        dsShp.Delete(name)
+    lyr_name2 = lyr_name1 + '2'
+    srs = osr.SpatialReference()
+    srs.ImportFromWkt(dsRef.GetProjection())
+
+    trans = None
+    if not srs.IsSame(lyr_tmp1.GetSpatialRef()):
+        trans = osr.CoordinateTransformation(lyr_tmp1.GetSpatialRef(), srs)
+    lyr_tmp2 = dsShp.CreateLayer(lyr_name2, srs=srs, geom_type=ogr.wkbPolygon)
+
+
+    if IS_CATEGORICAL:
+        lyr_tmp2.CreateField(ogr.FieldDefn(label_field, ogr.OFTInteger))
+        no_data = 0
+    else:
+        lyr_tmp2.CreateField(ogr.FieldDefn(label_field, fieldDef.GetType()))
+        no_data = dsRef.GetRasterBand(band_ref).GetNoDataValue()
+
+    n = 0
+    for feature_src in lyr_tmp1:
+        value = feature_src.GetField(label_field)
+        if value is None:
+            continue
+
+        if IS_CATEGORICAL:
+            if value in label_names:
+                value = label_values[label_names.index(value)]
+            elif value not in label_values:
+                print('Not found in prediction labels: {}'.format(value))
+
+        if value is not None:
+            geom = feature_src.GetGeometryRef().Clone()
+            if trans:
+                geom.Transform(trans)
+
+            feature_tmp = ogr.Feature(lyr_tmp2.GetLayerDefn())
+            feature_tmp.SetGeometry(geom)
+            feature_tmp.SetField(label_field, value)
+            lyr_tmp2.CreateFeature(feature_tmp)
+            lyr_tmp2.SyncToDisk()
+            n +=1
+
+    lyr_tmp2.ResetReading()
+    ns = dsRef.RasterXSize
+    nl = dsRef.RasterYSize
+
+
+
+    dsRasterTmp = drvMEM.Create('', ns, nl, eType=gdal.GDT_Int32)
+    dsRasterTmp.SetProjection(dsRef.GetProjection())
+    dsRasterTmp.SetGeoTransform(dsRef.GetGeoTransform())
+    band_ref = dsRasterTmp.GetRasterBand(1)
+    assert type(band_ref) is gdal.Band
+    if IS_CATEGORICAL:
+        band_ref.Fill(0)  # by default = unclassified = 0
+    elif no_data is not None:
+        band_ref.Fill(no_data)
+        band_ref.SetNoDataValue(no_data)
+
+    # print('Burn geometries...')
+    # http://www.gdal.org/gdal__alg_8h.html for details on options
+    options = ['ATTRIBUTE={}'.format(label_field)
+        , 'ALL_TOUCHED=TRUE']
+    err = gdal.RasterizeLayer(dsRasterTmp, [1], lyr_tmp2, options=options)
+    assert err in [gdal.CE_None, gdal.CE_Warning], 'Something failed with gdal.RasterizeLayer'
+
+    band_ref = dsRasterTmp.GetRasterBand(1)
+    validated_labels = band_ref.ReadAsArray()
+    if IS_CATEGORICAL:
+        #set classification info
+        import matplotlib.cm
+        label_colors = list()
+        cmap = matplotlib.cm.get_cmap('brg', n)
+        for i in range(n):
+            if i == 0:
+                c = (0,0,0, 255)
+            else:
+                c = tuple([int(255*c) for c in cmap(i)])
+            label_colors.append(c)
+
+        CT = gdal.ColorTable()
+        names = list()
+        for value in sorted(label_values):
+            i = label_values.index(value)
+            names.append(label_names[i])
+            CT.SetColorEntry(value, label_colors[i])
+
+        band_ref.SetCategoryNames(names)
+        band_ref.SetColorTable(CT)
+
+        s = ""
+    drvDst = dsRef.GetDriver()
+    drvDst.CreateCopy(pathDst, dsRasterTmp)
+
 
 def getDOMAttributes(elem):
     assert isinstance(elem, QDomElement)
@@ -50,8 +180,8 @@ def make(ROOT):
         assert os.path.exists(pathQrc), pathQrc
         bn = os.path.basename(f)
         bn = os.path.splitext(bn)[0]
-        pathPy2 = os.path.join(DIR_UI, bn+'_py2.py' )
-        pathPy3 = os.path.join(DIR_UI, bn+'_py3.py' )
+        pathPy2 = os.path.join(DIR_UIFILES, bn+'_py2.py' )
+        pathPy3 = os.path.join(DIR_UIFILES, bn+'_py3.py' )
         print('Make {}'.format(pathPy2))
         subprocess.call(['pyrcc4','-py2','-o',pathPy2, pathQrc])
         print('Make {}'.format(pathPy3))
@@ -59,6 +189,12 @@ def make(ROOT):
 
 
 def fileNeedsUpdate(file1, file2):
+    """
+    Returns True if file2 does not exist or is older than file1
+    :param file1:
+    :param file2:
+    :return:
+    """
     if not os.path.exists(file2):
         return True
     else:
@@ -131,7 +267,7 @@ def createResourceIconPackage(dirIcons, pathResourceFile):
     print('Created ' + pathInit)
 def createFilePackage(dirData):
     import numpy as np
-    from enmapbox import DIR_REPO
+    from enmapbox.gui.utils import DIR_REPO
     pathInit = jp(dirData, '__init__.py')
     code = ['#!/usr/bin/env python',
             '"""',
@@ -154,15 +290,21 @@ def createFilePackage(dirData):
             if comment:
                 code.append('# '+comment)
             for f in files:
-                an, ext = os.path.splitext(os.path.basename(f))
-                if re.search('^\d', an):
-                    an = numberPrefix+an
-                an = re.sub(r'[-.]', '_',an)
+                attributeName, ext = os.path.splitext(os.path.basename(f))
+                #take care of leading numbers
+                if re.search('^\d', attributeName):
+                    attributeName = numberPrefix+attributeName
+                # append extension
+                attributeName += ext
+                #take care of not allowed characters
+                attributeName = re.sub(r'[-.]', '_',attributeName)
 
-                assert an not in filePathAttributes
+
+
+                assert attributeName not in filePathAttributes, attributeName
                 relpath = os.path.relpath(f, dirData)
-                code.append("{} = os.path.join(thisDir,r'{}')".format(an, relpath))
-                filePathAttributes.add(an)
+                code.append("{} = os.path.join(thisDir,r'{}')".format(attributeName, relpath))
+                filePathAttributes.add(attributeName)
             code.append('\n')
 
     raster = [f for f in files if re.search('.*\.(bsq|bip|bil|tif|tiff)$', f)]
@@ -192,29 +334,43 @@ def createFilePackage(dirData):
     print('Created '+pathInit)
 
 
-def createTestData(dirSrc, dirDst, BBOX, drv=None):
+def createTestData(dirSrc, dirDst, BBOX, drv=None, overwrite=False):
 
     import tempfile, random
     from qgis.core import QgsRectangle, QgsPoint, QgsPointV2, QgsCoordinateReferenceSystem
-    from enmapbox.utils import SpatialExtent
+    from enmapbox.gui.utils import SpatialExtent
     max_offset = 0 #in %
 
 
     assert isinstance(BBOX, SpatialExtent)
-    from enmapbox.utils import SpatialExtent
-
+    if not os.path.exists(dirDst):
+        os.makedirs(dirDst)
     drvMEM = gdal.GetDriverByName('MEM')
     UL = QgsPoint(*BBOX.upperLeft())
     LR = QgsPoint(*BBOX.lowerRight())
     LUT_EXT = {'ENVI': '.bsq'}
     files = file_search(dirSrc, '*', recursive=True)
-    for file in files:
-        bn = os.path.basename(file)
+    for pathSrc in files:
+        bn = os.path.basename(pathSrc)
+        ext = os.path.splitext(bn)[1]
+        pathDst = os.path.join(dirDst, os.path.basename(pathSrc))
 
-
-        if re.search('(bsq|bip|bil|tiff?)$', bn, re.I):
-            dsRasterSrc = gdal.Open(file)
+        if re.search('(bsq|bip|bil|tiff?)$', ext, re.I):
+            dsRasterSrc = gdal.Open(pathSrc)
             assert isinstance(dsRasterSrc, gdal.Dataset)
+
+            drvDst = gdal.GetDriverByName(drv) if drv is not None else dsRasterSrc.GetDriver()
+            # try to retrieve an extension
+
+            ext = drvDst.GetMetadata_Dict().get('DMD_EXTENSION', '')
+            if ext == '':
+                ext = LUT_EXT.get(drvDst.ShortName, '')
+            if not pathDst.endswith(ext):
+                pathDst += ext
+
+            if not fileNeedsUpdate(pathSrc, pathDst):
+                continue
+
             proj = dsRasterSrc.GetProjection()
             trans = list(dsRasterSrc.GetGeoTransform())
             trans[0] = UL.x()
@@ -232,18 +388,36 @@ def createTestData(dirSrc, dirDst, BBOX, drv=None):
 
             assert r > 0
 
-            drvDst = gdal.GetDriverByName(drv) if drv is not None else dsRasterSrc.GetDriver()
-            #try to retrieve an extension
-            pathDst = os.path.join(dirDst, os.path.splitext(os.path.basename(file))[0])
-            ext = drvDst.GetMetadata_Dict().get('DMD_EXTENSION','')
-            if ext == '':
-                ext = LUT_EXT.get(drvDst.ShortName, '')
-            if not pathDst.endswith(ext):
-                pathDst += ext
+
             print('Write {}'.format(pathDst))
             drvDst.CreateCopy(pathDst, dsDst)
 
-        elif re.search('(kmz|kml|shp?)$', bn, re.I):
+        elif re.search('(kmz|kml|shp?)$', ext, re.I):
+            if not fileNeedsUpdate(pathSrc, pathDst):
+                continue
+            import ogr
+            ds = ogr.Open(pathSrc)
+            wkt = ds.GetLayer(0).GetSpatialRef().ExportToWkt()
+            srcCrs = QgsCoordinateReferenceSystem(wkt)
+            dstBOX = BBOX.toCrs(srcCrs)
+            drvName = ds.GetDriver().GetName()
+            ds = None
+            cmd = ['ogr2ogr']
+            cmd.append('-overwrite')
+            #cmd.append("-f '{}'".format(drvName))
+            #cmd.append('-spat_srs {}'.format(BBOX.crs().authid()))
+            #cmd.append('-spat {} {} {} {}'.format(BBOX.xMinimum(), BBOX.yMinimum(),
+            #                                      BBOX.xMaximum(), BBOX.yMaximum()))
+            cmd.append('-clipsrc {} {} {} {}'.format(
+                dstBOX.xMinimum(), dstBOX.yMinimum(),
+                dstBOX.xMaximum(), dstBOX.yMaximum()))
+            #cmd.append('-clipsrc spat_extent')
+            cmd.append('--debug OFF')
+            cmd.append('"{}"'.format(pathDst))
+            cmd.append('"{}"'.format(pathSrc))
+            cmdStr = ' '.join(cmd)
+            subprocess.call(cmdStr, shell=True)
+            print(cmdStr)
 
             s = ""
         else:
@@ -428,19 +602,30 @@ def png2qrc(icondir, pathQrc, pngprefix='enmapbox'):
 
 
 if __name__ == '__main__':
-    from enmapbox import DIR_TESTDATA
+    from enmapbox.gui.utils import DIR_TESTDATA, DIR_UIFILES, DIR_ICONS
+
     qgsApp = QgsApplication([], True)
 
     qgsApp.initQgis()
 
-
-    icondir = jp(ROOT, *['enmapbox','gui','icons'])
-    pathQrc = jp(ROOT, *['enmapbox','gui','ui','resources.qrc'])
+    #create classification from shapefile
     if False:
+        root = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover'
+        pathShp = jp(root,'LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
+        pathDst = jp(root,'LandCov_Class_Berlin_Urban_Gradient_2009.bsq')
+        pathRef = jp(root,'LandCov_Layer_Level1_Berlin_Urban_Gradient_2009.bsq')
+        rasterize_vector_labels(pathRef, pathDst, pathShp, 'Level_1')
+        s = ""
+
+    icondir = DIR_ICONS
+    pathQrc = jp(DIR_UIFILES, 'resources.qrc')
+
+    if True:
         #convert SVG to PNG and add link them into the resource file
-        svg2png(icondir, overwrite=True)
+        svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)
-        if True: make(DIR_UI)
+
+        if True: make(DIR_UIFILES)
 
     if False:
         #create a test data set
@@ -448,16 +633,16 @@ if __name__ == '__main__':
         dirDst = jp(DIR_TESTDATA, 'UrbanGradient')
 
         from qgis.core import *
-        from enmapbox.utils import SpatialExtent
+        from enmapbox.gui.utils import SpatialExtent
 
         UL = QgsPoint(383851.349,5819308.225)
         LR = QgsPoint(384459.867,5818407.722)
         crs = QgsCoordinateReferenceSystem('EPSG:32633')
         ext = SpatialExtent(crs, UL, LR)
-        #createTestData(dirSrc, dirDst, ext)
+        createTestData(dirSrc, dirDst, ext)
         createFilePackage(dirDst)
 
-    if True:
+    if False:
         #update __init__.py of testdata directories
 
         for d in filter(os.path.isdir, [os.path.join(DIR_TESTDATA,f) for f in os.listdir(DIR_TESTDATA)]):
