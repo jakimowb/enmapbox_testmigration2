@@ -8,12 +8,12 @@ class EnMAPBoxPlugin:
     def __init__(self, iface):
         try:
             self.processingPlugin = ProcessingPlugin(iface)
-        except Exception, error:
+        except Exception as error:
             self.processingPlugin = DefectPluginHandler(iface, error)
 
         try:
             self.viewerPlugin = ViewerPlugin(iface)
-        except Exception, error:
+        except Exception as error:
             self.viewerPlugin = DefectPluginHandler(iface, error)
 
     def initGui(self):
