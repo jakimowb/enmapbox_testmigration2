@@ -34,7 +34,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
         import enmapbox.gui.dockmanager
         import enmapbox.gui.datasourcemanager
-
+        import enmapbox.gui.processingmanager
+        from processing.gui.ProcessingToolbox import ProcessingToolbox
         def addPanel(panel):
             """
             shortcut to add a created panel and return it
@@ -47,6 +48,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         area = Qt.LeftDockWidgetArea
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
+        #self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
+        self.processingPanel2 = addPanel(ProcessingToolbox())
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -56,7 +59,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
 
 def getIcon():
-    return QIcon()
+    return QIcon(':/enmapbox/icons/enmapbox.png')
 
 
 
@@ -78,12 +81,15 @@ class EnMAPBox():
 
         #define managers (the center of all actions and all evil)
         from enmapbox.gui.datasourcemanager import DataSourceManager
-        self.dataSourceManager = DataSourceManager(self)
-
         from enmapbox.gui.dockmanager import DockManager
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
+
+        self.dataSourceManager = DataSourceManager(self)
         self.dockManager = DockManager(self)
+        self.processingAlgManager= ProcessingAlgorithmsManager(self)
 
         #connect managers with widgets
+        self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
 
@@ -100,11 +106,15 @@ class EnMAPBox():
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
-        if lastDataSourceDir is None or not os.path.exists(lastDataSourceDir):
+
+        if lastDataSourceDir is None:
             lastDataSourceDir = DIR_TESTDATA
+
         if not os.path.exists(lastDataSourceDir):
             lastDataSourceDir = None
+
         uris = QFileDialog.getOpenFileNames(self.ui, "Open a data source(s)", lastDataSourceDir)
+
         for uri in uris:
             self.addSource(uri)
 
