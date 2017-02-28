@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import os
+import os, collections
 
 import numpy as np
 from qgis.core import *
@@ -8,7 +8,7 @@ from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from enmapbox.gui.utils import loadUI
+from enmapbox.gui.utils import loadUI, SpatialExtent, SpatialPoint
 
 
 
@@ -16,7 +16,7 @@ class CursorLocationValueMapTool(QgsMapTool):
     sigLocationIdentified = pyqtSignal(list)
 
     #sigLocationRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
-    sigLocationRequest = pyqtSignal(QgsPoint, QgsCoordinateReferenceSystem)
+    sigLocationRequest = pyqtSignal(SpatialPoint)
     def __init__(self, canvas):
         self.canvas = canvas
         self.layerType = QgsMapToolIdentify.AllLayers
@@ -29,21 +29,20 @@ class CursorLocationValueMapTool(QgsMapTool):
         y = mouseEvent.y()
         point = self.canvas.getCoordinateTransform().toMapCoordinates(x,y)
         crs = self.canvas.mapRenderer().destinationCrs()
-        self.sigLocationRequest.emit(point, crs)
+        self.sigLocationRequest.emit(SpatialPoint(crs, point))
 
 
 
 class CursorLocationValues(object):
 
 
-    def __init__(self, uri, crs, coord_geo, name=None):
-        assert isinstance(crs, QgsCoordinateReferenceSystem)
-        assert os.path.exists(uri)
-        assert isinstance(coord_geo, QgsPoint)
+    def __init__(self, uri, spatialPoint, name=None):
+        assert isinstance(spatialPoint, SpatialPoint)
+
+
         self.uri = uri
         self.name = name if name is not None else os.path.basename(uri)
-        self.coord_geo = coord_geo
-        self.crs = crs
+        self.spatialPoint = spatialPoint
 
     def labelKey(self, name=True, coord_geo=True):
         k = []
@@ -55,28 +54,49 @@ class CursorLocationValues(object):
         return ' '.join(k)
 
     @staticmethod
-    def fromVector(name,uri, crs, coord_geo):
-        s = ""
-        return None
+    def fromVector(uri, spatialPoint, name=None):
+        assert isinstance(spatialPoint, SpatialPoint)
+        lyr = QgsVectorLayer(uri, name, 'ogr')
+        dprovider = lyr.dataProvider()
+        fsource = dprovider.featureSource()
+
+        pt = spatialPoint.toCrs(lyr.crs())
+        rect = SpatialExtent(spatialPoint.crs(),0,0,1,1).setCenter(spatialPoint)
+        frequest = QgsFeatureRequest().setFilterRect(rect).setFlags(QgsFeatureRequest.ExactIntersect)
+
+        results = {}
+        fieldNames = [dprovider.fields()[f].name() for f in range(dprovider.fields().count())]
+        C = CursorLocationVectorValues(uri, pt, fieldNames=fieldNames, name=name)
+        for feature in fsource.getFeatures(frequest):
+            C.addFeature(feature)
+
+        if len(C) > 0:
+            return C
+        else:
+            return None
 
     @staticmethod
-    def fromRaster(uri, crs, coord_geo, name=None):
+    def fromRaster(uri, spatialPoint, name=None):
+        assert isinstance(spatialPoint, SpatialPoint)
         lyr = QgsRasterLayer(uri)
         dprovider = lyr.dataProvider()
-        results = dprovider.identify(coord_geo, QgsRaster.IdentifyFormatValue, QgsRectangle(), 0, 0)
+
+        pt = spatialPoint.toCrs(lyr.crs())
+
+        results = dprovider.identify(pt, QgsRaster.IdentifyFormatValue, QgsRectangle(), 0, 0)
         ns = dprovider.xSize()
         nl = dprovider.ySize()
         ex = dprovider.extent()
 
         if results.isValid():
             if False:
-                r2 = dprovider.identify(coord_geo, QgsRaster.IdentifyFormatValue, ex, ns, nl)
+                r2 = dprovider.identify(pt, QgsRaster.IdentifyFormatValue, ex, ns, nl)
                 assert results.results().values() == r2.results().values()
             #calculate pixel coordinate
             xres = ex.width() / ns
             yres = ex.height() / nl
-            px_x = np.floor((coord_geo.x() - ex.xMinimum()) / xres).astype(int)
-            px_y = np.floor((ex.yMaximum() - coord_geo.y()) / yres).astype(int)
+            px_x = np.floor((pt.x() - ex.xMinimum()) / xres).astype(int)
+            px_y = np.floor((ex.yMaximum() - pt.y()) / yres).astype(int)
             coord_px = QPoint(px_x, px_y)
 
             #extract band values
@@ -108,20 +128,20 @@ class CursorLocationValues(object):
             if np.all(band_x == x_as_int):
                 band_x = x_as_int
 
-            C = CursorLocationRasterValues(uri, crs, coord_geo, coord_px, name=name)
+            C = CursorLocationRasterValues(uri, pt, coord_px, name=name)
             C.setBandValues(band_x, band_y, band_mask=band_mask,band_names=band_names, band_units=band_units)
             return C
         return None
 
     @staticmethod
-    def fromDataSource(coord_geo, crs, datasource):
+    def fromDataSource(spatialPoint, datasource):
         from enmapbox.gui.datasources import DataSourceRaster, DataSourceVector
-        assert isinstance(crs, QgsCoordinateReferenceSystem)
-        assert isinstance(coord_geo, QgsPoint)
+        assert isinstance(spatialPoint, SpatialPoint)
+
         if isinstance(datasource, DataSourceRaster):
-            return CursorLocationValues.fromRaster(datasource.uri, crs, coord_geo, name=datasource.name)
+            return CursorLocationValues.fromRaster(datasource.uri, spatialPoint, name=datasource.name)
         if isinstance(datasource, DataSourceVector):
-            return CursorLocationValues.fromVector(datasource.uri, crs, coord_geo, name=datasource.name)
+            return CursorLocationValues.fromVector(datasource.uri, spatialPoint, name=datasource.name)
         return None
 
 
@@ -129,17 +149,27 @@ class CursorLocationValues(object):
 
 class CursorLocationVectorValues(CursorLocationValues):
 
-    def __init__(self, uri, crs, coord_geo, name=None):
-        CursorLocationValues.__init__(self, uri, crs, coord_geo, name=name)
+    def __init__(self, uri, spatialPoint, fieldNames=None, name=None):
+        CursorLocationValues.__init__(self, uri, spatialPoint, name=name)
+        self.results = list()
+        self.fieldNames = fieldNames
 
+    def addFeature(self, feature):
+        assert isinstance(feature, QgsFeature)
+        if self.fieldNames is None:
+            self.fieldNames = feature
+        d = collections.OrderedDict()
+        for fieldName in self.fieldNames:
+            d[fieldName] = feature.attribute(fieldName)
+        self.results.append((feature.id(), d))
 
-        pass
-
+    def __len__(self):
+        return len(self.results)
 
 class CursorLocationRasterValues(CursorLocationValues):
 
-    def __init__(self, uri, crs, coord_geo, coord_px, name=None):
-        super(CursorLocationRasterValues, self).__init__(uri, crs, coord_geo, name=name)
+    def __init__(self, uri, spatialPoint, coord_px, name=None):
+        super(CursorLocationRasterValues, self).__init__(uri, spatialPoint, name=name)
         assert isinstance(coord_px, QPoint)
         self.coord_px = coord_px
         self.band = None
@@ -195,11 +225,6 @@ class CursorLocationValueWidget(QMainWindow,
         self.gbLegend.clicked.connect(self.showLegend)
         self.profiles = []
 
-    def updateSplitMode(self):
-        s = self.size()
-        o = Qt.Vertical if s.width() < s.height() else Qt.Horizontal
-        self.splitter.setOrientation(o)
-
     def connectDataSourceManager(self, dsm):
         from enmapbox.gui.datasourcemanager import DataSourceManager
         if dsm:
@@ -218,9 +243,6 @@ class CursorLocationValueWidget(QMainWindow,
             self.tableViewDataSources.setModel(None)
             self.DSM = None
 
-    def resizeEvent(self, event):
-        super(CursorLocationValueWidget, self).resizeEvent(event)
-        self.updateSplitMode()
 
     #def showLocationValues(self, point, viewExtent, mapUnitsPerPixel, searchExtent):
     def showLegend(self, show):
@@ -229,27 +251,27 @@ class CursorLocationValueWidget(QMainWindow,
         else:
             self.legend.hide()
 
-    def showLocationValues(self, point, crs):
+    def showLocationValues(self, spatialPoint):
+        assert isinstance(spatialPoint, SpatialPoint)
         values = []
         model = self.tableViewDataSources.model()
         if model is None:
             return
 
-        #request info
+        #get values
         for ds in model.selectedSources():
-            values.append(CursorLocationValues.fromDataSource(point, crs, ds))
-            #request info
+            values.append(CursorLocationValues.fromDataSource(spatialPoint, ds))
 
         #show info
         info = []
 
         pixel_profiles = []
-        other_profiles = []
+        otherValues = []
         for p in values:
             if isinstance(p, CursorLocationRasterValues) and p.nb > 1:
                 pixel_profiles.append(p)
             else:
-                other_profiles.append(p)
+             otherValues.append(p)
 
         #self.tabWidget.setCurrentWidget(self.tabLocationValues)
         pi = self.plotItem
@@ -259,11 +281,12 @@ class CursorLocationValueWidget(QMainWindow,
             #remove all items from plot
             for name in [label.text for _, label in self.legend.items]:
                 self.legend.removeItem(name)
-
             pi.clear()
             del self.profiles[:]
 
+        from pyqtgraph.parametertree import Parameter
 
+        params = []
         if len(pixel_profiles) > 0:
             band_units = set()
             for p in pixel_profiles:
@@ -290,21 +313,40 @@ class CursorLocationValueWidget(QMainWindow,
                 self.profiles.append(item)
         self.showLegend(self.gbLegend.isChecked())
 
+        from pyqtgraph.parametertree import Parameter
 
-        for p in other_profiles + pixel_profiles:
-            info.append(os.path.basename(p.name))
-            if isinstance(p, CursorLocationRasterValues):
-                for i in range(p.nb):
-                    x = p.band[i].x
-                    y = p.band[i].y
-                    wlu = p.band[i].unit
-                    t = '  Band {}: {}'.format(i+1, y)
-                    if wlu != '':
-                        t += ' @{} {}'.format(y, wlu)
-                    info.append(t)
-            if isinstance(p, CursorLocationVectorValues):
-                pass
-        self.locationValuesTextEdit.setText('\n'.join(info))
+        #handle single band image values first
+        for p in [p for p in otherValues if isinstance(p, CursorLocationRasterValues)]:
+            assert isinstance(p, CursorLocationRasterValues)
+            datasource = {'name':p.name, 'readonly':True, 'type':'group'}
+            childs = []
+            childs.append({'name':'x', 'value':p.coord_px.x(), 'type':'int', 'readonly':True})
+            childs.append({'name':'y', 'value': p.coord_px.y(), 'type': 'int', 'readonly': True})
+            for i in range(p.nb):
+                v = p.band[i].y
+                childs.append({'name':'band {}'.format(i+1), 'value': v, 'type': 'str', 'readonly': True})
+            datasource['children'] = childs
+            params.append(datasource)
+
+        # handle vector source values second
+        for p in [p for p in otherValues if isinstance(p, CursorLocationVectorValues)]:
+            assert isinstance(p, CursorLocationVectorValues)
+            datasource = {'name':p.name, 'readonly':True, 'type':'group'}
+            features = []
+            for feature in p.results:
+                fid, values = feature
+                featureFields = [{'name': fieldName, 'value': fieldValue, 'readonly': True, 'type':'str'} \
+                                  for fieldName, fieldValue in values.items()]
+                features.append(
+                    {'name':'FID {}'.format(fid), 'readonly':True, 'type':'group',
+                        'children':featureFields}
+                )
+
+            datasource['children'] = features
+            params.append(datasource)
+            s = ""
+        treeRoot = Parameter.create(name='Results', type='group', children= params)
+        self.parameterTree.setParameters(treeRoot, showTop=False)
 
 
 class CursorLocationDataSourceItem():
@@ -405,6 +447,8 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
 
     def headerData(self, col, orientation, role):
         if Qt is None:
+            return None
+        if col > len(self.columnnames)-1:
             return None
         cn = self.columnnames[col]
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
