@@ -164,6 +164,35 @@ def getDOMAttributes(elem):
         values[attr.nodeName()] = attr.nodeValue()
     return values
 
+class SpatialPoint(QgsPoint):
+    """
+    Object to keep QgsPoint and QgsCoordinateReferenceSystem together
+    """
+    def __init__(self, crs, *args):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        super(SpatialPoint, self).__init__(*args)
+        self.mCrs = crs
+
+    def setCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        self.mCrs = crs
+
+    def crs(self):
+        return self.mCrs
+
+    def toCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        pt = QgsPoint(self)
+        if self.mCrs != crs:
+            trans = QgsCoordinateTransform(self.mCrs, crs)
+            box = trans.transform(pt)
+        return SpatialPoint(crs, pt)
+
+    def __copy__(self):
+        return SpatialExtent(self.crs(), QgsRectangle(self))
+
+    def __repr__(self):
+        return '{} {} {}'.format(self.x(), self.y(), self.crs().authid())
 
 class SpatialExtent(QgsRectangle):
     """
@@ -215,6 +244,8 @@ class SpatialExtent(QgsRectangle):
         else:
             super(SpatialExtent, self).combineExtentWith(*args)
 
+        return self
+
     def setCenter(self, centerPoint, crs=None):
 
         if crs and crs != self.crs():
@@ -227,6 +258,7 @@ class SpatialExtent(QgsRectangle):
         self.setYMaximum(self.yMaximum() + delta.y())
         self.setYMinimum(self.yMinimum() + delta.y())
 
+        return self
 
     def __cmp__(self, other):
         if other is None: return 1

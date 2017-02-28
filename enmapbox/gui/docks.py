@@ -3,14 +3,14 @@ from __future__ import absolute_import
 import itertools
 import os
 import uuid
-
+from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enmapbox.gui.datasources import *
-
+from enmapbox.gui.utils import *
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
-from qgis.gui import *
+
 
 
 
@@ -824,7 +824,8 @@ class MapDock(Dock):
     A dock to visualize geodata that can be mapped
     """
     #sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
-    sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsCoordinateReferenceSystem)
+    from enmapbox.gui.utils import SpatialPoint, SpatialExtent
+    sigCursorLocationValueRequest = pyqtSignal(SpatialPoint)
     sigLayersChanged = pyqtSignal()
 
     def __init__(self, *args, **kwds):
@@ -1006,8 +1007,8 @@ class MapDock(Dock):
         return ['']
 
     def canvasDragEnter(self, event):
-        import enmapbox.utils
-        ME = enmapbox.utils.MimeDataHelper(event.mimeData())
+
+        ME = MimeDataHelper(event.mimeData())
         #check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
         if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
@@ -1017,8 +1018,7 @@ class MapDock(Dock):
             event.ignore()
 
     def canvasDrop(self, event):
-        import enmapbox.utils
-        ME = enmapbox.utils.MimeDataHelper(event.mimeData())
+        ME = MimeDataHelper(event.mimeData())
 
         if ME.hasMapLayers():
             newLayers = ME.mapLayers()
