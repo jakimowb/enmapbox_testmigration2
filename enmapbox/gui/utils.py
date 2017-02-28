@@ -1,18 +1,52 @@
-import importlib
-import os
-import sys
-
+import os, sys, importlib, re, six, logging, fnmatch
+logger = logging.getLogger(__name__)
+from qgis.core import *
+from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtXml import *
-
-import enmapbox
-import six
-
-dprint = enmapbox.dprint
 from PyQt4 import uic
+import enmapbox.gui
+jp = os.path.join
+
+DIR_ENMAPBOX = os.path.dirname(enmapbox.__file__)
+DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
+DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
+DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
+DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
+
+#convenience functions
+def dprint(text):
+    logging.debug(text)
+    """
+    if enmapbox.gui.DEBUG:
+        func = inspect.currentframe().f_back.f_code
+        path = os.path.relpath(func.co_filename, DIR)
+        msg = '{}:{}:{}:"{}"'.format(path,func.co_name, func.co_firstlineno, text)
+        logging.debug(msg)
+    """
+
+def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
+    assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
+
+    results = []
+
+    for root, dirs, files in os.walk(rootdir):
+        for file in files:
+            if (ignoreCase and fnmatch.fnmatch(file.lower(), pattern.lower())) \
+                    or fnmatch.fnmatch(file, pattern):
+                results.append(os.path.join(root, file))
+        if not recursive:
+            break
+            pass
+
+    return results
+
+
+loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 
 FORM_CLASSES = dict()
+
 def loadUIFormClass(pathUi, from_imports=False):
     """
     Load UI files and takes care on Qgs custom widgets
@@ -65,15 +99,30 @@ def loadUIFormClass(pathUi, from_imports=False):
 
 
 
-def jp(*args, **kwds):
-    return os.path.join(*args, **kwds)
-
 def typecheck(variable, type_):
     if isinstance(type_, list):
         for i in range(len(type_)):
             typecheck(variable[i], type_[i])
     else:
         assert isinstance(variable,type_)
+
+
+class EmbDockWidgetBase(QgsDockWidget):
+    def __init__(self, parent):
+        super(EmbDockWidgetBase, self).__init__(parent)
+        self.setupUi(self)
+
+    def _blockSignals(self, widgets, block=True):
+        states = dict()
+        if isinstance(widgets, dict):
+            for w, block in widgets.items():
+                states[w] = w.blockSignals(block)
+        else:
+            for w in widgets:
+                states[w] = w.blockSignals(block)
+        return states
+
+
 
 def check_package(name, package=None, stop_on_error=False):
     try:
