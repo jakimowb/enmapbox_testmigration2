@@ -5,41 +5,13 @@ import site
 import qgis.core
 import qgis.gui
 
-import enmapbox
-from enmapbox.gui.utils import *
-from enmapbox.gui.treeviews import *
+from PyQt4.QtGui import *
+
 from enmapbox.gui.docks import *
-
-
-
-#todo: reduce imports to minimum
-#import PyQt4
-#import pyqtgraph
-#import pyqtgraph.dockarea.DockArea
-
-
-from PyQt4 import QtGui
-
 from enmapbox.gui.datasources import *
+from enmapbox.gui.utils import loadUI, SETTINGS, DIR_TESTDATA
 
-RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
-
-DIR_UI = jp(os.path.dirname(__file__), *['ui'])
-
-"""
-add_and_remove = DIR_GUI not in sys.path
-if add_and_remove: sys.path.append(DIR_GUI)
-
-ENMAPBOX_GUI_UI, qt_base_class = uic.loadUiType(os.path.normpath(jp(DIR_GUI, 'enmapbox_gui.ui')),
-                                    from_imports=False, resource_suffix=RC_SUFFIX)
-if add_and_remove: sys.path.remove(DIR_GUI)
-del add_and_remove, RC_SUFFIX
-"""
-
-
-class EnMAPBoxUI(QtGui.QMainWindow,
-                 loadUIFormClass(os.path.normpath(jp(DIR_UI, 'enmapbox_gui.ui')),
-                                   )):
+class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
     def __init__(self, parent=None):
         """Constructor."""
         super(EnMAPBoxUI, self).__init__(parent)
@@ -83,8 +55,8 @@ class EnMAPBoxUI(QtGui.QMainWindow,
             self.menuView.addAction(dock.toggleViewAction())
 
 
-def getIcon(name=IconProvider.EnMAP_Logo):
-    return QtGui.QIcon(name)
+def getIcon():
+    return QIcon()
 
 
 
@@ -117,10 +89,7 @@ class EnMAPBox():
 
 
         #link action to managers
-        #self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
-        self.ui.actionAddDataSource.triggered.connect(
-            lambda: self.addSource(str(QFileDialog.getOpenFileName(self.ui, "Open a data source"))))
-
+        self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
         self.ui.actionAddMapView.triggered.connect(lambda : self.dockManager.createDock('MAP'))
         self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
@@ -129,6 +98,18 @@ class EnMAPBox():
         self.ui.actionSave_Settings.triggered.connect(self.saveProject)
         s = ""
 
+    def onAddDataSource(self):
+        lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
+        if lastDataSourceDir is None or not os.path.exists(lastDataSourceDir):
+            lastDataSourceDir = DIR_TESTDATA
+        if not os.path.exists(lastDataSourceDir):
+            lastDataSourceDir = None
+        uris = QFileDialog.getOpenFileNames(self.ui, "Open a data source(s)", lastDataSourceDir)
+        for uri in uris:
+            self.addSource(uri)
+
+        if len(uris) > 0:
+            SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
 
     def saveProject(self):
         proj = QgsProject.instance()
