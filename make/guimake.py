@@ -425,10 +425,7 @@ def createTestData(dirSrc, dirDst, BBOX, drv=None, overwrite=False):
             s = ""
 
 
-def svg2png(pathDir, overwrite=False, mode='INKSCAPE'):
-    assert mode in ['INKSCAPE', 'WEBKIT', 'SVG']
-    from PyQt4.QtWebKit import QWebPage
-
+def svg2png(pathDir, overwrite=False):
     svgs = file_search(pathDir, '*.svg')
     app = QApplication([], True)
     buggySvg = []
@@ -439,67 +436,23 @@ def svg2png(pathDir, overwrite=False, mode='INKSCAPE'):
         bn, _ = os.path.splitext(os.path.basename(pathSvg))
         pathPng = jp(dn, bn+'.png')
 
-        if mode == 'SVG':
-            renderer = QSvgRenderer(pathSvg)
-            doc_size = renderer.defaultSize() # size in px
-            img = QImage(doc_size, QImage.Format_ARGB32)
-            #img.fill(0xaaA08080)
-            painter = QPainter(img)
-            renderer.render(painter)
-            painter.end()
-            if overwrite or not os.path.exists(pathPng):
-                img.save(pathPng, quality=100)
-            del painter, renderer
-        elif mode == 'WEBKIT':
-            page = QWebPage()
-            frame = page.mainFrame()
-            f = QFile(pathSvg)
-            if f.open(QFile.ReadOnly | QFile.Text):
-                textStream = QTextStream(f)
-                svgData = textStream.readAll()
-                f.close()
 
-            qba = QByteArray(str(svgData))
-            frame.setContent(qba,"image/svg+xml")
-            page.setViewportSize(frame.contentsSize())
-
-            palette = page.palette()
-            background_color = QColor(50,0,0,50)
-            palette.setColor(QPalette.Window, background_color)
-            brush = QBrush(background_color)
-            palette.setBrush(QPalette.Window, brush)
-            page.setPalette(palette)
-
-            img = QImage(page.viewportSize(), QImage.Format_ARGB32)
-            img.fill(background_color) #set transparent background
-            painter = QPainter(img)
-            painter.setBackgroundMode(Qt.OpaqueMode)
-            #print(frame.renderTreeDump())
-            frame.render(painter)
-            painter.end()
-
-            if overwrite or not os.path.exists(pathPng):
-                print('Save {}...'.format(pathPng))
-                img.save(pathPng, quality=100)
-            del painter, frame, img, page
-            s  =""
-        elif mode == 'INKSCAPE':
-            if fileNeedsUpdate(pathSvg, pathPng):
-                if sys.platform == 'darwin':
-                    cmd = ['inkscape']
-                else:
-                    dirInkscape = r'C:\Program Files\Inkscape'
-                    assert os.path.isdir(dirInkscape)
-                    cmd = [jp(dirInkscape,'inkscape')]
-                cmd.append('--file={}'.format(pathSvg))
-                cmd.append('--export-png={}'.format(pathPng))
-                from subprocess import PIPE
-                p = subprocess.Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-                output, err = p.communicate()
-                rc = p.returncode
-                print('Saved {}'.format(pathPng))
-                if err != '':
-                    buggySvg.append((pathSvg, err))
+        if fileNeedsUpdate(pathSvg, pathPng) or overwrite:
+            if sys.platform == 'darwin':
+                cmd = ['inkscape']
+            else:
+                dirInkscape = r'C:\Program Files\Inkscape'
+                assert os.path.isdir(dirInkscape)
+                cmd = [jp(dirInkscape,'inkscape')]
+            cmd.append('--file={}'.format(pathSvg))
+            cmd.append('--export-png={}'.format(pathPng))
+            from subprocess import PIPE
+            p = subprocess.Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            output, err = p.communicate()
+            rc = p.returncode
+            print('Saved {}'.format(pathPng))
+            if err != '':
+                buggySvg.append((pathSvg, err))
 
     if len(buggySvg) > 0:
         six._print('SVG Errors')
@@ -622,8 +575,8 @@ if __name__ == '__main__':
 
     if True:
         #convert SVG to PNG and add link them into the resource file
-        svg2png(icondir, overwrite=False)
-        png2qrc(icondir, pathQrc)
+        #svg2png(icondir, overwrite=True)
+        #png2qrc(icondir, pathQrc)
 
         if True: make(DIR_UIFILES)
 
