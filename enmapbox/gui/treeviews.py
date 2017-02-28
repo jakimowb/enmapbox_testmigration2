@@ -73,9 +73,7 @@ class TreeNode(QgsLayerTreeGroup):
 
         # set default properties using underlying customPropertySet
         self.setTooltip(tooltip)
-        self.setCustomProperty('tooltip', '')
 
-        if tooltip: self.setTooltip(tooltip)
         self.setIcon(icon)
         if parent is not None:
             parent.addChildNode(self)
@@ -86,7 +84,11 @@ class TreeNode(QgsLayerTreeGroup):
         self.updateVisibilityFromChildren()
 
     def setTooltip(self, tooltip):
-        self.customProperty('tooltip', str(tooltip))
+        if tooltip is None:
+            self.setCustomProperty('tooltip', None)
+        else:
+            self.setCustomProperty('tooltip', tooltip)
+
     def tooltip(self, default=''):
         return self.customProperty('tooltip',default)
 
@@ -166,6 +168,8 @@ class TreeModel(QgsLayerTreeModel):
         if isinstance(node, TreeNode):
             if role == Qt.DecorationRole:
                 return node.icon()
+            if role == Qt.ToolTipRole:
+                return node.tooltip()
 
         #the last choice: default
         return super(TreeModel, self).data(index, role)
@@ -239,6 +243,7 @@ class DataSourceTreeNode(TreeNode):
         assert isinstance(dataSource, DataSource)
         self.setName(dataSource.name)
         self.dataSource = dataSource
+        self.setTooltip(dataSource.uri)
         self._icon = dataSource.getIcon()
         self.setCustomProperty('uuid', str(self.dataSource.uuid))
         self.setCustomProperty('uri', self.dataSource.uri)

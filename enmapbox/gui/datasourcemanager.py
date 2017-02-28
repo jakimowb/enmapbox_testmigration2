@@ -1,5 +1,5 @@
-import six, sys, os, gc, re, collections, uuid
-
+import six, sys, os, gc, re, collections, uuid, logging
+logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
@@ -158,6 +158,7 @@ class DataSourceManagerTreeModel(TreeModel):
     def flags(self, index):
         if not index.isValid():
             return Qt.NoItemFlags
+
         # specify TreeNode specific actions
         node = self.index2node(index)
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
@@ -278,7 +279,7 @@ class DataSourceManager(QObject):
             self.sources.remove(src)
             self.sigDataSourceRemoved.emit(src)
         else:
-            print('DEBUG: can not remove {}'.format(src))
+            logger.debug('can not remove {}'.format(src)))
 
 
 
