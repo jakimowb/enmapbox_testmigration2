@@ -3,11 +3,13 @@ from __future__ import absolute_import
 import os
 
 import numpy as np
-from PyQt4 import QtGui
+from qgis.core import *
+from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from enmapbox.gui.main import DIR_UI
+from enmapbox.gui.utils import loadUI
+
 
 
 class CursorLocationValueMapTool(QgsMapTool):
@@ -169,8 +171,8 @@ class CursorLocationRasterValues(CursorLocationValues):
 
         return k
 
-class CursorLocationValueWidget(QtGui.QMainWindow,
-                                loadUIFormClass(os.path.normpath(jp(DIR_UI, 'cursorlocationinfo.ui')))):
+class CursorLocationValueWidget(QMainWindow,
+                                loadUI('cursorlocationinfo.ui')):
     def __init__(self, parent=None):
         """Constructor."""
         QWidget.__init__(self, parent)
@@ -199,7 +201,7 @@ class CursorLocationValueWidget(QtGui.QMainWindow,
         self.splitter.setOrientation(o)
 
     def connectDataSourceManager(self, dsm):
-        from enmapbox.gui.datasources import DataSourceManager
+        from enmapbox.gui.datasourcemanager import DataSourceManager
         if dsm:
 
             assert isinstance(dsm, DataSourceManager)
@@ -324,7 +326,7 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
 
     def __init__(self, dsm, parent=None, *args):
         super(QAbstractTableModel, self).__init__()
-        from enmapbox.gui.datasources import DataSourceManager
+        from enmapbox.gui.datasourcemanager import DataSourceManager
 
         assert isinstance(dsm, DataSourceManager)
         self.DSM = dsm
