@@ -1,6 +1,6 @@
 import traceback
 from ProcessingPlugin import ProcessingPlugin
-from ViewerPlugin import ViewerPlugin
+from GUIPlugin import ViewerPlugin
 
 
 class EnMAPBoxPlugin:
