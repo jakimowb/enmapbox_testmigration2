@@ -1,6 +1,6 @@
 import traceback
 from ProcessingPlugin import ProcessingPlugin
-from GUIPlugin import ViewerPlugin
+from GUIPlugin import GUIPlugin
 
 
 class EnMAPBoxPlugin:
@@ -12,7 +12,7 @@ class EnMAPBoxPlugin:
             self.processingPlugin = DefectPluginHandler(iface, error)
 
         try:
-            self.viewerPlugin = ViewerPlugin(iface)
+            self.viewerPlugin = GUIPlugin(iface)
         except Exception, error:
             self.viewerPlugin = DefectPluginHandler(iface, error)
 
