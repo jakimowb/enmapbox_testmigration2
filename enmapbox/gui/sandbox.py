@@ -8,19 +8,13 @@ from enmapbox.gui.utils import *
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
 
-def testFiles():
-
-    dir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
-    files = file_search(dir, '*.bsq', recursive=True)
-    return files
-
 def writelogmessage(message, tag, level):
     print('{}({}): {}'.format( tag, level, message ) )
 from qgis.core import QgsMessageLog
 QgsMessageLog.instance().messageReceived.connect( writelogmessage)
 
 
-def test_GUI():
+def sandboxGUI():
     # start a QGIS instance
     if sys.platform == 'darwin':
         PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
@@ -62,14 +56,11 @@ def test_GUI():
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
 
     if True:
-        if False:
-            for f in testFiles():
-                EB.addSource(f)
-
         if True:
             from enmapbox.testdata import UrbanGradient
-            EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009)
-            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.EnMAP02_Berlin_Urban_Gradient_2009)
+            EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
+            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
+            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Vec_Berlin_Urban_Gradient_2009_shp)
             EB.createDock('CURSORLOCATIONVALUE')
         if False: EB.createDock('MIME')
 
@@ -79,7 +70,6 @@ def test_GUI():
 
         if False:
             # register new model
-            path = TestData.RFC_Model
             import enmapbox.processing
             enmapbox.processing.registerModel(path, 'MyModel')
             # IconProvider.test()
@@ -112,7 +102,7 @@ def test_GUI():
     # load the plugin
     print('Done')
 
-def test_dialog():
+def sandboxDialog():
 
     if sys.platform == 'darwin':
         PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
@@ -178,5 +168,5 @@ if __name__ == '__main__':
 
 
     #run tests
-    if True: test_GUI()
-    if False: test_dialog()
+    if True: sandboxGUI()
+    if False: sandboxDialog()

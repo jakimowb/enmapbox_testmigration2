@@ -4,7 +4,7 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from enmapbox.gui.utils import EmbDockWidgetBase, loadUI
+from enmapbox.gui.utils import EmbDockWidgetBase, loadUI, MimeDataHelper
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 

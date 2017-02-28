@@ -156,8 +156,6 @@ class DataSourceFactory(object):
 
         if isinstance(src, DataSource): return src
 
-        logger.debug('DataSourceFactory input: {} {}'.format(type(src), src))
-
         uri = DataSourceFactory.isRasterSource(src)
         if uri is not None:
             return DataSourceRaster(uri, name=name, icon=icon)
