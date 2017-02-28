@@ -1,4 +1,3 @@
-import traceback
 from ProcessingPlugin import ProcessingPlugin
 from ViewerPlugin import ViewerPlugin
 
@@ -6,15 +5,10 @@ from ViewerPlugin import ViewerPlugin
 class EnMAPBoxPlugin:
 
     def __init__(self, iface):
-        try:
-            self.processingPlugin = ProcessingPlugin(iface)
-        except Exception as error:
-            self.processingPlugin = DefectPluginHandler(iface, error)
 
-        try:
-            self.viewerPlugin = ViewerPlugin(iface)
-        except Exception as error:
-            self.viewerPlugin = DefectPluginHandler(iface, error)
+        self.iface = iface
+        self.processingPlugin = self._tryPlugin(ProcessingPlugin)
+        self.viewerPlugin = self._tryPlugin(ViewerPlugin)
 
     def initGui(self):
 
@@ -22,14 +16,34 @@ class EnMAPBoxPlugin:
         self.viewerPlugin.initGui()
 
     def unload(self):
+
         self.processingPlugin.unload()
         self.viewerPlugin.unload()
 
-class DefectPluginHandler(object):
+    def _tryPlugin(self, Plugin):
 
-    def __init__(self, iface, error):
-        self.iface = iface
-        self.error = error
+        try:
+            return Plugin(self.iface)
+        except:
+            self._initConsole()
+            self._printTraceback()
+            return DefectPluginHandler()
+
+    def _initConsole(self):
+
+        from console.console import _console, PythonConsole
+        from PyQt4.QtCore import QTimer
+        if _console is None:
+            _console = PythonConsole(self.iface.mainWindow())
+            QTimer.singleShot(0, _console.activate)
+
+    def _printTraceback(self):
+
+        import traceback, sys
+        traceback.print_exc(file=sys.stdout)
+
+
+class DefectPluginHandler(object):
 
     def initGui(self):
         pass
