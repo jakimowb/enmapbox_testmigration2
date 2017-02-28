@@ -13,7 +13,7 @@ class DataSourcePanelUI(EmbDockWidgetBase, loadUI('datasourcepanel.ui')):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
         self.DSM = None
-        assert isinstance(self.dataSourceTreeView, EmbTreeView)
+        assert isinstance(self.dataSourceTreeView, TreeView)
 
 
     def connectDataSourceManager(self, dataSourceManager):

@@ -1,16 +1,15 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, uuid
-
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+import six, sys, os, gc, re, collections, uuid, logging
+logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
 from enmapbox.utils import *
 
 from osgeo import gdal, ogr
 
 import enmapbox
-dprint = enmapbox.dprint
 
 
 def openPlatformDefault(uri):
@@ -157,7 +156,7 @@ class DataSourceFactory(object):
 
         if isinstance(src, DataSource): return src
 
-        dprint('DataSourceFactory input: {} {}'.format(type(src), src))
+        logger.debug('DataSourceFactory input: {} {}'.format(type(src), src))
 
         uri = DataSourceFactory.isRasterSource(src)
         if uri is not None:
@@ -184,10 +183,10 @@ class DataSourceFactory(object):
             ids = [str(l.id()) for l in reg.mapLayers().values()]
             if src in ids:
                 mapLyr = reg.mapLayer(src)
-                dprint('MAP LAYER: {}'.format(mapLyr))
+                logger.debug('MAP LAYER: {}'.format(mapLyr))
                 return DataSourceFactory.Factory(reg.mapLayer(src), name)
 
-        dprint('Can not open {}'.format(str(src)))
+        logger.warning('Can not open {}'.format(str(src)))
         return None
 
 
@@ -203,7 +202,9 @@ class DataSource(object):
         """
         assert type(uri) is str
         if icon is None:
-            icon = IconProvider.icon(uri)
+            provider = QFileIconProvider()
+            icon = provider.icon(QFileInfo(uri))
+
         if name is None:
             name = os.path.basename(uri)
         assert name is not None
@@ -320,13 +321,13 @@ class DataSourceRaster(DataSourceSpatial):
             cat_types = [QGis.CInt16, QGis.CInt32, QGis.Byte, QGis.UInt16, QGis.UInt32, QGis.Int16, QGis.Int32]
             if dt in cat_types:
                 if len(dp.colorTable(1)) != 0:
-                    self.icon = QIcon(IconProvider.File_RasterClassification)
+                    self.icon = QIcon(':/enmapbox/icons/filelist_classification.png')
                 else:
-                    self.icon = QIcon(IconProvider.File_RasterMask)
+                    self.icon = QIcon(':/enmapbox/icons/filelist_mask.png')
             elif dt in [QGis.Float32, QGis.Float64, QGis.CFloat32, QGis.CFloat64]:
-                self.icon = QIcon(IconProvider.File_RasterRegression)
+                self.icon = QIcon(':/enmapbox/icons/filelist_regression.png')
         else:
-            self.icon = QIcon(IconProvider.File_Raster)
+            self.icon = QIcon(':/enmapbox/icons/mIconRasterLayer.png')
 
     def _createMapLayer(self, *args, **kwargs):
         """
@@ -346,11 +347,11 @@ class DataSourceVector(DataSourceSpatial):
 
         geomType = self._refLayer.geometryType()
         if geomType in [QGis.WKBPoint, QGis.WKBPoint25D]:
-            self.icon = QIcon(IconProvider.File_Vector_Point)
+            self.icon = QIcon(':/enmapbox/icons/mIconPointLayer.png')
         elif geomType in [QGis.WKBLineString, QGis.WKBMultiLineString25D]:
-            self.icon = QIcon(IconProvider.File_Vector_Polygon)
+            self.icon = QIcon(':/enmapbox/icons/mIconLineLayer.png')
         elif geomType in [QGis.WKBPolygon, QGis.WKBPoint25D]:
-            self.icon = QIcon(IconProvider.File_Vector_Polygon)
+            self.icon = QIcon(':/enmapbox/icons/mIconPolygonLayer.png')
 
     def _createMapLayer(self, *args, **kwargs):
         """
@@ -361,111 +362,4 @@ class DataSourceVector(DataSourceSpatial):
             return QgsVectorLayer(self.uri, None, 'ogr')
         else:
             return QgsVectorLayer(self.uri, **kwargs)
-
-
-class DataSourceManager(QObject):
-
-    """
-    Keeps overview on different data sources handled by EnMAP-Box.
-    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well.
-    """
-
-    sigDataSourceAdded = pyqtSignal(DataSource)
-    sigDataSourceRemoved = pyqtSignal(DataSource)
-
-    def __init__(self):
-        QObject.__init__(self)
-        self.sources = set()
-
-
-        QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
-        self.updateFromQgsMapLayerRegistry()
-
-        #signals
-
-
-        import enmapbox.processing
-        enmapbox.processing.sigFileCreated.connect(lambda file: self.addSource(file))
-        self.updateFromProcessingFramework()
-
-
-    def updateFromProcessingFramework(self):
-        import enmapbox.processing
-        for p,n in zip(enmapbox.processing.MODEL_URIS,
-                       enmapbox.processing.MODEL_NAMES):
-            self.addSource(p, name=n)
-
-    def updateFromQgsMapLayerRegistry(self, mapLayers=None):
-        """
-        Add data sources registered in the QgsMapLayerRegistry to the data source manager
-        :return: True, if a new source was added
-        """
-        if mapLayers is None:
-            mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
-
-        for lyr in mapLayers:
-            self.addSource(lyr)
-
-    def getUriList(self, sourcetype='All'):
-        """
-        Returns URIs of registered data sources
-        :param sourcetype: uri filter: 'ALL' (default),'RASTER''VECTOR' or 'MODEL' to return only uri's related to these sources
-        :return: uri as string (str), e.g. a file path
-        """
-        sourcetype = sourcetype.upper()
-        if isinstance(sourcetype, type):
-            return [ds.getUri() for ds in self.sources if type(ds) is sourcetype]
-
-        assert sourcetype in ['ALL','RASTER''VECTOR','MODEL']
-        if sourcetype == 'ALL':
-            return [ds.getUri() for ds in self.sources]
-        elif sourcetype == 'VECTOR':
-            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
-        elif sourcetype == 'RASTER':
-            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
-        elif sourcetype == 'MODEL':
-            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceModel)]
-
-
-
-    @pyqtSlot(str)
-    @pyqtSlot('QString')
-    def addSource(self, src, name=None, icon=None):
-        """
-        Adds a new data source.
-        :param src: any object
-        :param name:
-        :param icon:
-        :return: a DataSource instance, if sucessfully added
-        """
-        ds = DataSourceFactory.Factory(src, name=name, icon=icon)
-
-
-        if isinstance(ds, DataSource):
-            # check if source is already registered
-            for src in self.sources:
-                if os.path.abspath(src.uri) == os.path.abspath(ds.uri):
-                    return src #return object reference of an already existing source
-
-            self.sources.add(ds)
-            self.sigDataSourceAdded.emit(ds)
-
-            if isinstance(ds, DataSourceModel):
-                enmapbox.processing.registerModel(ds.uri)
-
-        return ds
-
-    def removeSource(self, src):
-        assert isinstance(src, DataSource)
-        if src in self.sources:
-            self.sources.remove(src)
-            self.sigDataSourceRemoved.emit(src)
-        else:
-            print('DEBUG: can not remove {}'.format(src))
-
-
-
-    def getSourceTypes(self):
-        return sorted(list(set([type(ds) for ds in self.sources])))
-
 
