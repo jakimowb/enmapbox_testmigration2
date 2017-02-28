@@ -4,17 +4,9 @@ import site
 
 import qgis.core
 import qgis.gui
-from enmapbox import DIR, DIR_SITE_PACKAGES
 
-VERSION = '2016-0.beta'
-
-
-#DIR = os.path.dirname(__file__)
-#DIR_REPO = os.path.dirname(DIR)
-#DIR_SITE_PACKAGES = jp(DIR_REPO, 'site-packages')
-#DIR_UI = jp(DIR, *['gui','ui'])
-site.addsitedir(DIR_SITE_PACKAGES)
-
+import enmapbox
+from enmapbox.gui.utils import *
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.docks import *
 
@@ -32,6 +24,7 @@ from enmapbox.gui.datasources import *
 
 RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
 
+DIR_UI = jp(os.path.dirname(__file__), *['ui'])
 
 """
 add_and_remove = DIR_GUI not in sys.path
@@ -44,12 +37,12 @@ del add_and_remove, RC_SUFFIX
 """
 
 
-class EnMAPBox_GUI(QtGui.QMainWindow,
-                   loadUIFormClass(os.path.normpath(jp(DIR_UI, 'enmapbox_gui.ui')),
+class EnMAPBoxUI(QtGui.QMainWindow,
+                 loadUIFormClass(os.path.normpath(jp(DIR_UI, 'enmapbox_gui.ui')),
                                    )):
     def __init__(self, parent=None):
         """Constructor."""
-        super(EnMAPBox_GUI, self).__init__(parent)
+        super(EnMAPBoxUI, self).__init__(parent)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
@@ -58,9 +51,36 @@ class EnMAPBox_GUI(QtGui.QMainWindow,
         self.setupUi(self)
         self.setWindowIcon(getIcon())
 
-        pass
+        self.showMaximized()
+        self.setAcceptDrops(True)
+        from enmapbox import __version__ as version
+        self.setWindowTitle('EnMAP-Box {}'.format(version))
 
 
+        #add & register panels
+        area = None
+
+        import enmapbox.gui.dockmanager
+        import enmapbox.gui.datasourcemanager
+
+        def addPanel(panel):
+            """
+            shortcut to add a created panel and return it
+            :param dock:
+            :return:
+            """
+            self.addDockWidget(area, panel)
+            return panel
+
+        area = Qt.LeftDockWidgetArea
+        self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
+        self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
+
+        #add entries to menu panels
+        for dock in self.findChildren(QDockWidget):
+            if len(dock.actions()) > 0:
+                s = ""
+            self.menuView.addAction(dock.toggleViewAction())
 
 
 def getIcon(name=IconProvider.EnMAP_Logo):
@@ -78,63 +98,35 @@ class EnMAPBox():
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
-
         assert EnMAPBox._instance is None
         EnMAPBox._instance = self
         self.iface = iface
 
-        self.gui = EnMAPBox_GUI()
-        self.gui.showMaximized()
-        self.gui.setAcceptDrops(True)
-        self.gui.setWindowTitle('EnMAP-Box ' + VERSION)
+        self.ui = EnMAPBoxUI()
 
-        self.dockarea = DockArea()
-        self.gui.centralWidget().layout().addWidget(self.dockarea)
+        #define managers (the center of all actions and all evil)
+        from enmapbox.gui.datasourcemanager import DataSourceManager
+        self.dataSourceManager = DataSourceManager(self)
 
-
-        self.dataSourceManager = DataSourceManager()
+        from enmapbox.gui.dockmanager import DockManager
         self.dockManager = DockManager(self)
 
-        def replaceView(view_old, view_new):
-            assert isinstance(view_old, QTreeView)
-            w = view_old.parentWidget()
-            w.layout().removeWidget(view_old)
-            name = view_old.objectName()
-            view_new.setObjectName(name)
-            w.layout().addWidget(view_new)
-            view_new.setSizePolicy(view_old.sizePolicy())
-            view_new.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            # view.setMaximumSize(view_old.maximumSize())
-            view_new.setMinimumSize(view_old.minimumSize())
-            view_new.viewport().setAcceptDrops(True)
-            view_new.setDragEnabled(True)
-            view_new.setAcceptDrops(True)
-            view_new.viewport().setAcceptDrops(True)
-            view_new.setDropIndicatorShown(True)
-
-            del view_old
-
-        view = TreeView(None)
-        view.setModel(DataSourceManagerTreeModel(view, self))
-        view.setMenuProvider(TreeViewMenuProvider(view))
-
-        self.gui.dataSourceTreeView = replaceView(self.gui.dataSourceTreeView,view)
-        #workaround to get QgsLayerTreeView
-        view = TreeView(None)
-        view.setModel(DockManagerTreeModel(view, self))
-        view.setMenuProvider(TreeViewMenuProvider(view))
+        #connect managers with widgets
+        self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
+        self.ui.dockPanel.connectDockManager(self.dockManager)
 
 
-        self.gui.dockTreeView = replaceView(self.gui.dockTreeView, view)
-
-        #link action objects to action behaviour
+        #link action to managers
         #self.gui.actionAddView.triggered.connect(lambda: self.dockarea.addDock(EnMAPBoxDock(self)))
-        self.gui.actionAddMapView.triggered.connect(lambda : self.dockManager.createDock('MAP'))
-        self.gui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
-        self.gui.actionAddDataSource.triggered.connect(lambda: self.addSource(str(QFileDialog.getOpenFileName(self.gui, "Open a data source"))))
-        self.gui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
-        self.gui.actionCursor_Location_Values.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
-        self.gui.actionSave_Settings.triggered.connect(self.saveProject)
+        self.ui.actionAddDataSource.triggered.connect(
+            lambda: self.addSource(str(QFileDialog.getOpenFileName(self.ui, "Open a data source"))))
+
+        self.ui.actionAddMapView.triggered.connect(lambda : self.dockManager.createDock('MAP'))
+        self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
+        self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
+
+        self.ui.actionCursor_Location_Values.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
+        self.ui.actionSave_Settings.triggered.connect(self.saveProject)
         s = ""
 
 
@@ -171,12 +163,12 @@ class EnMAPBox():
         return getIcon()
 
     def run(self):
-        self.gui.show()
+        self.ui.show()
         pass
 
 
     def onDataSourceTreeViewCustomContextMenu(self, point):
-        tv = self.gui.dataSourceTreeView
+        tv = self.ui.dataSourceTreeView
         assert isinstance(tv, QTreeView)
         index = tv.indexAt(point)
 
@@ -216,34 +208,6 @@ class EnMAPBox():
                         menu.addAction(action)
 
                 menu.exec_(tv.viewport().mapToGlobal(point))
-
-
-
-
-        s = ""
-
-
-
-
-
-class TestData():
-
-    prefix = jp(os.path.normpath(DIR), *['testdata'])
-    assert os.path.exists(prefix)
-    RFC_Model = jp(prefix, 'rfc.model')
-
-    prefix = jp(os.path.normpath(DIR), *['testdata', 'AlpineForeland'])
-    assert os.path.exists(prefix)
-    #assert os.path.isdir(prefix)
-
-    AF_Image = jp(prefix, 'AF_Image.bip')
-    AF_LAI = jp(prefix, r'AF_LAI.bsq')
-    AF_LC = jp(prefix, r'AF_LC.bsq')
-    AF_Mask = jp(prefix, r'AF_Mask.bsq')
-    AF_MaskVegetation = jp(prefix, r'AF_MaskVegetation.bsq')
-
-
-
 
 
 
