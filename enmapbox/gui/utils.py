@@ -16,6 +16,7 @@ DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
 import enmapbox.testdata
 DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
+SETTINGS = QSettings(QSettings.UserScope, 'HU Geomatics', 'EnMAP-Box')
 
 #convenience functions
 def dprint(text):
