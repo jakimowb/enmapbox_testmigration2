@@ -150,9 +150,11 @@ class DataSourceManagerTreeModel(TreeModel):
     def removeDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
         sourceGroup = self.getSourceGroup(dataSource)
-        to_remove = [c for c in sourceGroup.children() if c.source == dataSource]
-        if len(to_remove) > 0:
-            sourceGroup.removeChildNodes(to_remove)
+        to_remove = [node for node in sourceGroup.children() \
+                     if isinstance(node, DataSourceTreeNode) and
+                        node.dataSource == dataSource]
+        for node in to_remove:
+            sourceGroup.removeChildNode(node)
 
     def flags(self, index):
         if not index.isValid():
@@ -173,6 +175,13 @@ class DataSourceManagerTreeModel(TreeModel):
     def contextMenu(self, node):
         menu = QMenu()
         #todo: add node specific menu actions
+        if isinstance(node, DataSourceTreeNode):
+            a = menu.addAction('Remove')
+            a.triggered.connect(lambda: self.dataSourceManager.removeSource(node.dataSource))
+        if isinstance(node, DataSourceGroupTreeNode):
+            a = menu.addAction('Clear')
+            a.triggered.connect(lambda : self.dataSourceManager.removeSources(node.dataSources()))
+
         return menu
 
 
@@ -277,13 +286,17 @@ class DataSourceManager(QObject):
 
         return ds
 
-    def removeSource(self, src):
-        assert isinstance(src, DataSource)
-        if src in self.sources:
-            self.sources.remove(src)
-            self.sigDataSourceRemoved.emit(src)
+    def removeSources(self, dataSourceList):
+        for dataSource in dataSourceList:
+            self.removeSource(dataSource)
+
+    def removeSource(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        if dataSource in self.sources:
+            self.sources.remove(dataSource)
+            self.sigDataSourceRemoved.emit(dataSource)
         else:
-            logger.debug('can not remove {}'.format(src))
+            logger.debug('can not remove {}'.format(dataSource))
 
     def getSourceTypes(self):
         return sorted(list(set([type(ds) for ds in self.sources])))
