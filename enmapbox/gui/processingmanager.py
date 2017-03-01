@@ -12,27 +12,21 @@ from enmapbox.gui.datasources import *
 """
 This module describes the EnMAP-GUI <-> Processing Framework interactions
 """
-from processing.gui.Postprocessing import handleAlgorithmResults
 from processing.core.Processing import Processing
-from processing.core.ProcessingLog import ProcessingLog
-from processing.core.ProcessingConfig import ProcessingConfig, settingsWatcher
-from processing.gui.MessageDialog import MessageDialog
-from processing.gui.AlgorithmDialog import AlgorithmDialog
-from processing.gui.BatchAlgorithmDialog import BatchAlgorithmDialog
-from processing.gui.EditRenderingStylesDialog import EditRenderingStylesDialog
-from processing.gui.ConfigDialog import ConfigDialog
-from processing.gui.MessageBarProgress import MessageBarProgress
-from processing.gui.AlgorithmExecutor import runalg
 from processing.core.alglist import algList
 
 
 from processing.gui.ProcessingToolbox import ProcessingToolbox
 
 
-class ProcessingAlgorithmsPanelUI(ProcessingToolbox, PanelWidgetBase):
+class ProcessingAlgorithmsPanelUI(ProcessingToolbox):
     def __init__(self, parent=None):
-        super(ProcessingAlgorithmsPanelUI, self).__init__()
-        PanelWidgetBase.__init__(self, parent)
+        #
+
+        ProcessingToolbox.__init__(self)
+        #PanelWidgetBase.__init__(self, parent)
+        #super(ProcessingAlgorithmsPanelUI, self).__init__()
+
         self.setWindowTitle('QGIS Processing Toolbox')
         """
         algList.providerRemoved.connect(self.removeProvider)
@@ -44,7 +38,7 @@ class ProcessingAlgorithmsPanelUI(ProcessingToolbox, PanelWidgetBase):
     def connectProcessingAlgManager(self, manager):
         if isinstance(manager, ProcessingAlgorithmsManager):
             self.manager = manager
-            #register signals not handled via QGIS processing framework but the ProcessingAlgorithmsManager
+            #register signals not handled via the QGIS processing framework but the ProcessingAlgorithmsManager
 
         else:
             self.manager = None
@@ -63,13 +57,22 @@ class ProcessingAlgorithmsManager(QObject):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         assert isinstance(enmapBoxInstance, EnMAPBox)
 
-        self.enmapbox = enmapBoxInstance
+        self.enmapBox = enmapBoxInstance
+
+
         from processing.core.Processing import Processing
 
         algList.providerRemoved.connect(self.onProviderRemoved)
         algList.providerAdded.connect(self.onProviderAdded)
         algList.providerUpdated.connect(self.onProviderUpdated)
-        settingsWatcher.settingsChanged.connect(self.fillTree)
+
+        #connect EnMAP-Box processing framework specifics
+        from enmapboxplugin.processing.Signals import Signals
+        Signals = Signals.signals
+        Signals.imageCreated.connect(self.onFileCreated)
+        Signals.pickleCreated.connect(self.onFileCreated)
+        Signals.htmlCreated.connect(self.onFileCreated)
+
 
     def filterProviders(self, providerList, activated=True):
 
@@ -89,11 +92,12 @@ class ProcessingAlgorithmsManager(QObject):
     def onProviderAdded(self, key):
         logger.debug('Provider added {}'.format(key))
 
-    def onProviderUpdated(self):
+    def onProviderUpdated(self, key):
         logger.debug('Provider updated {}'.format(key))
 
     def onFileCreated(self, path):
         logger.debug('File created from processing framework:\n{}'.format(path))
+        self.enmapBox.dataSourceManager.addSource(path)
 
 
 
