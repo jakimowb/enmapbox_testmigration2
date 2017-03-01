@@ -51,13 +51,8 @@ def sandboxGUI():
     #   r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
     EB.run()
 
-    #how to get loaded data sources
-    from enmapbox.gui.datasources import DataSourceRaster
-    DSM = EnMAPBox.instance().dataSourceManager
-
-    rasterSources = [src for src in EnMAPBox.instance().dataSourceManager.sources if isinstance(src, DataSourceRaster)]
-    for src in rasterSources:
-        print(src.uri)
+    from processing.core.Processing import Processing
+    #Processing.runAlgorithm('')
 
     qgsApp.exec_()
 

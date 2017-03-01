@@ -1085,7 +1085,7 @@ class MapDock(Dock):
             mapLayers = [mapLayers]
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-        self.setLayerSet(self.canvas.layers() + mapLayers)
+        self.setLayerSet(mapLayers + self.canvas.layers())
 
 
 

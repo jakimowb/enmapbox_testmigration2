@@ -9,9 +9,6 @@ from enmapbox.utils import *
 
 from osgeo import gdal, ogr
 
-import enmapbox
-
-
 def openPlatformDefault(uri):
     if os.path.isfile(uri):
         if sys.platform == 'darwin':
@@ -27,7 +24,7 @@ def openPlatformDefault(uri):
 class DataSourceFactory(object):
 
     @staticmethod
-    def srctostring(src):
+    def srcToString(src):
         if isinstance(src, QUrl):
             if src.isLocalFile():
                 src = str(src.toLocalFile())
@@ -55,13 +52,14 @@ class DataSourceFactory(object):
         if isinstance(src, ogr.DataSource):
             uri = src.GetName()
 
-        src = DataSourceFactory.srctostring(src)
+        src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
             # todo: check different providers, not only ogr
             result = None
             try:
                 result = DataSourceFactory.isVectorSource(ogr.Open(src))
-            except:
+            except Exception:
+                s = ""
                 pass
 
             uri = result
@@ -77,7 +75,7 @@ class DataSourceFactory(object):
         :return: uri (str) | None
         """
 
-        gdal.UseExceptions()
+        gdal.UseExceptions(False)
         uri = None
         if isinstance(src, QgsRasterLayer) and src.isValid():
             uri = DataSourceFactory.isRasterSource(src.dataProvider())
@@ -86,7 +84,7 @@ class DataSourceFactory(object):
         if isinstance(src, gdal.Dataset):
             uri = src.GetFileList()[0]
 
-        src = DataSourceFactory.srctostring(src)
+        src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
 
             # todo: check different providers, not only gdal
@@ -109,7 +107,7 @@ class DataSourceFactory(object):
         """
 
         uri = None
-        src = DataSourceFactory.srctostring(src)
+        src = DataSourceFactory.srcToString(src)
         if isinstance(src, str) and os.path.exists(src):
 
             try:
@@ -167,7 +165,7 @@ class DataSourceFactory(object):
         if uri is not None:
             return DataSourceModel(uri, name=name, icon=icon)
 
-        src = DataSourceFactory.srctostring(src)
+        src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
             if os.path.isfile(src):
                 ext = os.path.splitext(src)[1].lower()

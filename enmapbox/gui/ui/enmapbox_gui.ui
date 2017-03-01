@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>608</width>
+    <width>545</width>
     <height>387</height>
    </rect>
   </property>
@@ -21,16 +21,7 @@
     <string notr="true"/>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <item>
@@ -43,8 +34,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>608</width>
-     <height>22</height>
+     <width>545</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -289,6 +280,41 @@
   <action name="actionPanels_2">
    <property name="text">
     <string>Panels...</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>exit</string>
+   </property>
+  </action>
+  <action name="actionPanToSelected">
+   <property name="text">
+    <string>PanToSelected</string>
+   </property>
+  </action>
+  <action name="actionPasteLayerStyle">
+   <property name="text">
+    <string>Paste Laye rStyle</string>
+   </property>
+  </action>
+  <action name="actionProjectProperties">
+   <property name="text">
+    <string>Projec tProperties</string>
+   </property>
+  </action>
+  <action name="actionQgisHomePage">
+   <property name="text">
+    <string>QgisHomePage</string>
+   </property>
+  </action>
+  <action name="actionEnMAPBoxHomePage">
+   <property name="text">
+    <string>EnMAP-Box Home Page</string>
+   </property>
+  </action>
+  <action name="actionSaveProject">
+   <property name="text">
+    <string>Save Project</string>
    </property>
   </action>
  </widget>

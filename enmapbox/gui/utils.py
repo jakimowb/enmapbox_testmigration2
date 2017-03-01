@@ -341,9 +341,6 @@ class IconProvider:
             icon = QIcon(uri)
             w = h = 16
             s = icon.actualSize(QSize(w,h))
-            if w != s.width() or h != s.height():
-                print((name, uri, s.width(), s.height()))
-                s = ""
 
 
 class MimeDataHelper():
@@ -382,8 +379,6 @@ class MimeDataHelper():
         r = False
         if format in self.formats:
             r = self.doc.setContent(self.mimeData.data(format))
-        if r:
-            print(str(self.doc.toString()))
         return r
 
     def hasLayerTreeModelData(self):
