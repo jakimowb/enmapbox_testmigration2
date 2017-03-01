@@ -589,13 +589,15 @@ RASTERRENDERER_FUNC['singlebandgray'] = QgsSingleBandGrayRendererWidget.create
 RASTERRENDERER_FUNC['singlebandpseudocolor'] = QgsSingleBandPseudoColorRendererWidget.create
 
 
-class VectorLayerProperties(QgsOptionsDialogBase):
+
+class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesdialog.ui')):
 
     def __init__(self, lyr, canvas, parent=None, fl=Qt.Widget):
-        super(RasterLayerProperties, self).__init__("VectorLayerProperties", parent, fl)
+        super(VectorLayerProperties, self).__init__("VectorLayerProperties", parent, fl)
         title = "Layer Properties - {}".format(lyr.name())
         self.restoreOptionsBaseUi(title)
-
+        self.setupUi(self)
+        self.initOptionsBase(False, title)
 
 
 def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
@@ -621,8 +623,8 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox import DIR_SITE_PACKAGES
-    site.addsitedir(DIR_SITE_PACKAGES)
+    from enmapbox.gui.utils import DIR_SITEPACKAGES
+    site.addsitedir(DIR_SITEPACKAGES)
 
     #prepare QGIS environment
     if sys.platform == 'darwin':
@@ -639,18 +641,20 @@ if __name__ == '__main__':
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
-    from enmapbox.testdata.AlpineForeland import AF_Image
+    from enmapbox.testdata.UrbanGradient import EnMAP01_Berlin_Urban_Gradient_2009_bsq, LandCov_Vec_Berlin_Urban_Gradient_2009_shp
 
-    l = QgsRasterLayer(AF_Image)
+    l = QgsRasterLayer(EnMAP01_Berlin_Urban_Gradient_2009_bsq)
+    v = QgsVectorLayer(LandCov_Vec_Berlin_Urban_Gradient_2009_shp)
+
     QgsMapLayerRegistry.instance().addMapLayer(l)
     c = QgsMapCanvas()
-    c.setLayerSet([QgsMapCanvasLayer(l)])
+    c.setLayerSet([QgsMapCanvasLayer(v)])
     c.setDestinationCrs(l.crs())
     c.setExtent(l.extent())
     c.refresh()
     b = QPushButton()
     b.setText('Show Properties')
-    b.clicked.connect(lambda: showLayerPropertiesDialog(l, c))
+    b.clicked.connect(lambda: showLayerPropertiesDialog(v, c))
     br = QPushButton()
     br.setText('Refresh')
     br.clicked.connect(lambda : c.refresh())
@@ -664,6 +668,6 @@ if __name__ == '__main__':
     w = QWidget()
     w.setLayout(lv)
     w.show()
-
+    b.click()
     qgsApp.exec_()
     qgsApp.exitQgis()
