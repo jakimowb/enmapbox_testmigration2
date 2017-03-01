@@ -110,9 +110,9 @@ def typecheck(variable, type_):
         assert isinstance(variable,type_)
 
 
-class EmbDockWidgetBase(QgsDockWidget):
+class PanelWidgetBase(QgsDockWidget):
     def __init__(self, parent):
-        super(EmbDockWidgetBase, self).__init__(parent)
+        super(PanelWidgetBase, self).__init__(parent)
         self.setupUi(self)
 
     def _blockSignals(self, widgets, block=True):

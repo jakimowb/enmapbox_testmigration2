@@ -48,8 +48,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         area = Qt.LeftDockWidgetArea
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
-        #self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
-        self.processingPanel2 = addPanel(ProcessingToolbox())
+        self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
+        #self.processingPanel2 = addPanel()
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):

@@ -56,7 +56,7 @@ def sandboxGUI():
     # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
 
     if True:
-        if True:
+        if False:
             from enmapbox.testdata import UrbanGradient
             EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
             EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)

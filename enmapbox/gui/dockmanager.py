@@ -4,13 +4,13 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from enmapbox.gui.utils import EmbDockWidgetBase, loadUI, MimeDataHelper
+from enmapbox.gui.utils import PanelWidgetBase, loadUI, MimeDataHelper
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 
 
 
-class DockPanelUI(EmbDockWidgetBase, loadUI('dockpanel.ui')):
+class DockPanelUI(PanelWidgetBase, loadUI('dockpanel.ui')):
     def __init__(self, parent=None):
         super(DockPanelUI, self).__init__(parent)
         self.dockManager = None
@@ -22,8 +22,6 @@ class DockPanelUI(EmbDockWidgetBase, loadUI('dockpanel.ui')):
         self.dockManager = dockManager
         self.dockTreeView.setModel(DockManagerTreeModel(self.dockManager))
         self.dockTreeView.setMenuProvider(TreeViewMenuProvider(self.dockTreeView))
-
-
 
 class DockManagerTreeModel(TreeModel):
     def __init__(self, dockManager, parent=None):
@@ -86,9 +84,10 @@ class DockManagerTreeModel(TreeModel):
             action = QAction('Remove', menu)
             action.triggered.connect(lambda: self.removeNode(node))
             menu.addAction(action)
+
         elif isinstance(node, DockTreeNode):
             # global
-            action = QAction('Remove Dock', menu)
+            action = QAction('Close', menu)
             action.triggered.connect(lambda :self.removeDockNode(node))
             menu.addAction(action)
 
