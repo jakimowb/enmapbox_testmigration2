@@ -13,8 +13,8 @@ class GUIPlugin:
         self.iface = iface
         assert isinstance(iface, QgisInterface)
 
-        #activate python console. this is required to redirect
-        #printouts like that from debugger done to stdout / stderr
+        #ensure that python console is activated. this is required to redirect
+        #printouts like that from debugger to stdout / stderr
         import console.console as CONSOLE
         if CONSOLE._console is None:
             CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
@@ -25,11 +25,10 @@ class GUIPlugin:
         if enmapbox.gui.DEBUG:
             logging.basicConfig(level=logging.DEBUG)
         self.logger = logging.getLogger(__name__)
-        self.logger.debug('init')
 
 
     def initGui(self):
-        self.logger.debug('start initGui...')
+        self.logger.debug('initGui...')
         self.toolbarActions = []
         self.pluginLayerTypes = dict()
 
@@ -41,7 +40,7 @@ class GUIPlugin:
         for action in self.toolbarActions:
             self.iface.addToolBarIcon(action)
 
-        #todo: add plugin layer types in case we define some
+
         for key, plugin in self.pluginLayerTypes.items():
             self.logger.debug('add plugin layer {}'.format(key))
             QgsPluginLayerRegistry.instance().addPluginLayerType(plugin)

@@ -275,7 +275,7 @@ class DockManagerTreeModel(TreeModel):
         return False
 
 
-class DockManager(QObject):
+class DockManager(QgsLegendInterface):
     """
     Class to handle all DOCK related events
     """
@@ -418,3 +418,18 @@ class DockManager(QObject):
                     dock.addLayers(ds.createMapLayer())
 
         return dock
+
+    """
+    QgsLegendInterface() Slots
+    """
+    def refreshLayerSymbology(self, mapLayer):
+        pass
+
+    def removeGroup(self, p_int):
+        pass
+
+    def removeLegendLayerAction(self, QAction):
+        pass
+
+    def moveLayer(self, QgsMapLayer, p_int):
+        pass

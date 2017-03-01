@@ -849,7 +849,7 @@ class MapDock(Dock):
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
         self.canvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
-        self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
+        #self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
         self.layout.addWidget(self.canvas)
 
         #link canvas to map tools

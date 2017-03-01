@@ -15,48 +15,16 @@ QgsMessageLog.instance().messageReceived.connect( writelogmessage)
 
 
 def sandboxGUI():
-    # start a QGIS instance
-    if sys.platform == 'darwin':
-        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
-    else:
-        # assume OSGeo4W startup
-        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    os.environ['QGIS_DEBUG'] = '1'
-
-
-    assert os.path.exists(PATH_QGS)
-    qgsApp = QgsApplication([], True)
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-
-
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
-
-    if False:
-        w = QMainWindow()
-        w.setWindowTitle('QgsMapCanvas Example')
-
-        w.setLayout(QGridLayout())
-        from enmapbox.gui.docks import CanvasLinkTargetWidget
-        w.layout().addWidget(CanvasLinkTargetWidget(None, None, parent=w))
-        w.show()
-
-    # add example images
-
-
-
+    qgsApp = initQgs()
 
 
     # EB = EnMAPBox(w)
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    # EB.dockarea.addDock(EnMAPBoxDock(EB, name='Dock (unspecialized)'))
 
-    if True:
-        if False:
+    if False:
+        if True:
             from enmapbox.testdata import UrbanGradient
             EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
             EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
@@ -101,6 +69,26 @@ def sandboxGUI():
 
     # load the plugin
     print('Done')
+
+
+
+def initQgs():
+    # start a QGIS instance
+    if sys.platform == 'darwin':
+        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+    else:
+        # assume OSGeo4W startup
+        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    os.environ['QGIS_DEBUG'] = '1'
+    assert os.path.exists(PATH_QGS)
+    qgsApp = QgsApplication([], True)
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
+    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
+    qgsApp.setPrefixPath(PATH_QGS, True)
+    qgsApp.initQgis()
+    return qgsApp
+
 
 def sandboxDialog():
 

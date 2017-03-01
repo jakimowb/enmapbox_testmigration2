@@ -62,8 +62,7 @@ def getIcon():
     return QIcon(':/enmapbox/icons/enmapbox.png')
 
 
-
-class EnMAPBox():
+class EnMAPBox(QgisInterface):
 
     _instance = None
 
@@ -73,9 +72,26 @@ class EnMAPBox():
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
+
+
         assert EnMAPBox._instance is None
+        super(EnMAPBox, self).__init__()
         EnMAPBox._instance = self
+
         self.iface = iface
+
+        #init QGIS Processing Framework if necessary
+        from qgis import utils as qgsUtils
+        if qgsUtils.iface is None:
+            #there is not running QGIS Instance. This means the entire QGIS processing framework was not
+            #initialzed at all.
+            qgsUtils.iface = self
+            #from now on other routines expect the EnMAP-Box to act like QGIS
+
+            from processing.core.Processing import Processing
+            Processing.initialize()
+            from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
+            Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
         self.ui = EnMAPBoxUI()
 
@@ -103,6 +119,8 @@ class EnMAPBox():
         self.ui.actionCursor_Location_Values.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
         self.ui.actionSave_Settings.triggered.connect(self.saveProject)
         s = ""
+
+
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
@@ -201,4 +219,18 @@ class EnMAPBox():
                 menu.exec_(tv.viewport().mapToGlobal(point))
 
 
+    """
+    QgisInterface compliance
+    """
+    def mainWindow(self):
+        return self.ui
 
+    def mapCanvas(self):
+        return QgsMapCanvas()
+
+    def refreshLayerSymbology(selflayerId):
+        pass
+
+
+    def legendInterface(self):
+        return self.dockManager
