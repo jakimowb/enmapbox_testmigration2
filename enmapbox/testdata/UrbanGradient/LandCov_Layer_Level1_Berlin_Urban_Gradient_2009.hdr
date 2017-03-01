@@ -1,6 +1,6 @@
 ENVI
 description = {
-C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\testdata\UrbanGradient\LandCov_Layer_Level1_Berlin_Urban_Gradient_2009.bsq}
+D:\Repositories\QGIS_Plugins\enmap-box\enmapbox\testdata\UrbanGradient\LandCov_Layer_Level1_Berlin_Urban_Gradient_2009.bsq}
 samples = 20
 lines   = 30
 bands   = 4

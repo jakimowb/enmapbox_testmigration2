@@ -1,5 +1,5 @@
 from ProcessingPlugin import ProcessingPlugin
-from ViewerPlugin import ViewerPlugin
+from GUIPlugin import GUIPlugin
 
 
 class EnMAPBoxPlugin:
@@ -8,7 +8,7 @@ class EnMAPBoxPlugin:
 
         self.iface = iface
         self.processingPlugin = self._tryPlugin(ProcessingPlugin)
-        self.viewerPlugin = self._tryPlugin(ViewerPlugin)
+        self.viewerPlugin = self._tryPlugin(GUIPlugin)
 
     def initGui(self):
 
