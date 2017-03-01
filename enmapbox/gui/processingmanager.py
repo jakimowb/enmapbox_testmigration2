@@ -9,90 +9,47 @@ from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
 
-class ProcessingAlgorithmGroup(TreeNode):
+"""
+This module describes the EnMAP-GUI <-> Processing Framework interactions
+"""
+from processing.gui.Postprocessing import handleAlgorithmResults
+from processing.core.Processing import Processing
+from processing.core.ProcessingLog import ProcessingLog
+from processing.core.ProcessingConfig import ProcessingConfig, settingsWatcher
+from processing.gui.MessageDialog import MessageDialog
+from processing.gui.AlgorithmDialog import AlgorithmDialog
+from processing.gui.BatchAlgorithmDialog import BatchAlgorithmDialog
+from processing.gui.EditRenderingStylesDialog import EditRenderingStylesDialog
+from processing.gui.ConfigDialog import ConfigDialog
+from processing.gui.MessageBarProgress import MessageBarProgress
+from processing.gui.AlgorithmExecutor import runalg
+from processing.core.alglist import algList
 
-    def __init__(self, parent, alg):
 
-        super(ProcessingAlgorithmGroup, self).__init__(parent, '<empty>')
-
-
-class ProcessingAlgorithm(TreeNode):
-    def __init__(self, parent, alg):
-        super(ProcessingAlgorithmGroup, self).__init__(parent, '<empty>')
+from processing.gui.ProcessingToolbox import ProcessingToolbox
 
 
-class ProcessingAlgorithmsPanelUI(PanelWidgetBase, loadUI('processingpanel.ui')):
-
+class ProcessingAlgorithmsPanelUI(ProcessingToolbox, PanelWidgetBase):
     def __init__(self, parent=None):
-        super(ProcessingAlgorithmsPanelUI, self).__init__(parent)
-
-        assert isinstance(self.processingAlgTreeView, TreeView)
+        super(ProcessingAlgorithmsPanelUI, self).__init__()
+        PanelWidgetBase.__init__(self, parent)
+        self.setWindowTitle('QGIS Processing Toolbox')
+        """
+        algList.providerRemoved.connect(self.removeProvider)
+        algList.providerAdded.connect(self.addProvider)
+        algList.providerUpdated.connect(self.updateProvider)
+        settingsWatcher.settingsChanged.connect(self.fillTree)
+        """
 
     def connectProcessingAlgManager(self, manager):
         if isinstance(manager, ProcessingAlgorithmsManager):
             self.manager = manager
-            self.model = ProcessingAlgorithmsTreeModel(self.manager)
-            self.processingAlgTreeView.setModel(self.model)
-            self.processingAlgTreeView.setMenuProvider(TreeViewMenuProvider(self.processingAlgTreeView))
+            #register signals not handled via QGIS processing framework but the ProcessingAlgorithmsManager
+
         else:
             self.manager = None
-            self.processingAlgTreeView.setModel(None)
 
 
-class ProcessingAlgorithmsTreeModel(TreeModel):
-
-    def __init__(self, processingAlgorithmsManager, parent=None):
-
-        super(ProcessingAlgorithmsTreeModel, self).__init__(parent)
-        assert isinstance(processingAlgorithmsManager, ProcessingAlgorithmsManager)
-        self.processingAlgManager = processingAlgorithmsManager
-
-    def mimeTypes(self):
-        # specifies the mime types handled by this model
-        types = []
-        return types
-
-    def dropMimeData(self, data, action, row, column, parent):
-        parentNode = self.index2node(parent)
-        assert isinstance(data, QMimeData)
-
-        isL1Node = parentNode.parent() == self.rootNode
-
-        result = False
-
-        return result
-
-    def mimeData(self, indexes):
-        indexes = sorted(indexes)
-        if len(indexes) == 0:
-            return None
-
-        nodesFinal = self.indexes2nodes(indexes, True)
-        mimeData = QMimeData()
-        #todo: handle processing algorithms related MimeData
-        return mimeData
-
-
-    def flags(self, index):
-        if not index.isValid():
-            return Qt.NoItemFlags
-
-        # specify TreeNode specific actions
-        node = self.index2node(index)
-        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
-        if isinstance(node, DataSourceGroupTreeNode):
-            flags |= Qt.ItemIsDropEnabled
-        elif isinstance(node, DataSourceTreeNode):
-            flags |= Qt.ItemIsDragEnabled
-        else:
-            flags = Qt.NoItemFlags
-        return flags
-
-    def contextMenu(self, node):
-        menu = QMenu()
-        #todo: add node specific menu actions
-        return menu
 
 class ProcessingAlgorithmsManager(QObject):
 
@@ -107,14 +64,36 @@ class ProcessingAlgorithmsManager(QObject):
         assert isinstance(enmapBoxInstance, EnMAPBox)
 
         self.enmapbox = enmapBoxInstance
+        from processing.core.Processing import Processing
 
-        if isinstance(self.enmapbox.iface, QgisInterface):
-            from processing.core.Processing import Processing
-            self.algList = Processing.algList
+        algList.providerRemoved.connect(self.onProviderRemoved)
+        algList.providerAdded.connect(self.onProviderAdded)
+        algList.providerUpdated.connect(self.onProviderUpdated)
+        settingsWatcher.settingsChanged.connect(self.fillTree)
 
+    def filterProviders(self, providerList, activated=True):
 
+        assert isinstance(providerList, list)
+        assert all([p is str for p in providerList])
 
+        if activated:
+            for provider in Processing.providers:
+                if provider not in providerList:
+                    provider
+        Processing.activateProvider()
+        s = ""
 
+    def onProviderRemoved(self, key):
+        logger.debug('Provider removed {}'.format(key))
+
+    def onProviderAdded(self, key):
+        logger.debug('Provider added {}'.format(key))
+
+    def onProviderUpdated(self):
+        logger.debug('Provider updated {}'.format(key))
+
+    def onFileCreated(self, path):
+        logger.debug('File created from processing framework:\n{}'.format(path))
 
 
 
