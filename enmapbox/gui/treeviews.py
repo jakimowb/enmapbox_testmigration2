@@ -203,6 +203,10 @@ class DataSourceGroupTreeNode(TreeNode):
         super(DataSourceGroupTreeNode, self).__init__(parent, groupName, icon=icon)
         self.childClass = classDef
 
+    def dataSources(self):
+        return [d.dataSource for d in self.children()
+                if isinstance(d, DataSourceTreeNode)]
+
     def addChildNode(self, node):
         """Ensure child types"""
         assert isinstance(node, DataSourceTreeNode)
@@ -235,6 +239,7 @@ class DataSourceTreeNode(TreeNode):
     def __init__(self, parent, dataSource):
         super(DataSourceTreeNode, self).__init__(parent, '<empty>')
         self.disconnectDataSource()
+        self.dataSource = None
         if dataSource:
             self.connectDataSource(dataSource)
 
