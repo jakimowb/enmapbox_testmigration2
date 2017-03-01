@@ -13,7 +13,9 @@ if DEBUG:
         fh = logging.StreamHandler()
         fh_formatter = logging.Formatter('%(levelname)s %(lineno)d:%(filename)s%(module)s %(funcName)s \n\t%(message)s')
         fh.setFormatter(fh_formatter)
+        fh.addFilter(logging.Filter(name))
         logger.addHandler(fh)
+
 
 from enmapbox.gui.utils import DIR_SITEPACKAGES
 site.addsitedir(DIR_SITEPACKAGES)
