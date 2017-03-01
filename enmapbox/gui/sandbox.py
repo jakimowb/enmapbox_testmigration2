@@ -51,8 +51,14 @@ def sandboxGUI():
     #   r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
     EB.run()
 
-    from processing.core.Processing import Processing
-    #Processing.runAlgorithm('')
+    if True:
+        from enmapbox.testdata import UrbanGradient
+        EB.createDock('MAP', name='EnMAP 01', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
+        EB.createDock('MAP', name='HyMap 01', initSrc=UrbanGradient.HyMap01_Berlin_Urban_Gradient_2009_bsq)
+        EB.createDock('MAP', name='LandCov Level1', initSrc=UrbanGradient.LandCov_Layer_Level1_Berlin_Urban_Gradient_2009_bsq)
+        EB.createDock('MAP', name='LandCov Level2', initSrc=UrbanGradient.LandCov_Layer_Level2_Berlin_Urban_Gradient_2009_bsq)
+        EB.createDock('MAP', name='Shapefile', initSrc=UrbanGradient.LandCov_Vec_polygons_Berlin_Urban_Gradient_2009_shp)
+        EB.createDock('CURSORLOCATIONVALUE')
 
     qgsApp.exec_()
 

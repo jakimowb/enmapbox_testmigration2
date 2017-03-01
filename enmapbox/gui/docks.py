@@ -437,7 +437,7 @@ class Dock(pyqtgraph.dockarea.Dock):
 
     def setTitle(self, title):
         """
-        Overide setTitle to emit a signal after title was changed
+        Override setTitle to emit a signal after title was changed
         :param title:
         :return:
         """
@@ -837,7 +837,7 @@ class MapDock(Dock):
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
         self.canvas = MapCanvas(self)
-        self.updateDockTitle()
+
         #self.label.setText(self.basename)
         #self.canvas.setScaleLocked(True)
         self.canvas.sigDropEvent.connect(self.canvasDrop)
@@ -1078,7 +1078,6 @@ class MapDock(Dock):
 
         self.canvas.refresh()
 
-        self.updateDockTitle()
 
     def addLayers(self, mapLayers):
         if not type(mapLayers) is list:
@@ -1089,22 +1088,6 @@ class MapDock(Dock):
 
 
 
-
-    def updateDockTitle(self):
-        """
-        Changes the dock title to "<initial name>:<basename 1st spatial layer>"
-         :return True if a new title was set
-        """
-        layer = [QgsMapCanvasLayer(l).layer() for l in self.canvas.layers()]
-        newTitle = self.basename
-        if len(layer) > 0:
-            src = layer[0].source()
-
-            newTitle = '{}:{}'.format(self.basename, os.path.basename(src))
-        change = newTitle != self.title()
-        if change:
-            self.setTitle(newTitle)
-        return change
 
 
 
