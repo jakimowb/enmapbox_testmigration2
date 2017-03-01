@@ -28,7 +28,11 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="TreeView" name="dockTreeView"/>
+     <widget class="TreeView" name="dockTreeView">
+      <property name="editTriggers">
+       <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

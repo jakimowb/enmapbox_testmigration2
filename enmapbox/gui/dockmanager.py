@@ -16,6 +16,8 @@ class DockPanelUI(PanelWidgetBase, loadUI('dockpanel.ui')):
         self.dockManager = None
         assert isinstance(self.dockTreeView, TreeView)
 
+        s =""
+
 
     def connectDockManager(self, dockManager):
         assert isinstance(dockManager, DockManager)
@@ -122,7 +124,8 @@ class DockManagerTreeModel(TreeModel):
         if isinstance(node, DockTreeNode):
             flags = Qt.ItemIsEnabled | \
                     Qt.ItemIsSelectable | \
-                    Qt.ItemIsUserCheckable
+                    Qt.ItemIsUserCheckable | \
+                    Qt.ItemIsEditable
             if isL1:
                 flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | Qt.ItemIsEditable
         elif isinstance(node, QgsLayerTreeNode):
@@ -260,6 +263,9 @@ class DockManagerTreeModel(TreeModel):
                 else:
                     node.dock.setVisible(True)
                 return True
+            if role == Qt.EditRole:
+                node.dock.setTitle(value)
+
         if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
 
             if role == Qt.CheckStateRole:
