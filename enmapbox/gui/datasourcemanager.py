@@ -4,22 +4,21 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from enmapbox.gui.utils import EmbDockWidgetBase, loadUI
+from enmapbox.gui.utils import PanelWidgetBase, loadUI
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
 
-class DataSourcePanelUI(EmbDockWidgetBase, loadUI('datasourcepanel.ui')):
+class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
-        self.DSM = None
+        self.dataSourceManager = None
         assert isinstance(self.dataSourceTreeView, TreeView)
-
 
     def connectDataSourceManager(self, dataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
-        self.DSM = dataSourceManager
-        self.dataSourceTreeView.setModel(DataSourceManagerTreeModel(self, self.DSM))
+        self.dataSourceManager = dataSourceManager
+        self.dataSourceTreeView.setModel(DataSourceManagerTreeModel(self, self.dataSourceManager))
         self.dataSourceTreeView.setMenuProvider(TreeViewMenuProvider(self.dataSourceTreeView))
 
 
@@ -171,6 +170,11 @@ class DataSourceManagerTreeModel(TreeModel):
             flags = Qt.NoItemFlags
         return flags
 
+    def contextMenu(self, node):
+        menu = QMenu()
+        #todo: add node specific menu actions
+        return menu
+
 
 class DataSourceManager(QObject):
 
@@ -279,9 +283,7 @@ class DataSourceManager(QObject):
             self.sources.remove(src)
             self.sigDataSourceRemoved.emit(src)
         else:
-            logger.debug('can not remove {}'.format(src)))
-
-
+            logger.debug('can not remove {}'.format(src))
 
     def getSourceTypes(self):
         return sorted(list(set([type(ds) for ds in self.sources])))
