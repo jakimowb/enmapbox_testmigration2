@@ -18,17 +18,6 @@ import enmapbox.testdata
 DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
 SETTINGS = QSettings(QSettings.UserScope, 'HU Geomatics', 'EnMAP-Box')
 
-#convenience functions
-def dprint(text):
-    logging.debug(text)
-    """
-    if enmapbox.gui.DEBUG:
-        func = inspect.currentframe().f_back.f_code
-        path = os.path.relpath(func.co_filename, DIR)
-        msg = '{}:{}:{}:"{}"'.format(path,func.co_name, func.co_firstlineno, text)
-        logging.debug(msg)
-    """
-
 def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
 
@@ -91,7 +80,7 @@ def loadUIFormClass(pathUi, from_imports=False):
                 file.close()
 
                 pathUi = tmp
-        dprint('Load UI file: {}'.format(pathUi))
+        logger.debug('Load UI file: {}'.format(pathUi))
         FORM_CLASS, _ = uic.loadUiType(pathUi,from_imports=from_imports, resource_suffix=RC_SUFFIX)
 
         if add_and_remove:
@@ -342,17 +331,12 @@ class IconProvider:
 
     @staticmethod
     def test():
-        dprint('test QImageProviders')
         required = set(['png','svg'])
         available = set([str(p) for p in QImageReader.supportedImageFormats()])
         missing = required - available
-        if len(missing) > 0:
-            dprint('Missing QImageFormat support : {}'.format(','.join(list(missing))))
-        s = ""
 
 
 
-        dprint('test resource file icons')
         for name, uri in IconProvider.resourceIconsPaths():
             icon = QIcon(uri)
             w = h = 16
@@ -432,7 +416,6 @@ class MimeDataHelper():
         return nodes
 
     def _readMapLayersFromXML(self, root):
-        dprint(root.ownerDocument().toString())
 
         nodeList = root.elementsByTagName('layer-tree-layer')
         reg = QgsMapLayerRegistry.instance()
