@@ -152,7 +152,7 @@ def getDOMAttributes(elem):
     return values
 
 
-def make(ROOT):
+def compile_rc_files(ROOT):
     #find ui files
     ui_files = file_search(ROOT, '*.ui', recursive=True)
     qrcs = set()
@@ -573,12 +573,12 @@ if __name__ == '__main__':
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
 
-    if True:
+    if False:
         #convert SVG to PNG and add link them into the resource file
-        #svg2png(icondir, overwrite=True)
-        #png2qrc(icondir, pathQrc)
+        svg2png(icondir, overwrite=True)
+        png2qrc(icondir, pathQrc)
 
-        if True: make(DIR_UIFILES)
+    if True: compile_rc_files(DIR_UIFILES)
 
     if False:
         #create a test data set
