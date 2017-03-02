@@ -4,9 +4,10 @@ from processing.core.Processing import Processing
 class ProcessingPlugin:
     def __init__(self, iface):
         self.iface = iface
+        from .processing.SignalsManager import SignalsManager
+        SignalsManager.connectHTMLCreatedToWebBrowser()
 
     def initGui(self):
-
         from .processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
         self.provider = EnMAPBoxAlgorithmProvider()
         Processing.addProvider(self.provider)
