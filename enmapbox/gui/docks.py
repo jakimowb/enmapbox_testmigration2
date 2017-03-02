@@ -122,7 +122,6 @@ class CanvasLinkManager:
         # register signals
         to_register = [canvas for canvas in newLinkSet.canvases() if canvas not in self.registeredCanvases]
         for canvas in to_register:
-            dprint('register {}'.format(canvas))
             canvas.sigExtentsChanged.connect(self.setChanges)
             self.registeredCanvases.add(canvas)
 
@@ -187,27 +186,19 @@ class CanvasLinkManager:
 
 
         if len(self.handledCanvases) == 0:
-            dprint('START LINKING FROM: {}'.format(master))
-            #dprint('EXISTING LINKSETS:')
-            #for i, line in enumerate(self.dump()):
-            #    dprint('#{}: {}'.format(i, line))
+            logger.debug('START LINKING FROM: {}'.format(master))
 
         self.handledCanvases.add(master)
 
         mst_extent = master.extent()
         mst_center = master.center()
-        mst_crs = master.mapRenderer().destinationCrs()
+        mst_crs = master.mapSettings().destinationCrs()
 
         changed = set()
         #apply changes to L1 generation of connected canvases = directly connecte to canvas
         to_change = [link for link in self.connectedLinks(master)
                      if len(link.canvases.difference(self.handledCanvases)) > 0]
 
-        if False:
-            if len(to_change) == 0:
-                dprint('end of changes at {}'.format(master))
-            else:
-                dprint('setChanges({})'.format(master))
 
 
         for link in to_change:
@@ -220,10 +211,9 @@ class CanvasLinkManager:
             if True:
                 dst.blockSignals(True)
 
-            #dprint('Set {} from {} -> {}'.format(link.linktype, master, dst))
 
             #if necessary, transform to target CRS,
-            dst_crs = dst.mapRenderer().destinationCrs()
+            dst_crs = dst.mapSettings().destinationCrs()
             trans = QgsCoordinateTransform(mst_crs, dst_crs)
             trans.initialise()
 
@@ -255,17 +245,15 @@ class CanvasLinkManager:
 
 
             if link.linktype == 'center':
-                #dst.setCenter(new_center)
+
                 dst.setCenter(dst_new_center_old_scale.center())
-                #dprint('New center {}? {}'.format(dst, dst_new_center_old_scale != dst_old_extent))
+
             elif link.linktype == 'scale':
                 dst.zoomToFeatureExtent(dst_old_center_new_scale)
-                #dprint('New scale {}? {}'.format(dst, dst_old_center_new_scale != dst_old_extent))
+
             elif link.linktype == 'center_scale':
                 dst.zoomToFeatureExtent(new_extent)
                 dst.setCenter(new_extent.center())
-                #dprint('New Extent {}? {}'.format(dst, new_extent != dst_old_extent))
-                #dst.setCenter(new_center)
 
 
             else:
@@ -290,8 +278,8 @@ class CanvasLinkManager:
         src_center = c_src.center()
         src_scale = c_src.scale()
         print('CANVAS:: {} {} [{} {}]'.format(src_scale,src_center,src_ext.width(), src_ext.height() ))
-        src_crs = c_src.mapRenderer().destinationCrs()
-        dst_crs = c_dst.mapRenderer().destinationCrs()
+        src_crs = c_src.mapSettings().destinationCrs()
+        dst_crs = c_dst.mapSettings().destinationCrs()
 
         if src_crs == dst_crs:
             dst_ext = src_ext
@@ -397,7 +385,7 @@ class Dock(pyqtgraph.dockarea.Dock):
 
 
         self.hStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 1px solid #000;
             border-radius: 5px;
             border-top-left-radius: 0px;
@@ -406,7 +394,7 @@ class Dock(pyqtgraph.dockarea.Dock):
         }
         """
         self.vStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 1px solid #000;
             border-radius: 5px;
             border-top-left-radius: 0px;
@@ -415,12 +403,12 @@ class Dock(pyqtgraph.dockarea.Dock):
         }
         """
         self.nStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 1px solid #000;
             border-radius: 5px;
         }"""
         self.dragStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 4px solid #00F;
             border-radius: 5px;
         }"""
@@ -509,6 +497,10 @@ class DockLabel(VerticalLabel):
             self.buttons.append(floatButton)
 
     def updateStyle(self):
+
+        if self.dock.hasFocus():
+            s = ""
+
         r = '3px'
         if self.dim:
             fg = '#aaa'
@@ -520,7 +512,7 @@ class DockLabel(VerticalLabel):
             border = '#55B'
 
         if self.orientation == 'vertical':
-            self.vStyle = """EnMAPBoxDockLabel {
+            self.vStyle = """DockLabel {
                 background-color : %s;
                 color : %s;
                 border-top-right-radius: 0px;
@@ -534,7 +526,7 @@ class DockLabel(VerticalLabel):
             }""" % (bg, fg, r, r, border)
             self.setStyleSheet(self.vStyle)
         else:
-            self.hStyle = """EnMAPBoxDockLabel {
+            self.hStyle = """DockLabel {
                 background-color : %s;
                 color : %s;
                 border-top-right-radius: %s;
@@ -611,8 +603,6 @@ class CanvasLinkTargetWidget(QFrame):
         target_canvases = [d.canvas for d in mapDock.enmapbox.dockManager.DOCKS
                            if isinstance(d, MapDock) and d != mapDock]
 
-        #todo: offer link to all other open canvases
-
         for canvas_source in target_canvases:
 
             w = CanvasLinkTargetWidget(canvas1, canvas_source)
@@ -655,7 +645,6 @@ class CanvasLinkTargetWidget(QFrame):
         self.canvas2.installEventFilter(self)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
-
         self.setCursor(Qt.ArrowCursor)
 
         ly = QHBoxLayout()
@@ -664,40 +653,50 @@ class CanvasLinkTargetWidget(QFrame):
         bt = QToolButton(self)
         bt.setToolTip('Link map center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
-        icon = QIcon(IconProvider.Map_Link_Center)
+        icon = QIcon(':/enmapbox/icons/link_center.png')
         bt.setIcon(icon)
         bt.setIconSize(QSize(16,16))
         self.buttons.append(bt)
 
-        if False:
-            bt = QToolButton(self)
-            bt.setToolTip('Link map extent')
-            bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
-            bt.setIcon(Icon(IconProvider.Map_Link_Extent))
-            self.buttons.append(bt)
-
         bt = QToolButton(self)
         bt.setToolTip('Link map scale ("Zoom")')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale'))
-        bt.setIcon(QIcon(IconProvider.Map_Link_Scale))
+        bt.setIcon(QIcon(':/enmapbox/icons/link_mapscale.png'))
         self.buttons.append(bt)
 
         bt = QToolButton(self)
         bt.setToolTip('Link map scale and center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center_scale'))
-        bt.setIcon(QIcon(IconProvider.Map_Link_Scale_Center))
+        bt.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.png'))
         self.buttons.append(bt)
 
 
+        btStyle = """
+        QToolButton { /* all types of tool button */
+        border: 2px solid #8f8f91;
+        border-radius: 6px;
+        background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #f6f7fa, stop: 1 #dadbde);
+        }
+
+        QToolButton[popupMode="1"] { /* only for MenuButtonPopup */
+            padding-right: 20px; /* make way for the popup button */
+        }
+
+        QToolButton:pressed {
+            background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                              stop: 0 #dadbde, stop: 1 #f6f7fa);
+        }"""
 
         for bt in self.buttons:
             bt.setAttribute(Qt.WA_PaintOnScreen)
-            #bt.setIconSize(QSize(100, 100))
+            bt.setStyleSheet(btStyle)
+            bt.setIconSize(QSize(100, 100))
             bt.setAutoRaise(True)
             ly.addWidget(bt)
 
         self.layout.addLayout(ly, 0,0)
-        self.setStyleSheet('background-color:rgba(0, 0, 0, 25);')
+        self.setStyleSheet('background-color:rgba(125, 125, 125, 125);')
         self.setAttribute(Qt.WA_PaintOnScreen)
 
         self.updatePosition()
@@ -902,64 +901,49 @@ class MapDock(Dock):
         #set default map tool
         self.canvas.setMapTool(self.toolPan)
 
-        #todo: context menu
-
 
     def cursorLocationValueRequest(self,*args):
         self.sigCursorLocationValueRequest.emit(*args)
-
-
-    def identifyMessage(self, message):
-        dprint('Identify message: {}'.format(message))
-        s = ""
-
-    def identifyProgress(self, args):
-        dprint('Identify progress: {}'.format(args))
-        s = ""
-
-
-    def identifyResults(self, identifyResults):
-        for iResult in identifyResults:
-            lyr =iResult.mLayer
-            dprint('mAttributes: {}'.format(len(iResult.mAttributes)))
-            for k, v in iResult.mAttributes.items():
-                dprint('{}:{}'.format(k,v))
-
-            dprint('mDerivedAttributes: {}'.format(len(iResult.mDerivedAttributes)))
-            for k, v in iResult.mDerivedAttributes.items():
-                dprint('{}:{}'.format(k,v))
-
-            dprint('mParams: {}'.format(len(iResult.mParams)))
-            for k, v in iResult.mParams.items():
-                dprint('{}:{}'.format(k,v))
-
-            s = ""
-
-        s  =""
 
     def getDockContentContextMenu(self):
         menu = QMenu()
 
         action = QAction('Link with other maps', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
         action.triggered.connect(lambda: CanvasLinkTargetWidget.ShowMapLinkTargets(self))
         menu.addAction(action)
 
         action = QAction('Remove links to other maps', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         action.triggered.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
         menu.addAction(action)
+
         menu.addSeparator()
 
-        action = QAction('Zoom to full extent', menu)
+        action = QAction('Zoom Full', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomFullExtent.png'))
         action.triggered.connect(lambda: self.canvas.setExtent(self.canvas.fullExtent()))
         menu.addAction(action)
 
+        action = QAction('Zoom Native Resolution', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.png'))
+        action.triggered.connect(lambda: self.canvas.setExtent(self.canvas.fullExtent()))
+        menu.addAction(action)
+
+
+        menu.addSeparator()
+
         action = QAction('Refresh', menu)
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
         action.triggered.connect(lambda: self.canvas.refresh())
         menu.addAction(action)
 
         action = QAction('Refresh all layers', menu)
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
         action.triggered.connect(lambda: self.canvas.refreshAllLayers())
         menu.addAction(action)
+
+        menu.addSeparator()
 
         action = QAction('Clear map', menu)
         action.triggered.connect(lambda: self.canvas.setLayerSet([]))
@@ -978,7 +962,7 @@ class MapDock(Dock):
 
     def setCRSfromDialog(self):
         w  = QgsProjectionSelectionWidget(self)
-        crs = self.canvas.mapRenderer().destinationCrs()
+        crs = self.canvas.mapSettings().destinationCrs()
         w.setLayerCrs(crs)
         w.setCrs(crs)
 
@@ -989,12 +973,6 @@ class MapDock(Dock):
 
 
     def setMapTool(self, mapTool):
-        if False:
-            if isinstance(mapTool, QgsMapToolPan):
-                self.canvas.setScaleLocked(True)
-            else:
-                self.canvas.setScaleLocked(False)
-
         self.canvas.setMapTool(mapTool)
 
     def test(self):
@@ -1030,7 +1008,7 @@ class MapDock(Dock):
         if ME.hasDataSources():
             dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
             dataSources = [self.enmapbox.dataSourceManager.addSource(d) for d in dataSources]
-            layers = [d.createMapLayer() for d in dataSources]
+            layers = [d.createRegisteredMapLayer() for d in dataSources]
 
             self.addLayers(layers)
 

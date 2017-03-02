@@ -265,11 +265,11 @@ class DataSourceSpatial(DataSource):
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceSpatial, self).__init__(uri, name, icon)
 
-        self._refLayer = self._createMapLayer()
+        self._refLayer = self.createUnregisteredMapLayer()
         assert isinstance(self._refLayer, QgsMapLayer) and self._refLayer.isValid()
         self.mapLayers = list()
 
-    def _createMapLayer(self, *args, **kwds):
+    def createUnregisteredMapLayer(self, *args, **kwds):
         """
         creates and returns a QgsMapLayer from self.src
         the QgsMapLayer should be not registered in the QgsMapLayerRegistry
@@ -279,12 +279,12 @@ class DataSourceSpatial(DataSource):
         raise NotImplementedError()
 
 
-    def createMapLayer(self, *args, **kwds):
+    def createRegisteredMapLayer(self, *args, **kwds):
         """
         Returns a new registered map layer from this data source
         :return:
         """
-        ml = self._createMapLayer(*args, **kwds)
+        ml = self.createUnregisteredMapLayer(*args, **kwds)
         ml.setName(self.name)
         QgsMapLayerRegistry.instance().addMapLayer(ml, False)
         self.mapLayers.append(ml)
@@ -306,7 +306,7 @@ class DataSourceRaster(DataSourceSpatial):
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceRaster, self).__init__(uri, name, icon)
 
-        self._refLayer = self._createMapLayer(self.uri)
+        self._refLayer = self.createUnregisteredMapLayer(self.uri)
         #lyr =QgsRasterLayer(self.uri, self.name, False)
         dp = self._refLayer.dataProvider()
 
@@ -325,7 +325,7 @@ class DataSourceRaster(DataSourceSpatial):
         else:
             self.icon = QIcon(':/enmapbox/icons/mIconRasterLayer.png')
 
-    def _createMapLayer(self, *args, **kwargs):
+    def createUnregisteredMapLayer(self, *args, **kwargs):
         """
         creates and returns a QgsRasterLayer from self.src
         :return:
@@ -349,7 +349,7 @@ class DataSourceVector(DataSourceSpatial):
         elif geomType in [QGis.WKBPolygon, QGis.WKBPoint25D]:
             self.icon = QIcon(':/enmapbox/icons/mIconPolygonLayer.png')
 
-    def _createMapLayer(self, *args, **kwargs):
+    def createUnregisteredMapLayer(self, *args, **kwargs):
         """
         creates and returns a QgsVectorLayer from self.src
         :return:

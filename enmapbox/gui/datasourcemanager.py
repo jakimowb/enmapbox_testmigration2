@@ -202,7 +202,6 @@ class DataSourceManager(QObject):
         self.enmapbox = enmapBoxInstance
         self.sources = set()
 
-
         QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
         self.updateFromQgsMapLayerRegistry()
 
@@ -267,7 +266,7 @@ class DataSourceManager(QObject):
         :param src: any object
         :param name:
         :param icon:
-        :return: a DataSource instance, if sucessfully added
+        :return: a DataSource instance, if successfully added
         """
         ds = DataSourceFactory.Factory(src, name=name, icon=icon)
 
@@ -275,6 +274,7 @@ class DataSourceManager(QObject):
         if isinstance(ds, DataSource):
             # check if source is already registered
             for src in self.sources:
+                logger.debug(str(ds.uri))
                 if os.path.abspath(src.uri) == os.path.abspath(ds.uri):
                     return src #return object reference of an already existing source
 
