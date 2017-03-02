@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>691</width>
-    <height>211</height>
+    <width>379</width>
+    <height>255</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -102,6 +102,12 @@
        </item>
        <item>
         <widget class="QStackedWidget" name="stackedWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
          </property>
@@ -109,7 +115,7 @@
           <enum>QFrame::Raised</enum>
          </property>
          <property name="currentIndex">
-          <number>1</number>
+          <number>3</number>
          </property>
          <widget class="QWidget" name="pageGraph">
           <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -171,87 +177,92 @@
           </layout>
          </widget>
          <widget class="QWidget" name="pageSettings">
-          <layout class="QVBoxLayout" name="verticalLayout_5">
+          <layout class="QHBoxLayout" name="horizontalLayout">
            <property name="margin">
             <number>0</number>
            </property>
            <item>
-            <widget class="QCheckBox" name="cbStackProfiles">
-             <property name="text">
-              <string>Stack profiles</string>
+            <widget class="QFrame" name="frame_2">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
              </property>
+             <property name="frameShadow">
+              <enum>QFrame::Sunken</enum>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <property name="spacing">
+               <number>6</number>
+              </property>
+              <property name="margin">
+               <number>6</number>
+              </property>
+              <item>
+               <widget class="QCheckBox" name="cbStackProfiles">
+                <property name="text">
+                 <string>Stack profiles</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QgsCollapsibleGroupBox" name="gbLegend">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="title">
+                 <string>Show Legend</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
+                </property>
+                <property name="collapsed">
+                 <bool>false</bool>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_4">
+                 <item>
+                  <widget class="QCheckBox" name="cbLegendDataSource">
+                   <property name="text">
+                    <string>Data source</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="cbLegendPixelLocation">
+                   <property name="text">
+                    <string>Pixel location</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="cbLegendGeoLocation">
+                   <property name="text">
+                    <string>Geo location</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <spacer name="verticalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
             </widget>
-           </item>
-           <item>
-            <widget class="QgsCollapsibleGroupBox" name="gbLegend">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>100</height>
-              </size>
-             </property>
-             <property name="title">
-              <string>Legend</string>
-             </property>
-             <property name="checkable">
-              <bool>true</bool>
-             </property>
-             <property name="collapsed">
-              <bool>false</bool>
-             </property>
-             <widget class="QCheckBox" name="cbLegendGeoLocation">
-              <property name="geometry">
-               <rect>
-                <x>30</x>
-                <y>70</y>
-                <width>215</width>
-                <height>17</height>
-               </rect>
-              </property>
-              <property name="text">
-               <string>Geo location</string>
-              </property>
-             </widget>
-             <widget class="QCheckBox" name="cbLegendPixelLocation">
-              <property name="geometry">
-               <rect>
-                <x>30</x>
-                <y>47</y>
-                <width>215</width>
-                <height>17</height>
-               </rect>
-              </property>
-              <property name="text">
-               <string>Pixel location</string>
-              </property>
-             </widget>
-             <widget class="QCheckBox" name="cbLegendDataSource">
-              <property name="geometry">
-               <rect>
-                <x>30</x>
-                <y>24</y>
-                <width>215</width>
-                <height>17</height>
-               </rect>
-              </property>
-              <property name="text">
-               <string>Data source</string>
-              </property>
-             </widget>
-            </widget>
-           </item>
-           <item>
-            <spacer name="verticalSpacer">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
            </item>
           </layout>
          </widget>

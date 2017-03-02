@@ -28,7 +28,7 @@ class CursorLocationValueMapTool(QgsMapTool):
         x = mouseEvent.x()
         y = mouseEvent.y()
         point = self.canvas.getCoordinateTransform().toMapCoordinates(x,y)
-        crs = self.canvas.mapRenderer().destinationCrs()
+        crs = self.canvas.mapSettings().destinationCrs()
         self.sigLocationRequest.emit(SpatialPoint(crs, point))
 
 
@@ -263,6 +263,9 @@ class CursorLocationValueWidget(QMainWindow,
         model = self.tableViewDataSources.model()
         if model is None:
             return
+
+        #show profile view (on row 0)
+        self.listWidget.setCurrentRow(0)
 
         #get values
         for ds in model.selectedSources():
