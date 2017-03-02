@@ -14,9 +14,9 @@ class EstimatorReportViewer(GeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        from enmapboxplugin.processing.Signals import Signals
+        from enmapboxplugin.processing.SignalsManager import SignalsManager
 
         estimator = unpickle(self.getParameterValue('estimator'), progress=progress)
         report = estimator.report().saveHTML().filename
 
-        Signals.emitHTMLCreated(report)
+        SignalsManager.emitHTMLCreated(report)

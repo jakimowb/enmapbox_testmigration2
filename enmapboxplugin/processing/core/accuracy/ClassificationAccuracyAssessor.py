@@ -14,10 +14,10 @@ class ClassificationAccuracyAssessor(GeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        from enmapboxplugin.processing.Signals import Signals
+        from enmapboxplugin.processing.SignalsManager import SignalsManager
 
         predicted = Classification(self.getParameterValue('prediction'))
         observed = Classification(self.getParameterValue('observed'))
         report = predicted.assessClassificationPerformance(observed).report().saveHTML().filename
 
-        Signals.emitHTMLCreated(report)
+        SignalsManager.emitHTMLCreated(report)

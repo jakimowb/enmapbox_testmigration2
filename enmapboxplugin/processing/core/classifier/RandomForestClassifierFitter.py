@@ -1,7 +1,7 @@
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterRaster, ParameterString
 from processing.core.outputs import OutputFile
-from enmapbox.processing.types import Image, Classification
+
 
 from enmapbox.processing.estimators import RandomForestClassifier
 
@@ -21,9 +21,11 @@ class RandomForestClassifierFitter(GeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
+        from enmapbox.processing.types import Image, Classification
         image = self.getParameterValue('image')
         train = self.getParameterValue('train')
         classifier = eval(self.getParameterValue('parameters'))
         classifier.fit(Image(image), Classification(train), progress=progress)
         filename = self.getOutputValue(self.name)
         classifier.pickle(filename, progress=progress)
+

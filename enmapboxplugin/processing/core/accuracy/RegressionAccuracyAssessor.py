@@ -13,10 +13,10 @@ class RegressionAccuracyAssessor(GeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
-        from enmapboxplugin.processing.Signals import Signals
+        from enmapboxplugin.processing.SignalsManager import SignalsManager
 
         observation = Regression(self.getParameterValue('observation'))
         prediction = Regression(self.getParameterValue('prediction'))
         report = prediction.assessRegressionPerformance(observation).report().saveHTML().filename
 
-        Signals.emitHTMLCreated(report)
+        SignalsManager.emitHTMLCreated(report)

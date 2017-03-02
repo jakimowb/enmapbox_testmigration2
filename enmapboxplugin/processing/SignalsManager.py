@@ -5,15 +5,15 @@ class SignalsManager(object):
 
     @classmethod
     def connectHTMLCreatedToWebBrowser(clf):
-        clf.Signals.htmlCreated.connect(clf.handleHTMLCreatedInWebBrowser)
+        Signals.htmlCreated.connect(clf.handleHTMLCreatedInWebBrowser)
 
     @classmethod
     def disconnectHTMLCreatedToWebBrowser(clf):
-        clf.Signals.htmlCreated.disconnect(clf.handleHTMLCreatedInWebBrowser)
+        Signals.htmlCreated.disconnect(clf.handleHTMLCreatedInWebBrowser)
 
     @classmethod
     def emitHTMLCreated(clf, filename):
-        clf.Signals.htmlCreated.emit(filename)
+        Signals.htmlCreated.emit(filename)
 
     @staticmethod
     def handleHTMLCreatedInWebBrowser(url):
