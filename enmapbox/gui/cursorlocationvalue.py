@@ -44,6 +44,7 @@ class CursorLocationValues(object):
         self.name = name if name is not None else os.path.basename(uri)
         self.spatialPoint = spatialPoint
 
+
     def labelKey(self, name=True, coord_geo=True):
         k = []
         if name:
@@ -101,12 +102,12 @@ class CursorLocationValues(object):
 
             #extract band values
             r = results.results()
-            band_x = np.asarray(r.keys(), dtype='float')
-            band_y = np.asarray(r.values())
-            nb = len(band_x)
+            xValues = np.asarray(r.keys(), dtype='float')
+            yValues = np.asarray(r.values())
+            nb = len(xValues)
             band_units = []
             band_names = []
-            band_mask = np.ones(band_x.shape, dtype=np.bool)
+            band_mask = np.not_equal(yValues, None)
 
             if dprovider.name() == 'gdal':
                 import gdal
@@ -116,20 +117,22 @@ class CursorLocationValues(object):
                     bandname = band.GetDescription()
                     md = band.GetMetadata_Dict()
                     band_units.append(md.get('wavelength_units', ''))
-                    band_mask[b] = band_y[b] != band.GetNoDataValue()
+                    nodata = band.GetNoDataValue()
+                    if nodata:
+                        band_mask[b] = band_mask[b] * (yValues[b] != nodata)
                     band_names.append(bandname)
                     if 'wavelength' in md.keys():
-                        band_x[b] = float(md['wavelength'])
+                        xValues[b] = float(md['wavelength'])
 
             else:
                 raise NotImplementedError('QgsRasterProvider {} not supported'.format((dprovider.name())))
 
-            x_as_int = band_x.astype(int)
-            if np.all(band_x == x_as_int):
-                band_x = x_as_int
+            x_as_int = xValues.astype(int)
+            if np.all(xValues == x_as_int):
+                xValues = x_as_int
 
             C = CursorLocationRasterValues(uri, pt, coord_px, name=name)
-            C.setBandValues(band_x, band_y, band_mask=band_mask,band_names=band_names, band_units=band_units)
+            C.setValues(xValues, yValues, band_mask=band_mask, band_names=band_names, band_units=band_units)
             return C
         return None
 
@@ -172,22 +175,25 @@ class CursorLocationRasterValues(CursorLocationValues):
         super(CursorLocationRasterValues, self).__init__(uri, spatialPoint, name=name)
         assert isinstance(coord_px, QPoint)
         self.coord_px = coord_px
-        self.band = None
+        self.values = None
         self.nb = None
 
-    def setBandValues(self, x, y, band_mask=None, band_names = None, band_units = None):
+    def setValues(self, x, y, band_mask=None, band_names = None, band_units = None):
         self.nb = len(x)
         assert len(y) == self.nb
 
         if band_mask is None:
-            band_mask = np.ones(x.shape, dtype='bool')
+            band_mask = np.not_equal(y, None)
+
         if band_names is None:
             band_names = ['Band {}'.format(b+1) for b in range(self.nb)]
-        if band_units is None:
-            band_units = np.asarray([])
 
-        self.band = np.rec.fromarrays((x,y,band_mask,band_names, band_units),
-                                      names=['x','y','mask','name','unit'])
+        if band_units is None:
+            band_units = np.ones((self.nb),object)
+            band_units[:] = None
+
+        self.values = np.rec.fromarrays((np.arange(self.nb),x, y, band_mask, band_names, band_units),
+                                        names=['bandIndex', 'xValue','yValue','isValid','bandName','bandUnit'])
 
     def setRATValues(self):
         raise NotImplementedError()
@@ -196,9 +202,9 @@ class CursorLocationRasterValues(CursorLocationValues):
     def labelKey(self, name=True, coord_geo=True, coord_px = True):
         k = super(CursorLocationRasterValues,self).labelKey(name=name, coord_geo=coord_geo)
 
+        #append pixel coordinate
         if coord_px:
             k += '({} {})'.format(self.coord_px.x(), self.coord_px.y())
-
         return k
 
 class CursorLocationValueWidget(QMainWindow,
@@ -291,7 +297,7 @@ class CursorLocationValueWidget(QMainWindow,
             band_units = set()
             for p in pixel_profiles:
                 assert isinstance(p, CursorLocationRasterValues)
-                band_units.update(set(p.band[:].unit))
+                band_units.update(set(p.values[:].bandUnit))
             x_unit = 'band' if len(band_units) > 1 else list(band_units)[0]
 
             kwargs = {'name':self.cbLegendDataSource.isChecked(),
@@ -300,17 +306,18 @@ class CursorLocationValueWidget(QMainWindow,
             pi.setLabel('bottom', x_unit)
             for p in pixel_profiles:
                 assert isinstance(p, CursorLocationRasterValues)
-                if x_unit == 'band':
-                    x = np.arange(p.nb)+1
-                else:
-                    x = p.band[:].x
-                y = p.band[:].y
-                l = p.labelKey(**kwargs)
-                if l == '': l = p.name
-
-
-                item = pi.plot(x, y, name=l)
-                self.profiles.append(item)
+                x = p.values[:].xValue
+                y = p.values[:].yValue
+                isValid = p.values[:].isValid
+                if np.any(isValid):
+                    i = np.where(isValid)
+                    x = x[i]
+                    y = y[i]
+                    label = p.labelKey(**kwargs)
+                    if label == '':
+                        label = p.name
+                    item = pi.plot(x, y, name=label)
+                    self.profiles.append(item)
         self.showLegend(self.gbLegend.isChecked())
 
         from pyqtgraph.parametertree import Parameter
@@ -323,7 +330,7 @@ class CursorLocationValueWidget(QMainWindow,
             childs.append({'name':'x', 'value':p.coord_px.x(), 'type':'int', 'readonly':True})
             childs.append({'name':'y', 'value': p.coord_px.y(), 'type': 'int', 'readonly': True})
             for i in range(p.nb):
-                v = p.band[i].y
+                v = p.values[i].y
                 childs.append({'name':'band {}'.format(i+1), 'value': v, 'type': 'str', 'readonly': True})
             datasource['children'] = childs
             params.append(datasource)
