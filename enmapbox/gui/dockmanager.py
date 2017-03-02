@@ -127,7 +127,8 @@ class DockManagerTreeModel(TreeModel):
                     Qt.ItemIsUserCheckable | \
                     Qt.ItemIsEditable
             if isL1:
-                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | Qt.ItemIsEditable
+                flags |= Qt.ItemIsDropEnabled
+
         elif isinstance(node, QgsLayerTreeNode):
             flags = Qt.ItemIsEnabled | \
                     Qt.ItemIsSelectable | \

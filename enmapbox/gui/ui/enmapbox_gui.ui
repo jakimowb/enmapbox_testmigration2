@@ -25,7 +25,11 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="DockArea" name="dockarea" native="true"/>
+     <widget class="DockArea" name="dockarea" native="true">
+      <property name="acceptDrops">
+       <bool>true</bool>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

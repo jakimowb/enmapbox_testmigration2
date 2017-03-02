@@ -175,50 +175,6 @@ class EnMAPBox(QgisInterface):
         self.ui.show()
         pass
 
-
-    def onDataSourceTreeViewCustomContextMenu(self, point):
-        tv = self.ui.dataSourceTreeView
-        assert isinstance(tv, QTreeView)
-        index = tv.indexAt(point)
-
-
-        model = tv.model()
-        if index.isValid():
-            treeItem = model.data(index, 'TreeItem')
-            itemData = model.data(index, Qt.UserRole)
-
-            if itemData or len(treeItem.actions) > 0:
-                menu = QMenu()
-                #append dynamic parts reactive to opened docks etc
-                if isinstance(itemData, DataSource):
-                    if isinstance(itemData, DataSourceSpatial):
-                        mapDocks = [d for d in self.DOCKS if isinstance(d, MapDock)]
-                        mapDocks = sorted(mapDocks, key=lambda d:d.name())
-                        if len(mapDocks) > 0:
-                            subMenu = QMenu()
-                            subMenu.setTitle('Add to Map...')
-                            for mapDock in mapDocks:
-                                action = QAction('"{}"'.format(mapDock.name()), menu)
-                                action.triggered.connect(lambda : mapDock.addLayer(itemData.getMapLayer()))
-                                subMenu.addAction(action)
-                            menu.addMenu(subMenu)
-                        action = QAction('Add to new map', menu)
-                        action.triggered.connect(lambda : self.createDock('MAP', initSrc=itemData))
-                        menu.addAction(action)
-                    action = QAction('Remove', menu)
-                    action.triggered.connect(lambda : self.dataSourceManager.removeSource(itemData))
-                else:
-                    action = QAction('Copy', menu)
-                    action.triggered.connect(lambda: QApplication.clipboard().setText(str(itemData)))
-                #append item specific menue
-                if len(treeItem.actions) > 0:
-                    for action in treeItem.actions:
-                        #action.setParent(menu)
-                        menu.addAction(action)
-
-                menu.exec_(tv.viewport().mapToGlobal(point))
-
-
     """
     QgisInterface compliance
     """

@@ -440,7 +440,7 @@ class MapDockTreeNode(DockTreeNode):
         if element.tagName() != 'map-dock-tree-node':
             return None
 
-        from enmapbox.gui.main import EnMAPBox
+        from enmapbox.gui.enmapboxgui import EnMAPBox
         DSM = EnMAPBox.instance().dataSourceManager
 
 
@@ -452,16 +452,13 @@ class MapDockTreeNode(DockTreeNode):
         # node.readChildrenFromXml(element)
 
         # try to find the dock by its uuid in dockmanager
-        from enmapbox.gui.main import EnMAPBox
-
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
         if uuid:
             dock = dockManager.getDockWithUUID(str(uuid))
         if dock is None:
-            dock = dockManager.createDock('MAP', name=dockName)
+            dock = dockManager.createDock('MAP', name=node.name())
         node.connectDock(dock)
-
         return node
 
 
