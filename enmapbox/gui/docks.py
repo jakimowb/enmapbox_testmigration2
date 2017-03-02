@@ -3,16 +3,15 @@ from __future__ import absolute_import
 import itertools
 import os
 import uuid
-
-from PyQt4 import QtGui, QtCore
+from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from enmapbox.datasources import *
-from enmapbox.datasources import *
-
+from enmapbox.gui.datasources import *
+from enmapbox.gui.utils import *
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
-from qgis.gui import *
+
+
 
 
 class CanvasLink():
@@ -123,7 +122,6 @@ class CanvasLinkManager:
         # register signals
         to_register = [canvas for canvas in newLinkSet.canvases() if canvas not in self.registeredCanvases]
         for canvas in to_register:
-            dprint('register {}'.format(canvas))
             canvas.sigExtentsChanged.connect(self.setChanges)
             self.registeredCanvases.add(canvas)
 
@@ -188,27 +186,19 @@ class CanvasLinkManager:
 
 
         if len(self.handledCanvases) == 0:
-            dprint('START LINKING FROM: {}'.format(master))
-            #dprint('EXISTING LINKSETS:')
-            #for i, line in enumerate(self.dump()):
-            #    dprint('#{}: {}'.format(i, line))
+            logger.debug('START LINKING FROM: {}'.format(master))
 
         self.handledCanvases.add(master)
 
         mst_extent = master.extent()
         mst_center = master.center()
-        mst_crs = master.mapRenderer().destinationCrs()
+        mst_crs = master.mapSettings().destinationCrs()
 
         changed = set()
         #apply changes to L1 generation of connected canvases = directly connecte to canvas
         to_change = [link for link in self.connectedLinks(master)
                      if len(link.canvases.difference(self.handledCanvases)) > 0]
 
-        if False:
-            if len(to_change) == 0:
-                dprint('end of changes at {}'.format(master))
-            else:
-                dprint('setChanges({})'.format(master))
 
 
         for link in to_change:
@@ -221,10 +211,9 @@ class CanvasLinkManager:
             if True:
                 dst.blockSignals(True)
 
-            #dprint('Set {} from {} -> {}'.format(link.linktype, master, dst))
 
             #if necessary, transform to target CRS,
-            dst_crs = dst.mapRenderer().destinationCrs()
+            dst_crs = dst.mapSettings().destinationCrs()
             trans = QgsCoordinateTransform(mst_crs, dst_crs)
             trans.initialise()
 
@@ -256,17 +245,15 @@ class CanvasLinkManager:
 
 
             if link.linktype == 'center':
-                #dst.setCenter(new_center)
+
                 dst.setCenter(dst_new_center_old_scale.center())
-                #dprint('New center {}? {}'.format(dst, dst_new_center_old_scale != dst_old_extent))
+
             elif link.linktype == 'scale':
                 dst.zoomToFeatureExtent(dst_old_center_new_scale)
-                #dprint('New scale {}? {}'.format(dst, dst_old_center_new_scale != dst_old_extent))
+
             elif link.linktype == 'center_scale':
                 dst.zoomToFeatureExtent(new_extent)
                 dst.setCenter(new_extent.center())
-                #dprint('New Extent {}? {}'.format(dst, new_extent != dst_old_extent))
-                #dst.setCenter(new_center)
 
 
             else:
@@ -291,8 +278,8 @@ class CanvasLinkManager:
         src_center = c_src.center()
         src_scale = c_src.scale()
         print('CANVAS:: {} {} [{} {}]'.format(src_scale,src_center,src_ext.width(), src_ext.height() ))
-        src_crs = c_src.mapRenderer().destinationCrs()
-        dst_crs = c_dst.mapRenderer().destinationCrs()
+        src_crs = c_src.mapSettings().destinationCrs()
+        dst_crs = c_dst.mapSettings().destinationCrs()
 
         if src_crs == dst_crs:
             dst_ext = src_ext
@@ -306,12 +293,12 @@ class CanvasLinkManager:
 
 
 
-class DockWindow(QtGui.QMainWindow):
+class DockWindow(QMainWindow):
     def __init__(self, area, **kwargs):
-        QtGui.QMainWindow.__init__(self, **kwargs)
+        QMainWindow.__init__(self, **kwargs)
         self.setWindowTitle('EnMAPBox')
-        import enmapbox.gui.main
-        self.setWindowIcon(enmapbox.gui.main.getIcon())
+        import enmapbox.gui.enmapboxgui
+        self.setWindowIcon(enmapbox.gui.enmapboxgui.getIcon())
         self.setCentralWidget(area)
 
     def closeEvent(self, *args, **kwargs):
@@ -398,7 +385,7 @@ class Dock(pyqtgraph.dockarea.Dock):
 
 
         self.hStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 1px solid #000;
             border-radius: 5px;
             border-top-left-radius: 0px;
@@ -407,7 +394,7 @@ class Dock(pyqtgraph.dockarea.Dock):
         }
         """
         self.vStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 1px solid #000;
             border-radius: 5px;
             border-top-left-radius: 0px;
@@ -416,12 +403,12 @@ class Dock(pyqtgraph.dockarea.Dock):
         }
         """
         self.nStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 1px solid #000;
             border-radius: 5px;
         }"""
         self.dragStyle = """
-        EnMAPBoxDock > QWidget {
+        Dock > QWidget {
             border: 4px solid #00F;
             border-radius: 5px;
         }"""
@@ -438,7 +425,7 @@ class Dock(pyqtgraph.dockarea.Dock):
 
     def setTitle(self, title):
         """
-        Overide setTitle to emit a signal after title was changed
+        Override setTitle to emit a signal after title was changed
         :param title:
         :return:
         """
@@ -495,21 +482,25 @@ class DockLabel(VerticalLabel):
         self.buttons = list() #think from right to left
         self.pressPos = QtCore.QPoint()
 
-        closeButton = QtGui.QToolButton(self)
+        closeButton = QToolButton(self)
         closeButton.clicked.connect(self.sigCloseClicked)
         closeButton.setToolTip('Close window')
-        closeButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_TitleBarCloseButton))
+        closeButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarCloseButton))
         self.buttons.append(closeButton)
 
         if allow_floating:
-            floatButton = QtGui.QToolButton(self)
+            floatButton = QToolButton(self)
             #testButton.clicked.connect(self.sigNormalClicked)
             floatButton.setToolTip('Float window')
             floatButton.clicked.connect(lambda : self.dock.float())
-            floatButton.setIcon(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_TitleBarNormalButton))
+            floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.buttons.append(floatButton)
 
     def updateStyle(self):
+
+        if self.dock.hasFocus():
+            s = ""
+
         r = '3px'
         if self.dim:
             fg = '#aaa'
@@ -521,7 +512,7 @@ class DockLabel(VerticalLabel):
             border = '#55B'
 
         if self.orientation == 'vertical':
-            self.vStyle = """EnMAPBoxDockLabel {
+            self.vStyle = """DockLabel {
                 background-color : %s;
                 color : %s;
                 border-top-right-radius: 0px;
@@ -535,7 +526,7 @@ class DockLabel(VerticalLabel):
             }""" % (bg, fg, r, r, border)
             self.setStyleSheet(self.vStyle)
         else:
-            self.hStyle = """EnMAPBoxDockLabel {
+            self.hStyle = """DockLabel {
                 background-color : %s;
                 color : %s;
                 border-top-right-radius: %s;
@@ -566,7 +557,7 @@ class DockLabel(VerticalLabel):
 
     def mouseMoveEvent(self, ev):
         if not self.startedDrag and (
-            ev.pos() - self.pressPos).manhattanLength() > QtGui.QApplication.startDragDistance():
+            ev.pos() - self.pressPos).manhattanLength() > QApplication.startDragDistance():
             self.dock.startDrag()
         ev.accept()
 
@@ -596,7 +587,7 @@ class DockLabel(VerticalLabel):
         super(DockLabel, self).resizeEvent(ev)
 
 
-class CanvasLinkTargetWidget(QtGui.QFrame):
+class CanvasLinkTargetWidget(QFrame):
 
     LINK_TARGET_WIDGETS = set()
 
@@ -611,8 +602,6 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
 
         target_canvases = [d.canvas for d in mapDock.enmapbox.dockManager.DOCKS
                            if isinstance(d, MapDock) and d != mapDock]
-
-        #todo: offer link to all other open canvases
 
         for canvas_source in target_canvases:
 
@@ -656,49 +645,58 @@ class CanvasLinkTargetWidget(QtGui.QFrame):
         self.canvas2.installEventFilter(self)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
-
         self.setCursor(Qt.ArrowCursor)
 
         ly = QHBoxLayout()
         #add buttons with link functions
         self.buttons = list()
-        bt = QtGui.QToolButton(self)
+        bt = QToolButton(self)
         bt.setToolTip('Link map center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center'))
-        icon = QIcon(IconProvider.Map_Link_Center)
+        icon = QIcon(':/enmapbox/icons/link_center.png')
         bt.setIcon(icon)
         bt.setIconSize(QSize(16,16))
         self.buttons.append(bt)
 
-        if False:
-            bt = QtGui.QToolButton(self)
-            bt.setToolTip('Link map extent')
-            bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'extent'))
-            bt.setIcon(Icon(IconProvider.Map_Link_Extent))
-            self.buttons.append(bt)
-
-        bt = QtGui.QToolButton(self)
+        bt = QToolButton(self)
         bt.setToolTip('Link map scale ("Zoom")')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'scale'))
-        bt.setIcon(QIcon(IconProvider.Map_Link_Scale))
+        bt.setIcon(QIcon(':/enmapbox/icons/link_mapscale.png'))
         self.buttons.append(bt)
 
-        bt = QtGui.QToolButton(self)
+        bt = QToolButton(self)
         bt.setToolTip('Link map scale and center')
         bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, 'center_scale'))
-        bt.setIcon(QIcon(IconProvider.Map_Link_Scale_Center))
+        bt.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.png'))
         self.buttons.append(bt)
 
 
+        btStyle = """
+        QToolButton { /* all types of tool button */
+        border: 2px solid #8f8f91;
+        border-radius: 6px;
+        background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #f6f7fa, stop: 1 #dadbde);
+        }
+
+        QToolButton[popupMode="1"] { /* only for MenuButtonPopup */
+            padding-right: 20px; /* make way for the popup button */
+        }
+
+        QToolButton:pressed {
+            background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                              stop: 0 #dadbde, stop: 1 #f6f7fa);
+        }"""
 
         for bt in self.buttons:
             bt.setAttribute(Qt.WA_PaintOnScreen)
-            #bt.setIconSize(QSize(100, 100))
+            bt.setStyleSheet(btStyle)
+            bt.setIconSize(QSize(100, 100))
             bt.setAutoRaise(True)
             ly.addWidget(bt)
 
         self.layout.addLayout(ly, 0,0)
-        self.setStyleSheet('background-color:rgba(0, 0, 0, 25);')
+        self.setStyleSheet('background-color:rgba(125, 125, 125, 125);')
         self.setAttribute(Qt.WA_PaintOnScreen)
 
         self.updatePosition()
@@ -758,14 +756,14 @@ class MapDockLabel(DockLabel):
 
         super(MapDockLabel, self).__init__(*args, **kwds)
 
-        self.addMapLink = QtGui.QToolButton(self)
+        self.addMapLink = QToolButton(self)
         self.addMapLink.setToolTip('Link with other map(s)')
-        self.addMapLink.setIcon(QIcon(IconProvider.Map_Link))
+        self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
         self.buttons.append(self.addMapLink)
 
-        self.removeMapLink = QtGui.QToolButton(self)
+        self.removeMapLink = QToolButton(self)
         self.removeMapLink.setToolTip('Remove links to this map')
-        self.removeMapLink.setIcon(QIcon(IconProvider.Map_Link_Remove))
+        self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         self.buttons.append(self.removeMapLink)
 
 
@@ -825,7 +823,8 @@ class MapDock(Dock):
     A dock to visualize geodata that can be mapped
     """
     #sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
-    sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsCoordinateReferenceSystem)
+    from enmapbox.gui.utils import SpatialPoint, SpatialExtent
+    sigCursorLocationValueRequest = pyqtSignal(SpatialPoint)
     sigLayersChanged = pyqtSignal()
 
     def __init__(self, *args, **kwds):
@@ -837,7 +836,7 @@ class MapDock(Dock):
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
         self.canvas = MapCanvas(self)
-        self.updateDockTitle()
+
         #self.label.setText(self.basename)
         #self.canvas.setScaleLocked(True)
         self.canvas.sigDropEvent.connect(self.canvasDrop)
@@ -849,11 +848,11 @@ class MapDock(Dock):
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
         self.canvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
-        self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
+        #self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
         self.layout.addWidget(self.canvas)
 
         #link canvas to map tools
-        g = self.enmapbox.gui
+        g = self.enmapbox.ui
         #g.actionAddView.triggered.connect(lambda: self.enmapbox.dockarea.addDock(EnMAPBoxDock(self)))
         #g.actionAddMapView.triggered.connect(lambda : self.enmapbox.dockarea.addDock(EnMAPBoxMapDock(self)))
         #g.actionAddTextView.triggered.connect(lambda: self.enmapbox.dockarea.addDock(EnMAPBoxTextDock(self)))
@@ -902,64 +901,49 @@ class MapDock(Dock):
         #set default map tool
         self.canvas.setMapTool(self.toolPan)
 
-        #todo: context menu
-
 
     def cursorLocationValueRequest(self,*args):
         self.sigCursorLocationValueRequest.emit(*args)
-
-
-    def identifyMessage(self, message):
-        dprint('Identify message: {}'.format(message))
-        s = ""
-
-    def identifyProgress(self, args):
-        dprint('Identify progress: {}'.format(args))
-        s = ""
-
-
-    def identifyResults(self, identifyResults):
-        for iResult in identifyResults:
-            lyr =iResult.mLayer
-            dprint('mAttributes: {}'.format(len(iResult.mAttributes)))
-            for k, v in iResult.mAttributes.items():
-                dprint('{}:{}'.format(k,v))
-
-            dprint('mDerivedAttributes: {}'.format(len(iResult.mDerivedAttributes)))
-            for k, v in iResult.mDerivedAttributes.items():
-                dprint('{}:{}'.format(k,v))
-
-            dprint('mParams: {}'.format(len(iResult.mParams)))
-            for k, v in iResult.mParams.items():
-                dprint('{}:{}'.format(k,v))
-
-            s = ""
-
-        s  =""
 
     def getDockContentContextMenu(self):
         menu = QMenu()
 
         action = QAction('Link with other maps', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
         action.triggered.connect(lambda: CanvasLinkTargetWidget.ShowMapLinkTargets(self))
         menu.addAction(action)
 
         action = QAction('Remove links to other maps', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         action.triggered.connect(lambda: CanvasLinkManager.instance().unlink(self.canvas))
         menu.addAction(action)
+
         menu.addSeparator()
 
-        action = QAction('Zoom to full extent', menu)
+        action = QAction('Zoom Full', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomFullExtent.png'))
         action.triggered.connect(lambda: self.canvas.setExtent(self.canvas.fullExtent()))
         menu.addAction(action)
 
+        action = QAction('Zoom Native Resolution', menu)
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.png'))
+        action.triggered.connect(lambda: self.canvas.setExtent(self.canvas.fullExtent()))
+        menu.addAction(action)
+
+
+        menu.addSeparator()
+
         action = QAction('Refresh', menu)
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
         action.triggered.connect(lambda: self.canvas.refresh())
         menu.addAction(action)
 
         action = QAction('Refresh all layers', menu)
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
         action.triggered.connect(lambda: self.canvas.refreshAllLayers())
         menu.addAction(action)
+
+        menu.addSeparator()
 
         action = QAction('Clear map', menu)
         action.triggered.connect(lambda: self.canvas.setLayerSet([]))
@@ -978,7 +962,7 @@ class MapDock(Dock):
 
     def setCRSfromDialog(self):
         w  = QgsProjectionSelectionWidget(self)
-        crs = self.canvas.mapRenderer().destinationCrs()
+        crs = self.canvas.mapSettings().destinationCrs()
         w.setLayerCrs(crs)
         w.setCrs(crs)
 
@@ -989,12 +973,6 @@ class MapDock(Dock):
 
 
     def setMapTool(self, mapTool):
-        if False:
-            if isinstance(mapTool, QgsMapToolPan):
-                self.canvas.setScaleLocked(True)
-            else:
-                self.canvas.setScaleLocked(False)
-
         self.canvas.setMapTool(mapTool)
 
     def test(self):
@@ -1007,8 +985,8 @@ class MapDock(Dock):
         return ['']
 
     def canvasDragEnter(self, event):
-        import enmapbox.utils
-        ME = enmapbox.utils.MimeDataHelper(event.mimeData())
+
+        ME = MimeDataHelper(event.mimeData())
         #check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
         if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
@@ -1018,8 +996,7 @@ class MapDock(Dock):
             event.ignore()
 
     def canvasDrop(self, event):
-        import enmapbox.utils
-        ME = enmapbox.utils.MimeDataHelper(event.mimeData())
+        ME = MimeDataHelper(event.mimeData())
 
         if ME.hasMapLayers():
             newLayers = ME.mapLayers()
@@ -1031,7 +1008,7 @@ class MapDock(Dock):
         if ME.hasDataSources():
             dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
             dataSources = [self.enmapbox.dataSourceManager.addSource(d) for d in dataSources]
-            layers = [d.createMapLayer() for d in dataSources]
+            layers = [d.createRegisteredMapLayer() for d in dataSources]
 
             self.addLayers(layers)
 
@@ -1079,33 +1056,16 @@ class MapDock(Dock):
 
         self.canvas.refresh()
 
-        self.updateDockTitle()
 
     def addLayers(self, mapLayers):
         if not type(mapLayers) is list:
             mapLayers = [mapLayers]
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-        self.setLayerSet(self.canvas.layers() + mapLayers)
+        self.setLayerSet(mapLayers + self.canvas.layers())
 
 
 
-
-    def updateDockTitle(self):
-        """
-        Changes the dock title to "<initial name>:<basename 1st spatial layer>"
-         :return True if a new title was set
-        """
-        layer = [QgsMapCanvasLayer(l).layer() for l in self.canvas.layers()]
-        newTitle = self.basename
-        if len(layer) > 0:
-            src = layer[0].source()
-
-            newTitle = '{}:{}'.format(self.basename, os.path.basename(src))
-        change = newTitle != self.title()
-        if change:
-            self.setTitle(newTitle)
-        return change
 
 
 
@@ -1138,7 +1098,7 @@ class TextDock(Dock):
 
         super(TextDock, self).__init__(*args, **kwds)
 
-        self.textEdit = QtGui.QTextEdit(self)
+        self.textEdit = QTextEdit(self)
 
         if html:
             self.textEdit.insertHtml(html)
@@ -1148,7 +1108,7 @@ class TextDock(Dock):
 
 
 
-class MimeDataTextEdit(QtGui.QTextEdit):
+class MimeDataTextEdit(QTextEdit):
 
     def __init__(self, *args, **kwargs):
         super(MimeDataTextEdit,self).__init__(*args, **kwargs)
@@ -1206,151 +1166,3 @@ class MimeDataDock(TextDock):
 
 
 
-
-
-
-
-
-class DockManager(QObject):
-    """
-    Class to handle all DOCK related events
-    """
-
-    sigDockAdded = pyqtSignal(Dock)
-    sigDockRemoved = pyqtSignal(Dock)
-    sigDockTitleChanged = pyqtSignal(Dock)
-
-    def __init__(self, enmapbox):
-        QObject.__init__(self)
-        self.enmapbox = enmapbox
-        self.dockarea = self.enmapbox.dockarea
-        self.DOCKS = list()
-
-        self.connectDockArea(self.dockarea)
-        self.setCursorLocationValueDock(None)
-
-    def connectDockArea(self, dockArea):
-        assert isinstance(dockArea, DockArea)
-        dockArea.sigDragEnterEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
-        dockArea.sigDragMoveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
-        dockArea.sigDragLeaveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
-        dockArea.sigDropEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
-
-    def dockAreaSignalHandler(self, dockArea, event):
-        assert isinstance(dockArea, DockArea)
-        assert isinstance(event, QEvent)
-
-        mimeTypes = ["application/qgis.layertreemodeldata",
-                     "application/enmapbox.docktreemodeldata",
-                     "application/enmapbox.datasourcetreemodeldata",
-                     "text/uri-list"]
-
-        if type(event) is QDragEnterEvent:
-            # check mime types we can handle
-            MH = MimeDataHelper(event.mimeData())
-            if MH.hasMapLayers() or MH.hasDataSources():
-                    event.setDropAction(Qt.CopyAction)
-                    event.accept()
-            else:
-                event.ignore()
-
-        elif type(event) is QDragMoveEvent:
-            pass
-        elif type(event) is QDragLeaveEvent:
-            pass
-        elif type(event) is QDropEvent:
-            MH = MimeDataHelper(event.mimeData())
-            layers = []
-            textfiles = []
-
-            if MH.hasMapLayers():
-                layers = MH.mapLayers()
-            elif MH.hasDataSources():
-                for ds in MH.dataSources():
-                    layers.append(ds.createMapLayer())
-
-            #register datasources
-            for src in layers + textfiles:
-                self.enmapbox.dataSourceManager.addSource(src)
-
-            #open map dock for new layers
-            if len(layers) > 0:
-
-                NEW_MAP_DOCK = self.createDock('MAP')
-                NEW_MAP_DOCK.addLayers(layers)
-
-                event.setDropAction(Qt.CopyAction)
-                event.dropAction()
-
-
-
-
-    def getDockWithUUID(self, uuid_):
-        if isinstance(uuid_, str):
-            uuid_ = uuid.UUID(uuid_)
-        assert isinstance(uuid_, uuid.UUID)
-        for dock in list(self.DOCKS):
-            assert isinstance(dock, Dock)
-            if dock.uuid == uuid_:
-                return dock
-
-        return None
-
-    def showCursorLocationValues(self, *args):
-        if self.cursorLocationValueDock is not None:
-            self.cursorLocationValueDock.showLocationValues(*args)
-
-
-    def setCursorLocationValueDock(self, dock):
-        if dock is None:
-            self.cursorLocationValueDock = None
-        else:
-            assert isinstance(dock, CursorLocationValueDock)
-            self.cursorLocationValueDock = dock
-            self.cursorLocationValueDock.w.connectDataSourceManager(self.enmapbox.dataSourceManager)
-            dock.sigClosed.connect(lambda: self.setCursorLocationValueDock(None))
-
-    def removeDock(self, dock):
-        if dock in self.DOCKS:
-            self.DOCKS.remove(dock)
-            self.sigDockRemoved.emit(dock)
-            return True
-        return False
-
-    def createDock(self, docktype, *args, **kwds):
-
-        #set default kwds
-        kwds['name'] = kwds.get('name', '#{}'.format(len(self.DOCKS) + 1))
-
-        is_new_dock = True
-        if docktype == 'MAP':
-            dock = MapDock(self.enmapbox, *args, **kwds)
-            dock.sigCursorLocationValueRequest.connect(self.showCursorLocationValues)
-        elif docktype == 'TEXT':
-            dock = TextDock(self.enmapbox, *args, **kwds)
-        elif docktype == 'MIME':
-            dock = MimeDataDock(self.enmapbox, *args, **kwds)
-        elif docktype == 'CURSORLOCATIONVALUE':
-            if self.cursorLocationValueDock is None:
-                self.setCursorLocationValueDock(CursorLocationValueDock(self.enmapbox, *args, **kwds))
-            else:
-                is_new_dock = False
-            dock = self.cursorLocationValueDock
-        else:
-            raise Exception('Unknown dock type: {}'.format(docktype))
-
-        dockArea = kwds.get('dockArea', self.dockarea)
-        state = dockArea.saveState()
-        main = state['main']
-        if is_new_dock:
-            dock.sigClosed.connect(self.removeDock)
-            self.DOCKS.append(dock)
-            self.dockarea.addDock(dock, *args, **kwds)
-            self.sigDockAdded.emit(dock)
-
-            if 'initSrc' in kwds.keys():
-                ds = self.enmapbox.addSource(kwds['initSrc'])
-                if isinstance(ds, DataSourceSpatial):
-                    dock.addLayers(ds.createMapLayer())
-
-        return dock

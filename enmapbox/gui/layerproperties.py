@@ -6,10 +6,12 @@ import re
 
 import gdal
 import numpy as np
+from qgis.gui import *
+from qgis.core import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from enmapbox.gui.main import DIR_UI
+from enmapbox.gui.utils import loadUI, SpatialExtent
 
 """
 class RasterLayerProperties(QgsOptionsDialogBase):
@@ -123,8 +125,7 @@ def parseWavelength(provider):
     return wl, wlu
 
 
-class MultiBandColorRendererWidget(QgsRasterRendererWidget,
-    loadUIFormClass(os.path.normpath(jp(DIR_UI, 'multibandcolorrendererwidgetbase.ui')))):
+class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcolorrendererwidgetbase.ui')):
 
     @staticmethod
     def create(layer, extent):
@@ -142,8 +143,8 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
 
         self.bandNames = None
         self.bandRanges = dict()
-        r = layer.renderer()
-        self.defaultMB = [r.redBand()-1, r.greenBand()-1, r.blueBand()-1]
+
+
         self.wavelengths = None
         self.wavelengthUnit = None
         if self.rasterLayer() and self.rasterLayer().dataProvider():
@@ -190,6 +191,7 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
                 self.mGreenBandComboBox.addItem(bandName, i+1)
                 self.mBlueBandComboBox.addItem(bandName, i+1)
 
+            self.defaultBands = [0,0,0]
             self.setFromRenderer(self.rasterLayer().renderer())
             self.onBandChanged(0)
 
@@ -231,8 +233,8 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
 
     def setBandSelection(self, key):
 
-        if key == 'defaultMB':
-            bands = self.defaultMB
+        if key == 'default':
+            bands = self.defaultBands[:]
 
         else:
             if key in ['R', 'G', 'B', 'nIR', 'swIR']:
@@ -420,26 +422,22 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget,
 
     def setFromRenderer(self, r):
         if isinstance(r, QgsMultiBandColorRenderer):
-            #todo: check number of bands
-
             self.mRedBandComboBox.setCurrentIndex(r.redBand())
             self.mGreenBandComboBox.setCurrentIndex(r.greenBand())
             self.mBlueBandComboBox.setCurrentIndex(r.blueBand())
             self.setMinMaxValue(r.redContrastEnhancement(), self.mRedMinLineEdit, self.mRedMaxLineEdit)
             self.setMinMaxValue(r.greenContrastEnhancement(), self.mGreenMinLineEdit, self.mGreenMaxLineEdit)
             self.setMinMaxValue(r.blueContrastEnhancement(), self.mBlueMinLineEdit, self.mBlueMaxLineEdit)
-
+            self.defaultBands = [r.redBand(), r.greenBand(), r.blueBand()]
         else:
-
+            self.defaultBands = [0,0,0]
             self.mRedBandComboBox.setCurrentIndex(self.mRedBandComboBox.findText('Red'))
             self.mGreenBandComboBox.setCurrentIndex(self.mGreenBandComboBox.findText('Green'))
             self.mBlueBandComboBox.setCurrentIndex(self.mBlueBandComboBox.findText('Blue'))
 
 
 #class RasterLayerProperties(QDialog,
-class RasterLayerProperties(QgsOptionsDialogBase,
-        loadUIFormClass(os.path.normpath(jp(DIR_UI, 'rasterlayerpropertiesdialog.ui')),
-                                   )):
+class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesdialog.ui')):
     def __init__(self, lyr, canvas, parent=None):
         """Constructor."""
         title = 'RasterLayerProperties'
@@ -494,7 +492,7 @@ class RasterLayerProperties(QgsOptionsDialogBase,
         self.tb_pixelsize.setText('{0}{2}x{1}{2}'.format(rl.rasterUnitsPerPixelX(),rl.rasterUnitsPerPixelY(), mapUnit))
         self.tb_nodata.setText('{}'.format(dp.srcNoDataValue(2)))
 
-        from enmapbox.utils import SpatialExtent
+
         se = SpatialExtent.fromLayer(rl)
         pt2str = lambda xy: '{} {}'.format(xy[0], xy[1])
         self.tb_upperLeft.setText(pt2str(se.upperLeft()))
@@ -591,13 +589,15 @@ RASTERRENDERER_FUNC['singlebandgray'] = QgsSingleBandGrayRendererWidget.create
 RASTERRENDERER_FUNC['singlebandpseudocolor'] = QgsSingleBandPseudoColorRendererWidget.create
 
 
-class VectorLayerProperties(QgsOptionsDialogBase):
+
+class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesdialog.ui')):
 
     def __init__(self, lyr, canvas, parent=None, fl=Qt.Widget):
-        super(RasterLayerProperties, self).__init__("VectorLayerProperties", parent, fl)
+        super(VectorLayerProperties, self).__init__("VectorLayerProperties", parent, fl)
         title = "Layer Properties - {}".format(lyr.name())
         self.restoreOptionsBaseUi(title)
-
+        self.setupUi(self)
+        self.initOptionsBase(False, title)
 
 
 def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
@@ -623,8 +623,8 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox import DIR_SITE_PACKAGES
-    site.addsitedir(DIR_SITE_PACKAGES)
+    from enmapbox.gui.utils import DIR_SITEPACKAGES
+    site.addsitedir(DIR_SITEPACKAGES)
 
     #prepare QGIS environment
     if sys.platform == 'darwin':
@@ -641,18 +641,20 @@ if __name__ == '__main__':
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
-    from enmapbox.testdata.AlpineForeland import AF_Image
+    from enmapbox.testdata.UrbanGradient import EnMAP01_Berlin_Urban_Gradient_2009_bsq, LandCov_Vec_Berlin_Urban_Gradient_2009_shp
 
-    l = QgsRasterLayer(AF_Image)
+    l = QgsRasterLayer(EnMAP01_Berlin_Urban_Gradient_2009_bsq)
+    v = QgsVectorLayer(LandCov_Vec_Berlin_Urban_Gradient_2009_shp)
+
     QgsMapLayerRegistry.instance().addMapLayer(l)
     c = QgsMapCanvas()
-    c.setLayerSet([QgsMapCanvasLayer(l)])
+    c.setLayerSet([QgsMapCanvasLayer(v)])
     c.setDestinationCrs(l.crs())
     c.setExtent(l.extent())
     c.refresh()
     b = QPushButton()
     b.setText('Show Properties')
-    b.clicked.connect(lambda: showLayerPropertiesDialog(l, c))
+    b.clicked.connect(lambda: showLayerPropertiesDialog(v, c))
     br = QPushButton()
     br.setText('Refresh')
     br.clicked.connect(lambda : c.refresh())
@@ -666,6 +668,6 @@ if __name__ == '__main__':
     w = QWidget()
     w.setLayout(lv)
     w.show()
-
+    b.click()
     qgsApp.exec_()
     qgsApp.exitQgis()

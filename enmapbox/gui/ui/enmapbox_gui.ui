@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>806</width>
-    <height>577</height>
+    <width>545</width>
+    <height>387</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,6 +17,9 @@
    <set>QMainWindow::AllowNestedDocks|QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks|QMainWindow::ForceTabbedDocks|QMainWindow::VerticalTabs</set>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="acceptDrops">
+    <bool>true</bool>
+   </property>
    <property name="styleSheet">
     <string notr="true"/>
    </property>
@@ -24,6 +27,59 @@
     <property name="margin">
      <number>0</number>
     </property>
+    <item>
+     <widget class="QFrame" name="centralFrame">
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QgsMessageBar" name="messageBar">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="DockArea" name="dockArea" native="true"/>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -31,7 +87,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>806</width>
+     <width>545</width>
      <height>21</height>
     </rect>
    </property>
@@ -39,22 +95,40 @@
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>Files</string>
+     <string>Project</string>
     </property>
     <addaction name="actionAddDataSource"/>
-    <addaction name="actionSave_Settings"/>
+    <addaction name="separator"/>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
      <string>View</string>
     </property>
+    <widget class="QMenu" name="menuPanels">
+     <property name="title">
+      <string>Panels</string>
+     </property>
+    </widget>
+    <addaction name="actionPan"/>
+    <addaction name="actionZoomIn"/>
+    <addaction name="actionZoomOut"/>
+    <addaction name="separator"/>
+    <addaction name="actionZoomFullExtent"/>
+    <addaction name="actionZoomPixelScale"/>
+    <addaction name="separator"/>
+    <addaction name="actionIdentify"/>
+    <addaction name="separator"/>
     <addaction name="actionAddMapView"/>
     <addaction name="actionAddTextView"/>
     <addaction name="actionAddMimeView"/>
-    <addaction name="actionCursor_Location_Values"/>
+    <addaction name="menuPanels"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
@@ -73,58 +147,6 @@
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QDockWidget" name="dockWidgetDataSources">
-   <property name="sizePolicy">
-    <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-     <horstretch>0</horstretch>
-     <verstretch>0</verstretch>
-    </sizepolicy>
-   </property>
-   <property name="floating">
-    <bool>false</bool>
-   </property>
-   <property name="features">
-    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
-   </property>
-   <property name="allowedAreas">
-    <set>Qt::AllDockWidgetAreas</set>
-   </property>
-   <property name="windowTitle">
-    <string>Data Sources</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>1</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <property name="margin">
-      <number>0</number>
-     </property>
-     <item>
-      <widget class="QTreeView" name="dataSourceTreeView">
-       <property name="contextMenuPolicy">
-        <enum>Qt::CustomContextMenu</enum>
-       </property>
-       <property name="acceptDrops">
-        <bool>true</bool>
-       </property>
-       <property name="frameShape">
-        <enum>QFrame::StyledPanel</enum>
-       </property>
-       <property name="frameShadow">
-        <enum>QFrame::Plain</enum>
-       </property>
-       <property name="dragEnabled">
-        <bool>true</bool>
-       </property>
-       <property name="dragDropMode">
-        <enum>QAbstractItemView::DragDrop</enum>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-  </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
     <string>toolBar</string>
@@ -149,46 +171,12 @@
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
    <addaction name="actionZoomPixelScale"/>
-   <addaction name="actionActionZoomExtent"/>
+   <addaction name="actionZoomFullExtent"/>
    <addaction name="actionPan"/>
    <addaction name="separator"/>
    <addaction name="actionIdentify"/>
    <addaction name="actionSettings"/>
    <addaction name="actionAbout"/>
-  </widget>
-  <widget class="QDockWidget" name="dockWidgetDocks">
-   <property name="features">
-    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
-   </property>
-   <property name="windowTitle">
-    <string>Docks</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>1</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents_2">
-    <layout class="QVBoxLayout" name="verticalLayout_2">
-     <property name="margin">
-      <number>0</number>
-     </property>
-     <item>
-      <widget class="QTreeView" name="dockTreeView">
-       <property name="frameShadow">
-        <enum>QFrame::Plain</enum>
-       </property>
-       <property name="dragEnabled">
-        <bool>true</bool>
-       </property>
-       <property name="dragDropMode">
-        <enum>QAbstractItemView::DragDrop</enum>
-       </property>
-       <attribute name="headerVisible">
-        <bool>false</bool>
-       </attribute>
-      </widget>
-     </item>
-    </layout>
-   </widget>
   </widget>
   <action name="actionAddMapView">
    <property name="icon">
@@ -196,7 +184,7 @@
      <normaloff>:/enmapbox/icons/viewlist_mapdock.png</normaloff>:/enmapbox/icons/viewlist_mapdock.png</iconset>
    </property>
    <property name="text">
-    <string>Map Dock</string>
+    <string>Add Map Dock</string>
    </property>
   </action>
   <action name="actionAddTextView">
@@ -205,7 +193,7 @@
      <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
    </property>
    <property name="text">
-    <string>Text Dock</string>
+    <string>Add Text Dock</string>
    </property>
   </action>
   <action name="actionAddGraphView">
@@ -223,7 +211,7 @@
      <normaloff>:/enmapbox/icons/mActionZoomIn.png</normaloff>:/enmapbox/icons/mActionZoomIn.png</iconset>
    </property>
    <property name="text">
-    <string>zoomIn</string>
+    <string>Zoom In</string>
    </property>
   </action>
   <action name="actionZoomOut">
@@ -232,7 +220,7 @@
      <normaloff>:/enmapbox/icons/mActionZoomOut.png</normaloff>:/enmapbox/icons/mActionZoomOut.png</iconset>
    </property>
    <property name="text">
-    <string>zoomOut</string>
+    <string>Zoom Out</string>
    </property>
   </action>
   <action name="actionPan">
@@ -241,7 +229,7 @@
      <normaloff>:/enmapbox/icons/mActionPan.png</normaloff>:/enmapbox/icons/mActionPan.png</iconset>
    </property>
    <property name="text">
-    <string>pan</string>
+    <string>Pan Map</string>
    </property>
   </action>
   <action name="actionIdentify">
@@ -251,7 +239,7 @@
      <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/mActionIdentify.png</iconset>
    </property>
    <property name="text">
-    <string>selectPixel</string>
+    <string>Identify Pixels and Features</string>
    </property>
    <property name="toolTip">
     <string>identify</string>
@@ -263,19 +251,19 @@
      <normaloff>:/enmapbox/icons/add_datasource.png</normaloff>:/enmapbox/icons/add_datasource.png</iconset>
    </property>
    <property name="text">
-    <string>Add data source</string>
+    <string>Add Data Source</string>
    </property>
    <property name="toolTip">
     <string>Adds a data sourc, e.g. raster or vector file</string>
    </property>
   </action>
-  <action name="actionActionZoomExtent">
+  <action name="actionZoomFullExtent">
    <property name="icon">
-    <iconset>
-     <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</iconset>
    </property>
    <property name="text">
-    <string>zoomExtent</string>
+    <string>Zoom Full</string>
    </property>
    <property name="toolTip">
     <string>Zoom to full extent</string>
@@ -287,33 +275,12 @@
      <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
    </property>
    <property name="text">
-    <string>MimeData Viewer (experimental)</string>
+    <string>Add MimeData Viewer (experimental)</string>
    </property>
   </action>
   <action name="actionSave_Settings">
    <property name="text">
     <string>Save Settings</string>
-   </property>
-  </action>
-  <action name="actionCursor_Location_Values">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.png</iconset>
-   </property>
-   <property name="text">
-    <string>Cursor Location Values</string>
-   </property>
-  </action>
-  <action name="actionZoomMaxExtent">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</iconset>
-   </property>
-   <property name="text">
-    <string>Zoom Max</string>
-   </property>
-   <property name="toolTip">
-    <string>Zoom to maximum extent of time series</string>
    </property>
   </action>
   <action name="actionZoomPixelScale">
@@ -322,7 +289,7 @@
      <normaloff>:/enmapbox/icons/mActionZoomActual.png</normaloff>:/enmapbox/icons/mActionZoomActual.png</iconset>
    </property>
    <property name="text">
-    <string>Zoom to pixel scale</string>
+    <string>Zoom Pixel Scale</string>
    </property>
    <property name="toolTip">
     <string>Zoom to pixel scale</string>
@@ -358,9 +325,66 @@
     <string>Settings</string>
    </property>
   </action>
+  <action name="actionExit">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionFileExit.png</normaloff>:/enmapbox/icons/mActionFileExit.png</iconset>
+   </property>
+   <property name="text">
+    <string>Exit EnMAP-Box</string>
+   </property>
+  </action>
+  <action name="actionPanToSelected">
+   <property name="text">
+    <string>PanToSelected</string>
+   </property>
+  </action>
+  <action name="actionPasteLayerStyle">
+   <property name="text">
+    <string>Paste Laye rStyle</string>
+   </property>
+  </action>
+  <action name="actionProjectProperties">
+   <property name="text">
+    <string>Project Properties</string>
+   </property>
+   <property name="toolTip">
+    <string>Project Properties</string>
+   </property>
+  </action>
+  <action name="actionQgisHomePage">
+   <property name="text">
+    <string>QgisHomePage</string>
+   </property>
+  </action>
+  <action name="actionEnMAPBoxHomePage">
+   <property name="text">
+    <string>EnMAP-Box Home Page</string>
+   </property>
+  </action>
+  <action name="actionSaveProject">
+   <property name="text">
+    <string>Save Project</string>
+   </property>
+  </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DockArea</class>
+   <extends>QWidget</extends>
+   <header>enmapbox.gui.docks</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QgsMessageBar</class>
+   <extends>QFrame</extends>
+   <header>qgis.gui</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="resources.qrc"/>
+  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>
