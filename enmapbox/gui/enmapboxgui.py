@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+#from __future__ import absolute_import
 
 import site
 
@@ -55,7 +55,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         for dock in self.findChildren(QDockWidget):
             if len(dock.actions()) > 0:
                 s = ""
-            self.menuView.addAction(dock.toggleViewAction())
+            self.menuPanels.addAction(dock.toggleViewAction())
 
 
 def getIcon():
@@ -116,8 +116,8 @@ class EnMAPBox(QgisInterface):
         self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
 
-        self.ui.actionCursor_Location_Values.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
-        self.ui.actionSave_Settings.triggered.connect(self.saveProject)
+        self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
+        self.ui.actionSettings.triggered.connect(self.saveProject)
         s = ""
 
 
@@ -181,8 +181,19 @@ class EnMAPBox(QgisInterface):
     def mainWindow(self):
         return self.ui
 
+    def messageBar(self):
+        return self.ui.messageBar
+
+    virtualMapCanvas = QgsMapCanvas()
     def mapCanvas(self):
-        return QgsMapCanvas()
+        EnMAPBox.virtualMapCanvas.setLayerSet([])
+        lyrs = []
+        for ds in self.dataSourceManager.sources:
+            if isinstance(ds, DataSourceSpatial):
+                lyrs.append(ds.createRegisteredMapLayer())
+        lyrs = [QgsMapCanvasLayer(l) for l in lyrs]
+        EnMAPBox.virtualMapCanvas.setLayerSet(lyrs)
+        return EnMAPBox.virtualMapCanvas
 
     def refreshLayerSymbology(selflayerId):
         pass
