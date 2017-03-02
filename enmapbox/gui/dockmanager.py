@@ -182,7 +182,7 @@ class DockManagerTreeModel(TreeModel):
                 dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
                 if len(dataSources) > 0:
                     for ds in dataSources:
-                        dockNode.addLayer(ds.createMapLayer())
+                        dockNode.addLayer(ds.createRegisteredMapLayer())
 
                     return True
         elif isinstance(dockNode, TextDockTreeNode):
@@ -293,15 +293,18 @@ class DockManager(QgsLegendInterface):
 
     def __init__(self, enmapbox):
         QObject.__init__(self)
-        self.enmapbox = enmapbox
-        self.dockarea = self.enmapbox.ui.dockarea
+        self.enmapBox = enmapbox
+
+        self.dockArea = self.enmapBox.ui.dockArea
         self.DOCKS = list()
 
-        self.connectDockArea(self.dockarea)
+        self.connectDockArea(self.dockArea)
         self.setCursorLocationValueDock(None)
 
     def connectDockArea(self, dockArea):
         assert isinstance(dockArea, DockArea)
+
+
         dockArea.sigDragEnterEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
         dockArea.sigDragMoveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
         dockArea.sigDragLeaveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
@@ -338,11 +341,11 @@ class DockManager(QgsLegendInterface):
                 layers = MH.mapLayers()
             elif MH.hasDataSources():
                 for ds in MH.dataSources():
-                    layers.append(ds.createMapLayer())
+                    layers.append(ds.createRegisteredMapLayer())
 
             #register datasources
             for src in layers + textfiles:
-                self.enmapbox.dataSourceManager.addSource(src)
+                self.enmapBox.dataSourceManager.addSource(src)
 
             #open map dock for new layers
             if len(layers) > 0:
@@ -378,7 +381,7 @@ class DockManager(QgsLegendInterface):
         else:
             assert isinstance(dock, CursorLocationValueDock)
             self.cursorLocationValueDock = dock
-            self.cursorLocationValueDock.w.connectDataSourceManager(self.enmapbox.dataSourceManager)
+            self.cursorLocationValueDock.w.connectDataSourceManager(self.enmapBox.dataSourceManager)
             dock.sigClosed.connect(lambda: self.setCursorLocationValueDock(None))
 
     def removeDock(self, dock):
@@ -395,34 +398,35 @@ class DockManager(QgsLegendInterface):
 
         is_new_dock = True
         if docktype == 'MAP':
-            dock = MapDock(self.enmapbox, *args, **kwds)
+            dock = MapDock(self.enmapBox, *args, **kwds)
             dock.sigCursorLocationValueRequest.connect(self.showCursorLocationValues)
         elif docktype == 'TEXT':
-            dock = TextDock(self.enmapbox, *args, **kwds)
+            dock = TextDock(self.enmapBox, *args, **kwds)
         elif docktype == 'MIME':
-            dock = MimeDataDock(self.enmapbox, *args, **kwds)
+            dock = MimeDataDock(self.enmapBox, *args, **kwds)
+
         elif docktype == 'CURSORLOCATIONVALUE':
             if self.cursorLocationValueDock is None:
-                self.setCursorLocationValueDock(CursorLocationValueDock(self.enmapbox, *args, **kwds))
+                self.setCursorLocationValueDock(CursorLocationValueDock(self.enmapBox, *args, **kwds))
             else:
                 is_new_dock = False
             dock = self.cursorLocationValueDock
         else:
             raise Exception('Unknown dock type: {}'.format(docktype))
 
-        dockArea = kwds.get('dockArea', self.dockarea)
+        dockArea = kwds.get('dockArea', self.dockArea)
         state = dockArea.saveState()
         main = state['main']
         if is_new_dock:
             dock.sigClosed.connect(self.removeDock)
             self.DOCKS.append(dock)
-            self.dockarea.addDock(dock, *args, **kwds)
+            self.dockArea.addDock(dock, *args, **kwds)
             self.sigDockAdded.emit(dock)
 
             if 'initSrc' in kwds.keys():
-                ds = self.enmapbox.addSource(kwds['initSrc'])
+                ds = self.enmapBox.addSource(kwds['initSrc'])
                 if isinstance(ds, DataSourceSpatial):
-                    dock.addLayers(ds.createMapLayer())
+                    dock.addLayers(ds.createRegisteredMapLayer())
 
         return dock
 
