@@ -175,10 +175,10 @@ class TreeModel(QgsLayerTreeModel):
         return super(TreeModel, self).data(index, role)
 
     def supportedDragActions(self):
-        return Qt.MoveAction | Qt.CopyAction
+        return Qt.IgnoreAction
 
     def supportedDropActions(self):
-        return Qt.MoveAction | Qt.CopyAction
+        return Qt.IgnoreAction
 
     def flags(self, index):
         raise NotImplementedError()
@@ -298,7 +298,7 @@ class DockTreeNode(TreeNode):
         #node.readChildrenFromXml(element)
 
         #try to find the dock by its uuid in dockmanager
-        from enmapbox.gui.main import EnMAPBox
+        from enmapbox.gui.enmapboxgui import EnMAPBox
 
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
@@ -340,14 +340,9 @@ class DockTreeNode(TreeNode):
             self.setName(dock.title())
             self.dock.sigTitleChanged.connect(self.setName)
             self.setCustomProperty('uuid', str(dock.uuid))
-            self.dock.sigClosed.connect(self.disconnectDock)
+            #self.dock.sigClosed.connect(self.removedisconnectDock)
 
 
-
-    def disconnectDock(self):
-        self.dock = None
-        #self.removeCustomProperty('uuid')
-        self.sigRemoveMe.emit()
 
 
 class TextDockTreeNode(DockTreeNode):
@@ -382,23 +377,30 @@ class MapDockTreeNode(DockTreeNode):
         assert isinstance(dock, MapDock)
         super(MapDockTreeNode,self).connectDock(dock)
         self.updateChildNodes()
-        self.dock.sigLayersChanged.connect(self.updateChildNodes)
-
+        self.dock.sigLayersAdded.connect(self.updateChildNodes)
+        self.dock.sigLayersRemoved.connect(self.updateChildNodes)
 
     def updateChildNodes(self):
         if self.dock:
-            self.blockSignals = True
-            self.removeAllChildren()
-            self.blockSignals = False
+            #state = self.blockSignals
+            #self.blockSignals = True
+            #self.removeAllChildren()
+            lyrs = self.findLayers()
             for i, l in enumerate(self.dock.canvas.layers()):
-                self.insertLayer(i, l)
+                if l not in lyrs:
+                    self.insertLayer(i, l)
+            #self.blockSignals = state
+            s  =""
 
     def updateCanvas(self):
-        if self.dock and not self.blockSignals:
-            self.dock.canvas.blockSignals(True)
+        if self.dock:
+            #state = self.blockSignals
+            #self.blockSignals = True
+            #self.dock.canvas.blockSignals(True)
             layers = self.visibleLayers(self)
             self.dock.setLayerSet(layers)
-            self.dock.canvas.blockSignals(False)
+            #self.dock.canvas.blockSignals(False)
+            #self.blockSignals = state
 
     @staticmethod
     def visibleLayers(node):
