@@ -404,23 +404,24 @@ class MapDockTreeNode(DockTreeNode):
 
     @staticmethod
     def visibleLayers(node):
+        """
+        Returns the QgsMapLayers from all sub-nodes the are set as 'visible'
+        :param node:
+        :return:
+        """
+        lyrs = []
         if isinstance(node, list):
-            lyrs = []
             for child in node:
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
-            return lyrs
         elif isinstance(node, QgsLayerTreeGroup):
-            lyrs = []
             for child in node.children():
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
-            return lyrs
         elif QgsLayerTree.isLayer(node):
             if node.isVisible():
-                return [node.layer()]
-            else:
-                return []
+                lyrs.append() [node.layer()]
         else:
             raise NotImplementedError()
+        return lyrs
 
 
 
