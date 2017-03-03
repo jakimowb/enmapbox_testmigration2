@@ -158,6 +158,13 @@ class SpatialPoint(QgsPoint):
     """
     Object to keep QgsPoint and QgsCoordinateReferenceSystem together
     """
+
+    @staticmethod
+    def fromMapCanvasCenter(mapCanvas):
+        assert isinstance(mapCanvas, QgsMapCanvas)
+        crs = mapCanvas.mapSettings().destinationCrs()
+        return SpatialPoint(crs, mapCanvas.center())
+
     def __init__(self, crs, *args):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(SpatialPoint, self).__init__(*args)
