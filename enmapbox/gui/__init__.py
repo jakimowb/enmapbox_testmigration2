@@ -2,6 +2,7 @@ import os, sys, logging, site, re
 #package providing gui stuff
 
 DEBUG = True
+LOAD_PROCESSING_FRAMEWORK = True
 
 if DEBUG:
     #initiate loggers for all pyfiles
