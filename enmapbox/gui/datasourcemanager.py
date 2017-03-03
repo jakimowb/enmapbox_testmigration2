@@ -9,11 +9,26 @@ from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
 
+
+class DataSourceTreeView(TreeView):
+
+    def __init__(self, *args, **kwds):
+        super(DataSourceTreeView, self).__init__(*args, **kwds)
+
+    def dragEnterEvent(self, event):
+        assert isinstance(event, QDragEnterEvent)
+        #no removal, copy only
+        #event.setDropAction(Qt.CopyAction)
+
+
+
 class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
         self.dataSourceManager = None
-        assert isinstance(self.dataSourceTreeView, TreeView)
+        assert isinstance(self.dataSourceTreeView, DataSourceTreeView)
+
+        self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
     def connectDataSourceManager(self, dataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
@@ -38,9 +53,9 @@ class DataSourceManagerTreeModel(TreeModel):
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
-        types.append("text/uri-list")
-        types.append("application/qgis.layertreemodeldata")
-        types.append("application/enmapbox.datasourcetreemodeldata")
+        types.append(MimeDataHelper.MIME_DATASOURCETREEMODELDATA)
+        types.append(MimeDataHelper.MIME_LAYERTREEMODELDATA)
+        types.append(MimeDataHelper.MIME_URILIST)
         return types
 
     def dropMimeData(self, data, action, row, column, parent):
@@ -112,7 +127,7 @@ class DataSourceManagerTreeModel(TreeModel):
         # set text/uri-list
         if len(uriList) > 0:
             mimeData.setUrls(uriList)
-
+        MH = MimeDataHelper(mimeData)
         return mimeData
 
     def getSourceGroup(self, dataSource):
@@ -156,18 +171,22 @@ class DataSourceManagerTreeModel(TreeModel):
         for node in to_remove:
             sourceGroup.removeChildNode(node)
 
+    def supportedDragActions(self):
+        return Qt.CopyAction
+
+    def supportedDropActions(self):
+        return Qt.CopyAction
+
     def flags(self, index):
         if not index.isValid():
             return Qt.NoItemFlags
 
         # specify TreeNode specific actions
         node = self.index2node(index)
-        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
         if isinstance(node, DataSourceGroupTreeNode):
-            flags |= Qt.ItemIsDropEnabled
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
         elif isinstance(node, DataSourceTreeNode):
-            flags |= Qt.ItemIsDragEnabled
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
         else:
             flags = Qt.NoItemFlags
         return flags

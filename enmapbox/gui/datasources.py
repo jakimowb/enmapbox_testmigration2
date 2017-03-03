@@ -35,12 +35,14 @@ class DataSourceFactory(object):
 
         if isinstance(src, str):
             src = os.path.abspath(src)
+        else:
+            src = None
         return src
 
     @staticmethod
     def isVectorSource(src):
         """
-        Returns the sourc uri if it can be handled as known vector data source.
+        Returns the source uri if it can be handled as known vector data source.
         :param src: any type
         :return: uri (str) | None
         """
@@ -48,21 +50,21 @@ class DataSourceFactory(object):
         if isinstance(src, QgsVectorLayer) and src.isValid():
             uri = DataSourceFactory.isVectorSource(src.dataProvider())
         if isinstance(src, QgsVectorDataProvider):
-            uri = str(src.dataSourceUri())
+            uri = str(src.dataSourceUri()).split('|')[0]
         if isinstance(src, ogr.DataSource):
+
             uri = src.GetName()
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
             # todo: check different providers, not only ogr
-            result = None
             try:
                 result = DataSourceFactory.isVectorSource(ogr.Open(src))
+                if result is not None:
+                    uri = result
             except Exception:
                 s = ""
                 pass
-
-            uri = result
 
         assert uri is None or isinstance(uri, str)
         return uri
@@ -87,13 +89,10 @@ class DataSourceFactory(object):
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
 
-            # todo: check different providers, not only gdal
             try:
-
                 uri = DataSourceFactory.isRasterSource(gdal.Open(src))
-
             except RuntimeError, e:
-                pass
+                uri = None
 
         assert uri is None or isinstance(uri, str)
         return uri
@@ -265,8 +264,9 @@ class DataSourceSpatial(DataSource):
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceSpatial, self).__init__(uri, name, icon)
 
-        self._refLayer = self.createUnregisteredMapLayer()
-        assert isinstance(self._refLayer, QgsMapLayer) and self._refLayer.isValid()
+        lyr = self.createUnregisteredMapLayer()
+        assert isinstance(lyr, QgsMapLayer)
+        assert lyr.isValid()
         self.mapLayers = list()
 
     def createUnregisteredMapLayer(self, *args, **kwds):
@@ -337,11 +337,9 @@ class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None ):
         super(DataSourceVector, self).__init__(uri, name, icon)
 
+        lyr = self.createUnregisteredMapLayer()
+        geomType = lyr.geometryType()
 
-        dp = self._refLayer.dataProvider()
-        assert isinstance(dp, QgsVectorDataProvider)
-
-        geomType = self._refLayer.geometryType()
         if geomType in [QGis.WKBPoint, QGis.WKBPoint25D]:
             self.icon = QIcon(':/enmapbox/icons/mIconPointLayer.png')
         elif geomType in [QGis.WKBLineString, QGis.WKBMultiLineString25D]:
