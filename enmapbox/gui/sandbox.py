@@ -27,6 +27,8 @@ def _sandboxTemplate():
 
 def sandboxPureGui():
     qgsApp = initQgs()
+    import enmapbox.gui
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()

@@ -11,6 +11,8 @@ from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import loadUI, SETTINGS, DIR_TESTDATA, MimeDataHelper
 
+
+
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
     sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
@@ -80,8 +82,9 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         area = Qt.LeftDockWidgetArea
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
-        self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
-        #self.processingPanel2 = addPanel()
+
+        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
+            self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -166,16 +169,19 @@ class EnMAPBox(QObject):
 
 
         #define managers (the center of all actions and all evil)
+        import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
 
         self.dataSourceManager = DataSourceManager(self)
         self.dockManager = DockManager(self)
-        self.processingAlgManager= ProcessingAlgorithmsManager(self)
+        self.processingAlgManager = ProcessingAlgorithmsManager(self)
 
         #connect managers with widgets
-        self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
+        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
+            self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
+
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
 
@@ -198,8 +204,13 @@ class EnMAPBox(QObject):
         self.ui.actionSettings.triggered.connect(self.saveProject)
 
 
+
+        self.ui.actionExit.triggered.connect(self.exit)
+
+
+
         # from now on other routines expect the EnMAP-Box to act like QGIS
-        if True:
+        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
             try:
                 logger.debug('initialize own QGIS Processing framework')
                 from processing.core.Processing import Processing
@@ -212,6 +223,12 @@ class EnMAPBox(QObject):
             except:
                 logger.warning('Failed to initialize QGIS Processing framework')
             s = ""
+
+
+    def exit(self):
+        self.ui.close()
+        self.close()
+
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
@@ -277,3 +294,5 @@ class EnMAPBox(QObject):
     def run(self):
         self.ui.show()
         pass
+
+
