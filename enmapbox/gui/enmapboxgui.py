@@ -9,7 +9,37 @@ from PyQt4.QtGui import *
 
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
-from enmapbox.gui.utils import loadUI, SETTINGS, DIR_TESTDATA
+from enmapbox.gui.utils import loadUI, SETTINGS, DIR_TESTDATA, MimeDataHelper
+
+class CentralFrame(QFrame):
+    sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
+    sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
+    sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
+    sigDropEvent = pyqtSignal(QDropEvent)
+
+    def __init__(self, *args, **kwds):
+        super(CentralFrame, self).__init__(*args, **kwds)
+        self.setAcceptDrops(True)
+
+
+    def dragEnterEvent(self, event):
+        logger.debug('CentralFrame dragEnterEvent')
+        pass
+        #self.sigDragEnterEvent.emit(event)
+
+    def dragMoveEvent(self, event):
+        pass
+        #self.sigDragMoveEvent.emit(event)
+
+    def dragLeaveEvent(self, event):
+        pass
+        #self.sigDragLeaveEvent(event)
+
+    def dropEvent(self, event):
+        logger.debug('CentralFrame dropEvent')
+        pass
+        #self.sigDropEvent.emit(event)
+
 
 class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
     def __init__(self, parent=None):
@@ -22,6 +52,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.setWindowIcon(getIcon())
+
+
 
         self.showMaximized()
         self.setAcceptDrops(True)
@@ -62,7 +94,47 @@ def getIcon():
     return QIcon(':/enmapbox/icons/enmapbox.png')
 
 
-class EnMAPBox(QgisInterface):
+class EnMAPBoxQgisInterface(QgisInterface):
+
+    def __init__(self, enmapBox):
+        assert isinstance(enmapBox, EnMAPBox)
+        super(EnMAPBoxQgisInterface, self).__init__()
+        self.enmapBox = enmapBox
+        self.virtualMapCanvas = QgsMapCanvas()
+        self.virtualMapCanvas.setCrsTransformEnabled(True)
+    def mainWindow(self):
+        return self.enmapBox.ui
+
+    def messageBar(self):
+        return self.enmapBox.ui.messageBar
+
+    def mapCanvas(self):
+        self.virtualMapCanvas.setLayerSet([])
+        lyrs = []
+        for ds in self.enmapBox.dataSourceManager.sources:
+            if isinstance(ds, DataSourceSpatial):
+                lyrs.append(ds.createRegisteredMapLayer())
+        if len(lyrs) > 0:
+            self.virtualMapCanvas.mapSettings().setDestinationCrs(lyrs[0].crs())
+        lyrs = [QgsMapCanvasLayer(l) for l in lyrs]
+
+        self.virtualMapCanvas.setLayerSet(lyrs)
+        self.virtualMapCanvas.setExtent(self.virtualMapCanvas.fullExtent())
+        logger.debug('layers show in QgsInterface::mapCanvas() {}'.format(len(self.virtualMapCanvas.layers())))
+        return self.virtualMapCanvas
+
+    def openMessageLog(self):
+        logger.debug('TODO: implement openMessageLog')
+        pass
+
+    def refreshLayerSymbology(selflayerId):
+        pass
+
+
+    def legendInterface(self):
+        return self.enmapBox.dockManager
+
+class EnMAPBox(QObject):
 
     _instance = None
 
@@ -78,22 +150,20 @@ class EnMAPBox(QgisInterface):
         super(EnMAPBox, self).__init__()
         EnMAPBox._instance = self
 
+        self.ifaceSimulation = EnMAPBoxQgisInterface(self)
         self.iface = iface
 
-        #init QGIS Processing Framework if necessary
+        # init QGIS Processing Framework if necessary
         from qgis import utils as qgsUtils
         if qgsUtils.iface is None:
-            #there is not running QGIS Instance. This means the entire QGIS processing framework was not
-            #initialzed at all.
-            qgsUtils.iface = self
-            #from now on other routines expect the EnMAP-Box to act like QGIS
+            # there is not running QGIS Instance. This means the entire QGIS processing framework was not
+            # initialized at all.
+            qgsUtils.iface = self.ifaceSimulation
 
-            from processing.core.Processing import Processing
-            Processing.initialize()
-            from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
-            Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
         self.ui = EnMAPBoxUI()
+
+
 
         #define managers (the center of all actions and all evil)
         from enmapbox.gui.datasourcemanager import DataSourceManager
@@ -109,6 +179,14 @@ class EnMAPBox(QgisInterface):
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
 
+        self.ui.centralFrame.sigDragEnterEvent.connect(
+            lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
+        self.ui.centralFrame.sigDragMoveEvent.connect(
+            lambda event : self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
+        self.ui.centralFrame.sigDragLeaveEvent.connect(
+            lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
+        self.ui.centralFrame.sigDropEvent.connect(
+            lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
 
         #link action to managers
         self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
@@ -118,9 +196,34 @@ class EnMAPBox(QgisInterface):
 
         self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
         self.ui.actionSettings.triggered.connect(self.saveProject)
-        s = ""
 
 
+        # from now on other routines expect the EnMAP-Box to act like QGIS
+        if True:
+            try:
+                logger.debug('initialize own QGIS Processing framework')
+                from processing.core.Processing import Processing
+                Processing.initialize()
+
+                from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
+                Processing.addProvider(EnMAPBoxAlgorithmProvider())
+
+                logger.debug('QGIS Processing framework initialized')
+            except:
+                logger.warning('Failed to initialize QGIS Processing framework')
+            s = ""
+
+    def onDataDropped(self, droppedData):
+        assert isinstance(droppedData, list)
+        mapDock = None
+        from enmapbox.gui.datasources import DataSourceSpatial
+        for dataItem in droppedData:
+            if isinstance(dataItem, DataSourceSpatial):
+                dataSrc = self.dataSourceManager.addSource(dataItem)
+                if mapDock is None:
+                    mapDock = self.createDock('MAP')
+                mapDock.addLayers(dataSrc.createRegisteredMapLayer())
+            s = ""
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
@@ -151,7 +254,7 @@ class EnMAPBox(QgisInterface):
 
 
     def createDock(self, *args, **kwds):
-        self.dockManager.createDock(*args, **kwds)
+        return self.dockManager.createDock(*args, **kwds)
 
     def removeDock(self, *args, **kwds):
         self.dockManager.removeDock(*args, **kwds)
@@ -174,30 +277,3 @@ class EnMAPBox(QgisInterface):
     def run(self):
         self.ui.show()
         pass
-
-    """
-    QgisInterface compliance
-    """
-    def mainWindow(self):
-        return self.ui
-
-    def messageBar(self):
-        return self.ui.messageBar
-
-    virtualMapCanvas = QgsMapCanvas()
-    def mapCanvas(self):
-        EnMAPBox.virtualMapCanvas.setLayerSet([])
-        lyrs = []
-        for ds in self.dataSourceManager.sources:
-            if isinstance(ds, DataSourceSpatial):
-                lyrs.append(ds.createRegisteredMapLayer())
-        lyrs = [QgsMapCanvasLayer(l) for l in lyrs]
-        EnMAPBox.virtualMapCanvas.setLayerSet(lyrs)
-        return EnMAPBox.virtualMapCanvas
-
-    def refreshLayerSymbology(selflayerId):
-        pass
-
-
-    def legendInterface(self):
-        return self.dockManager
