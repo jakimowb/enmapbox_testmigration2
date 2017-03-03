@@ -4,7 +4,7 @@ import collections
 import os
 import re
 
-import gdal
+from osgeo import gdal, ogr
 import numpy as np
 from qgis.gui import *
 from qgis.core import *
@@ -271,18 +271,16 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
                 myMinLineEdit = self.minEdits[c]
                 myMaxLineEdit = self.maxEdits[c]
         if myMinLineEdit is None:
-            from enmapbox import dprint
-            dprint('Band not found')
             return
         if theMin is None or qIsNaN(theMax):
             myMinLineEdit.clear()
         else:
-            myMinLineEdit.setText(str(theMin))
+            myMinLineEdit.setText(str(np.round(theMin, 5)))
 
         if theMax is None or qIsNaN(theMax):
             myMaxLineEdit.clear()
         else:
-            myMaxLineEdit.setText(str(theMax))
+            myMaxLineEdit.setText(str(np.round(theMax, 5)))
 
     def onBandChanged(self, index):
         myBands = [c.currentIndex() for c in self.cBoxes]
@@ -328,15 +326,19 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
     def minMax(self, index):
         return self.min(index), self.max(index)
 
+
+
     def setMin(self, value, index):
-        if index == 0: self.mRedMinLineEdit.setText(str(value))
-        if index == 1: self.mGreenMinLineEdit.setText(str(value))
-        if index == 2: self.mBlueMinLineEdit.setText(str(value))
+        t = str(np.round(value, 5))
+        if index == 0: self.mRedMinLineEdit.setText(t)
+        if index == 1: self.mGreenMinLineEdit.setText(t)
+        if index == 2: self.mBlueMinLineEdit.setText(t)
 
     def setMax(self, value, index):
-        if index == 0: self.mRedMaxLineEdit.setText(str(value))
-        if index == 1: self.mGreenMaxLineEdit.setText(str(value))
-        if index == 2: self.mBlueMaxLineEdit.setText(str(value))
+        t = str(np.round(value, 5))
+        if index == 0: self.mRedMaxLineEdit.setText(t)
+        if index == 1: self.mGreenMaxLineEdit.setText(t)
+        if index == 2: self.mBlueMaxLineEdit.setText(t)
 
     def stdDev(self):
         s = ""
@@ -359,17 +361,17 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
         if ce is None:
             minEdit.clear()
             maxEdit.clear()
+        else:
 
+            assert isinstance(ce, QgsContrastEnhancement)
+            assert isinstance(self.mContrastEnhancementAlgorithmComboBox, QComboBox)
+            minEdit.setText(str(ce.minimumValue()))
+            maxEdit.setText(str(ce.maximumValue()))
 
-        assert isinstance(ce, QgsContrastEnhancement)
-        assert isinstance(self.mContrastEnhancementAlgorithmComboBox, QComboBox)
-        minEdit.setText(str(ce.minimumValue()))
-        maxEdit.setText(str(ce.maximumValue()))
-
-        alg = ce.contrastEnhancementAlgorithm()
-        algs = [self.mContrastEnhancementAlgorithmComboBox.itemData(i) for i in
-                range(self.mContrastEnhancementAlgorithmComboBox.count())]
-        self.mContrastEnhancementAlgorithmComboBox.setCurrentIndex(algs.index(alg))
+            alg = ce.contrastEnhancementAlgorithm()
+            algs = [self.mContrastEnhancementAlgorithmComboBox.itemData(i) for i in
+                    range(self.mContrastEnhancementAlgorithmComboBox.count())]
+            self.mContrastEnhancementAlgorithmComboBox.setCurrentIndex(algs.index(alg))
 
 
 
@@ -378,9 +380,9 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
             return None
         i = self.mContrastEnhancementAlgorithmComboBox.currentIndex()
         if self.mContrastEnhancementAlgorithmComboBox.itemData(i) == QgsContrastEnhancement.NoEnhancement:
-            r.setRedContrast(None)
-            r.setGreenContrast(None)
-            r.setBlueContrast(None)
+            r.setRedContrastEnhancement(None)
+            r.setGreenContrastEnhancement(None)
+            r.setBlueContrastEnhancement(None)
         else:
             def setEnhancement(cmin, cmax, band):
                 if cmin is not None and cmax is not None and band != -1:
@@ -430,7 +432,7 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
             self.setMinMaxValue(r.blueContrastEnhancement(), self.mBlueMinLineEdit, self.mBlueMaxLineEdit)
             self.defaultBands = [r.redBand(), r.greenBand(), r.blueBand()]
         else:
-            self.defaultBands = [0,0,0]
+            self.defaultBands = [1,1,1]
             self.mRedBandComboBox.setCurrentIndex(self.mRedBandComboBox.findText('Red'))
             self.mGreenBandComboBox.setCurrentIndex(self.mGreenBandComboBox.findText('Green'))
             self.mBlueBandComboBox.setCurrentIndex(self.mBlueBandComboBox.findText('Blue'))
