@@ -333,7 +333,7 @@ class CursorLocationValueWidget(QMainWindow,
             childs.append({'name':'x', 'value':p.coord_px.x(), 'type':'int', 'readonly':True})
             childs.append({'name':'y', 'value': p.coord_px.y(), 'type': 'int', 'readonly': True})
             for i in range(p.nb):
-                v = p.values[i].y
+                v = p.values[i].yValue
                 childs.append({'name':'band {}'.format(i+1), 'value': v, 'type': 'str', 'readonly': True})
             datasource['children'] = childs
             params.append(datasource)

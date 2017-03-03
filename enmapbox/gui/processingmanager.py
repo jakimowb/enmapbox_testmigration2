@@ -12,11 +12,10 @@ from enmapbox.gui.datasources import *
 """
 This module describes the EnMAP-GUI <-> Processing Framework interactions
 """
-from processing.core.Processing import Processing
-from processing.core.alglist import algList
-
 
 from processing.gui.ProcessingToolbox import ProcessingToolbox
+
+
 
 
 class ProcessingAlgorithmsPanelUI(ProcessingToolbox):
@@ -59,8 +58,8 @@ class ProcessingAlgorithmsManager(QObject):
 
         self.enmapBox = enmapBoxInstance
 
-
         from processing.core.Processing import Processing
+        from processing.core.alglist import algList
 
         algList.providerRemoved.connect(self.onProviderRemoved)
         algList.providerAdded.connect(self.onProviderAdded)
@@ -74,17 +73,6 @@ class ProcessingAlgorithmsManager(QObject):
         Signals.htmlCreated.connect(self.onFileCreated)
 
 
-    def filterProviders(self, providerList, activated=True):
-
-        assert isinstance(providerList, list)
-        assert all([p is str for p in providerList])
-
-        if activated:
-            for provider in Processing.providers:
-                if provider not in providerList:
-                    provider
-        Processing.activateProvider()
-        s = ""
 
     def onProviderRemoved(self, key):
         logger.debug('Provider removed {}'.format(key))

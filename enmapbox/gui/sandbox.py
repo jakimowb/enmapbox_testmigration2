@@ -26,8 +26,8 @@ def sandboxGUI():
     if False:
         if True:
             from enmapbox.testdata import UrbanGradient
-            #EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
-            #EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
+            EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
+            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
             EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Vec_Berlin_Urban_Gradient_2009_shp)
             EB.createDock('CURSORLOCATIONVALUE')
         if False: EB.createDock('MIME')
@@ -50,12 +50,15 @@ def sandboxGUI():
     # EB.addSource(
     #   r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
     EB.run()
+    from enmapbox.testdata import UrbanGradient
+    if False:
+        EB.addSource(UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
 
     if True:
-        from enmapbox.testdata import UrbanGradient
-        #EB.createDock('MAP', name='EnMAP 01', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='HyMap 01', initSrc=UrbanGradient.HyMap01_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='LandCov Level1', initSrc=UrbanGradient.LandCov_Layer_Level1_Berlin_Urban_Gradient_2009_bsq)
+
+        EB.createDock('MAP', name='EnMAP 01', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
+        EB.createDock('MAP', name='HyMap 01', initSrc=UrbanGradient.HyMap01_Berlin_Urban_Gradient_2009_bsq)
+        EB.createDock('MAP', name='LandCov Level1', initSrc=UrbanGradient.LandCov_Layer_Level1_Berlin_Urban_Gradient_2009_bsq)
         EB.createDock('MAP', name='LandCov Level2', initSrc=UrbanGradient.LandCov_Layer_Level2_Berlin_Urban_Gradient_2009_bsq)
         EB.createDock('MAP', name='Shapefile', initSrc=UrbanGradient.LandCov_Vec_polygons_Berlin_Urban_Gradient_2009_shp)
         EB.createDock('CURSORLOCATIONVALUE')
