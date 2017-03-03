@@ -11,7 +11,45 @@ LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
 def writelogmessage(message, tag, level):
     print('{}({}): {}'.format( tag, level, message ) )
 from qgis.core import QgsMessageLog
-QgsMessageLog.instance().messageReceived.connect( writelogmessage)
+QgsMessageLog.instance().messageReceived.connect(writelogmessage)
+
+
+def _sandboxTemplate():
+    qgsApp = initQgs()
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+
+    #do something here
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
+def sandboxPureGui():
+    qgsApp = initQgs()
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+    from enmapbox.testdata import HymapBerlinB
+    for k in HymapBerlinB.__dict__.keys():
+        if k.startswith('Hymap'):
+            EB.addSource(getattr(HymapBerlinB, k))
+    #do something here
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
+
+def sandboxDragDrop():
+    qgsApp = initQgs()
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+
+    # do something here
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
 
 
 def sandboxGUI():
@@ -77,15 +115,29 @@ def sandboxGUI():
 
 
 def initQgs():
+    import site
+
     # start a QGIS instance
     if sys.platform == 'darwin':
         PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
         os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+
+        #rios?
+        from enmapbox.gui.utils import DIR_SITEPACKAGES
+        #add win32 package, at least try to
+
+        pathDarwin = jp(DIR_SITEPACKAGES, *['darwin'])
+        site.addsitedir(pathDarwin)
+        s = ""
+
     else:
         # assume OSGeo4W startup
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
     os.environ['QGIS_DEBUG'] = '1'
     assert os.path.exists(PATH_QGS)
+
+
+
     qgsApp = QgsApplication([], True)
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
@@ -160,5 +212,7 @@ if __name__ == '__main__':
 
 
     #run tests
-    if True: sandboxGUI()
+    if True: sandboxPureGui()
+    if False: sandboxDragDrop()
+    if False: sandboxGUI()
     if False: sandboxDialog()

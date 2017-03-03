@@ -77,7 +77,7 @@ class DataSourceFactory(object):
         :return: uri (str) | None
         """
 
-        gdal.UseExceptions(False)
+        gdal.UseExceptions()
         uri = None
         if isinstance(src, QgsRasterLayer) and src.isValid():
             uri = DataSourceFactory.isRasterSource(src.dataProvider())
