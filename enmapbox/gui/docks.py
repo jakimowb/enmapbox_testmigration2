@@ -840,9 +840,19 @@ class MapCanvas(QgsMapCanvas):
         return SpatialExtent.fromMapCanvas(self)
 
     def setLayerSet(self, mapCanvasLayers):
-        newSet = [ml.layer() for ml in mapCanvasLayers]
         lastSet = self.layers()
+        newSet = [ml.layer() for ml in mapCanvasLayers]
+
+        #register not-registered layers
+        reg = QgsMapLayerRegistry.instance()
+
+        for l in newSet:
+            if not l in reg.children():
+                reg.addMapLayer(l, False)
+
+        #set the new layers
         super(MapCanvas,self).setLayerSet(mapCanvasLayers)
+
         removedLayers = [l for l in lastSet if l not in newSet]
         addedLayers = [l for l in newSet if l not in lastSet]
 
@@ -856,7 +866,8 @@ class MapCanvas(QgsMapCanvas):
             self.sigLayersRemoved.emit(removedLayers)
         if len(addedLayers) > 0:
             self.sigLayersAdded.emit(addedLayers)
-        s = ""
+
+        self.refresh()
 
 class MapDock(Dock):
     """
@@ -1079,18 +1090,7 @@ class MapDock(Dock):
 
     def setLayerSet(self, mapLayers):
         assert isinstance(mapLayers, list)
-        reg = QgsMapLayerRegistry.instance()
-
-        cnt0 = len(self.canvas.layers())
-        #register unregistered layers
-        for l in mapLayers:
-            assert isinstance(l, QgsMapLayer)
-            if not l in reg.children():
-                reg.addMapLayer(l, False)
-        canvasLayers = [QgsMapCanvasLayer(l) for l in mapLayers]
-        self.canvas.setLayerSet(canvasLayers)
-
-        self.canvas.refresh()
+        self.canvas.setLayerSet(mapLayers)
 
 
     def addLayers(self, mapLayers):
