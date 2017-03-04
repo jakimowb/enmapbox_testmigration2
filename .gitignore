@@ -5,6 +5,11 @@
 *.pyc 
 *.pyd
 *.pyc
+
+#are changed all the time, should be commited explicitely
+*.aux.xml
+
 /documentation/build/doctrees/
 enmapbox/testdata/AlpineForeland/AF_Image.bip.aux.xml
 enmapbox/testdata/AlpineForeland/AF_LAI.bsq.aux.xml
+enmapbox/gui/ui/tmp.ui
