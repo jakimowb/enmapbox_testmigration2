@@ -18,7 +18,7 @@
   </Metadata>
   <PAMRasterBand band="1">
     <Description>Regression Band</Description>
-    <NoDataValue>-1.00000000000000E+000</NoDataValue>
+    <NoDataValue>-1.00000000000000E+00</NoDataValue>
     <Histograms>
       <HistItem>
         <HistMin>-0.05</HistMin>
