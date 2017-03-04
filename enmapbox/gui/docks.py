@@ -843,22 +843,26 @@ class MapCanvas(QgsMapCanvas):
         raise Exception('Depricated: Not supported any more (QGIS 3)')
 
     def setLayers(self, mapLayers):
+
         lastSet = self.layers()
         newSet = mapLayers[:]
 
         #register not-registered layers
         reg = QgsMapLayerRegistry.instance()
-        for l in [l for l in newSet if l not in reg.children()]:
-            reg.addMapLayer(l, False)
+        for l in newSet:
+            assert isinstance(l, QgsMapLayer)
+            if l not in reg.children():
+                reg.addMapLayer(l, False)
 
-        #set the new layers
-        super(MapCanvas,self).setLayers([QgsMapCanvasLayer(l) for l in newSet])
+        #set the new layers (QGIS 2 style)
+        #todo: change with QGIS 3
+        super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
 
         if not self._extentInitialized and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent
             self.mapSettings().setDestinationCrs(newSet[0].crs())
             self.setSpatialExtent(SpatialExtent.fromMapCanvas(self, fullExtent=True))
-
+            self._extentInitialized = True
         self.refresh()
 
         #signal what has been added, what has been removed
@@ -1091,6 +1095,10 @@ class MapDock(Dock):
     def linkWithCanvas(self, canvas, linktype):
         assert isinstance(canvas, QgsMapCanvas)
         CanvasLinkManager.instance().addLinkSet(self, canvas, linktype)
+
+
+    def layers(self):
+        return self.canvas.layers()
 
     def setLayers(self, mapLayers):
         assert isinstance(mapLayers, list)

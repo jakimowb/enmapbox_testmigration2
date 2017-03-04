@@ -284,9 +284,13 @@ class DataSourceSpatial(DataSource):
         Returns a new registered map layer from this data source
         :return:
         """
+
+
         ml = self.createUnregisteredMapLayer(*args, **kwds)
         ml.setName(self.name)
-        QgsMapLayerRegistry.instance().addMapLayer(ml, False)
+
+        #not reuqired any more, will be done by map canvas
+        #QgsMapLayerRegistry.instance().addMapLayer(ml, False)
         self.mapLayers.append(ml)
         return ml
 

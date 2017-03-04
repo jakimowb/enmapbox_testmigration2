@@ -87,17 +87,25 @@ class DockManagerTreeModel(TreeModel):
 
             lyr = node.layer()
             action = QAction('Properties', menu)
+            action.setToolTip('Shows the layer properties')
             action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
             menu.addAction(action)
 
             action = QAction('Remove', menu)
-            action.triggered.connect(lambda: mapNode.dock.removeLayers([lyr]))
+            action.setToolTip('Removes this layer from the map canvas')
+            action.triggered.connect(lambda: parentNode.removeChildNode(node))
             menu.addAction(action)
 
         elif isinstance(node, DockTreeNode):
             # global
             action = QAction('Close', menu)
+            action.setToolTip('Closes this map dock')
             action.triggered.connect(lambda: self.dockManager.removeDock(node.dock))
+            menu.addAction(action)
+
+            action = QAction('Clear', menu)
+            action.triggered.connect(lambda: node.removeAllChildren())
+            action.setToolTip('Removes all layers from this map dock')
             menu.addAction(action)
 
         return menu
@@ -191,12 +199,18 @@ class DockManagerTreeModel(TreeModel):
             if MDH.hasDataSources():
                 dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
                 if len(dataSources) > 0:
-                    nodes = [QgsLayerTreeLayer(ds.createRegisteredMapLayer()) for ds in dataSources]
+                    layers = [ds.createRegisteredMapLayer() for ds in dataSources]
+
+                    #layers for nodes have to be registered
+                    reg = QgsMapLayerRegistry.instance()
+                    reg = QgsMapLayerRegistry.instance().addMapLayers(layers, False)
+                    nodes = [QgsLayerTreeLayer(l) for l in layers]
+
                     if len(nodes) > 0:
                         if parent.isValid() and row == -1:
                             row = 0
                         node.insertChildNodes(row, nodes)
-                        return True
+                    return True
         elif isinstance(dockNode, TextDockTreeNode):
 
             s = ""

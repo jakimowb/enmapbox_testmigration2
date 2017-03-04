@@ -650,7 +650,7 @@ if __name__ == '__main__':
 
     QgsMapLayerRegistry.instance().addMapLayer(l)
     c = QgsMapCanvas()
-    c.setLayerSet([QgsMapCanvasLayer(v)])
+    c.setLayers([QgsMapCanvasLayer(v)])
     c.setDestinationCrs(l.crs())
     c.setExtent(l.extent())
     c.refresh()
