@@ -10,4 +10,4 @@
 *.aux.xml
 
 /documentation/build/doctrees/
-enmapbox/gui/ui/tmp.ui
+/enmapbox/gui/ui/tmp.ui

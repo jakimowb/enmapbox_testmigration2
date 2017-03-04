@@ -227,7 +227,7 @@ class EnMAPBox(QObject):
 
     def exit(self):
         self.ui.close()
-        self.close()
+        self.deleteLater()
 
 
     def onDataDropped(self, droppedData):
