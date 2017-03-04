@@ -8,24 +8,21 @@ from enmapbox.gui.utils import PanelWidgetBase, loadUI
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
+from enmapbox.gui import LOAD_PROCESSING_FRAMEWORK
 
 """
 This module describes the EnMAP-GUI <-> Processing Framework interactions
 """
-from processing.core.Processing import Processing
-from processing.core.alglist import algList
-
 
 from processing.gui.ProcessingToolbox import ProcessingToolbox
 
 
+
+
 class ProcessingAlgorithmsPanelUI(ProcessingToolbox):
     def __init__(self, parent=None):
-        #
 
         ProcessingToolbox.__init__(self)
-        #PanelWidgetBase.__init__(self, parent)
-        #super(ProcessingAlgorithmsPanelUI, self).__init__()
 
         self.setWindowTitle('QGIS Processing Toolbox')
         """
@@ -59,32 +56,22 @@ class ProcessingAlgorithmsManager(QObject):
 
         self.enmapBox = enmapBoxInstance
 
+        if LOAD_PROCESSING_FRAMEWORK:
+            from processing.core.Processing import Processing
+            from processing.core.alglist import algList
 
-        from processing.core.Processing import Processing
+            algList.providerRemoved.connect(self.onProviderRemoved)
+            algList.providerAdded.connect(self.onProviderAdded)
+            algList.providerUpdated.connect(self.onProviderUpdated)
 
-        algList.providerRemoved.connect(self.onProviderRemoved)
-        algList.providerAdded.connect(self.onProviderAdded)
-        algList.providerUpdated.connect(self.onProviderUpdated)
-
-        #connect EnMAP-Box processing framework specifics
-        from enmapboxplugin.processing.Signals import Signals
-        Signals = Signals.signals
-        Signals.imageCreated.connect(self.onFileCreated)
-        Signals.pickleCreated.connect(self.onFileCreated)
-        Signals.htmlCreated.connect(self.onFileCreated)
+            #connect EnMAP-Box processing framework specifics
+            from enmapboxplugin.processing.Signals import Signals
+            Signals = Signals.signals
+            Signals.imageCreated.connect(self.onFileCreated)
+            Signals.pickleCreated.connect(self.onFileCreated)
+            Signals.htmlCreated.connect(self.onFileCreated)
 
 
-    def filterProviders(self, providerList, activated=True):
-
-        assert isinstance(providerList, list)
-        assert all([p is str for p in providerList])
-
-        if activated:
-            for provider in Processing.providers:
-                if provider not in providerList:
-                    provider
-        Processing.activateProvider()
-        s = ""
 
     def onProviderRemoved(self, key):
         logger.debug('Provider removed {}'.format(key))

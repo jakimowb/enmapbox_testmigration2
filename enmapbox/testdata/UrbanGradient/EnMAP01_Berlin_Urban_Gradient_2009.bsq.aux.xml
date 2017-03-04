@@ -114,7 +114,6 @@
     <MDI key="Band_97">band 109 (2.210300 Micrometers)</MDI>
     <MDI key="Band_98">band 110 (2.228100 Micrometers)</MDI>
     <MDI key="Band_99">band 111 (2.245600 Micrometers)</MDI>
-    <MDI key="wavelength_units">Micrometers</MDI>
   </Metadata>
   <Metadata domain="ENVI">
     <MDI key="bands">111</MDI>
@@ -147,8 +146,6 @@
       <MDI key="STATISTICS_MEAN">0.049239708402505</MDI>
       <MDI key="STATISTICS_MINIMUM">0.016311513260007</MDI>
       <MDI key="STATISTICS_STDDEV">0.014315784576346</MDI>
-      <MDI key="Wavelength">455.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
     </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="2">
@@ -168,8 +165,6 @@
       <MDI key="STATISTICS_MEAN">0.049715739634509</MDI>
       <MDI key="STATISTICS_MINIMUM">0.016779642552137</MDI>
       <MDI key="STATISTICS_STDDEV">0.014745595896241</MDI>
-      <MDI key="Wavelength">469.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
     </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="3">
@@ -189,764 +184,330 @@
       <MDI key="STATISTICS_MEAN">0.050714026524996</MDI>
       <MDI key="STATISTICS_MINIMUM">0.017092308029532</MDI>
       <MDI key="STATISTICS_STDDEV">0.015246579212937</MDI>
-      <MDI key="Wavelength">484.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
     </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="4">
     <Description>band 4 (0.499100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">499.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="5">
     <Description>band 5 (0.513800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">513.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="6">
     <Description>band 6 (0.528800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">528.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="7">
     <Description>band 7 (0.543600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">543.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="8">
     <Description>band 8 (0.558400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">558.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="9">
     <Description>band 9 (0.573100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">573.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="10">
     <Description>band 10 (0.588100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">588.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="11">
     <Description>band 11 (0.602900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">602.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="12">
     <Description>band 12 (0.617600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">617.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="13">
     <Description>band 13 (0.632000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">632</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="14">
     <Description>band 14 (0.646500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">646.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="15">
     <Description>band 15 (0.660900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">660.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="16">
     <Description>band 16 (0.675500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">675.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="17">
     <Description>band 17 (0.690000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">690</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="18">
     <Description>band 18 (0.704500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">704.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="19">
     <Description>band 19 (0.718900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">718.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="20">
     <Description>band 20 (0.733200 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">733.2</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="21">
     <Description>band 21 (0.747600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">747.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="22">
     <Description>band 22 (0.761800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">761.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="23">
     <Description>band 23 (0.775900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">775.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="24">
     <Description>band 24 (0.790100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">790.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="25">
     <Description>band 25 (0.804600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">804.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="26">
     <Description>band 26 (0.818800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">818.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="27">
     <Description>band 27 (0.832900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">832.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="28">
     <Description>band 28 (0.847100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">847.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="29">
     <Description>band 29 (0.861100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">861.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="30">
     <Description>band 30 (0.874700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">874.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="31">
     <Description>band 31 (0.887800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">887.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="32">
     <Description>band 32 (0.893000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">893</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="33">
     <Description>band 33 (0.908500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">908.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="34">
     <Description>band 34 (0.923900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">923.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="35">
     <Description>band 35 (0.939400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">939.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="36">
     <Description>band 36 (0.955200 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">955.2</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="37">
     <Description>band 37 (0.970400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">970.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="38">
     <Description>band 38 (0.985800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">985.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="39">
     <Description>band 39 (1.001400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1001.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="40">
     <Description>band 40 (1.016600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1016.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="41">
     <Description>band 41 (1.031800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1031.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="42">
     <Description>band 42 (1.046900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1046.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="43">
     <Description>band 43 (1.062000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1062</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="44">
     <Description>band 44 (1.076600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1076.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="45">
     <Description>band 45 (1.091300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1091.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="46">
     <Description>band 46 (1.106200 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1106.2</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="47">
     <Description>band 47 (1.120800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1120.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="48">
     <Description>band 48 (1.135300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1135.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="49">
     <Description>band 49 (1.149700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1149.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="50">
     <Description>band 50 (1.164100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1164.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="51">
     <Description>band 51 (1.178600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1178.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="52">
     <Description>band 52 (1.192800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1192.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="53">
     <Description>band 53 (1.206900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1206.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="54">
     <Description>band 54 (1.221000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1221</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="55">
     <Description>band 55 (1.235100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1235.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="56">
     <Description>band 56 (1.249200 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1249.2</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="57">
     <Description>band 57 (1.263100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1263.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="58">
     <Description>band 58 (1.277000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1277</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="59">
     <Description>band 59 (1.290700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1290.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="60">
     <Description>band 60 (1.304300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1304.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="61">
     <Description>band 61 (1.318300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1318.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="62">
     <Description>band 62 (1.330100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1330.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="63">
     <Description>band 71 (1.505000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1505</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="64">
     <Description>band 72 (1.518800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1518.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="65">
     <Description>band 73 (1.532600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1532.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="66">
     <Description>band 74 (1.546300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1546.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="67">
     <Description>band 75 (1.559800 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1559.8</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="68">
     <Description>band 76 (1.573200 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1573.2</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="69">
     <Description>band 77 (1.586400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1586.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="70">
     <Description>band 78 (1.599500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1599.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="71">
     <Description>band 79 (1.612700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1612.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="72">
     <Description>band 80 (1.625900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1625.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="73">
     <Description>band 81 (1.638900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1638.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="74">
     <Description>band 82 (1.651700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1651.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="75">
     <Description>band 83 (1.664400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1664.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="76">
     <Description>band 84 (1.677100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1677.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="77">
     <Description>band 85 (1.689600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1689.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="78">
     <Description>band 86 (1.702100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1702.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="79">
     <Description>band 87 (1.714600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1714.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="80">
     <Description>band 88 (1.726900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1726.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="81">
     <Description>band 89 (1.739300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1739.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="82">
     <Description>band 90 (1.751500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1751.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="83">
     <Description>band 91 (1.763600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1763.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="84">
     <Description>band 92 (1.775600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1775.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="85">
     <Description>band 93 (1.787600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1787.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="86">
     <Description>band 94 (1.798100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">1798.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="87">
     <Description>band 99 (2.027500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2027.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="88">
     <Description>band 100 (2.046700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2046.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="89">
     <Description>band 101 (2.065500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2065.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="90">
     <Description>band 102 (2.084100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2084.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="91">
     <Description>band 103 (2.102500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2102.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="92">
     <Description>band 104 (2.120900 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2120.9</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="93">
     <Description>band 105 (2.139000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2139</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="94">
     <Description>band 106 (2.157000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2157</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="95">
     <Description>band 107 (2.174700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2174.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="96">
     <Description>band 108 (2.191700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2191.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="97">
     <Description>band 109 (2.210300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2210.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="98">
     <Description>band 110 (2.228100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2228.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="99">
     <Description>band 111 (2.245600 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2245.6</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="100">
     <Description>band 112 (2.263400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2263.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="101">
     <Description>band 113 (2.280400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2280.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="102">
     <Description>band 114 (2.297400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2297.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="103">
     <Description>band 115 (2.314400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2314.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="104">
     <Description>band 116 (2.331400 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2331.4</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="105">
     <Description>band 117 (2.348300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2348.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="106">
     <Description>band 118 (2.365000 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2365</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="107">
     <Description>band 119 (2.381500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2381.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="108">
     <Description>band 120 (2.397700 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2397.7</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="109">
     <Description>band 121 (2.414100 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2414.1</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="110">
     <Description>band 122 (2.430300 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2430.3</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
   <PAMRasterBand band="111">
     <Description>band 123 (2.446500 Micrometers)</Description>
-    <Metadata>
-      <MDI key="Wavelength">2446.5</MDI>
-      <MDI key="wavelength_units">Micrometers</MDI>
-    </Metadata>
   </PAMRasterBand>
 </PAMDataset>

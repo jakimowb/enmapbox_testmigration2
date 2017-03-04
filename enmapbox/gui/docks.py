@@ -174,7 +174,7 @@ class CanvasLinkManager:
             l.append(str(linkSet))
         return l
 
-    def setChanges(self, master):
+    def setChanges(self, masterCanvas):
         #canvas = the canvas that signaled a map change
 
         #all_canvases = CanvasLinkSet.getCanvases()
@@ -182,21 +182,20 @@ class CanvasLinkManager:
         #...
         #for c in all_canvases: c.blockSignals(False)
 
-        assert isinstance(master, MapCanvas)
+        assert isinstance(masterCanvas, MapCanvas)
 
 
         if len(self.handledCanvases) == 0:
-            logger.debug('START LINKING FROM: {}'.format(master))
+            logger.debug('START LINKING FROM: {}'.format(masterCanvas))
 
-        self.handledCanvases.add(master)
+        self.handledCanvases.add(masterCanvas)
 
-        mst_extent = master.extent()
-        mst_center = master.center()
-        mst_crs = master.mapSettings().destinationCrs()
+        mst_extent = SpatialExtent.fromMapCanvas(masterCanvas)
+        mst_center = SpatialPoint.fromMapCanvasCenter(masterCanvas)
 
         changed = set()
         #apply changes to L1 generation of connected canvases = directly connecte to canvas
-        to_change = [link for link in self.connectedLinks(master)
+        to_change = [link for link in self.connectedLinks(masterCanvas)
                      if len(link.canvases.difference(self.handledCanvases)) > 0]
 
 
@@ -205,71 +204,58 @@ class CanvasLinkManager:
 
 
             assert isinstance(link, CanvasLink)
-            dst = link.theOtherCanvas(master)
-            assert isinstance(dst, QgsMapCanvas)
+            dstCanvas = link.theOtherCanvas(masterCanvas)
+            assert isinstance(dstCanvas, MapCanvas)
 
             if True:
-                dst.blockSignals(True)
+                dstCanvas.blockSignals(True)
+            #original center and extent
+            centerO = SpatialPoint.fromMapCanvasCenter(dstCanvas)
+            extentO = SpatialExtent.fromMapCanvas(dstCanvas)
 
+            #transform (T) to target CRS
+            dstCrs = dstCanvas.mapSettings().destinationCrs()
+            extentT = mst_extent.toCrs(dstCrs)
+            centerT = mst_center.toCrs(dstCrs)
 
-            #if necessary, transform to target CRS,
-            dst_crs = dst.mapSettings().destinationCrs()
-            trans = QgsCoordinateTransform(mst_crs, dst_crs)
-            trans.initialise()
+            w, h = masterCanvas.width(), masterCanvas.height()
+            if w == 0:
+                w = max([10, dstCanvas.width()])
+            if h == 0:
+                h = max([10, dstCanvas.height()])
 
-            if trans.isShortCircuited():
-                new_extent = mst_extent
-                new_center = mst_center
-            else:
-                new_extent = trans.transform(mst_extent)
-                new_center = trans.transform(mst_center)
+            mapUnitsPerPx_x = extentT.width() / w
+            mapUnitsPerPx_y = extentT.height() / h
 
-            #the recent/old map center + extent
-            new_muppx = new_extent.width() / master.width()
-            new_muppy = new_extent.height() / master.height()
-            w = master.width() * new_muppx * 0.5
-            h = master.height() * new_muppy * 0.5
-            x = dst.center().x()
-            y = dst.center().y()
-
-            dst_old_center = dst.center()
-            dst_old_extent = dst.extent()
-            dst_old_center_new_scale = QgsRectangle(x-w,y-h,x+w,y+h)
-
-
-            w = dst.extent().width() * 0.5
-            h = dst.extent().height() * 0.5
-            x = new_center.x()
-            y = new_center.y()
-            dst_new_center_old_scale = QgsRectangle(x-w,y-h,x+w,y+h)
-
+            scaledWidth = mapUnitsPerPx_x * dstCanvas.width()
+            scaledHeight = mapUnitsPerPx_y * dstCanvas.height()
+            scaledBox = SpatialExtent(dstCrs, scaledWidth, scaledHeight).setCenter(centerO)
 
             if link.linktype == 'center':
-
-                dst.setCenter(dst_new_center_old_scale.center())
+                dstCanvas.setCenter(centerT)
 
             elif link.linktype == 'scale':
-                dst.zoomToFeatureExtent(dst_old_center_new_scale)
+                dstCanvas.zoomToFeatureExtent(scaledBox)
 
             elif link.linktype == 'center_scale':
-                dst.zoomToFeatureExtent(new_extent)
-                dst.setCenter(new_extent.center())
+                dstCanvas.zoomToFeatureExtent(extentT)
+
 
 
             else:
                 raise NotImplementedError()
 
-            dst.blockSignals(False)
+            dstCanvas.blockSignals(False)
 
             #dst.refresh()
-            changed.add(dst)
+            changed.add(dstCanvas)
 
 
         #set applied changes to L2 generation of connected canvases
         for canvas in changed:
             self.setChanges(canvas)
 
-        self.handledCanvases.remove(master)
+        self.handledCanvases.remove(masterCanvas)
 
 
 
@@ -314,6 +300,18 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         super(DockArea, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
 
+    def apoptose(self):
+        #print "apoptose area:", self.temporary, self.topContainer, self.topContainer.count()
+        if self.topContainer.count() == 0:
+            self.topContainer = None
+            from enmapbox.gui.enmapboxgui import EnMAPBoxUI
+            if not isinstance(self.topLevelWidget(), EnMAPBoxUI):
+                s = ""
+
+            if self.temporary and self.home is not None:
+                self.home.removeTempArea(self)
+        else:
+            s = ""
 
     def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
         assert enmapboxdock is not None
@@ -340,9 +338,12 @@ class DockArea(pyqtgraph.dockarea.DockArea):
 
     # forward to EnMAPBox
     def dragMoveEvent(self, event):
+
         self.sigDragMoveEvent.emit(event)
+
     # forward to EnMAPBox
     def dragLeaveEvent(self, event):
+
         self.sigDragLeaveEvent.emit(event)
 
     # forward to EnMAPBox
@@ -774,6 +775,8 @@ class MapCanvas(QgsMapCanvas):
     sigDropEvent = pyqtSignal(QDropEvent)
     sigContextMenuEvent = pyqtSignal(QContextMenuEvent)
     sigExtentsChanged = pyqtSignal(object)
+    sigLayersRemoved = pyqtSignal(list)
+    sigLayersAdded = pyqtSignal(list)
 
     _cnt = 0
 
@@ -785,10 +788,15 @@ class MapCanvas(QgsMapCanvas):
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
         MapCanvas._cnt += 1
+        self._extentInitialized = False
         self.mapdock = parentMapDock
         self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
         self.extentsChanged.connect(self.sandbox)
+
+    def zoomToFeatureExtent(self, spatialExtent):
+        assert isinstance(spatialExtent, SpatialExtent)
+        self.setSpatialExtent(spatialExtent)
 
     def sandbox(self):
         self.sigExtentsChanged.emit(self)
@@ -815,6 +823,57 @@ class MapCanvas(QgsMapCanvas):
     def contextMenuEvent(self, event):
         self.sigContextMenuEvent.emit(event)
 
+    def setSpatialExtent(self, spatialExtent):
+        assert isinstance(spatialExtent, SpatialExtent)
+        if self.spatialExtent() != spatialExtent:
+            self.blockSignals(True)
+            self.setDestinationCrs(spatialExtent.crs())
+            self.setExtent(spatialExtent)
+            self.blockSignals(False)
+            self.refresh()
+
+    def setExtent(self, QgsRectangle):
+        super(MapCanvas, self).setExtent(QgsRectangle)
+        self.setRenderFlag(True)
+
+    def spatialExtent(self):
+        return SpatialExtent.fromMapCanvas(self)
+
+    def setLayerSet(self, *arg, **kwds):
+        raise Exception('Depricated: Not supported any more (QGIS 3)')
+
+    def setLayers(self, mapLayers):
+
+        lastSet = self.layers()
+        newSet = mapLayers[:]
+
+        #register not-registered layers
+        reg = QgsMapLayerRegistry.instance()
+        for l in newSet:
+            assert isinstance(l, QgsMapLayer)
+            if l not in reg.children():
+                reg.addMapLayer(l, False)
+
+        #set the new layers (QGIS 2 style)
+        #todo: change with QGIS 3
+        super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
+
+        if not self._extentInitialized and len(newSet) > 0:
+            # set canvas to first layer's CRS and full extent
+            self.mapSettings().setDestinationCrs(newSet[0].crs())
+            self.setSpatialExtent(SpatialExtent.fromMapCanvas(self, fullExtent=True))
+            self._extentInitialized = True
+        self.refresh()
+
+        #signal what has been added, what has been removed
+        removedLayers = [l for l in lastSet if l not in newSet]
+        addedLayers = [l for l in newSet if l not in lastSet]
+
+
+        if len(removedLayers) > 0:
+            self.sigLayersRemoved.emit(removedLayers)
+        if len(addedLayers) > 0:
+            self.sigLayersAdded.emit(addedLayers)
 
 
 
@@ -825,7 +884,9 @@ class MapDock(Dock):
     #sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent
     sigCursorLocationValueRequest = pyqtSignal(SpatialPoint)
-    sigLayersChanged = pyqtSignal()
+
+    sigLayersAdded = pyqtSignal(list)
+    sigLayersRemoved = pyqtSignal(list)
 
     def __init__(self, *args, **kwds):
         initSrc = kwds.pop('initSrc', None)
@@ -843,7 +904,9 @@ class MapDock(Dock):
         self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
         #self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenuEvent)
         self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
-        self.canvas.layersChanged.connect(lambda : self.sigLayersChanged.emit())
+        self.canvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
+        self.canvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
+
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -946,7 +1009,7 @@ class MapDock(Dock):
         menu.addSeparator()
 
         action = QAction('Clear map', menu)
-        action.triggered.connect(lambda: self.canvas.setLayerSet([]))
+        action.triggered.connect(lambda: self.canvas.setLayers([]))
         menu.addAction(action)
 
         action = QAction('Change CRS', menu)
@@ -1002,7 +1065,7 @@ class MapDock(Dock):
             newLayers = ME.mapLayers()
 
             lyrs = self.canvas.layers()
-            self.setLayerSet(newLayers + lyrs)
+            self.setLayers(newLayers + lyrs)
             event.accept()
             event.acceptProposedAction()
         if ME.hasDataSources():
@@ -1033,28 +1096,13 @@ class MapDock(Dock):
         assert isinstance(canvas, QgsMapCanvas)
         CanvasLinkManager.instance().addLinkSet(self, canvas, linktype)
 
-    def setLayerSet(self, mapLayers):
+
+    def layers(self):
+        return self.canvas.layers()
+
+    def setLayers(self, mapLayers):
         assert isinstance(mapLayers, list)
-        reg = QgsMapLayerRegistry.instance()
-
-        cnt0 = len(self.canvas.layers())
-        #register unregistered layers
-        for l in mapLayers:
-            assert isinstance(l, QgsMapLayer)
-            if not l in reg.children():
-                reg.addMapLayer(l, False)
-        canvasLayers = [QgsMapCanvasLayer(l) for l in mapLayers]
-        self.canvas.setLayerSet(canvasLayers)
-        #if self.canvas.isCachingEnabled():
-        #    mapLayer.setCacheImage(None)
-        #    newCanvasLayer.setCacheImage(None)
-
-        if cnt0 == 0:
-            # set canvas CRS to that of new layer
-            self.canvas.setDestinationCrs(mapLayers[0].crs())
-            self.canvas.setExtent(mapLayers[0].extent())
-
-        self.canvas.refresh()
+        self.canvas.setLayers(mapLayers)
 
 
     def addLayers(self, mapLayers):
@@ -1062,8 +1110,11 @@ class MapDock(Dock):
             mapLayers = [mapLayers]
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-        self.setLayerSet(mapLayers + self.canvas.layers())
+        self.setLayers(mapLayers + self.canvas.layers())
 
+    def removeLayers(self, mapLayers):
+        newSet = [l for l in self.canvas.layers() if l not in mapLayers]
+        self.setLayers(newSet)
 
 
 
