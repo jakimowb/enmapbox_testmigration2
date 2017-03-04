@@ -196,9 +196,13 @@ class SpatialExtent(QgsRectangle):
     Object to keep QgsRectangle and QgsCoordinateReferenceSystem together
     """
     @staticmethod
-    def fromMapCanvas(mapCanvas):
+    def fromMapCanvas(mapCanvas, fullExtent=False):
         assert isinstance(mapCanvas, QgsMapCanvas)
-        extent = mapCanvas.extent()
+
+        if fullExtent:
+            extent = mapCanvas.fullExtent()
+        else:
+            extent = mapCanvas.extent()
         crs = mapCanvas.mapSettings().destinationCrs()
         return SpatialExtent(crs, extent)
 

@@ -36,6 +36,7 @@ def sandboxPureGui():
     for k in HymapBerlinB.__dict__.keys():
         if k.startswith('Hymap'):
             EB.addSource(getattr(HymapBerlinB, k))
+    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
     #do something here
 
     qgsApp.exec_()
@@ -195,7 +196,7 @@ def sandboxDialog():
 
     lyr = QgsRasterLayer(TestData.AF_Image)
     QgsMapLayerRegistry.instance().addMapLayer(lyr)
-    canvas.setLayerSet([QgsMapCanvasLayer(lyr)])
+    canvas.setLayers([QgsMapCanvasLayer(lyr)])
     canvas.setExtent(lyr.extent())
 
 

@@ -365,13 +365,9 @@ class MapDockTreeNode(DockTreeNode):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
         self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
-        self.blockSignals = False
-        #if dock:
-        #    self.connectDock(dock)
 
         self.addedChildren.connect(lambda : self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
-
 
     def connectDock(self, dock):
         assert isinstance(dock, MapDock)
@@ -380,27 +376,53 @@ class MapDockTreeNode(DockTreeNode):
         self.dock.sigLayersAdded.connect(self.updateChildNodes)
         self.dock.sigLayersRemoved.connect(self.updateChildNodes)
 
+
+    def onAddedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
+
+    def onRemovedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
+
+
     def updateChildNodes(self):
+
         if self.dock:
             #state = self.blockSignals
             #self.blockSignals = True
             #self.removeAllChildren()
-            lyrs = self.findLayers()
-            for i, l in enumerate(self.dock.canvas.layers()):
-                if l not in lyrs:
-                    self.insertLayer(i, l)
-            #self.blockSignals = state
-            s  =""
+            canvasLayers = self.dock.layers()
+            treeNodeLayerNodes = self.findLayers()
+            treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
+            visibleLayers = self.visibleLayers(self)
+
+            #new layers to add?
+            newChildLayers = [l for l in canvasLayers if l not in treeNodeLayers]
+
+            #layers to set visible?
+            for layer in canvasLayers:
+                if layer not in treeNodeLayers:
+                    #insert layer to layer tree
+                    self.insertLayer(0, layer)
+
+                #set canvas on visible
+                lNode = self.findLayer(layer.id())
+                lNode.setVisible(Qt.Checked)
+                s = ""
+
+
+            visibleAfterChange = self.visibleLayers(self)
+        return self
 
     def updateCanvas(self):
+        #reads the nodes and sets the mapcanvas accordingly
         if self.dock:
-            #state = self.blockSignals
-            #self.blockSignals = True
-            #self.dock.canvas.blockSignals(True)
-            layers = self.visibleLayers(self)
-            self.dock.setLayerSet(layers)
-            #self.dock.canvas.blockSignals(False)
-            #self.blockSignals = state
+            #update canvas only in case of different layerset
+            visible = self.dock.layers()
+            layers = MapDockTreeNode.visibleLayers(self)
+            if len(visible) != len(layers) or \
+                any(l1 != l2 for l1, l2 in zip(visible, layers)):
+                self.dock.setLayers(layers)
+        return self
 
     @staticmethod
     def visibleLayers(node):
@@ -413,16 +435,25 @@ class MapDockTreeNode(DockTreeNode):
         if isinstance(node, list):
             for child in node:
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
+
         elif isinstance(node, QgsLayerTreeGroup):
             for child in node.children():
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
-        elif QgsLayerTree.isLayer(node):
-            if node.isVisible():
-                lyrs.append() [node.layer()]
+
+        elif isinstance(node, QgsLayerTreeLayer):
+            if node.isVisible() == Qt.Checked:
+                lyr = node.layer()
+                if isinstance(lyr, QgsMapLayer):
+                    lyrs.append(lyr)
+                else:
+                    logger.warning('QgsLayerTreeLayer.layer() is none' )
         else:
             raise NotImplementedError()
-        return lyrs
 
+        for l in lyrs:
+            assert isinstance(l, QgsMapLayer), l
+
+        return lyrs
 
 
     def insertLayer(self, idx, layer):
