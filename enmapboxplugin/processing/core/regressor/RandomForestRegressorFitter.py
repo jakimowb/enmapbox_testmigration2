@@ -1,7 +1,6 @@
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterRaster, ParameterString
 from processing.core.outputs import OutputFile
-from enmapbox.processing.types import Image, Regression
 
 from enmapbox.processing.estimators import RandomForestRegressor
 
@@ -21,9 +20,14 @@ class RandomForestRegressorFitter(GeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
+        from enmapbox.processing.types import Image, Regression
+        from enmapboxplugin.processing.SignalsManager import SignalsManager
+
         image = self.getParameterValue('image')
         train = self.getParameterValue('train')
         classifier = eval(self.getParameterValue('parameters'))
         classifier.fit(Image(image), Regression(train), progress=progress)
         filename = self.getOutputValue(self.name)
         classifier.pickle(filename, progress=progress)
+
+        SignalsManager.emitPickleCreated(filename)

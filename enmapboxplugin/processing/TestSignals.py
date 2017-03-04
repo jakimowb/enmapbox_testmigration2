@@ -1,5 +1,5 @@
 from unittest import TestCase
-from Signals import Signals
+from .Signals import Signals
 
 class TestSignals(TestCase):
 

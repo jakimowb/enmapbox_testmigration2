@@ -22,6 +22,8 @@ class RandomForestClassifierFitter(GeoAlgorithm):
     def processAlgorithm(self, progress):
 
         from enmapbox.processing.types import Image, Classification
+        from enmapboxplugin.processing.SignalsManager import SignalsManager
+
         image = self.getParameterValue('image')
         train = self.getParameterValue('train')
         classifier = eval(self.getParameterValue('parameters'))
@@ -29,3 +31,4 @@ class RandomForestClassifierFitter(GeoAlgorithm):
         filename = self.getOutputValue(self.name)
         classifier.pickle(filename, progress=progress)
 
+        SignalsManager.emitPickleCreated(filename)
