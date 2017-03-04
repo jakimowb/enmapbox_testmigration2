@@ -175,10 +175,10 @@ class TreeModel(QgsLayerTreeModel):
         return super(TreeModel, self).data(index, role)
 
     def supportedDragActions(self):
-        return Qt.MoveAction | Qt.CopyAction
+        return Qt.IgnoreAction
 
     def supportedDropActions(self):
-        return Qt.MoveAction | Qt.CopyAction
+        return Qt.IgnoreAction
 
     def flags(self, index):
         raise NotImplementedError()
@@ -298,7 +298,7 @@ class DockTreeNode(TreeNode):
         #node.readChildrenFromXml(element)
 
         #try to find the dock by its uuid in dockmanager
-        from enmapbox.gui.main import EnMAPBox
+        from enmapbox.gui.enmapboxgui import EnMAPBox
 
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
@@ -340,14 +340,9 @@ class DockTreeNode(TreeNode):
             self.setName(dock.title())
             self.dock.sigTitleChanged.connect(self.setName)
             self.setCustomProperty('uuid', str(dock.uuid))
-            self.dock.sigClosed.connect(self.disconnectDock)
+            #self.dock.sigClosed.connect(self.removedisconnectDock)
 
 
-
-    def disconnectDock(self):
-        self.dock = None
-        #self.removeCustomProperty('uuid')
-        self.sigRemoveMe.emit()
 
 
 class TextDockTreeNode(DockTreeNode):
@@ -370,56 +365,95 @@ class MapDockTreeNode(DockTreeNode):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
         self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
-        self.blockSignals = False
-        #if dock:
-        #    self.connectDock(dock)
 
         self.addedChildren.connect(lambda : self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
-
 
     def connectDock(self, dock):
         assert isinstance(dock, MapDock)
         super(MapDockTreeNode,self).connectDock(dock)
         self.updateChildNodes()
-        self.dock.sigLayersChanged.connect(self.updateChildNodes)
+        self.dock.sigLayersAdded.connect(self.updateChildNodes)
+        self.dock.sigLayersRemoved.connect(self.updateChildNodes)
+
+
+    def onAddedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
+
+    def onRemovedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
 
 
     def updateChildNodes(self):
+
         if self.dock:
-            self.blockSignals = True
-            self.removeAllChildren()
-            self.blockSignals = False
-            for i, l in enumerate(self.dock.canvas.layers()):
-                self.insertLayer(i, l)
+            #state = self.blockSignals
+            #self.blockSignals = True
+            #self.removeAllChildren()
+            canvasLayers = self.dock.layers()
+            treeNodeLayerNodes = self.findLayers()
+            treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
+            visibleLayers = self.visibleLayers(self)
+
+            #new layers to add?
+            newChildLayers = [l for l in canvasLayers if l not in treeNodeLayers]
+
+            #layers to set visible?
+            for layer in canvasLayers:
+                if layer not in treeNodeLayers:
+                    #insert layer to layer tree
+                    self.insertLayer(0, layer)
+
+                #set canvas on visible
+                lNode = self.findLayer(layer.id())
+                lNode.setVisible(Qt.Checked)
+                s = ""
+
+
+            visibleAfterChange = self.visibleLayers(self)
+        return self
 
     def updateCanvas(self):
-        if self.dock and not self.blockSignals:
-            self.dock.canvas.blockSignals(True)
-            layers = self.visibleLayers(self)
-            self.dock.setLayerSet(layers)
-            self.dock.canvas.blockSignals(False)
+        #reads the nodes and sets the mapcanvas accordingly
+        if self.dock:
+            #update canvas only in case of different layerset
+            visible = self.dock.layers()
+            layers = MapDockTreeNode.visibleLayers(self)
+            if len(visible) != len(layers) or \
+                any(l1 != l2 for l1, l2 in zip(visible, layers)):
+                self.dock.setLayers(layers)
+        return self
 
     @staticmethod
     def visibleLayers(node):
+        """
+        Returns the QgsMapLayers from all sub-nodes the are set as 'visible'
+        :param node:
+        :return:
+        """
+        lyrs = []
         if isinstance(node, list):
-            lyrs = []
             for child in node:
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
-            return lyrs
+
         elif isinstance(node, QgsLayerTreeGroup):
-            lyrs = []
             for child in node.children():
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
-            return lyrs
-        elif QgsLayerTree.isLayer(node):
-            if node.isVisible():
-                return [node.layer()]
-            else:
-                return []
+
+        elif isinstance(node, QgsLayerTreeLayer):
+            if node.isVisible() == Qt.Checked:
+                lyr = node.layer()
+                if isinstance(lyr, QgsMapLayer):
+                    lyrs.append(lyr)
+                else:
+                    logger.warning('QgsLayerTreeLayer.layer() is none' )
         else:
             raise NotImplementedError()
 
+        for l in lyrs:
+            assert isinstance(l, QgsMapLayer), l
+
+        return lyrs
 
 
     def insertLayer(self, idx, layer):

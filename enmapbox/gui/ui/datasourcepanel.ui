@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>608</width>
-    <height>387</height>
+    <width>338</width>
+    <height>168</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Datasources</string>
+   <string>Data Sources</string>
   </property>
   <widget class="QFrame" name="dockWidgetContentsFrame">
    <property name="frameShape">
@@ -28,16 +28,16 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="TreeView" name="dataSourceTreeView"/>
+     <widget class="DataSourceTreeView" name="dataSourceTreeView"/>
     </item>
    </layout>
   </widget>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>TreeView</class>
+   <class>DataSourceTreeView</class>
    <extends>QTreeView</extends>
-   <header>enmapbox.gui.treeviews</header>
+   <header>enmapbox.gui.datasourcemanager</header>
   </customwidget>
  </customwidgets>
  <resources/>

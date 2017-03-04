@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>379</width>
+    <width>337</width>
     <height>255</height>
    </rect>
   </property>
@@ -115,7 +115,7 @@
           <enum>QFrame::Raised</enum>
          </property>
          <property name="currentIndex">
-          <number>3</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="pageGraph">
           <layout class="QVBoxLayout" name="verticalLayout_3">

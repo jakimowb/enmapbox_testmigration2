@@ -40,9 +40,10 @@ class DockManagerTreeModel(TreeModel):
         self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
 
         self.dockManager = dockManager
-        self.dockManager.sigDockAdded.connect(self.addDockNode)
+        self.dockManager.sigDockAdded.connect(self.addDock)
+        self.dockManager.sigDockRemoved.connect(self.removeDock)
         self.dockManager.sigDockAdded.connect(lambda : self.sandboxslot2())
-        self.dockManager.sigDockRemoved.connect(lambda :self.sandboxslot)
+
         #dockManager.sigDockRemoved.connect(self.removeDock)
         self.mimeIndices = []
 
@@ -51,6 +52,12 @@ class DockManagerTreeModel(TreeModel):
         s  =""
     def sandboxslot2(self):
         s  =""
+
+    def supportedDragActions(self):
+        return Qt.CopyAction | Qt.MoveAction
+
+    def supportedDropActions(self):
+        return Qt.CopyAction | Qt.MoveAction
 
     def setLayerStyle(self, layer, canvas):
         import enmapbox.gui.layerproperties
@@ -80,26 +87,41 @@ class DockManagerTreeModel(TreeModel):
 
             lyr = node.layer()
             action = QAction('Properties', menu)
+            action.setToolTip('Shows the layer properties')
             action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
             menu.addAction(action)
 
             action = QAction('Remove', menu)
-            action.triggered.connect(lambda: self.removeNode(node))
+            action.setToolTip('Removes this layer from the map canvas')
+            action.triggered.connect(lambda: parentNode.removeChildNode(node))
             menu.addAction(action)
 
         elif isinstance(node, DockTreeNode):
             # global
             action = QAction('Close', menu)
-            action.triggered.connect(lambda :self.removeDockNode(node))
+            action.setToolTip('Closes this map dock')
+            action.triggered.connect(lambda: self.dockManager.removeDock(node.dock))
+            menu.addAction(action)
+
+            action = QAction('Clear', menu)
+            action.triggered.connect(lambda: node.removeAllChildren())
+            action.setToolTip('Removes all layers from this map dock')
             menu.addAction(action)
 
         return menu
 
 
-    def addDockNode(self, dock):
+    def addDock(self, dock):
         rootNode = self.rootNode
         newNode = TreeNodeProvider.CreateNodeFromDock(dock, rootNode)
-        newNode.sigRemoveMe.connect(lambda : self.removeDockNode(newNode))
+        #newNode.sigRemoveMe.connect(lambda : self.removeDockNode(newNode))
+
+    def removeDock(self, dock):
+        rootNode = self.rootNode
+        to_remove = [n for n in rootNode.children() if n.dock == dock]
+        for node in to_remove:
+            self.removeDockNode(node)
+        s = ""
 
     def removeNode(self, node):
         idx = self.node2index(node)
@@ -164,26 +186,30 @@ class DockManagerTreeModel(TreeModel):
 
         dockNode = list(dockNode)[0]
 
-        if action == Qt.MoveAction:
-            s = ""
-
-        else:
-
-            s = ""
         if isinstance(dockNode, MapDockTreeNode):
             if MDH.hasLayerTreeModelData():
                 nodes = MDH.layerTreeModelNodes()
                 if len(nodes) > 0:
                     if parent.isValid() and row == -1:
                         row = 0
+                    #node.insertChildNodes(row, nodes)
                     node.insertChildNodes(row, nodes)
                     return True
+
             if MDH.hasDataSources():
                 dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
                 if len(dataSources) > 0:
-                    for ds in dataSources:
-                        dockNode.addLayer(ds.createRegisteredMapLayer())
+                    layers = [ds.createRegisteredMapLayer() for ds in dataSources]
 
+                    #layers for nodes have to be registered
+                    reg = QgsMapLayerRegistry.instance()
+                    reg = QgsMapLayerRegistry.instance().addMapLayers(layers, False)
+                    nodes = [QgsLayerTreeLayer(l) for l in layers]
+
+                    if len(nodes) > 0:
+                        if parent.isValid() and row == -1:
+                            row = 0
+                        node.insertChildNodes(row, nodes)
                     return True
         elif isinstance(dockNode, TextDockTreeNode):
 
@@ -199,6 +225,7 @@ class DockManagerTreeModel(TreeModel):
 
         nodesFinal = self.indexes2nodes(indexes, True)
 
+        #docktree to mime data
         mimeData = QMimeData()
         doc = QDomDocument()
         rootElem = doc.createElement("dock_tree_model_data")
@@ -207,6 +234,7 @@ class DockManagerTreeModel(TreeModel):
         doc.appendChild(rootElem)
         mimeData.setData("application/enmapbox.docktreemodeldata", doc.toString())
 
+        # layertree to mime data
         mapDockNodes = self.parentNodesFromIndices(indexes, nodeInstanceType=MapDockTreeNode)
         if len(mapDockNodes) > 0:
             doc = QDomDocument()
@@ -297,46 +325,59 @@ class DockManager(QgsLegendInterface):
 
         self.dockArea = self.enmapBox.ui.dockArea
         self.DOCKS = list()
-
+        self.enmapBox.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.connectDockArea(self.dockArea)
         self.setCursorLocationValueDock(None)
+
+    def onDataSourceRemoved(self, dataSource):
+        """
+        Remove dependencies to removed data sources
+        :param dataSource:
+        :return:
+        """
+        if isinstance(dataSource, DataSourceSpatial):
+            for mapDock in [d for d in self.DOCKS if isinstance(d, MapDock)]:
+                mapDock.removeLayers(dataSource.mapLayers)
+
 
     def connectDockArea(self, dockArea):
         assert isinstance(dockArea, DockArea)
 
+        dockArea.sigDragEnterEvent.connect(lambda event : self.onDockAreaDragDropEvent(dockArea, event))
+        dockArea.sigDragMoveEvent.connect(lambda event : self.onDockAreaDragDropEvent(dockArea, event))
+        dockArea.sigDragLeaveEvent.connect(lambda event : self.onDockAreaDragDropEvent(dockArea, event))
+        dockArea.sigDropEvent.connect(lambda event : self.onDockAreaDragDropEvent(dockArea, event))
 
-        dockArea.sigDragEnterEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
-        dockArea.sigDragMoveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
-        dockArea.sigDragLeaveEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
-        dockArea.sigDropEvent.connect(lambda event : self.dockAreaSignalHandler(dockArea, event))
+    def onDockAreaDragDropEvent(self, dockArea, event):
 
-    def dockAreaSignalHandler(self, dockArea, event):
         assert isinstance(dockArea, DockArea)
+
         assert isinstance(event, QEvent)
 
-        mimeTypes = ["application/qgis.layertreemodeldata",
-                     "application/enmapbox.docktreemodeldata",
-                     "application/enmapbox.datasourcetreemodeldata",
-                     "text/uri-list"]
+        if type(event) in [QDragEnterEvent, QDropEvent]:
+            print((dockArea,event))
 
-        if type(event) is QDragEnterEvent:
+        if isinstance(event, QDragEnterEvent):
             # check mime types we can handle
             MH = MimeDataHelper(event.mimeData())
-            if MH.hasMapLayers() or MH.hasDataSources():
-                    event.setDropAction(Qt.CopyAction)
-                    event.accept()
-            else:
-                event.ignore()
 
-        elif type(event) is QDragMoveEvent:
-            pass
-        elif type(event) is QDragLeaveEvent:
-            pass
-        elif type(event) is QDropEvent:
+            if MH.hasMapLayers() or MH.hasDataSources():
+                event.setDropAction(Qt.CopyAction)
+                event.accept()
+            return
+
+
+        elif isinstance(event, QDragMoveEvent):
+            event.accept()
+            return
+        elif isinstance(event, QDragLeaveEvent):
+            event.accept()
+            return
+
+        elif isinstance(event, QDropEvent):
             MH = MimeDataHelper(event.mimeData())
             layers = []
             textfiles = []
-
             if MH.hasMapLayers():
                 layers = MH.mapLayers()
             elif MH.hasDataSources():
@@ -352,9 +393,7 @@ class DockManager(QgsLegendInterface):
 
                 NEW_MAP_DOCK = self.createDock('MAP')
                 NEW_MAP_DOCK.addLayers(layers)
-
-                event.setDropAction(Qt.CopyAction)
-                event.dropAction()
+            event.accept()
 
 
 
@@ -388,6 +427,9 @@ class DockManager(QgsLegendInterface):
         if dock in self.DOCKS:
             self.DOCKS.remove(dock)
             self.sigDockRemoved.emit(dock)
+
+            if dock.container():
+                dock.close()
             return True
         return False
 
@@ -417,7 +459,7 @@ class DockManager(QgsLegendInterface):
         dockArea = kwds.get('dockArea', self.dockArea)
         state = dockArea.saveState()
         main = state['main']
-        if is_new_dock:
+        if dock not in self.DOCKS:
             dock.sigClosed.connect(self.removeDock)
             self.DOCKS.append(dock)
             self.dockArea.addDock(dock, *args, **kwds)

@@ -135,7 +135,7 @@
   </Metadata>
   <PAMRasterBand band="1">
     <Description>0.45200000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Histograms>
       <HistItem>
         <HistMin>0.218</HistMin>
@@ -157,7 +157,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="2">
     <Description>0.46440000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Histograms>
       <HistItem>
         <HistMin>0.157</HistMin>
@@ -179,7 +179,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="3">
     <Description>0.48040000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Histograms>
       <HistItem>
         <HistMin>0.1709999999999998</HistMin>
@@ -201,7 +201,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="4">
     <Description>0.49520000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.49520000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -209,7 +209,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="5">
     <Description>0.51010000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.51010000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -217,7 +217,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="6">
     <Description>0.52590000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.52590000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -225,7 +225,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="7">
     <Description>0.54150000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.54150000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -233,7 +233,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="8">
     <Description>0.55680000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.55680000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -241,7 +241,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="9">
     <Description>0.57190000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.57190000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -249,7 +249,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="10">
     <Description>0.58710000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.58710000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -257,7 +257,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="11">
     <Description>0.60250000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.60250000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -265,7 +265,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="12">
     <Description>0.61800000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.61800000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -273,7 +273,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="13">
     <Description>0.63350000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.63350000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -281,7 +281,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="14">
     <Description>0.64870000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.64870000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -289,7 +289,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="15">
     <Description>0.66380000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.66380000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -297,7 +297,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="16">
     <Description>0.67900000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.67900000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -305,7 +305,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="17">
     <Description>0.69440000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.69440000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -313,7 +313,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="18">
     <Description>0.70980000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.70980000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -321,7 +321,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="19">
     <Description>0.72490000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.72490000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -329,7 +329,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="20">
     <Description>0.74000000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.74000000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -337,7 +337,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="21">
     <Description>0.75520000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.75520000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -345,7 +345,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="22">
     <Description>0.77030000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.77030000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -353,7 +353,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="23">
     <Description>0.78520000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.78520000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -361,7 +361,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="24">
     <Description>0.80030000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.80030000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -369,7 +369,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="25">
     <Description>0.81560000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.81560000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -377,7 +377,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="26">
     <Description>0.83070000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.83070000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -385,7 +385,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="27">
     <Description>0.84600000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.84600000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -393,7 +393,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="28">
     <Description>0.86130000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.86130000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -401,7 +401,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="29">
     <Description>0.87650000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.87650000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -409,7 +409,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="30">
     <Description>0.88860000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.88860000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -417,7 +417,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="31">
     <Description>0.89480000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.89480000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -425,7 +425,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="32">
     <Description>0.91120000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.91120000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -433,7 +433,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="33">
     <Description>0.92710000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.92710000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -441,7 +441,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="34">
     <Description>0.94310000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.94310000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -449,7 +449,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="35">
     <Description>0.95910000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.95910000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -457,7 +457,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="36">
     <Description>0.97460000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.97460000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -465,7 +465,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="37">
     <Description>0.99030000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">0.99030000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -473,7 +473,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="38">
     <Description>1.0063000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.0063000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -481,7 +481,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="39">
     <Description>1.0218000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.0218000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -489,7 +489,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="40">
     <Description>1.0372000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.0372000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -497,7 +497,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="41">
     <Description>1.0526000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.0526000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -505,7 +505,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="42">
     <Description>1.0679000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.0679000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -513,7 +513,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="43">
     <Description>1.0830000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.0830000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -521,7 +521,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="44">
     <Description>1.0979000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.0979000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -529,7 +529,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="45">
     <Description>1.1128000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.1128000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -537,7 +537,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="46">
     <Description>1.1278000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.1278000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -545,7 +545,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="47">
     <Description>1.1423000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.1423000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -553,7 +553,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="48">
     <Description>1.1568000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.1568000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -561,7 +561,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="49">
     <Description>1.1715000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.1715000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -569,7 +569,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="50">
     <Description>1.1861000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.1861000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -577,7 +577,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="51">
     <Description>1.2004000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2004000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -585,7 +585,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="52">
     <Description>1.2146000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2146000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -593,7 +593,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="53">
     <Description>1.2289000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2289000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -601,7 +601,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="54">
     <Description>1.2433000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2433000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -609,7 +609,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="55">
     <Description>1.2574000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2574000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -617,7 +617,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="56">
     <Description>1.2715000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2715000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -625,7 +625,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="57">
     <Description>1.2856000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2856000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -633,7 +633,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="58">
     <Description>1.2994000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.2994000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -641,7 +641,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="59">
     <Description>1.3132000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.3132000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -649,7 +649,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="60">
     <Description>1.3272000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.3272000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -657,7 +657,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="61">
     <Description>1.3407000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.3407000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -665,7 +665,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="62">
     <Description>1.5076000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.5076000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -673,7 +673,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="63">
     <Description>1.5210000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.5210000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -681,7 +681,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="64">
     <Description>1.5346000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.5346000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -689,7 +689,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="65">
     <Description>1.5482000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.5482000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -697,7 +697,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="66">
     <Description>1.5615000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.5615000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -705,7 +705,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="67">
     <Description>1.5748000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.5748000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -713,7 +713,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="68">
     <Description>1.5879000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.5879000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -721,7 +721,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="69">
     <Description>1.6009000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6009000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -729,7 +729,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="70">
     <Description>1.6138000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6138000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -737,7 +737,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="71">
     <Description>1.6267000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6267000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -745,7 +745,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="72">
     <Description>1.6397000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6397000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -753,7 +753,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="73">
     <Description>1.6526000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6526000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -761,7 +761,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="74">
     <Description>1.6651000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6651000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -769,7 +769,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="75">
     <Description>1.6776000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6776000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -777,7 +777,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="76">
     <Description>1.6902000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.6902000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -785,7 +785,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="77">
     <Description>1.7027000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7027000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -793,7 +793,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="78">
     <Description>1.7150000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7150000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -801,7 +801,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="79">
     <Description>1.7273000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7273000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -809,7 +809,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="80">
     <Description>1.7397000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7397000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -817,7 +817,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="81">
     <Description>1.7519000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7519000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -825,7 +825,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="82">
     <Description>1.7639000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7639000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -833,7 +833,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="83">
     <Description>1.7759000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7759000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -841,7 +841,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="84">
     <Description>1.7880000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.7880000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -849,7 +849,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="85">
     <Description>1.8000000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.8000000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -857,7 +857,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="86">
     <Description>1.8115000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.8115000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -865,7 +865,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="87">
     <Description>1.9906000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">1.9906000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -873,7 +873,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="88">
     <Description>2.0097000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.0097000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -881,7 +881,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="89">
     <Description>2.0287000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.0287000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -889,7 +889,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="90">
     <Description>2.0474000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.0474000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -897,7 +897,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="91">
     <Description>2.0657000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.0657000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -905,7 +905,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="92">
     <Description>2.0838000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.0838000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -913,7 +913,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="93">
     <Description>2.1017000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.1017000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -921,7 +921,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="94">
     <Description>2.1198000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.1198000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -929,7 +929,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="95">
     <Description>2.1378000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.1378000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -937,7 +937,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="96">
     <Description>2.1557000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.1557000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -945,7 +945,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="97">
     <Description>2.1730000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.1730000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -953,7 +953,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="98">
     <Description>2.1897000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.1897000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -961,7 +961,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="99">
     <Description>2.2074000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.2074000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -969,7 +969,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="100">
     <Description>2.2254000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.2254000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -977,7 +977,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="101">
     <Description>2.2425000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.2425000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -985,7 +985,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="102">
     <Description>2.2600000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.2600000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -993,7 +993,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="103">
     <Description>2.2767000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.2767000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1001,7 +1001,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="104">
     <Description>2.2934000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.2934000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1009,7 +1009,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="105">
     <Description>2.3098000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.3098000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1017,7 +1017,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="106">
     <Description>2.3263000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.3263000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1025,7 +1025,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="107">
     <Description>2.3428000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.3428000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1033,7 +1033,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="108">
     <Description>2.3594000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.3594000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1041,7 +1041,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="109">
     <Description>2.3756000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.3756000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1049,7 +1049,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="110">
     <Description>2.3914000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.3914000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1057,7 +1057,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="111">
     <Description>2.4072000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.4072000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1065,7 +1065,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="112">
     <Description>2.4229000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.4229000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1073,7 +1073,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="113">
     <Description>2.4387000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.4387000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
@@ -1081,7 +1081,7 @@
   </PAMRasterBand>
   <PAMRasterBand band="114">
     <Description>2.4546000 micrometers</Description>
-    <NoDataValue>0.00000000000000E+000</NoDataValue>
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
     <Metadata>
       <MDI key="wavelength">2.4546000</MDI>
       <MDI key="wavelength_units">micrometers</MDI>
