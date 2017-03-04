@@ -1,16 +1,16 @@
 [general]
-name=EnMAP-Box
+name=EnMAP-Box 3
 description=Imaging Spectroscopy and Remote Sensing for QGIS
-about=A toolbox to handle, visualize and analyze remote sensing data.
+about=The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.
 category=Analysis
-version=3.0 beta
+version=0.1.0
 qgisMinimumVersion=2.14
 
-author=Andreas Rabe, Benjamin Jakimow, Matthias Held, Sebastian van der Linden
-email=andreas.rabe@geo.hu-berlin.de benjamin.jakimow@geo.hu-berlin.de
+author=Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden
+email=andreas.rabe@geo.hu-berlin.de
 
 icon=enmapbox/gui/icons/enmapbox.png
 
-homepage=https://bitbucket.org/hu-geomatics/enmap-box
+homepage=http://www.enmap.org/
 tracker=https://bitbucket.org/hu-geomatics/enmap-box/issues
 repository=https://bitbucket.org/hu-geomatics/enmap-box.git
