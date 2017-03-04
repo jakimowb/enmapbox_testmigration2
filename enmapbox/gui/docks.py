@@ -839,35 +839,39 @@ class MapCanvas(QgsMapCanvas):
     def spatialExtent(self):
         return SpatialExtent.fromMapCanvas(self)
 
-    def setLayerSet(self, mapCanvasLayers):
+    def setLayerSet(self, *arg, **kwds):
+        raise Exception('Depricated: Not supported any more (QGIS 3)')
+
+    def setLayers(self, mapLayers):
         lastSet = self.layers()
-        newSet = [ml.layer() for ml in mapCanvasLayers]
+        newSet = mapLayers[:]
 
         #register not-registered layers
         reg = QgsMapLayerRegistry.instance()
-
-        for l in newSet:
-            if not l in reg.children():
-                reg.addMapLayer(l, False)
+        for l in [l for l in newSet if l not in reg.children()]:
+            reg.addMapLayer(l, False)
 
         #set the new layers
-        super(MapCanvas,self).setLayerSet(mapCanvasLayers)
+        super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
 
+        if not self._extentInitialized and len(newSet) > 0:
+            # set canvas to first layer's CRS and full extent
+            self.mapSettings().setDestinationCrs(newSet[0].crs())
+            self.setSpatialExtent(SpatialExtent.fromMapCanvas(self, fullExtent=True))
+
+        self.refresh()
+
+        #signal what has been added, what has been removed
         removedLayers = [l for l in lastSet if l not in newSet]
         addedLayers = [l for l in newSet if l not in lastSet]
 
-        if not self._extentInitialized and len(mapCanvasLayers) > 0:
-            # set canvas CRS to that of new layer
-            refLyr = mapCanvasLayers[0].layer()
-            ext = SpatialExtent(refLyr.crs(), refLyr.extent())
-            self.setSpatialExtent(ext)
 
         if len(removedLayers) > 0:
             self.sigLayersRemoved.emit(removedLayers)
         if len(addedLayers) > 0:
             self.sigLayersAdded.emit(addedLayers)
 
-        self.refresh()
+
 
 class MapDock(Dock):
     """
@@ -1001,7 +1005,7 @@ class MapDock(Dock):
         menu.addSeparator()
 
         action = QAction('Clear map', menu)
-        action.triggered.connect(lambda: self.canvas.setLayerSet([]))
+        action.triggered.connect(lambda: self.canvas.setLayers([]))
         menu.addAction(action)
 
         action = QAction('Change CRS', menu)
@@ -1090,7 +1094,7 @@ class MapDock(Dock):
 
     def setLayerSet(self, mapLayers):
         assert isinstance(mapLayers, list)
-        self.canvas.setLayerSet(mapLayers)
+        self.canvas.setLayers(mapLayers)
 
 
     def addLayers(self, mapLayers):
