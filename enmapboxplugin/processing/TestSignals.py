@@ -3,5 +3,11 @@ from Signals import Signals
 
 class TestSignals(TestCase):
 
-    def test_emitURL(self):
-        Signals.emitHTMLCreated(r'https://google.de')
+    def test_connectDummyHandlerAndEmit(self):
+
+        def dummy_handler(url):
+            raise NotImplementedError
+
+        Signals.htmlCreated.connect(dummy_handler)
+        Signals.htmlCreated.emit('my.html')
+        self.assertRaises(NotImplementedError)
