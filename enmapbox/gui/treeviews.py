@@ -3,7 +3,7 @@ from PyQt4.QtXml import *
 import enmapbox
 from qgis.core import *
 
-dprint = enmapbox.dprint
+
 
 from enmapbox.gui.docks import *
 
@@ -73,9 +73,7 @@ class TreeNode(QgsLayerTreeGroup):
 
         # set default properties using underlying customPropertySet
         self.setTooltip(tooltip)
-        self.setCustomProperty('tooltip', '')
 
-        if tooltip: self.setTooltip(tooltip)
         self.setIcon(icon)
         if parent is not None:
             parent.addChildNode(self)
@@ -86,7 +84,11 @@ class TreeNode(QgsLayerTreeGroup):
         self.updateVisibilityFromChildren()
 
     def setTooltip(self, tooltip):
-        self.customProperty('tooltip', str(tooltip))
+        if tooltip is None:
+            self.setCustomProperty('tooltip', None)
+        else:
+            self.setCustomProperty('tooltip', tooltip)
+
     def tooltip(self, default=''):
         return self.customProperty('tooltip',default)
 
@@ -137,7 +139,6 @@ class TreeNode(QgsLayerTreeGroup):
         nodes = []
         childElem = element.firstChildElement()
         while(not childElem.isNull()):
-            print('READ {}/{}'.format(element.tagName(),childElem.tagName()))
             node = TreeNodeProvider.CreateNodeFromXml(childElem)
 
             if node:
@@ -157,11 +158,9 @@ class TreeNode(QgsLayerTreeGroup):
 
 class TreeModel(QgsLayerTreeModel):
 
-    def __init__(self, parent, enmapboxInstance):
-        import enmapbox.gui.main
+    def __init__(self, parent=None):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
         self.rootNode = TreeNode(None, None)
-        assert isinstance(enmapboxInstance, enmapbox.gui.main.EnMAPBox)
-        self.enmapbox = enmapboxInstance
         super(TreeModel, self).__init__(self.rootNode, parent)
 
     def data(self, index, role ):
@@ -169,15 +168,17 @@ class TreeModel(QgsLayerTreeModel):
         if isinstance(node, TreeNode):
             if role == Qt.DecorationRole:
                 return node.icon()
+            if role == Qt.ToolTipRole:
+                return node.tooltip()
 
         #the last choice: default
         return super(TreeModel, self).data(index, role)
 
     def supportedDragActions(self):
-        return Qt.MoveAction | Qt.CopyAction
+        return Qt.IgnoreAction
 
     def supportedDropActions(self):
-        return Qt.MoveAction | Qt.CopyAction
+        return Qt.IgnoreAction
 
     def flags(self, index):
         raise NotImplementedError()
@@ -198,9 +199,13 @@ class DataSourceGroupTreeNode(TreeNode):
 
     def __init__(self, parent, groupName, classDef):
         assert inspect.isclass(classDef)
-        icon = QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon)
+        icon = QApplication.style().standardIcon(QStyle.SP_DirOpenIcon)
         super(DataSourceGroupTreeNode, self).__init__(parent, groupName, icon=icon)
         self.childClass = classDef
+
+    def dataSources(self):
+        return [d.dataSource for d in self.children()
+                if isinstance(d, DataSourceTreeNode)]
 
     def addChildNode(self, node):
         """Ensure child types"""
@@ -234,6 +239,7 @@ class DataSourceTreeNode(TreeNode):
     def __init__(self, parent, dataSource):
         super(DataSourceTreeNode, self).__init__(parent, '<empty>')
         self.disconnectDataSource()
+        self.dataSource = None
         if dataSource:
             self.connectDataSource(dataSource)
 
@@ -242,6 +248,7 @@ class DataSourceTreeNode(TreeNode):
         assert isinstance(dataSource, DataSource)
         self.setName(dataSource.name)
         self.dataSource = dataSource
+        self.setTooltip(dataSource.uri)
         self._icon = dataSource.getIcon()
         self.setCustomProperty('uuid', str(self.dataSource.uuid))
         self.setCustomProperty('uri', self.dataSource.uri)
@@ -291,7 +298,7 @@ class DockTreeNode(TreeNode):
         #node.readChildrenFromXml(element)
 
         #try to find the dock by its uuid in dockmanager
-        from enmapbox.gui.main import EnMAPBox
+        from enmapbox.gui.enmapboxgui import EnMAPBox
 
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
@@ -312,7 +319,7 @@ class DockTreeNode(TreeNode):
 
         super(DockTreeNode, self).__init__(parent, '<dockname not available>')
         self.dock = None
-        self._icon = QIcon(IconProvider.Dock)
+        self._icon = QIcon(':/enmapbox/icons/viewlist_dock.png')
         if isinstance(dock, Dock):
             self.connectDock(dock)
 
@@ -333,14 +340,9 @@ class DockTreeNode(TreeNode):
             self.setName(dock.title())
             self.dock.sigTitleChanged.connect(self.setName)
             self.setCustomProperty('uuid', str(dock.uuid))
-            self.dock.sigClosed.connect(self.disconnectDock)
+            #self.dock.sigClosed.connect(self.removedisconnectDock)
 
 
-
-    def disconnectDock(self):
-        self.dock = None
-        #self.removeCustomProperty('uuid')
-        self.sigRemoveMe.emit()
 
 
 class TextDockTreeNode(DockTreeNode):
@@ -362,57 +364,96 @@ class MapDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
-        self.setIcon(QIcon(IconProvider.MapDock))
-        self.blockSignals = False
-        #if dock:
-        #    self.connectDock(dock)
+        self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
 
         self.addedChildren.connect(lambda : self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
-
 
     def connectDock(self, dock):
         assert isinstance(dock, MapDock)
         super(MapDockTreeNode,self).connectDock(dock)
         self.updateChildNodes()
-        self.dock.sigLayersChanged.connect(self.updateChildNodes)
+        self.dock.sigLayersAdded.connect(self.updateChildNodes)
+        self.dock.sigLayersRemoved.connect(self.updateChildNodes)
+
+
+    def onAddedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
+
+    def onRemovedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
 
 
     def updateChildNodes(self):
+
         if self.dock:
-            self.blockSignals = True
-            self.removeAllChildren()
-            self.blockSignals = False
-            for i, l in enumerate(self.dock.canvas.layers()):
-                self.insertLayer(i, l)
+            #state = self.blockSignals
+            #self.blockSignals = True
+            #self.removeAllChildren()
+            canvasLayers = self.dock.layers()
+            treeNodeLayerNodes = self.findLayers()
+            treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
+            visibleLayers = self.visibleLayers(self)
+
+            #new layers to add?
+            newChildLayers = [l for l in canvasLayers if l not in treeNodeLayers]
+
+            #layers to set visible?
+            for layer in canvasLayers:
+                if layer not in treeNodeLayers:
+                    #insert layer to layer tree
+                    self.insertLayer(0, layer)
+
+                #set canvas on visible
+                lNode = self.findLayer(layer.id())
+                lNode.setVisible(Qt.Checked)
+                s = ""
+
+
+            visibleAfterChange = self.visibleLayers(self)
+        return self
 
     def updateCanvas(self):
-        if self.dock and not self.blockSignals:
-            self.dock.canvas.blockSignals(True)
-            layers = self.visibleLayers(self)
-            self.dock.setLayerSet(layers)
-            self.dock.canvas.blockSignals(False)
+        #reads the nodes and sets the mapcanvas accordingly
+        if self.dock:
+            #update canvas only in case of different layerset
+            visible = self.dock.layers()
+            layers = MapDockTreeNode.visibleLayers(self)
+            if len(visible) != len(layers) or \
+                any(l1 != l2 for l1, l2 in zip(visible, layers)):
+                self.dock.setLayers(layers)
+        return self
 
     @staticmethod
     def visibleLayers(node):
+        """
+        Returns the QgsMapLayers from all sub-nodes the are set as 'visible'
+        :param node:
+        :return:
+        """
+        lyrs = []
         if isinstance(node, list):
-            lyrs = []
             for child in node:
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
-            return lyrs
+
         elif isinstance(node, QgsLayerTreeGroup):
-            lyrs = []
             for child in node.children():
                 lyrs.extend(MapDockTreeNode.visibleLayers(child))
-            return lyrs
-        elif QgsLayerTree.isLayer(node):
-            if node.isVisible():
-                return [node.layer()]
-            else:
-                return []
+
+        elif isinstance(node, QgsLayerTreeLayer):
+            if node.isVisible() == Qt.Checked:
+                lyr = node.layer()
+                if isinstance(lyr, QgsMapLayer):
+                    lyrs.append(lyr)
+                else:
+                    logger.warning('QgsLayerTreeLayer.layer() is none' )
         else:
             raise NotImplementedError()
 
+        for l in lyrs:
+            assert isinstance(l, QgsMapLayer), l
+
+        return lyrs
 
 
     def insertLayer(self, idx, layer):
@@ -433,7 +474,7 @@ class MapDockTreeNode(DockTreeNode):
         if element.tagName() != 'map-dock-tree-node':
             return None
 
-        from enmapbox.gui.main import EnMAPBox
+        from enmapbox.gui.enmapboxgui import EnMAPBox
         DSM = EnMAPBox.instance().dataSourceManager
 
 
@@ -445,16 +486,13 @@ class MapDockTreeNode(DockTreeNode):
         # node.readChildrenFromXml(element)
 
         # try to find the dock by its uuid in dockmanager
-        from enmapbox.gui.main import EnMAPBox
-
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
         if uuid:
             dock = dockManager.getDockWithUUID(str(uuid))
         if dock is None:
-            dock = dockManager.createDock('MAP', name=dockName)
+            dock = dockManager.createDock('MAP', name=node.name())
         node.connectDock(dock)
-
         return node
 
 
@@ -477,408 +515,4 @@ class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
     def createContextMenu(self):
         #redirect to model
         return self.model.contextMenu(self.treeView.currentNode())
-
-
-class DockManagerTreeModel(TreeModel):
-    def __init__(self, parent, enmapboxInstance):
-
-        super(DockManagerTreeModel, self).__init__(parent, enmapboxInstance)
-
-        self.setFlag(QgsLayerTreeModel.ShowLegend, True)
-        self.setFlag(QgsLayerTreeModel.ShowSymbology, True)
-        #self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
-        self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
-        self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
-
-        self.dockManager = self.enmapbox.dockManager
-        self.dockManager.sigDockAdded.connect(self.addDockNode)
-        self.dockManager.sigDockAdded.connect(lambda : self.sandboxslot2())
-        self.dockManager.sigDockRemoved.connect(lambda :self.sandboxslot)
-        #dockManager.sigDockRemoved.connect(self.removeDock)
-        self.mimeIndices = []
-
-
-    def sandboxslot(self, dock):
-        s  =""
-    def sandboxslot2(self):
-        s  =""
-
-    def setLayerStyle(self, layer, canvas):
-        import enmapbox.gui.layerproperties
-        if True: #modal dialog
-            enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=True)
-        else:
-            #fix: we could use non-modal dialogs that do not block other windows
-            #this requires to store dialogs
-            d = enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=False)
-            global DIALOG
-            DIALOG = d
-            d.show()
-
-            #d.raise_()
-            #d.activateWindow()
-
-    def contextMenu(self, node):
-        menu = QMenu()
-        parentNode = node.parent()
-        if type(node) is QgsLayerTreeLayer:
-            #get parent dock node -> related map canvas
-            mapNode = self.parentNodesFromIndices(self.node2index(node), nodeInstanceType = MapDockTreeNode)
-            mapNode = mapNode[0]
-            assert isinstance(mapNode, MapDockTreeNode)
-            assert isinstance(mapNode.dock, MapDock)
-            canvas = mapNode.dock.canvas
-
-            lyr = node.layer()
-            action = QAction('Properties', menu)
-            action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
-            menu.addAction(action)
-
-            action = QAction('Remove', menu)
-            action.triggered.connect(lambda: self.removeNode(node))
-            menu.addAction(action)
-        elif isinstance(node, DockTreeNode):
-            # global
-            action = QAction('Remove Dock', menu)
-            action.triggered.connect(lambda :self.removeDockNode(node))
-            menu.addAction(action)
-
-        return menu
-
-
-    def addDockNode(self, dock):
-        rootNode = self.rootNode
-        newNode = TreeNodeProvider.CreateNodeFromDock(dock, rootNode)
-        newNode.sigRemoveMe.connect(lambda : self.removeDockNode(newNode))
-
-    def removeNode(self, node):
-        idx = self.node2index(node)
-        p = self.index2node(idx.parent())
-        p.removeChildNode(node)
-
-    def removeDockNode(self, node):
-        self.dockManager.removeDock(node.dock)
-        self.removeNode(node)
-
-
-    def flags(self, parent):
-        if not parent.isValid():
-            return Qt.NoItemFlags
-
-        #specify TreeNode specific actions
-        node = self.index2node(parent)
-        if node is None:
-            return Qt.NoItemFlags
-
-        isL1 = node.parent() == self.rootNode
-        if isinstance(node, DockTreeNode):
-            flags = Qt.ItemIsEnabled | \
-                    Qt.ItemIsSelectable | \
-                    Qt.ItemIsUserCheckable
-            if isL1:
-                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | Qt.ItemIsEditable
-        elif isinstance(node, QgsLayerTreeNode):
-            flags = Qt.ItemIsEnabled | \
-                    Qt.ItemIsSelectable | \
-                    Qt.ItemIsUserCheckable | \
-                    Qt.ItemIsDragEnabled
-
-        else:
-            flags = Qt.NoItemFlags
-        return flags
-
-    def mimeTypes(self):
-        #specifies the mime types handled by this model
-        types = [MimeDataHelper.MIME_DOCKTREEMODELDATA,
-                 MimeDataHelper.MIME_LAYERTREEMODELDATA,
-                 MimeDataHelper.MIME_TEXT_HTML,
-                 MimeDataHelper.MIME_TEXT_PLAIN,
-                 MimeDataHelper.MIME_URILIST]
-        return types
-
-    def dropMimeData(self, mimeData, action, row, column, parent):
-        assert isinstance(mimeData, QMimeData)
-
-        MDH = MimeDataHelper(mimeData)
-        node = self.index2node(parent)
-
-        #L1 is the first level below the root tree -> to place dock trees
-        isL1Node = node.parent() == self.rootNode
-
-        #get parent DockNode
-        dockNode = self.parentNodesFromIndices(parent, nodeInstanceType=DockTreeNode)
-        if len(dockNode) != 1:
-            return False
-
-        dockNode = list(dockNode)[0]
-
-        if action == Qt.MoveAction:
-            s = ""
-
-        else:
-
-            s = ""
-        if isinstance(dockNode, MapDockTreeNode):
-            if MDH.hasLayerTreeModelData():
-                nodes = MDH.layerTreeModelNodes()
-                if len(nodes) > 0:
-                    if parent.isValid() and row == -1:
-                        row = 0
-                    node.insertChildNodes(row, nodes)
-                    return True
-            if MDH.hasDataSources():
-                dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
-                if len(dataSources) > 0:
-                    for ds in dataSources:
-                        dockNode.addLayer(ds.createMapLayer())
-
-                    return True
-        elif isinstance(dockNode, TextDockTreeNode):
-
-            s = ""
-
-        return False
-
-    def mimeData(self, indexes):
-        indexes = sorted(indexes)
-        self.mimeIndexes = indexes
-        if len(indexes) == 0:
-            return None
-
-        nodesFinal = self.indexes2nodes(indexes, True)
-
-        mimeData = QMimeData()
-        doc = QDomDocument()
-        rootElem = doc.createElement("dock_tree_model_data")
-        for node in nodesFinal:
-            node.writeXML(rootElem)
-        doc.appendChild(rootElem)
-        mimeData.setData("application/enmapbox.docktreemodeldata", doc.toString())
-
-        mapDockNodes = self.parentNodesFromIndices(indexes, nodeInstanceType=MapDockTreeNode)
-        if len(mapDockNodes) > 0:
-            doc = QDomDocument()
-            rootElem = doc.createElement('layer_tree_model_data')
-            for dockNode in mapDockNodes:
-                dockNode.writeLayerTreeGroupXML(rootElem)
-            doc.appendChild(rootElem)
-            mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
-
-        #todo: support any URL
-
-        return mimeData
-
-    def parentNodesFromIndices(self, indices, nodeInstanceType=DockTreeNode):
-        """
-        Returns all DockNodes contained or parent to the given indices
-        :param indices:
-        :return:
-        """
-        results = set()
-        if type(indices) is QModelIndex:
-            node = self.index2node(indices)
-            while node is not None and not isinstance(node, nodeInstanceType):
-                node = node.parent()
-            if node is not None:
-                results.add(node)
-        else:
-            for ind in indices:
-                results.update(self.parentNodesFromIndices(ind, nodeInstanceType=nodeInstanceType))
-
-        return list(results)
-
-    def data(self, index, role ):
-        node = self.index2node(index)
-        #todo: implement MapDock specific behaviour
-
-        if isinstance(node, DockTreeNode):
-            if role == Qt.CheckStateRole:
-                if isinstance(node.dock, Dock) and node.dock.isVisible():
-                    return Qt.Checked
-                else:
-                    return Qt.Unchecked
-            if role == Qt.DecorationRole:
-                return node.icon()
-
-        return super(DockManagerTreeModel, self).data(index, role)
-
-    def setData(self, index, value, role=None):
-        node = self.index2node(index)
-        parentNode = node.parent()
-        if isinstance(node, DockTreeNode) and isinstance(node.dock, Dock):
-            if role == Qt.CheckStateRole:
-                if value == Qt.Unchecked:
-                    node.dock.setVisible(False)
-                else:
-                    node.dock.setVisible(True)
-                return True
-        if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-
-            if role == Qt.CheckStateRole:
-                node.setVisible(value)
-                mapDockNode = node.parent()
-                while mapDockNode is not None and not isinstance(mapDockNode, MapDockTreeNode):
-                        mapDockNode = mapDockNode.parent()
-
-                assert isinstance(mapDockNode, MapDockTreeNode)
-                mapDockNode.updateCanvas()
-
-
-        return False
-
-
-class DataSourceManagerTreeModel(TreeModel):
-
-    def __init__(self,parent, enmapboxInstance):
-
-        assert isinstance(enmapboxInstance, enmapbox.main.EnMAPBox)
-        super(DataSourceManagerTreeModel, self).__init__(parent, enmapboxInstance)
-
-        self.DSM = self.enmapbox.dataSourceManager
-        self.DSM.sigDataSourceAdded.connect(self.addDataSource)
-        self.DSM.sigDataSourceRemoved.connect(self.removeDataSource)
-
-        for ds in self.DSM.sources:
-            self.addDataSource(ds)
-
-    def mimeTypes(self):
-        #specifies the mime types handled by this model
-        types = []
-        types.append("text/uri-list")
-        types.append("application/qgis.layertreemodeldata")
-        types.append("application/enmapbox.datasourcetreemodeldata")
-        return types
-
-    def dropMimeData(self, data, action, row, column, parent):
-        parentNode = self.index2node(parent)
-        assert isinstance(data, QMimeData)
-
-        isL1Node = parentNode.parent() == self.rootNode
-
-        result = False
-        if action == Qt.MoveAction:
-            # collect nodes
-            nodes = []
-
-            if data.hasFormat("application/enmapbox.datasourcetreemodeldata"):
-                return False #do not allow moving within DataSourceTree
-
-            # add new data from external
-            elif data.hasFormat('text/uri-list'):
-                for url in data.urls():
-                    self.DSM.addSource(url)
-
-            # add new from QGIS
-            elif data.hasFormat("application/qgis.layertreemodeldata"):
-                result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
-                s = ""
-
-
-            nodes = [n for n in nodes if n is not None]
-
-            # insert nodes, if possible
-            if len(nodes) > 0:
-                if row == -1 and column == -1:
-                    parentNode = parentNode.parent()
-                parentNode.insertChildNodes(-1, nodes)
-                result = True
-
-        return result
-
-    def mimeData(self, indexes):
-        indexes = sorted(indexes)
-        if len(indexes) == 0:
-            return None
-
-        nodesFinal = self.indexes2nodes(indexes, True)
-        mimeData = QMimeData()
-        #define application/enmapbox.datasourcetreemodeldata
-        doc = QDomDocument()
-        uriList = list()
-
-        rootElem = doc.createElement("datasource_tree_model_data");
-        exportedNodes = []
-
-        for node in nodesFinal:
-            if isinstance(node, DataSourceTreeNode):
-
-                exportedNodes.append(node)
-
-            elif isinstance(node, DataSourceGroupTreeNode):
-                for n in node.children():
-                    exportedNodes.append(n)
-
-        for node in exportedNodes:
-            node.writeXML(rootElem)
-            uriList.append(QUrl(node.dataSource.uri))
-
-        doc.appendChild(rootElem)
-        txt = doc.toString()
-        mimeData.setData("application/enmapbox.datasourcetreemodeldata", txt)
-
-        #set text/uri-list
-        if len(uriList) > 0:
-            mimeData.setUrls(uriList)
-
-        return mimeData
-
-    def getSourceGroup(self, dataSource):
-        """Returns the source group relate to a data source"""
-        assert isinstance(dataSource, DataSource)
-
-        groups = [(DataSourceRaster, 'Raster Data'),
-                  (DataSourceVector, 'Vector Data'),
-                  (DataSourceModel, 'Models'),
-                  (DataSourceFile, 'Files'),
-                  (DataSource, 'Other sources')]
-
-        srcGrp = None
-        for groupType, groupName in groups:
-            if isinstance(dataSource, groupType):
-                srcGrp = [c for c in self.rootNode.children() if c.name() == groupName]
-                if len(srcGrp) == 0:
-                    #create new group node and add it to the model
-                    srcGrp = DataSourceGroupTreeNode(self.rootNode, groupName, groupType)
-                elif len(srcGrp) == 1:
-                    srcGrp = srcGrp[0]
-                else:
-                    raise Exception()
-                break
-        if srcGrp is None:
-            s = ""
-        return srcGrp
-
-
-    def addDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSource)
-        dataSourceNode = TreeNodeProvider.CreateNodeFromDataSource(dataSource, None)
-        sourceGroup = self.getSourceGroup(dataSource)
-        sourceGroup.addChildNode(dataSourceNode)
-
-
-    def removeDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSource)
-        sourceGroup = self.getSourceGroup(dataSource)
-        to_remove = [c for c in sourceGroup.children() if c.source == dataSource]
-        if len(to_remove) > 0:
-            sourceGroup.removeChildNodes(to_remove)
-
-
-    def flags(self, index):
-        if not index.isValid():
-            return Qt.NoItemFlags
-        #specify TreeNode specific actions
-        node = self.index2node(index)
-        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
-        if isinstance(node, DataSourceGroupTreeNode):
-            flags |= Qt.ItemIsDropEnabled
-        elif isinstance(node, DataSourceTreeNode):
-            flags |= Qt.ItemIsDragEnabled
-        else:
-            flags = Qt.NoItemFlags
-        return flags
 

@@ -1,18 +1,44 @@
-import importlib
-import os
-import sys
-
+import os, sys, importlib, re, six, logging, fnmatch
+logger = logging.getLogger(__name__)
+from qgis.core import *
+from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtXml import *
-
-import enmapbox
-import six
-
-dprint = enmapbox.dprint
 from PyQt4 import uic
+import enmapbox.gui
+jp = os.path.join
+
+DIR_ENMAPBOX = os.path.dirname(enmapbox.__file__)
+DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
+DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
+DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
+DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
+import enmapbox.testdata
+DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
+SETTINGS = QSettings(QSettings.UserScope, 'HU Geomatics', 'EnMAP-Box')
+
+def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
+    assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
+
+    results = []
+
+    for root, dirs, files in os.walk(rootdir):
+        for file in files:
+            if (ignoreCase and fnmatch.fnmatch(file.lower(), pattern.lower())) \
+                    or fnmatch.fnmatch(file, pattern):
+                results.append(os.path.join(root, file))
+        if not recursive:
+            break
+            pass
+
+    return results
+
+
+loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 
 FORM_CLASSES = dict()
+
 def loadUIFormClass(pathUi, from_imports=False):
     """
     Load UI files and takes care on Qgs custom widgets
@@ -54,7 +80,7 @@ def loadUIFormClass(pathUi, from_imports=False):
                 file.close()
 
                 pathUi = tmp
-        dprint('Load UI file: {}'.format(pathUi))
+        logger.debug('Load UI file: {}'.format(pathUi))
         FORM_CLASS, _ = uic.loadUiType(pathUi,from_imports=from_imports, resource_suffix=RC_SUFFIX)
 
         if add_and_remove:
@@ -65,15 +91,30 @@ def loadUIFormClass(pathUi, from_imports=False):
 
 
 
-def jp(*args, **kwds):
-    return os.path.join(*args, **kwds)
-
 def typecheck(variable, type_):
     if isinstance(type_, list):
         for i in range(len(type_)):
             typecheck(variable[i], type_[i])
     else:
         assert isinstance(variable,type_)
+
+
+class PanelWidgetBase(QgsDockWidget):
+    def __init__(self, parent):
+        super(PanelWidgetBase, self).__init__(parent)
+        self.setupUi(self)
+
+    def _blockSignals(self, widgets, block=True):
+        states = dict()
+        if isinstance(widgets, dict):
+            for w, block in widgets.items():
+                states[w] = w.blockSignals(block)
+        else:
+            for w in widgets:
+                states[w] = w.blockSignals(block)
+        return states
+
+
 
 def check_package(name, package=None, stop_on_error=False):
     try:
@@ -113,15 +154,55 @@ def getDOMAttributes(elem):
         values[attr.nodeName()] = attr.nodeValue()
     return values
 
+class SpatialPoint(QgsPoint):
+    """
+    Object to keep QgsPoint and QgsCoordinateReferenceSystem together
+    """
+
+    @staticmethod
+    def fromMapCanvasCenter(mapCanvas):
+        assert isinstance(mapCanvas, QgsMapCanvas)
+        crs = mapCanvas.mapSettings().destinationCrs()
+        return SpatialPoint(crs, mapCanvas.center())
+
+    def __init__(self, crs, *args):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        super(SpatialPoint, self).__init__(*args)
+        self.mCrs = crs
+
+    def setCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        self.mCrs = crs
+
+    def crs(self):
+        return self.mCrs
+
+    def toCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        pt = QgsPoint(self)
+        if self.mCrs != crs:
+            trans = QgsCoordinateTransform(self.mCrs, crs)
+            box = trans.transform(pt)
+        return SpatialPoint(crs, pt)
+
+    def __copy__(self):
+        return SpatialExtent(self.crs(), QgsRectangle(self))
+
+    def __repr__(self):
+        return '{} {} {}'.format(self.x(), self.y(), self.crs().authid())
 
 class SpatialExtent(QgsRectangle):
     """
     Object to keep QgsRectangle and QgsCoordinateReferenceSystem together
     """
     @staticmethod
-    def fromMapCanvas(mapCanvas):
+    def fromMapCanvas(mapCanvas, fullExtent=False):
         assert isinstance(mapCanvas, QgsMapCanvas)
-        extent = mapCanvas.extent()
+
+        if fullExtent:
+            extent = mapCanvas.fullExtent()
+        else:
+            extent = mapCanvas.extent()
         crs = mapCanvas.mapSettings().destinationCrs()
         return SpatialExtent(crs, extent)
 
@@ -164,6 +245,8 @@ class SpatialExtent(QgsRectangle):
         else:
             super(SpatialExtent, self).combineExtentWith(*args)
 
+        return self
+
     def setCenter(self, centerPoint, crs=None):
 
         if crs and crs != self.crs():
@@ -176,6 +259,7 @@ class SpatialExtent(QgsRectangle):
         self.setYMaximum(self.yMaximum() + delta.y())
         self.setYMinimum(self.yMinimum() + delta.y())
 
+        return self
 
     def __cmp__(self, other):
         if other is None: return 1
@@ -258,24 +342,16 @@ class IconProvider:
 
     @staticmethod
     def test():
-        dprint('test QImageProviders')
         required = set(['png','svg'])
         available = set([str(p) for p in QImageReader.supportedImageFormats()])
         missing = required - available
-        if len(missing) > 0:
-            dprint('Missing QImageFormat support : {}'.format(','.join(list(missing))))
-        s = ""
 
 
 
-        dprint('test resource file icons')
         for name, uri in IconProvider.resourceIconsPaths():
             icon = QIcon(uri)
             w = h = 16
             s = icon.actualSize(QSize(w,h))
-            if w != s.width() or h != s.height():
-                print((name, uri, s.width(), s.height()))
-                s = ""
 
 
 class MimeDataHelper():
@@ -314,8 +390,6 @@ class MimeDataHelper():
         r = False
         if format in self.formats:
             r = self.doc.setContent(self.mimeData.data(format))
-        if r:
-            print(str(self.doc.toString()))
         return r
 
     def hasLayerTreeModelData(self):
@@ -348,7 +422,6 @@ class MimeDataHelper():
         return nodes
 
     def _readMapLayersFromXML(self, root):
-        dprint(root.ownerDocument().toString())
 
         nodeList = root.elementsByTagName('layer-tree-layer')
         reg = QgsMapLayerRegistry.instance()
