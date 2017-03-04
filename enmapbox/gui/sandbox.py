@@ -28,15 +28,16 @@ def _sandboxTemplate():
 def sandboxPureGui():
     qgsApp = initQgs()
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
-    from enmapbox.testdata import HymapBerlinB
-    for k in HymapBerlinB.__dict__.keys():
-        if k.startswith('Hymap'):
-            EB.addSource(getattr(HymapBerlinB, k))
-    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
+    if False:
+        from enmapbox.testdata import HymapBerlinB
+        for k in HymapBerlinB.__dict__.keys():
+            if k.startswith('Hymap'):
+                EB.addSource(getattr(HymapBerlinB, k))
+        EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
     #do something here
 
     qgsApp.exec_()
