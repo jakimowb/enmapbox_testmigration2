@@ -852,7 +852,7 @@ class MapCanvas(QgsMapCanvas):
             reg.addMapLayer(l, False)
 
         #set the new layers
-        super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
+        super(MapCanvas,self).setLayers([QgsMapCanvasLayer(l) for l in newSet])
 
         if not self._extentInitialized and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent
@@ -1061,7 +1061,7 @@ class MapDock(Dock):
             newLayers = ME.mapLayers()
 
             lyrs = self.canvas.layers()
-            self.setLayerSet(newLayers + lyrs)
+            self.setLayers(newLayers + lyrs)
             event.accept()
             event.acceptProposedAction()
         if ME.hasDataSources():
@@ -1092,7 +1092,7 @@ class MapDock(Dock):
         assert isinstance(canvas, QgsMapCanvas)
         CanvasLinkManager.instance().addLinkSet(self, canvas, linktype)
 
-    def setLayerSet(self, mapLayers):
+    def setLayers(self, mapLayers):
         assert isinstance(mapLayers, list)
         self.canvas.setLayers(mapLayers)
 
@@ -1102,11 +1102,11 @@ class MapDock(Dock):
             mapLayers = [mapLayers]
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-        self.setLayerSet(mapLayers + self.canvas.layers())
+        self.setLayers(mapLayers + self.canvas.layers())
 
     def removeLayers(self, mapLayers):
         newSet = [l for l in self.canvas.layers() if l not in mapLayers]
-        self.setLayerSet(newSet)
+        self.setLayers(newSet)
 
 
 
