@@ -25,6 +25,20 @@ def _sandboxTemplate():
     qgsApp.exec_()
     qgsApp.exitQgis()
 
+def sandboxPFReport():
+    qgsApp = initQgs()
+    import enmapbox.gui
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+
+    #create a report in Processing Framework?
+
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
 def sandboxPureGui():
     qgsApp = initQgs()
     import enmapbox.gui
@@ -217,6 +231,7 @@ if __name__ == '__main__':
 
     #run tests
     if False: sandboxPureGui()
+    if True: sandboxPFReport()
     if False: sandboxDragDrop()
-    if True: sandboxGUI()
+    if False: sandboxGUI()
     if False: sandboxDialog()
