@@ -174,6 +174,14 @@ def compile_rc_files(ROOT):
     #resourcefiles = file_search(ROOT, '*.qrc', recursive=True)
     resourcefiles = list(qrcs)
     assert len(resourcefiles) > 0
+
+    if sys.platform == 'darwin':
+        prefix = '/Applications/QGIS.app/Contents/MacOS/bin/'
+    else:
+        prefix = ''
+
+
+
     for root_dir, f in resourcefiles:
         #dn = os.path.dirname(f)
         pathQrc = os.path.normpath(jp(root_dir, f))
@@ -182,10 +190,11 @@ def compile_rc_files(ROOT):
         bn = os.path.splitext(bn)[0]
         pathPy2 = os.path.join(DIR_UIFILES, bn+'_py2.py' )
         pathPy3 = os.path.join(DIR_UIFILES, bn+'_py3.py' )
+
         print('Make {}'.format(pathPy2))
-        subprocess.call(['pyrcc4','-py2','-o',pathPy2, pathQrc])
+        subprocess.call([prefix+'pyrcc4','-py2','-o',pathPy2, pathQrc])
         print('Make {}'.format(pathPy3))
-        subprocess.call(['pyrcc4','-py3','-o',pathPy3, pathQrc])
+        subprocess.call([prefix+'pyrcc4','-py3','-o',pathPy3, pathQrc])
 
 
 def fileNeedsUpdate(file1, file2):

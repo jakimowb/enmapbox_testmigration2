@@ -2,7 +2,6 @@ from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterRaster, ParameterFile
 from processing.core.outputs import OutputRaster
 
-from enmapbox.processing.types import Image, Mask, unpickle
 
 class EstimatorProbabilityPredictor(GeoAlgorithm):
 
@@ -17,6 +16,9 @@ class EstimatorProbabilityPredictor(GeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
+        from enmapbox.processing.types import Image, Mask, unpickle
+        from enmapboxplugin.processing.SignalsManager import SignalsManager
+
         image = self.getParameterValue('image')
         mask = self.getParameterValue('mask')
         filename = self.getParameterValue('estimator')
@@ -24,3 +26,5 @@ class EstimatorProbabilityPredictor(GeoAlgorithm):
         estimation = estimator.predictProbability(image=Image(image),
                                                   mask=Mask(mask) if mask is not None else None,
                                                   filename=self.getOutputValue('prediction'), progress=progress)
+
+        SignalsManager.emitImageCreated(estimation.filename)

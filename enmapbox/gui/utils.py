@@ -18,6 +18,8 @@ import enmapbox.testdata
 DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
 SETTINGS = QSettings(QSettings.UserScope, 'HU Geomatics', 'EnMAP-Box')
 
+REPLACE_TMP = True #required for loading *.ui files directly
+
 def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
 
@@ -50,42 +52,50 @@ def loadUIFormClass(pathUi, from_imports=False):
     DIR_GUI = os.path.dirname(pathUi)
     assert os.path.exists(pathUi)
     if pathUi not in FORM_CLASSES.keys():
-        add_and_remove = DIR_GUI not in sys.path
-        if add_and_remove:
+
+        isTemporaryGUIDir = DIR_GUI not in sys.path
+        if isTemporaryGUIDir:
             sys.path.append(DIR_GUI)
 
-
-        #replace for <customwidget> with <class>Qgs...</class>
+        #In <customwidget> with <class>Qgs...</class>
+        # replace *.h file references like
         #       <header>qgscolorbutton.h</header>
         # by    <header>qgis.gui</header>
 
-        if True:
-            tmp = jp(os.path.dirname(pathUi), 'tmp.ui')
+        needsTmpUIFile = False
+        if REPLACE_TMP:
+            pathTmpUI = jp(os.path.dirname(pathUi), 'tmp.ui')
 
+            #parse *.ui xml and replace *.h by qgis.gui
             doc = QDomDocument()
             doc.setContent(QFile(pathUi))
             elem = doc.elementsByTagName('customwidget')
-            overwrite = False
+
             for child in [elem.item(i) for i in range(elem.count())]:
                 child = child.toElement()
                 className = str(child.firstChildElement('class').firstChild().nodeValue())
                 if className.startswith('Qgs'):
                     cHeader = child.firstChildElement('header').firstChild()
                     cHeader.setNodeValue('qgis.gui')
-                    overwrite=True
-            if overwrite:
+                    needsTmpUIFile=True
+
+            if needsTmpUIFile:
                 s = str(doc.toString())
-                file = open(tmp, 'w')
+                file = open(pathTmpUI, 'w')
                 file.write(s)
                 file.close()
+                pathUi = pathTmpUI
 
-                pathUi = tmp
         logger.debug('Load UI file: {}'.format(pathUi))
         FORM_CLASS, _ = uic.loadUiType(pathUi,from_imports=from_imports, resource_suffix=RC_SUFFIX)
-
-        if add_and_remove:
-            sys.path.remove(DIR_GUI)
         FORM_CLASSES[pathUi] = FORM_CLASS
+
+        #remove tmp *.ui file - as it is supposed to be temporary
+        if needsTmpUIFile:
+            os.remove(pathTmpUI)
+
+        if isTemporaryGUIDir:
+            sys.path.remove(DIR_GUI)
 
     return FORM_CLASSES[pathUi]
 

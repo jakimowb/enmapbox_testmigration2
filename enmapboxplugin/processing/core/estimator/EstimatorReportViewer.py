@@ -2,8 +2,6 @@ from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterFile
 
 
-from enmapbox.processing.types import unpickle
-
 class EstimatorReportViewer(GeoAlgorithm):
 
     def defineCharacteristics(self):
@@ -14,9 +12,11 @@ class EstimatorReportViewer(GeoAlgorithm):
 
     def processAlgorithm(self, progress):
 
+        from enmapbox.processing.types import unpickle
         from enmapboxplugin.processing.SignalsManager import SignalsManager
 
         estimator = unpickle(self.getParameterValue('estimator'), progress=progress)
         report = estimator.report().saveHTML().filename
 
+        SignalsManager.connectHTMLCreatedToWebBrowser()
         SignalsManager.emitHTMLCreated(report)

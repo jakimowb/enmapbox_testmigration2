@@ -98,9 +98,9 @@ class DataSourceFactory(object):
         return uri
 
     @staticmethod
-    def isEnMAPBoxModel(src):
+    def isEnMapBoxPkl(src):
         """
-        Returns the sourc uri if it can be handled as known raster data source.
+        Returns the source uri if it can be handled as known raster data source.
         :param src: any type
         :return: uri (str) | None
         """
@@ -160,9 +160,9 @@ class DataSourceFactory(object):
         if uri is not None:
             return DataSourceVector(uri, name=name, icon=icon)
 
-        uri = DataSourceFactory.isEnMAPBoxModel(src)
+        uri = DataSourceFactory.isEnMapBoxPkl(src)
         if uri is not None:
-            return DataSourceModel(uri, name=name, icon=icon)
+            return ProcessingTypeDataSource(uri, name=name, icon=icon)
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
@@ -202,8 +202,10 @@ class DataSource(object):
 
         if name is None:
             name = os.path.basename(uri)
+
         assert name is not None
-        assert type(icon) is QIcon
+        assert isinstance(icon, QIcon)
+
         self.uuid = uuid.uuid4()
         self.uri = uri
         self.icon = icon
@@ -244,9 +246,6 @@ class DataSourceTextFile(DataSourceFile):
         super(DataSourceTextFile, self).__init__(uri, name, icon)
 
 
-
-
-
 class DataSourceXMLFile(DataSourceTextFile):
     """
     Class to specifically handle XML based files like XML, HTML etc.
@@ -265,9 +264,15 @@ class DataSourceSpatial(DataSource):
         super(DataSourceSpatial, self).__init__(uri, name, icon)
 
         lyr = self.createUnregisteredMapLayer()
+
+        from enmapbox.gui.utils import SpatialExtent
+        self.spatialExtent = SpatialExtent.fromLayer(lyr)
+
         assert isinstance(lyr, QgsMapLayer)
         assert lyr.isValid()
+
         self.mapLayers = list()
+
 
     def createUnregisteredMapLayer(self, *args, **kwds):
         """
@@ -294,15 +299,22 @@ class DataSourceSpatial(DataSource):
         self.mapLayers.append(ml)
         return ml
 
-class DataSourceModel(DataSourceFile):
+class ProcessingTypeDataSource(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
-        super(DataSourceModel, self).__init__(uri, name, icon)
+        super(ProcessingTypeDataSource, self).__init__(uri, name, icon)
         from enmapbox.processing import types
         from enmapbox.processing.types import Estimator
+        if not isinstance(icon, QIcon):
+            self.icon = QIcon(':/enmapbox/icons/alg.png')
+
+        self.pfType = types.unpickle(uri)
+
+    def report(self):
+        return self.pfType.report()
 
 
-        self.model = types.unpickle(uri)
-
+    def metadataDict(self):
+        return self.pfType.getMetadataDict()
 
 
 class DataSourceRaster(DataSourceSpatial):
@@ -360,4 +372,6 @@ class DataSourceVector(DataSourceSpatial):
             return QgsVectorLayer(self.uri, None, 'ogr')
         else:
             return QgsVectorLayer(self.uri, **kwargs)
+
+
 

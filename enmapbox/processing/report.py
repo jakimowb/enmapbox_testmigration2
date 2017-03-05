@@ -1,6 +1,5 @@
 import numpy
 import os
-import scipy.misc
 import subprocess
 import time
 import hub.file
@@ -175,7 +174,13 @@ class ReportImage():
         relativeImageFilename = os.path.join(relativeDirname, basename)
         absoluteImageFilename = os.path.join(dirname, basename)
 
-        scipy.misc.toimage(self.array).save(absoluteImageFilename)
+        #import scipy.misc
+        #scipy.misc.toimage(self.array).save(absoluteImageFilename)
+
+        import Image
+        im = Image.fromarray(self.array)
+        im.save(absoluteImageFilename)
+
 
         html = list()
         html.append('    <p>')

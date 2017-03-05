@@ -112,7 +112,8 @@ class EnMAPBoxQgisInterface(QgisInterface):
         return self.enmapBox.ui.messageBar
 
     def mapCanvas(self):
-        self.virtualMapCanvas.setLayers([])
+        assert isinstance(self.virtualMapCanvas, QgsMapCanvas)
+        self.virtualMapCanvas.setLayerSet([])
         lyrs = []
         for ds in self.enmapBox.dataSourceManager.sources:
             if isinstance(ds, DataSourceSpatial):
@@ -121,9 +122,9 @@ class EnMAPBoxQgisInterface(QgisInterface):
             self.virtualMapCanvas.mapSettings().setDestinationCrs(lyrs[0].crs())
         lyrs = [QgsMapCanvasLayer(l) for l in lyrs]
 
-        self.virtualMapCanvas.setLayers(lyrs)
+        self.virtualMapCanvas.setLayerSet(lyrs)
         self.virtualMapCanvas.setExtent(self.virtualMapCanvas.fullExtent())
-        logger.debug('layers show in QgsInterface::mapCanvas() {}'.format(len(self.virtualMapCanvas.layers())))
+        logger.debug('layers shown in (temporary) QgsInterface::mapCanvas() {}'.format(len(self.virtualMapCanvas.layers())))
         return self.virtualMapCanvas
 
     def openMessageLog(self):

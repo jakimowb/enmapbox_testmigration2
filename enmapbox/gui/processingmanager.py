@@ -86,6 +86,8 @@ class ProcessingAlgorithmsManager(QObject):
         logger.debug('File created from processing framework:\n{}'.format(path))
         self.enmapBox.dataSourceManager.addSource(path)
 
-
-
+    def onHtmlCreated(self, path):
+        logger.debug('HTML report created from processing framework:\n{}'.format(path))
+        src = self.enmapBox.dataSourceManager.addSource(path)
+        self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
 

@@ -25,19 +25,39 @@ def _sandboxTemplate():
     qgsApp.exec_()
     qgsApp.exitQgis()
 
-def sandboxPureGui():
+def sandboxPFReport():
     qgsApp = initQgs()
     import enmapbox.gui
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
+
+    #create a report in Processing Framework?
+    from enmapbox.testdata import RandomForestModel
+    from enmapboxplugin.processing.Signals import Signals
+    from enmapbox.testdata import HymapBerlinB
+    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
+
+    Signals.pickleCreated.emit(RandomForestModel)
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
+def sandboxPureGui():
+    qgsApp = initQgs()
+    import enmapbox.gui
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+    from enmapbox.testdata import HymapBerlinB
     if False:
-        from enmapbox.testdata import HymapBerlinB
         for k in HymapBerlinB.__dict__.keys():
             if k.startswith('Hymap'):
                 EB.addSource(getattr(HymapBerlinB, k))
-        EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
+
+    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
     #do something here
 
     qgsApp.exec_()
@@ -100,10 +120,10 @@ def sandboxGUI():
 
         EB.createDock('MAP', name='EnMAP 01', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
         EB.createDock('MAP', name='HyMap 01', initSrc=UrbanGradient.HyMap01_Berlin_Urban_Gradient_2009_bsq)
-        EB.createDock('MAP', name='LandCov Level1', initSrc=UrbanGradient.LandCov_Layer_Level1_Berlin_Urban_Gradient_2009_bsq)
-        EB.createDock('MAP', name='LandCov Level2', initSrc=UrbanGradient.LandCov_Layer_Level2_Berlin_Urban_Gradient_2009_bsq)
-        EB.createDock('MAP', name='Shapefile', initSrc=UrbanGradient.LandCov_Vec_polygons_Berlin_Urban_Gradient_2009_shp)
-        EB.createDock('CURSORLOCATIONVALUE')
+        #EB.createDock('MAP', name='LandCov Level1', initSrc=UrbanGradient.LandCov_Layer_Level1_Berlin_Urban_Gradient_2009_bsq)
+        #EB.createDock('MAP', name='LandCov Level2', initSrc=UrbanGradient.LandCov_Layer_Level2_Berlin_Urban_Gradient_2009_bsq)
+        #EB.createDock('MAP', name='Shapefile', initSrc=UrbanGradient.LandCov_Vec_polygons_Berlin_Urban_Gradient_2009_shp)
+        #EB.createDock('CURSORLOCATIONVALUE')
 
     qgsApp.exec_()
 
@@ -216,7 +236,8 @@ if __name__ == '__main__':
 
 
     #run tests
-    if True: sandboxPureGui()
+    if False: sandboxPureGui()
+    if True: sandboxPFReport()
     if False: sandboxDragDrop()
     if False: sandboxGUI()
     if False: sandboxDialog()

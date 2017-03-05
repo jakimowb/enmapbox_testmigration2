@@ -2,7 +2,6 @@ from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterRaster, ParameterString
 from processing.core.outputs import OutputFile
 
-
 from enmapbox.processing.estimators import RandomForestClassifier
 
 
@@ -22,6 +21,8 @@ class RandomForestClassifierFitter(GeoAlgorithm):
     def processAlgorithm(self, progress):
 
         from enmapbox.processing.types import Image, Classification
+        from enmapboxplugin.processing.SignalsManager import SignalsManager
+
         image = self.getParameterValue('image')
         train = self.getParameterValue('train')
         classifier = eval(self.getParameterValue('parameters'))
@@ -29,3 +30,7 @@ class RandomForestClassifierFitter(GeoAlgorithm):
         filename = self.getOutputValue(self.name)
         classifier.pickle(filename, progress=progress)
 
+        SignalsManager.emitPickleCreated(filename)
+
+    def help(self):
+        return False, 'http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html'

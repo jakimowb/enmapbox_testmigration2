@@ -15,6 +15,14 @@ class SignalsManager(object):
     def emitHTMLCreated(clf, filename):
         Signals.htmlCreated.emit(filename)
 
+    @classmethod
+    def emitImageCreated(clf, filename):
+        Signals.imageCreated.emit(filename)
+
+    @classmethod
+    def emitPickleCreated(clf, filename):
+        Signals.pickleCreated.emit(filename)
+
     @staticmethod
     def handleHTMLCreatedInWebBrowser(url):
         import webbrowser
