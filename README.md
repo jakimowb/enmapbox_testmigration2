@@ -1,3 +1,5 @@
+![EnMAP-Box Logo](http://www.enmap.org/sites/default/files/pictures/logos/logo-enmap-box-thumb.jpg)
+
 # README #
 
 The EnMAP-Box software is developed to be used as a QGIS plugin. The installation steps include: 
