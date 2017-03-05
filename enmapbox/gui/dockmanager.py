@@ -382,7 +382,10 @@ class DockManager(QgsLegendInterface):
                 layers = MH.mapLayers()
             elif MH.hasDataSources():
                 for ds in MH.dataSources():
-                    layers.append(ds.createRegisteredMapLayer())
+                    if isinstance(ds, DataSourceSpatial):
+                        layers.append(ds.createRegisteredMapLayer())
+                    elif isinstance(ds, DataSourceTextFile):
+                        textfiles.append(ds)
 
             #register datasources
             for src in layers + textfiles:
@@ -390,9 +393,19 @@ class DockManager(QgsLegendInterface):
 
             #open map dock for new layers
             if len(layers) > 0:
-
                 NEW_MAP_DOCK = self.createDock('MAP')
                 NEW_MAP_DOCK.addLayers(layers)
+
+            #open test dock for new text files
+            for textSource in textfiles:
+                html = None
+                plainTxt = None
+                txt = open(textSource.uri).read()
+                if re.search('(xml|html)$', os.path.basename(textSource.uri)):
+                    html = txt
+                else:
+                    plainTxt = txt
+                NEW_TEXT_DOCK = self.createDock('TEXT', html=html, plainTxt=plainTxt)
             event.accept()
 
 
