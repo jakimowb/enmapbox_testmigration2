@@ -19,4 +19,5 @@ class EstimatorReportViewer(GeoAlgorithm):
         estimator = unpickle(self.getParameterValue('estimator'), progress=progress)
         report = estimator.report().saveHTML().filename
 
+        SignalsManager.connectHTMLCreatedToWebBrowser()
         SignalsManager.emitHTMLCreated(report)

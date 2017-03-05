@@ -19,4 +19,5 @@ class RegressionAccuracyAssessor(GeoAlgorithm):
         prediction = Regression(self.getParameterValue('prediction'))
         report = prediction.assessRegressionPerformance(observation).report().saveHTML().filename
 
+        SignalsManager.connectHTMLCreatedToWebBrowser()
         SignalsManager.emitHTMLCreated(report)

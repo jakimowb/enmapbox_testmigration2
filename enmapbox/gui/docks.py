@@ -184,6 +184,10 @@ class CanvasLinkManager:
 
         assert isinstance(masterCanvas, MapCanvas)
 
+
+        if len(self.handledCanvases) == 0:
+            logger.debug('START LINKING FROM: {}'.format(masterCanvas))
+
         self.handledCanvases.add(masterCanvas)
 
         mst_extent = SpatialExtent.fromMapCanvas(masterCanvas)
@@ -776,101 +780,19 @@ class MapCanvas(QgsMapCanvas):
 
     _cnt = 0
 
-    def __init__(self, *args, **kwds):
+    def __init__(self, parentMapDock, *args, **kwds):
         super(MapCanvas, self).__init__(*args, **kwds)
 
 
-        #assert isinstance(parentMapDock, MapDock)
+        assert isinstance(parentMapDock, MapDock)
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
         MapCanvas._cnt += 1
         self._extentInitialized = False
-        #self.mapdock = parentMapDock
-        #self.enmapbox = self.mapdock.enmapbox
+        self.mapdock = parentMapDock
+        self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
         self.extentsChanged.connect(self.sandbox)
-        #self.destinationCrsChanged.connect(self._saveExtents)
-
-        self.mLastScale = None
-
-        self.mLastGeoExtent = None
-        self.mLastPxUL = None
-        self.mLastPxLR = None
-
-        self.mBlockScaleRestore = False
-
-    def _saveExtents(self):
-        self.mLastGeoExtent = self.spatialExtent()
-        self.mLastPxUL = QgsPoint(self.mapToGlobal(QPoint(0, 0)))
-        self.mLastPxLR = QgsPoint(self.mapToGlobal(QPoint(self.width(), self.height())))
-
-    def resizeEvent(self, event):
-        assert isinstance(event, QResizeEvent)
-        super(MapCanvas, self).resizeEvent(event)
-
-
-        self.onResizeEvent()
-        return
-
-        if not self.mBlockScaleRestore:
-            self.mBlockScaleRestore = True
-            QTimer.singleShot(500, self.onResizeEvent)
-
-    def onResizeEvent(self):
-        self.mBlockScaleRestore = False
-
-        if True:
-            recentScale = self.scale()
-            if self.mLastScale is not None:
-                if recentScale != self.mLastScale:
-                    #the simple way, but always shifts center coordinate as well
-                    self.zoomScale(self.mLastScale)
-            self.mLastScale = recentScale
-
-        elif True and self.mLastPxUL != None:
-
-            newPxUL = QgsPoint(self.mapToGlobal(QPoint(0, 0)))
-            newPxLR = QgsPoint(self.mapToGlobal(QPoint(self.width(), self.height())))
-            pxShiftUL = newPxUL - self.mLastPxUL
-            pxShiftLR = newPxLR - self.mLastPxLR
-
-
-            lastWidthPx = self.mLastPxLR.x()- self.mLastPxUL.x()
-            lastHeightPx = self.mLastPxUL.y() - self.mLastPxLR.y()
-
-            if lastWidthPx == 0 or lastHeightPx == 0:
-                return
-
-            def geoShift(shiftPx, oldLengthPx, newLengthGeo):
-                return shiftPx / oldLengthPx * newLengthGeo
-
-            if pxShiftUL.length() > 0 or pxShiftLR.length() > 0:
-                #calculate new extent by mapping pixel coordinate
-                # newRect * lastExt / lastRect = newExt
-
-                geoShiftUL = QgsVector(
-                    geoShift(pxShiftUL.x(), lastWidthPx, self.mLastGeoExtent.width()),
-                    geoShift(pxShiftUL.y(), lastHeightPx, self.mLastGeoExtent.height())
-                )
-
-                geoShiftLR = QgsVector(
-                    geoShift(pxShiftLR.x(), lastWidthPx, self.mLastGeoExtent.width()),
-                    geoShift(pxShiftLR.y(), lastHeightPx, self.mLastGeoExtent.height())
-                )
-
-                newGeoUL = QgsPoint(*self.mLastGeoExtent.upperLeft()) + geoShiftUL
-                newGeoLR = QgsPoint(*self.mLastGeoExtent.lowerRight()) + geoShiftLR
-
-                self.setExtent(QgsRectangle(newGeoUL, newGeoLR))
-            self._saveExtents()
-
-        self.mBlockScaleRestore = False
-
-
-    def _zoomScale(self, scale):
-        self.zoomScale(scale)
-        self.mLastScale = scale
-
 
     def zoomToFeatureExtent(self, spatialExtent):
         assert isinstance(spatialExtent, SpatialExtent)
@@ -1294,14 +1216,4 @@ class MimeDataDock(TextDock):
 
 
 
-if __name__ == '__main__':
-    import enmapbox.gui.sandbox
-    from enmapbox.testdata import HymapBerlinA
-    qgsApp = enmapbox.gui.sandbox.initQgs()
-    lyr = QgsRasterLayer(HymapBerlinA.HymapBerlinA_image)
 
-    map = MapCanvas()
-    map.setLayers([lyr])
-    map.show()
-    map.resize(QSize(400,300))
-    qgsApp.exec_()

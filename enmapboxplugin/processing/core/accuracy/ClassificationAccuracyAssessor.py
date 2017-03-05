@@ -20,4 +20,5 @@ class ClassificationAccuracyAssessor(GeoAlgorithm):
         observed = Classification(self.getParameterValue('observed'))
         report = predicted.assessClassificationPerformance(observed).report().saveHTML().filename
 
+        SignalsManager.connectHTMLCreatedToWebBrowser()
         SignalsManager.emitHTMLCreated(report)
