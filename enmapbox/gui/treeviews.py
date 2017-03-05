@@ -344,9 +344,11 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
         n = TreeNode(self, 'Extent')
         UL = ext.upperLeft()
         LR = ext.lowerRight()
-        TreeNode(n, 'UL: {} {}'.format(*UL), tooltip='Upper left coordinate')
-        TreeNode(n, 'LR: {} {}'.format(*LR), tooltip='Lower right coordinate')
-
+        mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
+        mu2 = QgsUnitTypes.toString(ext.crs().mapUnits())
+        TreeNode(n, '{} x {}'.format(ext.width(), ext.height(), mu ))
+        TreeNode(n, 'UL {} {}'.format(UL[0], UL[1], mu), tooltip='Upper left coordinate')
+        TreeNode(n, 'LR {} {}'.format(LR[0], LR[1], mu), tooltip='Lower right coordinate')
 
 
 
@@ -361,7 +363,21 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(RasterDataSourceTreeNode,self).__init__( *args, **kwds)
 
+    def connectDataSource(self, dataSource):
+        assert isinstance(dataSource, DataSourceRaster)
+        super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
 
+        n = TreeNode(self, 'Size')
+        TreeNode(n, 'Image {} x {} x {}'.format(dataSource.nSamples,
+                                          dataSource.nLines,
+                                          dataSource.nBands),
+                 tooltip = 'Samples x Lines x Bands'
+                 )
+        TreeNode(n, 'Pixel {} x {} {}'.format(dataSource.pxSizeX,
+                                              dataSource.pxSizeY,
+                QgsUnitTypes.encodeUnit(dataSource.spatialExtent.crs().mapUnits())
+                                              ),
+                 )
 
 
 class FileDataSourceTreeNode(DataSourceTreeNode):
@@ -383,9 +399,31 @@ class ProcessingTypeTreeNode(DataSourceTreeNode):
 
         metaData = self.pfType.getMetadataDict()
 
-        #show metaData in generic child-nodes
+        handled = list()
+        if 'class lookup' in metaData.keys() and \
+           'class names' in metaData.keys():
 
+            colors = np.asarray(metaData['class lookup']).astype(int)
+            colors = colors.reshape((-1,3))
+
+            grp = TreeNode(self, 'Class Info')
+
+            names = metaData['class names']
+            for i, name in enumerate(names):
+                pixmap = QPixmap(100, 100)
+                color = list(colors[i,:])
+                pixmap.fill(QColor(*color))
+                icon = QIcon(pixmap)
+
+                TreeNode(grp, '{} {}'.format(i, name), icon=icon)
+
+            handled.extend(['class lookup', 'class names'])
+
+        # show metaData in generic child-nodes
         for k,v in metaData.items():
+            if k in handled:
+                continue
+
             grpNode = TreeNode(self, str(k))
             if isinstance(v, list) or isinstance(v, np.ndarray):
                 for v2 in v:

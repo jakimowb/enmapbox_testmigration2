@@ -6,7 +6,7 @@ from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enmapbox.utils import *
-
+import numpy as np
 from osgeo import gdal, ogr
 
 def openPlatformDefault(uri):
@@ -322,13 +322,20 @@ class DataSourceRaster(DataSourceSpatial):
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceRaster, self).__init__(uri, name, icon)
 
-        self._refLayer = self.createUnregisteredMapLayer(self.uri)
+        _refLayer = self.createUnregisteredMapLayer(self.uri)
         #lyr =QgsRasterLayer(self.uri, self.name, False)
-        dp = self._refLayer.dataProvider()
+        dp = _refLayer.dataProvider()
+
+        self.nSamples = dp.xSize()
+        self.nLines = dp.xSize()
+        self.nBands = dp.bandCount()
+        self.dataType = dp.dataType(1)
+        self.pxSizeX = np.round(_refLayer.rasterUnitsPerPixelX(), 4)
+        self.pxSizeY = np.round(_refLayer.rasterUnitsPerPixelY(), 4)
 
 
         #change icon
-        if dp.bandCount() == 1:
+        if self.nLines == 1:
             dt = dp.dataType(1)
             cat_types = [QGis.CInt16, QGis.CInt32, QGis.Byte, QGis.UInt16, QGis.UInt32, QGis.Int16, QGis.Int32]
             if dt in cat_types:
