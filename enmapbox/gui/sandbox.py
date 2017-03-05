@@ -238,8 +238,8 @@ if __name__ == '__main__':
 
 
     #run tests
-    if False: sandboxPureGui()
-    if True: sandboxPFReport()
+    if True: sandboxPureGui()
+    if False: sandboxPFReport()
     if False: sandboxDragDrop()
     if False: sandboxGUI()
     if False: sandboxDialog()
