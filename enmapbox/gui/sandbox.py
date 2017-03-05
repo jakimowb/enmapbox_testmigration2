@@ -34,7 +34,12 @@ def sandboxPFReport():
     EB.run()
 
     #create a report in Processing Framework?
+    from enmapbox.testdata import RandomForestModel
+    from enmapboxplugin.processing.Signals import Signals
+    from enmapbox.testdata import HymapBerlinB
+    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
 
+    Signals.pickleCreated.emit(RandomForestModel)
 
     qgsApp.exec_()
     qgsApp.exitQgis()
@@ -42,16 +47,17 @@ def sandboxPFReport():
 def sandboxPureGui():
     qgsApp = initQgs()
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
+    from enmapbox.testdata import HymapBerlinB
     if False:
-        from enmapbox.testdata import HymapBerlinB
         for k in HymapBerlinB.__dict__.keys():
             if k.startswith('Hymap'):
                 EB.addSource(getattr(HymapBerlinB, k))
-        EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
+
+    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
     #do something here
 
     qgsApp.exec_()

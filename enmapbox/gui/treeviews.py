@@ -2,8 +2,8 @@ from PyQt4.QtXml import *
 
 import enmapbox
 from qgis.core import *
-
-
+from PyQt4.QtGui import QApplication
+import numpy as np
 
 from enmapbox.gui.docks import *
 
@@ -24,7 +24,19 @@ class TreeNodeProvider():
     @staticmethod
     def CreateNodeFromDataSource(dataSource, parent):
         assert isinstance(dataSource, DataSource)
-        node = DataSourceTreeNode(parent, dataSource)
+
+        #hint: take care of derived class order
+        if isinstance(dataSource, ProcessingTypeDataSource):
+            node = ProcessingTypeTreeNode(parent, dataSource)
+        elif isinstance(dataSource, DataSourceFile):
+            node = FileDataSourceTreeNode(parent, dataSource)
+        elif isinstance(dataSource, DataSourceRaster):
+            node = RasterDataSourceTreeNode(parent, dataSource)
+        elif isinstance(dataSource, DataSourceVector):
+            node = VectorDataSourceTreeNode(parent, dataSource)
+        else:
+            node = DataSourceTreeNode(parent, dataSource)
+
         node.setIcon(dataSource.icon)
         return node
 
@@ -101,6 +113,10 @@ class TreeNode(QgsLayerTreeGroup):
     def icon(self):
         return self._icon
 
+    def contextMenu(self):
+        return QMenu()
+
+
     @staticmethod
     def readXml(element):
 
@@ -156,6 +172,7 @@ class TreeNode(QgsLayerTreeGroup):
     def __hash__(self):
         return hash(id(self))
 
+
 class TreeModel(QgsLayerTreeModel):
 
     def __init__(self, parent=None):
@@ -195,6 +212,7 @@ class TreeModel(QgsLayerTreeModel):
     def contextMenu(self, node):
         raise NotImplementedError()
 
+
 class DataSourceGroupTreeNode(TreeNode):
 
     def __init__(self, parent, groupName, classDef):
@@ -233,6 +251,7 @@ class DataSourceGroupTreeNode(TreeNode):
         TreeNode.attachCommonPropertiesFromXML(node, element)
 
         return node
+
 
 class DataSourceTreeNode(TreeNode):
 
@@ -281,6 +300,99 @@ class DataSourceTreeNode(TreeNode):
         #elem.setAttribute('uuid', str(self.dataSource.uuid))
         return elem
 
+
+
+class CRSTreeNode(TreeNode):
+    def __init__(self, parent, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+
+        super(CRSTreeNode, self).__init__(parent, crs.description())
+        self.crs = crs
+        self.setIcon(QIcon(':/enmapbox/icons/crs.png'))
+        self.setTooltip('Coordinate Reference System')
+
+        TreeNode(self, self.crs.authid(), tooltip='Authority ID')
+        TreeNode(self, self.crs.projectionAcronym(), tooltip='Projection Acronym')
+
+
+
+    def contextMenu(self):
+        menu = QMenu()
+        a = menu.addAction('Copy EPSG Code')
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.crs.toWkt()))
+
+        a = menu.addAction('Copy WKT')
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.crs.toauthid()))
+        return menu
+
+
+class SpatialDataSourceTreeNode(DataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(SpatialDataSourceTreeNode,self).__init__( *args, **kwds)
+
+    def connectDataSource(self, dataSource):
+        assert isinstance(dataSource, DataSourceSpatial)
+        super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
+
+        ext = dataSource.spatialExtent
+        assert isinstance(ext, SpatialExtent)
+        CRSTreeNode(self, ext.crs())
+        n = TreeNode(self, 'Extent')
+        UL = ext.upperLeft()
+        LR = ext.lowerRight()
+        TreeNode(n, 'UL: {} {}'.format(*UL), tooltip='Upper left coordinate')
+        TreeNode(n, 'LR: {} {}'.format(*LR), tooltip='Lower right coordinate')
+
+
+
+
+
+class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(VectorDataSourceTreeNode,self).__init__( *args, **kwds)
+
+class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(RasterDataSourceTreeNode,self).__init__( *args, **kwds)
+
+
+
+
+class FileDataSourceTreeNode(DataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(FileDataSourceTreeNode,self).__init__( *args, **kwds)
+
+
+class ProcessingTypeTreeNode(DataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(ProcessingTypeTreeNode, self).__init__(*args, **kwds)
+        self.pfType = None
+
+    def connectDataSource(self, processingTypeDataSource):
+        super(ProcessingTypeTreeNode, self).connectDataSource(processingTypeDataSource)
+        assert isinstance(self.dataSource, ProcessingTypeDataSource)
+        self.pfType = processingTypeDataSource.pfType
+
+        metaData = self.pfType.getMetadataDict()
+
+        #show metaData in generic child-nodes
+
+        for k,v in metaData.items():
+            grpNode = TreeNode(self, str(k))
+            if isinstance(v, list) or isinstance(v, np.ndarray):
+                for v2 in v:
+                    TreeNode(grpNode, str(v2))
+            else:
+                TreeNode(grpNode, str(v))
+
+    def contextMenu(self):
+        m = QMenu()
+        return m
 
 class DockTreeNode(TreeNode):
 
