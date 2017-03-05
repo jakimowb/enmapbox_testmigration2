@@ -398,14 +398,11 @@ class DockManager(QgsLegendInterface):
 
             #open test dock for new text files
             for textSource in textfiles:
-                html = None
-                plainTxt = None
-                txt = open(textSource.uri).read()
                 if re.search('(xml|html)$', os.path.basename(textSource.uri)):
-                    html = txt
+                    dock = self.createDock('WEBVIEW')
+                    dock.load(textSource.uri)
                 else:
-                    plainTxt = txt
-                NEW_TEXT_DOCK = self.createDock('TEXT', html=html, plainTxt=plainTxt)
+                    self.createDock('TEXT', plainTxt=open(textSource.uri).read())
             event.accept()
 
 
@@ -449,18 +446,29 @@ class DockManager(QgsLegendInterface):
     def createDock(self, docktype, *args, **kwds):
 
         #set default kwds
-        kwds['name'] = kwds.get('name', '#{}'.format(len(self.DOCKS) + 1))
+
+        n = len(self.DOCKS) + 1
 
         is_new_dock = True
         if docktype == 'MAP':
+            kwds['name'] = kwds.get('name', 'MapDock #{}'.format(n))
             dock = MapDock(self.enmapBox, *args, **kwds)
             dock.sigCursorLocationValueRequest.connect(self.showCursorLocationValues)
+
         elif docktype == 'TEXT':
+            kwds['name'] = kwds.get('name', 'TextDock #{}'.format(n))
             dock = TextDock(self.enmapBox, *args, **kwds)
+
         elif docktype == 'MIME':
+            kwds['name'] = kwds.get('name', 'MimeDataDock #{}'.format(n))
             dock = MimeDataDock(self.enmapBox, *args, **kwds)
 
+        elif docktype == 'WEBVIEW':
+            kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
+            dock = WebViewDock(self.enmapBox,  *args, **kwds)
+
         elif docktype == 'CURSORLOCATIONVALUE':
+            kwds['name'] = kwds.get('name', 'Cursor Location Values')
             if self.cursorLocationValueDock is None:
                 self.setCursorLocationValueDock(CursorLocationValueDock(self.enmapBox, *args, **kwds))
             else:

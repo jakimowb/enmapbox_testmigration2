@@ -1158,6 +1158,35 @@ class TextDock(Dock):
         self.layout.addWidget(self.textEdit)
 
 
+class WebViewDock(Dock):
+    def __init__(self, *args, **kwargs):
+        uri = kwargs.pop('uri', None)
+        url = kwargs.pop('url', None)
+        super(WebViewDock,self).__init__(*args, **kwargs)
+        #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
+
+        from PyQt4.QtWebKit import QWebView
+        self.webView = QWebView(self)
+        self.layout.addWidget(self.webView)
+
+        if uri is not None:
+            self.load(uri)
+        elif url is not None:
+            self.load(url)
+
+    def load(self, uri):
+        if os.path.isfile(uri):
+            url = QUrl.fromLocalFile(uri)
+        else:
+            url = QUrl(uri)
+        self.webView.load(url)
+        settings = self.webView.page().settings()
+        from PyQt4.QtWebKit import QWebSettings
+        settings.setAttribute(QWebSettings.LocalContentCanAccessRemoteUrls, True)
+        settings.setAttribute(QWebSettings.LocalContentCanAccessFileUrls, True)
+        settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
+        settings.setAttribute(QWebSettings.AutoLoadImages, True)
+
 
 class MimeDataTextEdit(QTextEdit):
 
