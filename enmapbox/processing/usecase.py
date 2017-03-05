@@ -1,5 +1,9 @@
 from __future__ import print_function
 
+from enmapbox.utils.environment.SitePackageAppender import SitePackageAppender
+SitePackageAppender.appendAll()
+from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image, HymapBerlinA_mask, HymapBerlinA_train, HymapBerlinA_test
+
 __author__ = 'janzandr'
 import os
 from enmapbox.processing.types import Type, Meta, VectorClassification, PixelGrid, Image, Mask, Probability, Classification, Regression, SupervisedSample, PixelExtractor, Regressor, Classifier, Clusterer, Transformer
@@ -217,9 +221,9 @@ def clusterer():
 
 def transformer():
 
-    image = Image(os.path.join(inroot, 'Hymap_Berlin-A_Image'))
-    mask = Mask(os.path.join(inroot, 'Hymap_Berlin-A_Mask'))
-    trainingLabels = Classification(os.path.join(inroot, 'Hymap_Berlin-A_Classification-Training-Sample'))
+    image = Image(HymapBerlinA_image)
+    mask = Mask(HymapBerlinA_mask)
+    trainingLabels = Classification(HymapBerlinA_train)
 
     #transformers = all(Transformers)
     #transformers = [Transformers.RobustScaler()]
@@ -529,14 +533,14 @@ if __name__ == '__main__':
     #tic()
     #importENVISpeclib()
     #test_type()
-    workflow_colloquium2016()
+    #workflow_colloquium2016()
     #image()
     #sample()
     #enmapbox.processing.env.cleanupTempdir()
     #classification()
     #regression()
     #clusterer()
-    #transformer()
+    transformer()
     #showEstimator()
     #uncertaintyClassifier()
     #uncertaintyRegressor()

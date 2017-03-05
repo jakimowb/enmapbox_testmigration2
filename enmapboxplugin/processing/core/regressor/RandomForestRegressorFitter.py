@@ -31,3 +31,6 @@ class RandomForestRegressorFitter(GeoAlgorithm):
         classifier.pickle(filename, progress=progress)
 
         SignalsManager.emitPickleCreated(filename)
+
+    def help(self):
+        return False, 'http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html'

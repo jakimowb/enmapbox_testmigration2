@@ -14,9 +14,14 @@ class HymapBerlinAOpener(GeoAlgorithm):
         self.addOutput(OutputRaster('test', 'Test'))
 
     def processAlgorithm(self, progress):
+
         from enmapbox.testdata import HymapBerlinA as filenames
+
         self.setOutputValue('image', filenames.HymapBerlinA_image)
         self.setOutputValue('mask', filenames.HymapBerlinA_mask)
         self.setOutputValue('map', filenames.HymapBerlinA_truth)
         self.setOutputValue('train', filenames.HymapBerlinA_train)
         self.setOutputValue('test', filenames.HymapBerlinA_test)
+
+    def help(self):
+        return True, 'Returns HymapBerlinA testdate filenames'

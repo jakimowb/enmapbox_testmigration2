@@ -2,7 +2,6 @@ from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterRaster, ParameterString
 from processing.core.outputs import OutputFile
 
-
 from enmapbox.processing.estimators import RandomForestClassifier
 
 
@@ -32,3 +31,6 @@ class RandomForestClassifierFitter(GeoAlgorithm):
         classifier.pickle(filename, progress=progress)
 
         SignalsManager.emitPickleCreated(filename)
+
+    def help(self):
+        return False, 'http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html'
