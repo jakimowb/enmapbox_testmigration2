@@ -983,7 +983,7 @@ class Estimator(Type):
                 valid = [0]
 
             # predict valid samples
-            n_outputs_ = self.sklEstimator._final_estimator.n_outputs_
+            #n_outputs_ = self.sklEstimator._final_estimator.n_outputs_
             # todo: check the meaning of n_outputs. Seem to only work correcly for multitarget regression,
             #       but makes problems with normal classification
             # set it to 1 for now, need to fix this later
