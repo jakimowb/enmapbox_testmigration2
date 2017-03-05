@@ -80,6 +80,7 @@ class MapCanvas(QgsMapCanvas):
         assert isinstance(parentMapDock, MapDock)
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
+        self.setCrsTransformEnabled(True)
         MapCanvas._cnt += 1
         self._extentInitialized = False
         self.mapdock = parentMapDock
@@ -153,8 +154,8 @@ class MapCanvas(QgsMapCanvas):
 
         if not self._extentInitialized and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent
-            self.mapSettings().setDestinationCrs(newSet[0].crs())
-            self.setSpatialExtent(SpatialExtent.fromMapCanvas(self, fullExtent=True))
+            newExtent = SpatialExtent.fromLayer(newSet[0])
+            self.setSpatialExtent(newExtent)
             self._extentInitialized = True
         self.refresh()
 
