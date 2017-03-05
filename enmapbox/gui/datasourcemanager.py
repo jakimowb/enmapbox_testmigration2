@@ -136,7 +136,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         groups = [(DataSourceRaster, 'Raster Data'),
                   (DataSourceVector, 'Vector Data'),
-                  (DataSourceModel, 'Models'),
+                  (ProcessingTypeDataSource, 'Models'),
                   (DataSourceFile, 'Files'),
                   (DataSource, 'Other sources')]
 
@@ -161,6 +161,8 @@ class DataSourceManagerTreeModel(TreeModel):
         dataSourceNode = TreeNodeProvider.CreateNodeFromDataSource(dataSource, None)
         sourceGroup = self.getSourceGroup(dataSource)
         sourceGroup.addChildNode(dataSourceNode)
+        dataSourceNode.setExpanded(False)
+        s = ""
 
     def removeDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
@@ -187,21 +189,51 @@ class DataSourceManagerTreeModel(TreeModel):
             flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
         elif isinstance(node, DataSourceTreeNode):
             flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+        elif isinstance(node, TreeNode):
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
         else:
             flags = Qt.NoItemFlags
         return flags
 
     def contextMenu(self, node):
         menu = QMenu()
-        #todo: add node specific menu actions
-        if isinstance(node, DataSourceTreeNode):
-            a = menu.addAction('Remove')
-            a.triggered.connect(lambda: self.dataSourceManager.removeSource(node.dataSource))
         if isinstance(node, DataSourceGroupTreeNode):
             a = menu.addAction('Clear')
             a.triggered.connect(lambda : self.dataSourceManager.removeSources(node.dataSources()))
 
+        if isinstance(node, DataSourceTreeNode):
+            a = menu.addAction('Remove')
+            a.triggered.connect(lambda: self.dataSourceManager.removeSource(node.dataSource))
+
+        if isinstance(node, ProcessingTypeTreeNode):
+            a = menu.addAction('Show report')
+            a.triggered.connect(lambda : self.onShowModelReport(node.dataSource))
+
+        #append node-defined context menu
+        menu2 = node.contextMenu()
+
+
+        if menu2 is not None:
+            menu2.setTitle('CRS Options')
+            menu2.setVisible(True)
+            menu.addMenu(menu2)
+            """
+            for a in menu2.actions():
+                menu.addAction(a)
+            """
+        menu.setVisible(True)
         return menu
+
+    def onShowModelReport(self, model):
+        assert isinstance(model, ProcessingTypeDataSource)
+        pfType = model.pfType
+
+        #this step should be done without writing anything on hard disk
+        pathHTML = pfType.report().saveHTML().filename
+        html = open(pathHTML).readlines()
+        html = ''.join(html)
+
+        self.dataSourceManager.enmapbox.dockManager.createDock('TEXT', html=html)
 
 
 class DataSourceManager(QObject):
@@ -273,7 +305,7 @@ class DataSourceManager(QObject):
         elif sourcetype == 'RASTER':
             return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
         elif sourcetype == 'MODEL':
-            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceModel)]
+            return [ds.getUri() for ds in self.sources if isinstance(ds, ProcessingTypeDataSource)]
 
 
 
@@ -299,9 +331,6 @@ class DataSourceManager(QObject):
 
             self.sources.add(ds)
             self.sigDataSourceAdded.emit(ds)
-
-            if isinstance(ds, DataSourceModel):
-                enmapbox.processing.registerModel(ds.uri)
 
         return ds
 

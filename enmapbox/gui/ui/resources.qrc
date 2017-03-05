@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="enmapbox">
+    <file>icons/alg.png</file>
     <file>icons/mActionFileExit.png</file>
     <file>icons/ActionIdentifyTimeSeries.png</file>
     <file>icons/IconTimeSeries.png</file>
