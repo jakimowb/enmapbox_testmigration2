@@ -54,7 +54,7 @@ def sandboxPureGui():
     EB = EnMAPBox(None)
     EB.run()
     from enmapbox.testdata import HymapBerlinB
-    if False:
+    if True:
         for k in HymapBerlinB.__dict__.keys():
             if k.startswith('Hymap'):
                 EB.addSource(getattr(HymapBerlinB, k))
@@ -238,8 +238,8 @@ if __name__ == '__main__':
 
 
     #run tests
-    if False: sandboxPureGui()
-    if True: sandboxPFReport()
+    if True: sandboxPureGui()
+    if False: sandboxPFReport()
     if False: sandboxDragDrop()
     if False: sandboxGUI()
     if False: sandboxDialog()
