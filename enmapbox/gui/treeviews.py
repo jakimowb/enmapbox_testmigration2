@@ -43,14 +43,17 @@ class TreeNodeProvider():
 
     @staticmethod
     def CreateNodeFromDock(dock, parent):
-        t = type(dock)
-        classes = [MapDock, TextDock, MimeDataDock, Dock, CursorLocationValueDock]
-        nodes   = [MapDockTreeNode, TextDockTreeNode, TextDockTreeNode, DockTreeNode, DockTreeNode]
-        assert t in classes
-        for i, cls in enumerate(classes):
-            if t is cls:
-                return nodes[i](parent, dock)
-        return None
+        assert isinstance(dock, Dock)
+        dockType = type(dock)
+        if dockType is MapDock:
+            return MapDockTreeNode(parent, dock)
+        elif dockType in [TextDock, MimeDataDock]:
+            return TextDockTreeNode(parent, dock)
+        elif dockType is CursorLocationValueDock:
+            return DockTreeNode(parent, dock)
+        else:
+            return  DockTreeNode(parent, dock)
+
 
     @staticmethod
     def CreateNodeFromXml(elem):

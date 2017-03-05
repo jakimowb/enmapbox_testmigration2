@@ -382,7 +382,10 @@ class DockManager(QgsLegendInterface):
                 layers = MH.mapLayers()
             elif MH.hasDataSources():
                 for ds in MH.dataSources():
-                    layers.append(ds.createRegisteredMapLayer())
+                    if isinstance(ds, DataSourceSpatial):
+                        layers.append(ds.createRegisteredMapLayer())
+                    elif isinstance(ds, DataSourceTextFile):
+                        textfiles.append(ds)
 
             #register datasources
             for src in layers + textfiles:
@@ -390,9 +393,16 @@ class DockManager(QgsLegendInterface):
 
             #open map dock for new layers
             if len(layers) > 0:
-
                 NEW_MAP_DOCK = self.createDock('MAP')
                 NEW_MAP_DOCK.addLayers(layers)
+
+            #open test dock for new text files
+            for textSource in textfiles:
+                if re.search('(xml|html)$', os.path.basename(textSource.uri)):
+                    dock = self.createDock('WEBVIEW')
+                    dock.load(textSource.uri)
+                else:
+                    self.createDock('TEXT', plainTxt=open(textSource.uri).read())
             event.accept()
 
 
@@ -436,18 +446,29 @@ class DockManager(QgsLegendInterface):
     def createDock(self, docktype, *args, **kwds):
 
         #set default kwds
-        kwds['name'] = kwds.get('name', '#{}'.format(len(self.DOCKS) + 1))
+
+        n = len(self.DOCKS) + 1
 
         is_new_dock = True
         if docktype == 'MAP':
+            kwds['name'] = kwds.get('name', 'MapDock #{}'.format(n))
             dock = MapDock(self.enmapBox, *args, **kwds)
             dock.sigCursorLocationValueRequest.connect(self.showCursorLocationValues)
+
         elif docktype == 'TEXT':
+            kwds['name'] = kwds.get('name', 'TextDock #{}'.format(n))
             dock = TextDock(self.enmapBox, *args, **kwds)
+
         elif docktype == 'MIME':
+            kwds['name'] = kwds.get('name', 'MimeDataDock #{}'.format(n))
             dock = MimeDataDock(self.enmapBox, *args, **kwds)
 
+        elif docktype == 'WEBVIEW':
+            kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
+            dock = WebViewDock(self.enmapBox,  *args, **kwds)
+
         elif docktype == 'CURSORLOCATIONVALUE':
+            kwds['name'] = kwds.get('name', 'Cursor Location Values')
             if self.cursorLocationValueDock is None:
                 self.setCursorLocationValueDock(CursorLocationValueDock(self.enmapBox, *args, **kwds))
             else:

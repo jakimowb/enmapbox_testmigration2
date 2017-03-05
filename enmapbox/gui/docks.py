@@ -8,6 +8,8 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
+from enmapbox.gui.mapcanvas import MapCanvas
+
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
 
@@ -767,116 +769,6 @@ class MapDockLabel(DockLabel):
         self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         self.buttons.append(self.removeMapLink)
 
-
-class MapCanvas(QgsMapCanvas):
-    sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
-    sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
-    sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
-    sigDropEvent = pyqtSignal(QDropEvent)
-    sigContextMenuEvent = pyqtSignal(QContextMenuEvent)
-    sigExtentsChanged = pyqtSignal(object)
-    sigLayersRemoved = pyqtSignal(list)
-    sigLayersAdded = pyqtSignal(list)
-
-    _cnt = 0
-
-    def __init__(self, parentMapDock, *args, **kwds):
-        super(MapCanvas, self).__init__(*args, **kwds)
-
-
-        assert isinstance(parentMapDock, MapDock)
-
-        self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
-        MapCanvas._cnt += 1
-        self._extentInitialized = False
-        self.mapdock = parentMapDock
-        self.enmapbox = self.mapdock.enmapbox
-        self.acceptDrops()
-        self.extentsChanged.connect(self.sandbox)
-
-    def zoomToFeatureExtent(self, spatialExtent):
-        assert isinstance(spatialExtent, SpatialExtent)
-        self.setSpatialExtent(spatialExtent)
-
-    def sandbox(self):
-        self.sigExtentsChanged.emit(self)
-
-    def __repr__(self):
-        return self._id
-
-    #forward to MapDock
-    def dragEnterEvent(self, event):
-        self.sigDragEnterEvent.emit(event)
-
-    # forward to MapDock
-    def dragMoveEvent(self, event):
-        self.sigDragMoveEvent.emit(event)
-
-    # forward to MapDock
-    def dragLeaveEvent(self, event):
-        self.sigDragLeaveEvent.emit(event)
-
-    # forward to MapDock
-    def dropEvent(self, event):
-        self.sigDropEvent.emit(event)
-
-    def contextMenuEvent(self, event):
-        self.sigContextMenuEvent.emit(event)
-
-    def setSpatialExtent(self, spatialExtent):
-        assert isinstance(spatialExtent, SpatialExtent)
-        if self.spatialExtent() != spatialExtent:
-            self.blockSignals(True)
-            self.setDestinationCrs(spatialExtent.crs())
-            self.setExtent(spatialExtent)
-            self.blockSignals(False)
-            self.refresh()
-
-    def setExtent(self, QgsRectangle):
-        super(MapCanvas, self).setExtent(QgsRectangle)
-        self.setRenderFlag(True)
-
-    def spatialExtent(self):
-        return SpatialExtent.fromMapCanvas(self)
-
-    def setLayerSet(self, *arg, **kwds):
-        raise Exception('Depricated: Not supported any more (QGIS 3)')
-
-    def setLayers(self, mapLayers):
-
-        lastSet = self.layers()
-        newSet = mapLayers[:]
-
-        #register not-registered layers
-        reg = QgsMapLayerRegistry.instance()
-        for l in newSet:
-            assert isinstance(l, QgsMapLayer)
-            if l not in reg.children():
-                reg.addMapLayer(l, False)
-
-        #set the new layers (QGIS 2 style)
-        #todo: change with QGIS 3
-        super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
-
-        if not self._extentInitialized and len(newSet) > 0:
-            # set canvas to first layer's CRS and full extent
-            self.mapSettings().setDestinationCrs(newSet[0].crs())
-            self.setSpatialExtent(SpatialExtent.fromMapCanvas(self, fullExtent=True))
-            self._extentInitialized = True
-        self.refresh()
-
-        #signal what has been added, what has been removed
-        removedLayers = [l for l in lastSet if l not in newSet]
-        addedLayers = [l for l in newSet if l not in lastSet]
-
-
-        if len(removedLayers) > 0:
-            self.sigLayersRemoved.emit(removedLayers)
-        if len(addedLayers) > 0:
-            self.sigLayersAdded.emit(addedLayers)
-
-
-
 class MapDock(Dock):
     """
     A dock to visualize geodata that can be mapped
@@ -896,6 +788,7 @@ class MapDock(Dock):
         #self.actionLinkExtent = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Link to map extent', self)
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
+
         self.canvas = MapCanvas(self)
 
         #self.label.setText(self.basename)
@@ -932,11 +825,24 @@ class MapDock(Dock):
         self.toolZoomOut = QgsMapToolZoom(self.canvas, True)  # true = out
         self.toolZoomOut.setAction(g.actionZoomOut)
         self.toolZoomOut.action().triggered.connect(lambda: self.setMapTool(self.toolZoomOut))
+
+        from enmapbox.gui.mapcanvas import FullExtentMapTool, PixelScaleExtentMapTool
+        self.toolZoomFull = FullExtentMapTool(self.canvas)
+        self.toolZoomFull.setAction(g.actionZoomFullExtent)
+        self.toolZoomFull.action().triggered.connect(lambda: self.setMapTool(self.toolZoomFull))
+
+        self.toolZoomPixelScale = PixelScaleExtentMapTool(self.canvas)
+        self.toolZoomPixelScale.setAction(g.actionZoomPixelScale)
+        self.toolZoomPixelScale.action().triggered.connect(lambda: self.setMapTool(self.toolZoomPixelScale))
+
         from enmapbox.gui.cursorlocationvalue import CursorLocationValueMapTool
         self.toolCursorLocationValue = CursorLocationValueMapTool(self.canvas)
         self.toolCursorLocationValue.setAction(g.actionIdentify)
         self.toolCursorLocationValue.action().triggered.connect(lambda: self.setMapTool(self.toolCursorLocationValue))
         self.toolCursorLocationValue.sigLocationRequest.connect(self.cursorLocationValueRequest)
+
+
+
         #self.toolIdentify.identifyMessage.connect(self.identifyMessage)
         #self.toolIdentify.identifyProgress.connect(self.identifyProgress)
         #self.toolIdentify.sigLocationIdentified.connect(self.identifyResults)
@@ -1157,6 +1063,35 @@ class TextDock(Dock):
             self.textEdit.insertPlainText(plainTxt)
         self.layout.addWidget(self.textEdit)
 
+
+class WebViewDock(Dock):
+    def __init__(self, *args, **kwargs):
+        uri = kwargs.pop('uri', None)
+        url = kwargs.pop('url', None)
+        super(WebViewDock,self).__init__(*args, **kwargs)
+        #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
+
+        from PyQt4.QtWebKit import QWebView
+        self.webView = QWebView(self)
+        self.layout.addWidget(self.webView)
+
+        if uri is not None:
+            self.load(uri)
+        elif url is not None:
+            self.load(url)
+
+    def load(self, uri):
+        if os.path.isfile(uri):
+            url = QUrl.fromLocalFile(uri)
+        else:
+            url = QUrl(uri)
+        self.webView.load(url)
+        settings = self.webView.page().settings()
+        from PyQt4.QtWebKit import QWebSettings
+        settings.setAttribute(QWebSettings.LocalContentCanAccessRemoteUrls, True)
+        settings.setAttribute(QWebSettings.LocalContentCanAccessFileUrls, True)
+        settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
+        settings.setAttribute(QWebSettings.AutoLoadImages, True)
 
 
 class MimeDataTextEdit(QTextEdit):

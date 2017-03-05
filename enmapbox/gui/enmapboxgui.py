@@ -199,6 +199,7 @@ class EnMAPBox(QObject):
         self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
         self.ui.actionAddMapView.triggered.connect(lambda : self.dockManager.createDock('MAP'))
         self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
+        self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
 
         self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))

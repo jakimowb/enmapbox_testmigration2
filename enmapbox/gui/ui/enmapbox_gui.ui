@@ -130,6 +130,7 @@
     <addaction name="separator"/>
     <addaction name="actionAddMapView"/>
     <addaction name="actionAddTextView"/>
+    <addaction name="actionAddWebView"/>
     <addaction name="actionAddMimeView"/>
     <addaction name="menuPanels"/>
    </widget>
@@ -368,6 +369,18 @@
   <action name="actionSaveProject">
    <property name="text">
     <string>Save Project</string>
+   </property>
+  </action>
+  <action name="actionAddWebView">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
+   </property>
+   <property name="text">
+    <string>Add Web View</string>
+   </property>
+   <property name="toolTip">
+    <string>Opens WebViewDock to show HTML pages</string>
    </property>
   </action>
  </widget>

@@ -37,9 +37,11 @@ def sandboxPFReport():
     from enmapbox.testdata import RandomForestModel
     from enmapboxplugin.processing.Signals import Signals
     from enmapbox.testdata import HymapBerlinB
-    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
+    #EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
 
     Signals.pickleCreated.emit(RandomForestModel)
+    from enmapbox.gui.utils import DIR_REPO
+    Signals.htmlCreated.emit(jp(DIR_REPO,r'documentation/build/html/hub.gdal.html'))
 
     qgsApp.exec_()
     qgsApp.exitQgis()
@@ -236,8 +238,8 @@ if __name__ == '__main__':
 
 
     #run tests
-    if False: sandboxPureGui()
-    if True: sandboxPFReport()
+    if True: sandboxPureGui()
+    if False: sandboxPFReport()
     if False: sandboxDragDrop()
     if False: sandboxGUI()
     if False: sandboxDialog()
