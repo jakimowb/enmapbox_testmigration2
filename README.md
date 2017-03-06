@@ -21,13 +21,17 @@ Download the newest [QGIS release](http://www.qgis.org/en/site/forusers/download
 
 ## 2. Clone the EnMAP-Box Repository ##
 
-### via command line ###
+### Option A) download a zipped version ###
+
+[Download page...](https://bitbucket.org/hu-geomatics/enmap-box/downloads/)
+
+### Option B) via command line ###
 
 If you are familiar to Git and Git LFS use: 
 
 `git lfs clone https://bitbucket.org/hu-geomatics/enmap-box.git`
 
-### via SourceTree GUI Client ###
+### Options C) via SourceTree GUI Client ###
 
 If you have no expirience with Git Repositories, we recommend to use
 [SourceTree](https://www.sourcetreeapp.com/). 
