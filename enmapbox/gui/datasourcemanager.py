@@ -230,10 +230,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         #this step should be done without writing anything on hard disk
         pathHTML = pfType.report().saveHTML().filename
-        html = open(pathHTML).readlines()
-        html = ''.join(html)
-
-        self.dataSourceManager.enmapbox.dockManager.createDock('TEXT', html=html)
+        self.dataSourceManager.enmapbox.dockManager.createDock('WEBVIEW', url=pathHTML)
 
 
 class DataSourceManager(QObject):

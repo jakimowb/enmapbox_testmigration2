@@ -192,7 +192,7 @@ class SpatialPoint(QgsPoint):
         pt = QgsPoint(self)
         if self.mCrs != crs:
             trans = QgsCoordinateTransform(self.mCrs, crs)
-            box = trans.transform(pt)
+            pt = trans.transform(pt)
         return SpatialPoint(crs, pt)
 
     def __copy__(self):

@@ -11,17 +11,18 @@ from PyQt4.QtGui import *
 from enmapbox.gui.utils import loadUI, SpatialExtent, SpatialPoint
 
 
-
-class CursorLocationValueMapTool(QgsMapTool):
+class CursorLocationValueMapTool(QgsMapToolIdentify):
     sigLocationIdentified = pyqtSignal(list)
 
     #sigLocationRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     sigLocationRequest = pyqtSignal(SpatialPoint)
     def __init__(self, canvas):
+        #super(CursorLocationValueMapTool, self).__init__(self, canvas)
+        QgsMapToolIdentify.__init__(self, canvas)
         self.canvas = canvas
         self.layerType = QgsMapToolIdentify.AllLayers
         self.identifyMode = QgsMapToolIdentify.LayerSelection
-        QgsMapToolIdentify.__init__(self, canvas)
+
 
 
     def canvasReleaseEvent(self, mouseEvent):
@@ -57,6 +58,7 @@ class CursorLocationValues(object):
     @staticmethod
     def fromVector(uri, spatialPoint, name=None):
         assert isinstance(spatialPoint, SpatialPoint)
+
         lyr = QgsVectorLayer(uri, name, 'ogr')
         dprovider = lyr.dataProvider()
         fsource = dprovider.featureSource()
@@ -81,6 +83,7 @@ class CursorLocationValues(object):
         assert isinstance(spatialPoint, SpatialPoint)
         lyr = QgsRasterLayer(uri)
         dprovider = lyr.dataProvider()
+
 
         pt = spatialPoint.toCrs(lyr.crs())
 
@@ -110,7 +113,7 @@ class CursorLocationValues(object):
             band_mask = np.not_equal(yValues, None)
 
             if dprovider.name() == 'gdal':
-                import gdal
+                from osgeo import gdal
                 ds = gdal.Open(uri)
                 for b in range(nb):
                     band = ds.GetRasterBand(b + 1)
