@@ -53,13 +53,14 @@ def sandboxPureGui():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
-    from enmapbox.testdata import HymapBerlinB
+    from enmapbox.testdata import HymapBerlinB, HymapBerlinA
     if True:
         for k in HymapBerlinB.__dict__.keys():
             if k.startswith('Hymap'):
                 EB.addSource(getattr(HymapBerlinB, k))
 
-    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
+    EB.createDock('MAP', initSrc=HymapBerlinA.HymapBerlinA_image)
+    EB.createDock('MAP', initSrc=HymapBerlinA.HymapBerlinA_mask)
     #do something here
 
     qgsApp.exec_()
