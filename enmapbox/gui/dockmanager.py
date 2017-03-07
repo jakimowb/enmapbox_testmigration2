@@ -126,8 +126,6 @@ class MapDockTreeNode(DockTreeNode):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
         self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
-
-
         self.addedChildren.connect(lambda: self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
 
@@ -135,8 +133,13 @@ class MapDockTreeNode(DockTreeNode):
         assert isinstance(dock, MapDock)
         super(MapDockTreeNode, self).connectDock(dock)
 
+        self.layerNode = TreeNode(self, 'Layers')
         self.crsNode = CRSTreeNode(self, dock.canvas.mapSettings().destinationCrs())
+        self.crsNode.setExpanded(False)
+
         self.linkNode = CanvasLinkTreeNode(self, dock.canvas)
+        self.linkNode.setExpanded(False)
+
         self.dock.sigLayersAdded.connect(self.updateChildNodes)
         self.dock.sigLayersRemoved.connect(self.updateChildNodes)
         self.dock.sigCrsChanged.connect(self.crsNode.setCrs)
@@ -154,21 +157,22 @@ class MapDockTreeNode(DockTreeNode):
             # self.blockSignals = True
             # self.removeAllChildren()
             canvasLayers = self.dock.layers()
-            treeNodeLayerNodes = self.findLayers()
+            treeNodeLayerNodes = self.layerNode.findLayers()
             treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
-            visibleLayers = self.visibleLayers(self)
+
 
             # new layers to add?
             newChildLayers = [l for l in canvasLayers if l not in treeNodeLayers]
 
             # layers to set visible?
+
             for layer in canvasLayers:
                 if layer not in treeNodeLayers:
-                    # insert layer to layer tree
-                    self.insertLayer(0, layer)
+                    # insert layer on top of layer tree
+                    self.layerNode.insertLayer(0, layer)
 
                 # set canvas on visible
-                lNode = self.findLayer(layer.id())
+                lNode = self.layerNode.findLayer(layer.id())
                 lNode.setVisible(Qt.Checked)
                 s = ""
 
@@ -275,14 +279,19 @@ class DockManagerTreeModel(TreeModel):
 
         super(DockManagerTreeModel, self).__init__(parent)
         assert isinstance(dockManager, DockManager)
-        self.setFlag(QgsLayerTreeModel.ShowLegend, True)
-        self.setFlag(QgsLayerTreeModel.ShowSymbology, True)
-        #self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
-        self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
-        self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
-        self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
+
+
+
+        if False:
+            self.setFlag(QgsLayerTreeModel.ShowLegend, True)
+            self.setFlag(QgsLayerTreeModel.ShowSymbology, True)
+            #self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
+            self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
+            self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
+            self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
+            self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
+            self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
+
 
         self.dockManager = dockManager
         self.dockManager.sigDockAdded.connect(self.addDock)
@@ -383,6 +392,7 @@ class DockManagerTreeModel(TreeModel):
             return Qt.NoItemFlags
 
         #specify TreeNode specific actions
+        sflags = super(TreeModel, self).flags(parent)
         node = self.index2node(parent)
         if node is None:
             return Qt.NoItemFlags
@@ -393,6 +403,7 @@ class DockManagerTreeModel(TreeModel):
                     Qt.ItemIsSelectable | \
                     Qt.ItemIsUserCheckable | \
                     Qt.ItemIsEditable
+
             if isL1:
                 flags |= Qt.ItemIsDropEnabled
 
@@ -432,13 +443,14 @@ class DockManagerTreeModel(TreeModel):
         dockNode = list(dockNode)[0]
 
         if isinstance(dockNode, MapDockTreeNode):
+            layerNode = dockNode.layerNode
             if MDH.hasLayerTreeModelData():
                 nodes = MDH.layerTreeModelNodes()
                 if len(nodes) > 0:
                     if parent.isValid() and row == -1:
                         row = 0
                     #node.insertChildNodes(row, nodes)
-                    node.insertChildNodes(row, nodes)
+                    layerNode.insertChildNodes(row, nodes)
                     return True
 
             if MDH.hasDataSources():
@@ -454,7 +466,7 @@ class DockManagerTreeModel(TreeModel):
                     if len(nodes) > 0:
                         if parent.isValid() and row == -1:
                             row = 0
-                        node.insertChildNodes(row, nodes)
+                        layerNode.insertChildNodes(row, nodes)
                     return True
         elif isinstance(dockNode, TextDockTreeNode):
 
@@ -516,10 +528,7 @@ class DockManagerTreeModel(TreeModel):
         node = self.index2node(index)
         #todo: implement MapDock specific behaviour
 
-        if type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
-            return super(DockManagerTreeModel, self).data(index, role)
-
-        elif isinstance(node, TreeNode):
+        if isinstance(node, TreeNode):
             if role == Qt.DisplayRole:
                 return node.name()
             if role == Qt.DecorationRole:
@@ -533,10 +542,12 @@ class DockManagerTreeModel(TreeModel):
                     else:
                         return Qt.Unchecked
                 else:
-                    return QVariant.Invalid
-                return QVariant.Invalid
-        else:
+                    return Qt.Unchecked
+        elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
             return super(DockManagerTreeModel, self).data(index, role)
+        else:
+            return QVariant.Invalid
+            #return super(DockManagerTreeModel, self).data(index, role)
 
     def setData(self, index, value, role=None):
         node = self.index2node(index)
@@ -548,7 +559,7 @@ class DockManagerTreeModel(TreeModel):
                 else:
                     node.dock.setVisible(True)
                 return True
-            if role == Qt.EditRole:
+            if role == Qt.EditRole and len(value) > 0:
                 node.dock.setTitle(value)
 
         if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
