@@ -201,6 +201,17 @@ class SpatialPoint(QgsPoint):
     def __repr__(self):
         return '{} {} {}'.format(self.x(), self.y(), self.crs().authid())
 
+
+def findParent(qObject, parentType, checkInstance = False):
+    parent = qObject.parent()
+    if checkInstance:
+        while parent != None and not isinstance(parent, parentType):
+            parent = parent.parent()
+    else:
+        while parent != None and type(parent) != parentType:
+            parent = parent.parent()
+    return parent
+
 class SpatialExtent(QgsRectangle):
     """
     Object to keep QgsRectangle and QgsCoordinateReferenceSystem together
