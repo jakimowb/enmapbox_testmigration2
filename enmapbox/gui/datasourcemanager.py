@@ -93,10 +93,10 @@ class DataSourceTreeNode(TreeNode):
         return node
 
     def writeXML(self, parentElement):
-        elem = super(DataSourceTreeNode, self).writeXML(parentElement)
+        super(DataSourceTreeNode, self).writeXML(parentElement)
+        elem = parentElement.lastChild().toElement()
         elem.setTagName('datasource-tree-node')
-        #elem.setAttribute('uuid', str(self.dataSource.uuid))
-        return elem
+        elem.setAttribute('uuid', str(self.dataSource.uuid))
 
 
 class SpatialDataSourceTreeNode(DataSourceTreeNode):
@@ -134,6 +134,8 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceRaster)
         super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
+
+
 
         n = TreeNode(self, 'Size')
         TreeNode(n, 'Image {} x {} x {}'.format(dataSource.nSamples,
@@ -228,7 +230,8 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
     def connectDataSourceManager(self, dataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
         self.dataSourceManager = dataSourceManager
-        self.dataSourceTreeView.setModel(DataSourceManagerTreeModel(self, self.dataSourceManager))
+        self.model = DataSourceManagerTreeModel(self, self.dataSourceManager)
+        self.dataSourceTreeView.setModel(self.model)
         self.dataSourceTreeView.setMenuProvider(TreeViewMenuProvider(self.dataSourceTreeView))
 
 
@@ -384,6 +387,8 @@ class DataSourceManagerTreeModel(TreeModel):
             flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
         elif isinstance(node, DataSourceTreeNode):
             flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+        elif isinstance(node, CRSTreeNode):
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
         elif isinstance(node, TreeNode):
             flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
         else:
