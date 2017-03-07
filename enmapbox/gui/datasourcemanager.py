@@ -10,6 +10,201 @@ from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
 
 
+
+class DataSourceGroupTreeNode(TreeNode):
+
+    def __init__(self, parent, groupName, classDef):
+        assert inspect.isclass(classDef)
+        icon = QApplication.style().standardIcon(QStyle.SP_DirOpenIcon)
+        super(DataSourceGroupTreeNode, self).__init__(parent, groupName, icon=icon)
+        self.childClass = classDef
+
+    def dataSources(self):
+        return [d.dataSource for d in self.children()
+                if isinstance(d, DataSourceTreeNode)]
+
+    def addChildNode(self, node):
+        """Ensure child types"""
+        assert isinstance(node, DataSourceTreeNode)
+        assert isinstance(node.dataSource, self.childClass)
+        super(DataSourceGroupTreeNode, self).addChildNode(node)
+
+    def writeXML(self, parentElement):
+        elem = super(DataSourceGroupTreeNode, self).writeXML(parentElement)
+        elem.setTagName('data_source_group_tree_node')
+        elem.setAttribute('datasourcetype', str(self.childClass))
+        return elem
+
+    @staticmethod
+    def readXml(element):
+
+        if element.tagName() != 'data_source_group_tree_node':
+            return None
+
+
+        name = None
+        classDef = None
+        node = DataSourceGroupTreeNode(None, name, classDef)
+
+        TreeNode.attachCommonPropertiesFromXML(node, element)
+
+        return node
+
+
+class DataSourceTreeNode(TreeNode):
+
+    def __init__(self, parent, dataSource):
+        super(DataSourceTreeNode, self).__init__(parent, '<empty>')
+        self.disconnectDataSource()
+        self.dataSource = None
+        if dataSource:
+            self.connectDataSource(dataSource)
+
+    def connectDataSource(self, dataSource):
+        from enmapbox.gui.datasources import DataSource
+        assert isinstance(dataSource, DataSource)
+        self.setName(dataSource.name)
+        self.dataSource = dataSource
+        self.setTooltip(dataSource.uri)
+        self._icon = dataSource.getIcon()
+        self.setCustomProperty('uuid', str(self.dataSource.uuid))
+        self.setCustomProperty('uri', self.dataSource.uri)
+
+    def disconnectDataSource(self):
+        self.dataSource = None
+        self.setName('<empty>')
+        self._icon = None
+        for k in self.customProperties():
+            self.removeCustomProperty(k)
+
+    @staticmethod
+    def readXml(element):
+        if element.tagName() != 'datasource-tree-node':
+            return None
+
+        cp = QgsObjectCustomProperties()
+        cp.readXml(element)
+
+        from enmapbox.gui.datasources import DataSourceFactory
+        dataSource = DataSourceFactory.Factory(cp.value('uri'), name=element.attribute('name'))
+        node = DataSourceTreeNode(None, dataSource)
+        TreeNode.attachCommonPropertiesFromXML(node, element)
+
+        return node
+
+    def writeXML(self, parentElement):
+        elem = super(DataSourceTreeNode, self).writeXML(parentElement)
+        elem.setTagName('datasource-tree-node')
+        #elem.setAttribute('uuid', str(self.dataSource.uuid))
+        return elem
+
+
+class SpatialDataSourceTreeNode(DataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(SpatialDataSourceTreeNode,self).__init__( *args, **kwds)
+
+    def connectDataSource(self, dataSource):
+        assert isinstance(dataSource, DataSourceSpatial)
+        super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
+
+        ext = dataSource.spatialExtent
+        assert isinstance(ext, SpatialExtent)
+        CRSTreeNode(self, ext.crs())
+        n = TreeNode(self, 'Extent')
+        UL = ext.upperLeft()
+        LR = ext.lowerRight()
+        mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
+        mu2 = QgsUnitTypes.toString(ext.crs().mapUnits())
+        TreeNode(n, '{} x {}'.format(ext.width(), ext.height(), mu ))
+        TreeNode(n, 'UL {} {}'.format(UL[0], UL[1], mu), tooltip='Upper left coordinate')
+        TreeNode(n, 'LR {} {}'.format(LR[0], LR[1], mu), tooltip='Lower right coordinate')
+
+
+class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(VectorDataSourceTreeNode,self).__init__( *args, **kwds)
+
+class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(RasterDataSourceTreeNode,self).__init__( *args, **kwds)
+
+    def connectDataSource(self, dataSource):
+        assert isinstance(dataSource, DataSourceRaster)
+        super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
+
+        n = TreeNode(self, 'Size')
+        TreeNode(n, 'Image {} x {} x {}'.format(dataSource.nSamples,
+                                          dataSource.nLines,
+                                          dataSource.nBands),
+                 tooltip = 'Samples x Lines x Bands'
+                 )
+        TreeNode(n, 'Pixel {} x {} {}'.format(dataSource.pxSizeX,
+                                              dataSource.pxSizeY,
+                QgsUnitTypes.encodeUnit(dataSource.spatialExtent.crs().mapUnits())
+                                              ),
+                 )
+
+class FileDataSourceTreeNode(DataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(FileDataSourceTreeNode,self).__init__( *args, **kwds)
+
+
+class ProcessingTypeTreeNode(DataSourceTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super(ProcessingTypeTreeNode, self).__init__(*args, **kwds)
+        self.pfType = None
+
+    def connectDataSource(self, processingTypeDataSource):
+        super(ProcessingTypeTreeNode, self).connectDataSource(processingTypeDataSource)
+        assert isinstance(self.dataSource, ProcessingTypeDataSource)
+        self.pfType = processingTypeDataSource.pfType
+
+        metaData = self.pfType.getMetadataDict()
+
+        handled = list()
+        if 'class lookup' in metaData.keys() and \
+           'class names' in metaData.keys():
+
+            colors = np.asarray(metaData['class lookup']).astype(int)
+            colors = colors.reshape((-1,3))
+
+            grp = TreeNode(self, 'Class Info')
+
+            names = metaData['class names']
+            for i, name in enumerate(names):
+                pixmap = QPixmap(100, 100)
+                color = list(colors[i,:])
+                pixmap.fill(QColor(*color))
+                icon = QIcon(pixmap)
+
+                TreeNode(grp, '{} {}'.format(i, name), icon=icon)
+
+            handled.extend(['class lookup', 'class names'])
+
+        # show metaData in generic child-nodes
+        for k,v in metaData.items():
+            if k in handled:
+                continue
+
+            grpNode = TreeNode(self, str(k))
+            if isinstance(v, list) or isinstance(v, np.ndarray):
+                for v2 in v:
+                    TreeNode(grpNode, str(v2))
+            else:
+                TreeNode(grpNode, str(v))
+
+    def contextMenu(self):
+        m = QMenu()
+        return m
+
+
+
+
 class DataSourceTreeView(TreeView):
 
     def __init__(self, *args, **kwds):

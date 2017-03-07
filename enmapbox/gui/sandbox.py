@@ -54,7 +54,7 @@ def sandboxPureGui():
     EB = EnMAPBox(None)
     EB.run()
     from enmapbox.testdata import HymapBerlinB, HymapBerlinA
-    if True:
+    if False:
         for k in HymapBerlinB.__dict__.keys():
             if k.startswith('Hymap'):
                 EB.addSource(getattr(HymapBerlinB, k))
