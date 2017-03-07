@@ -59,8 +59,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
         self.showMaximized()
         self.setAcceptDrops(True)
-        from enmapbox import __version__ as version
-        self.setWindowTitle('EnMAP-Box {}'.format(version))
+        import enmapbox
+        self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
 
         #add & register panels
