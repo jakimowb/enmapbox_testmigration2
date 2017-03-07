@@ -7,7 +7,252 @@ from PyQt4.QtGui import *
 from enmapbox.gui.utils import PanelWidgetBase, loadUI, MimeDataHelper
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
+from enmapbox.gui.mapcanvas import MapCanvas, CanvasLink
 
+class DockTreeNode(TreeNode):
+    @staticmethod
+    def readXml(element):
+        if element.tagName() != 'dock-tree-node':
+            return None
+
+        node = DockTreeNode(None, None)
+        dockName = element.attribute('name')
+        node.setName(dockName)
+        node.setExpanded(element.attribute('expanded') == '1')
+        node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
+        node.readCommonXML(element)
+        # node.readChildrenFromXml(element)
+
+        # try to find the dock by its uuid in dockmanager
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+
+        dockManager = EnMAPBox.instance().dockManager
+        uuid = node.customProperty('uuid', None)
+        if uuid:
+            dock = dockManager.getDockWithUUID(str(uuid))
+
+        if dock is None:
+            dock = dockManager.createDock('MAP', name=dockName)
+        node.connectDock(dock)
+
+        return node
+
+    """
+    Base TreeNode to symbolise a Dock
+    """
+
+    def __init__(self, parent, dock):
+
+        super(DockTreeNode, self).__init__(parent, '<dockname not available>')
+        self.dock = None
+        self._icon = QIcon(':/enmapbox/icons/viewlist_dock.png')
+        if isinstance(dock, Dock):
+            self.connectDock(dock)
+
+    def writeXML(self, parentElement):
+        elem = super(DockTreeNode, self).writeXML(parentElement)
+        elem.setTagName('dock-tree-node')
+        return elem
+
+    def writeLayerTreeGroupXML(self, parentElement):
+        QgsLayerTreeGroup.writeXML(self, parentElement)
+
+        # return super(QgsLayerTreeNode,self).writeXml(parentElement)
+
+    def connectDock(self, dock):
+        if isinstance(dock, Dock):
+            self.dock = dock
+            self.setName(dock.title())
+            self.dock.sigTitleChanged.connect(self.setName)
+            self.setCustomProperty('uuid', str(dock.uuid))
+            # self.dock.sigClosed.connect(self.removedisconnectDock)
+
+
+class TextDockTreeNode(DockTreeNode):
+    def __init__(self, parent, dock):
+        assert isinstance(dock, TextDock)
+        super(TextDockTreeNode, self).__init__(parent, dock)
+        self.setIcon(QIcon(IconProvider.Dock))
+
+    def writeXML(self, parentElement):
+        return super(MapDockTreeNode, self).writeXML(parentElement, 'text-dock-tree-node')
+
+
+
+
+class CanvasLinkTreeNode(TreeNode):
+    """
+    A node to show linkin between difference canvases
+    """
+    def __init__(self, parent, canvas):
+        assert isinstance(canvas, MapCanvas)
+        super(CanvasLinkTreeNode, self).__init__(parent, 'Spatial Links',
+                                                    icon=QIcon(":/enmapbox/icons/link_basic.png"))
+
+
+        self.lookup = dict()
+        self.canvas = canvas
+        self.canvas.sigCanvasLinkAdded.connect(self.addCanvasLink)
+        self.canvas.sigCanvasLinkRemoved.connect(self.removeCanvasLink)
+
+
+    def addCanvasLink(self, canvasLink):
+        assert isinstance(canvasLink, CanvasLink)
+        from enmapbox.gui.utils import findParent
+        theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
+        theOtherDock = findParent(theOtherCanvas, Dock, checkInstance=True)
+        node = TreeNode(self, '', icon=canvasLink.icon())
+        if isinstance(theOtherDock, Dock):
+            name = theOtherDock.title()
+            theOtherDock.sigTitleChanged.connect(node.setName)
+        else:
+            name = str(theOtherCanvas)
+        node.setName(name)
+        self.lookup[theOtherCanvas] = node
+
+    def removeCanvasLink(self, canvasLink):
+        assert isinstance(canvasLink, CanvasLink)
+        theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
+        node = self.lookup[theOtherCanvas]
+        self.removeChildNode(node)
+
+class MapDockTreeNode(DockTreeNode):
+    """
+    A TreeNode linked to a MapDock
+    Acts like the QgsLayerTreeMapCanvasBridge
+    """
+
+    def __init__(self, parent, dock):
+
+        super(MapDockTreeNode, self).__init__(parent, dock)
+        self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
+
+
+        self.addedChildren.connect(lambda: self.updateCanvas())
+        self.removedChildren.connect(lambda: self.updateCanvas())
+
+    def connectDock(self, dock):
+        assert isinstance(dock, MapDock)
+        super(MapDockTreeNode, self).connectDock(dock)
+
+        self.crsNode = CRSTreeNode(self, dock.canvas.mapSettings().destinationCrs())
+        self.linkNode = CanvasLinkTreeNode(self, dock.canvas)
+        self.dock.sigLayersAdded.connect(self.updateChildNodes)
+        self.dock.sigLayersRemoved.connect(self.updateChildNodes)
+        self.dock.sigCrsChanged.connect(self.crsNode.setCrs)
+        self.updateChildNodes()
+
+    def onAddedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
+
+    def onRemovedChildren(self, node, idxFrom, idxTo):
+        self.updateCanvas()
+
+    def updateChildNodes(self):
+        if self.dock:
+            # state = self.blockSignals
+            # self.blockSignals = True
+            # self.removeAllChildren()
+            canvasLayers = self.dock.layers()
+            treeNodeLayerNodes = self.findLayers()
+            treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
+            visibleLayers = self.visibleLayers(self)
+
+            # new layers to add?
+            newChildLayers = [l for l in canvasLayers if l not in treeNodeLayers]
+
+            # layers to set visible?
+            for layer in canvasLayers:
+                if layer not in treeNodeLayers:
+                    # insert layer to layer tree
+                    self.insertLayer(0, layer)
+
+                # set canvas on visible
+                lNode = self.findLayer(layer.id())
+                lNode.setVisible(Qt.Checked)
+                s = ""
+
+        return self
+
+    def updateCanvas(self):
+        # reads the nodes and sets the mapcanvas accordingly
+        if self.dock:
+            # update canvas only in case of different layerset
+            visible = self.dock.layers()
+            layers = MapDockTreeNode.visibleLayers(self)
+            if len(visible) != len(layers) or \
+                    any(l1 != l2 for l1, l2 in zip(visible, layers)):
+                self.dock.setLayers(layers)
+        return self
+
+    @staticmethod
+    def visibleLayers(node):
+        """
+        Returns the QgsMapLayers from all sub-nodes the are set as 'visible'
+        :param node:
+        :return:
+        """
+        lyrs = []
+        if isinstance(node, list):
+            for child in node:
+                lyrs.extend(MapDockTreeNode.visibleLayers(child))
+
+        elif isinstance(node, QgsLayerTreeGroup):
+            for child in node.children():
+                lyrs.extend(MapDockTreeNode.visibleLayers(child))
+
+        elif isinstance(node, QgsLayerTreeLayer):
+            if node.isVisible() == Qt.Checked:
+                lyr = node.layer()
+                if isinstance(lyr, QgsMapLayer):
+                    lyrs.append(lyr)
+                else:
+                    logger.warning('QgsLayerTreeLayer.layer() is none')
+        else:
+            raise NotImplementedError()
+
+        for l in lyrs:
+            assert isinstance(l, QgsMapLayer), l
+
+        return lyrs
+
+    def insertLayer(self, idx, layer):
+        assert isinstance(layer, QgsMapLayer)
+        if layer is None or QgsMapLayerRegistry.instance().mapLayer(layer.id()) != layer:
+            return None
+
+        ll = QgsLayerTreeLayer(layer)
+        self.insertChildNode(idx, ll)
+        return ll
+
+    def writeXML(self, parentElement):
+        elem = super(MapDockTreeNode, self).writeXML(parentElement)
+        elem.setTagName('map-dock-tree-node')
+
+    @staticmethod
+    def readXml(element):
+        if element.tagName() != 'map-dock-tree-node':
+            return None
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        DSM = EnMAPBox.instance().dataSourceManager
+
+        node = MapDockTreeNode(None, None)
+        node.setName(element.attribute('name'))
+        node.setExpanded(element.attribute('expanded') == '1')
+        node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
+        node.readCommonXML(element)
+        # node.readChildrenFromXml(element)
+
+        # try to find the dock by its uuid in dockmanager
+        dockManager = EnMAPBox.instance().dockManager
+        uuid = node.customProperty('uuid', None)
+        if uuid:
+            dock = dockManager.getDockWithUUID(str(uuid))
+        if dock is None:
+            dock = dockManager.createDock('MAP', name=node.name())
+        node.connectDock(dock)
+        return node
 
 
 class DockPanelUI(PanelWidgetBase, loadUI('dockpanel.ui')):
@@ -151,14 +396,14 @@ class DockManagerTreeModel(TreeModel):
             if isL1:
                 flags |= Qt.ItemIsDropEnabled
 
-        elif isinstance(node, QgsLayerTreeNode):
+        elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
             flags = Qt.ItemIsEnabled | \
                     Qt.ItemIsSelectable | \
                     Qt.ItemIsUserCheckable | \
                     Qt.ItemIsDragEnabled
 
         else:
-            flags = Qt.NoItemFlags
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
         return flags
 
     def mimeTypes(self):
@@ -271,16 +516,27 @@ class DockManagerTreeModel(TreeModel):
         node = self.index2node(index)
         #todo: implement MapDock specific behaviour
 
-        if isinstance(node, DockTreeNode):
-            if role == Qt.CheckStateRole:
-                if isinstance(node.dock, Dock) and node.dock.isVisible():
-                    return Qt.Checked
-                else:
-                    return Qt.Unchecked
+        if type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
+            return super(DockManagerTreeModel, self).data(index, role)
+
+        elif isinstance(node, TreeNode):
+            if role == Qt.DisplayRole:
+                return node.name()
             if role == Qt.DecorationRole:
                 return node.icon()
-
-        return super(DockManagerTreeModel, self).data(index, role)
+            if role == Qt.ToolTipRole:
+                return node.tooltip()
+            if role == Qt.CheckStateRole:
+                if isinstance(node, DockTreeNode):
+                    if isinstance(node.dock, Dock) and node.dock.isVisible():
+                        return Qt.Checked
+                    else:
+                        return Qt.Unchecked
+                else:
+                    return QVariant.Invalid
+                return QVariant.Invalid
+        else:
+            return super(DockManagerTreeModel, self).data(index, role)
 
     def setData(self, index, value, role=None):
         node = self.index2node(index)
@@ -507,3 +763,5 @@ class DockManager(QgsLegendInterface):
 
     def moveLayer(self, QgsMapLayer, p_int):
         pass
+
+
