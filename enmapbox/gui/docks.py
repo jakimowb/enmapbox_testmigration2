@@ -351,7 +351,7 @@ class MapDock(Dock):
 
     sigLayersAdded = pyqtSignal(list)
     sigLayersRemoved = pyqtSignal(list)
-
+    sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
     def __init__(self, *args, **kwds):
         initSrc = kwds.pop('initSrc', None)
         super(MapDock, self).__init__(*args, **kwds)
@@ -371,7 +371,7 @@ class MapDock(Dock):
         self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
         self.canvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
         self.canvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
-
+        self.canvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -506,23 +506,21 @@ class MapDock(Dock):
     def setCRSfromDialog(self):
         w  = QgsProjectionSelectionWidget(self)
         crs = self.canvas.mapSettings().destinationCrs()
+        w.setCrs(crs) #set current CRS
         w.setLayerCrs(crs)
-        w.setCrs(crs)
+
 
         d = w.dialog()
-        d.setMessage('Select CRS for {}'.format(self.title))
-        w.crsChanged.connect(lambda returned_crs: self.canvas.setDestinationCrs(returned_crs))
+        d.setMessage('Select CRS {}'.format(self.title()))
+        w.crsChanged.connect(self.sandboxSlot)
         w.selectCrs()
 
+    def sandboxSlot(self,crs):
+        self.canvas.setDestinationCrs(crs)
 
     def setMapTool(self, mapTool):
         self.canvas.setMapTool(mapTool)
 
-    def test(self):
-        print('START LINKING')
-
-        w = CanvasLinkTargetWidget(self.enmapbox.gui)
-        s = ""
 
     def mimeData(self):
         return ['']
