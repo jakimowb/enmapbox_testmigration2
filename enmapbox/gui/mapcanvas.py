@@ -230,7 +230,7 @@ class CanvasLinkTargetWidget(QFrame):
 
 
 
-class CanvasLink():
+class CanvasLink(QObject):
     LINKTYPES = [LINK_ON_SCALE, LINK_ON_CENTER, LINK_ON_CENTER_SCALE]
 
     GLOBAL_LINK_LOCK = False
@@ -240,6 +240,7 @@ class CanvasLink():
         CanvasLink.GLOBAL_LINK_LOCK = False
 
     def __init__(self, canvas1, canvas2, linkType):
+        super(CanvasLink, self).__init__()
         assert linkType in CanvasLink.LINKTYPES
         assert isinstance(canvas1, MapCanvas)
         assert isinstance(canvas2, MapCanvas)
@@ -316,6 +317,19 @@ class CanvasLink():
         for canvas in self.canvases:
             canvas.removeCanvasLink(self)
 
+    def icon(self):
+
+        if self.linkType == LINK_ON_SCALE:
+            src = ":/enmapbox/icons/link_mapscale.png"
+        elif self.linkType == LINK_ON_CENTER:
+            src = ":/enmapbox/icons/link_center.png"
+        elif self.linkType == LINK_ON_CENTER_SCALE:
+            src = ":/enmapbox/icons/link_mapscale_center.png"
+        else:
+            raise NotImplementedError('unknown link type: {}'.format(self.linkType))
+
+        return QIcon(src)
+
     def apply(self, srcCanvas, dstCanvas):
         assert isinstance(srcCanvas, QgsMapCanvas)
         assert isinstance(dstCanvas, QgsMapCanvas)
@@ -391,9 +405,13 @@ class MapCanvas(QgsMapCanvas):
     sigDropEvent = pyqtSignal(QDropEvent)
     sigContextMenuEvent = pyqtSignal(QContextMenuEvent)
     sigSpatialExtentChanged = pyqtSignal(SpatialExtent)
+    sigCrsChanged  = pyqtSignal(QgsCoordinateReferenceSystem)
+
     sigLayersRemoved = pyqtSignal(list)
     sigLayersAdded = pyqtSignal(list)
 
+    sigCanvasLinkAdded = pyqtSignal(CanvasLink)
+    sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
     _cnt = 0
 
     def __init__(self, parentMapDock, *args, **kwds):
@@ -414,6 +432,7 @@ class MapCanvas(QgsMapCanvas):
         # register signals to react on changes
         self.scaleChanged.connect(self.onScaleChanged)
         self.extentsChanged.connect(self.onExtentsChanged)
+        self.destinationCrsChanged.connect(lambda : self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
 
 
     def onScaleChanged(self, scale):
@@ -483,11 +502,13 @@ class MapCanvas(QgsMapCanvas):
         for cLink in toRemove:
             self.removeCanvasLink(cLink)
         self.canvasLinks.append(canvasLink)
+        self.sigCanvasLinkAdded.emit(canvasLink)
         return canvasLink
 
     def removeCanvasLink(self, canvasLink):
         if canvasLink in self.canvasLinks:
             self.canvasLinks.remove(canvasLink)
+            self.sigCanvasLinkRemoved.emit(canvasLink)
 
     def removeAllCanvasLinks(self):
         toRemove = self.canvasLinks[:]
