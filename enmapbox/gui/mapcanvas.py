@@ -73,16 +73,14 @@ class CanvasLinkTargetWidget(QFrame):
     @staticmethod
     def ShowMapLinkTargets(mapDock):
         from enmapbox.gui.docks import MapDock
+        from enmapbox.gui.dockmanager import DockManager
         assert isinstance(mapDock, MapDock)
+
         canvas1 = mapDock.canvas
         assert isinstance(canvas1, QgsMapCanvas)
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
 
-        target_canvases = [d.canvas for d in mapDock.enmapbox.dockManager.DOCKS
-                           if isinstance(d, MapDock) and d != mapDock]
-
-        for canvas_source in target_canvases:
-
+        for canvas_source in MapCanvas.instances():
             w = CanvasLinkTargetWidget(canvas1, canvas_source)
             w.setAutoFillBackground(False)
             w.show()
@@ -397,8 +395,8 @@ class CanvasLink(QObject):
         cs = list(self.canvases)
         return 'CanvasLink "{}" {} <-> {}'.format(self.linkType, cs[0], cs[1])
 
-
-class MapCanvas(QgsMapCanvas):
+from enmapbox.gui.utils import KeepRefs
+class MapCanvas(QgsMapCanvas, KeepRefs):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
     sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
     sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
@@ -410,22 +408,24 @@ class MapCanvas(QgsMapCanvas):
     sigLayersRemoved = pyqtSignal(list)
     sigLayersAdded = pyqtSignal(list)
 
+    sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
     _cnt = 0
 
-    def __init__(self, parentMapDock, *args, **kwds):
+    def __init__(self, *args, **kwds):
         super(MapCanvas, self).__init__(*args, **kwds)
-
-        from enmapbox.gui.docks import MapDock
-        assert isinstance(parentMapDock, MapDock)
+        KeepRefs.__init__(self)
+        #from enmapbox.gui.docks import MapDock
+        #assert isinstance(parentMapDock, MapDock)
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
         self.setCrsTransformEnabled(True)
         MapCanvas._cnt += 1
         self._extentInitialized = False
-        self.mapdock = parentMapDock
-        self.enmapbox = self.mapdock.enmapbox
+        #self.mapdock = parentMapDock
+        #self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
 
         self.canvasLinks = []
@@ -434,6 +434,31 @@ class MapCanvas(QgsMapCanvas):
         self.extentsChanged.connect(self.onExtentsChanged)
         self.destinationCrsChanged.connect(lambda : self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
 
+        self.mMapTools = {}
+        self.registerMapTools()
+        #activate default map tool
+        self.activateMapTool('PAN')
+
+    def registerMapTool(self, key, mapTool):
+        assert isinstance(key, str)
+        assert isinstance(mapTool, QgsMapTool)
+        assert key not in self.mMapTools.keys()
+        self.mMapTools[key] = mapTool
+        return mapTool
+
+    def registerMapTools(self):
+        self.registerMapTool('PAN', QgsMapToolPan(self))
+        self.registerMapTool('ZOOM_IN', QgsMapToolZoom(self, False))
+        self.registerMapTool('ZOOM_OUT', QgsMapToolZoom(self, True))
+        self.registerMapTool('ZOOM_FULL', FullExtentMapTool(self))
+        self.registerMapTool('ZOOM_PIXEL_SCALE', PixelScaleExtentMapTool(self))
+        from enmapbox.gui.cursorlocationvalue import CursorLocationValueMapTool
+        tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationValueMapTool(self))
+        tool.sigLocationRequest.connect(self.sigCursorLocationRequest.emit)
+
+    def activateMapTool(self, key):
+        assert key in self.mMapTools.keys(), 'No QgsMapTool registered with key "{}"'.format(key)
+        self.setMapTool(self.mMapTools[key])
 
     def onScaleChanged(self, scale):
         CanvasLink.applyLinking(self)
