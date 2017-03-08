@@ -88,7 +88,8 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         self.sigDropEvent.emit(event)
 
 
-class Dock(pyqtgraph.dockarea.Dock):
+from enmapbox.gui.utils import KeepRefs
+class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
     @staticmethod
     def readXml(elem):
 
@@ -101,11 +102,11 @@ class Dock(pyqtgraph.dockarea.Dock):
     sigTitleChanged = pyqtSignal(str)
 
 
-    def __init__(self, enmapboxInstance, name='dock', closable=True, *args, **kwds):
+    def __init__(self, name='dock', closable=True, *args, **kwds):
         super(Dock, self).__init__(name=name, closable=False, *args, **kwds)
-
-        assert enmapboxInstance is not None
-        self.enmapbox = enmapboxInstance
+        KeepRefs.__init__(self)
+        #ssert enmapboxInstance is not None
+        #self.enmapbox = enmapboxInstance
         self.setStyleSheet('background:#FFF')
 
         #replace PyQtGraph Label by EnmapBox labels (could be done by inheritances as well)
@@ -365,8 +366,6 @@ class MapDock(Dock):
 
         #self.label.setText(self.basename)
         #self.canvas.setScaleLocked(True)
-        self.canvas.sigDropEvent.connect(self.canvasDrop)
-        self.canvas.sigDragEnterEvent.connect(self.canvasDragEnter)
         #self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenuEvent)
         self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
         self.canvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
@@ -378,46 +377,6 @@ class MapDock(Dock):
         self.canvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
         #self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
         self.layout.addWidget(self.canvas)
-
-        #link canvas to map tools
-        g = self.enmapbox.ui
-        #g.actionAddView.triggered.connect(lambda: self.enmapbox.dockarea.addDock(EnMAPBoxDock(self)))
-        #g.actionAddMapView.triggered.connect(lambda : self.enmapbox.dockarea.addDock(EnMAPBoxMapDock(self)))
-        #g.actionAddTextView.triggered.connect(lambda: self.enmapbox.dockarea.addDock(EnMAPBoxTextDock(self)))
-
-        # create the map tools and linke them to the toolbar actions
-        self.toolPan = QgsMapToolPan(self.canvas)
-        self.toolPan.setAction(g.actionPan)
-        self.toolPan.action().triggered.connect(lambda: self.setMapTool(self.toolPan))
-
-        self.toolZoomIn = QgsMapToolZoom(self.canvas, False)  # false = in
-        self.toolZoomIn.setAction(g.actionZoomIn)
-        self.toolZoomIn.action().triggered.connect(lambda: self.setMapTool(self.toolZoomIn))
-
-        self.toolZoomOut = QgsMapToolZoom(self.canvas, True)  # true = out
-        self.toolZoomOut.setAction(g.actionZoomOut)
-        self.toolZoomOut.action().triggered.connect(lambda: self.setMapTool(self.toolZoomOut))
-
-        from enmapbox.gui.mapcanvas import FullExtentMapTool, PixelScaleExtentMapTool
-        self.toolZoomFull = FullExtentMapTool(self.canvas)
-        self.toolZoomFull.setAction(g.actionZoomFullExtent)
-        self.toolZoomFull.action().triggered.connect(lambda: self.setMapTool(self.toolZoomFull))
-
-        self.toolZoomPixelScale = PixelScaleExtentMapTool(self.canvas)
-        self.toolZoomPixelScale.setAction(g.actionZoomPixelScale)
-        self.toolZoomPixelScale.action().triggered.connect(lambda: self.setMapTool(self.toolZoomPixelScale))
-
-        from enmapbox.gui.cursorlocationvalue import CursorLocationValueMapTool
-        self.toolCursorLocationValue = CursorLocationValueMapTool(self.canvas)
-        self.toolCursorLocationValue.setAction(g.actionIdentify)
-        self.toolCursorLocationValue.action().triggered.connect(lambda: self.setMapTool(self.toolCursorLocationValue))
-        self.toolCursorLocationValue.sigLocationRequest.connect(self.cursorLocationValueRequest)
-
-
-
-        #self.toolIdentify.identifyMessage.connect(self.identifyMessage)
-        #self.toolIdentify.identifyProgress.connect(self.identifyProgress)
-        #self.toolIdentify.sigLocationIdentified.connect(self.identifyResults)
 
         """
         The problem still exists in QGis 2.0.1-3 available through OSGeo4W distribution. New style connection always return the same error:
@@ -434,15 +393,15 @@ class MapDock(Dock):
         #                self.identifyChangedRasterResults)
         #self.toolIdentify.changedRasterResults.connect(self.identifyChangedRasterResults)
 
-        self.toolCursorLocationValue.setAction(g.actionIdentify)
-        self.toolCursorLocationValue.action().triggered.connect(lambda: self.setMapTool(self.toolCursorLocationValue))
         from enmapbox.gui.mapcanvas import CanvasLinkTargetWidget
         self.label.addMapLink.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
         self.label.removeMapLink.clicked.connect(lambda: self.canvas.removeAllCanvasLinks())
 
-        #set default map tool
-        self.canvas.setMapTool(self.toolPan)
-
+        if initSrc is not None:
+            from enmapbox.gui.datasources import DataSourceFactory
+            ds = DataSourceFactory.Factory(initSrc)
+            if ds is not None:
+                self.canvas.setLayers([ds.createRegisteredMapLayer()])
 
     def cursorLocationValueRequest(self,*args):
         self.sigCursorLocationValueRequest.emit(*args)
@@ -521,40 +480,11 @@ class MapDock(Dock):
     def setMapTool(self, mapTool):
         self.canvas.setMapTool(mapTool)
 
+    def activateMapTool(self, key):
+        self.canvas.activateMapTool(key)
 
     def mimeData(self):
         return ['']
-
-    def canvasDragEnter(self, event):
-
-        ME = MimeDataHelper(event.mimeData())
-        #check mime types we can handle
-        assert isinstance(event, QDragEnterEvent)
-        if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
-            event.setDropAction(Qt.CopyAction) #copy but do not remove
-            event.accept()
-        else:
-            event.ignore()
-
-    def canvasDrop(self, event):
-        ME = MimeDataHelper(event.mimeData())
-
-        if ME.hasMapLayers():
-            newLayers = ME.mapLayers()
-
-            lyrs = self.canvas.layers()
-            self.setLayers(newLayers + lyrs)
-            event.accept()
-            event.acceptProposedAction()
-        if ME.hasDataSources():
-            dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
-            dataSources = [self.enmapbox.dataSourceManager.addSource(d) for d in dataSources]
-            layers = [d.createRegisteredMapLayer() for d in dataSources]
-
-            self.addLayers(layers)
-
-
-
 
     def _createLabel(self, *args, **kwds):
         return MapDockLabel(self, *args, **kwds)

@@ -3,10 +3,12 @@ from PyQt4.QtXml import *
 import enmapbox
 from qgis.core import *
 from PyQt4.QtGui import QApplication
+from PyQt4.QtCore import QMimeData
 import numpy as np
 
-from enmapbox.gui.docks import *
 
+from enmapbox.gui.docks import *
+from enmapbox.gui.datasources import *
 
 class TreeNodeProvider():
 
@@ -23,9 +25,11 @@ class TreeNodeProvider():
 
     @staticmethod
     def CreateNodeFromDataSource(dataSource, parent):
+
+        from enmapbox.gui.datasourcemanager import DataSource, ProcessingTypeTreeNode, \
+        FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode
         assert isinstance(dataSource, DataSource)
 
-        from datasourcemanager import *
         #hint: take care of derived class order
         if isinstance(dataSource, ProcessingTypeDataSource):
             node = ProcessingTypeTreeNode(parent, dataSource)
@@ -82,43 +86,54 @@ class TreeNodeProvider():
 class TreeNode(QgsLayerTreeGroup):
     sigIconChanged = pyqtSignal()
     sigRemoveMe = pyqtSignal()
-    def __init__(self, parent, name, checked=Qt.Unchecked, tooltip=None, icon=None):
+    def __init__(self, parent, name, value=None, checked=Qt.Unchecked, tooltip=None, icon=None):
         #QObject.__init__(self)
         super(TreeNode, self).__init__(name, checked)
+        #assert name is not None and len(str(name)) > 0
         self.mParent = parent
+        self.mTooltip = None
+        self.mValue = None
         self.setName(name)
-
-        # set default properties using underlying customPropertySet
+        self.setValue(value)
+        self.setExpanded(False)
+        self.setVisible(False)
         self.setTooltip(tooltip)
 
         self.setIcon(icon)
         if parent is not None:
             parent.addChildNode(self)
 
+    def setValue(self, value):
+        self.mValue = value
+
+    def value(self):
+        return self.mValue
 
     def removeChildren(self, i0, cnt):
         self.removeChildrenPrivate(i0, cnt)
         self.updateVisibilityFromChildren()
 
     def setTooltip(self, tooltip):
-        if tooltip is None:
-            self.setCustomProperty('tooltip', None)
-        else:
-            self.setCustomProperty('tooltip', tooltip)
+        self.mTooltip = tooltip
 
     def tooltip(self, default=''):
-        return self.customProperty('tooltip',default)
+        return self.mTooltip
 
     def setIcon(self, icon):
         if icon:
             assert isinstance(icon, QIcon), str(icon)
-        self._icon = icon
+        self.mIcon = icon
         self.sigIconChanged.emit()
 
     def icon(self):
-        return self._icon
+        return self.mIcon
 
     def contextMenu(self):
+        """
+        Returns an empty QMenu
+        Overwrite with QMenu + QActions that implement logic related to the TreeNode and its data.
+        :return:
+        """
         return QMenu()
 
 
@@ -141,9 +156,11 @@ class TreeNode(QgsLayerTreeGroup):
 
 
     def writeXML(self, parentElement):
+
         assert isinstance(parentElement, QDomElement)
         doc = parentElement.ownerDocument()
         elem = doc.createElement('tree-node')
+
         elem.setAttribute('name', self.name())
         elem.setAttribute('expanded', '1' if self.isExpanded() else '0')
         elem.setAttribute('checked', QgsLayerTreeUtils.checkStateToXml(Qt.Checked))
@@ -154,7 +171,8 @@ class TreeNode(QgsLayerTreeGroup):
         for node in self.children():
             node.writeXML(elem)
         parentElement.appendChild(elem)
-        return elem
+
+        #return elem
 
     def readChildrenFromXml(self, element):
         nodes = []
@@ -179,23 +197,48 @@ class TreeNode(QgsLayerTreeGroup):
 
 
 class TreeModel(QgsLayerTreeModel):
-
     def __init__(self, parent=None):
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        self.rootNode = TreeNode(None, None)
+        self.rootNode = TreeNode(None, '<hidden root node>')
         super(TreeModel, self).__init__(self.rootNode, parent)
+        self.columnNames = ['Property','Value']
 
-    def data(self, index, role ):
+    def headerData(self, section, orientation, role=None):
+
+        if role == Qt.DisplayRole:
+            return self.columnNames[section]
+
+        return None
+
+    def columnCount(self, index):
         node = self.index2node(index)
         if isinstance(node, TreeNode):
-            if role == Qt.DecorationRole:
-                return node.icon()
-            if role == Qt.ToolTipRole:
-                return node.tooltip()
+            return 2
+        else:
+            return 1
 
-        #the last choice: default
-        return super(TreeModel, self).data(index, role)
 
+    def data(self, index, role ):
+        """
+
+        :param index:
+        :param role:
+        :return:
+        """
+        node = self.index2node(index)
+        col = index.column()
+        if isinstance(node, TreeNode):
+            if col == 0:
+                if role == Qt.DecorationRole:
+                    return node.icon()
+                if role == Qt.ToolTipRole:
+                    return node.tooltip()
+            if col == 1:
+                if role == Qt.DisplayRole:
+                    return node.value()
+        else:
+            if col == 0:
+                return super(TreeModel, self).data(index, role)
+        return None
     def supportedDragActions(self):
         return Qt.IgnoreAction
 
@@ -214,8 +257,6 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
-    def contextMenu(self, node):
-        raise NotImplementedError()
 
 
 
@@ -227,30 +268,49 @@ class CRSTreeNode(TreeNode):
 
         self.setIcon(QIcon(':/enmapbox/icons/crs.png'))
         self.setTooltip('Coordinate Reference System')
-
-        self.nodeAuthID = TreeNode(self, '<authid>', tooltip='Authority ID')
-        self.nodeAcronym = TreeNode(self, '<acronym>', tooltip='Projection Acronym')
+        self.mCrs = None
+        self.nodeDescription = TreeNode(self, 'Name', tooltip='Description')
+        self.nodeAuthID = TreeNode(self, 'AuthID', tooltip='Authority ID')
+        self.nodeAcronym = TreeNode(self, 'Acronym', tooltip='Projection Acronym')
         self.setCrs(crs)
+
 
     def setCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
-        self.nodeAuthID.setName(crs.authid())
-        self.nodeAcronym.setName(crs.projectionAcronym())
+        self.mCrs = crs
+        self.nodeDescription.setValue(crs.description())
+        self.nodeAuthID.setValue(crs.authid())
+        self.nodeAcronym.setValue(crs.projectionAcronym())
 
     def contextMenu(self):
         menu = QMenu()
         a = menu.addAction('Copy EPSG Code')
-        a.triggered.connect(lambda: QApplication.clipboard().setText(self.crs.toWkt()))
+        a.setToolTip('Copy the authority id ("{}") of this CRS.'.format(self.mCrs.authid()))
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.mCrs.authid()))
 
         a = menu.addAction('Copy WKT')
-        a.triggered.connect(lambda: QApplication.clipboard().setText(self.crs.toauthid()))
+        a.setToolTip('Copy the well-known-type representation of this CRS.')
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.mCrs.toWkt()))
+
+        a = menu.addAction('Copy Proj4')
+        a.setToolTip('Copy the Proj4 representation of this CRS.')
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.mCrs.toProj4()))
         return menu
 
-
+#class TreeView(QTreeView):
 class TreeView(QgsLayerTreeView):
 
     def __init__(self, parent):
         super(TreeView, self).__init__(parent)
+
+        self.setHeaderHidden(False)
+        self.header().setResizeMode(0, QHeaderView.ResizeToContents)
+
+    def layerTreeModel(self):
+        model = self.model()
+        return model
+
+
 
 
 class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
@@ -262,7 +322,25 @@ class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
         self.treeView = treeView
         self.model = treeView.model()
 
+    def currentNode(self):
+        return self.treeView.currentNode()
+
+    def currentIndex(self):
+        return self.treeView.currentIndex()
+
+    def currentColumnName(self):
+        return self.model.columnNames[self.currentIndex().column()]
+
     def createContextMenu(self):
-        #redirect to model
-        return self.model.contextMenu(self.treeView.currentNode())
+        """
+        Returns the current nodes contextMenu.
+        Overwrite to add TreeViewModel specific logic.
+        :return:
+        """
+        node = self.currentNode()
+        if isinstance(node, TreeNode):
+            return self.currentNode().contextMenu()
+        else:
+            return QMenu()
+
 

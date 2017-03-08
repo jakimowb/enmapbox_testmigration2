@@ -170,6 +170,8 @@ def initQgs():
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
+    import enmapbox.gui
+    enmapbox.gui.DEBUG = True
     return qgsApp
 
 
@@ -233,12 +235,88 @@ def sandboxDialog():
 
 
 
+class TreeNodeV2(QgsLayerTreeNode):
+
+    def __init__(self, parentNode=None, name=None):
+        super(TreeNodeV2, self).__init__(2)
+        self.mName = ''
+        self.setName(name)
+
+    def setName(self, name):
+        self.mName = name
+
+    def name(self):
+        return self.mName
+
+class TreeModelV2(QgsLayerTreeModel):
+    def __init__(self, parent=None):
+        self.rootNode = TreeNodeV2()
+        super(TreeModelV2, self).__init__(self.rootNode, parent)
+
+    def _printFlags(self, flags):
+
+        s = ""
+
+    def data(self, index, role ):
+        node = self.index2node(index)
+        if isinstance(node, TreeNode):
+            if role == Qt.DecorationRole:
+                return node.icon()
+            if role == Qt.ToolTipRole:
+                return node.tooltip()
+
+        #the last choice: default
+        return super(TreeModel, self).data(index, role)
+
+    def supportedDragActions(self):
+        return Qt.IgnoreAction
+
+    def supportedDropActions(self):
+        return Qt.IgnoreAction
+
+    def flags(self, index):
+        raise NotImplementedError()
+
+    def mimeTypes(self):
+        raise NotImplementedError()
+
+    def mimeData(self, indexes):
+        raise NotImplementedError()
+
+    def dropMimeData(self, data, action, row, column, parent):
+        raise NotImplementedError()
+
+    def contextMenu(self, node):
+        raise NotImplementedError()
+
+
+def sandboxDockManager():
+
+    qgisApp = initQgs()
+
+    from enmapbox.gui.dockmanager import DockManager, DockPanelUI
+    from enmapbox.gui.docks import DockArea
+
+    dm = DockManager()
+    ui = DockPanelUI()
+    ui.connectDockManager(dm)
+    rootNode = ui.model.rootNode
+    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    da = DockArea()
+    dm.connectDockArea(da)
+    dm.createDock('MAP', initSrc=HymapBerlinA_image)
+
+    ui.show()
+    qgisApp.exec_()
+
+
 if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
 
     #run tests
+    if False: sandboxDockManager()
     if True: sandboxPureGui()
     if False: sandboxPFReport()
     if False: sandboxDragDrop()

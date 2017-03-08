@@ -135,7 +135,11 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         assert isinstance(dataSource, DataSourceRaster)
         super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
 
-
+        self.lyr = QgsRasterLayer(dataSource.getUri())
+        QgsMapLayerRegistry.instance().addMapLayer(self.lyr)
+        self.n1 = self.addLayer(self.lyr)
+        self.n1.setName('TEST LAYR')
+        self.n2 = QgsSimpleLegendNode(self.n1, 'subgroup')
 
         n = TreeNode(self, 'Size')
         TreeNode(n, 'Image {} x {} x {}'.format(dataSource.nSamples,
@@ -241,12 +245,28 @@ class DataSourceManagerTreeModel(TreeModel):
 
         super(DataSourceManagerTreeModel, self).__init__(parent)
         assert isinstance(dataSourceManager, DataSourceManager)
+
+        if True:
+            self.setFlag(QgsLayerTreeModel.ShowLegend, True) #no effect
+            self.setFlag(QgsLayerTreeModel.ShowSymbology, True) #no effect
+            # self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
+            self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
+            self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
+            self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
+            self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, False)
+            self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
+
         self.dataSourceManager = dataSourceManager
         self.dataSourceManager.sigDataSourceAdded.connect(self.addDataSource)
         self.dataSourceManager.sigDataSourceRemoved.connect(self.removeDataSource)
 
         for ds in self.dataSourceManager.sources:
             self.addDataSource(ds)
+
+    def columnCount(self, index):
+        return 1
+
+
 
     def mimeTypes(self):
         # specifies the mime types handled by this model
@@ -383,16 +403,20 @@ class DataSourceManagerTreeModel(TreeModel):
 
         # specify TreeNode specific actions
         node = self.index2node(index)
-        if isinstance(node, DataSourceGroupTreeNode):
-            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
-        elif isinstance(node, DataSourceTreeNode):
-            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
-        elif isinstance(node, CRSTreeNode):
-            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
-        elif isinstance(node, TreeNode):
-            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
-        else:
-            flags = Qt.NoItemFlags
+        column = index.column()
+        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+        if isinstance(node, TreeNode):
+            if column == 0:
+                if isinstance(node, DataSourceGroupTreeNode):
+                    flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+                elif isinstance(node, DataSourceTreeNode):
+                    flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            else:
+                return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+        elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
+                flags = Qt.NoItemFlags
         return flags
 
     def contextMenu(self, node):

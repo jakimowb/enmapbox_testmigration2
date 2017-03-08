@@ -45,7 +45,7 @@ class DockTreeNode(TreeNode):
 
         super(DockTreeNode, self).__init__(parent, '<dockname not available>')
         self.dock = None
-        self._icon = QIcon(':/enmapbox/icons/viewlist_dock.png')
+        self.mIcon = QIcon(':/enmapbox/icons/viewlist_dock.png')
         if isinstance(dock, Dock):
             self.connectDock(dock)
 
@@ -77,20 +77,31 @@ class TextDockTreeNode(DockTreeNode):
     def writeXML(self, parentElement):
         return super(MapDockTreeNode, self).writeXML(parentElement, 'text-dock-tree-node')
 
-
-
-
 class CanvasLinkTreeNode(TreeNode):
+    def __init__(self, parent, canvasLink, name, **kwds):
+        assert isinstance(canvasLink, CanvasLink)
+        kwds['icon'] = canvasLink.icon()
+        super(CanvasLinkTreeNode, self).__init__(parent, name, **kwds)
+        self.canvasLink = canvasLink
+
+    def contextMenu(self):
+        m = QMenu()
+        a = m.addAction('Remove')
+        a.setToolTip('Removes this link.')
+        a.triggered.connect(self.canvasLink.removeMe)
+        return m
+
+
+
+class CanvasLinkTreeNodeGroup(TreeNode):
     """
-    A node to show linkin between difference canvases
+    A node to show links between difference canvases
     """
     def __init__(self, parent, canvas):
         assert isinstance(canvas, MapCanvas)
-        super(CanvasLinkTreeNode, self).__init__(parent, 'Spatial Links',
-                                                    icon=QIcon(":/enmapbox/icons/link_basic.png"))
+        super(CanvasLinkTreeNodeGroup, self).__init__(parent, 'Spatial Links',
+                                                      icon=QIcon(":/enmapbox/icons/link_basic.png"))
 
-
-        self.lookup = dict()
         self.canvas = canvas
         self.canvas.sigCanvasLinkAdded.connect(self.addCanvasLink)
         self.canvas.sigCanvasLinkRemoved.connect(self.removeCanvasLink)
@@ -101,20 +112,25 @@ class CanvasLinkTreeNode(TreeNode):
         from enmapbox.gui.utils import findParent
         theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
         theOtherDock = findParent(theOtherCanvas, Dock, checkInstance=True)
-        node = TreeNode(self, '', icon=canvasLink.icon())
+        linkNode = CanvasLinkTreeNode(self, canvasLink, '<no name>', icon=canvasLink.icon())
         if isinstance(theOtherDock, Dock):
             name = theOtherDock.title()
-            theOtherDock.sigTitleChanged.connect(node.setName)
+            theOtherDock.sigTitleChanged.connect(linkNode.setName)
         else:
             name = str(theOtherCanvas)
-        node.setName(name)
-        self.lookup[theOtherCanvas] = node
+        linkNode.setName(name)
 
     def removeCanvasLink(self, canvasLink):
         assert isinstance(canvasLink, CanvasLink)
         theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
-        node = self.lookup[theOtherCanvas]
-        self.removeChildNode(node)
+        toRemove = [c for c in self.children() if isinstance(c, CanvasLinkTreeNode) and c.canvasLink == canvasLink]
+        for node in toRemove:
+            if node.canvasLink in node.canvasLink.canvases[0]:
+                #need to be deleted from other listeners first
+                node.canvasLink.removeMe()
+            else:
+                self.removeChildNode(node)
+
 
 class MapDockTreeNode(DockTreeNode):
     """
@@ -132,12 +148,15 @@ class MapDockTreeNode(DockTreeNode):
     def connectDock(self, dock):
         assert isinstance(dock, MapDock)
         super(MapDockTreeNode, self).connectDock(dock)
+        #TreeNode(self, 'Layers')
+        self.layerNode = QgsLayerTreeGroup('Layers')
+        self.addChildNode(self.layerNode)
+        #self.layerNode = TreeNode(self, 'Layers')
 
-        self.layerNode = TreeNode(self, 'Layers')
         self.crsNode = CRSTreeNode(self, dock.canvas.mapSettings().destinationCrs())
         self.crsNode.setExpanded(False)
 
-        self.linkNode = CanvasLinkTreeNode(self, dock.canvas)
+        self.linkNode = CanvasLinkTreeNodeGroup(self, dock.canvas)
         self.linkNode.setExpanded(False)
 
         self.dock.sigLayersAdded.connect(self.updateChildNodes)
@@ -271,41 +290,61 @@ class DockPanelUI(PanelWidgetBase, loadUI('dockpanel.ui')):
     def connectDockManager(self, dockManager):
         assert isinstance(dockManager, DockManager)
         self.dockManager = dockManager
-        self.dockTreeView.setModel(DockManagerTreeModel(self.dockManager))
-        self.dockTreeView.setMenuProvider(TreeViewMenuProvider(self.dockTreeView))
+        self.model = DockManagerTreeModel(self.dockManager)
+        self.dockTreeView.setModel(self.model)
+        assert self.model == self.dockTreeView.model()
+        self.menuProvider = DockManagerTreeModelMenuProvider(self.dockTreeView)
+        self.dockTreeView.setMenuProvider(self.menuProvider)
+        s = ""
 
 class DockManagerTreeModel(TreeModel):
     def __init__(self, dockManager, parent=None):
 
         super(DockManagerTreeModel, self).__init__(parent)
         assert isinstance(dockManager, DockManager)
+        self.columnNames = ['Dock/Property','Value']
+        if True:
+            """
+             // display flags
+              ShowLegend                 = 0x0001,  //!< Add legend nodes for layer nodes
+              ShowRasterPreviewIcon      = 0x0002,  //!< Will use real preview of raster layer as icon (may be slow)
+              ShowLegendAsTree           = 0x0004,  //!< For legends that support it, will show them in a tree instead of a list (needs also ShowLegend). Added in 2.8
+              DeferredLegendInvalidation = 0x0008,  //!< Defer legend model invalidation
+              UseEmbeddedWidgets         = 0x0010,  //!< Layer nodes may optionally include extra embedded widgets (if used in QgsLayerTreeView). Added in 2.16
 
-
-
-        if False:
+              // behavioral flags
+              AllowNodeReorder           = 0x1000,  //!< Allow reordering with drag'n'drop
+              AllowNodeRename            = 0x2000,  //!< Allow renaming of groups and layers
+              AllowNodeChangeVisibility  = 0x4000,  //!< Allow user to set node visibility with a check box
+              AllowLegendChangeState     = 0x80
+            """
             self.setFlag(QgsLayerTreeModel.ShowLegend, True)
-            self.setFlag(QgsLayerTreeModel.ShowSymbology, True)
-            #self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
+            self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, False)
             self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
+            self.setFlag(QgsLayerTreeModel.DeferredLegendInvalidation, True)
+            #self.setFlag(QgsLayerTreeModel.UseEmbeddedWidget, True)
+
+            #behavioral
             self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
             self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
             self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
             self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
-
+            #self.setFlag(QgsLayerTreeModel.ActionHierarchical, False)
 
         self.dockManager = dockManager
         self.dockManager.sigDockAdded.connect(self.addDock)
         self.dockManager.sigDockRemoved.connect(self.removeDock)
-        self.dockManager.sigDockAdded.connect(lambda : self.sandboxslot2())
 
-        #dockManager.sigDockRemoved.connect(self.removeDock)
         self.mimeIndices = []
 
-
-    def sandboxslot(self, dock):
-        s  =""
-    def sandboxslot2(self):
-        s  =""
+    def columnCount(self, index):
+        node = self.index2node(index)
+        if type(node) in [DockTreeNode, QgsLayerTreeGroup, QgsLayerTreeLayer]:
+            return 1
+        elif isinstance(node, TreeNode):
+            return 2
+        else:
+            return 1
 
     def supportedDragActions(self):
         return Qt.CopyAction | Qt.MoveAction
@@ -358,7 +397,7 @@ class DockManagerTreeModel(TreeModel):
             menu.addAction(action)
 
             action = QAction('Clear', menu)
-            action.triggered.connect(lambda: node.removeAllChildren())
+            action.triggered.connect(lambda: [node.layerNode.removeLayer(l.layer()) for l in node.findLayers()])
             action.setToolTip('Removes all layers from this map dock')
             menu.addAction(action)
 
@@ -387,34 +426,36 @@ class DockManagerTreeModel(TreeModel):
         self.removeNode(node)
 
 
-    def flags(self, parent):
-        if not parent.isValid():
+    def flags(self, index):
+        if not index.isValid():
             return Qt.NoItemFlags
 
-        #specify TreeNode specific actions
-        sflags = super(TreeModel, self).flags(parent)
-        node = self.index2node(parent)
+        flags = Qt.NoItemFlags
+
+        node = self.index2node(index)
+
         if node is None:
             return Qt.NoItemFlags
 
+        column = index.column()
         isL1 = node.parent() == self.rootNode
-        if isinstance(node, DockTreeNode):
-            flags = Qt.ItemIsEnabled | \
-                    Qt.ItemIsSelectable | \
-                    Qt.ItemIsUserCheckable | \
-                    Qt.ItemIsEditable
-
-            if isL1:
-                flags |= Qt.ItemIsDropEnabled
-
+        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        if isinstance(node, TreeNode):
+            if column == 0:
+                if isinstance(node, DockTreeNode):
+                    flags |= Qt.ItemIsUserCheckable | \
+                             Qt.ItemIsEditable | \
+                             Qt.ItemIsDropEnabled
+                    if isL1:
+                        flags |= Qt.ItemIsDropEnabled
+                if isinstance(node.parent(), MapDockTreeNode) and node.name() == 'Layers':
+                    flags |= Qt.ItemIsUserCheckable
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-            flags = Qt.ItemIsEnabled | \
-                    Qt.ItemIsSelectable | \
-                    Qt.ItemIsUserCheckable | \
-                    Qt.ItemIsDragEnabled
-
+            if column == 0:
+                flags |= Qt.ItemIsUserCheckable | \
+                         Qt.ItemIsDragEnabled
         else:
-            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+            s = ""
         return flags
 
     def mimeTypes(self):
@@ -525,28 +566,33 @@ class DockManagerTreeModel(TreeModel):
         return list(results)
 
     def data(self, index, role ):
-        node = self.index2node(index)
-        #todo: implement MapDock specific behaviour
+        if not index.isValid():
+            return None
 
-        if isinstance(node, TreeNode):
-            if role == Qt.DisplayRole:
-                return node.name()
-            if role == Qt.DecorationRole:
-                return node.icon()
-            if role == Qt.ToolTipRole:
-                return node.tooltip()
-            if role == Qt.CheckStateRole:
-                if isinstance(node, DockTreeNode):
-                    if isinstance(node.dock, Dock) and node.dock.isVisible():
-                        return Qt.Checked
-                    else:
-                        return Qt.Unchecked
-                else:
-                    return Qt.Unchecked
-        elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
+        node = self.index2node(index)
+
+        column = index.column()
+        #todo: implement MapDock specific behaviour
+        if not isinstance(node, TreeNode):
             return super(DockManagerTreeModel, self).data(index, role)
         else:
-            return QVariant.Invalid
+            if column == 0:
+                if role == Qt.DisplayRole:
+                    return node.name()
+                if role == Qt.DecorationRole:
+                    return node.icon()
+                if role == Qt.ToolTipRole:
+                    return node.tooltip()
+                if role == Qt.CheckStateRole:
+                    if isinstance(node, DockTreeNode):
+                        if isinstance(node.dock, Dock) and node.dock.isVisible():
+                            return Qt.Checked
+                        else:
+                            return Qt.Unchecked
+            else:
+                if role == Qt.DisplayRole:
+                    return node.value()
+        return None
             #return super(DockManagerTreeModel, self).data(index, role)
 
     def setData(self, index, value, role=None):
@@ -577,6 +623,27 @@ class DockManagerTreeModel(TreeModel):
         return False
 
 
+class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
+
+    def __init__(self, treeView):
+        super(DockManagerTreeModelMenuProvider, self).__init__(treeView)
+        assert isinstance(self.treeView.model(), DockManagerTreeModel)
+
+    def createContextMenu(self):
+        col = self.currentIndex().column()
+        node = self.currentNode()
+        m = None
+        if col == 0:
+            m = node.contextMenu()
+        elif col == 1:
+            m = QMenu()
+            a = m.addAction('Copy')
+            a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
+
+        return m
+
+
+
 class DockManager(QgsLegendInterface):
     """
     Class to handle all DOCK related events
@@ -586,15 +653,18 @@ class DockManager(QgsLegendInterface):
     sigDockRemoved = pyqtSignal(Dock)
     sigDockTitleChanged = pyqtSignal(Dock)
 
-    def __init__(self, enmapbox):
+    def __init__(self):
         QObject.__init__(self)
-        self.enmapBox = enmapbox
-
-        self.dockArea = self.enmapBox.ui.dockArea
+        self.mConnectedDockAreas = []
+        self.mCurrentDockArea = None
         self.DOCKS = list()
-        self.enmapBox.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
-        self.connectDockArea(self.dockArea)
+
+
         self.setCursorLocationValueDock(None)
+
+    def connectDataSourceManager(self, dataSourceManager):
+        pass
+
 
     def onDataSourceRemoved(self, dataSource):
         """
@@ -614,6 +684,12 @@ class DockManager(QgsLegendInterface):
         dockArea.sigDragMoveEvent.connect(lambda event : self.onDockAreaDragDropEvent(dockArea, event))
         dockArea.sigDragLeaveEvent.connect(lambda event : self.onDockAreaDragDropEvent(dockArea, event))
         dockArea.sigDropEvent.connect(lambda event : self.onDockAreaDragDropEvent(dockArea, event))
+        self.mConnectedDockAreas.append(dockArea)
+
+    def currentDockArea(self):
+        if self.mCurrentDockArea not in self.mConnectedDockAreas and len(self.mConnectedDockAreas) > 0:
+            self.mCurrentDockArea = self.mConnectedDockAreas[0]
+        return self.mCurrentDockArea
 
     def onDockAreaDragDropEvent(self, dockArea, event):
 
@@ -621,8 +697,6 @@ class DockManager(QgsLegendInterface):
 
         assert isinstance(event, QEvent)
 
-        if type(event) in [QDragEnterEvent, QDropEvent]:
-            print((dockArea,event))
 
         if isinstance(event, QDragEnterEvent):
             # check mime types we can handle
@@ -710,53 +784,47 @@ class DockManager(QgsLegendInterface):
             return True
         return False
 
-    def createDock(self, docktype, *args, **kwds):
-
-        #set default kwds
+    def createDock(self, dockType, *args, **kwds):
 
         n = len(self.DOCKS) + 1
 
         is_new_dock = True
-        if docktype == 'MAP':
+        if dockType == 'MAP':
             kwds['name'] = kwds.get('name', 'MapDock #{}'.format(n))
-            dock = MapDock(self.enmapBox, *args, **kwds)
+            dock = MapDock(*args, **kwds)
             dock.sigCursorLocationValueRequest.connect(self.showCursorLocationValues)
 
-        elif docktype == 'TEXT':
+        elif dockType == 'TEXT':
             kwds['name'] = kwds.get('name', 'TextDock #{}'.format(n))
-            dock = TextDock(self.enmapBox, *args, **kwds)
+            dock = TextDock(*args, **kwds)
 
-        elif docktype == 'MIME':
+        elif dockType == 'MIME':
             kwds['name'] = kwds.get('name', 'MimeDataDock #{}'.format(n))
-            dock = MimeDataDock(self.enmapBox, *args, **kwds)
+            dock = MimeDataDock(*args, **kwds)
 
-        elif docktype == 'WEBVIEW':
+        elif dockType == 'WEBVIEW':
             kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
-            dock = WebViewDock(self.enmapBox,  *args, **kwds)
+            dock = WebViewDock(*args, **kwds)
 
-        elif docktype == 'CURSORLOCATIONVALUE':
+        elif dockType == 'CURSORLOCATIONVALUE':
             kwds['name'] = kwds.get('name', 'Cursor Location Values')
             if self.cursorLocationValueDock is None:
-                self.setCursorLocationValueDock(CursorLocationValueDock(self.enmapBox, *args, **kwds))
+                self.setCursorLocationValueDock(CursorLocationValueDock(*args, **kwds))
             else:
                 is_new_dock = False
             dock = self.cursorLocationValueDock
         else:
-            raise Exception('Unknown dock type: {}'.format(docktype))
+            raise Exception('Unknown dock type: {}'.format(dockType))
 
-        dockArea = kwds.get('dockArea', self.dockArea)
-        state = dockArea.saveState()
-        main = state['main']
+        dockArea = kwds.get('dockArea', self.currentDockArea())
+        assert isinstance(dockArea, DockArea), \
+            'DockManager not connected to any DockArea yet. \nAdd DockAreas with connectDockArea(self, dockArea)'
         if dock not in self.DOCKS:
             dock.sigClosed.connect(self.removeDock)
             self.DOCKS.append(dock)
-            self.dockArea.addDock(dock, *args, **kwds)
+            dockArea.addDock(dock, *args, **kwds)
             self.sigDockAdded.emit(dock)
 
-            if 'initSrc' in kwds.keys():
-                ds = self.enmapBox.addSource(kwds['initSrc'])
-                if isinstance(ds, DataSourceSpatial):
-                    dock.addLayers(ds.createRegisteredMapLayer())
 
         return dock
 
