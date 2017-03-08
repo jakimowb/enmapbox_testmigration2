@@ -68,8 +68,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
         import enmapbox.gui.dockmanager
         import enmapbox.gui.datasourcemanager
-        import enmapbox.gui.processingmanager
-        from processing.gui.ProcessingToolbox import ProcessingToolbox
+
+
         def addPanel(panel):
             """
             shortcut to add a created panel and return it
@@ -84,6 +84,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
 
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
+            import enmapbox.gui.processingmanager
             self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
 
         #add entries to menu panels
@@ -167,8 +168,6 @@ class EnMAPBox(QObject):
 
         self.ui = EnMAPBoxUI()
 
-
-
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
@@ -176,7 +175,12 @@ class EnMAPBox(QObject):
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
 
         self.dataSourceManager = DataSourceManager(self)
-        self.dockManager = DockManager(self)
+
+        self.dockManager = DockManager()
+        #self.enmapBox = enmapbox
+        self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.onDataSourceRemoved)
+        self.dockManager.connectDockArea(self.ui.dockArea)
+
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
 
         #connect managers with widgets
@@ -273,7 +277,12 @@ class EnMAPBox(QObject):
 
 
     def createDock(self, *args, **kwds):
-        return self.dockManager.createDock(*args, **kwds)
+        dock = self.dockManager.createDock(*args, **kwds)
+        if 'initSrc' in kwds.keys():
+            ds = self.addSource(kwds['initSrc'])
+            if isinstance(ds, DataSourceSpatial):
+                dock.addLayers(ds.createRegisteredMapLayer())
+        return dock
 
     def removeDock(self, *args, **kwds):
         self.dockManager.removeDock(*args, **kwds)

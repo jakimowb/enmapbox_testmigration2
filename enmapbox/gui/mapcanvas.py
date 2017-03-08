@@ -237,6 +237,8 @@ class CanvasLink(QObject):
     def resetLinkLock():
         CanvasLink.GLOBAL_LINK_LOCK = False
 
+
+
     def __init__(self, canvas1, canvas2, linkType):
         super(CanvasLink, self).__init__()
         assert linkType in CanvasLink.LINKTYPES
@@ -248,6 +250,11 @@ class CanvasLink(QObject):
 
         canvas1.addCanvasLink(self)
         canvas2.addCanvasLink(self)
+
+    def removeMe(self):
+        """Call this to remove this think from both canvases."""
+        self.canvases[0].removeCanvasLink(self)
+
 
     @staticmethod
     def applyLinking(initialSrcCanvas):
@@ -397,10 +404,6 @@ class CanvasLink(QObject):
 
 from enmapbox.gui.utils import KeepRefs
 class MapCanvas(QgsMapCanvas, KeepRefs):
-    sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
-    sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
-    sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
-    sigDropEvent = pyqtSignal(QDropEvent)
     sigContextMenuEvent = pyqtSignal(QContextMenuEvent)
     sigSpatialExtentChanged = pyqtSignal(SpatialExtent)
     sigCrsChanged  = pyqtSignal(QgsCoordinateReferenceSystem)
@@ -464,7 +467,6 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
         CanvasLink.applyLinking(self)
         pass
 
-        #self.sigSpatialExtentChanged.emit(SpatialExtent.fromMapCanvas(self))
 
     def onExtentsChanged(self):
 
@@ -480,19 +482,32 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
 
     #forward to MapDock
     def dragEnterEvent(self, event):
-        self.sigDragEnterEvent.emit(event)
+        ME = MimeDataHelper(event.mimeData())
+        # check mime types we can handle
+        assert isinstance(event, QDragEnterEvent)
+        if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
+            event.setDropAction(Qt.CopyAction)  # copy but do not remove
+            event.accept()
+        else:
+            event.ignore()
 
-    # forward to MapDock
-    def dragMoveEvent(self, event):
-        self.sigDragMoveEvent.emit(event)
 
-    # forward to MapDock
-    def dragLeaveEvent(self, event):
-        self.sigDragLeaveEvent.emit(event)
-
-    # forward to MapDock
     def dropEvent(self, event):
-        self.sigDropEvent.emit(event)
+        ME = MimeDataHelper(event.mimeData())
+        newLayers = None
+        if ME.hasMapLayers():
+            newLayers = ME.mapLayers()
+        elif ME.hasDataSources():
+            from enmapbox.gui.datasources import DataSourceSpatial
+            from enmapbox.gui.enmapboxgui import EnMAPBox
+            dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
+            dataSources = [EnMAPBox.instance().dataSourceManager.addSource(d) for d in dataSources]
+            newLayers = [d.createRegisteredMapLayer() for d in dataSources]
+
+        if newLayers != None:
+            self.setLayers(newLayers + self.layers())
+            event.accept()
+            event.acceptProposedAction()
 
     def contextMenuEvent(self, event):
         self.sigContextMenuEvent.emit(event)
