@@ -209,6 +209,8 @@ class TreeModel(QgsLayerTreeModel):
 
         return None
 
+
+
     def columnCount(self, index):
         node = self.index2node(index)
         if isinstance(node, TreeNode):
@@ -228,6 +230,8 @@ class TreeModel(QgsLayerTreeModel):
         col = index.column()
         if isinstance(node, TreeNode):
             if col == 0:
+                if role == Qt.DisplayRole:
+                    return node.name()
                 if role == Qt.DecorationRole:
                     return node.icon()
                 if role == Qt.ToolTipRole:
@@ -257,7 +261,27 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
+class FileSizesTreeNode(TreeNode):
+    """
+    A node to show the different apsects of spatial extents
+    Sub-Nodes:
+        spatial extent in map unit
+        pixel sizes (if raster source)
+        pixel extent (if raster source)
+    """
+    def __init__(self, parent, spatialDataSource):
+        assert isinstance(spatialDataSource, DataSourceSpatial)
+        super(FileSizesTreeNode, self).__init__(parent, 'Extent')
+        ext = spatialDataSource.spatialExtent
+        mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
 
+        n = TreeNode(self, 'Spatial', value='{}X{} {}'.format(ext.width(),ext.height(), mu))
+
+        if isinstance(spatialDataSource, DataSourceRaster):
+            n = TreeNode(self, 'Pixel', value)
+
+        fstr = fileSize(spatialDataSource.uri)
+        n = TreeNode(self, 'Data', value='{}'.format(fstr))
 
 
 class CRSTreeNode(TreeNode):
@@ -310,8 +334,21 @@ class TreeView(QgsLayerTreeView):
         model = self.model()
         return model
 
+    def setModel(self, model):
+        assert isinstance(model, TreeModel)
+        model.rootNode.addedChildren.connect(self.onNodeAddedChildren)
+        super(TreeView, self).setModel(model)
 
+        s = ""
 
+    def onNodeAddedChildren(self, parent, iFrom, iTo):
+        model = self.model()
+        for i in range(iFrom, iTo+1):
+            node = parent.children()[i]
+            nameOnly = True
+            if isinstance(node, TreeNode):
+                nameOnly = node.value() is None
+            self.setFirstColumnSpanned(i, model.node2index(parent), nameOnly)
 
 class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
 
