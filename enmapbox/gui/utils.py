@@ -178,6 +178,21 @@ def getDOMAttributes(elem):
         values[attr.nodeName()] = attr.nodeValue()
     return values
 
+def fileSizeString(num, suffix='B', div=1000):
+    """
+    thanks to Fred Cirera
+    http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    :param num:
+    :param suffix:
+    :param div:
+    :return:
+    """
+    for unit in ['','K','M','G','T','P','E','Z']:
+        if abs(num) < div:
+            return "{:3.1f}{}{}" % (num, unit, suffix)
+        num /= div
+    return "{:.1f}{}{}".format(num, 'Yi', suffix)
+
 class SpatialPoint(QgsPoint):
     """
     Object to keep QgsPoint and QgsCoordinateReferenceSystem together
