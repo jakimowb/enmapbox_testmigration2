@@ -111,14 +111,7 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
         ext = dataSource.spatialExtent
         assert isinstance(ext, SpatialExtent)
         CRSTreeNode(self, ext.crs())
-        n = TreeNode(self, 'Extent')
-        UL = ext.upperLeft()
-        LR = ext.lowerRight()
-        mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
-        mu2 = QgsUnitTypes.toString(ext.crs().mapUnits())
-        TreeNode(n, '{} x {}'.format(ext.width(), ext.height(), mu ))
-        TreeNode(n, 'UL {} {}'.format(UL[0], UL[1], mu), tooltip='Upper left coordinate')
-        TreeNode(n, 'LR {} {}'.format(LR[0], LR[1], mu), tooltip='Lower right coordinate')
+        FileSizesTreeNode(self, dataSource)
 
 
 class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
@@ -253,7 +246,7 @@ class DataSourceManagerTreeModel(TreeModel):
             self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
             self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
             self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
-            self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, False)
+            self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
             self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
 
         self.dataSourceManager = dataSourceManager
@@ -264,7 +257,7 @@ class DataSourceManagerTreeModel(TreeModel):
             self.addDataSource(ds)
 
     def columnCount(self, index):
-        return 1
+        return 2
 
 
 
@@ -407,16 +400,14 @@ class DataSourceManagerTreeModel(TreeModel):
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
         if isinstance(node, TreeNode):
-            if column == 0:
-                if isinstance(node, DataSourceGroupTreeNode):
-                    flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
-                elif isinstance(node, DataSourceTreeNode):
-                    flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
-            else:
-                return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+            if isinstance(node, DataSourceGroupTreeNode):
+                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            elif isinstance(node, DataSourceTreeNode):
+                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-                flags = Qt.NoItemFlags
+                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
         return flags
 
     def contextMenu(self, node):
