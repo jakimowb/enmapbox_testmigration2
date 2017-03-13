@@ -233,6 +233,39 @@ def sandboxDialog():
     qgsApp.exitQgis()
 
 
+
+def sandboxTreeNodes():
+
+    qgisApp = initQgs()
+
+    from enmapbox.gui.dockmanager import DockManager, DockPanelUI
+    from enmapbox.gui.docks import DockArea
+
+    dm = DockManager()
+    ui = DockPanelUI()
+    ui.connectDockManager(dm)
+    rootNode = ui.model.rootNode
+    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
+
+    if True:
+        n1 = TreeNode(rootNode, 'Group Node without value. Column span')
+        n2 = TreeNode(n1, 'SubNode', value='SubNode Value')
+        n3 = TreeNode(n1, 'Subnode, no value')
+        crs = QgsCoordinateReferenceSystem('EPSG:4362')
+        nCrs = CRSTreeNode(n1, crs)
+        n2 = TreeNode(n1, 'SubGroup', value='SubGroup value')
+        n3 = TreeNode(n1, 'SubSubNode, no value')
+        n1.removeChildNode(n2)
+    else:
+        da = DockArea()
+        dm.connectDockArea(da)
+        dm.createDock('MAP', initSrc=HymapBerlinA_image)
+
+    ui.show()
+    qgisApp.exec_()
+
+
 def sandboxDockManager():
 
     qgisApp = initQgs()
@@ -245,6 +278,8 @@ def sandboxDockManager():
     ui.connectDockManager(dm)
     rootNode = ui.model.rootNode
     from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
+
     da = DockArea()
     dm.connectDockArea(da)
     dm.createDock('MAP', initSrc=HymapBerlinA_image)
@@ -253,14 +288,34 @@ def sandboxDockManager():
     qgisApp.exec_()
 
 
+def sandboxDataSourceManager():
+
+    qgisApp = initQgs()
+
+    from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourcePanelUI
+    from enmapbox.gui.docks import DockArea
+
+    dm = DataSourceManager()
+    ui = DataSourcePanelUI()
+    ui.connectDataSourceManager(dm)
+    rootNode = ui.model.rootNode
+    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
+
+    dm.addSource(HymapBerlinA_image)
+    ui.show()
+    qgisApp.exec_()
+
 if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
 
     #run tests
-    if True: sandboxDockManager()
-    if False: sandboxPureGui()
+    if False: sandboxTreeNodes()
+    if False: sandboxDataSourceManager()
+    if False: sandboxDockManager()
+    if True: sandboxPureGui()
     if False: sandboxPFReport()
     if False: sandboxDragDrop()
     if False: sandboxGUI()
