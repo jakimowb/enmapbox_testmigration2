@@ -174,11 +174,11 @@ class EnMAPBox(QObject):
         from enmapbox.gui.dockmanager import DockManager
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
 
-        self.dataSourceManager = DataSourceManager(self)
+        self.dataSourceManager = DataSourceManager()
 
         self.dockManager = DockManager()
         #self.enmapBox = enmapbox
-        self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.onDataSourceRemoved)
+        self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dockManager.connectDockArea(self.ui.dockArea)
 
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
@@ -206,7 +206,13 @@ class EnMAPBox(QObject):
         self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
 
-        self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
+        #activate map tools
+        self.ui.actionZoomIn.triggered.connect(lambda : self.dockManager.activateMapTool('ZOOM_IN'))
+        self.ui.actionZoomOut.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_OUT'))
+        self.ui.actionPan.triggered.connect(lambda: self.dockManager.activateMapTool('PAN'))
+        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_FULL'))
+        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_PIXEL_SCALE'))
+        self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.activateMapTool('CURSORLOCATIONVALUE'))
         self.ui.actionSettings.triggered.connect(self.saveProject)
 
 
@@ -277,12 +283,8 @@ class EnMAPBox(QObject):
 
 
     def createDock(self, *args, **kwds):
-        dock = self.dockManager.createDock(*args, **kwds)
-        if 'initSrc' in kwds.keys():
-            ds = self.addSource(kwds['initSrc'])
-            if isinstance(ds, DataSourceSpatial):
-                dock.addLayers(ds.createRegisteredMapLayer())
-        return dock
+        return self.dockManager.createDock(*args, **kwds)
+
 
     def removeDock(self, *args, **kwds):
         self.dockManager.removeDock(*args, **kwds)
