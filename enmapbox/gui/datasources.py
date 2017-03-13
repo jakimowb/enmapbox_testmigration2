@@ -199,38 +199,43 @@ class DataSource(object):
         if icon is None:
             provider = QFileIconProvider()
             icon = provider.icon(QFileInfo(uri))
-
         if name is None:
             name = os.path.basename(uri)
-
         assert name is not None
         assert isinstance(icon, QIcon)
 
-        self.uuid = uuid.uuid4()
-        self.uri = uri
-        self.icon = icon
-        self.name = name
+        self.mUuid = uuid.uuid4()
+        self.mUri = uri
+        self.mIcon = icon
+        self.mName = name
 
     def __eq__(self, other):
-        return other is not None and str(self.uri) == str(other.uri)
+        return other is not None and \
+               self.uri() == other.uri()
 
-    def getUri(self):
+    def uuid(self):
+        return self.mUuid
+
+    def uri(self):
         """Returns the URI string that describes the data source"""
-        return self.uri
+        return str(self.mUri)
 
-    def getIcon(self):
+    def setIcon(self, icon):
+        self.mIcon = icon
+
+    def icon(self):
         """
         Returns the icon associated with the data source
         :return: QIcon
         """
-        return self.icon
+        return self.mIcon
 
     def writeXml(self, element):
 
         s = ""
 
     def __repr__(self):
-        return 'DataSource: {} {}'.format(self.name, str(self.uri))
+        return 'DataSource: {} {}'.format(self.mName, str(self.mUri))
 
 class DataSourceFile(DataSource):
 
@@ -256,7 +261,7 @@ class DataSourceXMLFile(DataSourceTextFile):
 
 
 
-class DataSourceSpatial(DataSource):
+class DataSourceSpatial(DataSourceFile):
     """
     Abstract class to be implemented by inherited DataSource that support spatial data
     """
@@ -292,7 +297,7 @@ class DataSourceSpatial(DataSource):
 
 
         ml = self.createUnregisteredMapLayer(*args, **kwds)
-        ml.setName(self.name)
+        ml.setName(self.mName)
 
         #not reuqired any more, will be done by map canvas
         #QgsMapLayerRegistry.instance().addMapLayer(ml, False)
@@ -322,7 +327,7 @@ class DataSourceRaster(DataSourceSpatial):
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceRaster, self).__init__(uri, name, icon)
 
-        _refLayer = self.createUnregisteredMapLayer(self.uri)
+        _refLayer = self.createUnregisteredMapLayer(self.mUri)
         #lyr =QgsRasterLayer(self.uri, self.name, False)
         dp = _refLayer.dataProvider()
 
@@ -335,25 +340,27 @@ class DataSourceRaster(DataSourceSpatial):
 
 
         #change icon
+        icon = self.icon()
         if self.nLines == 1:
             dt = dp.dataType(1)
             cat_types = [QGis.CInt16, QGis.CInt32, QGis.Byte, QGis.UInt16, QGis.UInt32, QGis.Int16, QGis.Int32]
             if dt in cat_types:
                 if len(dp.colorTable(1)) != 0:
-                    self.icon = QIcon(':/enmapbox/icons/filelist_classification.png')
+                    icon = QIcon(':/enmapbox/icons/filelist_classification.png')
                 else:
-                    self.icon = QIcon(':/enmapbox/icons/filelist_mask.png')
+                    icon = QIcon(':/enmapbox/icons/filelist_mask.png')
             elif dt in [QGis.Float32, QGis.Float64, QGis.CFloat32, QGis.CFloat64]:
-                self.icon = QIcon(':/enmapbox/icons/filelist_regression.png')
+                icon = QIcon(':/enmapbox/icons/filelist_regression.png')
         else:
-            self.icon = QIcon(':/enmapbox/icons/mIconRasterLayer.png')
+            icon = QIcon(':/enmapbox/icons/mIconRasterLayer.png')
+        self.setIcon(icon)
 
     def createUnregisteredMapLayer(self, *args, **kwargs):
         """
         creates and returns a QgsRasterLayer from self.src
         :return:
         """
-        return QgsRasterLayer(self.uri, *args, **kwargs)
+        return QgsRasterLayer(self.mUri, *args, **kwargs)
 
 
 class DataSourceVector(DataSourceSpatial):
@@ -376,9 +383,9 @@ class DataSourceVector(DataSourceSpatial):
         :return:
         """
         if len(args) == 0 and len(kwargs) == 0:
-            return QgsVectorLayer(self.uri, None, 'ogr')
+            return QgsVectorLayer(self.mUri, None, 'ogr')
         else:
-            return QgsVectorLayer(self.uri, **kwargs)
+            return QgsVectorLayer(self.mUri, **kwargs)
 
 
 
