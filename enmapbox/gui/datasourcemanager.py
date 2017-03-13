@@ -8,7 +8,7 @@ from enmapbox.gui.utils import PanelWidgetBase, loadUI
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
-
+from enmapbox.gui.utils import *
 
 
 class DataSourceGroupTreeNode(TreeNode):
@@ -51,29 +51,73 @@ class DataSourceGroupTreeNode(TreeNode):
         return node
 
 
-class DataSourceTreeNode(TreeNode):
+class DataSourceSizesTreeNode(TreeNode):
+    """
+    A node to show the different aspects of dataSource sizes
+    Sub-Nodes:
+        spatial extent in map unit
+        pixel sizes (if raster source)
+        pixel extent (if raster source)
+    """
+    def __init__(self, parent, dataSource):
+        assert isinstance(dataSource, DataSourceFile)
+        super(DataSourceSizesTreeNode, self).__init__(parent, 'Size')
+
+        fileSize = os.path.getsize(dataSource.uri())
+        fileSize = fileSizeString(fileSize)
+
+        n = TreeNode(self, 'File', value=fileSize, icon=dataSource.icon())
+        if isinstance(dataSource, DataSourceSpatial):
+            ext = dataSource.spatialExtent
+            mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
+
+            n = TreeNode(self, 'Spatial Extent')
+            TreeNode(n, 'Width', value='{} {}'.format(ext.width(), mu))
+            TreeNode(n, 'Heigth', value='{} {}'.format(ext.height(), mu))
+
+        if isinstance(dataSource, DataSourceRaster):
+            n = TreeNode(self, 'Pixels')
+            TreeNode(n, 'Samples (x)', value='{}'.format(dataSource.nSamples))
+            TreeNode(n, 'Lines (y)', value='{}'.format(dataSource.nLines))
+            TreeNode(n, 'Bands (z)', value='{}'.format(dataSource.nBands))
+
+
+
+class DataSourceTreeNode(TreeNode, KeepRefs):
 
     def __init__(self, parent, dataSource):
-        super(DataSourceTreeNode, self).__init__(parent, '<empty>')
-        self.disconnectDataSource()
+
         self.dataSource = None
+        self.nodeSize = None
+
+        super(DataSourceTreeNode, self).__init__(parent, '<empty>')
+        KeepRefs.__init__(self)
+        self.disconnectDataSource()
         if dataSource:
             self.connectDataSource(dataSource)
 
     def connectDataSource(self, dataSource):
         from enmapbox.gui.datasources import DataSource
         assert isinstance(dataSource, DataSource)
-        self.setName(dataSource.name)
         self.dataSource = dataSource
-        self.setTooltip(dataSource.uri)
-        self._icon = dataSource.getIcon()
-        self.setCustomProperty('uuid', str(self.dataSource.uuid))
-        self.setCustomProperty('uri', self.dataSource.uri)
+        self.setName(os.path.basename(dataSource.uri()))
+
+        self.setTooltip(dataSource.uri())
+        self.setIcon(dataSource.icon())
+        self.setCustomProperty('uuid', str(self.dataSource.mUuid))
+        self.setCustomProperty('uri', self.dataSource.uri())
+        srcSize = os.path.getsize(self.dataSource.uri())
+        self.nodeSize = TreeNode(self, 'Size', value=fileSizeString(srcSize))
 
     def disconnectDataSource(self):
         self.dataSource = None
-        self.setName('<empty>')
-        self._icon = None
+        if self.nodeSize:
+            self.removeChildNode(self.nodeSize)
+            self.nodeSize = None
+
+        self.setName(None)
+        self.setIcon(None)
+        self.setTooltip(None)
         for k in self.customProperties():
             self.removeCustomProperty(k)
 
@@ -96,55 +140,81 @@ class DataSourceTreeNode(TreeNode):
         super(DataSourceTreeNode, self).writeXML(parentElement)
         elem = parentElement.lastChild().toElement()
         elem.setTagName('datasource-tree-node')
-        elem.setAttribute('uuid', str(self.dataSource.uuid))
+        elem.setAttribute('uuid', str(self.dataSource.uuid()))
 
 
 class SpatialDataSourceTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
+        self.nodeCRS = None
+        #extent in map units (mu)
+        self.nodeExtXmu = None
+        self.nodeExtYmu = None
         super(SpatialDataSourceTreeNode,self).__init__( *args, **kwds)
+
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpatial)
         super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
-
         ext = dataSource.spatialExtent
+        mu = QgsUnitTypes.toString(ext.crs().mapUnits())
         assert isinstance(ext, SpatialExtent)
-        CRSTreeNode(self, ext.crs())
-        FileSizesTreeNode(self, dataSource)
+        assert self.nodeCRS is None
+        self.nodeCRS = CRSTreeNode(self, ext.crs())
+        self.nodeExtXmu = TreeNode(self.nodeSize, 'Width', value='{} {}'.format(ext.width(), mu))
+        self.nodeExtYmu = TreeNode(self.nodeSize, 'Height', value='{} {}'.format(ext.height(), mu))
+
+    def disconnectDataSource(self):
+        super(SpatialDataSourceTreeNode, self).disconnectDataSource()
+        if self.nodeCRS:
+            self.removeChildNode(self.nodeCRS)
+            self.removeChildNode(self.nodeExtXmu)
+            self.removeChildNode(self.nodeExtYmu)
+            self.nodeCRS = None
+            self.nodeExtXmu = None
+            self.nodeExtYmu = None
 
 
 class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
-
     def __init__(self, *args, **kwds):
         super(VectorDataSourceTreeNode,self).__init__( *args, **kwds)
 
 class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
-
     def __init__(self, *args, **kwds):
+        #extents in pixel
+        self.nodeExtXpx = None
+        self.nodeExtYpx = None
+        self.nodeBands = None
+        self.nodePxSize = None
         super(RasterDataSourceTreeNode,self).__init__( *args, **kwds)
+
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceRaster)
         super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
 
-        self.lyr = QgsRasterLayer(dataSource.getUri())
-        QgsMapLayerRegistry.instance().addMapLayer(self.lyr)
-        self.n1 = self.addLayer(self.lyr)
-        self.n1.setName('TEST LAYR')
-        self.n2 = QgsSimpleLegendNode(self.n1, 'subgroup')
+        mu = QgsUnitTypes.toString(dataSource.spatialExtent.crs().mapUnits())
 
-        n = TreeNode(self, 'Size')
-        TreeNode(n, 'Image {} x {} x {}'.format(dataSource.nSamples,
-                                          dataSource.nLines,
-                                          dataSource.nBands),
-                 tooltip = 'Samples x Lines x Bands'
-                 )
-        TreeNode(n, 'Pixel {} x {} {}'.format(dataSource.pxSizeX,
-                                              dataSource.pxSizeY,
-                QgsUnitTypes.encodeUnit(dataSource.spatialExtent.crs().mapUnits())
-                                              ),
-                 )
+        self.nodeExtXpx = TreeNode(self.nodeSize, 'Samples',
+                                   tooltip='Data Source Width in Pixel',
+                                   value='{} px'.format(dataSource.nSamples))
+        self.nodeExtYpx = TreeNode(self.nodeSize, 'Lines',
+                                   tooltip='Data Source Height in Pixel',
+                                   value='{} px'.format(dataSource.nLines))
+        self.nodeBands = TreeNode(self.nodeSize, 'Bands',
+                                  tooltip='Number of Raster Bands',
+                                  value='{}'.format(dataSource.nBands))
+        self.nodePxSize = TreeNode(self.nodeSize, 'Pixel',
+                                   tooltip = 'Spatial size of single pixel',
+                                   value='{} {} x {} {}'.format(dataSource.pxSizeX,mu, dataSource.pxSizeY, mu))
+
+    def disconnectDataSource(self):
+        if self.nodeExtXpx is not None:
+            self.nodeExtXpx = self._removeSubNode(self.nodeExtXpx)
+            self.nodeExtYpx = self._removeSubNode(self.nodeExtYpx)
+            self.nodeBands = self._removeSubNode(self.nodeBands)
+            self.nodePxSize = self._removeSubNode(self.nodePxSize)
+        pass
 
 class FileDataSourceTreeNode(DataSourceTreeNode):
 
@@ -229,7 +299,7 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
         self.dataSourceManager = dataSourceManager
         self.model = DataSourceManagerTreeModel(self, self.dataSourceManager)
         self.dataSourceTreeView.setModel(self.model)
-        self.dataSourceTreeView.setMenuProvider(TreeViewMenuProvider(self.dataSourceTreeView))
+        self.dataSourceTreeView.setMenuProvider(DataSourceManagerTreeModelMenuProvider(self.dataSourceTreeView))
 
 
 class DataSourceManagerTreeModel(TreeModel):
@@ -312,24 +382,26 @@ class DataSourceManagerTreeModel(TreeModel):
         nodesFinal = self.indexes2nodes(indexes, True)
         mimeData = QMimeData()
         # define application/enmapbox.datasourcetreemodeldata
-        doc = QDomDocument()
-        uriList = list()
-
-        rootElem = doc.createElement("datasource_tree_model_data");
         exportedNodes = []
 
+        #collect nodes to be exported as mimeData
         for node in nodesFinal:
+            #avoid doubling
+            if node in exportedNodes:
+                continue
             if isinstance(node, DataSourceTreeNode):
-
                 exportedNodes.append(node)
 
             elif isinstance(node, DataSourceGroupTreeNode):
                 for n in node.children():
                     exportedNodes.append(n)
 
+        doc = QDomDocument()
+        uriList = list()
+        rootElem = doc.createElement("datasource_tree_model_data");
         for node in exportedNodes:
             node.writeXML(rootElem)
-            uriList.append(QUrl(node.dataSource.uri))
+            uriList.append(QUrl(node.dataSource.uri()))
 
         doc.appendChild(rootElem)
         txt = doc.toString()
@@ -378,9 +450,12 @@ class DataSourceManagerTreeModel(TreeModel):
     def removeDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
         sourceGroup = self.getSourceGroup(dataSource)
-        to_remove = [node for node in sourceGroup.children() \
-                     if isinstance(node, DataSourceTreeNode) and
-                        node.dataSource == dataSource]
+        to_remove = []
+
+        for node in sourceGroup.children():
+            if node.dataSource == dataSource:
+                to_remove.append(node)
+
         for node in to_remove:
             sourceGroup.removeChildNode(node)
 
@@ -445,7 +520,43 @@ class DataSourceManagerTreeModel(TreeModel):
 
         #this step should be done without writing anything on hard disk
         pathHTML = pfType.report().saveHTML().filename
-        self.dataSourceManager.enmapbox.dockManager.createDock('WEBVIEW', url=pathHTML)
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager.createDock('WEBVIEW', url=pathHTML)
+
+
+class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
+
+    def __init__(self, treeView):
+        super(DataSourceManagerTreeModelMenuProvider, self).__init__(treeView)
+        assert isinstance(self.treeView.model(), DataSourceManagerTreeModel)
+
+    def createContextMenu(self):
+        col = self.currentIndex().column()
+        node = self.currentNode()
+        model = self.treeView.model()
+        assert isinstance(model, DataSourceManagerTreeModel)
+
+
+        m = QMenu()
+
+        if isinstance(node, DataSourceTreeNode):
+            a = m.addAction('Remove')
+            a.triggered.connect(lambda : model.dataSourceManager.removeSource(node.dataSource))
+            a = m.addAction('Copy URI / path')
+            a.triggered.connect(lambda: QApplication.clipboard().setText(str(node.dataSource.uri())))
+
+        if col == 1 and node.value() != None:
+            a = m.addAction('Copy')
+            a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
+
+        if isinstance(node, TreeNode):
+            m2 = node.contextMenu()
+            for a in m2.actions():
+                a.setParent(None)
+                m.addAction(a)
+                a.setParent(m)
+        return m
+
 
 
 class DataSourceManager(QObject):
@@ -458,11 +569,9 @@ class DataSourceManager(QObject):
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-    def __init__(self, enmapBoxInstance):
+    def __init__(self):
         super(DataSourceManager, self).__init__()
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        assert isinstance(enmapBoxInstance, EnMAPBox)
-        self.enmapbox = enmapBoxInstance
+
         self.sources = set()
 
         QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
@@ -507,17 +616,17 @@ class DataSourceManager(QObject):
         """
         sourcetype = sourcetype.upper()
         if isinstance(sourcetype, type):
-            return [ds.getUri() for ds in self.sources if type(ds) is sourcetype]
+            return [ds.uri() for ds in self.sources if type(ds) is sourcetype]
 
         assert sourcetype in ['ALL','RASTER''VECTOR','MODEL']
         if sourcetype == 'ALL':
-            return [ds.getUri() for ds in self.sources]
+            return [ds.uri() for ds in self.sources]
         elif sourcetype == 'VECTOR':
-            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+            return [ds.uri() for ds in self.sources if isinstance(ds, DataSourceVector)]
         elif sourcetype == 'RASTER':
-            return [ds.getUri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+            return [ds.uri() for ds in self.sources if isinstance(ds, DataSourceVector)]
         elif sourcetype == 'MODEL':
-            return [ds.getUri() for ds in self.sources if isinstance(ds, ProcessingTypeDataSource)]
+            return [ds.uri() for ds in self.sources if isinstance(ds, ProcessingTypeDataSource)]
 
 
 
@@ -537,8 +646,8 @@ class DataSourceManager(QObject):
         if isinstance(ds, DataSource):
             # check if source is already registered
             for src in self.sources:
-                logger.debug(str(ds.uri))
-                if os.path.abspath(src.uri) == os.path.abspath(ds.uri):
+                logger.debug(str(ds.uri()))
+                if os.path.abspath(src.uri()) == os.path.abspath(ds.uri()):
                     return src #return object reference of an already existing source
 
             self.sources.add(ds)

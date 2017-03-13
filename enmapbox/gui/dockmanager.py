@@ -42,9 +42,9 @@ class DockTreeNode(TreeNode):
     """
 
     def __init__(self, parent, dock):
-
+        self.dock = dock
         super(DockTreeNode, self).__init__(parent, '<dockname not available>')
-        self.dock = None
+
         self.mIcon = QIcon(':/enmapbox/icons/viewlist_dock.png')
         if isinstance(dock, Dock):
             self.connectDock(dock)
@@ -132,7 +132,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
                 self.removeChildNode(node)
 
 
-class MapDockTreeNode(DockTreeNode):
+class MapDockTreeNode(DockTreeNode, KeepRefs):
     """
     A TreeNode linked to a MapDock
     Acts like the QgsLayerTreeMapCanvasBridge
@@ -141,6 +141,7 @@ class MapDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
+        KeepRefs.__init__(self)
         self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
         self.addedChildren.connect(lambda: self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
@@ -171,20 +172,20 @@ class MapDockTreeNode(DockTreeNode):
         self.updateCanvas()
 
     def updateChildNodes(self):
+        """
+        Compares the linked map canvas with layers in the tree node tree
+        If required, missing layers will be added to the tree node
+        :return:
+        """
         if self.dock:
-            # state = self.blockSignals
-            # self.blockSignals = True
-            # self.removeAllChildren()
             canvasLayers = self.dock.layers()
             treeNodeLayerNodes = self.layerNode.findLayers()
             treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
-
 
             # new layers to add?
             newChildLayers = [l for l in canvasLayers if l not in treeNodeLayers]
 
             # layers to set visible?
-
             for layer in canvasLayers:
                 if layer not in treeNodeLayers:
                     # insert layer on top of layer tree
@@ -193,12 +194,11 @@ class MapDockTreeNode(DockTreeNode):
                 # set canvas on visible
                 lNode = self.layerNode.findLayer(layer.id())
                 lNode.setVisible(Qt.Checked)
-                s = ""
 
         return self
 
     def updateCanvas(self):
-        # reads the nodes and sets the mapcanvas accordingly
+        # reads the nodes and sets the map canvas accordingly
         if self.dock:
             # update canvas only in case of different layerset
             visible = self.dock.layers()
@@ -239,13 +239,29 @@ class MapDockTreeNode(DockTreeNode):
 
         return lyrs
 
-    def insertLayer(self, idx, layer):
-        assert isinstance(layer, QgsMapLayer)
-        if layer is None or QgsMapLayerRegistry.instance().mapLayer(layer.id()) != layer:
-            return None
+    def removeLayerNodesByURI(self, uri):
 
+        toRemove = []
+        for lyrNode in self.findLayers():
+            uriLyr = str(lyrNode.layer().dataProvider().dataSourceUri())
+            if uriLyr == uri:
+                toRemove.append(lyrNode)
+
+        for node in toRemove:
+            node.parent().removeChildNode(node)
+
+
+    def insertLayer(self, idx, layer):
+        """
+        Inserts a new QgsMapLayer on position idx by creating a new QgsMayTreeLayer node
+        :param idx:
+        :param layer:
+        :return:
+        """
+        assert isinstance(layer, QgsMapLayer)
+        QgsMapLayerRegistry.instance().addMapLayer(layer)
         ll = QgsLayerTreeLayer(layer)
-        self.insertChildNode(idx, ll)
+        self.layerNode.insertChildNode(idx, ll)
         return ll
 
     def writeXML(self, parentElement):
@@ -334,7 +350,7 @@ class DockManagerTreeModel(TreeModel):
         self.dockManager = dockManager
         self.dockManager.sigDockAdded.connect(self.addDock)
         self.dockManager.sigDockRemoved.connect(self.removeDock)
-
+        self.dockManager.sigDataSourceRemoved.connect(self.removeDataSource)
         self.mimeIndices = []
 
     def columnCount(self, index):
@@ -345,6 +361,14 @@ class DockManagerTreeModel(TreeModel):
             return 2
         else:
             return 1
+
+    def removeDataSource(self, dataSource):
+        for node in self.rootNode.children():
+            if isinstance(node, MapDockTreeNode):
+                node.removeLayerNodesByURI(dataSource.uri())
+                s = ""
+        s = ""
+
 
     def supportedDragActions(self):
         return Qt.CopyAction | Qt.MoveAction
@@ -405,9 +429,8 @@ class DockManagerTreeModel(TreeModel):
 
 
     def addDock(self, dock):
-        rootNode = self.rootNode
-        newNode = TreeNodeProvider.CreateNodeFromDock(dock, rootNode)
-        #newNode.sigRemoveMe.connect(lambda : self.removeDockNode(newNode))
+        newNode = TreeNodeProvider.CreateNodeFromDock(dock, self.rootNode)
+        s = ""
 
     def removeDock(self, dock):
         rootNode = self.rootNode
@@ -497,17 +520,9 @@ class DockManagerTreeModel(TreeModel):
             if MDH.hasDataSources():
                 dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
                 if len(dataSources) > 0:
-                    layers = [ds.createRegisteredMapLayer() for ds in dataSources]
-
-                    #layers for nodes have to be registered
-                    reg = QgsMapLayerRegistry.instance()
-                    reg = QgsMapLayerRegistry.instance().addMapLayers(layers, False)
-                    nodes = [QgsLayerTreeLayer(l) for l in layers]
-
-                    if len(nodes) > 0:
-                        if parent.isValid() and row == -1:
-                            row = 0
-                        layerNode.insertChildNodes(row, nodes)
+                    layers = reversed([ds.createRegisteredMapLayer() for ds in dataSources])
+                    for l in layers:
+                        dockNode.insertLayer(0,l)
                     return True
         elif isinstance(dockNode, TextDockTreeNode):
 
@@ -632,14 +647,14 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
     def createContextMenu(self):
         col = self.currentIndex().column()
         node = self.currentNode()
-        m = None
-        if col == 0:
-            m = node.contextMenu()
-        elif col == 1:
-            m = QMenu()
-            a = m.addAction('Copy')
-            a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
-
+        m = QMenu()
+        if isinstance(node, TreeNode):
+            if col == 0:
+                m = node.contextMenu()
+            elif col == 1:
+                m = QMenu()
+                a = m.addAction('Copy')
+                a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
         return m
 
 
@@ -652,7 +667,7 @@ class DockManager(QgsLegendInterface):
     sigDockAdded = pyqtSignal(Dock)
     sigDockRemoved = pyqtSignal(Dock)
     sigDockTitleChanged = pyqtSignal(Dock)
-
+    sigDataSourceRemoved = pyqtSignal(DataSource)
     def __init__(self):
         QObject.__init__(self)
         self.mConnectedDockAreas = []
@@ -662,11 +677,19 @@ class DockManager(QgsLegendInterface):
 
         self.setCursorLocationValueDock(None)
 
+    def activateMapTool(self, key):
+        if key == 'CURSORLOCATIONVALUE':
+            self.createDock('CURSORLOCATIONVALUE')
+        for dock in self.DOCKS:
+            if isinstance(dock, MapDock):
+                dock.activateMapTool(key)
+
+
     def connectDataSourceManager(self, dataSourceManager):
         pass
 
 
-    def onDataSourceRemoved(self, dataSource):
+    def removeDataSource(self, dataSource):
         """
         Remove dependencies to removed data sources
         :param dataSource:
@@ -674,8 +697,10 @@ class DockManager(QgsLegendInterface):
         """
         if isinstance(dataSource, DataSourceSpatial):
             for mapDock in [d for d in self.DOCKS if isinstance(d, MapDock)]:
-                mapDock.removeLayers(dataSource.mapLayers)
+                mapDock.removeLayersByURI(dataSource.uri())
 
+
+        self.sigDataSourceRemoved.emit(dataSource)
 
     def connectDockArea(self, dockArea):
         assert isinstance(dockArea, DockArea)
@@ -771,7 +796,8 @@ class DockManager(QgsLegendInterface):
         else:
             assert isinstance(dock, CursorLocationValueDock)
             self.cursorLocationValueDock = dock
-            self.cursorLocationValueDock.w.connectDataSourceManager(self.enmapBox.dataSourceManager)
+            from enmapboxgui import EnMAPBox
+            self.cursorLocationValueDock.w.connectDataSourceManager(EnMAPBox.instance().dataSourceManager)
             dock.sigClosed.connect(lambda: self.setCursorLocationValueDock(None))
 
     def removeDock(self, dock):
@@ -792,7 +818,7 @@ class DockManager(QgsLegendInterface):
         if dockType == 'MAP':
             kwds['name'] = kwds.get('name', 'MapDock #{}'.format(n))
             dock = MapDock(*args, **kwds)
-            dock.sigCursorLocationValueRequest.connect(self.showCursorLocationValues)
+            dock.sigCursorLocationRequest.connect(self.showCursorLocationValues)
 
         elif dockType == 'TEXT':
             kwds['name'] = kwds.get('name', 'TextDock #{}'.format(n))
@@ -809,7 +835,8 @@ class DockManager(QgsLegendInterface):
         elif dockType == 'CURSORLOCATIONVALUE':
             kwds['name'] = kwds.get('name', 'Cursor Location Values')
             if self.cursorLocationValueDock is None:
-                self.setCursorLocationValueDock(CursorLocationValueDock(*args, **kwds))
+                dock = CursorLocationValueDock(*args, **kwds)
+                self.setCursorLocationValueDock(dock)
             else:
                 is_new_dock = False
             dock = self.cursorLocationValueDock
