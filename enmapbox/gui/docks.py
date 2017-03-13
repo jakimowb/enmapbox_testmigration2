@@ -348,10 +348,10 @@ class MapDock(Dock):
     """
     #sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent
-    sigCursorLocationValueRequest = pyqtSignal(SpatialPoint)
-
+    sigCursorLocationRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)
     sigLayersRemoved = pyqtSignal(list)
+
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
     def __init__(self, *args, **kwds):
         initSrc = kwds.pop('initSrc', None)
@@ -371,6 +371,7 @@ class MapDock(Dock):
         self.canvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
         self.canvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
         self.canvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
+        self.canvas.sigCursorLocationRequest.connect(self.sigCursorLocationRequest)
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)
@@ -404,7 +405,7 @@ class MapDock(Dock):
                 self.canvas.setLayers([ds.createRegisteredMapLayer()])
 
     def cursorLocationValueRequest(self,*args):
-        self.sigCursorLocationValueRequest.emit(*args)
+        self.sigCursorLocationRequest.emit(*args)
 
     def getDockContentContextMenu(self):
         from enmapbox.gui.mapcanvas import CanvasLinkTargetWidget
@@ -477,8 +478,6 @@ class MapDock(Dock):
     def sandboxSlot(self,crs):
         self.canvas.setDestinationCrs(crs)
 
-    def setMapTool(self, mapTool):
-        self.canvas.setMapTool(mapTool)
 
     def activateMapTool(self, key):
         self.canvas.activateMapTool(key)
@@ -520,6 +519,18 @@ class MapDock(Dock):
             assert isinstance(l, QgsMapLayer)
         self.setLayers(mapLayers + self.canvas.layers())
 
+    def removeLayersByURI(self, uri):
+        to_remove = []
+        uri = os.path.abspath(uri)
+
+        for lyr in self.canvas.layers():
+            lyrUri = os.path.abspath(str(lyr.dataProvider().dataSourceUri()))
+            if uri == lyrUri:
+                to_remove.append(lyr)
+
+        self.removeLayers(to_remove)
+
+
     def removeLayers(self, mapLayers):
         newSet = [l for l in self.canvas.layers() if l not in mapLayers]
         self.setLayers(newSet)
@@ -539,10 +550,14 @@ class CursorLocationValueDock(Dock):
     def __init__(self, *args, **kwds):
         super(CursorLocationValueDock, self).__init__(*args, **kwds)
         from enmapbox.gui.cursorlocationvalue import CursorLocationValueWidget
+        self.dataSourceManager = None
         self.w = CursorLocationValueWidget(self)
         self.layout.addWidget(self.w)
-        self.w.connectDataSourceManager(self.enmapbox.dataSourceManager)
         self.setTitle('Cursor Location Values')
+
+    def connectDataSourceManager(self, dataSourceManager):
+        self.w.connectDataSourceManager(dataSourceManager)
+
 
     def showLocationValues(self, *args):
         self.w.showLocationValues(*args)
