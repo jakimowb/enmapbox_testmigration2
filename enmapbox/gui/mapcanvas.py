@@ -455,9 +455,11 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
         self.registerMapTool('ZOOM_OUT', QgsMapToolZoom(self, True))
         self.registerMapTool('ZOOM_FULL', FullExtentMapTool(self))
         self.registerMapTool('ZOOM_PIXEL_SCALE', PixelScaleExtentMapTool(self))
+
         from enmapbox.gui.cursorlocationvalue import CursorLocationValueMapTool
         tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationValueMapTool(self))
         tool.sigLocationRequest.connect(self.sigCursorLocationRequest.emit)
+
 
     def activateMapTool(self, key):
         assert key in self.mMapTools.keys(), 'No QgsMapTool registered with key "{}"'.format(key)
@@ -577,7 +579,7 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
             newExtent = SpatialExtent.fromLayer(newSet[0])
             self.setSpatialExtent(newExtent)
             self._extentInitialized = True
-        #self.setRenderFlag(True)
+        self.setRenderFlag(True)
         self.refreshAllLayers()
 
         #signal what has been added, what has been removed
