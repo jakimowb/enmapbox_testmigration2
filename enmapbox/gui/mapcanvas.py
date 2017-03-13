@@ -81,11 +81,12 @@ class CanvasLinkTargetWidget(QFrame):
         CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
 
         for canvas_source in MapCanvas.instances():
-            w = CanvasLinkTargetWidget(canvas1, canvas_source)
-            w.setAutoFillBackground(False)
-            w.show()
-            CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
-            canvas_source.freeze()
+            if canvas_source != canvas1:
+                w = CanvasLinkTargetWidget(canvas1, canvas_source)
+                w.setAutoFillBackground(False)
+                w.show()
+                CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
+                canvas_source.freeze()
             s = ""
 
         s = ""
