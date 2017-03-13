@@ -123,6 +123,17 @@ class KeepRefs(object):
             if inst is not None:
                 yield inst
 
+
+def allSubclasses(cls):
+    """
+    Returns all subclasses of class 'cls'
+    Thx to: http://stackoverflow.com/questions/3862310/how-can-i-find-all-subclasses-of-a-class-given-its-name
+    :param cls:
+    :return:
+    """
+    return cls.__subclasses__() + [g for s in cls.__subclasses__()
+                                   for g in allSubclasses(s)]
+
 class PanelWidgetBase(QgsDockWidget):
     def __init__(self, parent):
         super(PanelWidgetBase, self).__init__(parent)
@@ -180,18 +191,19 @@ def getDOMAttributes(elem):
 
 def fileSizeString(num, suffix='B', div=1000):
     """
+    Returns a human-readable file size string.
     thanks to Fred Cirera
     http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
-    :param num:
-    :param suffix:
-    :param div:
-    :return:
+    :param num: number in bytes
+    :param suffix: 'B' for bytes by default.
+    :param div: divisor of num, 1000 by default.
+    :return: the file size string
     """
     for unit in ['','K','M','G','T','P','E','Z']:
         if abs(num) < div:
-            return "{:3.1f}{}{}" % (num, unit, suffix)
+            return "{:3.1f}{}{}".format(num, unit, suffix)
         num /= div
-    return "{:.1f}{}{}".format(num, 'Yi', suffix)
+    return "{:.1f} {}{}".format(num, unit, suffix)
 
 class SpatialPoint(QgsPoint):
     """
