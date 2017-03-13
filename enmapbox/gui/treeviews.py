@@ -30,19 +30,18 @@ class TreeNodeProvider():
         FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode
         assert isinstance(dataSource, DataSource)
 
-        #hint: take care of derived class order
+        #hint: take care of class inheritance order
         if isinstance(dataSource, ProcessingTypeDataSource):
             node = ProcessingTypeTreeNode(parent, dataSource)
-        elif isinstance(dataSource, DataSourceFile):
-            node = FileDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceRaster):
             node = RasterDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceVector):
             node = VectorDataSourceTreeNode(parent, dataSource)
+        elif isinstance(dataSource, DataSourceFile):
+            node = FileDataSourceTreeNode(parent, dataSource)
         else:
             node = DataSourceTreeNode(parent, dataSource)
 
-        node.setIcon(dataSource.icon)
         return node
 
 
@@ -85,26 +84,45 @@ class TreeNodeProvider():
 
 class TreeNode(QgsLayerTreeGroup):
     sigIconChanged = pyqtSignal()
+    sigValueChanged = pyqtSignal(QObject)
     sigRemoveMe = pyqtSignal()
     def __init__(self, parent, name, value=None, checked=Qt.Unchecked, tooltip=None, icon=None):
         #QObject.__init__(self)
         super(TreeNode, self).__init__(name, checked)
         #assert name is not None and len(str(name)) > 0
+
         self.mParent = parent
         self.mTooltip = None
         self.mValue = None
+        self.mIcon = None
+
         self.setName(name)
         self.setValue(value)
         self.setExpanded(False)
         self.setVisible(False)
         self.setTooltip(tooltip)
-
         self.setIcon(icon)
+
         if parent is not None:
             parent.addChildNode(self)
 
+    def _removeSubNode(self,node):
+        if node in self.children():
+            self.removeChildNode(node)
+        return None
+
+    def removeFromParent(self):
+        """
+        Removed this node from its parent node
+        :return: this node
+        """
+        if self.parent() is not None:
+            self.parent().removeChildNode(self)
+        return self
+
     def setValue(self, value):
         self.mValue = value
+        self.sigValueChanged.emit(self)
 
     def value(self):
         return self.mValue
@@ -229,6 +247,7 @@ class TreeModel(QgsLayerTreeModel):
         node = self.index2node(index)
         col = index.column()
         if isinstance(node, TreeNode):
+
             if col == 0:
                 if role == Qt.DisplayRole:
                     return node.name()
@@ -242,6 +261,9 @@ class TreeModel(QgsLayerTreeModel):
         else:
             if col == 0:
                 return super(TreeModel, self).data(index, role)
+
+
+
         return None
     def supportedDragActions(self):
         return Qt.IgnoreAction
@@ -261,50 +283,38 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
-class FileSizesTreeNode(TreeNode):
-    """
-    A node to show the different apsects of spatial extents
-    Sub-Nodes:
-        spatial extent in map unit
-        pixel sizes (if raster source)
-        pixel extent (if raster source)
-    """
-    def __init__(self, parent, spatialDataSource):
-        assert isinstance(spatialDataSource, DataSourceSpatial)
-        super(FileSizesTreeNode, self).__init__(parent, 'Extent')
-        ext = spatialDataSource.spatialExtent
-        mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
-
-        n = TreeNode(self, 'Spatial', value='{}X{} {}'.format(ext.width(),ext.height(), mu))
-
-        if isinstance(spatialDataSource, DataSourceRaster):
-            n = TreeNode(self, 'Pixel', value)
-
-        fstr = fileSize(spatialDataSource.uri)
-        n = TreeNode(self, 'Data', value='{}'.format(fstr))
-
 
 class CRSTreeNode(TreeNode):
     def __init__(self, parent, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
-
         super(CRSTreeNode, self).__init__(parent, crs.description())
-
+        self.setName('CRS')
         self.setIcon(QIcon(':/enmapbox/icons/crs.png'))
         self.setTooltip('Coordinate Reference System')
         self.mCrs = None
         self.nodeDescription = TreeNode(self, 'Name', tooltip='Description')
         self.nodeAuthID = TreeNode(self, 'AuthID', tooltip='Authority ID')
         self.nodeAcronym = TreeNode(self, 'Acronym', tooltip='Projection Acronym')
+        self.nodeMapUnits = TreeNode(self, 'Map Units')
         self.setCrs(crs)
 
 
     def setCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         self.mCrs = crs
-        self.nodeDescription.setValue(crs.description())
-        self.nodeAuthID.setValue(crs.authid())
-        self.nodeAcronym.setValue(crs.projectionAcronym())
+        if self.mCrs.isValid():
+            self.setValue(crs.description())
+            self.nodeDescription.setValue(crs.description())
+            self.nodeAuthID.setValue(crs.authid())
+            self.nodeAcronym.setValue(crs.projectionAcronym())
+            self.nodeDescription.setVisible(Qt.Checked)
+            self.nodeMapUnits.setValue(QgsUnitTypes.toString(self.mCrs.mapUnits()))
+        else:
+            self.setValue(None)
+            self.nodeDescription.setValue('N/A')
+            self.nodeAuthID.setValue('N/A')
+            self.nodeAcronym.setValue('N/A')
+            self.nodeMapUnits.setValue('N/A')
 
     def contextMenu(self):
         menu = QMenu()
@@ -329,6 +339,7 @@ class TreeView(QgsLayerTreeView):
 
         self.setHeaderHidden(False)
         self.header().setResizeMode(0, QHeaderView.ResizeToContents)
+        #self.header().setResizeMode(1, QHeaderView.ResizeToContents)
 
     def layerTreeModel(self):
         model = self.model()
@@ -336,19 +347,34 @@ class TreeView(QgsLayerTreeView):
 
     def setModel(self, model):
         assert isinstance(model, TreeModel)
-        model.rootNode.addedChildren.connect(self.onNodeAddedChildren)
-        super(TreeView, self).setModel(model)
 
-        s = ""
+        super(TreeView, self).setModel(model)
+        model.rootNode.addedChildren.connect(self.onNodeAddedChildren)
+        for c in model.rootNode.findChildren(TreeNode):
+            self.setColumnSpan(c)
 
     def onNodeAddedChildren(self, parent, iFrom, iTo):
-        model = self.model()
         for i in range(iFrom, iTo+1):
             node = parent.children()[i]
-            nameOnly = True
             if isinstance(node, TreeNode):
-                nameOnly = node.value() is None
-            self.setFirstColumnSpanned(i, model.node2index(parent), nameOnly)
+                node.sigValueChanged.connect(self.setColumnSpan)
+
+            self.setColumnSpan(node)
+        #self.resizeColumnToContents(0)
+        #self.resizeColumnToContents(1)
+
+    def setColumnSpan(self, node):
+        parent = node.parent()
+        if parent is not None:
+            model = self.model()
+            idxNode = model.node2index(node)
+            idxParent = model.node2index(parent)
+            span = True
+            if isinstance(node, TreeNode):
+                span = node.value() == None or len(node.value()) == 0
+            elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
+                span = True
+            self.setFirstColumnSpanned(idxNode.row(), idxParent, span)
 
 class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
 
