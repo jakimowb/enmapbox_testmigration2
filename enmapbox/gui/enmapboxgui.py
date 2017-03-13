@@ -59,8 +59,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
         self.showMaximized()
         self.setAcceptDrops(True)
-        from enmapbox import __version__ as version
-        self.setWindowTitle('EnMAP-Box {}'.format(version))
+        import enmapbox
+        self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
 
         #add & register panels
@@ -68,8 +68,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
         import enmapbox.gui.dockmanager
         import enmapbox.gui.datasourcemanager
-        import enmapbox.gui.processingmanager
-        from processing.gui.ProcessingToolbox import ProcessingToolbox
+
+
         def addPanel(panel):
             """
             shortcut to add a created panel and return it
@@ -84,6 +84,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
 
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
+            import enmapbox.gui.processingmanager
             self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
 
         #add entries to menu panels
@@ -167,16 +168,19 @@ class EnMAPBox(QObject):
 
         self.ui = EnMAPBoxUI()
 
-
-
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
 
-        self.dataSourceManager = DataSourceManager(self)
-        self.dockManager = DockManager(self)
+        self.dataSourceManager = DataSourceManager()
+
+        self.dockManager = DockManager()
+        #self.enmapBox = enmapbox
+        self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
+        self.dockManager.connectDockArea(self.ui.dockArea)
+
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
 
         #connect managers with widgets
@@ -202,7 +206,13 @@ class EnMAPBox(QObject):
         self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
 
-        self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.createDock('CURSORLOCATIONVALUE'))
+        #activate map tools
+        self.ui.actionZoomIn.triggered.connect(lambda : self.dockManager.activateMapTool('ZOOM_IN'))
+        self.ui.actionZoomOut.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_OUT'))
+        self.ui.actionPan.triggered.connect(lambda: self.dockManager.activateMapTool('PAN'))
+        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_FULL'))
+        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_PIXEL_SCALE'))
+        self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.activateMapTool('CURSORLOCATIONVALUE'))
         self.ui.actionSettings.triggered.connect(self.saveProject)
 
 
@@ -274,6 +284,7 @@ class EnMAPBox(QObject):
 
     def createDock(self, *args, **kwds):
         return self.dockManager.createDock(*args, **kwds)
+
 
     def removeDock(self, *args, **kwds):
         self.dockManager.removeDock(*args, **kwds)

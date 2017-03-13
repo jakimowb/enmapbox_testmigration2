@@ -13,33 +13,33 @@ from enmapbox.gui import LOAD_PROCESSING_FRAMEWORK
 """
 This module describes the EnMAP-GUI <-> Processing Framework interactions
 """
+ProcessingAlgorithmsPanelUI = None
+if LOAD_PROCESSING_FRAMEWORK:
+    from processing.gui.ProcessingToolbox import ProcessingToolbox
 
-from processing.gui.ProcessingToolbox import ProcessingToolbox
 
+    class ProcessingAlgorithmsPanelUI(ProcessingToolbox):
+        def __init__(self, parent=None):
 
+            ProcessingToolbox.__init__(self)
 
+            self.setWindowTitle('QGIS Processing Toolbox')
+            """
+            algList.providerRemoved.connect(self.removeProvider)
+            algList.providerAdded.connect(self.addProvider)
+            algList.providerUpdated.connect(self.updateProvider)
+            settingsWatcher.settingsChanged.connect(self.fillTree)
+            """
 
-class ProcessingAlgorithmsPanelUI(ProcessingToolbox):
-    def __init__(self, parent=None):
+        def connectProcessingAlgManager(self, manager):
+            if isinstance(manager, ProcessingAlgorithmsManager):
+                self.manager = manager
+                #register signals not handled via the QGIS processing framework but the ProcessingAlgorithmsManager
 
-        ProcessingToolbox.__init__(self)
+            else:
+                self.manager = None
 
-        self.setWindowTitle('QGIS Processing Toolbox')
-        """
-        algList.providerRemoved.connect(self.removeProvider)
-        algList.providerAdded.connect(self.addProvider)
-        algList.providerUpdated.connect(self.updateProvider)
-        settingsWatcher.settingsChanged.connect(self.fillTree)
-        """
-
-    def connectProcessingAlgManager(self, manager):
-        if isinstance(manager, ProcessingAlgorithmsManager):
-            self.manager = manager
-            #register signals not handled via the QGIS processing framework but the ProcessingAlgorithmsManager
-
-        else:
-            self.manager = None
-
+    #global ProcessingAlgorithmsPanelUI
 
 
 class ProcessingAlgorithmsManager(QObject):

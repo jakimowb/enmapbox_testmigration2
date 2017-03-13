@@ -53,13 +53,14 @@ def sandboxPureGui():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
-    from enmapbox.testdata import HymapBerlinB
-    if True:
+    from enmapbox.testdata import HymapBerlinB, HymapBerlinA
+    if False:
         for k in HymapBerlinB.__dict__.keys():
             if k.startswith('Hymap'):
                 EB.addSource(getattr(HymapBerlinB, k))
 
-    EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
+    EB.createDock('MAP', initSrc=HymapBerlinA.HymapBerlinA_image)
+    EB.createDock('MAP', initSrc=HymapBerlinA.HymapBerlinA_mask)
     #do something here
 
     qgsApp.exec_()
@@ -169,6 +170,8 @@ def initQgs():
     QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
+    import enmapbox.gui
+    enmapbox.gui.DEBUG = True
     return qgsApp
 
 
@@ -231,6 +234,77 @@ def sandboxDialog():
 
 
 
+def sandboxTreeNodes():
+
+    qgisApp = initQgs()
+
+    from enmapbox.gui.dockmanager import DockManager, DockPanelUI
+    from enmapbox.gui.docks import DockArea
+
+    dm = DockManager()
+    ui = DockPanelUI()
+    ui.connectDockManager(dm)
+    rootNode = ui.model.rootNode
+    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
+
+    if True:
+        n1 = TreeNode(rootNode, 'Group Node without value. Column span')
+        n2 = TreeNode(n1, 'SubNode', value='SubNode Value')
+        n3 = TreeNode(n1, 'Subnode, no value')
+        crs = QgsCoordinateReferenceSystem('EPSG:4362')
+        nCrs = CRSTreeNode(n1, crs)
+        n2 = TreeNode(n1, 'SubGroup', value='SubGroup value')
+        n3 = TreeNode(n1, 'SubSubNode, no value')
+        n1.removeChildNode(n2)
+    else:
+        da = DockArea()
+        dm.connectDockArea(da)
+        dm.createDock('MAP', initSrc=HymapBerlinA_image)
+
+    ui.show()
+    qgisApp.exec_()
+
+
+def sandboxDockManager():
+
+    qgisApp = initQgs()
+
+    from enmapbox.gui.dockmanager import DockManager, DockPanelUI
+    from enmapbox.gui.docks import DockArea
+
+    dm = DockManager()
+    ui = DockPanelUI()
+    ui.connectDockManager(dm)
+    rootNode = ui.model.rootNode
+    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
+
+    da = DockArea()
+    dm.connectDockArea(da)
+    dm.createDock('MAP', initSrc=HymapBerlinA_image)
+
+    ui.show()
+    qgisApp.exec_()
+
+
+def sandboxDataSourceManager():
+
+    qgisApp = initQgs()
+
+    from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourcePanelUI
+    from enmapbox.gui.docks import DockArea
+
+    dm = DataSourceManager()
+    ui = DataSourcePanelUI()
+    ui.connectDataSourceManager(dm)
+    rootNode = ui.model.rootNode
+    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
+
+    dm.addSource(HymapBerlinA_image)
+    ui.show()
+    qgisApp.exec_()
 
 if __name__ == '__main__':
     import site, sys
@@ -238,6 +312,9 @@ if __name__ == '__main__':
 
 
     #run tests
+    if False: sandboxTreeNodes()
+    if False: sandboxDataSourceManager()
+    if False: sandboxDockManager()
     if True: sandboxPureGui()
     if False: sandboxPFReport()
     if False: sandboxDragDrop()

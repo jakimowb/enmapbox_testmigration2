@@ -12,10 +12,8 @@ from enmapbox.gui.utils import loadUI, SpatialExtent, SpatialPoint
 
 
 class CursorLocationValueMapTool(QgsMapToolIdentify):
-    sigLocationIdentified = pyqtSignal(list)
-
-    #sigLocationRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     sigLocationRequest = pyqtSignal(SpatialPoint)
+
     def __init__(self, canvas):
         #super(CursorLocationValueMapTool, self).__init__(self, canvas)
         QgsMapToolIdentify.__init__(self, canvas)
@@ -24,13 +22,14 @@ class CursorLocationValueMapTool(QgsMapToolIdentify):
         self.identifyMode = QgsMapToolIdentify.LayerSelection
 
 
-
     def canvasReleaseEvent(self, mouseEvent):
         x = mouseEvent.x()
         y = mouseEvent.y()
         point = self.canvas.getCoordinateTransform().toMapCoordinates(x,y)
         crs = self.canvas.mapSettings().destinationCrs()
-        self.sigLocationRequest.emit(SpatialPoint(crs, point))
+        pt = SpatialPoint(crs, point)
+
+        self.sigLocationRequest.emit(pt)
 
 
 
@@ -145,9 +144,9 @@ class CursorLocationValues(object):
         assert isinstance(spatialPoint, SpatialPoint)
 
         if isinstance(datasource, DataSourceRaster):
-            return CursorLocationValues.fromRaster(datasource.uri, spatialPoint, name=datasource.name)
+            return CursorLocationValues.fromRaster(datasource.mUri, spatialPoint, name=datasource.mName)
         if isinstance(datasource, DataSourceVector):
-            return CursorLocationValues.fromVector(datasource.uri, spatialPoint, name=datasource.name)
+            return CursorLocationValues.fromVector(datasource.mUri, spatialPoint, name=datasource.mName)
         return None
 
 
@@ -268,7 +267,7 @@ class CursorLocationValueWidget(QMainWindow,
             return
 
         #show profile view (on row 0)
-        self.listWidget.setCurrentRow(0)
+        #self.listWidget.setCurrentRow(0)
 
         #get values
         for ds in model.selectedSources():
@@ -278,12 +277,10 @@ class CursorLocationValueWidget(QMainWindow,
         info = []
 
         pixel_profiles = []
-        otherValues = []
+
         for p in values:
             if isinstance(p, CursorLocationRasterValues) and p.nb > 1:
                 pixel_profiles.append(p)
-            else:
-             otherValues.append(p)
 
         #self.tabWidget.setCurrentWidget(self.tabLocationValues)
         pi = self.plotItem
@@ -329,7 +326,7 @@ class CursorLocationValueWidget(QMainWindow,
         from pyqtgraph.parametertree import Parameter
 
         #handle single band image values first
-        for p in [p for p in otherValues if isinstance(p, CursorLocationRasterValues)]:
+        for p in [p for p in values if isinstance(p, CursorLocationRasterValues)]:
             assert isinstance(p, CursorLocationRasterValues)
             datasource = {'name':p.name, 'readonly':True, 'type':'group'}
             childs = []
@@ -342,7 +339,7 @@ class CursorLocationValueWidget(QMainWindow,
             params.append(datasource)
 
         # handle vector source values second
-        for p in [p for p in otherValues if isinstance(p, CursorLocationVectorValues)]:
+        for p in [p for p in values if isinstance(p, CursorLocationVectorValues)]:
             assert isinstance(p, CursorLocationVectorValues)
             datasource = {'name':p.name, 'readonly':True, 'type':'group'}
             features = []
@@ -427,15 +424,15 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
         result = None
         if role == Qt.DisplayRole:
             if cn == 'name':
-                result = ds.name
+                result = ds.mName
             elif cn == 'uri':
-                result = ds.uri
+                result = ds.mUri
         elif role == Qt.CheckStateRole:
             if cn == 'name':
                 result = Qt.Checked if clds.show else Qt.Unchecked
 
         elif role == Qt.ToolTipRole:
-            result = '{} : {}'.format(ds.name, ds.uri)
+            result = '{} : {}'.format(ds.mName, ds.mUri)
         elif role == Qt.UserRole:
             result = ds
         return result
