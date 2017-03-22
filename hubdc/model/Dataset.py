@@ -1,34 +1,135 @@
 from rios.imageio import NumpyTypeToGDALType
 from osgeo import gdal
+import numpy
 from hubdc.model.Band import Band
-
+from hubdc.model.PixelGrid import PixelGrid
+from os import makedirs
+from os.path import exists, dirname
 
 class Dataset():
-
-    @staticmethod
-    def fromArray(array, referenceGrid):
-        driver = gdal.GetDriverByName('MEM')
-        bands, ysize, xsize = array.shape
-        gdalDataset = driver.Create('', xsize, ysize, bands, NumpyTypeToGDALType(array.dtype))
-        assert isinstance(gdalDataset, gdal.Dataset)
-        gdalDataset.SetProjection(referenceGrid.projection)
-        gdalDataset.SetGeoTransform(referenceGrid.makeGeoTransform())
-        for i, band in enumerate(array):
-            rb = gdalDataset.GetRasterBand(i + 1)
-            assert isinstance(rb, gdal.Band)
-            rb.WriteArray(band)
-        return Dataset(gdalDataset=gdalDataset)
 
     def __init__(self, gdalDataset):
         assert isinstance(gdalDataset, gdal.Dataset)
         self.gdalDataset = gdalDataset
+        self.pixelGrid = PixelGrid.fromDataset(self)
+        self._array = numpy.array([])
 
-    def __call__(self, bandNumber):
-        return self.getBand(bandNumber)
+    def __del__(self):
+        del self.gdalDataset
+
+    def __iter__(self):
+        for i in range(self.shape[0]):
+            yield self.getBand(i+1)
+
+    def readAsArray(self, *args, **kwargs):
+        array = self.gdalDataset.ReadAsArray(*args, **kwargs)
+        array = array if array.ndim == 3 else array[None] # add third dimension if missing
+        return array
+
+    def writeArray(self, array, pixelGrid=None):
+        assert len(array) == self.shape[0]
+        for band, bandArray in zip(self, array):
+            band.writeArray(bandArray, pixelGrid=pixelGrid)
 
     def getBand(self, bandNumber):
-        return Band(self.gdalDataset.GetRasterBand(bandNumber))
+        return Band(gdalBand=self.gdalDataset.GetRasterBand(bandNumber), pixelGrid=self.pixelGrid)
 
     def setNoDataValue(self, value):
-        for band in (self.getBand(i+1) for i in range(self.gdalDataset.RasterCount)):
+        for band in self:
             band.setNoDataValue(value)
+
+    def getMetadataDomainList(self):
+        domains = self.gdalDataset.GetMetadataDomainList()
+        return domains if domains is not None else []
+
+    def setMetadataItem(self, key, value, domain=''):
+        gdalString = GDALStringFormatter.valueToGDALString(value)
+        self.gdalDataset.SetMetadataItem(key, gdalString, domain)
+
+    def getMetadataItem(self, key, domain='', type=str):
+        gdalString = self.gdalDataset.GetMetadataItem(key, domain)
+        return GDALStringFormatter.gdalStringToValue(gdalString, type=type)
+
+    def getMetadata(self):
+        meta = dict()
+        for domain in self.getMetadataDomainList():
+            meta[domain] = self.gdalDataset.GetMetadata(domain)
+        return meta
+
+    def copyMetadata(self, other):
+        assert isinstance(other, Dataset)
+
+        for domain in other.getMetadataDomainList():
+            self.gdalDataset.SetMetadata(other.gdalDataset.GetMetadata(domain), domain)
+
+        for band, otherBand in zip(self, other):
+            for domain in otherBand.getMetadataDomainList():
+                band.gdalBand.SetMetadata(otherBand.gdalBand.GetMetadata(domain), domain)
+
+    def setENVIAcquisitionTime(self, value):
+        self.setMetadataItem('acquisition time', value, 'ENVI')
+
+    def warp(self, dstPixelGrid, dstName='', format='MEM', creationOptions=[], **kwargs):
+
+        assert isinstance(dstPixelGrid, PixelGrid)
+
+        xRes, yRes, dstSRS = (getattr(dstPixelGrid, key) for key in ('xRes', 'yRes', 'projection'))
+        outputBounds = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMin', 'xMax', 'yMax'))
+
+        if format != 'MEM' and not exists(dirname(dstName)):
+            makedirs(dirname(dstName))
+
+        warpOptions = gdal.WarpOptions(format=format, outputBounds=outputBounds, xRes=xRes, yRes=yRes, dstSRS=dstSRS, creationOptions=creationOptions, **kwargs)
+        gdalDataset = gdal.Warp(destNameOrDestDS=dstName, srcDSOrSrcDSTab=self.gdalDataset, options=warpOptions)
+        return Dataset(gdalDataset=gdalDataset)
+
+    def translate(self, dstPixelGrid=None, dstName='', format='MEM', creationOptions=[], **kwargs):
+
+        if dstPixelGrid is None:
+            dstPixelGrid = self.pixelGrid
+
+        assert isinstance(dstPixelGrid, PixelGrid)
+        assert self.pixelGrid.equalProjection(dstPixelGrid)
+
+        if format!='MEM' and not exists(dirname(dstName)):
+            makedirs(dirname(dstName))
+
+        ulx, uly, lrx, lry = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin'))
+        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], creationOptions=creationOptions, **kwargs)
+        gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
+        return Dataset(gdalDataset=gdalDataset)
+
+    def writeDS(self, ds):
+        assert isinstance(ds, Dataset)
+        array = ds.readAsArray()
+        self.writeArray(array, pixelGrid=ds.pixelGrid)
+
+    @property
+    def shape(self):
+        return self.gdalDataset.RasterCount, self.gdalDataset.RasterYSize, self.gdalDataset.RasterXSize
+
+
+class GDALStringFormatter(object):
+
+    @classmethod
+    def valueToGDALString(cls, value):
+        if isinstance(value, list):
+            return cls._listToGDALString(value)
+        else:
+            return str(value)
+
+    @classmethod
+    def gdalStringToValue(cls, gdalString, type):
+        gdalString.strip()
+        if gdalString.startswith('{') and gdalString.endswith('}'):
+            return cls._gdalStringToList(gdalString, type)
+
+
+    @classmethod
+    def _listToGDALString(cls, values):
+        return '{'+','.join([str(v) for v in values])+'}'
+
+    @classmethod
+    def _gdalStringToList(cls, gdalString, type):
+        values = [type(v) for v in gdalString[1:-1].split(',')]
+        return values
