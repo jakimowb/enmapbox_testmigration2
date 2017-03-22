@@ -1,42 +1,61 @@
 from osgeo import gdal
+from rios.imageio import NumpyTypeToGDALType, GDALTypeToNumpyType
 from hubdc.model.PixelGrid import PixelGrid
 from hubdc.model.Dataset import Dataset
+from hubdc.model.DatasetList import DatasetList
+from hubdc.util import projectionFromEPSG
+
 
 class Cube(object):
 
-    def __init__(self, referenceGrid):
+    def __init__(self, projection=None, xRes=None, yRes=None, xMin=None, xMax=None, yMin=None, yMax=None,
+                 pixelGrid=None):
 
-        assert isinstance(referenceGrid, PixelGrid)
-        self.referenceGrid = referenceGrid
-        self.datasets = list()
-        self.keys = list()
+        if pixelGrid is None:
+            if projection.startswith('EPSG:'):
+                projection = projectionFromEPSG(epsg=int(projection[-4:]))
+            pixelGrid = PixelGrid(projection=projection, xRes=xRes, yRes=yRes, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
 
-    def __getitem__(self, key):
-        return self.getArray(key)
+        assert isinstance(pixelGrid, PixelGrid)
+        self.pixelGrid = pixelGrid
 
-    def __setitem__(self, key, array):
-        ds = Dataset.fromArray(array=array, referenceGrid=self.referenceGrid)
-        self.addDataset(dataset=ds, key=key)
+    def create(self, bands=1, eType=gdal.GDT_Float32, dstName='', format='MEM', creationOptions=[]):
 
-    def __call__(self, key):
-        return self.getDataset(key)
+        driver = gdal.GetDriverByName(format)
+        ysize, xsize = self.pixelGrid.getDimensions()
+        gdalDataset = driver.Create(dstName, xsize, ysize, bands, eType, creationOptions)
+        gdalDataset.SetProjection(self.pixelGrid.projection)
+        gdalDataset.SetGeoTransform(self.pixelGrid.makeGeoTransform())
+        return Dataset(gdalDataset=gdalDataset)
 
-    def addDataset(self, dataset, key=None):
-
-        assert isinstance(dataset, Dataset)
-        referenceGrid = PixelGrid.fromDataset(dataset)
-        assert self.referenceGrid.equalProjection(referenceGrid), 'projection mismatch'
-        assert self.referenceGrid.makeGeoTransform() == referenceGrid.makeGeoTransform(), 'geo transform mismatch'
-        self.datasets.append(dataset)
-        self.keys.append(key)
-
-    def getDataset(self, key):
-        ds = self.datasets[self.keys.index(key)]
-        assert isinstance(ds, Dataset)
+    def createArray(self, array, dstName='', format='MEM', creationOptions=[]):
+        bands = len(array)
+        eType = NumpyTypeToGDALType(array[0].dtype)
+        ds = self.create(bands=bands, eType=eType, dstName=dstName, format=format, creationOptions=creationOptions)
+        ds.writeArray(array)
+        assert ds.shape == array.shape
         return ds
 
-    def getArray(self, key):
-        array = self.getDataset(key).gdalDataset.ReadAsArray()
-        if array.ndim == 2:
-            array = array.reshape(1, *array.shape)
-        return array
+    def warp(self, ds, dstName='', format='MEM', creationOptions=[], **kwargs):
+        return ds.warp(dstPixelGrid=self.pixelGrid, dstName=dstName, format=format, creationOptions=creationOptions, **kwargs)
+
+    def buildVRT(self, dsl, dstName, **kwargs):
+        assert isinstance(dsl, DatasetList)
+        options = gdal.BuildVRTOptions(resolution='user',
+                                       outputBounds=tuple(getattr(self.pixelGrid, key) for key in ('xMin', 'yMin', 'xMax', 'yMax')),
+                                       xRes=self.pixelGrid.xRes, yRes=self.pixelGrid.yRes, **kwargs)
+        gdalDS = gdal.BuildVRT(destName=dstName, srcDSOrSrcDSTab=[ds.gdalDataset for ds in dsl])#, options=options)
+        return Dataset(gdalDS)
+
+    def generateSubcubes(self, windowxsize=256, windowysize=256):
+        ysize, xsize = self.pixelGrid.getDimensions()
+        tile = 0
+        yoff = 0
+        while yoff < ysize:
+            xoff = 0
+            while xoff < xsize:
+                pixelGridTile = self.pixelGrid.subsetPixelWindow(xoff=xoff, yoff=yoff, width=windowxsize, height=windowysize)
+                pixelGridTile = pixelGridTile.intersection(self.pixelGrid)
+                yield Cube(pixelGrid=pixelGridTile)
+                xoff += windowxsize
+            yoff += windowysize

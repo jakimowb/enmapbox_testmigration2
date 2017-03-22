@@ -1,9 +1,7 @@
-from hubdc.model.Band import Band
 from hubdc.model.Cube import Cube
 from hubdc.model.Dataset import Dataset
-from hubdc.model.PixelGrid import PixelGrid
-from hubdc.io.CubeReader import CubeReader
-from hubdc.io.CubeWriter import CubeWriter
-warpOptions = CubeReader.makeWarpOptions
+from hubdc.model.DatasetList import DatasetList
+from hubdc.model import Open, OpenDSL
 
-__version__ = '0.1.0'
+
+__version__ = '0.2.0'

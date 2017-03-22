@@ -20,3 +20,43 @@ class PixelGrid(PixelGridDefn):
     @classmethod
     def fromFile(clf, filename):
         return clf.fromPixelGrid(pixelGridFromFile(filename))
+
+    def __init__(self, geotransform=None, nrows=None, ncols=None, projection=None,
+            xMin=None, xMax=None, yMin=None, yMax=None, xRes=None, yRes=None):
+
+        pixelGridWithPossiblyUntrimmedBounds = PixelGridDefn(geotransform=geotransform, nrows=nrows, ncols=ncols, projection=projection,
+            xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=xRes, yRes=yRes)
+
+        geotransform = tuple(float(v) for v in pixelGridWithPossiblyUntrimmedBounds.makeGeoTransform())
+        nrows, ncols = pixelGridWithPossiblyUntrimmedBounds.getDimensions()
+        PixelGridDefn.__init__(self, geotransform=geotransform,
+                         nrows=nrows, ncols=ncols,
+                         projection=projection)
+
+    def equalUL(self, other):
+        return (self.xMin == other.xMin and
+                self.yMax == other.yMax)
+
+    def equalDimensions(self, other):
+        return self.getDimensions() == other.getDimensions()
+
+    def equal(self, other):
+        return (self.equalProjection(other=other) and
+                self.equalUL(other=other) and
+                self.equalPixSize(other=other) and
+                self.equalDimensions(other=other))
+
+    def intersection(self, other):
+        return PixelGrid.fromPixelGrid(PixelGridDefn.intersection(self, other))
+
+    def copy(self):
+        return self.fromPixelGrid(self)
+
+    def subsetPixelWindow(self, xoff, yoff, width, height):
+        xMin = self.xMin + xoff*self.xRes
+        xMax = xMin + width*self.xRes
+        yMax = self.yMax - yoff*self.yRes
+        yMin = yMax - height*self.yRes
+        pixelGrid = PixelGrid(projection=self.projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=self.xRes, yRes=self.yRes)
+        return pixelGrid
+
