@@ -9,6 +9,23 @@ import numpy as np
 from enmapbox.gui.utils import *
 load = loadUI
 
+
+def scaledUnitString(num, infix=' ', suffix='B', div=1000):
+    """
+    Returns a human-readable file size string.
+    thanks to Fred Cirera
+    http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    :param num: number in bytes
+    :param suffix: 'B' for bytes by default.
+    :param div: divisor of num, 1000 by default.
+    :return: the file size string
+    """
+    for unit in ['','K','M','G','T','P','E','Z']:
+        if abs(num) < div:
+            return "{:3.1f}{}{}{}".format(num, infix, unit, suffix)
+        num /= div
+    return "{:.1f}{}{}{}".format(num, infix, unit, suffix)
+
 class CrosshairStyle(object):
     def __init__(self, **kwds):
 
@@ -199,11 +216,10 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
                     font = painter.font()
                     ptLabel = QPointF(pt.x(), pt.y() + (ml + font.pointSize() + 3))
 
-                    distUnit = self.canvas.mapUnits()
+                    distUnit = self.canvas.mapSettings().destinationCrs().mapUnits()
                     unitString = str(QgsUnitTypes.encodeUnit(distUnit))
 
                     if unitString == 'meters':
-                        from timeseriesviewer.utils import scaledUnitString
 
                         labelText = scaledUnitString(pred, suffix='m')
                     else:
@@ -430,13 +446,13 @@ class CrosshairDialog(QgsDialog):
         :return: specified CrosshairStyle if accepted, else None
         """
         d = CrosshairDialog(*args, **kwds)
+        defStyle = d.crosshairStyle()
         d.exec_()
 
         if d.result() == QDialog.Accepted:
             return d.crosshairStyle()
         else:
-
-            return None
+            return defStyle
 
     def __init__(self, parent=None, crosshairStyle=None, mapCanvas=None, title='Specify Crosshair'):
         super(CrosshairDialog, self).__init__(parent=parent , \
@@ -444,7 +460,7 @@ class CrosshairDialog(QgsDialog):
         self.w = CrosshairWidget(parent=self)
         self.setWindowTitle(title)
         self.btOk = QPushButton('Ok')
-        self.btCancel = QPushButton('Cance')
+        self.btCancel = QPushButton('Cancel')
         buttonBar = QHBoxLayout()
         #buttonBar.addWidget(self.btCancel)
         #buttonBar.addWidget(self.btOk)
