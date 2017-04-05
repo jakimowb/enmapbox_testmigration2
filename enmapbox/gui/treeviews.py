@@ -9,7 +9,7 @@ import numpy as np
 
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
-
+from enmapbox.gui.mapcanvas import MapDock
 class TreeNodeProvider():
 
     @staticmethod
@@ -338,7 +338,8 @@ class TreeView(QgsLayerTreeView):
         super(TreeView, self).__init__(parent)
 
         self.setHeaderHidden(False)
-        self.header().setResizeMode(0, QHeaderView.ResizeToContents)
+        self.header().setStretchLastSection(True)
+        self.header().setResizeMode(QHeaderView.ResizeToContents)
         #self.header().setResizeMode(1, QHeaderView.ResizeToContents)
 
     def layerTreeModel(self):

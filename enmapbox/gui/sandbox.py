@@ -15,7 +15,7 @@ QgsMessageLog.instance().messageReceived.connect(writelogmessage)
 
 
 def _sandboxTemplate():
-    qgsApp = initQgs()
+    qgsApp = initQgisEnvironment()
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
@@ -26,7 +26,7 @@ def _sandboxTemplate():
     qgsApp.exitQgis()
 
 def sandboxPFReport():
-    qgsApp = initQgs()
+    qgsApp = initQgisEnvironment()
     import enmapbox.gui
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
     from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -47,20 +47,29 @@ def sandboxPFReport():
     qgsApp.exitQgis()
 
 def sandboxPureGui():
-    qgsApp = initQgs()
+    qgsApp = initQgisEnvironment()
     import enmapbox.gui
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
-    from enmapbox.testdata import HymapBerlinB, HymapBerlinA
-    if False:
-        for k in HymapBerlinB.__dict__.keys():
-            if k.startswith('Hymap'):
-                EB.addSource(getattr(HymapBerlinB, k))
 
-    EB.createDock('MAP', initSrc=HymapBerlinA.HymapBerlinA_image)
-    EB.createDock('MAP', initSrc=HymapBerlinA.HymapBerlinA_mask)
+    #load urban gradient dataset
+    #add relevant files
+    baseDir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
+    files = file_search(baseDir, '*.bsq', recursive=True)
+    files += file_search(baseDir, '*.shp', recursive=True)
+    for file in files:
+        EB.addSource(file)
+
+    bp = r'EnMAP01_Berlin_Urban_Gradient_2009.bsq'
+    baseDir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_01_image_products\01_image_products'
+    baseShp = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover'
+    path1 = jp(baseDir, 'EnMAP01_Berlin_Urban_Gradient_2009.bsq')
+    path2 = jp(baseDir, 'EnMAP02_Berlin_Urban_Gradient_2009.bsq')
+
+    EB.createDock('MAP', initSrc=path1)
+    EB.createDock('MAP', initSrc=path2)
     #do something here
 
     qgsApp.exec_()
@@ -68,7 +77,7 @@ def sandboxPureGui():
 
 
 def sandboxDragDrop():
-    qgsApp = initQgs()
+    qgsApp = initQgisEnvironment()
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
@@ -80,7 +89,7 @@ def sandboxDragDrop():
 
 
 def sandboxGUI():
-    qgsApp = initQgs()
+    qgsApp = initQgisEnvironment()
 
 
     # EB = EnMAPBox(w)
@@ -141,7 +150,7 @@ def sandboxGUI():
 
 
 
-def initQgs():
+def initQgisEnvironment():
     import site
 
     # start a QGIS instance
@@ -236,7 +245,7 @@ def sandboxDialog():
 
 def sandboxTreeNodes():
 
-    qgisApp = initQgs()
+    qgisApp = initQgisEnvironment()
 
     from enmapbox.gui.dockmanager import DockManager, DockPanelUI
     from enmapbox.gui.docks import DockArea
@@ -268,7 +277,7 @@ def sandboxTreeNodes():
 
 def sandboxDockManager():
 
-    qgisApp = initQgs()
+    qgisApp = initQgisEnvironment()
 
     from enmapbox.gui.dockmanager import DockManager, DockPanelUI
     from enmapbox.gui.docks import DockArea
@@ -290,7 +299,7 @@ def sandboxDockManager():
 
 def sandboxDataSourceManager():
 
-    qgisApp = initQgs()
+    qgisApp = initQgisEnvironment()
 
     from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourcePanelUI
     from enmapbox.gui.docks import DockArea
