@@ -228,7 +228,7 @@ class DataSource(object):
         Returns the icon associated with the data source
         :return: QIcon
         """
-        return self.mIcon
+        return QIcon(self.mIcon)
 
     def writeXml(self, element):
 
@@ -332,7 +332,7 @@ class DataSourceRaster(DataSourceSpatial):
         dp = _refLayer.dataProvider()
 
         self.nSamples = dp.xSize()
-        self.nLines = dp.xSize()
+        self.nLines = dp.ySize()
         self.nBands = dp.bandCount()
         self.dataType = dp.dataType(1)
         self.pxSizeX = np.round(_refLayer.rasterUnitsPerPixelX(), 4)
@@ -370,12 +370,12 @@ class DataSourceVector(DataSourceSpatial):
         lyr = self.createUnregisteredMapLayer()
         geomType = lyr.geometryType()
 
-        if geomType in [QGis.WKBPoint, QGis.WKBPoint25D]:
-            self.icon = QIcon(':/enmapbox/icons/mIconPointLayer.png')
-        elif geomType in [QGis.WKBLineString, QGis.WKBMultiLineString25D]:
-            self.icon = QIcon(':/enmapbox/icons/mIconLineLayer.png')
-        elif geomType in [QGis.WKBPolygon, QGis.WKBPoint25D]:
-            self.icon = QIcon(':/enmapbox/icons/mIconPolygonLayer.png')
+        if geomType in [QGis.Point]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.png')
+        elif geomType in [QGis.Line]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.png')
+        elif geomType in [QGis.Polygon]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.png')
 
     def createUnregisteredMapLayer(self, *args, **kwargs):
         """
