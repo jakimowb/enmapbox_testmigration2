@@ -9,6 +9,74 @@ from enmapbox.gui.utils import *
 from enmapbox.gui.utils import KeepRefs
 from enmapbox.gui.crosshair import CrosshairMapCanvasItem, CrosshairStyle
 
+
+class CursorLocationMapTool(QgsMapToolEmitPoint):
+
+    sigLocationRequest = pyqtSignal(SpatialPoint)
+
+    def __init__(self, canvas, showCrosshair=True):
+        self.mShowCrosshair = showCrosshair
+        self.canvas = canvas
+        QgsMapToolEmitPoint.__init__(self, self.canvas)
+        self.marker = QgsVertexMarker(self.canvas)
+        self.rubberband = QgsRubberBand(self.canvas, QGis.Polygon)
+
+        color = QColor('red')
+
+        self.rubberband.setLineStyle(Qt.SolidLine)
+        self.rubberband.setColor(color)
+        self.rubberband.setWidth(2)
+
+
+
+        self.marker.setColor(color)
+        self.marker.setPenWidth(3)
+        self.marker.setIconSize(5)
+        self.marker.setIconType(QgsVertexMarker.ICON_CROSS)  # or ICON_CROSS, ICON_X
+
+    def canvasPressEvent(self, e):
+        geoPoint = self.toMapCoordinates(e.pos())
+        self.marker.setCenter(geoPoint)
+        #self.marker.show()
+
+    def setStyle(self, color=None, brushStyle=None, fillColor=None, lineStyle=None):
+        if color:
+            self.rubberband.setColor(color)
+        if brushStyle:
+            self.rubberband.setBrushStyle(brushStyle)
+        if fillColor:
+            self.rubberband.setFillColor(fillColor)
+        if lineStyle:
+            self.rubberband.setLineStyle(lineStyle)
+    def canvasReleaseEvent(self, e):
+
+
+        pixelPoint = e.pixelPoint()
+
+        crs = self.canvas.mapSettings().destinationCrs()
+        self.marker.hide()
+        geoPoint = self.toMapCoordinates(pixelPoint)
+        if self.mShowCrosshair:
+            #show a temporary crosshair
+            ext = SpatialExtent.fromMapCanvas(self.canvas)
+            cen = geoPoint
+            geom = QgsGeometry()
+            geom.addPart([QgsPoint(ext.upperLeftPt().x(),cen.y()), QgsPoint(ext.lowerRightPt().x(), cen.y())],
+                          QGis.Line)
+            geom.addPart([QgsPoint(cen.x(), ext.upperLeftPt().y()), QgsPoint(cen.x(), ext.lowerRightPt().y())],
+                          QGis.Line)
+            self.rubberband.addGeometry(geom, None)
+            self.rubberband.show()
+            #remove crosshair after 0.25 sec
+            QTimer.singleShot(250, self.hideRubberband)
+
+        self.sigLocationRequest.emit(SpatialPoint(crs, geoPoint))
+
+    def hideRubberband(self):
+        self.rubberband.reset()
+
+
+
 class FullExtentMapTool(QgsMapTool):
     def __init__(self, canvas):
         super(FullExtentMapTool, self).__init__(canvas)
@@ -418,6 +486,7 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
     _cnt = 0
 
+
     def __init__(self, *args, **kwds):
         super(MapCanvas, self).__init__(*args, **kwds)
         KeepRefs.__init__(self)
@@ -434,6 +503,7 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
 
 
         self.crosshairItem = CrosshairMapCanvasItem(self)
+        self.setShowCrosshair(False)
 
         self.canvasLinks = []
         # register signals to react on changes
@@ -455,8 +525,14 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
             assert isinstance(crosshairStyle, CrosshairStyle)
             self.crosshairItem.setCrosshairStyle(crosshairStyle)
 
+    def crosshairStyle(self):
+        return self.crosshairItem.crosshairStyle
+
     def setShowCrosshair(self,b):
         self.crosshairItem.setShow(b)
+
+    def crosshairIsVisible(self):
+        return self.crosshairItem.mShow
 
     def registerMapTool(self, key, mapTool):
         assert isinstance(key, str)
@@ -472,10 +548,11 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
         self.registerMapTool('ZOOM_FULL', FullExtentMapTool(self))
         self.registerMapTool('ZOOM_PIXEL_SCALE', PixelScaleExtentMapTool(self))
 
-        from enmapbox.gui.cursorlocationvalue import CursorLocationValueMapTool
-        tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationValueMapTool(self))
+        tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationMapTool(self, showCrosshair=True))
         tool.sigLocationRequest.connect(self.sigCursorLocationRequest.emit)
 
+        tool = self.registerMapTool('MOVE_CENTER', CursorLocationMapTool(self, showCrosshair=True))
+        tool.sigLocationRequest.connect(self.setCenter)
 
 
     def activateMapTool(self, key):
@@ -487,6 +564,7 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
         pass
 
 
+
     def onExtentsChanged(self):
 
         CanvasLink.applyLinking(self)
@@ -495,6 +573,39 @@ class MapCanvas(QgsMapCanvas, KeepRefs):
     def zoomToFeatureExtent(self, spatialExtent):
         assert isinstance(spatialExtent, SpatialExtent)
         self.setSpatialExtent(spatialExtent)
+
+    def moveCenterToPoint(self, spatialPoint):
+        assert isinstance(spatialPoint, SpatialPoint)
+
+
+    def zoomToPixelScale(self):
+        unitsPxX = []
+        unitsPxY = []
+        for lyr in self.layers():
+            if isinstance(lyr, QgsRasterLayer):
+                unitsPxX.append(lyr.rasterUnitsPerPixelX())
+                unitsPxY.append(lyr.rasterUnitsPerPixelY())
+
+        if len(unitsPxX) > 0:
+            unitsPxX = np.asarray(unitsPxX)
+            unitsPxY = np.asarray(unitsPxY)
+            if True:
+                # zoom to largest pixel size
+                i = np.nanargmax(unitsPxX)
+            else:
+                # zoom to smallest pixel size
+                i = np.nanargmin(unitsPxX)
+            unitsPxX = unitsPxX[i]
+            unitsPxY = unitsPxY[i]
+            f = 0.2
+            width = f * self.canvas.size().width() * unitsPxX  # width in map units
+            height = f * self.canvas.size().height() * unitsPxY  # height in map units
+
+            center = SpatialPoint.fromMapCanvasCenter(self.canvas)
+            extent = SpatialExtent(center.crs(), 0, 0, width, height)
+            extent.setCenter(center, center.crs())
+            self.canvas.setExtent(extent)
+        s = ""
 
     def __repr__(self):
         return self._id
@@ -703,6 +814,24 @@ class MapDock(Dock):
         action = QAction('Remove links to other maps', menu)
         action.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         action.triggered.connect(lambda: self.canvas.removeAllCanvasLinks())
+        menu.addAction(action)
+
+        menu.addSeparator()
+        if self.canvas.crosshairIsVisible():
+            action = QAction('Hide Crosshair', menu)
+            action.triggered.connect(lambda : self.canvas.setShowCrosshair(False))
+        else:
+            action = QAction('Show Crosshair', menu)
+            action.triggered.connect(lambda: self.canvas.setShowCrosshair(True))
+        menu.addAction(action)
+
+        from enmapbox.gui.crosshair import CrosshairDialog
+        action = QAction('Set Crosshair Style', menu)
+        action.triggered.connect(lambda : self.canvas.setCrosshairStyle(
+            CrosshairDialog.getCrosshairStyle(
+                crosshairStyle=self.canvas.crosshairStyle(), mapCanvas=self.canvas
+            )
+        ))
         menu.addAction(action)
 
         menu.addSeparator()
