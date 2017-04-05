@@ -11,28 +11,6 @@ from PyQt4.QtGui import *
 from enmapbox.gui.utils import loadUI, SpatialExtent, SpatialPoint
 
 
-class CursorLocationValueMapTool(QgsMapToolIdentify):
-    sigLocationRequest = pyqtSignal(SpatialPoint)
-
-    def __init__(self, canvas):
-        #super(CursorLocationValueMapTool, self).__init__(self, canvas)
-        QgsMapToolIdentify.__init__(self, canvas)
-        self.canvas = canvas
-        self.layerType = QgsMapToolIdentify.AllLayers
-        self.identifyMode = QgsMapToolIdentify.LayerSelection
-
-
-    def canvasReleaseEvent(self, mouseEvent):
-        x = mouseEvent.x()
-        y = mouseEvent.y()
-        point = self.canvas.getCoordinateTransform().toMapCoordinates(x,y)
-        crs = self.canvas.mapSettings().destinationCrs()
-        pt = SpatialPoint(crs, point)
-
-        self.sigLocationRequest.emit(pt)
-
-
-
 class CursorLocationValues(object):
 
 

@@ -209,6 +209,7 @@ class EnMAPBox(QObject):
         #activate map tools
         self.ui.actionZoomIn.triggered.connect(lambda : self.dockManager.activateMapTool('ZOOM_IN'))
         self.ui.actionZoomOut.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_OUT'))
+        self.ui.actionMoveCenter.triggered.connect(lambda: self.dockManager.activateMapTool('MOVE_CENTER'))
         self.ui.actionPan.triggered.connect(lambda: self.dockManager.activateMapTool('PAN'))
         self.ui.actionZoomFullExtent.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_FULL'))
         self.ui.actionZoomPixelScale.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_PIXEL_SCALE'))

@@ -139,6 +139,7 @@ class PanelWidgetBase(QgsDockWidget):
         super(PanelWidgetBase, self).__init__(parent)
         self.setupUi(self)
 
+
     def _blockSignals(self, widgets, block=True):
         states = dict()
         if isinstance(widgets, dict):
@@ -335,6 +336,19 @@ class SpatialExtent(QgsRectangle):
 
     def __mul__(self, other):
         raise NotImplementedError()
+
+    def upperRightPt(self):
+        return QgsPoint(*self.upperRight())
+
+    def upperLeftPt(self):
+        return QgsPoint(*self.upperLeft())
+
+    def lowerRightPt(self):
+        return QgsPoint(*self.lowerRight())
+
+    def lowerLeftPt(self):
+        return QgsPoint(*self.lowerLeft())
+
 
     def upperRight(self):
         return self.xMaximum(), self.yMaximum()
