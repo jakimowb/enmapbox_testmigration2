@@ -42,6 +42,7 @@ if LOAD_PROCESSING_FRAMEWORK:
     #global ProcessingAlgorithmsPanelUI
 
 
+
 class ProcessingAlgorithmsManager(QObject):
 
     """
@@ -55,14 +56,17 @@ class ProcessingAlgorithmsManager(QObject):
         assert isinstance(enmapBoxInstance, EnMAPBox)
 
         self.enmapBox = enmapBoxInstance
+        self.commander = None
+        self.toolbox = None
 
+        self.algList = None
         if LOAD_PROCESSING_FRAMEWORK:
             from processing.core.Processing import Processing
             from processing.core.alglist import algList
-
-            algList.providerRemoved.connect(self.onProviderRemoved)
-            algList.providerAdded.connect(self.onProviderAdded)
-            algList.providerUpdated.connect(self.onProviderUpdated)
+            self.algList = algList
+            self.algList.providerRemoved.connect(self.onProviderRemoved)
+            self.algList.providerAdded.connect(self.onProviderAdded)
+            self.algList.providerUpdated.connect(self.onProviderUpdated)
 
             #connect EnMAP-Box processing framework specifics
             from enmapboxplugin.processing.Signals import Signals
@@ -71,7 +75,21 @@ class ProcessingAlgorithmsManager(QObject):
             Signals.pickleCreated.connect(self.onFileCreated)
             Signals.htmlCreated.connect(self.onFileCreated)
 
+            self.toolbox = ProcessingToolbox()
 
+            # 1. create new menu entry
+            menu = self.enmapBox.ui.menuProcessing
+            import processing
+            from processing.ProcessingPlugin import ProcessingPlugin
+
+            def pfwIcon(name):
+                return QIcon(jp(os.path.dirname(processing.__file__), 'image', name))
+
+            from processing.modeler.CreateNewModelAction import CreateNewModelAction
+            # a = menu.addAction(pfwIcon('alg.png'),'Toolbox')
+            a = menu.addAction(pfwIcon('model.png'), 'Graphical Modeler')
+            assert isinstance(a, QAction)
+            a.triggered.connect(self.openModeler)
 
     def onProviderRemoved(self, key):
         logger.debug('Provider removed {}'.format(key))
@@ -91,3 +109,42 @@ class ProcessingAlgorithmsManager(QObject):
         src = self.enmapBox.dataSourceManager.addSource(path)
         self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
 
+
+
+    def openCommander(self):
+        from processing.gui.CommanderWindow import CommanderWindow
+        if self.commander is None:
+            self.commander = CommanderWindow(
+                self.iface.mainWindow(),
+                self.iface.mapCanvas())
+        self.commander.prepareGui()
+        self.commander.show()
+
+    def openToolbox(self):
+        if self.toolbox.isVisible():
+            self.toolbox.hide()
+        else:
+            self.toolbox.show()
+
+    def openModeler(self):
+        from processing.modeler.ModelerDialog import ModelerDialog
+        dlg = ModelerDialog()
+        dlg.exec_()
+        if dlg.update:
+            self.algList.reloadProvider('model')
+
+    def openResults(self):
+        from processing.gui.ResultsDialog import ResultsDialog
+        dlg = ResultsDialog()
+        dlg.show()
+        dlg.exec_()
+
+    def openHistory(self):
+        from processing.gui.HistoryDialog import HistoryDialog
+        dlg = HistoryDialog()
+        dlg.exec_()
+
+    def openConfig(self):
+        from processing.gui.ConfigDialog import ConfigDialog
+        dlg = ConfigDialog(self.toolbox)
+        dlg.exec_()

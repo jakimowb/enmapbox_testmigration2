@@ -4,7 +4,7 @@ import site
 
 import qgis.core
 import qgis.gui
-
+from qgis import utils as qgsUtils
 from PyQt4.QtGui import *
 
 from enmapbox.gui.docks import *
@@ -87,6 +87,22 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
             import enmapbox.gui.processingmanager
             self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
 
+            #self.menuProcessing.setEnabled(True)
+
+
+            if False:
+                m = enmapbox.gui.processingmanager.createPFMenu()
+                assert isinstance(m, QMenu)
+                assert isinstance(self.menuProcessing, QMenu)
+                for a in m.actions():
+                    a.setParent(self.menuProcessing)
+                    self.menuProcessing.addAction(a)
+
+            s = ""
+        else:
+            #self.ui.menuProcessing.setEnabled(False)
+            pass
+
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
             if len(dock.actions()) > 0:
@@ -104,6 +120,7 @@ class EnMAPBoxQgisInterface(QgisInterface):
         assert isinstance(enmapBox, EnMAPBox)
         super(EnMAPBoxQgisInterface, self).__init__()
         self.enmapBox = enmapBox
+        self.layers = dict()
         self.virtualMapCanvas = QgsMapCanvas()
         self.virtualMapCanvas.setCrsTransformEnabled(True)
     def mainWindow(self):
@@ -115,18 +132,36 @@ class EnMAPBoxQgisInterface(QgisInterface):
     def mapCanvas(self):
         assert isinstance(self.virtualMapCanvas, QgsMapCanvas)
         self.virtualMapCanvas.setLayerSet([])
-        lyrs = []
+
         for ds in self.enmapBox.dataSourceManager.sources:
             if isinstance(ds, DataSourceSpatial):
-                lyrs.append(ds.createRegisteredMapLayer())
-        if len(lyrs) > 0:
-            self.virtualMapCanvas.mapSettings().setDestinationCrs(lyrs[0].crs())
-        lyrs = [QgsMapCanvasLayer(l) for l in lyrs]
+                uri = ds.uri()
+                if uri not in self.layers.keys():
+                    lyr = ds.createUnregisteredMapLayer()
+                    QgsMapLayerRegistry.instance().addMapLayer(lyr, addToLegend=False)
+                    self.layers[uri] = lyr
 
-        self.virtualMapCanvas.setLayerSet(lyrs)
-        self.virtualMapCanvas.setExtent(self.virtualMapCanvas.fullExtent())
+        if len(self.layers.values()) > 0:
+            lyr = self.layers.values()[0]
+            self.virtualMapCanvas.mapSettings().setDestinationCrs(lyr.crs())
+            self.virtualMapCanvas.setExtent(lyr.extent())
+            self.virtualMapCanvas.setLayerSet([QgsMapCanvasLayer(l) for l in self.layers.values()])
+
         logger.debug('layers shown in (temporary) QgsInterface::mapCanvas() {}'.format(len(self.virtualMapCanvas.layers())))
         return self.virtualMapCanvas
+
+    def firstRightStandardMenu(self):
+        return self.enmapBox.ui.menuApplications
+
+    def registerMainWindowAction(self, action, defaultShortcut):
+        self.enmapBox.ui.addAction(action)
+        pass
+
+    def vectorMenu(self):
+        s = ""
+
+    def addDockWidget(self, area, dockwidget):
+        self.enmapBox.ui.addDockWidget(area, dockwidget)
 
     def openMessageLog(self):
         logger.debug('TODO: implement openMessageLog')
@@ -159,7 +194,7 @@ class EnMAPBox(QObject):
         self.iface = iface
 
         # init QGIS Processing Framework if necessary
-        from qgis import utils as qgsUtils
+
         if qgsUtils.iface is None:
             # there is not running QGIS Instance. This means the entire QGIS processing framework was not
             # initialized at all.
@@ -183,9 +218,7 @@ class EnMAPBox(QObject):
 
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
 
-        #connect managers with widgets
-        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
-            self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
+
 
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
@@ -224,16 +257,29 @@ class EnMAPBox(QObject):
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
-            try:
+            # connect managers with widgets
+            self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
+
+            def initQPFW():
                 logger.debug('initialize own QGIS Processing framework')
                 from processing.core.Processing import Processing
                 Processing.initialize()
 
                 from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
+
                 Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
+
+            initQPFW()
+            s = ""
+            try:
+                initQPFW()
+                self.ui.menuProcessing.setEnabled(True)
+                self.ui.menuProcessing.setVisible(True)
                 logger.debug('QGIS Processing framework initialized')
             except:
+                self.ui.menuProcessing.setEnabled(False)
+                self.ui.menuProcessing.setVisible(False)
                 logger.warning('Failed to initialize QGIS Processing framework')
             s = ""
 
