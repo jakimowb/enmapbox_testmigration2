@@ -106,8 +106,8 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         self.setIcon(dataSource.icon())
         self.setCustomProperty('uuid', str(self.dataSource.mUuid))
         self.setCustomProperty('uri', self.dataSource.uri())
-        srcSize = os.path.getsize(self.dataSource.uri())
-        self.nodeSize = TreeNode(self, 'Size', value=fileSizeString(srcSize))
+        self.mSrcSize = os.path.getsize(self.dataSource.uri())
+        self.nodeSize = TreeNode(self, 'Size', value=fileSizeString(self.mSrcSize))
 
     def disconnectDataSource(self):
         self.dataSource = None
@@ -178,6 +178,36 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
 class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(VectorDataSourceTreeNode,self).__init__( *args, **kwds)
+        self.nodeFeatures = None
+        self.nodeFields = None
+
+    def connectDataSource(self, dataSource):
+        assert isinstance(dataSource, DataSourceVector)
+        super(VectorDataSourceTreeNode, self).connectDataSource(dataSource)
+
+        lyr = self.dataSource.createUnregisteredMapLayer()
+        nFeat = lyr.featureCount()
+        nFields = lyr.fields().count()
+
+        geomType = ['Point','Line','Polygon','Unknown','Null'][lyr.geometryType()]
+        wkbType = QgsWKBTypes.displayString(int(lyr.wkbType()))
+        self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
+        self.nodeFeatures = TreeNode(self, 'Features',
+                                   value='{}'.format(nFeat))
+        TreeNode(self.nodeFeatures, 'Geometry Type', value=geomType)
+
+        TreeNode(self.nodeFeatures, 'WKB Type', value=wkbType)
+
+        self.nodeFields = TreeNode(self, 'Fields',
+                                   tooltip='Attribute fields related to each feature',
+                                   value='{}'.format(nFields))
+        for i in range(nFields):
+            field = lyr.fields().at(i)
+            node = TreeNode(self.nodeFields, field.name(),
+                            value='{} {}'.format(field.typeName(), field.length()))
+
+        s = ""
+
 
 class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
@@ -191,11 +221,13 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         s = ""
 
 
+
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceRaster)
         super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
 
         mu = QgsUnitTypes.toString(dataSource.spatialExtent.crs().mapUnits())
+
 
         self.nodeExtXpx = TreeNode(self.nodeSize, 'Samples',
                                    tooltip='Data Source Width in Pixel',
