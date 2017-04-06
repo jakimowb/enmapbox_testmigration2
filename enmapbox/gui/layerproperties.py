@@ -600,7 +600,79 @@ class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesd
         self.restoreOptionsBaseUi(title)
         self.setupUi(self)
         self.initOptionsBase(False, title)
+        self.mRendererDialog = None
+        assert isinstance(lyr, QgsVectorLayer)
+        assert isinstance(canvas, QgsMapCanvas)
+        self.mLayer = lyr
+        self.mCanvas = canvas
+        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.syncToLayer)
 
+        self.pbnQueryBuilder.clicked.connect(self.on_pbnQueryBuilder_clicked)
+        self.accepted.connect(self.syncToLayer)
+
+        self.rejected.connect(self.onCancel)
+        self.syncFromLayer()
+
+    def onCancel(self):
+        pass
+
+    def syncFromLayer(self):
+        lyr = self.mLayer
+        if isinstance(lyr, QgsVectorLayer):
+            self.mLayerOrigNameLineEdit.setText(lyr.name())
+            self.txtLayerSource.setText(lyr.publicSource())
+            gtype = ['Point','Line','Polygon','Unknown','Undefined'][lyr.geometryType()]
+            self.txtGeometryType.setText(gtype)
+            self.txtnFeatures.setText('{}'.format(self.mLayer.featureCount()))
+            self.txtnFields.setText('{}'.format(self.mLayer.fields().count()))
+
+            self.mCrsSelector.setCrs(lyr.crs())
+
+            self.txtSubsetSQL.setText(self.mLayer.subsetString())
+            self.txtSubsetSQL.setEnabled(False)
+
+
+        self.updateSymbologyPage()
+
+        pass
+
+
+    def syncToLayer(self):
+
+        if self.mLayer.rendererV2():
+            dlg = self.widgetStackRenderers.currentWidget()
+            dlg.apply()
+
+        if self.txtSubsetSQL.toPlainText() != self.mLayer.subsetString():
+            self.mLayer.setSubsetString(self.txtSubsetSQL.toPlainText())
+
+        self.mLayer.triggerRepaint()
+        pass
+
+    def on_pbnQueryBuilder_clicked(self):
+        qb = QgsQueryBuilder(self.mLayer, self)
+        qb.setSql(self.txtSubsetSQL.toPlainText())
+
+        if qb.exec_():
+            self.txtSubsetSQL.setText(qb.sql())
+
+    def updateSymbologyPage(self):
+        self.mRendererDialog = None
+        if self.mLayer.rendererV2():
+            self.mRendererDialog = QgsRendererV2PropertiesDialog(self.mLayer, QgsStyleV2.defaultStyle(), True, self)
+            self.mRendererDialog.setDockMode(False)
+            self.mRendererDialog.setMapCanvas(self.mCanvas)
+          #  self.mRendererDialog.showPanel.connect(self.openPanel)
+            #self.mRendererDialog.layerVariablesChanged.connect(self.updateVariableEditor())
+            self.mOptsPage_Style.setEnabled(True)
+        else:
+            self.mOptsPage_Style.setEnabled(False)
+
+        if self.mRendererDialog:
+            self.mRendererDialog.layout().setMargin(0)
+            self.widgetStackRenderers.addWidget(self.mRendererDialog)
+            self.widgetStackRenderers.setCurrentWidget(self.mRendererDialog)
+            self.widgetStackRenderers.currentWidget().layout().setMargin(0)
 
 def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
     d = None
@@ -643,17 +715,23 @@ if __name__ == '__main__':
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
 
-    from enmapbox.testdata.UrbanGradient import EnMAP01_Berlin_Urban_Gradient_2009_bsq, LandCov_Vec_Berlin_Urban_Gradient_2009_shp
 
-    l = QgsRasterLayer(EnMAP01_Berlin_Urban_Gradient_2009_bsq)
-    v = QgsVectorLayer(LandCov_Vec_Berlin_Urban_Gradient_2009_shp)
+    pathL = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_01_image_products\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq'
+    pathV = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover\LandCov_Vec_polygons_Berlin_Urban_Gradient_2009.shp'
+    QgsRendererV2Registry.instance().renderersList()
 
-    QgsMapLayerRegistry.instance().addMapLayer(l)
+    l = QgsRasterLayer(pathL)
+    v = QgsVectorLayer(pathV,'bn', "ogr", loadDefaultStyleFlag=True)
+
+    QgsMapLayerRegistry.instance().addMapLayers([l,v])
     c = QgsMapCanvas()
-    c.setLayers([QgsMapCanvasLayer(v)])
+    c.setLayerSet([QgsMapCanvasLayer(v)])
     c.setDestinationCrs(l.crs())
     c.setExtent(l.extent())
-    c.refresh()
+    c.refreshAllLayers()
+
+    #w = QgsMapLayerStyleManagerWidget(v, c, parent=None)
+    #w.show()
     b = QPushButton()
     b.setText('Show Properties')
     b.clicked.connect(lambda: showLayerPropertiesDialog(v, c))
