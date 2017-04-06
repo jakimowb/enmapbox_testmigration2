@@ -7,7 +7,8 @@ from PyQt4.QtGui import *
 from enmapbox.gui.utils import PanelWidgetBase, loadUI, MimeDataHelper
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
-from enmapbox.gui.mapcanvas import MapCanvas, CanvasLink
+from enmapbox.gui.mapcanvas import MapCanvas, CanvasLink, MapDock
+from enmapbox.gui.utils import *
 
 class DockTreeNode(TreeNode):
     @staticmethod
@@ -125,7 +126,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
         theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
         toRemove = [c for c in self.children() if isinstance(c, CanvasLinkTreeNode) and c.canvasLink == canvasLink]
         for node in toRemove:
-            if node.canvasLink in node.canvasLink.canvases[0]:
+            if node.canvasLink in node.canvasLink.canvases:
                 #need to be deleted from other listeners first
                 node.canvasLink.removeMe()
             else:
@@ -376,58 +377,6 @@ class DockManagerTreeModel(TreeModel):
     def supportedDropActions(self):
         return Qt.CopyAction | Qt.MoveAction
 
-    def setLayerStyle(self, layer, canvas):
-        import enmapbox.gui.layerproperties
-        if True: #modal dialog
-            enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=True)
-        else:
-            #fix: we could use non-modal dialogs that do not block other windows
-            #this requires to store dialogs
-            d = enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=False)
-            global DIALOG
-            DIALOG = d
-            d.show()
-
-            #d.raise_()
-            #d.activateWindow()
-
-    def contextMenu(self, node):
-        menu = QMenu()
-        parentNode = node.parent()
-        if type(node) is QgsLayerTreeLayer:
-            #get parent dock node -> related map canvas
-            mapNode = self.parentNodesFromIndices(self.node2index(node), nodeInstanceType = MapDockTreeNode)
-            mapNode = mapNode[0]
-            assert isinstance(mapNode, MapDockTreeNode)
-            assert isinstance(mapNode.dock, MapDock)
-            canvas = mapNode.dock.canvas
-
-            lyr = node.layer()
-            action = QAction('Properties', menu)
-            action.setToolTip('Shows the layer properties')
-            action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
-            menu.addAction(action)
-
-            action = QAction('Remove', menu)
-            action.setToolTip('Removes this layer from the map canvas')
-            action.triggered.connect(lambda: parentNode.removeChildNode(node))
-            menu.addAction(action)
-
-        elif isinstance(node, DockTreeNode):
-            # global
-            action = QAction('Close', menu)
-            action.setToolTip('Closes this map dock')
-            action.triggered.connect(lambda: self.dockManager.removeDock(node.dock))
-            menu.addAction(action)
-
-            action = QAction('Clear', menu)
-            action.triggered.connect(lambda: [node.layerNode.removeLayer(l.layer()) for l in node.findLayers()])
-            action.setToolTip('Removes all layers from this map dock')
-            menu.addAction(action)
-
-        return menu
-
-
     def addDock(self, dock):
         newNode = TreeNodeProvider.CreateNodeFromDock(dock, self.rootNode)
         s = ""
@@ -647,16 +596,66 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
     def createContextMenu(self):
         col = self.currentIndex().column()
         node = self.currentNode()
+        parentNode = node.parent()
+        parentDockNode = findParent(node, DockTreeNode, checkInstance=True)
         m = QMenu()
-        if isinstance(node, TreeNode):
+        if type(node) is QgsLayerTreeLayer:
+            # get parent dock node -> related map canvas
+            mapNode = findParent(node, MapDockTreeNode)
+            assert isinstance(mapNode, MapDockTreeNode)
+            assert isinstance(mapNode.dock, MapDock)
+            canvas = mapNode.dock.canvas
+
+            lyr = node.layer()
+            action = QAction('Properties', m)
+            action.setToolTip('Set layer properties')
+            action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
+            m.addAction(action)
+
+            action = QAction('Remove', m)
+            action.setToolTip('Removes layer from map canvas')
+            action.triggered.connect(lambda: parentNode.removeChildNode(node))
+            m.addAction(action)
+
+        elif isinstance(node, DockTreeNode):
+            # global
+            action = QAction('Close', m)
+            action.setToolTip('Closes this map dock')
+            action.triggered.connect(lambda: self.dockManager.removeDock(node.dock))
+            m.addAction(action)
+
+            if isinstance(node, MapDockTreeNode):
+                action = QAction('Clear', m)
+                action.triggered.connect(lambda: [node.layerNode.removeLayer(l.layer()) for l in node.findLayers()])
+                action.setToolTip('Removes all layers from this map dock')
+                m.addAction(action)
+        elif isinstance(node, TreeNode):
             if col == 0:
                 m = node.contextMenu()
             elif col == 1:
                 m = QMenu()
                 a = m.addAction('Copy')
                 a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
+
+
+
+
         return m
 
+    def setLayerStyle(self, layer, canvas):
+        import enmapbox.gui.layerproperties
+        if True: #modal dialog
+            enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=True)
+        else:
+            #fix: we could use non-modal dialogs that do not block other windows
+            #this requires to store dialogs
+            d = enmapbox.gui.layerproperties.showLayerPropertiesDialog(layer, canvas, modal=False)
+            global DIALOG
+            DIALOG = d
+            d.show()
+
+            #d.raise_()
+            #d.activateWindow()
 
 
 class DockManager(QgsLegendInterface):

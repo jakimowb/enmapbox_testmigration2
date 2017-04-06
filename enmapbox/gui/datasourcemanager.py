@@ -188,6 +188,8 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         self.nodePxSize = None
         super(RasterDataSourceTreeNode,self).__init__( *args, **kwds)
 
+        s = ""
+
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceRaster)
@@ -207,6 +209,10 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         self.nodePxSize = TreeNode(self.nodeSize, 'Pixel',
                                    tooltip = 'Spatial size of single pixel',
                                    value='{} {} x {} {}'.format(dataSource.pxSizeX,mu, dataSource.pxSizeY, mu))
+
+        self.nodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples,
+                                                 dataSource.nLines,
+                                                 dataSource.nBands))
 
     def disconnectDataSource(self):
         if self.nodeExtXpx is not None:

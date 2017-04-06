@@ -24,16 +24,7 @@
     <string notr="true"/>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <item>
@@ -48,16 +39,7 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>0</number>
        </property>
        <item>
@@ -91,7 +73,7 @@
      <x>0</x>
      <y>0</y>
      <width>545</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -174,6 +156,7 @@
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
+   <addaction name="actionMoveCenter"/>
    <addaction name="actionZoomPixelScale"/>
    <addaction name="actionZoomFullExtent"/>
    <addaction name="actionPan"/>
@@ -381,6 +364,15 @@
    </property>
    <property name="toolTip">
     <string>Opens WebViewDock to show HTML pages</string>
+   </property>
+  </action>
+  <action name="actionMoveCenter">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionZoomPoint.png</normaloff>:/enmapbox/icons/mActionZoomPoint.png</iconset>
+   </property>
+   <property name="text">
+    <string>Move to Point</string>
    </property>
   </action>
  </widget>
