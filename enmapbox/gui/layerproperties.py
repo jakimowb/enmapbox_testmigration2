@@ -606,17 +606,36 @@ class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesd
         self.mLayer = lyr
         self.mCanvas = canvas
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.syncToLayer)
+
+        self.pbnQueryBuilder.clicked.connect(self.on_pbnQueryBuilder_clicked)
         self.accepted.connect(self.syncToLayer)
 
         self.rejected.connect(self.onCancel)
+        self.syncFromLayer()
 
-        self.updateSymbologyPage()
     def onCancel(self):
         pass
 
     def syncFromLayer(self):
+        lyr = self.mLayer
+        if isinstance(lyr, QgsVectorLayer):
+            self.mLayerOrigNameLineEdit.setText(lyr.name())
+            self.txtLayerSource.setText(lyr.publicSource())
+            gtype = ['Point','Line','Polygon','Unknown','Undefined'][lyr.geometryType()]
+            self.txtGeometryType.setText(gtype)
+            self.txtnFeatures.setText('{}'.format(self.mLayer.featureCount()))
+            self.txtnFields.setText('{}'.format(self.mLayer.fields().count()))
+
+            self.mCrsSelector.setCrs(lyr.crs())
+
+            self.txtSubsetSQL.setText(self.mLayer.subsetString())
+            self.txtSubsetSQL.setEnabled(False)
+
+
+        self.updateSymbologyPage()
 
         pass
+
 
     def syncToLayer(self):
 
@@ -624,8 +643,18 @@ class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesd
             dlg = self.widgetStackRenderers.currentWidget()
             dlg.apply()
 
+        if self.txtSubsetSQL.toPlainText() != self.mLayer.subsetString():
+            self.mLayer.setSubsetString(self.txtSubsetSQL.toPlainText())
+
         self.mLayer.triggerRepaint()
         pass
+
+    def on_pbnQueryBuilder_clicked(self):
+        qb = QgsQueryBuilder(self.mLayer, self)
+        qb.setSql(self.txtSubsetSQL.toPlainText())
+
+        if qb.exec_():
+            self.txtSubsetSQL.setText(qb.sql())
 
     def updateSymbologyPage(self):
         self.mRendererDialog = None
