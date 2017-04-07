@@ -113,6 +113,7 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
         self.topLayout.removeWidget(self.label)
         del self.label
         self.label = self._createLabel(title=title)
+
         self.topLayout.addWidget(self.label, 0, 1)
         self.uuid = uuid.uuid4()
         print('UUID: {}'.format(self.uuid))
@@ -203,12 +204,13 @@ class DockLabel(VerticalLabel):
     sigClicked = pyqtSignal(object, object)
     sigCloseClicked = pyqtSignal()
     sigNormalClicked = pyqtSignal()
-
+    sigContextMenuRequest = pyqtSignal(QContextMenuEvent)
     def __init__(self, dock, title=None, allow_floating=True):
         assert isinstance(dock, Dock)
         self.dim = False
         self.fixedWidth = False
         self.dock = dock
+        self.buttons = list()  # think from right to left
         if title is None:
             title = self.dock.title()
         VerticalLabel.__init__(self, title, orientation='horizontal', forceWidth=False)
@@ -217,7 +219,7 @@ class DockLabel(VerticalLabel):
         self.updateStyle()
         self.setAutoFillBackground(False)
         self.startedDrag = False
-        self.buttons = list() #think from right to left
+
         self.pressPos = QtCore.QPoint()
 
         closeButton = QToolButton(self)
@@ -234,22 +236,40 @@ class DockLabel(VerticalLabel):
             floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.buttons.append(floatButton)
 
+
+    def minimumSizeHint(self):
+        hn = self.sizeHint()
+        h = super(DockLabel, self).minimumSizeHint()
+        m = min([h.width(), h.height()])
+        return QSize(m,m)
+
+    def contextMenuEvent(self, event):
+        assert isinstance(event, QContextMenuEvent)
+        self.sigContextMenuRequest.emit(event)
+
     def updateStyle(self):
 
         if self.dock.hasFocus():
             s = ""
 
+
         r = '3px'
-        if self.dim:
+
+        if self.dim:#inactive tab
             fg = '#aaa'
-            bg = '#44a'
-            border = '#339'
-        else:
+            #bg = '#44a'
+            #border = '#339'
+            bg = '#666'
+            border = '#444'
+        else:#active tab
             fg = '#fff'
             bg = '#66c'
             border = '#55B'
 
         if self.orientation == 'vertical':
+            pad = '{}px'.format(3 + len(self.buttons)* self.height())
+
+            print(('v', pad, self.size()))
             self.vStyle = """DockLabel {
                 background-color : %s;
                 color : %s;
@@ -259,11 +279,14 @@ class DockLabel(VerticalLabel):
                 border-bottom-left-radius: %s;
                 border-width: 0px;
                 border-right: 2px solid %s;
-                padding-top: 3px;
                 padding-bottom: 3px;
-            }""" % (bg, fg, r, r, border)
+                padding-top: %s;
+            }""" % (bg, fg, r, r, border, pad)
             self.setStyleSheet(self.vStyle)
         else:
+            pad = '{}px'.format(3 + len(self.buttons) * self.width())
+            pad = '{}px'.format(10* len(self.buttons))
+
             self.hStyle = """DockLabel {
                 background-color : %s;
                 color : %s;
@@ -274,9 +297,10 @@ class DockLabel(VerticalLabel):
                 border-width: 0px;
                 border-bottom: 2px solid %s;
                 padding-left: 3px;
-                padding-right: 3px;
-            }""" % (bg, fg, r, r, border)
+                padding-right: %s;
+            }""" % (bg, fg, r, r, border, pad)
             self.setStyleSheet(self.hStyle)
+
 
     def setDim(self, d):
         if self.dim != d:
@@ -323,7 +347,6 @@ class DockLabel(VerticalLabel):
             btn.move(pos)
 
         super(DockLabel, self).resizeEvent(ev)
-
 
 
 
@@ -457,3 +480,17 @@ class MimeDataDock(TextDock):
 
 
 
+if __name__ == '__main__':
+    import site, sys
+    #add site-packages to sys.path as done by enmapboxplugin.py
+
+    from enmapbox.gui import sandbox
+    qgsApp = sandbox.initQgisEnvironment()
+    da = DockArea()
+    dock = TextDock(name='title')
+    dock2 = TextDock(name='Super duper long label Super duper long label Super duper long label')
+    da.addDock(dock)
+    da.addDock(dock2)
+    da.show()
+    qgsApp.exec_()
+    qgsApp.exitQgis()
