@@ -496,9 +496,9 @@ class CrosshairDialog(QgsDialog):
         canvas.setExtent(mapCanvas.extent())
         canvas.setCenter(mapCanvas.center())
         canvas.setCanvasColor(mapCanvas.canvasColor())
-        canvas.refresh()
-        canvas.updateMap()
+
         canvas.refreshAllLayers()
+        canvas.refresh()
 
 if __name__ == '__main__':
     import site, sys
