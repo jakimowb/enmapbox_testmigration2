@@ -70,6 +70,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         import enmapbox.gui.datasourcemanager
 
 
+
         def addPanel(panel):
             """
             shortcut to add a created panel and return it
@@ -84,19 +85,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
 
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
-            import enmapbox.gui.processingmanager
-            self.processingPanel = addPanel(enmapbox.gui.processingmanager.ProcessingAlgorithmsPanelUI(self))
-
-            #self.menuProcessing.setEnabled(True)
-
-
-            if False:
-                m = enmapbox.gui.processingmanager.createPFMenu()
-                assert isinstance(m, QMenu)
-                assert isinstance(self.menuProcessing, QMenu)
-                for a in m.actions():
-                    a.setParent(self.menuProcessing)
-                    self.menuProcessing.addAction(a)
+            from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
+            self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
             s = ""
         else:
