@@ -54,15 +54,15 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.setWindowIcon(getIcon())
+        self.setVisible(False)
 
 
-
-        self.showMaximized()
+        #self.showMaximized()
         self.setAcceptDrops(True)
         import enmapbox
         self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
-
+        self.isInitialized = False
         #add & register panels
         area = None
 
@@ -99,9 +99,27 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
                 s = ""
             self.menuPanels.addAction(dock.toggleViewAction())
 
+    def setIsInitialized(self):
+        self.isInitialized = True
+
 
 def getIcon():
     return QIcon(':/enmapbox/icons/enmapbox.png')
+
+
+class EnMAPBoxSplashScreen(QSplashScreen):
+
+    def __init__(self, parent=None):
+        pm = QPixmap(':/enmapbox/splashscreen.png')
+        super(EnMAPBoxSplashScreen, self).__init__(pm, Qt.WindowStaysOnTopHint)
+
+    def showMessage(self, text, alignment=None, color=None):
+        if alignment is None:
+            alignment = Qt.AlignLeft | Qt.AlignBottom
+        if color is None:
+            color = QColor('white')
+        super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
+        QApplication.processEvents()
 
 
 class EnMAPBoxQgisInterface(QgisInterface):
@@ -174,12 +192,16 @@ class EnMAPBox(QObject):
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
-
+        splash = EnMAPBoxSplashScreen(self)
+        splash.show()
+        QApplication.processEvents()
 
         assert EnMAPBox._instance is None
         super(EnMAPBox, self).__init__()
+
         EnMAPBox._instance = self
 
+        splash.showMessage('Load Interfaces')
         self.ifaceSimulation = EnMAPBoxQgisInterface(self)
         self.iface = iface
 
@@ -190,7 +212,9 @@ class EnMAPBox(QObject):
             # initialized at all.
             qgsUtils.iface = self.ifaceSimulation
 
-
+        assert isinstance(qgsUtils.iface, QgisInterface)
+        logger.o
+        splash.showMessage('Load UI')
         self.ui = EnMAPBoxUI()
 
         #define managers (the center of all actions and all evil)
@@ -206,12 +230,14 @@ class EnMAPBox(QObject):
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dockManager.connectDockArea(self.ui.dockArea)
 
+        splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
 
 
 
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
+
 
         self.ui.centralFrame.sigDragEnterEvent.connect(
             lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
@@ -248,6 +274,7 @@ class EnMAPBox(QObject):
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
             # connect managers with widgets
+            splash.showMessage('Connect Processing Algorithm Manager')
             self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
 
             def initQPFW():
@@ -273,7 +300,8 @@ class EnMAPBox(QObject):
                 logger.warning('Failed to initialize QGIS Processing framework')
             s = ""
 
-
+        self.ui.setVisible(True)
+        splash.finish(self.ui)
     def exit(self):
         self.ui.close()
         self.deleteLater()
