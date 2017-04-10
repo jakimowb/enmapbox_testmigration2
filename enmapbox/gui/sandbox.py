@@ -49,7 +49,7 @@ def sandboxPFReport():
 def sandboxPureGui():
     qgsApp = initQgisEnvironment()
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
@@ -57,8 +57,11 @@ def sandboxPureGui():
     #load urban gradient dataset
     #add relevant files
     baseDir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
-    files = file_search(baseDir, '*.bsq', recursive=True)
+    files = []
+    files += file_search(baseDir, '*.bsq', recursive=True)
     files += file_search(baseDir, '*.shp', recursive=True)
+    import enmapbox.testdata
+    files += [enmapbox.testdata.RandomForestModel]
     for file in files:
         EB.addSource(file)
 
