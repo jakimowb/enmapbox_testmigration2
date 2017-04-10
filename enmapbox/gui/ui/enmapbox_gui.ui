@@ -126,10 +126,16 @@
      <string>Applications</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuProcessing">
+    <property name="title">
+     <string>Processing</string>
+    </property>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
    <addaction name="menuTools"/>
    <addaction name="menuApplications"/>
+   <addaction name="menuProcessing"/>
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>

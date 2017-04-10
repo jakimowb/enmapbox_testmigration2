@@ -672,7 +672,7 @@ class DockManager(QgsLegendInterface):
         self.mConnectedDockAreas = []
         self.mCurrentDockArea = None
         self.DOCKS = list()
-
+        self.dataSourceManager = None
 
         self.setCursorLocationValueDock(None)
 
@@ -685,6 +685,9 @@ class DockManager(QgsLegendInterface):
 
 
     def connectDataSourceManager(self, dataSourceManager):
+        from enmapbox.gui.datasourcemanager import DataSourceManager
+        assert isinstance(dataSourceManager, DataSourceManager)
+        self.dataSourceManager = dataSourceManager
         pass
 
 
@@ -754,7 +757,7 @@ class DockManager(QgsLegendInterface):
 
             #register datasources
             for src in layers + textfiles:
-                self.enmapBox.dataSourceManager.addSource(src)
+                self.dataSourceManager.addSource(src)
 
             #open map dock for new layers
             if len(layers) > 0:
@@ -815,16 +818,16 @@ class DockManager(QgsLegendInterface):
 
         is_new_dock = True
         if dockType == 'MAP':
-            kwds['name'] = kwds.get('name', 'MapDock #{}'.format(n))
+            kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
             dock = MapDock(*args, **kwds)
             dock.sigCursorLocationRequest.connect(self.showCursorLocationValues)
 
         elif dockType == 'TEXT':
-            kwds['name'] = kwds.get('name', 'TextDock #{}'.format(n))
+            kwds['name'] = kwds.get('name', 'Text #{}'.format(n))
             dock = TextDock(*args, **kwds)
 
         elif dockType == 'MIME':
-            kwds['name'] = kwds.get('name', 'MimeDataDock #{}'.format(n))
+            kwds['name'] = kwds.get('name', 'MimeData #{}'.format(n))
             dock = MimeDataDock(*args, **kwds)
 
         elif dockType == 'WEBVIEW':

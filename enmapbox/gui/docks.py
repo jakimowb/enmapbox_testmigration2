@@ -116,7 +116,6 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
 
         self.topLayout.addWidget(self.label, 0, 1)
         self.uuid = uuid.uuid4()
-        print('UUID: {}'.format(self.uuid))
         if closable:
             self.label.sigCloseClicked.connect(self.close)
 
@@ -269,7 +268,6 @@ class DockLabel(VerticalLabel):
         if self.orientation == 'vertical':
             pad = '{}px'.format(3 + len(self.buttons)* self.height())
 
-            print(('v', pad, self.size()))
             self.vStyle = """DockLabel {
                 background-color : %s;
                 color : %s;

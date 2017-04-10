@@ -310,7 +310,7 @@ class ProcessingTypeDataSource(DataSourceFile):
         from enmapbox.processing import types
         from enmapbox.processing.types import Estimator
         if not isinstance(icon, QIcon):
-            self.icon = QIcon(':/enmapbox/icons/alg.png')
+            self.mIcon = QIcon(':/enmapbox/icons/alg.png')
 
         self.pfType = types.unpickle(uri)
 

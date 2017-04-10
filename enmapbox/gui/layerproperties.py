@@ -327,15 +327,17 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
         return self.min(index), self.max(index)
 
 
+    def _roundedFloatStr(self, value):
+        return str(np.round(value, 5))
 
     def setMin(self, value, index):
-        t = str(np.round(value, 5))
+        t = self._roundedFloatStr(value)
         if index == 0: self.mRedMinLineEdit.setText(t)
         if index == 1: self.mGreenMinLineEdit.setText(t)
         if index == 2: self.mBlueMinLineEdit.setText(t)
 
     def setMax(self, value, index):
-        t = str(np.round(value, 5))
+        t = self._roundedFloatStr(value)
         if index == 0: self.mRedMaxLineEdit.setText(t)
         if index == 1: self.mGreenMaxLineEdit.setText(t)
         if index == 2: self.mBlueMaxLineEdit.setText(t)
@@ -365,8 +367,8 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
 
             assert isinstance(ce, QgsContrastEnhancement)
             assert isinstance(self.mContrastEnhancementAlgorithmComboBox, QComboBox)
-            minEdit.setText(str(ce.minimumValue()))
-            maxEdit.setText(str(ce.maximumValue()))
+            minEdit.setText(self._roundedFloatStr(ce.minimumValue()))
+            maxEdit.setText(self._roundedFloatStr(ce.maximumValue()))
 
             alg = ce.contrastEnhancementAlgorithm()
             algs = [self.mContrastEnhancementAlgorithmComboBox.itemData(i) for i in

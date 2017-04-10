@@ -275,7 +275,7 @@ enhancement</string>
   </layout>
   <action name="actionSet453">
    <property name="text">
-    <string>453</string>
+    <string>NSR</string>
    </property>
    <property name="toolTip">
     <string>Set to swIR-mwIR-red (Landsat 4-5-3)</string>

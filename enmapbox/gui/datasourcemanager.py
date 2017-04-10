@@ -289,7 +289,7 @@ class ProcessingTypeTreeNode(DataSourceTreeNode):
                 pixmap.fill(QColor(*color))
                 icon = QIcon(pixmap)
 
-                TreeNode(grp, '{} {}'.format(i, name), icon=icon)
+                TreeNode(grp, '{}'.format(i), value='{}'.format(name), icon=icon)
 
             handled.extend(['class lookup', 'class names'])
 
