@@ -129,7 +129,6 @@ class CursorLocationValues(object):
 
 
 
-
 class CursorLocationVectorValues(CursorLocationValues):
 
     def __init__(self, uri, spatialPoint, fieldNames=None, name=None):
@@ -148,6 +147,72 @@ class CursorLocationVectorValues(CursorLocationValues):
 
     def __len__(self):
         return len(self.results)
+
+
+class LoadWorker(QObject):
+    sigValueLoaded = pyqtSignal(str, dict)
+    sigLoadingStarted = pyqtSignal(int)
+    sigLoadingFinished = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super(LoadWorker, self).__init__(parent)
+
+    def doWork(self, theUris, thePointWkt, theCrsDefinition):
+
+        spatialPoint = QgsGeometry.fromWkt(thePointWkt)
+        assert spatialPoint.wkbType() == QgsWKBTypes.Point
+
+
+        crs = QgsCoordinateReferenceSystem(theCrsDefinition)
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+
+        if len(theUris) > 0:
+            self.sigLoadingStarted.emit(len(theUris))
+
+            for uri in theUris:
+                values = CursorLocationValues.fromDataSource(spatialPoint, uri)
+
+                #values might be expressed as dict or list
+                self.sigValueLoaded.emit(uri, values)
+
+            self.sigLoadingFinished.emit()
+
+
+
+class CursorLocationValueLoader(QObject):
+
+    def __init__(self):
+
+        self.nThreads = 1
+        self.threadworkers = []
+
+        self.iNextThread = 0
+
+    def createThread(self):
+        w = LoadWorker()
+        w.
+        QThread()
+
+    def setNumberOfThreads(self, nThreads):
+        assert nThreads >= 1
+        self.nThreads = nThreads
+
+    def nextThreadWorker(self):
+        t,w = self.threadworkers[self.iNextThread]
+        self.iNextThread += 1
+        if self.iNextThread >= len(self.threadworkers):
+            self.iNextThread = 0
+        return t,w
+
+    def loadValues(self, dataSources, spatialPoint):
+        assert isinstance(dataSources, list)
+        assert isinstance(spatialPoint, SpatialPoint)
+
+        for srcUri in dataSources:
+            thread, worker = self.nextThreadWorker()
+
+        pass
+
 
 class CursorLocationRasterValues(CursorLocationValues):
 
