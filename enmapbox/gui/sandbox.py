@@ -74,7 +74,8 @@ def sandboxPureGui():
     EB.createDock('MAP', initSrc=path1)
     EB.createDock('MAP', initSrc=path2)
     #do something here
-
+    from qgis import utils as qgsUtils
+    qgsUtils.iface.messageBar().pushMessage('STARTED', QgsMessageBar.SUCCESS)
     qgsApp.exec_()
     qgsApp.exitQgis()
 

@@ -173,6 +173,7 @@ class EnMAPBoxQgisInterface(QgisInterface):
 
     def openMessageLog(self):
         logger.debug('TODO: implement openMessageLog')
+
         pass
 
     def refreshLayerSymbology(selflayerId):
