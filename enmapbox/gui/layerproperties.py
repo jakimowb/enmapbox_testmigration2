@@ -677,22 +677,23 @@ class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesd
             self.widgetStackRenderers.currentWidget().layout().setMargin(0)
 
 def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
-    d = None
+    dialog = None
 
     if isinstance(layer, QgsRasterLayer):
-        d = RasterLayerProperties(layer, canvas, parent)
+        dialog = RasterLayerProperties(layer, canvas, parent)
         #d.setSettings(QSettings())
     elif isinstance(layer, QgsVectorLayer):
-        d = VectorLayerProperties(layer, canvas, parent)
+        dialog = VectorLayerProperties(layer, canvas, parent)
     else:
         assert NotImplementedError()
 
     if modal == True:
-        d.setModal(True)
-        return  d.exec_()
+        dialog.setModal(True)
     else:
-        d.setModal(False)
-        return d
+        dialog.setModal(False)
+
+    result = dialog.exec_()
+    return result
 
 
 if __name__ == '__main__':

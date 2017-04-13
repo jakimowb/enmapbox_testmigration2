@@ -213,7 +213,6 @@ class EnMAPBox(QObject):
             qgsUtils.iface = self.ifaceSimulation
 
         assert isinstance(qgsUtils.iface, QgisInterface)
-        logger.o
         splash.showMessage('Load UI')
         self.ui = EnMAPBoxUI()
 
