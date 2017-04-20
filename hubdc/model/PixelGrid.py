@@ -1,3 +1,4 @@
+from osgeo import osr
 from rios.pixelgrid import PixelGridDefn, pixelGridFromFile
 
 
@@ -24,14 +25,23 @@ class PixelGrid(PixelGridDefn):
     def __init__(self, geotransform=None, nrows=None, ncols=None, projection=None,
             xMin=None, xMax=None, yMin=None, yMax=None, xRes=None, yRes=None):
 
-        pixelGridWithPossiblyUntrimmedBounds = PixelGridDefn(geotransform=geotransform, nrows=nrows, ncols=ncols, projection=projection,
-            xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=xRes, yRes=yRes)
+        def getProjectionWKT(projection):
+            if projection.startswith('EPSG:'):
+                epsg = int(projection[-4:])
+                projection = osr.SpatialReference()
+                projection.ImportFromEPSG(epsg)
+                return projection.ExportToWkt()
+            return projection
 
-        geotransform = tuple(float(v) for v in pixelGridWithPossiblyUntrimmedBounds.makeGeoTransform())
-        nrows, ncols = pixelGridWithPossiblyUntrimmedBounds.getDimensions()
-        PixelGridDefn.__init__(self, geotransform=geotransform,
-                         nrows=nrows, ncols=ncols,
-                         projection=projection)
+        def trimBoundsToResolutionMultipleAndCastGeoTransformToFloat(pixelGrid):
+            geotransform = tuple(float(v) for v in pixelGrid.makeGeoTransform())
+            nrows, ncols = pixelGrid.getDimensions()
+            PixelGridDefn.__init__(self, geotransform=geotransform, nrows=nrows, ncols=ncols, projection=projection)
+
+        projection = getProjectionWKT(projection)
+        trimBoundsToResolutionMultipleAndCastGeoTransformToFloat(pixelGrid=PixelGridDefn(geotransform=geotransform, nrows=nrows, ncols=ncols,
+                                                                                         projection=projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
+                                                                                         xRes=xRes, yRes=yRes))
 
     def equalUL(self, other):
         return (self.xMin == other.xMin and
@@ -59,4 +69,16 @@ class PixelGrid(PixelGridDefn):
         yMin = yMax - height*self.yRes
         pixelGrid = PixelGrid(projection=self.projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=self.xRes, yRes=self.yRes)
         return pixelGrid
+
+    def iterSubgrids(self, windowxsize=256, windowysize=256):
+        ysize, xsize = self.getDimensions()
+        yoff = 0
+        while yoff < ysize:
+            xoff = 0
+            while xoff < xsize:
+                pixelGridTile = self.subsetPixelWindow(xoff=xoff, yoff=yoff, width=windowxsize, height=windowysize)
+                pixelGridTile = pixelGridTile.intersection(self) # ensures that tiles at the left and lower edges are trimmed
+                yield pixelGridTile
+                xoff += windowxsize
+            yoff += windowysize
 

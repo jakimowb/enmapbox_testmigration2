@@ -12,24 +12,28 @@ class Dataset():
         assert isinstance(gdalDataset, gdal.Dataset)
         self.gdalDataset = gdalDataset
         self.pixelGrid = PixelGrid.fromDataset(self)
-        self._array = numpy.array([])
-
-    def __del__(self):
-        del self.gdalDataset
 
     def __iter__(self):
         for i in range(self.shape[0]):
             yield self.getBand(i+1)
 
-    def readAsArray(self, *args, **kwargs):
-        array = self.gdalDataset.ReadAsArray(*args, **kwargs)
+    def readAsArray(self, dtype=None, **kwargs):
+        array = self.gdalDataset.ReadAsArray(**kwargs)
         array = array if array.ndim == 3 else array[None] # add third dimension if missing
+        if dtype is not None:
+            array = array.astype(dtype)
         return array
 
     def writeArray(self, array, pixelGrid=None):
         assert len(array) == self.shape[0]
         for band, bandArray in zip(self, array):
             band.writeArray(bandArray, pixelGrid=pixelGrid)
+
+    def flushCache(self):
+        self.gdalDataset.FlushCache()
+
+    def close(self):
+        self.gdalDataset = None
 
     def getBand(self, bandNumber):
         return Band(gdalBand=self.gdalDataset.GetRasterBand(bandNumber), pixelGrid=self.pixelGrid)
@@ -99,14 +103,11 @@ class Dataset():
         gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
         return Dataset(gdalDataset=gdalDataset)
 
-    def writeDS(self, ds):
-        assert isinstance(ds, Dataset)
-        array = ds.readAsArray()
-        self.writeArray(array, pixelGrid=ds.pixelGrid)
-
     @property
     def shape(self):
         return self.gdalDataset.RasterCount, self.gdalDataset.RasterYSize, self.gdalDataset.RasterXSize
+
+
 
 
 class GDALStringFormatter(object):
