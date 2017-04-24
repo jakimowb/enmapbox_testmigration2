@@ -6,10 +6,12 @@ from qgis.core import QgsPluginLayerRegistry
 from PyQt4.QtCore import QTimer, QCoreApplication
 from PyQt4.QtGui import QAction
 
-
+from enmapbox.utils.environment.DependencyChecker import DependencyChecker
+requiredNoneStandardModules = ['pyqtgraph']
 
 class GUIPlugin:
     def __init__(self, iface):
+        DependencyChecker.importAllDependencies(requiredNoneStandardModules)
         self.iface = iface
         assert isinstance(iface, QgisInterface)
 
