@@ -59,6 +59,9 @@ class PixelGrid(PixelGridDefn):
     def intersection(self, other):
         return PixelGrid.fromPixelGrid(PixelGridDefn.intersection(self, other))
 
+    def reproject(self, targetGrid):
+        return PixelGrid.fromPixelGrid(PixelGridDefn.reproject(self, targetGrid))
+
     def copy(self):
         return self.fromPixelGrid(self)
 
@@ -81,4 +84,3 @@ class PixelGrid(PixelGridDefn):
                 yield pixelGridTile
                 xoff += windowxsize
             yoff += windowysize
-

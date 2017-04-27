@@ -34,6 +34,9 @@ class Band():
     def getNoDataValue(self):
         return self.gdalBand.GetNoDataValue()
 
+    def setDescription(self, value):
+        self.gdalBand.SetDescription(value)
+
     def getMetadataDomainList(self):
         domains = self.gdalBand.GetMetadataDomainList()
         return domains if domains is not None else []

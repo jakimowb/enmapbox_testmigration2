@@ -4,7 +4,6 @@ from hubdc.model.Dataset import Dataset
 from hubdc.model import Open
 from .ApplierInput import ApplierInput
 from .ApplierOutput import ApplierOutput
-from .ApplierOperator import ApplierOperator
 from .WriterProcess import WriterProcess
 
 class ApplierIOTypeError(Exception):
@@ -17,8 +16,12 @@ class Applier(object):
 
         self.grid = grid
         self.ufuncClass = ufuncClass
+        self.ufuncArgs = None
+        self.ufuncKwargs = None
         self.inputs = dict()
+        self.inputDatasets = None
         self.outputs = dict()
+        self.queues = None
         self.nworker = nworker
         self.nwriter = nwriter
         self.windowxsize = windowxsize
@@ -26,11 +29,23 @@ class Applier(object):
 
     def __setitem__(self, key, value):
         if isinstance(value, ApplierInput):
-            self.inputs[key] = value
+
+            if isinstance(value.filename, list):
+                for i, filename in enumerate(value.filename):
+                    self.inputs[(key, i)] = ApplierInput(filename=filename, **value.options)
+            else:
+                self.inputs[key] = value
+
         elif isinstance(value, ApplierOutput):
-            self.outputs[key] = value
+
+            if isinstance(value.filename, list):
+                for i, filename in enumerate(value.filename):
+                    self.outputs[(key, i)] = ApplierOutput(filename=filename, format=value.format, creationOptions=value.creationOptions)
+            else:
+                self.outputs[key] = value
+
         else:
-            raise ApplierIOTypeError()
+            raise Exception('wrong _applier i/o type')
 
     def __getitem__(self, key):
         if key in self.inputs:
@@ -40,13 +55,17 @@ class Applier(object):
         else:
             raise KeyError()
 
-    def run(self):
+    def run(self, *ufuncArgs, **ufuncKwargs):
+
+        self.ufuncArgs = ufuncArgs
+        self.ufuncKwargs = ufuncKwargs
 
         # init writer processes
         nwriter = min(self.nwriter, len(self.outputs))
         writers = list()
-        for i in range(nwriter):
-            outputs = {key:output for i, (key, output) in enumerate(self.outputs.items()) if i % nwriter == 0}
+
+        for iwriter in range(nwriter):
+            outputs = {key:output for ioutput, (key, output) in enumerate(self.outputs.items()) if ioutput % nwriter == iwriter}
             writer = WriterProcess(grid=self.grid, outputs=outputs)
             writer.start()
             writers.append(writer)
@@ -56,55 +75,67 @@ class Applier(object):
         for i, key in enumerate(self.outputs.keys()):
             queues[key] = writers[i % nwriter].queue
 
-        # run tile-based processing
-        pool = Pool(processes=self.nworker, initializer=workerInitializer, initargs=(self.inputs, self.outputs, queues))
-        for windowgrid in self.grid.iterSubgrids(windowxsize=self.windowxsize, windowysize=self.windowysize):
-            pool.apply_async(func=workerFunc, kwds={'applier':self, 'windowgrid':windowgrid})
-        pool.close()
-        pool.join()
+        # run operator in initialization mode, which creates the output datasets and calls umeta()
+        #workerInitializer(self, queues)
+        #workerFunc(windowgrid=self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1), initialization=True)
+
+        if self.nworker==1: # single-processing
+
+            workerInitializer(self, queues)
+
+            # run operator in initialization mode, which creates the output datasets and calls umeta()
+            workerFunc(windowgrid=self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1), initialization=True)
+
+            # run operator for the whole grid
+            for windowgrid in self.grid.iterSubgrids(windowxsize=self.windowxsize, windowysize=self.windowysize):
+                workerFunc(windowgrid=windowgrid)
+
+        else: # multi-processing
+
+            pool = Pool(processes=self.nworker, initializer=workerInitializer, initargs=(self, queues))
+
+            # run operator in initialization mode, which creates the output datasets and calls umeta()
+            # NOTE: this only runs inside a single worker
+            pool.apply(func=workerFunc, kwds={'windowgrid':self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1),
+                                              'initialization':True})
+
+            # run operator for the whole grid
+            for windowgrid in self.grid.iterSubgrids(windowxsize=self.windowxsize, windowysize=self.windowysize):
+                pool.apply_async(func=workerFunc, kwds={'windowgrid':windowgrid})
+            pool.close()
+            pool.join()
 
         # close writer processes
         for writer in writers:
             writer.close()
 
-def workerInitializer(inputs_, outputs_, queues_):
 
-    global inputs, outputs, queues, inputDatasets
-    inputs = inputs_
-    outputs = outputs_
-    queues = queues_
+def workerInitializer(applier_, queues):
+
+    global applier
+    applier = applier_
+    assert isinstance(applier_, Applier)
+    applier.queues = queues
 
     # open input datasets
-    inputDatasets = dict()
-    for key, input in inputs.items():
+    applier.inputDatasets = dict()
+    applier.inputOptions = dict()
+    for key, input in applier.inputs.items():
         assert isinstance(input, ApplierInput)
-        inputDatasets[key] = Open(input.filename)
+        if isinstance(input.filename, (list, tuple)):
+            applier.inputDatasets[key] = [Open(filename) for filename in input.filename]
+        else:
+            applier.inputDatasets[key] = Open(input.filename)
 
-def workerFunc(applier, windowgrid):
+def workerFunc(windowgrid, initialization=False):
 
-    global inputs, outputs, inputDatasets, queues
+    global applier
     assert isinstance(applier, Applier)
     assert isinstance(windowgrid, PixelGrid)
 
-    # warp/translate inputs into GDAL MEM
-    inputDatasetsWarped = dict()
-    for key in inputDatasets:
-        input = inputs[key]
-        inputDataset = inputDatasets[key]
-        assert isinstance(input, ApplierInput)
-        assert isinstance(inputDataset, Dataset)
-
-        # TODO: also support translate, which will be much faster in cases where warp is not needed
-        inputDatasetsWarped[key] = inputDataset.warp(dstPixelGrid=windowgrid, dstName='', format='MEM', **input.warpKwargs)
-
-        inputDatasetsWarped[key].copyMetadata(inputDataset)
-
     # call operator ufunc
-    operator = applier.ufuncClass(grid=windowgrid, inputs=inputDatasetsWarped)
-    operator.ufunc()
+    operator = applier.ufuncClass(applier=applier, grid=windowgrid, initialization=initialization)
+    operator.ufunc(*applier.ufuncArgs, **applier.ufuncKwargs)
 
-    # send output arrays to writer queues
-    for key, outputDataset in operator.outputs.items():
-        assert isinstance(outputDataset, Dataset)
-        array = outputDataset.readAsArray()
-        queues[key].put((key, array, windowgrid))
+    if initialization:
+        operator.umeta(*applier.ufuncArgs, **applier.ufuncKwargs)

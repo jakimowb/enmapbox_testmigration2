@@ -7,6 +7,9 @@ from hubdc.applier.ApplierOutput import ApplierOutput
 
 class WriterProcess(Process):
 
+    CREATE_DATASET, WRITE_ARRAY, FLUSH_CACHE, SET_META, SET_NODATA, CLOSE_WRITER = range(6)
+
+
     def __init__(self, grid, outputs):
         Process.__init__(self)
         assert isinstance(grid, PixelGrid)
@@ -23,27 +26,48 @@ class WriterProcess(Process):
             sleep(0.250) # this should prevent high CPU load during idle time (not sure if this is really needed)
 
             value = self.queue.get()
-            if value is None:
+            task, args = value[0], value[1:]
+            if value[0] == self.CREATE_DATASET:
+                self._createDataset(*args)
+            elif value[0] == self.WRITE_ARRAY:
+                self._writeArray(*args)
+            elif value[0] == self.FLUSH_CACHE:
+                self._flushCache(*args)
+            elif value[0] == self.SET_META:
+                self._setMetadataItem(*args)
+            elif value[0] == self.SET_NODATA:
+                self._setNoDataValue(*args)
+            elif value[0] == self.CLOSE_WRITER:
                 self._close()
                 break
             else:
-                self._write(value)
+                raise ValueError(str(value))
+
+    def _createDataset(self, name, array):
+        self.outputDatasets[name] = CreateFromArray(pixelGrid=self.grid, array=array,
+                                                   dstName=self.outputs[name].filename,
+                                                   format=self.outputs[name].format,
+                                                   creationOptions=self.outputs[name].creationOptions)
 
     def _close(self):
         for outputDataset in self.outputDatasets.values():
             outputDataset.close()
 
-    def _write(self, value):
-        key, array, grid = value
-        if key not in self.outputDatasets:
-            output = self.outputs[key]
-            self.outputDatasets[key] = CreateFromArray(pixelGrid=self.grid, array=array,
-                                                       dstName=output.filename,
-                                                       format=output.format,
-                                                       creationOptions=output.creationOptions)
-        self.outputDatasets[key].writeArray(array=array, pixelGrid=grid)
-        self.outputDatasets[key].flushCache()
+    def _writeArray(self, name, array, grid):
+        self.outputDatasets[name].writeArray(array=array, pixelGrid=grid)
 
+    def _flushCache(self, name):
+        self.outputDatasets[name].flushCache()
+
+    def _setMetadataItem(self, name, key, value, domain):
+        self.outputDatasets[name].setMetadataItem(key=key, value=value, domain=domain)
+        if key=='band names' and domain=='ENVI':
+            for dsBand, bandName in zip(self.outputDatasets[name], value):
+                dsBand.setDescription(bandName)
+
+    def _setNoDataValue(self, name, value):
+        for dsBand in self.outputDatasets[name]:
+            dsBand.setNoDataValue(value)
 
     def close(self):
-        self.queue.put(None)
+        self.queue.put([self.CLOSE_WRITER])

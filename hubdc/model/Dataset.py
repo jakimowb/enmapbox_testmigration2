@@ -17,11 +17,14 @@ class Dataset():
         for i in range(self.shape[0]):
             yield self.getBand(i+1)
 
-    def readAsArray(self, dtype=None, **kwargs):
+    def readAsArray(self, dtype=None, scale=None, **kwargs):
         array = self.gdalDataset.ReadAsArray(**kwargs)
         array = array if array.ndim == 3 else array[None] # add third dimension if missing
         if dtype is not None:
             array = array.astype(dtype)
+        if scale is not None:
+            array *= scale
+
         return array
 
     def writeArray(self, array, pixelGrid=None):
@@ -59,6 +62,11 @@ class Dataset():
         for domain in self.getMetadataDomainList():
             meta[domain] = self.gdalDataset.GetMetadata(domain)
         return meta
+
+    def setMetadata(self, meta):
+        assert isinstance(meta, dict)
+        for domain in meta:
+            self.gdalDataset.SetMetadata(meta[domain], domain)
 
     def copyMetadata(self, other):
         assert isinstance(other, Dataset)
@@ -98,17 +106,14 @@ class Dataset():
         if format!='MEM' and not exists(dirname(dstName)):
             makedirs(dirname(dstName))
 
-        ulx, uly, lrx, lry = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin'))
-        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], creationOptions=creationOptions, **kwargs)
+        ulx, uly, lrx, lry, xRes, yRes = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin', 'xRes', 'yRes'))
+        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,  creationOptions=creationOptions, **kwargs)
         gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
         return Dataset(gdalDataset=gdalDataset)
 
     @property
     def shape(self):
         return self.gdalDataset.RasterCount, self.gdalDataset.RasterYSize, self.gdalDataset.RasterXSize
-
-
-
 
 class GDALStringFormatter(object):
 
@@ -124,7 +129,6 @@ class GDALStringFormatter(object):
         gdalString.strip()
         if gdalString.startswith('{') and gdalString.endswith('}'):
             return cls._gdalStringToList(gdalString, type)
-
 
     @classmethod
     def _listToGDALString(cls, values):
