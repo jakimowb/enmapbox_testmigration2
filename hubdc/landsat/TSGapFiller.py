@@ -1,14 +1,20 @@
 from hubdc import ApplierOperator
 from datetime import date, timedelta
-from numpy import float32, int16, full, nan, isfinite, iinfo, any, equal
+from numpy import float32, int16, full, nan, isfinite, iinfo, any, equal, cumsum
+from astropy.convolution import convolve
+from astropy.convolution.kernels import Gaussian1DKernel
+
 
 class TSGapFiller(ApplierOperator):
 
-    def ufunc(self, start, end, stddevs, workTempRes, outTempRes):
+    def ufunc(self, start, end, sigmas, workTempRes, outTempRes, kernelCutOff=0.9):
 
         assert outTempRes % workTempRes == 0, 'output resolution must by a multiple of working resolution '
 
-        evi = lambda blue, nir, red: 2.5*(nir-red)/(nir+6.*red-7.5*blue+1.)
+        evi = lambda blue, red, nir: 2.5*(nir-red)/(nir+6.*red-7.5*blue+1.)
+        ndvi = lambda blue, red, nir: (nir-red)/(nir+red)
+        vi = ndvi
+
         ysize, xsize = self.grid.getDimensions()
 
         # arrange irregularly distributed obvervations into a evenly spaced temporal grid
@@ -24,17 +30,20 @@ class TSGapFiller(ApplierOperator):
             if not any(valid): continue
             index = (acqDate-start).days // workTempRes
             if index < 0 or index > bands-1: continue
-            ts[index][valid[0]] = evi(blue[valid], red[valid], nir[valid])
+            ts[index][valid[0]] = vi(blue=blue[valid], red=red[valid], nir=nir[valid])
+
 
         da = isfinite(ts).astype(float32) # need to convert to float32, otherwise convolve will produce a float64
 
         self.noDataTS = iinfo(int16).min
-        for i, stddev in enumerate(stddevs):
-            fTS, fDA = self.filter(ts, da, stddev, workTempRes)
-            self.setData(('filteredTS', i), array=fTS[::outTempRes], replace=[nan, self.noDataTS], scale=1e5, dtype=int16)
-            self.setData(('filteredDA', i), array=fDA[::outTempRes], scale=1e5, dtype=int16)
+        for i, sigma in enumerate(sigmas):
+            kernel = self.getKernel(sigma=sigma, workTempRes=workTempRes, kernelCutOff=kernelCutOff)
+            filtered = self.filterTimeseries(ts=ts, kernel=kernel)
+            self.setData(('filteredTS', i), array=filtered[::outTempRes], replace=[nan, self.noDataTS], scale=1e5, dtype=int16)
+            filtered = self.filterDataAvailability(da=da, kernel=kernel)
+            self.setData(('filteredDA', i), array=filtered[::outTempRes], scale=1e5, dtype=int16)
 
-    def umeta(self, start, end, stddevs, workTempRes, outTempRes):
+    def umeta(self, start, end, sigmas, workTempRes, outTempRes, kernelCutOff):
 
         def decimalYear(d):
             from calendar import isleap
@@ -49,22 +58,28 @@ class TSGapFiller(ApplierOperator):
             bandNames.append(str(d))
             wavelength.append(decimalYear(d))
 
-        for i in range(len(stddevs)):
+        for i in range(len(sigmas)):
             self.setMetadataItem(('filteredTS', i), key='band names', value=bandNames[::outTempRes], domain='ENVI')
             self.setMetadataItem(('filteredDA', i), key='band names', value=bandNames[::outTempRes], domain='ENVI')
             self.setMetadataItem(('filteredTS', i), key='wavelength', value=wavelength[::outTempRes], domain='ENVI')
             self.setMetadataItem(('filteredDA', i), key='wavelength', value=wavelength[::outTempRes], domain='ENVI')
             self.setNoDataValue(('filteredTS', i), value=self.noDataTS)
 
-    def filter(self, ts, da, stddev, workingTemporalResolution):
-        from astropy.convolution.kernels import Gaussian1DKernel
-        from astropy.convolution import convolve
+    def filterTimeseries(self, ts, kernel):
+        return convolve(array=ts, kernel=kernel, boundary='fill', fill_value=nan, normalize_kernel=True)
 
-        stddev = stddev / workingTemporalResolution
-        kernel = Gaussian1DKernel(stddev).array.reshape((-1, 1, 1))
-        fTS = convolve(ts, kernel, boundary='fill', fill_value=nan, normalize_kernel=True)
-        fDA = convolve(da, kernel, boundary='fill', fill_value=0, normalize_kernel=True)
-        return fTS, fDA
+    def filterDataAvailability(self, da, kernel):
+        return convolve(da, kernel, boundary='fill', fill_value=0, normalize_kernel=True)
+
+    def getKernel(self, sigma, workTempRes, kernelCutOff):
+
+        sigma = sigma / workTempRes
+        alpha = 1-kernelCutOff
+        kernel = Gaussian1DKernel(sigma).array
+        kernelCumSum = cumsum(kernel.flatten())
+        mask = kernelCumSum > alpha/2
+        mask *= mask[::-1]
+        return kernel[mask].reshape((-1, 1, 1))
 
     def getAcquisitionDates(self):
         from os.path import basename
