@@ -1,3 +1,4 @@
+from __future__ import print_function
 from multiprocessing import Pool
 from hubdc.model.PixelGrid import PixelGrid
 from hubdc.model.Dataset import Dataset
@@ -26,6 +27,7 @@ class Applier(object):
         self.nwriter = nwriter
         self.windowxsize = windowxsize
         self.windowysize = windowysize
+        self.ntasks = None
 
     def __setitem__(self, key, value):
         if isinstance(value, ApplierInput):
@@ -57,6 +59,11 @@ class Applier(object):
 
     def run(self, *ufuncArgs, **ufuncKwargs):
 
+        from timeit import default_timer
+        runT0 = default_timer()
+
+        print('start', end='..')
+
         self.ufuncArgs = ufuncArgs
         self.ufuncKwargs = ufuncKwargs
 
@@ -75,43 +82,63 @@ class Applier(object):
         for i, key in enumerate(self.outputs.keys()):
             queues[key] = writers[i % nwriter].queue
 
-        # run operator in initialization mode, which creates the output datasets and calls umeta()
-        #workerInitializer(self, queues)
-        #workerFunc(windowgrid=self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1), initialization=True)
+
+        # tile-based processing
+        self.subgrids = self.grid.subgrids(windowxsize=self.windowxsize, windowysize=self.windowysize)
 
         if self.nworker==1: # single-processing
 
+            t0 = default_timer()
+            print('<open inputs>', end='')
             workerInitializer(self, queues)
+            print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
 
+            print('<init outputs>', end='..')
             # run operator in initialization mode, which creates the output datasets and calls umeta()
-            workerFunc(windowgrid=self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1), initialization=True)
+            workerFunc(i=None, windowgrid=self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1), initialization=True)
 
             # run operator for the whole grid
-            for windowgrid in self.grid.iterSubgrids(windowxsize=self.windowxsize, windowysize=self.windowysize):
-                workerFunc(windowgrid=windowgrid)
+            for i, windowgrid in enumerate(self.subgrids):
+                workerFunc(i=i, windowgrid=windowgrid)
 
         else: # multi-processing
 
+            t0 = default_timer()
+            print('<open inputs>', end='')
             pool = Pool(processes=self.nworker, initializer=workerInitializer, initargs=(self, queues))
+            print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
 
+            t0 = default_timer()
+            print('<init outputs>', end='')
             # run operator in initialization mode, which creates the output datasets and calls umeta()
             # NOTE: this only runs inside a single worker
-            pool.apply(func=workerFunc, kwds={'windowgrid':self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1),
+            pool.apply(func=workerFunc, kwds={'i':None,
+                                              'windowgrid':self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1),
                                               'initialization':True})
+            print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
 
             # run operator for the whole grid
-            for windowgrid in self.grid.iterSubgrids(windowxsize=self.windowxsize, windowysize=self.windowysize):
-                pool.apply_async(func=workerFunc, kwds={'windowgrid':windowgrid})
+            tasks = list()
+            for i, windowgrid in enumerate(self.subgrids):
+                tasks.append(pool.apply_async(func=workerFunc, kwds={'i':i, 'windowgrid':windowgrid}))
+
+            results = [task.get() for task in tasks]
             pool.close()
-            pool.join()
+
+        print('100%')
 
         # close writer processes
         for writer in writers:
             writer.close()
 
+        s = (default_timer()-runT0)
+        m = s/60
+        h = m/60
+        print('done in {s} sec | {m}  min | {h} hours'.format(s=int(s), m=round(m, 2), h=round(h, 2)))
 
 def workerInitializer(applier_, queues):
-
+    from osgeo import gdal
+    gdal.SetCacheMax(1)
     global applier
     applier = applier_
     assert isinstance(applier_, Applier)
@@ -127,11 +154,15 @@ def workerInitializer(applier_, queues):
         else:
             applier.inputDatasets[key] = Open(input.filename)
 
-def workerFunc(windowgrid, initialization=False):
+def workerFunc(i, windowgrid, initialization=False):
 
     global applier
     assert isinstance(applier, Applier)
     assert isinstance(windowgrid, PixelGrid)
+
+    # report progress
+    if i is not None:
+        print(int(float(i)/len(applier.subgrids)*100), end='%..')
 
     # call operator ufunc
     operator = applier.ufuncClass(applier=applier, grid=windowgrid, initialization=initialization)
