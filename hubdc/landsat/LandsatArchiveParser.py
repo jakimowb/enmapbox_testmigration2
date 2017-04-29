@@ -1,5 +1,5 @@
 from os import listdir
-from os.path import join, basename
+from os.path import join, basename, isdir
 
 class LandsatArchiveParser:
 
@@ -8,7 +8,9 @@ class LandsatArchiveParser:
         for footprint in footprints:
             path, row = footprint[:3], footprint[3:]
             for scene in listdir(join(archive, path, row)):
-                yield join(archive, path, row, scene)
+                folder = join(archive, path, row, scene)
+                if isdir(folder):
+                    yield folder
 
     @classmethod
     def getFilenames(clf, archive, footprints, names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask']):

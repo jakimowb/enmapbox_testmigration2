@@ -55,6 +55,7 @@ class WriterProcess(Process):
 
     def _writeArray(self, name, array, grid):
         self.outputDatasets[name].writeArray(array=array, pixelGrid=grid)
+        self._flushCache(name)
 
     def _flushCache(self, name):
         self.outputDatasets[name].flushCache()

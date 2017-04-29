@@ -73,7 +73,7 @@ class PixelGrid(PixelGridDefn):
         pixelGrid = PixelGrid(projection=self.projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=self.xRes, yRes=self.yRes)
         return pixelGrid
 
-    def iterSubgrids(self, windowxsize=256, windowysize=256):
+    def iterSubgrids(self, windowxsize, windowysize):
         ysize, xsize = self.getDimensions()
         yoff = 0
         while yoff < ysize:
@@ -84,3 +84,6 @@ class PixelGrid(PixelGridDefn):
                 yield pixelGridTile
                 xoff += windowxsize
             yoff += windowysize
+
+    def subgrids(self, windowxsize, windowysize):
+        return list(self.iterSubgrids(windowxsize=windowxsize, windowysize=windowysize))
