@@ -83,15 +83,18 @@ class ApplierOperator(object):
 
     def setData(self, name, array, replace=None, scale=None, dtype=None):
 
+        from numpy import nan, isnan, equal
         if replace is not None:
-            srcValue, dstValue = replace
-            array[array==srcValue] = dstValue
+            mask = isnan(array) if replace[0] is nan else equal(array, replace[0])
 
         if scale is not None:
             array *= scale
 
         if dtype is not None:
             array = array.astype(dtype)
+
+        if replace is not None:
+            array[mask] = replace[1]
 
         if self._initialization:
             self._applier.queues[name].put((WriterProcess.CREATE_DATASET, name, array))
