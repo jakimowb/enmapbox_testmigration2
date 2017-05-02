@@ -62,6 +62,36 @@ class PixelGrid(PixelGridDefn):
     def reproject(self, targetGrid):
         return PixelGrid.fromPixelGrid(PixelGridDefn.reproject(self, targetGrid))
 
+    def buffer(self, buffer, north=True, west=True, south=True, east=True):
+        buffered = self.copy()
+        if west: buffered.xMin -= buffer
+        if east: buffered.xMax += buffer
+        if south: buffered.yMin -= buffer
+        if north: buffered.yMax += buffer
+        return PixelGrid.fromPixelGrid(buffered)
+
+    def anchor(self, xAnchor, yAnchor):
+        anchored = self.copy()
+
+        xMinOff = (anchored.xMin - xAnchor) % anchored.xRes
+        yMinOff = (anchored.yMin - yAnchor) % anchored.yRes
+        xMaxOff = (anchored.xMax - xAnchor) % anchored.xRes
+        yMaxOff = (anchored.yMax - yAnchor) % anchored.yRes
+
+        # round snapping offset
+        if xMinOff > anchored.xRes / 2.: xMinOff -= anchored.xRes
+        if yMinOff > anchored.yRes / 2.: yMinOff -= anchored.yRes
+        if xMaxOff > anchored.xRes / 2.: xMaxOff -= anchored.xRes
+        if yMaxOff > anchored.yRes / 2.: yMaxOff -= anchored.yRes
+
+        anchored.xMin -= xMinOff
+        anchored.yMin -= yMinOff
+        anchored.xMax -= xMaxOff
+        anchored.yMax -= yMaxOff
+
+        return anchored
+
+
     def copy(self):
         return self.fromPixelGrid(self)
 
