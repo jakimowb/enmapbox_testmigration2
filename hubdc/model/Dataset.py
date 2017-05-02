@@ -17,6 +17,9 @@ class Dataset():
         for i in range(self.shape[0]):
             yield self.getBand(i+1)
 
+    def getFormat(self):
+        return self.gdalDataset.GetDriver().ShortName
+
     def readAsArray(self, dtype=None, scale=None, **kwargs):
         array = self.gdalDataset.ReadAsArray(**kwargs)
         array = array if array.ndim == 3 else array[None] # add third dimension if missing
@@ -68,6 +71,9 @@ class Dataset():
         for domain in meta:
             self.gdalDataset.SetMetadata(meta[domain], domain)
 
+    def getMetadataDomain(self, domain):
+        return self.gdalDataset.GetMetadata(domain)
+
     def copyMetadata(self, other):
         assert isinstance(other, Dataset)
 
@@ -80,6 +86,36 @@ class Dataset():
 
     def setENVIAcquisitionTime(self, value):
         self.setMetadataItem('acquisition time', value, 'ENVI')
+
+    def writeENVIHeader(self):
+        if self.getFormat() == 'GTiff':
+            self.writeENVIHeaderForGTiff()
+
+    def writeENVIHeaderForGTiff(self):
+
+        envi = self.getMetadataDomain(domain='ENVI')
+
+        envi['file type'] = 'TIFF'
+        envi['samples'] = self.gdalDataset.RasterXSize
+        envi['lines'] = self.gdalDataset.RasterYSize
+        envi['bands'] = self.gdalDataset.RasterCount
+
+        keys = ['description', 'samples', 'lines', 'bands', 'header offset', 'file type', 'data type',
+                'interleave', 'data ignore value',
+                'sensor type', 'byte order', 'map info', 'projection info', 'coordinate system string',
+                'acquisition time',
+                'wavelength units', 'wavelength', 'band names']
+
+        values = [envi.pop(key, None) for key in keys]
+
+
+        filename = self.gdalDataset.GetFileList()[0]
+        with open(filename+'.hdr', 'w') as f:
+            f.write('ENVI\n')
+            for key, value in zip(keys+envi.keys(), values+envi.values()):
+                if value is not None:
+                    f.write('{key} = {value}\n'.format(key=key, value=value))
+
 
     def warp(self, dstPixelGrid, dstName='', format='MEM', creationOptions=[], **kwargs):
 
