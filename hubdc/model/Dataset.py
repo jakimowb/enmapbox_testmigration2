@@ -12,24 +12,34 @@ class Dataset():
         assert isinstance(gdalDataset, gdal.Dataset)
         self.gdalDataset = gdalDataset
         self.pixelGrid = PixelGrid.fromDataset(self)
-        self._array = numpy.array([])
-
-    def __del__(self):
-        del self.gdalDataset
 
     def __iter__(self):
         for i in range(self.shape[0]):
             yield self.getBand(i+1)
 
-    def readAsArray(self, *args, **kwargs):
-        array = self.gdalDataset.ReadAsArray(*args, **kwargs)
+    def getFormat(self):
+        return self.gdalDataset.GetDriver().ShortName
+
+    def readAsArray(self, dtype=None, scale=None, **kwargs):
+        array = self.gdalDataset.ReadAsArray(**kwargs)
         array = array if array.ndim == 3 else array[None] # add third dimension if missing
+        if dtype is not None:
+            array = array.astype(dtype)
+        if scale is not None:
+            array *= scale
+
         return array
 
     def writeArray(self, array, pixelGrid=None):
         assert len(array) == self.shape[0]
         for band, bandArray in zip(self, array):
             band.writeArray(bandArray, pixelGrid=pixelGrid)
+
+    def flushCache(self):
+        self.gdalDataset.FlushCache()
+
+    def close(self):
+        self.gdalDataset = None
 
     def getBand(self, bandNumber):
         return Band(gdalBand=self.gdalDataset.GetRasterBand(bandNumber), pixelGrid=self.pixelGrid)
@@ -56,6 +66,14 @@ class Dataset():
             meta[domain] = self.gdalDataset.GetMetadata(domain)
         return meta
 
+    def setMetadata(self, meta):
+        assert isinstance(meta, dict)
+        for domain in meta:
+            self.gdalDataset.SetMetadata(meta[domain], domain)
+
+    def getMetadataDomain(self, domain):
+        return self.gdalDataset.GetMetadata(domain)
+
     def copyMetadata(self, other):
         assert isinstance(other, Dataset)
 
@@ -68,6 +86,36 @@ class Dataset():
 
     def setENVIAcquisitionTime(self, value):
         self.setMetadataItem('acquisition time', value, 'ENVI')
+
+    def writeENVIHeader(self):
+        if self.getFormat() == 'GTiff':
+            self.writeENVIHeaderForGTiff()
+
+    def writeENVIHeaderForGTiff(self):
+
+        envi = self.getMetadataDomain(domain='ENVI')
+
+        envi['file type'] = 'TIFF'
+        envi['samples'] = self.gdalDataset.RasterXSize
+        envi['lines'] = self.gdalDataset.RasterYSize
+        envi['bands'] = self.gdalDataset.RasterCount
+
+        keys = ['description', 'samples', 'lines', 'bands', 'header offset', 'file type', 'data type',
+                'interleave', 'data ignore value',
+                'sensor type', 'byte order', 'map info', 'projection info', 'coordinate system string',
+                'acquisition time',
+                'wavelength units', 'wavelength', 'band names']
+
+        values = [envi.pop(key, None) for key in keys]
+
+
+        filename = self.gdalDataset.GetFileList()[0]
+        with open(filename+'.hdr', 'w') as f:
+            f.write('ENVI\n')
+            for key, value in zip(keys+envi.keys(), values+envi.values()):
+                if value is not None:
+                    f.write('{key} = {value}\n'.format(key=key, value=value))
+
 
     def warp(self, dstPixelGrid, dstName='', format='MEM', creationOptions=[], **kwargs):
 
@@ -94,20 +142,14 @@ class Dataset():
         if format!='MEM' and not exists(dirname(dstName)):
             makedirs(dirname(dstName))
 
-        ulx, uly, lrx, lry = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin'))
-        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], creationOptions=creationOptions, **kwargs)
+        ulx, uly, lrx, lry, xRes, yRes = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin', 'xRes', 'yRes'))
+        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,  creationOptions=creationOptions, **kwargs)
         gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
         return Dataset(gdalDataset=gdalDataset)
-
-    def writeDS(self, ds):
-        assert isinstance(ds, Dataset)
-        array = ds.readAsArray()
-        self.writeArray(array, pixelGrid=ds.pixelGrid)
 
     @property
     def shape(self):
         return self.gdalDataset.RasterCount, self.gdalDataset.RasterYSize, self.gdalDataset.RasterXSize
-
 
 class GDALStringFormatter(object):
 
@@ -123,7 +165,6 @@ class GDALStringFormatter(object):
         gdalString.strip()
         if gdalString.startswith('{') and gdalString.endswith('}'):
             return cls._gdalStringToList(gdalString, type)
-
 
     @classmethod
     def _listToGDALString(cls, values):
