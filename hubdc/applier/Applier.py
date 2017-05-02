@@ -13,7 +13,7 @@ class ApplierIOTypeError(Exception):
 class Applier(object):
 
     def __init__(self, ufuncClass, grid=None, nworker=1, nwriter=1,
-                 windowxsize=256, windowysize=256):
+                 windowxsize=256, windowysize=256, createEnviHeader=True):
 
         self.grid = grid
         self.ufuncClass = ufuncClass
@@ -28,6 +28,7 @@ class Applier(object):
         self.windowxsize = windowxsize
         self.windowysize = windowysize
         self.ntasks = None
+        self.createEnviHeader = createEnviHeader
 
     def __setitem__(self, key, value):
         if isinstance(value, ApplierInput):
@@ -93,9 +94,12 @@ class Applier(object):
             workerInitializer(self, queues)
             print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
 
-            print('<init outputs>', end='..')
+            t0 = default_timer()
+            print('<init outputs>', end='')
             # run operator in initialization mode, which creates the output datasets and calls umeta()
             workerFunc(i=None, windowgrid=self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1), initialization=True)
+            print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
+
 
             # run operator for the whole grid
             for i, windowgrid in enumerate(self.subgrids):
@@ -129,11 +133,9 @@ class Applier(object):
 
         # close writer processes
         for writer in writers:
-            writer.close()
+            writer.closeDatasets()
 
-        s = (default_timer()-runT0)
-        m = s/60
-        h = m/60
+        s = (default_timer()-runT0); m = s/60; h = m/60
         print('done in {s} sec | {m}  min | {h} hours'.format(s=int(s), m=round(m, 2), h=round(h, 2)))
 
 def workerInitializer(applier_, queues):

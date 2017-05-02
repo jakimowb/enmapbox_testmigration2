@@ -29,11 +29,16 @@ class NDVICompositor(ApplierOperator):
         ysize, xsize = self.grid.getDimensions()
         ndvi = full((1, ysize, xsize), fill_value=nan, dtype=float32)
 
-        for cfmask, red, nir in zip(self.getData('cfmask'), self.getData('red', dtype=float32), self.getData('nir', dtype=float32)):
+        for cfmask, red, nir in zip(self.getDatas('cfmask'),
+                                    self.getDatas('red', dtype=float32),
+                                    self.getDatas('nir', dtype=float32)):
             valid = cfmask == 0
             ndvi[valid] = normalizedDifference(nir[valid], red[valid])
 
         self.setData('ndvi', array=ndvi)
+
+    def umeta(self, *args, **kwargs):
+        self.setMetadataItem('ndvi', 'my value', 42, 'ENVI')
 
 if __name__ == '__main__':
     script()

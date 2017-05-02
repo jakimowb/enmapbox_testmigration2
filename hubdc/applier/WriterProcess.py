@@ -7,7 +7,7 @@ from hubdc.applier.ApplierOutput import ApplierOutput
 
 class WriterProcess(Process):
 
-    CREATE_DATASET, WRITE_ARRAY, FLUSH_CACHE, SET_META, SET_NODATA, CLOSE_WRITER = range(6)
+    CREATE_DATASET, WRITE_ARRAY, FLUSH_CACHE, SET_META, SET_NODATA, CLOSE_DATASETS = range(6)
 
 
     def __init__(self, grid, outputs):
@@ -37,8 +37,8 @@ class WriterProcess(Process):
                 self._setMetadataItem(*args)
             elif value[0] == self.SET_NODATA:
                 self._setNoDataValue(*args)
-            elif value[0] == self.CLOSE_WRITER:
-                self._close()
+            elif value[0] == self.CLOSE_DATASETS:
+                self._closeDatasets()
                 break
             else:
                 raise ValueError(str(value))
@@ -49,8 +49,9 @@ class WriterProcess(Process):
                                                    format=self.outputs[name].format,
                                                    creationOptions=self.outputs[name].creationOptions)
 
-    def _close(self):
-        for outputDataset in self.outputDatasets.values():
+    def _closeDatasets(self):
+        for name, outputDataset in self.outputDatasets.items():
+            outputDataset.writeENVIHeader()
             outputDataset.close()
 
     def _writeArray(self, name, array, grid):
@@ -70,5 +71,7 @@ class WriterProcess(Process):
         for dsBand in self.outputDatasets[name]:
             dsBand.setNoDataValue(value)
 
-    def close(self):
-        self.queue.put([self.CLOSE_WRITER])
+    def closeDatasets(self):
+        self.queue.put([self.CLOSE_DATASETS])
+        self.join()
+        self.terminate()

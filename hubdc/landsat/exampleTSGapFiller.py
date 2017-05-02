@@ -17,18 +17,18 @@ def script_rabe_local():
                                                                names=['cfmask', 'blue', 'red', 'nir'])
 
     # setup and run _applier
-    applier = Applier(grid=grid, ufuncClass=TSGapFiller, nworker=2, nwriter=2, windowxsize=256, windowysize=256)
+    applier = Applier(grid=grid, ufuncClass=TSGapFiller, nworker=1, nwriter=2, windowxsize=256, windowysize=256)
     applier['cfmask'] = ApplierInput(cfmask)
     applier['blue'] = ApplierInput(blue)
     applier['red'] = ApplierInput(red)
     applier['nir'] = ApplierInput(nir)
 
-    sigmas = [3, 5, 7]
+    sigmas = [31]
     filteredTSFilenames = [r'c:\output\filteredTS{s}.img'.format(s=s) for s in sigmas]
     filteredDAFilenames = [r'c:\output\filteredDA{s}.img'.format(s=s) for s in sigmas]
 
-    applier['filteredTS'] = ApplierOutput(filteredTSFilenames, format='ENVI', creationOptions=[])
-    applier['filteredDA'] = ApplierOutput(filteredDAFilenames, format='ENVI', creationOptions=[])
+    applier['filteredTS'] = ApplierOutput(filteredTSFilenames, format='GTiff', creationOptions=[])
+    applier['filteredDA'] = ApplierOutput(filteredDAFilenames, format='GTiff', creationOptions=[])
 
     applier.run(start=date(2015, 1, 1), end=date(2015, 12, 31),
                 workTempRes=1, outTempRes=10,
@@ -68,5 +68,5 @@ def script_brazil_server():
                 sigmas=sigmas, kernelCutOff=0.9)
 
 if __name__ == '__main__':
-    #script_rabe_local()
-    script_brazil_server()
+    script_rabe_local()
+    #script_brazil_server()

@@ -1,21 +1,24 @@
 from os import listdir
-from os.path import join, basename, isdir
+from os.path import join, basename, isdir, exists
+from osgeo import ogr, osr
+from hubdc.model.PixelGrid import PixelGrid
 
 class LandsatArchiveParser:
 
     @classmethod
-    def getScenes(clf, archive, footprints):
+    def getScenes(cls, archive, footprints):
         for footprint in footprints:
             path, row = footprint[:3], footprint[3:]
-            for scene in listdir(join(archive, path, row)):
-                folder = join(archive, path, row, scene)
-                if isdir(folder):
-                    yield folder
+            if exists(join(archive, path, row)):
+                for scene in listdir(join(archive, path, row)):
+                    folder = join(archive, path, row, scene)
+                    if isdir(folder):
+                        yield folder
 
     @classmethod
-    def getFilenames(clf, archive, footprints, names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask']):
+    def getFilenames(cls, archive, footprints, names=['blue', 'green', 'red', 'nir', 'swir1', 'swir2', 'cfmask']):
 
-        scenes = list(clf.getScenes(archive, footprints))
+        scenes = list(cls.getScenes(archive, footprints))
         for name in names:
             filenames = list()
             for scene in scenes:
@@ -30,8 +33,3 @@ class LandsatArchiveParser:
                 else:
                     continue
             yield filenames
-
-if __name__ == '__main__':
-    cfmask, red, nir = LandsatArchiveParser.getFilenames(archive=r'C:\Work\data\gms\landsat',
-                                                  footprints=['194024'], names=['cfmask', 'red', 'nir'])
-
