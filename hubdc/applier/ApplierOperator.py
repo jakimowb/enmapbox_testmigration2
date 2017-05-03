@@ -81,6 +81,9 @@ class ApplierOperator(object):
         datasetResampled.close()
         return array
 
+    def getFilename(self, name):
+        return self._applier.outputs[name].filename
+
     def setData(self, name, array, replace=None, scale=None, dtype=None):
 
         from numpy import nan, isnan, equal
@@ -96,17 +99,21 @@ class ApplierOperator(object):
         if replace is not None:
             array[mask] = replace[1]
 
+        filename = self.getFilename(name)
         if self._initialization:
-            self._applier.queues[name].put((WriterProcess.CREATE_DATASET, name, array))
+            output = self._applier.outputs[name]
+            self._applier.queues[filename].put((WriterProcess.CREATE_DATASET, filename, array, self._applier.grid, output.format, output.creationOptions))
         else:
-            self._applier.queues[name].put((WriterProcess.WRITE_ARRAY, name, array, self.grid))
+            self._applier.queues[filename].put((WriterProcess.WRITE_ARRAY, filename, array, self.grid))
 
     def setMetadataItem(self, name, key, value, domain):
-        self._applier.queues[name].put((WriterProcess.SET_META, name, key, value, domain))
-        self._applier.queues[name].put((WriterProcess.FLUSH_CACHE, name))
+        filename = self.getFilename(name)
+        self._applier.queues[filename].put((WriterProcess.SET_META, filename, key, value, domain))
+        self._applier.queues[filename].put((WriterProcess.FLUSH_CACHE, filename))
 
     def setNoDataValue(self, name, value):
-        self._applier.queues[name].put((WriterProcess.SET_NODATA, name, value))
+        filename = self.getFilename(name)
+        self._applier.queues[filename].put((WriterProcess.SET_NODATA, filename, value))
 
     def ufunc(self, *args, **kwargs):
         raise NotImplementedError()

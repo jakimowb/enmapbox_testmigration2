@@ -22,13 +22,19 @@ class Applier(object):
         self.inputs = dict()
         self.inputDatasets = None
         self.outputs = dict()
-        self.queues = None
+        self.queues = dict()
         self.nworker = nworker
-        self.nwriter = nwriter
         self.windowxsize = windowxsize
         self.windowysize = windowysize
         self.ntasks = None
         self.createEnviHeader = createEnviHeader
+
+        self.nwriter = nwriter
+        self.writers = list()
+        for w in range(self.nwriter):
+            w = WriterProcess()
+            w.start()
+            self.writers.append(w)
 
     def __setitem__(self, key, value):
         if isinstance(value, ApplierInput):
@@ -48,7 +54,7 @@ class Applier(object):
                 self.outputs[key] = value
 
         else:
-            raise Exception('wrong _applier i/o type')
+            raise Exception('wrong applier i/o type')
 
     def __getitem__(self, key):
         if key in self.inputs:
@@ -57,6 +63,10 @@ class Applier(object):
             return self.outputs[key]
         else:
             raise KeyError()
+
+    def setPixelGrid(self, grid):
+        assert isinstance(grid, PixelGrid)
+        self.grid = grid
 
     def run(self, *ufuncArgs, **ufuncKwargs):
 
@@ -68,30 +78,25 @@ class Applier(object):
         self.ufuncArgs = ufuncArgs
         self.ufuncKwargs = ufuncKwargs
 
-        # init writer processes
-        nwriter = min(self.nwriter, len(self.outputs))
-        writers = list()
-
-        for iwriter in range(nwriter):
-            outputs = {key:output for ioutput, (key, output) in enumerate(self.outputs.items()) if ioutput % nwriter == iwriter}
-            writer = WriterProcess(grid=self.grid, outputs=outputs)
-            writer.start()
-            writers.append(writer)
-
         # associate outputs to writer queues (distribute evenly)
-        queues = dict()
-        for i, key in enumerate(self.outputs.keys()):
-            queues[key] = writers[i % nwriter].queue
-
+        for output in self.outputs.values():
+            queue = self.writers[0].queue
+            for writer in self.writers:
+                if queue.qsize() > writer.queue.qsize():
+                    queue = writer.queue
+            self.queues[output.filename] = queue
 
         # tile-based processing
         self.subgrids = self.grid.subgrids(windowxsize=self.windowxsize, windowysize=self.windowysize)
+
+        # eliminate writers (not pickable)
+        writers, self.writers = self.writers, None
 
         if self.nworker==1: # single-processing
 
             t0 = default_timer()
             print('<open inputs>', end='')
-            workerInitializer(self, queues)
+            workerInitializer(self)
             print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
 
             t0 = default_timer()
@@ -100,16 +105,19 @@ class Applier(object):
             workerFunc(i=None, windowgrid=self.grid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1), initialization=True)
             print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
 
-
             # run operator for the whole grid
             for i, windowgrid in enumerate(self.subgrids):
                 workerFunc(i=i, windowgrid=windowgrid)
 
+            workerFinalizer()
+
         else: # multi-processing
+
+
 
             t0 = default_timer()
             print('<open inputs>', end='')
-            pool = Pool(processes=self.nworker, initializer=workerInitializer, initargs=(self, queues))
+            pool = Pool(processes=self.nworker, initializer=workerInitializer, initargs=(self,))
             print('({s} sec)'.format(s=int(default_timer()-t0)), end='..')
 
             t0 = default_timer()
@@ -129,22 +137,33 @@ class Applier(object):
             results = [task.get() for task in tasks]
             pool.close()
 
+        # put writers back
+        self.writers = writers
+
         print('100%')
 
-        # close writer processes
-        for writer in writers:
-            writer.closeDatasets()
+#        for name, output in self.outputs.items():
+#            filename = output.filename
+#            self.queues[filename].put([WriterProcess.CLOSE_DATASETS, filename, self.createEnviHeader])
+
+        # clean inputs and outputs
+        self.inputs = dict()
+        self.outputs = dict()
 
         s = (default_timer()-runT0); m = s/60; h = m/60
         print('done in {s} sec | {m}  min | {h} hours'.format(s=int(s), m=round(m, 2), h=round(h, 2)))
 
-def workerInitializer(applier_, queues):
+    def close(self):
+        for writer in self.writers:
+            writer.queue.put([WriterProcess.CLOSE_DATASETS, self.createEnviHeader])
+            writer.queue.put([WriterProcess.CLOSE_WRITER, None])
+
+def workerInitializer(applier_):
     from osgeo import gdal
     gdal.SetCacheMax(1)
     global applier
     applier = applier_
     assert isinstance(applier_, Applier)
-    applier.queues = queues
 
     # open input datasets
     applier.inputDatasets = dict()
@@ -155,6 +174,19 @@ def workerInitializer(applier_, queues):
             applier.inputDatasets[key] = [Open(filename) for filename in input.filename]
         else:
             applier.inputDatasets[key] = Open(input.filename)
+
+def workerFinalizer():
+    global applier
+
+    # close input datasets
+    applier.inputDatasets = dict()
+    applier.inputOptions = dict()
+    for key, datasets in applier.inputDatasets.items():
+        if isinstance(datasets, list):
+            for dataset in datasets:
+                dataset.close()
+        else:
+            datasets.close()
 
 def workerFunc(i, windowgrid, initialization=False):
 
