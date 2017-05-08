@@ -1,6 +1,5 @@
 class ApplierOutput(object):
 
-    def __init__(self, filename, format, creationOptions=[]):
+    def __init__(self, filename, format='GTiff', creationOptions=[]):
         self.filename = filename
-        self.format = format
-        self.creationOptions = creationOptions
+        self.options = {'format': format, 'creationOptions': creationOptions}

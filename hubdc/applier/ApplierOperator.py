@@ -5,12 +5,22 @@ from hubdc.applier.WriterProcess import WriterProcess
 
 class ApplierOperator(object):
 
-    def __init__(self, applier, grid, initialization=False):
-        assert isinstance(applier, Applier)
-        assert isinstance(grid, PixelGrid)
-        self._applier = applier
-        self.grid = grid
-        self._initialization=initialization
+    def __init__(self, maingrid, inputDatasets, inputOptions, outputFilenames, outputOptions, queueByFilename, ufuncArgs, ufuncKwargs):
+        assert isinstance(maingrid, PixelGrid)
+        self.subgrid = None
+        self.maingrid = maingrid
+        self.inputDatasets = inputDatasets
+        self.inputOptions = inputOptions
+        self.outputFilenames = outputFilenames
+        self.outputOptions = outputOptions
+        self.queueByFilename = queueByFilename
+        self.ufuncArgs = ufuncArgs
+        self.ufuncKwargs = ufuncKwargs
+
+    @property
+    def grid(self):
+        assert isinstance(self.subgrid, PixelGrid)
+        return self.subgrid
 
     def getData(self, name, indicies=None, dtype=None, scale=None):
 
@@ -32,7 +42,7 @@ class ApplierOperator(object):
     def getSubnames(self, name):
         i = 0
         while True:
-            if (name, i) in self._applier.inputDatasets:
+            if (name, i) in self.inputDatasets:
                 yield (name, i)
                 i += 1
             else:
@@ -40,8 +50,8 @@ class ApplierOperator(object):
 
     def _getImage(self, name, dtype, scale):
 
-        dataset = self._applier.inputDatasets[name]
-        options = self._applier.inputs[name].options
+        dataset = self.inputDatasets[name]
+        options = self.inputOptions[name]
         if self.grid.equalProjection(dataset.pixelGrid):
             datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
                                                  resampleAlg=options['resampleAlg'])
@@ -58,8 +68,8 @@ class ApplierOperator(object):
 
     def _getBandSubset(self, name, indicies, dtype):
 
-        dataset = self._applier.inputDatasets[name]
-        options = self._applier.inputs[name].options
+        dataset = self.inputDatasets[name]
+        options = self.inputOptions[name]
         bandList = [i + 1 for i in indicies]
         if self.grid.equalProjection(dataset.pixelGrid):
             datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
@@ -82,7 +92,7 @@ class ApplierOperator(object):
         return array
 
     def getFilename(self, name):
-        return self._applier.outputs[name].filename
+        return self.outputFilenames[name]
 
     def setData(self, name, array, replace=None, scale=None, dtype=None):
 
@@ -100,20 +110,24 @@ class ApplierOperator(object):
             array[mask] = replace[1]
 
         filename = self.getFilename(name)
-        if self._initialization:
-            output = self._applier.outputs[name]
-            self._applier.queues[filename].put((WriterProcess.CREATE_DATASET, filename, array, self._applier.grid, output.format, output.creationOptions))
+        if self.initialization:
+            self.queueByFilename[filename].put((WriterProcess.CREATE_DATASET, filename, array, self.maingrid, self.outputOptions[name]['format'], self.outputOptions[name]['creationOptions']))
         else:
-            self._applier.queues[filename].put((WriterProcess.WRITE_ARRAY, filename, array, self.grid))
+            self.queueByFilename[filename].put((WriterProcess.WRITE_ARRAY, filename, array, self.grid))
 
     def setMetadataItem(self, name, key, value, domain):
         filename = self.getFilename(name)
-        self._applier.queues[filename].put((WriterProcess.SET_META, filename, key, value, domain))
-        self._applier.queues[filename].put((WriterProcess.FLUSH_CACHE, filename))
+        self.queueByFilename[filename].put((WriterProcess.SET_META, filename, key, value, domain))
+        self.queueByFilename[filename].put((WriterProcess.FLUSH_CACHE, filename))
 
     def setNoDataValue(self, name, value):
         filename = self.getFilename(name)
-        self._applier.queues[filename].put((WriterProcess.SET_NODATA, filename, value))
+        self.queueByFilename[filename].put((WriterProcess.SET_NODATA, filename, value))
+
+    def run(self, subgrid, initialization):
+        self.initialization = initialization
+        self.subgrid = subgrid
+        self.ufunc(*self.ufuncArgs, **self.ufuncKwargs)
 
     def ufunc(self, *args, **kwargs):
         raise NotImplementedError()

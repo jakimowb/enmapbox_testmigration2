@@ -10,11 +10,12 @@ def script():
 
     germany = getCountry('Germany')
     #germany = getCountry('Luxembourg')
-    germany = getCountry('United States')
+
+    roi = getCountry('United States')
 
     applier = Applier(ufuncClass=RandomImage, nworker=1, nwriter=30, windowxsize=256, windowysize=256)
 
-    for mgrsFootprint, grid in getMGRSPixelGridsByShape(shape=germany, res=30, anchor=LANDSAT_ANCHOR, buffer=30):
+    for mgrsFootprint, grid in getMGRSPixelGridsByShape(shape=roi, res=30, anchor=LANDSAT_ANCHOR, buffer=30):
 
         wrs2Footprints = getWRS2NamesInsidePixelGrid(grid=grid)
 
