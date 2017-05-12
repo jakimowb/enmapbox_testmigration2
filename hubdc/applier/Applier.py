@@ -3,7 +3,7 @@ from osgeo import gdal
 from timeit import default_timer as now
 from multiprocessing import Pool
 from hubdc.model.PixelGrid import PixelGrid
-from hubdc import Open
+from hubdc import Open, Dataset
 from .ApplierInput import ApplierInput
 from .ApplierOutput import ApplierOutput
 from .WriterProcess import WriterProcess
@@ -14,7 +14,7 @@ class ApplierIOTypeError(Exception):
 class Applier(object):
 
     def __init__(self, nworker=1, nwriter=1,
-                 windowxsize=256, windowysize=256, createEnviHeader=True):
+                 windowxsize=256, windowysize=256, createEnviHeader=False):
 
         self.windowxsize = windowxsize
         self.windowysize = windowysize
@@ -83,7 +83,8 @@ class Applier(object):
               'queueIndexByFilename': self._getQueueIndexByFilenameDict()}
 
         if self.nworker==1:
-            Worker.startNewMaingrid(**kwargs)
+            #Worker.startNewMaingrid(**kwargs)
+            pickableWorkerStartNewMaingrid(**kwargs)
         else:
             self.pool.apply(func=pickableWorkerStartNewMaingrid, kwds=kwargs)
 
@@ -132,10 +133,19 @@ def pickableWorkerStartNewMaingrid(**kwargs):
 def pickableWorkerProcessSubgrid(**kwargs):
     Worker.processSubgrid(**kwargs)
 
+
+class InputDatasets:
+    pass
+    #def append(self, dataset):
+
+
+#a=InputDatasets()
+
 class Worker(object):
 
     queues = list()
-    inputDatasets = dict()
+    inputDatasets = list()
+
     inputOptions = dict()
     outputFilenames = dict()
     outputOptions = dict()
@@ -150,32 +160,53 @@ class Worker(object):
 
     @classmethod
     def startNewMaingrid(cls, maingrid, ufuncClass, ufuncArgs, ufuncKwargs, applierInputs, applierOutputs, queueIndexByFilename):
+
         cls.maingrid = maingrid
         cls.ufuncClass = ufuncClass
         cls.ufuncArgs = ufuncArgs
         cls.ufuncKwargs = ufuncKwargs
         cls.queueByFilename = {filename:cls.queues[index] for filename, index in queueIndexByFilename.items()}
 
+        #global a
         # close datasets of last maingrid
-        for dataset in cls.inputDatasets.values():
-            dataset.close()
+        for i in range(len(cls.inputDatasets)):
+            #ds = None
+            #cls.inputDatasets[key] = cls.inputDatasets.values()[0]
+            cls.inputDatasets[i] = None
+            #ds = getattr(a, 'ds_{i}'.format(i=i))
+            #setattr(cls, 'ds_{i}'.format(i=i), None)
+            #delattr(a, 'ds_{i}'.format(i=i))
+        #del a
+        #a=A()
 
-            cls.inputDatasets = dict()
-            cls.inputOptions = dict()
-            cls.outputFilenames = dict()
-            cls.outputOptions = dict()
+        cls.inputDatasets = None
+        cls.inputDatasets = list()
+        cls.inputOptions = dict()
+        cls.outputFilenames = dict()
+        cls.outputOptions = dict()
 
         # open datasets of current main grid
-        for key, applierInput in applierInputs.items():
+        for i, (key, applierInput) in enumerate(applierInputs.items()):
             assert isinstance(applierInput, ApplierInput)
-            cls.inputDatasets[key] = Open(applierInput.filename)
+            #print(key)
+            if i <= len(cls.inputDatasets)-1:
+                cls.inputDatasets[i] = Open(applierInput.filename)
+            else:
+                cls.inputDatasets.append(Open(applierInput.filename))
+            #dataset = Dataset.fromFilename(applierInput.filename)
+            #dataset._gdalDataset = gdal.Open(applierInput.filename)
+            #dataset._pixelGrid = PixelGrid.fromDataset(dataset=dataset)
+            #setattr(cls, 'ds_{i}'.format(i=i), Open(applierInput.filename))
             cls.inputOptions[key] = applierInput.options
 
+        return
         for key, applierOutput in applierOutputs.items():
             assert isinstance(applierOutput, ApplierOutput)
             cls.outputFilenames[key] = applierOutput.filename
             cls.outputOptions[key] = applierOutput.options
 
+
+        return
         # create operator
         cls.operator = ufuncClass(maingrid=maingrid,
                                   inputDatasets=cls.inputDatasets, inputOptions=cls.inputOptions,
@@ -183,11 +214,14 @@ class Worker(object):
                                   queueByFilename=cls.queueByFilename,
                                   ufuncArgs=cls.ufuncArgs, ufuncKwargs=cls.ufuncKwargs)
 
+        return
+
         # initialize output datasets
         minimalSubgrid = maingrid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1)
         cls.operator.run(subgrid=minimalSubgrid, initialization=True)
 
     @classmethod
     def processSubgrid(cls, i, n, subgrid):
+        return
         print(int(float(i)/n*100), end='%..')
         cls.operator.run(subgrid=subgrid, initialization=False)

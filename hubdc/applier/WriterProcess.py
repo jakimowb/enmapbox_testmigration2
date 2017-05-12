@@ -17,6 +17,7 @@ class WriterProcess(Process):
 
     def run(self):
 
+        gdal.SetCacheMax(1)
         while True:
 
             #sleep(0.01) # this should prevent high CPU load during idle time (not sure if this is really needed)

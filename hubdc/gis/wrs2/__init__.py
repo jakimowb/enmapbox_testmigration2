@@ -2,12 +2,13 @@ from os.path import join, dirname
 from osgeo import osr, ogr
 from hubdc.model.PixelGrid import PixelGrid
 
+WRS2_SHAPEFILE = join(dirname(__file__), 'wrs2.shp')
+
+
 def getWRS2NamesInsidePixelGrid(grid):
     assert isinstance(grid, PixelGrid)
 
-    # open WRS2 shapefile layer
-    shp = join(dirname(__file__), 'wrs2.shp')
-    ds = ogr.Open(shp)
+    ds = ogr.Open(WRS2_SHAPEFILE)
     layer = ds.GetLayer()
 
     # set up transformation
@@ -30,3 +31,15 @@ def getWRS2NamesInsidePixelGrid(grid):
     layer.SetSpatialFilter(geom)
 
     return [str(feature.GetField('PR')).zfill(6) for feature in layer]
+
+def getWRS2FootprintsGeometry(footprints):
+
+    ds = ogr.Open(WRS2_SHAPEFILE)
+    layer = ds.GetLayer()
+
+    geometry = ogr.Geometry(ogr.wkbMultiPolygon)
+    for feature in layer:
+        if str(feature.GetField('PR')).zfill(6) in footprints:
+            geometry.AddGeometry(feature.GetGeometryRef())
+
+    return geometry.UnionCascaded()
