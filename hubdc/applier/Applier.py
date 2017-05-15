@@ -3,41 +3,25 @@ from osgeo import gdal
 from timeit import default_timer as now
 from multiprocessing import Pool
 from hubdc.model.PixelGrid import PixelGrid
-from hubdc import Open, Dataset
-from .ApplierInput import ApplierInput
-from .ApplierOutput import ApplierOutput
-from .WriterProcess import WriterProcess
-
-class ApplierIOTypeError(Exception):
-    pass
+from hubdc import Open
+from hubdc.applier.ApplierInput import ApplierInput
+from hubdc.applier.ApplierOutput import ApplierOutput
+from hubdc.applier.WriterProcess import WriterProcess
 
 class Applier(object):
 
-    def __init__(self, nworker=1, nwriter=1,
+    def __init__(self, grid, nworker=1, nwriter=1,
                  windowxsize=256, windowysize=256, createEnviHeader=False):
 
+        assert isinstance(grid, PixelGrid)
+        self.grid = grid
         self.windowxsize = windowxsize
         self.windowysize = windowysize
         self.createEnviHeader = createEnviHeader
-        self._initWriters(nwriter)
-        self._initWorker(nworker)
-        self._runFinish()
-
-    def _initWriters(self, nwriter):
-        self.writers = list()
-        self.queues = list()
-        for w in range(nwriter):
-            w = WriterProcess()
-            w.start()
-            self.writers.append(w)
-            self.queues.append(w.queue)
-
-    def _initWorker(self, nworker):
+        self.inputs = dict()
+        self.outputs = dict()
+        self.nwriter = nwriter
         self.nworker = nworker
-        if nworker==1:
-            Worker.initialize(self.queues)
-        else:
-            self.pool = Pool(processes=nworker, initializer=Worker.initialize, initargs=(self.queues,))
 
     def setInput(self, key, filename, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0.):
         self.inputs[key] = ApplierInput(filename=filename, resampleAlg=resampleAlg, errorThreshold=errorThreshold)
@@ -53,42 +37,45 @@ class Applier(object):
         for i, filename in enumerate(filenames):
             self.setOutput(key=(key, i), filename=filename, format=format, creationOptions=creationOptions)
 
-    def run(self, grid, ufuncClass, *ufuncArgs, **ufuncKwargs):
+    def run(self, ufuncClass, *ufuncArgs, **ufuncKwargs):
 
-        assert isinstance(grid, PixelGrid)
-        self.grid = grid
         self.ufuncClass = ufuncClass
         self.ufuncArgs = ufuncArgs
         self.ufuncKwargs = ufuncKwargs
 
-        runT0 = now()
+        self.runT0 = now()
         print('start..<init>', end='...')
-        self._runInit()
-        self._runSubgrids()
-        print('100%')
-        self._runFinish()
-        s = (now()-runT0); m = s/60; h = m/60
-        print('done in {s} sec | {m}  min | {h} hours'.format(s=int(s), m=round(m, 2), h=round(h, 2)))
+        self._runInitWriters()
+        self._runInitPool()
+        self._runInitOutputs()
+        self._runProcessSubgrids()
+        self._runClose()
 
+    def _runInitWriters(self):
+        self.writers = list()
+        self.queues = list()
+        for w in range(self.nwriter):
+            w = WriterProcess()
+            w.start()
+            self.writers.append(w)
+            self.queues.append(w.queue)
+        self.queueByFilename = self._getQueueByFilenameDict()
 
-
-    def _runInit(self):
-
-        kwargs={'maingrid' : self.grid,
-              'ufuncClass' : self.ufuncClass,
-              'ufuncArgs' : self.ufuncArgs,
-              'ufuncKwargs' : self.ufuncKwargs,
-              'applierInputs' : self.inputs,
-              'applierOutputs' : self.outputs,
-              'queueIndexByFilename': self._getQueueIndexByFilenameDict()}
-
-        if self.nworker==1:
-            #Worker.startNewMaingrid(**kwargs)
-            pickableWorkerStartNewMaingrid(**kwargs)
+    def _runInitPool(self):
+        if self.nworker == 1:
+            Worker.initialize(applier=self)
         else:
-            self.pool.apply(func=pickableWorkerStartNewMaingrid, kwds=kwargs)
+            writers, self.writers = self.writers, None # writers arn't pickable, need to detache them before passing self to Pool initializer
+            self.pool = Pool(processes=self.nworker, initializer=Worker.initialize, initargs=(self,))
+            self.writers = writers # put writers back
 
-    def _runSubgrids(self):
+    def _runInitOutputs(self):
+        if self.nworker == 1:
+            Worker.initializeOutputs()
+        else:
+            self.pool.apply(func=pickableWorkerInitializeOutputs)
+
+    def _runProcessSubgrids(self):
 
         subgrids = self.grid.subgrids(windowxsize=self.windowxsize, windowysize=self.windowysize)
         for i, subgrid in enumerate(subgrids):
@@ -100,128 +87,87 @@ class Applier(object):
             else:
                 self.pool.apply_async(func=pickableWorkerProcessSubgrid, kwds=kwargs)
 
-    def _runFinish(self):
-        self.inputs = dict()
-        self.outputs = dict()
+    def _getQueueByFilenameDict(self):
 
-    def _getQueueIndexByFilenameDict(self):
+        def lessFilledQueue():
+            lfq = self.queues[0]
+            for q in self.queues:
+                if lfq.qsize() > q.qsize():
+                    lfq = q
+            return lfq
 
-        def lessFilledQueueIndex():
-            lfqi = 0
-            for i, q in enumerate(self.queues):
-                if self.queues[lfqi].qsize() > q.qsize():
-                    lfqi = i
-            return lfqi
-
-        queueIndexByFilename = dict()
+        queueByFilename = dict()
         for output in self.outputs.values():
-            queueIndexByFilename[output.filename] = lessFilledQueueIndex()
-        return queueIndexByFilename
+            queueByFilename[output.filename] = lessFilledQueue()
+        return queueByFilename
 
-    def close(self):
+    def _runClose(self):
 
         if self.nworker!=1:
             self.pool.close()
+            self.pool.join()
 
         for writer in self.writers:
             writer.queue.put([WriterProcess.CLOSE_DATASETS, self.createEnviHeader])
             writer.queue.put([WriterProcess.CLOSE_WRITER, None])
 
-def pickableWorkerStartNewMaingrid(**kwargs):
-    Worker.startNewMaingrid(**kwargs)
+        print('100%')
+        s = (now()-self.runT0); m = s/60; h = m/60
+        print('done in {s} sec | {m}  min | {h} hours'.format(s=int(s), m=round(m, 2), h=round(h, 2)))
 
-def pickableWorkerProcessSubgrid(**kwargs):
-    Worker.processSubgrid(**kwargs)
-
-
-class InputDatasets:
-    pass
-    #def append(self, dataset):
-
-
-#a=InputDatasets()
 
 class Worker(object):
 
     queues = list()
-    inputDatasets = list()
-
+    inputDatasets = dict()
     inputOptions = dict()
     outputFilenames = dict()
     outputOptions = dict()
-    currentRunID = ''
+    operator = None
 
     def __init__(self):
         raise Exception('singleton class')
 
     @classmethod
-    def initialize(cls, queues):
-        cls.queues = queues
+    def initialize(cls, applier):
 
-    @classmethod
-    def startNewMaingrid(cls, maingrid, ufuncClass, ufuncArgs, ufuncKwargs, applierInputs, applierOutputs, queueIndexByFilename):
+        assert isinstance(applier, Applier)
 
-        cls.maingrid = maingrid
-        cls.ufuncClass = ufuncClass
-        cls.ufuncArgs = ufuncArgs
-        cls.ufuncKwargs = ufuncKwargs
-        cls.queueByFilename = {filename:cls.queues[index] for filename, index in queueIndexByFilename.items()}
-
-        #global a
-        # close datasets of last maingrid
-        for i in range(len(cls.inputDatasets)):
-            #ds = None
-            #cls.inputDatasets[key] = cls.inputDatasets.values()[0]
-            cls.inputDatasets[i] = None
-            #ds = getattr(a, 'ds_{i}'.format(i=i))
-            #setattr(cls, 'ds_{i}'.format(i=i), None)
-            #delattr(a, 'ds_{i}'.format(i=i))
-        #del a
-        #a=A()
-
-        cls.inputDatasets = None
-        cls.inputDatasets = list()
+        cls.inputDatasets = dict()
         cls.inputOptions = dict()
         cls.outputFilenames = dict()
         cls.outputOptions = dict()
 
         # open datasets of current main grid
-        for i, (key, applierInput) in enumerate(applierInputs.items()):
+        for i, (key, applierInput) in enumerate(applier.inputs.items()):
             assert isinstance(applierInput, ApplierInput)
-            #print(key)
-            if i <= len(cls.inputDatasets)-1:
-                cls.inputDatasets[i] = Open(applierInput.filename)
-            else:
-                cls.inputDatasets.append(Open(applierInput.filename))
-            #dataset = Dataset.fromFilename(applierInput.filename)
-            #dataset._gdalDataset = gdal.Open(applierInput.filename)
-            #dataset._pixelGrid = PixelGrid.fromDataset(dataset=dataset)
-            #setattr(cls, 'ds_{i}'.format(i=i), Open(applierInput.filename))
+            cls.inputDatasets[key] = Open(applierInput.filename)
             cls.inputOptions[key] = applierInput.options
 
-        return
-        for key, applierOutput in applierOutputs.items():
+        for key, applierOutput in applier.outputs.items():
             assert isinstance(applierOutput, ApplierOutput)
             cls.outputFilenames[key] = applierOutput.filename
             cls.outputOptions[key] = applierOutput.options
 
-
-        return
         # create operator
-        cls.operator = ufuncClass(maingrid=maingrid,
-                                  inputDatasets=cls.inputDatasets, inputOptions=cls.inputOptions,
-                                  outputFilenames=cls.outputFilenames, outputOptions=cls.outputOptions,
-                                  queueByFilename=cls.queueByFilename,
-                                  ufuncArgs=cls.ufuncArgs, ufuncKwargs=cls.ufuncKwargs)
+        cls.operator = applier.ufuncClass(maingrid=applier.grid,
+                                          inputDatasets=cls.inputDatasets, inputOptions=cls.inputOptions,
+                                          outputFilenames=cls.outputFilenames, outputOptions=cls.outputOptions,
+                                          queueByFilename=applier.queueByFilename,
+                                          ufuncArgs=applier.ufuncArgs, ufuncKwargs=applier.ufuncKwargs)
 
-        return
-
-        # initialize output datasets
-        minimalSubgrid = maingrid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1)
+    @ classmethod
+    def initializeOutputs(cls):
+        minimalSubgrid = cls.operator.maingrid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1)
         cls.operator.run(subgrid=minimalSubgrid, initialization=True)
 
     @classmethod
     def processSubgrid(cls, i, n, subgrid):
-        return
         print(int(float(i)/n*100), end='%..')
         cls.operator.run(subgrid=subgrid, initialization=False)
+
+def pickableWorkerInitializeOutputs():
+    Worker.initializeOutputs()
+
+def pickableWorkerProcessSubgrid(**kwargs):
+    Worker.processSubgrid(**kwargs)
