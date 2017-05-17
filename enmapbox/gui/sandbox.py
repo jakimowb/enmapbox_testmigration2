@@ -168,19 +168,17 @@ def initQgisEnvironment():
 
         pathDarwin = jp(DIR_SITEPACKAGES, *['darwin'])
         site.addsitedir(pathDarwin)
+        QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
+        QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
         s = ""
 
     else:
         # assume OSGeo4W startup
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
     os.environ['QGIS_DEBUG'] = '1'
+
     assert os.path.exists(PATH_QGS)
-
-
-
     qgsApp = QgsApplication([], True)
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
     import enmapbox.gui
@@ -319,12 +317,32 @@ def sandboxDataSourceManager():
     ui.show()
     qgisApp.exec_()
 
+def howToStartEnMAPBoxInPython():
+    import os
+    # 1. initialize QGIS Environment
+    PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+    assert os.path.exists(PATH_QGS)
+    qgsApp = QgsApplication([], True)
+    qgsApp.setPrefixPath(PATH_QGS, True)
+    qgsApp.initQgis()
+
+    # 2. start EnMAP-Box GUI
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+
+    qgsApp.exec_()
+
+
 if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
 
     #run tests
+    if True:
+        howToStartEnMAPBoxInPython()
+        exit(0)
     if False: sandboxTreeNodes()
     if False: sandboxDataSourceManager()
     if False: sandboxDockManager()
