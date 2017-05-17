@@ -1,8 +1,15 @@
 from __future__ import absolute_import
+from enmapbox.utils.environment.DependencyChecker import DependencyChecker
+modules = ['matplotlib', 'sklearn']
+modules.extend(['html', 'HTML', 'pyqtgraph', 'markup', 'rios', 'tabulate', 'unipath', 'units', 'yaml'])
 from processing.core.Processing import Processing
 
 class ProcessingPlugin:
     def __init__(self, iface):
+        #this will be called from within EnMAPBoxPlugin._tryPlugin(ProcessingPlugin)
+        #anything that can fail should fail here, so that ._tryPlugin can return something meaningful
+        DependencyChecker.importAllDependencies(modules)
+
         self.iface = iface
         from .processing.SignalsManager import SignalsManager
         SignalsManager.connectHTMLCreatedToWebBrowser()
