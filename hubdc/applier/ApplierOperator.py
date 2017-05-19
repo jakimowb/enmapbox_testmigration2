@@ -60,16 +60,18 @@ class ApplierOperator(object):
         #tmpvrtfilename = r'a:\getimage' + str(random.randint(0, 10 ** 20)) + '.vrt'
         tmpvrtfilename = ''
         if self.grid.equalProjection(dataset.pixelGrid):
-
+            Applier.NTRANS += 1
             datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName=tmpvrtfilename, format='MEM',
                                                  resampleAlg=options['resampleAlg'])
 
         else:
-
+            Applier.NWARP += 1
             datasetResampled = dataset.warp(dstPixelGrid=self.grid, dstName=tmpvrtfilename, format='MEM',
-                                                 resampleAlg=options['resampleAlg'],
-                                                 errorThreshold=options['errorThreshold'])
-
+                                            resampleAlg=options['resampleAlg'],
+                                            errorThreshold=options['errorThreshold'],
+                                            warpMemoryLimit=options['warpMemoryLimit'],
+                                            multithread=options['multithread'])
+        print(options)
         array = datasetResampled.readAsArray(dtype=dtype, scale=scale)
         datasetResampled.close()
         #driver = gdal.GetDriverByName('VRT')

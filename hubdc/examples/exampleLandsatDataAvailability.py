@@ -1,7 +1,5 @@
 from __future__ import print_function
 import sys
-sys.path.append(r'S:\source\hub-datacube')
-sys.path.append(r'S:\source\site-packages')
 
 from osgeo import gdal, ogr
 from hubdc import Applier, ApplierOperator, ApplierInput, ApplierOutput
@@ -14,15 +12,15 @@ LANDSAT_ANCHOR = (15, 15)
 
 def runROI():
 
-    napplier = 1
-    nworker = 1
+    napplier = 0
+    nworker = 0
     nwriter = 1
 
     if napplier > 0:
         pool = ThreadPool(processes=napplier)
 
     landsatArchive = r'H:\EuropeanDataCube\landsat'
-    #landsatArchive = r'C:\Work\data\gms\landsat'
+    landsatArchive = r'C:\Work\data\gms\landsat'
 
 
     roi = getWRS2FootprintsGeometry(footprints=LandsatArchiveParser.getFootprints(archive=landsatArchive))
@@ -55,7 +53,8 @@ def runFootprint(mgrsFootprint, grid, landsatArchive, nworker, nwriter):
     descr = ' {mgrsFootprint}[{xsize}x{ysize}], {nscenes} Scenes in WRS2 [{wrs2Footprints}]'.format(xsize=xsize, ysize=ysize, mgrsFootprint=mgrsFootprint, nscenes=len(cfmask), wrs2Footprints=', '.join(wrs2Footprints))
 
     applier = Applier(grid=grid, nworker=nworker, nwriter=nwriter, windowxsize=25600, windowysize=25600)
-    applier.setInputs('cfmask', filenames=cfmask)
+    applier.setInputs('cfmask', filenames=cfmask, errorThreshold=0.125, warpMemoryLimit=1000*2**20, multithread=True)
+
     #applier.setInputs('sr1', filenames=sr1)
     #applier.setInputs('sr2', filenames=sr2)
     #applier.setInputs('sr3', filenames=sr3)

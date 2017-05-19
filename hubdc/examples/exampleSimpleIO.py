@@ -3,6 +3,7 @@ from hubdc import PixelGrid, Applier, ApplierOperator
 def script(i):
 
     filename = r'H:\EuropeanDataCube\landsat\194\024\LC81940242015235LGN00\LC81940242015235LGN00_cfmask.img'
+    filename = r'C:\Work\data\gms\landsat\194\024\LC81940242015235LGN00\LC81940242015235LGN00_cfmask.img'
 
     grid = PixelGrid(projection='EPSG:3035', xRes=100, yRes=100, xMin=4400000, xMax=4440000, yMin=3150000, yMax=3200000)
     #grid = PixelGrid.fromFile(filename)

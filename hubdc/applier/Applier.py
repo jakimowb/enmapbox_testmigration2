@@ -9,6 +9,26 @@ from hubdc.applier.ApplierInput import ApplierInput
 from hubdc.applier.ApplierOutput import ApplierOutput
 from hubdc.applier.WriterProcess import WriterProcess
 
+# todo
+# - init outputs auf [1x1] grid ohne auf datasets zuzugreifen (lohnt sich das?)
+#   -> mit Lock wenn erstes Tile fertig gerechnet ist
+#
+# - pruefen ob langsame MGRS footprints mit warping zu tun haben
+#   -> teste einfluss von warp options
+#          errorThreshold --- error threshold for approximation transformer (in pixels)
+#          warpMemoryLimit --- size of working buffer in bytes
+#          multithread --- whether to multithread computation and I/O operations
+#   -> teste einfluss von gdal config options
+#            GDAL_DISABLE_READDIR_ON_OPEN = True
+#            GDAL_CACHEMAX = 1 (uber gdal.SetCacheMax()
+#            GDAL_MAX_DATASET_POOL_SIZE = 1000
+#            GDAL_SWATH_SIZE =  in bytes
+
+#gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', 'TRUE')
+#gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', 1000)
+#gdal.SetConfigOption('GDAL_SWATH_SIZE', 1000*2**20)
+
+
 class Applier(object):
 
     def __init__(self, grid, nworker=0, nwriter=1,
@@ -25,12 +45,12 @@ class Applier(object):
         self.nworker = nworker
         self.multiprocessing = nworker > 0
 
-    def setInput(self, key, filename, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0.):
-        self.inputs[key] = ApplierInput(filename=filename, resampleAlg=resampleAlg, errorThreshold=errorThreshold)
+    def setInput(self, key, filename, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
+        self.inputs[key] = ApplierInput(filename=filename, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
-    def setInputs(self, key, filenames, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0.):
+    def setInputs(self, key, filenames, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
         for i, filename in enumerate(filenames):
-            self.setInput(key=(key, i), filename=filename, resampleAlg=resampleAlg, errorThreshold=errorThreshold)
+            self.setInput(key=(key, i), filename=filename, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
     def setOutput(self, key, filename, format='GTiff', creationOptions=[]):
         self.outputs[key] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions)
@@ -49,8 +69,15 @@ class Applier(object):
         #print('start{description}\n..<init>'.format(description=description), end='..'); sys.stdout.flush()
         self._runInitWriters()
         self._runInitPool()
+        Applier.NWARP = 0
+        Applier.NTRANS = 0
         self._runInitOutputs()
+        print(1)
         self._runProcessSubgrids()
+        print('NWARP', Applier.NWARP)
+        print('NTRANS', Applier.NTRANS)
+
+        print(2)
         self._runClose()
 
         #print('100%')
@@ -152,8 +179,13 @@ class Worker(object):
     @classmethod
     def initialize(cls, applier):
 
-        assert isinstance(applier, Applier)
         gdal.SetCacheMax(1)
+        gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', 'TRUE')
+        gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', str(1000))
+        gdal.SetConfigOption('GDAL_SWATH_SIZE', str(1000 * 2** 20))
+
+
+        assert isinstance(applier, Applier)
         cls.inputDatasets = dict()
         cls.inputOptions = dict()
         cls.outputFilenames = dict()
