@@ -20,8 +20,21 @@ class Dataset():
     def getFormat(self):
         return self.gdalDataset.GetDriver().ShortName
 
-    def readAsArray(self, dtype=None, scale=None, **kwargs):
-        array = self.gdalDataset.ReadAsArray(**kwargs)
+    def readAsArray(self, pixelGrid=None, dtype=None, scale=None, resample_alg=gdal.GRIORA_NearestNeighbour):
+
+        if pixelGrid is None:
+            array = self.gdalDataset.ReadAsArray()
+        else:
+            assert isinstance(pixelGrid, PixelGrid)
+            xoff = round((pixelGrid.xMin - self.pixelGrid.xMin) / self.pixelGrid.xRes, 0)
+            yoff = round((self.pixelGrid.yMax - pixelGrid.yMax) / self.pixelGrid.yRes, 0)
+            xsize = round((pixelGrid.xMax - pixelGrid.xMin) / self.pixelGrid.xRes, 0)
+            ysize = round((pixelGrid.yMax - pixelGrid.yMin) / self.pixelGrid.yRes, 0)
+            buf_ysize, buf_xsize = pixelGrid.getDimensions()
+            array = self.gdalDataset.ReadAsArray(xoff=xoff, yoff=yoff, xsize=xsize, ysize=ysize,
+                                                 buf_xsize=buf_xsize, buf_ysize=buf_ysize,
+                                                 resample_alg=resample_alg)
+
         array = array if array.ndim == 3 else array[None] # add third dimension if missing
         if dtype is not None:
             array = array.astype(dtype)
@@ -116,7 +129,6 @@ class Dataset():
                 if value is not None:
                     f.write('{key} = {value}\n'.format(key=key, value=value))
 
-
     def warp(self, dstPixelGrid, dstName='', format='MEM', creationOptions=[], **kwargs):
 
         assert isinstance(dstPixelGrid, PixelGrid)
@@ -127,9 +139,25 @@ class Dataset():
         if format != 'MEM' and not exists(dirname(dstName)):
             makedirs(dirname(dstName))
 
-        warpOptions = gdal.WarpOptions(format=format, outputBounds=outputBounds, xRes=xRes, yRes=yRes, dstSRS=dstSRS, creationOptions=creationOptions, **kwargs)
+        warpOptions = gdal.WarpOptions(format=format, outputBounds=outputBounds, xRes=xRes, yRes=yRes, dstSRS=dstSRS,
+                                       creationOptions=creationOptions, **kwargs)
         gdalDataset = gdal.Warp(destNameOrDestDS=dstName, srcDSOrSrcDSTab=self.gdalDataset, options=warpOptions)
+        #gdalDataset = gdal.Warp(destNameOrDestDS=dstName, srcDSOrSrcDSTab=self.gdalDataset)#, options=warpOptions)
+
         return Dataset(gdalDataset=gdalDataset)
+
+
+    def warpOptions(self, dstPixelGrid, format, creationOptions, **kwargs):
+        assert isinstance(dstPixelGrid, PixelGrid)
+
+        xRes, yRes, dstSRS = (getattr(dstPixelGrid, key) for key in ('xRes', 'yRes', 'projection'))
+        outputBounds = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMin', 'xMax', 'yMax'))
+
+        options = gdal.WarpOptions(format=format, outputBounds=outputBounds, xRes=xRes, yRes=yRes, dstSRS=dstSRS,
+                                       creationOptions=creationOptions, **kwargs)
+
+        return options
+
 
     def translate(self, dstPixelGrid=None, dstName='', format='MEM', creationOptions=[], **kwargs):
 
@@ -139,13 +167,16 @@ class Dataset():
         assert isinstance(dstPixelGrid, PixelGrid)
         assert self.pixelGrid.equalProjection(dstPixelGrid)
 
-        if format!='MEM' and not exists(dirname(dstName)):
+        if format != 'MEM' and not exists(dirname(dstName)):
             makedirs(dirname(dstName))
 
-        ulx, uly, lrx, lry, xRes, yRes = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin', 'xRes', 'yRes'))
-        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,  creationOptions=creationOptions, **kwargs)
+        ulx, uly, lrx, lry, xRes, yRes = tuple(
+            getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin', 'xRes', 'yRes'))
+        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,
+                                                 creationOptions=creationOptions, **kwargs)
         gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
         return Dataset(gdalDataset=gdalDataset)
+
 
     @property
     def shape(self):
