@@ -1,3 +1,5 @@
+from osgeo import gdal
+import random
 from hubdc.model.PixelGrid import PixelGrid
 from hubdc.applier.Applier import Applier
 from hubdc import CreateFromArray, Create
@@ -36,7 +38,9 @@ class ApplierOperator(object):
         return array
 
     def getDatas(self, name, indicies=None, dtype=None, scale=None):
+        n = len(list(self.getSubnames(name)))
         for name, i in self.getSubnames(name):
+            print(i,n)
             yield self.getData(name=(name,i), indicies=indicies, dtype=dtype, scale=scale)
 
     def getSubnames(self, name):
@@ -52,17 +56,43 @@ class ApplierOperator(object):
 
         dataset = self.inputDatasets[name]
         options = self.inputOptions[name]
+
+        #tmpvrtfilename = r'a:\getimage' + str(random.randint(0, 10 ** 20)) + '.vrt'
+        tmpvrtfilename = ''
         if self.grid.equalProjection(dataset.pixelGrid):
-            datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
+
+            datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName=tmpvrtfilename, format='MEM',
                                                  resampleAlg=options['resampleAlg'])
+
         else:
-            datasetResampled = dataset.warp(dstPixelGrid=self.grid, dstName='', format='MEM',
-                                            resampleAlg=options['resampleAlg'],
-                                            errorThreshold=options['errorThreshold'])
+
+            datasetResampled = dataset.warp(dstPixelGrid=self.grid, dstName=tmpvrtfilename, format='MEM',
+                                                 resampleAlg=options['resampleAlg'],
+                                                 errorThreshold=options['errorThreshold'])
 
         array = datasetResampled.readAsArray(dtype=dtype, scale=scale)
         datasetResampled.close()
+        #driver = gdal.GetDriverByName('VRT')
+        #driver.Delete(tmpvrtfilename)
 
+        return array
+
+    def _getImage2(self, name, dtype, scale):
+
+        dataset = self.inputDatasets[name]
+        options = self.inputOptions[name]
+        import random
+        filename = r'a:\getimage'+str(random.randint(0, 10**20))+'.vrt'
+        datasetWarped = gdal.Warp(destNameOrDestDS='', srcDSOrSrcDSTab=dataset.gdalDataset,
+                                  options=dataset.warpOptions(dstPixelGrid=self.grid,
+                                                        format='MEM', creationOptions=[],
+                                                        resampleAlg=options['resampleAlg'],
+                                                        errorThreshold=options['errorThreshold']))
+        array = datasetWarped.ReadAsArray()
+        #gdal.Dataset.__swig_destroy__(datasetWarped)
+        datasetWarped = None
+        #driver = gdal.GetDriverByName('VRT')
+        #driver.Delete(filename)
 
         return array
 

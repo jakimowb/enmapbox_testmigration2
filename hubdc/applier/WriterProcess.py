@@ -8,7 +8,7 @@ from hubdc.applier.ApplierOutput import ApplierOutput
 
 class WriterProcess(Process):
 
-    CREATE_DATASET, WRITE_ARRAY, FLUSH_CACHE, SET_META, SET_NODATA, CLOSE_DATASETS, CLOSE_WRITER = range(7)
+    CREATE_DATASET, WRITE_ARRAY, SET_META, SET_NODATA, CLOSE_DATASETS, CLOSE_WRITER = range(6)
 
     def __init__(self):
         Process.__init__(self)
@@ -17,29 +17,36 @@ class WriterProcess(Process):
 
     def run(self):
 
-        gdal.SetCacheMax(1)
-        while True:
+        try:
+            gdal.SetCacheMax(1)
+            while True:
 
-            #sleep(0.01) # this should prevent high CPU load during idle time (not sure if this is really needed)
+                sleep(0.01) # this should prevent high CPU load during idle time (not sure if this is really needed)
+                if self.queue.qsize() == 0:
+                    continue
+                value = self.queue.get()
+                task, args = value[0], value[1:]
+                if value[0] == self.CREATE_DATASET:
+                    self._createDataset(*args)
+                elif value[0] == self.WRITE_ARRAY:
+                    self._writeArray(*args)
+                elif value[0] == self.SET_META:
+                    self._setMetadataItem(*args)
+                elif value[0] == self.SET_NODATA:
+                    self._setNoDataValue(*args)
+                elif value[0] == self.CLOSE_DATASETS:
+                    self._closeDatasets(*args)
+                elif value[0] == self.CLOSE_WRITER:
+                    #print('WRITER CLOSED')
+                    break
+                else:
+                    raise ValueError(str(value))
+        except:
 
-            value = self.queue.get()
-            task, args = value[0], value[1:]
-            if value[0] == self.CREATE_DATASET:
-                self._createDataset(*args)
-            elif value[0] == self.WRITE_ARRAY:
-                self._writeArray(*args)
-            elif value[0] == self.FLUSH_CACHE:
-                self._flushCache(*args)
-            elif value[0] == self.SET_META:
-                self._setMetadataItem(*args)
-            elif value[0] == self.SET_NODATA:
-                self._setNoDataValue(*args)
-            elif value[0] == self.CLOSE_DATASETS:
-                self._closeDatasets(*args)
-            elif value[0] == self.CLOSE_WRITER:
-                os._exit(0)
-            else:
-                raise ValueError(str(value))
+            print('ERROR IN WRITER')
+            import traceback
+            tb = traceback.format_exc()
+            print(tb)
 
     def _createDataset(self, filename, array, grid, format, creationOptions):
 
@@ -70,9 +77,3 @@ class WriterProcess(Process):
     def _setNoDataValue(self, filename, value):
         for dsBand in self.outputDatasets[filename]:
             dsBand.setNoDataValue(value)
-
-    def _closeWriter(self, createEnviHeader):
-        pass
-        #for filename in self.outputDatasets.keys():
-        #    self.queue.put([self.CLOSE_DATASETS, filename, createEnviHeader])
-        #self.queue.put([self.CLOSE_WRITER, None])
