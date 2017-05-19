@@ -46,10 +46,10 @@ class LandsatArchiveParser:
                     filenames[name].append(findExtension(join(scene, basename(scene) + '_cfmask')))
                 elif basename(scene).startswith('LT') or basename(scene).startswith('LE'):
                     index = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'].index(name)
-                    filenames[name].append(join(scene, basename(scene)+['_sr_band' + str(i) for i in [1, 2, 3, 4, 5, 7]][index])+'.img')
+                    filenames[name].append(findExtension(join(scene, basename(scene)+['_sr_band' + str(i) for i in [1, 2, 3, 4, 5, 7]][index])))
                 elif basename(scene).startswith('LC8'):
                     index = ['aerosol', 'blue', 'green', 'red', 'nir', 'swir1', 'swir2'].index(name)
-                    filenames[name].append(join(scene, basename(scene)+['_sr_band' + str(i) for i in [1, 2, 3, 4, 5, 6, 7]][index])+'.img')
+                    filenames[name].append(findExtension(join(scene, basename(scene)+['_sr_band' + str(i) for i in [1, 2, 3, 4, 5, 6, 7]][index])))
                 else:
                     raise Exception('unknown landsat scene: '+scene)
 
