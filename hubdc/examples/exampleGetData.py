@@ -39,7 +39,7 @@ class MyOperator(ApplierOperator):
         #blueLC8a, blueLC8b = self.getData('LC8_LC8', [[1], [1]], dtype=float32)
 
         # generator style
-        rednir = self.getData('LC8_LE7', [[3,4],[2,3]], dtype=float32, generator=True)
+        rednir = self.getArray('LC8_LE7', [[3, 4], [2, 3]], dtype=float32, generator=True)
         ndvi = ((nir-red)/(nir+red) for red, nir in rednir)
 
         # test metadata

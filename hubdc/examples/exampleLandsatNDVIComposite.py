@@ -29,9 +29,9 @@ class NDVICompositor(ApplierOperator):
         ysize, xsize = self.grid.getDimensions()
         ndvi = full((1, ysize, xsize), fill_value=nan, dtype=float32)
 
-        for cfmask, red, nir in zip(self.getDatas('cfmask'),
-                                    self.getDatas('red', dtype=float32),
-                                    self.getDatas('nir', dtype=float32)):
+        for cfmask, red, nir in zip(self.getArrayIterator('cfmask'),
+                                    self.getArrayIterator('red', dtype=float32),
+                                    self.getArrayIterator('nir', dtype=float32)):
             valid = cfmask == 0
             ndvi[valid] = normalizedDifference(nir[valid], red[valid])
 

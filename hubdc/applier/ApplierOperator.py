@@ -1,5 +1,6 @@
 from osgeo import gdal
 import random
+from hubdc import Open
 from hubdc.model.PixelGrid import PixelGrid
 from hubdc.applier.Applier import Applier
 from hubdc import CreateFromArray, Create
@@ -7,11 +8,12 @@ from hubdc.applier.WriterProcess import WriterProcess
 
 class ApplierOperator(object):
 
-    def __init__(self, maingrid, inputDatasets, inputOptions, outputFilenames, outputOptions, queueByFilename, ufuncArgs, ufuncKwargs):
+    def __init__(self, maingrid, inputDatasets, inputFilenames, inputOptions, outputFilenames, outputOptions, queueByFilename, ufuncArgs, ufuncKwargs):
         assert isinstance(maingrid, PixelGrid)
         self.subgrid = None
         self.maingrid = maingrid
         self.inputDatasets = inputDatasets
+        self.inputFilenames = inputFilenames
         self.inputOptions = inputOptions
         self.outputFilenames = outputFilenames
         self.outputOptions = outputOptions
@@ -24,7 +26,7 @@ class ApplierOperator(object):
         assert isinstance(self.subgrid, PixelGrid)
         return self.subgrid
 
-    def getData(self, name, indicies=None, dtype=None, scale=None):
+    def getArray(self, name, indicies=None, dtype=None, scale=None):
 
         if indicies is None:
             array = self._getImage(name=name, dtype=dtype, scale=scale)
@@ -37,11 +39,9 @@ class ApplierOperator(object):
 
         return array
 
-    def getDatas(self, name, indicies=None, dtype=None, scale=None):
-        n = len(list(self.getSubnames(name)))
+    def getArrayIterator(self, name, indicies=None, dtype=None, scale=None):
         for name, i in self.getSubnames(name):
-            print(i,n)
-            yield self.getData(name=(name,i), indicies=indicies, dtype=dtype, scale=scale)
+            yield self.getArray(name=(name, i), indicies=indicies, dtype=dtype, scale=scale)
 
     def getSubnames(self, name):
         i = 0
@@ -54,24 +54,26 @@ class ApplierOperator(object):
 
     def _getImage(self, name, dtype, scale):
 
+        if self.inputDatasets[name] is None:
+            self.inputDatasets[name] = Open(filename=self.inputFilenames[name])
         dataset = self.inputDatasets[name]
         options = self.inputOptions[name]
 
-        #tmpvrtfilename = r'a:\getimage' + str(random.randint(0, 10 ** 20)) + '.vrt'
-        tmpvrtfilename = ''
         if self.grid.equalProjection(dataset.pixelGrid):
-            Applier.NTRANS += 1
-            datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName=tmpvrtfilename, format='MEM',
-                                                 resampleAlg=options['resampleAlg'])
+            #Applier.NTRANS += 1
+            datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
+                                                 resampleAlg=options['resampleAlg'],
+                                                 noData=options['noData'])
 
         else:
-            Applier.NWARP += 1
-            datasetResampled = dataset.warp(dstPixelGrid=self.grid, dstName=tmpvrtfilename, format='MEM',
+            #Applier.NWARP += 1
+            datasetResampled = dataset.warp(dstPixelGrid=self.grid, dstName='', format='MEM',
                                             resampleAlg=options['resampleAlg'],
                                             errorThreshold=options['errorThreshold'],
                                             warpMemoryLimit=options['warpMemoryLimit'],
-                                            multithread=options['multithread'])
-        print(options)
+                                            multithread=options['multithread'],
+                                            srcNodata=options['noData'])
+        #print(options)
         array = datasetResampled.readAsArray(dtype=dtype, scale=scale)
         datasetResampled.close()
         #driver = gdal.GetDriverByName('VRT')

@@ -20,10 +20,10 @@ class TSGapFiller(ApplierOperator):
         # arrange irregularly distributed obvervations into a evenly spaced temporal grid
         bands = (end-start).days // workTempRes+1
         ts = full((bands, ysize, xsize), fill_value=nan, dtype=float32)
-        for cfmask, blue, red, nir, acqDate in zip(self.getDatas('cfmask'),
-                                                   self.getDatas('blue', dtype=float32, scale=1e-5),
-                                                   self.getDatas('red', dtype=float32, scale=1e-5),
-                                                   self.getDatas('nir', dtype=float32, scale=1e-5),
+        for cfmask, blue, red, nir, acqDate in zip(self.getArrayIterator('cfmask'),
+                                                   self.getArrayIterator('blue', dtype=float32, scale=1e-5),
+                                                   self.getArrayIterator('red', dtype=float32, scale=1e-5),
+                                                   self.getArrayIterator('nir', dtype=float32, scale=1e-5),
                                                    self.getAcquisitionDates()):
 
             valid = equal(cfmask, 0)

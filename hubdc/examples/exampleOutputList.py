@@ -20,7 +20,7 @@ class MyOperator(ApplierOperator):
 
     def ufunc(self):
 
-        for i, sr in enumerate(self.getDatas('inList')):
+        for i, sr in enumerate(self.getArrayIterator('inList')):
             self.setData(('outList', i), array=sr)
 
     def umeta(self):

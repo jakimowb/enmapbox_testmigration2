@@ -37,7 +37,6 @@ class WriterProcess(Process):
                 elif value[0] == self.CLOSE_DATASETS:
                     self._closeDatasets(*args)
                 elif value[0] == self.CLOSE_WRITER:
-                    #print('WRITER CLOSED')
                     break
                 else:
                     raise ValueError(str(value))

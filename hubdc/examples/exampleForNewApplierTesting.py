@@ -37,7 +37,7 @@ class ClearObservations(ApplierOperator):
         import numpy
         ysize, xsize = self.grid.getDimensions()
         sum = numpy.zeros(shape=(1, ysize, xsize), dtype=numpy.float32)
-        for band in self.getDatas(name='in'): sum += band
+        for band in self.getArrayIterator(name='in'): sum += band
         self.setData('out', array=sum)
 
 if __name__ == '__main__':

@@ -45,12 +45,12 @@ class Applier(object):
         self.nworker = nworker
         self.multiprocessing = nworker > 0
 
-    def setInput(self, key, filename, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
-        self.inputs[key] = ApplierInput(filename=filename, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
+    def setInput(self, key, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
+        self.inputs[key] = ApplierInput(filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
-    def setInputs(self, key, filenames, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
+    def setInputs(self, key, filenames, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
         for i, filename in enumerate(filenames):
-            self.setInput(key=(key, i), filename=filename, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
+            self.setInput(key=(key, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
     def setOutput(self, key, filename, format='GTiff', creationOptions=[]):
         self.outputs[key] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions)
@@ -66,21 +66,14 @@ class Applier(object):
         self.ufuncKwargs = ufuncKwargs
 
         runT0 = now()
-        #print('start{description}\n..<init>'.format(description=description), end='..'); sys.stdout.flush()
+        print('start{description}\n..<init>'.format(description=description), end='..'); sys.stdout.flush()
         self._runInitWriters()
         self._runInitPool()
-        Applier.NWARP = 0
-        Applier.NTRANS = 0
         self._runInitOutputs()
-        print(1)
         self._runProcessSubgrids()
-        print('NWARP', Applier.NWARP)
-        print('NTRANS', Applier.NTRANS)
-
-        print(2)
         self._runClose()
 
-        #print('100%')
+        print('100%')
         s = (now()-runT0); m = s/60; h = m/60
         print('done{description}in {s} sec | {m}  min | {h} hours'.format(description=description, s=int(s), m=round(m, 2), h=round(h, 2))); sys.stdout.flush()
 
@@ -88,11 +81,6 @@ class Applier(object):
         self.writers = list()
         self.queues = list()
         for w in range(self.nwriter):
-
-            #'debug'
-            #self.writers.append(None)
-            #self.queues.append(None)
-            #continue
             w = WriterProcess()
             w.start()
             self.writers.append(w)
@@ -131,12 +119,6 @@ class Applier(object):
 
     def _getQueueByFilenameDict(self):
 
-        #debug
-        #queueByFilename = dict()
-        #for output in self.outputs.values():
-        #    queueByFilename[output.filename] = None
-        #return queueByFilename
-
         def lessFilledQueue():
             lfq = self.queues[0]
             for q in self.queues:
@@ -150,18 +132,14 @@ class Applier(object):
         return queueByFilename
 
     def _runClose(self):
-        from time import sleep
         if self.multiprocessing:
-            #self.pool.terminate()
             self.pool.close()
             self.pool.join()
 
         for writer in self.writers:
-
             writer.queue.put([WriterProcess.CLOSE_DATASETS, self.createEnviHeader])
             writer.queue.put([WriterProcess.CLOSE_WRITER, None])
             writer.join()
-
 
 
 class Worker(object):
@@ -179,22 +157,24 @@ class Worker(object):
     @classmethod
     def initialize(cls, applier):
 
-        gdal.SetCacheMax(1)
+        megaByte = 2**20
+        gdal.SetCacheMax(1) #1000 * megaByte)
         gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', 'TRUE')
-        gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', str(1000))
-        gdal.SetConfigOption('GDAL_SWATH_SIZE', str(1000 * 2** 20))
-
+        gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', str(10000))
+        gdal.SetConfigOption('GDAL_SWATH_SIZE', str(1000 * megaByte))
 
         assert isinstance(applier, Applier)
         cls.inputDatasets = dict()
         cls.inputOptions = dict()
+        cls.inputFilenames = dict()
         cls.outputFilenames = dict()
         cls.outputOptions = dict()
 
         # open datasets of current main grid
         for i, (key, applierInput) in enumerate(applier.inputs.items()):
             assert isinstance(applierInput, ApplierInput)
-            cls.inputDatasets[key] = Open(applierInput.filename)
+            cls.inputDatasets[key] = None #Open(applierInput.filename)
+            cls.inputFilenames[key] = applierInput.filename
             cls.inputOptions[key] = applierInput.options
 
         for key, applierOutput in applier.outputs.items():
@@ -204,7 +184,7 @@ class Worker(object):
 
         # create operator
         cls.operator = applier.ufuncClass(maingrid=applier.grid,
-                                          inputDatasets=cls.inputDatasets, inputOptions=cls.inputOptions,
+                                          inputDatasets=cls.inputDatasets, inputFilenames=cls.inputFilenames, inputOptions=cls.inputOptions,
                                           outputFilenames=cls.outputFilenames, outputOptions=cls.outputOptions,
                                           queueByFilename=applier.queueByFilename,
                                           ufuncArgs=applier.ufuncArgs, ufuncKwargs=applier.ufuncKwargs)
@@ -216,7 +196,7 @@ class Worker(object):
 
     @classmethod
     def processSubgrid(cls, i, n, subgrid):
-        #print(int(float(i)/n*100), end='%..'); sys.stdout.flush()
+        print(int(float(i)/n*100), end='%..'); sys.stdout.flush()
         cls.operator.run(subgrid=subgrid, initialization=False)
 
 def pickableWorkerInitializeOutputs():

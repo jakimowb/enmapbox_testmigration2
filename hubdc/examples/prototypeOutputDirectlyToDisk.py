@@ -14,7 +14,7 @@ def script():
 class MyOperator(ApplierOperator):
 
     def ufunc(self):
-        srLC8 = self.getData('in')
+        srLC8 = self.getArray('in')
         self.setData('out', array=srLC8)
 
     def umeta(self):
