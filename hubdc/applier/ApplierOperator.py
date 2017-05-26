@@ -1,10 +1,6 @@
-from osgeo import gdal
-import random
 from hubdc import Open
 from hubdc.model.PixelGrid import PixelGrid
-from hubdc.applier.Applier import Applier
-from hubdc import CreateFromArray, Create
-from hubdc.applier.WriterProcess import WriterProcess
+from hubdc.applier.Writer import Writer
 
 class ApplierOperator(object):
 
@@ -105,10 +101,8 @@ class ApplierOperator(object):
     def _getBandSubset(self, name, indicies, dtype):
 
         dataset, options = self._getDataset(name)
-        try:
-            bandList = [i + 1 for i in indicies]
-        except:
-            a=1
+        bandList = [i + 1 for i in indicies]
+
         if self.grid.equalProjection(dataset.pixelGrid):
             datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
                                                  bandList=bandList,
@@ -154,16 +148,16 @@ class ApplierOperator(object):
             array[mask] = replace[1]
 
         filename = self.getFilename(name)
-        self.queueByFilename[filename].put((WriterProcess.WRITE_ARRAY, filename, array, self.grid, self.maingrid, self.outputOptions[name]['format'], self.outputOptions[name]['creationOptions']))
+        self.queueByFilename[filename].put((Writer.WRITE_ARRAY, filename, array, self.grid, self.maingrid, self.outputOptions[name]['format'], self.outputOptions[name]['creationOptions']))
 
     def setMetadataItem(self, name, key, value, domain):
         filename = self.getFilename(name)
-        self.queueByFilename[filename].put((WriterProcess.SET_META, filename, key, value, domain))
+        self.queueByFilename[filename].put((Writer.SET_META, filename, key, value, domain))
         #self.queueByFilename[filename].put((WriterProcess.FLUSH_CACHE, filename))
 
     def setNoDataValue(self, name, value):
         filename = self.getFilename(name)
-        self.queueByFilename[filename].put((WriterProcess.SET_NODATA, filename, value))
+        self.queueByFilename[filename].put((Writer.SET_NODATA, filename, value))
 
     def run(self, subgrid, iblock, nblock):
         self.iblock = iblock

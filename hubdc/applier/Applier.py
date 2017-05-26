@@ -7,7 +7,9 @@ from hubdc.model.PixelGrid import PixelGrid
 from hubdc import Open
 from hubdc.applier.ApplierInput import ApplierInput
 from hubdc.applier.ApplierOutput import ApplierOutput
+from hubdc.applier.Writer import Writer
 from hubdc.applier.WriterProcess import WriterProcess
+from hubdc.applier.QueueMock import QueueMock
 
 _megaByte = 2**20
 DEFAULT_GDAL_CACHEMAX = 1000 * _megaByte
@@ -17,7 +19,7 @@ DEFAULT_GDAL_SWATH_SIZE = 1000 * _megaByte
 
 class Applier(object):
 
-    def __init__(self, grid, nworker=0, nwriter=1,
+    def __init__(self, grid, nworker=0, nwriter=0,
                  windowxsize=256, windowysize=256, createEnviHeader=False):
 
         assert isinstance(grid, PixelGrid)
@@ -30,11 +32,12 @@ class Applier(object):
         self.nwriter = nwriter
         self.nworker = nworker
         self.multiprocessing = nworker > 0
+        self.singlewriter = nwriter == 0
 
     def setInput(self, key, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
         self.inputs[key] = ApplierInput(filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
-    def setInputs(self, key, filenames, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
+    def setInputList(self, key, filenames, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
         for i, filename in enumerate(filenames):
             self.setInput(key=(key, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
@@ -65,6 +68,7 @@ class Applier(object):
     def _runInitWriters(self):
         self.writers = list()
         self.queues = list()
+        self.queueMock = QueueMock()
         for w in range(self.nwriter):
             w = WriterProcess()
             w.start()
@@ -107,7 +111,10 @@ class Applier(object):
 
         queueByFilename = dict()
         for output in self.outputs.values():
-            queueByFilename[output.filename] = lessFilledQueue()
+            if self.singlewriter:
+                queueByFilename[output.filename] = self.queueMock
+            else:
+                queueByFilename[output.filename] = lessFilledQueue()
         return queueByFilename
 
     def _runClose(self):
@@ -116,8 +123,8 @@ class Applier(object):
             self.pool.join()
 
         for writer in self.writers:
-            writer.queue.put([WriterProcess.CLOSE_DATASETS, self.createEnviHeader])
-            writer.queue.put([WriterProcess.CLOSE_WRITER, None])
+            writer.queue.put([Writer.CLOSE_DATASETS, self.createEnviHeader])
+            writer.queue.put([Writer.CLOSE_WRITER, None])
             writer.join()
 
 
