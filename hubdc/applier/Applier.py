@@ -9,25 +9,11 @@ from hubdc.applier.ApplierInput import ApplierInput
 from hubdc.applier.ApplierOutput import ApplierOutput
 from hubdc.applier.WriterProcess import WriterProcess
 
-# todo
-# - init outputs auf [1x1] grid ohne auf datasets zuzugreifen (lohnt sich das?)
-#   -> mit Lock wenn erstes Tile fertig gerechnet ist
-#
-# - pruefen ob langsame MGRS footprints mit warping zu tun haben
-#   -> teste einfluss von warp options
-#          errorThreshold --- error threshold for approximation transformer (in pixels)
-#          warpMemoryLimit --- size of working buffer in bytes
-#          multithread --- whether to multithread computation and I/O operations
-#   -> teste einfluss von gdal config options
-#            GDAL_DISABLE_READDIR_ON_OPEN = True
-#            GDAL_CACHEMAX = 1 (uber gdal.SetCacheMax()
-#            GDAL_MAX_DATASET_POOL_SIZE = 1000
-#            GDAL_SWATH_SIZE =  in bytes
-
-#gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', 'TRUE')
-#gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', 1000)
-#gdal.SetConfigOption('GDAL_SWATH_SIZE', 1000*2**20)
-
+_megaByte = 2**20
+DEFAULT_GDAL_CACHEMAX = 1000 * _megaByte
+DEFAULT_GDAL_DISABLE_READDIR_ON_OPEN = True
+DEFAULT_GDAL_MAX_DATASET_POOL_SIZE = 1000
+DEFAULT_GDAL_SWATH_SIZE = 1000 * _megaByte
 
 class Applier(object):
 
@@ -69,7 +55,6 @@ class Applier(object):
         print('start{description}\n..<init>'.format(description=description), end='..'); sys.stdout.flush()
         self._runInitWriters()
         self._runInitPool()
-        self._runInitOutputs()
         self._runProcessSubgrids()
         self._runClose()
 
@@ -94,12 +79,6 @@ class Applier(object):
             self.writers = writers  # put writers back
         else:
             Worker.initialize(applier=self)
-
-    def _runInitOutputs(self):
-        if self.multiprocessing:
-            self.pool.apply(func=pickableWorkerInitializeOutputs)
-        else:
-            Worker.initializeOutputs()
 
     def _runProcessSubgrids(self):
 
@@ -157,11 +136,10 @@ class Worker(object):
     @classmethod
     def initialize(cls, applier):
 
-        megaByte = 2**20
-        gdal.SetCacheMax(1) #1000 * megaByte)
-        gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', 'TRUE')
-        gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', str(10000))
-        gdal.SetConfigOption('GDAL_SWATH_SIZE', str(1000 * megaByte))
+        gdal.SetCacheMax(DEFAULT_GDAL_CACHEMAX)
+        gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', str(DEFAULT_GDAL_DISABLE_READDIR_ON_OPEN))
+        gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', str(DEFAULT_GDAL_MAX_DATASET_POOL_SIZE))
+        gdal.SetConfigOption('GDAL_SWATH_SIZE', str(DEFAULT_GDAL_SWATH_SIZE))
 
         assert isinstance(applier, Applier)
         cls.inputDatasets = dict()
@@ -189,18 +167,10 @@ class Worker(object):
                                           queueByFilename=applier.queueByFilename,
                                           ufuncArgs=applier.ufuncArgs, ufuncKwargs=applier.ufuncKwargs)
 
-    @ classmethod
-    def initializeOutputs(cls):
-        minimalSubgrid = cls.operator.maingrid.subsetPixelWindow(xoff=0, yoff=0, width=1, height=1)
-        cls.operator.run(subgrid=minimalSubgrid, initialization=True)
-
     @classmethod
     def processSubgrid(cls, i, n, subgrid):
         print(int(float(i)/n*100), end='%..'); sys.stdout.flush()
-        cls.operator.run(subgrid=subgrid, initialization=False)
-
-def pickableWorkerInitializeOutputs():
-    Worker.initializeOutputs()
+        cls.operator.run(subgrid=subgrid, iblock=i, nblock=n)
 
 def pickableWorkerProcessSubgrid(**kwargs):
     Worker.processSubgrid(**kwargs)
