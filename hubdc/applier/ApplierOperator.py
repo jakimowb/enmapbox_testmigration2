@@ -20,11 +20,19 @@ class ApplierOperator(object):
         self.queueByFilename = queueByFilename
         self.ufuncArgs = ufuncArgs
         self.ufuncKwargs = ufuncKwargs
+        self.iblock = 0
+        self.nblock = 0
 
     @property
     def grid(self):
         assert isinstance(self.subgrid, PixelGrid)
         return self.subgrid
+
+    def isFirstBlock(self):
+        return self.iblock == 0
+
+    def isLastBlock(self):
+        return self.iblock == self.nblock-1
 
     def getArray(self, name, indicies=None, dtype=None, scale=None):
 
@@ -52,73 +60,55 @@ class ApplierOperator(object):
             else:
                 break
 
-    def _getImage(self, name, dtype, scale):
 
+    def _getDataset(self, name):
         if self.inputDatasets[name] is None:
             self.inputDatasets[name] = Open(filename=self.inputFilenames[name])
-        dataset = self.inputDatasets[name]
-        options = self.inputOptions[name]
+        return self.inputDatasets[name], self.inputOptions[name]
+
+    def _getImage(self, name, dtype, scale):
+
+        dataset, options = self._getDataset(name)
 
         if self.grid.equalProjection(dataset.pixelGrid):
-            #Applier.NTRANS += 1
             datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
                                                  resampleAlg=options['resampleAlg'],
                                                  noData=options['noData'])
-
         else:
-            #Applier.NWARP += 1
             datasetResampled = dataset.warp(dstPixelGrid=self.grid, dstName='', format='MEM',
                                             resampleAlg=options['resampleAlg'],
                                             errorThreshold=options['errorThreshold'],
                                             warpMemoryLimit=options['warpMemoryLimit'],
                                             multithread=options['multithread'],
                                             srcNodata=options['noData'])
-        #print(options)
         array = datasetResampled.readAsArray(dtype=dtype, scale=scale)
         datasetResampled.close()
-        #driver = gdal.GetDriverByName('VRT')
-        #driver.Delete(tmpvrtfilename)
-
-        return array
-
-    def _getImage2(self, name, dtype, scale):
-
-        dataset = self.inputDatasets[name]
-        options = self.inputOptions[name]
-        import random
-        filename = r'a:\getimage'+str(random.randint(0, 10**20))+'.vrt'
-        datasetWarped = gdal.Warp(destNameOrDestDS='', srcDSOrSrcDSTab=dataset.gdalDataset,
-                                  options=dataset.warpOptions(dstPixelGrid=self.grid,
-                                                        format='MEM', creationOptions=[],
-                                                        resampleAlg=options['resampleAlg'],
-                                                        errorThreshold=options['errorThreshold']))
-        array = datasetWarped.ReadAsArray()
-        #gdal.Dataset.__swig_destroy__(datasetWarped)
-        datasetWarped = None
-        #driver = gdal.GetDriverByName('VRT')
-        #driver.Delete(filename)
-
         return array
 
     def _getBandSubset(self, name, indicies, dtype):
 
-        dataset = self.inputDatasets[name]
-        options = self.inputOptions[name]
+        dataset, options = self._getDataset(name)
         bandList = [i + 1 for i in indicies]
         if self.grid.equalProjection(dataset.pixelGrid):
             datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
                                                  bandList=bandList,
-                                                 resampleAlg=options['resampleAlg'])
+                                                 resampleAlg=options['resampleAlg'],
+                                                 noData=options['noData'])
         else:
             selfGridReprojected = self.grid.reproject(dataset.pixelGrid)
             height, width = selfGridReprojected.getDimensions()
             selfGridReprojectedWithBuffer = selfGridReprojected.subsetPixelWindow(xoff=-1, yoff=-1, width=width + 2,
                                                                                   height=height + 2)
             datasetClipped = dataset.translate(dstPixelGrid=selfGridReprojectedWithBuffer, dstName='', format='MEM',
-                                               bandList=bandList)
+                                               bandList=bandList,
+                                               noData=options['noData'])
+
             datasetResampled = datasetClipped.warp(dstPixelGrid=self.grid, dstName='', format='MEM',
                                                    resampleAlg=options['resampleAlg'],
-                                                   errorThreshold=options['errorThreshold'])
+                                                   errorThreshold=options['errorThreshold'],
+                                                   warpMemoryLimit=options['warpMemoryLimit'],
+                                                   multithread=options['multithread'],
+                                                   srcNodata=options['noData'])
             datasetClipped.close()
 
         array = datasetResampled.readAsArray(dtype=dtype)
@@ -144,32 +134,22 @@ class ApplierOperator(object):
             array[mask] = replace[1]
 
         filename = self.getFilename(name)
-        if self.initialization:
-            self.queueByFilename[filename].put((WriterProcess.CREATE_DATASET, filename, array, self.maingrid, self.outputOptions[name]['format'], self.outputOptions[name]['creationOptions']))
-        else:
-            self.queueByFilename[filename].put((WriterProcess.WRITE_ARRAY, filename, array, self.grid))
+        self.queueByFilename[filename].put((WriterProcess.WRITE_ARRAY, filename, array, self.grid, self.maingrid, self.outputOptions[name]['format'], self.outputOptions[name]['creationOptions']))
 
     def setMetadataItem(self, name, key, value, domain):
         filename = self.getFilename(name)
         self.queueByFilename[filename].put((WriterProcess.SET_META, filename, key, value, domain))
-        self.queueByFilename[filename].put((WriterProcess.FLUSH_CACHE, filename))
+        #self.queueByFilename[filename].put((WriterProcess.FLUSH_CACHE, filename))
 
     def setNoDataValue(self, name, value):
         filename = self.getFilename(name)
         self.queueByFilename[filename].put((WriterProcess.SET_NODATA, filename, value))
 
-    def run(self, subgrid, initialization):
-        self.initialization = initialization
+    def run(self, subgrid, iblock, nblock):
+        self.iblock = iblock
+        self.nblock = nblock
         self.subgrid = subgrid
         self.ufunc(*self.ufuncArgs, **self.ufuncKwargs)
 
     def ufunc(self, *args, **kwargs):
         raise NotImplementedError()
-
-    def umeta(self, *args, **kwargs):
-        '''
-        Use this methode to set metadata for output datasets using self.setMetadataItem().
-        This methode is called once after the first call to self.ufunc().
-        At this point in time all output datasets are already created.
-        '''
-        pass
