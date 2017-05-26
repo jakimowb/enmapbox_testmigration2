@@ -48,11 +48,26 @@ class ApplierOperator(object):
         return array
 
     def getArrayIterator(self, name, indicies=None, dtype=None, scale=None):
+
         for name, i in self.getSubnames(name):
-            yield self.getArray(name=(name, i), indicies=indicies, dtype=dtype, scale=scale)
+
+            if indicies is None:
+                iindicies = None
+            elif isinstance(indicies, int):
+                iindicies = [indicies]
+            elif isinstance(indicies, list):
+                iindicies = indicies[i]
+            else:
+                raise ValueError(
+                    'indicies must be a) an integer, b) a list of integers, c) a list of lists of integers, d) a mixture of c) and d), or f) None')
+
+            yield self.getArray(name=(name, i), indicies=iindicies, dtype=dtype, scale=scale)
 
     def getSubnames(self, name):
         i = 0
+        if (name, 0) not in self.inputDatasets:
+            raise KeyError('{name} is not an image list'.format(name=name))
+
         while True:
             if (name, i) in self.inputDatasets:
                 yield (name, i)
@@ -60,8 +75,10 @@ class ApplierOperator(object):
             else:
                 break
 
-
     def _getDataset(self, name):
+        if name not in self.inputDatasets:
+            raise Exception('{name} is not a single image input'.format(name=name))
+
         if self.inputDatasets[name] is None:
             self.inputDatasets[name] = Open(filename=self.inputFilenames[name])
         return self.inputDatasets[name], self.inputOptions[name]
@@ -88,7 +105,10 @@ class ApplierOperator(object):
     def _getBandSubset(self, name, indicies, dtype):
 
         dataset, options = self._getDataset(name)
-        bandList = [i + 1 for i in indicies]
+        try:
+            bandList = [i + 1 for i in indicies]
+        except:
+            a=1
         if self.grid.equalProjection(dataset.pixelGrid):
             datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
                                                  bandList=bandList,
