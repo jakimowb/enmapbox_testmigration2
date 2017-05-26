@@ -8,7 +8,7 @@ from hubdc.applier.ApplierOutput import ApplierOutput
 
 class WriterProcess(Process):
 
-    CREATE_DATASET, WRITE_ARRAY, SET_META, SET_NODATA, CLOSE_DATASETS, CLOSE_WRITER = range(6)
+    WRITE_ARRAY, SET_META, SET_NODATA, CLOSE_DATASETS, CLOSE_WRITER = range(5)
 
     def __init__(self):
         Process.__init__(self)
@@ -26,9 +26,7 @@ class WriterProcess(Process):
                     continue
                 value = self.queue.get()
                 task, args = value[0], value[1:]
-                if value[0] == self.CREATE_DATASET:
-                    self._createDataset(*args)
-                elif value[0] == self.WRITE_ARRAY:
+                if value[0] == self.WRITE_ARRAY:
                     self._writeArray(*args)
                 elif value[0] == self.SET_META:
                     self._setMetadataItem(*args)
@@ -63,9 +61,12 @@ class WriterProcess(Process):
             outputDataset.flushCache()
             outputDataset.close()
 
-    def _writeArray(self, filename, array, grid):
-        self.outputDatasets[filename].writeArray(array=array, pixelGrid=grid)
-        self.outputDatasets[filename].flushCache()
+    def _writeArray(self, filename, array, subgrid, maingrid, format, creationOptions):
+        if filename not in self.outputDatasets:
+            self._createDataset(filename, array, maingrid, format, creationOptions)
+        else:
+            self.outputDatasets[filename].writeArray(array=array, pixelGrid=subgrid)
+            self.outputDatasets[filename].flushCache()
 
     def _setMetadataItem(self, filename, key, value, domain):
         self.outputDatasets[filename].setMetadataItem(key=key, value=value, domain=domain)
