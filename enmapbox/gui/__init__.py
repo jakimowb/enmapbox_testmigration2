@@ -3,6 +3,7 @@ import os, sys, logging, site, re
 
 DEBUG = True
 LOAD_PROCESSING_FRAMEWORK = True
+LOAD_EXTERNAL_APPS = True
 
 if DEBUG:
     #initiate loggers for all pyfiles
