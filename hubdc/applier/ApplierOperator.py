@@ -1,6 +1,7 @@
 from hubdc import Open
 from hubdc.model.PixelGrid import PixelGrid
 from hubdc.applier.Writer import Writer
+from numpy import array, argmin
 
 class ApplierOperator(object):
 
@@ -30,20 +31,26 @@ class ApplierOperator(object):
     def isLastBlock(self):
         return self.iblock == self.nblock-1
 
-    def getArray(self, name, indicies=None, dtype=None, scale=None):
+    def getArray(self, name, indicies=None, wavelength=None, dtype=None, scale=None):
 
-        if indicies is None:
+        if indicies is None and wavelength is None:
             array = self._getImage(name=name, dtype=dtype, scale=scale)
-        elif isinstance(indicies, (list, tuple)):
+        elif isinstance(indicies, list):
             array = self._getBandSubset(name=name, indicies=indicies, dtype=dtype)
         elif isinstance(indicies, int):
             array = self._getBandSubset(name=name, indicies=[indicies], dtype=dtype)
+        elif isinstance(wavelength, list):
+            indicies = [self.findWavebandIndex(name=name, targetWavelength=wl) for wl in wavelength]
+            array = self.getArray(name=name, indicies=indicies)
+        elif isinstance(wavelength, int):
+            indicies = self.findWavebandIndex(name=name, targetWavelength=wavelength)
+            array = self.getArray(name=name, indicies=indicies)
         else:
-            raise ValueError('indicies must be a list/tuble of integers or a scalar integer.')
+            raise ValueError('wrong value for indicies or wavelength')
 
         return array
 
-    def getArrayIterator(self, name, indicies=None, dtype=None, scale=None):
+    def getArrayIterator(self, name, indicies=None, wavelength=None, dtype=None, scale=None):
 
         for name, i in self.getSubnames(name):
 
@@ -57,7 +64,17 @@ class ApplierOperator(object):
                 raise ValueError(
                     'indicies must be a) an integer, b) a list of integers, c) a list of lists of integers, d) a mixture of c) and d), or f) None')
 
-            yield self.getArray(name=(name, i), indicies=iindicies, dtype=dtype, scale=scale)
+            if wavelength is None:
+                iwavelength = None
+            elif isinstance(wavelength, (int, float)):
+                iwavelength = [wavelength]
+            elif isinstance(wavelength, list):
+                iwavelength = wavelength
+            else:
+                raise ValueError(
+                    'wavelength must be a) an integer/float, b) a list of integers/floats, or c) None')
+
+            yield self.getArray(name=(name, i), indicies=iindicies, wavelength=iwavelength, dtype=dtype, scale=scale)
 
     def getSubnames(self, name):
         i = 0
@@ -70,6 +87,25 @@ class ApplierOperator(object):
                 i += 1
             else:
                 break
+
+    def findWavebandIndex(self, name, targetWavelength):
+        dataset, options = self._getDataset(name)
+
+        wavelength = dataset.getMetadataItem(key='wavelength', domain='ENVI', type=float)
+        wavelengthUnits = dataset.getMetadataItem(key='wavelength units', domain='ENVI')
+
+        if wavelength is None or wavelengthUnits is None:
+            raise Exception('missing wavelength or wavelength units information')
+
+        wavelength = array(wavelength)
+        if wavelengthUnits.lower() == 'micrometers':
+            wavelength *= 1000.
+        elif wavelengthUnits.lower() == 'nanometers':
+            pass
+        else:
+            raise Exception('wavelength units must be nanometers or micrometers')
+
+        return int(argmin(abs(wavelength - wavelength)))
 
     def _getDataset(self, name):
         if name not in self.inputDatasets:
