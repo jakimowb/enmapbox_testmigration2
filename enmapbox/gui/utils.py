@@ -43,7 +43,6 @@ loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 
 FORM_CLASSES = dict()
 
-
 def loadUIFormClass(pathUi, from_imports=False):
     """
     Load UI files and takes care on Qgs custom widgets

@@ -102,6 +102,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
     def setIsInitialized(self):
         self.isInitialized = True
 
+    def menusWithTitle(self, title):
+        return [m for m in self.findChildren(QMenu) if str(m.title()) == title]
 
 def getIcon():
     return QIcon(':/enmapbox/icons/enmapbox.png')
@@ -298,6 +300,10 @@ class EnMAPBox(QObject):
                 logger.warning('Failed to initialize QGIS Processing framework')
             s = ""
 
+        from enmapbox.gui.applications import ApplicationRegistry
+        self.applicationRegistry = ApplicationRegistry(self, parent=self)
+        defaultDir = os.path.join(DIR_ENMAPBOX, *['apps'])
+        self.applicationRegistry.addApplicationFolder(defaultDir)
         self.ui.setVisible(True)
         splash.finish(self.ui)
     def exit(self):
@@ -358,7 +364,13 @@ class EnMAPBox(QObject):
     def addSource(self, source, name=None):
         return self.dataSourceManager.addSource(source, name=name)
 
-
+    def menu(self, title):
+        for menu in self.ui.menuBar().findChildren(QMenu):
+            if str(menu.title()) == title:
+                return menu
+        return None
+    def menusWithTitle(self, title):
+        return self.ui.menusWithTitle(title)
 
     def getURIList(self, *args, **kwds):
         return self.dataSourceManager.getURIList(*args, **kwds)
