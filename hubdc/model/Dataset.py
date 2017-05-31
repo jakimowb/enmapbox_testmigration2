@@ -70,7 +70,10 @@ class Dataset():
         self.gdalDataset.SetMetadataItem(key, gdalString, domain)
 
     def getMetadataItem(self, key, domain='', type=str):
+        key = key.replace(' ', '_')
         gdalString = self.gdalDataset.GetMetadataItem(key, domain)
+        if gdalString is None:
+            return None
         return GDALStringFormatter.gdalStringToValue(gdalString, type=type)
 
     def getMetadata(self):
@@ -195,7 +198,10 @@ class GDALStringFormatter(object):
     def gdalStringToValue(cls, gdalString, type):
         gdalString.strip()
         if gdalString.startswith('{') and gdalString.endswith('}'):
-            return cls._gdalStringToList(gdalString, type)
+            value = cls._gdalStringToList(gdalString, type)
+        else:
+            value = type(gdalString)
+        return value
 
     @classmethod
     def _listToGDALString(cls, values):
