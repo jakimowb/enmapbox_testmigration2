@@ -46,36 +46,19 @@ def sandboxPFReport():
     qgsApp.exec_()
     qgsApp.exitQgis()
 
-def sandboxPureGui():
+def sandboxPureGui(dataSources=None, loadProcessingFramework=False):
     qgsApp = initQgisEnvironment()
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = loadProcessingFramework
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
 
-    #load urban gradient dataset
-    #add relevant files
-    baseDir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
-    files = []
-    files += file_search(baseDir, '*.bsq', recursive=True)
-    files += file_search(baseDir, '*.shp', recursive=True)
-    import enmapbox.testdata
-    files += [enmapbox.testdata.RandomForestModel]
-    for file in files:
-        EB.addSource(file)
+    if dataSources is not None:
+        for dataSource in dataSources:
+            ds = EB.addSource(dataSource)
 
-    bp = r'EnMAP01_Berlin_Urban_Gradient_2009.bsq'
-    baseDir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_01_image_products\01_image_products'
-    baseShp = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover'
-    path1 = jp(baseDir, 'EnMAP01_Berlin_Urban_Gradient_2009.bsq')
-    path2 = jp(baseDir, 'EnMAP02_Berlin_Urban_Gradient_2009.bsq')
 
-    EB.createDock('MAP', initSrc=path1)
-    EB.createDock('MAP', initSrc=path2)
-    #do something here
-    from qgis import utils as qgsUtils
-    qgsUtils.iface.messageBar().pushMessage('STARTED', QgsMessageBar.SUCCESS)
     qgsApp.exec_()
     qgsApp.exitQgis()
 
@@ -155,12 +138,16 @@ def sandboxGUI():
 
 
 def initQgisEnvironment():
+    """
+    Initializes the QGIS Environment
+    :return:
+    """
     import site
 
-    # start a QGIS instance
+    # start QGIS instance
     if sys.platform == 'darwin':
         PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+        os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
 
         #rios?
         from enmapbox.gui.utils import DIR_SITEPACKAGES
@@ -175,7 +162,6 @@ def initQgisEnvironment():
     else:
         # assume OSGeo4W startup
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    os.environ['QGIS_DEBUG'] = '1'
 
     assert os.path.exists(PATH_QGS)
     qgsApp = QgsApplication([], True)
@@ -187,28 +173,8 @@ def initQgisEnvironment():
 
 
 def sandboxDialog():
-
-    if sys.platform == 'darwin':
-        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
-    else:
-        # assume OSGeo4W startup
-        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    os.environ['QGIS_DEBUG'] = '1'
-
-
-    assert os.path.exists(PATH_QGS)
-    qgsApp = QgsApplication([], True)
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-    #QT_PLUGIN_PATH = % OSGEO4W_ROOT %\apps\qgis\qtplugins;
-    # % OSGEO4W_ROOT %\apps\qt4\plugins
-
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
-
+    qgsApp = initQgisEnvironment()
     w = QDialog()
-
     w.setWindowTitle('Sandbox')
     w.setFixedSize(QSize(300,400))
     l = QHBoxLayout()
@@ -223,32 +189,12 @@ def sandboxDialog():
     qgsApp.setActiveWindow(w)
     w.show()
 
-
-
-
-
-    from enmapbox.gui.layerproperties import showLayerPropertiesDialog
-    from enmapbox.gui.main import TestData
-
-
-    lyr = QgsRasterLayer(TestData.AF_Image)
-    QgsMapLayerRegistry.instance().addMapLayer(lyr)
-    canvas.setLayers([QgsMapCanvasLayer(lyr)])
-    canvas.setExtent(lyr.extent())
-
-
-    result = showLayerPropertiesDialog(lyr, canvas, modal=False)
-    print('Results {}'.format(result))
-
-    #qgsApp.exec_()
+    qgsApp.exec_()
     qgsApp.exitQgis()
 
 
 
 def sandboxTreeNodes():
-
-    qgisApp = initQgisEnvironment()
-
     from enmapbox.gui.dockmanager import DockManager, DockPanelUI
     from enmapbox.gui.docks import DockArea
 
@@ -274,12 +220,9 @@ def sandboxTreeNodes():
         dm.createDock('MAP', initSrc=HymapBerlinA_image)
 
     ui.show()
-    qgisApp.exec_()
 
 
 def sandboxDockManager():
-
-    qgisApp = initQgisEnvironment()
 
     from enmapbox.gui.dockmanager import DockManager, DockPanelUI
     from enmapbox.gui.docks import DockArea
@@ -296,13 +239,9 @@ def sandboxDockManager():
     dm.createDock('MAP', initSrc=HymapBerlinA_image)
 
     ui.show()
-    qgisApp.exec_()
 
 
 def sandboxDataSourceManager():
-
-    qgisApp = initQgisEnvironment()
-
     from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourcePanelUI
     from enmapbox.gui.docks import DockArea
 
@@ -315,39 +254,34 @@ def sandboxDataSourceManager():
 
     dm.addSource(HymapBerlinA_image)
     ui.show()
-    qgisApp.exec_()
 
 def howToStartEnMAPBoxInPython():
-    import os
-    # 1. initialize QGIS Environment
-    PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    assert os.path.exists(PATH_QGS)
-    qgsApp = QgsApplication([], True)
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
 
     # 2. start EnMAP-Box GUI
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
 
-    qgsApp.exec_()
 
 
 if __name__ == '__main__':
     import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
 
 
-    #run tests
-    if True:
+    if False:
         howToStartEnMAPBoxInPython()
         exit(0)
-    if False: sandboxTreeNodes()
-    if False: sandboxDataSourceManager()
-    if False: sandboxDockManager()
-    if True: sandboxPureGui()
-    if False: sandboxPFReport()
-    if False: sandboxDragDrop()
-    if False: sandboxGUI()
-    if False: sandboxDialog()
+    else:
+        qgsApp = initQgisEnvironment()
+
+        if False: sandboxTreeNodes()
+        if False: sandboxDataSourceManager()
+        if False: sandboxDockManager()
+        if True: sandboxPureGui()
+        if False: sandboxPFReport()
+        if False: sandboxDragDrop()
+        if False: sandboxGUI()
+        if False: sandboxDialog()
+
+        qgsApp.exec_()
+        qgsApp.quit()
