@@ -206,8 +206,7 @@ class EnMAPBox(QObject):
         self.ifaceSimulation = EnMAPBoxQgisInterface(self)
         self.iface = iface
 
-        # init QGIS Processing Framework if necessary
-
+        # init QGIS Processing Framework, if necessary
         if qgsUtils.iface is None:
             # there is not running QGIS Instance. This means the entire QGIS processing framework was not
             # initialized at all.
@@ -226,14 +225,13 @@ class EnMAPBox(QObject):
         self.dataSourceManager = DataSourceManager()
 
         self.dockManager = DockManager()
+        self.dockManager.connectDataSourceManager(self.dataSourceManager)
         #self.enmapBox = enmapbox
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dockManager.connectDockArea(self.ui.dockArea)
 
         splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
-
-
 
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
