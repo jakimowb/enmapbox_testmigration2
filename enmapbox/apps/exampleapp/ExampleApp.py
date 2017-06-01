@@ -1,65 +1,14 @@
 import os
-from enmapbox.gui.applications import EnMAPBoxApplication
 from PyQt4.QtGui import *
-
-APP_DIR = os.path.dirname(__file__)
-
-
-class MyEnMAPBoxApp(EnMAPBoxApplication):
-
-    def __init__(self, enmapBox, parent=None):
-        super(MyEnMAPBoxApp, self).__init__(enmapBox,parent=parent)
-        self.name = 'My EnMAPBox App'
-        self.version = 'Version 42'
-        self.licence = 'BSD-3'
-        s = ""
-
-    def icon(self):
-        pathIcon = os.path.join(APP_DIR, 'icon.png')
-        return QIcon(pathIcon)
-
-    def menu(self, appMenu):
-        """
-        Specify menu, submenus and actions
-        :return:
-        """
-        menu = QMenu(self.name, appMenu)
-        menu.setIcon(self.icon())
-
-        #add QAction that starts your GUI
-        a = menu.addAction('Show My GUI')
-        a.triggered.connect(lambda : self.startExampleGUI())
-
-        #add a submenu
-        subMenu = menu.addMenu('Submenu')
-        #add QAction to run another process
-        a = subMenu.addAction('Start Process')
-        a.triggered.connect(lambda : self.startExampleProcess('My App Action triggered'))
-
-        return menu
-
-    def geoAlgorithms(self):
-        return None
-
-    def startExampleGUI(self):
-        ui = MyAppUI(self.enmapbox.ui)
-        ui.setModal(False) #True = will block all other widget
-        ui.show()
-
-    def startExampleProcess(self, text):
-        print('print something:')
-        print(text)
-        print('exampleProcess done')
-
 
 
 from enmapbox.gui.utils import loadUIFormClass
+from exampleapp import APP_DIR
 pathUi = os.path.join(APP_DIR, 'example.ui')
-
-class MyAppUI(QDialog, loadUIFormClass(pathUi)):
+class MyAppUserInterface(QDialog, loadUIFormClass(pathUi)):
     """Constructor."""
     def __init__(self, parent=None):
-        super(MyAppUI, self).__init__(parent)
+        super(MyAppUserInterface, self).__init__(parent)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
@@ -109,26 +58,28 @@ class MyAppUI(QDialog, loadUIFormClass(pathUi)):
         self.textBox.setPlainText('\n'.join(info))
 
 
-def sandboxWithEnMapBox():
-    """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
-    qgsApp = initQgisEnvironment()
-    sandboxPureGui(loadProcessingFramework=False)
 
-    qgsApp.exec_()
-    qgsApp.quit()
+from processing.core.Processing import Processing
+from processing.core.AlgorithmProvider import AlgorithmProvider
+from processing.core.GeoAlgorithm import GeoAlgorithm
+from processing.core.parameters import ParameterRaster
+from processing.core.outputs import OutputRaster
+class MyAppGeoAlgorithm(GeoAlgorithm):
+
+        def defineCharacteristics(self):
+            self.name = 'NDVI (using GDAL)'
+            self.group = 'TestGeoAlgorithms'
+
+            self.addParameter(ParameterRaster('infile', 'Spectral Image'))
+            self.addOutput(OutputRaster('outfile', 'NDVI'))
+
+        def processAlgorithm(self, progress):
+            from .ndviWithGDAL import ndviWithGDAL
+            infile = self.getParameterValue('infile')
+            outfile = self.getOutputValue('outfile')
+            ndviWithGDAL(infile=infile, outfile=outfile, progress=progress)
+
+        def help(self):
+            return True, 'Calculates the NDVI using GDAL'
 
 
-def sandboxGuiOnly():
-    """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
-    qgsApp = initQgisEnvironment()
-    ui = MyAppUI()
-    ui.exec_()
-    qgsApp.exec_()
-    qgsApp.quit()
-
-
-if __name__ == '__main__':
-    if False: sandboxWithEnMapBox()
-    if True: sandboxGuiOnly()

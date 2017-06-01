@@ -2,7 +2,6 @@ import os
 
 from PyQt4.QtGui import QIcon
 from enmapbox.gui.applications import EnMAPBoxApplication
-from ExampleApp import *
 APP_DIR = os.path.dirname(__file__)
 
 class MyEnMAPBoxApp(EnMAPBoxApplication):
@@ -39,9 +38,12 @@ class MyEnMAPBoxApp(EnMAPBoxApplication):
         return menu
 
     def geoAlgorithms(self):
+        from ExampleApp import MyAppGeoAlgorithm
+
         return [MyAppGeoAlgorithm()]
 
     def startExampleGUI(self):
+        from ExampleApp import MyAppUserInterface
         ui = MyAppUserInterface(self.enmapbox.ui)
         ui.setModal(False) #True = will block all other widget
         ui.show()
