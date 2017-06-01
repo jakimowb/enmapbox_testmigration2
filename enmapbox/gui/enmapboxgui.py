@@ -11,7 +11,7 @@ from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import loadUI, SETTINGS, DIR_TESTDATA, MimeDataHelper
 
-
+HIDE_SPLASHSCREEN = True
 
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
@@ -196,7 +196,9 @@ class EnMAPBox(QObject):
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
         splash = EnMAPBoxSplashScreen(self)
-        splash.show()
+
+        if not HIDE_SPLASHSCREEN:
+            splash.show()
         QApplication.processEvents()
 
         assert EnMAPBox._instance is None

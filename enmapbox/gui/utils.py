@@ -52,7 +52,7 @@ def loadUIFormClass(pathUi, from_imports=False):
     """
     RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
     DIR_GUI = os.path.dirname(pathUi)
-    assert os.path.exists(pathUi)
+    assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
 
     buffer = StringIO.StringIO() #buffer to store modified XML
     if pathUi not in FORM_CLASSES.keys():

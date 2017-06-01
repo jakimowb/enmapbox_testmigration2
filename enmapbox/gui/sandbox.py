@@ -266,8 +266,6 @@ def howToStartEnMAPBoxInPython():
 
 if __name__ == '__main__':
     import site, sys
-
-
     if False:
         howToStartEnMAPBoxInPython()
         exit(0)
