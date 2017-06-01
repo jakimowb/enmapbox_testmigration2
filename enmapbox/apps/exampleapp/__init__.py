@@ -1,8 +1,8 @@
 import os
 
-from PyQt4.QtGui import QIcon
-from enmapbox.gui.applications import EnMAPBoxApplication
 APP_DIR = os.path.dirname(__file__)
+from PyQt4.QtGui import QIcon, QMenu, QAction
+from enmapbox.gui.applications import EnMAPBoxApplication
 
 class MyEnMAPBoxApp(EnMAPBoxApplication):
 
@@ -38,18 +38,7 @@ class MyEnMAPBoxApp(EnMAPBoxApplication):
         return menu
 
     def geoAlgorithms(self):
-        from ExampleApp import MyAppGeoAlgorithm
-
+        from processingframework import MyAppGeoAlgorithm
         return [MyAppGeoAlgorithm()]
 
-    def startExampleGUI(self):
-        from ExampleApp import MyAppUserInterface
-        ui = MyAppUserInterface(self.enmapbox.ui)
-        ui.setModal(False) #True = will block all other widget
-        ui.show()
-
-    def startExampleProcess(self, text):
-        print('print something:')
-        print(text)
-        print('exampleProcess done')
 

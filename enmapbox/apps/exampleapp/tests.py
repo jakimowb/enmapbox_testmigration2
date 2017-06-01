@@ -1,28 +1,11 @@
-
-def sandboxWithEnMapBox(loadPF=False):
-    """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
-    qgsApp = initQgisEnvironment()
-    sandboxPureGui(loadProcessingFramework=loadPF)
-
-    qgsApp.exec_()
-    qgsApp.quit()
+from unittest import TestCase
 
 
-def sandboxGuiOnly():
-    """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment
-    from ExampleApp import MyAppUserInterface
-
-    qgsApp = initQgisEnvironment()
-    ui = MyAppUserInterface()
-    ui.exec_()
-    qgsApp.exec_()
-    qgsApp.quit()
-
-
-
-if __name__ == '__main__':
-
-    if False: sandboxWithEnMapBox(False)
-    if True: sandboxGuiOnly()
+class TestNdvi(TestCase):
+    def test_ndvi(self):
+        from enmapbox.testdata.HymapBerlinB import HymapBerlinB_image
+        from .algorithms import ndvi
+        from tempfile import tempdir
+        from os.path import join
+        ndvi(infile=HymapBerlinB_image,
+             outfile=join(tempdir(), 'ndvi.img'))
