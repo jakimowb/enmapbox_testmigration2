@@ -1,67 +1,118 @@
-import os, site, collections
+import os, sys, site, collections
+from qgis.core import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enmapbox.gui.utils import DIR_ENMAPBOX
-
+from enmapbox.gui.enmapboxgui import EnMAPBox
 
 class ApplicationWrapper(QObject):
 
-    def __init__(self):
-        pass
+    def __init__(self, app):
+        assert isinstance(app, EnMAPBoxApplication)
+        self.app = app
+        self.menuItem = []
+        self.geoAlgorithms = []
+
 
 class ApplicationRegistry(QObject):
 
     def __init__(self, enmapBox, parent=None):
         super(ApplicationRegistry, self).__init__(parent)
         self.applicationFolders = []
+        assert isinstance(enmapBox, EnMAPBox)
+
         self.enmapBox = enmapBox
         self.appList = collections.OrderedDict()
 
-    def addApplicationFolder(self, path):
-        if not os.path.isdir(path):
+    def addApplicationFolder(self, appDir):
+        if not os.path.isdir(appDir):
             return False
 
-        site.addsitedir(path)
+        #add all sub-directories to python path
+        # extend system path by appDir
+        oldSys = sys.path
+        # sys.path.extend(appDir)
+        site.addsitedir(appDir)
+
+        for _, appPackages, _ in os.walk(appDir):
+            break
+        for appPackage in appPackages:
+            self.addApplication(appPackage)
+
+    def addApplication(self, appPackageName):
+
+
+        #todo: catch error, keep system stable
+        import importlib
+        appPackage = importlib.import_module('__init__', appPackageName)
         for subClass in EnMAPBoxApplication.__subclasses__():
-            app = subClass(self.enmapBox)
-            appId =  str(type(app))
-            assert isinstance(app, EnMAPBoxApplication)
+            #check class
+            appId = str(str(subClass))
             if appId in self.appList.keys():
-                #todo: handle duplicates / re-loads
+                #todo: handle duplicates (signal?)
                 pass
 
-            self.loadApplication(app)
-        s = ""
+            #initialize App interface
+            app = subClass(self.enmapBox)
+            #load app
+            appWrapper = ApplicationWrapper(app)
+            self.loadApplication(appWrapper)
 
-    def loadApplication(self, app):
+    def loadGeoAlgorithms(self, appWrapper):
+        app = appWrapper.app
+        try:
+            geoAlgorithms = app.geoAlgorithms()
+            if geoAlgorithms:
+                pass
+
+                appWrapper.geoAlgorithms.extend(geoAlgorithms)
+        except:
+            print "Unexpected error:", sys.exc_info()[0]
+
+    def loadMenuItems(self, appWrapper):
+        app = appWrapper.app
+
         parentMenu = self.enmapBox.menu('Applications')
-        item = app.menu(parentMenu)
-        if True:
-            if isinstance(item, QMenu):
-                #item.setParent(parentMenu)
+        try:
+            item = app.menu(parentMenu)
+            if item is None:
+                print('no menu items defined')
+                pass
+            else:
+                if isinstance(item, QMenu):
+                    # item.setParent(parentMenu)
 
-                #item.setParent(parentMenu)
-                #item.menuAction().setParent(parentMenu)
-                parentMenu.addMenu(item)
+                    # item.setParent(parentMenu)
+                    # item.menuAction().setParent(parentMenu)
+                    parentMenu.addMenu(item)
 
-                #parentMenu.addAction(act)
-                s = ""
-            elif isinstance(item, QAction):
-                item.setParent(parentMenu)
-                parentMenu.addAction(item)
+                    # parentMenu.addAction(act)
+                    s = ""
+                elif isinstance(item, QAction):
+                    item.setParent(parentMenu)
+                    parentMenu.addAction(item)
+                appWrapper.menuItem.append(item)
 
+        except:
+            print "Unexpected error:", sys.exc_info()[0]
 
-        geoAlgorithms = app.geoAlgorithms()
-        if geoAlgorithms:
-            pass
-        return True
+    def loadApplication(self, appWrapper):
+        self.loadMenuItems(appWrapper)
+        self.loadGeoAlgorithms(appWrapper)
 
+    def reloadApplication(self, appWrapper):
+        self.removeApplication(appWrapper)
+        self.loadApplication(appWrapper)
 
-    def registerApplications(self):
-        pass
+    def removeApplication(appWrapper):
+        assert isinstance(appWrapper, ApplicationWrapper)
 
-    def unregisterApplication(self):
-        pass
+        #remove menu item
+        for item in appWrapper.menuItem:
+            item.parent().removeChildren(item)
+
+        #remove geo-algorithms
+
 
 class EnMAPBoxApplication(QObject):
 
@@ -69,9 +120,6 @@ class EnMAPBoxApplication(QObject):
 
     def __init__(self, enmapBox, parent=None):
         super(EnMAPBoxApplication, self).__init__(parent)
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-
-        assert isinstance(enmapBox, EnMAPBox)
         self.enmapbox = enmapBox
         self.qgis = enmapBox.iface
         self.name = 'My App'
@@ -100,3 +148,7 @@ class EnMAPBoxApplication(QObject):
         :return:
         """
         return None
+
+if __name__ == '__main__':
+    #mini test
+    pass
