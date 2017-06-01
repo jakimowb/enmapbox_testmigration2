@@ -4,6 +4,10 @@ from processing.core.AlgorithmProvider import AlgorithmProvider
 
 class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
 
+    def __init__(self, *args, **kwds):
+        super(EnMAPBoxAlgorithmProvider, self).__init__(*args, **kwds)
+        self.dynamicallyAddedAlgs = []
+
     def getName(self):
         return 'EnMAP-Box'
 
@@ -20,3 +24,9 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         TestdataLoader(provider=self)
         EstimatorLoader(provider=self)
         AccuracyLoader(provider=self)
+
+        from processing.core.GeoAlgorithm import GeoAlgorithm
+        for alg in self.dynamicallyAddedAlgs:
+            assert isinstance(alg, GeoAlgorithm)
+            alg.provider = self
+            self.algs.append(alg)
