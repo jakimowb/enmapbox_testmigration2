@@ -23,5 +23,6 @@ def sandboxGuiOnly():
 
 
 if __name__ == '__main__':
-    if True: sandboxWithEnMapBox(False)
-    if False: sandboxGuiOnly()
+
+    if False: sandboxWithEnMapBox(False)
+    if True: sandboxGuiOnly()

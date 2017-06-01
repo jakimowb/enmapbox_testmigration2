@@ -3,7 +3,7 @@ from PyQt4.QtGui import *
 
 
 from enmapbox.gui.utils import loadUIFormClass
-from exampleapp import APP_DIR
+from __init__ import APP_DIR
 pathUi = os.path.join(APP_DIR, 'example.ui')
 class MyAppUserInterface(QDialog, loadUIFormClass(pathUi)):
     """Constructor."""
@@ -15,6 +15,7 @@ class MyAppUserInterface(QDialog, loadUIFormClass(pathUi)):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+
         self.initUiElements()
         self.radioButtonSet1.setChecked(True)
         self.updateSummary()
@@ -59,8 +60,6 @@ class MyAppUserInterface(QDialog, loadUIFormClass(pathUi)):
 
 
 
-from processing.core.Processing import Processing
-from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterRaster
 from processing.core.outputs import OutputRaster
