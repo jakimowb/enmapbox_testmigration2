@@ -1,4 +1,4 @@
-
+import qgis
 def sandboxWithEnMapBox(loadPF=False):
     """Minimum example to the this application"""
     from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui

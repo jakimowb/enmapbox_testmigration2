@@ -9,9 +9,9 @@ class MyEnMAPBoxApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super(MyEnMAPBoxApp, self).__init__(enmapBox,parent=parent)
         self.name = 'My EnMAPBox App'
-        self.version = 'Version 42'
+        self.version = 'Version 0.42'
         self.licence = 'BSD-3'
-        s = ""
+        #todo: more requirements?
 
     def icon(self):
         pathIcon = os.path.join(APP_DIR, 'icon.png')
