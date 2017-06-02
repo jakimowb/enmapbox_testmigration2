@@ -1,7 +1,3 @@
-#from __future__ import absolute_import
-
-import site
-
 import qgis.core
 import qgis.gui
 from qgis import utils as qgsUtils

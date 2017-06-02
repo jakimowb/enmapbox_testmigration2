@@ -140,7 +140,7 @@ def sandboxGUI():
 def initQgisEnvironment():
     """
     Initializes the QGIS Environment
-    :return:
+    :return: QgsApplication instance
     """
     import site
 
@@ -164,7 +164,9 @@ def initQgisEnvironment():
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
 
     assert os.path.exists(PATH_QGS)
+
     qgsApp = QgsApplication([], True)
+    qgsApp.setGraphicsSystem("raster")
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
     import enmapbox.gui
