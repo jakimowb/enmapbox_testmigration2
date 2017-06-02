@@ -39,10 +39,8 @@ def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     return results
 
 
-loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
-
 FORM_CLASSES = dict()
-
+loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 def loadUIFormClass(pathUi, from_imports=False):
     """
     Load UI files and takes care on Qgs custom widgets
@@ -51,20 +49,18 @@ def loadUIFormClass(pathUi, from_imports=False):
     :return:
     """
     RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
-    DIR_GUI = os.path.dirname(pathUi)
     assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
 
     buffer = StringIO.StringIO() #buffer to store modified XML
     if pathUi not in FORM_CLASSES.keys():
-        #In <customwidget> with <class>Qgs...</class>
-        # replace *.h file references like
-        #       <header>qgscolorbutton.h</header>
-        # by    <header>qgis.gui</header>
-
-
         #parse *.ui xml and replace *.h by qgis.gui
         doc = QDomDocument()
         doc.setContent(QFile(pathUi))
+
+        # Replace *.h file references in <customwidget> with <class>Qgs...</class>, e.g.
+        #       <header>qgscolorbutton.h</header>
+        # by    <header>qgis.gui</header>
+        # this is require to compile QgsWidgets on-the-fly
         elem = doc.elementsByTagName('customwidget')
         for child in [elem.item(i) for i in range(elem.count())]:
             child = child.toElement()
@@ -73,7 +69,7 @@ def loadUIFormClass(pathUi, from_imports=False):
                 cHeader = child.firstChildElement('header').firstChild()
                 cHeader.setNodeValue('qgis.gui')
 
-        #find resource file locations
+        #collect resource file locations
         elem = doc.elementsByTagName('include')
         qrcPathes = []
         for child in [elem.item(i) for i in range(elem.count())]:
@@ -83,17 +79,13 @@ def loadUIFormClass(pathUi, from_imports=False):
 
         s = str(doc.toString())
 
-
         logger.debug('Load UI file: {}'.format(pathUi))
         buffer.write(s)
         buffer.flush()
-
         buffer.seek(0)
 
-        #make resource file directories available
+        #make resource file directories temporary available
         baseDir = os.path.dirname(pathUi)
-
-
         tmpDirs = []
         for qrcPath in qrcPathes:
             d = os.path.dirname(os.path.join(baseDir, os.path.dirname(qrcPath)))
@@ -101,8 +93,8 @@ def loadUIFormClass(pathUi, from_imports=False):
                 tmpDirs.append(d)
         sys.path.extend(tmpDirs)
 
+        #load form class
         FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
-        #FORM_CLASS, _ = uic.loadUiType(pathUi,from_imports=from_imports, resource_suffix=RC_SUFFIX)
         FORM_CLASSES[pathUi] = FORM_CLASS
 
         for d in tmpDirs:
