@@ -118,6 +118,23 @@ class ProcessingAlgorithmsManager(QObject):
         else:
             return None
 
+    def addAlgorithms(self, providerName, geoAlgorithms):
+        from processing.core.GeoAlgorithm import GeoAlgorithm
+        from processing.core.AlgorithmProvider import AlgorithmProvider
+
+        if isinstance(providerName, AlgorithmProvider):
+            p = providerName
+        else:
+            p = self.algList.getProviderFromName(providerName)
+
+        pAlgs = self.algList.algs[p.getName()]
+        if isinstance(p, AlgorithmProvider):
+            for ga in geoAlgorithms:
+                assert isinstance(ga, GeoAlgorithm)
+                #todo: remove from previous provider
+                ga.provider = p
+                pAlgs[ga.commandLineName()] = ga
+            self.algList.providerUpdated.emit(p.getName())
 
     def openCommander(self):
         from processing.gui.CommanderWindow import CommanderWindow
