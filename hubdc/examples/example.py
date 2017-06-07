@@ -37,7 +37,7 @@ def script():
     # add output
     applier['ndvi'] = ApplierOutput(r'c:\output\ndvi.tif', format='ENVI', creationOptions=['INTERLEAVE=BSQ'])
 
-    # run
+    # apply
     applier.run()
 
 

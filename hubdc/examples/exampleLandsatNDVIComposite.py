@@ -11,7 +11,7 @@ def script():
     cfmask, red, nir = LandsatArchiveParser.getFilenames(archive=r'C:\Work\data\gms\landsat',
                                                          footprints=['194024'], names=['cfmask', 'red', 'nir'])
 
-    # setup and run _applier
+    # setup and apply _applier
     applier = Applier(grid=grid, ufuncClass=NDVICompositor, nworker=1, nwriter=1, windowxsize=256, windowysize=256)
     applier['cfmask'] = ApplierInput(cfmask, resampleAlg=gdal.GRA_Mode, errorThreshold=0.)
     applier['red'] = ApplierInput(red, resampleAlg=gdal.GRA_Average, errorThreshold=0.)

@@ -17,7 +17,7 @@ def script(grid, files, bands, processes, outdir,
         outDSList.append(outDS)
 
 
-    # run tile-based warping
+    # apply tile-based warping
     from multiprocessing import Pool
     pool = Pool(processes=processes)
 

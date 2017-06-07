@@ -1,3 +1,4 @@
+import os
 from osgeo import osr
 from rios.pixelgrid import PixelGridDefn, pixelGridFromFile
 
@@ -20,6 +21,8 @@ class PixelGrid(PixelGridDefn):
 
     @classmethod
     def fromFile(clf, filename):
+        if not os.path.exists(filename):
+            raise Exception('file not found: '+str(filename))
         return clf.fromPixelGrid(pixelGridFromFile(filename))
 
     def __init__(self, geotransform=None, nrows=None, ncols=None, projection=None,
@@ -62,12 +65,39 @@ class PixelGrid(PixelGridDefn):
     def reproject(self, targetGrid):
         return PixelGrid.fromPixelGrid(PixelGridDefn.reproject(self, targetGrid))
 
-    def buffer(self, buffer, north=True, west=True, south=True, east=True):
+    def reprojectExtent(self, targetProjection):
+
+        targetProjection = osr.SpatialReference(str(targetProjection))
+        selfProjection = osr.SpatialReference(str(self.projection))
+
+        t = osr.CoordinateTransformation(selfProjection, targetProjection)
+
+        (tl_x, tl_y, z) = t.TransformPoint(self.xMin, self.yMax)
+        (bl_x, bl_y, z) = t.TransformPoint(self.xMin, self.yMin)
+        (tr_x, tr_y, z) = t.TransformPoint(self.xMax, self.yMax)
+        (br_x, br_y, z) = t.TransformPoint(self.xMax, self.yMin)
+
+        xMin = min(tl_x, bl_x)
+        xMax = max(tr_x, br_x)
+        yMin = min(bl_y, br_y)
+        yMax = max(tl_y, tr_y)
+
+        return xMin, xMax, yMin, yMax
+
+    def mapBuffer(self, buffer, north=True, west=True, south=True, east=True):
         buffered = self.copy()
         if west: buffered.xMin -= buffer
         if east: buffered.xMax += buffer
         if south: buffered.yMin -= buffer
         if north: buffered.yMax += buffer
+        return PixelGrid.fromPixelGrid(buffered)
+
+    def pixelBuffer(self, buffer, left=True, right=True, upper=True, lower=True):
+        buffered = self.copy()
+        if left: buffered.xMin -= buffer * self.xRes
+        if right: buffered.xMax += buffer * self.xRes
+        if lower: buffered.yMin -= buffer * self.yRes
+        if upper: buffered.yMax += buffer * self.yRes
         return PixelGrid.fromPixelGrid(buffered)
 
     def anchor(self, xAnchor, yAnchor):

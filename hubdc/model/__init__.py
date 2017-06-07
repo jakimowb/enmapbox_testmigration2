@@ -33,6 +33,8 @@ def CreateFromArray(pixelGrid, array, dstName='', format='MEM', creationOptions=
     else:
 
         if isinstance(array, numpy.ndarray):
+            if array.ndim == 2:
+                array = array[None]
             assert array.ndim == 3
         elif isinstance(array, list):
             assert all([subarray.ndim == 2 for subarray in array])

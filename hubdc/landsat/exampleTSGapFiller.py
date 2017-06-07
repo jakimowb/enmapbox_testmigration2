@@ -16,7 +16,7 @@ def script_rabe_local():
                                                                footprints=['194024'],
                                                                names=['cfmask', 'blue', 'red', 'nir'])
 
-    # setup and run _applier
+    # setup and apply _applier
     applier = Applier(grid=grid, ufuncClass=TSGapFiller, nworker=1, nwriter=2, windowxsize=256, windowysize=256)
     applier['cfmask'] = ApplierInput(cfmask)
     applier['blue'] = ApplierInput(blue)
@@ -45,7 +45,7 @@ def script_brazil_server():
                                                                footprints=['224071'],
                                                                names=['cfmask', 'blue', 'red', 'nir'])
 
-    # setup and run _applier
+    # setup and apply _applier
     applier = Applier(grid=grid, ufuncClass=TSGapFiller, nworker=1, nwriter=10, windowxsize=256, windowysize=256)
     applier['cfmask'] = ApplierInput(cfmask)
     applier['blue'] = ApplierInput(blue)

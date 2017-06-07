@@ -84,7 +84,7 @@ class TSGapFiller(ApplierOperator):
     def getAcquisitionDates(self):
         from os.path import basename
 
-        for name in self.getSubnames(name='cfmask'):
+        for name in self.getInputSubnames(name='cfmask'):
             dataset = self._applier.inputDatasets[name]
             sceneID = basename(dataset.gdalDataset.GetFileList()[0])[:21]
             year, doy = int(sceneID[9:13]), int(sceneID[13:16])

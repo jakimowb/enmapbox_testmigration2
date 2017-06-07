@@ -34,7 +34,7 @@ def getMGRSPixelGridsByNames(names, res, anchor, buffer=0):
         grid = grid.anchor(xAnchor=anchor[0], yAnchor=anchor[1])
         yield name, grid
 
-def getMGRSPixelGridsByShape(shape, res, anchor, buffer=0, trim=True):
+def getMGRSPixelGridsByShape(shape, res, anchor, pixelBuffer=0, trim=True):
 
     assert isinstance(shape, ogr.Geometry)
 
@@ -64,7 +64,7 @@ def getMGRSPixelGridsByShape(shape, res, anchor, buffer=0, trim=True):
                          xMin=min(xrange), xMax=max(xrange),
                          yMin=min(yrange), yMax=max(yrange),
                          xRes=res, yRes=res)
-        grid = grid.buffer(buffer=buffer)
+        grid = grid.pixelBuffer(buffer=pixelBuffer)
         grid = grid.anchor(xAnchor=anchor[0], yAnchor=anchor[1])
 
         yield name, grid

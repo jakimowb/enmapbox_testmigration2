@@ -4,101 +4,128 @@ from osgeo import gdal
 from timeit import default_timer as now
 from multiprocessing import Pool
 from hubdc.model.PixelGrid import PixelGrid
-from hubdc import Open
 from hubdc.applier.ApplierInput import ApplierInput
 from hubdc.applier.ApplierOutput import ApplierOutput
+from hubdc.applier.ApplierOperator import ApplierOperator
+from hubdc.applier.ApplierControls import ApplierControls
 from hubdc.applier.Writer import Writer
 from hubdc.applier.WriterProcess import WriterProcess
 from hubdc.applier.QueueMock import QueueMock
 
 _megaByte = 2**20
-DEFAULT_GDAL_CACHEMAX = 1000 * _megaByte
-DEFAULT_GDAL_DISABLE_READDIR_ON_OPEN = True
-DEFAULT_GDAL_MAX_DATASET_POOL_SIZE = 1000
-DEFAULT_GDAL_SWATH_SIZE = 1000 * _megaByte
 
 class Applier(object):
 
-    def __init__(self, grid, nworker=0, nwriter=0,
-                 windowxsize=256, windowysize=256, createEnviHeader=False):
+    AUTOGRID_EXTENT_UNION, AUTOGRID_EXTENT_INTERSECT = range(2)
+    AUTOGRID_RESOLUTION_MIN, AUTOGRID_RESOLUTION_MAX, AUTOGRID_RESOLUTION_AVERAGE = range(3)
 
-        assert isinstance(grid, PixelGrid)
-        self.grid = grid
-        self.windowxsize = windowxsize
-        self.windowysize = windowysize
-        self.createEnviHeader = createEnviHeader
+    def __init__(self):
         self.inputs = dict()
         self.outputs = dict()
-        self.nwriter = nwriter
-        self.nworker = nworker
-        self.multiprocessing = nworker > 0
-        self.singlewriter = nwriter == 0
+        self.controls = ApplierControls()
+        self._grid = None
 
-    def setInput(self, key, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
+    @property
+    def grid(self):
+        assert isinstance(self._grid, PixelGrid)
+        return self._grid
+
+    def setInput(self, key, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=1000*2**20, multithread=True):
         self.inputs[key] = ApplierInput(filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
-    def setInputList(self, key, filenames, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=100*2**20, multithread=False):
+    def getInput(self, key):
+        return self.inputs[key].filename
+
+    def setInputList(self, key, filenames, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=1000*2**20, multithread=True):
         for i, filename in enumerate(filenames):
             self.setInput(key=(key, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
     def setOutput(self, key, filename, format='GTiff', creationOptions=[]):
         self.outputs[key] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions)
 
-    def setOutputs(self, key, filenames, format='GTiff', creationOptions=[]):
+    def setOutputList(self, key, filenames, format='GTiff', creationOptions=[]):
         for i, filename in enumerate(filenames):
             self.setOutput(key=(key, i), filename=filename, format=format, creationOptions=creationOptions)
 
-    def run(self, ufuncClass, description=' ', *ufuncArgs, **ufuncKwargs):
+    def apply(self, operator, description=' ', *ufuncArgs, **ufuncKwargs):
 
-        self.ufuncClass = ufuncClass
+        import inspect
+        if inspect.isclass(operator):
+            self.ufuncClass = operator
+            self.ufuncFunction = None
+        elif callable(operator):
+            self.ufuncClass = ApplierOperator
+            self.ufuncFunction = operator
+        else:
+            raise ValueError('operator must be a class or callable')
+
         self.ufuncArgs = ufuncArgs
         self.ufuncKwargs = ufuncKwargs
 
         runT0 = now()
         print('start{description}\n..<init>'.format(description=description), end='..'); sys.stdout.flush()
+
+        self._runCreateGrid()
         self._runInitWriters()
         self._runInitPool()
-        self._runProcessSubgrids()
+        results = self._runProcessSubgrids()
         self._runClose()
 
         print('100%')
         s = (now()-runT0); m = s/60; h = m/60
         print('done{description}in {s} sec | {m}  min | {h} hours'.format(description=description, s=int(s), m=round(m, 2), h=round(h, 2))); sys.stdout.flush()
+        return results
+
+    def _runCreateGrid(self):
+
+        if self.controls.referenceGrid is not None:
+            self._grid = self.controls.referenceGrid
+        else:
+            self._grid = self.controls.makeAutoGrid(inputs=self.inputs)
 
     def _runInitWriters(self):
         self.writers = list()
         self.queues = list()
         self.queueMock = QueueMock()
-        for w in range(self.nwriter):
-            w = WriterProcess()
-            w.start()
-            self.writers.append(w)
-            self.queues.append(w.queue)
+        if self.controls.multiwriting:
+            for w in range(self.controls.nwriter):
+                w = WriterProcess()
+                w.start()
+                self.writers.append(w)
+                self.queues.append(w.queue)
         self.queueByFilename = self._getQueueByFilenameDict()
 
     def _runInitPool(self):
-        if self.multiprocessing:
+        if self.controls.multiprocessing:
             writers, self.writers = self.writers, None  # writers arn't pickable, need to detache them before passing self to Pool initializer
-            self.pool = Pool(processes=self.nworker, initializer=Worker.initialize, initargs=(self,))
+            self.pool = Pool(processes=self.controls.nworker, initializer=pickableWorkerInitialize, initargs=(self,))
             self.writers = writers  # put writers back
         else:
             Worker.initialize(applier=self)
 
     def _runProcessSubgrids(self):
 
-        subgrids = self.grid.subgrids(windowxsize=self.windowxsize, windowysize=self.windowysize)
-        applyResults = list()
+        subgrids = self.grid.subgrids(windowxsize=self.controls.windowxsize,
+                                      windowysize=self.controls.windowysize)
+        if self.controls.multiprocessing:
+            applyResults = list()
+        else:
+            results = list()
+
         for i, subgrid in enumerate(subgrids):
             kwargs = {'i': i,
                       'n': len(subgrids),
                       'subgrid': subgrid}
 
-            if self.multiprocessing:
+            if self.controls.multiprocessing:
                 applyResults.append(self.pool.apply_async(func=pickableWorkerProcessSubgrid, kwds=kwargs))
             else:
-                Worker.processSubgrid(**kwargs)
+                results.append(Worker.processSubgrid(**kwargs))
 
-        results = [applyResult.get() for applyResult in applyResults]
+        if self.controls.multiprocessing:
+            results = [applyResult.get() for applyResult in applyResults]
+
+        return results
 
     def _getQueueByFilenameDict(self):
 
@@ -111,19 +138,19 @@ class Applier(object):
 
         queueByFilename = dict()
         for output in self.outputs.values():
-            if self.singlewriter:
-                queueByFilename[output.filename] = self.queueMock
-            else:
+            if self.controls.multiwriting:
                 queueByFilename[output.filename] = lessFilledQueue()
+            else:
+                queueByFilename[output.filename] = self.queueMock
         return queueByFilename
 
     def _runClose(self):
-        if self.multiprocessing:
+        if self.controls.multiprocessing:
             self.pool.close()
             self.pool.join()
 
         for writer in self.writers:
-            writer.queue.put([Writer.CLOSE_DATASETS, self.createEnviHeader])
+            writer.queue.put([Writer.CLOSE_DATASETS, self.controls.createEnviHeader])
             writer.queue.put([Writer.CLOSE_WRITER, None])
             writer.join()
 
@@ -143,10 +170,10 @@ class Worker(object):
     @classmethod
     def initialize(cls, applier):
 
-        gdal.SetCacheMax(DEFAULT_GDAL_CACHEMAX)
-        gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', str(DEFAULT_GDAL_DISABLE_READDIR_ON_OPEN))
-        gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', str(DEFAULT_GDAL_MAX_DATASET_POOL_SIZE))
-        gdal.SetConfigOption('GDAL_SWATH_SIZE', str(DEFAULT_GDAL_SWATH_SIZE))
+        gdal.SetCacheMax(applier.controls.cacheMax)
+        gdal.SetConfigOption('GDAL_SWATH_SIZE', str(applier.controls.swathSize))
+        gdal.SetConfigOption('GDAL_DISABLE_READDIR_ON_OPEN', str(applier.controls.disableReadDirOnOpen))
+        gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', str(applier.controls.maxDatasetPoolSize))
 
         assert isinstance(applier, Applier)
         cls.inputDatasets = dict()
@@ -155,10 +182,10 @@ class Worker(object):
         cls.outputFilenames = dict()
         cls.outputOptions = dict()
 
-        # open datasets of current main grid
+        # prepare datasets of current main grid without opening
         for i, (key, applierInput) in enumerate(applier.inputs.items()):
             assert isinstance(applierInput, ApplierInput)
-            cls.inputDatasets[key] = None #Open(applierInput.filename)
+            cls.inputDatasets[key] = None
             cls.inputFilenames[key] = applierInput.filename
             cls.inputOptions[key] = applierInput.options
 
@@ -172,12 +199,16 @@ class Worker(object):
                                           inputDatasets=cls.inputDatasets, inputFilenames=cls.inputFilenames, inputOptions=cls.inputOptions,
                                           outputFilenames=cls.outputFilenames, outputOptions=cls.outputOptions,
                                           queueByFilename=applier.queueByFilename,
-                                          ufuncArgs=applier.ufuncArgs, ufuncKwargs=applier.ufuncKwargs)
+                                          ufuncFunction=applier.ufuncFunction, ufuncArgs=applier.ufuncArgs, ufuncKwargs=applier.ufuncKwargs)
 
     @classmethod
     def processSubgrid(cls, i, n, subgrid):
         print(int(float(i)/n*100), end='%..'); sys.stdout.flush()
-        cls.operator.run(subgrid=subgrid, iblock=i, nblock=n)
+        return cls.operator.apply(subgrid=subgrid, iblock=i, nblock=n)
 
 def pickableWorkerProcessSubgrid(**kwargs):
-    Worker.processSubgrid(**kwargs)
+    return Worker.processSubgrid(**kwargs)
+
+def pickableWorkerInitialize(*args):
+    return Worker.initialize(*args)
+

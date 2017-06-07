@@ -1,11 +1,11 @@
 from hubdc import Open
 from hubdc.model.PixelGrid import PixelGrid
 from hubdc.applier.Writer import Writer
-from numpy import array, argmin
+import numpy
 
 class ApplierOperator(object):
 
-    def __init__(self, maingrid, inputDatasets, inputFilenames, inputOptions, outputFilenames, outputOptions, queueByFilename, ufuncArgs, ufuncKwargs):
+    def __init__(self, maingrid, inputDatasets, inputFilenames, inputOptions, outputFilenames, outputOptions, queueByFilename, ufuncArgs, ufuncKwargs, ufuncFunction=None):
         assert isinstance(maingrid, PixelGrid)
         self.subgrid = None
         self.maingrid = maingrid
@@ -17,6 +17,7 @@ class ApplierOperator(object):
         self.queueByFilename = queueByFilename
         self.ufuncArgs = ufuncArgs
         self.ufuncKwargs = ufuncKwargs
+        self.ufuncFunction = ufuncFunction
         self.iblock = 0
         self.nblock = 0
 
@@ -31,20 +32,20 @@ class ApplierOperator(object):
     def isLastBlock(self):
         return self.iblock == self.nblock-1
 
-    def getArray(self, name, indicies=None, wavelength=None, dtype=None, scale=None):
+    def getArray(self, name, indicies=None, wavelength=None, overlap=0, dtype=None, scale=None):
 
         if indicies is None and wavelength is None:
-            array = self._getImage(name=name, dtype=dtype, scale=scale)
+            array = self._getImage(name=name, overlap=overlap, dtype=dtype, scale=scale)
         elif isinstance(indicies, list):
-            array = self._getBandSubset(name=name, indicies=indicies, dtype=dtype)
+            array = self._getBandSubset(name=name, overlap=overlap, indicies=indicies, dtype=dtype)
         elif isinstance(indicies, int):
-            array = self._getBandSubset(name=name, indicies=[indicies], dtype=dtype)
+            array = self._getBandSubset(name=name, overlap=overlap, indicies=[indicies], dtype=dtype)
         elif isinstance(wavelength, list):
             indicies = [self.findWavebandIndex(name=name, targetWavelength=wl) for wl in wavelength]
-            array = self.getArray(name=name, indicies=indicies)
+            array = self.getArray(name=name, overlap=overlap, indicies=indicies)
         elif isinstance(wavelength, int):
             indicies = self.findWavebandIndex(name=name, targetWavelength=wavelength)
-            array = self.getArray(name=name, indicies=indicies)
+            array = self.getArray(name=name, overlap=overlap, indicies=indicies)
         else:
             raise ValueError('wrong value for indicies or wavelength')
 
@@ -52,7 +53,7 @@ class ApplierOperator(object):
 
     def getArrayIterator(self, name, indicies=None, wavelength=None, dtype=None, scale=None):
 
-        for name, i in self.getSubnames(name):
+        for name, i in self.getInputSubnames(name):
 
             if indicies is None:
                 iindicies = None
@@ -76,13 +77,21 @@ class ApplierOperator(object):
 
             yield self.getArray(name=(name, i), indicies=iindicies, wavelength=iwavelength, dtype=dtype, scale=scale)
 
-    def getSubnames(self, name):
+    def getInputSubnames(self, name):
+        for subname in self._getSubnames(name, self.inputFilenames):
+            yield subname
+
+    def getOutputSubnames(self, name):
+        for subname in self._getSubnames(name, self.outputFilenames):
+            yield subname
+
+    def _getSubnames(self, name, subnames):
         i = 0
-        if (name, 0) not in self.inputDatasets:
+        if (name, 0) not in subnames:
             raise KeyError('{name} is not an image list'.format(name=name))
 
         while True:
-            if (name, i) in self.inputDatasets:
+            if (name, i) in subnames:
                 yield (name, i)
                 i += 1
             else:
@@ -97,7 +106,7 @@ class ApplierOperator(object):
         if wavelength is None or wavelengthUnits is None:
             raise Exception('missing wavelength or wavelength units information')
 
-        wavelength = array(wavelength)
+        wavelength = numpy.array(wavelength)
         if wavelengthUnits.lower() == 'micrometers':
             wavelength *= 1000.
         elif wavelengthUnits.lower() == 'nanometers':
@@ -105,26 +114,30 @@ class ApplierOperator(object):
         else:
             raise Exception('wavelength units must be nanometers or micrometers')
 
-        return int(argmin(abs(wavelength - wavelength)))
+        return int(numpy.argmin(abs(wavelength - wavelength)))
 
-    def _getDataset(self, name):
+    def _getInputDataset(self, name):
         if name not in self.inputDatasets:
             raise Exception('{name} is not a single image input'.format(name=name))
 
         if self.inputDatasets[name] is None:
             self.inputDatasets[name] = Open(filename=self.inputFilenames[name])
-        return self.inputDatasets[name], self.inputOptions[name]
+        return self.inputDatasets[name]
 
-    def _getImage(self, name, dtype, scale):
+    def _getInputOptions(self, name):
+        return self.inputOptions[name]
 
-        dataset, options = self._getDataset(name)
+    def _getImage(self, name, overlap, dtype, scale):
 
+        dataset = self._getInputDataset(name)
+        options = self._getInputOptions(name)
+        grid = self.grid.pixelBuffer(buffer=overlap)
         if self.grid.equalProjection(dataset.pixelGrid):
-            datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
+            datasetResampled = dataset.translate(dstPixelGrid=grid, dstName='', format='MEM',
                                                  resampleAlg=options['resampleAlg'],
                                                  noData=options['noData'])
         else:
-            datasetResampled = dataset.warp(dstPixelGrid=self.grid, dstName='', format='MEM',
+            datasetResampled = dataset.warp(dstPixelGrid=grid, dstName='', format='MEM',
                                             resampleAlg=options['resampleAlg'],
                                             errorThreshold=options['errorThreshold'],
                                             warpMemoryLimit=options['warpMemoryLimit'],
@@ -134,26 +147,25 @@ class ApplierOperator(object):
         datasetResampled.close()
         return array
 
-    def _getBandSubset(self, name, indicies, dtype):
+    def _getBandSubset(self, name, indicies, overlap, dtype):
 
-        dataset, options = self._getDataset(name)
+        dataset, options = self._getInputDataset(name)
         bandList = [i + 1 for i in indicies]
-
+        grid = self.grid.pixelBuffer(buffer=overlap)
         if self.grid.equalProjection(dataset.pixelGrid):
-            datasetResampled = dataset.translate(dstPixelGrid=self.grid, dstName='', format='MEM',
+            datasetResampled = dataset.translate(dstPixelGrid=grid, dstName='', format='MEM',
                                                  bandList=bandList,
                                                  resampleAlg=options['resampleAlg'],
                                                  noData=options['noData'])
         else:
             selfGridReprojected = self.grid.reproject(dataset.pixelGrid)
-            height, width = selfGridReprojected.getDimensions()
-            selfGridReprojectedWithBuffer = selfGridReprojected.subsetPixelWindow(xoff=-1, yoff=-1, width=width + 2,
-                                                                                  height=height + 2)
+            selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1+overlap)
+
             datasetClipped = dataset.translate(dstPixelGrid=selfGridReprojectedWithBuffer, dstName='', format='MEM',
                                                bandList=bandList,
                                                noData=options['noData'])
 
-            datasetResampled = datasetClipped.warp(dstPixelGrid=self.grid, dstName='', format='MEM',
+            datasetResampled = datasetClipped.warp(dstPixelGrid=grid, dstName='', format='MEM',
                                                    resampleAlg=options['resampleAlg'],
                                                    errorThreshold=options['errorThreshold'],
                                                    warpMemoryLimit=options['warpMemoryLimit'],
@@ -165,14 +177,25 @@ class ApplierOperator(object):
         datasetResampled.close()
         return array
 
-    def getFilename(self, name):
+    def getInputFilename(self, name):
+        return self.inputFilenames[name]
+
+    def getOutputFilename(self, name):
         return self.outputFilenames[name]
 
-    def setData(self, name, array, replace=None, scale=None, dtype=None):
+    def setArray(self, name, array, overlap=0, replace=None, scale=None, dtype=None):
 
-        from numpy import nan, isnan, equal
+        if not isinstance(array, numpy.ndarray):
+            array = numpy.array(array)
+
+        if array.ndim == 2:
+            array = array[None]
+
+        if overlap > 0:
+            array = array[:, overlap:-overlap, overlap:-overlap]
+
         if replace is not None:
-            mask = isnan(array) if replace[0] is nan else equal(array, replace[0])
+            mask = numpy.isnan(array) if replace[0] is numpy.nan else numpy.equal(array, replace[0])
 
         if scale is not None:
             array *= scale
@@ -183,23 +206,38 @@ class ApplierOperator(object):
         if replace is not None:
             array[mask] = replace[1]
 
-        filename = self.getFilename(name)
+        filename = self.getOutputFilename(name)
         self.queueByFilename[filename].put((Writer.WRITE_ARRAY, filename, array, self.grid, self.maingrid, self.outputOptions[name]['format'], self.outputOptions[name]['creationOptions']))
 
+    def setArrayList(self, name, arrays, overlap=0, replace=None, scale=None, dtype=None):
+
+        for (subname, i) in self.getOutputSubnames(name):
+            self.setArray(name=(subname, i), array=arrays[i], overlap=overlap,
+                          replace=replace[i] if isinstance(replace, list) else replace,
+                          scale=scale[i] if isinstance(scale, list) else scale,
+                          dtype=dtype[i] if isinstance(dtype, list) else dtype,)
+
     def setMetadataItem(self, name, key, value, domain):
-        filename = self.getFilename(name)
+        filename = self.getOutputFilename(name)
         self.queueByFilename[filename].put((Writer.SET_META, filename, key, value, domain))
-        #self.queueByFilename[filename].put((WriterProcess.FLUSH_CACHE, filename))
+
+    def getMetadataItem(self, name, key, domain):
+        dataset = self._getInputDataset(name)
+        return dataset.getMetadataItem(key=key, domain=domain)
 
     def setNoDataValue(self, name, value):
-        filename = self.getFilename(name)
+        filename = self.getOutputFilename(name)
         self.queueByFilename[filename].put((Writer.SET_NODATA, filename, value))
 
-    def run(self, subgrid, iblock, nblock):
+    def apply(self, subgrid, iblock, nblock):
         self.iblock = iblock
         self.nblock = nblock
         self.subgrid = subgrid
-        self.ufunc(*self.ufuncArgs, **self.ufuncKwargs)
+        return self.ufunc(*self.ufuncArgs, **self.ufuncKwargs)
 
     def ufunc(self, *args, **kwargs):
-        raise NotImplementedError()
+        if self.ufuncFunction is None:
+            raise NotImplementedError()
+        else:
+            return self.ufuncFunction(self, *args, **kwargs)
+

@@ -20,10 +20,6 @@ def runROI():
         pool = ThreadPool(processes=napplier)
 
     landsatArchive = r'H:\EuropeanDataCube\landsat'
-    #landsatArchive = r'H:\EuropeanDataCube\landsatTestAR'
-
-    #    landsatArchive = r'C:\Work\data\gms\landsat'
-
 
     roi = getWRS2FootprintsGeometry(footprints=LandsatArchiveParser.getFootprints(archive=landsatArchive))
     i=0
@@ -56,13 +52,12 @@ def runFootprint(mgrsFootprint, grid, landsatArchive, nworker, nwriter):
 
     applier = Applier(grid=grid, nworker=nworker, nwriter=nwriter, windowxsize=25600, windowysize=25600)
     applier.setInputs('cfmask', filenames=cfmask, noData=255, errorThreshold=0.125, warpMemoryLimit=1000*2**20, multithread=True)
-
-    #applier.setInputs('sr1', filenames=sr1, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
-    #applier.setInputs('sr2', filenames=sr2)
-    #applier.setInputs('sr3', filenames=sr3)
-    #applier.setInputs('sr4', filenames=sr4)
-    #applier.setInputs('sr5', filenames=sr5)
-    #applier.setInputs('sr6', filenames=sr6)
+    applier.setInputs('sr1', filenames=sr1, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
+    applier.setInputs('sr2', filenames=sr2, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
+    applier.setInputs('sr3', filenames=sr3, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
+    applier.setInputs('sr4', filenames=sr4, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
+    applier.setInputs('sr5', filenames=sr5, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
+    applier.setInputs('sr6', filenames=sr6, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
 
     applier.setOutput('dataAvailability', filename=r'h:\ar_temp\dataAvailability{mgrsFootprint}.img'.format(mgrsFootprint=mgrsFootprint), format='GTiff')
     applier.run(ufuncClass=ClearObservations, description=descr)

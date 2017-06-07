@@ -43,7 +43,7 @@ def script(grid, files, bands, processes, outdir, format, creationOptions, windo
         writer.start()
         writers.append(writer)
 
-    # run tile-based processing
+    # apply tile-based processing
     queues = [writer.queue for writer in writers]
     pool = Pool(processes=processes, initializer=initializer, initargs=(queues,))
     for windowgrid in grid.iterSubgrids(windowxsize=windowxsize, windowysize=windowysize):

@@ -52,7 +52,7 @@ def script(grid, files, bands, processes, outdir, format, creationOptions, windo
             bandwriter.start()
             bandwriters.append(bandwriter)
 
-    # run tile-based processing
+    # apply tile-based processing
     queues = [w.queue for w in bandwriters]
     pool = Pool(processes=processes, initializer=initializer, initargs=(queues,))
     for windowgrid in grid.iterSubgrids(windowxsize=windowxsize, windowysize=windowysize):
