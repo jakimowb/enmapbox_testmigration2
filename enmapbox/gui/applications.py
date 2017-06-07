@@ -92,8 +92,8 @@ class ApplicationRegistry(QObject):
                 parentMenu.addMenu(item)
 
             elif isinstance(item, QAction):
-                    item.setParent(parentMenu)
-                    parentMenu.addAction(item)
+                item.setParent(parentMenu)
+                parentMenu.addAction(item)
                 appWrapper.menuItem.append(item)
 
 
