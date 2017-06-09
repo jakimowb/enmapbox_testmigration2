@@ -46,6 +46,17 @@ class PixelGrid(PixelGridDefn):
                                                                                          projection=projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
                                                                                          xRes=xRes, yRes=yRes))
 
+    @property
+    def xSize(self):
+        return int(round(float(self.xMax - self.xMin) / self.xRes))
+
+    @property
+    def ySize(self):
+        return int(round(float(self.yMax-self.yMin)/self.yRes))
+
+    def getDimensions(self):
+        return self.ySize, self.xSize
+
     def equalUL(self, other):
         return (self.xMin == other.xMin and
                 self.yMax == other.yMax)

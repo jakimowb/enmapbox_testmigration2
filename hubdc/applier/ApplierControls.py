@@ -58,16 +58,16 @@ class ApplierControls(object):
     def setReferenceImage(self, filename):
         self.setReferenceGrid(grid=PixelGrid.fromFile(filename))
 
-    def setGDALCacheMax(self, bytes=100*2**20):
+    def setGDALCacheMax(self, bytes=1000*2**20):
         self.cacheMax = bytes
 
-    def setGDALSwathSize(self, bytes=100*2**20):
+    def setGDALSwathSize(self, bytes=1000*2**20):
         self.swathSize = bytes
 
     def setGDALDisableReadDirOnOpen(self, disable=True):
         self.disableReadDirOnOpen = disable
 
-    def setGDALMaxDatasetPoolSize(self, nfiles=100):
+    def setGDALMaxDatasetPoolSize(self, nfiles=1000):
         self.maxDatasetPoolSize = nfiles
 
     @property
