@@ -175,9 +175,34 @@ class Dataset():
 
         ulx, uly, lrx, lry, xRes, yRes = tuple(
             getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin', 'xRes', 'yRes'))
-        translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,
-                                                 creationOptions=creationOptions, **kwargs)
-        gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
+
+        # Note that given a projWin, it is not garantied that gdal.Translate will produce a dataset
+        # with the same pixel extent as gdal.Warp!
+        # The problem seams to only appear if the target resolution is smaller than the source resolution.
+
+        if self.pixelGrid.xRes > dstPixelGrid.xRes or self.pixelGrid.yRes > dstPixelGrid.yRes:
+            if format != 'MEM':
+                raise Exception('spatial resolution oversampling is only supported for MEM format')
+
+            # read one extra source column and line
+            translateOptions = gdal.TranslateOptions(format=format, creationOptions=creationOptions,
+                                                     projWin=[ulx, uly, lrx+self.pixelGrid.xRes, lry-self.pixelGrid.yRes],
+                                                     xRes=xRes, yRes=yRes, **kwargs)
+            tmpGdalDataset = gdal.Translate(destName='', srcDS=self.gdalDataset, options=translateOptions)
+
+            # subset to the exact target grid
+            translateOptions = gdal.TranslateOptions(format=format, creationOptions=creationOptions,
+                                                     srcWin=[0, 0, dstPixelGrid.xSize, dstPixelGrid.ySize])
+            gdalDataset = gdal.Translate(destName='', srcDS=tmpGdalDataset, options=translateOptions)
+
+        else:
+            translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,
+                                                     creationOptions=creationOptions, **kwargs)
+            gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
+
+        # make sure, that the workaround is correct
+        assert gdalDataset.RasterXSize == dstPixelGrid.xSize and gdalDataset.RasterYSize == dstPixelGrid.ySize
+
         return Dataset(gdalDataset=gdalDataset)
 
 
