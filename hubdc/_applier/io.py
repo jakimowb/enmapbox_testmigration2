@@ -9,3 +9,15 @@ class ApplierInput(object):
                         'errorThreshold' : errorThreshold,
                         'warpMemoryLimit' : warpMemoryLimit,
                         'multithread' : multithread}
+
+class ApplierOutput(object):
+
+    def __init__(self, filename, format='GTiff', creationOptions=[]):
+        self.filename = filename
+        self.options = {'format': format, 'creationOptions': creationOptions}
+
+class ApplierVector(object):
+
+    def __init__(self, filename, layer=0):
+        self.filename = filename
+        self.layer = layer

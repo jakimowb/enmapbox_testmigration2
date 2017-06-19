@@ -1,4 +1,5 @@
-from hubdc import PixelGrid, Applier, ApplierOperator
+from hubdc.applier import PixelGrid, Applier
+from hubdc.applier import ApplierOperator
 
 def script():
 
@@ -6,15 +7,17 @@ def script():
     filename = r'C:\Work\data\gms\landsat\194\024\LC81940242015235LGN00\LC81940242015235LGN00_sr_band1.img'
 
     grid = PixelGrid(projection='EPSG:3035', xRes=100, yRes=100, xMin=4400000, xMax=4440000, yMin=3150000, yMax=3200000)
-    applier = Applier(grid=grid, nworker=0, nwriter=0, windowxsize=256, windowysize=256)
+    applier = Applier()
     applier.setInput('in', filename=filename)
     applier.setOutput('out', filename=r'c:\output\out.tif', format='ENVI')
-    applier.run(ufuncClass=SimpleIO)
+    applier.controls.setProgressBar()
+    applier.apply(operator=SimpleIO)
 
 class SimpleIO(ApplierOperator):
 
     def ufunc(self):
-        self.setData('out', array=self.getArray('in'))
+        return
+        self.setArray('out', array=self.getArray('in'))
 
         if self.isFirstBlock():
             self.myValue = 42
