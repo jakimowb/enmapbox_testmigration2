@@ -1,7 +1,8 @@
-from osgeo import gdal
+from osgeo import gdal, gdal_array
 from multiprocessing import Process, Queue
 from time import sleep
-from hubdc.model import CreateFromArray
+import numpy
+from hubdc.model import Create
 
 class Writer():
 
@@ -24,10 +25,12 @@ class Writer():
 
     @staticmethod
     def createDataset(outputDatasets, filename, array, grid, format, creationOptions):
-        outputDatasets[filename] = CreateFromArray(pixelGrid=grid, array=array,
-                                                   dstName=filename,
-                                                   format=format,
-                                                   creationOptions=creationOptions)
+        if not isinstance(array, numpy.ndarray) or array.ndim != 3:
+            raise Exception('array must be a 3-d numpy array')
+
+        outputDatasets[filename] = Create(pixelGrid=grid, bands=len(array),
+                                          eType=gdal_array.NumericTypeCodeToGDALTypeCode(array.dtype),
+                                          dstName=filename, format=format, creationOptions=creationOptions)
 
     @staticmethod
     def closeDatasets(outputDatasets, createEnviHeader):
@@ -43,9 +46,9 @@ class Writer():
 
         if filename not in outputDatasets:
             Writer.createDataset(outputDatasets, filename, array, maingrid, format, creationOptions)
-        else:
-            outputDatasets[filename].writeArray(array=array, pixelGrid=subgrid)
-            outputDatasets[filename].flushCache()
+
+        outputDatasets[filename].writeArray(array=array, pixelGrid=subgrid)
+        outputDatasets[filename].flushCache()
 
     @staticmethod
     def setMetadataItem(outputDatasets, filename, key, value, domain):

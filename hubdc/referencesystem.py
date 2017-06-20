@@ -3,7 +3,7 @@ from osgeo import osr, ogr
 from hubdc.model import PixelGrid
 
 def getMGRSShapefile():
-    return join(dirname(__file__), 'mgrs', 'mgrs.shp')
+    return join(dirname(__file__), 'gis', 'mgrs', 'mgrs.shp')
 
 def getMGRSPixelGridsByNames(names, res, anchor, buffer=0):
 
@@ -71,7 +71,7 @@ def getMGRSPixelGridsByShape(shape, res, anchor, pixelBuffer=0, trim=True):
         yield name, grid
 
 def getWRS2Shapefile():
-    return join(dirname(__file__), 'wrs2', 'wrs2.shp')
+    return join(dirname(__file__), 'gis', 'wrs2', 'wrs2.shp')
 
 def getWRS2NamesInsidePixelGrid(grid):
     assert isinstance(grid, PixelGrid)
