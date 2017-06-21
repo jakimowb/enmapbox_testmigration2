@@ -13,7 +13,7 @@ Welcome to the HUB-Datacube documentation!
 
     Introduction.rst
     ApplierExamples.rst
-    apidoc/modules.rst
+    modules.rst
 
 Indices and tables
 ==================
