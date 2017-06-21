@@ -12,15 +12,24 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+# Set up 'mock' modules, needed to build docs if numpy, gdal etc., aren't installed
+import sys
+import mock
+
+MOCK_MODULES = ['numpy','osgeo','osgeo.gdal_array','rios','rios.pixelgrid']
+
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
+#import os
+#import sys
 sys.path.insert(0, r'C:\Work\source\hub-datacube')
-sys.path.insert(0, r'C:\Work\source\enmap-box-site-packages')
-sys.path.insert(0, r'C:\Work\source\astropy')
+#sys.path.insert(0, r'C:\Work\source\enmap-box-site-packages')
+#sys.path.insert(0, r'C:\Work\source\astropy')
 
 
 # -- General configuration ------------------------------------------------
@@ -98,13 +107,13 @@ html_theme = 'alabaster'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_theme = "sphinx_rtd_theme"
-html_theme_path = ["_themes", ]
-html_theme_options = {
-    'collapse_navigation': False,
-    'display_version': False,
-    'navigation_depth': 10,
-}
+#html_theme = "sphinx_rtd_theme"
+#html_theme_path = ["_themes", ]
+#html_theme_options = {
+#    'collapse_navigation': False,
+#    'display_version': False,
+#    'navigation_depth': 10,
+#}
 
 # -- Options for HTMLHelp output ------------------------------------------
 
