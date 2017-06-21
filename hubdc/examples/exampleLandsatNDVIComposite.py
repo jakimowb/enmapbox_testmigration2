@@ -11,7 +11,7 @@ def script():
     cfmask, red, nir = LandsatArchiveParser.getFilenames(archive=r'C:\Work\data\gms\landsat',
                                                          footprints=['194024'], names=['cfmask', 'red', 'nir'])
 
-    # setup and run _applier
+    # setup and apply _applier
     applier = Applier(grid=grid, ufuncClass=NDVICompositor, nworker=1, nwriter=1, windowxsize=256, windowysize=256)
     applier['cfmask'] = ApplierInput(cfmask, resampleAlg=gdal.GRA_Mode, errorThreshold=0.)
     applier['red'] = ApplierInput(red, resampleAlg=gdal.GRA_Average, errorThreshold=0.)
@@ -29,9 +29,9 @@ class NDVICompositor(ApplierOperator):
         ysize, xsize = self.grid.getDimensions()
         ndvi = full((1, ysize, xsize), fill_value=nan, dtype=float32)
 
-        for cfmask, red, nir in zip(self.getDatas('cfmask'),
-                                    self.getDatas('red', dtype=float32),
-                                    self.getDatas('nir', dtype=float32)):
+        for cfmask, red, nir in zip(self.getArrayIterator('cfmask'),
+                                    self.getArrayIterator('red', dtype=float32),
+                                    self.getArrayIterator('nir', dtype=float32)):
             valid = cfmask == 0
             ndvi[valid] = normalizedDifference(nir[valid], red[valid])
 
