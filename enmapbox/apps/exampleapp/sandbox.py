@@ -30,6 +30,6 @@ def sandboxGuiOnlyNDVI():
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if False: sandboxGuiOnlyNDVI()
-    if True: sandboxWithEnMapBox(True)
+    if True: sandboxGuiOnlyNDVI()
+    if False: sandboxWithEnMapBox(True)
     if False: sandboxGuiOnly()
