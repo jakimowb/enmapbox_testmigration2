@@ -1,6 +1,6 @@
 ![EnMAP-Box Logo](http://www.enmap.org/sites/default/files/pictures/logos/logo-enmap-box-thumb.jpg)
 
-# WARNING: THIS SOFTWARE IS STILL UNDER CONSTRUCTION AND IN AN EARLY BETA PHASE #
+# Please note that the EnMAP-Box is in an early beta phase and we haven't released an official version yet.#
 
 If you want you can test it, but currently you won't be able to do a lot of useful things.
 
