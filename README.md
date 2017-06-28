@@ -2,7 +2,7 @@
 
 # Please note that the EnMAP-Box is in an early beta phase. We plan to release a first official version by September 2017.#
 
-If you want you can test it, but currently you won't be able to do a lot of useful things.
+If you like you might test it, but please note that several feature have not been fully implemented yet.
 
 # README #
 
