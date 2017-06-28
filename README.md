@@ -1,6 +1,6 @@
 ![EnMAP-Box Logo](http://www.enmap.org/sites/default/files/pictures/logos/logo-enmap-box-thumb.jpg)
 
-# Please note that the EnMAP-Box is in an early beta phase and we haven't released an official version yet.#
+# Please note that the EnMAP-Box is in an early beta phase. We plan to release a first official version by September 2017.#
 
 If you want you can test it, but currently you won't be able to do a lot of useful things.
 
