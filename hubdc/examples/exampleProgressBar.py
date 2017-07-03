@@ -1,5 +1,4 @@
-from hubdc.applier import PixelGrid, Applier
-from hubdc.applier import ApplierOperator
+from hubdc.applier import PixelGrid, Applier, ApplierOperator, CUIProgressBar, SilentProgressBar
 
 def script():
 
@@ -10,20 +9,14 @@ def script():
     applier = Applier()
     applier.setInput('in', filename=filename)
     applier.setOutput('out', filename=r'c:\output\out.tif', format='ENVI')
-    applier.controls.setProgressBar()
+    applier.controls.setProgressBar(progressBar=SilentProgressBar())
     applier.apply(operator=SimpleIO)
 
 class SimpleIO(ApplierOperator):
 
     def ufunc(self):
+        pass
 
-        self.setArray('out', array=self.getArray('in'))
-
-        if self.isFirstBlock():
-            self.myValue = 42
-
-        if self.isLastBlock():
-            self.setMetadataItem('out', 'my value', self.myValue, 'ENVI')
 
 if __name__ == '__main__':
     script()

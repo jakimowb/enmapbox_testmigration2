@@ -37,7 +37,10 @@ def CreateFromArray(pixelGrid, array, dstName='', format='MEM', creationOptions=
         raise TypeError
 
     bands = len(array)
-    eType = gdal_array.NumericTypeCodeToGDALTypeCode(array[0].dtype)
+    dtype = array[0].dtype
+    if dtype == numpy.bool:
+        dtype = numpy.uint8
+    eType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
     dataset = Create(pixelGrid, bands=bands, eType=eType, dstName=dstName, format=format, creationOptions=creationOptions)
     dataset.writeArray(array=array, pixelGrid=pixelGrid)
 
@@ -238,6 +241,7 @@ class Dataset():
 
     def writeArray(self, array, pixelGrid=None):
         assert len(array) == self.shape[0]
+
         for band, bandArray in zip(self, array):
             band.writeArray(bandArray, pixelGrid=pixelGrid)
 
@@ -446,7 +450,10 @@ class Band():
 
     def writeArray(self, array, pixelGrid=None):
 
-        pixelGrid = self.pixelGrid if pixelGrid is None else pixelGrid
+        if pixelGrid is None:
+            pixelGrid = self.pixelGrid
+
+        assert array.shape == pixelGrid.getDimensions()
         assert isinstance(pixelGrid, PixelGrid)
         assert self.pixelGrid.equalProjection(pixelGrid), 'selfProjection: '+self.pixelGrid.projection+'\notherProjection: '+pixelGrid.projection
         assert self.pixelGrid.equalPixSize(pixelGrid)

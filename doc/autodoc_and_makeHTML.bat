@@ -1,3 +1,4 @@
-sphinx-apidoc -f -o C:\Work\source\hub-datacube\doc\source C:\Work\source\hub-datacube\hubdc
-C:\Work\source\hub-datacube\doc\make html
-C:\Work\source\hub-datacube\doc\make.bat
+REM del .\source\hubdc.rst
+REM sphinx-apidoc -f -o .\source ..\hubdc
+REM del .\source\modules.rst
+make html

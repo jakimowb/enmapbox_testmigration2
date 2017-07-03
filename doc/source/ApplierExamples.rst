@@ -16,7 +16,7 @@ Simple Example
     Assumes that they have the same number of bands.
     """
     
-    from hubdc import Applier, ApplierOperator
+    from hubdc.applier import Applier, ApplierOperator
     
     # Set up input and output filenames.
     applier = Applier()
@@ -34,7 +34,7 @@ Simple Example
 
 Instead of providing the operator as an *user defined function*, you could also pass an *user defined class* which implemets the ``ufunc`` method::
 
-    from hubdc import ApplierOperator
+    from hubdc.applier import ApplierOperator
 
     # Set up the operator to be applied
     class AddThem(ApplierOperator):
@@ -94,10 +94,10 @@ For more information on the GDAL Data and Metadata Model see the
 Passing Other Data Example
 ==========================
 
-Use additional arguments and keyword arguments for passing other data to the user function, 
+Use additional arguments for passing other data into the user function,
 apart from the raster data itself. This is obviously useful for passing parameters into the processing. 
 
-Use the return statement to pass information out again.
+Use the ``return`` statement to pass information out again.
 
 A simple example, using it to pass in a single parameter, 
 might be a program to multiply an input raster by a scale value and add an offset::
@@ -109,7 +109,7 @@ might be a program to multiply an input raster by a scale value and add an offse
     
     applier.apply(rescale, scale=1, offset=0)
 
-An example of using the return statement to accumulate information across blocks might be a program 
+An example of using the ``return`` statement to accumulate information across blocks might be a program
 to calculate some statistic (e.g. the mean) across the whole raster::
 
     def accum(operator):
@@ -126,8 +126,7 @@ to calculate some statistic (e.g. the mean) across the whole raster::
     print('Average value = ', total / count)
     
 The ``total`` and ``count`` values are calculated from the list of ``blockTotal`` and ``blockCount`` values
-returned by the
-:meth:`~hubdc.applier.Applier.apply` method.
+returned by the :meth:`~hubdc.applier.Applier.apply` method.
 
 The values could be accumulated between blocks, as HUBDC loops sequentially over all blocks in the image,
 but this approach would fail if the applier is used with multiprocessing enabled.
@@ -146,7 +145,7 @@ Normally, HUBDC will raise an exception if the input rasters are on different pr
 but if requested to do so, it will reproject on-the-fly. 
 
 This is enabled by telling it which of the input rasters should be used as the reference 
-(all other inputs will be reprojected onto the reference pixel grid. 
+(all other inputs will be reprojected onto this reference pixel grid).
 This is done as follows::
 
     filename = 'image.img'
@@ -156,31 +155,23 @@ If the input rasters have the same projection, but differ in their spatial exten
 HUBDC will automatically calculate the pixel grid by deriving the *union* extent and the *minimum* resolution
 from all inputs.
 
-To alter this default behaviour, use for example the
-:meth:`~hubdc.applier.ApplierControls.setAutoFootprint` methods of the ``applier.controls`` object to change the footprint type to *intersection*::
+To alter this default behaviour, use for example the :meth:`~hubdc.applier.ApplierControls.setAutoFootprint`
+methods of the ``applier.controls`` object to change the footprint type to *intersection*::
 
     applier.controls.setAutoFootprint(footprintType='intersection')
 
-Or use
-:meth:`~hubdc.applier.ApplierControls.setAutoResolution` to set the resolution type to *average* or *maximum*::
+Or use :meth:`~hubdc.applier.ApplierControls.setAutoResolution` to set the resolution type to *average* or *maximum*::
 
     applier.controls.setAutoResolution(resolutionType='average')
 
-Instead of passing the ``footprintType`` or ``resolutionType`` as a string, you can also use the predefined constants from
-:mod:`hubdc.const`::
+Or explicitly define the reference pixel grid in terms of
+pixel resolution (use :meth:`~hubdc.applier.ApplierControls.setResolution`),
+spatial footprint (use :meth:`~hubdc.applier.ApplierControls.setFootprint`)
+and projection (use :meth:`~hubdc.applier.ApplierControls.setProjection`)::
 
-    from hubdc.const import FOOTPRINT_INTERSECTION, RESOLUTION_AVERAGE
-    applier.controls.setAutoFootprint(footprintType=FOOTPRINT_INTERSECTION)
-    applier.controls.setAutoResolution(resolutionType=RESOLUTION_AVERAGE)
-
-To explicitly set the reference pixel grid pass a
-:class:`~hubdc.model.PixelGrid` object to the
-:meth:`~hubdc.applier.ApplierControls.setReferenceGrid` method
-of the ``applier.controls`` object::
-
-    from hubdc.applier import PixelGrid
-    pixelGrid = PixelGrid(projection='EPSG:3035', xRes=100, yRes=100, xMin=4400000, xMax=4440000, yMin=3150000, yMax=3200000)
-    applier.controls.setReferenceGrid(grid=pixelGrid)
+    applier.controls.setFootprint(xMin=4400000, xMax=450000, yMin=3100000, yMax=3200000)
+    applier.controls.setResolution(xRes=30, yRes=30)
+    applier.controls.setProjection(projection='EPSG:3035')
 
 Other controls which can be manipulated are detailed in the source code documentation for the 
 :class:`~hubdc.applier.ApplierControls` class.
@@ -189,43 +180,53 @@ Arbitrary Numbers of Input (and Output) Files Example
 =====================================================
 
 Inputs can also be list of filenames, instead of a single filename. 
-Use the
-:meth:`~hubdc.applier.Applier.setInputList` method of the *applier* object to specify the list of filenames,
-and inside the user function use the
-:meth:`~hubdc.applier.ApplierControls.getArrayIterator` method of the *operator* object to get an iterator on the
-list of blocks, instead of a single block.
-
-This allows the processing of an arbitrary number of files,
-without having to give each one a separate name within the function.  
-
-This way it is possible to iterate efficiently (in terms of memory) over the list of blocks. 
-
-An example might be a function to calculate basic statistics (e.g. pixelwise min, max) for a number of raster files, 
-which should work the same regardless of how many files are to be processed. This could be written as follows::
-
-    from hubdc.applier import Applier
-    import numpy
+Use :meth:`~hubdc.applier.Applier.setInputList` and :meth:`~hubdc.applier.Applier.setOutputList` of the *applier* object
+to specify lists of input and output filenames::
 
     applier = Applier()
     applier.setInputList('images', filenames=['image1.img', 'image2.img']
-    applier.setOutputList('minmax', filenames=['min.img', 'max.img'])
-    
+    applier.setOutputList('results', filenames=['result1.img', 'result2.img'])
+
+Inside the user function, individual images can be accessed using the list identifier together with an index into the list.
+To access the first, second and third image of a list named ``images`` use the subnames ``('images', 0)``,  ``('images', 1)``,  ``('images', 2)``, ...
+
+For example, to read the image block of the i-th image of an input list and write it to the k-th image of an output list use::
+
+    def ufunc(operator):
+        array = operator.getArray(('inputs', i))
+        operator.setArray(('outputs', k), array=array)
+
+
+To loop over all items in an input list use :meth:`~hubdc.applier.ApplierOperator.getInputListSubnames`::
+
+    def ufunc(operator):
+        for subname in operator.getInputListSubnames('images'):
+            array = operator.getArray(subname) # read image data
+            metadata = operator.getMetadataItem(subname, key='wavelength', domain='ENVI') # read metadata item
+
+To loop over all items in an output list use :meth:`~hubdc.applier.ApplierOperator.getOutputListSubnames`::
+
+    def ufunc(operator):
+        for subname in operator.getOutputListSubnames('results'):
+            operator.setArray(subname, array=array) # write image data
+            operator.setMetadataItem(subname, key='wavelength', value=wavelength, domain='ENVI') # write metadata item
+
+An example might be a function to calculate basic statistics (e.g. pixelwise min, max) for a number of raster files,
+which should work the same regardless of how many files are to be processed. This could be written as follows::
+
     def calcMinMax(operator):
-    
-        imageIterator = operator.getArrayIterator('images')
-    
-        img0 = imageIterator.next()
-        min = img0
-        max = img0.copy()
-    
-        for img in imageIterator:
-            numpy.minimum(min, img, out=min)
-            numpy.maximum(max, img, out=max)
-    
-        operator.setArrayList('minmax', arrays=[min, max])
 
-    applier.apply(calcMinMax)
+        img0 = operator.getArray(('images', 0))
+        minimum = img0
+        maximum = img0.copy()
 
+        for subname in operator.getInputListSubnames('images'):
+            img = operator.getArray(subname)
+            numpy.minimum(minimum, img, out=minimum)
+            numpy.maximum(maximum, img, out=maximum)
+
+        operator.setArray(('minmax', 0), array=minimum)
+        operator.setArray(('minmax', 1), array=maximum)
 
 Filters and Overlap Example
 ===========================
@@ -233,7 +234,7 @@ Filters and Overlap Example
 Because HUBDC operates on a per block basis, care must be taken to set the overlap correctly when working with filters.
 The ``overlap`` keyword must be consistently set when using the ``operator`` object data reading methods (
 :meth:`~hubdc.applier.ApplierOperator.getArray`,
-:meth:`~hubdc.applier.ApplierOperator.getArrayIterator`,
+:meth:`~hubdc.applier.ApplierOperator.getDerivedArray`,
 :meth:`~hubdc.applier.ApplierOperator.getRasterization`) and data writing methods (:meth:`~hubdc.applier.ApplierOperator.setArray`).
 
 Here is a simple convolution filter example::
@@ -256,6 +257,39 @@ Here is a simple convolution filter example::
 
 Many other Scipy filters are also available and can be used in a similar way.
 
+Derived Raster Inputs Example
+=============================
+
+The on-the-fly resampling and reprojection of input rasters into the reference pixel grid is one key feature of the HUBDC applier.
+But in some cases this default behaviour can be insufficient in terms of information content preservation, even if the resampling algorithm is carefully choosen.
+
+For example, if the goal is to process a categorical raster, where different categories are coded with different ids,
+a simple resampling algorithm will not be able to preserve the information content, when the reference pixel grid is at a coarser resolution.
+
+In the following example a Landsat CFMask image at 30 m is used to calculate cloud fractions at 250 m::
+
+    from osgeo import gdal
+    import numpy
+    from hubdc.applier import Applier
+
+    applier = Applier()
+    applier.controls.setResolution(xRes=250, yRes=250)
+    applier.setInput('cfmask', filename='LC81940242015235LGN00_cfmask.img', resampleAlg=gdal.GRA_Average)
+    applier.setOutput('cloudFraction', filename=r'c:\output\out.img', format='ENVI')
+    applier.apply(operator=ufunc)
+
+    def ufunc(operator):
+
+        def cloudMask(cfmask):
+            # make a binary cloud mask and cast to float, which is important for the following resampling step
+            return numpy.float32(cfmask==4)
+
+        cloudFraction = self.getDerivedArray('cfmask', ufunc=cloudMask)
+        self.setArray('cloudFraction', array=cloudFraction)
+
+Note that the original 30 m CFMask data is passed to the ``cloudMask`` user function, which is called internally by
+:meth:`~hubdc.applier.ApplierOperator.getDerivedArray` before the resampling (``resampleAlg=gdal.GRA_Average``) takes place.
+This way the binary cloud information is correctly interpreted at 30 m level and afterwards averaged to 250 m target resolution.
 
 Vector Inputs Example
 =====================
@@ -283,11 +317,11 @@ Instead of a constant burn value, a burn attribute can be set by using the ``bur
 
     array = operator.getRasterization('vector', burnAttribute='ID')
         
-Use the ``filter`` keyword to set an attribute query string in form of a SQL WHERE clause.
+Use the ``filterSQL`` keyword to set an attribute query string in form of a SQL WHERE clause.
 Only features for which the query evaluates as true will be returned::
 
         sqlWhere = "Name = 'Vegetation'"
-        array=self.getRasterization('vector', initValue=0, burnValue=1, filter=sqlWhere)
+        array=self.getRasterization('vector', initValue=0, burnValue=1, filterSQL=sqlWhere)
 
 
 Parallel Processing Example
@@ -321,7 +355,7 @@ Setting GDAL Options Example
 ============================
 
 Via the ``applier.controls`` object you can set various GDAL config options
-(e.g. :meth:`~hubdc.applier.Applier.setGDALCacheMax`) to handle the trade of between
+(e.g. :meth:`~hubdc.applier.ApplierControls.setGDALCacheMax`) to handle the trade of between
 processing times and memory consumption::
 
     applier = Applier()
@@ -331,4 +365,9 @@ processing times and memory consumption::
     applier.controls.setGDALMaxDatasetPoolSize(nfiles=1000)
 
 
- 
+ .. toctree::
+    :maxdepth: 1
+    :caption: Contents:
+
+    Downloads.rst
+    hubdc.rst
