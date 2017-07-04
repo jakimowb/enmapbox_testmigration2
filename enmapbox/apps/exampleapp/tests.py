@@ -2,9 +2,9 @@
 
 """
 ***************************************************************************
-    exampleapp/__init__.py
+    exampleapp/tests.py
 
-    Exemplary package definition.
+    Some unit tests
     ---------------------
     Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -19,17 +19,14 @@
 ***************************************************************************
 """
 
-import os
-APP_DIR = os.path.dirname(__file__)
+from unittest import TestCase
 
 
-def enmapboxApplicationFactory(enmapBox):
-    """
-    Returns a list of EnMAPBoxApplications
-    :param enmapBox: the EnMAP-Box instance.
-    :return: [list-of-EnMAPBoxApplications]
-    """
-
-    from exampleapp.enmapboxintegration import MyEnMAPBoxApp
-    #returns a list of EnMAPBoxApplications
-    return [MyEnMAPBoxApp(enmapBox)]
+class TestNdvi(TestCase):
+    def test_ndvi(self):
+        from enmapbox.testdata.HymapBerlinB import HymapBerlinB_image
+        from .algorithms import ndvi
+        from tempfile import tempdir
+        from os.path import join
+        ndvi(infile=HymapBerlinB_image,
+             outfile=join(tempdir(), 'ndvi.img'))

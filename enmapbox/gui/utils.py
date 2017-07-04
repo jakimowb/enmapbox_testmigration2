@@ -1,5 +1,7 @@
-import os, sys, importlib, re, six, logging, fnmatch
+import os, sys, importlib, re, six, logging, fnmatch, StringIO
+import xml.etree.ElementTree as xml
 logger = logging.getLogger(__name__)
+
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
@@ -16,9 +18,13 @@ DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
 import enmapbox.testdata
 DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
-SETTINGS = QSettings(QSettings.UserScope, 'HU Geomatics', 'EnMAP-Box')
+
 
 REPLACE_TMP = True #required for loading *.ui files directly
+
+
+def settings():
+    return QSettings('HU-Berlin', 'EnMAP-Box')
 
 def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
@@ -37,67 +43,90 @@ def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     return results
 
 
+FORM_CLASSES = dict()
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 
+loadUi = lambda p : loadUIFormClass(jp(DIR_UIFILES, p))
+
+#dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()
 
-def loadUIFormClass(pathUi, from_imports=False):
+def loadUIFormClass(pathUi, from_imports=False, resourceSuffix='_py2'):
     """
-    Load UI files and takes care on Qgs custom widgets
-    :param pathUi:
-    :param from_imports:
-    :return:
+    Loads Qt UI files (*.ui) while taking care on QgsCustomWidgets.
+    Uses PyQt4.uic.loadUiType (see http://pyqt.sourceforge.net/Docs/PyQt4/designer.html#the-uic-module)
+    :param pathUi: *.ui file path
+    :param from_imports:  is optionally set to use import statements that are relative to '.'. At the moment this only applies to the import of resource modules.
+    :param resourceSuffix: is the suffix appended to the basename of any resource file specified in the .ui file to create the name of the Python module generated from the resource file by pyrcc4. The default is '_rc', i.e. if the .ui file specified a resource file called foo.qrc then the corresponding Python module is foo_rc.
+    :return: the form class, e.g. to be used in a class definition like MyClassUI(QFrame, loadUi('myclassui.ui'))
     """
-    RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
-    DIR_GUI = os.path.dirname(pathUi)
-    assert os.path.exists(pathUi)
+
+    RC_SUFFIX =  resourceSuffix
+    assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
+
+    buffer = StringIO.StringIO() #buffer to store modified XML
     if pathUi not in FORM_CLASSES.keys():
+        #parse *.ui xml and replace *.h by qgis.gui
+        doc = QDomDocument()
 
-        isTemporaryGUIDir = DIR_GUI not in sys.path
-        if isTemporaryGUIDir:
-            sys.path.append(DIR_GUI)
+        #remove new-lines. this prevents uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
+        #to mess up the *.ui xml
+        txt = ''.join(open(pathUi).readlines())
+        doc.setContent(txt)
 
-        #In <customwidget> with <class>Qgs...</class>
-        # replace *.h file references like
+        # Replace *.h file references in <customwidget> with <class>Qgs...</class>, e.g.
         #       <header>qgscolorbutton.h</header>
         # by    <header>qgis.gui</header>
+        # this is require to compile QgsWidgets on-the-fly
+        elem = doc.elementsByTagName('customwidget')
+        for child in [elem.item(i) for i in range(elem.count())]:
+            child = child.toElement()
+            className = str(child.firstChildElement('class').firstChild().nodeValue())
+            if className.startswith('Qgs'):
+                cHeader = child.firstChildElement('header').firstChild()
+                cHeader.setNodeValue('qgis.gui')
 
-        needsTmpUIFile = False
-        if REPLACE_TMP:
-            pathTmpUI = jp(os.path.dirname(pathUi), 'tmp.ui')
+        #collect resource file locations
+        elem = doc.elementsByTagName('include')
+        qrcPathes = []
+        for child in [elem.item(i) for i in range(elem.count())]:
+            path = child.attributes().item(0).nodeValue()
+            if path.endswith('.qrc'):
+                qrcPathes.append(path)
 
-            #parse *.ui xml and replace *.h by qgis.gui
-            doc = QDomDocument()
-            doc.setContent(QFile(pathUi))
-            elem = doc.elementsByTagName('customwidget')
 
-            for child in [elem.item(i) for i in range(elem.count())]:
-                child = child.toElement()
-                className = str(child.firstChildElement('class').firstChild().nodeValue())
-                if className.startswith('Qgs'):
-                    cHeader = child.firstChildElement('header').firstChild()
-                    cHeader.setNodeValue('qgis.gui')
-                    needsTmpUIFile=True
 
-            if needsTmpUIFile:
-                s = str(doc.toString())
-                file = open(pathTmpUI, 'w')
-                file.write(s)
-                file.close()
-                pathUi = pathTmpUI
+        #logger.debug('Load UI file: {}'.format(pathUi))
+        buffer.write(doc.toString())
+        buffer.flush()
+        buffer.seek(0)
 
-        logger.debug('Load UI file: {}'.format(pathUi))
-        FORM_CLASS, _ = uic.loadUiType(pathUi,from_imports=from_imports, resource_suffix=RC_SUFFIX)
+
+        #make resource file directories available to the python path (sys.path)
+        baseDir = os.path.dirname(pathUi)
+        tmpDirs = []
+        for qrcPath in qrcPathes:
+            d = os.path.dirname(os.path.join(baseDir, os.path.dirname(qrcPath)))
+            if d not in sys.path:
+                tmpDirs.append(d)
+        sys.path.extend(tmpDirs)
+
+        #load form class
+        try:
+            FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
+        except SyntaxError as ex:
+            logger.info('{}\n{}:"{}"\ncall instead uic.loadUiType(path,...) directly'.format(pathUi, ex, ex.text))
+            FORM_CLASS, _ = uic.loadUiType(pathUi, resource_suffix=RC_SUFFIX)
+
         FORM_CLASSES[pathUi] = FORM_CLASS
 
-        #remove tmp *.ui file - as it is supposed to be temporary
-        if needsTmpUIFile:
-            os.remove(pathTmpUI)
-
-        if isTemporaryGUIDir:
-            sys.path.remove(DIR_GUI)
+        #remove temporary added directories from python path
+        for d in tmpDirs:
+            sys.path.remove(d)
 
     return FORM_CLASSES[pathUi]
+
+
 
 
 

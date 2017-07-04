@@ -58,7 +58,6 @@ def sandboxPureGui(dataSources=None, loadProcessingFramework=False):
         for dataSource in dataSources:
             ds = EB.addSource(dataSource)
 
-
     qgsApp.exec_()
     qgsApp.exitQgis()
 
@@ -140,9 +139,14 @@ def sandboxGUI():
 def initQgisEnvironment():
     """
     Initializes the QGIS Environment
-    :return:
+    :return: QgsApplication instance
     """
     import site
+
+    qgsApp = QgsApplication.instance()
+    if isinstance(QgsApplication.instance(), QgsApplication):
+        #alread started
+        return qgsApp
 
     # start QGIS instance
     if sys.platform == 'darwin':
@@ -164,7 +168,9 @@ def initQgisEnvironment():
         PATH_QGS = os.environ['QGIS_PREFIX_PATH']
 
     assert os.path.exists(PATH_QGS)
+
     qgsApp = QgsApplication([], True)
+    qgsApp.setGraphicsSystem("raster")
     qgsApp.setPrefixPath(PATH_QGS, True)
     qgsApp.initQgis()
     import enmapbox.gui
@@ -266,8 +272,6 @@ def howToStartEnMAPBoxInPython():
 
 if __name__ == '__main__':
     import site, sys
-
-
     if False:
         howToStartEnMAPBoxInPython()
         exit(0)
