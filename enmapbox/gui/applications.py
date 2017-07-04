@@ -14,6 +14,7 @@ class ApplicationWrapper(QObject):
     def __init__(self, app):
         assert isinstance(app, EnMAPBoxApplication)
         self.app = app
+        self.appId = str(app.__class__)
         self.menuItem = []
         self.geoAlgorithms = []
 
@@ -47,16 +48,17 @@ class ApplicationRegistry(QObject):
 
 
         for appPackage in appPackages:
-            self.addApplication(appPackage)
+            try:
+                self.addApplications(appPackage)
+            except Exception as ex:
+                logger.error(ex)
 
-    def addApplication(self, appPackagePath):
+
+    def addApplications(self, appPackagePath):
         """
-
         :param appPackagePath:
         :return:
         """
-
-
         #todo: catch error, keep system stable
         import imp
         appPkgName = os.path.basename(appPackagePath)
@@ -64,12 +66,10 @@ class ApplicationRegistry(QObject):
         pkgFile = os.path.join(appPackagePath, '__init__.py')
 
         if not os.path.exists(pkgFile):
-            logging.info('Missing __init__.py in {}'.format(appPackagePath))
-            return
+            raise Exception('Missing __init__.py in {}'.format(appPackagePath))
+
         if not appFolder in sys.path:
             site.addsitedir(appFolder)
-
-        appModule = None
 
         try:
             appModule = __import__(appPkgName)
@@ -77,43 +77,45 @@ class ApplicationRegistry(QObject):
             sys.path_importer_cache.clear()
             appModule = __import__(appPkgName)
 
-        if appModule is None:
-            logging.error('Unable to load module "{}"'.format(appPkgName))
-            return False
-
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
+
         if len(factory) == 0:
-            logging.info('Missing enmapboxApplicationFactory() in {}'.format(appPackagePath))
-            return False
-        else:
-            factory = factory[0]
+            raise Exception('Missing enmapboxApplicationFactory() in {}'.format(appPackagePath))
+
+        factory = factory[0]
 
         #create the app
         apps = factory(self.enmapBox)
+        if len(apps) == 0:
+            raise Exception('No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
+
         for app in apps:
-
-            if not isinstance(app, EnMAPBoxApplication):
-                logger.error('Not an EnMAPBoxApplication {}'.format(str(app)))
-                continue
-
-            appId = str(app.__class__)
-            if appId in self.appList.keys():
-                #todo: handle duplicates (signal?)
-                pass
-
-            #check app
-            EnMAPBoxApplication.checkRequirements(app)
-
-            #register this app
-            appWrapper = ApplicationWrapper(app)
-            self.appList[appId] = appWrapper
-            self.loadApplication(appId)
+            self.addApplication(app)
 
 
+    def addApplication(self, app):
+        assert isinstance(app, EnMAPBoxApplication)
+
+        appWrapper = ApplicationWrapper(app)
+        EnMAPBoxApplication.checkRequirements(app)
+
+        if appWrapper.appId in self.appList.keys():
+            # todo: handle duplicates (signal?)
+            s = ""
+        self.appList[appWrapper.appId] = appWrapper
+
+        #load GUI integration
+        self.loadMenuItems(appWrapper)
+
+        #load QGIS Processing Framework Integration
+        if self.PFMgr.isInitialized():
+            self.loadGeoAlgorithms(appWrapper)
 
     def loadGeoAlgorithms(self, appWrapper):
         geoAlgorithms = appWrapper.app.geoAlgorithms()
+        if geoAlgorithms is not None:
+            isinstance(geoAlgorithms)
         appWrapper.geoAlgorithms.extend(geoAlgorithms)
         self.PFMgr.addAlgorithms(self.PFMgr.enmapBoxProvider(), geoAlgorithms)
 
@@ -124,33 +126,23 @@ class ApplicationRegistry(QObject):
         assert isinstance(app, EnMAPBoxApplication)
         parentMenu = self.enmapBox.menu(parentMenuName)
         item = app.menu(parentMenu)
-        if item is None:
-            print('no menu items defined')
-            pass
-        else:
-            if isinstance(item, QMenu):
-                parentMenu.addMenu(item)
 
-            elif isinstance(item, QAction):
-                item.setParent(parentMenu)
-                parentMenu.addAction(item)
-                appWrapper.menuItem.append(item)
+        if isinstance(item, QMenu):
+            parentMenu = item.parent()
+            parentMenu.addMenu(item)
+
+        elif isinstance(item, QAction):
+            parentMenu = item.parent().parent()
+            item.setParent(parentMenu)
+            parentMenu.addAction(item)
+            appWrapper.menuItem.append(item)
 
 
-    def loadApplication(self, appId):
-        assert appId in self.appList.keys()
-        #include into GUI
-        appWrapper = self.appList[appId]
-        self.loadMenuItems(appWrapper)
-
-        # include into PF
-        if self.PFMgr.isInitialized():
-            self.loadGeoAlgorithms(appWrapper)
 
     def reloadApplication(self, appId):
         assert appId in self.appList.keys()
         self.removeApplication(appId)
-        self.loadApplication(appId)
+        self.addApplication(appId)
 
     def removeApplication(self, appId):
         appWrapper = self.appList[appId]

@@ -273,12 +273,16 @@ def howToStartEnMAPBoxInPython():
 
 
 if __name__ == '__main__':
-    import site, sys
+    import site, sys, os
     if False:
         howToStartEnMAPBoxInPython()
         exit(0)
     else:
         qgsApp = initQgisEnvironment()
+
+        p = r'D:\Repositories\QGIS_Plugins'
+        pluginPath = os.environ.get('QGIS_PLUGINPATH', '')
+        os.environ['QGIS_PLUGINPATH'] = ';'.join(pluginPath, p)
 
         if False: sandboxTreeNodes()
         if False: sandboxDataSourceManager()
