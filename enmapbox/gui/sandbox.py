@@ -58,7 +58,6 @@ def sandboxPureGui(dataSources=None, loadProcessingFramework=False):
         for dataSource in dataSources:
             ds = EB.addSource(dataSource)
 
-
     qgsApp.exec_()
     qgsApp.exitQgis()
 
@@ -143,6 +142,11 @@ def initQgisEnvironment():
     :return: QgsApplication instance
     """
     import site
+
+    qgsApp = QgsApplication.instance()
+    if isinstance(QgsApplication.instance(), QgsApplication):
+        #alread started
+        return qgsApp
 
     # start QGIS instance
     if sys.platform == 'darwin':

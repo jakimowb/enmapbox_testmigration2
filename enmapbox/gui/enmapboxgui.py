@@ -5,9 +5,10 @@ from PyQt4.QtGui import *
 
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
-from enmapbox.gui.utils import loadUI, SETTINGS, DIR_TESTDATA, MimeDataHelper
+from enmapbox.gui.utils import loadUI, settings, DIR_TESTDATA, MimeDataHelper
 
-HIDE_SPLASHSCREEN = True
+SETTINGS = settings()
+HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', True)
 
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)

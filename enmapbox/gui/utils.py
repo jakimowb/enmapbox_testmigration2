@@ -18,9 +18,13 @@ DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
 import enmapbox.testdata
 DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
-SETTINGS = QSettings(QSettings.UserScope, 'HU Geomatics', 'EnMAP-Box')
+
 
 REPLACE_TMP = True #required for loading *.ui files directly
+
+
+def settings():
+    return QSettings('HU-Berlin', 'EnMAP-Box')
 
 def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
@@ -41,21 +45,34 @@ def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
 
 FORM_CLASSES = dict()
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
-def loadUIFormClass(pathUi, from_imports=False):
+
+loadUi = lambda p : loadUIFormClass(jp(DIR_UIFILES, p))
+
+#dictionary to store form classes and avoid multiple calls to read <myui>.ui
+FORM_CLASSES = dict()
+
+def loadUIFormClass(pathUi, from_imports=False, resourceSuffix='_py2'):
     """
-    Load UI files and takes care on Qgs custom widgets
-    :param pathUi:
-    :param from_imports:
-    :return:
+    Loads Qt UI files (*.ui) while taking care on QgsCustomWidgets.
+    Uses PyQt4.uic.loadUiType (see http://pyqt.sourceforge.net/Docs/PyQt4/designer.html#the-uic-module)
+    :param pathUi: *.ui file path
+    :param from_imports:  is optionally set to use import statements that are relative to '.'. At the moment this only applies to the import of resource modules.
+    :param resourceSuffix: is the suffix appended to the basename of any resource file specified in the .ui file to create the name of the Python module generated from the resource file by pyrcc4. The default is '_rc', i.e. if the .ui file specified a resource file called foo.qrc then the corresponding Python module is foo_rc.
+    :return: the form class, e.g. to be used in a class definition like MyClassUI(QFrame, loadUi('myclassui.ui'))
     """
-    RC_SUFFIX =  '_py3' if six.PY3 else '_py2'
+
+    RC_SUFFIX =  resourceSuffix
     assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
 
     buffer = StringIO.StringIO() #buffer to store modified XML
     if pathUi not in FORM_CLASSES.keys():
         #parse *.ui xml and replace *.h by qgis.gui
         doc = QDomDocument()
-        doc.setContent(QFile(pathUi))
+
+        #remove new-lines. this prevents uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
+        #to mess up the *.ui xml
+        txt = ''.join(open(pathUi).readlines())
+        doc.setContent(txt)
 
         # Replace *.h file references in <customwidget> with <class>Qgs...</class>, e.g.
         #       <header>qgscolorbutton.h</header>
@@ -77,14 +94,15 @@ def loadUIFormClass(pathUi, from_imports=False):
             if path.endswith('.qrc'):
                 qrcPathes.append(path)
 
-        s = str(doc.toString())
 
-        logger.debug('Load UI file: {}'.format(pathUi))
-        buffer.write(s)
+
+        #logger.debug('Load UI file: {}'.format(pathUi))
+        buffer.write(doc.toString())
         buffer.flush()
         buffer.seek(0)
 
-        #make resource file directories temporary available
+
+        #make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)
         tmpDirs = []
         for qrcPath in qrcPathes:
@@ -94,13 +112,21 @@ def loadUIFormClass(pathUi, from_imports=False):
         sys.path.extend(tmpDirs)
 
         #load form class
-        FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
+        try:
+            FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
+        except SyntaxError as ex:
+            logger.info('{}\n{}:"{}"\ncall instead uic.loadUiType(path,...) directly'.format(pathUi, ex, ex.text))
+            FORM_CLASS, _ = uic.loadUiType(pathUi, resource_suffix=RC_SUFFIX)
+
         FORM_CLASSES[pathUi] = FORM_CLASS
 
+        #remove temporary added directories from python path
         for d in tmpDirs:
             sys.path.remove(d)
 
     return FORM_CLASSES[pathUi]
+
+
 
 
 
