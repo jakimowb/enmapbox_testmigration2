@@ -48,6 +48,8 @@ def sandboxPFReport():
 
 def sandboxPureGui(dataSources=None, loadProcessingFramework=False):
     qgsApp = initQgisEnvironment()
+
+
     import enmapbox.gui
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = loadProcessingFramework
     from enmapbox.gui.enmapboxgui import EnMAPBox
