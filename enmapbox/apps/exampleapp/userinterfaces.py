@@ -1,12 +1,40 @@
-### Graphical User Interfaces
-### that allow for sophisticated and more user friendly input of algorithm parameterization
-###
-import os, collections
-from PyQt4.QtGui import *
+# -*- coding: utf-8 -*-
 
-### A simple dialog to parameterize NDVI calculation
-###
+"""
+***************************************************************************
+    exampleapp/userinterfaces.py
+
+    Some exemplary (graphical) user interfaces, making use of the Qt framework.
+    ---------------------
+    Date                 : Juli 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+
+import os, collections
+from qgis.gui import QgsFileWidget
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
+
+"""
+This example shows how to use PyQt to create a UI programmatically. 
+"""
 class MyNDVIUserInterface(QDialog):
+
+    """
+    QSignals can be used to communicate between objects and accross threads.
+    We use it to signalize if a new file was created
+    """
+    sigFileCreated = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super(MyNDVIUserInterface, self).__init__(parent)
         self.initWidgets()
@@ -14,6 +42,7 @@ class MyNDVIUserInterface(QDialog):
         self.setWindowTitle('My NDVI GUI')
         self.setWindowIcon(QIcon(os.path.join(APP_DIR,'icon.png')))
 
+        s = ""
     SUPPORTED_GDALDRIVERS = {
         'ENVI':'ENVI (*.bsq)',
         'GTiff':'GeoTIFF (*.tif)'
@@ -27,7 +56,6 @@ class MyNDVIUserInterface(QDialog):
         self.btnSetOutputFile = QPushButton('...', self)
         self.tbInputFile = QLineEdit(self)
         self.tbInputFile.setPlaceholderText('Set input image')
-        self.tbInputFile.setValidator(RasterFilePathValidator())
         self.tbOutputFile = QLineEdit(self)
         self.tbOutputFile.setPlaceholderText('Set output image')
 
@@ -37,12 +65,15 @@ class MyNDVIUserInterface(QDialog):
 
         box = QHBoxLayout()
         self.sbRedBand = QSpinBox(self)
+        self.sbRedBand.setMinimum(1)
         self.sbNIRBand = QSpinBox(self)
+        self.sbNIRBand.setMinimum(1)
+
         box.addWidget(QLabel('Red Band'))
         box.addWidget(self.sbRedBand)
         box.addWidget(QLabel('NIR Band'))
         box.addWidget(self.sbNIRBand)
-        # within the vertical box, the spacer will push widgets to it's left
+        # within a horizontal box, the spacer pushes widgets to it's left
         box.addSpacerItem(QSpacerItem(0, 0, hPolicy=QSizePolicy.Expanding))
         mainLayout.addLayout(box, 1, 1, 1, 2)  # span 2nd (index 1) and 3rd (+ 1) column
 
@@ -68,10 +99,41 @@ class MyNDVIUserInterface(QDialog):
         box = QHBoxLayout()
         self.btAccept = QPushButton('Accept', self)
         self.btCancel = QPushButton('Cancel', self)
+        self.btAccept.clicked.connect(self.runCalculations)
         box.addSpacerItem(QSpacerItem(0,0, hPolicy=QSizePolicy.Expanding))
         box.addWidget(self.btCancel)
         box.addWidget(self.btAccept)
         mainLayout.addLayout(box, 6, 1, 1, 2)
+
+    def validateParameters(self, *args, **kwds):
+        sender = self.sender()
+        hexRed = QColor(Qt.red).name()
+        hexGreen = QColor(Qt.green).name()
+
+        result = True
+        if sender == self.tbInputFile:
+            path = self.tbInputFile.text()
+            from osgeo import gdal
+            ds = gdal.Open(path)
+
+            if ds is None:
+                style = 'QLineEdit {{ background-color: {} }}'.format(hexRed)
+                self.tbInputFile.setStyleSheet(style)
+                result = False
+            else:
+                style = 'QLineEdit {{ }}'.format(hexGreen)
+                self.tbInputFile.setStyleSheet(style)
+                self.sbRedBand.setMaximum(ds.RasterCount)
+                self.sbNIRBand.setMaximum(ds.RasterCount)
+
+        if sender == self.tbOutputFile:
+            pathDst = self.tbInputFile.text()
+            if len(path) is 0:
+                result = False
+
+        self.btAccept.setEnabled(result)
+
+
 
     def initInteractions(self):
         self.tbInputFile.textChanged.connect(self.validateParameters)
@@ -102,31 +164,38 @@ class MyNDVIUserInterface(QDialog):
         self.btAccept.clicked.connect(self.accept)
         self.btCancel.clicked.connect(self.reject)
 
-    def validateParameters(self, *args):
-
-        pass
 
 
-    def parameters(self):
-        params = dict()
-        params['']
+    def runCalculations(self):
+        from exampleapp.algorithms import ndvi
+        fileSrc = self.tbInputFile.text()
+        fileDst = self.tbOutputFile.text()
 
-class RasterFilePathValidator(QValidator):
-    def __init__(self, parent=None):
-        super(RasterFilePathValidator, self).__init__(parent)
+        try:
+            #run your algorithm
+            ndvi(fileSrc, fileDst,
+                 redBandNumber=self.sbRedBand.value(),
+                 nirBandNumber=self.sbNIRBand.value())
 
-    def validate(self, path, cursorPosition):
-        from osgeo import gdal
-        if os.path.exists(path) and gdal.Open(path) is not None:
-            return QValidator.Acceptable
-        else:
-            return QValidator.Invalid
+            #signalize that a new file was created.
+            self.sigFileCreated.emit(fileDst)
+        except Exception as ex:
+            #in case of exceptions, provide let the user know what happened
+            import qgis.utils
+            QMessageBox.critical(self, "Error", ex.message)
 
-### Use QtDesigner to design a GUI that is stored in an *.ui file
-### The example.ui is compiled during runtime and
+
+
+
+""""
+Use the QtDesigner to design a GUI and save it as *.ui file
+The example.ui can get compiled and loaded at runtime.
+"""""
 from enmapbox.gui.utils import loadUIFormClass
 from __init__ import APP_DIR
 pathUi = os.path.join(APP_DIR, 'example.ui')
+
+
 class MyAppUserInterface(QDialog, loadUIFormClass(pathUi)):
     """Constructor."""
     def __init__(self, parent=None):
@@ -136,8 +205,11 @@ class MyAppUserInterface(QDialog, loadUIFormClass(pathUi)):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
+
+        # Important!
         self.setupUi(self)
 
+        #now define all the logic behind the UI which can not be defined in the QDesigner
         self.initUiElements()
         self.radioButtonSet1.setChecked(True)
         self.updateSummary()
