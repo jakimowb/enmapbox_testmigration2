@@ -38,8 +38,13 @@ class MyEnMAPBoxApp(EnMAPBoxApplication):
     def menu(self, appMenu):
         """
         Specify menu, submenus and actions
-        :return:
+        :return: the QMenu or QAction to be added to the "Applications" menu.
+
         """
+        ANOTHER_MENU = True
+        if ANOTHER_MENU: #set on trues
+            appMenu = self.enmapbox.menu('Tools')
+
         menu = QMenu(self.name, appMenu)
         menu.setIcon(self.icon())
 
@@ -59,6 +64,8 @@ class MyEnMAPBoxApp(EnMAPBoxApplication):
         from algorithms import dummyAlgorithm
         a.triggered.connect(lambda : dummyAlgorithm('My', 'App Action', 'got triggered'))
 
+        if ANOTHER_MENU:
+            return []
         return menu
 
 
