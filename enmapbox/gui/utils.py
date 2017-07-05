@@ -35,7 +35,9 @@ def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
         for file in files:
             if (ignoreCase and fnmatch.fnmatch(file.lower(), pattern.lower())) \
                     or fnmatch.fnmatch(file, pattern):
-                results.append(os.path.join(root, file))
+
+                path = os.path.join(root, file)
+                results.append(path)
         if not recursive:
             break
             pass

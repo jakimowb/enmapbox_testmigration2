@@ -138,46 +138,64 @@ def sandboxGUI():
 
 
 
-def initQgisEnvironment():
+def initQgisEnvironment(pythonPlugins=None):
     """
     Initializes the QGIS Environment
     :return: QgsApplication instance
     """
     import site
+    if pythonPlugins is None:
+        pythonPlugins = []
+    assert isinstance(pythonPlugins, list)
 
-    qgsApp = QgsApplication.instance()
+    from enmapbox.gui.utils import DIR_REPO
+    #pythonPlugins.append(os.path.dirname(DIR_REPO))
+    PLUGIN_DIR = os.path.dirname(DIR_REPO)
+    for subDir in os.listdir(PLUGIN_DIR):
+        if not subDir.startswith('.'):
+            pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
+    envVar = os.environ.get('QGIS_PLUGINPATH', None)
+    if isinstance(envVar, list):
+        pythonPlugins.extend(re.split('[;:]', envVar))
+
+    #make plugin paths available to QGIS and Python
+    os.environ['QGIS_PLUGINPATH'] = ';'.join(pythonPlugins)
+    for p in pythonPlugins:
+        sys.path.append(p)
+
     if isinstance(QgsApplication.instance(), QgsApplication):
         #alread started
-        return qgsApp
-
-    # start QGIS instance
-    if sys.platform == 'darwin':
-        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-        os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
-
-        #rios?
-        from enmapbox.gui.utils import DIR_SITEPACKAGES
-        #add win32 package, at least try to
-
-        pathDarwin = jp(DIR_SITEPACKAGES, *['darwin'])
-        site.addsitedir(pathDarwin)
-        QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-        QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-        s = ""
-
+        return QgsApplication.instance()
     else:
-        # assume OSGeo4W startup
-        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+        # start QGIS instance
+        if sys.platform == 'darwin':
+            PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
+            os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
 
-    assert os.path.exists(PATH_QGS)
+            #rios?
+            from enmapbox.gui.utils import DIR_SITEPACKAGES
+            #add win32 package, at least try to
 
-    qgsApp = QgsApplication([], True)
-    qgsApp.setGraphicsSystem("raster")
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
-    import enmapbox.gui
-    enmapbox.gui.DEBUG = True
-    return qgsApp
+            pathDarwin = jp(DIR_SITEPACKAGES, *['darwin'])
+            site.addsitedir(pathDarwin)
+            QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
+            QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
+            s = ""
+
+        else:
+            # assume OSGeo4W startup
+            PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+
+        assert os.path.exists(PATH_QGS)
+
+
+        qgsApp = QgsApplication([], True)
+        qgsApp.setGraphicsSystem("raster")
+        qgsApp.setPrefixPath(PATH_QGS, True)
+        qgsApp.initQgis()
+        import enmapbox.gui
+        enmapbox.gui.DEBUG = True
+        return qgsApp
 
 
 def sandboxDialog():
@@ -281,8 +299,8 @@ if __name__ == '__main__':
         qgsApp = initQgisEnvironment()
 
         p = r'D:\Repositories\QGIS_Plugins'
-        pluginPath = os.environ.get('QGIS_PLUGINPATH', '')
-        os.environ['QGIS_PLUGINPATH'] = ';'.join(pluginPath, p)
+        pluginPath = [os.environ.get('QGIS_PLUGINPATH', '')]+[p]
+        os.environ['QGIS_PLUGINPATH'] = ';'.join(pluginPath)
 
         if False: sandboxTreeNodes()
         if False: sandboxDataSourceManager()

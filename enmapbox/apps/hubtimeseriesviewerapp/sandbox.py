@@ -18,6 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
+import sys, os
 
 """
 Sandbox examples that show how to run own EnMAP-box applications without starting a QGIS GUI Instance
@@ -33,19 +34,12 @@ def sandboxWithEnMapBox(loadPF=False):
     """Minimum example to the this application"""
     from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
     qgsApp = initQgisEnvironment()
+    import enmapbox.gui
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
 
-    import sys, os
-    p = os.environ.get('QGIS_PLUGINPATH')
-    if p is None:
-        p = r'D:\Repositories\QGIS_Plugins'
-    else:
-        p = ';'.join(p, r'D:\Repositories\QGIS_Plugins')
-    os.environ['QGIS_PLUGINPATH'] = p
-
-    sys.path.append(r'D:\Repositories\QGIS_Plugins')
-    pluginDir= os.path.dirname(__import__('hub-timeseriesviewer').__file__)
-    sys.path.append(pluginDir)
-    sandboxPureGui(loadProcessingFramework=False)
 
     qgsApp.exec_()
     qgsApp.quit()
