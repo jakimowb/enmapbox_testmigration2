@@ -6,7 +6,7 @@ def script():
     raster = r'C:\Work\data\EnMAPUrbanGradient2009\01_image_products\EnMAP01_Berlin_Urban_Gradient_2009.bsq'
 
     applier = Applier()
-    applier.controls.setReferenceImage(filename=raster)
+    applier.controls.setReferenceGridByImage(filename=raster)
     applier.setVector('vector', filename=vector)
     applier.setOutput('out', filename=r'c:\output\out.img', format='ENVI')
     applier.apply(operator=SimpleIO)

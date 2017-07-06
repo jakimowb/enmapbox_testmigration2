@@ -42,11 +42,12 @@ Instead of providing the operator as an *user defined function*, you could also 
             outimage = self.getArray('image1') + self.getArray('image2')
             self.setArray('outimage', array=outimage)
 
-The program shown above is minimalistic, but complete, and would work, assuming the two input files existed.
-The result would be the file called outfile.img.
+The program shown above is minimalistic, but complete, and would work, assuming the two input files
+(specified via :meth:`~hubdc.applier.Applier.setInput`) existed.
+The result would be the file called ``outfile.img`` (specified via :meth:`~hubdc.applier.Applier.setOutput`).
 
 The user-supplied operator in form of the ``addThem`` function or ``AddThem`` class is passed to the
-:meth:`hubdc.applier.Applier.apply` method, which applies it across the image.
+:meth:`~hubdc.applier.Applier.apply` method, which applies it across the image.
 
 The operators :meth:`~hubdc.applier.ApplierOperator.getArray` and :meth:`~hubdc.applier.ApplierOperator.setArray`
 methods are used to access and deliver image data from the raster files defined earlier.
@@ -64,7 +65,10 @@ So, to control the datatype of the output file, use the numpy astype() function 
 Manage Metadata Example
 =======================
 
-You can read metadata from input and write metadata to output datasets. This simple example reads the *wavelength* information in
+You can read metadata from input (using :meth:`~hubdc.applier.ApplierOperator.getMetadataItem`) and write metadata to output datasets
+(using :meth:`~hubdc.applier.ApplierOperator.setMetadataItem`).
+
+This simple example reads the *wavelength* information in
 the *ENVI* metadata domain of the input dataset and passes it to the output dataset::
 
     def ufunc(operator):
@@ -146,10 +150,9 @@ but if requested to do so, it will reproject on-the-fly.
 
 This is enabled by telling it which of the input rasters should be used as the reference 
 (all other inputs will be reprojected onto this reference pixel grid).
-This is done as follows::
+This is done by using :meth:`~hubdc.applier.ApplierControls.setReferenceGridByImage` as follows::
 
-    filename = 'image.img'
-    applier.controls.setReferenceImage(filename=filename)
+    applier.controls.setReferenceGridByImage(filename='image.img')
 
 If the input rasters have the same projection, but differ in their spatial extent and/or pixel resolution,
 HUBDC will automatically calculate the pixel grid by deriving the *union* extent and the *minimum* resolution
@@ -235,7 +238,7 @@ Because HUBDC operates on a per block basis, care must be taken to set the overl
 The ``overlap`` keyword must be consistently set when using the ``operator`` object data reading methods (
 :meth:`~hubdc.applier.ApplierOperator.getArray`,
 :meth:`~hubdc.applier.ApplierOperator.getDerivedArray`,
-:meth:`~hubdc.applier.ApplierOperator.getRasterization`) and data writing methods (:meth:`~hubdc.applier.ApplierOperator.setArray`).
+:meth:`~hubdc.applier.ApplierOperator.getVectorArray`) and data writing methods (:meth:`~hubdc.applier.ApplierOperator.setArray`).
 
 Here is a simple convolution filter example::
 
@@ -257,39 +260,78 @@ Here is a simple convolution filter example::
 
 Many other Scipy filters are also available and can be used in a similar way.
 
-Derived Raster Inputs Example
-=============================
+Spectral Raster Inputs Example
+==============================
 
-The on-the-fly resampling and reprojection of input rasters into the reference pixel grid is one key feature of the HUBDC applier.
-But in some cases this default behaviour can be insufficient in terms of information content preservation, even if the resampling algorithm is carefully choosen.
+If an input raster image has a spectral characteristics (i.e. wavelength information specified in the ENVI metadata domain items ``wavelength`` and ``wavelength units``),
+specific wavebands can be accessed via :meth:`~hubdc.applier.ApplierOperator.getWavebandArray`.
 
-For example, if the goal is to process a categorical raster, where different categories are coded with different ids,
-a simple resampling algorithm will not be able to preserve the information content, when the reference pixel grid is at a coarser resolution.
+To select the image bands that are closest to true color use::
 
-In the following example a Landsat CFMask image at 30 m is used to calculate cloud fractions at 250 m::
+    trueColor = [560, 480, 440]
+    array = self.getWavebandArray('hyperspectralImage', wavelengths=trueColor)
 
-    from osgeo import gdal
-    import numpy
-    from hubdc.applier import Applier
+To linearly interpolate the wavebands additionally set the ``linear`` keyword::
 
-    applier = Applier()
-    applier.controls.setResolution(xRes=250, yRes=250)
-    applier.setInput('cfmask', filename='LC81940242015235LGN00_cfmask.img', resampleAlg=gdal.GRA_Average)
-    applier.setOutput('cloudFraction', filename=r'c:\output\out.img', format='ENVI')
-    applier.apply(operator=ufunc)
+    sentinel2Wavelength = [443, 490, 560, 665, 705, 740, 783, 842, 865, 945, 1375, 1610, 2190]
+    array = self.getWavebandArray('hyperspectralImage', wavelengths=sentinel2Wavelength, linear=True)
 
-    def ufunc(operator):
 
-        def cloudMask(cfmask):
-            # make a binary cloud mask and cast to float, which is important for the following resampling step
-            return numpy.float32(cfmask==4)
+Categorical Raster Inputs Example
+=================================
 
-        cloudFraction = self.getDerivedArray('cfmask', ufunc=cloudMask)
-        self.setArray('cloudFraction', array=cloudFraction)
+On-the-fly resampling and reprojection of input rasters into the reference pixel grid is one key feature of the HUBDC applier.
+For categorical raster inputs this default behaviour can be insufficient in terms of information content preservation, even if the resampling algorithm is carefully choosen.
 
-Note that the original 30 m CFMask data is passed to the ``cloudMask`` user function, which is called internally by
-:meth:`~hubdc.applier.ApplierOperator.getDerivedArray` before the resampling (``resampleAlg=gdal.GRA_Average``) takes place.
-This way the binary cloud information is correctly interpreted at 30 m level and afterwards averaged to 250 m target resolution.
+For example, if the goal is to process a categorical raster, where different categories are coded with unique ids,
+most resampling algorithm (*gdal.GRA_Mode* and *gdal.GRA_NearestNeighbour* are the exceptions) will not be able to preserve the information content.
+
+To resample a categorical raster into a target pixel grid with a different resolution usually implies that the categorical information
+must be aggregated into pixel fraction, one for each category.
+
+In the following example a Landsat CFMask image at 30 m is resampled into 250 m, resulting in a category fractions image.
+The categories are: 0 is *clear land*, 1 is *clear water*, 2 is *cloud shadow*, 4 is *cloud* and 255 is the *background*.
+Use :meth:`~hubdc.applier.ApplierOperator.getCategoricalFractionArray` to achieve this::
+
+    cfmaskFractions250m = self.getCategoricalFractionArray('cfmask30m', ids=[0, 1, 2, 4, 255])
+
+Offen it is sufficient to rediscretize the aggregated fractions at the target resolution.
+This can be achieved with a simple numpy array operation::
+
+    cfmask250m = numpy.array([0, 1, 2, 4, 255])[cfmaskFractions250m.argmax(axis=0)]
+
+or by directly using :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`::
+
+    cfmask250m = self.getCategoricalArray('cfmask30m', ids=[0, 1, 2, 4], minOverallCoverage=0.9, minWinnerCoverage=0.5, noData=255)
+
+Note that pixels with an overall coverage (sum of fractions) lower than the ``minOverallCoverage`` threshold
+and winner category coverage (largest fraction) lower than the ``minWinnerCoverage`` threshold are masked out and set to the ``noData`` value.
+This controls the influence of the "background fraction" and assures a certain amount of pixel purity for the winner category.
+
+
+Classification Raster Inputs Example
+====================================
+
+A classification raster image is a special case of a categorical image, where the categories are well defined by the
+ENVI domain metdata items ``classes``, ``class names``, ``class lookup``.
+
+You can use :meth:`~hubdc.applier.ApplierOperator.getProbabilityArray` to access the aggregated class probabilities at
+target resolution::
+
+    probability = self.getProbabilityArray('classification')
+
+Or use :meth:`~hubdc.applier.ApplierOperator.getClassificationArray` to access the maximum class probability decision
+at target resolution::
+
+    classification = self.getClassificationArray('classification')
+
+
+Use :meth:`~hubdc.applier.ApplierOperator.getMetadataClassDefinition` and :meth:`~hubdc.applier.ApplierOperator.setMetadataClassDefinition`
+to easily pass class definition metadata around::
+
+    classes, classNames, classLookup = self.getMetadataClassDefinition('classification')
+    self.setMetadataClassDefinition('classificationResampled', classes=classes, classNames=classNames, classLookup=classLookup)
+
 
 Vector Inputs Example
 =====================
@@ -302,26 +344,60 @@ Vector layers can be included into the processing using the
 
 Like any input raster file, vector layers can be accessed via the ``operator`` object inside the user function.
 Use the ``operator``
-:meth:`~hubdc.applier.ApplierOperator.getRasterization` method to get a rasterized version of the vector layer.
+:meth:`~hubdc.applier.ApplierOperator.getVectorArray` method to get a rasterized version of the vector layer.
 The rasterization is a binary mask by default, that is initialized with 0 and all pixels covered by features
 are filled (burned) with a value of 1::
 
     def ufunc(operator):
-        array = operator.getRasterization('vector')
+        array = operator.getVectorArray('vector')
         
 This behaviour can be altered using the ``initValue`` and ``burnValue`` keywords::
 
-    array = operator.getRasterization('vector', initValue=0, burnValue=1)
+    array = operator.getVectorArray('vector', initValue=0, burnValue=1)
 
 Instead of a constant burn value, a burn attribute can be set by using the ``burnAttribute`` keyword::
 
-    array = operator.getRasterization('vector', burnAttribute='ID')
+    array = operator.getVectorArray('vector', burnAttribute='ID')
         
 Use the ``filterSQL`` keyword to set an attribute query string in form of a SQL WHERE clause.
 Only features for which the query evaluates as true will be returned::
 
-        sqlWhere = "Name = 'Vegetation'"
-        array=self.getRasterization('vector', initValue=0, burnValue=1, filterSQL=sqlWhere)
+    sqlWhere = "Name = 'Vegetation'"
+    array=self.getVectorArray('vector', initValue=0, burnValue=1, filterSQL=sqlWhere)
+
+
+Categorical Vector Inputs Example
+=================================
+
+In some situations it may be insufficient to simply burn a value or attribute value (i.e. categories) onto the target reference pixel grid.
+Depending on the detailedness of the vector shapes (i.e. scale of digitization), a simple burn or not burn decision may greatly degrade the
+information content if the target resolution (i.e. scale of rasterization) is much coarser.
+
+In this case it would be desirable to rasterize the categories at the scale of digitization and afterwards aggregate this categorical information
+into pixel fraction, one for each category.
+
+Take for example a vector layer with an attribute ``CLASS_ID`` coding features as *1 -> Impervious*, *2 -> Vegetation*, *3 -> Soil* and *4 -> Other*.
+To derieve aggregated pixel fractions for *Impervious*, *Vegetation* and *Soil* categories rasterization at 5 m resolution use
+:meth:`~hubdc.applier.ApplierOperator.getVectorCategoricalFractionArray`::
+
+    fractions = self.getVectorCategoricalFractionArray('vector', burnAttribute='CLASS_ID', ids=[1, 2, 3], xRes=5, yRes=5)
+
+Instaed of explicitly specifying the rasterization resolution using ``xRes`` and ``yRes`` keywords, use the ``oversampling`` keyword to
+specify the factor by witch the target resolution should be oversampled. So for example, if the target resolution is 30 m and rasterization
+should take place at 5 m resolution, use an oversampling factor of 6 (i.e. 30 m / 5 m = 6)::
+
+    fractions = self.getVectorCategoricalFractionArray('vector', burnAttribute='CLASS_ID', ids=[1, 2, 3], oversampling=6)
+
+
+Offen it is sufficient to rediscretize the aggregated fractions at the target resolution.
+This can be achieved by using :meth:`~hubdc.applier.ApplierOperator.getVectorCategoricalArray`::
+
+    categories = self.getVectorCategoricalArray('vector', burnAttribute='ID_L2', ids=[1, 2, 3], oversampling=10,
+                                                minOverallCoverage=0.9, minWinnerCoverage=0.5, noData=0)
+
+Note that pixels with an overall coverage (sum of fractions) lower than the ``minOverallCoverage`` threshold
+and winner category coverage (largest fraction) lower than the ``minWinnerCoverage`` threshold are masked out and set to the ``noData`` value.
+This controls the influence of the "background fraction" and assures a certain amount of pixel purity for the winner category.
 
 
 Parallel Processing Example

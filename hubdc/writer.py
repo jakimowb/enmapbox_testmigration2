@@ -36,9 +36,9 @@ class Writer():
     def closeDatasets(outputDatasets, createEnviHeader):
         for filename, ds in outputDatasets.items():
             outputDataset = outputDatasets.pop(filename)
+            outputDataset.flushCache()
             if createEnviHeader:
                 outputDataset.writeENVIHeader()
-            outputDataset.flushCache()
             outputDataset.close()
 
     @staticmethod

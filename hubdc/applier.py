@@ -86,7 +86,7 @@ class Applier(object):
         for i, filename in enumerate(filenames):
             self.setInput(name=(name, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
-    def setOutput(self, name, filename, format='GTiff', creationOptions=None):
+    def setOutput(self, name, filename, format='ENVI', creationOptions=None):
         """
         Define a new output raster named ``name``, that will be created at ``filename``.
 
@@ -147,11 +147,8 @@ class Applier(object):
         :param operator: applier operator
         :type operator: :class:`~hubdc.applier.ApplierOperator` or function
         :param description: short description that is displayed on the progress bar
-        :type description:
         :param ufuncArgs: additional arguments that will be passed to the operators ufunc() method.
-        :type ufuncArgs:
         :param ufuncKwargs: additional keyword arguments that will be passed to the operators ufunc() method.
-        :type ufuncKwargs:
         :return: list of results, one for each processed block
         """
 
@@ -261,10 +258,13 @@ class Applier(object):
             self.pool.close()
             self.pool.join()
 
-        for writer in self.writers:
-            writer.queue.put([Writer.CLOSE_DATASETS, self.controls.createEnviHeader])
-            writer.queue.put([Writer.CLOSE_WRITER, None])
-            writer.join()
+        if self.controls._multiwriting:
+            for writer in self.writers:
+                writer.queue.put([Writer.CLOSE_DATASETS, self.controls.createEnviHeader])
+                writer.queue.put([Writer.CLOSE_WRITER, None])
+                writer.join()
+        else:
+            self.queueMock.put([Writer.CLOSE_DATASETS, self.controls.createEnviHeader])
 
 
 class _Worker(object):
@@ -439,47 +439,98 @@ class ApplierOperator(object):
         """
         return self._iblock == self._nblock - 1
 
-    def getArray(self, name, indicies=None, wavelengths=None, overlap=0, dtype=None, scale=None):
+    def getArray(self, name, indicies=None, overlap=0, dtype=None, scale=None):
         """
         Returns the input raster image data of the current block in form of a 3-d numpy array.
         The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setInput`.
 
         :param name: input raster name
-        :type name:
         :param indicies: subset image bands by a list of indicies
-        :type indicies:
-        :param wavelengths: subset image bands by a list of wavelengths specified in nanometers;
-                            see :meth:`~hubdc.applier.ApplierOperator.findWaveband` for details
-        :type wavelengths:
         :param overlap: the amount of margin (number of pixels) added to the image data block in each direction, so that the blocks will overlap; this is important for spatial operators like filters.
-        :type overlap:
         :param dtype: convert image data to given numpy data type (this is done before the data is scaled)
-        :type dtype:
         :param scale: scale image data by given scale factor (this is done after type conversion)
-        :type scale:
         """
 
-        if indicies is None and wavelengths is None:
+        if indicies is None:
             array = self._getImage(name=name, overlap=overlap, dtype=dtype, scale=scale)
-        elif isinstance(indicies, list):
+        elif isinstance(indicies, (list, tuple)):
             array = self._getBandSubset(name=name, overlap=overlap, indicies=indicies, dtype=dtype)
-        elif isinstance(indicies, int):
-            array = self._getBandSubset(name=name, overlap=overlap, indicies=[indicies], dtype=dtype)
-        elif isinstance(wavelengths, list):
-            indicies = [self.findWaveband(name=name, wavelength=wl) for wl in wavelengths]
-            array = self.getArray(name=name, overlap=overlap, indicies=indicies)
-        elif isinstance(wavelengths, int):
-            indicies = self.findWaveband(name=name, wavelength=wavelengths)
-            array = self.getArray(name=name, overlap=overlap, indicies=indicies)
         else:
             raise ValueError('wrong value for indicies or wavelength')
+
+        assert isinstance(array, numpy.ndarray)
+        assert array.ndim == 3
+        return array
+
+    def getWavebandArray(self, name, wavelengths, linear=False, overlap=0, dtype=None, scale=None):
+        """
+        Returns an image band subset like :meth:`~hubdc.applier.ApplierOperator.getArray` with specified ``indicies``,
+        but instead of specifying the bands directly, specify a list of target wavelength.
+
+        :param name: input raster name
+        :param wavelengths: list of target wavelengths specified in nanometers
+        :param linear: if set to True, linearly interpolated wavebands are returned instead of nearest neighbour wavebands.
+        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        :param dtype: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        :param scale: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        """
+
+        if not linear:
+
+            indicies = [index for index, distance in [self.findWavelength(name=name, wavelength=wavelength) for wavelength in wavelengths]]
+            array = self.getArray(name=name, overlap=overlap, indicies=indicies, dtype=dtype, scale=scale)
+
+        else:
+
+            tmp = [self.findWavelengthNeighbours(name=name, wavelength=wavelength) for wavelength in wavelengths]
+            leftIndicies, leftWeights, rightIndicies, rightWeights = zip(*tmp)
+
+            leftArray = lambda : self.getArray(name=name, overlap=overlap, indicies=leftIndicies, dtype=dtype, scale=scale)
+            rightArray = lambda : self.getArray(name=name, overlap=overlap, indicies=rightIndicies, dtype=dtype, scale=scale)
+
+            array = leftArray() * numpy.array(leftWeights).reshape((-1,1,1))
+            array += rightArray() * numpy.array(rightWeights).reshape((-1,1,1))
+
 
         assert array.ndim == 3
         return array
 
-    def getDerivedArray(self, name, ufunc, overlap=0):
+    def getDerivedArray(self, name, ufunc, resampleAlg=gdal.GRA_Average, overlap=0):
+        """
+        Returns input raster image data like :meth:`~hubdc.applier.ApplierOperator.getArray`,
+        but instead of returning the data directly, a user defined function is applied to it.
+        Note that the user function is applied before resampling takes place.
+        """
+        return self._getDerivedImage(name=name, ufunc=ufunc, resampleAlg=resampleAlg, overlap=overlap)
 
-        return self._getDerivedImage(name=name, ufunc=ufunc, overlap=overlap)
+    def getCategoricalFractionArray(self, name, ids, index=0, overlap=0):
+
+        ufunc = lambda array: numpy.stack(numpy.float32(array[index] == id) for id in ids)
+        return self.getDerivedArray(name=name, ufunc=ufunc, overlap=overlap, resampleAlg=gdal.GRA_Average)
+
+    def getCategoricalArray(self, name, ids, noData=0, minOverallCoverage=0., minWinnerCoverage=0., index=0, overlap=0):
+
+        fractions = self.getCategoricalFractionArray(name=name, ids=ids, index=index, overlap=overlap)
+        categories = numpy.array(ids)[numpy.argmax(fractions, axis=0)[None]]
+        if noData is not None:
+            invalid = False
+            if minOverallCoverage > 0:
+                invalid += numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
+            if minWinnerCoverage > 0:
+                invalid += numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
+            categories[invalid] = noData
+        assert categories.ndim == 3
+        return categories
+
+    def getProbabilityArray(self, name, overlap=0):
+        classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
+        ids = range(1, classes)
+        return self.getCategoricalFractionArray(name=name, ids=ids, index=0, overlap=overlap)
+
+    def getClassificationArray(self, name, minOverallCoverage=0., minWinnerCoverage=0., overlap=0):
+        classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
+        ids = range(1, classes)
+        return self.getCategoricalArray(name=name, ids=ids, noData=0, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, index=0, overlap=overlap)
 
     def getInputListSubnames(self, name):
         """
@@ -524,31 +575,69 @@ class ApplierOperator(object):
             else:
                 break
 
-    def findWaveband(self, name, wavelength):
+    def findWavelengthNeighbours(self, name, wavelength):
         """
-        Returns the image band index of the band that is located nearest to target wavelength specified in nanometers.
+        Returns the image band indices and inverse distance weigths of the bands that are located around the target wavelength specified in nanometers.
+        The sum of ``leftWeight`` and ``rightWeight`` is 1.
 
         The wavelength information is taken from the ENVI metadata domain.
         An exception is thrown if the ``wavelength`` and ``wavelength units`` metadata items are not correctly specified.
+
+        :return: leftIndex, leftWeight, rightIndex, rightWeight
+
         """
 
-        dataset, options = self._getInputDataset(name)
+        wavelengths = self.getMetadataWavelengths(name)
+        leftWavelengths = wavelengths.copy()
+        leftWavelengths[wavelengths > wavelength] = numpy.nan
+        rightWavelengths = wavelengths.copy()
+        rightWavelengths[wavelengths < wavelength] = numpy.nan
 
-        wavelength = dataset.getMetadataItem(key='wavelength', domain='ENVI', type=float)
-        wavelengthUnits = dataset.getMetadataItem(key='wavelength units', domain='ENVI')
-
-        if wavelength is None or wavelengthUnits is None:
-            raise Exception('missing wavelength or wavelength units information')
-
-        wavelength = numpy.array(wavelength)
-        if wavelengthUnits.lower() == 'micrometers':
-            wavelength *= 1000.
-        elif wavelengthUnits.lower() == 'nanometers':
-            pass
+        if numpy.all(numpy.isnan(leftWavelengths)):
+            leftIndex = None
+            leftDistance = numpy.inf
         else:
-            raise Exception('wavelength units must be nanometers or micrometers')
+            leftIndex = numpy.nanargmin((leftWavelengths - wavelength)**2)
+            leftDistance = abs(wavelengths[leftIndex] - wavelength)
 
-        return int(numpy.argmin(abs(wavelength - wavelength)))
+        if numpy.all(numpy.isnan(rightWavelengths)):
+            rightIndex = None
+            rightDistance = numpy.inf
+        else:
+            rightIndex = numpy.nanargmin((rightWavelengths - wavelength)**2)
+            rightDistance = abs(wavelengths[rightIndex] - wavelength)
+
+        if leftIndex is None:
+            leftIndex = rightIndex
+            leftWeight = 1.
+            rightWeight = 0.
+        else:
+            if (leftDistance+rightDistance) != 0.:
+                leftWeight = 1. - (leftDistance) / (leftDistance+rightDistance)
+            else:
+                leftWeight = 0.5
+            rightWeight = 1. - leftWeight
+
+        if rightIndex is None:
+            rightIndex = leftIndex
+
+        return leftIndex, leftWeight, rightIndex, rightWeight
+
+    def findWavelength(self, name, wavelength):
+        """
+        Returns the image band index for the waveband that is nearest to the target wavelength specified in nanometers,
+        and also returns the absolute distance (in nanometers).
+
+        The wavelength information is taken from the ENVI metadata domain.
+        An exception is thrown if the ``wavelength`` and ``wavelength units`` metadata items are not correctly specified.
+
+        :return: index, distance
+        """
+
+        wavelengths = self.getMetadataWavelengths(name)
+        distances = numpy.abs(wavelengths - wavelength)
+        index = numpy.argmin(distances)
+        return index, distances[index]
 
     def _getInputDataset(self, name):
         if name not in self._inputDatasets:
@@ -581,10 +670,11 @@ class ApplierOperator(object):
         datasetResampled.close()
         return array
 
-    def _getDerivedImage(self, name, ufunc, overlap):
+    def _getDerivedImage(self, name, ufunc, resampleAlg, overlap):
 
         dataset = self._getInputDataset(name)
-        options = self._getInputOptions(name)
+        options = self._getInputOptions(name).copy()
+        options['resampleAlg'] = resampleAlg
         grid = self.grid.pixelBuffer(buffer=overlap)
 
         # create tmp dataset
@@ -596,7 +686,7 @@ class ApplierOperator(object):
         derivedDataset = CreateFromArray(pixelGrid=gridInSourceProjection, array=derivedArray,
                                          dstName='', format='MEM', creationOptions=[])
 
-        tmpname = '_tmp_derived'
+        tmpname = '_tmp_'
         self._inputDatasets[tmpname] = derivedDataset
         self._inputOptions[tmpname] = options
         array = self.getArray(name=tmpname, overlap=overlap)
@@ -604,7 +694,8 @@ class ApplierOperator(object):
 
     def _getBandSubset(self, name, indicies, overlap, dtype):
 
-        dataset, options = self._getInputDataset(name)
+        dataset = self._getInputDataset(name)
+        options = self._getInputOptions(name)
         bandList = [i + 1 for i in indicies]
         grid = self.grid.pixelBuffer(buffer=overlap)
         if self.grid.equalProjection(dataset.pixelGrid):
@@ -641,36 +732,82 @@ class ApplierOperator(object):
 
         return self._vectorDatasets[name]
 
-    def getRasterization(self, name, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0, dtype=numpy.float32, scale=None):
+    def getVectorArray(self, name, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0, dtype=numpy.float32, scale=None):
         """
         Returns the vector rasterization of the current block in form of a 3-d numpy array.
         The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setVector`.
 
         :param name: vector name
-        :type name:
         :param initValue: value to pre-initialize the output array
-        :type initValue:
         :param burnValue: value to burn into the output array for all objects; exclusive with ``burnAttribute``
-        :type burnValue:
         :param burnAttribute: identifies an attribute field on the features to be used for a burn-in value; exclusive with ``burnValue``
-        :type burnAttribute:
         :param allTouched: whether to enable that all pixels touched by lines or polygons will be updated, not just those on the line render path, or whose center point is within the polygon
-        :type allTouched:
         :param filterSQL: set an SQL WHERE clause which will be used to filter vector features
-        :type filterSQL:
         :param overlap: the amount of margin (number of pixels) added to the image data block in each direction, so that the blocks will overlap; this is important for spatial operators like filters.
-        :type overlap:
         :param dtype: convert output array to given numpy data type (this is done before the data is scaled)
-        :type dtype:
         :param scale: scale output array by given scale factor (this is done after type conversion)
-        :type scale:
         """
         layer = self._getVectorDataset(name)
-        dataset = layer.rasterize(dstPixelGrid=self.grid, eType=NumericTypeCodeToGDALTypeCode(dtype),
+        grid = self.grid.pixelBuffer(buffer=overlap)
+        dataset = layer.rasterize(dstPixelGrid=grid, eType=NumericTypeCodeToGDALTypeCode(dtype),
                                   initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched,
                                   filter=filterSQL, dstName='', format='MEM', creationOptions=[])
         array = dataset.readAsArray(scale=scale)
         return array
+
+    def getVectorCategoricalFractionArray(self, name, ids, oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
+                       overlap=0):
+
+        layer = self._getVectorDataset(name)
+        grid = self.grid.pixelBuffer(buffer=overlap)
+
+        # rasterize vector layer at fine resolution
+        if xRes is None or yRes is None:
+            xRes = grid.xRes / float(oversampling)
+            yRes = grid.yRes / float(oversampling)
+
+        gridOversampled = grid.newResolution(xRes=xRes, yRes=yRes)
+        tmpDataset = layer.rasterize(dstPixelGrid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(numpy.float32),
+                                     initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched,
+                                     filter=filterSQL, dstName='', format='MEM', creationOptions=[])
+
+        tmpArrayCatecories = tmpDataset.readAsArray()
+        tmpArrayFractions = numpy.stack(numpy.float32(tmpArrayCatecories[0] == id) for id in ids)
+
+        # store as tmp input raster and aggregate fractions to target grid
+        derivedDataset = CreateFromArray(pixelGrid=gridOversampled, array=tmpArrayFractions,
+                                         dstName='', format='MEM', creationOptions=[])
+
+        tmpname = '_tmp_'
+        self._inputDatasets[tmpname] = derivedDataset
+        self._inputOptions[tmpname] = {'resampleAlg' : gdal.GRA_Average, 'noData' : None}
+        array = self.getArray(name=tmpname, overlap=overlap)
+        return array
+
+    def getVectorCategoricalArray(self, name, ids, noData=0, minOverallCoverage=0., minWinnerCoverage=0.,
+                                  oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
+                                  overlap=0):
+
+        fractions = self.getVectorCategoricalFractionArray(name=name, ids=ids, oversampling=oversampling, xRes=xRes, yRes=yRes,
+                                                           initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched, filterSQL=filterSQL,
+                                                           overlap=overlap, dtype=numpy.float32)
+
+        categories = numpy.array(ids)[fractions.argmax(axis=0)[None]]
+        if noData is not None:
+            invalid = False
+            if minOverallCoverage > 0:
+                invalid += numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
+            if minWinnerCoverage > 0:
+                invalid += numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
+            categories[invalid] = noData
+        assert categories.ndim == 3
+        return categories
+
+    def getVectorClassificationArray(self, name, minOverallCoverage=0., minWinnerCoverage=0., overlap=0):
+        classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
+        ids = range(1, classes)
+        return self.getCategoricalArray(name=name, ids=ids, noData=0, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, index=0, overlap=overlap)
+
 
     def getInputFilename(self, name):
         """
@@ -696,19 +833,13 @@ class ApplierOperator(object):
         The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setOutput`.
 
         :param name:  output raster name
-        :type name:
         :param array: 3-d or 2-d numpy array to be written
-        :type array:
         :param overlap: the amount of margin (number of pixels) to be removed from the image data block in each direction;
                         this is useful when the overlap keyword was also used with :meth:`~hubdc.applier.ApplierOperator.getArray`
-        :type overlap:
         :param replace: tuple of ``(sourceValue, targetValue)`` values; replace all occurances of ``sourceValue`` inside the array with ``targetValue``;
                         this is done after type conversion and scaling)
-        :type replace:
         :param scale: scale array data by given scale factor (this is done after type conversion)
-        :type scale:
         :param dtype: convert array data to given numpy data type (this is done before the data is scaled)
-        :type dtype:
         """
 
         if not isinstance(array, numpy.ndarray):
@@ -743,13 +874,9 @@ class ApplierOperator(object):
         Set the metadata item to an output raster image.
 
         :param name: output image name
-        :type name:
         :param key: metadata item name
-        :type key:
         :param value: metadata item value
-        :type value:
         :param domain: metadata item domain
-        :type domain:
         """
         filename = self.getOutputFilename(name)
         self._queueByFilename[filename].put((Writer.SET_META, filename, key, value, domain))
@@ -759,23 +886,89 @@ class ApplierOperator(object):
         Returns the metadata item of an input raster image.
 
         :param name: output raster name
-        :type name:
         :param key: metadata item name
-        :type key:
         :param value: metadata item value
-        :type value:
         :param domain: metadata item domain
-        :type domain:
         """
         dataset = self._getInputDataset(name)
         return dataset.getMetadataItem(key=key, domain=domain)
 
+    def setMetadataWavelengths(self, name, wavelengths):
+        """
+        Set wavelengths (in nanometers) metadata information for an output raster.
+
+        The wavelength information is stored in the ENVI metadata domain inside the
+        ``wavelength`` and ``wavelength units`` metadata items.
+        """
+
+        filename = self.getOutputFilename(name)
+        self.setMetadataItem(name=name, key='wavelength', value=wavelengths, domain='ENVI')
+        self.setMetadataItem(name=name, key='wavelength units', value='nanometers', domain='ENVI')
+
+    def getMetadataWavelengths(self, name):
+        """
+        Returns wavelengths (in nanometers) metadata information for an input raster.
+
+        The wavelength information is taken from the ENVI metadata domain.
+        An exception is thrown if the ``wavelength`` and ``wavelength units`` metadata items are not correctly specified.
+        """
+
+        dataset = self._getInputDataset(name)
+        wavelength = dataset.getMetadataItem(key='wavelength', domain='ENVI', type=float)
+        wavelengthUnits = dataset.getMetadataItem(key='wavelength units', domain='ENVI')
+        if wavelength is None or wavelengthUnits is None:
+            raise Exception('missing wavelength or wavelength units information')
+        wavelength = numpy.array(wavelength)
+        if wavelengthUnits.lower() == 'micrometers':
+            wavelength *= 1000.
+        elif wavelengthUnits.lower() == 'nanometers':
+            pass
+        else:
+            raise Exception('wavelength units must be nanometers or micrometers')
+        return wavelength
+
+    def setMetadataClassDefinition(self, name, classes, classNames, classLookup):
+        """
+        Set class definition metadata information for an output raster.
+
+        The class definition information is stored in the ENVI metadata domain items ``classes``, ``class names`` and ``class lookup``.
+        """
+
+        filename = self.getOutputFilename(name)
+        self.setMetadataItem(name=name, key='file type', value='ENVI Classification', domain='ENVI')
+        self.setMetadataItem(name=name, key='classes', value=classes, domain='ENVI')
+        self.setMetadataItem(name=name, key='class names', value=classNames, domain='ENVI')
+        self.setMetadataItem(name=name, key='class lookup', value=classLookup, domain='ENVI')
+
+    def getMetadataClassDefinition(self, name):
+        """
+        Returns class definition metadata information for an input raster.
+
+        The class definition information is taken from the ENVI metadata domain items ``classes``, ``class names`` and ``class lookup``.
+
+        :return: classes, classNames, classLookup
+        """
+
+        dataset = self._getInputDataset(name)
+        classes = dataset.getMetadataItem(key='classes', domain='ENVI', type=int)
+        classNames = dataset.getMetadataItem(key='class names', domain='ENVI', type=str)
+        classLookup = dataset.getMetadataItem(key='class lookup', domain='ENVI', type=int)
+
+        return classes, classNames, classLookup
+
     def setNoDataValue(self, name, value):
         """
-        Set the no data value of an output raster image.
+        Set the no data value for an output raster image.
         """
         filename = self.getOutputFilename(name)
         self._queueByFilename[filename].put((Writer.SET_NODATA, filename, value))
+
+    def getNoDataValue(self, name, value):
+        """
+        Returns the no data value for an input raster image.
+        """
+        dataset = self._getInputDataset(name)
+        return dataset.getNoDataValue()
 
     def _apply(self, subgrid, iblock, nblock):
         self._iblock = iblock
@@ -862,7 +1055,7 @@ class ApplierControls(object):
         """
         self.nwriter = nwriter
 
-    def setCreateEnviHeader(self, createEnviHeader=False):
+    def setCreateEnviHeader(self, createEnviHeader=True):
         """
         Set to True to create additional ENVI header files for all output rasters.
         The header files store all metadata items from the GDAL PAM ENVI domain,
@@ -879,7 +1072,7 @@ class ApplierControls(object):
 
     def setAutoResolution(self, resolutionType=const.RESOLUTION_MINIMUM):
         """
-        Derive resolution of the reference pixel grid from input files. Possible options are 'min', 'max' or 'average'.
+        Derive resolution of the reference pixel grid from input files. Possible options are 'minimum', 'maximum' or 'average'.
         """
         self.resolutionType = resolutionType
 
@@ -911,11 +1104,20 @@ class ApplierControls(object):
         """
         self.referenceGrid = grid
 
-    def setReferenceImage(self, filename):
+    def setReferenceGridByImage(self, filename):
         """
         Set an image defining the reference pixel grid.
         """
         self.setReferenceGrid(grid=PixelGrid.fromFile(filename))
+
+    def setReferenceGridByVector(self, filename, xRes, yRes, layerNameOrIndex=0):
+        """
+        Set a vector layer defining the reference pixel grid footprint and projection.
+        """
+
+        layer = OpenLayer(filename=filename, layerNameOrIndex=layerNameOrIndex)
+        grid = layer.makePixelGrid(xRes=xRes, yRes=yRes)
+        self.setReferenceGrid(grid=grid)
 
     def setGDALCacheMax(self, bytes=100*2**20):
         """
@@ -960,6 +1162,8 @@ class ApplierControls(object):
     def _deriveProjection(self, grids):
 
         if self.projection is None:
+            if len(grids) == 0:
+                raise Exception('projection not defined')
             for grid in grids:
                 if not grid.equalProjection(grids[0]):
                     raise Exception('input projections do not match')
@@ -972,7 +1176,12 @@ class ApplierControls(object):
 
         if None in [self.xMin, self.xMax, self.yMin, self.yMax]:
 
+            if len(grids) == 0:
+                raise Exception('footprint not defined')
+
             xMins, xMaxs, yMins, yMaxs = numpy.array([grid.reprojectExtent(targetProjection=projection) for grid in grids]).T
+
+
             if self.footprintType == const.FOOTPRINT_UNION:
                 xMin = xMins.min()
                 xMax = xMaxs.max()

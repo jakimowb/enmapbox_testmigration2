@@ -10,8 +10,8 @@ from hubdc.util import equalProjection
 def Open(filename, eAccess=gdal.GA_ReadOnly):
     return Dataset(gdal.Open(filename, eAccess))
 
-def OpenLayer(filename, layerNameOrIndex=0):
-    return Layer(ogrDataSource=ogr.Open(filename), nameOrIndex=layerNameOrIndex)
+def OpenLayer(filename, layerNameOrIndex=0, update=False):
+    return Layer(ogrDataSource=ogr.Open(filename, int(update)), nameOrIndex=layerNameOrIndex)
 
 def Create(pixelGrid, bands=1, eType=gdal.GDT_Float32, dstName='', format='MEM', creationOptions=[]):
 
@@ -84,7 +84,7 @@ class PixelGrid(PixelGridDefn):
             nrows, ncols = pixelGrid.getDimensions()
             PixelGridDefn.__init__(self, geotransform=geotransform, nrows=nrows, ncols=ncols, projection=projection)
 
-        projection = getProjectionWKT(projection)
+        projection = getProjectionWKT(str(projection))
         trimBoundsToResolutionMultipleAndCastGeoTransformToFloat(pixelGrid=PixelGridDefn(geotransform=geotransform, nrows=nrows, ncols=ncols,
                                                                                          projection=projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
                                                                                          xRes=xRes, yRes=yRes))
@@ -175,6 +175,12 @@ class PixelGrid(PixelGridDefn):
 
         return anchored
 
+    def newResolution(self, xRes, yRes):
+
+        pixelGrid = self.copy()
+        pixelGrid.xRes = xRes
+        pixelGrid.yRes = yRes
+        return self.fromPixelGrid(pixelGrid)
 
     def copy(self):
         return self.fromPixelGrid(self)
@@ -254,15 +260,28 @@ class Dataset():
     def getBand(self, bandNumber):
         return Band(gdalBand=self.gdalDataset.GetRasterBand(bandNumber), pixelGrid=self.pixelGrid)
 
-    def setNoDataValue(self, value):
-        for band in self:
+    def setNoDataValues(self, values):
+        for band, value in zip(self, values):
             band.setNoDataValue(value)
+
+    def getNoDataValues(self):
+        return [band.getNoDataValue() for band in self]
+
+    def setNoDataValue(self, value):
+        self.setNoDataValues(values=[value]*self.zsize)
+
+    def getNoDataValue(self, value):
+        noDataValues = self.getNoDataValues()
+        if len(set(noDataValues)) != 1:
+            raise Exception('there are multiple no data values, use getNoDataValues() instead')
+        return noDataValues[0]
 
     def getMetadataDomainList(self):
         domains = self.gdalDataset.GetMetadataDomainList()
         return domains if domains is not None else []
 
     def setMetadataItem(self, key, value, domain=''):
+        key = key.replace(' ', '_')
         gdalString = _GDALStringFormatter.valueToGDALString(value)
         self.gdalDataset.SetMetadataItem(key, gdalString, domain)
 
@@ -301,33 +320,54 @@ class Dataset():
         self.setMetadataItem('acquisition time', value, 'ENVI')
 
     def writeENVIHeader(self):
-        if self.getFormat() == 'GTiff':
-            self.writeENVIHeaderForGTiff()
 
-    def writeENVIHeaderForGTiff(self):
+        filename = self.gdalDataset.GetFileList()[0]
+        format = self.getFormat()
+        if format == 'ENVI':
+            fileType = self.getMetadataItem(key='file type', domain='ENVI')
+            hdrfilename = self.gdalDataset.GetFileList()[-1]
+        elif format == 'GTiff':
+            fileType = 'TIFF'
+            hdrfilename = filename + '.hdr'
+        else:
+            return
 
         envi = self.getMetadataDomain(domain='ENVI')
 
-        envi['file type'] = 'TIFF'
+        envi['file type'] = fileType
         envi['samples'] = self.gdalDataset.RasterXSize
         envi['lines'] = self.gdalDataset.RasterYSize
         envi['bands'] = self.gdalDataset.RasterCount
 
-        keys = ['description', 'samples', 'lines', 'bands', 'header offset', 'file type', 'data type',
-                'interleave', 'data ignore value',
-                'sensor type', 'byte order', 'map info', 'projection info', 'coordinate system string',
-                'acquisition time',
-                'wavelength units', 'wavelength', 'band names']
+        keys = ['description', 'samples', 'lines', 'bands', 'header_offset', 'file_type', 'data_type',
+                'interleave', 'data_ignore_value',
+                'sensor_type', 'byte_order', 'map_info', 'projection_info', 'coordinate_system_string',
+                'acquisition_time',
+                'wavelength_units', 'wavelength', 'band_names']
 
-        values = [envi.pop(key, None) for key in keys]
+        from collections import OrderedDict
+        orderedEnvi = OrderedDict()
+        for key_ in keys:
+            key = key_.replace('_', ' ')
+            orderedEnvi[key_] = envi.pop(key_, envi.pop(key, None))
 
+        # close dataset
+        self.gdalDataset = None
 
-        filename = self.gdalDataset.GetFileList()[0]
-        with open(filename+'.hdr', 'w') as f:
+        # read map info and coordinate system string written by GDAL
+        if format == 'ENVI':
+            with open(hdrfilename, 'r') as f:
+                for line in f:
+                    for key in ['map info', 'coordinate system string']:
+                        if line.startswith(key):
+                            orderedEnvi[key] = line.split('=')[-1].strip()
+
+        # create ENVI header
+        with open(hdrfilename, 'w') as f:
             f.write('ENVI\n')
-            for key, value in zip(keys+envi.keys(), values+envi.values()):
+            for key, value in zip(orderedEnvi.keys()+envi.keys(), orderedEnvi.values()+envi.values()):
                 if value is not None:
-                    f.write('{key} = {value}\n'.format(key=key, value=value))
+                    f.write('{key} = {value}\n'.format(key=key.replace('_', ' '), value=value))
 
     def warp(self, dstPixelGrid, dstName='', format='MEM', creationOptions=[], **kwargs):
 
@@ -401,6 +441,18 @@ class Dataset():
         assert gdalDataset.RasterXSize == dstPixelGrid.xSize and gdalDataset.RasterYSize == dstPixelGrid.ySize
 
         return Dataset(gdalDataset=gdalDataset)
+
+    @property
+    def xsize(self):
+        return self.gdalDataset.RasterXSize
+
+    @property
+    def ysize(self):
+        return self.gdalDataset.RasterYSize
+
+    @property
+    def zsize(self):
+        return self.gdalDataset.RasterCount
 
     @property
     def shape(self):
@@ -485,6 +537,15 @@ class Layer(object):
         self.ogrDataSource = ogrDataSource
         self.ogrLayer = ogrDataSource.GetLayer(iLayer=nameOrIndex)
         self.filename = self.ogrDataSource.GetDescription()
+        self.projection = self.ogrLayer.GetSpatialRef()
+
+    def close(self):
+        self.ogrLayer = None
+        self.ogrDataSource = None
+
+    def makePixelGrid(self, xRes, yRes):
+        xMin, xMax, yMin, yMax = self.ogrLayer.GetExtent()
+        return PixelGrid(projection=self.projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=xRes, yRes=yRes)
 
     def rasterize(self, dstPixelGrid, eType=gdal.GDT_Float32,
                   initValue=None, burnValue=1, burnAttribute=None, allTouched=False,
