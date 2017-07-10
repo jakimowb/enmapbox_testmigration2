@@ -96,13 +96,10 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix='_py2'):
             if path.endswith('.qrc'):
                 qrcPathes.append(path)
 
-
-
         #logger.debug('Load UI file: {}'.format(pathUi))
         buffer.write(doc.toString())
         buffer.flush()
         buffer.seek(0)
-
 
         #make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)
