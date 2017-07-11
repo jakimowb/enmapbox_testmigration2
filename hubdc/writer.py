@@ -15,7 +15,7 @@ class Writer():
         elif task is cls.SET_META:
             cls.setMetadataItem(outputDatasets, *args)
         elif task is cls.SET_NODATA:
-            cls.setNoDataValue(*args)
+            cls.setNoDataValue(outputDatasets, *args)
         elif task is cls.CLOSE_DATASETS:
             cls.closeDatasets(outputDatasets, *args)
         elif task is cls.CLOSE_WRITER:

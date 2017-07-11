@@ -76,21 +76,6 @@ the *ENVI* metadata domain of the input dataset and passes it to the output data
         operator.setArray('outimage', array=operator.getArray('image'))
         operator.setMetadataItem('outimage', key='wavelength', value=wavelength, domain='ENVI')
 
-Metadata management is usually independent of the block that is currently processed. In the above example, the metadata
-i/o is done redundantly. This can be prevented by using the operators
-:meth:`~hubdc.applier.ApplierOperator.isFirstBlock` or
-:meth:`~hubdc.applier.ApplierOperator.isLastBlock` method::
-
-    def ufunc(operator):
-    
-        if operator.isFirstBlock():
-            operator.wavelength = operator.getMetadataItem(name='image', key='wavelength', domain='ENVI')
-    
-        operator.setArray('outimage', array=operator.getArray('image'))
-    
-        if operator.isLastBlock():
-            operator.setMetadataItem('outimage', key='wavelength', value=operator.wavelength, domain='ENVI')
-
 For more information on the GDAL Data and Metadata Model see the
 `GDAL documentation <http://www.gdal.org/gdal_datamodel.html>`_.
 

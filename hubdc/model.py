@@ -270,7 +270,7 @@ class Dataset():
     def setNoDataValue(self, value):
         self.setNoDataValues(values=[value]*self.zsize)
 
-    def getNoDataValue(self, value):
+    def getNoDataValue(self):
         noDataValues = self.getNoDataValues()
         if len(set(noDataValues)) != 1:
             raise Exception('there are multiple no data values, use getNoDataValues() instead')

@@ -66,27 +66,13 @@ class Applier(object):
     def setInputList(self, name, filenames, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=1000 * 2 ** 20, multithread=True):
         """
         Define a new list of input rasters named ``name``, that are located at the ``filenames``.
-
-        :param name: name of the raster list
-        :type name:
-        :param filenames: list of filenames
-        :type filenames:
-        :param noData: overwrite the noData value of all rasters
-        :type noData: None or number
-        :param resampleAlg: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type resampleAlg:
-        :param errorThreshold: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type errorThreshold:
-        :param warpMemoryLimit: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type warpMemoryLimit:
-        :param multithread: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type multithread:
+        For each filename a new input raster named ``(name, i)`` is added using :meth:`hubdc.applier.Applier.setInput`.
         """
 
         for i, filename in enumerate(filenames):
             self.setInput(name=(name, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
 
-    def setOutput(self, name, filename, format='ENVI', creationOptions=None):
+    def setOutput(self, name, filename, format=None, creationOptions=None):
         """
         Define a new output raster named ``name``, that will be created at ``filename``.
 
@@ -98,26 +84,17 @@ class Applier(object):
         :type format:
         :param creationOptions: see the `Creation Options` section for a specific `GDAL Raster Format`.
                                 Predefined default creation options are used if set to ``None``, see
-                                :meth:`hubdc.io.ApplierOutput.getDefaultCreationOptions` for details.
+                                :meth:`hubdc.applier.ApplierOutput.getDefaultCreationOptions` for details.
         :type creationOptions: list of strings
         """
         self.outputs[name] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions)
 
     def setOutputList(self, name, filenames, format='GTiff', creationOptions=None):
         """
-        Define a new list of output rasters named ``name``, that will be created at ``filenames``.
-
-        :param name: name of the raster list
-        :type name:
-        :param filenames: list of filenames
-        :type filenames:
-        :param format: see `GDAL Raster Formats <http://www.gdal.org/formats_list.html>`_
-        :type format:
-        :param creationOptions: see the `Creation Options` section for a specific `GDAL Raster Format`.
-                                Predefined default creation options are used if set to ``None``, see
-                                :meth:`hubdc.io.ApplierOutput.getDefaultCreationOptions` for details.
-        :type creationOptions: list of strings
+        Define a new list of output rasters named ``name``, that are located at the ``filenames``.
+        For each filename a new output raster named ``(name, i)`` is added using :meth:`hubdc.applier.Applier.setOutput`.
         """
+
         for i, filename in enumerate(filenames):
             self.setOutput(name=(name, i), filename=filename, format=format, creationOptions=creationOptions)
 
@@ -266,8 +243,10 @@ class Applier(object):
         else:
             self.queueMock.put([Writer.CLOSE_DATASETS, self.controls.createEnviHeader])
 
-
 class _Worker(object):
+    """
+    For internal use only.
+    """
 
     queues = list()
     inputDatasets = dict()
@@ -340,7 +319,7 @@ def _pickableWorkerInitialize(*args):
 class ApplierInput(object):
     """
     Data structure for storing input specifications defined by :meth:`hubdc.applier.Applier.setInput`.
-    For internally use only.
+    For internal use only.
     """
     def __init__(self, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0.125, warpMemoryLimit=100*2**20, multithread=False):
         self.filename = filename
@@ -353,8 +332,10 @@ class ApplierInput(object):
 class ApplierOutput(object):
     """
     Data structure for storing output specifications defined by :meth:`hubdc.applier.Applier.setOutput`.
-    For internally use only.
+    For internal use only.
     """
+
+    DEFAULT_FORMAT = 'ENVI'
 
     @staticmethod
     def getDefaultCreationOptions(format):
@@ -366,7 +347,10 @@ class ApplierOutput(object):
                     'SPARSE_OK=TRUE', 'BIGTIFF=YES']
         return []
 
-    def __init__(self, filename, format='GTiff', creationOptions=None):
+    def __init__(self, filename, format=None, creationOptions=None):
+
+        if format is None:
+            format = self.DEFAULT_FORMAT
         if creationOptions is None:
             creationOptions = self.getDefaultCreationOptions(format)
         self.filename = filename
@@ -375,7 +359,7 @@ class ApplierOutput(object):
 class ApplierVector(object):
     """
     Data structure for storing input specifications defined by :meth:`hubdc.applier.Applier.setVector`.
-    For internally use only.
+    For internal use only.
     """
 
     def __init__(self, filename, layer=0):
@@ -438,6 +422,10 @@ class ApplierOperator(object):
         Returns wether or not the current block is the last one.
         """
         return self._iblock == self._nblock - 1
+
+    def getFull(self, value, bands=1, dtype=None, overlap=0):
+        return numpy.full(shape=(bands, self.grid.ySize+2*overlap, self.grid.xSize+2*overlap),
+                          fill_value=value, dtype=dtype)
 
     def getArray(self, name, indicies=None, overlap=0, dtype=None, scale=None):
         """
@@ -504,12 +492,34 @@ class ApplierOperator(object):
         return self._getDerivedImage(name=name, ufunc=ufunc, resampleAlg=resampleAlg, overlap=overlap)
 
     def getCategoricalFractionArray(self, name, ids, index=0, overlap=0):
+        """
+        Returns input raster band data like :meth:`~hubdc.applier.ApplierOperator.getArray`,
+        but instead of returning the data directly, aggregated pixel fractions for the given categories (i.e. ``ids``)
+        are returned.
+
+        :param name: categorical input raster image
+        :param ids: categories to be considered
+        :param index: band index for specifying which image band to be used
+        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        """
 
         ufunc = lambda array: numpy.stack(numpy.float32(array[index] == id) for id in ids)
         return self.getDerivedArray(name=name, ufunc=ufunc, overlap=overlap, resampleAlg=gdal.GRA_Average)
 
     def getCategoricalArray(self, name, ids, noData=0, minOverallCoverage=0., minWinnerCoverage=0., index=0, overlap=0):
+        """
+        Returns input raster band data like :meth:`~hubdc.applier.ApplierOperator.getArray`,
+        but instead of returning the data directly, the category array of maximum aggregated pixel fraction for the given categories (i.e. ``ids``)
+        is returned.
 
+        :param name:  categorical input raster image
+        :param ids: categories to be considered
+        :param noData: no data value for masked pixels
+        :param minOverallCoverage: mask out pixels where the overall coverage (regarding to the given categories ``ids``) is less than this threshold
+        :param minWinnerCoverage: mask out pixels where the winner category coverage is less than this threshold
+        :param index: band index for specifying which image band to be used
+        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        """
         fractions = self.getCategoricalFractionArray(name=name, ids=ids, index=index, overlap=overlap)
         categories = numpy.array(ids)[numpy.argmax(fractions, axis=0)[None]]
         if noData is not None:
@@ -523,11 +533,29 @@ class ApplierOperator(object):
         return categories
 
     def getProbabilityArray(self, name, overlap=0):
+        """
+        Like :meth:`~hubdc.applier.ApplierOperator.getCategoricalFractionArray`, but all category related information is
+        implicitly taken from the class definition metadata.
+
+        :param name: classification input raster image
+        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        """
+
         classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
         ids = range(1, classes)
         return self.getCategoricalFractionArray(name=name, ids=ids, index=0, overlap=overlap)
 
     def getClassificationArray(self, name, minOverallCoverage=0., minWinnerCoverage=0., overlap=0):
+        """
+        Like :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`, but all category related information is
+        implicitly taken from the class definition metadata.
+
+        :param name: classification input raster image
+        :param minOverallCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
+        :param minWinnerCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
+        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        """
+
         classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
         ids = range(1, classes)
         return self.getCategoricalArray(name=name, ids=ids, noData=0, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, index=0, overlap=overlap)
@@ -732,6 +760,10 @@ class ApplierOperator(object):
 
         return self._vectorDatasets[name]
 
+    def isVectorTouched(self, name):
+        layer = self._getVectorDataset(name)
+
+
     def getVectorArray(self, name, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0, dtype=numpy.float32, scale=None):
         """
         Returns the vector rasterization of the current block in form of a 3-d numpy array.
@@ -757,7 +789,19 @@ class ApplierOperator(object):
 
     def getVectorCategoricalFractionArray(self, name, ids, oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
                        overlap=0):
+        """
+        Returns input vector rasterization data like :meth:`~hubdc.applier.ApplierOperator.getVectorArray`,
+        but instead of returning the data directly, rasterization is performed at a specified resolution ``xRes`` and ``yRes``,
+        aggregated pixel fractions for the given categories (i.e. ``ids``) are returned.
 
+        :param name: vector name
+        :param ids: list of categry ids to use
+        :param oversampling: set the rasterization resolution to a multiple (i.e. the oversampling factor) of the reference grid resolution
+        :param xRes: set xRes rasterization resolution explicitely
+        :param yRes: set yRes rasterization resolution explicitely
+
+        For all other arguments see :meth:`~hubdc.applier.ApplierOperator.getVector`
+        """
         layer = self._getVectorDataset(name)
         grid = self.grid.pixelBuffer(buffer=overlap)
 
@@ -785,29 +829,38 @@ class ApplierOperator(object):
         return array
 
     def getVectorCategoricalArray(self, name, ids, noData=0, minOverallCoverage=0., minWinnerCoverage=0.,
-                                  oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
+                                  oversampling=10, xRes=None, yRes=None, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
                                   overlap=0):
+        """
+        Returns input raster band data like :meth:`~hubdc.applier.ApplierOperator.getVectorArray`,
+        but instead of returning the data directly, the category array of maximum aggregated pixel fraction for the given categories (i.e. ``ids``)
+        is returned.
 
+        :param name: vector name
+        :param ids:
+        :param noData: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
+        :param minOverallCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
+        :param minWinnerCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
+
+
+        For all other arguments see :meth:`~hubdc.applier.ApplierOperator.getVector`
+        and :meth:`~hubdc.applier.ApplierOperator.getVectorCategoricalFractionArray`.
+        """
         fractions = self.getVectorCategoricalFractionArray(name=name, ids=ids, oversampling=oversampling, xRes=xRes, yRes=yRes,
-                                                           initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched, filterSQL=filterSQL,
-                                                           overlap=overlap, dtype=numpy.float32)
+                                                           initValue=noData, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched, filterSQL=filterSQL,
+                                                           overlap=overlap)
 
         categories = numpy.array(ids)[fractions.argmax(axis=0)[None]]
         if noData is not None:
-            invalid = False
             if minOverallCoverage > 0:
-                invalid += numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
+                invalid = numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
+                categories[invalid] = noData
             if minWinnerCoverage > 0:
-                invalid += numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
-            categories[invalid] = noData
+                invalid = numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
+                categories[invalid] = noData
+
         assert categories.ndim == 3
         return categories
-
-    def getVectorClassificationArray(self, name, minOverallCoverage=0., minWinnerCoverage=0., overlap=0):
-        classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
-        ids = range(1, classes)
-        return self.getCategoricalArray(name=name, ids=ids, noData=0, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, index=0, overlap=overlap)
-
 
     def getInputFilename(self, name):
         """
@@ -878,14 +931,16 @@ class ApplierOperator(object):
         :param value: metadata item value
         :param domain: metadata item domain
         """
-        filename = self.getOutputFilename(name)
-        self._queueByFilename[filename].put((Writer.SET_META, filename, key, value, domain))
+
+        if self.isFirstBlock():
+            filename = self.getOutputFilename(name)
+            self._queueByFilename[filename].put((Writer.SET_META, filename, key, value, domain))
 
     def getMetadataItem(self, name, key, domain):
         """
         Returns the metadata item of an input raster image.
 
-        :param name: output raster name
+        :param name: input raster name
         :param key: metadata item name
         :param value: metadata item value
         :param domain: metadata item domain
@@ -927,24 +982,42 @@ class ApplierOperator(object):
             raise Exception('wavelength units must be nanometers or micrometers')
         return wavelength
 
-    def setMetadataClassDefinition(self, name, classes, classNames, classLookup):
+    def setMetadataClassDefinition(self, name, classes, classNames=None, classLookup=None):
         """
         Set class definition metadata information for an output raster.
 
         The class definition information is stored in the ENVI metadata domain items ``classes``, ``class names`` and ``class lookup``.
+        Note that the "unclassified" (class id=0) class is added.
         """
+
+        if classNames is None:
+            classNames = ['class {}'.format(i+1) for i in range(classes)]
+        if classLookup is None:
+            import random
+            classLookup = [random.randint(1,255) for i in range(classes*3)]
+
+        if len(classNames) != classes:
+            raise Exception('wrong number of class names')
+        if len(classLookup) != classes*3:
+            raise Exception('wrong number of class colors')
+
+        classes += 1
+        classNames = ['unclassified'] + classNames
+        classLookup = [0, 0, 0] + classLookup
 
         filename = self.getOutputFilename(name)
         self.setMetadataItem(name=name, key='file type', value='ENVI Classification', domain='ENVI')
         self.setMetadataItem(name=name, key='classes', value=classes, domain='ENVI')
         self.setMetadataItem(name=name, key='class names', value=classNames, domain='ENVI')
         self.setMetadataItem(name=name, key='class lookup', value=classLookup, domain='ENVI')
+        self.setNoDataValue(name=name, value=0)
 
     def getMetadataClassDefinition(self, name):
         """
         Returns class definition metadata information for an input raster.
 
         The class definition information is taken from the ENVI metadata domain items ``classes``, ``class names`` and ``class lookup``.
+        Note that the "unclassified" (class id=0) class is removed.
 
         :return: classes, classNames, classLookup
         """
@@ -963,7 +1036,7 @@ class ApplierOperator(object):
         filename = self.getOutputFilename(name)
         self._queueByFilename[filename].put((Writer.SET_NODATA, filename, value))
 
-    def getNoDataValue(self, name, value):
+    def getNoDataValue(self, name):
         """
         Returns the no data value for an input raster image.
         """

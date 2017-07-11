@@ -1,5 +1,3 @@
-from osgeo import gdal
-import numpy
 from hubdc.applier import Applier
 from hubdc.applier import ApplierOperator
 
