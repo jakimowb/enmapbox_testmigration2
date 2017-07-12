@@ -322,6 +322,16 @@ class EnMAPBox(QObject):
                 mapDock.addLayers(dataSrc.createRegisteredMapLayer())
             s = ""
 
+    def openExampleData(self):
+        import enmapbox.testdata
+        from enmapbox.gui.utils import file_search
+        dir = os.path.dirname(enmapbox.testdata.__file__)
+        files = file_search(dir, re.compile('.*(bsq|img|shp)$', re.I), recursive=True)
+
+        for file in files:
+            self.addSource(file)
+        s = ""
+
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
 
@@ -349,6 +359,22 @@ class EnMAPBox(QObject):
 
     def restoreProject(self):
         raise NotImplementedError()
+
+    sigCurrentLocationChanged = pyqtSignal(SpatialPoint)
+    def currentLocation(self):
+        """
+        Returns the SpatialPoint of the map location last clicked by identify
+        :return: SpatialPoint
+        """
+
+    sigCurrentSpectraChanged = pyqtSignal(list)
+    def currentSpectra(self):
+        """
+        Returns the spectra currently selected using the profile tool.
+        :return: [list-of-spectra]
+        """
+
+        raise NotImplementedError('EnMAPBox.currentSpectra')
 
     def dataSources(self, sourceType):
         """
