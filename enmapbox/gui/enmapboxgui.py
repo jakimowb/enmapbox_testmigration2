@@ -344,10 +344,20 @@ class EnMAPBox(QObject):
         proj.dumpObjectInfo()
         proj.dumpObjectTree()
         proj.dumpProperties()
-        s = ""
+        raise NotImplementedError()
+
 
     def restoreProject(self):
-        s = ""
+        raise NotImplementedError()
+
+    def dataSources(self, sourceType):
+        """
+        Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
+        :param sourceType: ['ALL', 'RASTER''VECTOR', 'MODEL'],
+                            see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
+        :return: [list-of-datasource-URIs]
+        """
+        return self.dataSourceManager.getUriList(sourceType)
 
 
     def createDock(self, *args, **kwds):
@@ -368,6 +378,7 @@ class EnMAPBox(QObject):
             if str(menu.title()) == title:
                 return menu
         return None
+
     def menusWithTitle(self, title):
         return self.ui.menusWithTitle(title)
 
