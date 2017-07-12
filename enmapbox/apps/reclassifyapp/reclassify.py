@@ -26,7 +26,7 @@ from PyQt4.QtGui import QColor
 from PyQt4.QtCore import QSize
 import numpy as np
 
-def setClassInfo(pathTarget, classificationScheme, bandIndex=0):
+def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     assert isinstance(classificationScheme, ClassificationScheme)
 
     classNames = classificationScheme.classNames()
@@ -36,7 +36,11 @@ def setClassInfo(pathTarget, classificationScheme, bandIndex=0):
         assert isinstance(color, QColor)
         ct.SetColorEntry(color.toRgb())
 
-    ds = gdal.Open(pathTarget, gdal.GA_Update)
+    if isinstance(targetDataset, gdal.Dataset):
+        ds = targetDataset
+    else:
+        ds = gdal.Open(targetDataset, gdal.GA_Update)
+
     assert isinstance(ds, gdal.Dataset)
     assert bandIndex >= 0 and ds.RasterCount > bandIndex
     band = ds.GetRasterBand(bandIndex+2)

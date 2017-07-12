@@ -29,7 +29,8 @@ def enmapboxApplicationFactory(enmapBox):
     :param enmapBox: the EnMAP-Box instance.
     :return: [list-of-EnMAPBoxApplications]
     """
+    s = ""
 
-    from reclassify.enmapboxintegration import ReclassifyTool
+    from enmapboxintegration import ReclassifyTool
     #returns a list of EnMAPBoxApplications
     return [ReclassifyTool(enmapBox)]
