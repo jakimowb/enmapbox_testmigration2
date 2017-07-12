@@ -77,9 +77,9 @@ class ApplicationRegistry(QObject):
             site.addsitedir(appFolder)
 
 
-        import importlib
-
-        appModule = importlib.import_module('__init__', pkgFile)
+        import importlib, imp
+        appModule = imp.load_source('__init__', pkgFile)
+       # appModule = importlib.import_module('__init__', pkgFile)
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
@@ -135,20 +135,24 @@ class ApplicationRegistry(QObject):
         assert isinstance(app, EnMAPBoxApplication)
         parentMenu = self.enmapBox.menu(parentMenuName)
 
-        item = app.menu(parentMenu)
+        items = app.menu(parentMenu)
+        if not isinstance(items, list):
+            items = [items]
 
-        if isinstance(item, QMenu):
-            parentMenu = item.parent()
-            if item not in parentMenu.children():
-                parentMenu.addMenu(item)
-            appWrapper.menuItems.append(item)
+        for item in items:
+            if isinstance(item, QMenu):
 
-        elif isinstance(item, QAction):
-            parentMenu = item.parent().parent()
-            item.setParent(parentMenu)
-            if item not in parentMenu.children():
-                parentMenu.addAction(item)
-            appWrapper.menuItems.append(item)
+                parentMenu = item.parent()
+                if item not in parentMenu.children():
+                    parentMenu.addMenu(item)
+                appWrapper.menuItems.append(item)
+
+            elif isinstance(item, QAction):
+                parentMenu = item.parent().parent()
+                item.setParent(parentMenu)
+                if item not in parentMenu.children():
+                    parentMenu.addAction(item)
+                appWrapper.menuItems.append(item)
 
 
 

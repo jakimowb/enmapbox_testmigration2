@@ -30,6 +30,6 @@ def enmapboxApplicationFactory(enmapBox):
     :return: [list-of-EnMAPBoxApplications]
     """
 
-    from enmapboxintegration import MyEnMAPBoxApp
+    from exampleapp.enmapboxintegration import MyEnMAPBoxApp
     #returns a list of EnMAPBoxApplications
     return [MyEnMAPBoxApp(enmapBox)]
