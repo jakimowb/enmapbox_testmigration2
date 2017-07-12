@@ -607,6 +607,8 @@ class DataSourceManager(QObject):
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
+    SOURCE_TYPES = ['ALL', 'RASTER', 'VECTOR', 'MODEL']
+
     def __init__(self):
         super(DataSourceManager, self).__init__()
 
@@ -656,13 +658,13 @@ class DataSourceManager(QObject):
         if isinstance(sourcetype, type):
             return [ds.uri() for ds in self.sources if type(ds) is sourcetype]
 
-        assert sourcetype in ['ALL','RASTER''VECTOR','MODEL']
+        assert sourcetype in DataSourceManager.SOURCE_TYPES
         if sourcetype == 'ALL':
             return [ds.uri() for ds in self.sources]
         elif sourcetype == 'VECTOR':
             return [ds.uri() for ds in self.sources if isinstance(ds, DataSourceVector)]
         elif sourcetype == 'RASTER':
-            return [ds.uri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+            return [ds.uri() for ds in self.sources if isinstance(ds, DataSourceRaster)]
         elif sourcetype == 'MODEL':
             return [ds.uri() for ds in self.sources if isinstance(ds, ProcessingTypeDataSource)]
 
