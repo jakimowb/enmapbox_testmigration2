@@ -6,16 +6,18 @@ from PyQt4.QtGui import *
 from enmapbox.gui.utils import DIR_ENMAPBOX
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
+DEBUG = True
 
 class ApplicationWrapper(QObject):
     """
     Stores information on an initialized EnMAPBoxApplication
     """
-    def __init__(self, app):
+    def __init__(self, app, parent=None):
+        super(ApplicationWrapper, self).__init__(parent)
         assert isinstance(app, EnMAPBoxApplication)
         self.app = app
         self.appId = str(app.__class__)
-        self.menuItem = []
+        self.menuItems = []
         self.geoAlgorithms = []
 
 
@@ -48,10 +50,13 @@ class ApplicationRegistry(QObject):
 
 
         for appPackage in appPackages:
-            try:
+            if DEBUG:
                 self.addApplications(appPackage)
-            except Exception as ex:
-                logger.error(ex)
+            else:
+                try:
+                    self.addApplications(appPackage)
+                except Exception as ex:
+                    logger.error(ex)
 
 
     def addApplications(self, appPackagePath):
@@ -60,7 +65,7 @@ class ApplicationRegistry(QObject):
         :return:
         """
         #todo: catch error, keep system stable
-        import imp
+
         appPkgName = os.path.basename(appPackagePath)
         appFolder = os.path.dirname(appPackagePath)
         pkgFile = os.path.join(appPackagePath, '__init__.py')
@@ -71,11 +76,10 @@ class ApplicationRegistry(QObject):
         if not appFolder in sys.path:
             site.addsitedir(appFolder)
 
-        try:
-            appModule = __import__(appPkgName)
-        except:
-            sys.path_importer_cache.clear()
-            appModule = __import__(appPkgName)
+
+        import importlib
+
+        appModule = importlib.import_module('__init__', pkgFile)
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
@@ -91,8 +95,13 @@ class ApplicationRegistry(QObject):
             raise Exception('No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
 
         for app in apps:
-            self.addApplication(app)
-
+            if DEBUG:
+                self.addApplication(app)
+            else:
+                try:
+                    self.addApplication(app)
+                except Exception as ex:
+                    logger.error(ex.message)
 
     def addApplication(self, app):
         assert isinstance(app, EnMAPBoxApplication)
@@ -125,17 +134,22 @@ class ApplicationRegistry(QObject):
         app = appWrapper.app
         assert isinstance(app, EnMAPBoxApplication)
         parentMenu = self.enmapBox.menu(parentMenuName)
+
         item = app.menu(parentMenu)
 
         if isinstance(item, QMenu):
             parentMenu = item.parent()
-            parentMenu.addMenu(item)
+            if item not in parentMenu.children():
+                parentMenu.addMenu(item)
+            appWrapper.menuItems.append(item)
 
         elif isinstance(item, QAction):
             parentMenu = item.parent().parent()
             item.setParent(parentMenu)
-            parentMenu.addAction(item)
-            appWrapper.menuItem.append(item)
+            if item not in parentMenu.children():
+                parentMenu.addAction(item)
+            appWrapper.menuItems.append(item)
+
 
 
 
@@ -149,7 +163,7 @@ class ApplicationRegistry(QObject):
         assert isinstance(appWrapper, ApplicationWrapper)
 
         #remove menu item
-        for item in appWrapper.menuItem:
+        for item in appWrapper.menuItems:
             item.parent().removeChildren(item)
 
         #todo: remove geo-algorithms
