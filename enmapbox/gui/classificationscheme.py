@@ -29,6 +29,30 @@ from osgeo import gdal
 from enmapbox.gui.utils import loadUi
 
 
+def hasClassification(pathOrDataset):
+    """
+    This function tests if a gdal-readable raster data set contains
+    categorical information that can be used to retrieve a ClassificationScheme
+    :param pathOrDataset: string | gdal.Dataset
+    :return: True | False
+    """
+
+    if isinstance(pathOrDataset, gdal.Dataset):
+        ds = pathOrDataset
+    elif (isinstance(pathOrDataset, str) or isinstance(pathOrDataset, unicode)) \
+            and os.path.exists(pathOrDataset):
+        ds = gdal.Open(pathOrDataset)
+    else:
+        return False
+
+    for b in range(ds.RasterCount):
+        band = ds.GetRasterBand(b+1)
+        assert isinstance(band, gdal.Band)
+        if band.GetCategoryNames() or band.GetColorTable():
+            return True
+    return False
+
+
 
 def getTextColorWithContrast(c):
     assert isinstance(c, QColor)
@@ -75,6 +99,7 @@ class ClassificationScheme(QObject):
     def fromRasterImage(path, bandIndex=None):
         ds = gdal.Open(path)
         assert ds is not None
+
         if bandIndex is None:
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b + 1)
@@ -84,7 +109,8 @@ class ClassificationScheme(QObject):
                     bandIndex = b
                     break
                 s = ""
-
+            if bandIndex is None:
+                raise Exception('File {} does not contain any categorical class definition'.format(path))
 
         assert bandIndex >= 0 and bandIndex < ds.RasterCount
         band = ds.GetRasterBand(bandIndex + 1)
@@ -93,73 +119,99 @@ class ClassificationScheme(QObject):
         if len(cat) == 0:
             return None
         scheme = ClassificationScheme()
+        classes = []
         for i, catName in enumerate(cat):
             cli = ClassInfo(name=catName)
             if ct is not None:
                 cli.setColor(QColor(*ct.GetColorEntry(i)))
-            scheme.addClass(cli)
+            classes.append(cli)
+        scheme.addClasses(classes)
         return scheme
 
     @staticmethod
     def fromVectorFile(self, path, fieldClassName='classname', fieldClassColor='classColor'):
-        pass
+        raise NotImplementedError('ClassificationScheme.fromVectorFile(...)')
 
-    sigClassRemoved = pyqtSignal(ClassInfo)
-    sigClassAdded = pyqtSignal(ClassInfo)
+    sigClassesRemoved = pyqtSignal(list)
+    sigClassesAdded = pyqtSignal(list)
 
     def __init__(self):
         super(ClassificationScheme, self).__init__()
 
-        self.classes = []
+        self.mClasses = []
 
     def clear(self):
-        removed = self.classes[:]
-        del self.classes[:]
+        removed = self.mClasses[:]
+        del self.mClasses[:]
 
     def clone(self):
         cs = ClassificationScheme()
-        for c in self.classes:
-            cs.addClass(c.clone())
+        classes = [c.clone() for c in self.mClasses]
+        cs.addClasses(classes)
         return cs
 
     def __getitem__(self, slice):
-        return self.classes[slice]
+        return self.mClasses[slice]
 
     def __delitem__(self, slice):
         classes = self[slice]
-        for c in classes:
-            self.removeClass(c)
+        self.removeClasses(classes)
 
     def __contains__(self, item):
-        return item in self.classes
+        return item in self.mClasses
 
     def __len__(self):
-        return len(self.classes)
+        return len(self.mClasses)
 
     def __iter__(self):
-        return  self.classes.__iter__()
+        return iter(self.mClasses)
+
+    def index(self, classInfo):
+        assert isinstance(classInfo, ClassInfo)
+        return self.mClasses.index(classInfo)
 
     def classNames(self):
-        return [str(c.mLabel) for c in self.classes]
+        return [str(c.mLabel) for c in self.mClasses]
 
     def classColors(self):
-        return [QColor(c.mColor) for c in self.classes]
+        return [QColor(c.mColor) for c in self.mClasses]
 
     def classLabels(self):
-        return [c.mLabel for c in self.classes]
+        return [c.mLabel for c in self.mClasses]
+
+
+    def removeClasses(self, classes):
+        for c in classes:
+            assert c in self.mClasses
+            self.mClasses.remove(c)
+        self.sigClassesRemoved.emit(classes[:])
+
 
     def removeClass(self, c):
-        assert c in self.classes
-        self.classes.remove(c)
-        self.sigClassRemoved.emit(c)
+        self.removeClasses([c])
+
+    def addClasses(self, classes, index=None):
+        if len(classes) > 0:
+            if index is None:
+                index = len(self.mClasses)
+            addedClasses = []
+            for i, c in enumerate(classes):
+                assert isinstance(c, ClassInfo)
+                j = index+i
+                c.setLabel(j)
+                c.sigSettingsChanged.connect(self.onClassInfoSettingChanged)
+                addedClasses.append(c)
+                self.mClasses.insert(j, c)
+
+            self.sigClassesAdded.emit(addedClasses)
+
+    sigClassInfoChanged = pyqtSignal(ClassInfo)
+    def onClassInfoSettingChanged(self, *args):
+        self.sigClassInfoChanged.emit(self.sender())
 
     def addClass(self, c, index=None):
         assert isinstance(c, ClassInfo)
-        if index is None:
-            index = len(self.classes)
-        c.setLabel(index)
-        self.classes.insert(index, c)
-        self.sigClassAdded.emit(c)
+        self.addClasses([c], index=index)
 
     def saveToRaster(self, path, bandIndex=0):
 
@@ -169,7 +221,7 @@ class ClassificationScheme(QObject):
         band = ds.GetRasterBand(bandIndex+1)
         ct = gdal.ColorTable()
         cat = []
-        for i, classInfo in enumerate(self.classes):
+        for i, classInfo in enumerate(self.mClasses):
             c = classInfo.mColor
             cat.append(classInfo.mName)
             assert isinstance(c, QColor)
@@ -184,7 +236,7 @@ class ClassificationScheme(QObject):
 
     def toString(self, sep=';'):
         lines = [sep.join(['class_value', 'class_name', 'R', 'G', 'B', 'A'])]
-        for classInfo in self.classes:
+        for classInfo in self.mClasses:
             c = classInfo.mColor
             info = [classInfo.mValue, classInfo.mName, c.red(), c.green(), c.blue(), c.alpha()]
             info = ['{}'.format(v) for v in info]
@@ -199,7 +251,58 @@ class ClassificationScheme(QObject):
         file.close()
 
 
+class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
+    def __init__(self, scheme, parent=None):
+        super(ClassificationSchemeComboBoxItemModel, self).__init__(parent)
+        assert isinstance(scheme, ClassificationScheme)
+        self.mScheme = scheme
+        self.mScheme.sigClassesAdded.connect(self.reset)
+        self.mScheme.sigClassesRemoved.connect(self.reset)
+        self.mScheme.sigClassInfoChanged.connect(self.onClassInfoChanged)
 
+
+    def onClassInfoChanged(self, classInfo):
+        i = self.mScheme.index(classInfo)
+        idx = self.createIndex(i, 0)
+        self.dataChanged.emit(idx, idx)
+
+
+    def rowCount(self, parent=None, *args, **kwargs):
+        return len(self.mScheme)
+
+    def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
+        return 1
+
+
+    def getClassInfoFromIndex(self, index):
+        if index.isValid():
+            return self.mScheme[index.row()]
+        return None
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid():
+            return None
+
+        if (index.row() >= len(self.mScheme)) or (index.row() < 0):
+            return None
+
+        classInfo = self.getClassInfoFromIndex(index)
+        value = None
+        if role == Qt.DisplayRole:
+            value = '{} {}'.format(classInfo.mLabel, classInfo.mName)
+        #if role == Qt.BackgroundRole:
+        #    value = QBrush(classInfo.mColor)
+        if role == Qt.DecorationRole:
+            value = QBrush(classInfo.mColor)
+            pm = QPixmap(20,20)
+            pm.fill(classInfo.mColor)
+            value = QIcon(pm)
+        if role == Qt.ForegroundRole:
+            value = getTextColorWithContrast(classInfo.mColor)
+
+        if role == Qt.UserRole:
+            value = classInfo
+        return value
 
 class ClassificationSchemeTableModel(QAbstractTableModel):
 
@@ -219,19 +322,25 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         self.scheme = scheme
 
 
-    def removeClass(self, c):
-        idx = self.getIndexFromClassInfo(c)
-        if idx:
+    def removeClasses(self, classes):
+        assert isinstance(classes, list)
+        rowIndices = sorted([self.getIndexFromClassInfo(c) for c in classes], key=lambda i:i.row(), reverse=True)
+        for idx in rowIndices:
             self.beginRemoveRows(idx.parent(), idx.row(), idx.row())
-            self.scheme.removeClass(c)
             self.endRemoveRows()
+        self.scheme.removeClasses(classes)
 
-    def insertClass(self, c, i=None):
+    def insertClasses(self, classes, i=None):
+        assert isinstance(classes, list)
         if i is None:
             i = len(self.scheme)
-        self.beginInsertRows(QModelIndex(), i, i)
-        self.scheme.addClass(c,i)
+        self.beginInsertRows(QModelIndex(), i, i+len(classes)-1)
+        self.scheme.addClasses(classes, index=i)
         self.endInsertRows()
+
+    def insertClass(self, c, i=None):
+        assert isinstance(c, ClassInfo)
+        self.insertClasses([c], i=i)
 
 
     def clear(self):
@@ -246,7 +355,7 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         return len(self.columnNames)
 
     def getIndexFromClassInfo(self, classInfo):
-        return self.createIndex(self.scheme.classes.index(classInfo),0)
+        return self.createIndex(self.scheme.mClasses.index(classInfo),0)
 
     def getClassInfoFromIndex(self, index):
         if index.isValid():
@@ -456,22 +565,28 @@ class ClassificationSchemeWidget(QWidget, loadUi('classificationscheme.ui')):
                                          len(self.selectionModel.selectedRows()) > 0)
 
     def createClasses(self, n):
+        classes = []
         for i in range(n):
             c = ClassInfo(name = '<empty>', color = QColor('red'))
-            self.schemeModel.insertClass(c)
+            classes.append(c)
+        self.schemeModel.insertClasses(classes)
 
 
     def removeSelectedClasses(self):
         model = self.tableClassificationScheme.model()
         indices = reversed(self.selectionModel.selectedRows())
         classes = [self.schemeModel.getClassInfoFromIndex(idx) for idx in indices]
-        for c in classes:
-            self.schemeModel.removeClass(c)
+        self.schemeModel.removeClasses(classes)
 
 
     def loadClasses(self, *args):
-        path = QFileDialog.getOpenFileName(self, 'Select Raster File', '')
+        from enmapbox.gui.utils import settings
+        settings = settings()
+        settingsKey = 'DEF_DIR_ClassificationSchemeWidget.loadClasses'
+        defDir = settings.value(settingsKey, None)
+        path = QFileDialog.getOpenFileName(self, 'Select Raster File', directory=defDir)
         if os.path.exists(path):
+            settings.setValue(settingsKey, os.path.dirname(path))
             scheme = ClassificationScheme.fromRasterImage(path)
             if scheme is not None:
                 self.appendClassificationScheme(scheme)
@@ -479,8 +594,7 @@ class ClassificationSchemeWidget(QWidget, loadUi('classificationscheme.ui')):
 
     def appendClassificationScheme(self, classificationScheme):
         assert isinstance(classificationScheme, ClassificationScheme)
-        for c in classificationScheme:
-            self.schemeModel.insertClass(c.clone())
+        self.schemeModel.insertClasses([c for c in classificationScheme])
 
 
     def setClassificationScheme(self, classificationScheme):
@@ -549,6 +663,10 @@ if __name__ == '__main__':
 
 
     w = ClassificationSchemeWidget()
+    def classAdded(*args):
+        print(args)
+
+    w.classificationScheme().sigClassesAdded.connect(classAdded)
     w.setClassificationScheme(ClassificationScheme.fromRasterImage(pathClassImg))
     w.show()
 
