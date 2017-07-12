@@ -27,9 +27,9 @@ class ReclassifyTool(EnMAPBoxApplication):
 
     def __init__(self, enmapBox, parent=None):
         super(ReclassifyTool, self).__init__(enmapBox, parent=parent)
-        self.name = 'My EnMAPBox App'
-        self.version = 'Version 0.42'
-        self.licence = 'BSD-3'
+        self.name = 'Reclassify Tool'
+        self.version = 'Version 0.1'
+        self.licence = 'GPL-3'
 
     def icon(self):
         pathIcon = os.path.join(APP_DIR, 'icon.png')
@@ -40,54 +40,18 @@ class ReclassifyTool(EnMAPBoxApplication):
         Specify menu, submenus and actions
         :return: the QMenu or QAction to be added to the "Applications" menu.
         """
-
         appMenu = self.enmapbox.menu('Tools')
 
-        menu = QMenu(self.name, appMenu)
-        menu.setIcon(self.icon())
-
         #add a QAction that starts your GUI
-        a = menu.addAction('Reclassify')
+        a = appMenu.addAction('Reclassify')
+        assert isinstance(a, QAction)
+        a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
-        appMenu.addMenu(menu)
-
-        return menu
+        return a
 
 
     def startGUI(self, *args):
         from reclassifyapp import ui as ui
         uiDialog = ui.ReclassifyDialog(self.enmapbox.ui)
         uiDialog.show()
-
-
-    def geoAlgorithms(self):
-        return []
-
-
-
-### Interfaces to use algorithms in algorithms.py within
-### QGIS Processing Framework
-
-from processing.core.GeoAlgorithm import GeoAlgorithm
-from processing.core.parameters import ParameterRaster
-from processing.core.outputs import OutputRaster
-class MyEnMAPBoxAppGeoAlgorithm(GeoAlgorithm):
-
-        def defineCharacteristics(self):
-            self.name = 'NDVI (using GDAL)'
-            self.group = 'My Example App'
-
-            self.addParameter(ParameterRaster('infile', 'Spectral Image'))
-            self.addOutput(OutputRaster('outfile', 'NDVI'))
-
-        def processAlgorithm(self, progress):
-            from .algorithms import ndvi
-            #map processing framework parameters to that of you algorithm
-            infile = self.getParameterValue('infile')
-            outfile = self.getOutputValue('outfile')
-            ndvi(infile, outfile, progress=progress)
-
-        def help(self):
-            return True, 'Calculates the NDVI using GDAL'
-
 

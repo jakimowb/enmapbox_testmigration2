@@ -33,7 +33,9 @@ def sandboxWithEnMapBox(loadPF=False):
     """Minimum example to the this application"""
     from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
     qgsApp = initQgisEnvironment()
-    sandboxPureGui(loadProcessingFramework=loadPF)
+    sandboxPureGui(loadProcessingFramework=loadPF, loadExampleData=True)
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EnMAPBox.instance().openExampleData()
 
     qgsApp.exec_()
     qgsApp.quit()
@@ -49,12 +51,14 @@ def sandboxGuiOnly():
     from ui import ReclassifyDialog
     ui1 = ReclassifyDialog()
     ui1.show()
-
+    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_train
+    ui1.addSrcRaster(HymapBerlinA_train)
+    ui1.setDstRaster(r'D:\Temp\testclass.bsq')
 
     qgsApp.exec_()
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if False: sandboxGuiOnly()
-    if True: sandboxWithEnMapBox(False)
+    if True: sandboxGuiOnly()
+    if False: sandboxWithEnMapBox(False)
 

@@ -31,6 +31,6 @@ def enmapboxApplicationFactory(enmapBox):
     """
     s = ""
 
-    from enmapboxintegration import ReclassifyTool
+    from reclassifyapp.enmapboxintegration import ReclassifyTool
     #returns a list of EnMAPBoxApplications
     return [ReclassifyTool(enmapBox)]
