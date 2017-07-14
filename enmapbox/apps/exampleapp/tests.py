@@ -2,7 +2,9 @@
 
 """
 ***************************************************************************
-    __init__
+    exampleapp/tests.py
+
+    Some unit tests
     ---------------------
     Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -16,10 +18,15 @@
 *                                                                         *
 ***************************************************************************
 """
-import os.path
-j = lambda f:os.path.join(os.path.dirname(__file__), f)
-EnMAP = j('EnMAP02_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-VHR = j('HighResolution_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-LandCover = j('LandCov_Vec_Berlin_Urban_Gradient_2009_subset.shp')
-Speclib = j('SpecLib_Berlin_Urban_Gradient_2009_244bands.sli')
 
+from unittest import TestCase
+
+
+class TestNdvi(TestCase):
+    def test_ndvi(self):
+        from enmapbox.testdata.HymapBerlinB import HymapBerlinB_image
+        from .algorithms import ndvi
+        from tempfile import tempdir
+        from os.path import join
+        ndvi(infile=HymapBerlinB_image,
+             outfile=join(tempdir(), 'ndvi.img'))

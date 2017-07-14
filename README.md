@@ -1,11 +1,11 @@
 ![EnMAP-Box Logo](http://www.enmap.org/sites/default/files/pictures/logos/logo-enmap-box-thumb.jpg)
 
-# README
+# README #
 
-The EnMAP-Box software is developed to be used as a [QGIS plugin](http://docs.qgis.org/2.14/en/docs/user_manual/plugins/plugins.html "Learn more about QGOS Plugins"). The installation steps include: 
+The EnMAP-Box software is developed to be used as a QGIS plugin. The installation steps include: 
 
 1. Install QGIS
-2. Install EnMAP-Box
+2. Clone the EnMAP-Box Repository
 3. Activate the EnMAP-Box Plugin inside QGIS
 
 > Steps 2 and 3 will later be replaced by an installation via the QGIS Plugins Manager.
@@ -15,57 +15,87 @@ If you have any questions feel free contacting us:
 [Benjamin Jakimow](https://www.geographie.hu-berlin.de/de/Members/jakimow_benjamin) and
 [Sebastian van der Linden](https://www.geographie.hu-berlin.de/de/Members/linden_sebastian)
 
-## 1. Install QGIS
+## 1. Install QGIS ##
 
 Download the newest [QGIS release](http://www.qgis.org/en/site/forusers/download.html) and install it.
 
-> On Windows, we recommend using the *QGIS Standalone Installer*, instead of the *OSGeo4W Network Installer*. 
-In the latter case you might have to install [Matplotlib](http://matplotlib.org/) manually.
+## 2. Clone the EnMAP-Box Repository ##
 
-## 2. Install EnMAP-Box
+### Option A) download a zipped version ###
 
-Download the newest [EnMAP-Box release](https://bitbucket.org/hu-geomatics/enmap-box/downloads/).
+[Download page...](https://bitbucket.org/hu-geomatics/enmap-box/downloads/)
 
-Extract the `v*.zip/enmap-box` folder into the `~/.qgis/python/plugins` folder in your [home directory](https://en.wikipedia.org/wiki/Home_directory "Find out where your home directory is located.").
-(e.g. `C:\Users\USERNAME\.qgis2\python\plugins\enmap-box`)
+### Option B) via command line ###
 
-> Advanced user might also install the EnMAP-Box by
-[cloning this repository](README/CloneTheRepository.md) into the `~/.qgis/python/plugins` folder. 
-The current release is the HEAD commit of the *master* branch. 
+If you are familiar to Git and Git LFS use: 
 
-## 3. Install external Dependencies
+`git lfs clone https://bitbucket.org/hu-geomatics/enmap-box.git`
 
-Successfully installing dependencies in a *QGIS-Python* environment can be challenging.
-Therefore we ship all *pure Python* dependencies together with the EnMAP-Box.
+### Options C) via SourceTree GUI Client ###
 
-Unfortunately, the following dependencies must be install from a source distribution: 
+If you have no expirience with Git Repositories, we recommend to use
+[SourceTree](https://www.sourcetreeapp.com/). 
+This graphical Git client is nicely integrated within Bitbucket and allows a 
+seamless installation of the EnMAP-Box without command line interactions.
 
-- [scikit-learn](http://scikit-learn.org/stable/)
+> Note that the following intructions are examplified on a Windows system. Dialogs my appear in a slightly different look on MacOS or Linux systems. 
 
-Please find a system specific installation description here:
-[Windows](README/installDependenciesOnWindows.md),
-[MacOS](README/installDependenciesOnMacOS.md)
+Download and install [SourceTree](https://www.sourcetreeapp.com/). 
+If asked, agree to the **Upgrade Git LFS** and **Upgrade Git LFS Bitbucket Adapter** dialogs.
 
-## 4. Activate the EnMAP-Box inside QGIS
+Now we can use SoureTree to clone the EnMAP-Box repository. Select `File -> Clone / New`
 
-Open the **Plugins | Installed** dialog `Plugins -> Manage and Install Plugins...` 
-and activate the **EnMAP-Box 3** plugin.
+![open in source tree](README/cloneInSourceTree.png)
+
+- set **Source Path / URL** to the EnMAP-Box repository: `https://bitbucket.org/hu-geomatics/enmap-box.git`
+
+- select a **Destination Path**, e.g. `C:\QGISPlugins\enmap-box`
+
+- press **Clone**
+
+If asked, aggree to the **Run 'git lfs pull' now** dialog
+
+## 3. Activate the EnMAP-Box Plugin inside QGIS ###
+
+### set QGIS_PLUGINPATH ###
+
+Inside QGIS we can now mark the EnMAP-Box Repository as a QGIS Plugin. From the QGIS menu select `Settings -> Options...`, select the **System** tab on the sidebar and navigate down to the **Environment** section.  
+
+![Options | System](README/optionsSystem.png)
+
+- if not already existing, use the `+` button to create a new environment variable
+
+- set the *Apply* field to `Prepend`
+
+- set the *Value* field to the EnMAP-Box Repository parent folder (e.g. `C:\QGISPlugins`)
+
+- press **Ok** close the dialog
+
+- restart QGIS
+
+### activate the EnMAP-Box inside the QGIS Plugins Manager
+
+The EnMAP-Box is now known to QGIS but needs to be activated inside the **QGIS Plugins Manager**. 
+Therefor select `Plugins -> Manage and Install Plugins...`, select the **Installed** tab on the sidebar and make sure that the **EnMAP-Box 3** plugin is checked.
 
 ![plugins | installed](README/pluginsInstalled.png)
 
-Also make sure that the **Processing** plugin is checked, which enables the *QGIS Processing Framework*.
+Also make sure that the **Processing** plugin is checked, which enables the *QGIS Processing Framework*, which is a prerequisite to the *EnMAP-Box AlgorithmProvider*.
 
 ![plugins | installed](README/pluginsInstalled2.png)
 
-The **EnMAP-Box Viewer**
+The **EnMAP-Box Multi-Frame Viewer** icon
 ![plugins | installed](README/boxIcon.png)
-should now be visible inside the **QGIS Plugins Toolbar** and 
-the **EnMAP-Box AlgorithmProvider** be visible inside the **QGIS Processing Toolbox**:
+should now be visible inside the **QGIS Plugins Toolbar**.
 
-![plugins | installed](README/algorithmProvider.png)
+### activate the EnMAP-Box AlgorithmProvider ###
 
-If The **EnMAP-Box AlgorithmProvider** might be deactived by default inside the **QGIS Processing Framework**. If so, from the QGIS menu select `Processing -> Options...`, navigate to **Providers -> EnMAP-Box** and check the **Activate** checkbox.
+The **EnMAP-Box AlgorithmProvider** might be deactived by default inside the **QGIS Processing Framework**. If so, from the QGIS menu select `Processing -> Options...`, navigate to **Providers -> EnMAP-Box** and check the **Activate** checkbox.
 
 ![plugins | installed](README/processingOptions.png)
+
+The **EnMAP-Box AlgorithmProvider** should now be visible inside the **QGIS Processing Toolbox**:
+
+![plugins | installed](README/algorithmProvider.png)
 
 # Have Fun :-) #

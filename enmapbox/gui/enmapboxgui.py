@@ -1,7 +1,3 @@
-#from __future__ import absolute_import
-
-import site
-
 import qgis.core
 import qgis.gui
 from qgis import utils as qgsUtils
@@ -9,9 +5,10 @@ from PyQt4.QtGui import *
 
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
-from enmapbox.gui.utils import loadUI, SETTINGS, DIR_TESTDATA, MimeDataHelper
+from enmapbox.gui.utils import loadUI, settings, DIR_TESTDATA, MimeDataHelper
 
-
+SETTINGS = settings()
+HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', True)
 
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
@@ -102,6 +99,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
     def setIsInitialized(self):
         self.isInitialized = True
 
+    def menusWithTitle(self, title):
+        return [m for m in self.findChildren(QMenu) if str(m.title()) == title]
 
 def getIcon():
     return QIcon(':/enmapbox/icons/enmapbox.png')
@@ -194,7 +193,9 @@ class EnMAPBox(QObject):
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
         splash = EnMAPBoxSplashScreen(self)
-        splash.show()
+
+        if not HIDE_SPLASHSCREEN:
+            splash.show()
         QApplication.processEvents()
 
         assert EnMAPBox._instance is None
@@ -206,8 +207,7 @@ class EnMAPBox(QObject):
         self.ifaceSimulation = EnMAPBoxQgisInterface(self)
         self.iface = iface
 
-        # init QGIS Processing Framework if necessary
-
+        # init QGIS Processing Framework, if necessary
         if qgsUtils.iface is None:
             # there is not running QGIS Instance. This means the entire QGIS processing framework was not
             # initialized at all.
@@ -226,14 +226,13 @@ class EnMAPBox(QObject):
         self.dataSourceManager = DataSourceManager()
 
         self.dockManager = DockManager()
+        self.dockManager.connectDataSourceManager(self.dataSourceManager)
         #self.enmapBox = enmapbox
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dockManager.connectDockArea(self.ui.dockArea)
 
         splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
-
-
 
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
@@ -300,6 +299,10 @@ class EnMAPBox(QObject):
                 logger.warning('Failed to initialize QGIS Processing framework')
             s = ""
 
+        from enmapbox.gui.applications import ApplicationRegistry
+        self.applicationRegistry = ApplicationRegistry(self, parent=self)
+        defaultDir = os.path.join(DIR_ENMAPBOX, *['apps'])
+        self.applicationRegistry.addApplicationFolder(defaultDir)
         self.ui.setVisible(True)
         splash.finish(self.ui)
     def exit(self):
@@ -360,7 +363,13 @@ class EnMAPBox(QObject):
     def addSource(self, source, name=None):
         return self.dataSourceManager.addSource(source, name=name)
 
-
+    def menu(self, title):
+        for menu in self.ui.menuBar().findChildren(QMenu):
+            if str(menu.title()) == title:
+                return menu
+        return None
+    def menusWithTitle(self, title):
+        return self.ui.menusWithTitle(title)
 
     def getURIList(self, *args, **kwds):
         return self.dataSourceManager.getURIList(*args, **kwds)

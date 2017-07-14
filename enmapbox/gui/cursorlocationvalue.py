@@ -129,7 +129,6 @@ class CursorLocationValues(object):
 
 
 
-
 class CursorLocationVectorValues(CursorLocationValues):
 
     def __init__(self, uri, spatialPoint, fieldNames=None, name=None):
@@ -148,6 +147,38 @@ class CursorLocationVectorValues(CursorLocationValues):
 
     def __len__(self):
         return len(self.results)
+
+
+class LoadWorker(QObject):
+    sigValueLoaded = pyqtSignal(str, dict)
+    sigLoadingStarted = pyqtSignal(int)
+    sigLoadingFinished = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super(LoadWorker, self).__init__(parent)
+
+    def doWork(self, theUris, thePointWkt, theCrsDefinition):
+
+        spatialPoint = QgsGeometry.fromWkt(thePointWkt)
+        assert spatialPoint.wkbType() == QgsWKBTypes.Point
+
+
+        crs = QgsCoordinateReferenceSystem(theCrsDefinition)
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+
+        if len(theUris) > 0:
+            self.sigLoadingStarted.emit(len(theUris))
+
+            for uri in theUris:
+                values = CursorLocationValues.fromDataSource(spatialPoint, uri)
+
+                #values might be expressed as dict or list
+                self.sigValueLoaded.emit(uri, values)
+
+            self.sigLoadingFinished.emit()
+
+
+
 
 class CursorLocationRasterValues(CursorLocationValues):
 
@@ -214,23 +245,15 @@ class CursorLocationValueWidget(QMainWindow,
     def connectDataSourceManager(self, dsm):
         from enmapbox.gui.datasourcemanager import DataSourceManager
         if dsm:
-
             assert isinstance(dsm, DataSourceManager)
             self.DSM = dsm
-            #self.DSM.sigDataSourceAdded.connect(self.linkDataSource)
-            #self.DSM.sigDataSourceRemoved.connect(self.unlinkDataSource)
             model = CursorLocationDataSourceModel(self.DSM)
             self.tableViewDataSources.setModel(model)
-            #for ds in self.DSM.sources:
-            #    self.linkDataSource(ds)
         else:
-            #for ds in self.DSM.sources:
-            #    self.unlinkDataSource(ds)
             self.tableViewDataSources.setModel(None)
             self.DSM = None
 
 
-    #def showLocationValues(self, point, viewExtent, mapUnitsPerPixel, searchExtent):
     def showLegend(self, show):
         if show and len(self.profiles) > 0:
             self.legend.show()
@@ -244,15 +267,9 @@ class CursorLocationValueWidget(QMainWindow,
         if model is None:
             return
 
-        #show profile view (on row 0)
-        #self.listWidget.setCurrentRow(0)
-
         #get values
         for ds in model.selectedSources():
             values.append(CursorLocationValues.fromDataSource(spatialPoint, ds))
-
-        #show info
-        info = []
 
         pixel_profiles = []
 
@@ -308,7 +325,7 @@ class CursorLocationValueWidget(QMainWindow,
             assert isinstance(p, CursorLocationRasterValues)
             datasource = {'name':p.name, 'readonly':True, 'type':'group'}
             childs = []
-            childs.append({'name':'x', 'value':p.coord_px.x(), 'type':'int', 'readonly':True})
+            childs.append({'name':'x', 'value': p.coord_px.x(), 'type':'int', 'readonly':True})
             childs.append({'name':'y', 'value': p.coord_px.y(), 'type': 'int', 'readonly': True})
             for i in range(p.nb):
                 v = p.values[i].yValue
@@ -447,3 +464,18 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             return col
         return None
+
+
+
+if __name__ == '__main__':
+    #todo: implement example
+    import enmapbox.gui.sandbox
+    import enmapbox.testdata.UrbanGradient as UG
+    dataSources = [UG.EnMAP01_Berlin_Urban_Gradient_2009, UG.LandCov_Layer_Level2_Berlin_Urban_Gradient_2009, UG.LandCov_Vec_polygons_Berlin_Urban_Gradient_2009]
+    qgsApp = enmapbox.gui.sandbox.sandboxPureGui(dataSources=dataSources)
+
+
+
+    qgsApp.exec_()
+
+    pass

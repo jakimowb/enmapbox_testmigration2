@@ -364,6 +364,7 @@ def createTestData(dirSrc, dirDst, BBOX, drv=None, overwrite=False):
         ext = os.path.splitext(bn)[1]
         pathDst = os.path.join(dirDst, os.path.basename(pathSrc))
 
+        #handle raster files
         if re.search('(bsq|bip|bil|tiff?)$', ext, re.I):
             dsRasterSrc = gdal.Open(pathSrc)
             assert isinstance(dsRasterSrc, gdal.Dataset)
@@ -401,6 +402,7 @@ def createTestData(dirSrc, dirDst, BBOX, drv=None, overwrite=False):
             print('Write {}'.format(pathDst))
             drvDst.CreateCopy(pathDst, dsDst)
 
+        #handle vector files
         elif re.search('(kmz|kml|shp?)$', ext, re.I):
             if not fileNeedsUpdate(pathSrc, pathDst):
                 continue

@@ -2,7 +2,9 @@
 
 """
 ***************************************************************************
-    __init__
+    exampleapp/sandbox.py
+
+    An exemplary sandbox to play around and test how and if things work.
     ---------------------
     Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -16,10 +18,34 @@
 *                                                                         *
 ***************************************************************************
 """
-import os.path
-j = lambda f:os.path.join(os.path.dirname(__file__), f)
-EnMAP = j('EnMAP02_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-VHR = j('HighResolution_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-LandCover = j('LandCov_Vec_Berlin_Urban_Gradient_2009_subset.shp')
-Speclib = j('SpecLib_Berlin_Urban_Gradient_2009_244bands.sli')
+import sys, os
+
+"""
+Sandbox examples that show how to run own EnMAP-box applications without starting a QGIS GUI Instance
+
+"""
+import qgis
+def sandboxWithEnMapBox(loadPF=False):
+    """
+    A minimum example that shows how to load the EnMAP-Box
+    :param loadPF: Set on True to initialize the QGIS Processing Framework as well (takes longer)
+    :return:
+    """
+    """Minimum example to the this application"""
+    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
+    qgsApp = initQgisEnvironment()
+    import enmapbox.gui
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+
+
+    qgsApp.exec_()
+    qgsApp.quit()
+
+
+
+if __name__ == '__main__':
+    sandboxWithEnMapBox(False)
 

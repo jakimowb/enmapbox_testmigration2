@@ -91,6 +91,9 @@ class ProcessingAlgorithmsManager(QObject):
             assert isinstance(a, QAction)
             a.triggered.connect(self.openModeler)
 
+    def isInitialized(self):
+        return self.algList is not None
+
     def onProviderRemoved(self, key):
         logger.debug('Provider removed {}'.format(key))
 
@@ -109,7 +112,29 @@ class ProcessingAlgorithmsManager(QObject):
         src = self.enmapBox.dataSourceManager.addSource(path)
         self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
 
+    def enmapBoxProvider(self):
+        if self.isInitialized():
+            return self.algList.getProviderFromName('EnMAP-Box')
+        else:
+            return None
 
+    def addAlgorithms(self, providerName, geoAlgorithms):
+        from processing.core.GeoAlgorithm import GeoAlgorithm
+        from processing.core.AlgorithmProvider import AlgorithmProvider
+
+        if isinstance(providerName, AlgorithmProvider):
+            p = providerName
+        else:
+            p = self.algList.getProviderFromName(providerName)
+
+        pAlgs = self.algList.algs[p.getName()]
+        if isinstance(p, AlgorithmProvider):
+            for ga in geoAlgorithms:
+                assert isinstance(ga, GeoAlgorithm)
+                #todo: remove from previous provider
+                ga.provider = p
+                pAlgs[ga.commandLineName()] = ga
+            self.algList.providerUpdated.emit(p.getName())
 
     def openCommander(self):
         from processing.gui.CommanderWindow import CommanderWindow
@@ -148,3 +173,5 @@ class ProcessingAlgorithmsManager(QObject):
         from processing.gui.ConfigDialog import ConfigDialog
         dlg = ConfigDialog(self.toolbox)
         dlg.exec_()
+
+

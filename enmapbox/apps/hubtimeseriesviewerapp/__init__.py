@@ -2,7 +2,9 @@
 
 """
 ***************************************************************************
-    __init__
+    hubtimeseriesviewer/__init__.py
+
+    Package definition of HUB TimeSeriesViewer for EnMAP-Box
     ---------------------
     Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -16,10 +18,25 @@
 *                                                                         *
 ***************************************************************************
 """
-import os.path
-j = lambda f:os.path.join(os.path.dirname(__file__), f)
-EnMAP = j('EnMAP02_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-VHR = j('HighResolution_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-LandCover = j('LandCov_Vec_Berlin_Urban_Gradient_2009_subset.shp')
-Speclib = j('SpecLib_Berlin_Urban_Gradient_2009_244bands.sli')
 
+import os, logging
+APP_DIR = os.path.dirname(__file__)
+
+
+def enmapboxApplicationFactory(enmapBox):
+    """
+    Returns a list of EnMAPBoxApplications
+    :param enmapBox: the EnMAP-Box instance.
+    :return: [list-of-EnMAPBoxApplications]
+    """
+    import hubtimeseriesviewerapp.enmapboxintegration
+
+    if hubtimeseriesviewerapp.enmapboxintegration.PLUGIN_INSTALLED:
+
+        from hubtimeseriesviewerapp.enmapboxintegration import HUBTimeSeriesViewerApp
+        #returns a list of EnMAPBoxApplications
+        return [HUBTimeSeriesViewerApp(enmapBox)]
+
+    else:
+        logging.error('HUB TimeSeriesViewer QGIS Plugin is not installed.')
+        return []
