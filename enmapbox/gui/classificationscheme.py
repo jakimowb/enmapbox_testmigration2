@@ -27,7 +27,13 @@ from PyQt4.QtGui import *
 import numpy as np
 from osgeo import gdal
 from enmapbox.gui.utils import loadUi
+from itertools import cycle
 
+DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
+DEFAULT_CLASSCOLORS = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99']
+DEFAULT_CLASSCOLORS = [QColor(c) for c in DEFAULT_CLASSCOLORS]
+
+COLOR_CYCLE = cycle(DEFAULT_CLASSCOLORS)
 
 def hasClassification(pathOrDataset):
     """
@@ -64,11 +70,18 @@ def getTextColorWithContrast(c):
 
 class ClassInfo(QObject):
     sigSettingsChanged = pyqtSignal()
-    def __init__(self, label=0, name='unclassified', color=None):
-        super(ClassInfo, self).__init__()
+    def __init__(self, label=0, name=None, color=None, parent=None):
+        super(ClassInfo, self).__init__(parent)
+
+        if name is None:
+            name = 'Unclassified' if label == 0 else 'Class {}'.format(label)
+
+        if color is None:
+            color = DEFAULT_UNCLASSIFIEDCOLOR if label == 0 else COLOR_CYCLE.next()
+
         self.mName = name
         self.mLabel = label
-        self.mColor = QColor('black')
+        self.mColor = color
         if color:
             self.setColor(color)
 
@@ -78,10 +91,15 @@ class ClassInfo(QObject):
         self.mLabel = label
         self.sigSettingsChanged.emit()
 
+    def label(self): return self.mLabel
+    def color(self): return QColor(self.mColor)
+    def name(self): return self.mName
+
     def setColor(self, color):
         assert isinstance(color, QColor)
         self.mColor = color
         self.sigSettingsChanged.emit()
+
 
     def setName(self, name):
         assert isinstance(name, str)
@@ -167,18 +185,49 @@ class ClassificationScheme(QObject):
         return iter(self.mClasses)
 
     def index(self, classInfo):
+        """
+        returns the index of this classInfo
+        :param classInfo:
+        :return: int
+        """
         assert isinstance(classInfo, ClassInfo)
         return self.mClasses.index(classInfo)
 
     def classNames(self):
+        """
+        :return: [list-of-class-names (str)]
+        """
         return [str(c.mLabel) for c in self.mClasses]
 
     def classColors(self):
+        """
+        :return: [list-of-class-colors (QColor)]
+        """
         return [QColor(c.mColor) for c in self.mClasses]
 
+    def gdalColorTable(self):
+        """
+        Returns the GDAL Color Table related to this classScheme
+        :return: gdal.Colortable
+        """
+        ct = gdal.ColorTable()
+        for i, c in enumerate(self):
+            assert isinstance(c, ClassInfo)
+            ct.SetColorEntry(i, c.mColor.getRgb())
+        return ct
+
     def classLabels(self):
+        """
+        :return: [list-of-class-labels (int)]
+        """
         return [c.mLabel for c in self.mClasses]
 
+    def resetLabels(self):
+        """
+        Resets class labels to the classInfo position within the classSchema
+        """
+        for i, c in enumerate(self.mClasses):
+            c.setLabel(i)
 
     def removeClasses(self, classes):
         for c in classes:
@@ -189,6 +238,20 @@ class ClassificationScheme(QObject):
 
     def removeClass(self, c):
         self.removeClasses([c])
+
+    def createClasses(self, n):
+        classes = []
+        for i in range(n):
+            l = len(self)
+            if l == 0:
+                color = QColor('black')
+                name = 'Unclassified'
+            else:
+                color = COLOR_CYCLE.next()
+                name = 'Class {}'.format(l)
+            c = ClassInfo(label=l, name = name, color = color)
+            classes.append(c)
+        self.addClasses(classes)
 
     def addClasses(self, classes, index=None):
         if len(classes) > 0:
@@ -290,15 +353,11 @@ class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
         value = None
         if role == Qt.DisplayRole:
             value = '{} {}'.format(classInfo.mLabel, classInfo.mName)
-        #if role == Qt.BackgroundRole:
-        #    value = QBrush(classInfo.mColor)
         if role == Qt.DecorationRole:
             value = QBrush(classInfo.mColor)
             pm = QPixmap(20,20)
             pm.fill(classInfo.mColor)
             value = QIcon(pm)
-        if role == Qt.ForegroundRole:
-            value = getTextColorWithContrast(classInfo.mColor)
 
         if role == Qt.UserRole:
             value = classInfo
@@ -567,7 +626,14 @@ class ClassificationSchemeWidget(QWidget, loadUi('classificationscheme.ui')):
     def createClasses(self, n):
         classes = []
         for i in range(n):
-            c = ClassInfo(name = '<empty>', color = QColor('red'))
+            l = len(self.mScheme)
+            if l == 0:
+                color = QColor('black')
+                name = 'Unclassified'
+            else:
+                color = COLOR_CYCLE.next()
+                name = 'Class {}'.format(l)
+            c = ClassInfo(label=l, name = name, color = color)
             classes.append(c)
         self.schemeModel.insertClasses(classes)
 
@@ -650,25 +716,3 @@ class ClassificationSchemeDialog(QgsDialog):
         assert isinstance(classificationScheme, ClassificationScheme)
         self.w.setClassificationScheme(classificationScheme)
 
-
-if __name__ == '__main__':
-    import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
-
-    from enmapbox.gui import sandbox
-    qgsApp = sandbox.initQgisEnvironment()
-
-    pathClassImg = r'D:\Repositories\QGIS_Plugins\enmap-box\enmapbox\testdata\HymapBerlinA\HymapBerlinA_test.img'
-    pathShp = r''
-
-
-    w = ClassificationSchemeWidget()
-    def classAdded(*args):
-        print(args)
-
-    w.classificationScheme().sigClassesAdded.connect(classAdded)
-    w.setClassificationScheme(ClassificationScheme.fromRasterImage(pathClassImg))
-    w.show()
-
-    qgsApp.exec_()
-    qgsApp.exitQgis()

@@ -6,7 +6,7 @@ from PyQt4.QtGui import *
 from enmapbox.gui.utils import DIR_ENMAPBOX
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
-DEBUG = True
+DEBUG = False
 
 class ApplicationWrapper(QObject):
     """
