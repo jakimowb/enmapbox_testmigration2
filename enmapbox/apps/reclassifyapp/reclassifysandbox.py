@@ -33,7 +33,7 @@ def sandboxWithEnMapBox(loadPF=False):
     """Minimum example to the this application"""
     from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
     qgsApp = initQgisEnvironment()
-    sandboxPureGui(loadProcessingFramework=loadPF, loadExampleData=True)
+    sandboxPureGui(loadProcessingFramework=loadPF, loadExampleData=False)
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EnMAPBox.instance().openExampleData()
 
@@ -48,17 +48,28 @@ def sandboxGuiOnly():
     """
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
-    from ui import ReclassifyDialog
+    from reclassifydialog import ReclassifyDialog
     ui1 = ReclassifyDialog()
+
+    def onSignal(*args):
+        print(args)
+
+
+    ui1.accepted.connect(lambda: onSignal(('Accepted',ui1.reclassificationSettings())))
+    ui1.rejected.connect(lambda: onSignal('Rejected'))
+
     ui1.show()
+
     from enmapbox.testdata.HymapBerlinA import HymapBerlinA_train
     ui1.addSrcRaster(HymapBerlinA_train)
     ui1.setDstRaster(r'D:\Temp\testclass.bsq')
-
+    from enmapbox.gui.classificationscheme import ClassificationScheme
+    ui1.setDstClassification(ClassificationScheme.fromRasterImage(HymapBerlinA_train))
+    print(ui1.reclassificationSettings())
     qgsApp.exec_()
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if True: sandboxGuiOnly()
-    if False: sandboxWithEnMapBox(False)
+    if False: sandboxGuiOnly()
+    if True: sandboxWithEnMapBox(False)
 

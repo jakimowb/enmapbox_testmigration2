@@ -49,15 +49,51 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     band.SetColorTable(ct)
 
 
-def reclassify(pathSrc, pathDst, labelLookup, bandIndex=0, tileSize=None, co=None):
+def reclassify(pathSrc, pathDst, labelLookup,
+               drvDst = None,
+               dstClassScheme = None,
+               bandIndices=1, tileSize=None, co=None):
+    """
+    Reclassifies the class labels of the source dataset (pathSrc)
+    :param pathSrc: path or gdal.Dataset of source data
+    :param pathDst: path to destination gdal.Dataset
+    :param drvDst: gdal.Driver of destination dataset. Default = driver of source dataset
+    :param labelLookup: dict() of structure {sourceLabelValue:destinationLabelValue}
+    :param dstClassScheme: the (entire) ClassificationScheme of the destination file.
+        Default = class labels from 0 to max(labelLookup.values()) with
+        class names 'unclassified', 'Class 1', ... , 'Class n') and
+        class colors 'black', <random colors>'
+
+    :param bandIndices: raster band indices (zero-based) that are to be reclassified
+    :param tileSize: internal tile size that is used to reclassify larger images
+    :param co: drvDst specific creating options.
+    :return: the created gdal.Dataset
+    """
 
     assert os.path.isfile(pathSrc)
-    dsIn = gdal.Open(pathSrc)
-    assert isinstance(dsIn, gdal.Dataset)
+    if isinstance(pathSrc, gdal.Dataset):
+        dsSrc = pathSrc
+    else:
+        dsSrc = gdal.Open(pathSrc)
     assert isinstance(labelLookup, dict)
 
-    classNames = "todo"
-    classColorTable = "todo"
+    if not isinstance(drvDst, gdal.Driver):
+        drvDst = gdal.GetDriverByName(drvDst)
+    if bandIndices is None:
+        bandIndices = [0]
+    elif not isinstance(bandIndices, list):
+        bandIndices = list(bandIndices)
+    assert max(bandIndices) < dsSrc.RasterCount
+
+    if dstClassScheme is None:
+        dstClassScheme = ClassificationScheme()
+        dstClassScheme.createClasses(max(labelLookup.values))
+
+
+
+
+    classNames = dstClassScheme.classNames()
+    classColorTable = dstClassScheme.classColors()
 
     if tileSize is None:
         tileSize = QSize(1000,1000)
@@ -65,34 +101,39 @@ def reclassify(pathSrc, pathDst, labelLookup, bandIndex=0, tileSize=None, co=Non
         assert isinstance(tileSize, QSize)
         assert tileSize.width() > 0 and tileSize.height() > 0
 
-    assert bandIndex > 0
+
     for classInfo in labelLookup.values():
         assert isinstance(classInfo, ClassInfo)
 
-    eType = dsIn.GetRasterBand(1).DataType
-    ns, nl, nb = (dsIn.RasterXSize, dsIn.RasterYSize, dsIn.RasterCount)
+    eType = dsSrc.GetRasterBand(1).DataType
+    ns, nl, nb = (dsSrc.RasterXSize, dsSrc.RasterYSize, dsSrc.RasterCount)
 
-    dsOut = dsIn.GetDriver().Create(pathDst, ns, nl, nb, eType=eType, options=co)
+    dsDst = drvDst.GetDriver().Create(pathDst, ns, nl, nb, eType=eType, options=co)
 
-    assert isinstance(dsOut, gdal.Dataset)
+    assert isinstance(dsDst, gdal.Dataset)
 
-    dsOut.SetProjection(dsIn.GetProjection())
-    dsOut.SetGeoTransform(dsIn.GetGeoTransform())
+    dsDst.SetProjection(dsSrc.GetProjection())
+    dsDst.SetGeoTransform(dsSrc.GetGeoTransform())
 
-    for b in range(nb):
-        bandIn = dsIn.GetRasterBand(b+1)
-        bandOut = dsOut.GetRasterBand(b+1)
+    for b in range(dsSrc.RasterCount):
+        bandIn = dsSrc.GetRasterBand(b+1)
+        bandOut = dsDst.GetRasterBand(b+1)
         assert isinstance(bandIn, gdal.Band)
         assert isinstance(bandOut, gdal.Band)
+
+        #copy band metadata
         bandOut.SetMetadata(bandIn.GetMetadata())
-        if b == bandIndex:
+        bandOut.SetNoDataValue(bandIn.SetNoDataValue())
+
+        #set class-specific information
+        if b in bandIndices:
             bandOut.SetCategoryNames(classNames)
             bandOut.SetColorTable(classColorTable)
         else:
             bandOut.SetCategoryNames(bandIn.GetCategoryNames())
             bandOut.SetColorTable(bandIn.GetColorTable())
+
         yOff = 0
-        uniques = set()
         while yOff < nl:
             win_ysize = min([tileSize.height(), nl - yOff])
             xOff = 0
@@ -100,19 +141,19 @@ def reclassify(pathSrc, pathDst, labelLookup, bandIndex=0, tileSize=None, co=Non
                 win_xsize = min([tileSize.width(), ns - xOff])
 
                 data = bandIn.ReadAsArray(xoff=xOff, yoff=yOff, win_xsize=win_xsize, win_ysize=win_ysize)
-                if b == bandIndex:
-                    mask = np.zeros(data.shape)
-                    for labelSrc in np.unique(data):
-                        dstClass = labelLookup[labelSrc]
-                        assert isinstance(dstClass, ClassInfo)
-                        dstClass.mLabel
 
+                if b in bandIndices:
+                    #re-classify
+                    for labelSrc in np.unique(data):
+                        if labelSrc in labelLookup.keys():
+                            dstClass = labelLookup[labelSrc]
+                        else:
+                            dstClass = 0
+                        np.where(data == labelSrc, dstClass, data)
                 bandOut.WriteArray(data,xoff = xOff, yoff=yOff)
                 xOff += tileSize.width()
             yOff += tileSize.height()
             bandOut.FlushCache()
-        dsOut.FlushCache()
+        dsDst.FlushCache()
+        return dsDst
 
-
-def reclassify(pathSrc, pathDst):
-    pass
