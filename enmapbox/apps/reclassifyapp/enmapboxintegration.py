@@ -55,12 +55,14 @@ class ReclassifyTool(EnMAPBoxApplication):
         uiDialog = ui.ReclassifyDialog(self.enmapbox.ui)
         uiDialog.show()
 
-        uiDialog.accepted.connect(self.runReclassification(uiDialog.reclassificationSettings()))
+        uiDialog.accepted.connect(self.runReclassification(**uiDialog.reclassificationSettings()))
 
-    def runReclassification(self, **kwargs):
-        if kwargs:
+    def runReclassification(self, **settings):
+        #return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,
+        #        'classNames': dstScheme.classNames(), 'classColors': dstScheme.classColors()}
+        if len(settings) > 0 :
             import reclassify
-            reclassify.reclassify(kwargs.get('pathSrc'),
-                                  kwargs.get('pathDst'),
-                                  kwargs.get('LUT'),
-                                  dstClassScheme=kwargs.get('dstClassScheme'))
+            reclassify.reclassify(settings.get('pathSrc'),
+                                  settings.get('pathDst'),
+                                  settings.get('LUT'),
+                                  dstClassScheme=settings.get('dstClassScheme'))

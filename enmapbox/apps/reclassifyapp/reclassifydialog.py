@@ -186,8 +186,8 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
             LUT[cSrc.label()] = cDst.label()
             #print((cSrc.label(),'->',cDst.label()))
         if isinstance(dstScheme, ClassificationScheme):
-            return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,
-                    'classNames': dstScheme.classNames(), 'classColors':dstScheme.classColors()}
+            return {'pathSrc': pathSrc, 'pathDst': pathDst, 'labelLookup': LUT,
+                    'dstClassScheme':dstScheme}
         else:
             return {}
 

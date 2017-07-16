@@ -26,6 +26,9 @@ from PyQt4.QtGui import QColor
 from PyQt4.QtCore import QSize
 import numpy as np
 
+
+from enmapbox.gui.utils import gdalDataset as getDataset
+
 def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     assert isinstance(classificationScheme, ClassificationScheme)
 
@@ -52,7 +55,7 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
 def reclassify(pathSrc, pathDst, labelLookup,
                drvDst = None,
                dstClassScheme = None,
-               bandIndices=1, tileSize=None, co=None):
+               bandIndices=0, tileSize=None, co=None):
     """
     Reclassifies the class labels of the source dataset (pathSrc)
     :param pathSrc: path or gdal.Dataset of source data
@@ -69,31 +72,29 @@ def reclassify(pathSrc, pathDst, labelLookup,
     :param co: drvDst specific creating options.
     :return: the created gdal.Dataset
     """
-
-    assert os.path.isfile(pathSrc)
-    if isinstance(pathSrc, gdal.Dataset):
-        dsSrc = pathSrc
-    else:
-        dsSrc = gdal.Open(pathSrc)
+    dsSrc = getDataset(pathSrc)
     assert isinstance(labelLookup, dict)
 
     if not isinstance(drvDst, gdal.Driver):
-        drvDst = gdal.GetDriverByName(drvDst)
+        drvDst = dsSrc.GetDriver()
+
     if bandIndices is None:
         bandIndices = [0]
     elif not isinstance(bandIndices, list):
-        bandIndices = list(bandIndices)
+        bandIndices = [bandIndices]
     assert max(bandIndices) < dsSrc.RasterCount
 
     if dstClassScheme is None:
         dstClassScheme = ClassificationScheme()
         dstClassScheme.createClasses(max(labelLookup.values))
 
-
-
+    if co is None:
+        co = []
+    if not isinstance(co, list):
+        co = [co]
 
     classNames = dstClassScheme.classNames()
-    classColorTable = dstClassScheme.classColors()
+    classColorTable = dstClassScheme.gdalColorTable()
 
     if tileSize is None:
         tileSize = QSize(1000,1000)
@@ -101,17 +102,18 @@ def reclassify(pathSrc, pathDst, labelLookup,
         assert isinstance(tileSize, QSize)
         assert tileSize.width() > 0 and tileSize.height() > 0
 
-
-    for classInfo in labelLookup.values():
-        assert isinstance(classInfo, ClassInfo)
+    lmin, lmax = dstClassScheme.range()
+    for labelSrc, labelDst in labelLookup.items():
+        assert labelDst >= lmin and labelDst <= lmax, 'Label lookup value {} is out of classification range'.format(labelDst)
 
     eType = dsSrc.GetRasterBand(1).DataType
     ns, nl, nb = (dsSrc.RasterXSize, dsSrc.RasterYSize, dsSrc.RasterCount)
 
-    dsDst = drvDst.GetDriver().Create(pathDst, ns, nl, nb, eType=eType, options=co)
+    dsDst = drvDst.Create(pathDst, ns, nl, nb, eType=eType, options=co)
 
     assert isinstance(dsDst, gdal.Dataset)
-
+    dsDst.SetDescription(dsSrc.GetDescription())
+    dsDst.SetMetadata(dsSrc.GetMetadata())
     dsDst.SetProjection(dsSrc.GetProjection())
     dsDst.SetGeoTransform(dsSrc.GetGeoTransform())
 
@@ -123,7 +125,8 @@ def reclassify(pathSrc, pathDst, labelLookup,
 
         #copy band metadata
         bandOut.SetMetadata(bandIn.GetMetadata())
-        bandOut.SetNoDataValue(bandIn.SetNoDataValue())
+        if bandIn.GetNoDataValue():
+            bandOut.SetNoDataValue(bandIn.GetNoDataValue())
 
         #set class-specific information
         if b in bandIndices:
@@ -149,7 +152,7 @@ def reclassify(pathSrc, pathDst, labelLookup,
                             dstClass = labelLookup[labelSrc]
                         else:
                             dstClass = 0
-                        np.where(data == labelSrc, dstClass, data)
+                        data = np.where(data == labelSrc, dstClass, data)
                 bandOut.WriteArray(data,xoff = xOff, yoff=yOff)
                 xOff += tileSize.width()
             yOff += tileSize.height()

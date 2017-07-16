@@ -60,11 +60,12 @@ def sandboxGuiOnly():
 
     ui1.show()
 
-    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_train
-    ui1.addSrcRaster(HymapBerlinA_train)
+    from enmapbox.testdata.UrbanGradient import EnMAP
+    ui1.addSrcRaster(EnMAP)
     ui1.setDstRaster(r'D:\Temp\testclass.bsq')
-    from enmapbox.gui.classificationscheme import ClassificationScheme
-    ui1.setDstClassification(ClassificationScheme.fromRasterImage(HymapBerlinA_train))
+    from enmapbox.gui.classificationscheme import ClassificationScheme, createInMemoryClassification
+    m = createInMemoryClassification(3)
+    ui1.setDstClassification(ClassificationScheme.fromRasterImage(m))
     print(ui1.reclassificationSettings())
     qgsApp.exec_()
     qgsApp.quit()

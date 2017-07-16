@@ -2,58 +2,10 @@ from __future__ import absolute_import
 import os, re, io, tempfile
 
 from osgeo import gdal
-
+import numpy as np
 from unittest import TestCase
-from enmapbox.gui.sandbox import initQgisEnvironment
-qgsApp = initQgisEnvironment()
 from reclassifyapp.reclassify import *
-
 from enmapbox.gui.classificationscheme import ClassificationScheme
-
-class TestObjects():
-
-    TEST_DIR = None
-    @staticmethod
-    def testDir():
-        if TestObjects.TEST_DIR is None:
-            TestObjects.TEST_DIR = tempfile.mkdtemp(prefix='EnMAPBoxTests', suffix='reclassifyapp')
-        else:
-            return TestObjects.TEST_DIR
-
-    @staticmethod
-    def inMemoryClassification(n=3, nl=10, ns=20, nb=1):
-        scheme = ClassificationScheme()
-        scheme.createClasses(n)
-
-        drv = gdal.GetDriverByName('MEM')
-        assert isinstance(drv, gdal.Driver)
-
-        ds = drv.Create('', ns, nl, bands=nb, eType=gdal.GDT_Byte)
-
-        assert isinstance(ds, gdal.Dataset)
-        for b in range(1,nb+1):
-            band = ds.GetRasterBand(b)
-            array = np.zeros((nl, ns), dtype=np.uint8)-1
-            array[0,0] = 0
-            array[-1,-1] = n-1
-            x = np.arange(0, array.shape[1])
-            y = np.arange(0, array.shape[0])
-            # mask invalid values
-            array = np.ma.masked_invalid(array)
-            xx, yy = np.meshgrid(x, y)
-            # get only the valid values
-            x1 = xx[~array.mask]
-            y1 = yy[~array.mask]
-            newarr = array[~array.mask]
-            from scipy import interpolate
-            GD1 = interpolate.griddata((x1, y1), newarr.ravel(),
-                                       (xx, yy), method='linear')
-            assert isinstance(band, gdal.Band)
-            band.SetCategoryNames(scheme.classNames())
-            band.SetColorTable(scheme.gdalColorTable())
-
-        return ds
-
 
 
 
@@ -61,17 +13,28 @@ class TestReclassify(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.testDir = ''
-        cls.classA = TestObjects.inMemoryClassification()
-        cls.classB = TestObjects.inMemoryClassification()
+        from enmapbox.gui.sandbox import initQgisEnvironment
+        from enmapbox.gui.utils import TestObjects
+        from tempfile import mkdtemp
+        cls.testDir = mkdtemp(prefix='TestDir')
+        cls.classA = TestObjects.inMemoryClassification(3)
+        cls.classB = TestObjects.inMemoryClassification(3)
 
+        cls.pathClassA = os.path.join(cls.testDir, 'classificationA.bsq')
+        #cls.pathClassB = os.path.join(cls.testDir, 'classificationB.bsq')
+        drv = gdal.GetDriverByName('ENVI')
+        drv.CreateCopy(cls.pathClassA, cls.classA)
+        #drv.CreateCopy(cls.pathClassB, cls.classB)
 
+        cls.qgsApp = initQgisEnvironment()
 
     @classmethod
     def tearDownClass(cls):
         cls.classA = None
         cls.classB = None
-        os.remove(cls.testDir)
+        #todo: remove temp files
+        #if os.path.exists(cls.testDir):
+        #    os.remove(cls.testDir)
 
 
     def setUp(self):
@@ -80,11 +43,42 @@ class TestReclassify(TestCase):
     def tearDown(self):
         pass
 
-    def test_addClassesFromFile(self):
-        pass
+    def test_reclassify(self):
+        csDst = ClassificationScheme.create(2)
+        csDst[1].setName('Test Class')
 
-    def test_removeClasses(self):
-        pass
+        dsSrc = self.classA
+        csSrc = ClassificationScheme.fromRasterImage(dsSrc)
+        LUT = {0:0, 1:1, 2:1}
 
-    def test_writeReclassifiedImage(self):
-        pass
+        dsDst = reclassify(dsSrc, '', LUT, drvDst='MEM', dstClassScheme=csDst)
+        csDst2 = ClassificationScheme.fromRasterImage(dsDst)
+        self.assertIsInstance(csDst2, ClassificationScheme)
+        self.assertEqual(csDst,csDst2 )
+
+    def test_dialog(self):
+        from reclassifyapp.reclassifydialog import ReclassifyDialog
+        ui1 = ReclassifyDialog()
+        ui1.show()
+
+        from enmapbox.testdata.UrbanGradient import EnMAP
+        ui1.addSrcRaster(self.pathClassA)
+        ui1.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
+        from enmapbox.gui.classificationscheme import ClassificationScheme
+        cs = ClassificationScheme.create(2)
+        cs[1].setName('Foobar')
+        ui1.setDstClassification(cs)
+
+        settings = ui1.reclassificationSettings()
+        self.assertTrue(all(k in settings.keys() for k in ['labelLookup','dstClassScheme','pathDst','pathSrc']))
+        ui1.close()
+        dsDst = reclassify(drvDst='ENVI', **settings)
+
+        self.assertIsInstance(dsDst, gdal.Dataset)
+        cs2 = ClassificationScheme.fromRasterImage(dsDst)
+        dsDst = None
+        cs3 = ClassificationScheme.fromRasterImage(settings['pathDst'])
+
+        self.assertEqual(cs, cs2)
+        self.assertEqual(cs, cs3)
+
