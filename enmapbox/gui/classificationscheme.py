@@ -35,6 +35,7 @@ DEFAULT_CLASSCOLORS = [QColor(c) for c in DEFAULT_CLASSCOLORS]
 
 COLOR_CYCLE = cycle(DEFAULT_CLASSCOLORS)
 
+
 def hasClassification(pathOrDataset):
     """
     This function tests if a gdal-readable raster data set contains
@@ -155,7 +156,7 @@ class ClassificationScheme(QObject):
                     break
                 s = ""
             if bandIndex is None:
-                raise Exception('File {} does not contain any categorical class definition'.format(path))
+                raise Exception('File without categorical class definitions {}'.format(path))
 
         assert bandIndex >= 0 and bandIndex < ds.RasterCount
         band = ds.GetRasterBand(bandIndex + 1)
@@ -182,7 +183,6 @@ class ClassificationScheme(QObject):
 
     def __init__(self):
         super(ClassificationScheme, self).__init__()
-
         self.mClasses = []
 
     def clear(self):
@@ -288,7 +288,7 @@ class ClassificationScheme(QObject):
     def createClasses(self, n):
         classes = []
         for i in range(n):
-            l = len(self)
+            l = len(self)+len(classes)
             if l == 0:
                 color = QColor('black')
                 name = 'Unclassified'

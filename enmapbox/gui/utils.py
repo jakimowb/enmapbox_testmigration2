@@ -1,4 +1,4 @@
-import os, sys, importlib, re, six, logging, fnmatch, StringIO
+import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO
 import xml.etree.ElementTree as xml
 logger = logging.getLogger(__name__)
 
@@ -9,6 +9,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtXml import *
 from PyQt4 import uic
 from osgeo import gdal
+import numpy as np
 import enmapbox.gui
 jp = os.path.join
 
@@ -23,6 +24,34 @@ DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
 
 REPLACE_TMP = True #required for loading *.ui files directly
 
+
+class TestObjects():
+    @staticmethod
+    def inMemoryClassification(n=3, nl=10, ns=20, nb=1):
+        from classificationscheme import ClassificationScheme
+        scheme = ClassificationScheme()
+        scheme.createClasses(n)
+
+        drv = gdal.GetDriverByName('MEM')
+        assert isinstance(drv, gdal.Driver)
+
+        ds = drv.Create('', ns, nl, bands=nb, eType=gdal.GDT_Byte)
+
+        step = np.ceil(float(nl) / len(scheme))
+
+        assert isinstance(ds, gdal.Dataset)
+        for b in range(1,nb+1):
+            band = ds.GetRasterBand(b)
+            array = np.zeros((nl, ns), dtype=np.uint8)-1
+            y0 = 0
+            for i, c in enumerate(scheme):
+                y1 = min(y0+step, nl-1)
+                array[y0:y1,:] = c.label()
+                y0 += y1+1
+            band.SetCategoryNames(scheme.classNames())
+            band.SetColorTable(scheme.gdalColorTable())
+        ds.FlushCache()
+        return ds
 
 def settings():
     return QSettings('HU-Berlin', 'EnMAP-Box')
@@ -51,14 +80,14 @@ def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     return results
 
 
-def gdalDataset(pathOrDataset):
+def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
     """
 
     :param pathOrDataset: path or gdal.Dataset
     :return: gdal.Dataset
     """
     if not isinstance(pathOrDataset, gdal.Dataset):
-        pathOrDataset = gdal.Open(pathOrDataset)
+        pathOrDataset = gdal.Open(pathOrDataset, eAccess)
     assert isinstance(pathOrDataset, gdal.Dataset)
     return pathOrDataset
 
