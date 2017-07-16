@@ -1,21 +1,25 @@
+# -*- coding: utf-8 -*-
 
-#NOTE: this file is auto-generated!
+"""
+***************************************************************************
+    __init__
+    ---------------------
+    Date                 : Juli 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+import os.path
+j = lambda f:os.path.join(os.path.dirname(__file__), f)
+EnMAP = j('EnMAP02_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
+VHR = j('HighResolution_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
+LandCover = j('LandCov_Vec_Berlin_Urban_Gradient_2009_subset.shp')
+Speclib = j('SpecLib_Berlin_Urban_Gradient_2009_244bands.sli')
 
-import os
-
-root = os.path.dirname(__file__)
-EnMAP01_Berlin_Urban_Gradient_2009 = os.path.join(root, "EnMAP01_Berlin_Urban_Gradient_2009.bsq")
-EnMAP02_Berlin_Urban_Gradient_2009 = os.path.join(root, "EnMAP02_Berlin_Urban_Gradient_2009.bsq")
-HyMap01_Berlin_Urban_Gradient_2009 = os.path.join(root, "HyMap01_Berlin_Urban_Gradient_2009.bsq")
-HyMap02_Berlin_Urban_Gradient_2009 = os.path.join(root, "HyMap02_Berlin_Urban_Gradient_2009.bsq")
-LandCov_Class_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Class_Berlin_Urban_Gradient_2009.bsq")
-LandCov_Layer_Level1_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Layer_Level1_Berlin_Urban_Gradient_2009.bsq")
-LandCov_Layer_Level2_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Layer_Level2_Berlin_Urban_Gradient_2009.bsq")
-LandCov_Vec_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_Berlin_Urban_Gradient_2009.dbf")
-LandCov_Vec_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_Berlin_Urban_Gradient_2009.prj")
-LandCov_Vec_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_Berlin_Urban_Gradient_2009.shp")
-LandCov_Vec_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_Berlin_Urban_Gradient_2009.shx")
-LandCov_Vec_polygons_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_polygons_Berlin_Urban_Gradient_2009.dbf")
-LandCov_Vec_polygons_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_polygons_Berlin_Urban_Gradient_2009.prj")
-LandCov_Vec_polygons_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_polygons_Berlin_Urban_Gradient_2009.shp")
-LandCov_Vec_polygons_Berlin_Urban_Gradient_2009 = os.path.join(root, "LandCov_Vec_polygons_Berlin_Urban_Gradient_2009.shx")
