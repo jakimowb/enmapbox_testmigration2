@@ -1,4 +1,4 @@
-import os, sys, importlib, re, six, logging, fnmatch, StringIO
+import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO
 import xml.etree.ElementTree as xml
 logger = logging.getLogger(__name__)
 
@@ -8,6 +8,8 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtXml import *
 from PyQt4 import uic
+from osgeo import gdal
+import numpy as np
 import enmapbox.gui
 jp = os.path.join
 
@@ -23,17 +25,50 @@ DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
 REPLACE_TMP = True #required for loading *.ui files directly
 
 
+class TestObjects():
+    @staticmethod
+    def inMemoryClassification(n=3, nl=10, ns=20, nb=1):
+        from classificationscheme import ClassificationScheme
+        scheme = ClassificationScheme()
+        scheme.createClasses(n)
+
+        drv = gdal.GetDriverByName('MEM')
+        assert isinstance(drv, gdal.Driver)
+
+        ds = drv.Create('', ns, nl, bands=nb, eType=gdal.GDT_Byte)
+
+        step = np.ceil(float(nl) / len(scheme))
+
+        assert isinstance(ds, gdal.Dataset)
+        for b in range(1,nb+1):
+            band = ds.GetRasterBand(b)
+            array = np.zeros((nl, ns), dtype=np.uint8)-1
+            y0 = 0
+            for i, c in enumerate(scheme):
+                y1 = min(y0+step, nl-1)
+                array[y0:y1,:] = c.label()
+                y0 += y1+1
+            band.SetCategoryNames(scheme.classNames())
+            band.SetColorTable(scheme.gdalColorTable())
+        ds.FlushCache()
+        return ds
+
 def settings():
     return QSettings('HU-Berlin', 'EnMAP-Box')
 
 def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
-
+    regType = type(re.compile('.*'))
     results = []
 
     for root, dirs, files in os.walk(rootdir):
         for file in files:
-            if (ignoreCase and fnmatch.fnmatch(file.lower(), pattern.lower())) \
+            if isinstance(pattern, regType):
+                if pattern.search(file):
+                    path = os.path.join(root, file)
+                    results.append(path)
+
+            elif (ignoreCase and fnmatch.fnmatch(file.lower(), pattern.lower())) \
                     or fnmatch.fnmatch(file, pattern):
 
                 path = os.path.join(root, file)
@@ -43,6 +78,19 @@ def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
             pass
 
     return results
+
+
+def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
+    """
+
+    :param pathOrDataset: path or gdal.Dataset
+    :return: gdal.Dataset
+    """
+    if not isinstance(pathOrDataset, gdal.Dataset):
+        pathOrDataset = gdal.Open(pathOrDataset, eAccess)
+    assert isinstance(pathOrDataset, gdal.Dataset)
+    return pathOrDataset
+
 
 
 FORM_CLASSES = dict()
@@ -96,13 +144,10 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix='_py2'):
             if path.endswith('.qrc'):
                 qrcPathes.append(path)
 
-
-
         #logger.debug('Load UI file: {}'.format(pathUi))
         buffer.write(doc.toString())
         buffer.flush()
         buffer.seek(0)
-
 
         #make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)

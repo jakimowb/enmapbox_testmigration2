@@ -46,7 +46,7 @@ def sandboxPFReport():
     qgsApp.exec_()
     qgsApp.exitQgis()
 
-def sandboxPureGui(dataSources=None, loadProcessingFramework=False):
+def sandboxPureGui(dataSources=None, loadProcessingFramework=False, loadExampleData=False):
     qgsApp = initQgisEnvironment()
 
 
@@ -55,6 +55,9 @@ def sandboxPureGui(dataSources=None, loadProcessingFramework=False):
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
+
+    if loadExampleData:
+        EB.openExampleData()
 
     if dataSources is not None:
         for dataSource in dataSources:
