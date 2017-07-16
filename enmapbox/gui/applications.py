@@ -6,7 +6,7 @@ from PyQt4.QtGui import *
 from enmapbox.gui.utils import DIR_ENMAPBOX
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
-DEBUG = False
+DEBUG = False #set this on True to not hide external-app errors
 
 class ApplicationWrapper(QObject):
     """
@@ -27,41 +27,43 @@ class ApplicationRegistry(QObject):
     """
     def __init__(self, enmapBox, parent=None):
         super(ApplicationRegistry, self).__init__(parent)
-        self.applicationFolders = []
+        self.appPackageRootFolders = []
         assert isinstance(enmapBox, EnMAPBox)
 
         self.enmapBox = enmapBox
         self.PFMgr = self.enmapBox.processingAlgManager
         self.appList = collections.OrderedDict()
 
-    def addApplicationFolder(self, appDir):
+    def addApplicationPackageRootFolder(self, appPkgRootFolder):
         """
-
-        :param appDir:
-        :return:
+        Searches and loads the EnMAP-Box application packages located in appDir
+        :param appPkgRootFolder: Directory with EnMAP-Box application packages
+        :return: self
         """
-        if not os.path.isdir(appDir):
+        if not os.path.isdir(appPkgRootFolder):
             return False
 
 
-        for d, appPackages, _ in os.walk(appDir):
+        for d, appPackages, _ in os.walk(appPkgRootFolder):
             appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
             break
 
 
         for appPackage in appPackages:
             if DEBUG:
-                self.addApplications(appPackage)
+                self.addApplicationPackage(appPackage)
             else:
                 try:
-                    self.addApplications(appPackage)
+                    self.addApplicationPackage(appPackage)
                 except Exception as ex:
                     logger.error(ex)
+        return self
 
 
-    def addApplications(self, appPackagePath):
+    def addApplicationPackage(self, appPackagePath):
         """
-        :param appPackagePath:
+        Loads an EnMAP-Box application package and adds all its applications
+        :param appPackagePath: a path pointing to a directory <application package folde
         :return:
         """
         #todo: catch error, keep system stable
@@ -104,6 +106,11 @@ class ApplicationRegistry(QObject):
                     logger.error(ex.message)
 
     def addApplication(self, app):
+        """
+        Adds a single EnMAP-Box application, i.a. a class that implemented the EnMAPBoxApplication Interface
+        :param app:
+        """
+
         assert isinstance(app, EnMAPBoxApplication)
 
         appWrapper = ApplicationWrapper(app)

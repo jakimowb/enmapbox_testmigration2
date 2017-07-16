@@ -8,6 +8,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtXml import *
 from PyQt4 import uic
+from osgeo import gdal
 import enmapbox.gui
 jp = os.path.join
 
@@ -48,6 +49,19 @@ def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
             pass
 
     return results
+
+
+def gdalDataset(pathOrDataset):
+    """
+
+    :param pathOrDataset: path or gdal.Dataset
+    :return: gdal.Dataset
+    """
+    if not isinstance(pathOrDataset, gdal.Dataset):
+        pathOrDataset = gdal.Open(pathOrDataset)
+    assert isinstance(pathOrDataset, gdal.Dataset)
+    return pathOrDataset
+
 
 
 FORM_CLASSES = dict()

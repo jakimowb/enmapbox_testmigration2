@@ -18,7 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
-
+from __future__ import absolute_import
 import os
 from qgis.core import *
 from qgis.gui import *
@@ -26,7 +26,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import numpy as np
 from osgeo import gdal
-from enmapbox.gui.utils import loadUi
+from enmapbox.gui.utils import loadUi, gdalDataset
 from itertools import cycle
 
 DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
@@ -109,13 +109,40 @@ class ClassInfo(QObject):
     def clone(self):
         return ClassInfo(name=self.mName, color=self.mColor)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __eq__(self, other):
+        if not isinstance(other, ClassInfo):
+            return False
+        return other.mName == self.mName and \
+               other.mLabel == self.mLabel and \
+               other.mColor == self.mColor
+
+
+    def __repr__(self):
+        return 'ClassInfo'+self.__str__()
+
     def __str__(self):
-        return '{} "{}"'.format(self.mLabel,self.mName)
+        return '{} "{}"'.format(self.mLabel,self.mName, str(self.mColor.toRgb()))
+
 
 class ClassificationScheme(QObject):
+
+    @staticmethod
+    def create(n):
+        """
+        Create a ClassificationScheme with n classes (including 'Unclassified' with label = 0)
+        :param n: number of classes including 'Unclassified'
+        :return: ClassificationScheme
+        """
+        s = ClassificationScheme()
+        s.createClasses(n)
+        return s
+
     @staticmethod
     def fromRasterImage(path, bandIndex=None):
-        ds = gdal.Open(path)
+        ds = gdalDataset(path)
         assert ds is not None
 
         if bandIndex is None:
@@ -139,7 +166,7 @@ class ClassificationScheme(QObject):
         scheme = ClassificationScheme()
         classes = []
         for i, catName in enumerate(cat):
-            cli = ClassInfo(name=catName)
+            cli = ClassInfo(name=catName, label=i)
             if ct is not None:
                 cli.setColor(QColor(*ct.GetColorEntry(i)))
             classes.append(cli)
@@ -184,6 +211,25 @@ class ClassificationScheme(QObject):
     def __iter__(self):
         return iter(self.mClasses)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __eq__(self, other):
+        if not (isinstance(other, ClassificationScheme)  and len(self) == len(other)):
+            return False
+        return all(self[i] == other[i] for i in range(len(self)))
+
+
+    def __str__(self):
+        return self.__repr__()+'{} classes'.format(len(self))
+
+    def range(self):
+        """
+        Returns the class label range (min,max)
+        """
+        labels = self.classLabels()
+        return min(labels), max(labels)
+
     def index(self, classInfo):
         """
         returns the index of this classInfo
@@ -197,7 +243,7 @@ class ClassificationScheme(QObject):
         """
         :return: [list-of-class-names (str)]
         """
-        return [str(c.mLabel) for c in self.mClasses]
+        return [str(c.mName) for c in self.mClasses]
 
     def classColors(self):
         """
@@ -715,4 +761,41 @@ class ClassificationSchemeDialog(QgsDialog):
     def setClassificationScheme(self, classificationScheme):
         assert isinstance(classificationScheme, ClassificationScheme)
         self.w.setClassificationScheme(classificationScheme)
+
+
+from unittest import TestCase
+class TestReclassify(TestCase):
+
+    def testClassInfo(self):
+        name = 'TestName'
+        label = 2
+        color = QColor('green')
+        c = ClassInfo(name=name, label=label, color=color)
+        self.assertEqual(c.name(), name)
+        self.assertEqual(c.label(), label)
+        self.assertEqual(c.color(), color)
+
+        name2 = 'TestName2'
+        label2 = 3
+        color2 = QColor('red')
+        c.setLabel(label2)
+        c.setColor(color2)
+        c.setName(name2)
+        self.assertEqual(c.name(), name2)
+        self.assertEqual(c.label(), label2)
+        self.assertEqual(c.color(), color2)
+
+
+    def testClassificationScheme(self):
+        cs = ClassificationScheme.createClasses(3)
+
+        self.assertIsInstance(cs, ClassificationScheme)
+        self.assertEqual(cs[0].color(), DEFAULT_UNCLASSIFIEDCOLOR)
+        self.assertEqual(cs[1].color(), DEFAULT_CLASSCOLORS[0])
+        self.assertEqual(cs[2].color(), DEFAULT_CLASSCOLORS[1])
+        c = ClassInfo(label=1, name='New Class', color=QColor('red'))
+        cs.addClass(c)
+        self.assertEqual(cs[3], c)
+        cs.resetLabels()
+        self.assertEqual(cs[3].label(), 3)
 

@@ -302,7 +302,7 @@ class EnMAPBox(QObject):
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
         defaultDir = os.path.join(DIR_ENMAPBOX, *['apps'])
-        self.applicationRegistry.addApplicationFolder(defaultDir)
+        self.applicationRegistry.addApplicationPackageRootFolder(defaultDir)
         self.ui.setVisible(True)
         splash.finish(self.ui)
     def exit(self):
