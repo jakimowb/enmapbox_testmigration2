@@ -8,6 +8,7 @@ from rios.pixelgrid import PixelGridDefn, pixelGridFromFile
 from hubdc.util import equalProjection
 
 def Open(filename, eAccess=gdal.GA_ReadOnly):
+    assert exists(str(filename)), filename
     return Dataset(gdal.Open(filename, eAccess))
 
 def OpenLayer(filename, layerNameOrIndex=0, update=False):
@@ -270,27 +271,32 @@ class Dataset():
     def setNoDataValue(self, value):
         self.setNoDataValues(values=[value]*self.zsize)
 
-    def getNoDataValue(self):
+    def getNoDataValue(self, default=None):
         noDataValues = self.getNoDataValues()
         if len(set(noDataValues)) != 1:
             raise Exception('there are multiple no data values, use getNoDataValues() instead')
-        return noDataValues[0]
+        noDataValue = noDataValues[0]
+        if noDataValue is None:
+            noDataValue = default
+        return noDataValue
 
     def getMetadataDomainList(self):
         domains = self.gdalDataset.GetMetadataDomainList()
         return domains if domains is not None else []
 
     def setMetadataItem(self, key, value, domain=''):
+        if value is None:
+            return
         key = key.replace(' ', '_')
         gdalString = _GDALStringFormatter.valueToGDALString(value)
         self.gdalDataset.SetMetadataItem(key, gdalString, domain)
 
-    def getMetadataItem(self, key, domain='', type=str):
+    def getMetadataItem(self, key, domain='', dtype=str):
         key = key.replace(' ', '_')
         gdalString = self.gdalDataset.GetMetadataItem(key, domain)
         if gdalString is None:
             return None
-        return _GDALStringFormatter.gdalStringToValue(gdalString, type=type)
+        return _GDALStringFormatter.gdalStringToValue(gdalString, dtype=dtype)
 
     def getMetadata(self):
         meta = dict()
@@ -468,12 +474,12 @@ class _GDALStringFormatter(object):
             return str(value)
 
     @classmethod
-    def gdalStringToValue(cls, gdalString, type):
+    def gdalStringToValue(cls, gdalString, dtype):
         gdalString.strip()
         if gdalString.startswith('{') and gdalString.endswith('}'):
-            value = cls._gdalStringToList(gdalString, type)
+            value = cls._gdalStringToList(gdalString, dtype)
         else:
-            value = type(gdalString)
+            value = dtype(gdalString)
         return value
 
     @classmethod

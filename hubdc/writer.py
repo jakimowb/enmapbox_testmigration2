@@ -53,7 +53,7 @@ class Writer():
     @staticmethod
     def setMetadataItem(outputDatasets, filename, key, value, domain):
         outputDatasets[filename].setMetadataItem(key=key, value=value, domain=domain)
-        if key=='band names' and domain=='ENVI':
+        if key=='band names' and domain=='ENVI' and value is not None:
             for dsBand, bandName in zip(outputDatasets[filename], value):
                 dsBand.setDescription(bandName)
 
