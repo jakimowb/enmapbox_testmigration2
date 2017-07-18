@@ -423,6 +423,42 @@ class ApplierOperator(object):
         """
         return self._iblock == self._nblock - 1
 
+    def getSample(self, array, mask):
+        """
+        Returns a data sample taken from ``array`` at locations given by ``mask``.
+
+        :param array: data array [n, y, x] to be sampled from
+        :param mask: boolean mask array [1, y, x] indicating the locations to be sampled
+        :return: data sample [n, masked]
+        """
+        assert isinstance(array, numpy.ndarray) and array.ndim == 3
+        assert isinstance(mask, numpy.ndarray) and mask.ndim == 3 and mask.shape[0] == 1
+        sample = array[:, mask[0]]
+        assert sample.ndim == 2
+        return sample
+
+    def setSample(self, sample, array, mask):
+        """
+        Sets a data sample given by ``sample`` to ``array`` at locations given by ``mask``.
+
+        :param sample: data sample [n, masked]
+        :param array: data array [n, y, x] to be updated
+        :param mask: boolean mask array [1, y, x] indicating the locations to be updated
+        """
+        assert isinstance(array, numpy.ndarray) and array.ndim == 3
+        assert isinstance(mask, numpy.ndarray) and mask.ndim == 3 and mask.shape[0] == 1
+        array[:, mask[0]] = sample
+
+    def applySampleFunction(self, inarray, outarray, mask, ufunc):
+        """
+        Shortcut for :meth:`hubdc.applier.Applier.getSample` -> ufunc() -> :meth:`hubdc.applier.Applier.setSample` pipeline.
+        Ufunc must accept and return a valid data sample [n, masked].
+        """
+        if numpy.any(mask):
+            sample = self.getSample(array=inarray, mask=mask)
+            result = ufunc(sample)
+            self.setSample(sample=result, array=outarray, mask=mask)
+
     def getFull(self, value, bands=1, dtype=None, overlap=0):
         return numpy.full(shape=(bands, self.grid.ySize+2*overlap, self.grid.xSize+2*overlap),
                           fill_value=value, dtype=dtype)
@@ -449,6 +485,43 @@ class ApplierOperator(object):
         assert isinstance(array, numpy.ndarray)
         assert array.ndim == 3
         return array
+
+    def getMaskArray(self, name, noData=None, ufunc=None, array=None, overlap=0):
+        """
+        Returns a boolean data/noData mask for an input raster image in form of a 3-d numpy array.
+        Pixels that are equal to the image no data value are set to False, all other pixels are set to True.
+        In case of a multiband image, the final pixel mask value is False if it was False in all of the bands.
+
+        The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setInput`.
+
+        :param name: input raster name
+        :param noData: default no data value to use if the image has no no data value specified
+        :param ufunc: user function to mask out further pixels,
+                      e.g. ``ufunc = lambda array: array > 0.5`` will additionally mask out all pixels that have values larger than 0.5
+        :param array: pass in the data array directly if it was already loaded
+        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        :param ufunc: see :meth:`~hubdc.applier.ApplierOperator.getArray`
+        :return:
+        :rtype:
+        """
+
+        # read array data if needed
+        noData = self.getNoDataValue(name, default=noData)
+        if (noData is not None) or (ufunc is not None):
+            if array is None:
+                array = self.getArray(name, overlap=overlap)
+
+        # create noData mask
+        if noData is None:
+            valid = self.getFull(value=True, bands=1)
+        else:
+            valid = numpy.any(array != noData, axis=0, keepdims=True)
+
+        # update noData mask with ufunc mask
+        if ufunc is not None:
+            numpy.logical_and(valid, numpy.any(ufunc(array), axis=0, keepdims=True), out=valid)
+
+        return valid
 
     def getWavebandArray(self, name, wavelengths, linear=False, overlap=0, dtype=None, scale=None):
         """
@@ -542,7 +615,7 @@ class ApplierOperator(object):
         """
 
         classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
-        ids = range(1, classes)
+        ids = range(1, classes+1)
         return self.getCategoricalFractionArray(name=name, ids=ids, index=0, overlap=overlap)
 
     def getClassificationArray(self, name, minOverallCoverage=0., minWinnerCoverage=0., overlap=0):
@@ -760,10 +833,6 @@ class ApplierOperator(object):
 
         return self._vectorDatasets[name]
 
-    def isVectorTouched(self, name):
-        layer = self._getVectorDataset(name)
-
-
     def getVectorArray(self, name, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0, dtype=numpy.float32, scale=None):
         """
         Returns the vector rasterization of the current block in form of a 3-d numpy array.
@@ -828,7 +897,7 @@ class ApplierOperator(object):
         array = self.getArray(name=tmpname, overlap=overlap)
         return array
 
-    def getVectorCategoricalArray(self, name, ids, noData=0, minOverallCoverage=0., minWinnerCoverage=0.,
+    def getVectorCategoricalArray(self, name, ids, noData, minOverallCoverage=0., minWinnerCoverage=0.,
                                   oversampling=10, xRes=None, yRes=None, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
                                   overlap=0):
         """
@@ -851,13 +920,12 @@ class ApplierOperator(object):
                                                            overlap=overlap)
 
         categories = numpy.array(ids)[fractions.argmax(axis=0)[None]]
-        if noData is not None:
-            if minOverallCoverage > 0:
-                invalid = numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
-                categories[invalid] = noData
-            if minWinnerCoverage > 0:
-                invalid = numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
-                categories[invalid] = noData
+        if minOverallCoverage > 0:
+            invalid = numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
+            categories[invalid] = noData
+        if minWinnerCoverage > 0:
+            invalid = numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
+            categories[invalid] = noData
 
         assert categories.ndim == 3
         return categories
@@ -969,7 +1037,7 @@ class ApplierOperator(object):
         """
 
         dataset = self._getInputDataset(name)
-        wavelength = dataset.getMetadataItem(key='wavelength', domain='ENVI', type=float)
+        wavelength = dataset.getMetadataItem(key='wavelength', domain='ENVI', dtype=float)
         wavelengthUnits = dataset.getMetadataItem(key='wavelength units', domain='ENVI')
         if wavelength is None or wavelengthUnits is None:
             raise Exception('missing wavelength or wavelength units information')
@@ -1023,25 +1091,35 @@ class ApplierOperator(object):
         """
 
         dataset = self._getInputDataset(name)
-        classes = dataset.getMetadataItem(key='classes', domain='ENVI', type=int)
-        classNames = dataset.getMetadataItem(key='class names', domain='ENVI', type=str)
-        classLookup = dataset.getMetadataItem(key='class lookup', domain='ENVI', type=int)
+        classes = dataset.getMetadataItem(key='classes', domain='ENVI', dtype=int)
+        classNames = dataset.getMetadataItem(key='class names', domain='ENVI', dtype=str)
+        classLookup = dataset.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
 
-        return classes, classNames, classLookup
+        return classes-1, classNames[1:], classLookup[3:]
+
+    def setMetadataBandNames(self, name, bandNames):
+        """
+        Set band names definition metadata information for an output raster.
+
+        The information is stored in the ENVI metadata domain item ``band names`` and in the GDAL band descriptions.
+        """
+        self.setMetadataItem(name=name, key='band names', value=bandNames, domain='ENVI')
 
     def setNoDataValue(self, name, value):
         """
         Set the no data value for an output raster image.
         """
+        self.setMetadataItem(name=name, key='data ignore value', value=value, domain='ENVI')
         filename = self.getOutputFilename(name)
         self._queueByFilename[filename].put((Writer.SET_NODATA, filename, value))
 
-    def getNoDataValue(self, name):
+    def getNoDataValue(self, name, default=None):
         """
-        Returns the no data value for an input raster image.
+        Returns the no data value for an input raster image. If a no data value is not specified, the ``default`` value is returned.
         """
         dataset = self._getInputDataset(name)
-        return dataset.getNoDataValue()
+        noDataValue = dataset.getNoDataValue(default=default)
+        return default
 
     def _apply(self, subgrid, iblock, nblock):
         self._iblock = iblock
@@ -1091,7 +1169,8 @@ class ApplierControls(object):
             progressBar = CUIProgressBar()
         self.progressBar = progressBar
 
-    def setWindowXSize(self, windowxsize=256):
+    DEFAULT_WINDOWXSIZE = 256
+    def setWindowXSize(self, windowxsize=DEFAULT_WINDOWXSIZE):
         """
         Set the X size of the blocks used. Images are processed in blocks (windows)
         of 'windowxsize' columns, and 'windowysize' rows.
@@ -1099,7 +1178,8 @@ class ApplierControls(object):
 
         self.windowxsize = windowxsize
 
-    def setWindowYSize(self, windowysize=256):
+    DEFAULT_WINDOWYSIZE = 256
+    def setWindowYSize(self, windowysize=DEFAULT_WINDOWYSIZE):
         """
         Set the Y size of the blocks used. Images are processed in blocks (windows)
         of 'windowxsize' columns, and 'windowysize' rows.
@@ -1116,19 +1196,22 @@ class ApplierControls(object):
         self.setWindowXSize(veryLargeNumber)
         self.setWindowYSize(veryLargeNumber)
 
-    def setNumThreads(self, nworker=None):
+    DEFAULT_NWORKER = None
+    def setNumThreads(self, nworker=DEFAULT_NWORKER):
         """
         Set the number of pool worker for multiprocessing. Set to None to disable multiprocessing (recommended for debugging).
         """
         self.nworker = nworker
 
-    def setNumWriter(self, nwriter=None):
+    DEFAULT_NWRITER = None
+    def setNumWriter(self, nwriter=DEFAULT_NWRITER):
         """
         Set the number of writer processes. Set to None to disable multiwriting (recommended for debugging).
         """
         self.nwriter = nwriter
 
-    def setCreateEnviHeader(self, createEnviHeader=True):
+    DEFAULT_CREATEENVIHEADER = True
+    def setCreateEnviHeader(self, createEnviHeader=DEFAULT_CREATEENVIHEADER):
         """
         Set to True to create additional ENVI header files for all output rasters.
         The header files store all metadata items from the GDAL PAM ENVI domain,
@@ -1137,13 +1220,15 @@ class ApplierControls(object):
         """
         self.createEnviHeader = createEnviHeader
 
-    def setAutoFootprint(self, footprintType=const.FOOTPRINT_UNION):
+    DEFAULT_FOOTPRINTTYPE = const.FOOTPRINT_UNION
+    def setAutoFootprint(self, footprintType=DEFAULT_FOOTPRINTTYPE):
         """
         Derive extent of the reference pixel grid from input files. Possible options are 'union' or 'intersect'.
         """
         self.footprintType = footprintType
 
-    def setAutoResolution(self, resolutionType=const.RESOLUTION_MINIMUM):
+    DEFAULT_RESOLUTIONTYPE = const.RESOLUTION_MINIMUM
+    def setAutoResolution(self, resolutionType=DEFAULT_RESOLUTIONTYPE):
         """
         Derive resolution of the reference pixel grid from input files. Possible options are 'minimum', 'maximum' or 'average'.
         """
@@ -1192,25 +1277,29 @@ class ApplierControls(object):
         grid = layer.makePixelGrid(xRes=xRes, yRes=yRes)
         self.setReferenceGrid(grid=grid)
 
-    def setGDALCacheMax(self, bytes=100*2**20):
+    DEFAULT_GDALCACHEMAX = 100*2**20
+    def setGDALCacheMax(self, bytes=DEFAULT_GDALCACHEMAX):
         """
         For details see the `GDAL_CACHEMAX Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX>`_.
         """
         self.cacheMax = bytes
 
-    def setGDALSwathSize(self, bytes=100*2**20):
+    DEFAULT_GDALSWATHSIZE = 100*2**20
+    def setGDALSwathSize(self, bytes=DEFAULT_GDALSWATHSIZE):
         """
         For details see the `GDAL_SWATH_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_SWATH_SIZE>`_.
         """
         self.swathSize = bytes
 
-    def setGDALDisableReadDirOnOpen(self, disable=True):
+    DEFAULT_GDALDISABLEREADDIRONOPEN = True
+    def setGDALDisableReadDirOnOpen(self, disable=DEFAULT_GDALDISABLEREADDIRONOPEN):
         """
         For details see the `GDAL_DISABLE_READDIR_ON_OPEN Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_DISABLE_READDIR_ON_OPEN>`_.
         """
         self.disableReadDirOnOpen = disable
 
-    def setGDALMaxDatasetPoolSize(self, nfiles=100):
+    DEFAULT_GDALMAXDATASETPOOLSIZE = 100
+    def setGDALMaxDatasetPoolSize(self, nfiles=DEFAULT_GDALMAXDATASETPOOLSIZE):
         """
         For details see the `GDAL_MAX_DATASET_POOL_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_MAX_DATASET_POOL_SIZE>`_.
         """
