@@ -122,6 +122,9 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
 
 class EnMAPBoxQgisInterface(QgisInterface):
+    """
+    Implementation of QgisInterface
+    """
 
     def __init__(self, enmapBox):
         assert isinstance(enmapBox, EnMAPBox)
@@ -302,7 +305,7 @@ class EnMAPBox(QObject):
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
         defaultDir = os.path.join(DIR_ENMAPBOX, *['apps'])
-        self.applicationRegistry.addApplicationFolder(defaultDir)
+        self.applicationRegistry.addApplicationPackageRootFolder(defaultDir)
         self.ui.setVisible(True)
         splash.finish(self.ui)
     def exit(self):
@@ -321,6 +324,16 @@ class EnMAPBox(QObject):
                     mapDock = self.createDock('MAP')
                 mapDock.addLayers(dataSrc.createRegisteredMapLayer())
             s = ""
+
+    def openExampleData(self):
+        import enmapbox.testdata
+        from enmapbox.gui.utils import file_search
+        dir = os.path.dirname(enmapbox.testdata.__file__)
+        files = file_search(dir, re.compile('.*(bsq|img|shp)$', re.I), recursive=True)
+
+        for file in files:
+            self.addSource(file)
+        s = ""
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
@@ -344,10 +357,36 @@ class EnMAPBox(QObject):
         proj.dumpObjectInfo()
         proj.dumpObjectTree()
         proj.dumpProperties()
-        s = ""
+        raise NotImplementedError()
+
 
     def restoreProject(self):
-        s = ""
+        raise NotImplementedError()
+
+    sigCurrentLocationChanged = pyqtSignal(SpatialPoint)
+    def currentLocation(self):
+        """
+        Returns the SpatialPoint of the map location last clicked by identify
+        :return: SpatialPoint
+        """
+
+    sigCurrentSpectraChanged = pyqtSignal(list)
+    def currentSpectra(self):
+        """
+        Returns the spectra currently selected using the profile tool.
+        :return: [list-of-spectra]
+        """
+
+        raise NotImplementedError('EnMAPBox.currentSpectra')
+
+    def dataSources(self, sourceType):
+        """
+        Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
+        :param sourceType: ['ALL', 'RASTER''VECTOR', 'MODEL'],
+                            see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
+        :return: [list-of-datasource-URIs]
+        """
+        return self.dataSourceManager.getUriList(sourceType)
 
 
     def createDock(self, *args, **kwds):
@@ -368,6 +407,7 @@ class EnMAPBox(QObject):
             if str(menu.title()) == title:
                 return menu
         return None
+
     def menusWithTitle(self, title):
         return self.ui.menusWithTitle(title)
 
