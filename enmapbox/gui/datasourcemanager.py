@@ -615,6 +615,10 @@ class DataSourceManager(QObject):
         self.sources = set()
 
         QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
+        # noinspection PyArgumentList
+        QgsMapLayerRegistry.instance().layersAdded.connect(self.addLayers)
+        QgsMapLayerRegistry.instance().removeAll.connect(self.removeAllLayers)
+
         self.updateFromQgsMapLayerRegistry()
 
         #signals
@@ -640,13 +644,14 @@ class DataSourceManager(QObject):
     def updateFromQgsMapLayerRegistry(self, mapLayers=None):
         """
         Add data sources registered in the QgsMapLayerRegistry to the data source manager
-        :return: True, if a new source was added
+        :return: List of added new DataSources
         """
         if mapLayers is None:
             mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
 
-        for lyr in mapLayers:
-            self.addSource(lyr)
+        added = [self.addSource(lyr) for lyr in mapLayers]
+        return [a for a in added if isinstance(a, DataSource)]
+
 
     def getUriList(self, sourcetype='All'):
         """
@@ -695,17 +700,39 @@ class DataSourceManager(QObject):
 
         return ds
 
+    def clear(self):
+        """
+        Removes all data source from DataSourceManager
+        :return: [list-of-removed-DataSources]
+        """
+        return self.removeSources(list(self.sources))
+
+
     def removeSources(self, dataSourceList):
-        for dataSource in dataSourceList:
-            self.removeSource(dataSource)
+        """
+        Removes a list of data sources.
+        :param dataSourceList: [list-of-datasources]
+        :return: self
+        """
+        removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
+        return [r for r in removed if isinstance(r, DataSource)]
+
+
 
     def removeSource(self, dataSource):
+        """
+        Removes the datasource from the DataSourceManager
+        :param dataSource: the DataSource to be removed
+        :return: the removed DataSource. None if dataSource was not in the DataSourceManager
+        """
         assert isinstance(dataSource, DataSource)
         if dataSource in self.sources:
             self.sources.remove(dataSource)
             self.sigDataSourceRemoved.emit(dataSource)
+            return dataSource
         else:
             logger.debug('can not remove {}'.format(dataSource))
+
 
     def getSourceTypes(self):
         return sorted(list(set([type(ds) for ds in self.sources])))

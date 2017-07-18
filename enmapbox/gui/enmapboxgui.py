@@ -133,6 +133,8 @@ class EnMAPBoxQgisInterface(QgisInterface):
         self.layers = dict()
         self.virtualMapCanvas = QgsMapCanvas()
         self.virtualMapCanvas.setCrsTransformEnabled(True)
+
+
     def mainWindow(self):
         return self.enmapBox.ui
 
@@ -178,12 +180,145 @@ class EnMAPBoxQgisInterface(QgisInterface):
 
         pass
 
-    def refreshLayerSymbology(selflayerId):
+    def refreshLayerSymbology(self, layerId):
         pass
 
 
     def legendInterface(self):
+        """DockManager implements legend interface"""
         return self.enmapBox.dockManager
+
+
+    ###
+    ###
+    ###
+    ###
+    ###
+    ###
+    ###
+    ###
+    @pyqtSlot('QStringList')
+    def addLayers(self, layers):
+        """Handle layers being added to the registry so they show up in canvas.
+
+        :param layers: list<QgsMapLayer> list of map layers that were added
+
+        .. note:: The QgsInterface api does not include this method,
+            it is added here as a helper to facilitate testing.
+        """
+        # LOGGER.debug('addLayers called on qgis_interface')
+        # LOGGER.debug('Number of layers being added: %s' % len(layers))
+        # LOGGER.debug('Layer Count Before: %s' % len(self.canvas.layers()))
+        current_layers = self.canvas.layers()
+        final_layers = []
+        for layer in current_layers:
+            final_layers.append(QgsMapCanvasLayer(layer))
+        for layer in layers:
+            final_layers.append(QgsMapCanvasLayer(layer))
+
+        self.canvas.setLayerSet(final_layers)
+        # LOGGER.debug('Layer Count After: %s' % len(self.canvas.layers()))
+
+    @pyqtSlot('QgsMapLayer')
+    def addLayer(self, layer):
+        """Handle a layer being added to the registry so it shows up in canvas.
+
+        :param layer: list<QgsMapLayer> list of map layers that were added
+
+        .. note: The QgsInterface api does not include this method, it is added
+                 here as a helper to facilitate testing.
+
+        .. note: The addLayer method was deprecated in QGIS 1.8 so you should
+                 not need this method much.
+        """
+        pass
+
+    @pyqtSlot()
+    def removeAllLayers(self):
+
+        """Remove layers from the canvas before they get deleted."""
+        self.virtualMapCanvas.setLayerSet([])
+
+    def newProject(self):
+        """Create new project."""
+        # noinspection PyArgumentList
+        QgsMapLayerRegistry.instance().removeAllMapLayers()
+
+    # ---------------- API Mock for QgsInterface follows -------------------
+
+    def zoomFull(self):
+        """Zoom to the map full extent."""
+        pass
+
+    def zoomToPrevious(self):
+        """Zoom to previous view extent."""
+        pass
+
+    def zoomToNext(self):
+        """Zoom to next view extent."""
+        pass
+
+    def zoomToActiveLayer(self):
+        """Zoom to extent of active layer."""
+        pass
+
+    def addVectorLayer(self, path, base_name, provider_key):
+        """Add a vector layer.
+
+        :param path: Path to layer.
+        :type path: str
+
+        :param base_name: Base name for layer.
+        :type base_name: str
+
+        :param provider_key: Provider key e.g. 'ogr'
+        :type provider_key: str
+        """
+        pass
+
+    def addRasterLayer(self, path, base_name):
+        """Add a raster layer given a raster layer file name
+
+        :param path: Path to layer.
+        :type path: str
+
+        :param base_name: Base name for layer.
+        :type base_name: str
+        """
+        pass
+
+    def activeLayer(self):
+        """Get pointer to the active layer (layer selected in the legend)."""
+        # noinspection PyArgumentList
+        layers = QgsMapLayerRegistry.instance().mapLayers()
+        for item in layers:
+            return layers[item]
+
+    def addToolBarIcon(self, action):
+        """Add an icon to the plugins toolbar.
+
+        :param action: Action to add to the toolbar.
+        :type action: QAction
+        """
+        pass
+
+    def removeToolBarIcon(self, action):
+        """Remove an action (icon) from the plugin toolbar.
+
+        :param action: Action to add to the toolbar.
+        :type action: QAction
+        """
+        pass
+
+    def addToolBar(self, name):
+        """Add toolbar with specified name.
+
+        :param name: Name for the toolbar.
+        :type name: str
+        """
+        pass
+
+
 
 class EnMAPBox(QObject):
 
