@@ -122,6 +122,9 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
 
 class EnMAPBoxQgisInterface(QgisInterface):
+    """
+    Implementation of QgisInterface
+    """
 
     def __init__(self, enmapBox):
         assert isinstance(enmapBox, EnMAPBox)

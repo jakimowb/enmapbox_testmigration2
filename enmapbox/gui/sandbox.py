@@ -8,10 +8,20 @@ from enmapbox.gui.utils import *
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
 
-def writelogmessage(message, tag, level):
-    print('{}({}): {}'.format( tag, level, message ) )
+def printLogMessage(message, tag, level):
+    if level == 1:
+        m = message.split('\n')
+        if '' in message.split('\n'):
+            m = m[0:m.index('')]
+        m = '\n'.join(m)
+        if not re.search('enmapbox', m):
+            return
+        print('{}: {}'.format(tag, m))
+    elif level == 2:
+        print('{}({}): {}'.format( tag, level, message ) )
+    s= ""
 from qgis.core import QgsMessageLog
-QgsMessageLog.instance().messageReceived.connect(writelogmessage)
+QgsMessageLog.instance().messageReceived.connect(printLogMessage)
 
 
 def _sandboxTemplate():
@@ -308,7 +318,7 @@ if __name__ == '__main__':
         if False: sandboxTreeNodes()
         if False: sandboxDataSourceManager()
         if False: sandboxDockManager()
-        if True: sandboxPureGui()
+        if True: sandboxPureGui(loadProcessingFramework=True)
         if False: sandboxPFReport()
         if False: sandboxDragDrop()
         if False: sandboxGUI()

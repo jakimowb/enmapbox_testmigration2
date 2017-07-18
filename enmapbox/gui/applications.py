@@ -56,7 +56,8 @@ class ApplicationRegistry(QObject):
                 try:
                     self.addApplicationPackage(appPackage)
                 except Exception as ex:
-                    logger.error(ex)
+                    QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackage, ex.message)
+                                                        , level=QgsMessageLog.CRITICAL)
         return self
 
 
@@ -103,7 +104,9 @@ class ApplicationRegistry(QObject):
                 try:
                     self.addApplication(app)
                 except Exception as ex:
-                    logger.error(ex.message)
+
+                    QgsMessageLog.instance().logMessage('Failed to load {}\n{}'.format(app.__module__, ex.message)
+                                                        , level=QgsMessageLog.CRITICAL)
 
     def addApplication(self, app):
         """
@@ -131,9 +134,12 @@ class ApplicationRegistry(QObject):
     def loadGeoAlgorithms(self, appWrapper):
         geoAlgorithms = appWrapper.app.geoAlgorithms()
         if geoAlgorithms is not None:
-            isinstance(geoAlgorithms)
-        appWrapper.geoAlgorithms.extend(geoAlgorithms)
-        self.PFMgr.addAlgorithms(self.PFMgr.enmapBoxProvider(), geoAlgorithms)
+            if not isinstance(geoAlgorithms, list):
+                geoAlgorithms = [geoAlgorithms]
+            from processing.core.GeoAlgorithm import GeoAlgorithm
+            geoAlgorithms = [g for g in geoAlgorithms if isinstance(g, GeoAlgorithm)]
+            appWrapper.geoAlgorithms.extend(geoAlgorithms)
+            self.PFMgr.addAlgorithms(self.PFMgr.enmapBoxProvider(), geoAlgorithms)
 
 
     def loadMenuItems(self, appWrapper, parentMenuName = 'Applications'):
@@ -179,7 +185,7 @@ class ApplicationRegistry(QObject):
 
         #todo: remove geo-algorithms
         self.PFMgr.removeAlgorithms(appWrapper.geoAlgorithms)
-        self.appList.re
+
 
 
 class EnMAPBoxApplication(QObject):
@@ -210,7 +216,7 @@ class EnMAPBoxApplication(QObject):
         #required attributes. Must be different to None
         self.name = None
         self.version = None
-        self.licence = None
+        self.licence = 'GNU GPL-3'
 
         #optional attributes, can be None
         self.projectWebsite = None
