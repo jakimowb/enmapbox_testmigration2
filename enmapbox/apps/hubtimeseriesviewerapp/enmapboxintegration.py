@@ -37,26 +37,25 @@ class HUBTimeSeriesViewerApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
 
         super(HUBTimeSeriesViewerApp, self).__init__(enmapBox,parent=parent)
-
-        import timeseriesviewer
-        self.name = timeseriesviewer.TITLE
-        self.version = timeseriesviewer.VERSION
-        self.licence = timeseriesviewer.LICENSE
+        if PLUGIN_INSTALLED:
+            import timeseriesviewer
+            self.name = timeseriesviewer.TITLE
+            self.version = timeseriesviewer.VERSION
+            self.licence = 'GNU GPL-3'
 
     def icon(self):
-        import timeseriesviewer
-        return timeseriesviewer.icon()
+        if PLUGIN_INSTALLED:
+            import timeseriesviewer
+            return timeseriesviewer.icon()
+        else:
+            return None
 
     def menu(self, appMenu):
-        """
-        Specify menu, submenus and actions
-        :return:
-        """
-        #appMenu = self.enmapbox.menu('Tools')
-        a = appMenu.addAction(self.name)
-        a.setIcon(self.icon())
-        a.triggered.connect(self.startGUI)
-
+        if PLUGIN_INSTALLED:
+            a = appMenu.addAction(self.name)
+            a.setIcon(self.icon())
+            a.triggered.connect(self.startGUI)
+            return a
         return None
 
 
