@@ -18,20 +18,27 @@ def argmaxProbability(probabilities, minOverallCoverage=0, minWinnerCoverage=0, 
     progressBar = getProgressBar(progressBar)
 
     classes, n = probabilities.shape
-    progressBar.setLabelText('argmax probability (N={}, Classes={})'.format(n, classes))
     labels = numpy.argmax(probabilities, axis=0)[None]+1
     if minOverallCoverage > 0:
         labels[numpy.sum(probabilities, axis=0, keepdims=True) < minOverallCoverage] = 0
     if minWinnerCoverage > 0:
         labels[numpy.max(probabilities, axis=0, keepdims=True) < minWinnerCoverage] = 0
+
+    hist, edges = numpy.histogram(labels, bins=classes, range=[1,classes+1])
+    progressBar.setLabelText('argmax probability for N={}; Skipped={}; Classified=[{}]'.format(n, n-hist.sum(), ', '.join(map(str, hist))))
     return labels
 
-def classifierFitData(classifier, features, labels, progressBar=None):
+def estimatorFitData(estimator, features, labels, progressBar=None):
     assert matching2dArrays(features, labels)
     progressBar = getProgressBar(progressBar)
 
-    progressBar.setLabelText('fit classification sample (N={}) with {}'.format(features.shape[1], ' '.join(str(classifier).split())))
-    classifier.fit(X=features.T, y=labels.ravel())
+    progressBar.setLabelText('fit sample (N={}) with {}'.format(features.shape[1], ' '.join(str(estimator).split())))
+    X = features.T
+    if labels.shape[0] == 1:
+        y = labels.ravel()
+    else:
+        y = labels.T
+    estimator.fit(X=numpy.float64(features.T), y=y)
 
 def classifierPredictData(classifier, features, progressBar=None):
     assert is2darray(features)
