@@ -69,7 +69,7 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         self.tableWidget.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.mapLayerComboBox.currentIndexChanged.connect(self.refreshTransformationTable)
 
-        from enmapbox import EnMAPBox
+        from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapBox = EnMAPBox.instance()
 
         if isinstance(enmapBox, EnMAPBox):

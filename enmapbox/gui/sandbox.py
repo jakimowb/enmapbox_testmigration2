@@ -7,7 +7,7 @@ from enmapbox.gui.utils import *
 
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
-
+"""
 def printLogMessage(message, tag, level):
     if level == 1:
         m = message.split('\n')
@@ -20,9 +20,9 @@ def printLogMessage(message, tag, level):
     elif level == 2:
         print('{}({}): {}'.format( tag, level, message ) )
     s= ""
-from qgis.core import QgsMessageLog
-QgsMessageLog.instance().messageReceived.connect(printLogMessage)
-
+#from qgis.core import QgsMessageLog
+#QgsMessageLog.instance().messageReceived.connect(printLogMessage)
+"""
 
 def _sandboxTemplate():
     qgsApp = initQgisEnvironment()

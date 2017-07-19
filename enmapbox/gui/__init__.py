@@ -3,7 +3,6 @@ import os, sys, logging, site, re
 
 from enmapbox.gui.utils import settings
 settings = settings()
-
 DEBUG = settings.value('EMB_DEBUG', False)
 LOAD_PROCESSING_FRAMEWORK = settings.value('EMB_LOAD_PF', True)
 LOAD_EXTERNAL_APPS = settings.value('EMB_LOAD_EA', True)

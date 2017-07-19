@@ -614,10 +614,11 @@ class DataSourceManager(QObject):
 
         self.sources = set()
 
-        QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
-        # noinspection PyArgumentList
-        QgsMapLayerRegistry.instance().layersAdded.connect(self.addLayers)
-        QgsMapLayerRegistry.instance().removeAll.connect(self.removeAllLayers)
+    #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
+    #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
+    # noinspection PyArgumentList
+    #QgsMapLayerRegistry.instance().layersAdded.connect(self.addLayers)
+    #QgsMapLayerRegistry.instance().removeAll.connect(self.removeAllLayers)
 
         self.updateFromQgsMapLayerRegistry()
 
