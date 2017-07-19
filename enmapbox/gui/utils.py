@@ -56,6 +56,18 @@ class TestObjects():
 def settings():
     return QSettings('HU-Berlin', 'EnMAP-Box')
 
+
+def showMessage(message, title, level):
+    v = QgsMessageViewer()
+    v.setTitle(title)
+
+    v.setMessage(message, QgsMessageOutput.MessageHtml \
+                    if message.startswith('<html>')
+                    else QgsMessageOutput.MessageText)
+
+    v.showMessage(True)
+
+
 def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
     assert os.path.isdir(rootdir), "Path is not a directory:{}".format(rootdir)
     regType = type(re.compile('.*'))

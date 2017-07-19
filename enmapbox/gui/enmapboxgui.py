@@ -351,6 +351,10 @@ class EnMAPBox(QObject):
             # initialized at all.
             qgsUtils.iface = self.ifaceSimulation
 
+        # register loggers etc.
+        msgLog = QgsMessageLog.instance()
+        msgLog.messageReceived.connect(self.onLogMessage)
+
         assert isinstance(qgsUtils.iface, QgisInterface)
         splash.showMessage('Load UI')
         self.ui = EnMAPBoxUI()
@@ -401,9 +405,6 @@ class EnMAPBox(QObject):
         self.ui.actionZoomPixelScale.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_PIXEL_SCALE'))
         self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.activateMapTool('CURSORLOCATIONVALUE'))
         self.ui.actionSettings.triggered.connect(self.saveProject)
-
-
-
         self.ui.actionExit.triggered.connect(self.exit)
 
 
@@ -437,16 +438,56 @@ class EnMAPBox(QObject):
                 logger.warning('Failed to initialize QGIS Processing framework')
             s = ""
 
+        #load EnMAP-Box applications
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
         defaultDir = os.path.join(DIR_ENMAPBOX, *['apps'])
+
         self.applicationRegistry.addApplicationPackageRootFolder(defaultDir)
+        otherAppDirs = settings().value('EMB_')
+
+
+
         self.ui.setVisible(True)
         splash.finish(self.ui)
+
+
     def exit(self):
         self.ui.close()
         self.deleteLater()
 
+    LUT_MESSAGELOGLEVEL = {
+                QgsMessageLog.INFO:'INFO',
+                QgsMessageLog.CRITICAL:'INFO',
+                QgsMessageLog.WARNING:'WARNING'}
+    LUT_MSGLOG2MSGBAR ={QgsMessageLog.INFO:QgsMessageBar.INFO,
+                        QgsMessageLog.CRITICAL:QgsMessageBar.WARNING,
+                        QgsMessageLog.WARNING:QgsMessageBar.WARNING,
+                        }
+
+    def onLogMessage(self, message, tag, level):
+        m = message.split('\n')
+        if '' in message.split('\n'):
+            m = m[0:m.index('')]
+        m = '\n'.join(m)
+        #todo: add other prefixes of interest
+
+        if not re.search('enmapbox', m):
+            return
+
+        if level in [QgsMessageLog.CRITICAL, QgsMessageLog.WARNING]:
+            widget = self.ui.messageBar.createMessage(tag, message)
+            button = QPushButton(widget)
+            button.setText("Show")
+            from enmapbox.gui.utils import showMessage
+            button.pressed.connect(lambda: showMessage(message, '{}'.format(tag), level))
+            widget.layout().addWidget(button)
+            self.ui.messageBar.pushWidget(widget,
+                              EnMAPBox.LUT_MSGLOG2MSGBAR.get(level, QgsMessageBar.INFO),
+                              SETTINGS.value('EMB_MESSAGE_TIMEOUT', 0))
+
+        #print on normal console
+        print('{}({}): {}'.format(tag, level, message))
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
