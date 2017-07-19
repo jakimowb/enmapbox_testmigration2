@@ -15,7 +15,7 @@ class Writer():
         elif task is cls.SET_META:
             cls.setMetadataItem(outputDatasets, *args)
         elif task is cls.SET_NODATA:
-            cls.setNoDataValue(*args)
+            cls.setNoDataValue(outputDatasets, *args)
         elif task is cls.CLOSE_DATASETS:
             cls.closeDatasets(outputDatasets, *args)
         elif task is cls.CLOSE_WRITER:
@@ -36,9 +36,9 @@ class Writer():
     def closeDatasets(outputDatasets, createEnviHeader):
         for filename, ds in outputDatasets.items():
             outputDataset = outputDatasets.pop(filename)
+            outputDataset.flushCache()
             if createEnviHeader:
                 outputDataset.writeENVIHeader()
-            outputDataset.flushCache()
             outputDataset.close()
 
     @staticmethod
@@ -53,7 +53,7 @@ class Writer():
     @staticmethod
     def setMetadataItem(outputDatasets, filename, key, value, domain):
         outputDatasets[filename].setMetadataItem(key=key, value=value, domain=domain)
-        if key=='band names' and domain=='ENVI':
+        if key=='band names' and domain=='ENVI' and value is not None:
             for dsBand, bandName in zip(outputDatasets[filename], value):
                 dsBand.setDescription(bandName)
 

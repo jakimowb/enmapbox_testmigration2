@@ -1,29 +1,14 @@
-# README #
+# Welcome to the HUB-Datacube
 
-This README would normally document whatever steps are necessary to get your application up and running.
+The HUB-Datacube package (_hubdc_) offers a high level interface for integrating heterogeneous raster datasets into a 
+user-defined reference pixel grid, resulting in an analysis-ready datacube.
+The data model is build on top of [GDAL](http://gdal.org/) and 
+was greatly inspired by the [RIOS](http://rioshome.org) project. 
 
-### What is this repository for? ###
+Like RIOS, HUBDC provides functionality which makes it easy to write raster processing code in Python,
+but it gives the user more flexibility and has some performance improvements.
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
-### How do I get set up? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+***See the [Sphinx documentation](http://hub-datacube.readthedocs.io/en/latest/index.html) 
+for more information.***

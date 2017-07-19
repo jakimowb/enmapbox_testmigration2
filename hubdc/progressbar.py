@@ -1,6 +1,16 @@
 from __future__ import print_function
+import sys
 
-class CUIProgress(object):
+class ProgressBar(object):
+    def __init__(self): pass
+    def setTotalSteps(self, steps): pass
+    def setProgress(self, progress): pass
+    def setLabelText(self,text): pass
+    def displayWarning(self,text): pass
+    def displayError(self,text): pass
+    def displayInfo(self,text): pass
+
+class CUIProgressBar(ProgressBar):
 
     def __init__(self):
         self.totalsteps = 100
@@ -14,24 +24,23 @@ class CUIProgress(object):
             print('100%')
         else:
             print('{}%..'.format(progress), end='')
+        sys.stdout.flush()
 
-    def setLabelText(self,text):
-        print('\n{}%..'.format(text))
+    def setLabelText(self, text):
+        print(text)
+        sys.stdout.flush()
 
     def displayWarning(self,text):
         print('Warning: {}'.format(text))
+        sys.stdout.flush()
 
     def displayError(self,text):
         print('Error: {}'.format(text))
+        sys.stdout.flush()
 
     def displayInfo(self,text):
         print('Info: {}'.format(text))
+        sys.stdout.flush()
 
-class SilentProgress(object):
-    def __init__(self): pass
-    def setTotalSteps(self, steps): pass
-    def setProgress(self, progress): pass
-    def setLabelText(self,text): pass
-    def displayWarning(self,text): pass
-    def displayError(self,text): pass
-    def displayInfo(self,text): pass
+class SilentProgressBar(ProgressBar):
+    pass
