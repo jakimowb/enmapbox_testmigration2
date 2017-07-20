@@ -85,16 +85,14 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
             from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
             self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
-            s = ""
-        else:
-            #self.ui.menuProcessing.setEnabled(False)
-            pass
-
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
-            if len(dock.actions()) > 0:
-                s = ""
             self.menuPanels.addAction(dock.toggleViewAction())
+
+
+        #tabbify dock widgets
+        self.tabifyDockWidget(self.processingPanel, self.dockPanel)
+        self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
 
     def setIsInitialized(self):
         self.isInitialized = True
@@ -145,7 +143,7 @@ class EnMAPBoxQgisInterface(QgisInterface):
         assert isinstance(self.virtualMapCanvas, QgsMapCanvas)
         self.virtualMapCanvas.setLayerSet([])
 
-        for ds in self.enmapBox.dataSourceManager.sources:
+        for ds in self.enmapBox.dataSourceManager.mSources:
             if isinstance(ds, DataSourceSpatial):
                 uri = ds.uri()
                 if uri not in self.layers.keys():
@@ -509,7 +507,11 @@ class EnMAPBox(QObject):
 
         for file in files:
             self.addSource(file)
-        s = ""
+        dock = self.createDock('MAP')
+        lyrs = [src.createUnregisteredMapLayer()
+                for src in self.dataSourceManager.sources(sourceTypes=['RASTER','VECTOR'])]
+        dock.addLayers(lyrs)
+
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
