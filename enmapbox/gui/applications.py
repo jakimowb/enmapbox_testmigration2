@@ -56,7 +56,7 @@ class ApplicationRegistry(QObject):
                 try:
                     self.addApplicationPackage(appPackage)
                 except Exception as ex:
-                    QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackage, ex.message)
+                    QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackage, str(ex))
                                                         , level=QgsMessageLog.CRITICAL)
         return self
 
