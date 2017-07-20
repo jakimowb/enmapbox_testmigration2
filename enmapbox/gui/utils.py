@@ -211,6 +211,29 @@ class KeepRefs(object):
             if inst is not None:
                 yield inst
 
+def appendItemsToMenu(menu, itemsToAdd):
+    """
+    Appends items to QMenu "menu"
+    :param menu: the QMenu to be extended
+    :param itemsToAdd: QMenu or [list-of-QActions-or-QMenus]
+    :return: menu
+    """
+    assert isinstance(menu, QMenu)
+    if isinstance(itemsToAdd, QMenu):
+        itemsToAdd = itemsToAdd.children()
+    if not isinstance(itemsToAdd, list):
+        itemsToAdd = [itemsToAdd]
+    for item in itemsToAdd:
+        if isinstance(item, QAction):
+            item.setParent(menu)
+            menu.addAction(item)
+            s = ""
+        elif isinstance(item, QMenu):
+            item.setParent(menu)
+            menu.addMenu(menu)
+        else:
+            s = ""
+    return menu
 
 def allSubclasses(cls):
     """
@@ -248,18 +271,6 @@ def check_package(name, package=None, stop_on_error=False):
             raise Exception('Unable to import package/module "{}"'.format(name))
         return False
     return True
-
-def add_to_sys_path(paths):
-    if not isinstance(paths, list):
-        paths = [paths]
-    paths = [os.path.normpath(p) for p in paths]
-    existing = [os.path.normpath(p) for p in sys.path]
-    for p in paths:
-        if os.path.isdir(p) and p not in existing:
-           #sys.path.insert(0, p)
-            sys.path.append(p)
-            existing.append(p)
-
 
 
 class Singleton(type):
@@ -517,6 +528,22 @@ class IconProvider:
             w = h = 16
             s = icon.actualSize(QSize(w,h))
 
+class EnMAPBoxMimeData(QMimeData):
+
+    def __init__(self):
+        super(EnMAPBoxMimeData, self).__init__()
+        self.mData = None
+
+    def setEnMAPBoxData(self, data):
+        self.mData = data
+
+    def enmapBoxData(self):
+        return self.mData
+
+    def hasEnMAPBoxData(self):
+        return self.mData != None
+
+
 
 class MimeDataHelper():
 
@@ -621,7 +648,6 @@ class MimeDataHelper():
                 MimeDataHelper.MIME_DATASOURCETREEMODELDATA,
                 MimeDataHelper.MIME_LAYERTREEMODELDATA,
                 MimeDataHelper.MIME_URILIST])
-
 
     def dataSources(self):
         dataSources = []
