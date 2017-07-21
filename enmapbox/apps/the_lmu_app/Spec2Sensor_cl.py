@@ -173,9 +173,11 @@ class Spec2Sensor:
 
         return spec_corr
 
-s2s = Spec2Sensor(sensor="EnMAP", nodat=-999)
-s2s.init_sensor()
-# s2s.SRF2npy()
+if __name__ == '__main__':
 
-spectrum = np.load("test_spec.npy")
-s2s.run_SRF(reflectance=spectrum)
+    s2s = Spec2Sensor(sensor="EnMAP", nodat=-999)
+    s2s.init_sensor()
+    # s2s.SRF2npy()
+
+    spectrum = np.load("test_spec.npy")
+    s2s.run_SRF(reflectance=spectrum)

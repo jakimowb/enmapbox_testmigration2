@@ -10,14 +10,14 @@ from PyQt4 import uic
 import call_model as mod
 from Spec2Sensor_cl import Spec2Sensor
 
-
 app = QApplication(sys.argv)
 gui = uic.loadUi("GUI_ISD.ui")
 
-class UiFunc(QDialog):
 
-    def __init__(self, parent=None):
-        super(UiFunc, self).__init__(parent)
+class UiFunc():
+
+    def __init__(self):
+
         self.initial_values()
         self.para_list = []
         self.update_slider_pos()
@@ -32,9 +32,10 @@ class UiFunc(QDialog):
         self.typeLIDF = 2
         self.lop = "prospectD"
         self.canopy_arch = "sail"
-        self.plot_color = dict(zip(range(8), ["r", "g", "b", "c", "m", "y", "w"]))
+        self.plot_color = dict(zip(range(7), ["g", "r", "b", "y", "m", "c", "w"]))
         self.plot_count = 0
         self.current_slider = None
+        self.data_mean = None
 
     def update_slider_pos(self):
 
@@ -81,14 +82,15 @@ class UiFunc(QDialog):
         gui.CD_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.CD_lineEdit, gui.CD_Slide))
 
     def any_slider_change(self, slider, textfeld):
-        if not self.current_slider == slider: self.plot_count += 1
+        if not self.current_slider == slider:
+            self.plot_count += 1
         self.current_slider = slider
         my_value = str(slider.value() / 10000.0)
         textfeld.setText(my_value)
 
     def any_lineEdit_change(self, textfeld, slider,):
         try:
-            my_value = int(float(textfeld.text())*10000)
+            my_value = int(float(textfeld.text()) * 10000)
             slider.setValue(my_value)
         except ValueError:
             QMessageBox.critical(gui, "Not a number", "'%s' is not a valid number" % textfeld.text())
@@ -100,10 +102,12 @@ class UiFunc(QDialog):
             s2s = Spec2Sensor(sensor=sensor, nodat=-999)
             s2s.init_sensor()
             self.wl = s2s.wl_sensor
+            self.plot_count += 1
         else:
             self.wl = range(400, 2501)
 
-        if trigger: self.mod_exec()
+        if trigger:
+            self.mod_exec()
 
     def select_model(self, lop="prospectD", canopy_arch="sail"):
         self.lop = lop
@@ -125,9 +129,6 @@ class UiFunc(QDialog):
             self.mod_exec(gui.LIDFB_Slide, item=6)
             gui.LIDFB_Slide.setDisabled(False)
             gui.LIDFB_lineEdit.setDisabled(False)
-
-
-
 
     def deactivate_sliders(self):
         gui.B_Prospect5b.toggled.connect(lambda: self.model_rb_click(gui.B_Prospect5b, gui.Canth_Slide, gui.Canth_lineEdit, gui.Canth_Text))
@@ -207,6 +208,27 @@ class UiFunc(QDialog):
         gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
         gui.pushClearPlot.clicked.connect(self.clearPlot)
+        gui.Push_LoadInSitu.clicked.connect(self.open_file)
+        gui.Push_Exit.clicked.connect(self.exit_GUI)
+        gui.Push_ResetInSitu.clicked.connect(self.resetInSitu)
+
+    def exit_GUI(self):
+        QCoreApplication.instance().quit()
+
+    def resetInSitu(self):
+        self.data_mean = None
+        self.mod_exec()
+
+    def plot_own_spec(self):
+        if not self.data_mean is None: self.plot = gui.graphicsView.plot(range(350, 2501), self.data_mean)
+
+    def open_file(self):
+        filename = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        self.data = np.genfromtxt(filename, delimiter="\t", skip_header=True)
+        ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
+        self.data = np.delete(self.data, 0, axis=1)
+        self.data_mean = np.mean(self.data, axis=1)
+        self.mod_exec()
 
     def clearPlot(self):
         gui.graphicsView.clear()
@@ -214,28 +236,31 @@ class UiFunc(QDialog):
 
     def mod_exec(self, slider=None, item=None):
 
-        if not slider is None and not item is None:
+        if slider is not None and item is not None:
             self.para_list[item] = slider.value() / 10000.0 # update para_list
 
         mod_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=-999, int_boost=1.0, s2s=self.sensor)
         myResult = mod_I.initialize_single(tts=self.para_list[9], tto=self.para_list[10], psi=self.para_list[11],
                                            N=self.para_list[0], cab=self.para_list[1], cw=self.para_list[2],
                                            cm=self.para_list[3], LAI=self.para_list[4], LIDF=self.para_list[6],
-                                           typeLIDF=self.typeLIDF, hspot=self.para_list[7], psoil=self.para_list[8], car=self.para_list[12],
+                                           typeLIDF=self.typeLIDF, hspot=self.para_list[7], psoil=self.para_list[8],
+                                           car=self.para_list[12],
                                            cbrown=self.para_list[14], anth=self.para_list[13])
 
         if not gui.CheckPlotAcc.isChecked():
             self.clearPlot()
             self.plot = gui.graphicsView.plot(self.wl, myResult, pen="g")
+            self.plot_own_spec()
+            gui.graphicsView.setYRange(0, 0.6, padding=0)
         else:
             self.plot = gui.graphicsView.plot(self.wl, myResult, pen=self.plot_color[self.plot_count % 7])
-
+            self.plot_own_spec()
+            gui.graphicsView.setYRange(0, 0.6, padding=0)
 
 if __name__ == '__main__':
 
     myUI = UiFunc()
     gui.show()
     sys.exit(app.exec_())
-
 
 
