@@ -81,9 +81,9 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
 
-        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
-            from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
-            self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
+
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
+        self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):

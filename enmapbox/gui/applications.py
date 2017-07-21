@@ -70,12 +70,14 @@ class ApplicationRegistry(QObject):
             return False
         appPkgName = os.path.basename(appPackagePath)
         pkgFile = os.path.join(appPackagePath, '__init__.py')
-
+        appFolder = os.path.dirname(appPackagePath)
         if not os.path.exists(pkgFile):
             return False
 
-        import imp
-        appModule = imp.load_source('{}.__init__'.format(appPkgName), pkgFile)
+
+        #import imp
+        #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
+        appModule = __import__(appPkgName)
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
@@ -107,8 +109,9 @@ class ApplicationRegistry(QObject):
 
 
         import imp
-        appModule = imp.load_source('{}.__init__'.format(appPkgName), pkgFile)
-       # appModule = importlib.import_module('__init__', pkgFile)
+        #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
+        appModule = __import__(appPkgName)
+
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
