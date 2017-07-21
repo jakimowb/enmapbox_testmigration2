@@ -48,7 +48,7 @@ class ApplicationRegistry(QObject):
             appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
             break
 
-
+        s  =""
         for appPackage in appPackages:
             try:
                 if self.isApplicationPackage(appPackage):
@@ -68,14 +68,14 @@ class ApplicationRegistry(QObject):
 
         if not os.path.isdir(appPackagePath):
             return False
-
+        appPkgName = os.path.basename(appPackagePath)
         pkgFile = os.path.join(appPackagePath, '__init__.py')
 
         if not os.path.exists(pkgFile):
             return False
 
         import imp
-        appModule = imp.load_source('__init__', pkgFile)
+        appModule = imp.load_source('{}.__init__'.format(appPkgName), pkgFile)
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
@@ -107,7 +107,7 @@ class ApplicationRegistry(QObject):
 
 
         import imp
-        appModule = imp.load_source('__init__', pkgFile)
+        appModule = imp.load_source('{}.__init__'.format(appPkgName), pkgFile)
        # appModule = importlib.import_module('__init__', pkgFile)
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
@@ -115,24 +115,30 @@ class ApplicationRegistry(QObject):
 
         if len(factory) == 0:
             raise Exception('Missing enmapboxApplicationFactory() in {}'.format(appPackagePath))
-
-        factory = factory[0]
+        else:
+            factory = factory[0]
 
         #create the app
         apps = factory(self.enmapBox)
-        if len(apps) == 0:
-            raise Exception('No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
+        if apps is None:
+            raise Exception(
+                'No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
+
+        if not isinstance(apps, list):
+            apps = [apps]
 
         for app in apps:
-            if DEBUG:
+            if not isinstance(app, EnMAPBoxApplication):
+                QgsMessageLog.logMessage('Not an EnMAPBoxApplication instance: {}\n{}'.format(
+                    app.__module__, str(ex))
+                    , level=QgsMessageLog.CRITICAL)
+                continue
+            try:
                 self.addApplication(app)
-            else:
-                try:
-                    self.addApplication(app)
-                except Exception as ex:
-
-                    QgsMessageLog.instance().logMessage('Failed to load {}\n{}'.format(app.__module__, ex.message)
-                                                        , level=QgsMessageLog.CRITICAL)
+            except Exception as ex:
+                QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
+                    app.__module__, str(ex))
+                        , level=QgsMessageLog.CRITICAL)
 
     def addApplication(self, app):
         """
@@ -146,8 +152,9 @@ class ApplicationRegistry(QObject):
         EnMAPBoxApplication.checkRequirements(app)
 
         if appWrapper.appId in self.appList.keys():
-            # todo: handle duplicates (signal?)
-            s = ""
+            QgsMessageLog.logMessage('EnMAPBoxApplication {} already loaded.'.format(appWrapper.appId))
+            return False
+
         self.appList[appWrapper.appId] = appWrapper
 
         #load GUI integration
@@ -156,6 +163,7 @@ class ApplicationRegistry(QObject):
         #load QGIS Processing Framework Integration
         if self.PFMgr.isInitialized():
             self.loadGeoAlgorithms(appWrapper)
+        return True
 
     def loadGeoAlgorithms(self, appWrapper):
         geoAlgorithms = appWrapper.app.geoAlgorithms()
@@ -173,26 +181,12 @@ class ApplicationRegistry(QObject):
         app = appWrapper.app
         assert isinstance(app, EnMAPBoxApplication)
         parentMenu = self.enmapBox.menu(parentMenuName)
-
         items = app.menu(parentMenu)
-        if not isinstance(items, list):
-            items = [items]
 
-        for item in items:
-            if isinstance(item, QMenu):
-
-                parentMenu = item.parent()
-                if item not in parentMenu.children():
-                    parentMenu.addMenu(item)
-                appWrapper.menuItems.append(item)
-
-            elif isinstance(item, QAction):
-                parentMenu = item.parent().parent()
-                item.setParent(parentMenu)
-                if item not in parentMenu.children():
-                    parentMenu.addAction(item)
-                appWrapper.menuItems.append(item)
-
+        if items is not None:
+            if not isinstance(items, list):
+                items = [items]
+            appWrapper.menuItems.extend(items)
 
 
 
@@ -267,7 +261,7 @@ class EnMAPBoxApplication(QObject):
     def menu(self, appMenu):
         """
         :param appMenu: the EnMAP-Box' Application QMenu
-        :return: None (default), QMenu or QAction that will be added to the EnMAP-Box menu bar
+        :return: None (default), the QMenu or QAction that is added to the QMenu "appMenu".
         """
         return None
 
