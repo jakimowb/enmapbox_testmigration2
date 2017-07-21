@@ -55,9 +55,8 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
 
         # add another QAction
         a = menu.addAction('GUI 2')
-        from exampleapp.userinterfaces import MyNDVIUserInterface
         #todo: connect this action with something meaningful
-        #a.triggered.connect(self.startNDVIGui)
+        #a.triggered.connect(self. ....)
 
         appMenu.addMenu(menu)
 
