@@ -67,11 +67,7 @@ def sandboxPureGui(dataSources=None, loadProcessingFramework=False, loadExampleD
     EB.run()
 
     if loadExampleData:
-        EB.openExampleData()
-
-    if dataSources is not None:
-        for dataSource in dataSources:
-            ds = EB.addSource(dataSource)
+        EB.openExampleData(mapWindows=2)
 
     qgsApp.exec_()
     qgsApp.exitQgis()
@@ -92,7 +88,7 @@ def sandboxDragDrop():
 def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    EB.openExampleData()
+    EB.openExampleData(mapWindows=2)
 
 
 

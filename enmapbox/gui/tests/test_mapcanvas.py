@@ -48,9 +48,14 @@ class testclassData(unittest.TestCase):
 
         menu = self.mapCanvas.contextMenu()
         self.assertIsInstance(menu, QMenu)
-        self.assertTrue(len(menu.children() > 2))
+        actions = [a for a in menu.children() if isinstance(a, QAction)]
+        self.assertTrue(len(actions) > 2)
 
-        s = ""
+        #trigger all context menu actions
+        for action in actions:
+            print('Test QAction {}'.format(action.text()))
+            action.trigger()
+
 
 
 
