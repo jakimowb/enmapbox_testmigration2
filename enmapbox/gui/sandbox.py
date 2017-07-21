@@ -67,11 +67,7 @@ def sandboxPureGui(dataSources=None, loadProcessingFramework=False, loadExampleD
     EB.run()
 
     if loadExampleData:
-        EB.openExampleData()
-
-    if dataSources is not None:
-        for dataSource in dataSources:
-            ds = EB.addSource(dataSource)
+        EB.openExampleData(mapWindows=2)
 
     qgsApp.exec_()
     qgsApp.exitQgis()
@@ -90,64 +86,9 @@ def sandboxDragDrop():
 
 
 def sandboxGUI():
-    qgsApp = initQgisEnvironment()
-
-
-    # EB = EnMAPBox(w)
-
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-
-    if False:
-        if True:
-            from enmapbox.testdata import UrbanGradient
-            EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
-            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
-            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Vec_Berlin_Urban_Gradient_2009_shp)
-            EB.createDock('CURSORLOCATIONVALUE')
-        if False: EB.createDock('MIME')
-
-        if False:
-            EB.createDock('TEXT',html=LORE_IPSUM)
-            EB.createDock('TEXT', html=LORE_IPSUM)
-
-        if False:
-            # register new model
-            import enmapbox.processing
-            enmapbox.processing.registerModel(path, 'MyModel')
-            # IconProvider.test()
-            # exit()
-
-    # md1.linkWithMapDock(md2, linktype='center')
-    # EB.show()
-    # EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_Mask')
-    # EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LAI')
-    # EB.addSource(
-    #   r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
-    EB.run()
-    from enmapbox.testdata import UrbanGradient
-    if False:
-        EB.addSource(UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
-
-    if True:
-
-        EB.createDock('MAP', name='EnMAP 01', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
-        EB.createDock('MAP', name='HyMap 01', initSrc=UrbanGradient.HyMap01_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='LandCov Level1', initSrc=UrbanGradient.LandCov_Layer_Level1_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='LandCov Level2', initSrc=UrbanGradient.LandCov_Layer_Level2_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='Shapefile', initSrc=UrbanGradient.LandCov_Vec_polygons_Berlin_Urban_Gradient_2009_shp)
-        #EB.createDock('CURSORLOCATIONVALUE')
-
-    qgsApp.exec_()
-
-    qgsApp.exitQgis()
-
-    # qgsApp.exitQgis()
-    # app.exec_()
-    pass
-
-    # load the plugin
-    print('Done')
+    EB.openExampleData(mapWindows=2)
 
 
 
@@ -184,11 +125,7 @@ def initQgisEnvironment(pythonPlugins=None):
         if sys.platform == 'darwin':
             PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
             os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
-
-            #rios?
             from enmapbox.gui.utils import DIR_SITEPACKAGES
-            #add win32 package, at least try to
-
             pathDarwin = jp(DIR_SITEPACKAGES, *['darwin'])
             site.addsitedir(pathDarwin)
             QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
@@ -201,9 +138,8 @@ def initQgisEnvironment(pythonPlugins=None):
 
         assert os.path.exists(PATH_QGS)
 
-
+        QgsApplication.setGraphicsSystem("raster")
         qgsApp = QgsApplication([], True)
-        qgsApp.setGraphicsSystem("raster")
         qgsApp.setPrefixPath(PATH_QGS, True)
         qgsApp.initQgis()
         import enmapbox.gui
@@ -263,6 +199,7 @@ def sandboxTreeNodes():
 
 def sandboxDockManager():
 
+
     from enmapbox.gui.dockmanager import DockManager, DockPanelUI
     from enmapbox.gui.docks import DockArea
 
@@ -270,14 +207,15 @@ def sandboxDockManager():
     ui = DockPanelUI()
     ui.connectDockManager(dm)
     rootNode = ui.model.rootNode
-    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    from enmapbox.testdata.UrbanGradient import EnMAP
     from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
 
     da = DockArea()
     dm.connectDockArea(da)
-    dm.createDock('MAP', initSrc=HymapBerlinA_image)
+    dm.createDock('MAP', initSrc=EnMAP)
 
     ui.show()
+
 
 
 def sandboxDataSourceManager():
@@ -285,14 +223,20 @@ def sandboxDataSourceManager():
     from enmapbox.gui.docks import DockArea
 
     dm = DataSourceManager()
+    d = QDialog()
+    d.setWindowTitle('TestDialog')
+    d.setLayout(QVBoxLayout())
     ui = DataSourcePanelUI()
     ui.connectDataSourceManager(dm)
-    rootNode = ui.model.rootNode
-    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    d.layout().addWidget(ui)
+    from enmapbox.testdata.UrbanGradient import EnMAP, LandCover
     from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
 
-    dm.addSource(HymapBerlinA_image)
-    ui.show()
+    dm.addSource(EnMAP)
+    dm.addSource(LandCover)
+    d.show()
+    s = ""
+
 
 def howToStartEnMAPBoxInPython():
 
@@ -311,17 +255,18 @@ if __name__ == '__main__':
     else:
         qgsApp = initQgisEnvironment()
 
-        p = r'D:\Repositories\QGIS_Plugins'
-        pluginPath = [os.environ.get('QGIS_PLUGINPATH', '')]+[p]
-        os.environ['QGIS_PLUGINPATH'] = ';'.join(pluginPath)
+        #p = r'D:\Repositories\QGIS_Plugins'
+        #pluginPath = [os.environ.get('QGIS_PLUGINPATH', '')]+[p]
+        #os.environ['QGIS_PLUGINPATH'] = ';'.join(pluginPath)
+
 
         if False: sandboxTreeNodes()
         if False: sandboxDataSourceManager()
         if False: sandboxDockManager()
-        if True: sandboxPureGui(loadProcessingFramework=True)
+        if False: sandboxPureGui(loadProcessingFramework=True)
         if False: sandboxPFReport()
         if False: sandboxDragDrop()
-        if False: sandboxGUI()
+        if True: sandboxGUI()
         if False: sandboxDialog()
 
         qgsApp.exec_()

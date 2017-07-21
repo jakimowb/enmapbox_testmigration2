@@ -4,7 +4,8 @@
 ***************************************************************************
     exampleapp/enmapboxintegration.py
 
-    This file shows how to integrate your own algorithms and user interfaces into the EnMAP-Box.
+    This module defines the interactions between an application and
+    the EnMAPBox.
     ---------------------
     Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -23,12 +24,12 @@ import os
 from PyQt4.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from exampleapp import APP_DIR
-class MyEnMAPBoxApp(EnMAPBoxApplication):
+class ExampleEnMAPBoxApp(EnMAPBoxApplication):
 
     def __init__(self, enmapBox, parent=None):
-        super(MyEnMAPBoxApp, self).__init__(enmapBox,parent=parent)
+        super(ExampleEnMAPBoxApp, self).__init__(enmapBox, parent=parent)
         self.name = 'My EnMAPBox App'
-        self.version = 'Version 0.42'
+        self.version = 'Version 0.8.15'
         self.licence = 'BSD-3'
 
     def icon(self):
@@ -40,31 +41,17 @@ class MyEnMAPBoxApp(EnMAPBoxApplication):
         Specify menu, submenus and actions
         :return: the QMenu or QAction to be added to the "Applications" menu.
         """
-
         if False:
             # this way you can add your QMenu/QAction to
             # any other EnMAP-Box Menu
             appMenu = self.enmapbox.menu('Tools')
 
-        menu = QMenu(self.name, appMenu)
+        menu = appMenu.addMenu('Example App')
         menu.setIcon(self.icon())
 
         #add a QAction that starts your GUI
-        a = menu.addAction('Show My GUI')
+        a = menu.addAction('Show ExampleApp GUI')
         a.triggered.connect(self.startGUI)
-
-        # add another QAction
-        a = menu.addAction('Calculate NDVI')
-        from exampleapp.userinterfaces import MyNDVIUserInterface
-        a.triggered.connect(self.startNDVIGui)
-
-        #add a Submenu
-        subMenu = menu.addMenu('Submenu')
-        #add QAction to run another process
-        a = subMenu.addAction('Start Process')
-        from algorithms import dummyAlgorithm
-        a.triggered.connect(lambda : dummyAlgorithm('My', 'App Action', 'got triggered'))
-
 
         appMenu.addMenu(menu)
 
@@ -72,8 +59,8 @@ class MyEnMAPBoxApp(EnMAPBoxApplication):
 
 
     def startGUI(self, *args):
-        from exampleapp.userinterfaces import MyAppUserInterface
-        ui = MyAppUserInterface(self.enmapbox.ui)
+        from exampleapp.userinterfaces import ExampleGUI
+        ui = ExampleGUI(self.enmapbox.ui)
         ui.show()
 
     def startNDVIGui(self, *args):

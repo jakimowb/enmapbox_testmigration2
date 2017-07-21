@@ -27,9 +27,9 @@ def enmapboxApplicationFactory(enmapBox):
     """
     Returns a list of EnMAPBoxApplications
     :param enmapBox: the EnMAP-Box instance.
-    :return: [list-of-EnMAPBoxApplications]
+    :return: EnMAPBoxApplication | [list-of-EnMAPBoxApplications]
     """
 
-    from exampleapp.enmapboxintegration import MyEnMAPBoxApp
-    #returns a list of EnMAPBoxApplications
-    return [MyEnMAPBoxApp(enmapBox)]
+    from exampleapp.enmapboxintegration import ExampleEnMAPBoxApp
+
+    return [ExampleEnMAPBoxApp(enmapBox)]

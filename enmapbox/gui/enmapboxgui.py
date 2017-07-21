@@ -81,20 +81,18 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
 
-        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
-            from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
-            self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
-            s = ""
-        else:
-            #self.ui.menuProcessing.setEnabled(False)
-            pass
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
+        self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
-            if len(dock.actions()) > 0:
-                s = ""
             self.menuPanels.addAction(dock.toggleViewAction())
+
+
+        #tabbify dock widgets
+        self.tabifyDockWidget(self.processingPanel, self.dockPanel)
+        self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
 
     def setIsInitialized(self):
         self.isInitialized = True
@@ -145,7 +143,7 @@ class EnMAPBoxQgisInterface(QgisInterface):
         assert isinstance(self.virtualMapCanvas, QgsMapCanvas)
         self.virtualMapCanvas.setLayerSet([])
 
-        for ds in self.enmapBox.dataSourceManager.sources:
+        for ds in self.enmapBox.dataSourceManager.mSources:
             if isinstance(ds, DataSourceSpatial):
                 uri = ds.uri()
                 if uri not in self.layers.keys():
@@ -439,18 +437,23 @@ class EnMAPBox(QObject):
             s = ""
 
         #load EnMAP-Box applications
-        from enmapbox.gui.applications import ApplicationRegistry
-        self.applicationRegistry = ApplicationRegistry(self, parent=self)
-        defaultDir = os.path.join(DIR_ENMAPBOX, *['apps'])
-
-        self.applicationRegistry.addApplicationPackageRootFolder(defaultDir)
-        otherAppDirs = settings().value('EMB_')
-
+        self.loadEnMAPBoxApplications()
 
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
 
+    def loadEnMAPBoxApplications(self):
+        from enmapbox.gui.applications import ApplicationRegistry
+        self.applicationRegistry = ApplicationRegistry(self, parent=self)
+        appDirs = []
+        appDirs.append(os.path.join(DIR_ENMAPBOX, *['coreapps']))
+        appDirs.append(os.path.join(DIR_ENMAPBOX, *['apps']))
+        for appDir in re.split('[:;]', settings().value('EMB_APPLICATION_PATH', '')):
+            if os.path.isdir(appDir):
+                appDirs.append(appDir)
+        for appDir in appDirs:
+            self.applicationRegistry.addApplicationPackageRootFolder(appDir)
 
     def exit(self):
         self.ui.close()
@@ -501,7 +504,7 @@ class EnMAPBox(QObject):
                 mapDock.addLayers(dataSrc.createRegisteredMapLayer())
             s = ""
 
-    def openExampleData(self):
+    def openExampleData(self, mapWindows=0):
         import enmapbox.testdata
         from enmapbox.gui.utils import file_search
         dir = os.path.dirname(enmapbox.testdata.__file__)
@@ -509,7 +512,12 @@ class EnMAPBox(QObject):
 
         for file in files:
             self.addSource(file)
-        s = ""
+        for n in range(mapWindows):
+            dock = self.createDock('MAP')
+            lyrs = [src.createUnregisteredMapLayer()
+                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER','VECTOR'])]
+            dock.addLayers(lyrs)
+
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)

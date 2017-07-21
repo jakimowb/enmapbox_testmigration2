@@ -379,7 +379,7 @@ class CursorLocationDataSourceModel(QAbstractTableModel):
         self.DSM = dsm
         self.columnnames = CursorLocationDataSourceItem.columns
         self.cursorLocationDataSourceItems = list()
-        for src in self.DSM.sources:
+        for src in self.DSM.mSources:
             self.addCLDataSourceItem(src)
         self.DSM.sigDataSourceAdded.connect(self.addCLDataSourceItem)
         self.DSM.sigDataSourceRemoved.connect(self.removeCLDataSourceItem)
