@@ -46,12 +46,9 @@ def sandboxGuiOnly():
     """
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
-    from userinterfaces import MyNDVIUserInterface, MyAppUserInterface
-    ui1 = MyNDVIUserInterface()
+    from userinterfaces import ExampleGUI
+    ui1 = ExampleGUI()
     ui1.show()
-
-    ui2 = MyAppUserInterface()
-    ui2.show()
     qgsApp.exec_()
     qgsApp.quit()
 
