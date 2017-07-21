@@ -316,6 +316,12 @@ class SpatialPoint(QgsPoint):
         crs = mapCanvas.mapSettings().destinationCrs()
         return SpatialPoint(crs, mapCanvas.center())
 
+    @staticmethod
+    def fromSpatialExtent(spatialExtent):
+        assert isinstance(spatialExtent, SpatialExtent)
+        crs = spatialExtent.crs()
+        return SpatialPoint(crs, spatialExtent.center())
+
     def __init__(self, crs, *args):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(SpatialPoint, self).__init__(*args)
@@ -331,10 +337,11 @@ class SpatialPoint(QgsPoint):
     def toCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         pt = QgsPoint(self)
+
         if self.mCrs != crs:
-            trans = QgsCoordinateTransform(self.mCrs, crs)
-            pt = trans.transform(pt)
-        return SpatialPoint(crs, pt)
+            pt = saveTransform(pt, self.mCrs, crs)
+
+        return SpatialPoint(crs, pt) if pt else None
 
     def __copy__(self):
         return SpatialExtent(self.crs(), QgsRectangle(self))
@@ -353,6 +360,37 @@ def findParent(qObject, parentType, checkInstance = False):
             parent = parent.parent()
     return parent
 
+
+def saveTransform(geom, crs1, crs2):
+    assert isinstance(crs1, QgsCoordinateReferenceSystem)
+    assert isinstance(crs2, QgsCoordinateReferenceSystem)
+
+    result = None
+    if isinstance(geom, QgsRectangle):
+        if geom.isEmpty():
+            return None
+
+
+        transform = QgsCoordinateTransform(crs1, crs2);
+        try:
+            rect = transform.transformBoundingBox(geom);
+            result = SpatialExtent(crs2, rect)
+        except:
+            logger.debug('Can not transform from {} to {} on rectangle {}'.format( \
+                crs1.description(), crs2.description(), str(geom)))
+
+    elif isinstance(geom, QgsPoint):
+
+        transform = QgsCoordinateTransform(crs1, crs2);
+        try:
+            pt = transform.transform(geom);
+            result = SpatialPoint(crs2, pt)
+        except:
+            logger.debug('Can not transform from {} to {} on QgsPoint {}'.format( \
+                crs1.description(), crs2.description(), str(geom)))
+    return result
+
+
 class SpatialExtent(QgsRectangle):
     """
     Object to keep QgsRectangle and QgsCoordinateReferenceSystem together
@@ -367,6 +405,13 @@ class SpatialExtent(QgsRectangle):
             extent = mapCanvas.extent()
         crs = mapCanvas.mapSettings().destinationCrs()
         return SpatialExtent(crs, extent)
+
+    @staticmethod
+    def world():
+        crs = QgsCoordinateReferenceSystem('EPSG:4326')
+        ext = QgsRectangle(-180,-90,180,90)
+        return SpatialExtent(crs, ext)
+
 
     @staticmethod
     def fromLayer(mapLayer):
@@ -391,9 +436,8 @@ class SpatialExtent(QgsRectangle):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         box = QgsRectangle(self)
         if self.mCrs != crs:
-            trans = QgsCoordinateTransform(self.mCrs, crs)
-            box = trans.transformBoundingBox(box)
-        return SpatialExtent(crs, box)
+            box = saveTransform(box, self.mCrs, crs)
+        return SpatialExtent(crs, box) if box else None
 
     def __copy__(self):
         return SpatialExtent(self.crs(), QgsRectangle(self))
@@ -428,7 +472,7 @@ class SpatialExtent(QgsRectangle):
         s = ""
 
     def __eq__(self, other):
-        s = ""
+        return self.toString() == other.toString()
 
     def __sub__(self, other):
         raise NotImplementedError()

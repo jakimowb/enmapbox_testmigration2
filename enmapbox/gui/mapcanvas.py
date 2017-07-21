@@ -156,7 +156,7 @@ class CanvasLinkTargetWidget(QFrame):
                 w.setAutoFillBackground(False)
                 w.show()
                 CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
-                canvas_source.freeze()
+                #canvas_source.freeze()
             s = ""
 
         s = ""
@@ -533,6 +533,7 @@ class MapCanvas(QgsMapCanvas):
         self.setRenderFlag(True)
         if self.renderFlag() or force:
             super(MapCanvas, self).refresh()
+            #super(MapCanvas, self).refreshAllLayers()
 
     def contextMenu(self):
         """
@@ -636,6 +637,15 @@ class MapCanvas(QgsMapCanvas):
         if len(path) > 0:
             self.saveAsImage(path, None, fileType)
             settings().setValue('EMB_SAVE_IMG_DIR', os.path.dirname(path))
+
+    def setCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        if self.crs() != crs:
+            self.setDestinationCrs(crs)
+
+    def crs(self):
+        return self.mapSettings().destinationCrs()
+
 
     def setCRSfromDialog(self, *args):
         setMapCanvasCRSfromDialog(self)
@@ -772,11 +782,9 @@ class MapCanvas(QgsMapCanvas):
     def setSpatialExtent(self, spatialExtent):
         assert isinstance(spatialExtent, SpatialExtent)
         if self.spatialExtent() != spatialExtent:
-            self.blockSignals(True)
-            self.setDestinationCrs(spatialExtent.crs())
-            self.setExtent(spatialExtent)
-            self.blockSignals(False)
-            self.refresh()
+            spatialExtent = spatialExtent.toCrs(self.crs())
+            if spatialExtent:
+                self.setExtent(spatialExtent)
 
     def setExtent(self, QgsRectangle):
         super(MapCanvas, self).setExtent(QgsRectangle)
