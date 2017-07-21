@@ -73,10 +73,10 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         # ui.sigFileCreated.connect(self.enmapbox.addSource)
 
         from GUI_ISD import UiFunc, gui
-        gui1 = UiFunc(parent=self.enmapbox.ui)
+        gui1 = UiFunc()
         gui.show()
-        #the the EnMAP-Box know if you create any new file
-        gui1.sigFileCreated.connect(self.enmapbox.addSource)
+        # #the the EnMAP-Box know if you create any new file
+        # gui1.sigFileCreated.connect(self.enmapbox.addSource)
 
     def geoAlgorithms(self):
         return [LMU_GeoAlgorithm()]

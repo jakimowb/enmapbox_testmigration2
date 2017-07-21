@@ -8,16 +8,16 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4 import uic
 import call_model as mod
+from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 
 app = QApplication(sys.argv)
 gui = uic.loadUi("GUI_ISD.ui")
 
 
-class UiFunc():
+class UiFunc:
 
     def __init__(self):
-
         self.initial_values()
         self.para_list = []
         self.update_slider_pos()
