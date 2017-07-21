@@ -376,9 +376,9 @@ class DataSourceManagerTreeModel(TreeModel):
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
-        types.append(MimeDataHelper.MIME_DATASOURCETREEMODELDATA)
-        types.append(MimeDataHelper.MIME_LAYERTREEMODELDATA)
-        types.append(MimeDataHelper.MIME_URILIST)
+        types.append(MimeDataHelper.MDF_DATASOURCETREEMODELDATA)
+        types.append(MimeDataHelper.MDF_LAYERTREEMODELDATA)
+        types.append(MimeDataHelper.MDF_URILIST)
         return types
 
     def dropMimeData(self, data, action, row, column, parent):
