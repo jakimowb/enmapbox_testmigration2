@@ -55,7 +55,7 @@ class ReclassifyTool(EnMAPBoxApplication):
         uiDialog = ui.ReclassifyDialog(self.enmapbox.ui)
         uiDialog.show()
 
-        uiDialog.accepted.connect(self.runReclassification(**uiDialog.reclassificationSettings()))
+        uiDialog.accepted.connect(lambda : self.runReclassification(**uiDialog.reclassificationSettings()))
 
     def runReclassification(self, **settings):
         #return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,

@@ -449,7 +449,7 @@ class EnMAPBox(QObject):
         appDirs = []
         appDirs.append(os.path.join(DIR_ENMAPBOX, *['coreapps']))
         appDirs.append(os.path.join(DIR_ENMAPBOX, *['apps']))
-        for appDir in re.sub('[:;]', settings().value('EMB_APPLICATION_PATH', '')):
+        for appDir in re.split('[:;]', settings().value('EMB_APPLICATION_PATH', '')):
             if os.path.isdir(appDir):
                 appDirs.append(appDir)
         for appDir in appDirs:
