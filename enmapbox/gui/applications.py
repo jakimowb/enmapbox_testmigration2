@@ -50,15 +50,40 @@ class ApplicationRegistry(QObject):
 
 
         for appPackage in appPackages:
-            if DEBUG:
-                self.addApplicationPackage(appPackage)
-            else:
-                try:
+            try:
+                if self.isApplicationPackage(appPackage):
                     self.addApplicationPackage(appPackage)
-                except Exception as ex:
-                    QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackage, str(ex))
-                                                        , level=QgsMessageLog.CRITICAL)
+            except Exception as ex:
+                QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackage, str(ex))
+                                                    , level=QgsMessageLog.CRITICAL)
         return self
+
+    def isApplicationPackage(self, appPackagePath):
+        """
+        Checks if the directory "appPackage" contains an '__init__.py' which defines the funtion
+        enmapboxApplicationFactory
+        :param appPackage: path to directory
+        :return: True, if enmapboxApplicationFactory exists in package definition.
+        """
+
+        if not os.path.isdir(appPackagePath):
+            return False
+
+        pkgFile = os.path.join(appPackagePath, '__init__.py')
+
+        if not os.path.exists(pkgFile):
+            return False
+
+        import imp
+        appModule = imp.load_source('__init__', pkgFile)
+
+        factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
+                   if o[0] == 'enmapboxApplicationFactory']
+        if len(factory) != 1:
+            return False
+
+        return True
+
 
 
     def addApplicationPackage(self, appPackagePath):
@@ -67,11 +92,12 @@ class ApplicationRegistry(QObject):
         :param appPackagePath: a path pointing to a directory <application package folde
         :return:
         """
-        #todo: catch error, keep system stable
+        assert self.isApplicationPackage(appPackagePath)
 
         appPkgName = os.path.basename(appPackagePath)
         appFolder = os.path.dirname(appPackagePath)
         pkgFile = os.path.join(appPackagePath, '__init__.py')
+
 
         if not os.path.exists(pkgFile):
             raise Exception('Missing __init__.py in {}'.format(appPackagePath))
@@ -80,7 +106,7 @@ class ApplicationRegistry(QObject):
             site.addsitedir(appFolder)
 
 
-        import importlib, imp
+        import imp
         appModule = imp.load_source('__init__', pkgFile)
        # appModule = importlib.import_module('__init__', pkgFile)
 

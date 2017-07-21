@@ -437,18 +437,23 @@ class EnMAPBox(QObject):
             s = ""
 
         #load EnMAP-Box applications
-        from enmapbox.gui.applications import ApplicationRegistry
-        self.applicationRegistry = ApplicationRegistry(self, parent=self)
-        defaultDir = os.path.join(DIR_ENMAPBOX, *['apps'])
-
-        self.applicationRegistry.addApplicationPackageRootFolder(defaultDir)
-        otherAppDirs = settings().value('EMB_')
-
+        self.loadEnMAPBoxApplications()
 
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
 
+    def loadEnMAPBoxApplications(self):
+        from enmapbox.gui.applications import ApplicationRegistry
+        self.applicationRegistry = ApplicationRegistry(self, parent=self)
+        appDirs = []
+        appDirs.append(os.path.join(DIR_ENMAPBOX, *['coreapps']))
+        appDirs.append(os.path.join(DIR_ENMAPBOX, *['apps']))
+        for appDir in re.sub('[:;]', settings().value('EMB_APPLICATION_PATH', '')):
+            if os.path.isdir(appDir):
+                appDirs.append(appDir)
+        for appDir in appDirs:
+            self.applicationRegistry.addApplicationPackageRootFolder(appDir)
 
     def exit(self):
         self.ui.close()
