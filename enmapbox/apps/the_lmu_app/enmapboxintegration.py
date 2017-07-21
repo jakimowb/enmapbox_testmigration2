@@ -65,12 +65,19 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
 
 
     def startGUI1(self, *args):
-        from .userinterfaces import GUI1
-        ui = GUI1(parent = self.enmapbox.ui)
-        ui.show()
+        # from .userinterfaces import GUI1
+        # ui = GUI1(parent=self.enmapbox.ui)
+        # ui.show()
+        #
+        # #the the EnMAP-Box know if you create any new file
+        # ui.sigFileCreated.connect(self.enmapbox.addSource)
 
+        from GUI_ISD import UiFunc, gui
+        gui1 = UiFunc(parent=self.enmapbox.ui)
+        gui.show()
         #the the EnMAP-Box know if you create any new file
-        ui.sigFileCreated.connect(self.enmapbox.addSource)
+        gui1.sigFileCreated.connect(self.enmapbox.addSource)
+
     def geoAlgorithms(self):
         return [LMU_GeoAlgorithm()]
 

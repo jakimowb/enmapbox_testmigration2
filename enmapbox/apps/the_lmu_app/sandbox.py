@@ -46,9 +46,10 @@ def sandboxGuiOnly():
     """
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
-    from userinterfaces import GUI1
-    gui1 = GUI1()
-    gui1.show()
+
+    from GUI_ISD import UiFunc, gui
+    _ = UiFunc()
+    gui.show()
     qgsApp.exec_()
     qgsApp.quit()
 
