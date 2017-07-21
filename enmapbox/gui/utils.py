@@ -305,6 +305,30 @@ def fileSizeString(num, suffix='B', div=1000):
         num /= div
     return "{:.1f} {}{}".format(num, unit, suffix)
 
+
+
+def geo2pxF(geo, gt):
+    """
+    Returns the pixel position related to a Geo-Coordinate in floating point precision.
+    :param geo: Geo-Coordinate as QgsPoint
+    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html
+    :return: pixel position as QPointF
+    """
+    assert isinstance(geo, QgsPoint)
+    # see http://www.gdal.org/gdal_datamodel.html
+    px = (geo.x() - gt[0]) / gt[1]  # x pixel
+    py = (geo.y() - gt[3]) / gt[5]  # y pixel
+    return QPointF(px,py)
+
+geo2px = lambda geo, gt : geo2pxF(geo,gt).toPoint()
+
+def px2geo(px, gt):
+    #see http://www.gdal.org/gdal_datamodel.html
+    gx = gt[0] + px.x()*gt[1]+px.y()*gt[2]
+    gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
+    return QgsPoint(gx,gy)
+
+
 class SpatialPoint(QgsPoint):
     """
     Object to keep QgsPoint and QgsCoordinateReferenceSystem together
@@ -333,6 +357,15 @@ class SpatialPoint(QgsPoint):
 
     def crs(self):
         return self.mCrs
+
+
+    def toPixelPosition(self, rasterDataSource, allowOutOfRaster=False):
+        ds = gdalDataset(rasterDataSource)
+        gt = ds.GetGeoTransform()
+
+        px_x = np.floor((pt.x() - ex.xMinimum()) / xres).astype(int)
+        px_y = np.floor((ex.yMaximum() - pt.y()) / yres).astype(int)
+        coord_px = QPoint(px_x, px_y)
 
     def toCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)

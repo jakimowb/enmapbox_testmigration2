@@ -16,6 +16,7 @@ import unittest
 from qgis import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+from osgeo import gdal, ogr, osr
 from enmapbox.gui.sandbox import initQgisEnvironment
 QGIS_APP = initQgisEnvironment()
 
@@ -34,6 +35,39 @@ class testclassData(unittest.TestCase):
 
     def tearDown(self):
         self.w.close()
+
+    def test_gdalDataset(self):
+        from enmapbox.gui.utils import gdalDataset
+        from enmapbox.testdata.UrbanGradient import EnMAP
+        ds1 = gdalDataset(EnMAP)
+        self.assertIsInstance(ds1, gdal.Dataset)
+        ds2 = gdalDataset(ds1)
+        self.assertEqual(ds1, ds2)
+
+
+    def test_coordinateTransformations(self):
+        from enmapbox.gui.utils import gdalDataset, geo2px, px2geo, SpatialPoint, SpatialExtent
+        from enmapbox.testdata.UrbanGradient import EnMAP
+        from qgis.core import QgsPoint, QgsCoordinateReferenceSystem
+        ds = gdalDataset(EnMAP)
+        gt = ds.GetGeoTransform()
+        crs = QgsCoordinateReferenceSystem(ds.GetProjection())
+
+        self.assertTrue(crs.isValid())
+
+        geoCoordinate = QgsPoint(gt[0], gt[3])
+        pxCoordinate = geo2px(geoCoordinate, gt)
+
+        self.assertEqual(pxCoordinate.x(), 0)
+        self.assertEqual(pxCoordinate.y(), 0)
+        self.assertAlmostEqual(px2geo(pxCoordinate, gt), geoCoordinate)
+
+
+        spatialPoint = SpatialPoint(crs, geoCoordinate)
+        pxCoordinate = geo2px(spatialPoint, gt)
+        self.assertEqual(pxCoordinate.x(), 0)
+        self.assertEqual(pxCoordinate.y(), 0)
+        self.assertAlmostEqual(px2geo(pxCoordinate, gt), geoCoordinate)
 
     def test_appendItemsToMenu(self):
         from enmapbox.gui.utils import appendItemsToMenu
@@ -64,7 +98,7 @@ class testclassData(unittest.TestCase):
         url = 'https://bitbucket.org/hu-geomatics/enmap-box'
         text = 'Lore Ipsum'
         md = QMimeData()
-        md.setUrl(url)
+        #md.setUrls([url])
         md.setText(text)
 
         MimeDataHelper.storeObjectReferences(md, [oA, oB])
