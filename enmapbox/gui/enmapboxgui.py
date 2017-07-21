@@ -499,7 +499,7 @@ class EnMAPBox(QObject):
                 mapDock.addLayers(dataSrc.createRegisteredMapLayer())
             s = ""
 
-    def openExampleData(self):
+    def openExampleData(self, mapWindows=0):
         import enmapbox.testdata
         from enmapbox.gui.utils import file_search
         dir = os.path.dirname(enmapbox.testdata.__file__)
@@ -507,10 +507,11 @@ class EnMAPBox(QObject):
 
         for file in files:
             self.addSource(file)
-        dock = self.createDock('MAP')
-        lyrs = [src.createUnregisteredMapLayer()
-                for src in self.dataSourceManager.sources(sourceTypes=['RASTER','VECTOR'])]
-        dock.addLayers(lyrs)
+        for n in range(mapWindows):
+            dock = self.createDock('MAP')
+            lyrs = [src.createUnregisteredMapLayer()
+                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER','VECTOR'])]
+            dock.addLayers(lyrs)
 
 
     def onAddDataSource(self):
