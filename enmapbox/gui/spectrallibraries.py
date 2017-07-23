@@ -19,7 +19,8 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import os
+import os, re, tempfile
+import pyqtgraph as pg
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
@@ -28,6 +29,19 @@ import numpy as np
 from osgeo import gdal
 from enmapbox.gui.utils import loadUi, gdalDataset, SpatialPoint
 
+
+#Lookup table for ENVI IDL DataTypes to GDAL Data Types
+LUT_IDL2GDAL = {1:gdal.GDT_Byte,
+                12:gdal.GDT_UInt16,
+                2:gdal.GDT_Int16,
+                13:gdal.GDT_UInt32,
+                3:gdal.GDT_Int32,
+                4:gdal.GDT_Float32,
+                5:gdal.GDT_Float64,
+                #:gdal.GDT_CInt16,
+                #8:gdal.GDT_CInt32,
+                6:gdal.GDT_CFloat32,
+                9:gdal.GDT_CFloat64}
 
 class SpectralProfile(QObject):
 
@@ -138,6 +152,16 @@ class SpectralProfile(QObject):
     def xUnit(self):
         return self.mValueUnit
 
+
+    def plot(self):
+        """
+        Plots this profile to an new PyQtGraph window
+        :return:
+        """
+        import pyqtgraph as pg
+        pg.plot(self.xValues(), self.yValues())
+        pg.QAPP.exec_()
+
     def __eq__(self, other):
         return isinstance(other, SpectralProfile) \
             and self.mValues == other.mValue \
@@ -158,11 +182,184 @@ class SpectralProfile(QObject):
         s = ""
 
 
-class ProfileSet(QObject):
+
+class SpectralLibraryReader(object):
+    """
+    Abstract Class of an SpectralLibraryReader.
+    Overwrite the canRead and read From routines.
+    """
+    @staticmethod
+    def canRead(path):
+        """
+        Returns true if it can reath the source definded by path
+        :param path: source uri
+        :return: True, if source is readibly
+        """
+        return False
+
+    @staticmethod
+    def readFrom(path):
+        """
+        Returns the SpectralLibrary read from "path"
+        :param path: source of SpectralLibrary
+        :return: SpectralLibrary
+        """
+        return None
+
+class EnviSpectralLibraryReader(SpectralLibraryReader):
+
+    @staticmethod
+    def canRead(pathESL):
+        """
+        Checks if a file can be read as SpectraLibrary
+        :param pathESL: path to ENVI Spectral Library (ESL)
+        :return: True, if pathESL can be read as Spectral Library.
+        """
+
+        if not os.path.isfile(pathESL):
+            return False
+        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL)
+        if hdr is None or hdr['file type'] != 'ENVI Spectral Library':
+            return False
+        return True
+
+    @staticmethod
+    def readFrom(pathESL, tmpVrt=None):
+        """
+        Reads an ENVI Spectral Library (ESL).
+        :param pathESL: path ENVI Spectral Library
+        :param tmpVrt: (optional) path of GDAL VRt that is used to read the ESL
+        :return: SpectalLibrary
+        """
+
+        ds = EnviSpectralLibraryReader.esl2vrt(pathESL, tmpVrt)
+        md = ds.GetMetadata_Dict('ENVI')
+        data = ds.ReadAsArray()
+
+        nSpectra, nbands = data.shape
+        valueUnit = ''
+        valuePositionUnit = md.get('wavelength units')
+        valuePositions = md.get('wavelength')
+        if valuePositions is not None:
+            valuePositions = [float(v) for v in valuePositions.split(',')]
+        else:
+            valuePositions = [range(1, nbands+1)]
+            valuePositionUnit = 'Band'
+
+        profiles = []
+        for i in range(data.shape[0]):
+            p = SpectralProfile()
+            p.setValues(data[i,:], valueUnit=valueUnit,
+                        valuePositions=valuePositions, valuePositionUnit=valuePositionUnit)
+            profiles.append(p)
+        SLIB = SpectralLibrary()
+        SLIB.addProfiles(profiles)
+        return SLIB
+
+    @staticmethod
+    def esl2vrt(pathESL, pathVrt=None):
+        """
+        Creates a GDAL Virtual Raster (VRT) that allows to read an ENVI Spectral Library file
+        :param pathESL: path ENVI Spectral Library file (binary part)
+        :param pathVrt: (optional) path of created GDAL VRT.
+        :return: GDAL VRT
+        """
+
+        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL)
+        assert hdr is not None and hdr['file type'] == 'ENVI Spectral Library'
+
+        eType = LUT_IDL2GDAL[int(hdr['data type'])]
+        xSize = int(hdr['samples'])
+        ySize = int(hdr['lines'])
+        bands = int(hdr['bands'])
+        byteOrder = 'MSB' if hdr['byte order'] == 0 else 'LSB'
+
+        if pathVrt is None:
+            pathVrt = tempfile.mktemp(prefix='tmpESLVrt', suffix='.esl.vrt')
+
+        from enmapbox.gui.virtualrasters import describeRawFile
+        ds = describeRawFile(pathESL, pathVrt, xSize, ySize, bands=bands, eType=eType, byteOrder=byteOrder)
+        for key, value in hdr.items():
+            if isinstance(value, list):
+                value = ','.join(str(v) for v in value)
+            ds.SetMetadataItem(key, value, 'ENVI')
+        ds.FlushCache()
+        return ds
+
+    @staticmethod
+    def readENVIHeader(pathESL):
+        if not os.path.isfile(pathESL):
+            return None
+
+        paths = [os.path.splitext(pathESL)[0] + '.hdr', pathESL + '.hdr']
+        pathHdr = None
+        for p in paths:
+            if os.path.exists(p):
+                pathHdr = p
+
+        if pathHdr is None:
+            return None
+
+        hdr = open(pathHdr).readlines()
+        i = 0
+        while i < len(hdr):
+            if '{' in hdr[i]:
+                while not '}' in hdr[i]:
+                    hdr[i] = hdr[i] + hdr.pop(i + 1)
+            i += 1
+
+        hdr = [''.join(re.split('\n[ ]*', line)).strip() for line in hdr]
+        # keep lines with <tag>=<value> structure only
+        hdr = [line for line in hdr if re.search('^[^=]+=', line)]
+
+        # restructure into dictionary of type
+        # md[key] = single value or
+        # md[key] = [list-of-values]
+        md = dict()
+        for line in hdr:
+            tmp = line.split('=')
+            key, value = tmp[0].strip(), '='.join(tmp[1:]).strip()
+            if value.startswith('{') and value.endswith('}'):
+                value = value.strip('{}').split(',')
+            md[key] = value
+
+        # check required metadata tegs
+        for k in ['byte order', 'data type', 'header offset', 'lines', 'samples', 'bands']:
+            if not k in md.keys():
+                return None
+        return md
+
+class SpectralLibrary(QObject):
+
+    @staticmethod
+    def readFrom(uri):
+        """
+        Reads a Spectral Library from the source specified in "uri" (path, url, ...)
+        :param uri: path or uri of the source from which to read SpectralProfiles and return them in a SpectralLibrary
+        :return: SpectralLibrary
+        """
+        for cls in SpectralLibraryReader.__subclasses__():
+            if cls.canRead(uri):
+                return cls.readFrom(uri)
+        return None
+
     def __init__(self, parent=None):
-        super(ProfileSet, self).__init__(parent)
+        super(SpectralLibrary, self).__init__(parent)
 
         self.mProfiles = []
+        self.mName = ''
+
+
+    sigNameChanged = pyqtSignal(str)
+
+    def setName(self, name):
+        if name != self.mName:
+            self.mName = name
+            self.sigNameChanged.emit(name)
+
+    def name(self):
+        return self.mName
+
 
     sigProfilesAdded = pyqtSignal(list)
 
@@ -179,7 +376,7 @@ class ProfileSet(QObject):
             profiles = [profiles]
         if isinstance(profiles, list):
             profiles = [p for p in profiles if isinstance(p, SpectralProfile)]
-        elif isinstance(profiles, ProfileSet):
+        elif isinstance(profiles, SpectralLibrary):
             profiles = profiles.mProfiles[:]
         else:
             raise Exception('Unknown type {}'.format(type(profiles)))
@@ -199,3 +396,43 @@ class ProfileSet(QObject):
                 self.mProfiles.remove(p)
             self.sigProfilesRemoved.emit(to_remove)
         return to_remove
+
+    def yRange(self):
+        minY = min([min(p.yValues()) for p in self.mProfiles])
+        maxY = max([max(p.yValues()) for p in self.mProfiles])
+        return  minY, maxY
+
+    def plot(self):
+        import pyqtgraph as pg
+        pg.mkQApp()
+
+        win = pg.GraphicsWindow(title="Spectral Library")
+        win.resize(1000, 600)
+
+        # Enable antialiasing for prettier plots
+        pg.setConfigOptions(antialias=True)
+
+        # Create a plot with some random data
+        p1 = win.addPlot(title="Spectral Library {}".format(self.name()), pen=0.5)
+        yMin, yMax = self.yRange()
+        p1.setYRange(yMin, yMax)
+
+        # Add three infinite lines with labels
+        for p in self:
+            pi = pg.PlotDataItem(p.xValues(), p.yValues())
+            p1.addItem(pi)
+
+        pg.QAPP.exec_()
+
+    def __len__(self):
+        return len(self.mProfiles)
+
+    def __iter__(self):
+        return iter(self.mProfiles)
+
+    def __getitem__(self, slice):
+        return self.mProfiles[slice]
+
+    def __delitem__(self, slice):
+        profiles = self[slice]
+        self.removeProfiles(profiles)
