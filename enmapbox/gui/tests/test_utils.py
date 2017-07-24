@@ -12,7 +12,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest
+import unittest,pickle
 from qgis import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -35,6 +35,19 @@ class testclassData(unittest.TestCase):
 
     def tearDown(self):
         self.w.close()
+
+
+    def test_spatialObjects(self):
+        from enmapbox.gui.utils import SpatialPoint, SpatialExtent
+
+        pt1 = SpatialPoint('EPSG:4326', 300,300)
+        self.assertIsInstance(pt1, SpatialPoint)
+        d = pickle.dumps(pt1)
+        pt2 = pickle.loads(d)
+
+
+        self.assertEquals(pt1, pt2)
+
 
     def test_gdalDataset(self):
         from enmapbox.gui.utils import gdalDataset
@@ -68,6 +81,10 @@ class testclassData(unittest.TestCase):
         self.assertEqual(pxCoordinate.x(), 0)
         self.assertEqual(pxCoordinate.y(), 0)
         self.assertAlmostEqual(px2geo(pxCoordinate, gt), geoCoordinate)
+
+        ext = SpatialExtent.fromLayer(ds)
+
+
 
     def test_appendItemsToMenu(self):
         from enmapbox.gui.utils import appendItemsToMenu
