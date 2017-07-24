@@ -31,6 +31,8 @@ from osgeo import gdal
 from enmapbox.gui.utils import loadUi, gdalDataset, SpatialPoint
 
 
+
+
 #Lookup table for ENVI IDL DataTypes to GDAL Data Types
 LUT_IDL2GDAL = {1:gdal.GDT_Byte,
                 12:gdal.GDT_UInt16,
@@ -271,7 +273,8 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
                         valueUnit=valueUnit,
                         valuePositions=valuePositions,
                         valuePositionUnit=valuePositionUnit)
-            p.setName(name)
+            p.setName(name.strip())
+            p.setSource(pathESL)
             profiles.append(p)
 
 
@@ -469,6 +472,9 @@ class SpectralLibrary(QObject):
 
         pg.QAPP.exec_()
 
+    def index(self, obj):
+        return self.mProfiles.index(obj)
+
     def __reduce_ex__(self, protocol):
         return self.__class__, (), self.__getstate__()
 
@@ -504,12 +510,166 @@ class SpectralLibrary(QObject):
                 return False
         return True
 
+
+class SpectralLibraryTableViewModel(QAbstractTableModel):
+
+
+    def __init__(self, spectralLibrary, parent=None):
+        super(SpectralLibraryTableViewModel, self).__init__(parent)
+
+        self.cIndex = '#'
+        self.cName = 'Name'
+        self.cPx = 'Px'
+        self.cGeo = 'Geo'
+        self.cSrc = 'Source'
+        self.columnNames = [self.cIndex, self.cName, self.cPx, self.cGeo, self.cSrc]
+        assert isinstance(spectralLibrary, SpectralLibrary)
+        self.mSpecLib = spectralLibrary
+
+    def headerData(self, col, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.columnNames[col]
+        elif orientation == Qt.Vertical and role == Qt.DisplayRole:
+            return col
+        return None
+
+    def sort(self, col, order):
+        """Sort table by given column number.
+        """
+        self.layoutAboutToBeChanged.emit()
+        columnName = self.columnNames[col]
+        rev = order == Qt.DescendingOrder
+
+        if columnName == self.cName:
+            self.mSpecLib.mProfiles.sort(key= lambda p: p.name(), reverse= rev)
+        if columnName == self.cSrc:
+            self.mSpecLib.mProfiles.sort(key= lambda p: p.source(), reverse= rev)
+
+        self.layoutChanged.emit()
+
+    def rowCount(self, parentIdx=None, *args, **kwargs):
+        return len(self.mSpecLib)
+
+    def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
+        return len(self.columnNames)
+
+    def profile2idx(self, profile):
+        assert isinstance(profile, SpectralProfile)
+        return self.createIndex(self.mSpecLib.index(profile), 0)
+
+    def idx2profile(self, index):
+        assert isinstance(index, QModelIndex)
+        if index.isValid():
+            return self.mSpecLib[index.row()]
+        return None
+
+    def data(self, index, role=Qt.DisplayRole):
+        if role is None or not index.isValid():
+            return None
+
+        columnName = self.columnNames[index.column()]
+
+        profile = self.idx2profile(index)
+        assert isinstance(profile, SpectralProfile)
+
+        value = None
+        if role == Qt.DisplayRole:
+            if columnName == self.cIndex:
+                value = self.mSpecLib.index(profile)+1
+            elif columnName == self.cName:
+                value = profile.name()
+            elif columnName == self.cSrc:
+                value = profile.source()
+
+        if role == Qt.EditRole:
+            if columnName == self.cName:
+                value = profile.name()
+
+        if role == Qt.UserRole:
+            value = profile
+        return value
+
+    def setData(self, index, value, role=None):
+        if role is None or not index.isValid():
+            return False
+        assert isinstance(index, QModelIndex)
+        cName = self.columnNames[index.column()]
+        profile = self.idx2profile(index)
+        assert isinstance(profile, SpectralProfile)
+
+        if role  == Qt.EditRole:
+            if cName == self.cName:
+                profile.setName(str(value))
+                return True
+        return False
+
+    def flags(self, index):
+        if index.isValid():
+            columnName = self.columnNames[index.column()]
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            if columnName in [self.cName]:  # allow check state
+                flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable
+            return flags
+        return None
+
+    def insertRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+        pass
+
+    def removeRows(self, p_int, p_int_1, QModelIndex_parent=None, *args, **kwargs):
+        pass
+
+
+
+
+class SpectraLibraryViewer(QFrame, loadUi('speclibviewer.ui')):
+    def __init__(self, parent=None):
+        super(SpectraLibraryViewer, self).__init__(parent)
+        self.setupUi(self)
+        self.mModel = None
+        self.mSelectionModel = None
+        self.tableView.verticalHeader().setMovable(True)
+        self.tableView.verticalHeader().setDragEnabled(True)
+        self.tableView.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
+        self.tableView.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        #self.tableView.doubleClicked.connect(self.onTableDoubleClick)
+
+    def connectSpectralLibrary(self, spectralLibrary):
+        if isinstance(spectralLibrary, SpectralLibrary):
+            self.mSpecLib = spectralLibrary
+            self.mModel = SpectralLibraryTableViewModel(self.mSpecLib)
+            self.tableView.setModel(self.mModel)
+            self.mSelectionModel = QItemSelectionModel(self.mModel)
+            self.mSelectionModel.selectionChanged.connect(self.onSelectionChanged)
+            self.mSelectionModel.currentChanged.connect(self.onCurrentChanged)
+            self.tableView.setSelectionModel(self.mSelectionModel)
+            self.onSelectionChanged() #enable/disabel widgets depending on a selection
+        else:
+            self.mSpecLib = None
+            self.mModel = None
+            self.listView.setModel(None)
+
+    def onCurrentChanged(self, *args):
+        pass
+    def onSelectionChanged(self, *args):
+        if self.mSelectionModel is not None \
+           and len(self.mSelectionModel.selectedRows()) > 0:
+            #todo: enable/disable plot/export options
+            pass
+
+
+
+
 if __name__ == "__main__":
     from enmapbox.testdata.UrbanGradient import Speclib, EnMAP
     from enmapbox.gui.sandbox import initQgisEnvironment
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent
     qapp = initQgisEnvironment()
-    sl1 = SpectralLibrary.readFrom(Speclib)
-    sl2 = pickle.loads(pickle.dumps(sl1))
-    assert sl1 == sl2
-    s = ""
+
+    sl = SpectralLibrary.readFrom(Speclib)
+
+    w  =SpectraLibraryViewer()
+    w.show()
+    w.connectSpectralLibrary(sl)
+
+    qapp.exec_()
+
