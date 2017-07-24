@@ -666,6 +666,7 @@ if __name__ == "__main__":
     qapp = initQgisEnvironment()
 
     sl = SpectralLibrary.readFrom(Speclib)
+    #sl.plot()
 
     w  =SpectraLibraryViewer()
     w.show()
