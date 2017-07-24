@@ -19,7 +19,7 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import os, re, tempfile
+import os, re, tempfile, pickle
 import pyqtgraph as pg
 from qgis.core import *
 from qgis.gui import *
@@ -47,8 +47,17 @@ class SpectralProfile(QObject):
 
     @staticmethod
     def deserialize(input):
-
-        return None
+        profiledata = pickle.loads(input)
+        profile = SpectralProfile()
+        for k in profile.__dict__.keys():
+            if k in profiledata.keys():
+                profile.__dict__[k] = profiledata[k]
+            else:
+                print('Can not make use of restored key {}'.format(k))
+        for k in profiledata.keys():
+            if k not in profile.__dict__.keys():
+                profile.__dict__[k] = profiledata[k]
+        return profile
 
     @staticmethod
     def fromRasterSource(source, position):
@@ -89,7 +98,7 @@ class SpectralProfile(QObject):
 
     def __init__(self, parent=None):
         super(SpectralProfile, self).__init__(parent)
-
+        self.mName = ''
         self.mValues = []
         self.mValueUnit = None
         self.mValuePositions = []
@@ -98,6 +107,16 @@ class SpectralProfile(QObject):
         self.mSource = None
         self.mPxCoordinate = None
         self.mGeoCoordinate = None
+
+    sigNameChanged = pyqtSignal(str)
+    def setName(self, name):
+        assert isinstance(name, str)
+        if name != self.mName:
+            self.mName = name
+            self.sigNameChanged.emit(name)
+
+    def name(self):
+        return self.mName
 
     def setSource(self, uri):
         assert isinstance(uri, str)
@@ -159,16 +178,15 @@ class SpectralProfile(QObject):
         :return:
         """
         import pyqtgraph as pg
-        pg.plot(self.xValues(), self.yValues())
+        pg.plot(self.xValues(), self.yValues(), title=self.name())
         pg.QAPP.exec_()
 
     def __eq__(self, other):
         return isinstance(other, SpectralProfile) \
-            and self.mValues == other.mValue \
+            and self.mValues == other.mValues \
             and self.mValuePositions == other.mValuePositions \
             and self.mValueUnit == other.mValueUnit \
             and self.mValuePositionUnit == other.mValuePositionUnit
-
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -176,10 +194,12 @@ class SpectralProfile(QObject):
     def __len__(self):
         return len(self.mValues)
 
-
     def serialize(self):
+        import pickle
+        profiledata = self.__dict__
+        return pickle.dumps(profiledata)
 
-        s = ""
+
 
 
 
@@ -218,7 +238,7 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
 
         if not os.path.isfile(pathESL):
             return False
-        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL)
+        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL, typeConversion=False)
         if hdr is None or hdr['file type'] != 'ENVI Spectral Library':
             return False
         return True
@@ -233,25 +253,29 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         """
 
         ds = EnviSpectralLibraryReader.esl2vrt(pathESL, tmpVrt)
-        md = ds.GetMetadata_Dict('ENVI')
+        md = EnviSpectralLibraryReader.readENVIHeader(pathESL, typeConversion=True)
         data = ds.ReadAsArray()
 
         nSpectra, nbands = data.shape
         valueUnit = ''
         valuePositionUnit = md.get('wavelength units')
         valuePositions = md.get('wavelength')
-        if valuePositions is not None:
-            valuePositions = [float(v) for v in valuePositions.split(',')]
-        else:
+        if valuePositions is None:
             valuePositions = [range(1, nbands+1)]
             valuePositionUnit = 'Band'
 
+        spectraNames = md.get('spectra names', ['Spectrum {}'.format(i+1) for i in range(nSpectra)])
         profiles = []
-        for i in range(data.shape[0]):
+        for i, name in enumerate(spectraNames):
             p = SpectralProfile()
-            p.setValues(data[i,:], valueUnit=valueUnit,
-                        valuePositions=valuePositions, valuePositionUnit=valuePositionUnit)
+            p.setValues(data[i,:],
+                        valueUnit=valueUnit,
+                        valuePositions=valuePositions,
+                        valuePositionUnit=valuePositionUnit)
+            p.setName(name)
             profiles.append(p)
+
+
         SLIB = SpectralLibrary()
         SLIB.addProfiles(profiles)
         return SLIB
@@ -265,7 +289,7 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         :return: GDAL VRT
         """
 
-        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL)
+        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL, typeConversion=False)
         assert hdr is not None and hdr['file type'] == 'ENVI Spectral Library'
 
         eType = LUT_IDL2GDAL[int(hdr['data type'])]
@@ -282,12 +306,19 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         for key, value in hdr.items():
             if isinstance(value, list):
                 value = ','.join(str(v) for v in value)
-            ds.SetMetadataItem(key, value, 'ENVI')
+            ds.SetMetadataItem(key, str(value), 'ENVI')
         ds.FlushCache()
         return ds
 
     @staticmethod
-    def readENVIHeader(pathESL):
+    def readENVIHeader(pathESL, typeConversion=False):
+        """
+        Reads an ENVI Header File (*.hdr) and returns its values in a dictionary
+        :param pathESL: path to ENVI Header
+        :param typeConversion: Set on True to convert header keys with numeric
+        values into numeric data types (int / float)
+        :return: dict
+        """
         if not os.path.isfile(pathESL):
             return None
 
@@ -327,6 +358,21 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         for k in ['byte order', 'data type', 'header offset', 'lines', 'samples', 'bands']:
             if not k in md.keys():
                 return None
+
+        #todo: transform known strings into int/floats?
+        def toType(t, arg):
+            if isinstance(arg, list):
+                return [toType(t, a) for a  in arg]
+            else:
+                return t(arg)
+
+        if typeConversion:
+            to_int = ['bands','lines','samples','data type','header offset','byte order']
+            to_float = ['fwhm','wavelength', 'reflectance scale factor']
+            for k in to_int: md[k] = toType(int, md[k])
+            for k in to_float: md[k] = toType(float, md[k])
+
+
         return md
 
 class SpectralLibrary(QObject):

@@ -20,20 +20,18 @@ from enmapbox.gui.sandbox import initQgisEnvironment
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisEnvironment()
 
-
+from enmapbox.gui.spectrallibraries import SpectralProfile, SpectralLibrary, EnviSpectralLibraryReader
+from enmapbox.testdata.UrbanGradient import Speclib, EnMAP
 class testclassData(unittest.TestCase):
-    """Test rerources work."""
 
     def setUp(self):
+
         pass
 
     def tearDown(self):
         pass
 
     def test_spectralProfile(self):
-        from enmapbox.gui.spectrallibraries import SpectralProfile
-        from enmapbox.testdata.UrbanGradient import EnMAP
-
 
         p = SpectralProfile()
         self.assertFalse(p.isValid())
@@ -43,8 +41,59 @@ class testclassData(unittest.TestCase):
         self.assertTrue(p.pxCoordinate() == QPoint(20,40))
         self.assertIsInstance(p.geoCoordinate(), SpatialPoint)
 
+        s = p.serialize()
+        self.assertIsInstance(s, str)
+        p1 = SpectralProfile.deserialize(s)
+        self.assertIsInstance(p1, SpectralProfile)
+
+        p2 = SpectralProfile.deserialize(unicode(s))
+        self.assertIsInstance(p2, SpectralProfile)
+        self.assertEqual(p1,p2)
+
+    def test_ENVISpectralLibraryReader(self):
+        self.assertTrue(EnviSpectralLibraryReader.canRead(Speclib))
+        tmpDir = tempfile.mkdtemp(prefix='testSpecLibs')
+        pathTestVRT = os.path.join(tmpDir, 'esl.vrt')
+
+        dsVRT = EnviSpectralLibraryReader.esl2vrt(Speclib, pathVrt=pathTestVRT)
+        self.assertIsInstance(dsVRT, gdal.Dataset)
+        self.assertEqual(dsVRT.RasterCount, 1)
+        self.assertEqual(dsVRT.RasterXSize, 244)
+        self.assertEqual(dsVRT.RasterYSize, 75)
+        self.assertEqual(dsVRT.GetRasterBand(1).DataType, gdal.GDT_Float32)
+
+        #todo: test ESLs with bip and pil interleave?
+        hdr = EnviSpectralLibraryReader.readENVIHeader(Speclib, typeConversion=True)
+
+        for key, value in {
+                'samples':244,
+                'lines':75,
+                'bands':1,
+                'header offset':0,
+                'file type':'ENVI Spectral Library',
+                'data type':4,
+                'interleave':'bsq',
+                'sensor type':'Unknown',
+                'byte order':0,
+                'wavelength units':'Micrometers',
+                'reflectance scale factor':1.000000}.items():
+            self.assertEqual(hdr.get(key), value)
 
 
+
+    def test_spectralLibrary(self):
+
+        sl = SpectralLibrary.readFrom(Speclib)
+        self.assertIsInstance(sl, SpectralLibrary)
+        self.assertTrue(len(sl), 75)
+
+        p0 = sl[0]
+        self.assertIsInstance(p0, SpectralProfile)
+        self.assertTrue(p0 in sl)
+
+        p1 = SpectralProfile()
+        p1.setValues([1,3,4], valuePositions=[1,2,3])
+        self.assertTrue(p1 not in sl)
 
 
 if __name__ == "__main__":
