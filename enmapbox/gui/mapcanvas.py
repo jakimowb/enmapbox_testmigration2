@@ -10,6 +10,7 @@ from enmapbox.gui.utils import KeepRefs
 from enmapbox.gui.crosshair import CrosshairMapCanvasItem, CrosshairStyle
 
 
+
 class CursorLocationMapTool(QgsMapToolEmitPoint):
 
     sigLocationRequest = pyqtSignal(SpatialPoint)
@@ -26,8 +27,6 @@ class CursorLocationMapTool(QgsMapToolEmitPoint):
         self.rubberband.setLineStyle(Qt.SolidLine)
         self.rubberband.setColor(color)
         self.rubberband.setWidth(2)
-
-
 
         self.marker.setColor(color)
         self.marker.setPenWidth(3)
@@ -76,12 +75,10 @@ class CursorLocationMapTool(QgsMapToolEmitPoint):
         self.rubberband.reset()
 
 
-
 class FullExtentMapTool(QgsMapTool):
     def __init__(self, canvas):
         super(FullExtentMapTool, self).__init__(canvas)
         self.canvas = canvas
-
 
     def canvasReleaseEvent(self, mouseEvent):
         self.canvas.zoomToFullExtent()
@@ -490,6 +487,7 @@ class MapCanvas(QgsMapCanvas):
     sigLayersAdded = pyqtSignal(list)
 
     sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+    sigSpectrumRequest = pyqtSignal(SpatialPoint)
 
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
@@ -513,6 +511,7 @@ class MapCanvas(QgsMapCanvas):
 
 
         self.mCrosshairItem = CrosshairMapCanvasItem(self)
+
         self.setShowCrosshair(False)
 
         self.canvasLinks = []
@@ -683,6 +682,11 @@ class MapCanvas(QgsMapCanvas):
 
         tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationMapTool(self, showCrosshair=True))
         tool.sigLocationRequest.connect(self.sigCursorLocationRequest.emit)
+
+        tool = self.registerMapTool('SPECTRUMREQUEST', CursorLocationMapTool(self, showCrosshair=True))
+        assert isinstance(tool, CursorLocationMapTool)
+        tool.setStyle(color=QColor('green'))
+        tool.sigLocationRequest.connect(self.sigSpectrumRequested.emit)
 
         tool = self.registerMapTool('MOVE_CENTER', CursorLocationMapTool(self, showCrosshair=True))
         tool.sigLocationRequest.connect(self.setCenter)
@@ -908,6 +912,7 @@ class MapDock(Dock):
     #sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent
     sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+    sigSpectrumRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)
     sigLayersRemoved = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
