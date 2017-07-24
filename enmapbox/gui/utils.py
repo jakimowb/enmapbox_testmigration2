@@ -1,4 +1,4 @@
-import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO
+import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle
 import xml.etree.ElementTree as xml
 logger = logging.getLogger(__name__)
 
@@ -347,6 +347,8 @@ class SpatialPoint(QgsPoint):
         return SpatialPoint(crs, spatialExtent.center())
 
     def __init__(self, crs, *args):
+        if not isinstance(crs, QgsCoordinateReferenceSystem):
+            crs = QgsCoordinateReferenceSystem(crs)
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(SpatialPoint, self).__init__(*args)
         self.mCrs = crs
@@ -358,6 +360,8 @@ class SpatialPoint(QgsPoint):
     def crs(self):
         return self.mCrs
 
+    def __reduce_ex__(self, protocol):
+        return self.__class__, (self.crs().toWkt(), self.x(), self.y()), {}
 
     def toPixelPosition(self, rasterDataSource, allowOutOfRaster=False):
         ds = gdalDataset(rasterDataSource)
@@ -454,6 +458,8 @@ class SpatialExtent(QgsRectangle):
         return SpatialExtent(crs, extent)
 
     def __init__(self, crs, *args):
+        if not isinstance(crs, QgsCoordinateReferenceSystem):
+            crs = QgsCoordinateReferenceSystem(crs)
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(SpatialExtent, self).__init__(*args)
         self.mCrs = crs
@@ -512,6 +518,13 @@ class SpatialExtent(QgsRectangle):
 
     def __mul__(self, other):
         raise NotImplementedError()
+
+    def __reduce_ex__(self, protocol):
+        return self.__class__, (self.crs().toWkt(),
+                                self.xMinimum(), self.yMinimum(),
+                                self.xMaximum(), self.yMaximum()
+                                ), {}
+
 
     def upperRightPt(self):
         return QgsPoint(*self.upperRight())
