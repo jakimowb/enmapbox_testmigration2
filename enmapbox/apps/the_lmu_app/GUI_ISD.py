@@ -276,16 +276,19 @@ class UiFunc:
 
         if self.data_mean is not None and gui.SType_None_B.isChecked():
             mae = np.nansum(abs(myResult - self.data_mean)) / len(myResult)
-            rmse = np.sqrt(np.nanmean((myResult - self.data_mean)))
-            nse = 1 - ((np.nansum((myResult - self.data_mean))) /
-                       (np.nansum(self.data_mean - (np.nanmean(self.data_mean))**2)))
-            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (myResult - np.nanmean(myResult)))) /
-                         ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2))) *
-                          (np.sqrt(np.nansum((myResult - np.nanmean(myResult))**2)))))**2
+            rmse = np.sqrt(np.nanmean((myResult - self.data_mean)**2))
+            nse = 1.0 - ((np.nansum((self.data_mean - myResult)**2)) /
+                          (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
+            mnse = 1.0 - ((np.nansum(abs(self.data_mean - myResult))) /
+                          (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
+            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (myResult - np.nanmean(myResult))))
+                         / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
+                            * (np.sqrt(np.nansum((myResult - np.nanmean(myResult))**2)))))**2
 
 
-            errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) + "\nMAE: " + str(round(mae, 6)) + "\nmNSE: " +
-                                 str(round(nse, 6)) + '\n' + u'R²: ' + str(round(r_squared, 6)),
+            errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) + "\nMAE: " + str(round(mae, 6)) + "\nNSE: " +
+                                 str(round(nse, 6)) + "\nmNSE: " + str(round(mnse, 6)) + '\n' +
+                                 u'R²: ' + str(round(r_squared, 6)),
                                  (100, 200, 255),
                                  border="w", anchor=(1, 0))
             errors.setPos(2500, 0.55)

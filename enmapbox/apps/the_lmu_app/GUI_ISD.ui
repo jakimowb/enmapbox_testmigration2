@@ -7,7 +7,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1166</width>
+    <width>1216</width>
     <height>865</height>
    </rect>
   </property>
@@ -1030,7 +1030,7 @@
           <item row="12" column="0" colspan="3">
            <widget class="QScrollBar" name="rAA_Slide">
             <property name="maximum">
-             <number>180000</number>
+             <number>1800000</number>
             </property>
             <property name="singleStep">
              <number>10000</number>
