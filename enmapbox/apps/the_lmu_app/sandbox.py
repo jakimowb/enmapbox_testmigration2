@@ -59,4 +59,3 @@ if __name__ == '__main__':
         sandboxGuiOnly()
     else:
         sandboxWithEnMapBox(loadPF=True)
-

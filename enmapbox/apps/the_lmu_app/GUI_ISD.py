@@ -2,6 +2,8 @@
 
 import sys
 import numpy as np
+from sklearn.metrics import *
+from math import sqrt
 import pyqtgraph as pg
 
 from PyQt4.QtCore import *
@@ -220,14 +222,21 @@ class UiFunc:
         self.mod_exec()
 
     def plot_own_spec(self):
-        if not self.data_mean is None: self.plot = gui.graphicsView.plot(range(350, 2501), self.data_mean)
+        if self.data_mean is not None:
+            self.plot = gui.graphicsView.plot(range(400, 2501), self.data_mean)
 
     def open_file(self):
+        # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
         filename = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
         self.data = np.genfromtxt(filename, delimiter="\t", skip_header=True)
         ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
         self.data = np.delete(self.data, 0, axis=1)
+
         self.data_mean = np.mean(self.data, axis=1)
+        self.data_mean[1010:1071] = np.nan  # set atmospheric water vapour absorption bands to NaN
+        self.data_mean[1440:1591] = np.nan
+        self.data_mean[2050:2151] = np.nan
+        self.data_mean = self.data_mean[50:]
         self.mod_exec()
 
     def clearPlot(self):
@@ -247,15 +256,41 @@ class UiFunc:
                                            car=self.para_list[12],
                                            cbrown=self.para_list[14], anth=self.para_list[13])
 
+
+
+
         if not gui.CheckPlotAcc.isChecked():
             self.clearPlot()
             self.plot = gui.graphicsView.plot(self.wl, myResult, pen="g")
             self.plot_own_spec()
             gui.graphicsView.setYRange(0, 0.6, padding=0)
+            gui.graphicsView.setLabel('left', text="Reflectance [%]")
+            gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
-            self.plot = gui.graphicsView.plot(self.wl, myResult, pen=self.plot_color[self.plot_count % 7])
+            self.plot = gui.graphicsView.plot(self.wl, myResult,
+                                              pen=self.plot_color[self.plot_count % 7])
             self.plot_own_spec()
             gui.graphicsView.setYRange(0, 0.6, padding=0)
+            gui.graphicsView.setLabel('left', text="Reflectance [%]")
+            gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
+
+        if self.data_mean is not None and gui.SType_None_B.isChecked():
+            mae = np.nansum(abs(myResult - self.data_mean)) / len(myResult)
+            rmse = np.sqrt(np.nanmean((myResult - self.data_mean)))
+            nse = 1 - ((np.nansum((myResult - self.data_mean))) /
+                       (np.nansum(self.data_mean - (np.nanmean(self.data_mean))**2)))
+            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (myResult - np.nanmean(myResult)))) /
+                         ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2))) *
+                          (np.sqrt(np.nansum((myResult - np.nanmean(myResult))**2)))))**2
+
+
+            errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) + "\nMAE: " + str(round(mae, 6)) + "\nmNSE: " +
+                                 str(round(nse, 6)) + '\n' + u'R²: ' + str(round(r_squared, 6)),
+                                 (100, 200, 255),
+                                 border="w", anchor=(1, 0))
+            errors.setPos(2500, 0.55)
+            gui.graphicsView.addItem(errors)
+
 
 if __name__ == '__main__':
 
