@@ -2,8 +2,6 @@
 
 import sys
 import numpy as np
-from sklearn.metrics import *
-from math import sqrt
 import pyqtgraph as pg
 
 from PyQt4.QtCore import *
@@ -223,7 +221,7 @@ class UiFunc:
 
     def plot_own_spec(self):
         if self.data_mean is not None:
-            self.plot = gui.graphicsView.plot(range(400, 2501), self.data_mean)
+            self.plot = gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
 
     def open_file(self):
         # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
@@ -256,13 +254,14 @@ class UiFunc:
                                            car=self.para_list[12],
                                            cbrown=self.para_list[14], anth=self.para_list[13])
 
-
-
+        myResult[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
+        myResult[1390:1541] = np.nan
 
         if not gui.CheckPlotAcc.isChecked():
             self.clearPlot()
-            self.plot = gui.graphicsView.plot(self.wl, myResult, pen="g")
-            self.plot_own_spec()
+            self.plot = gui.graphicsView.plot(self.wl, myResult, pen="g", filllevel=0,
+                                              fillBrush=(255,255,255,30), name='modelled')
+
             gui.graphicsView.setYRange(0, 0.6, padding=0)
             gui.graphicsView.setLabel('left', text="Reflectance [%]")
             gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
@@ -274,17 +273,17 @@ class UiFunc:
             gui.graphicsView.setLabel('left', text="Reflectance [%]")
             gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 
-        if self.data_mean is not None and gui.SType_None_B.isChecked():
+        if self.data_mean is not None and gui.SType_None_B.isChecked() and not gui.CheckPlotAcc.isChecked():
+            self.plot_own_spec()
             mae = np.nansum(abs(myResult - self.data_mean)) / len(myResult)
             rmse = np.sqrt(np.nanmean((myResult - self.data_mean)**2))
             nse = 1.0 - ((np.nansum((self.data_mean - myResult)**2)) /
-                          (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
+                         (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
             mnse = 1.0 - ((np.nansum(abs(self.data_mean - myResult))) /
                           (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
             r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (myResult - np.nanmean(myResult))))
                          / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
                             * (np.sqrt(np.nansum((myResult - np.nanmean(myResult))**2)))))**2
-
 
             errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) + "\nMAE: " + str(round(mae, 6)) + "\nNSE: " +
                                  str(round(nse, 6)) + "\nmNSE: " + str(round(mnse, 6)) + '\n' +
