@@ -431,4 +431,4 @@ processing times and memory consumption::
     :caption: Contents:
 
     Downloads.rst
-    hubdc.rst
+    hubdc_applier.rst
