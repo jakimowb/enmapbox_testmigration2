@@ -55,7 +55,7 @@ class Writer():
         outputDatasets[filename].setMetadataItem(key=key, value=value, domain=domain)
         if key=='band names' and domain=='ENVI' and value is not None:
             for dsBand, bandName in zip(outputDatasets[filename], value):
-                dsBand.setDescription(bandName)
+                dsBand.setDescription(str(bandName))
 
     @staticmethod
     def setNoDataValue(outputDatasets, filename, value):
