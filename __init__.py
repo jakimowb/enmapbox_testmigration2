@@ -1,3 +1,4 @@
+import os
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 from processing.core.Processing import Processing
 from processing.core.AlgorithmProvider import AlgorithmProvider
@@ -5,6 +6,14 @@ from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import *
 from processing.core.outputs import *
 from hubflow.types import *
+
+def getPlugInVersion():
+    with open(os.path.join(os.path.dirname(__file__), 'metadata.txt')) as f:
+        for line in f:
+            if line.startswith('version='):
+                return line.split('=')[1].strip()
+
+__version__ = getPlugInVersion()
 
 def classFactory(iface):
     return Plugin(iface)
