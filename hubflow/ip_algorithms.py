@@ -90,7 +90,9 @@ def estimatorPredict(prediction, noData, estimator, image,
                 noutputs = 1
                 dtype = numpy.uint8
             elif estimator._estimator_type == 'regressor':
-                noutputs = estimator.n_outputs_
+                X0 = numpy.float64(numpy.atleast_2d(features[:, 0, 0]))
+                y0 = estimator.predict(X=X0)
+                noutputs = max(y0.shape)
                 dtype = numpy.float32
             else:
                 raise Exception('unexpected estimator type')
@@ -143,10 +145,9 @@ def estimatorTransform(transformation, noData, estimator, image,
         def ufunc(self):
             image = self.getArray('image')
 
-            if inverse:
-                _, noutputs = estimator.inverse_transform(X=numpy.atleast_2d(image[:, 0, 0])).shape
-            else:
-                _, noutputs = estimator.transform(X=numpy.atleast_2d(image[:, 0, 0])).shape
+            sklTransform = estimator.inverse_transform if inverse else estimator.transform
+            X0 = numpy.float64(numpy.atleast_2d(image[:, 0, 0]))
+            _, noutputs = sklTransform(X=X0).shape
 
             transformation = self.getFull(value=noData, bands=noutputs, dtype=dtype)
 
@@ -158,11 +159,7 @@ def estimatorTransform(transformation, noData, estimator, image,
 
             def transform(features):
                 X = numpy.float64(features.T)
-                if inverse:
-                    y = estimator.inverse_transform(X=X)
-                else:
-                    y = estimator.transform(X=X)
-
+                y = sklTransform(X=X)
                 return y.reshape(-1, noutputs).T
 
             self.applySampleFunction(inarray=image, outarray=transformation, mask=valid, ufunc=transform)
