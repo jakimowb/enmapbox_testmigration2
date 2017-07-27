@@ -1,9 +1,11 @@
 import random, os, pickle
 import numpy
+import spectral
 from hubdc.model import Open, PixelGrid
 import hubflow.ip_algorithms as ipalg
 import hubflow.dp_algorithms as dpalg
 
+spectral.settings.envi_support_nonlowercase_params = True
 
 class FlowObject():
 
@@ -92,8 +94,11 @@ class ClassDefinition(FlowObject):
         lookup = ds.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
         return ClassDefinition(classes=classes-1, names=names[1:], lookup=lookup[3:])
 
-    def __init__(self, classes, names=None, lookup=None):
+    def __init__(self, classes=None, names=None, lookup=None):
 
+        assert classes is not None or names is not None
+        if classes is None:
+            classes = len(names)
         self.classes = classes
         if names is None:
             names = ['class {}'.format(i+1) for i in range(classes)]
@@ -138,14 +143,58 @@ class Regression(Image):
 
 class UnsupervisedSample(FlowObject):
 
-    def __init__(self, features):
+    def __init__(self, features, metadata):
         assert isinstance(features, numpy.ndarray) and features.ndim == 2
+        #if metadata is None:
+        #    metadata = dict()
+
         self.features = features
+        self.metadata = metadata
+        self.nbands , self.nsamples = self.features.shape
+
+    @staticmethod
+    def fromENVISpectralLibrary(filename):
+        headers = [filename + '.hdr', filename[:-4] + '.hdr']
+        for header in headers:
+            if os.path.exists(header):
+                library = spectral.envi.open(file=header)
+                return UnsupervisedSample(features=library.spectra.T, metadata=library.metadata)
+        raise Exception('header file not found')
+
+    def saveAsENVISpectralLibrary(self, filename):
+        metadata = self.metadata.copy()
+        if 'spectra names' not in metadata:
+            metadata['spectra names'] = ['profile '+str(i+1) for i in range(self.features.shape[1])]
+        if 'wavelength' not in metadata:
+            metadata['wavelength'] = range(self.features.shape[0])
+            metadata['wavelength units'] = 'indices'
+
+        library = spectral.envi.SpectralLibrary(data=self.features.T, header=metadata, params=None)
+        fileBaseName = filename.replace('.hdr', '').replace('.sli', '').replace('.esl', '')
+        library.save(fileBaseName=fileBaseName)
+
+        header = spectral.envi.read_envi_header(file=fileBaseName+'.hdr')
+        self._saveAsENVISpectralLibraryUpdateHeader(header)
+        spectral.envi.write_envi_header(fileName=fileBaseName+'.hdr', header_dict=header, is_library=True)
+
+    def _saveAsENVISpectralLibraryUpdateHeader(self, header):
+        for key in ['data ignore value', 'wavelength', 'wavelength units']:
+            if key not in self.metadata:
+                del header[key]
+
+    def scaleFeaturesInplace(self, factor):
+        self.features = self.features*factor
+
+    def classifyByClassName(self, names, classDefinition):
+        assert len(names) == self.nsamples
+        assert isinstance(classDefinition, ClassDefinition)
+        labels = numpy.atleast_2d(numpy.array(dpalg.classifyNames(names, classNames=classDefinition.names, indexBase=1), dtype=numpy.uint8))
+        return ClassificationSample(features=self.features, labels=labels, metadata=self.metadata, classDefinition=classDefinition)
 
 class SupervisedSample(UnsupervisedSample):
 
-    def __init__(self, features, labels, noData, outputNames=None):
-        UnsupervisedSample.__init__(self, features=features)
+    def __init__(self, features, labels, noData, metadata=None, outputNames=None):
+        UnsupervisedSample.__init__(self, features=features, metadata=metadata)
         assert isinstance(labels, numpy.ndarray) and features.ndim == 2
         assert self.features.shape[1] == labels.shape[1]
         self.labels = labels
@@ -154,8 +203,8 @@ class SupervisedSample(UnsupervisedSample):
 
 class ClassificationSample(SupervisedSample):
 
-    def __init__(self, features, labels, classDefinition, outputName='classification'):
-        SupervisedSample.__init__(self, features, labels, noData=0, outputNames=[outputName])
+    def __init__(self, features, labels, classDefinition, metadata=None, outputName='classification'):
+        SupervisedSample.__init__(self, features, labels, noData=0, metadata=metadata, outputNames=[outputName])
         assert labels.shape[0] == 1
         assert isinstance(classDefinition, ClassDefinition)
         self.classDefinition = classDefinition
@@ -168,6 +217,39 @@ class ClassificationSample(SupervisedSample):
             labels=repr(list(self.labels.shape)),
             classDefinition=repr(self.classDefinition))
 
+    @staticmethod
+    def fromENVISpectralLibrary(filename):
+        sample = UnsupervisedSample.fromENVISpectralLibrary(filename=filename)
+        classDefinition = ClassDefinition(classes=int(sample.metadata['classes'])-1,
+                                          names=list(map(str, sample.metadata['class names'][1:])),
+                                          lookup=list(map(int, sample.metadata['class lookup'][3:])))
+
+        labels = numpy.array(sample.metadata['class spectra names'])
+        for i, name in enumerate(sample.metadata['class names']):
+            labels[labels==name] = str(i)
+        labels = numpy.atleast_2d(numpy.uint8(labels))
+        return ClassificationSample(features=sample.features, labels=labels, classDefinition=classDefinition)
+
+    def _saveAsENVISpectralLibraryUpdateHeader(self, header):
+        UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)
+        header['classes'] = self.classDefinition.classes + 1
+        header['class names'] = ['Unclassified'] + self.classDefinition.names
+        header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
+        header['class spectra names'] = numpy.array(self.classDefinition.names)[self.labels.ravel()-1]
+
+    def synthMix(self, mixingComplexities=None, classLikelihoods=None, n=10):
+        if mixingComplexities is None:
+            mixingComplexities = {2:0.5, 3:0.3, 4:0.2}
+        if classLikelihoods is None:
+            classLikelihoods = 'proportional'
+
+        if classLikelihoods is 'proportional':
+            classLikelihoods = [float(count)/sum(self.histogram) for count in self.histogram]
+        elif classLikelihoods is 'equalized':
+            classLikelihoods = [1./self.classDefinition.classes for i in range(self.classDefinition.classes)]
+
+        mixtures, fractions = dpalg.synthMix(features=self.features, labels=self.labels, classes=self.classDefinition.classes, mixingComplexities=mixingComplexities, classLikelihoods=classLikelihoods, n=n)
+        return ProbabilitySample(features=mixtures, labels=fractions, classDefinition=self.classDefinition)
 
 class RegressionSample(SupervisedSample):
     pass
@@ -180,17 +262,36 @@ class ProbabilitySample(RegressionSample):
         SupervisedSample.__init__(self, features, labels, noData=-1, outputNames=classDefinition.names)
         self.classDefinition = classDefinition
 
-    def classify(self, minOverallCoverage=0, minWinnerCoverage=0, progressBar=None):
-        labels = dpalg.argmaxProbability(probabilities=self.labels, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, progressBar=progressBar)
-        valid = labels != 0
-        return ClassificationSample(features=self.features[:,valid[0]], labels=labels[:,valid[0]], classDefinition=self.classDefinition)
-
     def __repr__(self):
         return '{cls}(features=array{features}, labels=array{labels}, classDefinition={classDefinition}'.format(
             cls=self.__class__.__name__,
             features=repr(list(self.features.shape)),
             labels=repr(list(self.labels.shape)),
             classDefinition=repr(self.classDefinition))
+
+    @staticmethod
+    def fromENVISpectralLibrary(filename):
+        sample = UnsupervisedSample.fromENVISpectralLibrary(filename=filename)
+        classDefinition = ClassDefinition(classes=int(sample.metadata['classes'])-1,
+                                          names=list(map(str, sample.metadata['class names'][1:])),
+                                          lookup=list(map(int, sample.metadata['class lookup'][3:])))
+
+        probabilities = numpy.array([sample.metadata['probabilities '+name] for name in classDefinition.names], dtype=numpy.float32)
+        return ProbabilitySample(features=sample.features, labels=probabilities, classDefinition=classDefinition)
+
+    def classifyByProbability(self, minOverallCoverage=0, minWinnerCoverage=0, progressBar=None):
+        labels = dpalg.argmaxProbability(probabilities=self.labels, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, progressBar=progressBar)
+        valid = labels != 0
+        return ClassificationSample(features=self.features[:, valid[0]], labels=labels[:, valid[0]], classDefinition=self.classDefinition)
+
+    def _saveAsENVISpectralLibraryUpdateHeader(self, header):
+        UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)
+        header['classes'] = self.classDefinition.classes + 1
+        header['class names'] = ['Unclassified'] + self.classDefinition.names
+        header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
+        for i, name in enumerate(self.classDefinition.names):
+            header['probabilities ' + name] = self.labels[i]
+            header['probabilities Unclassified'] = 1. - numpy.sum(self.labels, axis=0)
 
 class Estimator(FlowObject):
 
@@ -275,3 +376,20 @@ class Clusterer(Estimator):
 
 class Report(FlowObject):
     pass
+
+
+"""
+    def asSpectralLibrary(self, spectraNames=None, wavelength=None, wavelengthUnits=None, fwhm=None, header=None):
+
+        if header is None:
+            header = dict()
+        assert isinstance(header, dict)
+        header['spectra names'] = spectraNames if spectraNames is not None else ['profile {}'.format(i+1) for i in range(self.nsamples)]
+        header['wavelength'] = wavelength if wavelength is not None else range(self.features.shape[0])
+        header['wavelength units'] = wavelengthUnits if wavelengthUnits is not None else 'indicies'
+        if fwhm is not None:
+            header['fwhm'] = fwhm
+
+        library = spectral.envi.SpectralLibrary(data=numpy.float32(self.features.T), header=header, params=None)
+        return SpectralLibrary(library=library)
+"""

@@ -3,9 +3,12 @@ import enmaptestdata
 
 imageFilename = enmaptestdata.enmap
 vectorFilename = enmaptestdata.landcover
+speclibFilename = enmaptestdata.speclib
+speclib2Filename = r'c:\output\speclib.sli'
 
 classification3mFilename = r'c:\output\classification3m.img'
 classificationFilename = r'c:\output\classification.img'
+probabilityFilename = r'c:\output\probability.img'
 regressionFilename = r'c:\output\regression.img'
 transformationFilename = r'c:\output\transformation.img'
 inverseTransformationFilename =  r'c:\output\inverseTransformation.img'
@@ -17,9 +20,6 @@ classifierFilename = r'c:\output\classifier.pkl'
 regressorFilename = r'c:\output\regressor.pkl'
 transformerFilename = r'c:\output\transformer.pkl'
 clustererFilename = r'c:\output\clusterer.pkl'
-
-
-
 
 def vector_classify():
     image = Image(filename=imageFilename)
@@ -35,17 +35,44 @@ def image_sampleByClassification():
     classification = Classification(filename=classification3mFilename)
     probabilitySample = image.sampleByClassification(classification=classification)
     probabilitySample.pickle(filename=probabilitySampleFilename)
-    print(probabilitySample)
 
 def probabilitySample_classify():
     probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
-    classificationSample = probabilitySample.classify(minOverallCoverage=0.75, minWinnerCoverage=0.5)
+    classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=0.75, minWinnerCoverage=0.5)
     classificationSample.pickle(filename=classificationSampleFilename)
+
+def unsupervisedSample_classifyByName():
+    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmaptestdata.speclib)
+    classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
+                                      lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
+    classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 2 spectra names'],
+                                                                  classDefinition=classDefinition)
+    classificationSample.scaleFeaturesInplace(factor=10000.)
+    classificationSample.pickle(filename=classificationSampleFilename)
+
+def classificationSample_synthMix():
+    classificationSample = ClassificationSample.unpickle(filename=classificationSampleFilename)
+    probabilitySample = classificationSample.synthMix(mixingComplexities={2:0.5, 3:0.3, 4:0.2}, classLikelihoods='proportional', n=100)
+    probabilitySample.pickle(filename=probabilitySampleFilename)
+
+def unsupervisedSample_saveAsSpectralLibrary():
+    probabilitySample = UnsupervisedSample.fromENVISpectralLibrary(filename=speclibFilename)
+    probabilitySample.saveAsENVISpectralLibrary(filename=speclib2Filename)
+
+def classificationSample_saveAsSpectralLibrary():
+    classificationSample = ClassificationSample.unpickle(filename=classificationSampleFilename)
+    classificationSample.saveAsENVISpectralLibrary(filename=speclib2Filename)
+    ClassificationSample.fromENVISpectralLibrary(filename=speclib2Filename)
+
+def probabilitySample_saveAsSpectralLibrary():
+    probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
+    probabilitySample.saveAsENVISpectralLibrary(filename=speclib2Filename)
+    ProbabilitySample.fromENVISpectralLibrary(filename=speclib2Filename)
 
 def classifier_fit():
     from sklearn.ensemble import RandomForestClassifier
     classificationSample = ClassificationSample.unpickle(filename=classificationSampleFilename)
-    classifier = Classifier(sklEstimator=RandomForestClassifier())
+    classifier = Classifier(sklEstimator=RandomForestClassifier(class_weight='balanced'))
     classifier.fit(sample=classificationSample)
     classifier.pickle(filename=classifierFilename)
 
@@ -57,8 +84,18 @@ def classifier_predict():
     classifier.predict(filename=classificationFilename, image=image)#, vmask=vmask)
     #classifier.predict(filename=classificationFilename, image=image, mask=mask)
 
+def classifier_predictProbability():
+    assert 0
+    classifier = Classifier.unpickle(filename=classifierFilename)
+    image = Image(filename=imageFilename)
+    mask = Mask(filename=classification3mFilename, ufunc=lambda array: array > 3)
+    vmask = VectorMask(filename=vectorFilename, allTouched=True, filterSQL="LEVEL_1 = 'Impervious'")
+    classifier.predictProbability(filename=probabilityFilename, image=image)#, vmask=vmask)
+    #classifier.predict(filename=classificationFilename, image=image, mask=mask)
+
 def regressor_fit():
     from sklearn.ensemble import RandomForestRegressor
+
     regressionSample = RegressionSample.unpickle(filename=probabilitySampleFilename)
     regressor = Regressor(sklEstimator=RandomForestRegressor())
     regressor.fit(sample=regressionSample)
@@ -96,24 +133,56 @@ def svc_fit():
     from sklearn.pipeline import make_pipeline
     from sklearn.model_selection import GridSearchCV
     from sklearn.decomposition import PCA
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import RobustScaler, StandardScaler
     from sklearn.svm import SVC
 
     # Scikit-Learn stuff
-    estimator = make_pipeline(PCA(n_components=0.95),
-                              StandardScaler(),
-                              SVC())
+    svc = GridSearchCV(estimator=SVC(),
+                       param_grid=dict(C=[10**i for i in range(-2,4)],
+                                       gamma=[10**i for i in range(-2,4)]),
+                       scoring='f1_weighted', cv=3)
 
-    classifier = GridSearchCV(estimator=estimator,
-                              param_grid=dict(svc__C=[10**i for i in range(-2,4)],
-                                              svc__gamma=[10**i for i in range(-2,4)]),
-                              scoring='f1_weighted', cv=3, n_jobs=4)
+    estimator = make_pipeline(StandardScaler(), svc)
+
 
     # EnMAP-Box Flow-API stuff
     classificationSample = ClassificationSample.unpickle(filename=classificationSampleFilename)
-    classifier = Classifier(sklEstimator=classifier)
+    classifier = Classifier(sklEstimator=estimator)
     classifier.fit(sample=classificationSample)
     classifier.pickle(filename=classifierFilename)
+
+def svr_fit():
+    from sklearn.svm import SVR
+    from sklearn.multioutput import MultiOutputRegressor
+    regressionSample = RegressionSample.unpickle(filename=probabilitySampleFilename)
+    regressor = Regressor(sklEstimator=MultiOutputRegressor(estimator=SVR()))
+    regressor.fit(sample=regressionSample)
+    regressor.pickle(filename=regressorFilename)
+
+def baggingRegressor_fit():
+    from sklearn.ensemble import RandomForestRegressor, BaggingRegressor
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.svm import SVR
+    from sklearn.pipeline import make_pipeline
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.multioutput import MultiOutputRegressor
+
+    base_estimator = GridSearchCV(estimator=make_pipeline(StandardScaler(), SVR(epsilon=0.001)), cv=3,
+                                  param_grid=dict(svr__C=[10**i for i in range(-3,3)],
+                                                  svr__gamma=[10**i for i in range(-3,3)]))
+
+    #base_estimator = RandomForestRegressor(n_estimators=10)
+    #base_estimator = make_pipeline(StandardScaler(), GaussianProcessRegressor())
+    ensemble_estimator = BaggingRegressor(base_estimator=base_estimator, n_estimators=10, max_samples=1000)
+    multi_estimator = MultiOutputRegressor(estimator=ensemble_estimator, n_jobs=-1)
+
+    #multi_estimator = MultiOutputRegressor(base_estimator, n_jobs=-1)
+
+    regressionSample = RegressionSample.unpickle(filename=probabilitySampleFilename)
+    regressor = Regressor(sklEstimator=multi_estimator)
+    regressor.fit(sample=regressionSample)
+    regressor.pickle(filename=regressorFilename)
 
 def clusterer_fit():
     from sklearn.cluster import KMeans
@@ -128,7 +197,6 @@ def clusterer_predict():
     mask = Mask(filename=classification3mFilename)
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
     clusterer.predict(filename=clusteringFilename, image=image, mask=mask, vmask=vmask)
-
 
 def browse():
 
@@ -159,14 +227,22 @@ if __name__ == '__main__':
     #vector_classify()
     #image_sampleByClassification()
     #probabilitySample_classify()
+    #unsupervisedSample_classifyByName()
+    #classificationSample_synthMix()
+    #unsupervisedSample_saveAsSpectralLibrary()
+    #classificationSample_saveAsSpectralLibrary()
+    #probabilitySample_saveAsSpectralLibrary()
+
     #classifier_fit()
-    #svc_fit()
+    svc_fit()
     #classifier_predict()
     #regressor_fit()
+    svr_fit()
+    #baggingRegressor_fit()
     #regressor_predict()
     #transformer_fit()
     #transformer_transform()
     #transformer_inverseTransform()
-    clusterer_fit()
-    clusterer_predict()
+    #clusterer_fit()
+    #clusterer_predict()
     #browse()
