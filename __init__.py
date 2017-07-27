@@ -34,10 +34,10 @@ ALGORITHMS = list()
 class Provider(AlgorithmProvider):
 
     def getName(self):
-        return 'EnMAP-Box Core'
+        return 'EnMAP-Box TestProvider (v'+__version__+')'
 
     def getDescription(self):
-        return 'EnMAP-Box Core'
+        return 'EnMAP-Box TestProvider (v'+__version__+')'
 
     def _loadAlgorithms(self):
         self.algs.extend(ALGORITHMS)

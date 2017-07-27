@@ -1,5 +1,5 @@
 [general]
-name=EnMAP-Box GeoAlgorithm-Provider
+name=EnMAP-Box TestProvider
 description=This plugin serves as a test environment for the EnMAP-Box GeoAlgorithms provided by the Humbold-University zu Berlin. Beside the GeoAlgorithms itself, it also provides test data.
 about=''
 category=Analysis
