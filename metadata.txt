@@ -1,0 +1,14 @@
+[general]
+name=EnMAP-Box GeoAlgorithm-Provider
+description=This plugin serves as a test environment for the EnMAP-Box GeoAlgorithms provided by the Humbold-University zu Berlin. Beside the GeoAlgorithms itself, it also provides test data.
+about=''
+category=Analysis
+version=0.1.0
+qgisMinimumVersion=2.14
+
+author=Andreas Rabe
+email=andreas.rabe@geo.hu-berlin.de
+
+homepage=http://www.enmap.org/
+tracker=https://bitbucket.org/hu-geomatics/enmap-box-algorithms-provider/issues
+repository=https://bitbucket.org/hu-geomatics/enmap-box-algorithms-provider.git
