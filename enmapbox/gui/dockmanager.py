@@ -41,7 +41,7 @@ class DockTreeNode(TreeNode):
     """
     Base TreeNode to symbolise a Dock
     """
-
+    sigDockUpdated = pyqtSignal()
     def __init__(self, parent, dock):
         self.dock = dock
         super(DockTreeNode, self).__init__(parent, '<dockname not available>')
@@ -65,6 +65,7 @@ class DockTreeNode(TreeNode):
             self.dock = dock
             self.setName(dock.title())
             self.dock.sigTitleChanged.connect(self.setName)
+            #self.dock.sigVisibilityChanged.connec(self.)
             self.setCustomProperty('uuid', str(dock.uuid))
             # self.dock.sigClosed.connect(self.removedisconnectDock)
 
@@ -133,7 +134,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
                 self.removeChildNode(node)
 
 
-class MapDockTreeNode(DockTreeNode, KeepRefs):
+class MapDockTreeNode(DockTreeNode):
     """
     A TreeNode linked to a MapDock
     Acts like the QgsLayerTreeMapCanvasBridge
@@ -142,7 +143,7 @@ class MapDockTreeNode(DockTreeNode, KeepRefs):
     def __init__(self, parent, dock):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
-        KeepRefs.__init__(self)
+        #KeepRefs.__init__(self)
         self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
         self.addedChildren.connect(lambda: self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
@@ -386,7 +387,6 @@ class DockManagerTreeModel(TreeModel):
         to_remove = [n for n in rootNode.children() if n.dock == dock]
         for node in to_remove:
             self.removeDockNode(node)
-        s = ""
 
     def removeNode(self, node):
         idx = self.node2index(node)
@@ -405,6 +405,7 @@ class DockManagerTreeModel(TreeModel):
         flags = Qt.NoItemFlags
 
         node = self.index2node(index)
+        dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)[0]
 
         if node is None:
             return Qt.NoItemFlags
@@ -412,6 +413,8 @@ class DockManagerTreeModel(TreeModel):
         column = index.column()
         isL1 = node.parent() == self.rootNode
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+        #normal tree nodes
         if isinstance(node, TreeNode):
             if column == 0:
                 if isinstance(node, DockTreeNode):
@@ -422,57 +425,73 @@ class DockManagerTreeModel(TreeModel):
                         flags |= Qt.ItemIsDropEnabled
                 if isinstance(node.parent(), MapDockTreeNode) and node.name() == 'Layers':
                     flags |= Qt.ItemIsUserCheckable
+        #mapCanvas Layer Tree Nodes
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
             if column == 0:
-                flags |= Qt.ItemIsUserCheckable | \
-                         Qt.ItemIsDragEnabled
-        else:
-            s = ""
+                flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
+
+                if not (isinstance(dockNode, MapDockTreeNode) and node == dockNode.layerNode):
+                    flags |= Qt.ItemIsDragEnabled
+
+
         return flags
 
     def mimeTypes(self):
         #specifies the mime types handled by this model
-        types = [MimeDataHelper.MIME_DOCKTREEMODELDATA,
-                 MimeDataHelper.MIME_LAYERTREEMODELDATA,
-                 MimeDataHelper.MIME_TEXT_HTML,
-                 MimeDataHelper.MIME_TEXT_PLAIN,
-                 MimeDataHelper.MIME_URILIST]
+        types = [MimeDataHelper.MDF_DOCKTREEMODELDATA,
+                 MimeDataHelper.MDF_LAYERTREEMODELDATA,
+                 MimeDataHelper.MDF_TEXT_HTML,
+                 MimeDataHelper.MDF_TEXT_PLAIN,
+                 MimeDataHelper.MDF_URILIST,
+                 MimeDataHelper.MDF_PYTHON_OBJECTS]
         return types
 
-    def dropMimeData(self, mimeData, action, row, column, parent):
+    def dropMimeData(self, mimeData, action, row, column, parentIndex):
         assert isinstance(mimeData, QMimeData)
 
         MDH = MimeDataHelper(mimeData)
-        node = self.index2node(parent)
 
-        #L1 is the first level below the root tree -> to place dock trees
-        isL1Node = node.parent() == self.rootNode
 
-        #get parent DockNode
-        dockNode = self.parentNodesFromIndices(parent, nodeInstanceType=DockTreeNode)
-        if len(dockNode) != 1:
+        if not parentIndex.isValid():
             return False
 
-        dockNode = list(dockNode)[0]
+        parentNode = self.index2node(parentIndex)
+        # L1 is the first level below the root tree -> to place dock trees
+        isL1Node = parentNode.parent() == self.rootNode
+
+        #get parent DockNode
+        dockNode = self.parentNodesFromIndices(parentIndex, nodeInstanceType=DockTreeNode)
+
+        if len(dockNode) != 1:
+            return False
+        else:
+            dockNode = dockNode[0]
+
 
         if isinstance(dockNode, MapDockTreeNode):
-            layerNode = dockNode.layerNode
             if MDH.hasLayerTreeModelData():
                 nodes = MDH.layerTreeModelNodes()
                 if len(nodes) > 0:
-                    if parent.isValid() and row == -1:
+                    if type(parentNode) != QgsLayerTreeGroup:
+                        layerNode = dockNode.layerNode
+                    else:
+                        layerNode = parentNode
+
+                    #insert layertree-nodes to parentNode
+                    if row == -1:
                         row = 0
-                    #node.insertChildNodes(row, nodes)
                     layerNode.insertChildNodes(row, nodes)
                     return True
 
             if MDH.hasDataSources():
                 dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
                 if len(dataSources) > 0:
-                    layers = reversed([ds.createRegisteredMapLayer() for ds in dataSources])
+                    layers = reversed([ds.createUnregisteredMapLayer() for ds in dataSources])
                     for l in layers:
                         dockNode.insertLayer(0,l)
                     return True
+
+
         elif isinstance(dockNode, TextDockTreeNode):
 
             s = ""
@@ -487,8 +506,13 @@ class DockManagerTreeModel(TreeModel):
 
         nodesFinal = self.indexes2nodes(indexes, True)
 
+
+
         #docktree to mime data
+        from enmapbox.gui.utils import EnMAPBoxMimeData
         mimeData = QMimeData()
+        #MimeDataHelper.storeObjectReferences(mimeData, nodesFinal)
+
         doc = QDomDocument()
         rootElem = doc.createElement("dock_tree_model_data")
         for node in nodesFinal:
@@ -506,7 +530,6 @@ class DockManagerTreeModel(TreeModel):
             doc.appendChild(rootElem)
             mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
 
-        #todo: support any URL
 
         return mimeData
 
@@ -536,12 +559,24 @@ class DockManagerTreeModel(TreeModel):
         node = self.index2node(index)
 
         column = index.column()
-        #todo: implement MapDock specific behaviour
+
         if not isinstance(node, TreeNode):
-            return super(DockManagerTreeModel, self).data(index, role)
+            if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
+                if column == 1:
+                    if role in [Qt.DisplayRole, Qt.EditRole]:
+                        return node.name()
+                    else:
+                        return super(DockManagerTreeModel, self).data(index, role)
+                else:
+                    return super(DockManagerTreeModel, self).data(index, role)
+            else:
+                return super(DockManagerTreeModel, self).data(index, role)
+
         else:
+
             if column == 0:
-                if role == Qt.DisplayRole:
+
+                if role in [Qt.DisplayRole, Qt.EditRole]:
                     return node.name()
                 if role == Qt.DecorationRole:
                     return node.icon()
@@ -549,28 +584,30 @@ class DockManagerTreeModel(TreeModel):
                     return node.tooltip()
                 if role == Qt.CheckStateRole:
                     if isinstance(node, DockTreeNode):
-                        if isinstance(node.dock, Dock) and node.dock.isVisible():
-                            return Qt.Checked
-                        else:
-                            return Qt.Unchecked
+                        if isinstance(node.dock, Dock):
+                            return Qt.Checked if node.dock.isVisible() else Qt.Unchecked
             else:
                 if role == Qt.DisplayRole:
                     return node.value()
+
         return None
             #return super(DockManagerTreeModel, self).data(index, role)
 
     def setData(self, index, value, role=None):
         node = self.index2node(index)
         parentNode = node.parent()
+
+        result = False
         if isinstance(node, DockTreeNode) and isinstance(node.dock, Dock):
             if role == Qt.CheckStateRole:
                 if value == Qt.Unchecked:
                     node.dock.setVisible(False)
                 else:
                     node.dock.setVisible(True)
-                return True
+                result = True
             if role == Qt.EditRole and len(value) > 0:
                 node.dock.setTitle(value)
+                result = True
 
         if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
 
@@ -582,9 +619,19 @@ class DockManagerTreeModel(TreeModel):
 
                 assert isinstance(mapDockNode, MapDockTreeNode)
                 mapDockNode.updateCanvas()
+                result = True
+            if role == Qt.EditRole:
+                if isinstance(node, QgsLayerTreeLayer):
+                    node.setName(value)
+                    node.setLayerName(value)
+                    result = True
+                if isinstance(node, QgsLayerTreeGroup):
+                    node.setName(value)
+                    result = True
 
-
-        return False
+        if result:
+            self.dataChanged.emit(index, index)
+        return result
 
 
 class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
@@ -598,7 +645,7 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
         node = self.currentNode()
         parentNode = node.parent()
         parentDockNode = findParent(node, DockTreeNode, checkInstance=True)
-        m = QMenu()
+        menu = QMenu()
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
             mapNode = findParent(node, MapDockTreeNode)
@@ -607,40 +654,37 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
             canvas = mapNode.dock.canvas
 
             lyr = node.layer()
-            action = QAction('Properties', m)
+            action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
             action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
-            m.addAction(action)
 
-            action = QAction('Remove', m)
+            action = menu.addAction('Remove layer')
             action.setToolTip('Removes layer from map canvas')
             action.triggered.connect(lambda: parentNode.removeChildNode(node))
-            m.addAction(action)
+
+            action = menu.addAction('Set layer CRS to map canvas')
+            action.triggered.connect(lambda: canvas.setDestinationCrs(lyr.crs()))
+
+            action = menu.addAction('Copy layer path')
+            action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
 
         elif isinstance(node, DockTreeNode):
-            # global
-            action = QAction('Close', m)
-            action.setToolTip('Closes this map dock')
-            action.triggered.connect(lambda: self.dockManager.removeDock(node.dock))
-            m.addAction(action)
+            assert isinstance(node.dock, Dock)
+            from enmapbox.gui.utils import appendItemsToMenu
+            return node.dock.contextMenu()
 
-            if isinstance(node, MapDockTreeNode):
-                action = QAction('Clear', m)
-                action.triggered.connect(lambda: [node.layerNode.removeLayer(l.layer()) for l in node.findLayers()])
-                action.setToolTip('Removes all layers from this map dock')
-                m.addAction(action)
         elif isinstance(node, TreeNode):
             if col == 0:
-                m = node.contextMenu()
+                menu = node.contextMenu()
             elif col == 1:
-                m = QMenu()
-                a = m.addAction('Copy')
+                menu = QMenu()
+                a = menu.addAction('Copy')
                 a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
 
 
 
 
-        return m
+        return menu
 
     def setLayerStyle(self, layer, canvas):
         import enmapbox.gui.layerproperties
@@ -751,7 +795,7 @@ class DockManager(QgsLegendInterface):
             elif MH.hasDataSources():
                 for ds in MH.dataSources():
                     if isinstance(ds, DataSourceSpatial):
-                        layers.append(ds.createRegisteredMapLayer())
+                        layers.append(ds.createUnregisteredMapLayer())
                     elif isinstance(ds, DataSourceTextFile):
                         textfiles.append(ds)
 

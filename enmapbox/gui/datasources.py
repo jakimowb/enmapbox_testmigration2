@@ -243,6 +243,7 @@ class DataSourceFile(DataSource):
         super(DataSourceFile, self).__init__(uri, name, icon)
 
 
+
 class DataSourceTextFile(DataSourceFile):
     """
     Class to handle editable text files
@@ -276,7 +277,6 @@ class DataSourceSpatial(DataSourceFile):
         assert isinstance(lyr, QgsMapLayer)
         assert lyr.isValid()
 
-        self.mapLayers = list()
 
 
     def createUnregisteredMapLayer(self, *args, **kwds):
@@ -288,21 +288,6 @@ class DataSourceSpatial(DataSourceFile):
         """
         raise NotImplementedError()
 
-
-    def createRegisteredMapLayer(self, *args, **kwds):
-        """
-        Returns a new registered map layer from this data source
-        :return:
-        """
-
-
-        ml = self.createUnregisteredMapLayer(*args, **kwds)
-        ml.setName(self.mName)
-
-        #not reuqired any more, will be done by map canvas
-        #QgsMapLayerRegistry.instance().addMapLayer(ml, False)
-        self.mapLayers.append(ml)
-        return ml
 
 class ProcessingTypeDataSource(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
@@ -360,7 +345,10 @@ class DataSourceRaster(DataSourceSpatial):
         creates and returns a QgsRasterLayer from self.src
         :return:
         """
-        return QgsRasterLayer(self.mUri, *args, **kwargs)
+        baseName = kwargs.get('baseName', self.mName)
+        providerKey = kwargs.get('providerKey', 'gdal')
+        loadDefaultStyleFlag = kwargs.get('loadDefaultStyleFlag', True)
+        return QgsRasterLayer(self.mUri, baseName, providerKey, loadDefaultStyleFlag)
 
 
 class DataSourceVector(DataSourceSpatial):
@@ -382,10 +370,10 @@ class DataSourceVector(DataSourceSpatial):
         creates and returns a QgsVectorLayer from self.src
         :return:
         """
-        if len(args) == 0 and len(kwargs) == 0:
-            return QgsVectorLayer(self.mUri, None, 'ogr')
-        else:
-            return QgsVectorLayer(self.mUri, **kwargs)
+        baseName = kwargs.get('baseName', self.mName)
+        providerKey = kwargs.get('providerKey', 'ogr')
+        loadDefaultStyleFlag = kwargs.get('loadDefaultStyleFlag', True)
+        return QgsVectorLayer(self.mUri, baseName, providerKey, loadDefaultStyleFlag)
 
 
 

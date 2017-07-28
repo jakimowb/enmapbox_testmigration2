@@ -196,12 +196,12 @@ class PixelGrid(PixelGridDefn):
         PixelGridDefn.__init__(self, projection=pixelGrid.projection,
             xMin=pixelGrid.xMin, xMax=pixelGrid.xMax, yMin=pixelGrid.yMin, yMax=pixelGrid.yMax, xRes=pixelGrid.xRes, yRes=pixelGrid.yRes)
 
-    def newResolution(self, resolution):
+    def newResolution(self, xRes, yRes):
 
         pixelGrid = PixelGrid(self)
-        pixelGrid.xRes = resolution
-        pixelGrid.yRes = resolution
-        return pixelGrid
+        pixelGrid.xRes = xRes
+        pixelGrid.yRes = yRes
+        return PixelGrid(pixelGrid)
 
     def buffer(self, buffer, north=True, west=True, south=True, east=True):
 
@@ -1734,12 +1734,11 @@ class ClassificationPerformance(Type):
         numpy.seterr(**old_error_state)
 
     def confidenceIntervall(self, mean, sse, alpha):
-
+        import scipy.stats
         se = numpy.sqrt(numpy.clip(sse, 0, numpy.inf))
         lower = scipy.stats.norm.ppf(alpha / 2.)*se + mean
         upper = scipy.stats.norm.ppf(1 - alpha / 2.)*se + mean
         return lower, upper
-
 
     def report(self):
 

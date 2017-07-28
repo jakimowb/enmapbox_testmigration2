@@ -14,32 +14,49 @@ from enmapbox.gui import LOAD_PROCESSING_FRAMEWORK
 This module describes the EnMAP-GUI <-> Processing Framework interactions
 """
 ProcessingAlgorithmsPanelUI = None
-if LOAD_PROCESSING_FRAMEWORK:
-    from processing.gui.ProcessingToolbox import ProcessingToolbox
+
+def canImportProcessingFramework():
+    try:
+        from processing.gui.ProcessingToolbox import ProcessingToolbox
+        return True
+    except:
+        return False
 
 
-    class ProcessingAlgorithmsPanelUI(ProcessingToolbox):
-        def __init__(self, parent=None):
+if LOAD_PROCESSING_FRAMEWORK and canImportProcessingFramework():
+    from processing.gui.ProcessingToolbox import ProcessingToolbox as UI_BASE
+    _PF_AVAILABLE = True
+else:
+    from PyQt4.QtGui import QDockWidget as UI_BASE
+    _PF_AVAILABLE = False
 
-            ProcessingToolbox.__init__(self)
 
-            self.setWindowTitle('QGIS Processing Toolbox')
-            """
-            algList.providerRemoved.connect(self.removeProvider)
-            algList.providerAdded.connect(self.addProvider)
-            algList.providerUpdated.connect(self.updateProvider)
-            settingsWatcher.settingsChanged.connect(self.fillTree)
-            """
+class ProcessingAlgorithmsPanelUI(UI_BASE):
+    def __init__(self, parent=None):
+        UI_BASE.__init__(self)
+        if not _PF_AVAILABLE:
+            w = QFrame()
+            w.setLayout(QVBoxLayout())
+            w.layout().addWidget(QLabel('QGIS was initialized without\nQIS Processing Framework.'))
+            self.setWidget(w)
 
-        def connectProcessingAlgManager(self, manager):
-            if isinstance(manager, ProcessingAlgorithmsManager):
-                self.manager = manager
-                #register signals not handled via the QGIS processing framework but the ProcessingAlgorithmsManager
+        self.setWindowTitle('QGIS Processing Toolbox')
+        """
+        algList.providerRemoved.connect(self.removeProvider)
+        algList.providerAdded.connect(self.addProvider)
+        algList.providerUpdated.connect(self.updateProvider)
+        settingsWatcher.settingsChanged.connect(self.fillTree)
+        """
 
-            else:
-                self.manager = None
+    def connectProcessingAlgManager(self, manager):
+        if isinstance(manager, ProcessingAlgorithmsManager):
+            self.manager = manager
+            #register signals not handled via the QGIS processing framework but the ProcessingAlgorithmsManager
 
-    #global ProcessingAlgorithmsPanelUI
+        else:
+            self.manager = None
+
+#global ProcessingAlgorithmsPanelUI
 
 
 
@@ -58,9 +75,9 @@ class ProcessingAlgorithmsManager(QObject):
         self.enmapBox = enmapBoxInstance
         self.commander = None
         self.toolbox = None
-
         self.algList = None
-        if LOAD_PROCESSING_FRAMEWORK:
+
+        if _PF_AVAILABLE:
             from processing.core.Processing import Processing
             from processing.core.alglist import algList
             self.algList = algList
@@ -74,7 +91,7 @@ class ProcessingAlgorithmsManager(QObject):
             Signals.imageCreated.connect(self.onFileCreated)
             Signals.pickleCreated.connect(self.onFileCreated)
             Signals.htmlCreated.connect(self.onFileCreated)
-
+            from processing.gui.ProcessingToolbox import ProcessingToolbox
             self.toolbox = ProcessingToolbox()
 
             # 1. create new menu entry

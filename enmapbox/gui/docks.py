@@ -101,7 +101,7 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
     sigTitleChanged = pyqtSignal(str)
 
 
-    def __init__(self, name='dock', closable=True, *args, **kwds):
+    def __init__(self, name='Data View', closable=True, *args, **kwds):
         super(Dock, self).__init__(name=name, closable=False, *args, **kwds)
         KeepRefs.__init__(self)
         #ssert enmapboxInstance is not None
@@ -154,12 +154,31 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
         self.widgetArea.setStyleSheet(self.hStyle)
         self.topLayout.update()
 
-    def getDockContentContextMenu(self):
+    def contextMenu(self):
         """
-
+        implement this to return a QMenu with context menue properties for this dock.
         :return: None or QMenu
         """
-        return None
+
+        menu = QMenu()
+
+        if self.isVisible():
+            a = menu.addAction('Hide Dock')
+            a.triggered.connect(lambda : self.setVisible(True))
+        else:
+            a = menu.addAction('Show Dock')
+            a.triggered.connect(lambda : self.setVisible(False))
+
+        return menu
+
+    sigVisibilityChanged = pyqtSignal(bool)
+    def setVisible(self, b):
+
+        i = self.isVisible()
+        super(Dock, self).setVisible(b)
+        if i != self.isVisible():
+            self.sigVisibilityChanged.emit(self.isVisible())
+
 
     def setTitle(self, title):
         """

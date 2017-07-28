@@ -35,6 +35,10 @@ class DataSourceGroupTreeNode(TreeNode):
         elem.setAttribute('datasourcetype', str(self.childClass))
         return elem
 
+    def dataSources(self):
+        return [child.dataSource for child in self.children()]
+
+
     @staticmethod
     def readXml(element):
 
@@ -361,7 +365,7 @@ class DataSourceManagerTreeModel(TreeModel):
         self.dataSourceManager.sigDataSourceAdded.connect(self.addDataSource)
         self.dataSourceManager.sigDataSourceRemoved.connect(self.removeDataSource)
 
-        for ds in self.dataSourceManager.sources:
+        for ds in self.dataSourceManager.mSources:
             self.addDataSource(ds)
 
     def columnCount(self, index):
@@ -372,9 +376,9 @@ class DataSourceManagerTreeModel(TreeModel):
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
-        types.append(MimeDataHelper.MIME_DATASOURCETREEMODELDATA)
-        types.append(MimeDataHelper.MIME_LAYERTREEMODELDATA)
-        types.append(MimeDataHelper.MIME_URILIST)
+        types.append(MimeDataHelper.MDF_DATASOURCETREEMODELDATA)
+        types.append(MimeDataHelper.MDF_LAYERTREEMODELDATA)
+        types.append(MimeDataHelper.MDF_URILIST)
         return types
 
     def dropMimeData(self, data, action, row, column, parent):
@@ -576,6 +580,12 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
 
         m = QMenu()
+        if isinstance(node, DataSourceGroupTreeNode):
+            a = m.addAction('Clear')
+            assert isinstance(a, QAction)
+            a.setToolTip('Removes all datasource from this node')
+            a.triggered.connect(lambda: model.dataSourceManager.removeSources(node.dataSources()))
+
 
         if isinstance(node, DataSourceTreeNode):
             a = m.addAction('Remove')
@@ -583,9 +593,21 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             a = m.addAction('Copy URI / path')
             a.triggered.connect(lambda: QApplication.clipboard().setText(str(node.dataSource.uri())))
 
+        if isinstance(node, DataSourceRaster):
+            a = m.addAction('Save as..')
+            src = node.dataSource
+            #todo: call "Save Raster as ..."
+            #a.triggered.connect(lambda: model.dataSourceManager.removeSource(node.dataSource))
+
+            if isinstance(node, DataSourceVector):
+                a = m.addAction('Save as..')
+                src = node.dataSource
+                # todo: call "Save Vector as ..."
+
         if col == 1 and node.value() != None:
             a = m.addAction('Copy')
             a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
+
 
         if isinstance(node, TreeNode):
             m2 = node.contextMenu()
@@ -612,9 +634,14 @@ class DataSourceManager(QObject):
     def __init__(self):
         super(DataSourceManager, self).__init__()
 
-        self.sources = set()
+        self.mSources = list()
 
-        QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
+        #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
+        #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
+        # noinspection PyArgumentList
+        #QgsMapLayerRegistry.instance().layersAdded.connect(self.addLayers)
+        #QgsMapLayerRegistry.instance().removeAll.connect(self.removeAllLayers)
+
         self.updateFromQgsMapLayerRegistry()
 
         #signals
@@ -627,6 +654,38 @@ class DataSourceManager(QObject):
             pass
         self.updateFromProcessingFramework()
 
+    def __len__(self):
+        return len(self.mSources)
+
+    def sources(self, sourceTypes=None):
+        """
+        Returns the managed DataSources
+        :param sourceTypes: the sourceType(s) to return
+            a) str like 'VECTOR' (see DataSourceManage.SOURCE_TYPES)
+            b) class type derived from DataSource
+            c) a list of a or b to filter multpiple source types
+        :return:
+        """
+        results = self.mSources[:]
+
+        if sourceTypes:
+            if not isinstance(sourceTypes, list):
+                sourceTypes = [sourceTypes]
+            filterTypes = []
+            for sourceType in sourceTypes:
+                if sourceType in self.SOURCE_TYPES:
+                    if sourceType == 'VECTOR':
+                        sourceType = DataSourceVector
+                    elif sourceType == 'RASTER':
+                        sourceType = DataSourceRaster
+                    elif sourceType == 'MODEL':
+                        sourceType = ProcessingTypeDataSource
+                    else:
+                        sourceType = None
+                if isinstance(sourceType, type(DataSource)):
+                    filterTypes.append(sourceType)
+            results = [r for r in results if type(r) in filterTypes]
+        return results
 
     def updateFromProcessingFramework(self):
         if self.processing:
@@ -640,13 +699,14 @@ class DataSourceManager(QObject):
     def updateFromQgsMapLayerRegistry(self, mapLayers=None):
         """
         Add data sources registered in the QgsMapLayerRegistry to the data source manager
-        :return: True, if a new source was added
+        :return: List of added new DataSources
         """
         if mapLayers is None:
             mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
 
-        for lyr in mapLayers:
-            self.addSource(lyr)
+        added = [self.addSource(lyr) for lyr in mapLayers]
+        return [a for a in added if isinstance(a, DataSource)]
+
 
     def getUriList(self, sourcetype='All'):
         """
@@ -656,17 +716,17 @@ class DataSourceManager(QObject):
         """
         sourcetype = sourcetype.upper()
         if isinstance(sourcetype, type):
-            return [ds.uri() for ds in self.sources if type(ds) is sourcetype]
+            return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
 
         assert sourcetype in DataSourceManager.SOURCE_TYPES
         if sourcetype == 'ALL':
-            return [ds.uri() for ds in self.sources]
+            return [ds.uri() for ds in self.mSources]
         elif sourcetype == 'VECTOR':
-            return [ds.uri() for ds in self.sources if isinstance(ds, DataSourceVector)]
+            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
         elif sourcetype == 'RASTER':
-            return [ds.uri() for ds in self.sources if isinstance(ds, DataSourceRaster)]
+            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
         elif sourcetype == 'MODEL':
-            return [ds.uri() for ds in self.sources if isinstance(ds, ProcessingTypeDataSource)]
+            return [ds.uri() for ds in self.mSources if isinstance(ds, ProcessingTypeDataSource)]
 
 
 
@@ -685,29 +745,56 @@ class DataSourceManager(QObject):
 
         if isinstance(ds, DataSource):
             # check if source is already registered
-            for src in self.sources:
+
+            for src in self.mSources:
                 logger.debug(str(ds.uri()))
                 if os.path.abspath(src.uri()) == os.path.abspath(ds.uri()):
                     return src #return object reference of an already existing source
-
-            self.sources.add(ds)
+            #this datasource is new
+            self.mSources.append(ds)
             self.sigDataSourceAdded.emit(ds)
 
         return ds
 
+    def clear(self):
+        """
+        Removes all data source from DataSourceManager
+        :return: [list-of-removed-DataSources]
+        """
+        return self.removeSources(list(self.mSources))
+
+
     def removeSources(self, dataSourceList):
-        for dataSource in dataSourceList:
-            self.removeSource(dataSource)
+        """
+        Removes a list of data sources.
+        :param dataSourceList: [list-of-datasources]
+        :return: self
+        """
+        removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
+        return [r for r in removed if isinstance(r, DataSource)]
+
+
 
     def removeSource(self, dataSource):
+        """
+        Removes the datasource from the DataSourceManager
+        :param dataSource: the DataSource to be removed
+        :return: the removed DataSource. None if dataSource was not in the DataSourceManager
+        """
         assert isinstance(dataSource, DataSource)
-        if dataSource in self.sources:
-            self.sources.remove(dataSource)
+        if dataSource in self.mSources:
+            self.mSources.remove(dataSource)
             self.sigDataSourceRemoved.emit(dataSource)
+            return dataSource
         else:
             logger.debug('can not remove {}'.format(dataSource))
 
-    def getSourceTypes(self):
-        return sorted(list(set([type(ds) for ds in self.sources])))
+
+    def sourceTypes(self):
+        """
+        Returns the list of source-types handled by this DataSourceManage
+        :return: [list-of-source-types]
+        """
+        return sorted(list(set([type(ds) for ds in self.mSources])))
 
 
