@@ -9,6 +9,10 @@ as well as some customized parameter types
 
 #import initExample ## Add path to library (just for examples; you do not need this)
 
+from qgis.gui import QgsFileWidget, QgsRasterFormatSaveOptionsWidget
+
+import os
+
 #import pyqtgraph as pg
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -17,9 +21,12 @@ from pyqtgraph.Qt import QtCore, QtGui
 from osgeo import osr
 from hub.gdal.api import *
 
+import multiprocessing as mp
+
 app = QtGui.QApplication([])
 import pyqtgraph.parametertree.parameterTypes as pTypes
 from pyqtgraph.parametertree import Parameter, ParameterTree, ParameterItem, registerParameterType
+from enmapbox.gui.enmapboxgui import EnMAPBox
 
 import time
 
@@ -65,29 +72,191 @@ class DefaultBands(pTypes.GroupParameter):
     def getAlphaParameter(self):
         return self.alphaParam
 
+class BandLoader(QObject):
+    def __init__(self, resultArray, dataset, *args, **kwds):
+        super(BandLoader, self).__init__(*args, **kwds)
+        print("test")
+
+        self.nProcesses = 2
+        self.jobid = 0
+
+        self.pool = None
+        self.MGR = mp.Manager()
+        self.APPLYRESULTS = []
+        self.ar = resultArray
+        #self.APPLYRESULTS = resultArray
+        self.resultQueue = self.MGR.Queue()
+        self.cancelEvent = self.MGR.Event()
+
+        self.ds = dataset
+
+        self.queueChecker = QTimer()
+        self.queueChecker.setInterval(3000)
+        self.queueChecker.timeout.connect(self.checkQueue)
+
+        #split number of bands into list
+
+        print("dataset: ")
+        print(self.ds)
+
+        print("dataset bands")
+        print(self.ds.RasterCount)
+        files = []
+        for index in range(1, self.ds.RasterCount):
+            files.append(self.ds.GetRasterBand(index))
+            #print(files)
+
+        print "files"
+        print(files)
+        #files = pathList[:]
+        workPackages = list()
+        i = 0
+        while(len(files)) > 0:
+            if len(workPackages) <= i:
+                workPackages.append([])
+            workPackages[i].append(files.pop(0))
+            i = i + 1 if i < self.nProcesses - 1 else 0
+
+        self.pool = mp.Pool(self.nProcesses)
+
+        del self.APPLYRESULTS[:]
+
+        self.queueChecker.start()
+
+        for i, workPackage in enumerate(workPackages):
+            args = (workPackage, self.jobid, i, self.resultQueue, resultArray, self.cancelEvent)
+            if False:  # todo: ???
+                r = self.pool.apply_async(self.loadBands, args=args, callback=self.checkQueue)
+                self.APPLYRESULTS.append(r)
+            else:
+                self.checkQueue(self.loadBands(*args)) ### todo ???
+        self.pool.close()
+
+    def checkQueue(self, *args):
+
+        while not self.resultQueue.empty():
+            md = self.resultQueue.get()
+            self.onPixelLoaded(md)
+
+        if all([w.ready() for w in self.APPLYRESULTS]):
+            print('All done')
+
+            del self.APPLYRESULTS[:]
+            self.queueChecker.stop()
+            #if not self.cancelEvent.is_set():
+                #self.sigLoadingFinished.emit()
+        elif self.cancelEvent.is_set():
+            self.queueChecker.stop()
+            #self.sigLoadingCanceled.emit()
+
+    #@QtCore.pyqtSlot(PixelLoaderResult)
+    def onPixelLoaded(self, data):
+    #    assert isinstance(data, PixelLoaderResult)
+        if data.jobId != self.jobid:
+            #do not return results from previous jobs...
+            #print('got thread results from {} but need {}...'.format(jobid, self.jobid))
+            return
+        else:
+            self.filesList.remove(data.source)
+            self.sigPixelLoaded.emit(self.nMax - len(self.filesList), self.nMax, data)
+
+            if len(self.filesList) == 0:
+                self.sigLoadingFinished.emit()
+
+
+
+    def loadBands(self, paths, jobid, poolWorker, resultArray, q, cancelEvent):
+
+        print("paths")
+        print(paths)
+        for i, path in enumerate(paths):
+            if cancelEvent.is_set():
+                print "canceled"
+                return "Canceled"
+
+            #R = PixelLoaderResult(jobid, poolWorker, geom, path)
+            currentBand = Bands(name=('Band ' + str(jobid)), dataset=self.ds.GetRasterBand(jobid + 1), ind=jobid)
+
+            self.ar.append(currentBand)
+
+            try:
+                #todo: append band information to bandc2 as children
+                print "dataset"
+                #print(dataset)
+                print "count"
+                #print(dataset.RasterCount)
+                for index in range(1, self.ds.RasterCount):
+                    band = self.ds.GetRasterBand(index)
+                    print "Band"
+                    print(band)
+
+                    currentBand = Bands(name=('Band ' + str(index)), dataset=band, ind=index)
+                    print "current Band"
+                    print(currentBand)
+                    #currentBand.getParameter().sigValueChanged.connect(
+                    #    lambda param, data: self.bandNdvChanged(index, data))
+                    resultArray.append(currentBand)
+                    print "resultArray"
+                    print(resultArray)
+
+                    #if band.GetNoDataValue() != self.nodataValue:
+                    #    self.nodataValue = str('is defined per band. type here to set nodata value for all bands.')
+                    #    self.ndv.getParameter().setValue(
+                    #        str('is defined per band. type here to set nodata value for all bands.'))
+                    #    break
+
+            except:
+                print("bands could not be loaded")
+
+        return "Finished"
+
+
 class Bands(pTypes.GroupParameter):
     def __init__(self, dataset, ind, **opts):
-        opts['type'] = 'bool'
-        opts['value'] = True
+
+        c = [
+            dict(name = 'Band Number', type = 'str', value = str(ind), readonly = True),
+            dict(name = 'Band Name', type = 'str', value = dataset.GetDescription(), readonly = True),
+            dict(name = 'Wavelength', type = 'str', value = dataset.GetMetadataItem('wavelength'), readonly = True),
+            dict(name = 'Wavelength Unit', type = 'str', value = dataset.GetMetadataItem('wavelength_units'), readonly = True),
+            dict(name = 'Band NoData Value', type = 'str', value = dataset.GetNoDataValue(), readonly = False),
+        ]
+
+        opts['type'] = 'group'
+        opts['children'] = c
 
         pTypes.GroupParameter.__init__(self, **opts)
 
-        self.addChildren([
-            {'name': 'Band Number', 'type': 'str', 'value': str(ind), 'readonly': True},
-            {'name': 'Band Name', 'type': 'str', 'value': dataset.GetDescription(),
-             'readonly': True},
-            {'name': 'Wavelength', 'type': 'str', 'value': str(dataset.GetMetadataItem('wavelength')), 'readonly': True},
-            {'name': 'Wavelength Unit', 'type': 'str', 'value': str(dataset.GetMetadataItem('wavelength_units')),
-             'readonly': True},
-            {'name': 'Band NoData Value', 'type': 'str', 'value': str(dataset.GetNoDataValue()),
-             'readonly': False},
-            ])
+        print(self)
+        #str(ind)
+        #dataset.GetDescription()
+        #dataset.GetMetadataItem('wavelength')
+
+        #c = [
+        #    dict(name = 'Band Number', type = 'str', value = str(ind), readonly = True),
+        #    dict(name = 'Band Name', type = 'str', value = dataset.GetDescription(), readonly = True),
+        #    dict(name = 'Wavelength', type = 'str', value = dataset.GetMetadataItem('wavelength'), readonly = True),
+        #    dict(name = 'Wavelength Unit', type = 'str', value = dataset.GetMetadataItem('wavelength_units'), readonly = True),
+        #    dict(name = 'Band NoData Value', type = 'str', value = dataset.GetNoDataValue(), readonly = False),
+        #]
+
+        #self.create(name='params', type='group', children=c)
+
+        #self.addChildren([
+            #{'name': 'Band Number', 'type': 'str', 'value': str(ind), 'readonly': True},
+            #{'name': 'Band Name', 'type': 'str', 'value': dataset.GetDescription(),
+            # 'readonly': True},
+            #{'name': 'Wavelength', 'type': 'str', 'value': dataset.GetMetadataItem('wavelength'), 'readonly': True},
+            #{'name': 'Wavelength Unit', 'type': 'str', 'value': dataset.GetMetadataItem('wavelength_units'),
+            # 'readonly': True},
+        #    {'name': 'Band NoData Valu', 'type': 'str', 'value': dataset.GetNoDataValue(),
+        #     'readonly': False},
+        #    ])
 
         self.a = self.param('Band NoData Value')
 
     def getParameter(self):
         return self.a
-
 
 ## this group includes a menu allowing the user to add new parameters into its child list
 class FreeMetadataDomains(pTypes.GroupParameter):
@@ -132,7 +301,7 @@ class FreeMetadata(pTypes.GroupParameter):
                             renamable=True))
 
 
-class Win(QtGui.QWidget):
+class Win(QtGui.QDialog):
 
     inDS = None
 
@@ -202,6 +371,25 @@ class Win(QtGui.QWidget):
         s = self.p.saveState()
         self.p.restoreState(s)
 
+        enmapBox = EnMAPBox.instance()
+
+        if isinstance(enmapBox, EnMAPBox):
+            print("enmapbox found")
+            for src in sorted(enmapBox.dataSources('RASTER')):
+                print("raster found")
+                self.addSrcRaster(src)
+
+    def addSrcRaster(self, src):
+        print("add function called")
+        addedItems = [self.inputFile.itemData(i, role=Qt.UserRole) for
+            i in range(self.inputFile.count())]
+        if src not in addedItems: #hasClassification(src) and src not in addedItems:
+            print("not yet added")
+            bn = os.path.basename(src)
+            self.inputFile.addItem(src) #(bn, src)
+        self.validatePath(src)
+
+
         # Too lazy for recursion:
         #for child in self.p.children():
         #    child.sigValueChanging.connect(self.valueChanging)
@@ -214,8 +402,9 @@ class Win(QtGui.QWidget):
         self.inputFile.setCurrentIndex(counter - 1)
 
     def comboIndexChanged(self):
-        if self.validatePath():
+        if self.validatePath(str(self.inputFile.currentText())):
             self.inDS = gdal.Open(str(self.inputFile.currentText()))
+
             params = self.setMetadataTree()
             self.populateMetadata(params)
 
@@ -231,6 +420,7 @@ class Win(QtGui.QWidget):
             #self.ndv.getParameter().setValue(str('value is not a number'))
 
     def bandNdvChanged(self, i, data):
+        print(self.ndv.getParameter().value())
         if data != self.ndv.getParameter().value():
             self.ndv.getParameter().setValue(str('is defined per band. type here to set nodata value for all bands.'))
 
@@ -308,10 +498,13 @@ class Win(QtGui.QWidget):
 
         self.bandc2 = []
 
-        keys = {'red', 'green', 'blue', 'yellow', 'orange', 'pink', 'black'}
-        d = dict.fromkeys(keys)  # dict is pre-sized to 32 empty slots
-        print "ddd"
-        print d
+        #BandLoader(self.bandc2, self.inDS)
+        # todo:
+        # band loader async
+        # in band loader: for all bands, load band info and append a band object
+        # in band object, define sivaluechanged function.
+        # establish getter for ndv.getparameter
+
         for index in range(1, self.inDS.RasterCount):
             band = self.inDS.GetRasterBand(index)
 
@@ -324,10 +517,10 @@ class Win(QtGui.QWidget):
                 self.ndv.getParameter().setValue(str('is defined per band. type here to set nodata value for all bands.'))
                 break
 
-            #print band.GetRasterColorInterpretation(0)
-            print "color"
-            print band.GetRasterColorInterpretation()
-            if band.GetRasterColorInterpretation() == 3:
+            #print "color_load"
+            #print band
+            #print band.GetRasterColorInterpretation()
+            if int(band.GetRasterColorInterpretation()) == 3:
                 print "check red"
                 print self.redBand
                 self.redBand = index
@@ -344,8 +537,10 @@ class Win(QtGui.QWidget):
                 print self.alphaBand
                 self.alphaBand = index
 
-        print self.inDS
-        print self.inDS.GetDescription()
+        #print self.inDS.GetRasterBand(self.redBand)
+        #print self.inDS
+        #print self.inDS.GetDescription()
+        #print self.inDS.SetDescription(str("test"))
 
         defaultBands = DefaultBands(name='Default Bands', dataset=[self.redBand, self.greenBand, self.blueBand, self.alphaBand], rastercount=self.inDS.RasterCount)
         self.generalChildren = [
@@ -401,7 +596,9 @@ class Win(QtGui.QWidget):
         #self.p.sigTreeStateChanged.connect(self.change)
         self.t.setParameters(self.p, showTop=False)
 
-    def validatePath(self, *args, **kwds):
+    def validatePath(self, dataset, *args, **kwds):
+        print("File List")
+        print(dataset)
         sender = self.sender()
         hexRed = QColor(Qt.red).name()
         hexGreen = QColor(Qt.green).name()
@@ -435,13 +632,12 @@ class Win(QtGui.QWidget):
 
     def saveMetadata(self):
 
-        #todo: Save free metadata
-
-
         # Set image description
+        print self.inDS
         print self.inDS.GetDescription()
         self.inDS.SetDescription(str("bla"))
         print self.inDS.GetDescription()
+        self.inDS.SetDescription(str("bla"))
 
         # Set NoData Values
         for index in range(1, self.inDS.RasterCount):
@@ -451,13 +647,13 @@ class Win(QtGui.QWidget):
                 self.inDS.GetRasterBand(index).DeleteNoDataValue()
 
         # Set default bands
-
         if self.redBand != 0:
             print "reeedd"
             print self.redBand
             print self.inDS.GetRasterBand(self.redBand)
             self.inDS.GetRasterBand(self.redBand).SetRasterColorInterpretation(int(3))
-            print self.inDS.GetRasterBand(self.redBand).GetRasterColorInterpretation()
+            c= self.inDS.GetRasterBand(self.redBand).GetRasterColorInterpretation()
+            print c
         if self.greenBand != 0:
             self.inDS.GetRasterBand(self.redBand).SetRasterColorInterpretation(4)
         if self.blueBand != 0:
@@ -465,6 +661,13 @@ class Win(QtGui.QWidget):
         if self.alphaBand != 0:
             self.inDS.GetRasterBand(self.redBand).SetRasterColorInterpretation(6)
 
+        # Save free metadata
+        for domain in range(0, len(self.params[4].children())):
+            d = self.params[4].children()[domain].name()
+            for datum in range(0, len(self.params[4].children()[domain].children())):
+                n = self.params[4].children()[domain].children()[datum].name()
+                v = self.params[4].children()[domain].children()[datum].value()
+                self.inDS.SetMetadataItem(str(n), str(v), str(d))
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':

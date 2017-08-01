@@ -44,14 +44,16 @@ class Dummy(EnMAPBoxApplication):
 
         #add a QAction that starts your GUI
         a = appMenu.addAction('Dummy')
-        assert isinstance(a, QAction)
+        #assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
         return a
 
 
     def startGUI(self, *args):
-        from reclassifyapp import reclassifydialog as ui
-        uiDialog = QDialog(self.enmapbox.ui)
-        uiDialog.setWindowTitle('Dummy')
-        uiDialog.show()
+        from metadataeditorapp.metadataeditor import Win
+        ui = Win(self.enmapbox.ui)
+        ui.show()
+        #uiDialog = QDialog(self.enmapbox.ui)
+        #uiDialog.setWindowTitle('Dummy')
+        #uiDialog.show()
