@@ -17,6 +17,7 @@ import os
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph
 
 from osgeo import osr
 from hub.gdal.api import *
@@ -30,16 +31,34 @@ from enmapbox.gui.enmapboxgui import EnMAPBox
 
 import time
 
-
 class Stats(QWidget):
     def __init__(self, inDS, index, approximate, *args, **kwds):
         super(Stats, self).__init__(*args, **kwds)
 
-        print(inDS.RasterXSize * inDS.RasterYSize)
-        print(inDS.GetRasterBand(index + 1).GetStatistics(approximate, False))
+        stats = inDS.GetRasterBand(index + 1).ComputeStatistics(approximate, False)
+        print(inDS.GetRasterBand(index + 1).ComputeStatistics(approximate, False))
 
         statLayout = QVBoxLayout()
-        statLayout.addWidget(QLabel(str(inDS.RasterXSize * inDS.RasterYSize)))
+
+        label = QLabel(str(inDS.GetRasterBand(index + 1).GetDescription()))
+        label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+
+        statLayout.addWidget(label)
+        statLayout.addWidget(QLabel("Samples: " + str(inDS.RasterXSize * inDS.RasterYSize)))
+        statLayout.addWidget(QLabel("Mean: " + str(stats[2])))
+        statLayout.addWidget(QLabel("Standard Deviation: " + str(stats[3])))
+        statLayout.addWidget(QLabel("Min: " + str(stats[0]) + " Max: " + str(stats[1])))
+
+        data = numpy.array(inDS.GetRasterBand(index + 1).ReadAsArray())
+        img = pyqtgraph.ImageItem()
+        img.setImage(data)
+
+        histWidget = pyqtgraph.HistogramLUTWidget(None, img)
+        histWidget.plot.rotate(-90)
+        histWidget.vb.setMouseEnabled(x=True, y=True)
+        histWidget.vb.setMaximumWidth(1000)
+
+        statLayout.addWidget(histWidget)
 
         self.setLayout(statLayout)
 
@@ -132,12 +151,20 @@ class Win(QtGui.QDialog):
 
     def computeStats(self):
 
+        self.clearLayout(self.scrollLayout)
+
         stats = []
         for index in range(0, len(self.bandList.selectedIndexes())):
             stats.append(Stats(self.inDS, index, self.approximateStats.isChecked())) # index, apprximate y/n
 
         for jndex in range(0, len(stats)):
             self.scrollLayout.addWidget(stats[jndex])
+
+    def clearLayout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
 
     def save(self):
         global state
