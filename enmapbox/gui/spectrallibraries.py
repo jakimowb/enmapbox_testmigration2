@@ -19,10 +19,11 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import os, re, tempfile, pickle
-import pyqtgraph as pg
+import os, re, tempfile, pickle, copy
+
 from qgis.core import *
 from qgis.gui import *
+import pyqtgraph as pg
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import numpy as np
@@ -44,20 +45,6 @@ LUT_IDL2GDAL = {1:gdal.GDT_Byte,
                 9:gdal.GDT_CFloat64}
 
 class SpectralProfile(QObject):
-
-    @staticmethod
-    def deserialize(input):
-        profiledata = pickle.loads(input)
-        profile = SpectralProfile()
-        for k in profile.__dict__.keys():
-            if k in profiledata.keys():
-                profile.__dict__[k] = profiledata[k]
-            else:
-                print('Can not make use of restored key {}'.format(k))
-        for k in profiledata.keys():
-            if k not in profile.__dict__.keys():
-                profile.__dict__[k] = profiledata[k]
-        return profile
 
     @staticmethod
     def fromRasterSource(source, position):
@@ -181,25 +168,37 @@ class SpectralProfile(QObject):
         pg.plot(self.xValues(), self.yValues(), title=self.name())
         pg.QAPP.exec_()
 
+
+    def __reduce_ex__(self, protocol):
+
+        return self.__class__, (), self.__getstate__()
+
+    def __getstate__(self):
+        return self.__dict__.copy()
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+    def __copy__(self):
+        return copy.deepcopy(self)
+
     def __eq__(self, other):
-        return isinstance(other, SpectralProfile) \
-            and self.mValues == other.mValues \
+        if not isinstance(other, SpectralProfile):
+            return False
+        if len(self.mValues) != len(other.mValues):
+            return False
+        return all(a == b for a,b in zip(self.mValues, other.mValues)) \
             and self.mValuePositions == other.mValuePositions \
             and self.mValueUnit == other.mValueUnit \
-            and self.mValuePositionUnit == other.mValuePositionUnit
+            and self.mValuePositionUnit == other.mValuePositionUnit \
+            and self.mGeoCoordinate == other.mGeoCoordinate \
+            and self.mPxCoordinate == other.mPxCoordinate
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __len__(self):
         return len(self.mValues)
-
-    def serialize(self):
-        import pickle
-        profiledata = self.__dict__
-        return pickle.dumps(profiledata)
-
-
 
 
 
@@ -470,6 +469,16 @@ class SpectralLibrary(QObject):
 
         pg.QAPP.exec_()
 
+    def __reduce_ex__(self, protocol):
+        return self.__class__, (), self.__getstate__()
+
+    def __getstate__(self):
+        return self.__dict__.copy()
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+
     def __len__(self):
         return len(self.mProfiles)
 
@@ -482,3 +491,25 @@ class SpectralLibrary(QObject):
     def __delitem__(self, slice):
         profiles = self[slice]
         self.removeProfiles(profiles)
+
+    def __eq__(self, other):
+        if not isinstance(other, SpectralLibrary):
+            return False
+
+        if len(self) != len(other):
+            return False
+
+        for p1, p2 in zip(self.__iter__(), other.__iter__()):
+            if p1 != p2:
+                return False
+        return True
+
+if __name__ == "__main__":
+    from enmapbox.testdata.UrbanGradient import Speclib, EnMAP
+    from enmapbox.gui.sandbox import initQgisEnvironment
+    from enmapbox.gui.utils import SpatialPoint, SpatialExtent
+    qapp = initQgisEnvironment()
+    sl1 = SpectralLibrary.readFrom(Speclib)
+    sl2 = pickle.loads(pickle.dumps(sl1))
+    assert sl1 == sl2
+    s = ""

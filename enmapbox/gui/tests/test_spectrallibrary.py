@@ -79,8 +79,6 @@ class testclassData(unittest.TestCase):
                 'reflectance scale factor':1.000000}.items():
             self.assertEqual(hdr.get(key), value)
 
-
-
     def test_spectralLibrary(self):
 
         sl = SpectralLibrary.readFrom(Speclib)
@@ -95,6 +93,7 @@ class testclassData(unittest.TestCase):
         p1.setValues([1,3,4], valuePositions=[1,2,3])
         self.assertTrue(p1 not in sl)
 
+        self.assertEqual(p1, pickle.loads(pickle.dumps(p1)))
 
 if __name__ == "__main__":
 
