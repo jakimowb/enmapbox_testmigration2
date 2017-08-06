@@ -394,6 +394,10 @@ class EnMAPBox(QObject):
         self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
 
+        from enmapbox.gui.mapcanvas import MapDock
+        self.ui.actionLoadExampleData.triggered.connect(lambda: self.openExampleData(
+            mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
+
         #activate map tools
         self.ui.actionZoomIn.triggered.connect(lambda : self.dockManager.activateMapTool('ZOOM_IN'))
         self.ui.actionZoomOut.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_OUT'))
@@ -442,6 +446,8 @@ class EnMAPBox(QObject):
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
+
+
 
     def loadEnMAPBoxApplications(self):
         from enmapbox.gui.applications import ApplicationRegistry

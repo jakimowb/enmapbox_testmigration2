@@ -24,7 +24,16 @@
     <string notr="true"/>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
@@ -39,7 +48,16 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -73,7 +91,7 @@
      <x>0</x>
      <y>0</y>
      <width>545</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -87,6 +105,7 @@
      <string>Project</string>
     </property>
     <addaction name="actionAddDataSource"/>
+    <addaction name="actionLoadExampleData"/>
     <addaction name="separator"/>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
@@ -112,8 +131,8 @@
     <addaction name="separator"/>
     <addaction name="actionAddMapView"/>
     <addaction name="actionAddTextView"/>
-    <addaction name="actionAddWebView"/>
     <addaction name="actionAddMimeView"/>
+    <addaction name="separator"/>
     <addaction name="menuPanels"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -177,7 +196,7 @@
      <normaloff>:/enmapbox/icons/viewlist_mapdock.png</normaloff>:/enmapbox/icons/viewlist_mapdock.png</iconset>
    </property>
    <property name="text">
-    <string>Add Map Dock</string>
+    <string>Add Map Window</string>
    </property>
   </action>
   <action name="actionAddTextView">
@@ -186,7 +205,7 @@
      <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
    </property>
    <property name="text">
-    <string>Add Text Dock</string>
+    <string>Add Text Window</string>
    </property>
   </action>
   <action name="actionAddGraphView">
@@ -379,6 +398,11 @@
    </property>
    <property name="text">
     <string>Move to Point</string>
+   </property>
+  </action>
+  <action name="actionLoadExampleData">
+   <property name="text">
+    <string>Load Example Data</string>
    </property>
   </action>
  </widget>
