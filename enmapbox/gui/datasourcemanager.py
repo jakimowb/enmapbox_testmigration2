@@ -626,13 +626,17 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
         if isinstance(node, DataSourceRaster):
             a = m.addAction('Save as..')
+
             a = m.addAction('Raster statistics')
-            #todo: call "Save Raster as ..."
-            #a.triggered.connect(lambda: model.dataSourceManager.removeSource(node.dataSource))
+            sub = m.addMenu('Open in new Map Viewer...')
+            a = sub.addAction('Default Colors')
+            a = sub.addAction('True Color')
+            a = sub.addAction('nIR swIR Red')
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
-            #todo: connect with show band stats GUI
+            a = m.addAction('Open in new Map Viewer')
+
 
         if isinstance(node, DataSourceVector):
             a = m.addAction('Save as..')
