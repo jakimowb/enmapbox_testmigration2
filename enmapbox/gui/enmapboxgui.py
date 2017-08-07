@@ -336,7 +336,7 @@ class EnMAPBox(QObject):
 
         assert EnMAPBox._instance is None
         super(EnMAPBox, self).__init__()
-
+        self.ui = EnMAPBoxUI()
         EnMAPBox._instance = self
 
         splash.showMessage('Load Interfaces')
@@ -355,7 +355,7 @@ class EnMAPBox(QObject):
 
         assert isinstance(qgsUtils.iface, QgisInterface)
         splash.showMessage('Load UI')
-        self.ui = EnMAPBoxUI()
+
 
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
