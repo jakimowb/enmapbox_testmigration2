@@ -487,6 +487,7 @@ class MapCanvas(QgsMapCanvas):
     sigLayersAdded = pyqtSignal(list)
 
     sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+    sigSpectrumRequested = pyqtSignal(SpatialPoint)
     sigSpectrumRequest = pyqtSignal(SpatialPoint)
 
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
@@ -504,7 +505,7 @@ class MapCanvas(QgsMapCanvas):
         self.setCrsTransformEnabled(True)
 
         MapCanvas._cnt += 1
-        self._extentInitialized = False
+        self.mCrsExtentInitialized = False
         #self.mapdock = parentMapDock
         #self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
@@ -848,11 +849,12 @@ class MapCanvas(QgsMapCanvas):
         #todo: change with QGIS 3
         super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
 
-        if not self._extentInitialized and len(newSet) > 0:
+        if not self.mCrsExtentInitialized and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent
             newExtent = SpatialExtent.fromLayer(newSet[0])
             self.setSpatialExtent(newExtent)
-            self._extentInitialized = True
+            self.setCrs(newExtent.crs())
+            self.mCrsExtentInitialized = True
         self.setRenderFlag(True)
         self.refreshAllLayers()
 
