@@ -213,6 +213,17 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         s = ""
 
 
+class RasterBandTreeNode(TreeNode):
+
+    def __init__(self,  dataSource, bandIndex, *args, **kwds):
+        super(RasterBandTreeNode, self).__init__( *args, **kwds)
+        assert isinstance(dataSource, DataSourceRaster)
+        assert bandIndex >= 0
+        assert bandIndex < dataSource.nBands
+        self.mDataSource = dataSource
+        self.mBandIndex = bandIndex
+
+
 class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         #extents in pixel
@@ -239,16 +250,31 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         self.nodeExtYpx = TreeNode(self.nodeSize, 'Lines',
                                    tooltip='Data Source Height in Pixel',
                                    value='{} px'.format(dataSource.nLines))
-        self.nodeBands = TreeNode(self.nodeSize, 'Bands',
-                                  tooltip='Number of Raster Bands',
-                                  value='{}'.format(dataSource.nBands))
+
         self.nodePxSize = TreeNode(self.nodeSize, 'Pixel',
-                                   tooltip = 'Spatial size of single pixel',
-                                   value='{} {} x {} {}'.format(dataSource.pxSizeX,mu, dataSource.pxSizeY, mu))
+                                   tooltip='Spatial size of single pixel',
+                                   value='{} {} x {} {}'.format(dataSource.pxSizeX, mu, dataSource.pxSizeY, mu))
 
         self.nodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples,
                                                  dataSource.nLines,
                                                  dataSource.nBands))
+
+        self.nodeBands = TreeNode(self, 'Bands',
+                                  tooltip='Number of Raster Bands',
+                                  value='{}'.format(dataSource.nBands))
+
+
+        ds = gdal.Open(dataSource.uri())
+        for b in range(ds.RasterCount):
+            band = ds.GetRasterBand(b+1)
+            name = band.GetDescription()
+            if len(name) == 0:
+                name = '<no band name specified>'
+            RasterBandTreeNode(dataSource, b, self.nodeBands, 'Band {}'.format(b+1), value=name)
+
+        ds = None
+
+
 
     def disconnectDataSource(self):
         if self.nodeExtXpx is not None:
@@ -395,15 +421,14 @@ class DataSourceManagerTreeModel(TreeModel):
             if data.hasFormat("application/enmapbox.datasourcetreemodeldata"):
                 return False  # do not allow moving within DataSourceTree
 
-            # add new data from external
+            # add new data from external sources
             elif data.hasFormat('text/uri-list'):
                 for url in data.urls():
                     self.dataSourceManager.addSource(url)
 
-            # add new from QGIS
+            # add data dragged from QGIS
             elif data.hasFormat("application/qgis.layertreemodeldata"):
                 result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
-                s = ""
 
             nodes = [n for n in nodes if n is not None]
 
@@ -445,6 +470,7 @@ class DataSourceManagerTreeModel(TreeModel):
             node.writeXML(rootElem)
             uriList.append(QUrl(node.dataSource.uri()))
 
+        #set application/enmapbox.datasourcetreemodeldata
         doc.appendChild(rootElem)
         txt = doc.toString()
         mimeData.setData("application/enmapbox.datasourcetreemodeldata", txt)
@@ -452,7 +478,6 @@ class DataSourceManagerTreeModel(TreeModel):
         # set text/uri-list
         if len(uriList) > 0:
             mimeData.setUrls(uriList)
-        MH = MimeDataHelper(mimeData)
         return mimeData
 
     def getSourceGroup(self, dataSource):
@@ -567,6 +592,9 @@ class DataSourceManagerTreeModel(TreeModel):
 
 
 class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
+    """
+    This class defines which context menues will be shown for for which TreeNodes
+    """
 
     def __init__(self, treeView):
         super(DataSourceManagerTreeModelMenuProvider, self).__init__(treeView)
@@ -592,17 +620,24 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             a.triggered.connect(lambda : model.dataSourceManager.removeSource(node.dataSource))
             a = m.addAction('Copy URI / path')
             a.triggered.connect(lambda: QApplication.clipboard().setText(str(node.dataSource.uri())))
+            a = m.addAction('Rename')
+            #todo: imlement rename function
+            #a.triggered.connect(node.dataSource.rename)
 
         if isinstance(node, DataSourceRaster):
             a = m.addAction('Save as..')
-            src = node.dataSource
+            a = m.addAction('Raster statistics')
             #todo: call "Save Raster as ..."
             #a.triggered.connect(lambda: model.dataSourceManager.removeSource(node.dataSource))
 
-            if isinstance(node, DataSourceVector):
-                a = m.addAction('Save as..')
-                src = node.dataSource
-                # todo: call "Save Vector as ..."
+        if isinstance(node, RasterBandTreeNode):
+            a = m.addAction('Band statistics')
+            #todo: connect with show band stats GUI
+
+        if isinstance(node, DataSourceVector):
+            a = m.addAction('Save as..')
+            src = node.dataSource
+            # todo: call "Save Vector as ..."
 
         if col == 1 and node.value() != None:
             a = m.addAction('Copy')
