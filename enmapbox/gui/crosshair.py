@@ -167,13 +167,15 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         self.canvas.update()
         #self.updateCanvas()
 
+
+
     def paint(self, painter, QStyleOptionGraphicsItem=None, QWidget_widget=None):
         if self.mShow and self.crosshairStyle.mShow:
            #paint the crosshair
             size = self.canvas.size()
             m2p = self.canvas.mapSettings().mapToPixel()
             centerGeo = self.canvas.center()
-            centerPx = self.toCanvasCoordinates(self.canvas.center())
+            centerPx = self.toCanvasCoordinates(centerGeo)
 
             x0 = centerPx.x() * (1.0 - self.crosshairStyle.mSize)
             y0 = centerPx.y() * (1.0 - self.crosshairStyle.mSize)

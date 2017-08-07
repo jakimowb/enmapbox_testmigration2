@@ -849,6 +849,8 @@ class DockManager(QgsLegendInterface):
             self.cursorLocationValueDock.showLocationValues(*args)
 
 
+
+
     def setCursorLocationValueDock(self, dock):
         if dock is None:
             self.cursorLocationValueDock = None
