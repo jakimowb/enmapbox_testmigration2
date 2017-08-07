@@ -100,9 +100,12 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
 
-
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
+
+        area = Qt.BottomDockWidgetArea
+        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
+        self.specLibViewPanel = addPanel(SpectralLibraryPanel(self))
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -110,8 +113,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
 
         #tabbify dock widgets
-        self.tabifyDockWidget(self.processingPanel, self.dockPanel)
-        self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
+        self.tabifyDockWidget(self.dataSourcePanel, self.dockPanel)
+        self.tabifyDockWidget(self.dataSourcePanel, self.processingPanel)
 
     def setIsInitialized(self):
         self.isInitialized = True
@@ -393,7 +396,6 @@ class EnMAPBox(QObject):
 
         splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
-
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
 

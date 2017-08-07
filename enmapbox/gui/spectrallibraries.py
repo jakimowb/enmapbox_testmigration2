@@ -28,7 +28,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import numpy as np
 from osgeo import gdal
-from enmapbox.gui.utils import loadUi, gdalDataset, SpatialPoint
+from enmapbox.gui.utils import loadUI, gdalDataset, SpatialPoint, PanelWidgetBase
 
 
 
@@ -377,6 +377,19 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
 
         return md
 
+class SpectralLibraryPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
+
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(SpectralLibraryPanel, self).__init__(parent)
+        # Set up the user interface from Designer.
+        # After setupUI you can access any designer object by doing
+        # self.<objectname>, and you can use autoconnect slots - see
+        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
+        # #widgets-and-dialogs-with-auto-connect
+        self.setupUi(self)
+
+
 class SpectralLibrary(QObject):
 
     @staticmethod
@@ -621,7 +634,7 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
 
 
 
-class SpectraLibraryViewer(QFrame, loadUi('speclibviewer.ui')):
+class SpectraLibraryViewer(QFrame, loadUI('speclibviewer.ui')):
     def __init__(self, parent=None):
         super(SpectraLibraryViewer, self).__init__(parent)
         self.setupUi(self)

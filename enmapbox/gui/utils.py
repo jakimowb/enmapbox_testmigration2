@@ -108,7 +108,6 @@ def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
 FORM_CLASSES = dict()
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 
-loadUi = lambda p : loadUIFormClass(jp(DIR_UIFILES, p))
 
 #dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()

@@ -26,7 +26,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import numpy as np
 from osgeo import gdal
-from enmapbox.gui.utils import loadUi, gdalDataset
+from enmapbox.gui.utils import loadUI, gdalDataset
 from itertools import cycle
 
 DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
@@ -624,7 +624,7 @@ class ClassificationWidgetDelegates(QStyledItemDelegate):
             if index.data() != w.color():
                 model.setData(index, w.color(), Qt.EditRole)
 
-class ClassificationSchemeWidget(QWidget, loadUi('classificationscheme.ui')):
+class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
 
 
 
