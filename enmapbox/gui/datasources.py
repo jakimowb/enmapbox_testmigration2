@@ -344,8 +344,6 @@ class DataSourceRaster(DataSourceSpatial):
         self.pxSizeX = np.round(refLayer.rasterUnitsPerPixelX(), 4)
         self.pxSizeY = np.round(refLayer.rasterUnitsPerPixelY(), 4)
 
-
-
         #change icon
         icon = self.icon()
         if self.nLines == 1:

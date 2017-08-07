@@ -58,7 +58,6 @@ class HUBTimeSeriesViewerApp(EnMAPBoxApplication):
             return a
         return None
 
-
     def startGUI(self, *args):
         from timeseriesviewer.main import TimeSeriesViewer
         self.tsv = TimeSeriesViewer(self.enmapbox.iface)

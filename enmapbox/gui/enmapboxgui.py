@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+
+"""
+***************************************************************************
+    enmapboxgui.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import
 import qgis.core
 import qgis.gui
 from qgis import utils as qgsUtils
@@ -131,7 +150,8 @@ class EnMAPBoxQgisInterface(QgisInterface):
         self.layers = dict()
         self.virtualMapCanvas = QgsMapCanvas()
         self.virtualMapCanvas.setCrsTransformEnabled(True)
-
+        #self.mLog = QgsApplication.instance().messageLog()
+        #self.mLog = QgsApplication.messageLog()
 
     def mainWindow(self):
         return self.enmapBox.ui
@@ -336,25 +356,25 @@ class EnMAPBox(QObject):
 
         assert EnMAPBox._instance is None
         super(EnMAPBox, self).__init__()
-        self.ui = EnMAPBoxUI()
-        EnMAPBox._instance = self
 
+        EnMAPBox._instance = self
         splash.showMessage('Load Interfaces')
-        self.ifaceSimulation = EnMAPBoxQgisInterface(self)
+
         self.iface = iface
 
-        # init QGIS Processing Framework, if necessary
         if qgsUtils.iface is None:
             # there is not running QGIS Instance. This means the entire QGIS processing framework was not
             # initialized at all.
-            qgsUtils.iface = self.ifaceSimulation
+            qgsUtils.iface = EnMAPBoxQgisInterface(self)
 
         # register loggers etc.
+        splash.showMessage('Load UI')
+        self.ui = EnMAPBoxUI()
+
         msgLog = QgsMessageLog.instance()
         msgLog.messageReceived.connect(self.onLogMessage)
 
         assert isinstance(qgsUtils.iface, QgisInterface)
-        splash.showMessage('Load UI')
 
 
         #define managers (the center of all actions and all evil)
@@ -427,8 +447,6 @@ class EnMAPBox(QObject):
                 Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
 
-            initQPFW()
-            s = ""
             try:
                 initQPFW()
                 self.ui.menuProcessing.setEnabled(True)

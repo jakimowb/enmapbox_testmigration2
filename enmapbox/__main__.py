@@ -16,28 +16,27 @@
 *                                                                         *
 ***************************************************************************
 """
+from __future__ import absolute_import
+import sys, os
+from qgis.core import *
+
+def run():
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    from enmapbox.gui.sandbox import initQgisEnvironment
+    from qgis.utils import iface
+    import enmapbox.gui
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+    enmapbox.gui.LOAD_EXTERNAL_APPS = True
+    qgisApp = initQgisEnvironment()
+    enmapbox = EnMAPBox(iface)
+    enmapbox.run()
+    qgisApp.exec_()
+
 
 if __name__ == '__main__':
-
+    sys.path.remove(os.path.dirname(__file__))
     args = sys.argv[1:]
 
-    if '--test' in args:
-        # get rid of orphaned cache files first
-        pg.renamePyc(path)
+    #todo: add command line options
 
-        files = buildFileList(examples)
-        if '--pyside' in args:
-            lib = 'PySide'
-        elif '--pyqt' in args or '--pyqt4' in args:
-            lib = 'PyQt4'
-        elif '--pyqt5' in args:
-            lib = 'PyQt5'
-        else:
-            lib = ''
-
-        exe = sys.executable
-        print("Running tests:", lib, sys.executable)
-        for f in files:
-            testFile(f[0], f[1], exe, lib)
-    else:
-        run()
+    run()
