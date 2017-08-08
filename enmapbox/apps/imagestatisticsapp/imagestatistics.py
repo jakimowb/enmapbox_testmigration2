@@ -63,7 +63,6 @@ class Stats(QWidget):
         self.setLayout(statLayout)
 
 
-
 class Win(QtGui.QDialog):
 
     inDS = None
@@ -77,7 +76,7 @@ class Win(QtGui.QDialog):
         layout = self.layout()
 
         #self.t.setWindowTitle('imagestatistics')
-        QScrollArea
+        #QScrollArea
         # select input file name via QFileDialog in case the file is not open in the enmap box yet
         self.inputFile = QComboBox()
         self.inputFile.currentIndexChanged.connect(
@@ -99,6 +98,9 @@ class Win(QtGui.QDialog):
             lambda: self.computeStats()
         )
 
+        self.selectionTable = QtGui.QTableWidget()
+        self.selectionTable.setSelectionBehavior(QAbstractItemView.SelectRows)
+
         # scroll area widget contents - layout
         self.scrollLayout = QtGui.QFormLayout()
 
@@ -107,9 +109,17 @@ class Win(QtGui.QDialog):
         self.scrollWidget.setLayout(self.scrollLayout)
 
         # scroll area
-        self.scrollArea = QtGui.QScrollArea()
+        self.scrollArea = QScrollArea()
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setWidget(self.scrollWidget)
+
+        self.switchHistogramView = QPushButton("Show/Update Histograms")
+        self.switchHistogramView.clicked.connect(
+            lambda: self.showHistograms()
+        )
+
+        self.splitter = QSplitter()
+
 
         layout.addWidget(QtGui.QLabel("Select file and calculate statistics."), 0, 0, 1, 8)
         layout.addWidget(self.inputFile, 1, 0, 1, 6)
@@ -119,7 +129,11 @@ class Win(QtGui.QDialog):
         layout.addWidget(self.computebtn, 6, 0, 1, 8)
         layout.addWidget(self.scrollArea, 7, 0, 1, 8)
 
-        self.resize(600,600)
+        layout.addWidget(self.selectionTable, 8 ,0 ,1 , 8)
+        layout.addWidget(self.switchHistogramView, 9 ,0 ,1 , 8)
+        layout.addWidget(self.splitter, 10, 0, 1, 8)
+
+        self.resize(600,800)
 
         enmapBox = EnMAPBox.instance()
 
@@ -146,37 +160,79 @@ class Win(QtGui.QDialog):
         if self.validatePath(str(self.inputFile.currentText())):
             self.inDS = gdal.Open(str(self.inputFile.currentText()))
 
+            self.selectionTable.setRowCount(self.inDS.RasterCount - 1)
+            self.selectionTable.setColumnCount(5) # Samples, Min , Max, Mean, Stdev
+
+            self.selectionTable.setHorizontalHeaderLabels(["Samples", "Min", "Max", "Mean", "Stand. Dev."]) # Name, Samples, Min , Max, Mean, Stdev
+
+            rowlabels = []
+
             for index in range(1, self.inDS.RasterCount):
+                rowlabels.append(self.inDS.GetRasterBand(index).GetDescription())
                 self.bandList.addItem(self.inDS.GetRasterBand(index).GetDescription())
+
+            self.selectionTable.setVerticalHeaderLabels(rowlabels)  # Name, Samples, Min , Max, Mean, Stdev
+
+    def clearHistograms(self):
+        for i in range(0, self.splitter.count()):
+            self.splitter.widget(i).deleteLater()
+
+    def showHistograms(self):
+        self.clearHistograms()
+        if len(self.selectionTable.selectionModel().selectedRows()) < 4:
+            for j in range(0, len(self.selectionTable.selectionModel().selectedRows())):
+                if self.selectionTable.selectionModel().selectedRows()[j]:
+                    data = numpy.array(self.inDS.GetRasterBand(self.selectionTable.selectionModel().selectedRows()[j].row() + 1).ReadAsArray())
+
+                    # histogram through np.plot
+                    y, x = numpy.histogram(data)
+                    win = pyqtgraph.GraphicsWindow()
+                    plt1 = win.addPlot()
+                    win.setMinimumSize(200,200)
+                    plt1.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 0, 255, 150))
+
+                    splitterV = QSplitter(Qt.Vertical)
+                    splitterV.addWidget(QLabel(self.inDS.GetRasterBand(self.selectionTable.selectionModel().selectedRows()[0].row() + 1).GetDescription()))
+                    splitterV.addWidget(win)
+                    self.splitter.addWidget(splitterV)
 
     def computeStats(self):
 
         self.clearLayout(self.scrollLayout)
 
+        # band list
         stats = []
         for index in range(0, len(self.bandList.selectedIndexes())):
-            stats.append(Stats(self.inDS, index, self.approximateStats.isChecked())) # index, apprximate y/n
+            stats.append(Stats(self.inDS, self.bandList.selectedIndexes()[index].row(), self.approximateStats.isChecked())) # index, apprximate y/n
 
         for jndex in range(0, len(stats)):
             self.scrollLayout.addWidget(stats[jndex])
+
+        # band table
+        for index in range(0, len(self.selectionTable.selectedIndexes()) / 5): # /5, since 1 index = 1 cell. we want nbr of rows, not cells
+            #print(self.selectionTable.selectionModel().selectedRows()[index].row())
+
+            bandInd = self.selectionTable.selectionModel().selectedRows()[index].row()
+            stats = self.inDS.GetRasterBand(bandInd + 1).ComputeStatistics(self.approximateStats.isChecked(), False)
+
+            #item = QTableWidgetItem(QLabel(str(self.inDS.RasterXSize * self.inDS.RasterYSize)))
+            wid = QLabel(str(self.inDS.RasterXSize * self.inDS.RasterYSize))
+            wid.setTextInteractionFlags(Qt.TextSelectableByMouse)
+
+
+            #self.selectionTable.setItem(bandInd, 0, QTableWidgetItem(str(self.inDS.RasterXSize * self.inDS.RasterYSize), 0)) # Samples
+            #self.selectionTable.setItem(bandInd, 0, item) # Samples
+            self.selectionTable.setCellWidget(bandInd, 0, wid) # Samples
+            self.selectionTable.setItem(bandInd, 1, QTableWidgetItem(str(stats[0]), 0)) # Min
+            self.selectionTable.setItem(bandInd, 2, QTableWidgetItem(str(stats[1]), 0)) # Max
+            self.selectionTable.setItem(bandInd, 3, QTableWidgetItem(str(stats[2]), 0)) # Mean
+            self.selectionTable.setItem(bandInd, 4, QTableWidgetItem(str(stats[3]), 0)) # Stdev
 
     def clearLayout(self, layout):
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
-
-    def save(self):
-        global state
-        state = self.p.saveState()
-
-    def restore(self):
-        global state
-        #add = self.p['Save/Restore functionality', 'Restore State', 'Add missing items']
-        #rem = self.p['Save/Restore functionality', 'Restore State', 'Remove extra items']
-        #self.ndv.getParameter().sigValueChanged.disconnect()
-        self.p.restoreState(state) #, addChildren=add, removeChildren=rem)
-        self.ndv.getParameter().sigValueChanged.connect(lambda param, data: self.ndvChanged(0, data))
 
     def validatePath(self, dataset, *args, **kwds):
         print("File List")
