@@ -290,7 +290,6 @@ class UiFunc:
 
     def plot_own_spec(self):
         if self.data_mean is not None:
-            l = gui.graphicsView.addLegend()
             gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
 
     def clear_plot(self):
