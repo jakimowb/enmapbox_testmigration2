@@ -1,4 +1,0 @@
-hubflow.egg-info/PKG-INFO
-hubflow.egg-info/SOURCES.txt
-hubflow.egg-info/dependency_links.txt
-hubflow.egg-info/top_level.txt
