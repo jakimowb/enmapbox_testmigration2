@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from enmapbox.utils.environment.DependencyChecker import DependencyChecker
 modules = ['matplotlib', 'sklearn']
-modules.extend(['html', 'HTML', 'pyqtgraph', 'markup', 'rios', 'tabulate', 'unipath', 'units', 'yaml'])
+modules.extend(['HTML', 'pyqtgraph', 'markup', 'rios', 'tabulate'])
 from processing.core.Processing import Processing
 
 class ProcessingPlugin:

@@ -43,7 +43,9 @@ class ApplicationRegistry(QObject):
         if not os.path.isdir(appPkgRootFolder):
             return False
 
-
+        if not appPkgRootFolder in sys.path:
+            sys.path.append(appPkgRootFolder)
+            
         for d, appPackages, _ in os.walk(appPkgRootFolder):
             appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
             break
