@@ -1,0 +1,696 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <author>Matthias Wocher</author>
+ <class>AVI</class>
+ <widget class="QDialog" name="AVI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1021</width>
+    <height>822</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Agricultural Vegetation Indices (AVI)</string>
+  </property>
+  <property name="locale">
+   <locale language="English" country="UnitedStates"/>
+  </property>
+  <layout class="QGridLayout" name="gridLayout_7">
+   <item row="0" column="0">
+    <widget class="QFrame" name="frame">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="pushButton">
+        <property name="text">
+         <string>Input-Image...</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="frame_4">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="lineEdit"/>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QGroupBox" name="structural_group">
+     <property name="font">
+      <font>
+       <kerning>false</kerning>
+      </font>
+     </property>
+     <property name="title">
+      <string>Structural</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="2" column="1">
+       <widget class="QCheckBox" name="box_rdvi">
+        <property name="text">
+         <string>RDVI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="box_hndvi_opp">
+        <property name="text">
+         <string>hNDVI (Oppelt 2002)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QCheckBox" name="box_ndvi_zar">
+        <property name="text">
+         <string>NDVI (Zarco-Tejada et al. 1999)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="box_ndvi_apa">
+        <property name="text">
+         <string>NDVI (Aparicio et al. 2002)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="box_ndvi_dat">
+        <property name="text">
+         <string>NDVI (Datt 1998)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QCheckBox" name="box_mtvi2">
+        <property name="text">
+         <string>MTVI 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QCheckBox" name="box_mtvi1">
+        <property name="text">
+         <string>MTVI 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="box_osavi">
+        <property name="text">
+         <string>OSAVI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="box_mcari2">
+        <property name="text">
+         <string>MCARI 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="box_mcari1">
+        <property name="text">
+         <string>MCARI 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QCheckBox" name="box_msavi">
+        <property name="text">
+         <string>MSAVI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="box_ndvi_hab">
+        <property name="text">
+         <string>NDVI (Haboudane et al. 2004)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QCheckBox" name="box_spvi">
+        <property name="text">
+         <string>SPVI</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QGroupBox" name="cab_group">
+     <property name="title">
+      <string>Chlorophyll</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="box_gi">
+        <property name="text">
+         <string>Greeness Index</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="box_gitmer1">
+        <property name="text">
+         <string>GM 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QCheckBox" name="box_gitmer2">
+        <property name="text">
+         <string>GM 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="3">
+       <widget class="QCheckBox" name="box_ztm">
+        <property name="text">
+         <string>ZTM</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="box_csi2">
+        <property name="text">
+         <string>CSI 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QCheckBox" name="box_npqi">
+        <property name="text">
+         <string>NPQI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="box_mcari">
+        <property name="text">
+         <string>MCARI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="box_gndvi">
+        <property name="text">
+         <string>green NDVI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="box_csi1">
+        <property name="text">
+         <string>CSI 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="4">
+       <widget class="QCheckBox" name="box_sra">
+        <property name="text">
+         <string>SRa</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QCheckBox" name="box_pri">
+        <property name="text">
+         <string>PRI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QCheckBox" name="box_reip">
+        <property name="text">
+         <string>Red Edge Inflection Point</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="box_rep">
+        <property name="text">
+         <string>Red Edge Point</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QCheckBox" name="box_srch1">
+        <property name="text">
+         <string>SRch 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QCheckBox" name="box_sr705">
+        <property name="text">
+         <string>SR705</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
+       <widget class="QCheckBox" name="box_tcari">
+        <property name="text">
+         <string>TCARI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="4">
+       <widget class="QCheckBox" name="box_tvi">
+        <property name="text">
+         <string>TVI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QCheckBox" name="box_vog3">
+        <property name="text">
+         <string>Vogelmann Index 3</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="box_vog1">
+        <property name="text">
+         <string>Vogelmann Index 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QCheckBox" name="box_vog2">
+        <property name="text">
+         <string>Vogelmann Index 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="3">
+       <widget class="QCheckBox" name="box_pssra">
+        <property name="text">
+         <string>PSSRa</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QCheckBox" name="box_srb2">
+        <property name="text">
+         <string>SRb 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="4">
+       <widget class="QCheckBox" name="box_pssrb">
+        <property name="text">
+         <string>PSSRb</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QCheckBox" name="box_srtot">
+        <property name="text">
+         <string>SRtot</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QCheckBox" name="box_srb1">
+        <property name="text">
+         <string>SRb 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QCheckBox" name="box_lci">
+        <property name="text">
+         <string>LCI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="box_mlo">
+        <property name="text">
+         <string>MLO</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QGroupBox" name="carAnth_group">
+     <property name="title">
+      <string>Carotenoid and Anthocyanin</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="box_cri2">
+        <property name="text">
+         <string>CRI 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="box_ari">
+        <property name="text">
+         <string>ARI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="box_cri1">
+        <property name="text">
+         <string>CRI 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="box_pssrc">
+        <property name="text">
+         <string>PSSRc</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QCheckBox" name="box_sipi">
+        <property name="text">
+         <string>SIPI</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QGroupBox" name="water_group">
+     <property name="title">
+      <string>Leaf Water</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="box_dswi">
+        <property name="text">
+         <string>DSWI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="box_sdwi5">
+        <property name="text">
+         <string>DSWI5</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QCheckBox" name="box_msi">
+        <property name="text">
+         <string>MSI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="box_lwvi2">
+        <property name="text">
+         <string>LWVI 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="box_lwvi1">
+        <property name="text">
+         <string>LWVI 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="box_ndwi">
+        <property name="text">
+         <string>NDWI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="box_pwi">
+        <property name="text">
+         <string>PWI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QCheckBox" name="box_srwi">
+        <property name="text">
+         <string>SRWI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QCheckBox" name="checkBox">
+        <property name="text">
+         <string>WI</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QGroupBox" name="dm_group">
+     <property name="title">
+      <string>Dry Matter</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="box_ndli">
+        <property name="text">
+         <string>NDLI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QCheckBox" name="box_bgi">
+        <property name="text">
+         <string>BGI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="box_cai">
+        <property name="text">
+         <string>CAI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="box_swirvi">
+        <property name="text">
+         <string>SWIRVI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="box_ndni">
+        <property name="text">
+         <string>NDNI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="box_bri">
+        <property name="text">
+         <string>BRI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="box_rgi">
+        <property name="text">
+         <string>RGI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QCheckBox" name="box_srpi">
+        <property name="text">
+         <string>SRPI</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QCheckBox" name="box_npci">
+        <property name="text">
+         <string>NPCI</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QGroupBox" name="fluo_group">
+     <property name="title">
+      <string>Fluorescence</string>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_6">
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="box_lic2">
+        <property name="text">
+         <string>LIC 2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="box_cur">
+        <property name="text">
+         <string>CUR</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="box_lic1">
+        <property name="text">
+         <string>LIC 1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="box_lic3">
+        <property name="text">
+         <string>LIC 3</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="7" column="0">
+    <widget class="QFrame" name="frame_2">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QPushButton" name="pushButton_2">
+        <property name="text">
+         <string>Output-Image...</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="lineEdit_2"/>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="8" column="0">
+    <widget class="QFrame" name="frame_3">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QPushButton" name="pushButton_3">
+        <property name="text">
+         <string>Apply</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_4">
+        <property name="text">
+         <string>Cancel</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -207,39 +207,10 @@ class UiFunc:
 
         gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
-        gui.pushClearPlot.clicked.connect(self.clearPlot)
+        gui.pushClearPlot.clicked.connect(self.clear_plot)
         gui.Push_LoadInSitu.clicked.connect(self.open_file)
         gui.Push_Exit.clicked.connect(self.exit_GUI)
-        gui.Push_ResetInSitu.clicked.connect(self.resetInSitu)
-
-    def exit_GUI(self):
-        QCoreApplication.instance().quit()
-
-    def resetInSitu(self):
-        self.data_mean = None
-        self.mod_exec()
-
-    def plot_own_spec(self):
-        if self.data_mean is not None:
-            self.plot = gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
-
-    def open_file(self):
-        # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
-        filename = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
-        self.data = np.genfromtxt(filename, delimiter="\t", skip_header=True)
-        ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
-        self.data = np.delete(self.data, 0, axis=1)
-
-        self.data_mean = np.mean(self.data, axis=1)
-        self.data_mean[1010:1071] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        self.data_mean[1440:1591] = np.nan
-        self.data_mean[2050:2151] = np.nan
-        self.data_mean = self.data_mean[50:]
-        self.mod_exec()
-
-    def clearPlot(self):
-        gui.graphicsView.clear()
-        self.plot_count = 0
+        gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)
 
     def mod_exec(self, slider=None, item=None):
 
@@ -247,26 +218,30 @@ class UiFunc:
             self.para_list[item] = slider.value() / 10000.0 # update para_list
 
         mod_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=-999, int_boost=1.0, s2s=self.sensor)
-        myResult = mod_I.initialize_single(tts=self.para_list[9], tto=self.para_list[10], psi=self.para_list[11],
+        self.myResult = mod_I.initialize_single(tts=self.para_list[9], tto=self.para_list[10], psi=self.para_list[11],
                                            N=self.para_list[0], cab=self.para_list[1], cw=self.para_list[2],
                                            cm=self.para_list[3], LAI=self.para_list[4], LIDF=self.para_list[6],
                                            typeLIDF=self.typeLIDF, hspot=self.para_list[7], psoil=self.para_list[8],
                                            car=self.para_list[12],
                                            cbrown=self.para_list[14], anth=self.para_list[13])
 
-        myResult[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        myResult[1390:1541] = np.nan
+        # self.myResult[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
+        # self.myResult[1390:1541] = np.nan
+        self.plotting()
+
+    def plotting(self):
 
         if not gui.CheckPlotAcc.isChecked():
-            self.clearPlot()
-            self.plot = gui.graphicsView.plot(self.wl, myResult, pen="g", filllevel=0,
-                                              fillBrush=(255,255,255,30), name='modelled')
+
+            self.clear_plot()
+            gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
+                                        name='modelled')
 
             gui.graphicsView.setYRange(0, 0.6, padding=0)
             gui.graphicsView.setLabel('left', text="Reflectance [%]")
             gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
-            self.plot = gui.graphicsView.plot(self.wl, myResult,
+            self.plot = gui.graphicsView.plot(self.wl, self.myResult,
                                               pen=self.plot_color[self.plot_count % 7])
             self.plot_own_spec()
             gui.graphicsView.setYRange(0, 0.6, padding=0)
@@ -274,25 +249,56 @@ class UiFunc:
             gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 
         if self.data_mean is not None and gui.SType_None_B.isChecked() and not gui.CheckPlotAcc.isChecked():
-            self.plot_own_spec()
-            mae = np.nansum(abs(myResult - self.data_mean)) / len(myResult)
-            rmse = np.sqrt(np.nanmean((myResult - self.data_mean)**2))
-            nse = 1.0 - ((np.nansum((self.data_mean - myResult)**2)) /
-                         (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
-            mnse = 1.0 - ((np.nansum(abs(self.data_mean - myResult))) /
-                          (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
-            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (myResult - np.nanmean(myResult))))
-                         / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
-                            * (np.sqrt(np.nansum((myResult - np.nanmean(myResult))**2)))))**2
 
-            errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) + "\nMAE: " + str(round(mae, 6)) + "\nNSE: " +
-                                 str(round(nse, 6)) + "\nmNSE: " + str(round(mnse, 6)) + '\n' +
-                                 u'R²: ' + str(round(r_squared, 6)),
-                                 (100, 200, 255),
+            self.plot_own_spec()
+
+            mae = np.nansum(abs(self.myResult - self.data_mean)) / len(self.myResult)
+            rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean)**2))
+            nse = 1.0 - ((np.nansum((self.data_mean - self.myResult)**2)) /
+                         (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
+            mnse = 1.0 - ((np.nansum(abs(self.data_mean - self.myResult))) /
+                          (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
+            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (self.myResult - np.nanmean(self.myResult))))
+                         / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
+                            * (np.sqrt(np.nansum((self.myResult - np.nanmean(self.myResult))**2)))))**2
+
+            errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) +
+                                 "\nMAE: " + str(round(mae, 6)) +
+                                 "\nNSE: " + str(round(nse, 6)) +
+                                 "\nmNSE: " + str(round(mnse, 6)) +
+                                 '\n' + u'R²: ' + str(round(r_squared, 6)), (100, 200, 255),
                                  border="w", anchor=(1, 0))
             errors.setPos(2500, 0.55)
             gui.graphicsView.addItem(errors)
 
+    def open_file(self):
+        # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
+        filename = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        self.data = np.genfromtxt(filename, delimiter="\t", skip_header=True)
+        ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
+        self.data = np.delete(self.data, 0, axis=1)
+        self.data_mean = np.mean(self.data, axis=1)
+        self.data_mean[1010:1071] = np.nan  # set atmospheric water vapour absorption bands to NaN
+        self.data_mean[1440:1591] = np.nan
+        self.data_mean[2050:2151] = np.nan
+        self.data_mean = self.data_mean[50:]
+        self.mod_exec()
+
+    def reset_in_situ(self):
+        self.data_mean = None
+        self.mod_exec()
+
+    def plot_own_spec(self):
+        if self.data_mean is not None:
+            l = gui.graphicsView.addLegend()
+            gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
+
+    def clear_plot(self):
+        gui.graphicsView.clear()
+        self.plot_count = 0
+
+    def exit_GUI(self):
+        QCoreApplication.instance().quit()
 
 if __name__ == '__main__':
 
