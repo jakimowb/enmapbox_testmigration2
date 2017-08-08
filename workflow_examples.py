@@ -1,12 +1,12 @@
 from sklearn.ensemble import RandomForestRegressor
 from hubflow.types import *
-import enmaptestdata
+import enmapboxtestdata
 
 def synthMixWorkflow():
 
-    image = Image(filename=enmaptestdata.enmap)
-    vmask = VectorMask(filename=enmaptestdata.landcover, allTouched=True)
-    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmaptestdata.speclib)
+    image = Image(filename=enmapboxtestdata.enmap)
+    vmask = VectorMask(filename=enmapboxtestdata.landcover, allTouched=True)
+    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
                                       lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
     classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 2 class spectra names'],
@@ -19,3 +19,4 @@ def synthMixWorkflow():
 
 if __name__ == '__main__':
     synthMixWorkflow()
+
