@@ -162,8 +162,8 @@ class Win(QtGui.QDialog):
             for t in range(0, len(self.splitterH)):
                 if r != self.splitterH.widget(t).widget(1):
                     self.splitterH.widget(t).widget(1).sigRangeChanged.disconnect(self.onSigRangeChanged)
-                    self.splitterH.widget(t).widget(1).setRange(xRange=r.getAxis('bottom').range)
-                    self.splitterH.widget(t).widget(1).setRange(yRange=r.getAxis('left').range)
+                    self.splitterH.widget(t).widget(1).setRange(xRange=r.getAxis('bottom').range, padding = 0.0)
+                    self.splitterH.widget(t).widget(1).setRange(yRange=r.getAxis('left').range, padding = 0.0)
                     self.splitterH.widget(t).widget(1).sigRangeChanged.connect(self.onSigRangeChanged)
 
     def computeStats(self):
