@@ -20,3 +20,4 @@ band names = {
  band 3, band 8, band 14, band 25}
 wavelength = { 0.484300, 0.558400, 0.646500, 0.804600}
 fwhm = { 0.014800, 0.015200, 0.015300, 0.016200}
+data ignore value = -1
