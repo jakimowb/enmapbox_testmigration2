@@ -1,9 +1,11 @@
+import gdal
+from hubdc.applier import ApplierControls, ApplierInputOptions
 from hubflow.types import *
-import enmaptestdata
+import enmapboxtestdata
 
-imageFilename = enmaptestdata.enmap
-vectorFilename = enmaptestdata.landcover
-speclibFilename = enmaptestdata.speclib
+imageFilename = enmapboxtestdata.enmap
+vectorFilename = enmapboxtestdata.landcover
+speclibFilename = enmapboxtestdata.speclib
 speclib2Filename = r'c:\output\speclib.sli'
 
 classification3mFilename = r'c:\output\classification3m.img'
@@ -42,7 +44,7 @@ def probabilitySample_classify():
     classificationSample.pickle(filename=classificationSampleFilename)
 
 def unsupervisedSample_classifyByName():
-    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmaptestdata.speclib)
+    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
                                       lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
     classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 2 spectra names'],
@@ -198,6 +200,24 @@ def clusterer_predict():
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
     clusterer.predict(filename=clusteringFilename, image=image, mask=mask, vmask=vmask)
 
+def image_basicStatistics():
+    image = Image(filename=imageFilename)
+    mask = Mask(filename=classification3mFilename)
+    vmask = VectorMask(filename=vectorFilename, allTouched=True)
+
+    controls = ApplierControls().setReferenceGridByImage(image.filename).setWindowXSize(50)
+    min, max, n = image.basicStatistics(bandIndicies=None, mask=mask, vmask=vmask, controls=controls)
+    print(min, max, n)
+
+
+#def image_scatterMatrix():
+#    image = Image(filename=imageFilename)
+#    mask = Mask(filename=classification3mFilename)
+#    vmask = VectorMask(filename=vectorFilename, allTouched=True)
+
+#    min, max = image.statistics(bandIndicies=[0,100], mask=mask, vmask=vmask, controls=controls)
+#    scatterMatrix = image.scatterMatrix(image2=image, bandIndex=0, bandIndex2=100, range=[0, 2000])
+
 def browse():
 
     image = Image(filename=imageFilename)
@@ -234,10 +254,10 @@ if __name__ == '__main__':
     #probabilitySample_saveAsSpectralLibrary()
 
     #classifier_fit()
-    svc_fit()
+    #svc_fit()
     #classifier_predict()
     #regressor_fit()
-    svr_fit()
+    #svr_fit()
     #baggingRegressor_fit()
     #regressor_predict()
     #transformer_fit()
@@ -245,4 +265,6 @@ if __name__ == '__main__':
     #transformer_inverseTransform()
     #clusterer_fit()
     #clusterer_predict()
+
+    image_basicStatistics()
     #browse()

@@ -58,6 +58,17 @@ class Image(FlowObject):
                                                                                                   vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL)
         return ProbabilitySample(features=features, labels=fractions, classDefinition=ClassDefinition(classes=classes, names=classNames, lookup=classLookup))
 
+    def basicStatistics(self, bandIndicies=None, mask=None, vmask=None,
+                        imageOptions=None, maskOptions=None,
+                        controls=None, progressBar=None):
+
+        return ipalg.imageBasicStatistics(image=self.filename, bandIndicies=bandIndicies,
+                                          mask=mask.filename, maskFunc=mask.ufunc,
+                                          vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL,
+                                          imageOptions=imageOptions, maskOptions=maskOptions,
+                                          controls=controls, progressBar=progressBar)
+
+
 class Mask(Image):
 
     def __init__(self, filename, ufunc=None):
