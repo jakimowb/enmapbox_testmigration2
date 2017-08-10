@@ -168,3 +168,46 @@ def estimatorTransform(transformation, noData, estimator, image,
             self.setNoDataValue('transformation', value=noData)
 
     applier.apply(operator=TransformImage)
+
+def imageBasicStatistics(image, bandIndicies=None,
+                         mask=None, maskFunc=None,
+                         vmask=None, vmaskAllTouched=True, vmaskFilterSQL=None,
+                         imageOptions=None, maskOptions=None,
+                         controls=None, progressBar=None):
+
+    applier = Applier(controls=controls)
+    applier.controls.setProgressBar(progressBar)
+    if controls is None:
+        applier.controls.setReferenceGridByImage(image)
+
+    applier.setInput('image', filename=image, options=imageOptions)
+    if mask is not None: applier.setInput('mask', filename=mask, resampleAlg=gdal.GRA_Mode, options=maskOptions)
+    if vmask is not None: applier.setVector('vmask', filename=vmask)
+
+    results = applier.apply(operator=ImageBasicStatistics, args=(bandIndicies, mask, maskFunc, vmask, vmaskAllTouched, vmaskFilterSQL))
+    results = numpy.array(results)
+    min = numpy.nanmin(results[:,:,0], axis=0)
+    max = numpy.nanmax(results[:,:,1], axis=0)
+    n = numpy.sum(results[:,:,2], axis=0)
+    return min, max, n
+
+class ImageBasicStatistics(ApplierOperator):
+
+    def ufunc(self, args):
+
+        bandIndicies, mask, maskFunc, vmask, vmaskAllTouched, vmaskFilterSQL = args
+
+        image = self.getArray('image', indicies=bandIndicies, dtype=numpy.float64)
+        maskValid = numpy.True_
+        if mask is not None:
+            maskValid *= self.getMaskArray('mask', noData=0, ufunc=maskFunc)
+        if vmask is not None:
+            maskValid *= self.getVectorArray('vmask', allTouched=vmaskAllTouched, filterSQL=vmaskFilterSQL,
+                                         dtype=numpy.uint8) == 1
+
+        def bandBasicStatistics(band):
+            valid = self.getMaskArray('image', array=band) * maskValid
+            band[numpy.logical_not(valid[0])] = numpy.nan
+            return numpy.nanmin(band), numpy.nanmax(band), numpy.sum(valid)
+
+        return [bandBasicStatistics(band) for band in image]
