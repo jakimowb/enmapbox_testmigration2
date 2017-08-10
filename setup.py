@@ -20,6 +20,7 @@ setup(name='hubdc',
     description='HUB-Datacube',
     author='Andreas Rabe',
     author_email='andreas.rabe@geo.hu-berlin.de',
+    packages=['hubdc'],
     #license='LICENSE.txt',
     url='https://bitbucket.org/hu-geomatics/hub-datacube'
     )
