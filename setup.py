@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """
-The setup script for HUB-Datacubew (HUBDC).
+The setup script for HUB-Datacube (HUBDC).
 
-For development it is link the local repo into your python:
+For using the latest release install via pip:
+    pip install https://bitbucket.org/hu-geomatics/hub-datacube/get/master.tar.gz
+
+For development link the local repo:
     cd <your-local-repo>
     pip install -e .
 
@@ -13,7 +16,7 @@ from distutils.core import setup
 import hubdc
 
 setup(name='hubdc',
-    version=hubdc.HUBDC_VERSION,
+    version=hubdc.__version__,
     description='HUB-Datacube',
     author='Andreas Rabe',
     author_email='andreas.rabe@geo.hu-berlin.de',
