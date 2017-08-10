@@ -31,6 +31,6 @@ def enmapboxApplicationFactory(enmapBox):
     """
     s = ""
 
-    from metadataeditorapp.enmapboxintegration import Dummy
+    from metadataeditorapp.enmapboxintegration import MetadataEditorApp
     #returns a list of EnMAPBoxApplications
-    return [Dummy(enmapBox)]
+    return [MetadataEditorApp(enmapBox)]
