@@ -19,69 +19,71 @@ from hubdc.writer import Writer, WriterProcess, QueueMock
 from hubdc.model import PixelGrid
 from hubdc.progressbar import CUIProgressBar, SilentProgressBar, ProgressBar
 
+DEFAULT_INPUT_RESAMPLEALG = gdal.GRA_NearestNeighbour
+DEFAULT_INPUT_ERRORTHRESHOLD = 0.
+DEFAULT_INPUT_WARPMEMORYLIMIT = 100*2**20
+DEFAULT_INPUT_MULTITHREAD = False
 
 class Applier(object):
 
-    def __init__(self):
+    def __init__(self, controls=None):
         self.inputs = dict()
         self.vectors = dict()
         self.outputs = dict()
-        self.controls = ApplierControls()
+        self.controls = controls if controls is not None else ApplierControls()
         self.grid = None
 
-    def setInput(self, name, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=1000 * 2 ** 20, multithread=True):
+    def setInput(self, name, filename, noData=None,
+                 resampleAlg=DEFAULT_INPUT_RESAMPLEALG,
+                 errorThreshold=DEFAULT_INPUT_ERRORTHRESHOLD,
+                 warpMemoryLimit=DEFAULT_INPUT_WARPMEMORYLIMIT,
+                 multithread=DEFAULT_INPUT_MULTITHREAD, options=None):
         """
         Define a new input raster named ``name``, that is located at ``filename``.
 
         :param name: name of the raster
-        :type name:
         :param filename: filename of the raster
-        :type filename:
         :param noData: overwrite the noData value of the raster
-        :type noData: None or number
         :param resampleAlg: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type resampleAlg:
         :param errorThreshold: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type errorThreshold:
         :param warpMemoryLimit: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type warpMemoryLimit:
         :param multithread: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :type multithread:
+        :param options: set all the above options via an :class:`~hubdc.applier.ApplierInputOptions` object
         """
-        self.inputs[name] = ApplierInput(filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
+        self.inputs[name] = ApplierInput(filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread, options=options)
 
     def setVector(self, name, filename, layer=0):
         """
         Define a new input vector layer named ``name``, that is located at ``filename``.
 
         :param name: name of the vector layer
-        :type name:
         :param filename: filename of the vector layer
         :type filename:
         :param layer: specify the layer to be used from the vector datasource
-        :type layer: index or name
         """
         self.vectors[name] = ApplierVector(filename=filename, layer=layer)
 
-    def setInputList(self, name, filenames, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0., warpMemoryLimit=1000 * 2 ** 20, multithread=True):
+    def setInputList(self, name, filenames, noData=None,
+                     resampleAlg = DEFAULT_INPUT_RESAMPLEALG,
+                     errorThreshold = DEFAULT_INPUT_ERRORTHRESHOLD,
+                     warpMemoryLimit = DEFAULT_INPUT_WARPMEMORYLIMIT,
+                     multithread = DEFAULT_INPUT_MULTITHREAD, options = None):
+
         """
         Define a new list of input rasters named ``name``, that are located at the ``filenames``.
         For each filename a new input raster named ``(name, i)`` is added using :meth:`hubdc.applier.Applier.setInput`.
         """
 
         for i, filename in enumerate(filenames):
-            self.setInput(name=(name, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread)
+            self.setInput(name=(name, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread, options=options)
 
     def setOutput(self, name, filename, format=None, creationOptions=None):
         """
         Define a new output raster named ``name``, that will be created at ``filename``.
 
         :param name: name of the raster
-        :type name:
         :param filename: filename of the raster
-        :type filename:
         :param format: see `GDAL Raster Formats <http://www.gdal.org/formats_list.html>`_
-        :type format:
         :param creationOptions: see the `Creation Options` section for a specific `GDAL Raster Format`.
                                 Predefined default creation options are used if set to ``None``, see
                                 :meth:`hubdc.applier.ApplierOutput.getDefaultCreationOptions` for details.
@@ -89,7 +91,7 @@ class Applier(object):
         """
         self.outputs[name] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions)
 
-    def setOutputList(self, name, filenames, format='GTiff', creationOptions=None):
+    def setOutputList(self, name, filenames, format=None, creationOptions=None):
         """
         Define a new list of output rasters named ``name``, that are located at the ``filenames``.
         For each filename a new output raster named ``(name, i)`` is added using :meth:`hubdc.applier.Applier.setOutput`.
@@ -146,9 +148,8 @@ class Applier(object):
         if description is None:
             description = operator.__name__
 
-        self.controls.progressBar.setLabelText('start {}'.format(description))
-
         self._runCreateGrid()
+        self.controls.progressBar.setLabelText('start {} [{}x{}]'.format(description, self.grid.xSize, self.grid.ySize))
         self._runInitWriters()
         self._runInitPool()
         results = self._runProcessSubgrids()
@@ -316,18 +317,42 @@ def _pickableWorkerProcessSubgrid(**kwargs):
 def _pickableWorkerInitialize(*args):
     return _Worker.initialize(*args)
 
+class ApplierInputOptions(object):
+
+    def __init__(self, noData=None,
+                 resampleAlg=DEFAULT_INPUT_RESAMPLEALG,
+                 errorThreshold=DEFAULT_INPUT_ERRORTHRESHOLD,
+                 warpMemoryLimit=DEFAULT_INPUT_WARPMEMORYLIMIT,
+                 multithread=DEFAULT_INPUT_MULTITHREAD):
+
+        self.noData = noData
+        self.resampleAlg = resampleAlg
+        self.errorThreshold = errorThreshold
+        self.warpMemoryLimit = warpMemoryLimit
+        self.multithread = multithread
+
 class ApplierInput(object):
     """
     Data structure for storing input specifications defined by :meth:`hubdc.applier.Applier.setInput`.
     For internal use only.
     """
-    def __init__(self, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour, errorThreshold=0.125, warpMemoryLimit=100*2**20, multithread=False):
+    def __init__(self, filename, noData=None, options=None,
+                 resampleAlg=DEFAULT_INPUT_RESAMPLEALG,
+                 errorThreshold=DEFAULT_INPUT_ERRORTHRESHOLD,
+                 warpMemoryLimit=DEFAULT_INPUT_WARPMEMORYLIMIT,
+                 multithread=DEFAULT_INPUT_MULTITHREAD):
+
         self.filename = filename
-        self.options = {'noData' : noData,
-                        'resampleAlg' : resampleAlg,
-                        'errorThreshold' : errorThreshold,
-                        'warpMemoryLimit' : warpMemoryLimit,
-                        'multithread' : multithread}
+
+        if options is not None:
+            assert isinstance(options, ApplierInputOptions)
+            self.options = options.__dict__
+        else:
+            self.options = {'noData' : noData,
+                            'resampleAlg' : resampleAlg,
+                            'errorThreshold' : errorThreshold,
+                            'warpMemoryLimit' : warpMemoryLimit,
+                            'multithread' : multithread}
 
 class ApplierOutput(object):
     """
@@ -1168,6 +1193,7 @@ class ApplierControls(object):
         if progressBar is None:
             progressBar = CUIProgressBar()
         self.progressBar = progressBar
+        return self
 
     DEFAULT_WINDOWXSIZE = 256
     def setWindowXSize(self, windowxsize=DEFAULT_WINDOWXSIZE):
@@ -1177,6 +1203,7 @@ class ApplierControls(object):
         """
 
         self.windowxsize = windowxsize
+        return self
 
     DEFAULT_WINDOWYSIZE = 256
     def setWindowYSize(self, windowysize=DEFAULT_WINDOWYSIZE):
@@ -1186,6 +1213,7 @@ class ApplierControls(object):
         """
 
         self.windowysize = windowysize
+        return self
 
     def setWindowFullSize(self):
         """
@@ -1195,6 +1223,7 @@ class ApplierControls(object):
         veryLargeNumber = 10**20
         self.setWindowXSize(veryLargeNumber)
         self.setWindowYSize(veryLargeNumber)
+        return self
 
     DEFAULT_NWORKER = None
     def setNumThreads(self, nworker=DEFAULT_NWORKER):
@@ -1202,6 +1231,7 @@ class ApplierControls(object):
         Set the number of pool worker for multiprocessing. Set to None to disable multiprocessing (recommended for debugging).
         """
         self.nworker = nworker
+        return self
 
     DEFAULT_NWRITER = None
     def setNumWriter(self, nwriter=DEFAULT_NWRITER):
@@ -1209,6 +1239,7 @@ class ApplierControls(object):
         Set the number of writer processes. Set to None to disable multiwriting (recommended for debugging).
         """
         self.nwriter = nwriter
+        return self
 
     DEFAULT_CREATEENVIHEADER = True
     def setCreateEnviHeader(self, createEnviHeader=DEFAULT_CREATEENVIHEADER):
@@ -1219,6 +1250,7 @@ class ApplierControls(object):
         Currently only the native ENVI format and the GTiff format is supported.
         """
         self.createEnviHeader = createEnviHeader
+        return self
 
     DEFAULT_FOOTPRINTTYPE = const.FOOTPRINT_UNION
     def setAutoFootprint(self, footprintType=DEFAULT_FOOTPRINTTYPE):
@@ -1226,6 +1258,7 @@ class ApplierControls(object):
         Derive extent of the reference pixel grid from input files. Possible options are 'union' or 'intersect'.
         """
         self.footprintType = footprintType
+        return self
 
     DEFAULT_RESOLUTIONTYPE = const.RESOLUTION_MINIMUM
     def setAutoResolution(self, resolutionType=DEFAULT_RESOLUTIONTYPE):
@@ -1233,6 +1266,7 @@ class ApplierControls(object):
         Derive resolution of the reference pixel grid from input files. Possible options are 'minimum', 'maximum' or 'average'.
         """
         self.resolutionType = resolutionType
+        return self
 
     def setResolution(self, xRes=None, yRes=None):
         """
@@ -1240,6 +1274,7 @@ class ApplierControls(object):
         """
         self.xRes = xRes
         self.yRes = yRes
+        return self
 
     def setFootprint(self, xMin=None, xMax=None, yMin=None, yMax=None):
         """
@@ -1249,24 +1284,28 @@ class ApplierControls(object):
         self.xMax = xMax
         self.yMin = yMin
         self.yMax = yMax
+        return self
 
     def setProjection(self, projection=None):
         """
         Set projection of the reference pixel grid.
         """
         self.projection = projection
+        return self
 
     def setReferenceGrid(self, grid=None):
         """
         Set the reference pixel grid. Pass an instance of the :py:class:`~hubdc.model.PixelGrid.PixelGrid` class.
         """
         self.referenceGrid = grid
+        return self
 
     def setReferenceGridByImage(self, filename):
         """
         Set an image defining the reference pixel grid.
         """
         self.setReferenceGrid(grid=PixelGrid.fromFile(filename))
+        return self
 
     def setReferenceGridByVector(self, filename, xRes, yRes, layerNameOrIndex=0):
         """
@@ -1276,6 +1315,7 @@ class ApplierControls(object):
         layer = OpenLayer(filename=filename, layerNameOrIndex=layerNameOrIndex)
         grid = layer.makePixelGrid(xRes=xRes, yRes=yRes)
         self.setReferenceGrid(grid=grid)
+        return self
 
     DEFAULT_GDALCACHEMAX = 100*2**20
     def setGDALCacheMax(self, bytes=DEFAULT_GDALCACHEMAX):
@@ -1283,6 +1323,7 @@ class ApplierControls(object):
         For details see the `GDAL_CACHEMAX Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX>`_.
         """
         self.cacheMax = bytes
+        return self
 
     DEFAULT_GDALSWATHSIZE = 100*2**20
     def setGDALSwathSize(self, bytes=DEFAULT_GDALSWATHSIZE):
@@ -1290,6 +1331,7 @@ class ApplierControls(object):
         For details see the `GDAL_SWATH_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_SWATH_SIZE>`_.
         """
         self.swathSize = bytes
+        return self
 
     DEFAULT_GDALDISABLEREADDIRONOPEN = True
     def setGDALDisableReadDirOnOpen(self, disable=DEFAULT_GDALDISABLEREADDIRONOPEN):
@@ -1297,6 +1339,7 @@ class ApplierControls(object):
         For details see the `GDAL_DISABLE_READDIR_ON_OPEN Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_DISABLE_READDIR_ON_OPEN>`_.
         """
         self.disableReadDirOnOpen = disable
+        return self
 
     DEFAULT_GDALMAXDATASETPOOLSIZE = 100
     def setGDALMaxDatasetPoolSize(self, nfiles=DEFAULT_GDALMAXDATASETPOOLSIZE):
@@ -1304,6 +1347,7 @@ class ApplierControls(object):
         For details see the `GDAL_MAX_DATASET_POOL_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_MAX_DATASET_POOL_SIZE>`_.
         """
         self.maxDatasetPoolSize = nfiles
+        return self
 
     @property
     def _multiprocessing(self):
