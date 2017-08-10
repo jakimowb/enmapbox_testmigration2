@@ -29,6 +29,8 @@ import pyqtgraph
 from hub.gdal.api import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
+from hubdc.applier import Applier
+
 app = QtGui.QApplication([])
 
 class Win(QtGui.QDialog):
@@ -70,7 +72,7 @@ class Win(QtGui.QDialog):
         self.splitterH = QSplitter(Qt.Horizontal)
 
         # Add layout elements to layout
-        layout.addWidget(QtGui.QLabel("Select file and calculate statistics."), 0, 0, 1, 8)
+        layout.addWidget(QtGui.QLabel("Select raster file and calculate statistics."), 0, 0, 1, 8)
         layout.addWidget(self.inputFile, 1, 0, 1, 6)
         layout.addWidget(self.selectInputFile, 1, 6, 1, 2)
         layout.addWidget(self.approximateStats, 2, 0, 1, 8)
@@ -130,6 +132,7 @@ class Win(QtGui.QDialog):
 
         plotSplitters = []
 
+        gdal.TranslateOptions()
         self.synchronize = QCheckBox("Synchronize Histograms")
         self.splitter.addWidget(self.synchronize)
 
@@ -152,6 +155,7 @@ class Win(QtGui.QDialog):
                 splitterV.addWidget(wid)
                 plotSplitters.append(splitterV)
 
+
         for s in range(0, len(plotSplitters)):
             self.splitterH.addWidget(plotSplitters[s])
 
@@ -171,6 +175,14 @@ class Win(QtGui.QDialog):
         # band table
         for index in range(0, len(self.selectionTable.selectedIndexes()) / 5): # /5, since 1 index = 1 cell. we want nbr of rows, not cells
             bandInd = self.selectionTable.selectionModel().selectedRows()[index].row()
+
+            applier = Applier()
+
+            applier.setInput('in', filename=self.inDS.GetRasterBand(bandInd + 1))
+            #applier.setOutput('out', filename=r'c:\output\out.tif')
+            stats2 = applier.apply(operator=self.applyStats)
+            print(stats2)
+
             stats = self.inDS.GetRasterBand(bandInd + 1).ComputeStatistics(self.approximateStats.isChecked(), False)
 
             #item = QTableWidgetItem(QLabel(str(self.inDS.RasterXSize * self.inDS.RasterYSize)))
@@ -190,6 +202,12 @@ class Win(QtGui.QDialog):
             self.selectionTable.setCellWidget(bandInd, 2, wid3) # Max
             self.selectionTable.setCellWidget(bandInd, 3, wid4) # Mean
             self.selectionTable.setCellWidget(bandInd, 4, wid5) # Stdev
+
+    def applyStats(operator):
+        img = operator.getArray('in')
+        s = img.statistics()
+
+        return s
 
     def validatePath(self, dataset, *args, **kwds):
         sender = self.sender()
