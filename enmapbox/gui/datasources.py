@@ -214,6 +214,10 @@ class DataSource(object):
                self.uri() == other.uri()
 
     def uuid(self):
+        """
+        Returns the Unique Identifier that was created when initializing this object.
+        :return: UUID
+        """
         return self.mUuid
 
     def uri(self):
@@ -230,9 +234,27 @@ class DataSource(object):
         """
         return QIcon(self.mIcon)
 
-    def writeXml(self, element):
+    def setIcon(self, icon):
+        assert isinstance(icon, QIcon)
+        self.mIcon = icon
+        return self
 
-        s = ""
+    def setName(self, name):
+        """
+        Sets the datasource name. Override it to allow and apply for changes of the base-name
+        :param name:
+        :return: self
+        """
+        self.mName = name
+        return self
+
+    def writeXml(self, element):
+        """
+        Override this to write
+        :param element:
+        :return:
+        """
+        pass
 
     def __repr__(self):
         return 'DataSource: {} {}'.format(self.mName, str(self.mUri))
@@ -312,17 +334,15 @@ class DataSourceRaster(DataSourceSpatial):
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceRaster, self).__init__(uri, name, icon)
 
-        _refLayer = self.createUnregisteredMapLayer(self.mUri)
-        #lyr =QgsRasterLayer(self.uri, self.name, False)
-        dp = _refLayer.dataProvider()
+        refLayer = self.createUnregisteredMapLayer(self.mUri)
+        dp = refLayer.dataProvider()
 
         self.nSamples = dp.xSize()
         self.nLines = dp.ySize()
         self.nBands = dp.bandCount()
         self.dataType = dp.dataType(1)
-        self.pxSizeX = np.round(_refLayer.rasterUnitsPerPixelX(), 4)
-        self.pxSizeY = np.round(_refLayer.rasterUnitsPerPixelY(), 4)
-
+        self.pxSizeX = np.round(refLayer.rasterUnitsPerPixelX(), 4)
+        self.pxSizeY = np.round(refLayer.rasterUnitsPerPixelY(), 4)
 
         #change icon
         icon = self.icon()

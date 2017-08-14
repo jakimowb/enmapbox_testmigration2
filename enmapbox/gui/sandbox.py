@@ -142,8 +142,6 @@ def initQgisEnvironment(pythonPlugins=None):
         qgsApp = QgsApplication([], True)
         qgsApp.setPrefixPath(PATH_QGS, True)
         qgsApp.initQgis()
-        import enmapbox.gui
-        enmapbox.gui.DEBUG = True
         return qgsApp
 
 
