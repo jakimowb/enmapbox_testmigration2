@@ -1,6 +1,6 @@
 from enmapbox import __version__
 from processing.core.AlgorithmProvider import AlgorithmProvider
-
+from enmapboxgeoalgorithms.algorithms import ALGORITHMS
 
 class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
 
@@ -14,9 +14,4 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         return AlgorithmProvider.getIcon(self)
 
     def _loadAlgorithms(self):
-        from .core.TestdataLoader import TestdataLoader
-        from .core.EstimatorLoader import EstimatorLoader
-        from .core.AccuracyLoader import AccuracyLoader
-        TestdataLoader(provider=self)
-        EstimatorLoader(provider=self)
-        AccuracyLoader(provider=self)
+        self.algs.extend(ALGORITHMS)
