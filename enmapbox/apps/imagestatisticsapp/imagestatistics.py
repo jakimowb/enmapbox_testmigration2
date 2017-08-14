@@ -30,6 +30,8 @@ from hub.gdal.api import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
 from hubdc.applier import Applier
+from hubdc.applier import ApplierControls, ApplierInputOptions
+from hubflow.types import *
 
 app = QtGui.QApplication([])
 
@@ -49,7 +51,11 @@ class Win(QtGui.QDialog):
         self.inputFile.currentIndexChanged.connect(lambda: self.comboIndexChanged())
 
         self.selectInputFile = QPushButton('...')
-        self.selectInputFile.clicked.connect(lambda: self.fileFound(self.inputFile))
+        self.selectInputFile.clicked.connect(lambda: self.fileFound())
+
+        self.inputMask = QComboBox()
+        self.selectMaskFile = QPushButton('...')
+        self.selectMaskFile.clicked.connect(lambda: self.maskFound())
 
         self.approximateStats = QCheckBox("Calculate approximate statistics")
 
@@ -75,12 +81,15 @@ class Win(QtGui.QDialog):
         layout.addWidget(QtGui.QLabel("Select raster file and calculate statistics."), 0, 0, 1, 8)
         layout.addWidget(self.inputFile, 1, 0, 1, 6)
         layout.addWidget(self.selectInputFile, 1, 6, 1, 2)
-        layout.addWidget(self.approximateStats, 2, 0, 1, 8)
-        layout.addWidget(self.computebtn, 3, 0, 1, 8)
-        layout.addWidget(self.infoLabel, 4, 0, 1, 8)
-        layout.addWidget(self.selectionTable, 5, 0, 1, 8)
-        layout.addWidget(self.switchHistogramView, 6,0 ,1 , 8)
-        layout.addWidget(self.splitter, 7, 0, 1, 8)
+        layout.addWidget(QtGui.QLabel("Select raster or vector mask (optional)."), 2, 0, 1, 8)
+        layout.addWidget(self.inputMask, 3, 0, 1, 6)
+        layout.addWidget(self.selectMaskFile, 3, 6, 1, 2)
+        layout.addWidget(self.approximateStats, 4, 0, 1, 8)
+        layout.addWidget(self.computebtn, 5, 0, 1, 8)
+        layout.addWidget(self.infoLabel, 6, 0, 1, 8)
+        layout.addWidget(self.selectionTable, 7, 0, 1, 8)
+        layout.addWidget(self.switchHistogramView, 8,0 ,1 , 8)
+        layout.addWidget(self.splitter, 9, 0, 1, 8)
 
         self.resize(600,800)
 
@@ -101,10 +110,16 @@ class Win(QtGui.QDialog):
         self.validatePath(src)
 
     # opens file search dialogue
-    def fileFound(self, inputFile):
+    def fileFound(self):
         self.inputFile.addItem(QFileDialog.getOpenFileName(self, 'Input image', directory = "/Workspaces/QGIS-Plugins/enmap-box/enmapbox/testdata"))
         counter = self.inputFile.count()
         self.inputFile.setCurrentIndex(counter - 1)
+
+    def maskFound(self):
+        self.inputMask.addItem(QFileDialog.getOpenFileName(self, 'Mask',
+                                                               directory="/Workspaces/QGIS-Plugins/enmap-box/enmapbox/testdata"))
+        counter = self.inputMask.count()
+        self.inputMask.setCurrentIndex(counter - 1)
 
     def comboIndexChanged(self):
         if self.validatePath(str(self.inputFile.currentText())):
@@ -172,36 +187,36 @@ class Win(QtGui.QDialog):
 
     def computeStats(self):
 
+        image = Image(filename=self.inDS.GetFileList()[0])
+        # mask = Mask(filename=classification3mFilename)
+        # vmask = VectorMask(filename=vectorFilename, allTouched=True)
+
         # band table
         for index in range(0, len(self.selectionTable.selectedIndexes()) / 5): # /5, since 1 index = 1 cell. we want nbr of rows, not cells
             bandInd = self.selectionTable.selectionModel().selectedRows()[index].row()
 
-            applier = Applier()
+            controls = ApplierControls().setReferenceGridByImage(image.filename).setWindowXSize(50)
+            min, max, n = image.basicStatistics(bandIndicies=[bandInd], controls=controls)
 
-            applier.setInput('in', filename=self.inDS.GetRasterBand(bandInd + 1))
-            #applier.setOutput('out', filename=r'c:\output\out.tif')
-            stats2 = applier.apply(operator=self.applyStats)
-            print(stats2)
-
-            stats = self.inDS.GetRasterBand(bandInd + 1).ComputeStatistics(self.approximateStats.isChecked(), False)
+            #stats = self.inDS.GetRasterBand(bandInd + 1).ComputeStatistics(self.approximateStats.isChecked(), False)
 
             #item = QTableWidgetItem(QLabel(str(self.inDS.RasterXSize * self.inDS.RasterYSize)))
-            wid1 = QLabel(str(self.inDS.RasterXSize * self.inDS.RasterYSize))
+            wid1 = QLabel(str(n[0]))
             wid1.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            wid2 = QLabel(str(stats[0]))
+            wid2 = QLabel(str(min[0]))
             wid2.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            wid3 = QLabel(str(stats[1]))
+            wid3 = QLabel(str(max[0]))
             wid3.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            wid4 = QLabel(str(stats[2]))
-            wid4.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            wid5 = QLabel(str(stats[3]))
-            wid5.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            #wid4 = QLabel(str(stats[2]))
+            #wid4.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            #wid5 = QLabel(str(stats[3]))
+            #wid5.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
             self.selectionTable.setCellWidget(bandInd, 0, wid1) # Samples
             self.selectionTable.setCellWidget(bandInd, 1, wid2) # Min
             self.selectionTable.setCellWidget(bandInd, 2, wid3) # Max
-            self.selectionTable.setCellWidget(bandInd, 3, wid4) # Mean
-            self.selectionTable.setCellWidget(bandInd, 4, wid5) # Stdev
+            #self.selectionTable.setCellWidget(bandInd, 3, wid4) # Mean
+            #self.selectionTable.setCellWidget(bandInd, 4, wid5) # Stdev
 
     def applyStats(operator):
         img = operator.getArray('in')
