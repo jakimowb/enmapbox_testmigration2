@@ -1300,11 +1300,14 @@ class ApplierControls(object):
         self.referenceGrid = grid
         return self
 
-    def setReferenceGridByImage(self, filename):
+    def setReferenceGridByImage(self, filename=None):
         """
         Set an image defining the reference pixel grid.
         """
-        self.setReferenceGrid(grid=PixelGrid.fromFile(filename))
+        if filename is None:
+            self.setReferenceGrid(grid=None)
+        else:
+            self.setReferenceGrid(grid=PixelGrid.fromFile(filename))
         return self
 
     def setReferenceGridByVector(self, filename, xRes, yRes, layerNameOrIndex=0):
