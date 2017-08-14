@@ -31,6 +31,7 @@ else:
     _PF_AVAILABLE = False
 
 
+
 class ProcessingAlgorithmsPanelUI(UI_BASE):
     def __init__(self, parent=None):
         UI_BASE.__init__(self)
@@ -57,7 +58,6 @@ class ProcessingAlgorithmsPanelUI(UI_BASE):
             self.manager = None
 
 #global ProcessingAlgorithmsPanelUI
-
 
 
 class ProcessingAlgorithmsManager(QObject):
@@ -107,6 +107,8 @@ class ProcessingAlgorithmsManager(QObject):
             a = menu.addAction(pfwIcon('model.png'), 'Graphical Modeler')
             assert isinstance(a, QAction)
             a.triggered.connect(self.openModeler)
+
+
 
     def isInitialized(self):
         return self.algList is not None
