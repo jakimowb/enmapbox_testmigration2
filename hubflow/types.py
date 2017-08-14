@@ -62,11 +62,38 @@ class Image(FlowObject):
                         imageOptions=None, maskOptions=None,
                         controls=None, progressBar=None):
 
+        if mask is None: mask = Mask(None)
+        if vmask is None: vmask = VectorMask(None)
+        assert isinstance(mask, Mask)
+        assert isinstance(vmask, VectorMask)
+
         return ipalg.imageBasicStatistics(image=self.filename, bandIndicies=bandIndicies,
                                           mask=mask.filename, maskFunc=mask.ufunc,
                                           vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL,
                                           imageOptions=imageOptions, maskOptions=maskOptions,
                                           controls=controls, progressBar=progressBar)
+
+    def scatterMatrix(self, image2, bandIndex, bandIndex2, range, range2, bins=256,
+                      mask=None, vmask=None,  stratification=None,
+                      imageOptions=None, image2Options=None, maskOptions=None,  stratificationOptions=None,
+                      controls=None, progressBar=None):
+
+        assert isinstance(image2, Image)
+        if mask is None: mask = Mask(None)
+        if vmask is None: vmask = VectorMask(None)
+        if stratification is None: stratification = Classification(None, classDefinition=ClassDefinition(classes=0))
+        assert isinstance(mask, Mask)
+        assert isinstance(vmask, VectorMask)
+
+        return ipalg.imageScatterMatrix(image1=self.filename, image2=image2.filename,
+                                        bandIndex1=bandIndex, bandIndex2=bandIndex2,
+                                        range1=range, range2=range2,
+                                        bins=bins,
+                                        mask=mask.filename, maskFunc=mask.ufunc,
+                                        vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL,
+                                        stratification=stratification.filename, strataDefinition=stratification.classDefinition,
+                                        imageOptions=imageOptions, image2Options=image2Options, maskOptions=maskOptions, stratificationOptions=stratificationOptions,
+                                        controls=controls, progressBar=progressBar)
 
 
 class Mask(Image):
@@ -129,6 +156,10 @@ class ClassDefinition(FlowObject):
             names=repr(self.names),
             lookup=repr(self.lookup))
 
+    def getColor(self, id=None, name=None):
+        if id is None:
+            id = self.names.index((name))
+        return self.lookup[id*3:id*3+3]
 
 class Classification(Image):
 
@@ -248,16 +279,13 @@ class ClassificationSample(SupervisedSample):
         header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
         header['class spectra names'] = numpy.array(self.classDefinition.names)[self.labels.ravel()-1]
 
-    def synthMix(self, mixingComplexities=None, classLikelihoods=None, n=10):
-        if mixingComplexities is None:
-            mixingComplexities = {2:0.5, 3:0.3, 4:0.2}
+    def synthMix(self, mixingComplexities, classLikelihoods=None, n=10):
         if classLikelihoods is None:
             classLikelihoods = 'proportional'
-
         if classLikelihoods is 'proportional':
-            classLikelihoods = [float(count)/sum(self.histogram) for count in self.histogram]
+            classLikelihoods = {i+1 : float(count)/sum(self.histogram) for i, count in enumerate(self.histogram)}
         elif classLikelihoods is 'equalized':
-            classLikelihoods = [1./self.classDefinition.classes for i in range(self.classDefinition.classes)]
+            classLikelihoods = {i+1 : 1./self.classDefinition.classes for i in range(self.classDefinition.classes)}
 
         mixtures, fractions = dpalg.synthMix(features=self.features, labels=self.labels, classes=self.classDefinition.classes, mixingComplexities=mixingComplexities, classLikelihoods=classLikelihoods, n=n)
         return ProbabilitySample(features=mixtures, labels=fractions, classDefinition=self.classDefinition)
@@ -267,10 +295,10 @@ class RegressionSample(SupervisedSample):
 
 class ProbabilitySample(RegressionSample):
 
-    def __init__(self, features, labels, classDefinition):
+    def __init__(self, features, labels, classDefinition, metadata=None):
         assert isinstance(classDefinition, ClassDefinition)
         assert labels.shape[0] == classDefinition.classes
-        SupervisedSample.__init__(self, features, labels, noData=-1, outputNames=classDefinition.names)
+        RegressionSample.__init__(self, features, labels, noData=-1, metadata=metadata, outputNames=classDefinition.names)
         self.classDefinition = classDefinition
 
     def __repr__(self):
@@ -294,6 +322,19 @@ class ProbabilitySample(RegressionSample):
         labels = dpalg.argmaxProbability(probabilities=self.labels, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, progressBar=progressBar)
         valid = labels != 0
         return ClassificationSample(features=self.features[:, valid[0]], labels=labels[:, valid[0]], classDefinition=self.classDefinition)
+
+    def subsetClassesByNames(self, names):
+        ids = [self.classDefinition.names.index(name) for name in names]
+        return self.subsetClasses(ids=ids)
+
+    def subsetClasses(self, ids):
+        lookup=list()
+        for id in ids:
+            lookup.extend(self.classDefinition.getColor(id))
+        return ProbabilitySample(features=self.features, labels=self.labels[ids],
+                                 classDefinition=ClassDefinition(classes=len(ids),
+                                                                 names=[self.classDefinition.names[id] for id in ids],
+                                                                 lookup=lookup))
 
     def _saveAsENVISpectralLibraryUpdateHeader(self, header):
         UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)

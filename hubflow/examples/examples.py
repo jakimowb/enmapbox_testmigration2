@@ -1,9 +1,13 @@
 import gdal
+import matplotlib
+matplotlib.use('Qt4Agg')
+from matplotlib import pyplot
 from hubdc.applier import ApplierControls, ApplierInputOptions
 from hubflow.types import *
 import enmapboxtestdata
 
 imageFilename = enmapboxtestdata.enmap
+image2Filename = enmapboxtestdata.hymap
 vectorFilename = enmapboxtestdata.landcover
 speclibFilename = enmapboxtestdata.speclib
 speclib2Filename = r'c:\output\speclib.sli'
@@ -54,7 +58,9 @@ def unsupervisedSample_classifyByName():
 
 def classificationSample_synthMix():
     classificationSample = ClassificationSample.unpickle(filename=classificationSampleFilename)
-    probabilitySample = classificationSample.synthMix(mixingComplexities={2:0.5, 3:0.3, 4:0.2}, classLikelihoods='proportional', n=100)
+#    probabilitySample = classificationSample.synthMix(mixingComplexities={2: 0.5, 3: 0.3, 4: 0.2},
+#                                                      classLikelihoods='proportional', n=100)
+    probabilitySample = classificationSample.synthMix(mixingComplexities={2: 1.}, classLikelihoods={1:1.}, n=100)
     probabilitySample.pickle(filename=probabilitySampleFilename)
 
 def unsupervisedSample_saveAsSpectralLibrary():
@@ -70,6 +76,11 @@ def probabilitySample_saveAsSpectralLibrary():
     probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
     probabilitySample.saveAsENVISpectralLibrary(filename=speclib2Filename)
     ProbabilitySample.fromENVISpectralLibrary(filename=speclib2Filename)
+
+def probabilitySample_subsetClassesByNames():
+    probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
+    probabilitySample = probabilitySample.subsetClassesByNames(names=['Roof', 'Tree'])
+    probabilitySample.pickle(filename=probabilitySampleFilename)
 
 def classifier_fit():
     from sklearn.ensemble import RandomForestClassifier
@@ -209,14 +220,33 @@ def image_basicStatistics():
     min, max, n = image.basicStatistics(bandIndicies=None, mask=mask, vmask=vmask, controls=controls)
     print(min, max, n)
 
+def image_scatterMatrix():
+    image = Image(filename=image2Filename)
+    mask = Mask(filename=classification3mFilename)
+    vmask = VectorMask(filename=vectorFilename, allTouched=True)
+    stratification = Classification(classification3mFilename)
 
-#def image_scatterMatrix():
-#    image = Image(filename=imageFilename)
-#    mask = Mask(filename=classification3mFilename)
-#    vmask = VectorMask(filename=vectorFilename, allTouched=True)
+    controls = ApplierControls().setReferenceGridByImage(image.filename)\
+                                .setNumThreads()
+    print(stratification.classDefinition)
+    i1, i2 = 0, 1
+    (min1, min2), (max1, max2), (n1, n2) = image.basicStatistics(bandIndicies=[i1, i2],
+                                                                 mask=mask, vmask=vmask,
+                                                                 controls=controls)
 
-#    min, max = image.statistics(bandIndicies=[0,100], mask=mask, vmask=vmask, controls=controls)
-#    scatterMatrix = image.scatterMatrix(image2=image, bandIndex=0, bandIndex2=100, range=[0, 2000])
+    if False: # without stratification
+        H, xedges, yedges = image.scatterMatrix(image2=image, bandIndex=i1, bandIndex2=i2, range=[min1, max1], range2=[min2, max2], bins=10,
+                                                mask=mask, vmask=vmask, controls=controls)
+    else: # with stratification
+        H, xedges, yedges = image.scatterMatrix(image2=image, bandIndex=i1, bandIndex2=i2, range=[min1, max1], range2=[min2, max2], bins=10,
+                                                mask=mask, vmask=vmask, stratification=stratification,
+                                                controls=controls)
+        print(stratification.classDefinition)
+
+    print(H.shape)
+    print(H)
+    print(xedges)
+    print(yedges)
 
 def browse():
 
@@ -244,7 +274,7 @@ def browse():
 
 
 if __name__ == '__main__':
-    #vector_classify()
+    vector_classify()
     #image_sampleByClassification()
     #probabilitySample_classify()
     #unsupervisedSample_classifyByName()
@@ -252,7 +282,7 @@ if __name__ == '__main__':
     #unsupervisedSample_saveAsSpectralLibrary()
     #classificationSample_saveAsSpectralLibrary()
     #probabilitySample_saveAsSpectralLibrary()
-
+    #probabilitySample_subsetClassesByNames()
     #classifier_fit()
     #svc_fit()
     #classifier_predict()
@@ -266,5 +296,6 @@ if __name__ == '__main__':
     #clusterer_fit()
     #clusterer_predict()
 
-    image_basicStatistics()
+    #image_basicStatistics()
+    image_scatterMatrix()
     #browse()
