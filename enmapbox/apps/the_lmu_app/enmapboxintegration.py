@@ -71,9 +71,9 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         # #the the EnMAP-Box know if you create any new file
         # ui.sigFileCreated.connect(self.enmapbox.addSource)
 
-        from GUI_ISD import UiFunc, gui
-        gui1 = UiFunc()
-        gui.show()
+        from GUI_ISD import UiFunc
+        uifunc = UiFunc()
+        uifunc.gui.show()
         # #the the EnMAP-Box know if you create any new file
         # gui1.sigFileCreated.connect(self.enmapbox.addSource)
 

@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, os
 import numpy as np
-import pyqtgraph as pg
 
+
+from qgis.gui import *
+#ensure to call QGIS before PyQtGraph
+import pyqtgraph as pg
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4 import uic
@@ -11,13 +14,26 @@ import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 
-app = QApplication(sys.argv)
-gui = uic.loadUi("GUI_ISD.ui")
+#app = QApplication(sys.argv)
 
+pathUI = os.path.join(os.path.dirname(__file__) ,'GUI_ISD.ui')
+
+#gui = uic.loadUi("GUI_ISD.ui")
+#loadUIFormClass allows to load QGIS Widgets and some more...
+from enmapbox.gui.utils import loadUIFormClass
+
+class GUI_ISD(QDialog, loadUIFormClass(pathUI)):
+    
+    def __init__(self, parent=None):
+        super(GUI_ISD, self).__init__(parent)
+        self.setupUi(self)    
 
 class UiFunc:
 
     def __init__(self):
+        
+        self.gui = GUI_ISD() 
+        
         self.initial_values()
         self.para_list = []
         self.update_slider_pos()
@@ -39,47 +55,47 @@ class UiFunc:
 
     def update_slider_pos(self):
 
-        gui.N_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.N_Slide, gui.N_lineEdit))
-        gui.Cab_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.Cab_Slide, gui.Cab_lineEdit))
-        gui.Cw_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.Cw_Slide, gui.Cw_lineEdit))
-        gui.Cm_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.Cm_Slide, gui.Cm_lineEdit))
-        gui.Car_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.Car_Slide, gui.Car_lineEdit))
-        gui.Canth_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.Canth_Slide, gui.Canth_lineEdit))
-        gui.Cbrown_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.Cbrown_Slide, gui.Cbrown_lineEdit))
-        gui.LAI_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.LAI_Slide, gui.LAI_lineEdit))
-        gui.LIDFB_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.LIDFB_Slide, gui.LIDFB_lineEdit))
-        gui.hspot_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.hspot_Slide, gui.hspot_lineEdit))
-        gui.psoil_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.psoil_Slide, gui.psoil_lineEdit))
-        gui.OZA_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.OZA_Slide, gui.OZA_lineEdit))
-        gui.SZA_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.SZA_Slide, gui.SZA_lineEdit))
-        gui.rAA_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.rAA_Slide, gui.rAA_lineEdit))
-        gui.skyl_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.skyl_Slide, gui.skyl_lineEdit))
-        gui.LAIu_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.LAIu_Slide, gui.LAIu_lineEdit))
-        gui.SD_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.SD_Slide, gui.SD_lineEdit))
-        gui.TreeH_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.TreeH_Slide, gui.TreeH_lineEdit))
-        gui.CD_Slide.valueChanged.connect(lambda: self.any_slider_change(gui.CD_Slide, gui.CD_lineEdit))
+        self.gui.N_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.N_Slide, self.gui.N_lineEdit))
+        self.gui.Cab_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cab_Slide, self.gui.Cab_lineEdit))
+        self.gui.Cw_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cw_Slide, self.gui.Cw_lineEdit))
+        self.gui.Cm_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cm_Slide, self.gui.Cm_lineEdit))
+        self.gui.Car_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Car_Slide, self.gui.Car_lineEdit))
+        self.gui.Canth_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Canth_Slide, self.gui.Canth_lineEdit))
+        self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit))
+        self.gui.LAI_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.LAI_Slide, self.gui.LAI_lineEdit))
+        self.gui.LIDFB_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.LIDFB_Slide, self.gui.LIDFB_lineEdit))
+        self.gui.hspot_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.hspot_Slide, self.gui.hspot_lineEdit))
+        self.gui.psoil_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.psoil_Slide, self.gui.psoil_lineEdit))
+        self.gui.OZA_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.OZA_Slide, self.gui.OZA_lineEdit))
+        self.gui.SZA_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.SZA_Slide, self.gui.SZA_lineEdit))
+        self.gui.rAA_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.rAA_Slide, self.gui.rAA_lineEdit))
+        self.gui.skyl_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.skyl_Slide, self.gui.skyl_lineEdit))
+        self.gui.LAIu_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.LAIu_Slide, self.gui.LAIu_lineEdit))
+        self.gui.SD_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.SD_Slide, self.gui.SD_lineEdit))
+        self.gui.TreeH_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.TreeH_Slide, self.gui.TreeH_lineEdit))
+        self.gui.CD_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.CD_Slide, self.gui.CD_lineEdit))
     
     def update_lineEdit_pos(self):
         
-        gui.N_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.N_lineEdit, gui.N_Slide))
-        gui.Cab_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.Cab_lineEdit, gui.Cab_Slide))
-        gui.Cw_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.Cw_lineEdit, gui.Cw_Slide))
-        gui.Cm_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.Cm_lineEdit, gui.Cm_Slide))
-        gui.Car_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.Car_lineEdit, gui.Car_Slide))
-        gui.Canth_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.Canth_lineEdit, gui.Canth_Slide))
-        gui.Cbrown_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.Cbrown_lineEdit, gui.Cbrown_Slide))
-        gui.LAI_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.LAI_lineEdit, gui.LAI_Slide))
-        gui.LIDFB_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.LIDFB_lineEdit, gui.LIDFB_Slide))
-        gui.hspot_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.hspot_lineEdit, gui.hspot_Slide))
-        gui.psoil_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.psoil_lineEdit, gui.psoil_Slide))
-        gui.OZA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.OZA_lineEdit, gui.OZA_Slide))
-        gui.SZA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.SZA_lineEdit, gui.SZA_Slide))
-        gui.rAA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.rAA_lineEdit, gui.rAA_Slide))
-        gui.skyl_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.skyl_lineEdit, gui.skyl_Slide))
-        gui.LAIu_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.LAIu_lineEdit, gui.LAIu_Slide))
-        gui.SD_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.SD_lineEdit, gui.SD_Slide))
-        gui.TreeH_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.TreeH_lineEdit, gui.TreeH_Slide))
-        gui.CD_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(gui.CD_lineEdit, gui.CD_Slide))
+        self.gui.N_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.N_lineEdit, self.gui.N_Slide))
+        self.gui.Cab_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cab_lineEdit, self.gui.Cab_Slide))
+        self.gui.Cw_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cw_lineEdit, self.gui.Cw_Slide))
+        self.gui.Cm_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cm_lineEdit, self.gui.Cm_Slide))
+        self.gui.Car_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Car_lineEdit, self.gui.Car_Slide))
+        self.gui.Canth_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Canth_lineEdit, self.gui.Canth_Slide))
+        self.gui.Cbrown_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cbrown_lineEdit, self.gui.Cbrown_Slide))
+        self.gui.LAI_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.LAI_lineEdit, self.gui.LAI_Slide))
+        self.gui.LIDFB_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.LIDFB_lineEdit, self.gui.LIDFB_Slide))
+        self.gui.hspot_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.hspot_lineEdit, self.gui.hspot_Slide))
+        self.gui.psoil_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.psoil_lineEdit, self.gui.psoil_Slide))
+        self.gui.OZA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.OZA_lineEdit, self.gui.OZA_Slide))
+        self.gui.SZA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.SZA_lineEdit, self.gui.SZA_Slide))
+        self.gui.rAA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.rAA_lineEdit, self.gui.rAA_Slide))
+        self.gui.skyl_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.skyl_lineEdit, self.gui.skyl_Slide))
+        self.gui.LAIu_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.LAIu_lineEdit, self.gui.LAIu_Slide))
+        self.gui.SD_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.SD_lineEdit, self.gui.SD_Slide))
+        self.gui.TreeH_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.TreeH_lineEdit, self.gui.TreeH_Slide))
+        self.gui.CD_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.CD_lineEdit, self.gui.CD_Slide))
 
     def any_slider_change(self, slider, textfeld):
         if not self.current_slider == slider:
@@ -93,7 +109,7 @@ class UiFunc:
             my_value = int(float(textfeld.text()) * 10000)
             slider.setValue(my_value)
         except ValueError:
-            QMessageBox.critical(gui, "Not a number", "'%s' is not a valid number" % textfeld.text())
+            QMessageBox.critical(self.gui, "Not a number", "'%s' is not a valid number" % textfeld.text())
             textfeld.setText(str(slider.value() / 10000.0))
 
     def select_s2s(self, sensor, trigger=True):
@@ -121,24 +137,24 @@ class UiFunc:
         if index > 0:
             self.typeLIDF = 1 # Beta Distribution
             self.para_list[6] = index - 1
-            gui.LIDFB_Slide.setDisabled(True)
-            gui.LIDFB_lineEdit.setDisabled(True)
+            self.gui.LIDFB_Slide.setDisabled(True)
+            self.gui.LIDFB_lineEdit.setDisabled(True)
             self.mod_exec()
         else:
             self.typeLIDF = 2 # Ellipsoidal Distribution
-            self.mod_exec(gui.LIDFB_Slide, item=6)
-            gui.LIDFB_Slide.setDisabled(False)
-            gui.LIDFB_lineEdit.setDisabled(False)
+            self.mod_exec(self.gui.LIDFB_Slide, item=6)
+            self.gui.LIDFB_Slide.setDisabled(False)
+            self.gui.LIDFB_lineEdit.setDisabled(False)
 
     def deactivate_sliders(self):
-        gui.B_Prospect5b.toggled.connect(lambda: self.model_rb_click(gui.B_Prospect5b, gui.Canth_Slide, gui.Canth_lineEdit, gui.Canth_Text))
+        self.gui.B_Prospect5b.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5b, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
 
-        gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(gui.B_Prospect5, gui.Canth_Slide, gui.Canth_lineEdit, gui.Canth_Text))
-        gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(gui.B_Prospect5, gui.Cbrown_Slide, gui.Cbrown_lineEdit, gui.Cbrown_Text))
+        self.gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
+        self.gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5, self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit, self.gui.Cbrown_Text))
 
-        gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(gui.B_Prospect4, gui.Canth_Slide, gui.Canth_lineEdit, gui.Canth_Text))
-        gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(gui.B_Prospect4, gui.Cbrown_Slide, gui.Cbrown_lineEdit, gui.Cbrown_Text))
-        gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(gui.B_Prospect4, gui.Car_Slide, gui.Car_lineEdit, gui.Car_Text))
+        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
+        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit, self.gui.Cbrown_Text))
+        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Car_Slide, self.gui.Car_lineEdit, self.gui.Car_Text))
 
     def model_rb_click(self, rbutton, slider, textfeld, text):
         if rbutton.isChecked():
@@ -152,65 +168,65 @@ class UiFunc:
 
     def para_init(self):
         self.select_s2s(sensor="default", trigger=False)
-        self.para_list.append(float(gui.N_lineEdit.text())) #0
-        self.para_list.append(float(gui.Cab_lineEdit.text())) #1
-        self.para_list.append(float(gui.Cw_lineEdit.text())) #2
-        self.para_list.append(float(gui.Cm_lineEdit.text())) #3
-        self.para_list.append(float(gui.LAI_lineEdit.text())) #4
+        self.para_list.append(float(self.gui.N_lineEdit.text())) #0
+        self.para_list.append(float(self.gui.Cab_lineEdit.text())) #1
+        self.para_list.append(float(self.gui.Cw_lineEdit.text())) #2
+        self.para_list.append(float(self.gui.Cm_lineEdit.text())) #3
+        self.para_list.append(float(self.gui.LAI_lineEdit.text())) #4
         self.para_list.append(float(2))  # 5
-        self.para_list.append(float(gui.LIDFB_lineEdit.text())) #6
-        self.para_list.append(float(gui.hspot_lineEdit.text())) #7
-        self.para_list.append(float(gui.psoil_lineEdit.text())) #8
-        self.para_list.append(float(gui.SZA_lineEdit.text())) #9
-        self.para_list.append(float(gui.OZA_lineEdit.text())) #10
-        self.para_list.append(float(gui.rAA_lineEdit.text())) #11
-        self.para_list.append(float(gui.Car_lineEdit.text())) #12
-        self.para_list.append(float(gui.Canth_lineEdit.text())) #13
-        self.para_list.append(float(gui.Cbrown_lineEdit.text())) #14
-        self.para_list.append(float(gui.skyl_lineEdit.text())) #15
+        self.para_list.append(float(self.gui.LIDFB_lineEdit.text())) #6
+        self.para_list.append(float(self.gui.hspot_lineEdit.text())) #7
+        self.para_list.append(float(self.gui.psoil_lineEdit.text())) #8
+        self.para_list.append(float(self.gui.SZA_lineEdit.text())) #9
+        self.para_list.append(float(self.gui.OZA_lineEdit.text())) #10
+        self.para_list.append(float(self.gui.rAA_lineEdit.text())) #11
+        self.para_list.append(float(self.gui.Car_lineEdit.text())) #12
+        self.para_list.append(float(self.gui.Canth_lineEdit.text())) #13
+        self.para_list.append(float(self.gui.Cbrown_lineEdit.text())) #14
+        self.para_list.append(float(self.gui.skyl_lineEdit.text())) #15
         self.typeLIDF = 2
 
     def mod_interactive(self):
-        gui.N_Slide.valueChanged.connect(lambda: self.mod_exec(slider=gui.N_Slide, item=0))
-        gui.Cab_Slide.valueChanged.connect(lambda: self.mod_exec(slider=gui.Cab_Slide, item=1))
-        gui.Cw_Slide.valueChanged.connect(lambda: self.mod_exec(gui.Cw_Slide, item=2))
-        gui.Cm_Slide.valueChanged.connect(lambda: self.mod_exec(gui.Cm_Slide, item=3))
-        gui.LAI_Slide.valueChanged.connect(lambda: self.mod_exec(gui.LAI_Slide, item=4))
-        gui.LIDFB_Slide.valueChanged.connect(lambda: self.mod_exec(gui.LIDFB_Slide, item=6))
-        gui.hspot_Slide.valueChanged.connect(lambda: self.mod_exec(gui.hspot_Slide, item=7))
-        gui.psoil_Slide.valueChanged.connect(lambda: self.mod_exec(gui.psoil_Slide, item=8))
-        gui.SZA_Slide.valueChanged.connect(lambda: self.mod_exec(gui.SZA_Slide, item=9))
-        gui.OZA_Slide.valueChanged.connect(lambda: self.mod_exec(gui.OZA_Slide, item=10))
-        gui.rAA_Slide.valueChanged.connect(lambda: self.mod_exec(gui.rAA_Slide, item=11))
-        gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(gui.Car_Slide, item=12))
-        gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(gui.Canth_Slide, item=13))
-        gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(gui.Cbrown_Slide, item=14))
-        gui.skyl_Slide.valueChanged.connect(lambda: self.mod_exec(gui.skyl_Slide, item=15))
-        gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(gui.LAIu_Slide, item=16))
-        gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(gui.SD_Slide, item=17))
-        gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(gui.TreeH_Slide, item=18))
-        gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(gui.CD_Slide, item=19))
+        self.gui.N_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.N_Slide, item=0))
+        self.gui.Cab_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.Cab_Slide, item=1))
+        self.gui.Cw_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cw_Slide, item=2))
+        self.gui.Cm_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cm_Slide, item=3))
+        self.gui.LAI_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAI_Slide, item=4))
+        self.gui.LIDFB_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LIDFB_Slide, item=6))
+        self.gui.hspot_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.hspot_Slide, item=7))
+        self.gui.psoil_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.psoil_Slide, item=8))
+        self.gui.SZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SZA_Slide, item=9))
+        self.gui.OZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.OZA_Slide, item=10))
+        self.gui.rAA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.rAA_Slide, item=11))
+        self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item=12))
+        self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item=13))
+        self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item=14))
+        self.gui.skyl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.skyl_Slide, item=15))
+        self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=16))
+        self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=17))
+        self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=18))
+        self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item=19))
 
-        gui.SType_None_B.clicked.connect(lambda: self.select_s2s(sensor="default"))
-        gui.SType_Sentinel_B.clicked.connect(lambda: self.select_s2s(sensor="Sentinel2"))
-        gui.SType_Landsat_B.clicked.connect(lambda: self.select_s2s(sensor="Landsat8"))
-        gui.SType_Enmap_B.clicked.connect(lambda: self.select_s2s(sensor="EnMAP"))
+        self.gui.SType_None_B.clicked.connect(lambda: self.select_s2s(sensor="default"))
+        self.gui.SType_Sentinel_B.clicked.connect(lambda: self.select_s2s(sensor="Sentinel2"))
+        self.gui.SType_Landsat_B.clicked.connect(lambda: self.select_s2s(sensor="Landsat8"))
+        self.gui.SType_Enmap_B.clicked.connect(lambda: self.select_s2s(sensor="EnMAP"))
 
-        gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4"))
-        gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5"))
-        gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B"))
-        gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD"))
+        self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4"))
+        self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5"))
+        self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B"))
+        self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD"))
 
-        gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(canopy_arch="None"))
-        gui.B_4Sail.clicked.connect(lambda: self.select_model(canopy_arch="sail"))
-        gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
+        self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(canopy_arch="None"))
+        self.gui.B_4Sail.clicked.connect(lambda: self.select_model(canopy_arch="sail"))
+        self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
 
-        gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
+        self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
-        gui.pushClearPlot.clicked.connect(self.clear_plot)
-        gui.Push_LoadInSitu.clicked.connect(self.open_file)
-        gui.Push_Exit.clicked.connect(self.exit_GUI)
-        gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)
+        self.gui.pushClearPlot.clicked.connect(self.clear_plot)
+        self.gui.Push_LoadInSitu.clicked.connect(self.open_file)
+        self.gui.Push_Exit.clicked.connect(self.gui.accept)
+        self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)
 
     def mod_exec(self, slider=None, item=None):
 
@@ -231,24 +247,24 @@ class UiFunc:
 
     def plotting(self):
 
-        if not gui.CheckPlotAcc.isChecked():
+        if not self.gui.CheckPlotAcc.isChecked():
 
             self.clear_plot()
-            gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
+            self.gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
                                         name='modelled')
 
-            gui.graphicsView.setYRange(0, 0.6, padding=0)
-            gui.graphicsView.setLabel('left', text="Reflectance [%]")
-            gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
+            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
+            self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
+            self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
-            self.plot = gui.graphicsView.plot(self.wl, self.myResult,
+            self.plot = self.gui.graphicsView.plot(self.wl, self.myResult,
                                               pen=self.plot_color[self.plot_count % 7])
             self.plot_own_spec()
-            gui.graphicsView.setYRange(0, 0.6, padding=0)
-            gui.graphicsView.setLabel('left', text="Reflectance [%]")
-            gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
+            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
+            self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
+            self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 
-        if self.data_mean is not None and gui.SType_None_B.isChecked() and not gui.CheckPlotAcc.isChecked():
+        if self.data_mean is not None and self.gui.SType_None_B.isChecked() and not self.gui.CheckPlotAcc.isChecked():
 
             self.plot_own_spec()
 
@@ -269,7 +285,7 @@ class UiFunc:
                                  '\n' + u'R²: ' + str(round(r_squared, 6)), (100, 200, 255),
                                  border="w", anchor=(1, 0))
             errors.setPos(2500, 0.55)
-            gui.graphicsView.addItem(errors)
+            self.gui.graphicsView.addItem(errors)
 
     def open_file(self):
         # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
@@ -290,19 +306,21 @@ class UiFunc:
 
     def plot_own_spec(self):
         if self.data_mean is not None:
-            gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
+            self.gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
 
     def clear_plot(self):
-        gui.graphicsView.clear()
+        self.gui.graphicsView.clear()
         self.plot_count = 0
 
-    def exit_GUI(self):
-        QCoreApplication.instance().quit()
+    #never ever...
+    #def exit_GUI(self):
+    #    QCoreApplication.instance().quit()
 
 if __name__ == '__main__':
-
+    from enmapbox.gui.sandbox import initQgisEnvironment
+    app =  initQgisEnvironment()
     myUI = UiFunc()
-    gui.show()
+    myUI.gui.show()
     sys.exit(app.exec_())
 
 
