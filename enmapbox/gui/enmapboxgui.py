@@ -532,9 +532,9 @@ class EnMAPBox(QObject):
             s = ""
 
     def openExampleData(self, mapWindows=0):
-        import enmapbox.testdata
+        import enmapboxtestdata
         from enmapbox.gui.utils import file_search
-        dir = os.path.dirname(enmapbox.testdata.__file__)
+        dir = os.path.dirname(enmapboxtestdata.__file__)
         files = file_search(dir, re.compile('.*(bsq|img|shp)$', re.I), recursive=True)
 
         for file in files:

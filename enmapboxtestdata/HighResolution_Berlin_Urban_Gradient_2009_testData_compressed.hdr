@@ -8,7 +8,6 @@ file compression = 1
 file type = ENVI Standard
 data type = 2
 interleave = bsq
-data ignore value = -1
 sensor type = Unknown
 byte order = 0
 x start = 697

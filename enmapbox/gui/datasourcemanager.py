@@ -697,8 +697,9 @@ class DataSourceManager(QObject):
         #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
         #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
         # noinspection PyArgumentList
-        #QgsMapLayerRegistry.instance().layersAdded.connect(self.addLayers)
-        #QgsMapLayerRegistry.instance().removeAll.connect(self.removeAllLayers)
+        from qgis.core import QgsMapLayerRegistry
+        QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
+        QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
 
         self.updateFromQgsMapLayerRegistry()
 
@@ -786,7 +787,9 @@ class DataSourceManager(QObject):
         elif sourcetype == 'MODEL':
             return [ds.uri() for ds in self.mSources if isinstance(ds, ProcessingTypeDataSource)]
 
-
+    def addSources(self, sources):
+        for s in sources:
+            self.addSource(s)
 
     @pyqtSlot(str)
     @pyqtSlot('QString')

@@ -770,7 +770,7 @@ class MapCanvas(QgsMapCanvas):
             from enmapbox.gui.enmapboxgui import EnMAPBox
             dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
             dataSources = [EnMAPBox.instance().dataSourceManager.addSource(d) for d in dataSources]
-            newLayers = [d.createRegisteredMapLayer() for d in dataSources]
+            newLayers = [d.createUnregisteredMapLayer() for d in dataSources]
 
         if newLayers != None:
             self.setLayers(newLayers + self.layers())

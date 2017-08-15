@@ -36,8 +36,8 @@ DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
 DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
-import enmapbox.testdata
-DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
+import enmapboxtestdata
+DIR_TESTDATA = os.path.dirname(enmapboxtestdata.__file__)
 
 
 REPLACE_TMP = True #required for loading *.ui files directly
