@@ -55,8 +55,8 @@ if $("$a" = ""); then
     git fetch hub-datacube
     git read-tree --prefix=site-packages/hubdc -u hub-datacube/master:hubdc
 else
-    #git merge -s ours --no-commit hub-datacube/master
     git rm -rf site-packages/hubdc
+    git fetch hub-datacube
     git read-tree --prefix=site-packages/hubdc -u hub-datacube/master:hubdc
 fi
 
@@ -67,10 +67,16 @@ fi
 #update hub-workflow
 a=$(git ls-remote --exit-code hub-workflow | grep hub-workflow)
 if $("$a" = ""); then
-    git remote add hub-datacube https://bitbucket.org/hu-geomatics/hub-workflow.git
+    git remote add hub-workflow https://bitbucket.org/hu-geomatics/hub-workflow.git
+    git fetch hub-workflow
+    git read-tree --prefix=site-packages/hobflow -u hub-workflow/master:hubflow
+else
+    git rm -rf site-packages/hubflow
+    git fetch hub-workflow
+    git read-tree --prefix=site-packages/hubflow -u hub-workflow/master:hubflow
 fi
-git fetch hub-workflow
-git read-tree --prefix=site-packages/hubflow -u hub-workflow/master:hubflow
+
+
 #git commit -m "updated hub-workflow"
 
 
