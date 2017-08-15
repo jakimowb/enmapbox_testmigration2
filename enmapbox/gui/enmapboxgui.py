@@ -443,10 +443,9 @@ class EnMAPBox(QObject):
                 logger.debug('initialize own QGIS Processing framework')
                 from processing.core.Processing import Processing
                 Processing.initialize()
-
                 from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
-
-                Processing.addProvider(EnMAPBoxAlgorithmProvider())
+                if not self.processingAlgManager.enmapBoxProvider():
+                    Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
 
             try:

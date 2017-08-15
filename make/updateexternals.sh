@@ -7,10 +7,34 @@
 a=$(git ls-remote --exit-code pyqtgraph | grep pyqtgraph)
 if $("$a" = ""); then
     git remote add pyqtgraph https://github.com/pyqtgraph/pyqtgraph.git
+    git fetch pyqtgraph
+    git read-tree --prefix=site-packages/pyqtgraph -u pyqtgraph/master
 fi
 
-git fetch pyqtgraph
-git read-tree --prefix=site-packages/pyqtgraph -u pyqtgraph/master
+
+
+
+a=$(git ls-remote --exit-code spectralpython | grep spectralpython)
+if $("$a" = ""); then
+    git remote add spy https://github.com/spectralpython/spectral.git
+    git fetch spy
+    git read-tree --prefix=site-packages/spy -u spy/master
+else
+    git fetch spy
+    git read-tree --prefix=site-packages/spy -u spy/master
+fi
+
+
+a=$(git ls-remote --exit-code geoalgs | grep geoalgs)
+if $("$a" = ""); then
+    git remote add geoalgs https://@bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git
+    git fetch geoalgs
+    git read-tree --prefix=enmapboxgeoalgorithms/ -u geoalgs/master:enmapboxgeoalgorithms
+else
+    git fetch geoalgs
+    git read-tree --prefix=enmapbox/geoalgorithms/ -u geoalgs/master:enmapboxgeoalgorithms
+fi
+
 #git commit -m "updated pyqtgraph"
 
 #update hub-datacube
