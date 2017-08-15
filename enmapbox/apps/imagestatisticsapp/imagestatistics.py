@@ -26,14 +26,16 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph
-from hub.gdal.api import *
+from osgeo import gdal
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
 from hubdc.applier import Applier
 from hubdc.applier import ApplierControls, ApplierInputOptions
 from hubflow.types import *
 
-app = QtGui.QApplication([])
+#BJ: es gibt immer nur eine QApplication. Zur Laufzeit ist das die von QGiS.
+#  Daher sollte das nie eine Modul-Variable sein
+#app = QtGui.QApplication([])
 
 class Win(QtGui.QDialog):
 
@@ -194,11 +196,21 @@ class Win(QtGui.QDialog):
 
         image = Image(filename=self.inDS.GetFileList()[0])
 
+
+        pathMask = str(self.inputMask.currentText())
+        if os.path.isfile(pathMask) and gdal.Open(pathMask):
+            mask = Mask(filename=pathMask)
+        else:
+            mask = None
+
+        """
+        #das gibt immer "ERROR 4: No such file or directory" aus falls es gar keine maske gibt
         ds = gdal.Open(str(self.inputMask.currentText()))
         if ds is not None:
             mask = Mask(filename=str(self.inputMask.currentText()))
         else:
             mask = None
+        """
 
         # vmask = VectorMask(filename=vectorFilename, allTouched=True)
 
@@ -276,9 +288,11 @@ class Win(QtGui.QDialog):
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        app = QtGui.QApplication.instance()
-        w = Win()
-        w.show()
-        app.exec_()
+    from enmapbox.gui.sandbox import initQgisEnvironment
+    app = initQgisEnvironment()
+    from enmapboxtestdata import enmap
+    assert os.path.isfile(enmap)
+    w = Win()
+    w.inputFile.addItem(enmap)
+    w.show()
+    app.exec_()
