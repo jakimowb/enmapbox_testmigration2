@@ -87,7 +87,8 @@ def _synthMix(features, labels, classes, endmemberLikelihoods, classLikelihoods,
 def synthMix(features, labels, classes, mixingComplexities, classLikelihoods, n):
     assert matching2dArrays(features, labels)
     assert isinstance(mixingComplexities, dict)
-    assert len(classLikelihoods) == classes
+    assert isinstance(classLikelihoods, dict)
+
 
     # cache label indices and setup 0%/100% fractions from class labels
     indices = dict()
@@ -101,7 +102,7 @@ def synthMix(features, labels, classes, mixingComplexities, classLikelihoods, n)
     fractions = list()
     for i in range(n):
         complexity = numpy.random.choice(mixingComplexities.keys(), p=mixingComplexities.values())
-        drawnLabels = numpy.random.choice(range(1, classes+1), size=complexity, replace=False, p=classLikelihoods)
+        drawnLabels = numpy.random.choice(classLikelihoods.keys(), size=complexity, replace=True, p=classLikelihoods.values())
         drawnIndices = [numpy.random.choice(indices[label]) for label in drawnLabels]
         drawnFeatures = features[:, drawnIndices]
         drawnFractions = zeroOneFractions[:, drawnIndices]
