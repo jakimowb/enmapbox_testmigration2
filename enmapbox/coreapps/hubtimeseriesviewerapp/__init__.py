@@ -38,6 +38,7 @@ def enmapboxApplicationFactory(enmapBox):
         return [HUBTimeSeriesViewerApp(enmapBox)]
 
     else:
+        from qgis.core import QgsMessageLog
         QgsMessageLog.instance().logMessage('HUB TimeSeriesViewer QGIS Plugin is not installed.',
                                             level=QgsMessageLog.INFO)
         return []
