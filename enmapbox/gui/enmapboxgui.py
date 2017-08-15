@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+
+"""
+***************************************************************************
+    enmapboxgui.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import
 import qgis.core
 import qgis.gui
 from qgis import utils as qgsUtils
@@ -81,9 +100,12 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
 
-
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
+
+        area = Qt.BottomDockWidgetArea
+        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
+        self.specLibViewPanel = addPanel(SpectralLibraryPanel(self))
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -91,8 +113,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
 
         #tabbify dock widgets
-        self.tabifyDockWidget(self.processingPanel, self.dockPanel)
-        self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
+        self.tabifyDockWidget(self.dataSourcePanel, self.dockPanel)
+        self.tabifyDockWidget(self.dataSourcePanel, self.processingPanel)
 
     def setIsInitialized(self):
         self.isInitialized = True
@@ -131,7 +153,8 @@ class EnMAPBoxQgisInterface(QgisInterface):
         self.layers = dict()
         self.virtualMapCanvas = QgsMapCanvas()
         self.virtualMapCanvas.setCrsTransformEnabled(True)
-
+        #self.mLog = QgsApplication.instance().messageLog()
+        #self.mLog = QgsApplication.messageLog()
 
     def mainWindow(self):
         return self.enmapBox.ui
@@ -338,24 +361,24 @@ class EnMAPBox(QObject):
         super(EnMAPBox, self).__init__()
 
         EnMAPBox._instance = self
-
         splash.showMessage('Load Interfaces')
-        self.ifaceSimulation = EnMAPBoxQgisInterface(self)
+
         self.iface = iface
 
-        # init QGIS Processing Framework, if necessary
         if qgsUtils.iface is None:
             # there is not running QGIS Instance. This means the entire QGIS processing framework was not
             # initialized at all.
-            qgsUtils.iface = self.ifaceSimulation
+            qgsUtils.iface = EnMAPBoxQgisInterface(self)
 
         # register loggers etc.
+        splash.showMessage('Load UI')
+        self.ui = EnMAPBoxUI()
+
         msgLog = QgsMessageLog.instance()
         msgLog.messageReceived.connect(self.onLogMessage)
 
         assert isinstance(qgsUtils.iface, QgisInterface)
-        splash.showMessage('Load UI')
-        self.ui = EnMAPBoxUI()
+
 
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
@@ -373,7 +396,6 @@ class EnMAPBox(QObject):
 
         splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
-
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
 
@@ -393,6 +415,10 @@ class EnMAPBox(QObject):
         self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
+
+        from enmapbox.gui.mapcanvas import MapDock
+        self.ui.actionLoadExampleData.triggered.connect(lambda: self.openExampleData(
+            mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
 
         #activate map tools
         self.ui.actionZoomIn.triggered.connect(lambda : self.dockManager.activateMapTool('ZOOM_IN'))
@@ -417,14 +443,11 @@ class EnMAPBox(QObject):
                 logger.debug('initialize own QGIS Processing framework')
                 from processing.core.Processing import Processing
                 Processing.initialize()
-
                 from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
+                if not self.processingAlgManager.enmapBoxProvider():
+                    Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
-                Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
-
-            initQPFW()
-            s = ""
             try:
                 initQPFW()
                 self.ui.menuProcessing.setEnabled(True)
@@ -442,6 +465,8 @@ class EnMAPBox(QObject):
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
+
+
 
     def loadEnMAPBoxApplications(self):
         from enmapbox.gui.applications import ApplicationRegistry

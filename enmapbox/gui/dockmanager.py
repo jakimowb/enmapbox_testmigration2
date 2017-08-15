@@ -715,15 +715,13 @@ class DockManager(QgsLegendInterface):
         QObject.__init__(self)
         self.mConnectedDockAreas = []
         self.mCurrentDockArea = None
-        self.DOCKS = list()
+        self.mDocks = list()
         self.dataSourceManager = None
-
         self.setCursorLocationValueDock(None)
 
     def activateMapTool(self, key):
-        if key == 'CURSORLOCATIONVALUE':
-            self.createDock('CURSORLOCATIONVALUE')
-        for dock in self.DOCKS:
+
+        for dock in self.mDocks:
             if isinstance(dock, MapDock):
                 dock.activateMapTool(key)
 
@@ -742,7 +740,7 @@ class DockManager(QgsLegendInterface):
         :return:
         """
         if isinstance(dataSource, DataSourceSpatial):
-            for mapDock in [d for d in self.DOCKS if isinstance(d, MapDock)]:
+            for mapDock in [d for d in self.mDocks if isinstance(d, MapDock)]:
                 mapDock.removeLayersByURI(dataSource.uri())
 
 
@@ -818,13 +816,28 @@ class DockManager(QgsLegendInterface):
             event.accept()
 
 
+    def __len__(self):
+        return len(self.mDocks)
 
+    def __iter__(self):
+        return iter(self.mDocks)
+
+    def docks(self, dockType=None):
+        """
+        Returns the managed docks.
+        :param dockType: type of Dock to be returned. Default = None to return all Docks
+        :return: [list-of-Docks controlled by this DockManager]
+        """
+        if dockType is None:
+            return self.mDocks[:]
+        else:
+            return [d for d in self.mDocks if type(d) is dockType]
 
     def getDockWithUUID(self, uuid_):
         if isinstance(uuid_, str):
             uuid_ = uuid.UUID(uuid_)
         assert isinstance(uuid_, uuid.UUID)
-        for dock in list(self.DOCKS):
+        for dock in list(self.mDocks):
             assert isinstance(dock, Dock)
             if dock.uuid == uuid_:
                 return dock
@@ -834,6 +847,8 @@ class DockManager(QgsLegendInterface):
     def showCursorLocationValues(self, *args):
         if self.cursorLocationValueDock is not None:
             self.cursorLocationValueDock.showLocationValues(*args)
+
+
 
 
     def setCursorLocationValueDock(self, dock):
@@ -847,8 +862,8 @@ class DockManager(QgsLegendInterface):
             dock.sigClosed.connect(lambda: self.setCursorLocationValueDock(None))
 
     def removeDock(self, dock):
-        if dock in self.DOCKS:
-            self.DOCKS.remove(dock)
+        if dock in self.mDocks:
+            self.mDocks.remove(dock)
             self.sigDockRemoved.emit(dock)
 
             if dock.container():
@@ -858,7 +873,7 @@ class DockManager(QgsLegendInterface):
 
     def createDock(self, dockType, *args, **kwds):
 
-        n = len(self.DOCKS) + 1
+        n = len(self.mDocks) + 1
 
         is_new_dock = True
         if dockType == 'MAP':
@@ -892,9 +907,9 @@ class DockManager(QgsLegendInterface):
         dockArea = kwds.get('dockArea', self.currentDockArea())
         assert isinstance(dockArea, DockArea), \
             'DockManager not connected to any DockArea yet. \nAdd DockAreas with connectDockArea(self, dockArea)'
-        if dock not in self.DOCKS:
+        if dock not in self.mDocks:
             dock.sigClosed.connect(self.removeDock)
-            self.DOCKS.append(dock)
+            self.mDocks.append(dock)
             dockArea.addDock(dock, *args, **kwds)
             self.sigDockAdded.emit(dock)
 

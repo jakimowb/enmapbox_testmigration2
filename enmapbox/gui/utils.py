@@ -108,7 +108,6 @@ def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
 FORM_CLASSES = dict()
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 
-loadUi = lambda p : loadUIFormClass(jp(DIR_UIFILES, p))
 
 #dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()
@@ -320,7 +319,16 @@ def geo2pxF(geo, gt):
     py = (geo.y() - gt[3]) / gt[5]  # y pixel
     return QPointF(px,py)
 
-geo2px = lambda geo, gt : geo2pxF(geo,gt).toPoint()
+def geo2px(geo, gt):
+    """
+    Returns the pixel position related to a Geo-Coordinate as integer number.
+    Floating-point coordinate are casted to integer coordinate, e.g. the pixel coordinate (0.815, 23.42) is returned as (0,23)
+    :param geo: Geo-Coordinate as QgsPoint
+    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html
+    :return: pixel position as QPpint
+    """
+    px = geo2pxF(geo, gt)
+    return QPoint(int(px.x()), int(px.y()))
 
 def px2geo(px, gt):
     #see http://www.gdal.org/gdal_datamodel.html

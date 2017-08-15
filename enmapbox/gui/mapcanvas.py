@@ -10,6 +10,7 @@ from enmapbox.gui.utils import KeepRefs
 from enmapbox.gui.crosshair import CrosshairMapCanvasItem, CrosshairStyle
 
 
+
 class CursorLocationMapTool(QgsMapToolEmitPoint):
 
     sigLocationRequest = pyqtSignal(SpatialPoint)
@@ -26,8 +27,6 @@ class CursorLocationMapTool(QgsMapToolEmitPoint):
         self.rubberband.setLineStyle(Qt.SolidLine)
         self.rubberband.setColor(color)
         self.rubberband.setWidth(2)
-
-
 
         self.marker.setColor(color)
         self.marker.setPenWidth(3)
@@ -76,12 +75,10 @@ class CursorLocationMapTool(QgsMapToolEmitPoint):
         self.rubberband.reset()
 
 
-
 class FullExtentMapTool(QgsMapTool):
     def __init__(self, canvas):
         super(FullExtentMapTool, self).__init__(canvas)
         self.canvas = canvas
-
 
     def canvasReleaseEvent(self, mouseEvent):
         self.canvas.zoomToFullExtent()
@@ -490,6 +487,8 @@ class MapCanvas(QgsMapCanvas):
     sigLayersAdded = pyqtSignal(list)
 
     sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+    sigSpectrumRequested = pyqtSignal(SpatialPoint)
+    sigSpectrumRequest = pyqtSignal(SpatialPoint)
 
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
@@ -506,13 +505,14 @@ class MapCanvas(QgsMapCanvas):
         self.setCrsTransformEnabled(True)
 
         MapCanvas._cnt += 1
-        self._extentInitialized = False
+        self.mCrsExtentInitialized = False
         #self.mapdock = parentMapDock
         #self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
 
 
         self.mCrosshairItem = CrosshairMapCanvasItem(self)
+
         self.setShowCrosshair(False)
 
         self.canvasLinks = []
@@ -684,6 +684,11 @@ class MapCanvas(QgsMapCanvas):
         tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationMapTool(self, showCrosshair=True))
         tool.sigLocationRequest.connect(self.sigCursorLocationRequest.emit)
 
+        tool = self.registerMapTool('SPECTRUMREQUEST', CursorLocationMapTool(self, showCrosshair=True))
+        assert isinstance(tool, CursorLocationMapTool)
+        tool.setStyle(color=QColor('green'))
+        tool.sigLocationRequest.connect(self.sigSpectrumRequested.emit)
+
         tool = self.registerMapTool('MOVE_CENTER', CursorLocationMapTool(self, showCrosshair=True))
         tool.sigLocationRequest.connect(self.setCenter)
 
@@ -844,11 +849,12 @@ class MapCanvas(QgsMapCanvas):
         #todo: change with QGIS 3
         super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
 
-        if not self._extentInitialized and len(newSet) > 0:
+        if not self.mCrsExtentInitialized and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent
             newExtent = SpatialExtent.fromLayer(newSet[0])
             self.setSpatialExtent(newExtent)
-            self._extentInitialized = True
+            self.setCrs(newExtent.crs())
+            self.mCrsExtentInitialized = True
         self.setRenderFlag(True)
         self.refreshAllLayers()
 
@@ -908,6 +914,7 @@ class MapDock(Dock):
     #sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent
     sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+    sigSpectrumRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)
     sigLayersRemoved = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)

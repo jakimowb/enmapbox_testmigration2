@@ -67,7 +67,10 @@ class GUIPlugin:
             QgsPluginLayerRegistry.instance().removePluginLayerType(key)
 
         if isinstance(self.enmapBox, EnMAPBox):
-            self.enmapBox.ui.close()
+            #try:
+            #    self.enmapBox.ui.close()
+           # except:
+            #    pass
             self.enmapBox = None
             EnMAPBox._instance = None
 

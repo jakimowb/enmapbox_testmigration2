@@ -31,7 +31,7 @@ class ApplicationRegistry(QObject):
         assert isinstance(enmapBox, EnMAPBox)
 
         self.enmapBox = enmapBox
-        self.PFMgr = self.enmapBox.processingAlgManager
+        self.processingAlgManager = self.enmapBox.processingAlgManager
         self.appList = collections.OrderedDict()
 
     def addApplicationPackageRootFolder(self, appPkgRootFolder):
@@ -43,6 +43,8 @@ class ApplicationRegistry(QObject):
         if not os.path.isdir(appPkgRootFolder):
             return False
 
+        if not appPkgRootFolder in sys.path:
+            sys.path.append(appPkgRootFolder)
 
         for d, appPackages, _ in os.walk(appPkgRootFolder):
             appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
@@ -164,7 +166,7 @@ class ApplicationRegistry(QObject):
         self.loadMenuItems(appWrapper)
 
         #load QGIS Processing Framework Integration
-        if self.PFMgr.isInitialized():
+        if self.processingAlgManager.isInitialized():
             self.loadGeoAlgorithms(appWrapper)
         return True
 
@@ -176,7 +178,7 @@ class ApplicationRegistry(QObject):
             from processing.core.GeoAlgorithm import GeoAlgorithm
             geoAlgorithms = [g for g in geoAlgorithms if isinstance(g, GeoAlgorithm)]
             appWrapper.geoAlgorithms.extend(geoAlgorithms)
-            self.PFMgr.addAlgorithms(self.PFMgr.enmapBoxProvider(), geoAlgorithms)
+            self.processingAlgManager.addAlgorithms(self.processingAlgManager.enmapBoxProvider(), geoAlgorithms)
 
 
     def loadMenuItems(self, appWrapper, parentMenuName = 'Applications'):
@@ -207,7 +209,7 @@ class ApplicationRegistry(QObject):
             item.parent().removeChildren(item)
 
         #todo: remove geo-algorithms
-        self.PFMgr.removeAlgorithms(appWrapper.geoAlgorithms)
+        self.processingAlgManager.removeAlgorithms(appWrapper.geoAlgorithms)
 
 
 

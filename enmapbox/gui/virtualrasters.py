@@ -28,6 +28,16 @@ LUT_GDT_NAME = {gdal.GDT_Byte:'Byte',
                 gdal.GDT_CFloat32:'Float32',
                 gdal.GDT_CFloat64:'Float64'}
 
+def hdf2vrt(pathHdf, pathVrt=None, resolution=None):
+    """
+    Creates a VRT that accesses the bands of an HDF file as "one image"
+    :param pathHdf:
+    :param pathVrt:
+    :param resolution:
+    :return:
+    """
+    raise NotImplementedError()
+
 def describeRawFile(pathRaw, pathVrt, xsize, ysize,
                     bands=1,
                     eType = gdal.GDT_Byte,
@@ -395,3 +405,17 @@ def createVirtualBandStack(bandFiles, pathVRT):
 
     return vrtDS
 
+
+if __name__ == '__main__':
+
+    src = r'O:\SenseCarbonProcessing\09_testFolder\HLS-data-HUB-viewer\DE\L30\2016\33UUT\HLS.L30.T33UUT.2016007.v1.2.hdf'
+
+    dirVRT = r'O:\SenseCarbonProcessing\09_testFolder\HLS-data-HUB-viewer\VRT'
+    pathVrt = os.path.join(dirVRT, src)
+
+    ds = gdal.Open(src)
+    subs = [t[0] for t in ds.GetSubDatasets()]
+    ds2 = gdal.Open(subs[0])
+    b1 = ds2.GetRasterBand(1)
+    arr = b1.ReadAsArray(0,0,100,100)
+    s = ""
