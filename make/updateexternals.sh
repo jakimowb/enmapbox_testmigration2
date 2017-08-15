@@ -41,10 +41,16 @@ fi
 a=$(git ls-remote --exit-code hub-datacube | grep hub-datacube)
 if $("$a" = ""); then
     git remote add hub-datacube https://bitbucket.org/hu-geomatics/hub-datacube.git
+    git fetch hub-datacube
+    git read-tree --prefix=site-packages/hubdc -u hub-datacube/master:hubdc
+else
+    #git merge -s ours --no-commit hub-datacube/master
+    git rm -rf site-packages/hubdc
+    git read-tree --prefix=site-packages/hubdc -u hub-datacube/master:hubdc
 fi
 
-git fetch hub-datacube
-git read-tree --prefix=site-packages/hubdc -u hub-datacube/master:hubdc
+
+#git pull -s subtree hub-datacube master
 #git commit -m "updated hub-datacube"
 
 #update hub-workflow
