@@ -54,6 +54,8 @@ class Win(QtGui.QDialog):
         self.selectInputFile.clicked.connect(lambda: self.fileFound())
 
         self.inputMask = QComboBox()
+        self.inputMask.currentIndexChanged.connect(lambda: self.maskIndexChanged())
+
         self.selectMaskFile = QPushButton('...')
         self.selectMaskFile.clicked.connect(lambda: self.maskFound())
 
@@ -135,6 +137,9 @@ class Win(QtGui.QDialog):
             self.selectionTable.setVerticalHeaderLabels(rowlabels)  # Name, Samples, Min , Max, Mean, Stdev
             self.selectionTable.setHorizontalHeaderLabels(["Samples", "Min", "Max", "Mean", "Stand. Dev."]) # Name, Samples, Min , Max, Mean, Stdev
 
+    def maskIndexChanged(self):
+        self.validatePath(self.inputMask.currentText())
+
     def clearHistograms(self):
         if self.splitter.widget(0):
             self.splitter.widget(0).deleteLater() # delete synchronize box
@@ -188,7 +193,13 @@ class Win(QtGui.QDialog):
     def computeStats(self):
 
         image = Image(filename=self.inDS.GetFileList()[0])
-        # mask = Mask(filename=classification3mFilename)
+
+        ds = gdal.Open(str(self.inputMask.currentText()))
+        if ds is not None:
+            mask = Mask(filename=str(self.inputMask.currentText()))
+        else:
+            mask = None
+
         # vmask = VectorMask(filename=vectorFilename, allTouched=True)
 
         # band table
@@ -196,7 +207,7 @@ class Win(QtGui.QDialog):
             bandInd = self.selectionTable.selectionModel().selectedRows()[index].row()
 
             controls = ApplierControls().setReferenceGridByImage(image.filename).setWindowXSize(50)
-            min, max, n = image.basicStatistics(bandIndicies=[bandInd], controls=controls)
+            min, max, n = image.basicStatistics(bandIndicies=[bandInd], mask = mask, controls=controls)
 
             #stats = self.inDS.GetRasterBand(bandInd + 1).ComputeStatistics(self.approximateStats.isChecked(), False)
 
@@ -207,6 +218,7 @@ class Win(QtGui.QDialog):
             wid2.setTextInteractionFlags(Qt.TextSelectableByMouse)
             wid3 = QLabel(str(max[0]))
             wid3.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            # todo: andreas image stats need to return mean and, possible, stdev
             #wid4 = QLabel(str(stats[2]))
             #wid4.setTextInteractionFlags(Qt.TextSelectableByMouse)
             #wid5 = QLabel(str(stats[3]))
@@ -243,6 +255,22 @@ class Win(QtGui.QDialog):
             else:
                 style = 'QComboBox {{ }}'.format(hexGreen)
                 self.inputFile.setStyleSheet(style)
+
+            return result
+
+        if sender == self.inputMask:
+            path = self.inputMask.currentText()
+
+            from osgeo import gdal
+            ds = gdal.Open(str(path))
+
+            if ds is None:
+                style = 'QComboBox {{ background-color: {} }}'.format(hexRed)
+                self.inputMask.setStyleSheet(style)
+                result = False
+            else:
+                style = 'QComboBox {{ }}'.format(hexGreen)
+                self.inputMask.setStyleSheet(style)
 
             return result
 
