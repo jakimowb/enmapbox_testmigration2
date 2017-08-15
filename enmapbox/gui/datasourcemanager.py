@@ -1,4 +1,23 @@
-import six, sys, os, gc, re, collections, uuid, logging
+# -*- coding: utf-8 -*-
+
+"""
+***************************************************************************
+    __main__
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import
+import sys, os, logging
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
@@ -728,8 +747,8 @@ class DataSourceManager(QObject):
 
     def updateFromProcessingFramework(self):
         if self.processing:
-            import logging
-            logging.debug('Todo: Fix processing implementation')
+            #import logging
+            #logging.debug('Todo: Fix processing implementation')
             return
             for p,n in zip(self.processing.MODEL_URIS,
                            self.processing.MODEL_NAMES):

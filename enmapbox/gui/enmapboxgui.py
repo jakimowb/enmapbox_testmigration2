@@ -443,7 +443,8 @@ class EnMAPBox(QObject):
                 logger.debug('initialize own QGIS Processing framework')
                 from processing.core.Processing import Processing
                 Processing.initialize()
-                from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
+                from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+
                 if not self.processingAlgManager.enmapBoxProvider():
                     Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
@@ -453,10 +454,11 @@ class EnMAPBox(QObject):
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
                 logger.debug('QGIS Processing framework initialized')
-            except:
+            except Exception as ex:
                 self.ui.menuProcessing.setEnabled(False)
                 self.ui.menuProcessing.setVisible(False)
                 logger.warning('Failed to initialize QGIS Processing framework')
+                logger.warning(str(ex))
             s = ""
 
         #load EnMAP-Box applications
