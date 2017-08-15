@@ -1,5 +1,23 @@
+# -*- coding: utf-8 -*-
+
+"""
+***************************************************************************
+    enmapbox/gui/utils.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import
 import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle
-import xml.etree.ElementTree as xml
 logger = logging.getLogger(__name__)
 
 from qgis.core import *
@@ -18,8 +36,8 @@ DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
 DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
-import enmapbox.testdata
-DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
+import enmapboxtestdata
+DIR_TESTDATA = os.path.dirname(enmapboxtestdata.__file__)
 
 
 REPLACE_TMP = True #required for loading *.ui files directly
@@ -28,7 +46,7 @@ REPLACE_TMP = True #required for loading *.ui files directly
 class TestObjects():
     @staticmethod
     def inMemoryClassification(n=3, nl=10, ns=20, nb=1):
-        from classificationscheme import ClassificationScheme
+        from enmapbox.gui.classificationscheme import ClassificationScheme
         scheme = ClassificationScheme()
         scheme.createClasses(n)
 

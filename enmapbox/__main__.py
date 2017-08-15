@@ -17,8 +17,8 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import sys, os
-from qgis.core import *
+import sys, os, site
+
 
 def run():
     from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -34,9 +34,27 @@ def run():
 
 
 if __name__ == '__main__':
-    sys.path.remove(os.path.dirname(__file__))
+    thisDir = os.path.dirname(__file__)
+    if thisDir in sys.path:
+        sys.path.remove(thisDir)
+
     args = sys.argv[1:]
 
-    #todo: add command line options
+    pathQgs = None
+    pathQgsPlugins  = None
+
+    # todo: add command line options
+
+    if sys.platform == 'darwin':
+        if pathQgs is None:
+            pathQgs = r'/Applications/QGIS.app/Contents/Resources/python'
+
+        if pathQgsPlugins is None:
+            pathQgsPlugins = os.path.join(pathQgs, 'plugins')
+
+        site.addsitedir(pathQgs)
+        site.addsitedir(pathQgsPlugins)
+
+    # todo: find good default locations for other OS
 
     run()

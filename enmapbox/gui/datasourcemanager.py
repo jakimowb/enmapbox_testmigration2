@@ -1,4 +1,23 @@
-import six, sys, os, gc, re, collections, uuid, logging
+# -*- coding: utf-8 -*-
+
+"""
+***************************************************************************
+    __main__
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import
+import sys, os, logging
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
@@ -678,8 +697,9 @@ class DataSourceManager(QObject):
         #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
         #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
         # noinspection PyArgumentList
-        #QgsMapLayerRegistry.instance().layersAdded.connect(self.addLayers)
-        #QgsMapLayerRegistry.instance().removeAll.connect(self.removeAllLayers)
+        from qgis.core import QgsMapLayerRegistry
+        QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
+        QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
 
         self.updateFromQgsMapLayerRegistry()
 
@@ -728,8 +748,8 @@ class DataSourceManager(QObject):
 
     def updateFromProcessingFramework(self):
         if self.processing:
-            import logging
-            logging.debug('Todo: Fix processing implementation')
+            #import logging
+            #logging.debug('Todo: Fix processing implementation')
             return
             for p,n in zip(self.processing.MODEL_URIS,
                            self.processing.MODEL_NAMES):
@@ -767,7 +787,9 @@ class DataSourceManager(QObject):
         elif sourcetype == 'MODEL':
             return [ds.uri() for ds in self.mSources if isinstance(ds, ProcessingTypeDataSource)]
 
-
+    def addSources(self, sources):
+        for s in sources:
+            self.addSource(s)
 
     @pyqtSlot(str)
     @pyqtSlot('QString')

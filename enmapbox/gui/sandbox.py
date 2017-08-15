@@ -105,9 +105,12 @@ def initQgisEnvironment(pythonPlugins=None):
     from enmapbox.gui.utils import DIR_REPO
     #pythonPlugins.append(os.path.dirname(DIR_REPO))
     PLUGIN_DIR = os.path.dirname(DIR_REPO)
-    for subDir in os.listdir(PLUGIN_DIR):
-        if not subDir.startswith('.'):
-            pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
+
+    if os.path.isdir(PLUGIN_DIR):
+        for subDir in os.listdir(PLUGIN_DIR):
+            if not subDir.startswith('.'):
+                pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
+
     envVar = os.environ.get('QGIS_PLUGINPATH', None)
     if isinstance(envVar, list):
         pythonPlugins.extend(re.split('[;:]', envVar))
