@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import os, sys, logging, traceback
+import os, sys, logging, site, traceback
 from qgis.gui import QgisInterface
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QAction
@@ -36,6 +36,10 @@ class EnMAPBoxPlugin:
         if CONSOLE._console is None:
             CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
             QTimer.singleShot(0, CONSOLE._console.activate)
+
+
+        dir_repo = os.path.dirname(__file__)
+        site.addsitedir(dir_repo)
 
         # set the logger
         import enmapbox.gui
