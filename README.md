@@ -1,5 +1,9 @@
 ![EnMAP-Box Logo](http://www.enmap.org/sites/default/files/pictures/logos/logo-enmap-box-thumb.jpg)
 
+# Please note that the EnMAP-Box is in an early beta phase. We plan to release a first official version by September 2017.#
+
+If you like you might test it, but please note that several feature have not been fully implemented yet.
+
 # README #
 
 The EnMAP-Box software is developed to be used as a QGIS plugin. The installation steps include: 

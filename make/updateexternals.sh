@@ -51,6 +51,7 @@ fi
 git rm -rf site-packages/hubdc
 git fetch hub-datacube
 git read-tree --prefix=site-packages/hubdc -u hub-datacube/master:hubdc
+git rm -rf site-packages/hubdc/gis
 git commit -m "updated hub-datacube from remote repository"
 
 

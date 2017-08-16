@@ -23,11 +23,11 @@ import os
 from PyQt4.QtGui import QIcon, QMenu, QAction, QDialog
 from enmapbox.gui.applications import EnMAPBoxApplication
 from reclassifyapp import APP_DIR
-class MetadataEditorApp(EnMAPBoxApplication):
+class ImageStatisticsApp(EnMAPBoxApplication):
 
     def __init__(self, enmapBox, parent=None):
-        super(MetadataEditorApp, self).__init__(enmapBox, parent=parent)
-        self.name = 'Metadata Editor'
+        super(ImageStatisticsApp, self).__init__(enmapBox, parent=parent)
+        self.name = 'Image Statistics'
         self.version = 'Version 0.1'
         self.licence = 'GPL-3'
 
@@ -43,7 +43,7 @@ class MetadataEditorApp(EnMAPBoxApplication):
         appMenu = self.enmapbox.menu('Tools')
 
         #add a QAction that starts your GUI
-        a = appMenu.addAction('Metadata Editor')
+        a = appMenu.addAction('Image Statistics')
         #assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
@@ -51,9 +51,7 @@ class MetadataEditorApp(EnMAPBoxApplication):
 
 
     def startGUI(self, *args):
-        from metadataeditorapp.metadataeditor import Win
+        from imagestatisticsapp.imagestatistics import Win
         ui = Win(self.enmapbox.ui)
         ui.show()
-        #uiDialog = QDialog(self.enmapbox.ui)
-        #uiDialog.setWindowTitle('Dummy')
-        #uiDialog.show()
+

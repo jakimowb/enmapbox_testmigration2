@@ -31,6 +31,6 @@ def enmapboxApplicationFactory(enmapBox):
     """
     s = ""
 
-    from metadataeditorapp.enmapboxintegration import MetadataEditorApp
+    from imagestatisticsapp.enmapboxintegration import ImageStatisticsApp
     #returns a list of EnMAPBoxApplications
-    return [MetadataEditorApp(enmapBox)]
+    return [ImageStatisticsApp(enmapBox)]
