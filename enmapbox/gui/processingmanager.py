@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+
+"""
+***************************************************************************
+    processingmanager.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import
 import six, sys, os, gc, re, collections, uuid, logging
 logger = logging.getLogger(__name__)
 from qgis.core import *
@@ -86,11 +105,12 @@ class ProcessingAlgorithmsManager(QObject):
             self.algList.providerUpdated.connect(self.onProviderUpdated)
 
             #connect EnMAP-Box processing framework specifics
-            from enmapboxplugin.processing.Signals import Signals
-            Signals = Signals.signals
-            Signals.imageCreated.connect(self.onFileCreated)
-            Signals.pickleCreated.connect(self.onFileCreated)
-            Signals.htmlCreated.connect(self.onFileCreated)
+
+            #from enmapboxplugin.processing.Signals import Signals
+            #Signals = Signals.signals
+            #Signals.imageCreated.connect(self.onFileCreated)
+            #Signals.pickleCreated.connect(self.onFileCreated)
+            #Signals.htmlCreated.connect(self.onFileCreated)
             from processing.gui.ProcessingToolbox import ProcessingToolbox
             self.toolbox = ProcessingToolbox()
 
@@ -132,6 +152,9 @@ class ProcessingAlgorithmsManager(QObject):
         self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
 
     def enmapBoxProvider(self):
+        """
+        Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
+        """
         if self.isInitialized():
             return self.algList.getProviderFromName('EnMAP-Box')
         else:

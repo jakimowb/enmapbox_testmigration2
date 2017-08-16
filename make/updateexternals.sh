@@ -11,6 +11,17 @@ if $("$a" = ""); then
     git read-tree --prefix=site-packages/pyqtgraph -u pyqtgraph/master
 fi
 
+#update enmapbox-testdata
+
+a=$(git ls-remote --exit-code enmapboxtestdata | grep enmapboxtestdata)
+if $("$a" = ""); then
+    git remote add enmapboxtestdata https://jakimowb@bitbucket.org/hu-geomatics/enmap-box-testdata.git
+    git fetch enmapboxtestdata
+    git read-tree --prefix=enmapboxtestdata -u enmapboxtestdata/master:enmapboxtestdata
+else
+    git fetch enmapboxtestdata
+    git read-tree --prefix=enmapboxtestdata -u enmapboxtestdata/master:enmapboxtestdata
+fi
 
 
 
