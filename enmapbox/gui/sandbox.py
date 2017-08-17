@@ -92,60 +92,8 @@ def sandboxGUI():
 
 
 
-def initQgisEnvironment(pythonPlugins=None):
-    """
-    Initializes the QGIS Environment
-    :return: QgsApplication instance
-    """
-    import site
-    if pythonPlugins is None:
-        pythonPlugins = []
-    assert isinstance(pythonPlugins, list)
-
-    from enmapbox.gui.utils import DIR_REPO
-    #pythonPlugins.append(os.path.dirname(DIR_REPO))
-    PLUGIN_DIR = os.path.dirname(DIR_REPO)
-
-    if os.path.isdir(PLUGIN_DIR):
-        for subDir in os.listdir(PLUGIN_DIR):
-            if not subDir.startswith('.'):
-                pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
-
-    envVar = os.environ.get('QGIS_PLUGINPATH', None)
-    if isinstance(envVar, list):
-        pythonPlugins.extend(re.split('[;:]', envVar))
-
-    #make plugin paths available to QGIS and Python
-    os.environ['QGIS_PLUGINPATH'] = ';'.join(pythonPlugins)
-    for p in pythonPlugins:
-        sys.path.append(p)
-
-    if isinstance(QgsApplication.instance(), QgsApplication):
-        #alread started
-        return QgsApplication.instance()
-    else:
-        # start QGIS instance
-        if sys.platform == 'darwin':
-            PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-            os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
-            from enmapbox.gui.utils import DIR_SITEPACKAGES
-            pathDarwin = jp(DIR_SITEPACKAGES, *['darwin'])
-            site.addsitedir(pathDarwin)
-            QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-            QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-            s = ""
-
-        else:
-            # assume OSGeo4W startup
-            PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-
-        assert os.path.exists(PATH_QGS)
-
-        QgsApplication.setGraphicsSystem("raster")
-        qgsApp = QgsApplication([], True)
-        qgsApp.setPrefixPath(PATH_QGS, True)
-        qgsApp.initQgis()
-        return qgsApp
+#for backward compatibility
+initQgisEnvironment = initQgisApplication
 
 
 def sandboxDialog():
