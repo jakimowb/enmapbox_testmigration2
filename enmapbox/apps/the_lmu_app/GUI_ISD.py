@@ -16,7 +16,7 @@ from Spec2Sensor_cl import Spec2Sensor
 
 #app = QApplication(sys.argv)
 
-pathUI = os.path.join(os.path.dirname(__file__) ,'GUI_ISD.ui')
+pathUI = os.path.join(os.path.dirname(__file__), 'GUI_ISD.ui')
 
 #gui = uic.loadUi("GUI_ISD.ui")
 #loadUIFormClass allows to load QGIS Widgets and some more...
@@ -223,15 +223,18 @@ class UiFunc:
 
         self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
-        self.gui.pushClearPlot.clicked.connect(self.clear_plot)
-        self.gui.Push_LoadInSitu.clicked.connect(self.open_file)
-        self.gui.Push_Exit.clicked.connect(self.gui.accept)
-        self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)
+        self.gui.pushClearPlot.clicked.connect(self.clear_plot)  #clear the plot canvas
+        self.gui.Push_LoadInSitu.clicked.connect(self.open_file)  #load own spectrum
+        self.gui.Push_Exit.clicked.connect(self.gui.accept)  #exit app
+        self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)  #remove own spectrum from plot canvas
+
+        self.gui.Push_SaveSpec.clicked.connect(self.save_spectrum)
+        self.gui.Push_SaveParams.clicked.connect(self.save_paralist)
 
     def mod_exec(self, slider=None, item=None):
 
         if slider is not None and item is not None:
-            self.para_list[item] = slider.value() / 10000.0 # update para_list
+            self.para_list[item] = slider.value() / 10000.0  # update para_list
 
         mod_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=-999, int_boost=1.0, s2s=self.sensor)
         self.myResult = mod_I.initialize_single(tts=self.para_list[9], tto=self.para_list[10], psi=self.para_list[11],
@@ -289,15 +292,15 @@ class UiFunc:
 
     def open_file(self):
         # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
-        filename = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
-        self.data = np.genfromtxt(filename, delimiter="\t", skip_header=True)
+        filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        self.data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
         ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
         self.data = np.delete(self.data, 0, axis=1)
         self.data_mean = np.mean(self.data, axis=1)
         self.data_mean[1010:1071] = np.nan  # set atmospheric water vapour absorption bands to NaN
         self.data_mean[1440:1591] = np.nan
         self.data_mean[2050:2151] = np.nan
-        self.data_mean = self.data_mean[50:]
+        self.data_mean = self.data_mean[50:]  # cut off first 50 Bands to start at Band 400
         self.mod_exec()
 
     def reset_in_situ(self):
@@ -311,6 +314,20 @@ class UiFunc:
     def clear_plot(self):
         self.gui.graphicsView.clear()
         self.plot_count = 0
+
+    def save_spectrum(self):
+        specnameout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
+                                                      filter="Text files (*.txt)"))
+        np.savetxt(specnameout, self.myResult, delimiter="\t")
+
+    def save_paralist(self):
+        paralistout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
+                                                      filter="Text files (*.txt)"))
+
+        with open(paralistout, "w") as file:
+            file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Car, Canth, Cbrown, skyl\n")
+            file.write(','.join(str(line) for line in self.para_list))
+
 
     #never ever...
     #def exit_GUI(self):
