@@ -202,6 +202,12 @@ class SpectralProfile(QObject):
     def __len__(self):
         return len(self.mValues)
 
+class SpectralLibraryWriter(object):
+
+    @staticmethod
+    def writeSpeclib(speclib):
+        assert isinstance(speclib, SpectralLibrary)
+
 
 
 class SpectralLibraryReader(object):
@@ -371,8 +377,12 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         if typeConversion:
             to_int = ['bands','lines','samples','data type','header offset','byte order']
             to_float = ['fwhm','wavelength', 'reflectance scale factor']
-            for k in to_int: md[k] = toType(int, md[k])
-            for k in to_float: md[k] = toType(float, md[k])
+            for k in to_int:
+                if k in md.keys():
+                    md[k] = toType(int, md[k])
+            for k in to_float:
+                if k in md.keys():
+                    md[k] = toType(float, md[k])
 
 
         return md
@@ -391,6 +401,33 @@ class SpectralLibraryPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
 
 
 class SpectralLibrary(QObject):
+    @staticmethod
+    def readFromSourceDialog(parent=None):
+        """
+        Opens a FileOpen dialog to select
+        :param parent:
+        :return:
+        """
+        from enmapbox.gui.utils import settings, DIR_TESTDATA
+        SETTINGS = settings()
+        lastDataSourceDir = SETTINGS.value('_lastSpecLibSourceDir', None)
+
+        if lastDataSourceDir is None:
+            lastDataSourceDir = DIR_TESTDATA
+
+        if not os.path.exists(lastDataSourceDir):
+            lastDataSourceDir = None
+
+        uris = QFileDialog.getOpenFileNames(parent, "Open spectral library", lastDataSourceDir)
+        if len(uris) > 0:
+            SETTINGS.setValue('_lastSpecLibSourceDir', os.path.dirname(uris[-1]))
+
+        uris = [u for u in uris if os.path.isfile(u)]
+        speclib = SpectralLibrary()
+        for u in uris:
+            sl = SpectralLibrary.readFrom(str(u))
+            speclib.addSpeclib(sl)
+        return speclib
 
     @staticmethod
     def readFrom(uri):
@@ -421,6 +458,9 @@ class SpectralLibrary(QObject):
     def name(self):
         return self.mName
 
+    def addSpeclib(self, speclib):
+        assert isinstance(speclib, SpectralLibrary)
+        self.addProfiles([p for p in speclib])
 
     sigProfilesAdded = pyqtSignal(list)
 
@@ -442,6 +482,10 @@ class SpectralLibrary(QObject):
         else:
             raise Exception('Unknown type {}'.format(type(profiles)))
         return profiles
+
+    def exportProfiles(self):
+
+
 
     sigProfilesRemoved = pyqtSignal(list)
     def removeProfiles(self, profiles):
@@ -538,6 +582,8 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         self.columnNames = [self.cIndex, self.cName, self.cPx, self.cGeo, self.cSrc]
         assert isinstance(spectralLibrary, SpectralLibrary)
         self.mSpecLib = spectralLibrary
+        self.mSpecLib.sigProfilesAdded.connect(self.layoutChanged)
+        self.mSpecLib.sigProfilesRemoved.connect(self.layoutChanged)
 
     def headerData(self, col, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -634,35 +680,73 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
 
 
 
-class SpectraLibraryViewer(QFrame, loadUI('speclibviewer.ui')):
+class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
     def __init__(self, parent=None):
-        super(SpectraLibraryViewer, self).__init__(parent)
+        super(SpectraLibraryViewPanel, self).__init__(parent)
         self.setupUi(self)
         self.mModel = None
+        self.m_plot_max = 50
         self.mSelectionModel = None
-        self.tableView.verticalHeader().setMovable(True)
-        self.tableView.verticalHeader().setDragEnabled(True)
-        self.tableView.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
-        self.tableView.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
-        #self.tableView.doubleClicked.connect(self.onTableDoubleClick)
+        self.mCurrentSpectra = []
+        self.tableViewSpeclib.verticalHeader().setMovable(True)
+        self.tableViewSpeclib.verticalHeader().setDragEnabled(True)
+        self.tableViewSpeclib.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
+        self.tableViewSpeclib.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
 
-    def connectSpectralLibrary(self, spectralLibrary):
-        if isinstance(spectralLibrary, SpectralLibrary):
-            self.mSpecLib = spectralLibrary
-            self.mModel = SpectralLibraryTableViewModel(self.mSpecLib)
-            self.tableView.setModel(self.mModel)
-            self.mSelectionModel = QItemSelectionModel(self.mModel)
-            self.mSelectionModel.selectionChanged.connect(self.onSelectionChanged)
-            self.mSelectionModel.currentChanged.connect(self.onCurrentChanged)
-            self.tableView.setSelectionModel(self.mSelectionModel)
-            self.onSelectionChanged() #enable/disabel widgets depending on a selection
-        else:
-            self.mSpecLib = None
-            self.mModel = None
-            self.listView.setModel(None)
+        self.tableViewCurrent.verticalHeader().setMovable(True)
+        self.tableViewCurrent.verticalHeader().setDragEnabled(True)
+        self.tableViewCurrent.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
+        self.tableViewCurrent.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+
+        self.mSpeclib = SpectralLibrary()
+        self.mModel = SpectralLibraryTableViewModel(self.mSpeclib)
+        self.tableViewSpeclib.setModel(self.mModel)
+        self.mSelectionModel = QItemSelectionModel(self.mModel)
+        self.mSelectionModel.selectionChanged.connect(self.onSelectionChanged)
+        self.mSelectionModel.currentChanged.connect(self.onCurrentChanged)
+        self.tableViewSpeclib.setSelectionModel(self.mSelectionModel)
+        self.onSelectionChanged()  # enable/disabel widgets depending on a selection
+
+        self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
+
+    def addSpeclib(self, speclib):
+        if isinstance(speclib, SpectralLibrary):
+            self.mSpeclib.addProfiles([copy.copy(p) for p in speclib])
+            self.refreshPlot()
+
+    sigCurrentSpectraChanged = pyqtSignal(list)
+    def setCurrentSpectra(self, listOfSpectra):
+        self.mCurrentSpectra = listOfSpectra[:]
+        self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra)
+        self.refreshPlot()
+
+    def currentSpectra(self):
+        return self.mCurrentSpectra[:]
 
     def onCurrentChanged(self, *args):
+
         pass
+
+    def refreshPlot(self):
+        #collect spectra
+        l = self.mCurrentSpectra[:]
+
+        n_max = min([len(self.mSpeclib), self.m_plot_max - len(l)])
+
+        l.extend(self.mSpeclib[0:n_max])
+
+        pw = self.plotWidget
+        pw.clear()
+        import pyqtgraph as pg
+        assert isinstance(pw, pg.PlotWidget)
+        for spectrum in l:
+            assert isinstance(spectrum, SpectralProfile)
+            pitem = pg.PlotDataItem(spectrum.xValues(), spectrum.yValues())
+            pw.addItem(pitem)
+
+
+
+
     def onSelectionChanged(self, *args):
         if self.mSelectionModel is not None \
            and len(self.mSelectionModel.selectedRows()) > 0:
@@ -673,17 +757,16 @@ class SpectraLibraryViewer(QFrame, loadUI('speclibviewer.ui')):
 
 
 if __name__ == "__main__":
-    from enmapbox.testdata.UrbanGradient import Speclib, EnMAP
-    from enmapbox.gui.sandbox import initQgisEnvironment
-    from enmapbox.gui.utils import SpatialPoint, SpatialExtent
-    qapp = initQgisEnvironment()
+    from enmapboxtestdata import speclib
 
-    sl = SpectralLibrary.readFrom(Speclib)
-    #sl.plot()
+    from enmapbox.gui.utils import SpatialPoint, SpatialExtent, initQgisApplication
+    qapp = initQgisApplication()
 
-    w  =SpectraLibraryViewer()
+    sl = SpectralLibrary.readFrom(speclib)
+
+    w  = SpectraLibraryViewPanel()
     w.show()
-    w.connectSpectralLibrary(sl)
+    #w.addSpeclib(sl)
 
     qapp.exec_()
 
