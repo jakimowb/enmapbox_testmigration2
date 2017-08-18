@@ -29,7 +29,7 @@ from PyQt4.QtGui import *
 import numpy as np
 from osgeo import gdal
 from enmapbox.gui.utils import loadUI, gdalDataset, SpatialPoint, PanelWidgetBase
-
+from enmapbox.gui.utils import geo2px, px2geo, SpatialExtent, SpatialPoint
 
 
 
@@ -46,11 +46,75 @@ LUT_IDL2GDAL = {1:gdal.GDT_Byte,
                 6:gdal.GDT_CFloat32,
                 9:gdal.GDT_CFloat64}
 
+
+class SpectralProfileMapTool(QgsMapToolEmitPoint):
+
+    sigProfileRequest = pyqtSignal(SpatialPoint, QgsMapCanvas)
+
+    def __init__(self, canvas, showCrosshair=True):
+        self.mShowCrosshair = showCrosshair
+        self.mCanvas = canvas
+        QgsMapToolEmitPoint.__init__(self, self.mCanvas)
+        self.marker = QgsVertexMarker(self.mCanvas)
+        self.rubberband = QgsRubberBand(self.mCanvas, QGis.Polygon)
+
+        color = QColor('red')
+
+        self.rubberband.setLineStyle(Qt.SolidLine)
+        self.rubberband.setColor(color)
+        self.rubberband.setWidth(2)
+
+        self.marker.setColor(color)
+        self.marker.setPenWidth(3)
+        self.marker.setIconSize(5)
+        self.marker.setIconType(QgsVertexMarker.ICON_CROSS)  # or ICON_CROSS, ICON_X
+
+    def canvasPressEvent(self, e):
+        geoPoint = self.toMapCoordinates(e.pos())
+        self.marker.setCenter(geoPoint)
+        #self.marker.show()
+
+    def setStyle(self, color=None, brushStyle=None, fillColor=None, lineStyle=None):
+        if color:
+            self.rubberband.setColor(color)
+        if brushStyle:
+            self.rubberband.setBrushStyle(brushStyle)
+        if fillColor:
+            self.rubberband.setFillColor(fillColor)
+        if lineStyle:
+            self.rubberband.setLineStyle(lineStyle)
+
+    def canvasReleaseEvent(self, e):
+
+        pixelPoint = e.pixelPoint()
+
+        crs = self.mCanvas.mapSettings().destinationCrs()
+        self.marker.hide()
+        geoPoint = self.toMapCoordinates(pixelPoint)
+        if self.mShowCrosshair:
+            #show a temporary crosshair
+            ext = SpatialExtent.fromMapCanvas(self.mCanvas)
+            cen = geoPoint
+            geom = QgsGeometry()
+            geom.addPart([QgsPoint(ext.upperLeftPt().x(),cen.y()), QgsPoint(ext.lowerRightPt().x(), cen.y())],
+                          QGis.Line)
+            geom.addPart([QgsPoint(cen.x(), ext.upperLeftPt().y()), QgsPoint(cen.x(), ext.lowerRightPt().y())],
+                          QGis.Line)
+            self.rubberband.addGeometry(geom, None)
+            self.rubberband.show()
+            #remove crosshair after 0.1 sec
+            QTimer.singleShot(100, self.hideRubberband)
+
+        self.sigLocationRequest.emit(SpatialPoint(crs, geoPoint), self.mCanvas)
+
+    def hideRubberband(self):
+        self.rubberband.reset()
+
 class SpectralProfile(QObject):
 
     @staticmethod
     def fromRasterSource(source, position):
-        from enmapbox.gui.utils import geo2px, px2geo
+
         from osgeo import gdal_array
 
         ds = gdalDataset(source)
@@ -484,7 +548,7 @@ class SpectralLibrary(QObject):
         return profiles
 
     def exportProfiles(self):
-
+        pass
 
 
     sigProfilesRemoved = pyqtSignal(list)
@@ -685,6 +749,7 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         super(SpectraLibraryViewPanel, self).__init__(parent)
         self.setupUi(self)
         self.mModel = None
+
         self.m_plot_max = 50
         self.mSelectionModel = None
         self.mCurrentSpectra = []
@@ -708,6 +773,10 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.onSelectionChanged()  # enable/disabel widgets depending on a selection
 
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+        enmapbox.sigCurrentSpectraChanged.connect(self.setCurrentSpectra)
+        self.btnLoadfromMap.clicked.connect(lambda : EnMAPBox.instance().actionSelectProfile.trigger())
 
     def addSpeclib(self, speclib):
         if isinstance(speclib, SpectralLibrary):

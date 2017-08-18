@@ -393,6 +393,7 @@ class EnMAPBox(QObject):
         #self.enmapBox = enmapbox
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dockManager.connectDockArea(self.ui.dockArea)
+        self.dockManager.sigDockAdded.connect(self.onDockAdded)
 
         splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
@@ -421,16 +422,16 @@ class EnMAPBox(QObject):
             mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
 
         #activate map tools
-        self.ui.actionZoomIn.triggered.connect(lambda : self.dockManager.activateMapTool('ZOOM_IN'))
-        self.ui.actionZoomOut.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_OUT'))
-        self.ui.actionMoveCenter.triggered.connect(lambda: self.dockManager.activateMapTool('MOVE_CENTER'))
-        self.ui.actionPan.triggered.connect(lambda: self.dockManager.activateMapTool('PAN'))
-        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_FULL'))
-        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_PIXEL_SCALE'))
-        self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.activateMapTool('CURSORLOCATIONVALUE'))
+        self.ui.actionZoomIn.triggered.connect(lambda : self.activateMapTool('ZOOM_IN'))
+        self.ui.actionZoomOut.triggered.connect(lambda: self.activateMapTool('ZOOM_OUT'))
+        self.ui.actionMoveCenter.triggered.connect(lambda: self.activateMapTool('MOVE_CENTER'))
+        self.ui.actionPan.triggered.connect(lambda: self.activateMapTool('PAN'))
+        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.activateMapTool('ZOOM_FULL'))
+        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.activateMapTool('ZOOM_PIXEL_SCALE'))
+        self.ui.actionIdentify.triggered.connect(lambda : self.activateMapTool('CURSORLOCATIONVALUE'))
         self.ui.actionSettings.triggered.connect(self.saveProject)
         self.ui.actionExit.triggered.connect(self.exit)
-
+        self.ui.actionSelectProfiles.triggered.connect(lambda : self.activateMapTool('SPECTRUMREQUEST'))
 
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
@@ -468,6 +469,18 @@ class EnMAPBox(QObject):
         self.ui.setVisible(True)
         splash.finish(self.ui)
 
+
+    def onDockAdded(self, dock):
+        assert isinstance(dock, Dock)
+        from enmapbox.gui.mapcanvas import MapDock
+        if isinstance(dock, MapDock):
+            dock.cancas.sigSpectrumRequest.connect(self.loadCurrentMapSpectra)
+
+    def loadCurrentMapSpectra(self, *args):
+        s = ""
+
+    def activateMapTool(self, mapToolKey):
+        return self.dockManager.activateMapTool(mapToolKey)
 
 
     def loadEnMAPBoxApplications(self):
