@@ -22,14 +22,15 @@ import sys, os, site
 
 def run():
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    from enmapbox.gui.sandbox import initQgisEnvironment
+    from enmapbox.gui.utils import initQgisApplication
     from qgis.utils import iface
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     enmapbox.gui.LOAD_EXTERNAL_APPS = True
-    qgisApp = initQgisEnvironment()
+    qgisApp = initQgisApplication()
     enmapbox = EnMAPBox(iface)
     enmapbox.run()
+    enmapbox.openExampleData(mapWindows=1)
     qgisApp.exec_()
 
 
