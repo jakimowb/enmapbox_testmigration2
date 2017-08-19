@@ -402,10 +402,12 @@ class DockManagerTreeModel(TreeModel):
         if not index.isValid():
             return Qt.NoItemFlags
 
-        flags = Qt.NoItemFlags
+
 
         node = self.index2node(index)
-        dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)[0]
+        dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)
+        if len(dockNode) == 0:
+            return Qt.NoItemFlags
 
         if node is None:
             return Qt.NoItemFlags

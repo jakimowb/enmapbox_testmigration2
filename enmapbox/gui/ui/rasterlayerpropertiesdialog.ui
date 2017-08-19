@@ -46,14 +46,23 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
         <widget class="QListWidget" name="mOptionsListWidget">
          <property name="minimumSize">
           <size>
-           <width>58</width>
+           <width>50</width>
            <height>0</height>
           </size>
          </property>
@@ -102,7 +111,7 @@
           </property>
           <property name="icon">
            <iconset resource="../../../../../QGIS/images/images.qrc">
-            <normaloff>:/images/themes/default/propertyicons/symbology.png</normaloff>:/images/themes/default/propertyicons/symbology.png</iconset>
+            <normaloff>:/images/themes/default/propertyicons/symbology.svg</normaloff>:/images/themes/default/propertyicons/symbology.svg</iconset>
           </property>
          </item>
          <item>
@@ -120,7 +129,7 @@
           </property>
           <property name="icon">
            <iconset resource="../../../../../QGIS/images/images.qrc">
-            <normaloff>:/images/themes/default/propertyicons/metadata.png</normaloff>:/images/themes/default/propertyicons/metadata.png</iconset>
+            <normaloff>:/images/themes/default/propertyicons/metadata.svg</normaloff>:/images/themes/default/propertyicons/metadata.svg</iconset>
           </property>
          </item>
         </widget>
@@ -141,7 +150,16 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -153,11 +171,20 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="mOptsGeneral">
           <layout class="QVBoxLayout" name="verticalLayout_14">
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -170,8 +197,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>349</width>
-                <height>307</height>
+                <width>517</width>
+                <height>412</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -180,10 +207,22 @@
                  <property name="title">
                   <string>Layer info</string>
                  </property>
-                 <property name="syncGroup">
+                 <property name="syncGroup" stdset="0">
                   <string notr="true">rastergeneral</string>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_11">
+                  <property name="leftMargin">
+                   <number>2</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>2</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>2</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>2</number>
+                  </property>
                   <item>
                    <layout class="QGridLayout" name="_4">
                     <item row="2" column="2">
@@ -201,6 +240,11 @@
                     </item>
                     <item row="2" column="3">
                      <widget class="QLineEdit" name="tb_rows">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -208,6 +252,11 @@
                     </item>
                     <item row="2" column="1">
                      <widget class="QLineEdit" name="tb_columns">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -255,13 +304,24 @@
                     </item>
                     <item row="1" column="1" colspan="5">
                      <widget class="QLineEdit" name="tb_layersource">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
                      </widget>
                     </item>
                     <item row="0" column="1" colspan="5">
-                     <widget class="QLineEdit" name="tb_layername"/>
+                     <widget class="QLineEdit" name="tb_layername">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                     </widget>
                     </item>
                     <item row="3" column="0">
                      <widget class="QLabel" name="lblColumns_2">
@@ -278,6 +338,11 @@
                     </item>
                     <item row="3" column="1">
                      <widget class="QLineEdit" name="tb_pixelsize">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -298,6 +363,11 @@
                     </item>
                     <item row="3" column="3">
                      <widget class="QLineEdit" name="tb_nodata">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -318,6 +388,11 @@
                     </item>
                     <item row="2" column="5">
                      <widget class="QLineEdit" name="tb_bands">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -348,6 +423,11 @@
                         <verstretch>0</verstretch>
                        </sizepolicy>
                       </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -360,6 +440,11 @@
                         <horstretch>1</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
                       </property>
                       <property name="readOnly">
                        <bool>true</bool>
@@ -384,6 +469,11 @@
                         <verstretch>0</verstretch>
                        </sizepolicy>
                       </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="toolTip">
                        <string>Upper-right coordinate</string>
                       </property>
@@ -399,6 +489,11 @@
                         <horstretch>1</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
                       </property>
                       <property name="toolTip">
                        <string>Lower-right coordinate</string>
@@ -431,6 +526,11 @@
                     </item>
                     <item row="0" column="1">
                      <widget class="QLineEdit" name="tb_width">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -445,6 +545,11 @@
                     </item>
                     <item row="1" column="1">
                      <widget class="QLineEdit" name="tb_height">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -471,6 +576,11 @@
                         <verstretch>0</verstretch>
                        </sizepolicy>
                       </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -486,12 +596,12 @@
                  <property name="title">
                   <string>Coordinate reference system</string>
                  </property>
-                 <property name="syncGroup">
+                 <property name="syncGroup" stdset="0">
                   <string notr="true">rastergeneral</string>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_13">
                   <item>
-                   <widget class="QgsProjectionSelectionWidget" name="mCrsSelector">
+                   <widget class="QgsProjectionSelectionWidget" name="mCrsSelector" native="true">
                     <property name="focusPolicy">
                      <enum>Qt::StrongFocus</enum>
                     </property>
@@ -521,10 +631,16 @@
          </widget>
          <widget class="QWidget" name="mOptsStyle">
           <layout class="QVBoxLayout" name="verticalLayout_4">
-           <property name="spacing">
-            <number>6</number>
+           <property name="leftMargin">
+            <number>0</number>
            </property>
-           <property name="margin">
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -540,8 +656,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>447</width>
-                <height>292</height>
+                <width>545</width>
+                <height>414</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -556,7 +672,7 @@
                  <property name="title">
                   <string>Band rendering</string>
                  </property>
-                 <property name="syncGroup">
+                 <property name="syncGroup" stdset="0">
                   <string notr="true">rasterstyle</string>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -644,13 +760,13 @@
                  <property name="title">
                   <string>Color rendering</string>
                  </property>
-                 <property name="collapsed">
+                 <property name="collapsed" stdset="0">
                   <bool>false</bool>
                  </property>
-                 <property name="syncGroup">
+                 <property name="syncGroup" stdset="0">
                   <string notr="true">rasterstyle</string>
                  </property>
-                 <property name="saveCollapsedState">
+                 <property name="saveCollapsedState" stdset="0">
                   <bool>true</bool>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_2">
@@ -946,13 +1062,13 @@
                  <property name="checkable">
                   <bool>false</bool>
                  </property>
-                 <property name="collapsed">
+                 <property name="collapsed" stdset="0">
                   <bool>false</bool>
                  </property>
-                 <property name="syncGroup">
+                 <property name="syncGroup" stdset="0">
                   <string notr="true">rasterstyle</string>
                  </property>
-                 <property name="saveCollapsedState">
+                 <property name="saveCollapsedState" stdset="0">
                   <bool>true</bool>
                  </property>
                  <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -1026,7 +1142,16 @@
            <property name="spacing">
             <number>0</number>
            </property>
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -1039,8 +1164,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>525</width>
-                <height>431</height>
+                <width>517</width>
+                <height>462</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -1051,7 +1176,7 @@
                    <property name="title">
                     <string>Global transparency</string>
                    </property>
-                   <property name="syncGroup">
+                   <property name="syncGroup" stdset="0">
                     <string notr="true">rastertransp</string>
                    </property>
                    <layout class="QGridLayout" name="_3">
@@ -1135,7 +1260,7 @@
                    <property name="title">
                     <string>No data value</string>
                    </property>
-                   <property name="syncGroup">
+                   <property name="syncGroup" stdset="0">
                     <string notr="true">rastertransp</string>
                    </property>
                    <layout class="QGridLayout" name="gridLayout_11">
@@ -1209,7 +1334,7 @@
                  <property name="title">
                   <string>Custom transparency options</string>
                  </property>
-                 <property name="syncGroup">
+                 <property name="syncGroup" stdset="0">
                   <string notr="true">rastertransp</string>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_3">
@@ -1424,7 +1549,16 @@
          </widget>
          <widget class="QWidget" name="mOptsMetadata">
           <layout class="QVBoxLayout" name="verticalLayout_6">
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -1437,8 +1571,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>131</width>
-                <height>238</height>
+                <width>517</width>
+                <height>412</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -1524,7 +1658,16 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
        <number>0</number>
       </property>
       <item>

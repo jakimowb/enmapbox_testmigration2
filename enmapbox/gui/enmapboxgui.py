@@ -104,8 +104,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
         area = Qt.BottomDockWidgetArea
-        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
-        self.specLibViewPanel = addPanel(SpectralLibraryPanel(self))
+        from enmapbox.gui.spectrallibraries import SpectraLibraryViewPanel
+        self.specLibViewPanel = addPanel(SpectraLibraryViewPanel(self))
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -380,6 +380,10 @@ class EnMAPBox(QObject):
         assert isinstance(qgsUtils.iface, QgisInterface)
 
 
+        #
+
+        self.mCurrentSpectra=[] #set of currently selected spectral profiles
+
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
@@ -474,10 +478,31 @@ class EnMAPBox(QObject):
         assert isinstance(dock, Dock)
         from enmapbox.gui.mapcanvas import MapDock
         if isinstance(dock, MapDock):
-            dock.cancas.sigSpectrumRequest.connect(self.loadCurrentMapSpectra)
+            dock.canvas.sigProfileRequest.connect(self.loadCurrentMapSpectra)
 
-    def loadCurrentMapSpectra(self, *args):
-        s = ""
+    def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
+        assert isinstance(spatialPoint, SpatialPoint)
+        from enmapbox.gui.mapcanvas import MapCanvas
+        assert isinstance(mapCanvas, QgsMapCanvas)
+
+        currentSpectra = []
+
+        lyrs = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
+        if len(lyrs) > 0:
+
+            # default: load top-most raster layers
+            lyr = lyrs[0]
+            assert isinstance(lyr, QgsRasterLayer)
+            path = lyr.source()
+            from enmapbox.gui.spectrallibraries import SpectralProfile
+            p = SpectralProfile.fromRasterSource(path, spatialPoint)
+            if isinstance(p, SpectralProfile):
+                currentSpectra.append(p)
+
+
+        if len(currentSpectra) > 0:
+            self.setCurrentSpectra(currentSpectra)
+
 
     def activateMapTool(self, mapToolKey):
         return self.dockManager.activateMapTool(mapToolKey)
@@ -595,13 +620,20 @@ class EnMAPBox(QObject):
         """
 
     sigCurrentSpectraChanged = pyqtSignal(list)
+
+    def setCurrentSpectra(self, spectra):
+        assert isinstance(spectra, list)
+
+        self.mCurrentSpectra = spectra[:]
+        self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
+
     def currentSpectra(self):
         """
         Returns the spectra currently selected using the profile tool.
         :return: [list-of-spectra]
         """
+        return self.mCurrentSpectra[:]
 
-        raise NotImplementedError('EnMAPBox.currentSpectra')
 
     def dataSources(self, sourceType):
         """

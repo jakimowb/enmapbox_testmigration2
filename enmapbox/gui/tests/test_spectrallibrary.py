@@ -20,7 +20,7 @@ from enmapbox.gui.sandbox import initQgisEnvironment
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisEnvironment()
 
-from enmapbox.gui.spectrallibraries import SpectralProfile, SpectralLibrary, EnviSpectralLibraryReader
+from enmapbox.gui.spectrallibraries import SpectralProfile, SpectralLibrary, EnviSpectralLibraryIO
 from enmapbox.testdata.UrbanGradient import Speclib, EnMAP
 class testclassData(unittest.TestCase):
 
@@ -51,11 +51,11 @@ class testclassData(unittest.TestCase):
         self.assertEqual(p1,p2)
 
     def test_ENVISpectralLibraryReader(self):
-        self.assertTrue(EnviSpectralLibraryReader.canRead(Speclib))
+        self.assertTrue(EnviSpectralLibraryIO.canRead(Speclib))
         tmpDir = tempfile.mkdtemp(prefix='testSpecLibs')
         pathTestVRT = os.path.join(tmpDir, 'esl.vrt')
 
-        dsVRT = EnviSpectralLibraryReader.esl2vrt(Speclib, pathVrt=pathTestVRT)
+        dsVRT = EnviSpectralLibraryIO.esl2vrt(Speclib, pathVrt=pathTestVRT)
         self.assertIsInstance(dsVRT, gdal.Dataset)
         self.assertEqual(dsVRT.RasterCount, 1)
         self.assertEqual(dsVRT.RasterXSize, 244)
@@ -63,7 +63,7 @@ class testclassData(unittest.TestCase):
         self.assertEqual(dsVRT.GetRasterBand(1).DataType, gdal.GDT_Float32)
 
         #todo: test ESLs with bip and pil interleave?
-        hdr = EnviSpectralLibraryReader.readENVIHeader(Speclib, typeConversion=True)
+        hdr = EnviSpectralLibraryIO.readENVIHeader(Speclib, typeConversion=True)
 
         for key, value in {
                 'samples':244,
