@@ -27,7 +27,7 @@ import pyqtgraph as pg
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, gdal_array
 from enmapbox.gui.utils import loadUI, gdalDataset, SpatialPoint, PanelWidgetBase
 from enmapbox.gui.utils import geo2px, px2geo, SpatialExtent, SpatialPoint
 
@@ -105,7 +105,7 @@ class SpectralProfileMapTool(QgsMapToolEmitPoint):
             #remove crosshair after 0.1 sec
             QTimer.singleShot(100, self.hideRubberband)
 
-        self.sigLocationRequest.emit(SpatialPoint(crs, geoPoint), self.mCanvas)
+        self.sigProfileRequest.emit(SpatialPoint(crs, geoPoint), self.mCanvas)
 
     def hideRubberband(self):
         self.rubberband.reset()
@@ -225,6 +225,7 @@ class SpectralProfile(QObject):
         return self.mValueUnit
 
 
+
     def plot(self):
         """
         Plots this profile to an new PyQtGraph window
@@ -274,9 +275,9 @@ class SpectralLibraryWriter(object):
 
 
 
-class SpectralLibraryReader(object):
+class SpectralLibraryIO(object):
     """
-    Abstract Class of an SpectralLibraryReader.
+    Abstract Class to define I/O operations for spectral libraries
     Overwrite the canRead and read From routines.
     """
     @staticmethod
@@ -297,7 +298,14 @@ class SpectralLibraryReader(object):
         """
         return None
 
-class EnviSpectralLibraryReader(SpectralLibraryReader):
+    @staticmethod
+    def write(speclib, path):
+        """Writes the SpectralLibrary speclib to path, returns a list of written files"""
+        assert isinstance(speclib, SpectralLibrary)
+        return None
+
+
+class EnviSpectralLibraryIO(SpectralLibraryIO):
 
     @staticmethod
     def canRead(pathESL):
@@ -309,7 +317,7 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
 
         if not os.path.isfile(pathESL):
             return False
-        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL, typeConversion=False)
+        hdr = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=False)
         if hdr is None or hdr['file type'] != 'ENVI Spectral Library':
             return False
         return True
@@ -323,8 +331,8 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         :return: SpectalLibrary
         """
 
-        ds = EnviSpectralLibraryReader.esl2vrt(pathESL, tmpVrt)
-        md = EnviSpectralLibraryReader.readENVIHeader(pathESL, typeConversion=True)
+        ds = EnviSpectralLibraryIO.esl2vrt(pathESL, tmpVrt)
+        md = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=True)
         data = ds.ReadAsArray()
 
         nSpectra, nbands = data.shape
@@ -332,7 +340,7 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         valuePositionUnit = md.get('wavelength units')
         valuePositions = md.get('wavelength')
         if valuePositions is None:
-            valuePositions = [range(1, nbands+1)]
+            valuePositions = list(range(1, nbands+1))
             valuePositionUnit = 'Band'
 
         spectraNames = md.get('spectra names', ['Spectrum {}'.format(i+1) for i in range(nSpectra)])
@@ -353,6 +361,85 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         return SLIB
 
     @staticmethod
+    def write(speclib, path, ext='sli'):
+        dn = os.path.dirname(path)
+        bn = os.path.basename(path)
+
+        writtenFiles = []
+
+        if bn.lower().endswith(ext.lower()):
+            bn = os.path.splitext(bn)[0]
+
+        if not os.path.isdir(dn):
+            os.makedirs(dn)
+
+        def value2hdrString(values):
+            s = None
+            maxwidth = 75
+            if isinstance(values, list):
+                lines = ['{']
+                values = [str(v) for v in values]
+                line = ' '
+                l = len(values)
+                for i, v in enumerate(values):
+                    line += v
+                    if i < l-1: line += ', '
+                    if len(line) > maxwidth:
+                        lines.append(line)
+                        line = ' '
+                line += '}'
+                lines.append(line)
+                s = '\n'.join(lines)
+
+            else:
+                s = str(values)
+            return s
+
+
+        for iGrp, grp in enumerate(speclib.groupBySpectralProperties().values()):
+
+            wl = grp[0].xValues()
+            wlu = grp[0].xUnit()
+
+
+            # stack profiles
+            pData = [np.asarray(p.yValues()) for p in grp]
+            pData = np.vstack(pData)
+            pNames = [p.name() for p in grp]
+
+            if iGrp == 0:
+                pathDst = os.path.join(dn, '{}.{}'.format(bn, ext))
+            else:
+                pathDst = os.path.join(dn, '{}.{}.{}'.format(bn, iGrp, ext))
+
+            ds = gdal_array.SaveArray(pData, pathDst, format='ENVI')
+            assert isinstance(ds, gdal.Dataset)
+            ds.SetDescription(speclib.name())
+            ds.SetMetadataItem('band names', 'Spectral Library', 'ENVI')
+            ds.SetMetadataItem('spectra names',value2hdrString(pNames),'ENVI')
+            ds.SetMetadataItem('wavelength', value2hdrString(wl), 'ENVI')
+            ds.SetMetadataItem('wavelength units', wlu, 'ENVI')
+            # todo: add more metadata
+
+            pathHdr = ds.GetFileList()[1]
+            ds = None
+
+            # last step: change ENVI Hdr
+            hdr = open(pathHdr).readlines()
+            for iLine in range(len(hdr)):
+                if re.search('file type =', hdr[iLine]):
+                    hdr[iLine] = 'file type = ENVI Spectral Library\n'
+                    break
+            file = open(pathHdr, 'w')
+            file.writelines(hdr)
+            file.flush()
+            file.close()
+            writtenFiles.append(pathDst)
+
+        return writtenFiles
+
+
+    @staticmethod
     def esl2vrt(pathESL, pathVrt=None):
         """
         Creates a GDAL Virtual Raster (VRT) that allows to read an ENVI Spectral Library file
@@ -361,7 +448,7 @@ class EnviSpectralLibraryReader(SpectralLibraryReader):
         :return: GDAL VRT
         """
 
-        hdr = EnviSpectralLibraryReader.readENVIHeader(pathESL, typeConversion=False)
+        hdr = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=False)
         assert hdr is not None and hdr['file type'] == 'ENVI Spectral Library'
 
         eType = LUT_IDL2GDAL[int(hdr['data type'])]
@@ -500,10 +587,12 @@ class SpectralLibrary(QObject):
         :param uri: path or uri of the source from which to read SpectralProfiles and return them in a SpectralLibrary
         :return: SpectralLibrary
         """
-        for cls in SpectralLibraryReader.__subclasses__():
+        for cls in SpectralLibraryIO.__subclasses__():
             if cls.canRead(uri):
                 return cls.readFrom(uri)
         return None
+
+
 
     def __init__(self, parent=None):
         super(SpectralLibrary, self).__init__(parent)
@@ -528,6 +617,8 @@ class SpectralLibrary(QObject):
 
     sigProfilesAdded = pyqtSignal(list)
 
+    addProfile = lambda p:self.addProfiles([p])
+
     def addProfiles(self, profiles):
         to_add = self.extractProfileList(profiles)
         to_add = [p for p in to_add if p not in self.mProfiles]
@@ -546,6 +637,24 @@ class SpectralLibrary(QObject):
         else:
             raise Exception('Unknown type {}'.format(type(profiles)))
         return profiles
+
+
+    def groupBySpectralProperties(self):
+        """
+        Groups the SpectralProfiles by:
+            wavelength (xValues), wavelengthUnit (xUnit) and yUnit
+        :return: {(xValues, wlU, yUni):[list-of-profiles]}
+        """
+
+        d = dict()
+        for p in self.mProfiles:
+            assert isinstance(p, SpectralProfile)
+            id = (str(p.xValues()), str(p.xUnit()), str(p.yUnit()))
+            if id not in d.keys():
+                d[id] = list()
+            d[id].append(p)
+        return d
+
 
     def exportProfiles(self):
         pass
@@ -775,8 +884,9 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
         from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapbox = EnMAPBox.instance()
-        enmapbox.sigCurrentSpectraChanged.connect(self.setCurrentSpectra)
-        self.btnLoadfromMap.clicked.connect(lambda : EnMAPBox.instance().actionSelectProfile.trigger())
+        if enmapbox:
+            enmapbox.sigCurrentSpectraChanged.connect(self.setCurrentSpectra)
+        self.btnLoadfromMap.clicked.connect(lambda : EnMAPBox.instance().activateMapTool('SPECTRUMREQUEST'))
 
     def addSpeclib(self, speclib):
         if isinstance(speclib, SpectralLibrary):
@@ -826,13 +936,22 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
 
 
 if __name__ == "__main__":
+    import enmapboxtestdata
     from enmapboxtestdata import speclib
 
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent, initQgisApplication
     qapp = initQgisApplication()
 
-    sl = SpectralLibrary.readFrom(speclib)
+    sl1 = SpectralLibrary.readFrom(speclib)
+    mySpec = SpectralProfile()
+    mySpec.setValues([1,2,4], )
+    sl1.addProfiles([mySpec])
 
+    tmpDir = r'/Users/benjamin.jakimow/Documents/Temp/enmapbox'
+    pathDst = os.path.join(tmpDir, 'test.sli')
+
+    EnviSpectralLibraryIO.write(sl1, pathDst)
+    sl2 = SpectralLibrary.readFrom(pathDst)
     w  = SpectraLibraryViewPanel()
     w.show()
     #w.addSpeclib(sl)
