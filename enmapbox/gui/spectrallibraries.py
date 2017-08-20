@@ -110,6 +110,26 @@ class SpectralProfileMapTool(QgsMapToolEmitPoint):
     def hideRubberband(self):
         self.rubberband.reset()
 
+
+
+class SpectralProfilePlotDataItem(pg.PlotDataItem):
+
+    def __init__(self, spectralProfle):
+        assert isinstance(spectralProfle, SpectralProfile)
+        super(SpectralProfilePlotDataItem, self).__init__(spectralProfle.xValues(), spectralProfle.yValues())
+        self.mProfile = spectralProfle
+
+    def setColor(self, color):
+        if not isinstance(color, QColor):
+            color = QColor(color)
+        self.setPen(color)
+
+    def setLineWidth(self, width):
+        pen = pg.mkPen(self.opts['pen'])
+        assert isinstance(pen, QPen)
+        pen.setWidth(width)
+        self.setPen(pen)
+
 class SpectralProfile(QObject):
 
     @staticmethod
@@ -232,7 +252,13 @@ class SpectralProfile(QObject):
         :return:
         """
         import pyqtgraph as pg
-        pg.plot(self.xValues(), self.yValues(), title=self.name())
+
+        pi = SpectralProfilePlotDataItem(self)
+
+        pw = pg.plot( title=self.name())
+        pw.getPlotItem().addItem(pi)
+
+        pi.setColor('green')
         pg.QAPP.exec_()
 
 
@@ -617,13 +643,16 @@ class SpectralLibrary(QObject):
 
     sigProfilesAdded = pyqtSignal(list)
 
-    addProfile = lambda p:self.addProfiles([p])
+    def addProfile(self, profile):
+        self.addProfiles([profile])
 
-    def addProfiles(self, profiles):
+    def addProfiles(self, profiles, index=None):
         to_add = self.extractProfileList(profiles)
         to_add = [p for p in to_add if p not in self.mProfiles]
         if len(to_add) > 0:
-            self.mProfiles.extend(to_add)
+            if index is None:
+                index = len(self.mProfiles)
+            self.mProfiles[index:index] = to_add
             self.sigProfilesAdded.emit(to_add)
         return to_add
 
@@ -743,20 +772,35 @@ class SpectralLibrary(QObject):
 
 class SpectralLibraryTableViewModel(QAbstractTableModel):
 
+    sigPlotStyleChanged = pyqtSignal(SpectralProfile)
 
     def __init__(self, spectralLibrary, parent=None):
         super(SpectralLibraryTableViewModel, self).__init__(parent)
 
         self.cIndex = '#'
         self.cName = 'Name'
+        self.cStyle = 'Style'
         self.cPx = 'Px'
         self.cGeo = 'Geo'
         self.cSrc = 'Source'
-        self.columnNames = [self.cIndex, self.cName, self.cPx, self.cGeo, self.cSrc]
+        self.columnNames = [self.cIndex, self.cStyle, self.cName, self.cPx, self.cGeo, self.cSrc]
         assert isinstance(spectralLibrary, SpectralLibrary)
         self.mSpecLib = spectralLibrary
-        self.mSpecLib.sigProfilesAdded.connect(self.layoutChanged)
-        self.mSpecLib.sigProfilesRemoved.connect(self.layoutChanged)
+
+        self.mSpecLib.sigProfilesRemoved.connect(self.onProfilesRemoved)
+        self.mSpecLib.sigProfilesAdded.connect(self.onProfilesAdded)
+        self.mStyleList = dict()
+        self.onProfilesAdded([p for p in self.mSpecLib])
+
+    def onProfilesAdded(self, profiles):
+        for p in profiles:
+            self.mStyleList[p] = QColor('white')
+        self.layoutChanged.emit()
+
+    def onProfilesRemoved(self, profiles):
+        self.layoutChanged.emit()
+        for p in profiles:
+            self.mStyleList.pop(p)
 
     def headerData(self, col, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -789,6 +833,7 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         assert isinstance(profile, SpectralProfile)
         return self.createIndex(self.mSpecLib.index(profile), 0)
 
+
     def idx2profile(self, index):
         assert isinstance(index, QModelIndex)
         if index.isValid():
@@ -812,6 +857,10 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
                 value = profile.name()
             elif columnName == self.cSrc:
                 value = profile.source()
+
+        if role == Qt.BackgroundRole:
+            if columnName == self.cStyle:
+                return self.mStyleList[profile]
 
         if role == Qt.EditRole:
             if columnName == self.cName:
@@ -867,70 +916,128 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.tableViewSpeclib.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
         self.tableViewSpeclib.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
 
-        self.tableViewCurrent.verticalHeader().setMovable(True)
-        self.tableViewCurrent.verticalHeader().setDragEnabled(True)
-        self.tableViewCurrent.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
-        self.tableViewCurrent.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
 
         self.mSpeclib = SpectralLibrary()
+        self.mSpeclib.sigProfilesAdded.connect(self.onProfilesAdded)
+        self.mSpeclib.sigProfilesRemoved.connect(self.onProfilesRemoved)
+        self.mPlotDataItems = dict()
+
         self.mModel = SpectralLibraryTableViewModel(self.mSpeclib)
         self.tableViewSpeclib.setModel(self.mModel)
         self.mSelectionModel = QItemSelectionModel(self.mModel)
         self.mSelectionModel.selectionChanged.connect(self.onSelectionChanged)
-        self.mSelectionModel.currentChanged.connect(self.onCurrentChanged)
+        #self.mSelectionModel.currentChanged.connect(self.onCurrentSelectionChanged)
         self.tableViewSpeclib.setSelectionModel(self.mSelectionModel)
-        self.onSelectionChanged()  # enable/disabel widgets depending on a selection
+
+        self.plotWidget.setAntialiasing(True)
 
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
         from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapbox = EnMAPBox.instance()
         if enmapbox:
             enmapbox.sigCurrentSpectraChanged.connect(self.setCurrentSpectra)
-        self.btnLoadfromMap.clicked.connect(lambda : EnMAPBox.instance().activateMapTool('SPECTRUMREQUEST'))
+            self.btnLoadfromMap.setEnabled(True)
+            self.btnLoadfromMap.clicked.connect(lambda : EnMAPBox.instance().activateMapTool('SPECTRUMREQUEST'))
+        else:
+            self.btnLoadfromMap.setEnabled(False)
+
+    def getPlotItem(self):
+        pi = self.plotWidget.getPlotItem()
+        assert isinstance(pi, pg.PlotItem)
+        return pi
+
+    def onProfilesAdded(self, profiles):
+        # todo: remove some PDIs from plot if there are too many
+        pi = self.getPlotItem()
+        if True:
+            to_remove = max(0, len(pi.listDataItems()) - self.m_plot_max)
+            if to_remove > 0:
+                for pdi in pi.listDataItems()[0:to_remove]:
+                    pi.removeItem(pdi)
+
+        for p in profiles:
+            pi.addItem(self.createPDI(p))
+
+
+    def onProfilesRemoved(self, profiles):
+        pi = self.getPlotItem()
+        for p in profiles:
+            self.removePDI(p)
 
     def addSpeclib(self, speclib):
         if isinstance(speclib, SpectralLibrary):
             self.mSpeclib.addProfiles([copy.copy(p) for p in speclib])
-            self.refreshPlot()
+
 
     sigCurrentSpectraChanged = pyqtSignal(list)
     def setCurrentSpectra(self, listOfSpectra):
+        plotItem =  self.getPlotItem()
+        #remove old items
+        for p in self.mCurrentSpectra:
+            if p not in self.mSpeclib:
+                self.removePDI(p)
+
         self.mCurrentSpectra = listOfSpectra[:]
+        for p in self.mCurrentSpectra:
+            plotItem.addItem(self.createPDI(p))
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra)
-        self.refreshPlot()
+
+
+    def createPDI(self, profile):
+        assert isinstance(profile, SpectralProfile)
+        if profile not in self.mPlotDataItems.keys():
+            pdi = SpectralProfilePlotDataItem(profile)
+            pdi.sigClicked.connect(self.onProfileClicked)
+            self.mPlotDataItems[profile] = pdi
+        return self.mPlotDataItems[profile]
+
+    def removePDI(self, profile):
+        assert isinstance(profile, SpectralProfile)
+        pdi = self.mPlotDataItems.pop(profile)
+        self.getPlotItem().removeItem(pdi)
+
+    def onProfileClicked(self, *args):
+
+        s = ""
+
 
     def currentSpectra(self):
         return self.mCurrentSpectra[:]
 
-    def onCurrentChanged(self, *args):
-
-        pass
-
-    def refreshPlot(self):
-        #collect spectra
-        l = self.mCurrentSpectra[:]
-
-        n_max = min([len(self.mSpeclib), self.m_plot_max - len(l)])
-
-        l.extend(self.mSpeclib[0:n_max])
-
-        pw = self.plotWidget
-        pw.clear()
-        import pyqtgraph as pg
-        assert isinstance(pw, pg.PlotWidget)
-        for spectrum in l:
-            assert isinstance(spectrum, SpectralProfile)
-            pitem = pg.PlotDataItem(spectrum.xValues(), spectrum.yValues())
-            pw.addItem(pitem)
 
 
 
 
-    def onSelectionChanged(self, *args):
-        if self.mSelectionModel is not None \
-           and len(self.mSelectionModel.selectedRows()) > 0:
-            #todo: enable/disable plot/export options
-            pass
+    def onSelectionChanged(self, selected, deselected):
+        if not isinstance(self.mModel, SpectralLibraryTableViewModel):
+            return None
+
+        assert isinstance(selected, QItemSelection)
+        assert isinstance(deselected, QItemSelection)
+
+        for selectionRange in deselected:
+            for idx in selectionRange.indexes():
+                p = self.mModel.idx2profile(idx)
+                pdi = self.mPlotDataItems[p]
+                assert isinstance(pdi, SpectralProfilePlotDataItem)
+                pdi.setLineWidth(1)
+                pdi.setColor(self.mModel.mStyleList[p])
+
+        to_front = []
+        for selectionRange in selected:
+            for idx in selectionRange.indexes():
+                p = self.mModel.idx2profile(idx)
+                pdi = self.mPlotDataItems[p]
+                assert isinstance(pdi, SpectralProfilePlotDataItem)
+                pdi.setLineWidth(5)
+                pdi.setColor(QColor('red'))
+                to_front.append(pdi)
+
+        pi = self.getPlotItem()
+        l = len(pi.dataItems)
+        for pdi in to_front:
+            pdi.setZValue(l)
+
 
 
 
@@ -942,19 +1049,24 @@ if __name__ == "__main__":
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent, initQgisApplication
     qapp = initQgisApplication()
 
-    sl1 = SpectralLibrary.readFrom(speclib)
     mySpec = SpectralProfile()
-    mySpec.setValues([1,2,4], )
+    mySpec.setValues([0.2, 0.3, 0.5, 0.7])
+    #mySpec.plot()
+
+    sl1 = SpectralLibrary.readFrom(speclib)
+
     sl1.addProfiles([mySpec])
 
-    tmpDir = r'/Users/benjamin.jakimow/Documents/Temp/enmapbox'
-    pathDst = os.path.join(tmpDir, 'test.sli')
+    if False:
+        tmpDir = r'/Users/benjamin.jakimow/Documents/Temp/enmapbox'
+        pathDst = os.path.join(tmpDir, 'test.sli')
 
-    EnviSpectralLibraryIO.write(sl1, pathDst)
-    sl2 = SpectralLibrary.readFrom(pathDst)
+        EnviSpectralLibraryIO.write(sl1, pathDst)
+        sl2 = SpectralLibrary.readFrom(pathDst)
+
     w  = SpectraLibraryViewPanel()
     w.show()
-    #w.addSpeclib(sl)
+    w.addSpeclib(sl1)
 
     qapp.exec_()
 
