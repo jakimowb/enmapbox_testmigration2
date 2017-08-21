@@ -30,11 +30,11 @@ clustererFilename = r'c:\output\clusterer.pkl'
 def vector_classify():
     image = Image(filename=imageFilename)
     vector = Vector(filename=vectorFilename)
-    classification = vector.classify(filename=classification3mFilename,
-                                     pixelGrid=image.pixelGrid.newResolution(xRes=3, yRes=3),
-                                     ids=[1,2,3,4,5,6], idAttribute='Level_2_ID',
-                                     classNames=['Roof',  'Pavement',   'Grass',   'Tree',   'Soil',    'Other'],
-                                     classLookup=[168,0,0, 156,156,156,  151,229,0, 35,114,0, 136,89,67, 236,214,0])
+    classification = vector.rasterizeAsClassification(filename=classification3mFilename,
+                                                      pixelGrid=image.pixelGrid.newResolution(xRes=3, yRes=3),
+                                                      ids=[1,2,3,4,5,6], idAttribute='Level_2_ID',
+                                                      classNames=['Roof',  'Pavement',   'Grass',   'Tree',   'Soil',    'Other'],
+                                                      classLookup=[168,0,0, 156,156,156,  151,229,0, 35,114,0, 136,89,67, 236,214,0])
 
 def image_sampleByClassification():
     image = Image(filename=imageFilename)
@@ -65,7 +65,8 @@ def classificationSample_synthMix():
 
 def unsupervisedSample_saveAsSpectralLibrary():
     probabilitySample = UnsupervisedSample.fromENVISpectralLibrary(filename=speclibFilename)
-    probabilitySample.saveAsENVISpectralLibrary(filename=speclib2Filename)
+    probabilitySample.browse()
+    #probabilitySample.saveAsENVISpectralLibrary(filename=speclib2Filename)
 
 def classificationSample_saveAsSpectralLibrary():
     classificationSample = ClassificationSample.unpickle(filename=classificationSampleFilename)
@@ -212,11 +213,13 @@ def clusterer_predict():
     clusterer.predict(filename=clusteringFilename, image=image, mask=mask, vmask=vmask)
 
 def image_basicStatistics():
-    image = Image(filename=imageFilename)
+    #image = Image(filename=imageFilename)
+    image = Image(filename=r'C:\Users\janzandr\Desktop\tmp\HighResolution_Berlin_Urban_Gradient_2009_testData_compressed.bsq')  # imageFilename)
+
     mask = Mask(filename=classification3mFilename)
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
 
-    controls = ApplierControls().setReferenceGridByImage(image.filename).setWindowXSize(50)
+    controls = ApplierControls()#.setWindowXSize(50)
     min, max, n = image.basicStatistics(bandIndicies=None, mask=mask, vmask=vmask, controls=controls)
     print(min, max, n)
 
@@ -227,7 +230,7 @@ def image_scatterMatrix():
     stratification = Classification(classification3mFilename)
 
     controls = ApplierControls().setReferenceGridByImage(image.filename)\
-                                .setNumThreads()
+                                .setNumThreads(4).set
     print(stratification.classDefinition)
     i1, i2 = 0, 1
     (min1, min2), (max1, max2), (n1, n2) = image.basicStatistics(bandIndicies=[i1, i2],
@@ -274,7 +277,7 @@ def browse():
 
 
 if __name__ == '__main__':
-    vector_classify()
+    #vector_classify()
     #image_sampleByClassification()
     #probabilitySample_classify()
     #unsupervisedSample_classifyByName()
@@ -296,6 +299,6 @@ if __name__ == '__main__':
     #clusterer_fit()
     #clusterer_predict()
 
-    #image_basicStatistics()
-    image_scatterMatrix()
+    image_basicStatistics()
+    #image_scatterMatrix()
     #browse()
