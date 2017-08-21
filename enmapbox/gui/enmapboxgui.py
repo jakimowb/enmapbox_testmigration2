@@ -383,7 +383,7 @@ class EnMAPBox(QObject):
         #
 
         self.mCurrentSpectra=[] #set of currently selected spectral profiles
-
+        self.mCurrentMapSpectraLoading = 'ALL'
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
@@ -480,7 +480,9 @@ class EnMAPBox(QObject):
         if isinstance(dock, MapDock):
             dock.canvas.sigProfileRequest.connect(self.loadCurrentMapSpectra)
 
+
     def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
+        assert self.mCurrentMapSpectraLoading in ['TOP', 'ALL']
         assert isinstance(spatialPoint, SpatialPoint)
         from enmapbox.gui.mapcanvas import MapCanvas
         assert isinstance(mapCanvas, QgsMapCanvas)
@@ -488,20 +490,18 @@ class EnMAPBox(QObject):
         currentSpectra = []
 
         lyrs = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
-        if len(lyrs) > 0:
-
-            # default: load top-most raster layers
-            lyr = lyrs[0]
+        for lyr in lyrs:
             assert isinstance(lyr, QgsRasterLayer)
             path = lyr.source()
             from enmapbox.gui.spectrallibraries import SpectralProfile
             p = SpectralProfile.fromRasterSource(path, spatialPoint)
             if isinstance(p, SpectralProfile):
                 currentSpectra.append(p)
+                if self.mCurrentMapSpectraLoading == 'TOP':
+                    break
 
-
-        if len(currentSpectra) > 0:
-            self.setCurrentSpectra(currentSpectra)
+        #if len(currentSpectra) > 0:
+        self.setCurrentSpectra(currentSpectra)
 
 
     def activateMapTool(self, mapToolKey):

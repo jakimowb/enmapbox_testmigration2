@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>504</width>
-    <height>309</height>
+    <width>628</width>
+    <height>328</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -68,29 +68,44 @@
         </widget>
        </item>
        <item>
+        <widget class="QToolButton" name="btnExportSpeclib">
+         <property name="text">
+          <string>Export</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QToolButton" name="btnLoadfromMap">
          <property name="text">
           <string>Select from map</string>
          </property>
          <property name="icon">
           <iconset resource="resources.qrc">
-           <normaloff>:/enmapbox/icons/link_all_center.png</normaloff>:/enmapbox/icons/link_all_center.png</iconset>
+           <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>:/enmapbox/icons/pickrasterspectrum.png</iconset>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="btnKeepCurrent">
+        <widget class="QToolButton" name="btnAddCurrentToSpeclib">
          <property name="text">
-          <string>Keep current</string>
+          <string>add</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="btnExportSpeclib">
+        <widget class="QCheckBox" name="cbAddCurrentSpectraToSpeclib">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
          <property name="text">
-          <string>Export</string>
+          <string>auto</string>
          </property>
         </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="cbXUnit"/>
        </item>
        <item>
         <spacer name="horizontalSpacer">
@@ -178,7 +193,20 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QTableView" name="tableViewSpeclib"/>
+         <widget class="SpectralLibraryTableView" name="tableViewSpeclib">
+          <property name="dragEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="dragDropMode">
+           <enum>QAbstractItemView::DragDrop</enum>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -206,9 +234,31 @@
    <extends>QGraphicsView</extends>
    <header>pyqtgraph</header>
   </customwidget>
+  <customwidget>
+   <class>SpectralLibraryTableView</class>
+   <extends>QTableView</extends>
+   <header>enmapbox/gui/spectrallibraries</header>
+  </customwidget>
  </customwidgets>
  <resources>
   <include location="resources.qrc"/>
  </resources>
- <connections/>
+ <connections>
+  <connection>
+   <sender>cbAddCurrentSpectraToSpeclib</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btnAddCurrentToSpeclib</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>182</x>
+     <y>38</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>148</x>
+     <y>38</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

@@ -20,7 +20,7 @@
 """
 from __future__ import absolute_import
 import os, re, tempfile, pickle, copy
-
+from collections import OrderedDict
 from qgis.core import *
 from qgis.gui import *
 import pyqtgraph as pg
@@ -46,6 +46,65 @@ LUT_IDL2GDAL = {1:gdal.GDT_Byte,
                 6:gdal.GDT_CFloat32,
                 9:gdal.GDT_CFloat64}
 
+def value2str(value, sep=' '):
+    if isinstance(value, list):
+        value = sep.join([str(v) for v in value])
+    elif isinstance(value, np.array):
+        value = value2str(value.astype(list), sep=sep)
+    else:
+        value = str(value)
+    return value
+
+class SpectralLibraryTableView(QTableView):
+
+    def __init__(self, parent=None):
+        super(SpectralLibraryTableView, self).__init__(parent)
+
+    def contextMenuEvent(self, event):
+
+        menu = QMenu(self)
+        m = menu.addMenu('Copy to...')
+        a = m.addAction('Clipboard')
+        a = m.addAction('ENVI Spectral Library (*.sli)')
+        a = m.addAction('CSV Table')
+
+        a = menu.addAction('Set color')
+        a.triggered.connect(self.onSetColor)
+        a = menu.addAction('Check')
+        a.triggered.connect(lambda : self.setCheckState(Qt.Checked))
+        a = menu.addAction('Uncheck')
+        a.triggered.connect(lambda: self.setCheckState(Qt.Unchecked))
+        menu.popup(QCursor.pos())
+
+
+    def onSetColor(self):
+        c = QColorDialog.getColor()
+        if isinstance(c, QColor):
+            model = self.model()
+            for idx in self.selectedRowsIndexes():
+                model.setData(model.createIndex(idx, 1), c, Qt.BackgroundRole)
+
+    def setCheckState(self, checkState):
+        model = self.model()
+
+        for idx in self.selectedRowsIndexes():
+            model.setData(model.createIndex(idx, 0), checkState, Qt.CheckStateRole)
+
+        selectionModel = self.selectionModel()
+        assert isinstance(selectionModel, QItemSelectionModel)
+        selectionModel.clearSelection()
+
+    def selectedRowsIndexes(self):
+        selectionModel = self.selectionModel()
+        assert isinstance(selectionModel, QItemSelectionModel)
+
+        rows = sorted(list(set([i.row() for i in self.selectionModel().selectedIndexes()])))
+        model = self.model()
+        indices = []
+        if isinstance(model, QAbstractTableModel):
+            for r in rows:
+                indices.append(r)
+        return indices
 
 class SpectralProfileMapTool(QgsMapToolEmitPoint):
 
@@ -155,6 +214,7 @@ class SpectralProfile(QObject):
 
 
         values = ds.ReadAsArray(px.x(), px.y(), 1, 1)
+
         values = values.flatten()
         for b in range(ds.RasterCount):
             band = ds.GetRasterBand(b+1)
@@ -162,9 +222,14 @@ class SpectralProfile(QObject):
             if nodata and values[b] == nodata:
                 return None
 
+        wl = ds.GetMetadataItem('wavelength','ENVI')
+        wlu = ds.GetMetadataItem('wavelength_units','ENVI')
+        if wl is not None and len(wl) > 0:
+            wl = re.sub(r'[ {}]','', wl).split(',')
+            wl = [float(w) for w in wl]
 
         profile = SpectralProfile()
-        profile.setValues(values)
+        profile.setValues(values, valuePositions=wl, valuePositionUnit=wlu)
         profile.setCoordinates(px=px, spatialPoint=SpatialPoint(crs,px2geo(px, gt)))
         profile.setSource(ds.GetFileList()[0])
         return profile
@@ -228,9 +293,17 @@ class SpectralProfile(QObject):
         self.mValuePositions = positions[:]
         self.mValuePositionUnit = unit
 
-    def setMetadata(self, metaData):
+    def updateMetadata(self, metaData):
         assert isinstance(metaData, dict)
         self.mMetadata.update(metaData)
+
+    def setMetadata(self, key, value):
+        assert isinstance(key, str)
+        self.mMetadata[key] = value
+
+    def metadata(self, key, default=None):
+        return self.mMetadata.get(key, default=default)
+
 
     def yValues(self):
         return self.mValues[:]
@@ -242,9 +315,13 @@ class SpectralProfile(QObject):
         return self.mValuePositions[:]
 
     def xUnit(self):
-        return self.mValueUnit
+        return self.mValuePositionUnit
 
+    def valueIndexes(self):
+        return np.arange(len(self.yValues()))
 
+    def clone(self):
+        return copy.copy(self)
 
     def plot(self):
         """
@@ -275,6 +352,19 @@ class SpectralProfile(QObject):
     def __copy__(self):
         return copy.deepcopy(self)
 
+    def isEqual(self, other):
+        if not isinstance(other, SpectralProfile):
+            return False
+        if len(self.mValues) != len(other.mValues):
+            return False
+        return all(a == b for a, b in zip(self.mValues, other.mValues)) \
+               and self.mValuePositions == other.mValuePositions \
+               and self.mValueUnit == other.mValueUnit \
+               and self.mValuePositionUnit == other.mValuePositionUnit \
+               and self.mGeoCoordinate == other.mGeoCoordinate \
+               and self.mPxCoordinate == other.mPxCoordinate
+
+    """
     def __eq__(self, other):
         if not isinstance(other, SpectralProfile):
             return False
@@ -289,7 +379,7 @@ class SpectralProfile(QObject):
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
+    """
     def __len__(self):
         return len(self.mValues)
 
@@ -329,6 +419,42 @@ class SpectralLibraryIO(object):
         """Writes the SpectralLibrary speclib to path, returns a list of written files"""
         assert isinstance(speclib, SpectralLibrary)
         return None
+
+
+class CSVSpectralLibraryIO(SpectralLibraryIO):
+
+    @staticmethod
+    def write(speclib, path, separator=' '):
+
+        assert isinstance(speclib, SpectralLibrary)
+        lines = ['Spectral Library {}'.format(speclib.name())]
+
+
+        grouping = speclib.groupBySpectralProperties()
+        for profiles in grouping.values():
+            wlU = profiles[0].xUnit()
+            wavelength = profiles[0].xValues()
+
+            columns = ['n', 'name', 'geo', 'px', 'src']
+            if wlU in [None, 'Index']:
+                columns.extend(['b{}'.format(i+1) for i in range(len(wavelength))])
+            else:
+                for i, wl in enumerate(wavelength):
+                    columns.append('b{}_{}'.format(i + 1, wl))
+            lines.append(value2str(columns, sep=separator))
+
+            for i, p in enumerate(profiles):
+                line = [i+1, p.name(), p.geoCoordinate(), p.pxCoordinate(), p.source()]
+                line.extend(p.yValues())
+                lines.append(value2str(line, sep=separator))
+            lines.append('')
+
+        file = open(path, 'w')
+        for line in lines:
+            file.write(line+'\n')
+        file.flush()
+        file.close()
+
 
 
 class EnviSpectralLibraryIO(SpectralLibraryIO):
@@ -672,7 +798,7 @@ class SpectralLibrary(QObject):
         """
         Groups the SpectralProfiles by:
             wavelength (xValues), wavelengthUnit (xUnit) and yUnit
-        :return: {(xValues, wlU, yUni):[list-of-profiles]}
+        :return: {(xValues, wlU, yUnit):[list-of-profiles]}
         """
 
         d = dict()
@@ -685,9 +811,22 @@ class SpectralLibrary(QObject):
         return d
 
 
-    def exportProfiles(self):
-        pass
+    def exportProfiles(self, path=None):
 
+        if path is None:
+            filters = 'ENVI Spectral Library (*.esl *.sli);;CSV Table (*.csv)'
+            path = QFileDialog.getSaveFileName(parent=None, caption="Save Spectral Library", filter=filters)
+
+
+        if len(path) > 0:
+            ext = os.path.splitext(path)[-1].lower()
+            if ext in ['.sli','.esl']:
+                EnviSpectralLibraryIO.write(self, path)
+
+            if ext in ['.csv']:
+                CSVSpectralLibraryIO.write(self, path)
+
+            s = ""
 
     sigProfilesRemoved = pyqtSignal(list)
     def removeProfiles(self, profiles):
@@ -774,33 +913,41 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
 
     sigPlotStyleChanged = pyqtSignal(SpectralProfile)
 
+    class ProfileWrapper(object):
+        def __init__(self, profile):
+            assert isinstance(profile, SpectralProfile)
+            self.profile = profile
+            self.style = QColor('white')
+            self.checkState = Qt.Unchecked
+
     def __init__(self, spectralLibrary, parent=None):
         super(SpectralLibraryTableViewModel, self).__init__(parent)
 
         self.cIndex = '#'
-        self.cName = 'Name'
         self.cStyle = 'Style'
+        self.cName = 'Name'
         self.cPx = 'Px'
         self.cGeo = 'Geo'
         self.cSrc = 'Source'
         self.columnNames = [self.cIndex, self.cStyle, self.cName, self.cPx, self.cGeo, self.cSrc]
         assert isinstance(spectralLibrary, SpectralLibrary)
         self.mSpecLib = spectralLibrary
-
         self.mSpecLib.sigProfilesRemoved.connect(self.onProfilesRemoved)
         self.mSpecLib.sigProfilesAdded.connect(self.onProfilesAdded)
-        self.mStyleList = dict()
+
+
+        self.mProfileWrappers = OrderedDict()
         self.onProfilesAdded([p for p in self.mSpecLib])
 
     def onProfilesAdded(self, profiles):
         for p in profiles:
-            self.mStyleList[p] = QColor('white')
+            self.mProfileWrappers[p] = SpectralLibraryTableViewModel.ProfileWrapper(p)
         self.layoutChanged.emit()
 
     def onProfilesRemoved(self, profiles):
         self.layoutChanged.emit()
         for p in profiles:
-            self.mStyleList.pop(p)
+            self.mProfileWrappers.pop(p)
 
     def headerData(self, col, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -815,13 +962,20 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         self.layoutAboutToBeChanged.emit()
         columnName = self.columnNames[col]
         rev = order == Qt.DescendingOrder
-
+        sortedProfiles = None
+        profiles = self.mProfileWrappers.keys()
         if columnName == self.cName:
-            self.mSpecLib.mProfiles.sort(key= lambda p: p.name(), reverse= rev)
-        if columnName == self.cSrc:
-            self.mSpecLib.mProfiles.sort(key= lambda p: p.source(), reverse= rev)
+            sortedProfiles = sorted(profiles, key= lambda p: p.name(), reverse=rev)
+        elif columnName == self.cSrc:
+            sortedProfiles = sorted(profiles, key=lambda p: p.source(), reverse=rev)
+        elif columnName == self.cIndex:
+            sortedProfiles = sorted(profiles, key=lambda p: self.mSpecLib.index(p), reverse=rev)
 
-        self.layoutChanged.emit()
+        if sortedProfiles is not None:
+            tmp = OrderedDict([(p, self.mProfileWrappers[p]) for p in sortedProfiles])
+            self.mProfileWrappers.clear()
+            self.mProfileWrappers.update(tmp)
+            self.layoutChanged.emit()
 
     def rowCount(self, parentIdx=None, *args, **kwargs):
         return len(self.mSpecLib)
@@ -831,23 +985,38 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
 
     def profile2idx(self, profile):
         assert isinstance(profile, SpectralProfile)
-        return self.createIndex(self.mSpecLib.index(profile), 0)
+        #return self.createIndex(self.mSpecLib.index(profile), 0)
+        #pw = self.mProfileWrappers[profile]
+        return self.createIndex(self.mProfileWrappers.keys().index(profile), 0)
 
+    def idx2profileWrapper(self, index):
+        assert isinstance(index, QModelIndex)
+        if not index.isValid():
+            return None
+        return self.mProfileWrappers.values()[index.row()]
+
+        """
+        p = self.idx2profile(index)
+        assert isinstance(p, SpectralProfile)
+        pw = self.mProfileWrappers[p]
+        assert isinstance(pw, SpectralLibraryTableViewModel.ProfileWrapper)
+        return pw
+        """
 
     def idx2profile(self, index):
-        assert isinstance(index, QModelIndex)
-        if index.isValid():
-            return self.mSpecLib[index.row()]
-        return None
+        pw = self.idx2profileWrapper(index)
+        if isinstance(pw, SpectralLibraryTableViewModel.ProfileWrapper):
+            return  pw.profile
+        else:
+            return None
 
     def data(self, index, role=Qt.DisplayRole):
         if role is None or not index.isValid():
             return None
 
         columnName = self.columnNames[index.column()]
-
-        profile = self.idx2profile(index)
-        assert isinstance(profile, SpectralProfile)
+        profileWrapper = self.idx2profileWrapper(index)
+        profile = profileWrapper.profile
 
         value = None
         if role == Qt.DisplayRole:
@@ -860,7 +1029,7 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
 
         if role == Qt.BackgroundRole:
             if columnName == self.cStyle:
-                return self.mStyleList[profile]
+                return self.mProfileWrappers[profile].style
 
         if role == Qt.EditRole:
             if columnName == self.cName:
@@ -868,20 +1037,35 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
 
         if role == Qt.UserRole:
             value = profile
+        if role == Qt.CheckStateRole:
+            if columnName == self.cIndex:
+                value = profileWrapper.checkState
         return value
+
+
 
     def setData(self, index, value, role=None):
         if role is None or not index.isValid():
             return False
         assert isinstance(index, QModelIndex)
         cName = self.columnNames[index.column()]
-        profile = self.idx2profile(index)
-        assert isinstance(profile, SpectralProfile)
+        profileWrapper = self.idx2profileWrapper(index)
+        profile = profileWrapper.profile
 
         if role  == Qt.EditRole:
             if cName == self.cName:
                 profile.setName(str(value))
                 return True
+
+        if role == Qt.CheckStateRole:
+            if cName == self.cIndex:
+                profileWrapper.checkState = value
+                return True
+        if role == Qt.BackgroundRole:
+            if cName == self.cStyle:
+                profileWrapper.style = value
+                return True
+
         return False
 
     def flags(self, index):
@@ -889,7 +1073,9 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
             columnName = self.columnNames[index.column()]
             flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
             if columnName in [self.cName]:  # allow check state
-                flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable
+                flags = flags | Qt.ItemIsEditable | Qt.ItemIsUserCheckable
+            if columnName == self.cIndex:
+                flags = flags | Qt.ItemIsUserCheckable
             return flags
         return None
 
@@ -900,6 +1086,38 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         pass
 
 
+class UnitComboBoxItemModel(QAbstractListModel):
+    def __init__(self, parent=None):
+        super(UnitComboBoxItemModel, self).__init__(parent)
+        self.mUnits = []
+
+    def addUnit(self, unit):
+        if unit is not None and unit not in self.mUnits:
+            self.mUnits.append(unit)
+            self.reset()
+
+    def rowCount(self, parent=None, *args, **kwargs):
+        return len(self.mUnits)
+
+    def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
+        return 1
+
+    def getUnitFromIndex(self, index):
+        if index.isValid():
+            return self.mUnits[index.row()]
+        return None
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid():
+            return None
+
+        if (index.row() >= len(self.mUnits)) or (index.row() < 0):
+            return None
+        unit = self.getUnitFromIndex(index)
+        value = None
+        if role == Qt.DisplayRole:
+            value = '{}'.format(unit)
+        return value
 
 
 class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
@@ -909,7 +1127,12 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.mModel = None
 
         self.m_plot_max = 50
+        self.mPlotXUnitModel = UnitComboBoxItemModel(self)
+        self.mPlotXUnitModel.addUnit('Index')
+        self.cbXUnit.setModel(self.mPlotXUnitModel)
+        self.cbXUnit.currentIndexChanged.connect(lambda: self.setPlotXUnit(self.cbXUnit.currentText()))
         self.mSelectionModel = None
+
         self.mCurrentSpectra = []
         self.tableViewSpeclib.verticalHeader().setMovable(True)
         self.tableViewSpeclib.verticalHeader().setDragEnabled(True)
@@ -932,6 +1155,12 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.plotWidget.setAntialiasing(True)
 
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
+        self.btnExportSpeclib.clicked.connect(self.onExportSpectra)
+        self.btnAddCurrentToSpeclib.clicked.connect(self.addCurrentSpectraToSpeclib)
+
+
+
+
         from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapbox = EnMAPBox.instance()
         if enmapbox:
@@ -941,10 +1170,32 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         else:
             self.btnLoadfromMap.setEnabled(False)
 
+    def setPlotXUnit(self, unit):
+        unit = str(unit)
+
+        pi = self.getPlotItem()
+        if unit == 'Index':
+            for pdi in pi.dataItems:
+                assert isinstance(pdi, SpectralProfilePlotDataItem)
+                pdi.setData(x=pdi.mProfile.valueIndexes())
+                pdi.setVisible(True)
+        else:
+            #hide items that can not be presented in unit "unit"
+            for pdi in pi.dataItems[:]:
+                if pdi.mProfile.xUnit() != unit:
+                    pdi.setVisible(False)
+                else:
+                    pdi.setData(x=pdi.mProfile.xValues())
+                    pdi.setVisible(True)
+
     def getPlotItem(self):
         pi = self.plotWidget.getPlotItem()
         assert isinstance(pi, pg.PlotItem)
         return pi
+
+    def onExportSpectra(self, *args):
+        self.mSpeclib.exportProfiles()
+
 
     def onProfilesAdded(self, profiles):
         # todo: remove some PDIs from plot if there are too many
@@ -956,8 +1207,14 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
                     pi.removeItem(pdi)
 
         for p in profiles:
+            self.mPlotXUnitModel.addUnit(p.xUnit())
             pi.addItem(self.createPDI(p))
 
+    def addSpectralPlotItem(self, pdi):
+        assert isinstance(pdi, SpectralProfilePlotDataItem)
+        pi = self.getPlotItem()
+
+        pi.addItem(pdi)
 
     def onProfilesRemoved(self, profiles):
         pi = self.getPlotItem()
@@ -969,6 +1226,9 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
             self.mSpeclib.addProfiles([copy.copy(p) for p in speclib])
 
 
+    def addCurrentSpectraToSpeclib(self, *args):
+        self.mSpeclib.addProfiles([p.clone() for p in self.mCurrentSpectra])
+
     sigCurrentSpectraChanged = pyqtSignal(list)
     def setCurrentSpectra(self, listOfSpectra):
         plotItem =  self.getPlotItem()
@@ -978,23 +1238,43 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
                 self.removePDI(p)
 
         self.mCurrentSpectra = listOfSpectra[:]
+        if self.cbAddCurrentSpectraToSpeclib.isChecked():
+            self.addCurrentSpectraToSpeclib()
+
         for p in self.mCurrentSpectra:
-            plotItem.addItem(self.createPDI(p))
+            self.mPlotXUnitModel.addUnit(p.xUnit())
+            plotItem.addItem(self.createPDI(p, QColor('green')))
+
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra)
 
 
-    def createPDI(self, profile):
+
+
+
+
+    def createPDI(self, profile, color=None):
         assert isinstance(profile, SpectralProfile)
         if profile not in self.mPlotDataItems.keys():
+
             pdi = SpectralProfilePlotDataItem(profile)
+            if color is not None:
+                pdi.setColor(color)
+
             pdi.sigClicked.connect(self.onProfileClicked)
             self.mPlotDataItems[profile] = pdi
-        return self.mPlotDataItems[profile]
+            pdi = self.mPlotDataItems[profile]
+        return pdi
 
     def removePDI(self, profile):
+        """
+        Removes the SpectraProfilePlotDataItem realted to SpectraProfile 'profile'
+        :param profile:
+        :return:
+        """
         assert isinstance(profile, SpectralProfile)
         pdi = self.mPlotDataItems.pop(profile)
         self.getPlotItem().removeItem(pdi)
+        return pdi
 
     def onProfileClicked(self, *args):
 
@@ -1021,7 +1301,7 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
                 pdi = self.mPlotDataItems[p]
                 assert isinstance(pdi, SpectralProfilePlotDataItem)
                 pdi.setLineWidth(1)
-                pdi.setColor(self.mModel.mStyleList[p])
+                pdi.setColor(self.mModel.mProfileWrappers[p].style)
 
         to_front = []
         for selectionRange in selected:
@@ -1040,8 +1320,6 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
 
 
 
-
-
 if __name__ == "__main__":
     import enmapboxtestdata
     from enmapboxtestdata import speclib
@@ -1056,7 +1334,11 @@ if __name__ == "__main__":
     sl1 = SpectralLibrary.readFrom(speclib)
 
     sl1.addProfiles([mySpec])
-
+    if False:
+        tmpDir = r'/Users/benjamin.jakimow/Documents/Temp/enmapbox'
+        pathDst = os.path.join(tmpDir, 'test2.csv')
+        sl1.exportProfiles(pathDst)
+        s = 2
     if False:
         tmpDir = r'/Users/benjamin.jakimow/Documents/Temp/enmapbox'
         pathDst = os.path.join(tmpDir, 'test.sli')
