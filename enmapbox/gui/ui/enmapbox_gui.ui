@@ -424,7 +424,6 @@
  </customwidgets>
  <resources>
   <include location="resources.qrc"/>
-  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>
