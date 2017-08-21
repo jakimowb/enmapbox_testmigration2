@@ -265,8 +265,8 @@ class Dataset():
         for band, value in zip(self, values):
             band.setNoDataValue(value)
 
-    def getNoDataValues(self):
-        return [band.getNoDataValue() for band in self]
+    def getNoDataValues(self, default=None):
+        return [band.getNoDataValue(default=default) for band in self]
 
     def setNoDataValue(self, value):
         self.setNoDataValues(values=[value]*self.zsize)
@@ -523,11 +523,17 @@ class Band():
     def setNoDataValue(self, value):
         self.gdalBand.SetNoDataValue(float(value))
 
-    def getNoDataValue(self):
-        return self.gdalBand.GetNoDataValue()
+    def getNoDataValue(self, default=None):
+        noDataValue = self.gdalBand.GetNoDataValue()
+        if noDataValue is None:
+            noDataValue = default
+        return noDataValue
 
     def setDescription(self, value):
         self.gdalBand.SetDescription(value)
+
+    def getDescription(self):
+        return self.gdalBand.GetDescription()
 
     def getMetadataDomainList(self):
         domains = self.gdalBand.GetMetadataDomainList()
