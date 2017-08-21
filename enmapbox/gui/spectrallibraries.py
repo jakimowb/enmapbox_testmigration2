@@ -24,6 +24,7 @@ from collections import OrderedDict
 from qgis.core import *
 from qgis.gui import *
 import pyqtgraph as pg
+from pyqtgraph import functions as fn
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import numpy as np
@@ -235,16 +236,30 @@ class SpectralProfilePlotDataItem(pg.PlotDataItem):
         super(SpectralProfilePlotDataItem, self).__init__(spectralProfle.xValues(), spectralProfle.yValues())
         self.mProfile = spectralProfle
 
+    def setClickable(self, b, width=None):
+        assert isinstance(b, bool)
+        self.curve.setClickable(b, width=width)
+
     def setColor(self, color):
         if not isinstance(color, QColor):
+
             color = QColor(color)
         self.setPen(color)
+
+    def pen(self):
+
+        return fn.mkPen(self.opts['pen'])
+
+    def color(self):
+        return self.pen().color()
 
     def setLineWidth(self, width):
         pen = pg.mkPen(self.opts['pen'])
         assert isinstance(pen, QPen)
         pen.setWidth(width)
         self.setPen(pen)
+
+
 
 class SpectralProfile(QObject):
 
@@ -388,7 +403,7 @@ class SpectralProfile(QObject):
         import pyqtgraph as pg
 
         pi = SpectralProfilePlotDataItem(self)
-
+        pi.setClickable(True)
         pw = pg.plot( title=self.name())
         pw.getPlotItem().addItem(pi)
 
@@ -1266,6 +1281,9 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.setupUi(self)
         self.mModel = None
 
+        self.mColorCurrentSpectra = QColor('green')
+        self.mColorSelectedSpectra = QColor('yellow')
+
         self.m_plot_max = 50
         self.mPlotXUnitModel = UnitComboBoxItemModel(self)
         self.mPlotXUnitModel.addUnit('Index')
@@ -1392,18 +1410,17 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
 
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra)
 
-
-
-
-
-
     def createPDI(self, profile, color=None):
+        if color is None:
+            color = QColor('white')
+        if not isinstance(color, QColor):
+            color = QColor(color)
         assert isinstance(profile, SpectralProfile)
         if profile not in self.mPlotDataItems.keys():
 
             pdi = SpectralProfilePlotDataItem(profile)
-            if color is not None:
-                pdi.setColor(color)
+            pdi.setClickable(True)
+            pdi.setPen(fn.mkPen(color, width=1))
 
             pdi.sigClicked.connect(self.onProfileClicked)
             self.mPlotDataItems[profile] = pdi
@@ -1424,9 +1441,21 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         else:
             return None
 
-    def onProfileClicked(self, *args):
+    def onProfileClicked(self, pdi):
+        m = self.mModel
+        idx = m.profile2idx(pdi.mProfile)
 
-        s = ""
+
+        currentSelection = self.mSelectionModel.selection()
+
+        profileSelection = QItemSelection(m.createIndex(idx.row(), 0), \
+                                   m.createIndex(idx.row(), m.columnCount()-1))
+
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers == Qt.ShiftModifier:
+            profileSelection.merge(currentSelection, QItemSelectionModel.Select)
+        self.mSelectionModel.select(profileSelection, QItemSelectionModel.ClearAndSelect)
+
 
 
     def currentSpectra(self):
@@ -1448,8 +1477,9 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
                 p = self.mModel.idx2profile(idx)
                 pdi = self.mPlotDataItems[p]
                 assert isinstance(pdi, SpectralProfilePlotDataItem)
-                pdi.setLineWidth(1)
-                pdi.setColor(self.mModel.mProfileWrappers[p].style)
+                pdi.setPen(fn.mkPen(self.mModel.mProfileWrappers[p].style))
+                pdi.setShadowPen(None)
+
 
         to_front = []
         for selectionRange in selected:
@@ -1457,8 +1487,8 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
                 p = self.mModel.idx2profile(idx)
                 pdi = self.mPlotDataItems[p]
                 assert isinstance(pdi, SpectralProfilePlotDataItem)
-                pdi.setLineWidth(5)
-                pdi.setColor(QColor('red'))
+                pdi.setPen(fn.mkPen(QColor('red'), width = 2))
+                pdi.setShadowPen(fn.mkPen(QColor('black'), width=4))
                 to_front.append(pdi)
 
         pi = self.getPlotItem()
@@ -1477,13 +1507,15 @@ if __name__ == "__main__":
 
     mySpec = SpectralProfile()
     mySpec.setValues([0.2, 0.3, 0.5, 0.7])
+
     #mySpec.plot()
-    sl0 = SpectralLibrary()
+
+    sl0 = SpectralLibrary(profiles=[mySpec])
 
     sl1 = SpectralLibrary.readFrom(speclib)
     #d = pickle.dumps(sl1)
 
-    sl1.addProfiles([mySpec])
+    #sl1.addProfiles([mySpec])
     if False:
         tmpDir = r'/Users/benjamin.jakimow/Documents/Temp/enmapbox'
         pathDst = os.path.join(tmpDir, 'test2.csv')
