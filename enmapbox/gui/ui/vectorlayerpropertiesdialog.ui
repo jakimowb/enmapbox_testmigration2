@@ -20,7 +20,7 @@
    <string>Layer Properties</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../../../../../QGIS/images/images.qrc">
+   <iconset>
     <normaloff>:/images/icons/qgis-icon-16x16.png</normaloff>:/images/icons/qgis-icon-16x16.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -92,7 +92,7 @@
            <string>General</string>
           </property>
           <property name="icon">
-           <iconset resource="../../../../../QGIS/images/images.qrc">
+           <iconset>
             <normaloff>:/images/themes/default/propertyicons/general.svg</normaloff>:/images/themes/default/propertyicons/general.svg</iconset>
           </property>
          </item>
@@ -104,7 +104,7 @@
            <string>Symbology</string>
           </property>
           <property name="icon">
-           <iconset resource="../../../../../QGIS/images/images.qrc">
+           <iconset>
             <normaloff>:/images/themes/default/propertyicons/symbology.svg</normaloff>:/images/themes/default/propertyicons/symbology.svg</iconset>
           </property>
          </item>
@@ -116,7 +116,7 @@
            <string>Labels</string>
           </property>
           <property name="icon">
-           <iconset resource="../../../../../QGIS/images/images.qrc">
+           <iconset>
             <normaloff>:/images/themes/default/propertyicons/labels.svg</normaloff>:/images/themes/default/propertyicons/labels.svg</iconset>
           </property>
          </item>
@@ -128,7 +128,7 @@
            <string>Fields</string>
           </property>
           <property name="icon">
-           <iconset resource="../../../../../QGIS/images/images.qrc">
+           <iconset>
             <normaloff>:/images/themes/default/propertyicons/attributes.png</normaloff>:/images/themes/default/propertyicons/attributes.png</iconset>
           </property>
          </item>
@@ -424,8 +424,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>652</width>
-                <height>541</height>
+                <width>100</width>
+                <height>30</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_18">
@@ -498,8 +498,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>652</width>
-                <height>541</height>
+                <width>100</width>
+                <height>30</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_20">
@@ -586,9 +586,7 @@
   <tabstop>scrollArea_3</tabstop>
   <tabstop>scrollArea_5</tabstop>
  </tabstops>
- <resources>
-  <include location="../../../../../QGIS/images/images.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>mOptionsListWidget</sender>
