@@ -1,9 +1,17 @@
+from operator import xor
 import random, os, pickle
+import gdal
 import numpy
+import sklearn.metrics
 import spectral
-from hubdc.model import Open, PixelGrid
+from hubdc.applier import ApplierInputOptions
+from hubdc.model import Open, OpenLayer, PixelGrid
 import hubflow.ip_algorithms as ipalg
 import hubflow.dp_algorithms as dpalg
+from hubflow.report import *
+import matplotlib
+matplotlib.use('Qt4Agg')
+from matplotlib import pyplot
 
 spectral.settings.envi_support_nonlowercase_params = True
 
@@ -23,21 +31,26 @@ class FlowObject():
         return obj
 
     def browse(self):
+        from objbrowser import ObjectBrowser
+        from objbrowser.attribute_model import ATTR_MODEL_REPR, ATTR_MODEL_NAME, DEFAULT_ATTR_COLS
 
-        from objbrowser import browse
+
         objects = dict()
         objects[self.__class__.__name__.split('.')[-1]] = self
-        browse(objects,
-               show_callable_attributes=False,
-               show_special_attributes=False,
-               reset=True)
-
+        ObjectBrowser.browse(objects,
+                             attribute_columns = (DEFAULT_ATTR_COLS),
+                             attribute_details = (ATTR_MODEL_REPR,),
+                             show_callable_attributes = None,
+                             show_special_attributes = None,
+                             auto_refresh=None,
+                             refresh_rate=None,
+                             reset = False)
+        return
 
 class Image(FlowObject):
 
     def __init__(self, filename):
         self.filename = filename
-
 
     @property
     def pixelGrid(self):
@@ -46,26 +59,37 @@ class Image(FlowObject):
     def asMask(self, ufunc=None):
         return Mask(filename=self.filename, ufunc=ufunc)
 
-    def sampleByClassification(self, classification, mask=None, vmask=None):
-        assert isinstance(classification, Classification)
-        if mask is None: mask = Mask(None)
-        if vmask is None: vmask = VectorMask(None)
-        assert isinstance(mask, Mask)
-        assert isinstance(vmask, VectorMask)
+    def asProbability(self, classDefinition):
+        return Probability(filename=self.filename, classDefinition=classDefinition)
 
-        features, fractions, classes, classNames, classLookup = ipalg.sampleImageByClassification(image=self.filename, classification=classification.filename,
-                                                                                                  mask=mask.filename, maskFunc=mask.ufunc,
-                                                                                                  vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL)
-        return ProbabilitySample(features=features, labels=fractions, classDefinition=ClassDefinition(classes=classes, names=classNames, lookup=classLookup))
+    def sampleByClassification(self, classification, mask=None, **kwargs):
+        sample = ipalg.imageSample(image=self, labels=classification, mask=mask, **kwargs)
+        assert isinstance(sample, ProbabilitySample)
+        return sample
+
+    def sampleByRegression(self, regression, mask=None, **kwargs):
+        sample = ipalg.imageSample(image=self, labels=regression, mask=mask, **kwargs)
+        assert isinstance(sample, RegressionSample)
+        return sample
+
+    def sampleByProbability(self, probability, mask=None, **kwargs):
+        sample = ipalg.imageSample(image=self, labels=probability, mask=mask, **kwargs)
+        assert isinstance(sample, ProbabilitySample)
+        return sample
+
+    def sampleByMask(self, mask, **kwargs):
+        sample = ipalg.imageSample(image=self, labels=mask, mask=None, **kwargs)
+        assert isinstance(sample, UnsupervisedSample)
+        return sample
 
     def basicStatistics(self, bandIndicies=None, mask=None, vmask=None,
                         imageOptions=None, maskOptions=None,
                         controls=None, progressBar=None):
 
         if mask is None: mask = Mask(None)
-        if vmask is None: vmask = VectorMask(None)
+        if vmask is None: vmask = Vector(None)
         assert isinstance(mask, Mask)
-        assert isinstance(vmask, VectorMask)
+        assert isinstance(vmask, Vector)
 
         return ipalg.imageBasicStatistics(image=self.filename, bandIndicies=bandIndicies,
                                           mask=mask.filename, maskFunc=mask.ufunc,
@@ -80,10 +104,10 @@ class Image(FlowObject):
 
         assert isinstance(image2, Image)
         if mask is None: mask = Mask(None)
-        if vmask is None: vmask = VectorMask(None)
+        if vmask is None: vmask = Vector(None)
         if stratification is None: stratification = Classification(None, classDefinition=ClassDefinition(classes=0))
         assert isinstance(mask, Mask)
-        assert isinstance(vmask, VectorMask)
+        assert isinstance(vmask, Vector)
 
         return ipalg.imageScatterMatrix(image1=self.filename, image2=image2.filename,
                                         bandIndex1=bandIndex, bandIndex2=bandIndex2,
@@ -101,26 +125,42 @@ class Mask(Image):
     def __init__(self, filename, ufunc=None):
         Image.__init__(self, filename)
         self.ufunc = ufunc
+        self.noData = 0
 
 class Vector(FlowObject):
 
-    def __init__(self, filename, layer=0):
+    def __init__(self, filename, layer=0, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, dtype=numpy.float32):
         self.filename = filename
         self.layer = layer
-
-    def classify(self, filename, pixelGrid, ids, idAttribute, classNames=None, classLookup=None, oversampling=1):
-        assert isinstance(pixelGrid, PixelGrid)
-        ipalg.classificationFromVector(vector=self.filename, classification=filename, grid=pixelGrid,
-                                     ids=ids, idAttribute=idAttribute, classNames=classNames, classLookup=classLookup,
-                                     oversampling=oversampling)
-        return Classification(filename=filename)
-
-class VectorMask(Vector):
-
-    def __init__(self, filename, layer=0, allTouched=True, filterSQL=None):
-        Vector.__init__(self, filename, layer)
+        self.initValue = initValue
+        self.burnValue = burnValue
+        self.burnAttribute = burnAttribute
         self.allTouched = allTouched
         self.filterSQL = filterSQL
+        self.dtype = dtype
+
+    def rasterize(self, imageFilename, grid, **kwargs):
+        return ipalg.vectorRasterize(vector=self, imageFilename=imageFilename, grid=grid, **kwargs)
+
+    def uniqueValues(self, attribute, **kwargs):
+        return ipalg.vectorUniqueValues(vector=self, attribute=attribute, **kwargs)
+
+class VectorClassification(Vector):
+
+    def __init__(self, filename, classDefinition, idAttribute, layer=0, allTouched=False, filterSQL=None, minOverallCoverage=0.5, minWinnerCoverage=0.5):
+        Vector.__init__(self, filename=filename, layer=layer, initValue=0, burnAttribute=idAttribute, allTouched=allTouched, filterSQL=filterSQL, dtype=numpy.uint8)
+        assert isinstance(classDefinition, ClassDefinition)
+        self.classDefinition = classDefinition
+        self.idAttribute = idAttribute
+        self.minOverallCoverage = minOverallCoverage
+        self.minWinnerCoverage = minWinnerCoverage
+
+    def rasterizeAsClassification(self, classificationFilename, grid, oversampling=1, **kwargs):
+        return ipalg.vectorClassificationRasterizeAsClassification(vectorClassification=self, classificationFilename=classificationFilename, grid=grid, oversampling=oversampling, **kwargs)
+
+    def rasterizeAsProbability(self, probabilityFilename, grid, oversampling=1, **kwargs):
+        return ipalg.vectorClassificationRasterizeAsProbability(vectorClassification=self, probabilityFilename=probabilityFilename, grid=grid, oversampling=oversampling, **kwargs)
+
 
 class ClassDefinition(FlowObject):
 
@@ -131,6 +171,13 @@ class ClassDefinition(FlowObject):
         names = ds.getMetadataItem(key='class names', domain='ENVI')
         lookup = ds.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
         return ClassDefinition(classes=classes-1, names=names[1:], lookup=lookup[3:])
+
+    def equal(self, other, compareLookup=True):
+        assert isinstance(other, ClassDefinition)
+        equal = self.classes == other.classes
+        equal &= all([a == b for a, b in zip(self.names, other.names)])
+        equal &= not compareLookup or all([a == b for a, b in zip(self.lookup, other.lookup)])
+        return equal
 
     def __init__(self, classes=None, names=None, lookup=None):
 
@@ -147,7 +194,7 @@ class ClassDefinition(FlowObject):
         assert len(lookup) == classes*3
 
         self.names = names
-        self.lookup = lookup
+        self.lookup = [int(v) for v in lookup]
 
     def __repr__(self):
         return '{cls}(classes={classes}, names={names}, lookup={lookup})'.format(
@@ -168,31 +215,63 @@ class Classification(Image):
         if classDefinition is None:
             classDefinition = ClassDefinition.fromENVIMeta(filename)
         self.classDefinition = classDefinition
+        self.noData = 0
 
+    def assessClassificationPerformance(self, classification, **kwargs):
+        assert isinstance(classification, Classification)
+        yP = self.sampleByMask(mask=classification.asMask(), grid=classification.pixelGrid,
+                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features[0]
+        yT = classification.sampleByMask(mask=classification.asMask(), grid=classification.pixelGrid,
+                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features[0]
 
-class Probability(Image):
-
-    def __init__(self, filename, classDefinition=None):
-        Image.__init__(self, filename)
-        if classDefinition is None:
-            classDefinition = ClassDefinition.fromENVIMeta(filename)
-        self.classDefinition = classDefinition
+        return ClassificationPerformance(yP=yP, yT=yT, classDefinitionP=self.classDefinition, classDefinitionT=classification.classDefinition)
 
 
 class Regression(Image):
-    pass
+
+    def __init__(self, filename, noData=None, outputNames=None):
+        Image.__init__(self, filename)
+        if noData is None:
+            noData = Open(filename).getNoDataValue()
+        if outputNames is None:
+            outputNames = [band.getDescription() for band in Open(filename)]
+        assert noData is not None
+        self.noData = noData
+        self.outputNames = outputNames
+
+    def assessRegressionPerformance(self, regression, **kwargs):
+        assert isinstance(regression, Regression)
+        yP = self.sampleByMask(mask=regression.asMask(), grid=regression.pixelGrid,
+                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
+        yT = regression.sampleByMask(mask=regression.asMask(), grid=regression.pixelGrid,
+                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
+
+        return RegressionPerformance(yT=yT, yP=yP, outputNamesT=regression.outputNames, outputNamesP=self.outputNames)
+
+
+class Probability(Regression):
+
+    def __init__(self, filename, classDefinition=None):
+        if classDefinition is None:
+            classDefinition = ClassDefinition.fromENVIMeta(filename)
+        Regression.__init__(self, filename=filename, noData=-1, outputNames=classDefinition.names)
+        self.classDefinition = classDefinition
+
+    def asClassColorRGBImage(self, imageFilename, filterById=None, filterByName=None, **kwargs):
+        return ipalg.probabilityAsClassColorRGBImage(probability=self, imageFilename=imageFilename,
+                                                     filterById=filterById, filterByName=filterByName, **kwargs)
 
 
 class UnsupervisedSample(FlowObject):
 
-    def __init__(self, features, metadata):
+    def __init__(self, features, metadata=None):
         assert isinstance(features, numpy.ndarray) and features.ndim == 2
-        #if metadata is None:
-        #    metadata = dict()
-
         self.features = features
         self.metadata = metadata
         self.nbands , self.nsamples = self.features.shape
+
+    def __repr__(self):
+        return '{cls}(features=array{features}'.format(cls=self.__class__.__name__, features=repr(list(self.features.shape)))
 
     @staticmethod
     def fromENVISpectralLibrary(filename):
@@ -235,8 +314,9 @@ class UnsupervisedSample(FlowObject):
 
 class SupervisedSample(UnsupervisedSample):
 
-    def __init__(self, features, labels, noData, metadata=None, outputNames=None):
+    def __init__(self, features, labels, noData, outputNames, metadata=None):
         UnsupervisedSample.__init__(self, features=features, metadata=metadata)
+
         assert isinstance(labels, numpy.ndarray) and features.ndim == 2
         assert self.features.shape[1] == labels.shape[1]
         self.labels = labels
@@ -291,7 +371,16 @@ class ClassificationSample(SupervisedSample):
         return ProbabilitySample(features=mixtures, labels=fractions, classDefinition=self.classDefinition)
 
 class RegressionSample(SupervisedSample):
-    pass
+
+    def __repr__(self):
+        return '{cls}(features=array{features}, labels=array{labels}, noData={noData}, outputNames={outputNames}'.format(
+            cls=self.__class__.__name__,
+            features=repr(list(self.features.shape)),
+            labels=repr(list(self.labels.shape)),
+            noData=repr(self.noData),
+            outputNames=repr(self.outputNames)
+        )
+
 
 class ProbabilitySample(RegressionSample):
 
@@ -328,13 +417,10 @@ class ProbabilitySample(RegressionSample):
         return self.subsetClasses(ids=ids)
 
     def subsetClasses(self, ids):
-        lookup=list()
-        for id in ids:
-            lookup.extend(self.classDefinition.getColor(id))
+        lookup = [self.classDefinition.getColor(id) for id in ids]
+        names = [self.classDefinition.names[id] for id in ids]
         return ProbabilitySample(features=self.features, labels=self.labels[ids],
-                                 classDefinition=ClassDefinition(classes=len(ids),
-                                                                 names=[self.classDefinition.names[id] for id in ids],
-                                                                 lookup=lookup))
+                                 classDefinition=ClassDefinition(classes=len(ids), names=names, lookup=lookup))
 
     def _saveAsENVISpectralLibraryUpdateHeader(self, header):
         UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)
@@ -355,34 +441,21 @@ class Estimator(FlowObject):
         self.sample = None
 
     def _fit(self, sample, progressBar=None):
-        assert isinstance(sample, self.SAMPLE_TYPE)
+        assert isinstance(sample, self.SAMPLE_TYPE), (sample, self.SAMPLE_TYPE)
         self.sample = sample
         dpalg.estimatorFitData(estimator=self.sklEstimator, features=sample.features, labels=sample.labels, progressBar=progressBar)
         return self
 
-    def _predict(self, filename, image, mask=None, vmask=None, progressBar=None):
-        assert isinstance(image, Image)
-        if mask is None: mask = Mask(None)
-        if vmask is None: vmask = VectorMask(None)
-        assert isinstance(mask, Mask)
-        assert isinstance(vmask, VectorMask)
-
-        classDefinition = getattr(self.sample, 'classDefinition', ClassDefinition(classes=0))
-        ipalg.estimatorPredict(prediction=filename, noData=self.sample.noData, estimator=self.sklEstimator, image=image.filename,
-                               mask=mask.filename, maskFunc=mask.ufunc,
-                               vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL,
-                               outputNames=self.sample.outputNames,
-                               classes=classDefinition.classes, classNames=classDefinition.names, classLookup=classDefinition.lookup,
-                               progressBar=progressBar)
-
-        return self.PREDICT_TYPE(filename=filename)
+    def _predict(self, predictionFilename, image, mask=None, **kwargs):
+        return ipalg.estimatorPredict(estimator=self, predictionFilename=predictionFilename, image=image, mask=mask, **kwargs)
 
     def _transform(self, filename, image, inverse=False, mask=None, vmask=None, progressBar=None):
+        assert 0
         assert isinstance(image, Image)
         if mask is None: mask = Mask(None)
-        if vmask is None: vmask = VectorMask(None)
+        if vmask is None: vmask = Vector(None)
         assert isinstance(mask, Mask)
-        assert isinstance(vmask, VectorMask)
+        assert isinstance(vmask, Vector)
 
         ipalg.estimatorTransform(transformation=filename, noData=self.sample.noData, estimator=self.sklEstimator, image=image.filename,
                                  inverse=inverse,
@@ -393,8 +466,8 @@ class Estimator(FlowObject):
         return Image(filename=filename)
 
     def _inverseTransform(self, filename, image, inverse=True, mask=None, vmask=None, progressBar=None):
+        assert 0
         return self._transform(filename=filename, image=image, inverse=inverse, mask=mask, vmask=vmask, progressBar=progressBar)
-
 
 class Classifier(Estimator):
     SAMPLE_TYPE = ClassificationSample
@@ -402,13 +475,11 @@ class Classifier(Estimator):
     fit = Estimator._fit
     predict = Estimator._predict
 
-
 class Regressor(Estimator):
     SAMPLE_TYPE = RegressionSample
     PREDICT_TYPE = Regression
     fit = Estimator._fit
     predict = Estimator._predict
-
 
 class Transformer(Estimator):
     SAMPLE_TYPE = UnsupervisedSample
@@ -417,7 +488,6 @@ class Transformer(Estimator):
     transform = Estimator._transform
     inverseTransform = Estimator._inverseTransform
 
-
 class Clusterer(Estimator):
     SAMPLE_TYPE = UnsupervisedSample
     PREDICT_TYPE = Classification
@@ -425,23 +495,301 @@ class Clusterer(Estimator):
     predict = Estimator._predict
     transform = Estimator._transform
 
+class ClassificationPerformance(FlowObject):
 
-class Report(FlowObject):
-    pass
+    def __init__(self, yP, yT, classDefinitionP, classDefinitionT, classProportions=None):
+        assert isinstance(yP, numpy.ndarray) and yP.ndim==1
+        assert isinstance(yT, numpy.ndarray) and yT.shape==yP.shape
+        assert isinstance(classDefinitionP, ClassDefinition)
+        assert isinstance(classDefinitionT, ClassDefinition)
+        assert classDefinitionT.classes == classDefinitionP.classes
 
+        self.classDefinitionT = classDefinitionT
+        self.classDefinitionP = classDefinitionP
 
-"""
-    def asSpectralLibrary(self, spectraNames=None, wavelength=None, wavelengthUnits=None, fwhm=None, header=None):
+        import sklearn.metrics
+        self.mij = numpy.int64(sklearn.metrics.confusion_matrix(yT, yP, labels=range(1, classDefinitionT.classes+1)).T)
+        self.m = numpy.int64(yP.size)
+        self.Wi = classProportions
+        self.adjusted = False
+        self._assessPerformance()
 
-        if header is None:
-            header = dict()
-        assert isinstance(header, dict)
-        header['spectra names'] = spectraNames if spectraNames is not None else ['profile {}'.format(i+1) for i in range(self.nsamples)]
-        header['wavelength'] = wavelength if wavelength is not None else range(self.features.shape[0])
-        header['wavelength units'] = wavelengthUnits if wavelengthUnits is not None else 'indicies'
-        if fwhm is not None:
-            header['fwhm'] = fwhm
+    def _assessPerformance(self):
 
-        library = spectral.envi.SpectralLibrary(data=numpy.float32(self.features.T), header=header, params=None)
-        return SpectralLibrary(library=library)
-"""
+        old_error_state = numpy.geterr()
+        numpy.seterr(divide='ignore', invalid='ignore', over='raise', under='raise')
+
+        # get some stats from the confusion matrix mij
+        self.mi_ = numpy.sum(self.mij, axis=0, dtype=numpy.float64) # class-wise sum over all prediction
+        self.m_j = numpy.sum(self.mij, axis=1, dtype=numpy.float64) # class-wise sum over references
+        self.mii = numpy.diag(self.mij) # main diagonal -> class-wise correctly classified samples
+
+        # estimate mapped class proportions from the reference sample, if not provided by the user
+        if self.Wi is None:
+            self.Wi = self.mi_/self.m  # note that in this case pij is reduced to pij=mij/m
+
+        # pij is the proportion of area estimate
+        # pij = Wi*mij/mi_
+        self.pij = numpy.zeros_like(self.mij, dtype=numpy.float64)
+        for i in range(self.classDefinitionT.classes):
+            for j in range(self.classDefinitionT.classes):
+                self.pij[i,j] = self.Wi[i]*self.mij[i,j]/self.mi_[i]
+
+        self.pi_ = numpy.sum(self.pij, axis=0, dtype=numpy.float64)
+        self.p_j = numpy.sum(self.pij, axis=1, dtype=numpy.float64)
+        self.pii = numpy.diag(self.pij)
+
+        # calculate performance measures
+        self.ProducerAccuracy = self._fix(self.mii/self.mi_)
+        self.UserAccuracy = self._fix(self.mii / self.m_j)
+
+        self.F1Accuracy = self._fix(2 * self.UserAccuracy * self.ProducerAccuracy / (self.UserAccuracy + self.ProducerAccuracy))
+        self.ConditionalKappaAccuracy = self._fix((self.m * self.mii - self.mi_ * self.m_j) / (self.m * self.mi_ - self.mi_ * self.m_j))
+        self.OverallAccuracy = self._fix(self.mii.sum() / float(self.m))
+        self.KappaAccuracy = self._fix((self.m * self.mii.sum() - numpy.sum(self.mi_ * self.m_j)) / (self.m**2 - numpy.sum(self.mi_ * self.m_j)))
+
+        # calculate squared standard errors (SSE)
+
+        self.OverallAccuracySSE = 0.
+        for i in range(self.classDefinitionT.classes): self.OverallAccuracySSE += self.pij[i, i] * (self.Wi[i] - self.pij[i, i]) / (self.Wi[i] * self.m)
+
+        a1 = self.mii.sum()/self.m
+        a2 = (self.mi_*self.m_j).sum() / self.m**2
+        a3 = (self.mii*(self.mi_+self.m_j)).sum() / self.m**2
+        a4 = 0.
+        for i in range(self.classDefinitionT.classes):
+            for j in range(self.classDefinitionT.classes):
+                a4 += self.mij[i,j]*(self.mi_[j]+self.m_j[i])**2
+        a4 /= self.m**3
+        b1 = a1*(1-a1)/(1-a2)**2
+        b2 = 2*(1-a1)*(2*a1*a2-a3)/(1-a2)**3
+        b3 = (1-a1)**2*(a4-4*a2**2)/(1-a2)**4
+        self.KappaAccuracySSE = (b1+b2+b3)/self.m
+
+        self.ProducerAccuracySSE = numpy.zeros(self.classDefinitionT.classes, dtype=numpy.float64)
+        for i in range(self.classDefinitionT.classes):
+            sum = 0.
+            for j in range(self.classDefinitionT.classes):
+                if i == j: continue
+                sum += self.pij[i,j]*(self.Wi[j]-self.pij[i,j])/(self.Wi[j]*self.m)
+                self.ProducerAccuracySSE[i] = self.pij[i,i]*self.p_j[i]**(-4) * (self.pij[i,i]*sum + (self.Wi[i]-self.pij[i,i])*(self.p_j[i]-self.pij[i,i])**2/(self.Wi[i]*self.m))
+
+        self.UserAccuracySSE = numpy.zeros(self.classDefinitionT.classes, dtype=numpy.float64)
+        for i in range(self.classDefinitionT.classes):
+            self.UserAccuracySSE[i] = self.pij[i ,i]*(self.Wi[i]-self.pij[i,i])/(self.Wi[i]**2*self.m)
+
+        self.F1AccuracySSE = self._fix(2 * self.UserAccuracySSE * self.ProducerAccuracySSE / (self.UserAccuracySSE + self.ProducerAccuracySSE))
+
+        self.ConditionalKappaAccuracySSE = self.m*(self.mi_-self.mii) / (self.mi_*(self.m-self.m_j))**3 * ((self.mi_-self.mii)*(self.mi_*self.m_j-self.m*self.mii)+self.m*self.mii*(self.m-self.mi_-self.m_j+self.mii) )
+
+        self.ClassProportion = self.m_j/self.m
+        self.ClassProportionSSE = numpy.zeros(self.classDefinitionT.classes, dtype=numpy.float64)
+        for j in range(self.classDefinitionT.classes):
+            for i in range(self.classDefinitionT.classes):
+                self.ClassProportionSSE[j] += self.Wi[i]**2 * ( (self.mij[i,j]/self.mi_[i])*(1-self.mij[i,j]/self.mi_[i]) )/(self.mi_[i]-1)
+
+        numpy.seterr(**old_error_state)
+
+    def _confidenceIntervall(self, mean, sse, alpha):
+        import scipy.stats
+        se = numpy.sqrt(numpy.clip(sse, 0, numpy.inf))
+        lower = scipy.stats.norm.ppf(alpha / 2.)*se + mean
+        upper = scipy.stats.norm.ppf(1 - alpha / 2.)*se + mean
+        return lower, upper
+
+    def _fix(self, a, fill=0):
+        if isinstance(a, numpy.ndarray):
+            a[numpy.logical_not(numpy.isfinite(a))] = 0
+        else:
+            if not numpy.isfinite(a):
+                a = 0
+        return a
+
+    def report(self):
+
+        report = Report('Classification Performance')
+
+        #if self.adjusted:
+        #    report.append(ReportHeading('Stratification'))
+
+        #    colHeaders = [['DN','Stratum', 'Stratum Size', 'Stratum Sample Size', 'Adjustment Weight']]
+        #    colSpans = [[1,1,1,1,1]]
+        #    data = numpy.transpose([numpy.array(range(0, self.strataClasses))+1, self.strataClassNames, self.strataSizes, self.strataSampleSizes, numpy.round(self.strataWeights,2) ])
+        #    report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
+
+        report.append(ReportHeading('Class Overview'))
+        colHeaders = None
+        rowSpans = [[1,2],[1,1,1]]
+        colSpans = [[1,1,1,1,1]]
+        rowHeaders = [['','Class Names'],['Class ID','Reference', 'Prediction']]
+        data = [numpy.hstack((range(1, self.classDefinitionT.classes + 1))), self.classDefinitionT.names, self.classDefinitionP.names]
+        report.append(ReportTable(data, '', colHeaders=colHeaders, rowHeaders=rowHeaders, colSpans=colSpans, rowSpans=rowSpans))
+
+        # Confusion Matrix Table
+        report.append(ReportHeading('Confusion Matrix'))
+        rowSpans = None
+        classNumbers = []
+        for i in range(self.classDefinitionT.classes): classNumbers.append('('+str(i+1)+')')
+        colHeaders = [['Reference Class'],classNumbers + ['Sum']]
+        colSpans = [[self.classDefinitionT.classes],numpy.ones(self.classDefinitionT.classes+1,dtype=int)]
+        classNamesColumn = []
+        for i in range(self.classDefinitionT.classes): classNamesColumn.append('('+str(i+1)+') '+self.classDefinitionT.names[i])
+        rowHeaders = [classNamesColumn+['Sum']]
+        data = numpy.vstack(((numpy.hstack((self.mij,self.m_j[:, None]))),numpy.hstack((self.mi_,self.m)))).astype(int)
+
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
+
+        # Accuracies Table
+        report.append(ReportHeading('Accuracies'))
+        colHeaders = [['Measure', 'Estimate [%]', '95 % Confidence Interval [%]']]
+        colSpans = [[1,1,2]]
+        rowHeaders = None
+        data = [['Overall Accuracy',numpy.round(self.OverallAccuracy*100,2),numpy.round(self._confidenceIntervall(self.OverallAccuracy, self.OverallAccuracySSE, 0.05)[0]*100),round(self._confidenceIntervall(self.OverallAccuracy, self.OverallAccuracySSE, 0.05)[1]*100,2)],
+                ['Kappa Accuracy',numpy.round(self.KappaAccuracy*100,2),numpy.round(self._confidenceIntervall(self.KappaAccuracy, self.KappaAccuracySSE, 0.05)[0]*100,2),numpy.round(self._confidenceIntervall(self.KappaAccuracy, self.KappaAccuracySSE, 0.05)[1]*100,2)],
+                ['Mean F1 Accuracy',numpy.round(numpy.mean(self.F1Accuracy)*100,2),'-','-']]
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
+
+        # Class-wise Accuracies Table
+        report.append(ReportHeading('Class-wise Accuracies'))
+        colSpans = [[1,3,3,3],[1,1,2,1,2,1,2]]
+        colHeaders = [['','User\'s Accuracy [%]','Producer\'s Accuracy [%]','F1 Accuracy'],['Map class','Estimate','95 % Interval','Estimate','95% Interval','Estimate','95% Interval']]
+        data = [classNamesColumn,numpy.round(self.UserAccuracy*100,2)
+               ,numpy.round(self._confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[0]*100,2)
+               ,numpy.round(self._confidenceIntervall(self.UserAccuracy, self.UserAccuracySSE, 0.05)[1]*100,2)
+               ,numpy.round(self.ProducerAccuracy*100,2)
+               ,numpy.round(self._confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[0]*100,2)
+               ,numpy.round(self._confidenceIntervall(self.ProducerAccuracy, self.ProducerAccuracySSE, 0.05)[1]*100,2)
+               ,numpy.round(self.F1Accuracy*100,2)
+               ,numpy.round(self._confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[0]*100,2)
+               ,numpy.round(self._confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[1]*100,2)]
+        data = [list(x) for x in zip(*data)]
+        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
+
+        # Proportion Matrix Table
+        report.append(ReportHeading('Proportion Matrix'))
+        colHeaders = [['Reference Class'],classNumbers + ['Sum']]
+        colSpans = [[self.classDefinitionT.classes],numpy.ones(self.classDefinitionT.classes+1,dtype=int)]
+        rowHeaders = [classNamesColumn+['Sum']]
+        data = numpy.vstack(((numpy.hstack((self.pij*100,self.p_j[:, None]*100))),numpy.hstack((self.pi_*100,100))))
+        report.append(ReportTable(numpy.round(data,2), '', colHeaders, rowHeaders, colSpans, rowSpans))
+        return report
+
+class RegressionPerformance(FlowObject):
+
+    def __init__(self, yT, yP, outputNamesT, outputNamesP):
+        self.yP = yP
+        self.yT = yT
+        self.outputNamesT = outputNamesT
+        self.outputNamesP = outputNamesP
+        self.residuals = self.yP - self.yT
+        self.n = self.yT.size
+
+        self.explained_variance_score = [sklearn.metrics.explained_variance_score(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
+        self.mean_absolute_error = [sklearn.metrics.mean_absolute_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
+        self.mean_squared_error = [sklearn.metrics.mean_squared_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
+        #self.mean_squared_logarithmic_error = [sklearn.metrics.mean_squared_log_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
+        self.median_absolute_error = [sklearn.metrics.median_absolute_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
+        self.r2_score = [sklearn.metrics.r2_score(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
+
+    def report(self):
+
+        report = Report('Regression Performance')
+
+        report.append(ReportHeading('Outputs Overview'))
+        colHeaders = [['Outputs']]
+        colSpans = [[len(self.outputNamesT)]]
+        rowHeaders = [['Reference', 'Prediction']]
+        data = [self.outputNamesT, self.outputNamesP]
+
+        report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans, rowHeaders=rowHeaders))
+
+        report.append(ReportHeading('Metrics'))
+
+        report.append(ReportParagraph('Number of samples: {}'.format(self.n)))
+
+        colHeaders = [['Outputs'], self.outputNamesT]
+        colSpans =   [[len(self.outputNamesT)], [1]*len(self.outputNamesT)]
+        rowHeaders = [['Explained variance score',
+                       'Mean absolute error (MAE)',
+                       'Mean squared error (MSE)',
+                       'Median absolute error (MedAE)',
+                       'Coefficient of determination (R^2)']]
+
+        data =numpy.array([numpy.round(numpy.array(self.explained_variance_score).astype(float), 4),
+                           numpy.round(numpy.array(self.mean_absolute_error).astype(float), 4),
+                           numpy.round(numpy.array(self.mean_squared_error).astype(float), 4),
+                           numpy.round(numpy.array(self.median_absolute_error).astype(float), 4),
+                           numpy.round(numpy.array(self.r2_score).astype(float), 4)])
+
+        report.append(ReportTable(data, colHeaders=colHeaders, colSpans=colSpans, rowHeaders=rowHeaders, attribs_align='left'))
+
+        report.append(ReportHyperlink(url=r'http://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics',
+                                      text='See Scikit-Learn documentation for details.'))
+
+        report.append(ReportHeading('Scatter and Residuals Plots'))
+
+        for i, name in enumerate(self.outputNamesT):
+            fig, ax = pyplot.subplots(facecolor='white',figsize=(7, 7))
+            # prepare 2x2 grid for plotting scatterplot on lower left, and adjacent histograms
+            gs = matplotlib.gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3])
+
+            ax0 = pyplot.subplot(gs[0,0])
+            ax0.hist(self.yT[i], bins=100, edgecolor='None', )
+            pyplot.xlim([numpy.min(self.yT[i]), numpy.max(self.yT[i])])
+            pyplot.tick_params(which = 'both', direction = 'out', length=10, pad=10)
+            # hide ticks and ticklabels
+            ax0.set_xticklabels([])
+            ax0.set_ylabel('counts')
+            ax0.set_title(name)
+            ax0.xaxis.set_ticks_position('bottom')
+            ax0.yaxis.set_ticks_position('left')
+
+            # plot only every second tick, starting with the second
+            #for label in ax0.get_yticklabels()[1::2]: label.set_visible(False)
+            #plot only first and last ticklabel
+            #for label in ax0.get_yticklabels()[1:-1]: label.set_visible(False)
+
+            ax1 = pyplot.subplot(gs[1,1])
+            ax1.hist(self.yP[i], orientation='horizontal', bins=100, edgecolor='None')
+            pyplot.tick_params(which = 'both', direction = 'out', length=10, pad=10)
+            pyplot.ylim([numpy.min(self.yT[i]), numpy.max(self.yT[i])])
+            # hide ticks and ticklabels
+            ax1.set_yticklabels([])
+            ax1.set_xlabel('counts')
+            ax1.yaxis.set_ticks_position('left')
+            ax1.xaxis.set_ticks_position('bottom')
+            # plot only every second tick, starting with the second
+            #for label in ax1.get_xticklabels()[1::2]: label.set_visible(False)
+            #plot only first and last ticklabel
+            #for label in ax1.get_xticklabels()[1:-1]: label.set_visible(False)
+
+            ax2 = pyplot.subplot(gs[1,0])
+            ax2.scatter(self.yT[i], self.yP[i], s=10, edgecolor='', color='navy')
+            pyplot.xlim([numpy.min(self.yT[i]), numpy.max(self.yT[i])])
+            pyplot.ylim([numpy.min(self.yT[i]), numpy.max(self.yT[i])])
+            pyplot.tick_params(which = 'both', direction = 'out')
+            pyplot.xlabel('Observed')
+            pyplot.ylabel('Predicted')
+
+            # 1:1 line
+            pyplot.plot([numpy.min(self.yT[i]), numpy.max(self.yT[i])], [numpy.min(self.yT[i]), numpy.max(self.yT[i])], 'k-')
+
+            # Colorbar
+            #cbaxes = fig.add_axes([0.05, 0.1, 0.05, 0.35])
+            #cBar = pyplot.colorbar(sct, ticklocation='left', extend='neither', drawedges=False,cax = cbaxes)
+            #cBar.ax.set_ylabel('label')
+
+            fig.tight_layout()
+            report.append(ReportPlot(fig))
+            pyplot.close()
+
+            fig, ax = pyplot.subplots(facecolor='white',figsize=(7, 5))
+            ax.hist(self.residuals[i], bins=100, edgecolor='None')
+            ax.set_title(name)
+            ax.set_xlabel('Predicted - Observed')
+            ax.set_ylabel('Counts')
+            fig.tight_layout()
+            report.append(ReportPlot(fig))
+            pyplot.close()
+
+        return report
