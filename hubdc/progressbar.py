@@ -13,14 +13,14 @@ class ProgressBar(object):
 class CUIProgressBar(ProgressBar):
 
     def __init__(self):
-        self.totalsteps = 100
+        self.setTotalSteps(100)
 
     def setTotalSteps(self, steps):
         self.totalsteps = steps
 
     def setProgress(self, progress):
         progress = int(float(progress) / self.totalsteps * 100)
-        if progress == self.totalsteps:
+        if progress == 100:
             print('100%')
         else:
             print('{}%..'.format(progress), end='')
