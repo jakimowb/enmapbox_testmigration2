@@ -49,6 +49,80 @@
         <number>0</number>
        </property>
        <item>
+        <widget class="QToolButton" name="btnLoadfromMap">
+         <property name="toolTip">
+          <string>Select a spectrum from a map.</string>
+         </property>
+         <property name="text">
+          <string>Select from map</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resources.qrc">
+           <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>:/enmapbox/icons/pickrasterspectrum.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="btnAddCurrentToSpeclib">
+         <property name="toolTip">
+          <string>Add the current spectrum to the spectral library.</string>
+         </property>
+         <property name="text">
+          <string>Add last profile to spectral library</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resources.qrc">
+           <normaloff>:/enmapbox/icons/profile2speclib.png</normaloff>:/enmapbox/icons/profile2speclib.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="checkable">
+          <bool>false</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="cbAddCurrentSpectraToSpeclib">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>Check to add current spectra automatically to the spectral library.</string>
+         </property>
+         <property name="text">
+          <string>Add Profiles</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
         <widget class="QToolButton" name="btnLoadFromFile">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -95,80 +169,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="btnLoadfromMap">
-         <property name="toolTip">
-          <string>Select a spectrum from a map.</string>
-         </property>
-         <property name="text">
-          <string>Select from map</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resources.qrc">
-           <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>:/enmapbox/icons/pickrasterspectrum.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="cbAddCurrentSpectraToSpeclib">
-         <property name="font">
-          <font>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="toolTip">
-          <string>Check to add current spectra automatically to the spectral library.</string>
-         </property>
-         <property name="text">
-          <string>Last to Speclib</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QToolButton" name="btnAddCurrentToSpeclib">
-         <property name="toolTip">
-          <string>Add the current spectrum to the spectral library.</string>
-         </property>
-         <property name="text">
-          <string>Add last profile to spectral library</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resources.qrc">
-           <normaloff>:/enmapbox/icons/profile2speclib.png</normaloff>:/enmapbox/icons/profile2speclib.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
         <widget class="QToolButton" name="btnAddAttribute">
          <property name="enabled">
           <bool>false</bool>
@@ -182,6 +182,12 @@
          <property name="icon">
           <iconset resource="resources.qrc">
            <normaloff>:/enmapbox/icons/add_class.png</normaloff>:/enmapbox/icons/add_class.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -292,7 +298,7 @@
            <enum>QAbstractItemView::DragDrop</enum>
           </property>
           <property name="alternatingRowColors">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <property name="sortingEnabled">
            <bool>true</bool>

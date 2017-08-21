@@ -1406,7 +1406,9 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
 
         for p in self.mCurrentSpectra:
             self.mPlotXUnitModel.addUnit(p.xUnit())
-            plotItem.addItem(self.createPDI(p, QColor('green')))
+            pdi = self.createPDI(p)
+            pdi.setPen(fn.mkPen(QColor('green'), width=3))
+            plotItem.addItem(pdi)
 
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra)
 
