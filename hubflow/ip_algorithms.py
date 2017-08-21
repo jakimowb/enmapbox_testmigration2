@@ -1,6 +1,9 @@
+from osgeo import gdal, ogr
+from os.path import exists
 import numpy
-import gdal
-from hubdc.applier import Applier, ApplierOperator, PixelGrid, CUIProgressBar
+import hubflow.types
+from hubflow.applier import Applier, ApplierOperator
+from hubdc.applier import PixelGrid, CUIProgressBar, ApplierInputOptions
 
 def getProgressBar(currentProgressBar):
     if currentProgressBar is None:
@@ -8,122 +11,232 @@ def getProgressBar(currentProgressBar):
     else:
         return currentProgressBar
 
-def classificationFromVector(classification, vector, grid,
-                             ids, idAttribute, classNames=None, classLookup=None,
-                             layer = 0, oversampling=10, minOverallCoverage=0.01, minWinnerCoverage=0.5,
-                             format=None, creationOptions=None, dtype=numpy.uint8, progressBar=None):
+def vectorRasterize(vector, imageFilename, grid, **kwargs):
 
+    assert isinstance(vector, hubflow.types.Vector)
     assert isinstance(grid, PixelGrid)
-    progressBar = getProgressBar(progressBar)
 
-    applier = Applier()
-    applier.controls.setProgressBar(progressBar)
+    applier = Applier(controls=kwargs.get('controls', None))
     applier.controls.setReferenceGrid(grid)
+    applier.controls.setProgressBar(kwargs.get('progressBar', None))
+    applier.setFlowVector('vector', vector=vector)
+    applier.setOutput('image', filename=imageFilename, options=kwargs.get('imageOptions', None))
+    applier.apply(operator=VectorRasterize, overwrite=kwargs.get('overwrite', True), vector=vector)
+    return hubflow.types.Image(filename=imageFilename)
 
-    applier.setVector('vector', layer=layer, filename=vector)
-    applier.setOutput('classification', filename=classification, format=format, creationOptions=creationOptions)
+class VectorRasterize(ApplierOperator):
 
-    class ClassificationFromVector(ApplierOperator):
-        def ufunc(self):
-            noData = 0
-            classification = self.getVectorCategoricalArray('vector', ids=ids, noData=noData, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage,
-                                                            oversampling=oversampling, burnAttribute=idAttribute)
-            self.setArray('classification', array=classification, dtype=dtype)
-            self.setMetadataClassDefinition('classification', classes=len(ids), classNames=classNames, classLookup=classLookup)
+    def ufunc(self, vector):
 
-    applier.apply(operator=ClassificationFromVector)
+        array = self.getFlowVectorArray('vector', vector=vector)
+        self.setArray('image', array=array)
 
-def sampleImageByClassification(image, classification, mask=None, maskFunc=None, vmask=None, vmaskAllTouched=False, vmaskFilterSQL=None, progressBar=None):
+def vectorUniqueValues(vector, attribute, **kwargs):
 
-    applier = Applier()
-    applier.controls.setProgressBar(progressBar)
-    applier.controls.setReferenceGridByImage(image)
+    assert isinstance(vector, hubflow.types.Vector)
+    ds = ogr.Open(vector.filename, vector.layer)
+    layer = ds.GetLayer()
+    layer.SetAttributeFilter(vector.filterSQL)
+    return list(set(feature.GetField(attribute) for feature in layer))
 
-    applier.setInput('image', filename=image)
-    applier.setInput('classification', filename=classification)
-    if mask is not None:
-        applier.setInput('mask', filename=mask)
+def vectorClassificationRasterizeAsClassification(vectorClassification, classificationFilename, grid, oversampling=1, **kwargs):
 
-    class SampleRasterByClassification(ApplierOperator):
-        def ufunc(self):
-            features = self.getArray('image')
-            fractions = self.getProbabilityArray('classification')
-            labeled = numpy.sum(fractions, axis=0, keepdims=True) != 0
-            if mask is not None:
-                labeled *= self.getMaskArray('mask', noData=0, ufunc=maskFunc)
-            if vmask is not None:
-                labeled *= self.getVectorArray('vmask', allTouched=vmaskAllTouched, filterSQL=vmaskFilterSQL, dtype=numpy.uint8) == 1
+    assert isinstance(vectorClassification, hubflow.types.VectorClassification)
+    assert isinstance(grid, PixelGrid)
 
-            classes, classNames, classLookup = self.getMetadataClassDefinition('classification')
-            return features[:, labeled[0]], fractions[:, labeled[0]], classes, classNames, classLookup
+    applier = Applier(controls=kwargs.get('controls', None))
+    applier.controls.setReferenceGrid(grid)
+    applier.controls.setProgressBar(kwargs.get('progressBar', None))
 
-    results = applier.apply(operator=SampleRasterByClassification)
+    applier.setVector('vectorClassification', filename=vectorClassification.filename, layer=vectorClassification.layer)
+    applier.setOutput('classification', filename=classificationFilename, options=kwargs.get('classificationOptions', None))
+    applier.apply(operator=VectorClassificationRasterizeAsClassification, overwrite=kwargs.get('overwrite', True),
+                  vectorClassification=vectorClassification, oversampling=oversampling)
 
+    return hubflow.types.Classification(filename=classificationFilename)
+
+class VectorClassificationRasterizeAsClassification(ApplierOperator):
+
+    def ufunc(self, vectorClassification, oversampling):
+
+        noData = 0
+        ids = range(1, vectorClassification.classDefinition.classes + 1)
+        classification = self.getVectorCategoricalArray('vectorClassification', ids=ids, noData=noData,
+                                                        minOverallCoverage=vectorClassification.minOverallCoverage,
+                                                        minWinnerCoverage=vectorClassification.minWinnerCoverage,
+                                                        oversampling=oversampling, burnAttribute=vectorClassification.idAttribute,
+                                                        allTouched=vectorClassification.allTouched, filterSQL=vectorClassification.filterSQL)
+        self.setArray('classification', array=classification, dtype=numpy.uint8)
+        self.setMetadataClassDefinition('classification', classes=vectorClassification.classDefinition.classes,
+                                        classNames=vectorClassification.classDefinition.names,
+                                        classLookup=vectorClassification.classDefinition.lookup)
+
+def vectorClassificationRasterizeAsProbability(vectorClassification, probabilityFilename, grid, oversampling=1, **kwargs):
+
+    assert isinstance(vectorClassification, hubflow.types.VectorClassification)
+    assert isinstance(grid, PixelGrid)
+
+    applier = Applier(controls=kwargs.get('controls', None))
+    applier.controls.setReferenceGrid(grid)
+    applier.controls.setProgressBar(kwargs.get('progressBar', None))
+
+    applier.setVector('vectorClassification', filename=vectorClassification.filename, layer=vectorClassification.layer)
+    applier.setOutput('probability', filename=probabilityFilename, options=kwargs.get('probabilityOptions', None))
+    applier.apply(operator=VectorClassificationRasterizeAsProbability, overwrite=kwargs.get('overwrite', True),
+                  vectorClassification=vectorClassification, oversampling=oversampling)
+
+    return hubflow.types.Probability(filename=probabilityFilename)
+
+class VectorClassificationRasterizeAsProbability(ApplierOperator):
+
+    def ufunc(self, vectorClassification, oversampling):
+
+        ids = range(1, vectorClassification.classDefinition.classes + 1)
+        probability = self.getVectorCategoricalFractionArray('vectorClassification', ids=ids,
+                                                             minOverallCoverage=vectorClassification.minOverallCoverage,
+                                                             oversampling=oversampling,
+                                                             burnAttribute=vectorClassification.idAttribute,
+                                                             allTouched=vectorClassification.allTouched, filterSQL=vectorClassification.filterSQL)
+        self.setArray('probability', array=probability, dtype=numpy.float32)
+        self.setMetadataProbabilityDefinition('probability', classes=vectorClassification.classDefinition.classes,
+                                              classNames=vectorClassification.classDefinition.names,
+                                              classLookup=vectorClassification.classDefinition.lookup)
+
+def probabilityAsClassColorRGBImage(probability, imageFilename, filterById=None, filterByName=None, **kwargs):
+
+    assert isinstance(probability, hubflow.types.Probability)
+    filter = []
+    if filterById is not None:
+        filter.extend(filterById)
+    if filterByName is not None:
+        filter.extend([probability.classDefinition.names.index[name] for name in filterByName])
+    applier = Applier(controls=kwargs.get('controls', None))
+    applier.controls.setProgressBar(kwargs.get('progressBar', None))
+    applier.setInput('probability', filename=probability.filename, options=kwargs.get('probabilityOptions', None))
+    applier.setOutput('image', filename=imageFilename, options=kwargs.get('imageOptions', None))
+    applier.apply(operator=ProbabilityAsClassColorRGBImage, overwrite=kwargs.get('overwrite', True), probability=probability, filter=filter)
+    return hubflow.types.Image(filename=imageFilename)
+
+class ProbabilityAsClassColorRGBImage(ApplierOperator):
+
+    def ufunc(self, filter, probability):
+        assert isinstance(probability, hubflow.types.Probability)
+        colors = numpy.array(probability.classDefinition.lookup).reshape((-1, 3))
+        array = self.getArray('probability')
+        rgb = self.getFull(value=0, bands=3, dtype=numpy.float32)
+        for id, (band, color) in enumerate(zip(array, colors), start=1):
+            if len(filter)>0 and id not in filter: continue
+            rgb += band*color.reshape((3,1,1))
+        numpy.uint8(numpy.clip(rgb, a_min=0, a_max=255, out=rgb))
+        mask = numpy.any(rgb!=0, axis=0)
+        numpy.clip(rgb, a_min=1, a_max=255, out=rgb)
+        rgb *= mask
+        self.setArray('image', array=rgb, dtype=numpy.uint8)
+
+def imageSample(image, labels, mask=None, **kwargs):
+
+    assert isinstance(image, hubflow.types.Image), image
+    assert isinstance(labels, (hubflow.types.Classification, hubflow.types.Regression, hubflow.types.Mask)), labels
+
+    applier = Applier(controls=kwargs.get('controls', None))
+    applier.controls.setProgressBar(kwargs.get('progressBar', None))
+    applier.controls.setReferenceGrid(kwargs.get('grid', image.pixelGrid))
+    applier.setInput('image', filename=image.filename, options=kwargs.get('imageOptions'))
+    applier.setInput('labels', filename=labels.filename, noData=labels.noData, resampleAlg=gdal.GRA_Average)
+    applier.setFlowMask('mask', mask=mask)
+    results = applier.apply(operator=ImageSampleByClassification, overwrite=kwargs.get('overwrite', True), labels=labels, mask=mask)
     features = numpy.hstack(result[0] for result in results)
     fractions = numpy.hstack(result[1] for result in results)
-    classes, classNames, classLookup = results[0][2:]
+    if isinstance(labels, (hubflow.types.Classification, hubflow.types.Probability)):
+        sample = hubflow.types.ProbabilitySample(features=features, labels=fractions, classDefinition=labels.classDefinition)
+    elif isinstance(labels, hubflow.types.Regression):
+        sample = hubflow.types.RegressionSample(features=features, labels=fractions, noData=labels.noData, outputNames=labels.outputNames)
+    elif isinstance(labels, hubflow.types.Mask):
+        sample = hubflow.types.UnsupervisedSample(features=features)
+    else:
+        raise Exception('wrong labels type')
+    return sample
 
-    return features, fractions, classes, classNames, classLookup
+class ImageSampleByClassification(ApplierOperator):
+    def ufunc(self, labels, mask):
+        features = self.getArray('image')
+        if isinstance(labels, hubflow.types.Classification):
+            labels_ = self.getProbabilityArray('labels')
+        elif isinstance(labels, (hubflow.types.Regression, hubflow.types.Probability)):
+            labels_ = self.getArray('labels', dtype=numpy.float32)
+        elif isinstance(labels, hubflow.types.Mask):
+            labels_ = self.getArray('labels', dtype=numpy.float32)
+        else:
+            raise Exception('wrong labels type')
+
+        labeled = numpy.any(labels_!=labels.noData, axis=0, keepdims=True)
+        labeled *= self.getFlowMaskArray('mask', mask=mask)
+        return features[:, labeled[0]], labels_[:, labeled[0]]
 
 
-def estimatorPredict(prediction, noData, estimator, image,
-                     mask=None, maskFunc=None,
-                     vmask=None, vmaskAllTouched=True, vmaskFilterSQL=None,
-                     outputNames=None,
-                     classes=None, classNames=None, classLookup=None, progressBar=None):
+def estimatorPredict(estimator, predictionFilename, image, mask=None, **kwargs):
 
-    applier = Applier()
-    applier.controls.setProgressBar(progressBar)
-    applier.controls.setReferenceGridByImage(image)
+    assert isinstance(estimator, hubflow.types.Estimator)
+    assert isinstance(image, hubflow.types.Image)
 
-    applier.setInput('image', filename=image)
-    if mask is not None: applier.setInput('mask', filename=mask, resampleAlg=gdal.GRA_Mode)
-    if vmask is not None: applier.setVector('vmask', filename=vmask)
+    applier = Applier(controls=kwargs.get('controls', None))
+    applier.controls.setProgressBar(kwargs.get('progressBar', None))
+    applier.controls.setReferenceGridByImage(image.filename)
 
-    applier.setOutput('prediction', filename=prediction)
+    applier.setInput('image', filename=image.filename)
+    applier.setFlowMask('mask', mask=mask)
 
-    class PredictImage(ApplierOperator):
-        def ufunc(self):
-            features = self.getArray('image')
+    applier.setOutput('prediction', filename=predictionFilename)
+    applier.apply(operator=EstimatorPredict, overwrite=kwargs.get('overwrite', True),
+                  estimator=estimator, mask=mask)
+    prediction = estimator.PREDICT_TYPE(filename=predictionFilename)
+    assert isinstance(prediction, hubflow.types.Image)
+    return prediction
 
-            if estimator._estimator_type in ['classifier', 'clusterer']:
-                noutputs = 1
-                dtype = numpy.uint8
-            elif estimator._estimator_type == 'regressor':
-                X0 = numpy.float64(numpy.atleast_2d(features[:, 0, 0]))
-                y0 = estimator.predict(X=X0)
-                noutputs = max(y0.shape)
-                dtype = numpy.float32
+class EstimatorPredict(ApplierOperator):
+
+    def ufunc(self, estimator, mask):
+        self.features = self.getArray('image')
+        etype, dtype, noutputs = self.getInfos(estimator)
+        noData = estimator.sample.noData
+        prediction = self.getFull(value=noData, bands=noutputs, dtype=dtype)
+
+        valid = self.getMaskArray('image', array=self.features)
+        valid *= self.getFlowMaskArray('mask', mask=mask)
+
+        def predict(features):
+            X = numpy.float64(features.T)
+            y = estimator.sklEstimator.predict(X=X)
+            return y.reshape(X.shape[0], -1).T
+
+        self.applySampleFunction(inarray=self.features, outarray=prediction, mask=valid, ufunc=predict)
+        self.setArray('prediction', array=prediction)
+
+        if etype == 'classifier':
+            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.sample.classDefinition)
+        if etype == 'clusterer':
+            self.setFlowMetadataClassDefinition('prediction', classDefinition=hubflow.types.ClassDefinition(classes=estimator.n_clusters))
+        if etype == 'regressor':
+            if isinstance(estimator.sample, hubflow.types.ProbabilitySample):
+                self.setFlowMetadataProbabilityDefinition('prediction', classDefinition=estimator.sample.classDefinition)
             else:
-                raise Exception('unexpected estimator type')
-
-            prediction = self.getFull(value=noData, bands=noutputs, dtype=dtype)
-
-            valid = self.getMaskArray('image', array=features)
-            if mask is not None:
-                valid *= self.getMaskArray('mask', noData=0, ufunc=maskFunc)
-            if vmask is not None:
-                valid *= self.getVectorArray('vmask', allTouched=vmaskAllTouched, filterSQL=vmaskFilterSQL, dtype=numpy.uint8)==1
-
-            def predict(features):
-                X = numpy.float64(features.T)
-                y = estimator.predict(X=X)
-                return y.reshape(X.shape[0], -1).T
-
-            self.applySampleFunction(inarray=features, outarray=prediction, mask=valid,
-                                     ufunc=predict)
-
-            self.setArray('prediction', array=prediction)
-
-            if estimator._estimator_type == 'classifier':
-                self.setMetadataClassDefinition('prediction', classes=classes, classNames=classNames, classLookup=classLookup)
-            if estimator._estimator_type in 'clusterer':
-                self.setMetadataClassDefinition('prediction', classes=estimator.n_clusters)
-            if estimator._estimator_type == 'regressor':
                 self.setNoDataValue('prediction', value=noData)
-            self.setMetadataBandNames('prediction', bandNames=outputNames)
+        self.setMetadataBandNames('prediction', bandNames=estimator.sample.outputNames)
 
-    applier.apply(operator=PredictImage)
+    def getInfos(self, estimator):
+        etype = estimator.sklEstimator._estimator_type
+        if etype in ['classifier', 'clusterer']:
+            noutputs = 1
+            dtype = numpy.uint8
+        elif etype == 'regressor':
+            X0 = numpy.float64(numpy.atleast_2d(self.features[:, 0, 0]))
+            y0 = estimator.sklEstimator.predict(X=X0)
+            noutputs = max(y0.shape)
+            dtype = numpy.float32
+        else:
+            raise Exception('unexpected estimator type')
+        return etype, dtype, noutputs
+
 
 def estimatorTransform(transformation, noData, estimator, image,
                        inverse=False,
@@ -205,12 +318,12 @@ class ImageBasicStatistics(ApplierOperator):
             maskValid *= self.getVectorArray('vmask', allTouched=vmaskAllTouched, filterSQL=vmaskFilterSQL,
                                          dtype=numpy.uint8) == 1
 
-        def bandBasicStatistics(band):
-            valid = self.getMaskArray('image', array=band) * maskValid
-            band[numpy.logical_not(valid[0])] = numpy.nan
+        def bandBasicStatistics(index, band):
+            valid = self.getMaskArray('image', indicies=[index], array=band) * maskValid
+            band[numpy.logical_not(valid)] = numpy.nan
             return numpy.nanmin(band), numpy.nanmax(band), numpy.sum(valid)
 
-        return [bandBasicStatistics(band) for band in image]
+        return [bandBasicStatistics(index=i, band=band[None]) for i, band in enumerate(image)]
 
 def imageScatterMatrix(image1, image2, bandIndex1, bandIndex2, range1, range2, bins,
                        mask=None, maskFunc=None,
