@@ -24,16 +24,7 @@
     <string notr="true"/>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <item>
@@ -48,16 +39,7 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>0</number>
        </property>
        <item>
@@ -91,7 +73,7 @@
      <x>0</x>
      <y>0</y>
      <width>545</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -409,8 +391,8 @@
   <action name="actionSelectProfiles">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/link_all_center.png</normaloff>
-     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/link_all_center.png</iconset>
+     <normaloff>:/enmapbox/icons/spectralprofile.png</normaloff>
+     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/spectralprofile.png</iconset>
    </property>
    <property name="text">
     <string>Select pixel profiles</string>

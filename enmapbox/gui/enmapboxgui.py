@@ -383,7 +383,7 @@ class EnMAPBox(QObject):
         #
 
         self.mCurrentSpectra=[] #set of currently selected spectral profiles
-        self.mCurrentMapSpectraLoading = 'ALL'
+        self.mCurrentMapSpectraLoading = 'TOP'
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager

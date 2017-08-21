@@ -10,6 +10,7 @@
   <file>icons/copyright_label.png</file>
   <file>icons/crs.png</file>
   <file>icons/dataType.png</file>
+  <file>icons/database.png</file>
   <file>icons/dims.png</file>
   <file>icons/enmapbox.png</file>
   <file>icons/fileInfo.png</file>
@@ -77,10 +78,15 @@
   <file>icons/mapviewHidden.png</file>
   <file>icons/metadata.png</file>
   <file>icons/pickrasterspectrum.png</file>
+  <file>icons/profile2speclib.png</file>
   <file>icons/qgis-icon.png</file>
   <file>icons/remove_class.png</file>
   <file>icons/render.png</file>
   <file>icons/settings.png</file>
+  <file>icons/speclib.png</file>
+  <file>icons/speclib_add.png</file>
+  <file>icons/speclib_save.png</file>
+  <file>icons/spectralprofile.png</file>
   <file>icons/stylepreset.png</file>
   <file>icons/symbology.png</file>
   <file>icons/system.png</file>

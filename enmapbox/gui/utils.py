@@ -126,7 +126,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None):
 
             else:
                 # assume OSGeo4W startup
-                PATH_QGS = os.environ['QGIS_PREFIX_PATH']
+                PATH_QGIS = os.environ['QGIS_PREFIX_PATH']
 
         assert os.path.exists(PATH_QGIS)
 
@@ -789,6 +789,8 @@ class MimeDataHelper():
     MDF_DATASOURCETREEMODELDATA = 'application/enmapbox.datasourcetreemodeldata'
     MDF_LAYERTREEMODELDATA = 'application/qgis.layertreemodeldata'
     MDF_PYTHON_OBJECTS = 'application/enmapbox/objectreference'
+    MDF_SPECTRALPROFILE = 'application/enmapbox/spectralprofile'
+    MDF_SPECTRALLIBRARY = 'application/enmapbox/spectrallibrary'
     MDF_URILIST = 'text/uri-list'
     MDF_TEXT_HTML = 'text/html'
     MDF_TEXT_PLAIN = 'text/plain'
