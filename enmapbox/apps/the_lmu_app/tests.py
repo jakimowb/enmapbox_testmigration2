@@ -21,3 +21,4 @@
 
 from unittest import TestCase
 
+print ("test")
