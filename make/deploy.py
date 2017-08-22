@@ -139,6 +139,6 @@ def deployPlugin():
 if __name__ == "__main__":
 
 
-    #buildPlugin()
+    buildPlugin()
     deployPlugin()
     print('Finished')
