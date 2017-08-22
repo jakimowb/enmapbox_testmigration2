@@ -17,15 +17,46 @@
 ***************************************************************************
 """
 
+
 from __future__ import absolute_import
-import os, sys, re, shutil, zipfile
-from enmapbox.gui.utils import *
+import os, sys, re, shutil, zipfile, datetime
+import numpy as np
+import enmapbox
+from enmapbox.gui.utils import DIR_REPO, jp, file_search
 
-FLAG_TESTDATA = True
 
-DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+#DIR_BUILD = jp(DIR_REPO, 'build')
+#DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+
 DIR_BUILD = jp(DIR_REPO, 'build')
+DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys'
+DIR_MOST_RECENT = jp(DIR_DEPLOY, 'most_recent_version')
+#list of deploy options:
+# ZIP - add zipped plugin to DIR_DEPLOY
+# UNZIPPED - add the non-zipped plugin to DIR_DEPLOY
+DEPLOY_OPTIONS = ['ZIP', 'UNZIPPED']
+ADD_TESTDATA = True
 
+#directories below the <enmapbox-repository> folder whose content is to be copied without filtering
+PLAIN_COPY_SUBDIRS = ['site-packages']
+
+########## End of config section
+timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
+buildID = '{}.{}'.format(enmapbox.__version__, timestamp)
+dirBuildPlugin = jp(DIR_BUILD, 'enmapboxplugin')
+
+def rm(p):
+    if os.path.isfile(p):
+        os.remove(p)
+    elif os.path.isdir(p):
+        shutil.rmtree(p)
+
+def cleanDir(d):
+    assert os.path.isdir(d)
+    for root, dirs, files in os.walk(d):
+        for p in dirs + files: rm(jp(root,p))
+        break
 
 def mkDir(p, delete=False):
     if delete and os.path.isdir(p):
@@ -35,39 +66,79 @@ def mkDir(p, delete=False):
 
 
 
-PLUGINBUILDDIR = jp(DIR_BUILD, 'enmap-box')
-
-
-SUB_DIRS = ['enmapbox', 'enmapboxgeoalgorithms', 'site-packages']
-if FLAG_TESTDATA:
-    SUB_DIRS.append('enmapboxtestdata')
-
-mkDir(DIR_DEPLOY)
-
-
-mkDir(PLUGINBUILDDIR, delete=True)
+def buildPlugin():
+    global buildID, dirBuildPlugin, mkDir
 
 
 
-for subDir in SUB_DIRS:
-    subDirSrc = jp(DIR_REPO, subDir)
-    subDirDst = jp(PLUGINBUILDDIR, subDir)
+    print('BUILD enmapbox {}...'.format(buildID))
 
-    if subDir in ['site-packages']:
-        srcFiles = file_search(subDirSrc, '*', recursive=True)
-    else:
-        srcFiles = file_search(subDirSrc, re.compile('\.(py|qrc|png|txt|rst|md)$'), recursive=True)
 
-    srcFiles = [f for f in srcFiles if not f.startswith('.')]
+    mkDir(DIR_BUILD, delete=True)
+    mkDir(dirBuildPlugin, delete=True)
+    SUB_DIRS = ['enmapbox', 'enmapboxgeoalgorithms', 'site-packages']
+    if ADD_TESTDATA:
+        SUB_DIRS.append('enmapboxtestdata')
 
-    for srcFile in srcFiles:
-        dstFile = srcFile.replace(subDirSrc, subDirDst)
-        mkDir(os.path.dirname(dstFile))
+    # copy files on top level
+    srcFileList = []
+    srcFileList.extend(file_search(DIR_REPO, re.compile('\.(py|qrc|png|txt|rst|md)$'), recursive=False))
+    for subDir in SUB_DIRS:
+        subDirSrc = jp(DIR_REPO, subDir)
+        subDirDst = jp(dirBuildPlugin, subDir)
+
+        if subDir in PLAIN_COPY_SUBDIRS:
+            srcFileList.extend(file_search(subDirSrc, '*', recursive=True))
+        else:
+            srcFileList.extend(file_search(subDirSrc, re.compile('\.(py|qrc|ui|ico|png|txt|rst|md)$'), recursive=True))
+
+    ##remove hidden files and
+    for p in srcFileList: print(p)
+    srcFileList = [f for f in srcFileList if not f.startswith('.')]
+    for srcFile in srcFileList:
+        dstFile = srcFile.replace(DIR_REPO, dirBuildPlugin)
+        mkDir(os.path.dirname(dstFile), delete=False)
         shutil.copyfile(srcFile, dstFile)
-    s = ""
 
-#zip it
-pathZip = jp(DIR_DEPLOY, 'enmapboxplugin')
-shutil.make_archive(pathZip, 'zip', PLUGINBUILDDIR)
 
-print('Finished')
+#time stamp in local time zone (=computers time)
+
+
+def deployPlugin():
+    print('DEPLOY the build')
+    if DIR_MOST_RECENT:
+        mkDir(DIR_MOST_RECENT, delete=False)
+
+    if 'UNZIPPED' in DEPLOY_OPTIONS:
+        dirDeployUnzipped = jp(DIR_DEPLOY, 'enmapbox.{}'.format(buildID))
+        mkDir(dirDeployUnzipped, delete=True)
+        dirPlugin = jp(dirDeployUnzipped, 'enmapboxplugin')
+        print('Copy files to {}...'.format(dirDeployUnzipped))
+        shutil.copytree(dirBuildPlugin, dirPlugin)
+
+        if DIR_MOST_RECENT:
+            dirMostRecentPlugin = jp(DIR_MOST_RECENT, 'enmapboxplugin')
+            mkDir(dirMostRecentPlugin, delete=False)
+            cleanDir(dirMostRecentPlugin)
+            for root, dirs, files in os.walk(dirPlugin):
+                for d in dirs:
+                    shutil.copytree(jp(dirPlugin,d), jp(dirMostRecentPlugin,d))
+                for f in files:
+                    shutil.copyfile(jp(dirPlugin,f), jp(dirMostRecentPlugin,f))
+                break
+    if 'ZIP' in DEPLOY_OPTIONS:
+        pathDeployZip = jp(DIR_DEPLOY, 'enmapbox.{}'.format(buildID))
+        print('Create {}...'.format(pathDeployZip))
+        shutil.make_archive(pathDeployZip, 'zip', DIR_BUILD)
+
+        if DIR_MOST_RECENT:
+            dirMostRecentPluginZip = jp(DIR_MOST_RECENT, 'enmapboxplugin')
+            shutil.copyfile(pathDeployZip + '.zip', dirMostRecentPluginZip)
+
+
+if __name__ == "__main__":
+
+
+    #buildPlugin()
+    deployPlugin()
+    print('Finished')

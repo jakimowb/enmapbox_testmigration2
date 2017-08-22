@@ -1,0 +1,290 @@
+{
+    "values": {
+        "inputs": {}, 
+        "helpContent": {}, 
+        "group": "EnMAP-Workshop 2017", 
+        "name": "SimpleClassificationWorkflow", 
+        "algs": {
+            "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASCLASSIFICATION_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASCLASSIFICATION_1", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "classification": {
+                            "values": {
+                                "description": "gtClassification", 
+                                "pos": {
+                                    "values": {
+                                        "y": 407.0, 
+                                        "x": 910.0
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 250.0, 
+                            "x": 725.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "minOverallCoverage": 1.0, 
+                        "minWinnerCoverage": 0.5, 
+                        "image": {
+                            "values": {
+                                "alg": "ENMAPBOXOPENTESTDATA_1", 
+                                "output": "enmap"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "vector": {
+                            "values": {
+                                "alg": "ENMAPBOXOPENTESTDATA_1", 
+                                "output": "landcover"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "lookup": "230, 0, 0,   156, 156, 156,   152, 230, 0,   38, 115, 0,   168, 112, 0, 245, 245, 122", 
+                        "names": "Roof, Pavement, Low Vegetation, Tree, Soil, Other", 
+                        "idAttribute": "Level_2_ID", 
+                        "oversampling": 10.0
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:rasterizevectorasclassification", 
+                    "description": "Rasterize Vector as Classification"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVCLASSIFYPROBABILITYSAMPLE_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVCLASSIFYPROBABILITYSAMPLE_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 657.0, 
+                            "x": 461.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "minOverallCoverage": 1.0, 
+                        "minWinnerCoverage": 0.5, 
+                        "probabilitySample": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVSAMPLEIMAGEBYCLASSIFICATION_1", 
+                                "output": "probabilitySample"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "view": false
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:classifyprobabilitysample", 
+                    "description": "Classify ProbabilitySample"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVCLASSIFIERPREDICT_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVCLASSIFIERPREDICT_1", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "prediction": {
+                            "values": {
+                                "description": "rfcClassification", 
+                                "pos": {
+                                    "values": {
+                                        "y": 470.0, 
+                                        "x": 910.0
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 602.0, 
+                            "x": 736.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "image": {
+                            "values": {
+                                "alg": "ENMAPBOXOPENTESTDATA_1", 
+                                "output": "enmap"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "mask": null, 
+                        "model": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVRANDOMFORESTCLASSIFIERFIT_1", 
+                                "output": "model"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:classifierpredict", 
+                    "description": "Classifier Predict"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXOPENTESTDATA_1": {
+                "values": {
+                    "name": "ENMAPBOXOPENTESTDATA_1", 
+                    "paramsFolded": true, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 105.0, 
+                            "x": 198.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {}, 
+                    "active": true, 
+                    "consoleName": "enmapbox:opentestdata", 
+                    "description": "Open Testdata"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVSAMPLEIMAGEBYCLASSIFICATION_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVSAMPLEIMAGEBYCLASSIFICATION_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 485.0, 
+                            "x": 280.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "image": {
+                            "values": {
+                                "alg": "ENMAPBOXOPENTESTDATA_1", 
+                                "output": "enmap"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "mask": null, 
+                        "classification": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASCLASSIFICATION_1", 
+                                "output": "classification"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "view": false
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:sampleimagebyclassification", 
+                    "description": "Sample Image by Classification"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVASSESSCLASSIFICATIONPERFORMANCE_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVASSESSCLASSIFICATIONPERFORMANCE_1", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "report": {
+                            "values": {
+                                "description": "accAssReport", 
+                                "pos": {
+                                    "values": {
+                                        "y": 595.0, 
+                                        "x": 1037.0
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 452.0, 
+                            "x": 1177.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "prediction": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVCLASSIFIERPREDICT_1", 
+                                "output": "prediction"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "reference": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASCLASSIFICATION_1", 
+                                "output": "classification"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:assessclassificationperformance", 
+                    "description": "Assess Classification performance"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVRANDOMFORESTCLASSIFIERFIT_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVRANDOMFORESTCLASSIFIERFIT_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 823.0, 
+                            "x": 647.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "sample": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVCLASSIFYPROBABILITYSAMPLE_1", 
+                                "output": "outsample"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "parameters": "RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini', max_depth=None,\n   max_features='auto', max_leaf_nodes=None, min_impurity_decrease=0.0, min_impurity_split=None,\n   min_samples_leaf=1, min_samples_split=2, min_weight_fraction_leaf=0.0, n_estimators=10, oob_score=False)", 
+                        "view": false
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:randomforestclassifierfit", 
+                    "description": "RandomForestClassifier Fit"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }
+        }
+    }, 
+    "class": "processing.modeler.ModelerAlgorithm.ModelerAlgorithm"
+}
