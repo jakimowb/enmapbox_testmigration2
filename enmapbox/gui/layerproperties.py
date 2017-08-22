@@ -508,6 +508,7 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
         self.tb_height.setText('{} {}'.format(se.height(), mapUnit))
         self.tb_center.setText(pt2str((se.center().x(), se.center().y())))
 
+        self.mCrsSelector
         s = ""
 
 

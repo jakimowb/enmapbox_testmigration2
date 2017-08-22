@@ -23,11 +23,11 @@ import os
 from PyQt4.QtGui import QIcon, QMenu, QAction, QDialog
 from enmapbox.gui.applications import EnMAPBoxApplication
 from reclassifyapp import APP_DIR
-class Dummy(EnMAPBoxApplication):
+class MetadataEditorApp(EnMAPBoxApplication):
 
     def __init__(self, enmapBox, parent=None):
-        super(Dummy, self).__init__(enmapBox, parent=parent)
-        self.name = 'Metadata Editor Dummy'
+        super(MetadataEditorApp, self).__init__(enmapBox, parent=parent)
+        self.name = 'Metadata Editor'
         self.version = 'Version 0.1'
         self.licence = 'GPL-3'
 
@@ -43,15 +43,17 @@ class Dummy(EnMAPBoxApplication):
         appMenu = self.enmapbox.menu('Tools')
 
         #add a QAction that starts your GUI
-        a = appMenu.addAction('Dummy')
-        assert isinstance(a, QAction)
+        a = appMenu.addAction('Metadata Editor')
+        #assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
         return a
 
 
     def startGUI(self, *args):
-        from reclassifyapp import reclassifydialog as ui
-        uiDialog = QDialog(self.enmapbox.ui)
-        uiDialog.setWindowTitle('Dummy')
-        uiDialog.show()
+        from metadataeditorapp.metadataeditor import Win
+        ui = Win(self.enmapbox.ui)
+        ui.show()
+        #uiDialog = QDialog(self.enmapbox.ui)
+        #uiDialog.setWindowTitle('Dummy')
+        #uiDialog.show()

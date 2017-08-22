@@ -402,10 +402,12 @@ class DockManagerTreeModel(TreeModel):
         if not index.isValid():
             return Qt.NoItemFlags
 
-        flags = Qt.NoItemFlags
+
 
         node = self.index2node(index)
-        dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)[0]
+        dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)
+        if len(dockNode) == 0:
+            return Qt.NoItemFlags
 
         if node is None:
             return Qt.NoItemFlags
@@ -711,13 +713,13 @@ class DockManager(QgsLegendInterface):
     sigDockRemoved = pyqtSignal(Dock)
     sigDockTitleChanged = pyqtSignal(Dock)
     sigDataSourceRemoved = pyqtSignal(DataSource)
+
     def __init__(self):
         QObject.__init__(self)
         self.mConnectedDockAreas = []
         self.mCurrentDockArea = None
         self.mDocks = list()
         self.dataSourceManager = None
-        self.setCursorLocationValueDock(None)
 
     def activateMapTool(self, key):
 
@@ -844,22 +846,6 @@ class DockManager(QgsLegendInterface):
 
         return None
 
-    def showCursorLocationValues(self, *args):
-        if self.cursorLocationValueDock is not None:
-            self.cursorLocationValueDock.showLocationValues(*args)
-
-
-
-
-    def setCursorLocationValueDock(self, dock):
-        if dock is None:
-            self.cursorLocationValueDock = None
-        else:
-            assert isinstance(dock, CursorLocationValueDock)
-            self.cursorLocationValueDock = dock
-            from enmapboxgui import EnMAPBox
-            self.cursorLocationValueDock.w.connectDataSourceManager(EnMAPBox.instance().dataSourceManager)
-            dock.sigClosed.connect(lambda: self.setCursorLocationValueDock(None))
 
     def removeDock(self, dock):
         if dock in self.mDocks:
@@ -879,8 +865,6 @@ class DockManager(QgsLegendInterface):
         if dockType == 'MAP':
             kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
             dock = MapDock(*args, **kwds)
-            dock.sigCursorLocationRequest.connect(self.showCursorLocationValues)
-
         elif dockType == 'TEXT':
             kwds['name'] = kwds.get('name', 'Text #{}'.format(n))
             dock = TextDock(*args, **kwds)
@@ -893,14 +877,6 @@ class DockManager(QgsLegendInterface):
             kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
             dock = WebViewDock(*args, **kwds)
 
-        elif dockType == 'CURSORLOCATIONVALUE':
-            kwds['name'] = kwds.get('name', 'Cursor Location Values')
-            if self.cursorLocationValueDock is None:
-                dock = CursorLocationValueDock(*args, **kwds)
-                self.setCursorLocationValueDock(dock)
-            else:
-                is_new_dock = False
-            dock = self.cursorLocationValueDock
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 

@@ -18,16 +18,20 @@
 *                                                                         *
 ***************************************************************************
 """
-
+from __future__ import absolute_import
 import os, sys
 from PyQt4.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
-from hubtimeseriesviewerapp import APP_DIR
 
-import qgis.utils
-qgis.utils.updateAvailablePlugins()
 
-PLUGIN_INSTALLED = qgis.utils.loadPlugin('timeseriesviewer')
+try:
+    import qgis.utils
+    qgis.utils.updateAvailablePlugins()
+    __import__('timeseriesviewer')
+    #PLUGIN_INSTALLED = qgis.utils.loadPlugin('timeseriesviewer')
+    PLUGIN_INSTALLED = True
+except ImportError as ex:
+    PLUGIN_INSTALLED = False
 
 s = ""
 

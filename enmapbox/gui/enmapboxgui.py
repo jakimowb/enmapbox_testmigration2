@@ -104,8 +104,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
         area = Qt.BottomDockWidgetArea
-        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
-        self.specLibViewPanel = addPanel(SpectralLibraryPanel(self))
+        from enmapbox.gui.spectrallibraries import SpectraLibraryViewPanel
+        self.specLibViewPanel = addPanel(SpectraLibraryViewPanel(self))
 
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -380,6 +380,10 @@ class EnMAPBox(QObject):
         assert isinstance(qgsUtils.iface, QgisInterface)
 
 
+        #
+
+        self.mCurrentSpectra=[] #set of currently selected spectral profiles
+        self.mCurrentMapSpectraLoading = 'TOP'
         #define managers (the center of all actions and all evil)
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
@@ -393,6 +397,7 @@ class EnMAPBox(QObject):
         #self.enmapBox = enmapbox
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dockManager.connectDockArea(self.ui.dockArea)
+        self.dockManager.sigDockAdded.connect(self.onDockAdded)
 
         splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
@@ -421,16 +426,16 @@ class EnMAPBox(QObject):
             mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
 
         #activate map tools
-        self.ui.actionZoomIn.triggered.connect(lambda : self.dockManager.activateMapTool('ZOOM_IN'))
-        self.ui.actionZoomOut.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_OUT'))
-        self.ui.actionMoveCenter.triggered.connect(lambda: self.dockManager.activateMapTool('MOVE_CENTER'))
-        self.ui.actionPan.triggered.connect(lambda: self.dockManager.activateMapTool('PAN'))
-        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_FULL'))
-        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.dockManager.activateMapTool('ZOOM_PIXEL_SCALE'))
-        self.ui.actionIdentify.triggered.connect(lambda : self.dockManager.activateMapTool('CURSORLOCATIONVALUE'))
+        self.ui.actionZoomIn.triggered.connect(lambda : self.activateMapTool('ZOOM_IN'))
+        self.ui.actionZoomOut.triggered.connect(lambda: self.activateMapTool('ZOOM_OUT'))
+        self.ui.actionMoveCenter.triggered.connect(lambda: self.activateMapTool('MOVE_CENTER'))
+        self.ui.actionPan.triggered.connect(lambda: self.activateMapTool('PAN'))
+        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.activateMapTool('ZOOM_FULL'))
+        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.activateMapTool('ZOOM_PIXEL_SCALE'))
+        self.ui.actionIdentify.triggered.connect(lambda : self.activateMapTool('CURSORLOCATIONVALUE'))
         self.ui.actionSettings.triggered.connect(self.saveProject)
         self.ui.actionExit.triggered.connect(self.exit)
-
+        self.ui.actionSelectProfiles.triggered.connect(lambda : self.activateMapTool('SPECTRUMREQUEST'))
 
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
@@ -443,7 +448,8 @@ class EnMAPBox(QObject):
                 logger.debug('initialize own QGIS Processing framework')
                 from processing.core.Processing import Processing
                 Processing.initialize()
-                from enmapboxplugin.processing.EnMAPBoxAlgorithmProvider import EnMAPBoxAlgorithmProvider
+                from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+
                 if not self.processingAlgManager.enmapBoxProvider():
                     Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
@@ -453,10 +459,11 @@ class EnMAPBox(QObject):
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
                 logger.debug('QGIS Processing framework initialized')
-            except:
+            except Exception as ex:
                 self.ui.menuProcessing.setEnabled(False)
                 self.ui.menuProcessing.setVisible(False)
                 logger.warning('Failed to initialize QGIS Processing framework')
+                logger.warning(str(ex))
             s = ""
 
         #load EnMAP-Box applications
@@ -466,6 +473,39 @@ class EnMAPBox(QObject):
         self.ui.setVisible(True)
         splash.finish(self.ui)
 
+
+    def onDockAdded(self, dock):
+        assert isinstance(dock, Dock)
+        from enmapbox.gui.mapcanvas import MapDock
+        if isinstance(dock, MapDock):
+            dock.canvas.sigProfileRequest.connect(self.loadCurrentMapSpectra)
+
+
+    def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
+        assert self.mCurrentMapSpectraLoading in ['TOP', 'ALL']
+        assert isinstance(spatialPoint, SpatialPoint)
+        from enmapbox.gui.mapcanvas import MapCanvas
+        assert isinstance(mapCanvas, QgsMapCanvas)
+
+        currentSpectra = []
+
+        lyrs = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
+        for lyr in lyrs:
+            assert isinstance(lyr, QgsRasterLayer)
+            path = lyr.source()
+            from enmapbox.gui.spectrallibraries import SpectralProfile
+            p = SpectralProfile.fromRasterSource(path, spatialPoint)
+            if isinstance(p, SpectralProfile):
+                currentSpectra.append(p)
+                if self.mCurrentMapSpectraLoading == 'TOP':
+                    break
+
+        #if len(currentSpectra) > 0:
+        self.setCurrentSpectra(currentSpectra)
+
+
+    def activateMapTool(self, mapToolKey):
+        return self.dockManager.activateMapTool(mapToolKey)
 
 
     def loadEnMAPBoxApplications(self):
@@ -530,9 +570,9 @@ class EnMAPBox(QObject):
             s = ""
 
     def openExampleData(self, mapWindows=0):
-        import enmapbox.testdata
+        import enmapboxtestdata
         from enmapbox.gui.utils import file_search
-        dir = os.path.dirname(enmapbox.testdata.__file__)
+        dir = os.path.dirname(enmapboxtestdata.__file__)
         files = file_search(dir, re.compile('.*(bsq|img|shp)$', re.I), recursive=True)
 
         for file in files:
@@ -580,13 +620,20 @@ class EnMAPBox(QObject):
         """
 
     sigCurrentSpectraChanged = pyqtSignal(list)
+
+    def setCurrentSpectra(self, spectra):
+        assert isinstance(spectra, list)
+
+        self.mCurrentSpectra = spectra[:]
+        self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
+
     def currentSpectra(self):
         """
         Returns the spectra currently selected using the profile tool.
         :return: [list-of-spectra]
         """
+        return self.mCurrentSpectra[:]
 
-        raise NotImplementedError('EnMAPBox.currentSpectra')
 
     def dataSources(self, sourceType):
         """

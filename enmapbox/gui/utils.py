@@ -1,5 +1,23 @@
+# -*- coding: utf-8 -*-
+
+"""
+***************************************************************************
+    enmapbox/gui/utils.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import
 import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle
-import xml.etree.ElementTree as xml
 logger = logging.getLogger(__name__)
 
 from qgis.core import *
@@ -18,8 +36,8 @@ DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
 DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
-import enmapbox.testdata
-DIR_TESTDATA = os.path.dirname(enmapbox.testdata.__file__)
+import enmapboxtestdata
+DIR_TESTDATA = os.path.dirname(enmapboxtestdata.__file__)
 
 
 REPLACE_TMP = True #required for loading *.ui files directly
@@ -28,7 +46,7 @@ REPLACE_TMP = True #required for loading *.ui files directly
 class TestObjects():
     @staticmethod
     def inMemoryClassification(n=3, nl=10, ns=20, nb=1):
-        from classificationscheme import ClassificationScheme
+        from enmapbox.gui.classificationscheme import ClassificationScheme
         scheme = ClassificationScheme()
         scheme.createClasses(n)
 
@@ -52,6 +70,71 @@ class TestObjects():
             band.SetColorTable(scheme.gdalColorTable())
         ds.FlushCache()
         return ds
+
+
+
+def initQgisApplication(pythonPlugins=None, PATH_QGIS=None):
+    """
+    Initializes the QGIS Environment
+    :return: QgsApplication instance of local QGIS installation
+    """
+    import site
+    if pythonPlugins is None:
+        pythonPlugins = []
+    assert isinstance(pythonPlugins, list)
+
+    from enmapbox.gui.utils import DIR_REPO
+    #pythonPlugins.append(os.path.dirname(DIR_REPO))
+    PLUGIN_DIR = os.path.dirname(DIR_REPO)
+
+    if os.path.isdir(PLUGIN_DIR):
+        for subDir in os.listdir(PLUGIN_DIR):
+            if not subDir.startswith('.'):
+                pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
+
+    envVar = os.environ.get('QGIS_PLUGINPATH', None)
+    if isinstance(envVar, list):
+        pythonPlugins.extend(re.split('[;:]', envVar))
+
+    #make plugin paths available to QGIS and Python
+    os.environ['QGIS_PLUGINPATH'] = ';'.join(pythonPlugins)
+    for p in pythonPlugins:
+        sys.path.append(p)
+
+    if isinstance(QgsApplication.instance(), QgsApplication):
+        #alread started
+        return QgsApplication.instance()
+    else:
+
+
+
+        if PATH_QGIS is None:
+            # find QGIS Path
+            if sys.platform == 'darwin':
+                #search for the QGIS.app
+                import qgis, re
+                assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
+                PATH_QGIS_APP = re.split('\.app[\/]', qgis.__file__)[0]+ '.app'
+                PATH_QGIS = os.path.join(PATH_QGIS_APP, *['Contents','MacOS'])
+
+                if not 'GDAL_DATA' in os.environ.keys():
+                    os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
+
+                QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
+                QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns','qgis']))
+
+
+            else:
+                # assume OSGeo4W startup
+                PATH_QGIS = os.environ['QGIS_PREFIX_PATH']
+
+        assert os.path.exists(PATH_QGIS)
+
+        QgsApplication.setGraphicsSystem("raster")
+        qgsApp = QgsApplication([], True)
+        qgsApp.setPrefixPath(PATH_QGIS, True)
+        qgsApp.initQgis()
+        return qgsApp
 
 def settings():
     return QSettings('HU-Berlin', 'EnMAP-Box')
@@ -112,7 +195,7 @@ loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 #dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()
 
-def loadUIFormClass(pathUi, from_imports=False, resourceSuffix='_py2'):
+def loadUIFormClass(pathUi, from_imports=False, resourceSuffix='_rc'):
     """
     Loads Qt UI files (*.ui) while taking care on QgsCustomWidgets.
     Uses PyQt4.uic.loadUiType (see http://pyqt.sourceforge.net/Docs/PyQt4/designer.html#the-uic-module)
@@ -706,6 +789,8 @@ class MimeDataHelper():
     MDF_DATASOURCETREEMODELDATA = 'application/enmapbox.datasourcetreemodeldata'
     MDF_LAYERTREEMODELDATA = 'application/qgis.layertreemodeldata'
     MDF_PYTHON_OBJECTS = 'application/enmapbox/objectreference'
+    MDF_SPECTRALPROFILE = 'application/enmapbox/spectralprofile'
+    MDF_SPECTRALLIBRARY = 'application/enmapbox/spectrallibrary'
     MDF_URILIST = 'text/uri-list'
     MDF_TEXT_HTML = 'text/html'
     MDF_TEXT_PLAIN = 'text/plain'

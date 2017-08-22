@@ -487,11 +487,11 @@ class MapCanvas(QgsMapCanvas):
     sigLayersAdded = pyqtSignal(list)
 
     sigCursorLocationRequest = pyqtSignal(SpatialPoint)
-    sigSpectrumRequested = pyqtSignal(SpatialPoint)
-    sigSpectrumRequest = pyqtSignal(SpatialPoint)
+    sigProfileRequest = pyqtSignal(SpatialPoint, QgsMapCanvas)
 
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
+
     _cnt = 0
 
 
@@ -684,10 +684,11 @@ class MapCanvas(QgsMapCanvas):
         tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationMapTool(self, showCrosshair=True))
         tool.sigLocationRequest.connect(self.sigCursorLocationRequest.emit)
 
-        tool = self.registerMapTool('SPECTRUMREQUEST', CursorLocationMapTool(self, showCrosshair=True))
-        assert isinstance(tool, CursorLocationMapTool)
+        from enmapbox.gui.spectrallibraries import SpectralProfileMapTool
+        tool = self.registerMapTool('SPECTRUMREQUEST', SpectralProfileMapTool(self, showCrosshair=True))
+        assert isinstance(tool, SpectralProfileMapTool)
         tool.setStyle(color=QColor('green'))
-        tool.sigLocationRequest.connect(self.sigSpectrumRequested.emit)
+        tool.sigProfileRequest.connect(self.sigProfileRequest.emit)
 
         tool = self.registerMapTool('MOVE_CENTER', CursorLocationMapTool(self, showCrosshair=True))
         tool.sigLocationRequest.connect(self.setCenter)
@@ -770,7 +771,7 @@ class MapCanvas(QgsMapCanvas):
             from enmapbox.gui.enmapboxgui import EnMAPBox
             dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
             dataSources = [EnMAPBox.instance().dataSourceManager.addSource(d) for d in dataSources]
-            newLayers = [d.createRegisteredMapLayer() for d in dataSources]
+            newLayers = [d.createUnregisteredMapLayer() for d in dataSources]
 
         if newLayers != None:
             self.setLayers(newLayers + self.layers())
@@ -913,8 +914,8 @@ class MapDock(Dock):
     """
     #sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent
-    sigCursorLocationRequest = pyqtSignal(SpatialPoint)
-    sigSpectrumRequest = pyqtSignal(SpatialPoint)
+    #sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+    #sigSpectrumRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)
     sigLayersRemoved = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
@@ -937,7 +938,7 @@ class MapDock(Dock):
         self.canvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
         self.canvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
         self.canvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
-        self.canvas.sigCursorLocationRequest.connect(self.sigCursorLocationRequest)
+
         settings = QSettings()
         assert isinstance(self.canvas, QgsMapCanvas)
         self.canvas.setCanvasColor(Qt.black)

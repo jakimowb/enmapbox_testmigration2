@@ -18,6 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
+from __future__ import absolute_import
 
 import os, logging
 APP_DIR = os.path.dirname(__file__)
@@ -38,6 +39,8 @@ def enmapboxApplicationFactory(enmapBox):
         return [HUBTimeSeriesViewerApp(enmapBox)]
 
     else:
-        QgsMessageLog.instance().logMessage('HUB TimeSeriesViewer QGIS Plugin is not installed.',
-                                            level=QgsMessageLog.INFO)
+        from qgis.core import QgsMessageLog
+
+        #QgsMessageLog.instance().logMessage('HUB TimeSeriesViewer QGIS Plugin is not installed.',
+        #                                    level=QgsMessageLog.INFO)
         return []

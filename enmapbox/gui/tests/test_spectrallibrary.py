@@ -20,8 +20,8 @@ from enmapbox.gui.sandbox import initQgisEnvironment
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisEnvironment()
 
-from enmapbox.gui.spectrallibraries import SpectralProfile, SpectralLibrary, EnviSpectralLibraryReader
-from enmapbox.testdata.UrbanGradient import Speclib, EnMAP
+from enmapbox.gui.spectrallibraries import SpectralProfile, SpectralLibrary, EnviSpectralLibraryIO
+from enmapboxtestdata import speclib, enmap
 class testclassData(unittest.TestCase):
 
     def setUp(self):
@@ -36,7 +36,7 @@ class testclassData(unittest.TestCase):
         p = SpectralProfile()
         self.assertFalse(p.isValid())
 
-        p  = SpectralProfile.fromRasterSource(EnMAP, QPoint(20,40))
+        p  = SpectralProfile.fromRasterSource(enmap, QPoint(20,40))
         self.assertIsInstance(p, SpectralProfile)
         self.assertTrue(p.pxCoordinate() == QPoint(20,40))
         self.assertIsInstance(p.geoCoordinate(), SpatialPoint)
@@ -51,11 +51,11 @@ class testclassData(unittest.TestCase):
         self.assertEqual(p1,p2)
 
     def test_ENVISpectralLibraryReader(self):
-        self.assertTrue(EnviSpectralLibraryReader.canRead(Speclib))
+        self.assertTrue(EnviSpectralLibraryIO.canRead(speclib))
         tmpDir = tempfile.mkdtemp(prefix='testSpecLibs')
         pathTestVRT = os.path.join(tmpDir, 'esl.vrt')
 
-        dsVRT = EnviSpectralLibraryReader.esl2vrt(Speclib, pathVrt=pathTestVRT)
+        dsVRT = EnviSpectralLibraryIO.esl2vrt(speclib, pathVrt=pathTestVRT)
         self.assertIsInstance(dsVRT, gdal.Dataset)
         self.assertEqual(dsVRT.RasterCount, 1)
         self.assertEqual(dsVRT.RasterXSize, 244)
@@ -63,7 +63,7 @@ class testclassData(unittest.TestCase):
         self.assertEqual(dsVRT.GetRasterBand(1).DataType, gdal.GDT_Float32)
 
         #todo: test ESLs with bip and pil interleave?
-        hdr = EnviSpectralLibraryReader.readENVIHeader(Speclib, typeConversion=True)
+        hdr = EnviSpectralLibraryIO.readENVIHeader(speclib, typeConversion=True)
 
         for key, value in {
                 'samples':244,
@@ -81,7 +81,7 @@ class testclassData(unittest.TestCase):
 
     def test_spectralLibrary(self):
 
-        sl = SpectralLibrary.readFrom(Speclib)
+        sl = SpectralLibrary.readFrom(speclib)
         self.assertIsInstance(sl, SpectralLibrary)
         self.assertTrue(len(sl), 75)
 

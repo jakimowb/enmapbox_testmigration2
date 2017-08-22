@@ -1,0 +1,435 @@
+{
+    "values": {
+        "inputs": {}, 
+        "helpContent": {}, 
+        "group": "EnMAP-Workshop 2017", 
+        "name": "SynthMixWorkflow", 
+        "algs": {
+            "ENMAPBOXTESTPROVIDERV030DEVOPENTESTDATA_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVOPENTESTDATA_1", 
+                    "paramsFolded": true, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 113.0, 
+                            "x": 185.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {}, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:opentestdata", 
+                    "description": "Open Testdata"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVIMPORTENVISPECTRALLIBRARY_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVIMPORTENVISPECTRALLIBRARY_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 298.0, 
+                            "x": 404.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "envi": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVOPENTESTDATA_1", 
+                                "output": "speclib"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "view": false
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:importenvispectrallibrary", 
+                    "description": "Import ENVI Spectral Library"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVRANDOMFORESTREGRESSORFIT_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVRANDOMFORESTREGRESSORFIT_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 1023.0, 
+                            "x": 1195.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "sample": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVGENERATESYNTHETICALLYMIXEDPROBABILITYSAMPLE_1", 
+                                "output": "outsample"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "parameters": "RandomForestRegressor(criterion='mse', max_depth=None, max_features='auto', max_leaf_nodes=None,\n  min_impurity_split=1e-07, min_samples_leaf=1, min_samples_split=2, min_weight_fraction_leaf=0.0,\n  n_estimators=10, oob_score=False)", 
+                        "view": false
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:randomforestregressorfit", 
+                    "description": "RandomForestRegressor Fit"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASPROBABILITY_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASPROBABILITY_1", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "probability": {
+                            "values": {
+                                "description": "gtFractions", 
+                                "pos": {
+                                    "values": {
+                                        "y": 929.0, 
+                                        "x": 208.0
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 788.0, 
+                            "x": 196.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "minOverallCoverage": 1.0, 
+                        "image": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVOPENTESTDATA_1", 
+                                "output": "enmap"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "vector": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVOPENTESTDATA_1", 
+                                "output": "landcover"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "lookup": null, 
+                        "names": null, 
+                        "idAttribute": "Level_2_ID", 
+                        "oversampling": 10.0
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:rasterizevectorasprobability", 
+                    "description": "Rasterize Vector as Probability"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVSCALESAMPLEFEATURES_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVSCALESAMPLEFEATURES_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 446.0, 
+                            "x": 637.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "sample": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVIMPORTENVISPECTRALLIBRARY_1", 
+                                "output": "sample"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "view": false, 
+                        "factor": 10000.0
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:scalesamplefeatures", 
+                    "description": "Scale Sample Features"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVASSESSREGRESSIONPERFORMANCE_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVASSESSREGRESSIONPERFORMANCE_1", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "report": {
+                            "values": {
+                                "description": "AccAsstReport", 
+                                "pos": {
+                                    "values": {
+                                        "y": 1242.5, 
+                                        "x": 487.79999999999995
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 1115.6000000000006, 
+                            "x": 487.29999999999995
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "prediction": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVREGRESSORPREDICT_1", 
+                                "output": "prediction"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "reference": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASPROBABILITY_1", 
+                                "output": "probability"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:assessregressionperformance", 
+                    "description": "Assess Regression performance"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVREGRESSORPREDICT_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVREGRESSORPREDICT_1", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "prediction": {
+                            "values": {
+                                "description": "rfrFractions", 
+                                "pos": {
+                                    "values": {
+                                        "y": 926.2, 
+                                        "x": 738.6999999999999
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 789.0, 
+                            "x": 592.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "image": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVOPENTESTDATA_1", 
+                                "output": "enmap"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "mask": null, 
+                        "model": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVRANDOMFORESTREGRESSORFIT_1", 
+                                "output": "model"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:regressorpredict", 
+                    "description": "Regressor Predict"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVPROBABILITYASRGBIMAGE_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVPROBABILITYASRGBIMAGE_1", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "image": {
+                            "values": {
+                                "description": "gtFractionsRGB", 
+                                "pos": {
+                                    "values": {
+                                        "y": 1193.0, 
+                                        "x": 205.0
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 1071.0, 
+                            "x": 205.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "filterById": null, 
+                        "filterByName": null, 
+                        "probability": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVRASTERIZEVECTORASPROBABILITY_1", 
+                                "output": "probability"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:probabilityasrgbimage", 
+                    "description": "Probability as RGB Image"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVCLASSIFYSAMPLEBYCLASSNAME_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVCLASSIFYSAMPLEBYCLASSNAME_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 632.0, 
+                            "x": 836.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "sample": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVSCALESAMPLEFEATURES_1", 
+                                "output": "outsample"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "prefix": "level 2", 
+                        "view": false
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:classifysamplebyclassname", 
+                    "description": "Classify Sample By Class Name"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVPROBABILITYASRGBIMAGE_2": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVPROBABILITYASRGBIMAGE_2", 
+                    "paramsFolded": false, 
+                    "outputs": {
+                        "image": {
+                            "values": {
+                                "description": "rfrFractionsRGB", 
+                                "pos": {
+                                    "values": {
+                                        "y": 1199.6999999999994, 
+                                        "x": 770.7999999999997
+                                    }, 
+                                    "class": "point"
+                                }
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ModelerOutput"
+                        }
+                    }, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 1068.5999999999997, 
+                            "x": 768.1999999999998
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "filterById": null, 
+                        "filterByName": null, 
+                        "probability": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVREGRESSORPREDICT_1", 
+                                "output": "prediction"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:probabilityasrgbimage", 
+                    "description": "Probability as RGB Image"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }, 
+            "ENMAPBOXTESTPROVIDERV030DEVGENERATESYNTHETICALLYMIXEDPROBABILITYSAMPLE_1": {
+                "values": {
+                    "name": "ENMAPBOXTESTPROVIDERV030DEVGENERATESYNTHETICALLYMIXEDPROBABILITYSAMPLE_1", 
+                    "paramsFolded": false, 
+                    "outputs": {}, 
+                    "outputsFolded": false, 
+                    "pos": {
+                        "values": {
+                            "y": 808.0, 
+                            "x": 1075.0
+                        }, 
+                        "class": "point"
+                    }, 
+                    "dependencies": [], 
+                    "params": {
+                        "option": 0, 
+                        "complex2": 1.0, 
+                        "complex3": 0.0, 
+                        "n": 1000.0, 
+                        "csample": {
+                            "values": {
+                                "alg": "ENMAPBOXTESTPROVIDERV030DEVCLASSIFYSAMPLEBYCLASSNAME_1", 
+                                "output": "csample"
+                            }, 
+                            "class": "processing.modeler.ModelerAlgorithm.ValueFromOutput"
+                        }, 
+                        "view": false
+                    }, 
+                    "active": true, 
+                    "consoleName": "enmapboxtestproviderv030dev:generatesyntheticallymixedprobabilitysample", 
+                    "description": "Generate synthetically mixed ProbabilitySample"
+                }, 
+                "class": "processing.modeler.ModelerAlgorithm.Algorithm"
+            }
+        }
+    }, 
+    "class": "processing.modeler.ModelerAlgorithm.ModelerAlgorithm"
+}

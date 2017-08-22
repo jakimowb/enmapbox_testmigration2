@@ -17,26 +17,45 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import sys, os
-from qgis.core import *
+import sys, os, site
+
 
 def run():
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    from enmapbox.gui.sandbox import initQgisEnvironment
+    from enmapbox.gui.utils import initQgisApplication
     from qgis.utils import iface
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     enmapbox.gui.LOAD_EXTERNAL_APPS = True
-    qgisApp = initQgisEnvironment()
+    qgisApp = initQgisApplication()
     enmapbox = EnMAPBox(iface)
     enmapbox.run()
+    enmapbox.openExampleData(mapWindows=1)
     qgisApp.exec_()
 
 
 if __name__ == '__main__':
-    sys.path.remove(os.path.dirname(__file__))
+    thisDir = os.path.dirname(__file__)
+    if thisDir in sys.path:
+        sys.path.remove(thisDir)
+
     args = sys.argv[1:]
 
-    #todo: add command line options
+    pathQgs = None
+    pathQgsPlugins  = None
+
+    # todo: add command line options
+
+    if sys.platform == 'darwin':
+        if pathQgs is None:
+            pathQgs = r'/Applications/QGIS.app/Contents/Resources/python'
+
+        if pathQgsPlugins is None:
+            pathQgsPlugins = os.path.join(pathQgs, 'plugins')
+
+        site.addsitedir(pathQgs)
+        site.addsitedir(pathQgsPlugins)
+
+    # todo: find good default locations for other OS
 
     run()
