@@ -4,7 +4,6 @@ import os
 import numpy as np
 from scipy.stats import truncnorm
 from math import radians
-import time
 import SAIL
 import prospect
 from Spec2Sensor_cl import Spec2Sensor
@@ -173,10 +172,8 @@ class Init_Model:
         self.nodat = nodat
         self.s2s = s2s
 
-
     def initialize_multiple(self, LUT_dir, LUT_name, ns, tts, tto, psi, N, cab, cw, cm, LAI, LIDF, typeLIDF, hspot,
                             psoil, car=None, cbrown=None, anth=None, max_files=10000):
-
         # Setup multiple runs with l size logical distribution & n size statistical distribution
         param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi, car, anth, cbrown]
         npara = len(param_input)
@@ -259,7 +256,6 @@ class Init_Model:
 
     def initialize_single(self, N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi,
                    car, anth, cbrown):
-
         param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi, car, anth, cbrown]
 
         if not self.s2s == "default":
@@ -267,9 +263,7 @@ class Init_Model:
             self.s2s_I.init_sensor()
         return self.run_model(parameters=param_input)
 
-
     def run_model(self, parameters):
-
         iModel = Call_model(N=parameters[0],cab=parameters[1],cw=parameters[2],cm=parameters[3],
                             LAI=parameters[4],typeLIDF=parameters[5],LIDF=parameters[6],
                             hspot=parameters[7],psoil=parameters[8], tts=parameters[9],
@@ -326,12 +320,13 @@ def example_single():
 def example_multi():
 
     ### Free Part (values later parsed from GUI):
-    # Logically distributed parameter: [min, max, nsteps OR increment]
+    # Logically distributed parameter: [min, max, nsteps]
     tts = [30, 55, 6]
     tto = [0.0, 30.0, 3]
     psi = [0.0, 180, 7]
 
-    # Statistically distributed parameter [type, min, max, (mean, sigma)] # type "gaussian" vs. "uniform"
+
+    # Statistically distributed parameter [min, max, (mean, sigma)]
     N = [1.0, 2.2, 1.5, 0.3]
     cab = [0.0, 80.0, 45.0, 20.0]
     car = [0.0, 15.0]
@@ -341,8 +336,7 @@ def example_multi():
     cm = [0.0, 0.01]
 
     LAI = [0.0, 8.0, 4.5, 1.0]
-    LIDF = [10.0, 85.0, 47.0,
-            25.0]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
+    LIDF = [10.0, 85.0, 47.0, 25.0]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
     # typeLIDF=2: LIDF = ALIA
     hspot = [0.0, 0.1]
     psoil = [0.0, 1.0]
@@ -350,9 +344,9 @@ def example_multi():
     # Fixed parameters
     typeLIDF = [2]  # 1: Beta, 2: Ellipsoidal
 
-    LUT_dir = "D:/ECST_III/Processor/VegProc/results2/"
-    LUT_name = "Martin_LUT8"
-    ns = 50
+    LUT_dir = "D:/ECST_III/Processor/VegProc/results3/"
+    LUT_name = "Martin_LUT_r4"
+    ns = 20
     int_boost = 1000
     nodat = -999
 
@@ -366,9 +360,10 @@ def example_multi():
                                 anth=anth)
 
 if __name__ == '__main__':
-    print(example_single() / 1000.0)
-    plt.plot(range(len(example_single())), example_single() / 1000.0)
-    plt.show()
+    # print(example_single() / 1000.0)
+    # plt.plot(range(len(example_single())), example_single() / 1000.0)
+    # plt.show()
+    example_multi()
 
 
 
