@@ -19,7 +19,7 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import os, re, tempfile, pickle, copy
+import os, re, tempfile, pickle, copy, shutil
 from collections import OrderedDict
 from qgis.core import *
 from qgis.gui import *
@@ -558,12 +558,49 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         Reads an ENVI Spectral Library (ESL).
         :param pathESL: path ENVI Spectral Library
         :param tmpVrt: (optional) path of GDAL VRt that is used to read the ESL
-        :return: SpectalLibrary
+        :return: SpectralLibrary
         """
-
-        ds = EnviSpectralLibraryIO.esl2vrt(pathESL, tmpVrt)
         md = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=True)
-        data = ds.ReadAsArray()
+        data = None
+        try:
+            ds = EnviSpectralLibraryIO.esl2vrt(pathESL, tmpVrt)
+            to_delete = ds.GetFileList() if tmpVrt == None else []
+            data = ds.ReadAsArray()
+            ds = None
+            for file in to_delete:
+                os.remove(file)
+
+        except Exception as ex:
+            pathHdr = EnviSpectralLibraryIO.findENVIHeader(pathESL)
+
+            pathTmpBin = tempfile.mktemp(prefix='tmpESL', suffix='.esl.bsq')
+            pathTmpHdr = re.sub('bsq$','hdr',pathTmpBin)
+            shutil.copyfile(pathESL, pathTmpBin)
+            shutil.copyfile(pathHdr, pathTmpHdr)
+            assert os.path.isfile(pathTmpBin)
+            assert os.path.isfile(pathTmpHdr)
+
+            hdr = open(pathTmpHdr).readlines()
+            for iLine in range(len(hdr)):
+                if re.search('file type =', hdr[iLine]):
+                    hdr[iLine] = 'file type = ENVI Standard\n'
+                    break
+            file = open(pathTmpHdr, 'w')
+            file.writelines(hdr)
+            file.flush()
+            file.close()
+            assert os.path.isfile(pathTmpHdr)
+            hdr = EnviSpectralLibraryIO.readENVIHeader(pathTmpBin)
+            ds = gdal.Open(pathTmpBin)
+            data = ds.ReadAsArray()
+            ds = None
+
+            os.remove(pathTmpBin)
+            os.remove(pathTmpHdr)
+        assert data is not None
+
+
+
 
         nSpectra, nbands = data.shape
         valueUnit = ''
@@ -681,6 +718,9 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         hdr = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=False)
         assert hdr is not None and hdr['file type'] == 'ENVI Spectral Library'
 
+        if hdr.get('file compression') == '1':
+            raise Exception('Can not read compressed spectral libraries')
+
         eType = LUT_IDL2GDAL[int(hdr['data type'])]
         xSize = int(hdr['samples'])
         ySize = int(hdr['lines'])
@@ -699,6 +739,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         ds.FlushCache()
         return ds
 
+
     @staticmethod
     def readENVIHeader(pathESL, typeConversion=False):
         """
@@ -711,12 +752,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         if not os.path.isfile(pathESL):
             return None
 
-        paths = [os.path.splitext(pathESL)[0] + '.hdr', pathESL + '.hdr']
-        pathHdr = None
-        for p in paths:
-            if os.path.exists(p):
-                pathHdr = p
-
+        pathHdr = EnviSpectralLibraryIO.findENVIHeader(pathESL)
         if pathHdr is None:
             return None
 
@@ -767,6 +803,16 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
 
 
         return md
+
+    @staticmethod
+    def findENVIHeader(pathESL):
+        paths = [os.path.splitext(pathESL)[0] + '.hdr', pathESL + '.hdr']
+        pathHdr = None
+        for p in paths:
+            if os.path.exists(p):
+                pathHdr = p
+        return pathHdr
+
 
 class SpectralLibraryPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
 
@@ -1506,6 +1552,10 @@ if __name__ == "__main__":
 
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent, initQgisApplication
     qapp = initQgisApplication()
+
+    #p = r'E:\_EnMAP\temp\temp_bj\SpecLib_Berlin_Urban_Gradient_2009.sli'
+    #sl = SpectralLibrary.readFrom(p)
+    #sl.plot()
 
     mySpec = SpectralProfile()
     mySpec.setValues([0.2, 0.3, 0.5, 0.7])
