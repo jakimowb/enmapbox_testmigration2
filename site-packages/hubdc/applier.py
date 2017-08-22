@@ -7,7 +7,7 @@ See :doc:`ApplierExamples` for more information.
 """
 
 from __future__ import print_function
-import sys
+import sys, os
 from multiprocessing import Pool
 from timeit import default_timer as now
 import numpy
@@ -23,6 +23,10 @@ DEFAULT_INPUT_RESAMPLEALG = gdal.GRA_NearestNeighbour
 DEFAULT_INPUT_ERRORTHRESHOLD = 0.
 DEFAULT_INPUT_WARPMEMORYLIMIT = 100*2**20
 DEFAULT_INPUT_MULTITHREAD = False
+DEFAULT_OUTPUT_FORMAT = 'ENVI'
+DEFAULT_OUTPUT_CREATIONOPTIONS = dict()
+DEFAULT_OUTPUT_CREATIONOPTIONS['ENVI'] = ['INTERLEAVE=BSQ']
+DEFAULT_OUTPUT_CREATIONOPTIONS['GTiff'] = ['COMPRESS=LZW', 'INTERLEAVE=BAND', 'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256', 'SPARSE_OK=TRUE', 'BIGTIFF=YES']
 
 class Applier(object):
 
@@ -77,7 +81,7 @@ class Applier(object):
         for i, filename in enumerate(filenames):
             self.setInput(name=(name, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread, options=options)
 
-    def setOutput(self, name, filename, format=None, creationOptions=None):
+    def setOutput(self, name, filename, format=None, creationOptions=None, options=None):
         """
         Define a new output raster named ``name``, that will be created at ``filename``.
 
@@ -88,19 +92,20 @@ class Applier(object):
                                 Predefined default creation options are used if set to ``None``, see
                                 :meth:`hubdc.applier.ApplierOutput.getDefaultCreationOptions` for details.
         :type creationOptions: list of strings
+        :param options: set all the above options via an :class:`~hubdc.applier.ApplierOutputOptions` object
         """
-        self.outputs[name] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions)
+        self.outputs[name] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions, options=options)
 
-    def setOutputList(self, name, filenames, format=None, creationOptions=None):
+    def setOutputList(self, name, filenames, format=None, creationOptions=None, options=None):
         """
         Define a new list of output rasters named ``name``, that are located at the ``filenames``.
         For each filename a new output raster named ``(name, i)`` is added using :meth:`hubdc.applier.Applier.setOutput`.
         """
 
         for i, filename in enumerate(filenames):
-            self.setOutput(name=(name, i), filename=filename, format=format, creationOptions=creationOptions)
+            self.setOutput(name=(name, i), filename=filename, format=format, creationOptions=creationOptions, options=options)
 
-    def apply(self, operator, description=None, *ufuncArgs, **ufuncKwargs):
+    def apply(self, operator=None, description=None, overwrite=True, *ufuncArgs, **ufuncKwargs):
         """
         Applies the ``operator`` blockwise over a raster processing chain and returns a list of results, one for each block.
 
@@ -131,6 +136,15 @@ class Applier(object):
         :return: list of results, one for each processed block
         """
 
+        if description is None:
+            description = operator.__name__
+
+        if not overwrite:
+            allExists = all([os.path.exists(output.filename) for output in self.outputs.values()])
+            if allExists:
+                self.controls.progressBar.setLabelText('skip {} (all outputs exist and OVERWRITE=FALSE)'.format(description))
+                return
+
         import inspect
         if inspect.isclass(operator):
             self.ufuncClass = operator
@@ -145,9 +159,6 @@ class Applier(object):
         self.ufuncKwargs = ufuncKwargs
 
         runT0 = now()
-        if description is None:
-            description = operator.__name__
-
         self._runCreateGrid()
         self.controls.progressBar.setLabelText('start {} [{}x{}]'.format(description, self.grid.xSize, self.grid.ySize))
         self._runInitWriters()
@@ -331,6 +342,17 @@ class ApplierInputOptions(object):
         self.warpMemoryLimit = warpMemoryLimit
         self.multithread = multithread
 
+class ApplierOutputOptions(object):
+
+    def __init__(self, format=None, creationOptions=None):
+
+        if format is None:
+            format = DEFAULT_OUTPUT_FORMAT
+        if creationOptions is None:
+            creationOptions = DEFAULT_OUTPUT_CREATIONOPTIONS.get(format, None)
+        self.format = format
+        self.creationOptions = creationOptions
+
 class ApplierInput(object):
     """
     Data structure for storing input specifications defined by :meth:`hubdc.applier.Applier.setInput`.
@@ -360,26 +382,14 @@ class ApplierOutput(object):
     For internal use only.
     """
 
-    DEFAULT_FORMAT = 'ENVI'
+    def __init__(self, filename, options=None, format=None, creationOptions=None):
 
-    @staticmethod
-    def getDefaultCreationOptions(format):
-        if format.lower() == 'ENVI'.lower():
-            return ['INTERLEAVE=BSQ']
-        elif format.lower() == 'GTiff'.lower():
-            return ['COMPRESS=LZW', 'INTERLEAVE=BAND', 'TILED=YES',
-                    'BLOCKXSIZE=256', 'BLOCKYSIZE=256',
-                    'SPARSE_OK=TRUE', 'BIGTIFF=YES']
-        return []
-
-    def __init__(self, filename, format=None, creationOptions=None):
-
-        if format is None:
-            format = self.DEFAULT_FORMAT
-        if creationOptions is None:
-            creationOptions = self.getDefaultCreationOptions(format)
         self.filename = filename
-        self.options = {'format': format, 'creationOptions': creationOptions}
+        if options is not None:
+            assert isinstance(options, ApplierOutputOptions)
+        else:
+            options = ApplierOutputOptions(format=format, creationOptions=creationOptions)
+        self.options = options.__dict__
 
 class ApplierVector(object):
     """
@@ -511,7 +521,7 @@ class ApplierOperator(object):
         assert array.ndim == 3
         return array
 
-    def getMaskArray(self, name, noData=None, ufunc=None, array=None, overlap=0):
+    def getMaskArray(self, name,  indicies=None, noData=None, ufunc=None, array=None, overlap=0):
         """
         Returns a boolean data/noData mask for an input raster image in form of a 3-d numpy array.
         Pixels that are equal to the image no data value are set to False, all other pixels are set to True.
@@ -524,6 +534,7 @@ class ApplierOperator(object):
         :param ufunc: user function to mask out further pixels,
                       e.g. ``ufunc = lambda array: array > 0.5`` will additionally mask out all pixels that have values larger than 0.5
         :param array: pass in the data array directly if it was already loaded
+        :param indicies: use a band subset
         :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
         :param ufunc: see :meth:`~hubdc.applier.ApplierOperator.getArray`
         :return:
@@ -531,16 +542,21 @@ class ApplierOperator(object):
         """
 
         # read array data if needed
-        noData = self.getNoDataValue(name, default=noData)
-        if (noData is not None) or (ufunc is not None):
-            if array is None:
-                array = self.getArray(name, overlap=overlap)
+        #noData = self.getNoDataValue(name, default=noData)
+        noDatas = self.getNoDataValues(name, indicies=indicies, default=noData)
+
+
+        if array is None:
+            array = self.getArray(name, indicies=indicies, overlap=overlap)
+        assert array.ndim == 3
 
         # create noData mask
-        if noData is None:
-            valid = self.getFull(value=True, bands=1)
-        else:
-            valid = numpy.any(array != noData, axis=0, keepdims=True)
+        valid = self.getFull(value=True, bands=1)
+        for array2d, noData in zip(array, noDatas):
+            if noData is None:
+                numpy.logical_and(valid, self.getFull(value=True, bands=1), out=valid)
+            else:
+                numpy.logical_and(valid, array2d != noData, out=valid)
 
         # update noData mask with ufunc mask
         if ufunc is not None:
@@ -881,7 +897,7 @@ class ApplierOperator(object):
         array = dataset.readAsArray(scale=scale)
         return array
 
-    def getVectorCategoricalFractionArray(self, name, ids, oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
+    def getVectorCategoricalFractionArray(self, name, ids, minOverallCoverage=0., oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
                        overlap=0):
         """
         Returns input vector rasterization data like :meth:`~hubdc.applier.ApplierOperator.getVectorArray`,
@@ -919,8 +935,14 @@ class ApplierOperator(object):
         tmpname = '_tmp_'
         self._inputDatasets[tmpname] = derivedDataset
         self._inputOptions[tmpname] = {'resampleAlg' : gdal.GRA_Average, 'noData' : None}
-        array = self.getArray(name=tmpname, overlap=overlap)
-        return array
+        fractions = self.getArray(name=tmpname, overlap=overlap)
+
+        # mask out pixel that are not sufficiently covered
+        if minOverallCoverage > 0:
+            invalid = numpy.sum(fractions, axis=0) < minOverallCoverage
+            fractions[:, invalid] = 0
+
+        return fractions
 
     def getVectorCategoricalArray(self, name, ids, noData, minOverallCoverage=0., minWinnerCoverage=0.,
                                   oversampling=10, xRes=None, yRes=None, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
@@ -940,14 +962,11 @@ class ApplierOperator(object):
         For all other arguments see :meth:`~hubdc.applier.ApplierOperator.getVector`
         and :meth:`~hubdc.applier.ApplierOperator.getVectorCategoricalFractionArray`.
         """
-        fractions = self.getVectorCategoricalFractionArray(name=name, ids=ids, oversampling=oversampling, xRes=xRes, yRes=yRes,
+        fractions = self.getVectorCategoricalFractionArray(name=name, ids=ids, minOverallCoverage=minOverallCoverage, oversampling=oversampling, xRes=xRes, yRes=yRes,
                                                            initValue=noData, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched, filterSQL=filterSQL,
                                                            overlap=overlap)
 
         categories = numpy.array(ids)[fractions.argmax(axis=0)[None]]
-        if minOverallCoverage > 0:
-            invalid = numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
-            categories[invalid] = noData
         if minWinnerCoverage > 0:
             invalid = numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
             categories[invalid] = noData
@@ -1075,7 +1094,7 @@ class ApplierOperator(object):
             raise Exception('wavelength units must be nanometers or micrometers')
         return wavelength
 
-    def setMetadataClassDefinition(self, name, classes, classNames=None, classLookup=None):
+    def setMetadataClassDefinition(self, name, classes, classNames=None, classLookup=None, fileType='ENVI Classification'):
         """
         Set class definition metadata information for an output raster.
 
@@ -1099,11 +1118,20 @@ class ApplierOperator(object):
         classLookup = [0, 0, 0] + classLookup
 
         filename = self.getOutputFilename(name)
-        self.setMetadataItem(name=name, key='file type', value='ENVI Classification', domain='ENVI')
+        self.setMetadataItem(name=name, key='file type', value=fileType, domain='ENVI')
         self.setMetadataItem(name=name, key='classes', value=classes, domain='ENVI')
         self.setMetadataItem(name=name, key='class names', value=classNames, domain='ENVI')
         self.setMetadataItem(name=name, key='class lookup', value=classLookup, domain='ENVI')
         self.setNoDataValue(name=name, value=0)
+
+    def setMetadataProbabilityDefinition(self, name, classes, classNames=None, classLookup=None):
+        """
+        Sets class definition metadata like :meth:`hubdc.applier.ApplierOperator.setMetadataClassDefinition`,
+        file type to `ENVI Standard` and noDataValue to -1.
+        """
+        self.setMetadataClassDefinition(name=name, classes=classes, classNames=classNames, classLookup=classLookup, fileType='ENVI Standard')
+        self.setMetadataBandNames(name=name, bandNames=classNames)
+        self.setNoDataValue(name=name, value=-1)
 
     def getMetadataClassDefinition(self, name):
         """
@@ -1121,6 +1149,8 @@ class ApplierOperator(object):
         classLookup = dataset.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
 
         return classes-1, classNames[1:], classLookup[3:]
+
+
 
     def setMetadataBandNames(self, name, bandNames):
         """
@@ -1145,6 +1175,17 @@ class ApplierOperator(object):
         dataset = self._getInputDataset(name)
         noDataValue = dataset.getNoDataValue(default=default)
         return default
+
+    def getNoDataValues(self, name, indicies=None, default=None):
+        """
+        Returns the list of no data values for all bands of an input raster image. If a no data value is not specified, the ``default`` value is returned.
+        Use ``indicies`` to return noData values only for a subset of bands.
+        """
+        dataset = self._getInputDataset(name)
+        noDataValues = dataset.getNoDataValues(default=default)
+        if indicies is not None:
+            noDataValues = [noDataValues[i] for i in indicies]
+        return noDataValues
 
     def _apply(self, subgrid, iblock, nblock):
         self._iblock = iblock
