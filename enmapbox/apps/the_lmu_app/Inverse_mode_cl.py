@@ -7,8 +7,6 @@ from gdalconst import *
 from osgeo import gdal
 import struct
 import os
-from matplotlib import pyplot as plt
-from matplotlib import cm
 from Sensor_Info import get_wl
 import winsound
 
@@ -106,8 +104,10 @@ class RTM_Inversion:
         n_entries = len(Ref_list)
         sigma_c = (sigma/100) * self.conversion_factor  # sigma converted
 
-        if type == 1:  # additive noise
+        if type == 0: # no noise
+            return Ref_list
 
+        elif type == 1:  # additive noise
             Ref_noisy = [Ref_list[i] + np.random.normal(loc=0.0, scale=sigma_c) for i in xrange(n_entries)]
             # Ref_noisy = [Ref_noisy[i]*10 for i in xrange(len(Ref_noisy))]
 
@@ -130,11 +130,11 @@ class RTM_Inversion:
     def cost_fun(self, image_Ref, model_Ref, type):
 
         if type == 1: # RMSE
-            delta = np.linalg.norm(model_Ref - image_Ref) / np.sqrt(self.n_wl)  # Numpy-Solution für RMSE (schnell)
+            delta = np.linalg.norm(model_Ref - image_Ref) / np.sqrt(self.n_wl)  # Numpy-Solution für RMSE (fast)
         elif type == 2: # MAE
             delta = sum(abs(image_Ref - model_Ref))
         else:
-            exit("wrong cost function type. Expected 0 or 1, got %i instead" %type)
+            exit("wrong cost function type. Expected 1 or 2, got %i instead" %type)
 
         return delta
 
@@ -176,7 +176,7 @@ class RTM_Inversion:
         elif sensor == 3: # Sentinel-2
             self.exclude_bands = [10]
 
-        self.exclude_bands_model = range(15) + [(i-self.offset) for i in self.exclude_bands[self.offset:]] # 15 = 15 parameter (flexible?)
+        self.exclude_bands_model = range(15) + [((i-self.offset))+15 for i in self.exclude_bands[self.offset:]] # 15 = 15 parameter (flexible?)
 
         if not self.inversion_range is None:
             self.wl_compare = [self.wl_sensor[i] for i in xrange(len(self.wl_sensor)) if not i in self.exclude_bands and i in self.inversion_range]
@@ -225,9 +225,9 @@ class RTM_Inversion:
 
                 # works only if files are separated by nstatistical (for each geometry)
                 for run in xrange(self.ns):
-                    if np.sum(lut[15+self.offset:,run]) < 1: continue
+                    if np.sum(lut[:,run]) < 1: continue
                     estimates[run] = self.cost_fun(self.image[r,c,:],
-                                                   self.add_noise(Ref_list = lut[:,run], type=self.noisetype, sigma=self.noiselevel),
+                                                   self.add_noise(Ref_list=lut[:,run], type=self.noisetype, sigma=self.noiselevel),
                                                    type=self.ctype)
 
                 L1_subset = np.argpartition(estimates, self.nbfits)[0:self.nbfits] # get n best performing LUT-entries

@@ -2,6 +2,7 @@
 
 import os
 import numpy as np
+import time
 from scipy.stats import truncnorm
 from math import radians
 import SAIL
@@ -74,7 +75,7 @@ class Setup_multiple:
         self.para_dict = {0: 'N', 1: 'cab', 2: 'cw', 3: 'cm', 4: 'LAI', 5: 'typeLIDF', 6: 'LIDF', 7: 'hspot',
                           8: 'psoil', 9: 'tts', 10: 'tto', 11: 'psi', 12: 'car', 13: 'anth', 14: 'cbrown'}
         self.param_input = param_input
-        self.ns = ns
+        self.ns = int(ns)
 
         self.error_array = []
 
@@ -85,14 +86,14 @@ class Setup_multiple:
                 self.whichlogicals.append(i)
 
         #2 calculate nruns_logical for each logically distributed parameter
-        self.nruns_logic = [self.param_input[i][2] for i in self.whichlogicals]
+        self.nruns_logic = [int(self.param_input[i][2]) for i in self.whichlogicals]
 
         #3 calculate total nruns_logical
         for i in xrange(len(self.whichlogicals)):
             self.nruns_logic_total *= self.nruns_logic[i]
 
         #4 Calculate total nruns
-        self.nruns_total = self.nruns_logic_total * self.ns
+        self.nruns_total = int(self.nruns_logic_total * self.ns)
 
         #5 Create numpy array to hold all parameter constellations
         self.para_grid = np.empty(shape=(self.nruns_total, self.npara),dtype=np.float32)
@@ -173,7 +174,7 @@ class Init_Model:
         self.s2s = s2s
 
     def initialize_multiple(self, LUT_dir, LUT_name, ns, tts, tto, psi, N, cab, cw, cm, LAI, LIDF, typeLIDF, hspot,
-                            psoil, car=None, cbrown=None, anth=None, max_files=10000):
+                            psoil, car=None, cbrown=None, anth=None, max_files=10000, testmode=0):
         # Setup multiple runs with l size logical distribution & n size statistical distribution
         param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi, car, anth, cbrown]
         npara = len(param_input)
@@ -192,6 +193,12 @@ class Init_Model:
             nbands = self.s2s_I.n_wl_sensor
         else:
             nbands = len(prospect.lambd)
+
+        if testmode == 1:
+            start = time.time()
+            for run in xrange(crun_max):
+                self.run_model(parameters=para_grid[run, :])
+            return time.time() - start
 
         # Meta-File:
         if len(tts) == 3:
@@ -220,7 +227,7 @@ class Init_Model:
         else:
             psi_str = ["NA"]
 
-        with open("%s_00meta.lut" % LUT_dir+LUT_name, "w") as meta:
+        with open("%s_00meta.lut" % (LUT_dir+LUT_name), "w") as meta:
             meta.write("name=%s\n" % LUT_name)
             meta.write("n_total=%i\n" % setup.nruns_total)
             meta.write("ns=%i\n" % setup.ns)

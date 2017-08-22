@@ -5,7 +5,6 @@ import numpy as np
 
 from qgis.gui import *
 #ensure to call QGIS before PyQtGraph
-import pyqtgraph as pg
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4 import uic
@@ -13,10 +12,8 @@ import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 
-pathUI = os.path.join(os.path.dirname(__file__) ,'GUI_LUT.ui')
+pathUI = os.path.join(os.path.dirname(__file__),'GUI_LUT.ui')
 
-#gui = uic.loadUi("GUI_ISD.ui")
-#loadUIFormClass allows to load QGIS Widgets and some more...
 from enmapbox.gui.utils import loadUIFormClass
 
 class GUI_LUT(QDialog, loadUIFormClass(pathUI)):
@@ -30,9 +27,14 @@ class UiFunc:
     def __init__(self):
         
         self.gui = GUI_LUT()
-        self.dictchecks()
         self.initial_values()
+        self.dictchecks()
         self.connections()
+        for para in self.dict_objects:
+            self.dict_objects[para][0].setChecked(True)
+            self.txt_enables(para=para, mode="fix")
+        self.set_boundaries()
+
         # self.para_list = []
         # self.update_lineEdit_pos()
         # self.txt_enables()
@@ -45,9 +47,38 @@ class UiFunc:
         self.typeLIDF = 2
         self.lop = "prospectD"
         self.canopy_arch = "sail"
+        self.para_list = [['N', 'chl', 'cw', 'cm', 'car', 'cbr', 'canth'],
+                          ['lai', 'alia', 'hspot', 'oza', 'sza', 'raa', 'psoil'],
+                          ['laiu', 'sd', 'h', 'cd']]
+        self.para_flat = [item for sublist in self.para_list for item in sublist]
+        self.npara_flat = len(self.para_flat)
+
+        self.N, self.chl, self.cw, self.cm, self.car, self.cbr, self.canth, self.lai, self.alia, self.hspot, \
+        self.oza, self.sza, self.raa, self.psoil, self.laiu, self.sd, self.h, self.cd = ([] for i in range(self.npara_flat))
+
+        # self.all_inputs = [self.N, self.chl, self.cw, self.cm, self.car, self.cbr, self.canth, self.lai, self.alia,
+        #                   self.hspot, self.oza, self.sza, self.raa, self.psoil, self.laiu, self.sd, self.h, self.cd]
+
+        self.path = None
+        self.LUT_name = None
+        self.sensor = "default"
+
+        self.ns = None
+        self.nlut_total = None
+        self.est_time = None
+        self.nodat = None
+        self.intboost = None
+        self.speed = None
 
     def dictchecks(self):
-        self.dict_objects = {"chl": [self.gui.radio_fix_chl, self.gui.radio_gauss_chl, self.gui.radio_uni_chl,
+
+        self.dict_checks = {"car": None, "cbr": None, "canth": None}
+
+        self.dict_objects = {"N": [self.gui.radio_fix_N, self.gui.radio_gauss_N, self.gui.radio_uni_N,
+                                 self.gui.radio_log_N, self.gui.txt_fix_N, self.gui.txt_gauss_min_N,
+                                 self.gui.txt_gauss_max_N, self.gui.txt_gauss_mean_N, self.gui.txt_gauss_std_N,
+                                 self.gui.txt_log_min_N, self.gui.txt_log_max_N, self.gui.txt_log_steps_N],
+                            "chl": [self.gui.radio_fix_chl, self.gui.radio_gauss_chl, self.gui.radio_uni_chl,
                                  self.gui.radio_log_chl, self.gui.txt_fix_chl, self.gui.txt_gauss_min_chl,
                                  self.gui.txt_gauss_max_chl, self.gui.txt_gauss_mean_chl, self.gui.txt_gauss_std_chl,
                                  self.gui.txt_log_min_chl, self.gui.txt_log_max_chl, self.gui.txt_log_steps_chl],
@@ -63,18 +94,22 @@ class UiFunc:
                                  self.gui.radio_log_car, self.gui.txt_fix_car, self.gui.txt_gauss_min_car,
                                  self.gui.txt_gauss_max_car, self.gui.txt_gauss_mean_car, self.gui.txt_gauss_std_car,
                                  self.gui.txt_log_min_car, self.gui.txt_log_max_car, self.gui.txt_log_steps_car],
-                             "canth": [self.gui.radio_fix_canth, self.gui.radio_gauss_canth, self.gui.radio_uni_canth,
-                                 self.gui.radio_log_canth, self.gui.txt_fix_canth, self.gui.txt_gauss_min_canth,
-                                 self.gui.txt_gauss_max_canth, self.gui.txt_gauss_mean_canth, self.gui.txt_gauss_std_canth,
-                                 self.gui.txt_log_min_canth, self.gui.txt_log_max_canth, self.gui.txt_log_steps_canth],
                              "cbr": [self.gui.radio_fix_cbr, self.gui.radio_gauss_cbr, self.gui.radio_uni_cbr,
                                  self.gui.radio_log_cbr, self.gui.txt_fix_cbr, self.gui.txt_gauss_min_cbr,
                                  self.gui.txt_gauss_max_cbr, self.gui.txt_gauss_mean_cbr, self.gui.txt_gauss_std_cbr,
                                  self.gui.txt_log_min_cbr, self.gui.txt_log_max_cbr, self.gui.txt_log_steps_cbr],
+                             "canth": [self.gui.radio_fix_canth, self.gui.radio_gauss_canth, self.gui.radio_uni_canth,
+                                       self.gui.radio_log_canth, self.gui.txt_fix_canth, self.gui.txt_gauss_min_canth,
+                                       self.gui.txt_gauss_max_canth, self.gui.txt_gauss_mean_canth, self.gui.txt_gauss_std_canth,
+                                       self.gui.txt_log_min_canth, self.gui.txt_log_max_canth, self.gui.txt_log_steps_canth],
                              "lai": [self.gui.radio_fix_lai, self.gui.radio_gauss_lai, self.gui.radio_uni_lai,
                                  self.gui.radio_log_lai, self.gui.txt_fix_lai, self.gui.txt_gauss_min_lai,
                                  self.gui.txt_gauss_max_lai, self.gui.txt_gauss_mean_lai, self.gui.txt_gauss_std_lai,
                                  self.gui.txt_log_min_lai, self.gui.txt_log_max_lai, self.gui.txt_log_steps_lai],
+                             "alia": [self.gui.radio_fix_alia, self.gui.radio_gauss_alia, self.gui.radio_uni_alia,
+                                     self.gui.radio_log_alia, self.gui.txt_fix_alia, self.gui.txt_gauss_min_alia,
+                                     self.gui.txt_gauss_max_alia, self.gui.txt_gauss_mean_alia, self.gui.txt_gauss_std_alia,
+                                     self.gui.txt_log_min_alia, self.gui.txt_log_max_alia, self.gui.txt_log_steps_alia],
                              "hspot": [self.gui.radio_fix_hspot, self.gui.radio_gauss_hspot, self.gui.radio_uni_hspot,
                                  self.gui.radio_log_hspot, self.gui.txt_fix_hspot, self.gui.txt_gauss_min_hspot,
                                  self.gui.txt_gauss_max_hspot, self.gui.txt_gauss_mean_hspot, self.gui.txt_gauss_std_hspot,
@@ -91,10 +126,10 @@ class UiFunc:
                                  self.gui.radio_log_raa, self.gui.txt_fix_raa, self.gui.txt_gauss_min_raa,
                                  self.gui.txt_gauss_max_raa, self.gui.txt_gauss_mean_raa, self.gui.txt_gauss_std_raa,
                                  self.gui.txt_log_min_raa, self.gui.txt_log_max_raa, self.gui.txt_log_steps_raa],
-                             "skyl": [self.gui.radio_fix_skyl, self.gui.radio_gauss_skyl, self.gui.radio_uni_skyl,
-                                 self.gui.radio_log_skyl, self.gui.txt_fix_skyl, self.gui.txt_gauss_min_skyl,
-                                 self.gui.txt_gauss_max_skyl, self.gui.txt_gauss_mean_skyl, self.gui.txt_gauss_std_skyl,
-                                 self.gui.txt_log_min_skyl, self.gui.txt_log_max_skyl, self.gui.txt_log_steps_skyl],
+                             "psoil": [self.gui.radio_fix_psoil, self.gui.radio_gauss_psoil, self.gui.radio_uni_psoil,
+                                 self.gui.radio_log_psoil, self.gui.txt_fix_psoil, self.gui.txt_gauss_min_psoil,
+                                 self.gui.txt_gauss_max_psoil, self.gui.txt_gauss_mean_psoil, self.gui.txt_gauss_std_psoil,
+                                 self.gui.txt_log_min_psoil, self.gui.txt_log_max_psoil, self.gui.txt_log_steps_psoil],
                              "laiu": [self.gui.radio_fix_laiu, self.gui.radio_gauss_laiu, self.gui.radio_uni_laiu,
                                  self.gui.radio_log_laiu, self.gui.txt_fix_laiu, self.gui.txt_gauss_min_laiu,
                                  self.gui.txt_gauss_max_laiu, self.gui.txt_gauss_mean_laiu, self.gui.txt_gauss_std_laiu,
@@ -130,227 +165,381 @@ class UiFunc:
         self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
 
         # Radio Buttons
-        self.gui.radio_fix_chl.clicked.connect(lambda: self.txt_enables())
+        self.gui.radio_fix_N.clicked.connect(lambda: self.txt_enables(para="N", mode="fix"))
+        self.gui.radio_gauss_N.clicked.connect(lambda: self.txt_enables(para="N", mode="gauss"))
+        self.gui.radio_uni_N.clicked.connect(lambda: self.txt_enables(para="N", mode="uni"))
+        self.gui.radio_log_N.clicked.connect(lambda: self.txt_enables(para="N", mode="log"))
 
+        self.gui.radio_fix_chl.clicked.connect(lambda: self.txt_enables(para="chl", mode="fix"))
+        self.gui.radio_gauss_chl.clicked.connect(lambda: self.txt_enables(para="chl", mode="gauss"))
+        self.gui.radio_uni_chl.clicked.connect(lambda: self.txt_enables(para="chl", mode="uni"))
+        self.gui.radio_log_chl.clicked.connect(lambda: self.txt_enables(para="chl", mode="log"))
 
-    def txt_enables(self):
-        pass
+        self.gui.radio_fix_cw.clicked.connect(lambda: self.txt_enables(para="cw", mode="fix"))
+        self.gui.radio_gauss_cw.clicked.connect(lambda: self.txt_enables(para="cw", mode="gauss"))
+        self.gui.radio_uni_cw.clicked.connect(lambda: self.txt_enables(para="cw", mode="uni"))
+        self.gui.radio_log_cw.clicked.connect(lambda: self.txt_enables(para="cw", mode="log"))
 
-    def any_lineEdit_change(self, textfeld, slider,):
-        try:
-            my_value = int(float(textfeld.text()) * 10000)
-            slider.setValue(my_value)
-        except ValueError:
-            QMessageBox.critical(self.gui, "Not a number", "'%s' is not a valid number" % textfeld.text())
-            textfeld.setText(str(slider.value() / 10000.0))
+        self.gui.radio_fix_cm.clicked.connect(lambda: self.txt_enables(para="cm", mode="fix"))
+        self.gui.radio_gauss_cm.clicked.connect(lambda: self.txt_enables(para="cm", mode="gauss"))
+        self.gui.radio_uni_cm.clicked.connect(lambda: self.txt_enables(para="cm", mode="uni"))
+        self.gui.radio_log_cm.clicked.connect(lambda: self.txt_enables(para="cm", mode="log"))
 
-    def select_s2s(self, sensor, trigger=True):
+        self.gui.radio_fix_car.clicked.connect(lambda: self.txt_enables(para="car", mode="fix"))
+        self.gui.radio_gauss_car.clicked.connect(lambda: self.txt_enables(para="car", mode="gauss"))
+        self.gui.radio_uni_car.clicked.connect(lambda: self.txt_enables(para="car", mode="uni"))
+        self.gui.radio_log_car.clicked.connect(lambda: self.txt_enables(para="car", mode="log"))
+
+        self.gui.radio_fix_canth.clicked.connect(lambda: self.txt_enables(para="canth", mode="fix"))
+        self.gui.radio_gauss_canth.clicked.connect(lambda: self.txt_enables(para="canth", mode="gauss"))
+        self.gui.radio_uni_canth.clicked.connect(lambda: self.txt_enables(para="canth", mode="uni"))
+        self.gui.radio_log_canth.clicked.connect(lambda: self.txt_enables(para="canth", mode="log"))
+
+        self.gui.radio_fix_cbr.clicked.connect(lambda: self.txt_enables(para="cbr", mode="fix"))
+        self.gui.radio_gauss_cbr.clicked.connect(lambda: self.txt_enables(para="cbr", mode="gauss"))
+        self.gui.radio_uni_cbr.clicked.connect(lambda: self.txt_enables(para="cbr", mode="uni"))
+        self.gui.radio_log_cbr.clicked.connect(lambda: self.txt_enables(para="cbr", mode="log"))
+
+        self.gui.radio_fix_lai.clicked.connect(lambda: self.txt_enables(para="lai", mode="fix"))
+        self.gui.radio_gauss_lai.clicked.connect(lambda: self.txt_enables(para="lai", mode="gauss"))
+        self.gui.radio_uni_lai.clicked.connect(lambda: self.txt_enables(para="lai", mode="uni"))
+        self.gui.radio_log_lai.clicked.connect(lambda: self.txt_enables(para="lai", mode="log"))
+
+        self.gui.radio_fix_alia.clicked.connect(lambda: self.txt_enables(para="alia", mode="fix"))
+        self.gui.radio_gauss_alia.clicked.connect(lambda: self.txt_enables(para="alia", mode="gauss"))
+        self.gui.radio_uni_alia.clicked.connect(lambda: self.txt_enables(para="alia", mode="uni"))
+        self.gui.radio_log_alia.clicked.connect(lambda: self.txt_enables(para="alia", mode="log"))
+
+        self.gui.radio_fix_hspot.clicked.connect(lambda: self.txt_enables(para="hspot", mode="fix"))
+        self.gui.radio_gauss_hspot.clicked.connect(lambda: self.txt_enables(para="hspot", mode="gauss"))
+        self.gui.radio_uni_hspot.clicked.connect(lambda: self.txt_enables(para="hspot", mode="uni"))
+        self.gui.radio_log_hspot.clicked.connect(lambda: self.txt_enables(para="hspot", mode="log"))
+
+        self.gui.radio_fix_oza.clicked.connect(lambda: self.txt_enables(para="oza", mode="fix"))
+        self.gui.radio_gauss_oza.clicked.connect(lambda: self.txt_enables(para="oza", mode="gauss"))
+        self.gui.radio_uni_oza.clicked.connect(lambda: self.txt_enables(para="oza", mode="uni"))
+        self.gui.radio_log_oza.clicked.connect(lambda: self.txt_enables(para="oza", mode="log"))
+
+        self.gui.radio_fix_sza.clicked.connect(lambda: self.txt_enables(para="sza", mode="fix"))
+        self.gui.radio_gauss_sza.clicked.connect(lambda: self.txt_enables(para="sza", mode="gauss"))
+        self.gui.radio_uni_sza.clicked.connect(lambda: self.txt_enables(para="sza", mode="uni"))
+        self.gui.radio_log_sza.clicked.connect(lambda: self.txt_enables(para="sza", mode="log"))
+
+        self.gui.radio_fix_raa.clicked.connect(lambda: self.txt_enables(para="raa", mode="fix"))
+        self.gui.radio_gauss_raa.clicked.connect(lambda: self.txt_enables(para="raa", mode="gauss"))
+        self.gui.radio_uni_raa.clicked.connect(lambda: self.txt_enables(para="raa", mode="uni"))
+        self.gui.radio_log_raa.clicked.connect(lambda: self.txt_enables(para="raa", mode="log"))
+
+        self.gui.radio_fix_psoil.clicked.connect(lambda: self.txt_enables(para="psoil", mode="fix"))
+        self.gui.radio_gauss_psoil.clicked.connect(lambda: self.txt_enables(para="psoil", mode="gauss"))
+        self.gui.radio_uni_psoil.clicked.connect(lambda: self.txt_enables(para="psoil", mode="uni"))
+        self.gui.radio_log_psoil.clicked.connect(lambda: self.txt_enables(para="psoil", mode="log"))
+
+        self.gui.radio_fix_sd.clicked.connect(lambda: self.txt_enables(para="sd", mode="fix"))
+        self.gui.radio_gauss_sd.clicked.connect(lambda: self.txt_enables(para="sd", mode="gauss"))
+        self.gui.radio_uni_sd.clicked.connect(lambda: self.txt_enables(para="sd", mode="uni"))
+        self.gui.radio_log_sd.clicked.connect(lambda: self.txt_enables(para="sd", mode="log"))
+
+        self.gui.radio_fix_laiu.clicked.connect(lambda: self.txt_enables(para="laiu", mode="fix"))
+        self.gui.radio_gauss_laiu.clicked.connect(lambda: self.txt_enables(para="laiu", mode="gauss"))
+        self.gui.radio_uni_laiu.clicked.connect(lambda: self.txt_enables(para="laiu", mode="uni"))
+        self.gui.radio_log_laiu.clicked.connect(lambda: self.txt_enables(para="laiu", mode="log"))
+
+        self.gui.radio_fix_h.clicked.connect(lambda: self.txt_enables(para="h", mode="fix"))
+        self.gui.radio_gauss_h.clicked.connect(lambda: self.txt_enables(para="h", mode="gauss"))
+        self.gui.radio_uni_h.clicked.connect(lambda: self.txt_enables(para="h", mode="uni"))
+        self.gui.radio_log_h.clicked.connect(lambda: self.txt_enables(para="h", mode="log"))
+
+        self.gui.radio_fix_cd.clicked.connect(lambda: self.txt_enables(para="cd", mode="fix"))
+        self.gui.radio_gauss_cd.clicked.connect(lambda: self.txt_enables(para="cd", mode="gauss"))
+        self.gui.radio_uni_cd.clicked.connect(lambda: self.txt_enables(para="cd", mode="uni"))
+        self.gui.radio_log_cd.clicked.connect(lambda: self.txt_enables(para="cd", mode="log"))
+
+        # Buttons
+        self.gui.cmdRun.clicked.connect(lambda: self.run_LUT())
+        self.gui.cmdClose.clicked.connect(lambda: self.gui.accept)
+        self.gui.cmdOpenFolder.clicked.connect(lambda: self.get_folder())
+        self.gui.cmdLUTcalc.clicked.connect(lambda: self.get_lutsize())
+        self.gui.cmdTest.clicked.connect(lambda: self.test_LUT())
+
+    def txt_enables(self, para, mode):
+
+        if mode=="fix":
+            self.dict_objects[para][4].setEnabled(True)
+            for i in xrange(5, 12):
+                self.dict_objects[para][i].setEnabled(False)
+                self.dict_objects[para][i].setText("")
+
+        elif mode=="gauss":
+            for i in [4, 9, 10, 11]:
+                self.dict_objects[para][i].setEnabled(False)
+                self.dict_objects[para][i].setText("")
+            for i in xrange(5, 9):
+                self.dict_objects[para][i].setEnabled(True)
+
+        elif mode=="uni":
+            for i in [4, 7, 8, 9, 10, 11]:
+                self.dict_objects[para][i].setEnabled(False)
+                self.dict_objects[para][i].setText("")
+            self.dict_objects[para][5].setEnabled(True)
+            self.dict_objects[para][6].setEnabled(True)
+
+        elif mode=="log":
+            for i in xrange(4, 9):
+                self.dict_objects[para][i].setEnabled(False)
+                self.dict_objects[para][i].setText("")
+            for i in [9, 10, 11]:
+                self.dict_objects[para][i].setEnabled(True)
+
+        if para in self.dict_checks:
+            self.dict_checks[para] = mode
+
+    def set_boundaries(self):
+        self.dict_boundaries = {"N": [1.0, 3.0],
+                            "chl": [0.0, 100.0],
+                             "cw": [0.001, 0.7],
+                             "cm": [0.001, 0.02],
+                             "car": [0.0, 30.,0],
+                             "cbr": [0.0, 1.0],
+                             "canth": [0.0, 10.0],
+                             "lai": [0.01, 10.0],
+                             "alia": [0.0, 90.0],
+                             "hspot": [0.0, 1.0],
+                             "oza": [0.0, 80.0],
+                             "sza": [0.0, 80.0],
+                             "raa": [0.0, 180.0],
+                             "psoil": [0.0, 1.0],
+                             "laiu": [0.0, 100.0], # forest parameters temporary!
+                             "sd": [0.0, 100.0],
+                             "h": [0.0, 100.0],
+                             "cd": [0.0, 100.0]}
+
+    def select_s2s(self, sensor):
         self.sensor = sensor
         if not sensor == "default":
             s2s = Spec2Sensor(sensor=sensor, nodat=-999)
             s2s.init_sensor()
             self.wl = s2s.wl_sensor
-            self.plot_count += 1
         else:
             self.wl = range(400, 2501)
-
-        if trigger:
-            self.mod_exec()
 
     def select_model(self, lop="prospectD", canopy_arch="sail"):
         self.lop = lop
         if canopy_arch == "None":
             self.canopy_arch = None
+            self.gui.grp_canopy.setDisabled(True)
         else:
             self.canopy_arch = canopy_arch
-        self.mod_exec()
+            self.gui.grp_canopy.setDisabled(False)
 
-    def select_LIDF(self, index):
-        if index > 0:
-            self.typeLIDF = 1 # Beta Distribution
-            self.para_list[6] = index - 1
-            self.gui.LIDFB_Slide.setDisabled(True)
-            self.gui.LIDFB_lineEdit.setDisabled(True)
-            self.mod_exec()
+        if lop=="prospectD":
+            for para in self.para_list[0]:
+                for object in xrange(12):
+                    self.dict_objects[para][object].setDisabled(False)
+            self.txt_enables(para="car", mode=self.dict_checks["car"])
+            self.txt_enables(para="cbr", mode=self.dict_checks["cbr"])
+            self.txt_enables(para="canth", mode=self.dict_checks["canth"])
+
+
+        elif lop == "prospect5B":
+            for para in self.para_list[0]:
+                for object in xrange(12):
+                    self.dict_objects[para][object].setDisabled(False)
+            for object in xrange(12):
+                self.dict_objects["canth"][object].setDisabled(True)
+            self.txt_enables(para="car", mode=self.dict_checks["car"])
+            self.txt_enables(para="cbr", mode=self.dict_checks["cbr"])
+
+        elif lop == "prospect5":
+            for para in self.para_list[0]:
+                for object in xrange(12):
+                    self.dict_objects[para][object].setDisabled(False)
+                for object in xrange(12):
+                    self.dict_objects["canth"][object].setDisabled(True)
+                    self.dict_objects["cbr"][object].setDisabled(True)
+            self.txt_enables(para="car", mode=self.dict_checks["car"])
+
+        elif lop == "prospect4":
+            for para in self.para_list[0]:
+                for object in xrange(12):
+                    self.dict_objects[para][object].setDisabled(False)
+                for object in xrange(12):
+                    self.dict_objects["canth"][object].setDisabled(True)
+                    self.dict_objects["cbr"][object].setDisabled(True)
+                    self.dict_objects["car"][object].setDisabled(True)
+
+    def get_folder(self):
+        path = str(QFileDialog.getExistingDirectory(caption='Select Directory for LUT'))
+
+        if path:
+            self.gui.txtPath.setText(path)
+            self.path = self.gui.txtPath.text().replace("\\", "/")
+            if not self.path[-1] == "/":
+                self.path += "/"
+            print self.path
+
+    def test_LUT(self):
+        model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
+                                 int_boost=1000, s2s="default")
+        model_I.initialize_multiple(LUT_dir="D:/ECST_III/Processor/VegProc/results_test/", LUT_name="Test1", ns=2000,
+                                    tts=[20.0, 50.0, 4.0],
+                                    tto=[0.0], psi=[45.0], N=[1.0, 2.5],
+                                    cab=[0.0, 80.0, 45.0, 5.0], cw=[0.002, 0.02], cm=[0.018],
+                                    LAI=[1.0, 8.0], LIDF=[20.0, 80.0, 40.0, 10.0], typeLIDF=[2],
+                                    hspot=[0.1], psoil=[0.0, 1.0], car=[0.0, 15.0],
+                                    cbrown=[0.0, 1.0], anth=[5.0])
+
+    def run_LUT(self):
+        self.get_inputs()
+        if not self.check_inputs(): return
+
+        model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
+                                 int_boost=self.intboost, s2s=self.sensor)
+        model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
+                                    tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
+                                    cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
+                                    LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
+                                    hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
+                                    cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'])
+
+    def get_inputs(self):
+        self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
+        for para in self.dict_objects:
+            for object in xrange(4, 12):
+                if not self.dict_objects[para][object].text() == "":
+                    try:
+                        self.dict_vals[para].append(float(self.dict_objects[para][object].text()))
+                    except ValueError:
+                        QMessageBox.critical(self.gui, "Not a number", "'%s' is not a valid number" % self.dict_objects[para][object].text())
+                        self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
+
+        self.LUT_name = self.gui.txtLUTname.text()
+        self.ns = int(self.gui.spinNS.value())
+        self.intboost = int(self.gui.spinIntBoost.value())
+        self.nodat = int(self.gui.spinNoData.value())
+
+    def check_inputs(self):
+
+        for i, key in enumerate(self.para_list[0]):
+            if len(self.dict_vals[self.para_list[0][i]]) > 3:
+                if self.dict_vals[self.para_list[0][i]][2] > self.dict_vals[self.para_list[0][i]][1] or \
+                                self.dict_vals[self.para_list[0][i]][2] < self.dict_vals[self.para_list[0][i]][0]:
+                    self.abort(message='Parameter %s: mean value must lie between min and max' % self.para_list[0][i])
+                    return False
+                elif self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
+                                self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
+                    self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
+                    return False
+            elif len(self.dict_vals[self.para_list[0][i]]) > 1:  # min and max specified
+                if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
+                                self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
+                    self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
+                    return False
+            elif len(self.dict_vals[self.para_list[0][i]]) > 0:  # fixed value specified
+                if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
+                                self.dict_vals[self.para_list[0][i]][0] > self.dict_boundaries[key][1]:
+                    self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
+                    return False
+
+        if self.canopy_arch == "sail":
+            for i, key in enumerate(self.para_list[1]):
+                if len(self.dict_vals[self.para_list[1][i]]) > 3:
+                    if self.dict_vals[self.para_list[1][i]][2] > self.dict_vals[self.para_list[1][i]][1] or \
+                                    self.dict_vals[self.para_list[1][i]][2] < self.dict_vals[self.para_list[1][i]][0]:
+                        self.abort(message='Parameter %s: mean value must lie between min and max' % self.para_list[1][i])
+                        return False
+                    elif self.dict_vals[self.para_list[1][i]][0] < self.dict_boundaries[key][0] or \
+                                    self.dict_vals[self.para_list[1][i]][1] > self.dict_boundaries[key][1]:
+                        self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[1][i])
+                        return False
+                elif len(self.dict_vals[self.para_list[1][i]]) > 1:  # min and max specified
+                    if self.dict_vals[self.para_list[1][i]][0] < self.dict_boundaries[key][0] or \
+                                    self.dict_vals[self.para_list[1][i]][1] > self.dict_boundaries[key][1]:
+                        self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[1][i])
+                        return False
+                elif len(self.dict_vals[self.para_list[1][i]]) > 0:  # min and max specified
+                    if self.dict_vals[self.para_list[1][i]][0] < self.dict_boundaries[key][0] or \
+                                    self.dict_vals[self.para_list[1][i]][0] > self.dict_boundaries[key][1]:
+                        self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[1][i])
+                        return False
+
+        if self.lop == "prospectD":
+            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0]))):
+                self.abort(message='Leaf Optical Properties parameter(s) missing')
+                return False
+        elif self.lop == "prospect5B":
+            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0])-1)):
+                self.abort(message='Leaf Optical Properties parameter(s) missing')
+                return False
+        elif self.lop == "prospect5":
+            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0])-2)):
+                self.abort(message='Leaf Optical Properties parameter(s) missing')
+                return False
+        elif self.lop == "prospect4":
+            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0])-3)):
+                self.abort(message='Leaf Optical Properties parameter(s) missing')
+                return False
+
+        if self.canopy_arch == "sail":
+            if any(len(self.dict_vals[self.para_list[1][i]]) < 1 for i in xrange(len(self.para_list[1]))):
+                self.abort(message='Canopy Architecture parameter(s) missing')
+                return False
+
+        if not os.path.isdir(self.gui.txtPath.text()):
+            self.abort(message='Incorrect Path')
+            return False
+
+        if self.LUT_name == "" or self.LUT_name is None:
+            self.abort(message='Incorrect LUT name')
+            return False
+
+        return True
+
+    def get_lutsize(self):
+        self.get_inputs()
+        self.nlut_total = self.ns
+        for para in self.dict_vals:
+            if len(self.dict_vals[para]) == 3 and any(self.dict_objects[para][i].isEnabled() for i in xrange(4)):
+                self.nlut_total *= self.dict_vals[para][2]
+        # print "total size of LUT: ", self.nlut_total
+        self.gui.lcdNumber.display(self.nlut_total)
+
+        # if self.speed is None: self.speedtest()
+        time50x = self.speedtest()
+        self.speed = time50x*self.nlut_total/50
+
+        if self.speed > 172800:
+            self.gui.lblTimeUnit.setText("days")
+            self.speed /= 86400
+        elif self.speed > 10800:
+            self.gui.lblTimeUnit.setText("hours")
+            self.speed /= 3600
+        elif self.speed > 120:
+            self.gui.lblTimeUnit.setText("min")
+            self.speed /= 60
         else:
-            self.typeLIDF = 2 # Ellipsoidal Distribution
-            self.mod_exec(self.gui.LIDFB_Slide, item=6)
-            self.gui.LIDFB_Slide.setDisabled(False)
-            self.gui.LIDFB_lineEdit.setDisabled(False)
+            self.gui.lblTimeUnit.setText("sec")
 
-    def deactivate_sliders(self):
-        self.gui.B_Prospect5b.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5b, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
+        self.gui.lcdSpeed.display(self.speed)
 
-        self.gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
-        self.gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5, self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit, self.gui.Cbrown_Text))
+    def speedtest(self):
 
-        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
-        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit, self.gui.Cbrown_Text))
-        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Car_Slide, self.gui.Car_lineEdit, self.gui.Car_Text))
+        model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
+                                 int_boost=self.intboost, s2s=self.sensor)
+        time50x = model_I.initialize_multiple(LUT_dir=None, LUT_name=None, ns=100, tts=[20.0, 60.0], tto=[0.0, 40.0],
+                                    psi=[0.0, 180.0], N=[1.1, 2.5], cab=[0.0, 80.0], cw=[0.0002, 0.02],
+                                    cm=[0.0001, 0.005], LAI=[0.5, 8.0], LIDF=[10.0, 80.0], typeLIDF=[2],
+                                    hspot=[0.1], psoil=[0.5], car=[0.0, 12.0], cbrown=[0.0, 1.0], anth=[0.0, 10.0],
+                                    testmode=1)
 
-    def model_rb_click(self, rbutton, slider, textfeld, text):
-        if rbutton.isChecked():
-            slider.setDisabled(True)
-            textfeld.setDisabled(True)
-            text.setDisabled(True)
-        else:
-            slider.setDisabled(False)
-            textfeld.setDisabled(False)
-            text.setDisabled(False)
+        return time50x
 
-    def para_init(self):
-        self.select_s2s(sensor="default", trigger=False)
-        self.para_list.append(float(self.gui.N_lineEdit.text())) #0
-        self.para_list.append(float(self.gui.Cab_lineEdit.text())) #1
-        self.para_list.append(float(self.gui.Cw_lineEdit.text())) #2
-        self.para_list.append(float(self.gui.Cm_lineEdit.text())) #3
-        self.para_list.append(float(self.gui.LAI_lineEdit.text())) #4
-        self.para_list.append(float(2))  # 5
-        self.para_list.append(float(self.gui.LIDFB_lineEdit.text())) #6
-        self.para_list.append(float(self.gui.hspot_lineEdit.text())) #7
-        self.para_list.append(float(self.gui.psoil_lineEdit.text())) #8
-        self.para_list.append(float(self.gui.SZA_lineEdit.text())) #9
-        self.para_list.append(float(self.gui.OZA_lineEdit.text())) #10
-        self.para_list.append(float(self.gui.rAA_lineEdit.text())) #11
-        self.para_list.append(float(self.gui.Car_lineEdit.text())) #12
-        self.para_list.append(float(self.gui.Canth_lineEdit.text())) #13
-        self.para_list.append(float(self.gui.Cbrown_lineEdit.text())) #14
-        self.para_list.append(float(self.gui.skyl_lineEdit.text())) #15
-        self.typeLIDF = 2
-
-    def mod_interactive(self):
-        self.gui.N_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.N_Slide, item=0))
-        self.gui.Cab_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.Cab_Slide, item=1))
-        self.gui.Cw_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cw_Slide, item=2))
-        self.gui.Cm_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cm_Slide, item=3))
-        self.gui.LAI_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAI_Slide, item=4))
-        self.gui.LIDFB_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LIDFB_Slide, item=6))
-        self.gui.hspot_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.hspot_Slide, item=7))
-        self.gui.psoil_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.psoil_Slide, item=8))
-        self.gui.SZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SZA_Slide, item=9))
-        self.gui.OZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.OZA_Slide, item=10))
-        self.gui.rAA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.rAA_Slide, item=11))
-        self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item=12))
-        self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item=13))
-        self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item=14))
-        self.gui.skyl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.skyl_Slide, item=15))
-        self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=16))
-        self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=17))
-        self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=18))
-        self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item=19))
-
-        self.gui.SType_None_B.clicked.connect(lambda: self.select_s2s(sensor="default"))
-        self.gui.SType_Sentinel_B.clicked.connect(lambda: self.select_s2s(sensor="Sentinel2"))
-        self.gui.SType_Landsat_B.clicked.connect(lambda: self.select_s2s(sensor="Landsat8"))
-        self.gui.SType_Enmap_B.clicked.connect(lambda: self.select_s2s(sensor="EnMAP"))
-
-        self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4"))
-        self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5"))
-        self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B"))
-        self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD"))
-
-        self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(canopy_arch="None"))
-        self.gui.B_4Sail.clicked.connect(lambda: self.select_model(canopy_arch="sail"))
-        self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
-
-        self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
-
-        self.gui.pushClearPlot.clicked.connect(self.clear_plot)
-        self.gui.Push_LoadInSitu.clicked.connect(self.open_file)
-        self.gui.Push_Exit.clicked.connect(self.gui.accept)
-        self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)
-
-    def mod_exec(self, slider=None, item=None):
-
-        if slider is not None and item is not None:
-            self.para_list[item] = slider.value() / 10000.0 # update para_list
-
-        mod_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=-999, int_boost=1.0, s2s=self.sensor)
-        self.myResult = mod_I.initialize_single(tts=self.para_list[9], tto=self.para_list[10], psi=self.para_list[11],
-                                           N=self.para_list[0], cab=self.para_list[1], cw=self.para_list[2],
-                                           cm=self.para_list[3], LAI=self.para_list[4], LIDF=self.para_list[6],
-                                           typeLIDF=self.typeLIDF, hspot=self.para_list[7], psoil=self.para_list[8],
-                                           car=self.para_list[12],
-                                           cbrown=self.para_list[14], anth=self.para_list[13])
-
-        # self.myResult[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        # self.myResult[1390:1541] = np.nan
-        self.plotting()
-
-    def plotting(self):
-
-        if not self.gui.CheckPlotAcc.isChecked():
-
-            self.clear_plot()
-            self.gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
-                                        name='modelled')
-
-            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
-            self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
-            self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
-        else:
-            self.plot = self.gui.graphicsView.plot(self.wl, self.myResult,
-                                              pen=self.plot_color[self.plot_count % 7])
-            self.plot_own_spec()
-            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
-            self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
-            self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
-
-        if self.data_mean is not None and self.gui.SType_None_B.isChecked() and not self.gui.CheckPlotAcc.isChecked():
-
-            self.plot_own_spec()
-
-            mae = np.nansum(abs(self.myResult - self.data_mean)) / len(self.myResult)
-            rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean)**2))
-            nse = 1.0 - ((np.nansum((self.data_mean - self.myResult)**2)) /
-                         (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
-            mnse = 1.0 - ((np.nansum(abs(self.data_mean - self.myResult))) /
-                          (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
-            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (self.myResult - np.nanmean(self.myResult))))
-                         / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
-                            * (np.sqrt(np.nansum((self.myResult - np.nanmean(self.myResult))**2)))))**2
-
-            errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) +
-                                 "\nMAE: " + str(round(mae, 6)) +
-                                 "\nNSE: " + str(round(nse, 6)) +
-                                 "\nmNSE: " + str(round(mnse, 6)) +
-                                 '\n' + u'R²: ' + str(round(r_squared, 6)), (100, 200, 255),
-                                 border="w", anchor=(1, 0))
-            errors.setPos(2500, 0.55)
-            self.gui.graphicsView.addItem(errors)
-
-    def open_file(self):
-        # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
-        filename = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
-        self.data = np.genfromtxt(filename, delimiter="\t", skip_header=True)
-        ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
-        self.data = np.delete(self.data, 0, axis=1)
-        self.data_mean = np.mean(self.data, axis=1)
-        self.data_mean[1010:1071] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        self.data_mean[1440:1591] = np.nan
-        self.data_mean[2050:2151] = np.nan
-        self.data_mean = self.data_mean[50:]
-        self.mod_exec()
-
-    def reset_in_situ(self):
-        self.data_mean = None
-        self.mod_exec()
-
-    def plot_own_spec(self):
-        if self.data_mean is not None:
-            self.gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
-
-    def clear_plot(self):
-        self.gui.graphicsView.clear()
-        self.plot_count = 0
-
-    #never ever...
-    #def exit_GUI(self):
-    #    QCoreApplication.instance().quit()
+    def abort(self, message):
+        QMessageBox.critical(self.gui, "Parameter(s) missing!", message)
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
-    app =  initQgisEnvironment()
+    app = initQgisEnvironment()
     myUI = UiFunc()
     myUI.gui.show()
     sys.exit(app.exec_())
