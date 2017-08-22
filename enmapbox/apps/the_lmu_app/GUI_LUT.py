@@ -535,7 +535,7 @@ class UiFunc:
         return time50x
 
     def abort(self, message):
-        QMessageBox.critical(self.gui, "Parameter(s) missing!", message)
+        QMessageBox.critical(self.gui, "Error", message)
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

@@ -27,16 +27,12 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <widget class="QRadioButton" name="radLandsat">
+     <widget class="QRadioButton" name="radFullRange">
       <property name="text">
-       <string>Landsat8</string>
+       <string>Full range (ASD)</string>
       </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="radSentinel">
-      <property name="text">
-       <string>Sentinel2</string>
+      <property name="checked">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -48,12 +44,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="radFullRange">
+     <widget class="QRadioButton" name="radSentinel">
       <property name="text">
-       <string>Full range</string>
+       <string>Sentinel2</string>
       </property>
-      <property name="checked">
-       <bool>true</bool>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="radLandsat">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Landsat8</string>
       </property>
      </widget>
     </item>
@@ -152,18 +155,18 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="1">
-     <widget class="QRadioButton" name="SType_Landsat_B_2">
+    <item row="1" column="2">
+     <widget class="QRadioButton" name="radOutIndividual">
       <property name="text">
        <string>Output to indivudal files</string>
       </property>
      </widget>
     </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="lineEdit_10"/>
+    <item row="0" column="2">
+     <widget class="QLineEdit" name="txtOutputImage"/>
     </item>
     <item row="1" column="0">
-     <widget class="QRadioButton" name="SType_Landsat_B_3">
+     <widget class="QRadioButton" name="radOutSingle">
       <property name="text">
        <string>Output to single file</string>
       </property>
@@ -172,8 +175,8 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="2">
-     <widget class="QPushButton" name="pushButton_4">
+    <item row="0" column="3">
+     <widget class="QPushButton" name="cmdOutputImage">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -190,6 +193,22 @@
        <string>...</string>
       </property>
      </widget>
+    </item>
+    <item row="0" column="1">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Maximum</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>10</width>
+        <height>0</height>
+       </size>
+      </property>
+     </spacer>
     </item>
    </layout>
   </widget>
@@ -377,7 +396,7 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QRadioButton" name="rad_NoiseOff">
+     <widget class="QRadioButton" name="radNoiseOff">
       <property name="text">
        <string>No artificial noise</string>
       </property>
@@ -509,16 +528,16 @@
         </widget>
        </item>
        <item>
-        <widget class="QRadioButton" name="radMSE">
+        <widget class="QRadioButton" name="radMAE">
          <property name="text">
-          <string>Mean Absolute Error (MSE)</string>
+          <string>Mean Absolute Error (MAE)</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QRadioButton" name="radnMSE">
+        <widget class="QRadioButton" name="radmNSE">
          <property name="text">
-          <string>normalized Nash-Sutcliffe-Efficiency (nMSE)</string>
+          <string>modified Nash-Sutcliffe-Efficiency mNSE)</string>
          </property>
         </widget>
        </item>
@@ -684,7 +703,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout_8">
     <item row="0" column="0">
-     <widget class="QPushButton" name="cmdOK">
+     <widget class="QPushButton" name="cmdRun">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -703,7 +722,7 @@
      </widget>
     </item>
     <item row="1" column="0">
-     <widget class="QPushButton" name="cmdCancel">
+     <widget class="QPushButton" name="cmdClose">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
         <horstretch>0</horstretch>

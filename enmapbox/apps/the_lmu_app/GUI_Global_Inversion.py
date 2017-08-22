@@ -32,6 +32,7 @@ class UiFunc:
     def initial_values(self):
         self.ctype = 0
         self.nbfits = 0
+        self.nbfits_type = "rel"
         self.noisetype = 0
         self.noiselevel = 0
         self.nodat = [0] * 3
@@ -42,10 +43,12 @@ class UiFunc:
         self.image = None
         self.out_path = None
         self.out_mode = "single"
-        self.conversion_factor = None
 
-        self.para_flat = [item for sublist in self.para_list for item in sublist]
-        self.npara_flat = len(self.para_flat)
+        self.geo_mode = "off"
+        self.geo_file = None
+        self.geo_fixed = [None]*3
+
+        self.conversion_factor = None
 
         self.LUT_path = None
         self.sensor = 1
@@ -68,22 +71,23 @@ class UiFunc:
         self.gui.radLandsat.clicked.connect(lambda: self.select_sensor(sensor=4))
 
         # Geometry
+        self.gui.cmdGeoFromFile.clicked.connect(lambda: self.open_file(mode="geo"))
         self.gui.radGeoFromFile.clicked.connect(lambda: self.select_geo(mode="file"))
         self.gui.radGeoFix.clicked.connect(lambda: self.select_geo(mode="fix"))
         self.gui.radGeoOff.clicked.connect(lambda: self.select_geo(mode="off"))
 
         # Artificial Noise
-        self.gui.radNoiseOff.clicked.connect(lambda: self.select_noise(mode="off"))
-        self.gui.radNoiseAdd.clicked.connect(lambda: self.select_noise(mode="add"))
-        self.gui.radNoiseMulti.clicked.connect(lambda: self.select_noise(mode="multi"))
-        self.gui.radNoiseInvMulti.clicked.connect(lambda: self.select_noise(mode="inv_multi"))
+        self.gui.radNoiseOff.clicked.connect(lambda: self.select_noise(mode=0))
+        self.gui.radNoiseAdd.clicked.connect(lambda: self.select_noise(mode=1))
+        self.gui.radNoiseMulti.clicked.connect(lambda: self.select_noise(mode=2))
+        self.gui.radNoiseInvMulti.clicked.connect(lambda: self.select_noise(mode=3))
 
         # Cost Function
-        self.gui.radRMSE.clicked.connect(lambda: self.select_costfun(mode="RMSE"))
-        self.gui.radMAE.clicked.connect(lambda: self.select_costfun(mode="MAE"))
-        self.gui.radRMSE.clicked.connect(lambda: self.select_costfun(mode="nMSE"))
-        self.gui.radRel.clicked.connect(lambda: self.select_costfun(mode="rel"))
-        self.gui.radAbs.clicked.connect(lambda: self.select_costfun(mode="rel"))
+        self.gui.radRMSE.clicked.connect(lambda: self.select_costfun(mode=1))
+        self.gui.radMAE.clicked.connect(lambda: self.select_costfun(mode=2))
+        self.gui.radmNSE.clicked.connect(lambda: self.select_costfun(mode=3))
+        self.gui.radRel.clicked.connect(lambda: self.select_costfun(type="rel"))
+        self.gui.radAbs.clicked.connect(lambda: self.select_costfun(type="abs"))
 
         # Execute
         self.gui.cmdRun.clicked.connect(lambda: self.run_inversion())
@@ -94,18 +98,18 @@ class UiFunc:
             result = str(QFileDialog.getOpenFileName(caption='Select Input Image'))
             if result:
                 self.gui.txtInputImage.setText(result)
-                self.image = self.gui.txtInputImage.text().replace("\\", "/")
         elif mode=="lut":
             result = str(QFileDialog.getOpenFileName(caption='Select LUT meta-file'))
             if result:
                 self.gui.txtInputLUT.setText(result)
-                self.LUT_path = self.gui.txtInputLUT.text().replace("\\", "/")
         elif mode=="output":
             result = str(QFileDialog.getExistingDirectory(caption='Select Path for Output storage'))
             if result:
                 self.gui.txtOutputImage.setText(result)
-                self.out_path = self.gui.txtInputLUT.text().replace("\\", "/")
-                if not self.out_path[-1] == "/": self.out_path += "/"
+        elif mode=="geo":
+            result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image'))
+            if result:
+                self.gui.txtGeoFromFile.setText(result)
 
     def select_outputmode(self, mode):
         self.out_mode = mode
@@ -113,282 +117,155 @@ class UiFunc:
     def select_sensor(self, sensor):
         self.sensor = sensor
 
-    def
-
-    def txt_enables(self, para, mode):
-
+    def select_geo(self, mode):
+        if mode=="off":
+            self.gui.txtGeoFromFile.setDisabled(True)
+            self.gui.cmdGeoFromFile.setDisabled(True)
+            self.gui.txtSZA.setDisabled(True)
+            self.gui.txtOZA.setDisabled(True)
+            self.gui.txtRAA.setDisabled(True)
+        if mode=="file":
+            self.gui.txtGeoFromFile.setDisabled(False)
+            self.gui.cmdGeoFromFile.setDisabled(False)
+            self.gui.txtSZA.setDisabled(True)
+            self.gui.txtOZA.setDisabled(True)
+            self.gui.txtRAA.setDisabled(True)
         if mode=="fix":
-            self.dict_objects[para][4].setEnabled(True)
-            for i in xrange(5, 12):
-                self.dict_objects[para][i].setEnabled(False)
-                self.dict_objects[para][i].setText("")
+            self.gui.txtGeoFromFile.setDisabled(True)
+            self.gui.cmdGeoFromFile.setDisabled(True)
+            self.gui.txtSZA.setDisabled(False)
+            self.gui.txtOZA.setDisabled(False)
+            self.gui.txtRAA.setDisabled(False)
+        self.geo_mode = mode
 
-        elif mode=="gauss":
-            for i in [4, 9, 10, 11]:
-                self.dict_objects[para][i].setEnabled(False)
-                self.dict_objects[para][i].setText("")
-            for i in xrange(5, 9):
-                self.dict_objects[para][i].setEnabled(True)
-
-        elif mode=="uni":
-            for i in [4, 7, 8, 9, 10, 11]:
-                self.dict_objects[para][i].setEnabled(False)
-                self.dict_objects[para][i].setText("")
-            self.dict_objects[para][5].setEnabled(True)
-            self.dict_objects[para][6].setEnabled(True)
-
-        elif mode=="log":
-            for i in xrange(4, 9):
-                self.dict_objects[para][i].setEnabled(False)
-                self.dict_objects[para][i].setText("")
-            for i in [9, 10, 11]:
-                self.dict_objects[para][i].setEnabled(True)
-
-        if para in self.dict_checks:
-            self.dict_checks[para] = mode
-
-    def set_boundaries(self):
-        self.dict_boundaries = {"N": [1.0, 3.0],
-                            "chl": [0.0, 100.0],
-                             "cw": [0.001, 0.7],
-                             "cm": [0.001, 0.02],
-                             "car": [0.0, 30.,0],
-                             "cbr": [0.0, 1.0],
-                             "canth": [0.0, 10.0],
-                             "lai": [0.01, 10.0],
-                             "alia": [0.0, 90.0],
-                             "hspot": [0.0, 1.0],
-                             "oza": [0.0, 80.0],
-                             "sza": [0.0, 80.0],
-                             "raa": [0.0, 180.0],
-                             "psoil": [0.0, 1.0],
-                             "laiu": [0.0, 100.0], # forest parameters temporary!
-                             "sd": [0.0, 100.0],
-                             "h": [0.0, 100.0],
-                             "cd": [0.0, 100.0]}
-
-    def select_s2s(self, sensor):
-        self.sensor = sensor
-        if not sensor == "default":
-            s2s = Spec2Sensor(sensor=sensor, nodat=-999)
-            s2s.init_sensor()
-            self.wl = s2s.wl_sensor
+    def select_noise(self, mode):
+        if mode==0:
+            self.gui.txtNoiseLevel.setDisabled(True)
         else:
-            self.wl = range(400, 2501)
+            self.gui.txtNoiseLevel.setDisabled(False)
+        self.noisetype = mode
 
-    def select_model(self, lop="prospectD", canopy_arch="sail"):
-        self.lop = lop
-        if canopy_arch == "None":
-            self.canopy_arch = None
-            self.gui.grp_canopy.setDisabled(True)
-        else:
-            self.canopy_arch = canopy_arch
-            self.gui.grp_canopy.setDisabled(False)
-
-        if lop=="prospectD":
-            for para in self.para_list[0]:
-                for object in xrange(12):
-                    self.dict_objects[para][object].setDisabled(False)
-            self.txt_enables(para="car", mode=self.dict_checks["car"])
-            self.txt_enables(para="cbr", mode=self.dict_checks["cbr"])
-            self.txt_enables(para="canth", mode=self.dict_checks["canth"])
-
-
-        elif lop == "prospect5B":
-            for para in self.para_list[0]:
-                for object in xrange(12):
-                    self.dict_objects[para][object].setDisabled(False)
-            for object in xrange(12):
-                self.dict_objects["canth"][object].setDisabled(True)
-            self.txt_enables(para="car", mode=self.dict_checks["car"])
-            self.txt_enables(para="cbr", mode=self.dict_checks["cbr"])
-
-        elif lop == "prospect5":
-            for para in self.para_list[0]:
-                for object in xrange(12):
-                    self.dict_objects[para][object].setDisabled(False)
-                for object in xrange(12):
-                    self.dict_objects["canth"][object].setDisabled(True)
-                    self.dict_objects["cbr"][object].setDisabled(True)
-            self.txt_enables(para="car", mode=self.dict_checks["car"])
-
-        elif lop == "prospect4":
-            for para in self.para_list[0]:
-                for object in xrange(12):
-                    self.dict_objects[para][object].setDisabled(False)
-                for object in xrange(12):
-                    self.dict_objects["canth"][object].setDisabled(True)
-                    self.dict_objects["cbr"][object].setDisabled(True)
-                    self.dict_objects["car"][object].setDisabled(True)
-
-    def get_folder(self):
-        path = str(QFileDialog.getExistingDirectory(caption='Select Directory for LUT'))
-
-        if path:
-            self.gui.txtPath.setText(path)
-            self.path = self.gui.txtPath.text().replace("\\", "/")
-            if not self.path[-1] == "/":
-                self.path += "/"
-            print self.path
-
-    def test_LUT(self):
-        model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
-                                 int_boost=1000, s2s="default")
-        model_I.initialize_multiple(LUT_dir="D:/ECST_III/Processor/VegProc/results_test/", LUT_name="Test1", ns=2000,
-                                    tts=[20.0, 50.0, 4.0],
-                                    tto=[0.0], psi=[45.0], N=[1.0, 2.5],
-                                    cab=[0.0, 80.0, 45.0, 5.0], cw=[0.002, 0.02], cm=[0.018],
-                                    LAI=[1.0, 8.0], LIDF=[20.0, 80.0, 40.0, 10.0], typeLIDF=[2],
-                                    hspot=[0.1], psoil=[0.0, 1.0], car=[0.0, 15.0],
-                                    cbrown=[0.0, 1.0], anth=[5.0])
-
-    def run_LUT(self):
-        self.get_inputs()
-        if not self.check_inputs(): return
-
-        model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
-                                 int_boost=self.intboost, s2s=self.sensor)
-        model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
-                                    tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
-                                    cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
-                                    LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
-                                    hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
-                                    cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'])
-
-    def get_inputs(self):
-        self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
-        for para in self.dict_objects:
-            for object in xrange(4, 12):
-                if not self.dict_objects[para][object].text() == "":
-                    try:
-                        self.dict_vals[para].append(float(self.dict_objects[para][object].text()))
-                    except ValueError:
-                        QMessageBox.critical(self.gui, "Not a number", "'%s' is not a valid number" % self.dict_objects[para][object].text())
-                        self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
-
-        self.LUT_name = self.gui.txtLUTname.text()
-        self.ns = int(self.gui.spinNS.value())
-        self.intboost = int(self.gui.spinIntBoost.value())
-        self.nodat = int(self.gui.spinNoData.value())
-
-    def check_inputs(self):
-
-        for i, key in enumerate(self.para_list[0]):
-            if len(self.dict_vals[self.para_list[0][i]]) > 3:
-                if self.dict_vals[self.para_list[0][i]][2] > self.dict_vals[self.para_list[0][i]][1] or \
-                                self.dict_vals[self.para_list[0][i]][2] < self.dict_vals[self.para_list[0][i]][0]:
-                    self.abort(message='Parameter %s: mean value must lie between min and max' % self.para_list[0][i])
-                    return False
-                elif self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
-                                self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
-                    self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
-                    return False
-            elif len(self.dict_vals[self.para_list[0][i]]) > 1:  # min and max specified
-                if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
-                                self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
-                    self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
-                    return False
-            elif len(self.dict_vals[self.para_list[0][i]]) > 0:  # fixed value specified
-                if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
-                                self.dict_vals[self.para_list[0][i]][0] > self.dict_boundaries[key][1]:
-                    self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
-                    return False
-
-        if self.canopy_arch == "sail":
-            for i, key in enumerate(self.para_list[1]):
-                if len(self.dict_vals[self.para_list[1][i]]) > 3:
-                    if self.dict_vals[self.para_list[1][i]][2] > self.dict_vals[self.para_list[1][i]][1] or \
-                                    self.dict_vals[self.para_list[1][i]][2] < self.dict_vals[self.para_list[1][i]][0]:
-                        self.abort(message='Parameter %s: mean value must lie between min and max' % self.para_list[1][i])
-                        return False
-                    elif self.dict_vals[self.para_list[1][i]][0] < self.dict_boundaries[key][0] or \
-                                    self.dict_vals[self.para_list[1][i]][1] > self.dict_boundaries[key][1]:
-                        self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[1][i])
-                        return False
-                elif len(self.dict_vals[self.para_list[1][i]]) > 1:  # min and max specified
-                    if self.dict_vals[self.para_list[1][i]][0] < self.dict_boundaries[key][0] or \
-                                    self.dict_vals[self.para_list[1][i]][1] > self.dict_boundaries[key][1]:
-                        self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[1][i])
-                        return False
-                elif len(self.dict_vals[self.para_list[1][i]]) > 0:  # min and max specified
-                    if self.dict_vals[self.para_list[1][i]][0] < self.dict_boundaries[key][0] or \
-                                    self.dict_vals[self.para_list[1][i]][0] > self.dict_boundaries[key][1]:
-                        self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[1][i])
-                        return False
-
-        if self.lop == "prospectD":
-            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0]))):
-                self.abort(message='Leaf Optical Properties parameter(s) missing')
-                return False
-        elif self.lop == "prospect5B":
-            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0])-1)):
-                self.abort(message='Leaf Optical Properties parameter(s) missing')
-                return False
-        elif self.lop == "prospect5":
-            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0])-2)):
-                self.abort(message='Leaf Optical Properties parameter(s) missing')
-                return False
-        elif self.lop == "prospect4":
-            if any(len(self.dict_vals[self.para_list[0][i]]) < 1 for i in xrange(len(self.para_list[0])-3)):
-                self.abort(message='Leaf Optical Properties parameter(s) missing')
-                return False
-
-        if self.canopy_arch == "sail":
-            if any(len(self.dict_vals[self.para_list[1][i]]) < 1 for i in xrange(len(self.para_list[1]))):
-                self.abort(message='Canopy Architecture parameter(s) missing')
-                return False
-
-        if not os.path.isdir(self.gui.txtPath.text()):
-            self.abort(message='Incorrect Path')
-            return False
-
-        if self.LUT_name == "" or self.LUT_name is None:
-            self.abort(message='Incorrect LUT name')
-            return False
-
-        return True
-
-    def get_lutsize(self):
-        self.get_inputs()
-        self.nlut_total = self.ns
-        for para in self.dict_vals:
-            if len(self.dict_vals[para]) == 3 and any(self.dict_objects[para][i].isEnabled() for i in xrange(4)):
-                self.nlut_total *= self.dict_vals[para][2]
-        # print "total size of LUT: ", self.nlut_total
-        self.gui.lcdNumber.display(self.nlut_total)
-
-        # if self.speed is None: self.speedtest()
-        time50x = self.speedtest()
-        self.speed = time50x*self.nlut_total/50
-
-        if self.speed > 172800:
-            self.gui.lblTimeUnit.setText("days")
-            self.speed /= 86400
-        elif self.speed > 10800:
-            self.gui.lblTimeUnit.setText("hours")
-            self.speed /= 3600
-        elif self.speed > 120:
-            self.gui.lblTimeUnit.setText("min")
-            self.speed /= 60
-        else:
-            self.gui.lblTimeUnit.setText("sec")
-
-        self.gui.lcdSpeed.display(self.speed)
-
-    def speedtest(self):
-
-        model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
-                                 int_boost=self.intboost, s2s=self.sensor)
-        time50x = model_I.initialize_multiple(LUT_dir=None, LUT_name=None, ns=100, tts=[20.0, 60.0], tto=[0.0, 40.0],
-                                    psi=[0.0, 180.0], N=[1.1, 2.5], cab=[0.0, 80.0], cw=[0.0002, 0.02],
-                                    cm=[0.0001, 0.005], LAI=[0.5, 8.0], LIDF=[10.0, 80.0], typeLIDF=[2],
-                                    hspot=[0.1], psoil=[0.5], car=[0.0, 12.0], cbrown=[0.0, 1.0], anth=[0.0, 10.0],
-                                    testmode=1)
-
-        return time50x
+    def select_costfun(self, mode=None, type=None):
+        if mode: self.ctype = mode
+        if type:
+            if type=="rel":
+                self.gui.txtAbs.setDisabled(True)
+                self.gui.txtRel.setDisabled(False)
+            elif type=="abs":
+                self.gui.txtAbs.setDisabled(False)
+                self.gui.txtRel.setDisabled(True)
+            self.nbfits_type = type
 
     def abort(self, message):
-        QMessageBox.critical(self.gui, "Parameter(s) missing!", message)
+        QMessageBox.critical(self.gui, "Error", message)
+
+    def check_and_assign(self):
+
+        # Image In
+        self.image = self.gui.txtInputImage.text()
+        self.image = self.image.replace("\\", "/")
+        if self.image is None:
+            self.abort(message='Input Image missing')
+        elif not os.path.isfile(self.image):
+            self.abort(message='Input Image could not be read')
+
+        # LUT
+        self.LUT_path = self.gui.txtInputLUT.text()
+        self.LUT_path = self.LUT_path.replace("\\", "/")
+        if self.LUT_path is None:
+            self.abort(message='LUT metafile missing')
+        elif not os.path.isfile(self.LUT_path):
+            self.abort(message='LUT metafile could not be read')
+
+        # Output path
+        self.out_path = self.gui.txtOutputImage.text()
+        self.out_path = self.out_path.replace("\\", "/")
+        if self.out_path is None:
+            self.abort(message='Output path missing')
+        elif not os.path.isdir(self.out_path):
+            self.abort(message='Output path could not be opened')
+        else:
+            if not self.out_path[-1] == "/":
+                self.out_path += "/"
+
+        # Geometry file:
+        if self.geo_mode == "file":
+            self.geo_file = self.gui.txtGeoFromFile.text()
+            self.geo_file = self.geo_file.replace("\\", "/")
+            if self.geo_file is None:
+                self.abort(message='Geometry-Input via file selected, but no file specified')
+            elif not os.path.isfile(self.geo_file):
+                self.abort(message='Geometry-Input file could not be read')
+        elif self.geo_mode == "fix":
+            if self.gui.txtSZA.text() == "" or self.gui.txtOZA.text() == "" or self.gui.txtRAA.text() == "":
+                self.abort(message='Geometry-Input via fixed values selected, but angles are incomplete')
+            else:
+                try:
+                    self.geo_fixed = [float(self.gui.txtSZA.text()), float(self.gui.txtOZA.text()), float(self.gui.txtRAA.text())]
+                except ValueError:
+                    self.abort(message='Cannot interpret Geometry angles as numbers')
+
+        # Noise
+        if not self.noisetype == 0:
+            if self.gui.txtNoiseLevel.text() == "":
+                self.abort(message='Please specify level for artificial noise')
+            else:
+                self.noiselevel = self.gui.txtNoiseLevel.text()
+                try:
+                    self.noiselevel = float(self.noiselevel)
+                except ValueError:
+                    self.abort(message='Cannot interpret noise level as decimal number')
+
+        # Cost Function Type:
+        if self.nbfits_type == "rel":
+            if self.gui.txtRel.text() == "":
+                self.abort(message='Please specify number of best fits')
+            else:
+                self.nbfits = self.gui.txtRel.text()
+                try:
+                    self.nbfits = float(self.nbfits)
+                except ValueError:
+                    self.abort(message='Cannot interpret number of best fits as a real number')
+        elif self.nbfits_type == "abs":
+            if self.gui.txtAbs.text() == "":
+                self.abort(message='Please specify number of best fits')
+            else:
+                self.nbfits = self.gui.txtAbs.text()
+                try:
+                    self.nbfits = int(self.nbfits)
+                except ValueError:
+                    self.abort(message='Cannot interpret number of best fits as a real number')
+
+
+
+
+        ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
+        ResultsOut = "D:/ECST_III/Processor/VegProc/results.bsq"
+        GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
+        LUT_dir = "D:/ECST_III/Processor/VegProc/results2/"
+        LUT_name = "Martin_LUT4"
+
+    def run_inversion(self):
+
+        self.check_and_assign()
+
+        inv = inverse.RTM_Inversion()
+        inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
+                            nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
+                            noiselevel=self.noiselevel, inversion_range=None, geo_image=self.geo_file,
+                            geo_fixed=self.geo_fixed, sensor=self.sensor, exclude_pixels=None,
+                            nodat=[-999]*3, which_para=range(15))
+
+        # inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_dir=LUT_dir, LUT_name=LUT_name,
+        #                     ctype=costfun_type,
+        #                     nbfits=nbest_fits, noisetype=noisetype, noiselevel=noiselevel,
+        #                     inversion_range=inversion_range,
+        #                     geo_image=GeometryIn, geo_fixed=geometry_fixed, sensor=sensor, exclude_pixels=None,
+        #                     nodat=[nodat_Geo, nodat_Image, nodat_Out], which_para=range(15))
+
+        inv.run_inversion()
+        inv.write_image()
+
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

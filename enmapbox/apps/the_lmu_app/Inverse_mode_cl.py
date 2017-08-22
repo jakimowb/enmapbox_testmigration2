@@ -133,17 +133,21 @@ class RTM_Inversion:
             delta = np.linalg.norm(model_Ref - image_Ref) / np.sqrt(self.n_wl)  # Numpy-Solution für RMSE (fast)
         elif type == 2: # MAE
             delta = sum(abs(image_Ref - model_Ref))
+        elif type == 3: # mNSE
+            delta = 1.0 - ((sum(abs(image_Ref - model_Ref))) /
+                           (sum(abs(image_Ref - (np.mean(image_Ref))))))
         else:
-            exit("wrong cost function type. Expected 1 or 2, got %i instead" %type)
+            exit("wrong cost function type. Expected 1, 2 or 3; got %i instead" %type)
 
         return delta
 
-    def inversion_setup(self, image, image_out, LUT_dir, LUT_name, ctype, nbfits, noisetype, noiselevel,
+    def inversion_setup(self, image, image_out, LUT_path, ctype, nbfits, nbfits_type, noisetype, noiselevel,
                         inversion_range, geo_image=None, geo_fixed=[None]*3, sensor=2,
                         nodat=[-999]*3, exclude_pixels=None, which_para=range(15)):
 
         self.ctype = ctype
         self.nbfits = nbfits
+        self.nbfits_type = nbfits_type
         self.noisetype = noisetype
         self.noiselevel = noiselevel
         self.inversion_range = inversion_range
@@ -247,35 +251,43 @@ class RTM_Inversion:
 
 
         destination.SetMetadataItem('data ignore value','-999','ENVI')
+        
+def example(self):
+    ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
+    ResultsOut = "D:/ECST_III/Processor/VegProc/results.bsq"
+    GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
+    LUT_dir = "D:/ECST_III/Processor/VegProc/results2/"
+    LUT_name = "Martin_LUT4"
+    
+    # global Inversion input:
+    costfun_type = 1
+    nbest_fits = 5.0
+    noisetype = 2
+    noiselevel = 5.0 # percent
+    sensor = 1 # ASD
+    nodat_Geo = -999
+    nodat_Image = -999
+    nodat_Out = -999
+    inversion_range = None
+    
+    # Fixed Geometry
+    tts = None
+    tto = None
+    psi = None
+    geometry_fixed = [tts, tto, psi]
+    
+    rtm = RTM_Inversion()
+    rtm.inversion_setup(image=ImageIn, image_out=ResultsOut, LUT_dir=LUT_dir, LUT_name=LUT_name, ctype=costfun_type,
+                     nbfits=nbest_fits, noisetype=noisetype, noiselevel=noiselevel, inversion_range=inversion_range,
+                     geo_image=GeometryIn, geo_fixed=geometry_fixed, sensor=sensor, exclude_pixels=None,
+                     nodat=[nodat_Geo, nodat_Image, nodat_Out], which_para=range(15))
+    
+    rtm.run_inversion()
+    rtm.write_image()
 
-ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
-ResultsOut = "D:/ECST_III/Processor/VegProc/results.bsq"
-GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
-LUT_dir = "D:/ECST_III/Processor/VegProc/results2/"
-LUT_name = "Martin_LUT4"
 
-# global Inversion input:
-costfun_type = 1
-nbest_fits = 5.0
-noisetype = 2
-noiselevel = 5.0 # percent
-sensor = 1 # ASD
-nodat_Geo = -999
-nodat_Image = -999
-nodat_Out = -999
-inversion_range = None
-
-# Fixed Geometry
-tts = None
-tto = None
-psi = None
-geometry_fixed = [tts, tto, psi]
-
-rtm = RTM_Inversion()
-rtm.inversion_setup(image=ImageIn, image_out=ResultsOut, LUT_dir=LUT_dir, LUT_name=LUT_name, ctype=costfun_type,
-                 nbfits=nbest_fits, noisetype=noisetype, noiselevel=noiselevel, inversion_range=inversion_range,
-                 geo_image=GeometryIn, geo_fixed=geometry_fixed, sensor=sensor, exclude_pixels=None,
-                 nodat=[nodat_Geo, nodat_Image, nodat_Out], which_para=range(15))
-
-rtm.run_inversion()
-rtm.write_image()
+if __name__ == '__main__':
+    # print(example_single() / 1000.0)
+    # plt.plot(range(len(example_single())), example_single() / 1000.0)
+    # plt.show()
+    example()
