@@ -232,6 +232,7 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         s = ""
 
 
+
 class RasterBandTreeNode(TreeNode):
 
     def __init__(self,  dataSource, bandIndex, *args, **kwds):
@@ -307,6 +308,13 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
         super(FileDataSourceTreeNode,self).__init__( *args, **kwds)
+
+
+class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
+    def __init__(self, *args, **kwds):
+        super(SpeclibDataSourceTreeNode, self).__init__( *args, **kwds)
+
+
 
 
 class ProcessingTypeTreeNode(DataSourceTreeNode):
@@ -687,16 +695,13 @@ class DataSourceManager(QObject):
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-    SOURCE_TYPES = ['ALL', 'RASTER', 'VECTOR', 'MODEL']
+    SOURCE_TYPES = ['ALL', 'RASTER', 'VECTOR', 'MODEL', 'SPECLIB']
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
 
         self.mSources = list()
 
-        #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
-        #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
-        # noinspection PyArgumentList
         from qgis.core import QgsMapLayerRegistry
         QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
         QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
@@ -739,6 +744,8 @@ class DataSourceManager(QObject):
                         sourceType = DataSourceRaster
                     elif sourceType == 'MODEL':
                         sourceType = ProcessingTypeDataSource
+                    elif sourceType == 'SPECLIB':
+                        sourceType = DataSourceSpectraLibrary
                     else:
                         sourceType = None
                 if isinstance(sourceType, type(DataSource)):
@@ -784,6 +791,8 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
         elif sourcetype == 'RASTER':
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
+        elif sourcetype == 'SPECLIB':
+            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceSpectraLibrary)]
         elif sourcetype == 'MODEL':
             return [ds.uri() for ds in self.mSources if isinstance(ds, ProcessingTypeDataSource)]
 
@@ -802,7 +811,6 @@ class DataSourceManager(QObject):
         :return: a DataSource instance, if successfully added
         """
         ds = DataSourceFactory.Factory(src, name=name, icon=icon)
-
 
         if isinstance(ds, DataSource):
             # check if source is already registered

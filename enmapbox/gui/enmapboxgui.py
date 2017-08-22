@@ -524,10 +524,12 @@ class EnMAPBox(QObject):
         self.ui.close()
         self.deleteLater()
 
+
     LUT_MESSAGELOGLEVEL = {
                 QgsMessageLog.INFO:'INFO',
                 QgsMessageLog.CRITICAL:'INFO',
                 QgsMessageLog.WARNING:'WARNING'}
+
     LUT_MSGLOG2MSGBAR ={QgsMessageLog.INFO:QgsMessageBar.INFO,
                         QgsMessageLog.CRITICAL:QgsMessageBar.WARNING,
                         QgsMessageLog.WARNING:QgsMessageBar.WARNING,

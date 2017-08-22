@@ -98,6 +98,19 @@ class DataSourceFactory(object):
         return uri
 
     @staticmethod
+    def isSpeclib(src):
+        uri = None
+        src = DataSourceFactory.srcToString(src)
+        if isinstance(src, str) and os.path.exists(src):
+            from enmapbox.gui.spectrallibraries import SpectralLibraryIO
+            for cls in SpectralLibraryIO.__subclasses__():
+                if cls.canRead(src):
+                    uri = src
+                    break
+        return uri
+
+
+    @staticmethod
     def isEnMapBoxPkl(src):
         """
         Returns the source uri if it can be handled as known raster data source.
@@ -160,6 +173,10 @@ class DataSourceFactory(object):
         if uri is not None:
             return DataSourceVector(uri, name=name, icon=icon)
 
+        uri = DataSourceFactory.isSpeclib(src)
+        if uri is not None:
+            return DataSourceSpectraLibrary(uri, name=name, icon=icon)
+
         uri = DataSourceFactory.isEnMapBoxPkl(src)
         if uri is not None:
             return ProcessingTypeDataSource(uri, name=name, icon=icon)
@@ -189,6 +206,7 @@ class DataSource(object):
     """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
 
 
+    sigMetadataChanged = pyqtSignal()
 
     def __init__(self, uri, name=None, icon=None):
         """
@@ -208,6 +226,12 @@ class DataSource(object):
         self.mUri = uri
         self.mIcon = icon
         self.mName = name
+
+    def updateMetadata(self, *args, **kwds):
+        """
+
+        """
+        pass
 
     def __eq__(self, other):
         return other is not None and \
@@ -329,22 +353,32 @@ class ProcessingTypeDataSource(DataSourceFile):
         return self.pfType.getMetadataDict()
 
 
+class DataSourceSpectraLibrary(DataSourceFile):
+
+    def __init__(self, uri, name=None, icon=None):
+        super(DataSourceSpectraLibrary, self).__init__(uri, name, icon)
+
+
+
+
+
 class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceRaster, self).__init__(uri, name, icon)
 
+        self.updateMetadata()
+
+    def updateMetadata(self):
         refLayer = self.createUnregisteredMapLayer(self.mUri)
         dp = refLayer.dataProvider()
-
         self.nSamples = dp.xSize()
         self.nLines = dp.ySize()
         self.nBands = dp.bandCount()
         self.dataType = dp.dataType(1)
         self.pxSizeX = np.round(refLayer.rasterUnitsPerPixelX(), 4)
         self.pxSizeY = np.round(refLayer.rasterUnitsPerPixelY(), 4)
-
-        #change icon
+        # change icon
         icon = self.icon()
         if self.nLines == 1:
             dt = dp.dataType(1)
