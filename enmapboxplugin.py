@@ -47,6 +47,11 @@ class EnMAPBoxPlugin:
             logging.basicConfig(level=logging.DEBUG)
         self.logger = logging.getLogger(__name__)
 
+        # add the Provider
+        # enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        #from processing.core.Processing import Processing
+        #Processing.addProvider(EnMAPBoxAlgorithmProvider())
+
     def initGui(self):
         self.logger.debug('initGui...')
         self.toolbarActions = []

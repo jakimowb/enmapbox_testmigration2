@@ -31,6 +31,10 @@ from enmapbox.gui.utils import DIR_REPO, jp, file_search
 
 DIR_BUILD = jp(DIR_REPO, 'build')
 DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+
+
+
+
 DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys'
 DIR_MOST_RECENT = jp(DIR_DEPLOY, 'most_recent_version')
 #list of deploy options:
@@ -141,9 +145,29 @@ def deployPlugin():
 if __name__ == "__main__":
 
     import pb_tool
-    p = r'D:\Repositories\QGIS_Plugins\enmap-box\pb_tool.cfg'
-    pb_tool.deploy()
 
-    buildPlugin()
-    deployPlugin()
+
+    DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+    #DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
+
+    pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
+    mkDir(DIR_DEPLOY)
+    pb_tool.get_plugin_directory = lambda : DIR_DEPLOY
+
+    #clean
+    pb_tool.clean_deployment(ask_first=False, config=pathCfg)
+
+    #I don't know how to call this from pure python
+    if True:
+        import subprocess
+        os.chdir(DIR_REPO)
+        subprocess.call(['pb_tool', 'compile'])
+    else:
+        cfgParser = pb_tool.get_config(config=pathCfg)
+        pb_tool.compile_files(cfgParser)
+
+    pb_tool.deploy_files(pathCfg, confirm=False)
+
+    #copy build to other locations
+
     print('Finished')
