@@ -2,7 +2,8 @@
 
 """
 ***************************************************************************
-    deploy
+    deploy.py
+    Script to build the EnMAP-Box from Repository code
     ---------------------
     Date                 : August 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -132,12 +133,16 @@ def deployPlugin():
         shutil.make_archive(pathDeployZip, 'zip', DIR_BUILD)
 
         if DIR_MOST_RECENT:
-            dirMostRecentPluginZip = jp(DIR_MOST_RECENT, 'enmapboxplugin')
-            shutil.copyfile(pathDeployZip + '.zip', dirMostRecentPluginZip)
+            pathSrc = pathDeployZip + '.zip'
+            pathDst = jp(DIR_MOST_RECENT, os.path.basename(pathSrc))
+            shutil.copyfile(pathSrc, pathDst)
 
 
 if __name__ == "__main__":
 
+    import pb_tool
+    p = r'D:\Repositories\QGIS_Plugins\enmap-box\pb_tool.cfg'
+    pb_tool.deploy()
 
     buildPlugin()
     deployPlugin()
