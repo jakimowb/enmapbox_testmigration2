@@ -36,8 +36,8 @@ DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
 DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
-import enmapboxtestdata
-DIR_TESTDATA = os.path.dirname(enmapboxtestdata.__file__)
+
+DIR_TESTDATA = os.path.join(DIR_ENMAPBOX, 'enmapboxtestdata')
 
 
 REPLACE_TMP = True #required for loading *.ui files directly
@@ -195,7 +195,7 @@ loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 #dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()
 
-def loadUIFormClass(pathUi, from_imports=False, resourceSuffix='_rc'):
+def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
     """
     Loads Qt UI files (*.ui) while taking care on QgsCustomWidgets.
     Uses PyQt4.uic.loadUiType (see http://pyqt.sourceforge.net/Docs/PyQt4/designer.html#the-uic-module)
