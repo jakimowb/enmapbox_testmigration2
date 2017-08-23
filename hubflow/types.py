@@ -9,11 +9,16 @@ from hubdc.model import Open, OpenLayer, PixelGrid
 import hubflow.ip_algorithms as ipalg
 import hubflow.dp_algorithms as dpalg
 from hubflow.report import *
+import hubflow.signals
 import matplotlib
 matplotlib.use('Qt4Agg')
-from matplotlib import pyplot
+try:
+    from matplotlib import pyplot
+except:
+    pass
 
 spectral.settings.envi_support_nonlowercase_params = True
+
 
 class FlowObject():
 
@@ -22,6 +27,7 @@ class FlowObject():
             os.makedirs(os.path.dirname(filename))
         with open(filename, 'wb') as f:
             pickle.dump(obj=self, file=f, protocol=1)
+        hubflow.signals.signals.fileCreated(filename)
 
     @classmethod
     def unpickle(cls, filename):
@@ -38,7 +44,7 @@ class FlowObject():
         objects = dict()
         objects[self.__class__.__name__.split('.')[-1]] = self
         ObjectBrowser.browse(objects,
-                             attribute_columns = (DEFAULT_ATTR_COLS),
+                             attribute_columns = DEFAULT_ATTR_COLS,
                              attribute_details = (ATTR_MODEL_REPR,),
                              show_callable_attributes = None,
                              show_special_attributes = None,

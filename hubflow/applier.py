@@ -1,6 +1,7 @@
 import gdal, numpy
 import hubdc.applier
 import hubflow.types
+import hubflow.signals
 
 class Applier(hubdc.applier.Applier):
 
@@ -13,8 +14,11 @@ class Applier(hubdc.applier.Applier):
         self.kwargs = kwargs
 
     def apply(self, operator=None, description=None, *ufuncArgs, **ufuncKwargs):
-        return hubdc.applier.Applier.apply(self, operator=operator, description=description,
-                                           overwrite=self.kwargs.get('overwrite', True), *ufuncArgs, **ufuncKwargs)
+        results = hubdc.applier.Applier.apply(self, operator=operator, description=description,
+                                              overwrite=self.kwargs.get('overwrite', True), *ufuncArgs, **ufuncKwargs)
+        for output in self.outputs.values():
+            hubflow.signals.signals.fileCreated.emit(output.filename)
+        return results
 
     def setInput(self, name, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour):
         hubdc.applier.Applier.setInput(self, name=name, filename=filename, noData=noData, resampleAlg=resampleAlg, options=self.kwargs.get(name+'Options', None))
@@ -22,7 +26,7 @@ class Applier(hubdc.applier.Applier):
     def setOutput(self, name, filename):
         hubdc.applier.Applier.setOutput(self, name=name, filename=filename, options=self.kwargs.get(name+'Options', None))
 
-    def setFlowImage(self, name, image):
+    def setFlowImage(self, name, image, **kwargs):
         assert isinstance(image, hubflow.types.Image), image
         self.setInput(name, filename=image.filename)
 
