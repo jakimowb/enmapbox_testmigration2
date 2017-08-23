@@ -188,7 +188,7 @@ def compile_rc_files(ROOT):
         assert os.path.exists(pathQrc), pathQrc
         bn = os.path.basename(f)
         bn = os.path.splitext(bn)[0]
-        pathPy2 = os.path.join(DIR_UIFILES, bn+'_rc.py' )
+        pathPy2 = os.path.join(DIR_UIFILES, bn+'.py' )
         subprocess.call(['pyrcc4', '-py2', '-o', pathPy2, pathQrc])
 
 def fileNeedsUpdate(file1, file2):

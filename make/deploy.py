@@ -105,8 +105,13 @@ if __name__ == "__main__":
     #I don't know how to call this from pure python
     if True:
         import subprocess
+        import guimake
+
+
         os.chdir(DIR_REPO)
         subprocess.call(['pb_tool', 'compile'])
+        guimake.compile_rc_files(DIR_REPO)
+
     else:
         cfgParser = pb_tool.get_config(config=pathCfg)
         pb_tool.compile_files(cfgParser)
