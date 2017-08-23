@@ -620,7 +620,7 @@ class ApplierOperator(object):
         ufunc = lambda array: numpy.stack(numpy.float32(array[index] == id) for id in ids)
         return self.getDerivedArray(name=name, ufunc=ufunc, overlap=overlap, resampleAlg=gdal.GRA_Average)
 
-    def getCategoricalArray(self, name, ids, noData=0, minOverallCoverage=0., minWinnerCoverage=0., index=0, overlap=0):
+    def getCategoricalArray(self, name, ids, noData=0, minOverallCoverage=None, minWinnerCoverage=None, index=0, overlap=0):
         """
         Returns input raster band data like :meth:`~hubdc.applier.ApplierOperator.getArray`,
         but instead of returning the data directly, the category array of maximum aggregated pixel fraction for the given categories (i.e. ``ids``)
@@ -636,6 +636,11 @@ class ApplierOperator(object):
         """
         fractions = self.getCategoricalFractionArray(name=name, ids=ids, index=index, overlap=overlap)
         categories = numpy.array(ids)[numpy.argmax(fractions, axis=0)[None]]
+        if minOverallCoverage is None:
+            minOverallCoverage = 0.
+        if minWinnerCoverage is None:
+            minWinnerCoverage = 0.
+
         if noData is not None:
             invalid = False
             if minOverallCoverage > 0:
@@ -659,7 +664,7 @@ class ApplierOperator(object):
         ids = range(1, classes+1)
         return self.getCategoricalFractionArray(name=name, ids=ids, index=0, overlap=overlap)
 
-    def getClassificationArray(self, name, minOverallCoverage=0., minWinnerCoverage=0., overlap=0):
+    def getClassificationArray(self, name, minOverallCoverage=None, minWinnerCoverage=None, overlap=0):
         """
         Like :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`, but all category related information is
         implicitly taken from the class definition metadata.
@@ -897,7 +902,7 @@ class ApplierOperator(object):
         array = dataset.readAsArray(scale=scale)
         return array
 
-    def getVectorCategoricalFractionArray(self, name, ids, minOverallCoverage=0., oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
+    def getVectorCategoricalFractionArray(self, name, ids, minOverallCoverage=None, oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
                        overlap=0):
         """
         Returns input vector rasterization data like :meth:`~hubdc.applier.ApplierOperator.getVectorArray`,
@@ -938,13 +943,16 @@ class ApplierOperator(object):
         fractions = self.getArray(name=tmpname, overlap=overlap)
 
         # mask out pixel that are not sufficiently covered
+        if minOverallCoverage is None:
+            minOverallCoverage = 0.
+
         if minOverallCoverage > 0:
             invalid = numpy.sum(fractions, axis=0) < minOverallCoverage
             fractions[:, invalid] = 0
 
         return fractions
 
-    def getVectorCategoricalArray(self, name, ids, noData, minOverallCoverage=0., minWinnerCoverage=0.,
+    def getVectorCategoricalArray(self, name, ids, noData, minOverallCoverage=None, minWinnerCoverage=None,
                                   oversampling=10, xRes=None, yRes=None, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
                                   overlap=0):
         """
@@ -967,6 +975,10 @@ class ApplierOperator(object):
                                                            overlap=overlap)
 
         categories = numpy.array(ids)[fractions.argmax(axis=0)[None]]
+
+        if minWinnerCoverage is None:
+            minWinnerCoverage = 0.
+
         if minWinnerCoverage > 0:
             invalid = numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
             categories[invalid] = noData
