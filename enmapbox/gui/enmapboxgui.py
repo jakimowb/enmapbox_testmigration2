@@ -27,7 +27,7 @@ from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import loadUI, settings, DIR_TESTDATA, MimeDataHelper
 
 SETTINGS = settings()
-HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', True)
+HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
