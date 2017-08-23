@@ -212,45 +212,6 @@ def clusterer_predict():
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
     clusterer.predict(filename=clusteringFilename, image=image, mask=mask, vmask=vmask)
 
-def image_basicStatistics():
-    #image = Image(filename=imageFilename)
-    image = Image(filename=r'C:\Users\janzandr\Desktop\tmp\HighResolution_Berlin_Urban_Gradient_2009_testData_compressed.bsq')  # imageFilename)
-
-    mask = Mask(filename=classification3mFilename)
-    vmask = VectorMask(filename=vectorFilename, allTouched=True)
-
-    controls = ApplierControls()#.setWindowXSize(50)
-    min, max, n = image.basicStatistics(bandIndicies=None, mask=mask, vmask=vmask, controls=controls)
-    print(min, max, n)
-
-def image_scatterMatrix():
-    image = Image(filename=image2Filename)
-    mask = Mask(filename=classification3mFilename)
-    vmask = VectorMask(filename=vectorFilename, allTouched=True)
-    stratification = Classification(classification3mFilename)
-
-    controls = ApplierControls().setReferenceGridByImage(image.filename)\
-                                .setNumThreads(4).set
-    print(stratification.classDefinition)
-    i1, i2 = 0, 1
-    (min1, min2), (max1, max2), (n1, n2) = image.basicStatistics(bandIndicies=[i1, i2],
-                                                                 mask=mask, vmask=vmask,
-                                                                 controls=controls)
-
-    if False: # without stratification
-        H, xedges, yedges = image.scatterMatrix(image2=image, bandIndex=i1, bandIndex2=i2, range=[min1, max1], range2=[min2, max2], bins=10,
-                                                mask=mask, vmask=vmask, controls=controls)
-    else: # with stratification
-        H, xedges, yedges = image.scatterMatrix(image2=image, bandIndex=i1, bandIndex2=i2, range=[min1, max1], range2=[min2, max2], bins=10,
-                                                mask=mask, vmask=vmask, stratification=stratification,
-                                                controls=controls)
-        print(stratification.classDefinition)
-
-    print(H.shape)
-    print(H)
-    print(xedges)
-    print(yedges)
-
 def browse():
 
     image = Image(filename=imageFilename)
