@@ -88,13 +88,14 @@ if __name__ == "__main__":
 
     #the directory to build the "enmapboxplugin" folder
     DIR_DEPLOY = jp(DIR_REPO, 'deploy')
-    DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
+    #DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
 
     #local pb_tool configuration file.
     pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
     mkDir(DIR_DEPLOY)
 
     #required to choose andy DIR_DEPLOY of choice
+    #issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
     pb_tool.get_plugin_directory = lambda : DIR_DEPLOY
 
     #1. clean an existing directory = the enmapboxplugin folder
@@ -115,6 +116,7 @@ if __name__ == "__main__":
 
     #4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
     # we need to remove them afterwards.
+    # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
     print('Remove files...')
     for f in file_search(jp(DIR_DEPLOY, 'enmapboxplugin'), re.compile('(svg|pyc)$'), recursive=True):
         os.remove(f)
