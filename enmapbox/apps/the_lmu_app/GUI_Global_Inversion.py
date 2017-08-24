@@ -7,11 +7,13 @@ from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4 import uic
+from osgeo import gdal
 import Inverse_mode_cl as inverse
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 
 pathUI = os.path.join(os.path.dirname(__file__),'GUI_Global_Inversion.ui')
+pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Select_Wavelengths.ui')
 
 from enmapbox.gui.utils import loadUIFormClass
 
@@ -21,11 +23,18 @@ class GUI_Global_Inversion(QDialog, loadUIFormClass(pathUI)):
         super(GUI_Global_Inversion, self).__init__(parent)
         self.setupUi(self)    
 
+class GUI_Select_Wavelengths(QDialog, loadUIFormClass(pathUI2)):
+
+    def __init__(self, parent=None):
+        super(GUI_Select_Wavelengths, self).__init__(parent)
+        self.setupUi(self)
+
 class UiFunc:
 
     def __init__(self):
         
         self.gui = GUI_Global_Inversion()
+        # self.myUI2 = UiFunc2()
         self.initial_values()
         self.connections()
 
@@ -52,6 +61,7 @@ class UiFunc:
 
         self.LUT_path = None
         self.sensor = 1
+        self.wl = None
 
     def connections(self):
 
@@ -90,6 +100,7 @@ class UiFunc:
         self.gui.radAbs.clicked.connect(lambda: self.select_costfun(type="abs"))
 
         # Execute
+        self.gui.cmdExcludeBands.clicked.connect(lambda: self.invoke_selection())
         self.gui.cmdRun.clicked.connect(lambda: self.run_inversion())
         self.gui.cmdClose.clicked.connect(lambda: self.gui.accept)
 
@@ -266,11 +277,136 @@ class UiFunc:
         inv.run_inversion()
         inv.write_image()
 
+    def invoke_selection(self):
+
+        # Check ImageIn
+        self.image = self.gui.txtInputImage.text()
+        self.image = self.image.replace("\\", "/")
+        if self.image is None:
+            self.abort(message='Specify Input Image first')
+        elif not os.path.isfile(self.image):
+            self.abort(message='Input Image could not be read')
+
+        # Read ImageIn
+        dataset = gdal.Open(self.image)
+        if dataset is None:
+            self.abort(message='Input Image could not be read. Please make sure it is a valid ENVI image')
+        wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
+        wavelengths = wavelengths.replace("{","")
+        wavelengths = wavelengths.replace("}", "")
+        wavelengths = wavelengths.split(",")
+
+        if dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['nanometers', 'nm', 'nanometer']:
+            print "I shouldn't be raised"
+            wave_convert = 1
+            self.wunit = u'nm'
+        elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['micrometers', 'µm', 'micrometer']:
+            wave_convert = 1000
+            self.wunit = u"\u03bcm"
+        else:
+            self.abort(message="No wavelength units provided in ENVI header file")
+
+        self.wl = [float(item) * wave_convert for item in wavelengths]
+        self.nbands = dataset.RasterCount
+        self.nrows = dataset.RasterYSize
+        self.ncols = dataset.RasterXSize
+
+        pass_exclude = []
+
+        if not self.gui.txtExclude.text() == "":
+            try:
+                pass_exclude = self.gui.txtExclude.text().split(" ")
+                pass_exclude = [int(pass_exclude[i])-1 for i in xrange(len(pass_exclude))]
+            except:
+                self.gui.txtExclude.setText("")
+                pass_exclude = []
+            
+        myUI2.populate(default_exclude=pass_exclude)
+        myUI2.gui.show()
+
+class UiFunc2:
+    def __init__(self):
+        self.gui = GUI_Select_Wavelengths()
+        self.connections()
+
+    def connections(self):
+        self.gui.cmdSendExclude.clicked.connect(lambda: self.send(direction="in_to_ex"))
+        self.gui.cmdSendInclude.clicked.connect(lambda: self.send(direction="ex_to_in"))
+        self.gui.cmdAll.clicked.connect(lambda: self.select(select="all"))
+        self.gui.cmdNone.clicked.connect(lambda: self.select(select="none"))
+        self.gui.cmdCancel.clicked.connect(lambda: self.gui.accept)
+        self.gui.cmdOK.clicked.connect(lambda: self.OK())
+
+    def populate(self, default_exclude):
+        if myUI.nbands < 10: width = 1
+        elif myUI.nbands < 100: width = 2
+        elif myUI.nbands < 1000: width = 3
+        else: width = 4
+
+        for i in xrange(myUI.nbands):
+            if i in default_exclude:
+                str_band_no = '{num:0{width}}'.format(num=i + 1, width=width)
+                label = "band %s: %6.2f %s" % (str_band_no, myUI.wl[i], myUI.wunit)
+                self.gui.lstExcluded.addItem(label)
+            else:
+                str_band_no = '{num:0{width}}'.format(num=i+1, width=width)
+                label = "band %s: %6.2f %s" %(str_band_no, myUI.wl[i], myUI.wunit)
+                self.gui.lstIncluded.addItem(label)
+
+    def send(self, direction):
+        if direction == "in_to_ex":
+            origin = self.gui.lstIncluded
+            destination = self.gui.lstExcluded
+        elif direction == "ex_to_in":
+            origin = self.gui.lstExcluded
+            destination = self.gui.lstIncluded
+
+        for item in origin.selectedItems():
+            index = origin.indexFromItem(item).row()
+            destination.addItem(origin.takeItem(index))
+
+        origin.sortItems()
+        destination.sortItems()
+
+    def select(self, select):
+        if select == "all":
+            list_object = self.gui.lstIncluded
+            direction = "in_to_ex"
+        elif select == "none":
+            list_object = self.gui.lstExcluded
+            direction = "ex_to_in"
+
+        for i in xrange(list_object.count()):
+            item = list_object.item(i)
+            list_object.setItemSelected(item, True)
+
+        self.send(direction=direction)
+
+    def OK(self): # buggy!
+        # Read excluded bands form QListWidget
+        list_object = self.gui.lstExcluded
+        raw_list = []
+        for i in xrange(list_object.count()):
+            item = list_object.item(i).text()
+            raw_list.append(item)
+
+        myUI.exclude_bands = [int(raw_list[i].split(" ")[1][:-1])-1 for i in xrange(len(raw_list))]
+        exclude_string = " ".join(str(x+1) for x in myUI.exclude_bands)
+        myUI.gui.txtExclude.setText(exclude_string)
+
+        for list_object in [self.gui.lstIncluded, self.gui.lstExcluded]:
+            for i in xrange(list_object.count()):
+                item = list_object.item(i)
+                index = list_object.indexFromItem(item).row()
+                list_object.takeItem(index)
+
+        self.gui.close()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
     myUI = UiFunc()
+    myUI2 = UiFunc2()
     myUI.gui.show()
     sys.exit(app.exec_())
 
