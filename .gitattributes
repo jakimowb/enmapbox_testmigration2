@@ -2,7 +2,7 @@
 # these large files type will not be added to the normal repository
 # don't forget to call after having changed this file:
 #   git commit -m "changed gitattributes"
-#   git push origin master
+#   git push
 
 # Large Remote Sensing Rasters
 *.bsq filter=lfs diff=lfs merge=lfs -text
@@ -43,9 +43,6 @@
 *.ain filter=lfs diff=lfs merge=lfs -text
 
 # Others
-# *.jpg filter=lfs diff=lfs merge=lfs -text
-# *.png filter=lfs diff=lfs merge=lfs -text
-# *.gif filter=lfs diff=lfs merge=lfs -text
 *.sqlite filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.pdf filter=lfs diff=lfs merge=lfs -text
