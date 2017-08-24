@@ -25,7 +25,7 @@ def run():
     from enmapbox.gui.utils import initQgisApplication
     from qgis.utils import iface
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
     enmapbox.gui.LOAD_EXTERNAL_APPS = True
     qgisApp = initQgisApplication()
     enmapbox = EnMAPBox(iface)
