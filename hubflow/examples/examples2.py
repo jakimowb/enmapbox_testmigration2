@@ -1,4 +1,4 @@
-import tempfile
+from tempfile import gettempdir
 from os.path import join
 import gdal
 from hubdc.applier import ApplierControls, ApplierInputOptions
@@ -18,8 +18,8 @@ def getRMask():
 def getVMask():
     return vector
 
-outdir = join(tempfile.gettempdir(), 'hubflow_test')
-overwrite = True
+outdir = join(gettempdir(), 'hubflow_test')
+overwrite = not True
 rasteredMaskFilename = join(outdir, 'rasteredMask.img')
 rasteredClassificationFilename = join(outdir, 'rasteredClassification.img')
 rasteredProbabilityFilename = join(outdir, 'rasteredProbability.img')
@@ -66,8 +66,9 @@ def image_sampleByMask():
     unsupervisedSample = image.sampleByMask(mask=getRMask())
     return unsupervisedSample
 
-def image_basicStatistics():
-    min, max, mean, n = image.basicStatistics(bandIndicies=None, mask=getRMask())
+def image_basicStatistics(mask=getRMask()):
+    grid = image.pixelGrid.newResolution(xRes=image.pixelGrid.xRes, yRes=image.pixelGrid.yRes)
+    min, max, mean, n = image.basicStatistics(bandIndicies=None, mask=mask, grid=grid)
     return min, max, mean, n
 
 def image_scatterMatrix(stratify=False):
@@ -91,21 +92,30 @@ def regressionAssessRegressionPerformance():
     regressionPerformance = regression.assessRegressionPerformance(regression=regression)
     return regressionPerformance
 
+def test_signalingFileCreation():
+    from hubflow import signals
+    def handler(filename):
+        print('Handler was invoked by file creation: {}'.format(filename))
+    signals.sigFileCreated.connect(handler)
+    FlowObject().pickle(filename=join(outdir, 'dummy.pkl'))
+
 if __name__ == '__main__':
-    print('tmp directory: ' + outdir)
+    print('output directory: ' + outdir)
+    #vector_rasterize()
+    #print(vector_uniqueValues())
+    #vectorClassification_rasterizeAsClassification()
+    #vectorClassification_rasterizeAsProbability()
 
-    vector_rasterize()
-    print(vector_uniqueValues())
-    vectorClassification_rasterizeAsClassification()
-    vectorClassification_rasterizeAsProbability()
+    #probability_asClassColorRGBImage()
+    #print(image_sampleByClassification())
+    #print(image_sampleByRegression())
+    #print(image_sampleByProbability())
+    #print(image_sampleByMask())
+    #print(image_basicStatistics(mask=getRMask()))
+    #print(image_basicStatistics(mask=getVMask()))
 
-    probability_asClassColorRGBImage()
-    print(image_sampleByClassification())
-    print(image_sampleByRegression())
-    print(image_sampleByProbability())
-    print(image_sampleByMask())
-    print(image_basicStatistics())
-    print(image_scatterMatrix(stratify=True))
+    #print(image_scatterMatrix(stratify=True))
 
-    classificationAssessClassificationPerformance().report().saveHTML(filename=reportFilename)
-    regressionAssessRegressionPerformance().report().saveHTML(filename=reportFilename)
+    #classificationAssessClassificationPerformance().report().saveHTML(filename=reportFilename)
+    #regressionAssessRegressionPerformance().report().saveHTML(filename=reportFilename)
+    test_signalingFileCreation()
