@@ -9,7 +9,7 @@ from hubdc.model import Open, OpenLayer, PixelGrid
 import hubflow.ip_algorithms as ipalg
 import hubflow.dp_algorithms as dpalg
 from hubflow.report import *
-import hubflow.signals
+from hubflow import signals
 import matplotlib
 matplotlib.use('Qt4Agg')
 try:
@@ -27,7 +27,7 @@ class FlowObject():
             os.makedirs(os.path.dirname(filename))
         with open(filename, 'wb') as f:
             pickle.dump(obj=self, file=f, protocol=1)
-        hubflow.signals.signals.fileCreated(filename)
+        signals.sigFileCreated.emit(filename)
 
     @classmethod
     def unpickle(cls, filename):

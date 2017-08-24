@@ -17,7 +17,7 @@ class Applier(hubdc.applier.Applier):
         results = hubdc.applier.Applier.apply(self, operator=operator, description=description,
                                               overwrite=self.kwargs.get('overwrite', True), *ufuncArgs, **ufuncKwargs)
         for output in self.outputs.values():
-            hubflow.signals.signals.fileCreated.emit(output.filename)
+            hubflow.signals.sigFileCreated.emit(output.filename)
         return results
 
     def setInput(self, name, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour):
