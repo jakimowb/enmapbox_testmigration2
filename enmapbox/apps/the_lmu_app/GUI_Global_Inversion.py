@@ -334,7 +334,7 @@ class UiFunc2:
         self.gui.cmdSendInclude.clicked.connect(lambda: self.send(direction="ex_to_in"))
         self.gui.cmdAll.clicked.connect(lambda: self.select(select="all"))
         self.gui.cmdNone.clicked.connect(lambda: self.select(select="none"))
-        self.gui.cmdCancel.clicked.connect(lambda: self.gui.accept)
+        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
         self.gui.cmdOK.clicked.connect(lambda: self.OK())
 
     def populate(self, default_exclude):
@@ -395,10 +395,7 @@ class UiFunc2:
         myUI.gui.txtExclude.setText(exclude_string)
 
         for list_object in [self.gui.lstIncluded, self.gui.lstExcluded]:
-            for i in xrange(list_object.count()):
-                item = list_object.item(i)
-                index = list_object.indexFromItem(item).row()
-                list_object.takeItem(index)
+            list_object.clear()
 
         self.gui.close()
 
