@@ -142,6 +142,7 @@ if __name__ == "__main__":
 
     #update remotes
     to_update = ['hub-datacube', 'hub-workflow']
+    to_update = ['hub-workflow']
     for p in to_update:
         updateRemote(p)
 
