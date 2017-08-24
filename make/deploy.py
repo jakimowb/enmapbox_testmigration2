@@ -52,122 +52,80 @@ buildID = '{}.{}'.format(enmapbox.__version__, timestamp)
 dirBuildPlugin = jp(DIR_BUILD, 'enmapboxplugin')
 
 def rm(p):
+    """
+    Remove files or directory 'p'
+    :param p: path of file or directory to be removed.
+    """
     if os.path.isfile(p):
         os.remove(p)
     elif os.path.isdir(p):
         shutil.rmtree(p)
 
 def cleanDir(d):
+    """
+    Remove content from directory 'd'
+    :param d: directory to be cleaned.
+    """
     assert os.path.isdir(d)
     for root, dirs, files in os.walk(d):
         for p in dirs + files: rm(jp(root,p))
         break
 
-def mkDir(p, delete=False):
-    if delete and os.path.isdir(p):
-        shutil.rmtree(p)
-    if not os.path.isdir(p):
-        os.makedirs(p)
-
-
-
-def buildPlugin():
-    global buildID, dirBuildPlugin, mkDir
-
-
-
-    print('BUILD enmapbox {}...'.format(buildID))
-
-
-    mkDir(DIR_BUILD, delete=True)
-    mkDir(dirBuildPlugin, delete=True)
-    SUB_DIRS = ['enmapbox', 'enmapboxgeoalgorithms', 'site-packages']
-    if ADD_TESTDATA:
-        SUB_DIRS.append('enmapboxtestdata')
-
-    # copy files on top level
-    srcFileList = []
-    srcFileList.extend(file_search(DIR_REPO, re.compile('\.(py|qrc|png|txt|rst|md)$'), recursive=False))
-    for subDir in SUB_DIRS:
-        subDirSrc = jp(DIR_REPO, subDir)
-        subDirDst = jp(dirBuildPlugin, subDir)
-
-        if subDir in PLAIN_COPY_SUBDIRS:
-            srcFileList.extend(file_search(subDirSrc, '*', recursive=True))
-        else:
-            srcFileList.extend(file_search(subDirSrc, re.compile('\.(py|qrc|ui|ico|png|txt|rst|md)$'), recursive=True))
-
-    ##remove hidden files and
-    for p in srcFileList: print(p)
-    srcFileList = [f for f in srcFileList if not f.startswith('.')]
-    for srcFile in srcFileList:
-        dstFile = srcFile.replace(DIR_REPO, dirBuildPlugin)
-        mkDir(os.path.dirname(dstFile), delete=False)
-        shutil.copyfile(srcFile, dstFile)
-
-
-#time stamp in local time zone (=computers time)
-
-
-def deployPlugin():
-    print('DEPLOY the build')
-    if DIR_MOST_RECENT:
-        mkDir(DIR_MOST_RECENT, delete=False)
-
-    if 'UNZIPPED' in DEPLOY_OPTIONS:
-        dirDeployUnzipped = jp(DIR_DEPLOY, 'enmapbox.{}'.format(buildID))
-        mkDir(dirDeployUnzipped, delete=True)
-        dirPlugin = jp(dirDeployUnzipped, 'enmapboxplugin')
-        print('Copy files to {}...'.format(dirDeployUnzipped))
-        shutil.copytree(dirBuildPlugin, dirPlugin)
-
-        if DIR_MOST_RECENT:
-            dirMostRecentPlugin = jp(DIR_MOST_RECENT, 'enmapboxplugin')
-            mkDir(dirMostRecentPlugin, delete=False)
-            cleanDir(dirMostRecentPlugin)
-            for root, dirs, files in os.walk(dirPlugin):
-                for d in dirs:
-                    shutil.copytree(jp(dirPlugin,d), jp(dirMostRecentPlugin,d))
-                for f in files:
-                    shutil.copyfile(jp(dirPlugin,f), jp(dirMostRecentPlugin,f))
-                break
-    if 'ZIP' in DEPLOY_OPTIONS:
-        pathDeployZip = jp(DIR_DEPLOY, 'enmapbox.{}'.format(buildID))
-        print('Create {}...'.format(pathDeployZip))
-        shutil.make_archive(pathDeployZip, 'zip', DIR_BUILD)
-
-        if DIR_MOST_RECENT:
-            pathSrc = pathDeployZip + '.zip'
-            pathDst = jp(DIR_MOST_RECENT, os.path.basename(pathSrc))
-            shutil.copyfile(pathSrc, pathDst)
-
+def mkDir(d, delete=False):
+    """
+    Make directory.
+    :param d: path of directory to be created
+    :param delete: set on True to delete the directory contents, in case the directory already existed.
+    """
+    if delete and os.path.isdir(d):
+        cleanDir(d)
+    if not os.path.isdir(d):
+        os.makedirs(d)
 
 if __name__ == "__main__":
 
     import pb_tool
 
-
+    #the directory to build the "enmapboxplugin" folder
     DIR_DEPLOY = jp(DIR_REPO, 'deploy')
-    #DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
+    DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
 
+    #local pb_tool configuration file.
     pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
     mkDir(DIR_DEPLOY)
+
+    #required to choose andy DIR_DEPLOY of choice
+    #issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
     pb_tool.get_plugin_directory = lambda : DIR_DEPLOY
 
-    #clean
+    #1. clean an existing directory = the enmapboxplugin folder
     pb_tool.clean_deployment(ask_first=False, config=pathCfg)
 
+    #2. Compile. Basically call pyrcc to create the resources.rc file
     #I don't know how to call this from pure python
     if True:
         import subprocess
+        import guimake
+
+
         os.chdir(DIR_REPO)
         subprocess.call(['pb_tool', 'compile'])
+        guimake.compile_rc_files(DIR_REPO)
+
     else:
         cfgParser = pb_tool.get_config(config=pathCfg)
         pb_tool.compile_files(cfgParser)
 
+    #3. Deploy = write the data to the new enmapboxplugin folder
     pb_tool.deploy_files(pathCfg, confirm=False)
 
-    #copy build to other locations
+    #4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
+    # we need to remove them afterwards.
+    # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
+    print('Remove files...')
+    for f in file_search(jp(DIR_DEPLOY, 'enmapboxplugin'), re.compile('(svg|pyc)$'), recursive=True):
+        os.remove(f)
+
+
 
     print('Finished')

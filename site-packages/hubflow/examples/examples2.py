@@ -12,93 +12,100 @@ vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover,
                                             classDefinition=ClassDefinition(names=['Roof',  'Pavement',   'Grass',   'Tree',   'Soil',    'Other'],
                                                                             lookup=[168,0,0, 156,156,156,  151,229,0, 35,114,0, 136,89,67, 236,214,0]),
                                             minOverallCoverage=1., minWinnerCoverage=0.5)
+def getRMask():
+    return vectorClassification_rasterizeAsClassification().asMask()
+
+def getVMask():
+    return vector
 
 outdir = join(tempfile.gettempdir(), 'hubflow_test')
-overwrite = not True
+overwrite = True
 rasteredMaskFilename = join(outdir, 'rasteredMask.img')
 rasteredClassificationFilename = join(outdir, 'rasteredClassification.img')
 rasteredProbabilityFilename = join(outdir, 'rasteredProbability.img')
 rasteredProbabilityRGBFilename = join(outdir, 'rasteredProbabilityRGB.img')
 reportFilename = join(outdir, 'report.html')
 
-def vectorRasterize():
+def vector_rasterize():
     image = vector.rasterize(imageFilename=rasteredMaskFilename, grid=image2.pixelGrid, overwrite=overwrite)
     return image
 
-def vectorUniqueValues():
+def vector_uniqueValues():
     return vector.uniqueValues(attribute='Level_2_ID')
 
-def vectorClassificationRasterizeAsClassification():
+def vectorClassification_rasterizeAsClassification():
     classification = vectorClassification.rasterizeAsClassification(classificationFilename=rasteredClassificationFilename, grid=image2.pixelGrid, oversampling=1, overwrite=overwrite)
     return classification
 
-def vectorClassificationRasterizeAsProbability():
+def vectorClassification_rasterizeAsProbability():
     probability = vectorClassification.rasterizeAsProbability(probabilityFilename=rasteredProbabilityFilename, grid=image.pixelGrid, oversampling=10, overwrite=overwrite)
     return probability
 
-def probabilityAsClassColorRGBImage():
-    probability = vectorClassificationRasterizeAsProbability()
+def probability_asClassColorRGBImage():
+    probability = vectorClassification_rasterizeAsProbability()
     image = probability.asClassColorRGBImage(imageFilename=rasteredProbabilityRGBFilename, overwrite=overwrite)
     return image
 
-def imageSampleByClassification():
-    classification = vectorClassificationRasterizeAsClassification()
+def image_sampleByClassification():
+    classification = vectorClassification_rasterizeAsClassification()
     classificationSample = image.sampleByClassification(classification=classification, mask=vectorClassification)
     return classificationSample
 
-def imageSampleByRegression():
-    probability = vectorClassificationRasterizeAsProbability()
+def image_sampleByRegression():
+    probability = vectorClassification_rasterizeAsProbability()
     regression = Regression(filename=probability.filename)
     classificationSample = image.sampleByRegression(regression=regression, mask=vectorClassification)
     return classificationSample
 
-def imageSampleByProbability():
-    probability = vectorClassificationRasterizeAsProbability()
+def image_sampleByProbability():
+    probability = vectorClassification_rasterizeAsProbability()
     probabilitySample = image.sampleByProbability(probability=probability, mask=vectorClassification)
     return probabilitySample
 
-def imageSampleByMask():
-    mask = vectorRasterize().asMask()
-    unsupervisedSample = image.sampleByMask(mask=mask)
+def image_sampleByMask():
+    unsupervisedSample = image.sampleByMask(mask=getRMask())
     return unsupervisedSample
 
+def image_basicStatistics():
+    min, max, mean, n = image.basicStatistics(bandIndicies=None, mask=getRMask())
+    return min, max, mean, n
+
+def image_scatterMatrix(stratify=False):
+    stratification = vectorClassification_rasterizeAsClassification()
+    i1, i2 = 0, 1
+    (min1, min2), (max1, max2), (mean1, mean2), (n1, n2) = image.basicStatistics(bandIndicies=[i1, i2], mask=getRMask())
+
+    H, xedges, yedges = image.scatterMatrix(image2=image, bandIndex1=i1, bandIndex2=i2,
+                                            range1=[min1, max1], range2=[min2, max2], bins=10,
+                                            mask=getRMask(), stratification=stratification if stratify else None)
+    return H, xedges, yedges
+
 def classificationAssessClassificationPerformance():
-    classification = vectorClassificationRasterizeAsClassification()
+    classification = vectorClassification_rasterizeAsClassification()
     classificationPerformance = classification.assessClassificationPerformance(classification=classification)
     return classificationPerformance
 
 def regressionAssessRegressionPerformance():
-    probability = vectorClassificationRasterizeAsProbability()
+    probability = vectorClassification_rasterizeAsProbability()
     regression = Regression(filename=probability.filename)
     regressionPerformance = regression.assessRegressionPerformance(regression=regression)
     return regressionPerformance
 
-def classDefinitionFromText():
-
-    classDefinition = ClassDefinition(names=['c1', 'c2'] ,lookup=[255,0,0, 0,0,255])
-
-    snamesList =  ['c1, c2',               '[c1, c2]',               '{c1, c2}']
-    slookupList = ['255, 0, 0, 0, 0, 255', '[255, 0, 0, 0, 0, 255]', '{255, 0, 0, 0, 0, 255}']
-
-    for snames, slookup in zip(snamesList, slookupList):
-        assert classDefinition.equal(other=ClassDefinition.fromText(snames=snames, slookup=slookup)), (snames, slookup)
-    assert classDefinition.equal(other=ClassDefinition.fromText(snames='c1, c2', slookup=''), compareLookup=False), (snames, slookup)
-    assert classDefinition.equal(other=ClassDefinition.fromText(snames='c1, c2', slookup=''), compareLookup=False), (snames, slookup)
-
-
 if __name__ == '__main__':
     print('tmp directory: ' + outdir)
-    #vectorRasterize()
-    #print(vectorUniqueValues())
-    #vectorClassificationRasterizeAsClassification()
-    #vectorClassificationRasterizeAsProbability()
 
-    #probabilityAsClassColorRGBImage()
-    #print(imageSampleByClassification())
-    #print(imageSampleByRegression())
-    #print(imageSampleByProbability())
-    #print(imageSampleByMask())
+    vector_rasterize()
+    print(vector_uniqueValues())
+    vectorClassification_rasterizeAsClassification()
+    vectorClassification_rasterizeAsProbability()
+
+    probability_asClassColorRGBImage()
+    print(image_sampleByClassification())
+    print(image_sampleByRegression())
+    print(image_sampleByProbability())
+    print(image_sampleByMask())
+    print(image_basicStatistics())
+    print(image_scatterMatrix(stratify=True))
 
     classificationAssessClassificationPerformance().report().saveHTML(filename=reportFilename)
-    #regressionAssessRegressionPerformance().report().saveHTML(filename=reportFilename)
-    #classDefinitionFromText()
+    regressionAssessRegressionPerformance().report().saveHTML(filename=reportFilename)

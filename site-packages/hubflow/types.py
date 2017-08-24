@@ -82,43 +82,12 @@ class Image(FlowObject):
         assert isinstance(sample, UnsupervisedSample)
         return sample
 
-    def basicStatistics(self, bandIndicies=None, mask=None, vmask=None,
-                        imageOptions=None, maskOptions=None,
-                        controls=None, progressBar=None):
+    def basicStatistics(self, bandIndicies=None, mask=None, **kwargs):
+        return ipalg.imageBasicStatistics(image=self, bandIndicies=bandIndicies, mask=mask, **kwargs)
 
-        if mask is None: mask = Mask(None)
-        if vmask is None: vmask = Vector(None)
-        assert isinstance(mask, Mask)
-        assert isinstance(vmask, Vector)
-
-        return ipalg.imageBasicStatistics(image=self.filename, bandIndicies=bandIndicies,
-                                          mask=mask.filename, maskFunc=mask.ufunc,
-                                          vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL,
-                                          imageOptions=imageOptions, maskOptions=maskOptions,
-                                          controls=controls, progressBar=progressBar)
-
-    def scatterMatrix(self, image2, bandIndex, bandIndex2, range, range2, bins=256,
-                      mask=None, vmask=None,  stratification=None,
-                      imageOptions=None, image2Options=None, maskOptions=None,  stratificationOptions=None,
-                      controls=None, progressBar=None):
-
-        assert isinstance(image2, Image)
-        if mask is None: mask = Mask(None)
-        if vmask is None: vmask = Vector(None)
-        if stratification is None: stratification = Classification(None, classDefinition=ClassDefinition(classes=0))
-        assert isinstance(mask, Mask)
-        assert isinstance(vmask, Vector)
-
-        return ipalg.imageScatterMatrix(image1=self.filename, image2=image2.filename,
-                                        bandIndex1=bandIndex, bandIndex2=bandIndex2,
-                                        range1=range, range2=range2,
-                                        bins=bins,
-                                        mask=mask.filename, maskFunc=mask.ufunc,
-                                        vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL,
-                                        stratification=stratification.filename, strataDefinition=stratification.classDefinition,
-                                        imageOptions=imageOptions, image2Options=image2Options, maskOptions=maskOptions, stratificationOptions=stratificationOptions,
-                                        controls=controls, progressBar=progressBar)
-
+    def scatterMatrix(self, image2, bandIndex1, bandIndex2, range1, range2, bins=256, mask=None, stratification=None, **kwargs):
+        return ipalg.imageScatterMatrix(image1=self, image2=image2, bandIndex1=bandIndex1, bandIndex2=bandIndex2,
+                                        range1=range1, range2=range2, bins=bins, mask=mask, stratification=stratification, **kwargs)
 
 class Mask(Image):
 
@@ -210,12 +179,14 @@ class ClassDefinition(FlowObject):
 
 class Classification(Image):
 
-    def __init__(self, filename, classDefinition=None):
+    def __init__(self, filename, classDefinition=None, minOverallCoverage=0.5, minWinnerCoverage=0.5):
         Image.__init__(self, filename)
         if classDefinition is None:
             classDefinition = ClassDefinition.fromENVIMeta(filename)
         self.classDefinition = classDefinition
         self.noData = 0
+        self.minOverallCoverage = minOverallCoverage
+        self.minWinnerCoverage = minWinnerCoverage
 
     def assessClassificationPerformance(self, classification, **kwargs):
         assert isinstance(classification, Classification)
