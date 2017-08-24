@@ -700,6 +700,11 @@ class DataSourceManager(QObject):
         from qgis.core import QgsMapLayerRegistry
         QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
         QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
+        try:
+            from hubflow import signals
+            signals.sigFileCreated.connect(self.addSource)
+        except Exception as ex:
+            logger.exception(ex)
 
         self.updateFromQgsMapLayerRegistry()
 
