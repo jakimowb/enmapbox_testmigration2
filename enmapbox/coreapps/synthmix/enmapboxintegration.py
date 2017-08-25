@@ -75,7 +75,8 @@ class SynthMixEnMAPBoxApp(EnMAPBoxApplication):
     """
     def geoAlgorithms(self):
         #return the SynthMixGeoAlgorithms
-        return [SynthMixGeoAlgorithm()]
+
+        return []
 
 
 
