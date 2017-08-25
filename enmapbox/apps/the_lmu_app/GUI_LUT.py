@@ -257,7 +257,7 @@ class UiFunc:
 
         # Buttons
         self.gui.cmdRun.clicked.connect(lambda: self.run_LUT())
-        self.gui.cmdClose.clicked.connect(lambda: self.gui.accept)
+        self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
         self.gui.cmdOpenFolder.clicked.connect(lambda: self.get_folder())
         self.gui.cmdLUTcalc.clicked.connect(lambda: self.get_lutsize())
         self.gui.cmdTest.clicked.connect(lambda: self.test_LUT())
@@ -379,6 +379,11 @@ class UiFunc:
             print self.path
 
     def test_LUT(self):
+        self.get_lutsize()
+        app.processEvents()
+        self.gui.lcdNumber.display(int(self.nlut_total))
+        self.gui.lcdSpeed.display(self.speed)
+
         model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
                                  int_boost=1000, s2s="default")
         model_I.initialize_multiple(LUT_dir="D:/ECST_III/Processor/VegProc/results_test/", LUT_name="Test1", ns=2000,
@@ -392,15 +397,23 @@ class UiFunc:
     def run_LUT(self):
         self.get_inputs()
         if not self.check_inputs(): return
+        self.get_lutsize()
+        app.processEvents()
+        self.gui.lcdNumber.display(int(self.nlut_total))
+        self.gui.lcdSpeed.display(self.speed)
 
         model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
                                  int_boost=self.intboost, s2s=self.sensor)
-        model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
+        lut_run = model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
                                     tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
                                     cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
                                     LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
                                     hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
                                     cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'])
+        if lut_run:
+            self.abort(message=lut_run)
+        else:
+            QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
 
     def get_inputs(self):
         self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
@@ -502,9 +515,9 @@ class UiFunc:
             if len(self.dict_vals[para]) == 3 and any(self.dict_objects[para][i].isEnabled() for i in xrange(4)):
                 self.nlut_total *= self.dict_vals[para][2]
         # print "total size of LUT: ", self.nlut_total
-        self.gui.lcdNumber.display(self.nlut_total)
+        self.gui.lcdNumber.display(int(self.nlut_total))
 
-        # if self.speed is None: self.speedtest()
+        if self.speed is None: self.speedtest()
         time50x = self.speedtest()
         self.speed = time50x*self.nlut_total/50
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>986</width>
-    <height>400</height>
+    <width>994</width>
+    <height>420</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,13 +23,13 @@
     </rect>
    </property>
    <property name="title">
-    <string>Sensor Type</string>
+    <string>In-Image Sensor Type</string>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <widget class="QRadioButton" name="radFullRange">
+     <widget class="QRadioButton" name="radEnMAP">
       <property name="text">
-       <string>Full range (ASD)</string>
+       <string>EnMAP</string>
       </property>
       <property name="checked">
        <bool>true</bool>
@@ -37,9 +37,12 @@
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="radEnMAP">
+     <widget class="QRadioButton" name="radFullRange">
       <property name="text">
-       <string>EnMAP</string>
+       <string>Full range (ASD)</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -151,7 +154,7 @@
     <item row="0" column="0">
      <widget class="QLabel" name="label_3">
       <property name="text">
-       <string>Select Output Path</string>
+       <string>Output:</string>
       </property>
      </widget>
     </item>
@@ -388,7 +391,7 @@
      <x>21</x>
      <y>210</y>
      <width>171</width>
-     <height>171</height>
+     <height>191</height>
     </rect>
    </property>
    <property name="title">
@@ -481,7 +484,7 @@
      <x>200</x>
      <y>210</y>
      <width>381</width>
-     <height>171</height>
+     <height>191</height>
     </rect>
    </property>
    <property name="title">
@@ -641,79 +644,100 @@
     <rect>
      <x>590</x>
      <y>210</y>
-     <width>231</width>
-     <height>171</height>
+     <width>381</width>
+     <height>101</height>
     </rect>
    </property>
    <property name="title">
-    <string>Excludes</string>
+    <string>Exclusions</string>
    </property>
    <layout class="QGridLayout" name="gridLayout_7">
     <item row="0" column="0">
-     <widget class="QPushButton" name="cmdExcludePixels">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
+     <widget class="QFrame" name="frame_5">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
       </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
       </property>
-      <property name="text">
-       <string>Exclude Pixels</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="Line" name="line">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-     </widget>
-    </item>
-    <item row="4" column="0">
-     <widget class="QLineEdit" name="txtExclude"/>
-    </item>
-    <item row="3" column="0">
-     <widget class="QLabel" name="label_12">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>15</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>Enter exlucded bands:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="5" column="0">
-     <widget class="QPushButton" name="cmdExcludeBands">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>Manually select excluded bands</string>
-      </property>
+      <layout class="QGridLayout" name="gridLayout_9">
+       <property name="margin">
+        <number>0</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QFrame" name="frame_6">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_10">
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_14">
+            <property name="text">
+             <string>Select Mask Image</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="txtInputMask"/>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="cmdInputMask">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>20</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="txtExclude"/>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="cmdExcludeBands">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>20</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_15">
+            <property name="text">
+             <string>Exclude Bands:</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>
@@ -721,18 +745,21 @@
   <widget class="QGroupBox" name="groupBox_8">
    <property name="geometry">
     <rect>
-     <x>830</x>
-     <y>210</y>
-     <width>141</width>
-     <height>171</height>
+     <x>770</x>
+     <y>320</y>
+     <width>201</width>
+     <height>81</height>
     </rect>
    </property>
    <property name="title">
     <string>Execute</string>
    </property>
    <layout class="QGridLayout" name="gridLayout_8">
-    <item row="0" column="0">
+    <item row="1" column="0">
      <widget class="QPushButton" name="cmdRun">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -750,7 +777,14 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="0">
+    <item row="0" column="2">
+     <widget class="QPushButton" name="cmdDebug">
+      <property name="text">
+       <string>Debug Run</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="2">
      <widget class="QPushButton" name="cmdClose">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -771,7 +805,214 @@
     </item>
    </layout>
   </widget>
+  <widget class="QGroupBox" name="groupBox_9">
+   <property name="geometry">
+    <rect>
+     <x>590</x>
+     <y>310</y>
+     <width>181</width>
+     <height>91</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>No Data</string>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_5">
+    <item>
+     <widget class="QFrame" name="frame_9">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_5">
+       <property name="margin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_12">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Image:</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lblNodatImage">
+         <property name="frameShape">
+          <enum>QFrame::Box</enum>
+         </property>
+         <property name="text">
+          <string>NA</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QFrame" name="frame_10">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <property name="margin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_19">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Geo-Image</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lblNodatGeoImage">
+         <property name="frameShape">
+          <enum>QFrame::Box</enum>
+         </property>
+         <property name="text">
+          <string>NA</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QFrame" name="frame_11">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <property name="margin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_21">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Output</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="txtNodatOutput">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>30</height>
+          </size>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
  </widget>
+ <tabstops>
+  <tabstop>txtInputImage</tabstop>
+  <tabstop>cmdInputImage</tabstop>
+  <tabstop>txtInputLUT</tabstop>
+  <tabstop>cmdInputLUT</tabstop>
+  <tabstop>txtOutputImage</tabstop>
+  <tabstop>cmdOutputImage</tabstop>
+  <tabstop>radOutSingle</tabstop>
+  <tabstop>radOutIndividual</tabstop>
+  <tabstop>radLandsat</tabstop>
+  <tabstop>radGeoFromFile</tabstop>
+  <tabstop>txtGeoFromFile</tabstop>
+  <tabstop>cmdGeoFromFile</tabstop>
+  <tabstop>radGeoFix</tabstop>
+  <tabstop>txtSZA</tabstop>
+  <tabstop>txtOZA</tabstop>
+  <tabstop>txtRAA</tabstop>
+  <tabstop>radGeoOff</tabstop>
+  <tabstop>radNoiseOff</tabstop>
+  <tabstop>radNoiseAdd</tabstop>
+  <tabstop>radNoiseMulti</tabstop>
+  <tabstop>radNoiseInvMulti</tabstop>
+  <tabstop>txtNoiseLevel</tabstop>
+  <tabstop>radRMSE</tabstop>
+  <tabstop>radMAE</tabstop>
+  <tabstop>radmNSE</tabstop>
+  <tabstop>radRel</tabstop>
+  <tabstop>txtRel</tabstop>
+  <tabstop>radAbs</tabstop>
+  <tabstop>txtAbs</tabstop>
+  <tabstop>txtInputMask</tabstop>
+  <tabstop>cmdInputMask</tabstop>
+  <tabstop>txtExclude</tabstop>
+  <tabstop>cmdExcludeBands</tabstop>
+  <tabstop>cmdDebug</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

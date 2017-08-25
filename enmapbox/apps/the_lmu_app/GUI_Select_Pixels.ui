@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Select Bands</string>
+   <string>Dialog</string>
   </property>
   <widget class="QFrame" name="frame_2">
    <property name="geometry">
@@ -200,16 +200,6 @@
    </layout>
   </widget>
  </widget>
- <tabstops>
-  <tabstop>lstIncluded</tabstop>
-  <tabstop>cmdSendExclude</tabstop>
-  <tabstop>lstExcluded</tabstop>
-  <tabstop>cmdSendInclude</tabstop>
-  <tabstop>cmdAll</tabstop>
-  <tabstop>cmdNone</tabstop>
-  <tabstop>cmdCancel</tabstop>
-  <tabstop>cmdOK</tabstop>
- </tabstops>
  <resources/>
  <connections/>
 </ui>

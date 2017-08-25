@@ -14,6 +14,7 @@ import winsound
 class RTM_Inversion:
 
     def __init__(self):
+        self.error = None
         self.ctype = 0
         self.nbfits = 0
         self.noisetype = 0
@@ -23,9 +24,8 @@ class RTM_Inversion:
         self.wl_sensor = None
         self.fwhm_sensor = None
         self.wl_compare = None
-        self.inversion_range = None
         self.n_wl = None
-        self.offset = None
+        self.offset = 0
         self.image = None
         self.image_out = None
         self.npara = None
@@ -34,6 +34,7 @@ class RTM_Inversion:
         self.nrows, self.ncols, self.nbands = (None, None, None)
         self.geometry_matrix = None
         self.whichLUT = None
+        self.LUT_base = None
         self.exclude_pixels = None
         self.whichpara = None
 
@@ -70,7 +71,7 @@ class RTM_Inversion:
     def get_geometry(self, geo_fixed, geo_image=None):
 
         #0: Generate geometry matrix
-        self.geometry_matrix = np.empty(shape=(self.nrows, self.ncols))
+        self.geometry_matrix = np.empty(shape=(self.nrows, self.ncols, 3))
         self.geometry_matrix.fill(self.nodat[0])
 
         #1: import geometry-file from read_image or
@@ -142,51 +143,61 @@ class RTM_Inversion:
         return delta
 
     def inversion_setup(self, image, image_out, LUT_path, ctype, nbfits, nbfits_type, noisetype, noiselevel,
-                        inversion_range, geo_image=None, geo_fixed=[None]*3, sensor=2,
-                        nodat=[-999]*3, exclude_pixels=None, which_para=range(15)):
+                        exclude_bands, out_mode, geo_image=None, geo_fixed=[None]*3, sensor=2,
+                        nodat=[-999]*3, mask_image=None, which_para=range(15)):
 
         self.ctype = ctype
         self.nbfits = nbfits
         self.nbfits_type = nbfits_type
         self.noisetype = noisetype
         self.noiselevel = noiselevel
-        self.inversion_range = inversion_range
+        self.exclude_bands = exclude_bands
 
         self.conversion_factor = 10000
         self.nodat = nodat
-        if exclude_pixels is None:
-            self.exclude_pixels = []
-        else:
-            self.exclude_pixels = exclude_pixels
+        self.out_mode = out_mode
+
         self.whichpara = which_para
         self.npara = len(which_para)
         self.image_out = image_out
         self.sensor_setup(sensor=sensor)
         self.nrows, self.ncols, self.nbands, self.image = self.read_image(image=image, nodat=nodat[1], dtype=np.float16,
                                                                           exclude_bands=self.exclude_bands)
-        self.get_meta(LUT_dir + LUT_name + "_00meta.lut")
+        if mask_image is None:
+            self.exclude_pixels = []
+        else:
+            self.masking(img=mask_image)
+            if self.exclude_pixels is None: # Error within self.masking -> self.exclude_pixels is still None
+                return self.error
+
+        self.get_meta(LUT_path)
         self.get_geometry(geo_image=geo_image, geo_fixed=geo_fixed)  # generate list of LUT-names for each pixel
 
         self.out_matrix = np.empty(shape=(self.nrows, self.ncols, len(self.whichpara)))
 
+    def masking(self, img):
+        mask = self.read_image(img, nodat=-999)
+        if not self.nrows == mask[0] or not self.ncols == mask[1]:
+            self.error = "Input Image and Mask Image must have same dimensions! Input Image has [%ir, %ic], " \
+                         "Mask Image has [%ir, %ic]" % (self.nrows, self.ncols, mask[0], mask[1])
+            return
+        self.exclude_pixels = np.squeeze(mask[3], axis=2) # turns [r,c,1] (1 band) into [r,c]
+
     def sensor_setup(self, sensor):
         self.wl_sensor, self.fwhm_sensor = get_wl(sensor=sensor)
-        self.offset = 400 - self.wl_sensor[0]
 
         if sensor == 1: # ASD
-            self.exclude_bands = range(0, self.offset) + range(1009, 1129) + range(1371, 1650) # 350-400nm, 1359-1479nm, 1721-200nm
+            self.offset = 400 - self.wl_sensor[0]  # 400nm as first wavelength in the PROSAIL model family
+            # self.exclude_bands = range(0, self.offset) + range(1009, 1129) + range(1371, 1650) # 350-400nm, 1359-1479nm, 1721-200nm
+            self.exclude_bands_model = range(self.npara) + [((i - self.offset)) + self.npara for i in self.exclude_bands[self.offset:]]
         elif sensor == 2: # EnMAP
-            self.exclude_bands = range(78, 88) + range(128, 138) + range(161, 189) # Überlappung VNIR, Water1, Water2
+            # self.exclude_bands = range(78, 88) + range(128, 138) + range(161, 189) # Überlappung VNIR, Water1, Water2
+            self.exclude_bands_model = range(self.npara) + [i + self.npara for i in self.exclude_bands]
         elif sensor == 3: # Sentinel-2
-            self.exclude_bands = [10]
+            # self.exclude_bands = [10]
+            self.exclude_bands_model = range(self.npara) + [i + self.npara for i in self.exclude_bands]
 
-        self.exclude_bands_model = range(15) + [((i-self.offset))+15 for i in self.exclude_bands[self.offset:]] # 15 = 15 parameter (flexible?)
-
-        if not self.inversion_range is None:
-            self.wl_compare = [self.wl_sensor[i] for i in xrange(len(self.wl_sensor)) if not i in self.exclude_bands and i in self.inversion_range]
-        else:
-            self.wl_compare = [self.wl_sensor[i] for i in xrange(len(self.wl_sensor)) if not i in self.exclude_bands]
-
+        self.wl_compare = [self.wl_sensor[i] for i in xrange(len(self.wl_sensor)) if i not in self.exclude_bands]
         self.n_wl = len(self.wl_compare)
 
     def get_meta(self, file):
@@ -195,6 +206,7 @@ class RTM_Inversion:
             metacontent = metafile.readlines()
             metacontent = [line.rstrip('\n') for line in metacontent]
 
+        self.LUT_base = os.path.dirname(file) + "/" + metacontent[0].split("=")[1]
         self.ntotal = int(metacontent[1].split("=")[1])
         self.ns = int(metacontent[2].split("=")[1])
         temp = metacontent[3].split("=")[1].split(";")
@@ -215,7 +227,7 @@ class RTM_Inversion:
                 print "row: %i | col: %i" % (r, c)
 
                 # Check if Pixel shall be excluded
-                if [r, c] in self.exclude_pixels:
+                if len(self.exclude_pixels) > 0 and self.exclude_pixels[r,c] < 1:
                     self.out_matrix[r,c,:] = self.nodat[2]
 
                 # Check if valid geometry exists:
@@ -223,7 +235,7 @@ class RTM_Inversion:
                     self.out_matrix[r,c,:] = self.nodat[2]
 
                 estimates = np.zeros(self.ns)
-                lut = np.load(LUT_dir + LUT_name + "_" + str(self.whichLUT[r,c])+".npy")
+                lut = np.load(self.LUT_base + "_" + str(self.whichLUT[r,c])+".npy")
                 LUT_params = lut[0:15,:] # extract parameters
                 lut = np.delete(lut, self.exclude_bands_model, axis=0) # delete exclude_bands_model - members
 
@@ -242,17 +254,25 @@ class RTM_Inversion:
 
     def write_image(self):
         driver = gdal.GetDriverByName('ENVI')
-        destination = driver.Create(self.image_out, self.ncols, self.nrows, self.npara, gdal.GDT_Float32)
 
+        if self.out_mode == "single":
+            destination = driver.Create(self.image_out, self.ncols, self.nrows, self.npara, gdal.GDT_Float32)
+            for i in xrange(self.npara):
+                band = destination.GetRasterBand(i+1)
+                band.SetDescription(self.para_names[self.whichpara[i]])
+                band.WriteArray(self.out_matrix[:,:,i])
+            destination.SetMetadataItem('data ignore value', '-999', 'ENVI')
 
-        for i in xrange(self.npara):
-            band = destination.GetRasterBand(i+1)
-            band.WriteArray(self.out_matrix[:,:,i])
-
-
-        destination.SetMetadataItem('data ignore value','-999','ENVI')
+        elif self.out_mode == "individual":
+            for i in xrange(self.npara):
+                out = os.path.splitext(self.image_out)[0] + "_" + self.para_names[self.whichpara[i]] + os.path.splitext(self.image_out)[1]
+                destination = driver.Create(out, self.ncols, self.nrows, 1, gdal.GDT_Float32)
+                band = destination.GetRasterBand(1)
+                band.SetDescription(self.para_names[self.whichpara[i]])
+                band.WriteArray(self.out_matrix[:,:,i])
+                destination.SetMetadataItem('data ignore value','-999','ENVI')
         
-def example(self):
+def example():
     ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
     ResultsOut = "D:/ECST_III/Processor/VegProc/results.bsq"
     GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
