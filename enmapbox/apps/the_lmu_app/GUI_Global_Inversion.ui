@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>QDialog</class>
+ <widget class="QDialog" name="QDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -64,6 +64,10 @@
      </widget>
     </item>
    </layout>
+   <zorder>radFullRange</zorder>
+   <zorder>radEnMAP</zorder>
+   <zorder>radSentinel</zorder>
+   <zorder>radLandsat</zorder>
   </widget>
   <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
@@ -78,21 +82,26 @@
     <string>Input Images</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QLabel" name="label">
+    <item row="1" column="3">
+     <widget class="QPushButton" name="cmdInputLUT">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>20</width>
+        <height>16777215</height>
+       </size>
+      </property>
       <property name="text">
-       <string>Select Input Image</string>
+       <string>...</string>
       </property>
      </widget>
     </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="label_2">
-      <property name="text">
-       <string>Select Look-Up-Table (*.lut)</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="2">
+    <item row="0" column="3">
      <widget class="QPushButton" name="cmdInputImage">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
@@ -111,28 +120,55 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="txtInputImage"/>
-    </item>
-    <item row="1" column="1">
-     <widget class="QLineEdit" name="txtInputLUT"/>
-    </item>
-    <item row="1" column="2">
-     <widget class="QPushButton" name="cmdInputLUT">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
+    <item row="0" column="0">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>Select Input Image</string>
       </property>
-      <property name="maximumSize">
-       <size>
-        <width>20</width>
-        <height>16777215</height>
-       </size>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>Select Look-Up-Table (*.lut)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLabel" name="lblInputImage">
+      <property name="frameShape">
+       <enum>QFrame::Panel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <property name="midLineWidth">
+       <number>0</number>
       </property>
       <property name="text">
-       <string>...</string>
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1">
+     <widget class="QLabel" name="lblInputLUT">
+      <property name="frameShape">
+       <enum>QFrame::Panel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <property name="midLineWidth">
+       <number>0</number>
+      </property>
+      <property name="text">
+       <string/>
       </property>
      </widget>
     </item>
@@ -264,13 +300,6 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="txtGeoFromFile">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
     <item row="1" column="1" rowspan="2">
      <widget class="QFrame" name="frame">
       <property name="frameShape">
@@ -380,6 +409,28 @@
       </property>
       <property name="checked">
        <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLabel" name="lblGeoFromFile">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Panel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <property name="midLineWidth">
+       <number>0</number>
+      </property>
+      <property name="text">
+       <string/>
       </property>
      </widget>
     </item>
@@ -676,16 +727,6 @@
           <property name="margin">
            <number>0</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_14">
-            <property name="text">
-             <string>Select Mask Image</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QLineEdit" name="txtInputMask"/>
-          </item>
           <item row="0" column="2">
            <widget class="QPushButton" name="cmdInputMask">
             <property name="sizePolicy">
@@ -731,6 +772,35 @@
            <widget class="QLabel" name="label_15">
             <property name="text">
              <string>Exclude Bands:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_14">
+            <property name="text">
+             <string>Select Mask Image</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="lblInputMask">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::Panel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Sunken</enum>
+            </property>
+            <property name="lineWidth">
+             <number>2</number>
+            </property>
+            <property name="midLineWidth">
+             <number>0</number>
+            </property>
+            <property name="text">
+             <string/>
             </property>
            </widget>
           </item>
@@ -978,9 +1048,7 @@
   </widget>
  </widget>
  <tabstops>
-  <tabstop>txtInputImage</tabstop>
   <tabstop>cmdInputImage</tabstop>
-  <tabstop>txtInputLUT</tabstop>
   <tabstop>cmdInputLUT</tabstop>
   <tabstop>txtOutputImage</tabstop>
   <tabstop>cmdOutputImage</tabstop>
@@ -988,7 +1056,6 @@
   <tabstop>radOutIndividual</tabstop>
   <tabstop>radLandsat</tabstop>
   <tabstop>radGeoFromFile</tabstop>
-  <tabstop>txtGeoFromFile</tabstop>
   <tabstop>cmdGeoFromFile</tabstop>
   <tabstop>radGeoFix</tabstop>
   <tabstop>txtSZA</tabstop>
@@ -1007,7 +1074,6 @@
   <tabstop>txtRel</tabstop>
   <tabstop>radAbs</tabstop>
   <tabstop>txtAbs</tabstop>
-  <tabstop>txtInputMask</tabstop>
   <tabstop>cmdInputMask</tabstop>
   <tabstop>txtExclude</tabstop>
   <tabstop>cmdExcludeBands</tabstop>

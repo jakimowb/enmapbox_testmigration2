@@ -118,25 +118,59 @@ class UiFunc:
 
     def open_file(self, mode):
         if mode=="image":
-            result = str(QFileDialog.getOpenFileName(caption='Select Input Image', directory=''))
-            if result:
-                self.gui.txtInputImage.setText(result)
+            result = str(QFileDialog.getOpenFileName(caption='Select Input Image'))
+            if not result: return
+            self.image = result
+            self.image = self.image.replace("\\", "/")
+            meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            if None in meta:
+                self.image = None
+                self.nodat[0] = None
+                self.gui.lblInputImage.setText("")
+                return
+            else:
+                self.gui.lblInputImage.setText(result)
+                self.gui.lblNodatImage.setText(str(meta[0]))
+                self.nodat[0] = meta[0]
         elif mode=="lut":
-            result = str(QFileDialog.getOpenFileName(caption='Select LUT meta-file', directory='', filter="LUT-file (*.lut)"))
-            if result:
-                self.gui.txtInputLUT.setText(result)
+            result = str(QFileDialog.getOpenFileName(caption='Select LUT meta-file', filter="LUT-file (*.lut)"))
+            if not result: return
+            self.LUT_path = result
+            self.LUT_path = self.LUT_path.replace("\\", "/")
+            self.gui.lblInputLUT.setText(result)
         elif mode=="output":
-            result = str(QFileDialog.getSaveFileName(caption='Specify Output-file(s)', directory='', filter="ENVI Image (*.bsq)"))
-            if result:
-                self.gui.txtOutputImage.setText(result)
+            result = str(QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)"))
+            if not result: return
+            self.out_path = result
+            self.out_path = self.out_path.replace("\\", "/")
+            self.gui.txtOutputImage.setText(result)
         elif mode=="geo":
-            result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image', directory=''))
-            if result:
-                self.gui.txtGeoFromFile.setText(result)
+            result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image'))
+            if not result: return
+            self.geo_file = result
+            self.geo_file = self.geo_file.replace("\\", "/")
+            meta = self.get_image_meta(image=self.geo_file, image_type="Geometry Image")
+            if None in meta:
+                self.geo_file = None
+                self.nodat[1] = None
+                self.gui.lblGeoFromFile.setText("")
+                return
+            else:
+                self.gui.lblGeoFromFile.setText(result)
+                self.gui.lblNodatGeoImage.setText(str(meta[0]))
+                self.nodat[1] = meta[0]
         elif mode=="mask":
-            result = str(QFileDialog.getOpenFileName(caption='Select Mask Image', directory=''))
-            if result:
-                self.gui.txtInputMask.setText(result)
+            result = str(QFileDialog.getOpenFileName(caption='Select Mask Image'))
+            if not result: return
+            self.mask_image = result
+            self.mask_image = self.mask_image.replace("\\", "/")
+            meta = self.get_image_meta(image=self.mask_image, image_type="Mask Image")
+            if meta[1] is None: # No Data is unimportant for mask file, but dimensions must exist (image readable)
+                self.mask_image = None
+                self.gui.lblInputMask.setText("")
+                return
+            else:
+                self.gui.lblInputMask.setText(result)
 
     def select_outputmode(self, mode):
         self.out_mode = mode
@@ -156,19 +190,19 @@ class UiFunc:
 
     def select_geo(self, mode):
         if mode=="off":
-            self.gui.txtGeoFromFile.setDisabled(True)
+            self.gui.lblGeoFromFile.setDisabled(True)
             self.gui.cmdGeoFromFile.setDisabled(True)
             self.gui.txtSZA.setDisabled(True)
             self.gui.txtOZA.setDisabled(True)
             self.gui.txtRAA.setDisabled(True)
         if mode=="file":
-            self.gui.txtGeoFromFile.setDisabled(False)
+            self.gui.lblGeoFromFile.setDisabled(False)
             self.gui.cmdGeoFromFile.setDisabled(False)
             self.gui.txtSZA.setDisabled(True)
             self.gui.txtOZA.setDisabled(True)
             self.gui.txtRAA.setDisabled(True)
         if mode=="fix":
-            self.gui.txtGeoFromFile.setDisabled(True)
+            self.gui.lblGeoFromFile.setDisabled(True)
             self.gui.cmdGeoFromFile.setDisabled(True)
             self.gui.txtSZA.setDisabled(False)
             self.gui.txtOZA.setDisabled(False)
@@ -197,25 +231,15 @@ class UiFunc:
         QMessageBox.critical(self.gui, "Error", message)
 
     def check_and_assign(self):
-
         # Image In
-        self.image = self.gui.txtInputImage.text()
-        self.image = self.image.replace("\\", "/")
         if self.image is None:
             self.abort(message='Input Image missing')
             return -1
         elif not os.path.isfile(self.image):
             self.abort(message='Input Image does not exist')
             return -1
-        meta = self.get_image_meta(image=self.image, image_type="Input Image")
-        if meta is None:
-            return -1
-        else:
-            self.gui.lblNodatImage.setText(str(meta[0]))
 
         # LUT
-        self.LUT_path = self.gui.txtInputLUT.text()
-        self.LUT_path = self.LUT_path.replace("\\", "/")
         if self.LUT_path is None:
             self.abort(message='LUT metafile missing')
             return -1
@@ -233,20 +257,16 @@ class UiFunc:
             try:
                 os.path.splitext(self.out_path)[1]
             except:
-                self.outpath += ".bsq"
+                self.out_path += ".bsq"
 
         # Geometry file:
         if self.geo_mode == "file":
-            self.geo_file = self.gui.txtGeoFromFile.text()
-            self.geo_file = self.geo_file.replace("\\", "/")
             if self.geo_file is None:
                 self.abort(message='Geometry-Input via file selected, but no file specified')
                 return -1
             elif not os.path.isfile(self.geo_file):
                 self.abort(message='Geometry-Input file does not exist')
                 return -1
-            # meta = self.get_image_meta(image=self.geo_file, image_type="Geometry Image")
-            # self.gui.lblNodatGeoImage.setText(str(meta[0]))
 
         elif self.geo_mode == "fix":
             if self.gui.txtSZA.text() == "" or self.gui.txtOZA.text() == "" or self.gui.txtRAA.text() == "":
@@ -297,14 +317,9 @@ class UiFunc:
                     return -1
 
         # Mask
-        if not self.gui.txtInputMask.text() == "":
-            self.mask_image = self.gui.txtInputMask.text()
-            self.mask_image = self.mask_image.replace("\\", "/")
-            if not os.path.isfile(self.mask_image):
-                self.abort(message='Mask file not found')
-                return -1
-        else:
-            self.mask_image = None
+        if not self.mask_image is None and not os.path.isfile(self.mask_image):
+            self.abort(message='Mask Image does not exist')
+            return -1
 
         if self.gui.txtNodatOutput.text() == "":
             self.abort(message='Please specify no data value for output')
@@ -317,28 +332,27 @@ class UiFunc:
                 return -1
 
         return 1
-        # self.gui.cmdOK.setEnabled(True)
-        
 
     def get_image_meta(self, image, image_type):
 
         dataset = gdal.Open(image)
         if dataset is None:
             self.abort(message='%s could not be read. Please make sure it is a valid ENVI image' % image_type)
-            return -1
-        try:
-            nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
-        except:
-            myUI3.init(image_type=image_type, image=image)
-            myUI3.gui.setModal(True)
-            myUI3.gui.show()
             return None
+        else:
+            nbands = dataset.RasterCount
+            nrows = dataset.RasterYSize
+            ncols = dataset.RasterXSize
+            if image_type=="Mask Image": return nbands, nrows, ncols
 
-        nbands = dataset.RasterCount
-        nrows = dataset.RasterYSize
-        ncols = dataset.RasterXSize
-
-        return nodata, nbands, nrows, ncols
+            try:
+                nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
+                return nodata, nbands, nrows, ncols
+            except:
+                myUI3.init(image_type=image_type, image=image)
+                myUI3.gui.setModal(True) # parent window is blocked
+                myUI3.gui.exec_() # unlike .show(), .exec_() waits with execution of the code, until the app is closed
+                return myUI3.nodat, nbands, nrows, ncols
 
     def run_inversion(self):
 
@@ -371,17 +385,18 @@ class UiFunc:
     def invoke_selection(self):
 
         # Check ImageIn
-        self.image = self.gui.txtInputImage.text()
-        self.image = self.image.replace("\\", "/")
         if self.image is None:
             self.abort(message='Specify Input Image first')
+            return
         elif not os.path.isfile(self.image):
-            self.abort(message='Input Image could not be read')
+            self.abort(message='Input Image not found')
+            return
 
         # Read ImageIn
         dataset = gdal.Open(self.image)
         if dataset is None:
             self.abort(message='Input Image could not be read. Please make sure it is a valid ENVI image')
+            return
         wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
         wavelengths = wavelengths.replace("{","")
         wavelengths = wavelengths.replace("}", "")
@@ -395,6 +410,7 @@ class UiFunc:
             self.wunit = u"\u03bcm"
         else:
             self.abort(message="No wavelength units provided in ENVI header file")
+            return
 
         self.wl = [float(item) * wave_convert for item in wavelengths]
         self.nbands = dataset.RasterCount
@@ -412,6 +428,7 @@ class UiFunc:
                 pass_exclude = []
             
         myUI2.populate(default_exclude=pass_exclude)
+        myUI2.gui.setModal(True)
         myUI2.gui.show()
 
     def debug(self):
@@ -535,26 +552,30 @@ class UiFunc3:
     def init(self, image_type, image):
         topstring = '%s @ %s' % (image_type, image)
         self.gui.lblSource.setText(topstring)
-        if image_type == "Input Image": self.which_nodat = 0
-        elif image_type == "Geometry Image": self.which_nodat = 1
-        elif image_type == "Output Image": self.which_nodat = 2
+        self.gui.txtNodat.setText("")
+        # if image_type == "Input Image": self.which_nodat = 0
+        # elif image_type == "Geometry Image": self.which_nodat = 1
+        # elif image_type == "Output Image": self.which_nodat = 2
         self.image = image
+        self.nodat = None
 
     def connections(self):
         self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
         self.gui.cmdOK.clicked.connect(lambda: self.OK())
 
     def OK(self):
-        try:
-            nodat = int(self.gui.txtNodat.text())
-        except:
-            QMessageBox.critical(self.gui, "No number", "%s is not a valid number" % self.gui.txtNodat.text())
+        if self.gui.txtNodat.text() == "":
+            QMessageBox.critical(self.gui, "No Data", "A no data value must be supplied for this image!")
             return
-
-        myUI.nodat[self.which_nodat] = nodat
-        myUI.gui.lblNodatImage.setText(str(nodat))
+        else:
+            try:
+                nodat = int(self.gui.txtNodat.text())
+            except:
+                QMessageBox.critical(self.gui, "No number", "'%s' is not a valid number" % self.gui.txtNodat.text())
+                self.gui.txtNodat.setText("")
+                return
+        self.nodat = nodat
         self.gui.close()
-
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

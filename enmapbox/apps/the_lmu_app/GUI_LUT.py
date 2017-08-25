@@ -155,13 +155,13 @@ class UiFunc:
         self.gui.SType_Enmap_B.clicked.connect(lambda: self.select_s2s(sensor="EnMAP"))
 
         # Models
-        self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4"))
-        self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5"))
-        self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B"))
-        self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD"))
+        self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4", canopy_arch=self.canopy_arch))
+        self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5", canopy_arch=self.canopy_arch))
+        self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B", canopy_arch=self.canopy_arch))
+        self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD", canopy_arch=self.canopy_arch))
 
-        self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(canopy_arch="None"))
-        self.gui.B_4Sail.clicked.connect(lambda: self.select_model(canopy_arch="sail"))
+        self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch=None))
+        self.gui.B_4Sail.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail"))
         self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
 
         # Radio Buttons
@@ -325,7 +325,7 @@ class UiFunc:
 
     def select_model(self, lop="prospectD", canopy_arch="sail"):
         self.lop = lop
-        if canopy_arch == "None":
+        if canopy_arch is None:
             self.canopy_arch = None
             self.gui.grp_canopy.setDisabled(True)
         else:
@@ -334,7 +334,7 @@ class UiFunc:
 
         if lop=="prospectD":
             for para in self.para_list[0]:
-                for object in xrange(12):
+                for object in xrange(4):
                     self.dict_objects[para][object].setDisabled(False)
             self.txt_enables(para="car", mode=self.dict_checks["car"])
             self.txt_enables(para="cbr", mode=self.dict_checks["cbr"])
@@ -343,7 +343,7 @@ class UiFunc:
 
         elif lop == "prospect5B":
             for para in self.para_list[0]:
-                for object in xrange(12):
+                for object in xrange(4):
                     self.dict_objects[para][object].setDisabled(False)
             for object in xrange(12):
                 self.dict_objects["canth"][object].setDisabled(True)
@@ -352,7 +352,7 @@ class UiFunc:
 
         elif lop == "prospect5":
             for para in self.para_list[0]:
-                for object in xrange(12):
+                for object in xrange(4):
                     self.dict_objects[para][object].setDisabled(False)
                 for object in xrange(12):
                     self.dict_objects["canth"][object].setDisabled(True)
@@ -361,7 +361,7 @@ class UiFunc:
 
         elif lop == "prospect4":
             for para in self.para_list[0]:
-                for object in xrange(12):
+                for object in xrange(4):
                     self.dict_objects[para][object].setDisabled(False)
                 for object in xrange(12):
                     self.dict_objects["canth"][object].setDisabled(True)
