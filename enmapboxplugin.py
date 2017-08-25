@@ -41,45 +41,48 @@ class EnMAPBoxPlugin:
         dir_repo = os.path.dirname(__file__)
         site.addsitedir(dir_repo)
 
-        # set the logger
-        import enmapbox.gui
-        if enmapbox.gui.DEBUG:
-            logging.basicConfig(level=logging.DEBUG)
-        self.logger = logging.getLogger(__name__)
-
-        # add the Provider
-        # enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-        #from processing.core.Processing import Processing
-        #Processing.addProvider(EnMAPBoxAlgorithmProvider())
+        # add the EnMAP-Box Provider
+        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        from processing.core.Processing import Processing
+        self.enmapBoxProfider = EnMAPBoxAlgorithmProvider()
+        Processing.addProvider(self.enmapBoxProfider)
 
     def initGui(self):
-        self.logger.debug('initGui...')
         self.toolbarActions = []
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
-
         self.enmapBox = None
-
-
         action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)
         action.triggered.connect(self.run)
         self.toolbarActions.append(action)
         for action in self.toolbarActions:
             self.iface.addToolBarIcon(action)
 
+    def run(self):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        self.enmapBox = EnMAPBox.instance()
+        if not isinstance(self.enmapBox, EnMAPBox):
+            print('STARTED NEW BOX')
+            self.enmapBox = EnMAPBox(self.iface)
+            assert self.enmapBox == EnMAPBox.instance()
+            self.enmapBox.run()
+
+        else:
+            print('FOUND BOX')
+            self.enmapBox.ui.show()
+
     def unload(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         for action in self.toolbarActions:
             self.iface.removeToolBarIcon(action)
 
-        if isinstance(self.enmapBox, EnMAPBox):
-            self.enmapBox = None
-            EnMAPBox._instance = None
+        from processing.core.Processing import Processing
+        Processing.removeProvider(self.enmapBoxProfider)
 
-    def run(self):
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        self.enmapBox = EnMAPBox.instance()
-        if not isinstance(self.enmapBox, EnMAPBox):
-            self.enmapBox = EnMAPBox(self.iface)
-        self.enmapBox.run()
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            EnMAPBox.instance().close()
+
+        EnMAPBox._instance = None
+
+
 

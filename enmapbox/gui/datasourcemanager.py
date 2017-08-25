@@ -700,8 +700,10 @@ class DataSourceManager(QObject):
         from qgis.core import QgsMapLayerRegistry
         QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
         QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
+        #python/plugins/processing/tools/dataobjects.py
 
-        self.updateFromQgsMapLayerRegistry()
+
+        self.syncWithQGIS()
 
         #signals
         self.processing = None
@@ -711,7 +713,8 @@ class DataSourceManager(QObject):
             self.processing.sigFileCreated.connect(lambda file: self.addSource(file))
         except:
             pass
-        self.updateFromProcessingFramework()
+
+
 
     def __len__(self):
         return len(self.mSources)
@@ -746,24 +749,22 @@ class DataSourceManager(QObject):
             results = [r for r in results if type(r) in filterTypes]
         return results
 
-    def updateFromProcessingFramework(self):
-        if self.processing:
-            #import logging
-            #logging.debug('Todo: Fix processing implementation')
-            return
-            for p,n in zip(self.processing.MODEL_URIS,
-                           self.processing.MODEL_NAMES):
-                self.addSource(p, name=n)
 
-    def updateFromQgsMapLayerRegistry(self, mapLayers=None):
+    def syncWithQGIS(self):
         """
         Add data sources registered in the QgsMapLayerRegistry to the data source manager
         :return: List of added new DataSources
         """
-        if mapLayers is None:
-            mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
+        layers = QgsProject.instance().layerTreeRoot().findLayers()
+        #layers = QgsProject.instance().layerTreeRoot().findLayers()
+        src_qgs = [l.source() for l in layers]
+        for s in src_qgs: print(s)
 
-        added = [self.addSource(lyr) for lyr in mapLayers]
+        added = [self.addSource(lyr) for lyr in layers]
+
+
+        #missed in QGIS
+
         return [a for a in added if isinstance(a, DataSource)]
 
 
@@ -788,8 +789,8 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, ProcessingTypeDataSource)]
 
     def addSources(self, sources):
-        for s in sources:
-            self.addSource(s)
+        assert isinstance(sources, list)
+        for s in sources: self.addSource(s)
 
     @pyqtSlot(str)
     @pyqtSlot('QString')
@@ -813,6 +814,9 @@ class DataSourceManager(QObject):
                     return src #return object reference of an already existing source
             #this datasource is new
             self.mSources.append(ds)
+
+            self.syncWithQGIS()
+
             self.sigDataSourceAdded.emit(ds)
 
         return ds
