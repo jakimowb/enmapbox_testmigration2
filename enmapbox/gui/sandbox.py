@@ -96,6 +96,23 @@ def sandboxGUI():
 initQgisEnvironment = initQgisApplication
 
 
+
+def sandboxQgisBridge():
+    fakeQGIS = QgisFake()
+    import qgis.utils
+    qgis.utils.iface = fakeQGIS
+
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    S = EnMAPBox(fakeQGIS)
+    S.run()
+
+    fakeQGIS.ui.show()
+    import enmapboxtestdata
+    fakeQGIS.addVectorLayer(enmapboxtestdata.landcover)
+    fakeQGIS.addRasterLayer(enmapboxtestdata.enmap)
+
+    S.openExampleData(1)
+
 def sandboxDialog():
     qgsApp = initQgisEnvironment()
     w = QDialog()
@@ -167,6 +184,91 @@ def sandboxDockManager():
 
 
 
+
+
+class QgisFake(QgisInterface):
+
+    def __init__(self, *args):
+        super(QgisFake, self).__init__(*args)
+
+        self.canvas = QgsMapCanvas()
+        self.canvas.blockSignals(False)
+        print(self.canvas)
+        self.canvas.setCrsTransformEnabled(True)
+        self.canvas.setCanvasColor(Qt.black)
+        self.canvas.extentsChanged.connect(self.testSlot)
+        self.layerTreeView = QgsLayerTreeView()
+        self.rootNode =QgsLayerTreeGroup()
+        self.treeModel = QgsLayerTreeModel(self.rootNode)
+        self.layerTreeView.setModel(self.treeModel)
+        self.bridge = QgsLayerTreeMapCanvasBridge(self.rootNode, self.canvas)
+        self.bridge.setAutoSetupOnFirstLayer(True)
+        self.ui = QMainWindow()
+        mainFrame = QFrame()
+
+        self.ui.setCentralWidget(mainFrame)
+        self.ui.setWindowTitle('Fake QGIS')
+        l = QHBoxLayout()
+        l.addWidget(self.layerTreeView)
+        l.addWidget(self.canvas)
+        mainFrame.setLayout(l)
+        self.ui.setCentralWidget(mainFrame)
+        self.lyrs = []
+        self.createActions()
+
+    def testSlot(self, *args):
+        #print('--canvas changes--')
+        s = ""
+
+    def addVectorLayer(self, path, basename=None, providerkey=None):
+        if basename is None:
+            basename = os.path.basename(path)
+        if providerkey is None:
+            bn, ext = os.path.splitext(basename)
+
+            providerkey = 'ogr'
+        l = QgsVectorLayer(path, basename, providerkey)
+        assert l.isValid()
+        QgsMapLayerRegistry.instance().addMapLayer(l, True)
+        self.rootNode.addLayer(l)
+        self.bridge.setCanvasLayers()
+        s = ""
+
+    def legendInterface(self):
+        QgsLegendInterface
+    def addRasterLayer(self, path, baseName=''):
+        l = QgsRasterLayer(path, loadDefaultStyleFlag=True)
+        self.lyrs.append(l)
+        QgsMapLayerRegistry.instance().addMapLayer(l, True)
+        self.rootNode.addLayer(l)
+        self.bridge.setCanvasLayers()
+        return
+
+        cnt = len(self.canvas.layers())
+
+        self.canvas.setLayerSet([QgsMapCanvasLayer(l)])
+        l.dataProvider()
+        if cnt == 0:
+            self.canvas.mapSettings().setDestinationCrs(l.crs())
+            self.canvas.setExtent(l.extent())
+
+            spatialExtent = SpatialExtent.fromMapLayer(l)
+            #self.canvas.blockSignals(True)
+            self.canvas.setDestinationCrs(spatialExtent.crs())
+            self.canvas.setExtent(spatialExtent)
+            #self.blockSignals(False)
+            self.canvas.refresh()
+
+        self.canvas.refresh()
+
+    def createActions(self):
+        m = self.ui.menuBar().addAction('Add Vector')
+        m = self.ui.menuBar().addAction('Add Raster')
+
+    def mapCanvas(self):
+        return self.canvas
+
+
 def sandboxDataSourceManager():
     from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourcePanelUI
     from enmapbox.gui.docks import DockArea
@@ -215,7 +317,8 @@ if __name__ == '__main__':
         if False: sandboxPureGui(loadProcessingFramework=True)
         if False: sandboxPFReport()
         if False: sandboxDragDrop()
-        if True: sandboxGUI()
+        if True: sandboxQgisBridge()
+        if False: sandboxGUI()
         if False: sandboxDialog()
 
         qgsApp.exec_()

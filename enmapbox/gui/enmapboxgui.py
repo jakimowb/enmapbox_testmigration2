@@ -362,14 +362,12 @@ class EnMAPBox(QObject):
         assert EnMAPBox.instance() is None
 
 
+
+        super(EnMAPBox, self).__init__()
         splash = EnMAPBoxSplashScreen(self)
         if not HIDE_SPLASHSCREEN:
             splash.show()
         QApplication.processEvents()
-
-        super(EnMAPBox, self).__init__()
-
-
 
         splash.showMessage('Load Interfaces')
 
@@ -397,7 +395,7 @@ class EnMAPBox(QObject):
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager, installQPFExtensions, removeQPFExtensions
 
         self.dataSourceManager = DataSourceManager()
 
@@ -466,9 +464,12 @@ class EnMAPBox(QObject):
 
             try:
                 initQPFW()
+                installQPFExtensions()
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
+
                 logger.debug('QGIS Processing framework initialized')
+
             except Exception as ex:
                 self.ui.menuProcessing.setEnabled(False)
                 self.ui.menuProcessing.setVisible(False)
@@ -694,16 +695,20 @@ class EnMAPBox(QObject):
     def closeEvent(self, event):
         assert isinstance(event, QCloseEvent)
         if True:
-            event.accept()
+
             #de-refere the EnMAP-Box Singleton
             EnMAPBox._instance = None
+            enmapbox.gui.processingmanager.removeQPFExtensions()
             self.sigClosed.emit()
+            event.accept()
         else:
             event.ignore()
 
     sigClosed = pyqtSignal()
     def close(self):
         print('CLOSE ENMAPBOX')
+        enmapbox.gui.processingmanager.removeQPFExtensions()
         self.ui.close()
+
         #this will trigger the closeEvent
 

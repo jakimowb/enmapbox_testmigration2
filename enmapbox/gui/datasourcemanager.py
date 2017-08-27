@@ -693,6 +693,8 @@ class DataSourceManager(QObject):
         super(DataSourceManager, self).__init__()
 
         self.mSources = list()
+        self.mQgsLayerTreeGroup = None
+        #self.qgsLayerTreeGroup()
 
         #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
         #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
@@ -701,7 +703,6 @@ class DataSourceManager(QObject):
         QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
         QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
         #python/plugins/processing/tools/dataobjects.py
-
 
         self.syncWithQGIS()
 
@@ -714,7 +715,12 @@ class DataSourceManager(QObject):
         except:
             pass
 
-
+    def qgsLayerTreeGroup(self):
+        return None
+        if not isinstance(self.mQgsLayerTreeGroup,QgsLayerTreeGroup):
+            self.mQgsLayerTreeGroup = QgsLayerTreeGroup('EnMAPBox Sources', False)
+            QgsProject.instance().layerTreeRoot().addChildNode(self.mQgsLayerTreeGroup)
+        return self.mQgsLayerTreeGroup
 
     def __len__(self):
         return len(self.mSources)
@@ -749,16 +755,37 @@ class DataSourceManager(QObject):
             results = [r for r in results if type(r) in filterTypes]
         return results
 
+    def __iter__(self):
+        return iter(self.mSources)
 
     def syncWithQGIS(self):
         """
-        Add data sources registered in the QgsMapLayerRegistry to the data source manager
-        :return: List of added new DataSources
+        Synchronizes the DataSources with QGIS
         """
+        return []
+
         layers = QgsProject.instance().layerTreeRoot().findLayers()
         #layers = QgsProject.instance().layerTreeRoot().findLayers()
-        src_qgs = [l.source() for l in layers]
-        for s in src_qgs: print(s)
+        src_qgs = set([str(l.layer().source()) for l in layers])
+
+        REG = QgsMapLayerRegistry.instance()
+        node = self.qgsLayerTreeGroup()
+
+        add_to_qgis = []
+
+        for s in self.sources():
+            if isinstance(s, DataSourceSpatial) and s.uri() not in src_qgs:
+                add_to_qgis.append(s.createUnregisteredMapLayer())
+
+
+        if len(add_to_qgis) > 0:
+            REG.addMapLayers(add_to_qgis, True)
+            for l in add_to_qgis:
+                n = QgsLayerTreeLayer(l)
+                n.setVisible(False)
+                node.addChildNode(n)
+                print('ADD {}'.format(str(l)))
+                node.addLayer(l)
 
         added = [self.addSource(lyr) for lyr in layers]
 
