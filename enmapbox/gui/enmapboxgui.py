@@ -390,6 +390,7 @@ class EnMAPBox(QObject):
 
         self.mCurrentSpectra=[] #set of currently selected spectral profiles
         self.mCurrentMapSpectraLoading = 'TOP'
+        self.sigCurrentSpectraChanged.connect(self.ui.specLibViewPanel.setCurrentSpectra)
 
         # define managers (the center of all actions and all evil)
         import enmapbox.gui
@@ -444,7 +445,7 @@ class EnMAPBox(QObject):
         self.ui.actionSettings.triggered.connect(self.saveProject)
         self.ui.actionExit.triggered.connect(self.exit)
         self.ui.actionSelectProfiles.triggered.connect(lambda : self.activateMapTool('SPECTRUMREQUEST'))
-
+        self.ui.specLibViewPanel.btnLoadfromMap.clicked.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:

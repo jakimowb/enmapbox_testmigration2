@@ -1327,6 +1327,10 @@ class UnitComboBoxItemModel(QAbstractListModel):
 
 
 class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
+
+
+    sigLoadFromMapRequest = pyqtSignal()
+
     def __init__(self, parent=None):
         super(SpectraLibraryViewPanel, self).__init__(parent)
         self.setupUi(self)
@@ -1368,18 +1372,7 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
         self.btnExportSpeclib.clicked.connect(self.onExportSpectra)
         self.btnAddCurrentToSpeclib.clicked.connect(self.addCurrentSpectraToSpeclib)
-
-
-
-
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        enmapbox = EnMAPBox.instance()
-        if enmapbox:
-            enmapbox.sigCurrentSpectraChanged.connect(self.setCurrentSpectra)
-            self.btnLoadfromMap.setEnabled(True)
-            self.btnLoadfromMap.clicked.connect(lambda : EnMAPBox.instance().activateMapTool('SPECTRUMREQUEST'))
-        else:
-            self.btnLoadfromMap.setEnabled(False)
+        self.btnLoadfromMap.clicked.connect(self.sigLoadFromMapRequest.emit)
 
     def setPlotXUnit(self, unit):
         unit = str(unit)
