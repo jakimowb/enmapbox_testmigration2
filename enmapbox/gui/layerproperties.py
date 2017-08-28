@@ -23,29 +23,6 @@ class RasterLayerProperties(QgsOptionsDialogBase):
         self.restoreOptionsBaseUi(title)
 """
 
-METRIC_EXPONENTS = {
-    "nm":-9,"um": -6, "mm":-3, "cm":-2, "dm":-1, "m": 0,"hm":2, "km":3
-}
-#add synonyms
-METRIC_EXPONENTS['nanometers'] = METRIC_EXPONENTS['nm']
-METRIC_EXPONENTS['micrometers'] = METRIC_EXPONENTS['um']
-METRIC_EXPONENTS['millimeters'] = METRIC_EXPONENTS['mm']
-METRIC_EXPONENTS['centimeters'] = METRIC_EXPONENTS['cm']
-METRIC_EXPONENTS['decimeters'] = METRIC_EXPONENTS['dm']
-METRIC_EXPONENTS['meters'] = METRIC_EXPONENTS['m']
-METRIC_EXPONENTS['hectometers'] = METRIC_EXPONENTS['hm']
-METRIC_EXPONENTS['kilometers'] = METRIC_EXPONENTS['km']
-
-def convertMetricUnit(value, u1, u2):
-    """converts value, given in unit u1, to u2"""
-    assert u1 in METRIC_EXPONENTS.keys()
-    assert u2 in METRIC_EXPONENTS.keys()
-
-    e1 = METRIC_EXPONENTS[u1]
-    e2 = METRIC_EXPONENTS[u2]
-
-    return value * 10**(e1-e2)
-
 def displayBandNames(provider_or_dataset, bands=None):
     results = None
 
@@ -75,55 +52,6 @@ def displayBandNames(provider_or_dataset, bands=None):
 
     return results
 
-def parseWavelength(provider):
-    wl = None
-    wlu = None
-    assert isinstance(provider, QgsRasterDataProvider)
-    md = [l.split('=') for l in str(provider.metadata()).splitlines() if 'wavelength' in l.lower()]
-    #see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
-
-    mdDict = {}
-
-    for kv in md:
-        key, value = kv
-        if key not in mdDict.keys():
-            mdDict[key] = list()
-        mdDict[key].append(value)
-
-    for key in mdDict.keys():
-        values = ';'.join(mdDict[key])
-        key = key.lower()
-        if re.search('wavelength$', key):
-            tmp = re.findall('\d*\.\d+|\d+', values) #find floats
-            if len(tmp) != provider.bandCount():
-                tmp = re.findall('\d+', values) #find integers
-            if len(tmp) == provider.bandCount():
-                wl = np.asarray([float(w) for w in tmp])
-
-        if re.search(r'wavelength.units?',key):
-            if re.search('(Micrometers?|um)', values, re.I):
-                wlu = 'um' #fix with python 3 UTF
-            elif re.search('(Nanometers?|nm)', values, re.I):
-                wlu = 'nm'
-            elif re.search('(Millimeters?|mm)', values, re.I):
-                wlu = 'nm'
-            elif re.search('(Centimeters?|cm)', values, re.I):
-                wlu = 'nm'
-            elif re.search('(Meters?|m)', values, re.I):
-                wlu = 'nm'
-            elif re.search('Wavenumber', values, re.I):
-                wlu = '-'
-            elif re.search('GHz', values, re.I):
-                wlu = 'GHz'
-            elif re.search('MHz', values, re.I):
-                wlu = 'MHz'
-            elif re.search('Index', values, re.I):
-                wlu = '-'
-            else:
-                wlu = '-'
-
-    return wl, wlu
-
 
 class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcolorrendererwidgetbase.ui')):
 
@@ -144,9 +72,9 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
         self.bandNames = None
         self.bandRanges = dict()
 
+        from enmapbox.gui.utils import parseWavelength
+        self.wavelengths, self.wavelengthUnit = parseWavelength(self.rasterLayer().dataProvider())
 
-        self.wavelengths = None
-        self.wavelengthUnit = None
         if self.rasterLayer() and self.rasterLayer().dataProvider():
             provider = self.rasterLayer().dataProvider()
 
@@ -205,6 +133,7 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
 
     def initButtons(self, provider):
         assert isinstance(provider, QgsRasterDataProvider)
+        from enmapbox.gui.utils import parseWavelength
         wl, wlu = parseWavelength(provider)
         self.wavelengths = wl
         self.wavelengthUnit = wlu
@@ -221,15 +150,6 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
 
         self.btnBar.setEnabled(self.wavelengths is not None)
 
-    def bandClosestToWavelength(self, wl, wl_unit='nm'):
-        if self.wavelengths is None or self.wavelengthUnit is None:
-            return 0
-
-        wl = float(wl)
-        if self.wavelengthUnit != wl_unit:
-            wl = convertMetricUnit(wl, wl_unit, self.wavelengthUnit)
-
-        return np.argmin(np.abs(self.wavelengths - wl))
 
     def setBandSelection(self, key):
 
@@ -246,14 +166,7 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
             elif key == '453':
                 colors = ['nIR', 'swIR', 'R']
 
-            LUT_Wavelenghts = dict({'B': 480,
-                                    'G': 570,
-                                    'R': 660,
-                                    'nIR': 850,
-                                    'swIR': 1650,
-                                    'swIR1': 1650,
-                                    'swIR2': 2150
-                                    })
+
 
             wls = [LUT_Wavelenghts[c] for c in colors]
             bands = [self.bandClosestToWavelength(wl) for wl in wls]
