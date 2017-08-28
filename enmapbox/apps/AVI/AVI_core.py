@@ -9,9 +9,9 @@ from gdalconst import *
 import struct
 
 class AVI:
-    def __init__(self, IT, IDW_exp=None):
+    def __init__(self, IT, nodat, IDW_exp=None):
 
-        self.nodat = [-999, -999] # set no data value (0: in, 1: out)
+        self.nodat = nodat # set no data value (0: in, 1: out)
         self.IT = IT # Interpolation type: 1: NN, 2: linear, 3: IDW, 4: Spline
         self.IDW_exp = IDW_exp # In case of IT = IDW, set power of IDW 
 
@@ -63,7 +63,7 @@ class AVI:
 
         ### Reading the spectral image
         dataset = gdal.Open(ImgIn)
-        if dataset is None: return
+        if dataset is None: exit("Input Image not found")
         nbands = dataset.RasterCount
 
         self.nodat[0] = dataset.GetMetadataItem('data_ignore_value', 'ENVI')
@@ -81,13 +81,6 @@ class AVI:
             exit("No wavelength units provided in ENVI header file")
 
         self.wl = [float(item) * wave_convert for item in string_chaos]  # Wavelengths of the Image Input
-        #
-        # print('\nMetadata Domain ENVI:')
-        # md = dataset.GetMetadata_Dict('ENVI')  # metadata domain ENVI
-        # for key, value in md.items():
-        #     print((key, value))
-        #
-        # exit()
 
         exclude = [] # initialize list for excluded bands
         # Check for EnMAP-Band anomaly
@@ -100,7 +93,7 @@ class AVI:
         self.ncols = dataset.RasterXSize
 
         # Read data
-        band_range = [i for i in range(nbands) if not i in exclude] # list of valid bands
+        band_range = [i for i in range(nbands) if i not in exclude] # list of valid bands
         nbands_clean = len(band_range)
 
         # Create Image Input & Index Output Matrices
@@ -129,22 +122,23 @@ class AVI:
         band_out = []
 
         for wl_in in wl_list:
+            if self.IT == 0: # No interpolation
+                if wl_in in self.wl:
+                    Val_target = self.dict_band[wl_in]
+                else:
+                    Val_taget = -1
+
             if self.IT == 1:  # nearest neighbor
                 distances = [abs(wl_in - self.wl[i]) for i in
                              xrange(self.n_wl)]  # Get distances of input WL to all sensor WLs
                 Val_target = self.dict_band[self.wl[distances.index(min(distances))]]
 
             elif self.IT == 2:  # linear
-
                 if wl_in in self.wl:  # if wl_in is actually available, do not interpolate
-
                     Val_target = self.dict_band[wl_in]
-
                 else:
-
                     distances = [wl_in - self.wl[i] for i in
                                  xrange(self.n_wl)]  # Get difference (+/-) values of input WL to all sensor WLs
-
                     try:  # if the input wavelength does not have a left AND right neighbor, perform Nearest Neighbor int instead
                         wl_left = distances.index(min([n for n in distances if n > 0]))
                         wl_right = distances.index(max([n for n in distances if n < 0]))
@@ -153,23 +147,17 @@ class AVI:
 
                         Val_target = (Ref_right - Ref_left) * (wl_in - self.wl[wl_left]) / (
                             self.wl[wl_right] - self.wl[wl_left]) + Ref_left
-
                     except:
                         distances = [abs(wl_in - self.wl[i]) for i in
                                      xrange(self.n_wl)]  # Get distances of input WL to all sensor WLs
                         Val_target = self.dict_band[self.wl[distances.index(min(distances))]]
 
             elif self.IT == 3:  # IDW
-
                 if wl_in in self.wl:  # if wl_in is actually available, do not interpolate
-
                     Val_target = self.dict_band[wl_in]
-
                 else:
-
                     distances = [wl_in - self.wl[i] for i in
                                  xrange(self.n_wl)]  # Get difference (+/-) values of input WL to all sensor WLs
-
                     try:  # if the input wavelength does not have a left AND right neighbor, perform Nearest Neighbor int instead
                         dist_left = min([n for n in distances if n > 0])
                         dist_right = max([n for n in distances if n < 0])
@@ -183,21 +171,15 @@ class AVI:
                         weights[1] = 1 / (abs(dist_right) ** self.IDW_exp)
 
                         Val_target = (Ref_left * weights[0] + Ref_right * weights[1]) / sum(weights)
-
                     except:
                         distances = [abs(wl_in - self.wl[i]) for i in
                                      xrange(self.n_wl)]  # Get distances of input WL to all sensor WLs
                         Val_target = self.dict_band[self.wl[distances.index(min(distances))]]
 
-
             elif self.IT == 4:  # Spline
-
                 if wl_in in self.wl:  # if wl_in is actually available, do not interpolate
-
                     Val_target = self.dict_band[wl_in]
-
                 else:
-
                     if wl_in < self.wl[0]:
                         wl_in = self.wl[0]
                     elif wl_in > self.wl[-1]:
@@ -569,61 +551,59 @@ class AVI:
         destination = None
 
 
-# def example():
-#     ImgIn = "E_DJ.bsq"  # Input-Image
-#     OutDir = "Out/"  # Output-Dir
-#     OutFilename = "AVI_test"  # Output-Filename (base)
-#     OutSingle = 1  # Output to single file?
-#     nodat = [-999, -999]  # in, out
-#     IT = 1  # Interpolation Type; 1 = nearest Neighbor, 2 = linear interpolation, 3 = IDW, 4 = Spline
-#     IDW_exp = 2  # Exponent for IDW interpolation (2 = quadratic, 1 = linear)
-#     Convert_Refl = 0.0001  # EnMAP Segl: Refl*10,000
-#     mask_pixels = []
-#
-#     ####
-#     ## List of Indices
-#     ####
-#
-#     ## Structural || Struct1: hNDVI (Opp.), Struct2: NDVI (Apr.), Struct3: NDVI (Dat.), Struct4: NDVI (Hab.), Struct5: NDVI (Zar.)
-#     # Struct6: MCARI1, Struct7: MCARI2, Struct8: MSAVI, Struct9: MTVI1, Struct10: MTVI2, Struct11: OSAVI ,
-#     # Struct12: RDVI, Struct13: SPVI
-#
-#     ## Chlorophyll || Chl1: CSI1, Chl2: CSI2, Chl3: G, Chl4: GM1, Chl5: GM2, Chl6: gNDVI, Chl7: MCARI, Chl8: NPQI,
-#     # Chl9: PRI, Chl10: REIP1, Chl11: REP, Chl12: SRchl, Chl13: SR705, Chl14: TCARI, Chl15: TVI, Chl16: VOG1,
-#     # Chl17: VOG2, Chl18: VOG3, Chl19: ZTM, Chl20: SRa, Chl21: SRb, Chl22: SRb2, Chl23: SRtot, Chl24: PSSRa, Chl25: PSSRb
-#     # Chl26: LCI, Chl27: MLO, Chl28: CCI
-#
-#     ## Carotenoid || Car1: ARI, Car2: CRI, Car3: CRI2, Car4: PSSRc, Car5: SIPI
-#
-#     ## Leaf Water || Wat1: DSWI, Wat2: DWSI5, Wat3: LMVI1, Wat4: LMVI2, Wat5: MSI, Wat6: NDWI, Wat7: PWI, Wat8: SRWI
-#
-#     ## Dry Matter || Dm1: SMIRVI, Dm2: CAI, Dm3: NDLI, Dm4: NDNI, Dm5: BGI, Dm6: BRI, Dm7: RGI, Dm8: SRPI, Dm9: NPCI
-#
-#     ## Flourescence || Fl1: CUR, Fl2: LIC1, Fl3: LIC2, Fl4: LIC3
-#
-#     # StructIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 13 Indices
-#     StructIndices = [1] * 13
-#     # ChlIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 27 Indices
-#     ChlIndices = [1] * 27
-#     # CarIndices = [0, 0, 0, 0, 0] # 5 Indices
-#     CarIndices = [1] * 5
-#     # WatIndices = [0, 0, 0, 0, 0, 0, 0] # 8 Indices
-#     WatIndices = [1] * 8
-#     # DmIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0] # 9 Indices
-#     DmIndices = [1] * 9
-#     # FlIndices = [0, 0, 0, 0] # 4 Indics
-#     FlIndices = [1] * 4
-#
-#
-#     start = time.time()
-#     avi = AVI(nodat=nodat, IT=IT, IDW_exp=IDW_exp)
-#     ImageIn_matrix = avi.read_image(ImgIn=ImgIn, Convert_Refl=Convert_Refl)
-#     avi.toggle_indices(StructIndices=StructIndices, ChlIndices=ChlIndices, CarIndices=CarIndices, WatIndices=WatIndices,
-#                        DmIndices=DmIndices, FlIndices=FlIndices)
-#     IndexOut_matrix = avi.calculate_AVI(ImageIn_matrix=ImageIn_matrix)
-#     print time.time() - start
-#     avi.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=OutDir, OutFilename=OutFilename, OutSingle=OutSingle)
-#
-#
-# # example()
+def example():
+    ImgIn = "D:/Temp/LUT/E_DJ_short.bsq"  # Input-Image
+    OutDir = "Out/"  # Output-Dir
+    OutFilename = "AVI_test"  # Output-Filename (base)
+    OutSingle = 1  # Output to single file?
+    nodat = [-999, -999]  # in, out
+    IT = 1  # Interpolation Type; 1 = nearest Neighbor, 2 = linear interpolation, 3 = IDW, 4 = Spline
+    IDW_exp = 2  # Exponent for IDW interpolation (2 = quadratic, 1 = linear)
+    Convert_Refl = 0.0001  # EnMAP Segl: Refl*10,000
+    mask_pixels = []
+
+    ####
+    ## List of Indices
+    ####
+
+    ## Structural || Struct1: hNDVI (Opp.), Struct2: NDVI (Apr.), Struct3: NDVI (Dat.), Struct4: NDVI (Hab.), Struct5: NDVI (Zar.)
+    # Struct6: MCARI1, Struct7: MCARI2, Struct8: MSAVI, Struct9: MTVI1, Struct10: MTVI2, Struct11: OSAVI ,
+    # Struct12: RDVI, Struct13: SPVI
+
+    ## Chlorophyll || Chl1: CSI1, Chl2: CSI2, Chl3: G, Chl4: GM1, Chl5: GM2, Chl6: gNDVI, Chl7: MCARI, Chl8: NPQI,
+    # Chl9: PRI, Chl10: REIP1, Chl11: REP, Chl12: SRchl, Chl13: SR705, Chl14: TCARI, Chl15: TVI, Chl16: VOG1,
+    # Chl17: VOG2, Chl18: VOG3, Chl19: ZTM, Chl20: SRa, Chl21: SRb, Chl22: SRb2, Chl23: SRtot, Chl24: PSSRa, Chl25: PSSRb
+    # Chl26: LCI, Chl27: MLO, Chl28: CCI
+
+    ## Carotenoid || Car1: ARI, Car2: CRI, Car3: CRI2, Car4: PSSRc, Car5: SIPI
+
+    ## Leaf Water || Wat1: DSWI, Wat2: DWSI5, Wat3: LMVI1, Wat4: LMVI2, Wat5: MSI, Wat6: NDWI, Wat7: PWI, Wat8: SRWI
+
+    ## Dry Matter || Dm1: SMIRVI, Dm2: CAI, Dm3: NDLI, Dm4: NDNI, Dm5: BGI, Dm6: BRI, Dm7: RGI, Dm8: SRPI, Dm9: NPCI
+
+    ## Flourescence || Fl1: CUR, Fl2: LIC1, Fl3: LIC2, Fl4: LIC3
+
+    # StructIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 13 Indices
+    StructIndices = [1] * 13
+    # ChlIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 27 Indices
+    ChlIndices = [1] * 26
+    # CarIndices = [0, 0, 0, 0, 0] # 5 Indices
+    CarIndices = [1] * 5
+    # WatIndices = [0, 0, 0, 0, 0, 0, 0] # 8 Indices
+    WatIndices = [1] * 8
+    # DmIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0] # 9 Indices
+    DmIndices = [1] * 9
+    # FlIndices = [0, 0, 0, 0] # 4 Indics
+    FlIndices = [1] * 4
+
+
+    avi = AVI(IT=IT, nodat=[-999,-999], IDW_exp=IDW_exp)
+    ImageIn_matrix = avi.read_image(ImgIn=ImgIn, Convert_Refl=Convert_Refl)
+    avi.toggle_indices(StructIndices=StructIndices, ChlIndices=ChlIndices, CarIndices=CarIndices, WatIndices=WatIndices,
+                       DmIndices=DmIndices, FlIndices=FlIndices)
+    IndexOut_matrix = avi.calculate_AVI(ImageIn_matrix=ImageIn_matrix)
+    # avi.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=OutDir, OutFilename=OutFilename, OutSingle=OutSingle)
+
+if __name__ == '__main__':
+    example()
 

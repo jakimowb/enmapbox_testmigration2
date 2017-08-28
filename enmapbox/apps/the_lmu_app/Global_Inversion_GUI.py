@@ -18,29 +18,29 @@ pathUI3 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
 
 from enmapbox.gui.utils import loadUIFormClass
 
-class GUI_Global_Inversion(QDialog, loadUIFormClass(pathUI)):
+class Global_Inversion_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
-        super(GUI_Global_Inversion, self).__init__(parent)
-        self.setupUi(self)    
-
-class GUI_Select_Wavelengths(QDialog, loadUIFormClass(pathUI2)):
-
-    def __init__(self, parent=None):
-        super(GUI_Select_Wavelengths, self).__init__(parent)
+        super(Global_Inversion_GUI, self).__init__(parent)
         self.setupUi(self)
 
-class GUI_Nodat(QDialog, loadUIFormClass(pathUI3)):
+class Select_Wavelengths_GUI(QDialog, loadUIFormClass(pathUI2)):
 
     def __init__(self, parent=None):
-        super(GUI_Nodat, self).__init__(parent)
+        super(Select_Wavelengths_GUI, self).__init__(parent)
         self.setupUi(self)
 
-class UiFunc:
+class Nodat_GUI(QDialog, loadUIFormClass(pathUI3)):
+
+    def __init__(self, parent=None):
+        super(Nodat_GUI, self).__init__(parent)
+        self.setupUi(self)
+
+class Global_Inversion:
 
     def __init__(self):
-        
-        self.gui = GUI_Global_Inversion()
+
+        self.gui = Global_Inversion_GUI()
         self.initial_values()
         self.connections()
         self.select_sensor(self.sensor)
@@ -351,10 +351,10 @@ class UiFunc:
                 nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
                 return nodata, nbands, nrows, ncols
             except:
-                myUI3.init(image_type=image_type, image=image)
-                myUI3.gui.setModal(True) # parent window is blocked
-                myUI3.gui.exec_() # unlike .show(), .exec_() waits with execution of the code, until the app is closed
-                return myUI3.nodat, nbands, nrows, ncols
+                main.nodat_widget.init(image_type=image_type, image=image)
+                main.nodat_widget.gui.setModal(True) # parent window is blocked
+                main.nodat_widget.gui.exec_() # unlike .show(), .exec_() waits with execution of the code, until the app is closed
+                return main.nodat_widget.nodat, nbands, nrows, ncols
 
     def run_inversion(self):
 
@@ -428,10 +428,10 @@ class UiFunc:
             except:
                 self.gui.txtExclude.setText("")
                 pass_exclude = []
-            
-        myUI2.populate(default_exclude=pass_exclude)
-        myUI2.gui.setModal(True)
-        myUI2.gui.show()
+
+        main.select_wavelengths.populate(default_exclude=pass_exclude)
+        main.select_wavelengths.gui.setModal(True)
+        main.select_wavelengths.gui.show()
 
     def debug(self):
 
@@ -471,9 +471,9 @@ class UiFunc:
 
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
 
-class UiFunc2:
+class Select_Wavelengths:
     def __init__(self):
-        self.gui = GUI_Select_Wavelengths()
+        self.gui = Select_Wavelengths_GUI()
         self.connections()
 
     def connections(self):
@@ -485,19 +485,19 @@ class UiFunc2:
         self.gui.cmdOK.clicked.connect(lambda: self.OK())
 
     def populate(self, default_exclude):
-        if myUI.nbands < 10: width = 1
-        elif myUI.nbands < 100: width = 2
-        elif myUI.nbands < 1000: width = 3
+        if main.global_inversion.nbands < 10: width = 1
+        elif main.global_inversion.nbands < 100: width = 2
+        elif main.global_inversion.nbands < 1000: width = 3
         else: width = 4
 
-        for i in xrange(myUI.nbands):
+        for i in xrange(main.global_inversion.nbands):
             if i in default_exclude:
                 str_band_no = '{num:0{width}}'.format(num=i + 1, width=width)
-                label = "band %s: %6.2f %s" % (str_band_no, myUI.wl[i], myUI.wunit)
+                label = "band %s: %6.2f %s" % (str_band_no, main.global_inversion.wl[i], main.global_inversion.wunit)
                 self.gui.lstExcluded.addItem(label)
             else:
                 str_band_no = '{num:0{width}}'.format(num=i+1, width=width)
-                label = "band %s: %6.2f %s" %(str_band_no, myUI.wl[i], myUI.wunit)
+                label = "band %s: %6.2f %s" %(str_band_no, main.global_inversion.wl[i], main.global_inversion.wunit)
                 self.gui.lstIncluded.addItem(label)
 
     def send(self, direction):
@@ -536,18 +536,18 @@ class UiFunc2:
             item = list_object.item(i).text()
             raw_list.append(item)
 
-        myUI.exclude_bands = [int(raw_list[i].split(" ")[1][:-1])-1 for i in xrange(len(raw_list))]
-        exclude_string = " ".join(str(x+1) for x in myUI.exclude_bands)
-        myUI.gui.txtExclude.setText(exclude_string)
+        main.global_inversion.exclude_bands = [int(raw_list[i].split(" ")[1][:-1])-1 for i in xrange(len(raw_list))]
+        exclude_string = " ".join(str(x+1) for x in main.global_inversion.exclude_bands)
+        main.global_inversion.gui.txtExclude.setText(exclude_string)
 
         for list_object in [self.gui.lstIncluded, self.gui.lstExcluded]:
             list_object.clear()
 
         self.gui.close()
 
-class UiFunc3:
+class Nodat:
     def __init__(self):
-        self.gui = GUI_Nodat()
+        self.gui = Nodat_GUI()
         self.connections()
         self.image = None
 
@@ -579,12 +579,20 @@ class UiFunc3:
         self.nodat = nodat
         self.gui.close()
 
+class MainUiFunc:
+    def __init__(self):
+        self.global_inversion = Global_Inversion()
+        self.select_wavelengths = Select_Wavelengths()
+        self.nodat_widget = Nodat()
+
+main = MainUiFunc()
+
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
-    myUI = UiFunc()
-    myUI2 = UiFunc2()
-    myUI3 = UiFunc3()
+    myUI2 = Select_Wavelengths()
+    myUI3 = Nodat()
+    myUI = Global_Inversion(myUI2, myUI3)
     myUI.gui.show()
     sys.exit(app.exec_())
 

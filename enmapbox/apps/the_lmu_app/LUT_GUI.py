@@ -16,17 +16,17 @@ pathUI = os.path.join(os.path.dirname(__file__),'GUI_LUT.ui')
 
 from enmapbox.gui.utils import loadUIFormClass
 
-class GUI_LUT(QDialog, loadUIFormClass(pathUI)):
+class LUT_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
-        super(GUI_LUT, self).__init__(parent)
+        super(LUT_GUI, self).__init__(parent)
         self.setupUi(self)    
 
-class UiFunc:
+class LUT:
 
     def __init__(self):
         
-        self.gui = GUI_LUT()
+        self.gui = LUT_GUI()
         self.initial_values()
         self.dictchecks()
         self.connections()
@@ -553,7 +553,7 @@ class UiFunc:
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
-    myUI = UiFunc()
+    myUI = LUT()
     myUI.gui.show()
     sys.exit(app.exec_())
 

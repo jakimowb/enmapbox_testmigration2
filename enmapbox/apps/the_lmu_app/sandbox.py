@@ -46,14 +46,14 @@ def sandboxGuiOnly():
     """
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
-    from GUI_ISD import UiFunc
-    gui1 = UiFunc()
-    gui1.gui.show()
+
+    from Global_Inversion_GUI import main
+    main.global_inversion.gui.show()
     qgsApp.exec_()
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if True:
+    if False:
         sandboxGuiOnly()
     else:
         sandboxWithEnMapBox(loadPF=True)

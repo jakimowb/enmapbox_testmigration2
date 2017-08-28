@@ -17,22 +17,19 @@ from Spec2Sensor_cl import Spec2Sensor
 #app = QApplication(sys.argv)
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_ISD.ui')
-
-#gui = uic.loadUi("GUI_ISD.ui")
-#loadUIFormClass allows to load QGIS Widgets and some more...
 from enmapbox.gui.utils import loadUIFormClass
 
-class GUI_ISD(QDialog, loadUIFormClass(pathUI)):
+class ISD_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
-        super(GUI_ISD, self).__init__(parent)
+        super(ISD_GUI, self).__init__(parent)
         self.setupUi(self)    
 
-class UiFunc:
+class ISD:
 
     def __init__(self):
         
-        self.gui = GUI_ISD() 
+        self.gui = ISD_GUI()
         
         self.initial_values()
         self.para_list = []
@@ -394,8 +391,8 @@ class UiFunc:
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
-    app =  initQgisEnvironment()
-    myUI = UiFunc()
+    app = initQgisEnvironment()
+    myUI = ISD()
     myUI.gui.show()
     sys.exit(app.exec_())
 

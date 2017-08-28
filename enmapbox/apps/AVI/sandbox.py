@@ -48,14 +48,13 @@ def sandboxGuiOnly():
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
 
-    from GUI_AVI import UiFunc, gui
-    _ = UiFunc()
-    gui.show()
+    from AVI_GUI import main
+    main.avi.gui.show()
     qgsApp.exec_()
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if True:
+    if False:
         sandboxGuiOnly()
     else:
         sandboxWithEnMapBox(loadPF=True)

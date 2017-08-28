@@ -44,7 +44,7 @@ class AVIApp(EnMAPBoxApplication):
         if True:
             # this way you can add your QMenu/QAction to
             # any other EnMAP-Box Menu
-            appMenu = self.enmapbox.menu('Applications')
+            appMenu = self.enmapbox.menu('Agricultural Applications')
 
         menu = QMenu(self.name, appMenu)
         menu.setIcon(self.icon())
@@ -66,11 +66,9 @@ class AVIApp(EnMAPBoxApplication):
         # #the the EnMAP-Box know if you create any new file
         # ui.sigFileCreated.connect(self.enmapbox.addSource)
 
-        from GUI_AVI import UiFunc, gui
-        gui1 = UiFunc()
-        gui.show()
+        from AVI_GUI import main
+        main.avi.gui.show()
 
-        # gui1.sigFileCreated.connect(self.enmapbox.addSource)
 
     def geoAlgorithms(self):
         return [LMU_GeoAlgorithm()]
