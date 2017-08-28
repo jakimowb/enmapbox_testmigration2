@@ -84,6 +84,11 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixLocal = r'site-packages/hubflow',
                   prefixRemote = r'hubflow')
 
+RemoteInfo.create(r'https://github.com/titusjan/objbrowser.git',
+                  prefixLocal = r'site-packages/objbrowser',
+                  prefixRemote = r'objbrowser')
+
+
 def updateRemote(remoteInfo):
     if isinstance(remoteInfo, str):
         remoteInfo = REMOTEINFOS[remoteInfo]
@@ -142,7 +147,7 @@ if __name__ == "__main__":
 
     #update remotes
     to_update = ['hub-datacube', 'hub-workflow','enmap-box-geoalgorithmsprovider']#enmap-box-geoalgorithmsprovider
-    #to_update = []
+    #to_update = ['objbrowser']
     for p in to_update:
         updateRemote(p)
 
