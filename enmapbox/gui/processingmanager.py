@@ -50,11 +50,6 @@ else:
     from PyQt4.QtGui import QDockWidget as UI_BASE
     _PF_AVAILABLE = False
 
-def qpfPrefix():
-    from enmapbox.gui import settings
-
-    return settings.value('EMB_QPF_LAYERNAME_PREFIX', '[EnMAP-Box]')
-
 
 
 def hasQPFExtensions():
@@ -63,14 +58,17 @@ def hasQPFExtensions():
 
 def installQPFExtensions(force=False):
     """
-    Modifies the QGIS Processing Framework to recognize EnMAP-Box Data Sources.
-    Call disconnectQGIS to return to previous state.
-    :return:
+    Modifies the QGIS Processing Framework to recognize EnMAP-Box data sources as well.
+    Call `removeQPFExtensions` to return to previous state.
     """
     if not force and hasQPFExtensions():
         return
 
     from processing.tools import dataobjects
+
+    def qpfPrefix():
+        from enmapbox.gui import settings
+        return settings.value('EMB_QPF_LAYERNAME_PREFIX', '[EnMAP-Box]')
 
     def registerMergeSort(embLayers, qgsLayers, sorting):
         QgsMapLayerRegistry.instance().addMapLayers(embLayers, False)
@@ -139,10 +137,11 @@ def installQPFExtensions(force=False):
 
         return registerMergeSort(embLayers, qgsLayers, sorting)
 
+    #replace old with overwritten functions
     dataobjects.getVectorLayers = getVectorLayersNEW
     dataobjects.getRasterLayers = getRasterLayersNEW
     dataobjects.getTables = getTablesNEW
-    print('QPF EXTENSIONS INSTALLED')
+    logger.debug('QPF EXTENSIONS INSTALLED')
 
 
 def removeQPFExtensions():
@@ -161,7 +160,8 @@ def removeQPFExtensions():
             del dataobjects._getRasterLayers
             del dataobjects._getVectorLayers
             del dataobjects._getTables
-            print('QPF EXTENSIONS REMOVED')
+            logger.debug('QPF EXTENSIONS REMOVED')
+
         except Exception as ex:
             print(str(ex))
 

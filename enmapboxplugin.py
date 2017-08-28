@@ -44,8 +44,11 @@ class EnMAPBoxPlugin:
         # add the EnMAP-Box Provider
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
         from processing.core.Processing import Processing
-        self.enmapBoxProfider = EnMAPBoxAlgorithmProvider()
-        Processing.addProvider(self.enmapBoxProfider)
+        self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
+        Processing.addProvider(self.enmapBoxProvider)
+
+        from enmapboxgeoalgorithms.algorithms import ALGORITHMS
+        self.enmapBoxProvider.appendAlgorithms(ALGORITHMS)
 
     def initGui(self):
         self.toolbarActions = []
@@ -62,13 +65,13 @@ class EnMAPBoxPlugin:
         from enmapbox.gui.enmapboxgui import EnMAPBox
         self.enmapBox = EnMAPBox.instance()
         if not isinstance(self.enmapBox, EnMAPBox):
-            print('STARTED NEW BOX')
+            #print('STARTED NEW BOX')
             self.enmapBox = EnMAPBox(self.iface)
             assert self.enmapBox == EnMAPBox.instance()
             self.enmapBox.run()
 
         else:
-            print('FOUND BOX')
+            #print('FOUND BOX')
             self.enmapBox.ui.show()
 
     def unload(self):
@@ -77,7 +80,7 @@ class EnMAPBoxPlugin:
             self.iface.removeToolBarIcon(action)
 
         from processing.core.Processing import Processing
-        Processing.removeProvider(self.enmapBoxProfider)
+        Processing.removeProvider(self.enmapBoxProvider)
 
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             EnMAPBox.instance().close()
