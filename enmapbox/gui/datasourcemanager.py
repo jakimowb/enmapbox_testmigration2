@@ -702,9 +702,13 @@ class DataSourceManager(QObject):
         from qgis.core import QgsMapLayerRegistry
         QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
         QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
-        #python/plugins/processing/tools/dataobjects.py
+        try:
+            from hubflow import signals
+            signals.sigFileCreated.connect(self.addSource)
+        except Exception as ex:
+            logger.exception(ex)
 
-        self.syncWithQGIS()
+        self.updateFromQgsMapLayerRegistry()
 
         #signals
         self.processing = None
@@ -755,43 +759,24 @@ class DataSourceManager(QObject):
             results = [r for r in results if type(r) in filterTypes]
         return results
 
-    def __iter__(self):
-        return iter(self.mSources)
+    def updateFromProcessingFramework(self):
+        if self.processing:
+            #import logging
+            #logging.debug('Todo: Fix processing implementation')
+            return
+            for p,n in zip(self.processing.MODEL_URIS,
+                           self.processing.MODEL_NAMES):
+                self.addSource(p, name=n)
 
-    def syncWithQGIS(self):
+    def updateFromQgsMapLayerRegistry(self, mapLayers=None):
         """
-        Synchronizes the DataSources with QGIS
+        Add data sources registered in the QgsMapLayerRegistry to the data source manager
+        :return: List of added new DataSources
         """
-        return []
+        if mapLayers is None:
+            mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
 
-        layers = QgsProject.instance().layerTreeRoot().findLayers()
-        #layers = QgsProject.instance().layerTreeRoot().findLayers()
-        src_qgs = set([str(l.layer().source()) for l in layers])
-
-        REG = QgsMapLayerRegistry.instance()
-        node = self.qgsLayerTreeGroup()
-
-        add_to_qgis = []
-
-        for s in self.sources():
-            if isinstance(s, DataSourceSpatial) and s.uri() not in src_qgs:
-                add_to_qgis.append(s.createUnregisteredMapLayer())
-
-
-        if len(add_to_qgis) > 0:
-            REG.addMapLayers(add_to_qgis, True)
-            for l in add_to_qgis:
-                n = QgsLayerTreeLayer(l)
-                n.setVisible(False)
-                node.addChildNode(n)
-                print('ADD {}'.format(str(l)))
-                node.addLayer(l)
-
-        added = [self.addSource(lyr) for lyr in layers]
-
-
-        #missed in QGIS
-
+        added = [self.addSource(lyr) for lyr in mapLayers]
         return [a for a in added if isinstance(a, DataSource)]
 
 
@@ -816,8 +801,8 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, ProcessingTypeDataSource)]
 
     def addSources(self, sources):
-        assert isinstance(sources, list)
-        for s in sources: self.addSource(s)
+        for s in sources:
+            self.addSource(s)
 
     @pyqtSlot(str)
     @pyqtSlot('QString')
@@ -841,9 +826,6 @@ class DataSourceManager(QObject):
                     return src #return object reference of an already existing source
             #this datasource is new
             self.mSources.append(ds)
-
-            self.syncWithQGIS()
-
             self.sigDataSourceAdded.emit(ds)
 
         return ds
