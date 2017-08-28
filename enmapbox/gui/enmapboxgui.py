@@ -122,6 +122,13 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
     def menusWithTitle(self, title):
         return [m for m in self.findChildren(QMenu) if str(m.title()) == title]
 
+
+    def closeEvent(event):
+        pass
+
+
+
+
 def getIcon():
     return QIcon(':/enmapbox/icons/enmapbox.png')
 
@@ -349,18 +356,19 @@ class EnMAPBox(QObject):
     def instance():
         return EnMAPBox._instance
 
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
-        splash = EnMAPBoxSplashScreen(self)
+        assert EnMAPBox.instance() is None
 
+
+
+        super(EnMAPBox, self).__init__()
+        splash = EnMAPBoxSplashScreen(self)
         if not HIDE_SPLASHSCREEN:
             splash.show()
         QApplication.processEvents()
 
-        assert EnMAPBox._instance is None
-        super(EnMAPBox, self).__init__()
-
-        EnMAPBox._instance = self
         splash.showMessage('Load Interfaces')
 
         self.iface = iface
@@ -373,28 +381,29 @@ class EnMAPBox(QObject):
         # register loggers etc.
         splash.showMessage('Load UI')
         self.ui = EnMAPBoxUI()
+        self.ui.closeEvent = self.closeEvent
 
         msgLog = QgsMessageLog.instance()
         msgLog.messageReceived.connect(self.onLogMessage)
 
         assert isinstance(qgsUtils.iface, QgisInterface)
 
-
-        #
-
         self.mCurrentSpectra=[] #set of currently selected spectral profiles
         self.mCurrentMapSpectraLoading = 'TOP'
-        #define managers (the center of all actions and all evil)
+        self.sigCurrentSpectraChanged.connect(self.ui.specLibViewPanel.setCurrentSpectra)
+
+        # define managers (the center of all actions and all evil)
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager, installQPFExtensions, removeQPFExtensions
 
         self.dataSourceManager = DataSourceManager()
 
         self.dockManager = DockManager()
         self.dockManager.connectDataSourceManager(self.dataSourceManager)
-        #self.enmapBox = enmapbox
+
+        # self.enmapBox = enmapbox
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dockManager.connectDockArea(self.ui.dockArea)
         self.dockManager.sigDockAdded.connect(self.onDockAdded)
@@ -436,7 +445,7 @@ class EnMAPBox(QObject):
         self.ui.actionSettings.triggered.connect(self.saveProject)
         self.ui.actionExit.triggered.connect(self.exit)
         self.ui.actionSelectProfiles.triggered.connect(lambda : self.activateMapTool('SPECTRUMREQUEST'))
-
+        self.ui.specLibViewPanel.btnLoadfromMap.clicked.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
@@ -456,9 +465,12 @@ class EnMAPBox(QObject):
 
             try:
                 initQPFW()
+                installQPFExtensions()
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
+
                 logger.debug('QGIS Processing framework initialized')
+
             except Exception as ex:
                 self.ui.menuProcessing.setEnabled(False)
                 self.ui.menuProcessing.setVisible(False)
@@ -472,6 +484,9 @@ class EnMAPBox(QObject):
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
+
+        #finally, let this be the EnMAP-Box Singleton
+        EnMAPBox._instance = self
 
 
     def onDockAdded(self, dock):
@@ -573,7 +588,7 @@ class EnMAPBox(QObject):
         import enmapboxtestdata
         from enmapbox.gui.utils import file_search
         dir = os.path.dirname(enmapboxtestdata.__file__)
-        files = file_search(dir, re.compile('.*(bsq|img|shp)$', re.I), recursive=True)
+        files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
 
         for file in files:
             self.addSource(file)
@@ -655,6 +670,9 @@ class EnMAPBox(QObject):
     def isLinkedWithQGIS(self):
         return self.iface is not None and isinstance(self.iface, qgis.gui.QgisInterface)
 
+    def addSources(self, sourceList):
+        return [self.addSource(s) for s in sourceList]
+
     def addSource(self, source, name=None):
         return self.dataSourceManager.addSource(source, name=name)
 
@@ -678,4 +696,23 @@ class EnMAPBox(QObject):
         self.ui.show()
         pass
 
+    def closeEvent(self, event):
+        assert isinstance(event, QCloseEvent)
+        if True:
+
+            #de-refere the EnMAP-Box Singleton
+            EnMAPBox._instance = None
+            enmapbox.gui.processingmanager.removeQPFExtensions()
+            self.sigClosed.emit()
+            event.accept()
+        else:
+            event.ignore()
+
+    sigClosed = pyqtSignal()
+    def close(self):
+        print('CLOSE ENMAPBOX')
+        enmapbox.gui.processingmanager.removeQPFExtensions()
+        self.ui.close()
+
+        #this will trigger the closeEvent
 

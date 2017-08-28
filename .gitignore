@@ -2,7 +2,7 @@
 .idea/
 deploy/
 build/
-
+tmp/
 
 # Untrack compiled files
 *.pyc 

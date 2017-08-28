@@ -137,6 +137,10 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None):
         return qgsApp
 
 def settings():
+    """
+    Returns the QSettings object with EnMAPBox Settings
+    :return:
+    """
     return QSettings('HU-Berlin', 'EnMAP-Box')
 
 
@@ -935,7 +939,7 @@ class MimeDataHelper():
             lyrid = node.attribute('id')
             lyr = reg.mapLayer(lyrid)
             if lyr:
-                lyr.setLayerName(name)
+                lyr.setName(name)
                 layers.append(lyr)
         return layers
 

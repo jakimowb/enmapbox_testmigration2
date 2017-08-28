@@ -29,6 +29,7 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         super(EnMAPBoxAlgorithmProvider, self).__init__()
         #internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
         self._algs = []
+        self.algs = []
 
     def getName(self):
         return 'EnMAP-Box'
@@ -61,7 +62,8 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
             if ga not in self._algs:
                 ga.provider = self
                 self._algs.append(ga)
-            # update self.algs. This it might be used by QGIS PF during runtime
+
+            # update self.algs. This might be used by QGIS PF during runtime
             if ga not in self.algs:
                 self.algs.append(ga)
 
@@ -70,7 +72,7 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         pAlgs = algList.algs[self.getName()]
         if len(self.algs) > 0:
             for ga in [ga for ga in self._algs \
-                       if isinstance(ga, GeoAlgorithm and ga not in pAlgs)]:
+                       if isinstance(ga, GeoAlgorithm) and ga not in pAlgs]:
                 pAlgs[ga.commandLineName()] = ga
             algList.providerUpdated.emit(self.getName())
 

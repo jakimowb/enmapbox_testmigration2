@@ -563,10 +563,15 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         md = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=True)
         data = None
         try:
+            to_delete = []
+            if tmpVrt is None:
+                tmpVrt = tempfile.mktemp(prefix='tmpESLVrt', suffix='.esl.vrt')
+                to_delete.append(tmpVrt)
             ds = EnviSpectralLibraryIO.esl2vrt(pathESL, tmpVrt)
-            to_delete = ds.GetFileList() if tmpVrt == None else []
             data = ds.ReadAsArray()
             ds = None
+
+            #remove the temporary VRT, as it was created internally only
             for file in to_delete:
                 os.remove(file)
 
@@ -1322,6 +1327,10 @@ class UnitComboBoxItemModel(QAbstractListModel):
 
 
 class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
+
+
+    sigLoadFromMapRequest = pyqtSignal()
+
     def __init__(self, parent=None):
         super(SpectraLibraryViewPanel, self).__init__(parent)
         self.setupUi(self)
@@ -1363,18 +1372,7 @@ class SpectraLibraryViewPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
         self.btnExportSpeclib.clicked.connect(self.onExportSpectra)
         self.btnAddCurrentToSpeclib.clicked.connect(self.addCurrentSpectraToSpeclib)
-
-
-
-
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        enmapbox = EnMAPBox.instance()
-        if enmapbox:
-            enmapbox.sigCurrentSpectraChanged.connect(self.setCurrentSpectra)
-            self.btnLoadfromMap.setEnabled(True)
-            self.btnLoadfromMap.clicked.connect(lambda : EnMAPBox.instance().activateMapTool('SPECTRUMREQUEST'))
-        else:
-            self.btnLoadfromMap.setEnabled(False)
+        self.btnLoadfromMap.clicked.connect(self.sigLoadFromMapRequest.emit)
 
     def setPlotXUnit(self, unit):
         unit = str(unit)

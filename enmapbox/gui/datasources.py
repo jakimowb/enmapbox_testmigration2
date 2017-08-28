@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, uuid, logging
+import six, sys, os, gc, re, collections, uuid, logging, pickle
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
@@ -98,7 +98,20 @@ class DataSourceFactory(object):
         return uri
 
     @staticmethod
-    def isEnMapBoxPkl(src):
+    def isSpeclib(src):
+        uri = None
+        src = DataSourceFactory.srcToString(src)
+        if isinstance(src, str) and os.path.exists(src):
+            from enmapbox.gui.spectrallibraries import SpectralLibraryIO
+            for cls in SpectralLibraryIO.__subclasses__():
+                if cls.canRead(src):
+                    uri = src
+                    break
+        return uri
+
+
+    @staticmethod
+    def isHubFlowObj(src):
         """
         Returns the source uri if it can be handled as known raster data source.
         :param src: any type
@@ -110,13 +123,11 @@ class DataSourceFactory(object):
         if isinstance(src, str) and os.path.exists(src):
 
             try:
-                from enmapbox.processing import types
-                from enmapbox.processing.types import Estimator
-
-                obj = types.unpickle(src)
-
-                if isinstance(obj, Estimator):
-                    uri = src
+                import hubflow.types
+                with open(src, 'rb') as f:
+                    obj = pickle.load(file=f)
+                    if isinstance(obj, hubflow.types.FlowObject):
+                        return src
 
             except Exception, e:
                 pass
@@ -160,9 +171,13 @@ class DataSourceFactory(object):
         if uri is not None:
             return DataSourceVector(uri, name=name, icon=icon)
 
-        uri = DataSourceFactory.isEnMapBoxPkl(src)
+        uri = DataSourceFactory.isSpeclib(src)
         if uri is not None:
-            return ProcessingTypeDataSource(uri, name=name, icon=icon)
+            return DataSourceSpectralLibrary(uri, name=name, icon=icon)
+
+        uri = DataSourceFactory.isHubFlowObj(src)
+        if uri is not None:
+            return HubFlowDataSource(uri, name=name, icon=icon)
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
@@ -189,6 +204,7 @@ class DataSource(object):
     """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
 
 
+    sigMetadataChanged = pyqtSignal()
 
     def __init__(self, uri, name=None, icon=None):
         """
@@ -196,16 +212,29 @@ class DataSource(object):
         :param name: name as it appears in the source file list
         """
         assert type(uri) is str
+        self.mUuid = uuid.uuid4()
+        self.mUri = uri
+        self.mIcon = None
+        self.mName = ''
+
+        self.updateMetadata(name=name, icon=icon)
+
+    def setUri(self, uri):
+        self.mUri = str(uri)
+        self.updateMetadata()
+
+    def updateMetadata(self, icon=None, name=None):
+        """
+
+        """
         if icon is None:
             provider = QFileIconProvider()
-            icon = provider.icon(QFileInfo(uri))
+            icon = provider.icon(QFileInfo(self.mUri))
         if name is None:
-            name = os.path.basename(uri)
+            name = os.path.basename(self.mUri)
         assert name is not None
         assert isinstance(icon, QIcon)
 
-        self.mUuid = uuid.uuid4()
-        self.mUri = uri
         self.mIcon = icon
         self.mName = name
 
@@ -311,16 +340,21 @@ class DataSourceSpatial(DataSourceFile):
         raise NotImplementedError()
 
 
-class ProcessingTypeDataSource(DataSourceFile):
+class HubFlowDataSource(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
-        super(ProcessingTypeDataSource, self).__init__(uri, name, icon)
-        from enmapbox.processing import types
-        from enmapbox.processing.types import Estimator
+        super(HubFlowDataSource, self).__init__(uri, name, icon)
+        from hubflow.types import FlowObject
+
         if not isinstance(icon, QIcon):
             self.mIcon = QIcon(':/enmapbox/icons/alg.png')
+        import pickle
 
-        self.pfType = types.unpickle(uri)
-
+        import hubflow.types
+        with open(self.mUri, 'rb') as f:
+            obj = pickle.load(file=f)
+            assert isinstance(obj, hubflow.types.FlowObject)
+        self.mFlowObj = obj
+        s = ""
     def report(self):
         return self.pfType.report()
 
@@ -329,32 +363,62 @@ class ProcessingTypeDataSource(DataSourceFile):
         return self.pfType.getMetadataDict()
 
 
+class DataSourceSpectralLibrary(DataSourceFile):
+
+    def __init__(self, uri, name=None, icon=None):
+        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon)
+
+        self.nProfiles = None
+        self.profileNames = []
+        self.updateMetadata()
+
+    def updateMetadata(self, *args, **kwds):
+
+        from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
+        slib = SpectralLibrary.readFrom(self.mUri)
+        assert isinstance(slib, SpectralLibrary)
+        self.nProfiles = len(slib)
+        self.profileNames = []
+        for p in slib:
+            assert isinstance(p, SpectralProfile)
+            self.profileNames.append(p.name())
+
+
 class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None ):
         super(DataSourceRaster, self).__init__(uri, name, icon)
+        self.nSamples = -1
+        self.nBands = -1
+        self.nLines = -1
+        self.dataType = -1
+        self.pxSizeX = -1
+        self.pxSizeY = -1
+        self.updateMetadata()
 
-        refLayer = self.createUnregisteredMapLayer(self.mUri)
-        dp = refLayer.dataProvider()
+    def updateMetadata(self, icon=None, name=None):
+        super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
 
-        self.nSamples = dp.xSize()
-        self.nLines = dp.ySize()
-        self.nBands = dp.bandCount()
-        self.dataType = dp.dataType(1)
-        self.pxSizeX = np.round(refLayer.rasterUnitsPerPixelX(), 4)
-        self.pxSizeY = np.round(refLayer.rasterUnitsPerPixelY(), 4)
+        ds = gdal.Open(self.mUri)
+        assert isinstance(ds, gdal.Dataset)
+        self.nSamples, self.nLines = ds.RasterXSize, ds.RasterYSize
+        self.nBands = ds.RasterCount
+        b1 = ds.GetRasterBand(1)
+        assert isinstance(b1, gdal.Band)
+        self.dataType = b1.DataType
+        ds.GetGeoTransform()
+        gt = ds.GetGeoTransform()
 
-        #change icon
-        icon = self.icon()
-        if self.nLines == 1:
-            dt = dp.dataType(1)
-            cat_types = [QGis.CInt16, QGis.CInt32, QGis.Byte, QGis.UInt16, QGis.UInt32, QGis.Int16, QGis.Int32]
-            if dt in cat_types:
-                if len(dp.colorTable(1)) != 0:
-                    icon = QIcon(':/enmapbox/icons/filelist_classification.png')
-                else:
-                    icon = QIcon(':/enmapbox/icons/filelist_mask.png')
-            elif dt in [QGis.Float32, QGis.Float64, QGis.CFloat32, QGis.CFloat64]:
+        from enmapbox.gui.utils import px2geo
+        v = px2geo(QPoint(0,0), gt) - px2geo(QPoint(1,1), gt)
+        self.pxSize = QSizeF(abs(v.x()), abs(v.y()))
+
+        # change icon
+        if b1.GetCategoryNames() is not None:
+            icon = QIcon(':/enmapbox/icons/filelist_classification.png')
+        elif self.dataType in [gdal.GDT_Byte]:
+            icon = QIcon(':/enmapbox/icons/filelist_mask.png')
+        elif self.dataType in [gdal.GDT_Float32, gdal.GDT_Float64, gdal.GDT_CFloat32, gdal.GDT_CFloat64]:
                 icon = QIcon(':/enmapbox/icons/filelist_regression.png')
         else:
             icon = QIcon(':/enmapbox/icons/mIconRasterLayer.png')

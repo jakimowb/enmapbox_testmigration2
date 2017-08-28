@@ -99,13 +99,20 @@ class AvailableIcons(QWidget):
         while i.hasNext():
             path = i.next()
             btn = QPushButton()
-            btn.clicked.connect(lambda: QApplication.clipboard().setText(path))
+            btn.clicked.connect(self.onClicked)
             btn.setToolTip(path)
             btn.setIcon(QIcon(path))
             layout.addWidget(btn, count / colSize, count % colSize)
             count += 1
 
         self.setLayout(layout)
+
+    def onClicked(self, *args):
+
+        btn = self.sender()
+        assert isinstance(btn, QPushButton)
+        QApplication.clipboard().setText(btn.toolTip())
+
 from PyQt4.QtCore import *
 i = QDirIterator(":/timeseriesviewer", QDirIterator.Subdirectories)
 while i.hasNext(): print(i.next())

@@ -29,6 +29,7 @@ from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui import LOAD_PROCESSING_FRAMEWORK
 
+
 """
 This module describes the EnMAP-GUI <-> Processing Framework interactions
 """
@@ -49,6 +50,120 @@ else:
     from PyQt4.QtGui import QDockWidget as UI_BASE
     _PF_AVAILABLE = False
 
+
+
+def hasQPFExtensions():
+    from processing.tools import dataobjects
+    return hasattr(dataobjects, '_getRasterLayers')
+
+def installQPFExtensions(force=False):
+    """
+    Modifies the QGIS Processing Framework to recognize EnMAP-Box data sources as well.
+    Call `removeQPFExtensions` to return to previous state.
+    """
+    if not force and hasQPFExtensions():
+        return
+
+    from processing.tools import dataobjects
+
+    def qpfPrefix():
+        from enmapbox.gui import settings
+        return settings.value('EMB_QPF_LAYERNAME_PREFIX', '[EnMAP-Box]')
+
+    def registerMergeSort(embLayers, qgsLayers, sorting):
+        QgsMapLayerRegistry.instance().addMapLayers(embLayers, False)
+        qgsLayers = embLayers + qgsLayers
+        if sorting:
+            qgsLayers = sorted(qgsLayers, key=lambda layer: layer.name().lower())
+        return qgsLayers
+
+
+    dataobjects._getRasterLayers = dataobjects.getRasterLayers
+    dataobjects._getVectorLayers = dataobjects.getVectorLayers
+    dataobjects._getTables = dataobjects.getTables
+
+
+
+    def getRasterLayersNEW(sorting=True):
+        qgsLayers = dataobjects._getRasterLayers(sorting=sorting)
+        qgsSources = set([str(l.source()) for l in qgsLayers])
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if not isinstance(EnMAPBox.instance(), EnMAPBox):
+            return qgsLayers
+
+        embLayers = []
+        for ds in EnMAPBox.instance().dataSourceManager.sources('RASTER'):
+            assert isinstance(ds, DataSourceRaster)
+            if ds.uri() not in qgsSources:
+                embLayers.append(
+                    ds.createUnregisteredMapLayer(baseName='{} {}'.format(qpfPrefix(), ds.mName))
+                )
+
+        return registerMergeSort(embLayers, qgsLayers, sorting)
+
+    def getVectorLayersNEW(shapetype=[-1], sorting=True):
+        qgsLayers = dataobjects._getVectorLayers(sorting=sorting)
+        qgsSources = set([str(l.source()) for l in qgsLayers])
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if not isinstance(EnMAPBox.instance(), EnMAPBox):
+            return qgsLayers
+
+        embLayers = []
+        for ds in EnMAPBox.instance().dataSourceManager.sources('VECTOR'):
+            if ds.uri() not in qgsSources:
+                assert isinstance(ds, DataSourceVector)
+                lyr = ds.createUnregisteredMapLayer(baseName='{} {}'.format(qpfPrefix(), ds.mName))
+                if dataobjects.canUseVectorLayer(lyr, shapetype):
+                    embLayers.append(lyr)
+
+        return registerMergeSort(embLayers, qgsLayers, sorting)
+
+
+
+    def getTablesNEW(sorting=True):
+        qgsLayers = dataobjects._getTables(sorting=sorting)
+        qgsSources = set([str(l.source()) for l in qgsLayers])
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if not isinstance(EnMAPBox.instance(), EnMAPBox):
+            return qgsLayers
+
+        embLayers = []
+        for ds in EnMAPBox.instance().dataSourceManager.sources('VECTOR'):
+            if ds.uri() not in qgsSources:
+                embLayers.append(ds.createUnregisteredMapLayer(baseName='{} {}'.format(qpfPrefix(), ds.mName)))
+
+        return registerMergeSort(embLayers, qgsLayers, sorting)
+
+    #replace old with overwritten functions
+    dataobjects.getVectorLayers = getVectorLayersNEW
+    dataobjects.getRasterLayers = getRasterLayersNEW
+    dataobjects.getTables = getTablesNEW
+    logger.debug('QPF EXTENSIONS INSTALLED')
+
+
+def removeQPFExtensions():
+    """
+    Removes the QGIS Processing Framework modification.
+    :return:
+    """
+    if hasQPFExtensions():
+        try:
+
+            from processing.tools import dataobjects
+            dataobjects.getRasterLayers = dataobjects._getRasterLayers
+            dataobjects.getVectorLayers = dataobjects._getVectorLayers
+            dataobjects.getTables = dataobjects._getTables
+
+            del dataobjects._getRasterLayers
+            del dataobjects._getVectorLayers
+            del dataobjects._getTables
+            logger.debug('QPF EXTENSIONS REMOVED')
+
+        except Exception as ex:
+            print(str(ex))
 
 
 class ProcessingAlgorithmsPanelUI(UI_BASE):

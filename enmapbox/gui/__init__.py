@@ -7,7 +7,7 @@ DEBUG = settings.value('EMB_DEBUG', False)
 LOAD_PROCESSING_FRAMEWORK = settings.value('EMB_LOAD_PF', True)
 LOAD_EXTERNAL_APPS = settings.value('EMB_LOAD_EA', True)
 
-if DEBUG:
+if False:
     #initiate loggers for all pyfiles
     import pkgutil
     DIR = os.path.dirname(__file__)
