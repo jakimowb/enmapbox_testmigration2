@@ -32,7 +32,7 @@ class TreeNodeProvider():
         assert isinstance(dataSource, DataSource)
 
         #hint: take care of class inheritance order
-        if isinstance(dataSource, ProcessingTypeDataSource):
+        if isinstance(dataSource, HubFlowDataSource):
             node = ProcessingTypeTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceRaster):
             node = RasterDataSourceTreeNode(parent, dataSource)

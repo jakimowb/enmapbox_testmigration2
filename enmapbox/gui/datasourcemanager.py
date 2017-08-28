@@ -337,7 +337,7 @@ class ProcessingTypeTreeNode(DataSourceTreeNode):
 
     def connectDataSource(self, processingTypeDataSource):
         super(ProcessingTypeTreeNode, self).connectDataSource(processingTypeDataSource)
-        assert isinstance(self.dataSource, ProcessingTypeDataSource)
+        assert isinstance(self.dataSource, HubFlowDataSource)
         self.pfType = processingTypeDataSource.pfType
 
         metaData = self.pfType.getMetadataDict()
@@ -412,7 +412,7 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
 LUT_DATASOURCTYPES = collections.OrderedDict()
 LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/icons/mIconRasterLayer.png'))
 LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/enmapbox/icons/mIconLineLayer.png'))
-LUT_DATASOURCTYPES[ProcessingTypeDataSource] = ('Models',QIcon(':/enmapbox/icons/alg.png'))
+LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/enmapbox/icons/alg.png'))
 LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries',QIcon(':/enmapbox/icons/speclib.png'))
 LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files',QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
 LUT_DATASOURCTYPES[DataSource] = ('Other sources',QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
@@ -629,7 +629,7 @@ class DataSourceManagerTreeModel(TreeModel):
         return menu
 
     def onShowModelReport(self, model):
-        assert isinstance(model, ProcessingTypeDataSource)
+        assert isinstance(model, HubFlowDataSource)
         pfType = model.pfType
 
         #this step should be done without writing anything on hard disk
@@ -662,7 +662,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             a.setToolTip('Removes all datasources from this node')
             a.triggered.connect(lambda: model.dataSourceManager.removeSources(node.dataSources()))
 
-        if isinstance(node, DataSource):
+        if isinstance(node, DataSourceTreeNode):
             src = node.dataSource
 
             if isinstance(src, DataSource):
@@ -687,11 +687,11 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 a = sub.addAction('nIR swIR Red')
                 a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,SWIR,R'))
 
-            if isinstance(node, DataSourceVector):
-                a = sub.addAction('Open in new map')
+            if isinstance(src, DataSourceVector):
+                a = m.addAction('Open in new map')
                 a.triggered.connect(lambda: self.onOpenInNewMap(src))
 
-            if isinstance(node, DataSourceSpectralLibrary):
+            if isinstance(src, DataSourceSpectralLibrary):
                 a = m.addAction('Save as...')
 
                 a = m.addAction('Open')
@@ -717,8 +717,36 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
         return m
 
     def onOpenInNewMap(self, dataSource, rgb=None, bands=None):
-        pass
-        s = ""
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        emb = EnMAPBox.instance()
+
+        if not isinstance(emb, EnMAPBox):
+            return None
+
+        if isinstance(dataSource, DataSourceSpatial):
+            lyr = dataSource.createUnregisteredMapLayer()
+            dock = emb.createDock('MAP')
+            assert isinstance(dock, MapDock)
+
+            if isinstance(lyr, QgsRasterLayer):
+                r = lyr.renderer()
+                if rgb is None:
+                    rgb = [3,2,1]
+                if bands is None:
+                    rgb = [3,2,1]
+
+                if isinstance(r, QgsMultiBandColorRenderer):
+                    r.setRedBand(rgb[0])
+                    r.setGreenBand(rgb[1])
+                    r.setBlueBand(rgb[2])
+
+                s = ""
+            elif isinstance(lyr, QgsVectorLayer):
+
+                pass
+
+            dock.setLayers([lyr])
+
 
     def onSaveAs(self, dataSource):
 
@@ -797,7 +825,7 @@ class DataSourceManager(QObject):
                     elif sourceType == 'RASTER':
                         sourceType = DataSourceRaster
                     elif sourceType == 'MODEL':
-                        sourceType = ProcessingTypeDataSource
+                        sourceType = HubFlowDataSource
                     else:
                         sourceType = None
                 if isinstance(sourceType, type(DataSource)):
@@ -844,7 +872,7 @@ class DataSourceManager(QObject):
         elif sourcetype == 'RASTER':
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
         elif sourcetype == 'MODEL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, ProcessingTypeDataSource)]
+            return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
 
     def addSources(self, sources):
         for s in sources:

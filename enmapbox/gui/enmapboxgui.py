@@ -670,6 +670,9 @@ class EnMAPBox(QObject):
     def isLinkedWithQGIS(self):
         return self.iface is not None and isinstance(self.iface, qgis.gui.QgisInterface)
 
+    def addSources(self, sourceList):
+        return [self.addSource(s) for s in sourceList]
+
     def addSource(self, source, name=None):
         return self.dataSourceManager.addSource(source, name=name)
 

@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import six, sys, os, gc, re, collections, uuid, logging
+import six, sys, os, gc, re, collections, uuid, logging, pickle
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
@@ -111,7 +111,7 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def isEnMapBoxPkl(src):
+    def isHubFlowObj(src):
         """
         Returns the source uri if it can be handled as known raster data source.
         :param src: any type
@@ -123,13 +123,11 @@ class DataSourceFactory(object):
         if isinstance(src, str) and os.path.exists(src):
 
             try:
-                from enmapbox.processing import types
-                from enmapbox.processing.types import Estimator
-
-                obj = types.unpickle(src)
-
-                if isinstance(obj, Estimator):
-                    uri = src
+                import hubflow.types
+                with open(src, 'rb') as f:
+                    obj = pickle.load(file=f)
+                    if isinstance(obj, hubflow.types.FlowObject):
+                        return src
 
             except Exception, e:
                 pass
@@ -177,9 +175,9 @@ class DataSourceFactory(object):
         if uri is not None:
             return DataSourceSpectralLibrary(uri, name=name, icon=icon)
 
-        uri = DataSourceFactory.isEnMapBoxPkl(src)
+        uri = DataSourceFactory.isHubFlowObj(src)
         if uri is not None:
-            return ProcessingTypeDataSource(uri, name=name, icon=icon)
+            return HubFlowDataSource(uri, name=name, icon=icon)
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
@@ -342,16 +340,21 @@ class DataSourceSpatial(DataSourceFile):
         raise NotImplementedError()
 
 
-class ProcessingTypeDataSource(DataSourceFile):
+class HubFlowDataSource(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
-        super(ProcessingTypeDataSource, self).__init__(uri, name, icon)
-        from enmapbox.processing import types
-        from enmapbox.processing.types import Estimator
+        super(HubFlowDataSource, self).__init__(uri, name, icon)
+        from hubflow.types import FlowObject
+
         if not isinstance(icon, QIcon):
             self.mIcon = QIcon(':/enmapbox/icons/alg.png')
+        import pickle
 
-        self.pfType = types.unpickle(uri)
-
+        import hubflow.types
+        with open(self.mUri, 'rb') as f:
+            obj = pickle.load(file=f)
+            assert isinstance(obj, hubflow.types.FlowObject)
+        self.mFlowObj = obj
+        s = ""
     def report(self):
         return self.pfType.report()
 
