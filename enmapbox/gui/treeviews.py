@@ -27,7 +27,8 @@ class TreeNodeProvider():
     def CreateNodeFromDataSource(dataSource, parent):
 
         from enmapbox.gui.datasourcemanager import DataSource, ProcessingTypeTreeNode, \
-        FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode
+        FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode, \
+        SpeclibDataSourceTreeNode
         assert isinstance(dataSource, DataSource)
 
         #hint: take care of class inheritance order
@@ -37,6 +38,8 @@ class TreeNodeProvider():
             node = RasterDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceVector):
             node = VectorDataSourceTreeNode(parent, dataSource)
+        elif isinstance(dataSource, DataSourceSpectralLibrary):
+            node = SpeclibDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceFile):
             node = FileDataSourceTreeNode(parent, dataSource)
         else:

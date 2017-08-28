@@ -588,7 +588,7 @@ class EnMAPBox(QObject):
         import enmapboxtestdata
         from enmapbox.gui.utils import file_search
         dir = os.path.dirname(enmapboxtestdata.__file__)
-        files = file_search(dir, re.compile('.*(bsq|img|shp)$', re.I), recursive=True)
+        files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
 
         for file in files:
             self.addSource(file)
