@@ -217,7 +217,8 @@ class RTM_Inversion:
         self.psi_LUT = [float(angle) for angle in temp[:-1]]
 
         self.nangles_LUT = [len(self.tts_LUT), len(self.tto_LUT), len(self.psi_LUT)]
-        self.nbfits = int(self.ns * (self.nbfits/100))
+        if self.nbfits_type == "rel":
+            self.nbfits = int(self.ns * (self.nbfits/100.0))
 
     def run_inversion(self):
 

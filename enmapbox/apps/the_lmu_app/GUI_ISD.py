@@ -54,7 +54,6 @@ class UiFunc:
         self.data_mean = None
 
     def update_slider_pos(self):
-
         self.gui.N_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.N_Slide, self.gui.N_lineEdit))
         self.gui.Cab_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cab_Slide, self.gui.Cab_lineEdit))
         self.gui.Cw_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cw_Slide, self.gui.Cw_lineEdit))
@@ -125,14 +124,6 @@ class UiFunc:
         if trigger:
             self.mod_exec()
 
-    def select_model(self, lop="prospectD", canopy_arch="sail"):
-        self.lop = lop
-        if canopy_arch == "None":
-            self.canopy_arch = None
-        else:
-            self.canopy_arch = canopy_arch
-        self.mod_exec()
-
     def select_LIDF(self, index):
         if index > 0:
             self.typeLIDF = 1 # Beta Distribution
@@ -147,24 +138,87 @@ class UiFunc:
             self.gui.LIDFB_lineEdit.setDisabled(False)
 
     def deactivate_sliders(self):
-        self.gui.B_Prospect5b.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5b, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
 
-        self.gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
-        self.gui.B_Prospect5.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect5, self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit, self.gui.Cbrown_Text))
+        # Models
+        self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4", canopy_arch=self.canopy_arch))
+        self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5", canopy_arch=self.canopy_arch))
+        self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B", canopy_arch=self.canopy_arch))
+        self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD", canopy_arch=self.canopy_arch))
 
-        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Canth_Slide, self.gui.Canth_lineEdit, self.gui.Canth_Text))
-        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit, self.gui.Cbrown_Text))
-        self.gui.B_Prospect4.toggled.connect(lambda: self.model_rb_click(self.gui.B_Prospect4, self.gui.Car_Slide, self.gui.Car_lineEdit, self.gui.Car_Text))
+        self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch=None))
+        self.gui.B_4Sail.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail"))
+        self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
 
-    def model_rb_click(self, rbutton, slider, textfeld, text):
-        if rbutton.isChecked():
-            slider.setDisabled(True)
-            textfeld.setDisabled(True)
-            text.setDisabled(True)
+    def select_model(self, lop="prospectD", canopy_arch="sail"):
+        self.lop = lop
+        if canopy_arch is None:
+            self.canopy_arch = None
+            self.gui.CanopyMP_Box.setDisabled(True)
+            self.gui.B_DefSoilSpec.setDisabled(True)
+            self.gui.psoil_Slide.setDisabled(True)
+            self.gui.psoil_lineEdit.setDisabled(True)
+            self.gui.BrightFac_Text.setDisabled(True)
         else:
-            slider.setDisabled(False)
-            textfeld.setDisabled(False)
-            text.setDisabled(False)
+            self.canopy_arch = canopy_arch
+            self.gui.CanopyMP_Box.setDisabled(False)
+            self.gui.B_DefSoilSpec.setDisabled(False)
+            self.gui.psoil_Slide.setDisabled(False)
+            self.gui.psoil_lineEdit.setDisabled(False)
+            self.gui.BrightFac_Text.setDisabled(False)
+
+        if lop == "prospectD":
+            self.gui.Canth_Slide.setDisabled(False)
+            self.gui.Canth_lineEdit.setDisabled(False)
+            self.gui.Canth_Text.setDisabled(False)
+
+            self.gui.Cbrown_Slide.setDisabled(False)
+            self.gui.Cbrown_lineEdit.setDisabled(False)
+            self.gui.Cbrown_Text.setDisabled(False)
+
+            self.gui.Car_Slide.setDisabled(False)
+            self.gui.Car_lineEdit.setDisabled(False)
+            self.gui.Car_Text.setDisabled(False)
+
+        elif lop == "prospect5B":
+            self.gui.Canth_Slide.setDisabled(True)
+            self.gui.Canth_lineEdit.setDisabled(True)
+            self.gui.Canth_Text.setDisabled(True)
+
+            self.gui.Cbrown_Slide.setDisabled(False)
+            self.gui.Cbrown_lineEdit.setDisabled(False)
+            self.gui.Cbrown_Text.setDisabled(False)
+
+            self.gui.Car_Slide.setDisabled(False)
+            self.gui.Car_lineEdit.setDisabled(False)
+            self.gui.Car_Text.setDisabled(False)
+
+        elif lop == "prospect5":
+            self.gui.Canth_Slide.setDisabled(True)
+            self.gui.Canth_lineEdit.setDisabled(True)
+            self.gui.Canth_Text.setDisabled(True)
+
+            self.gui.Cbrown_Slide.setDisabled(True)
+            self.gui.Cbrown_lineEdit.setDisabled(True)
+            self.gui.Cbrown_Text.setDisabled(True)
+
+            self.gui.Car_Slide.setDisabled(False)
+            self.gui.Car_lineEdit.setDisabled(False)
+            self.gui.Car_Text.setDisabled(False)
+
+        elif lop == "prospect4":
+            self.gui.Canth_Slide.setDisabled(True)
+            self.gui.Canth_lineEdit.setDisabled(True)
+            self.gui.Canth_Text.setDisabled(True)
+
+            self.gui.Cbrown_Slide.setDisabled(True)
+            self.gui.Cbrown_lineEdit.setDisabled(True)
+            self.gui.Cbrown_Text.setDisabled(True)
+
+            self.gui.Car_Slide.setDisabled(True)
+            self.gui.Car_lineEdit.setDisabled(True)
+            self.gui.Car_Text.setDisabled(True)
+
+        self.mod_exec()
 
     def para_init(self):
         self.select_s2s(sensor="default", trigger=False)
@@ -212,14 +266,14 @@ class UiFunc:
         self.gui.SType_Landsat_B.clicked.connect(lambda: self.select_s2s(sensor="Landsat8"))
         self.gui.SType_Enmap_B.clicked.connect(lambda: self.select_s2s(sensor="EnMAP"))
 
-        self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4"))
-        self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5"))
-        self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B"))
-        self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD"))
-
-        self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(canopy_arch="None"))
-        self.gui.B_4Sail.clicked.connect(lambda: self.select_model(canopy_arch="sail"))
-        self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
+        # self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4"))
+        # self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5"))
+        # self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B"))
+        # self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD"))
+        #
+        # self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(canopy_arch="None"))
+        # self.gui.B_4Sail.clicked.connect(lambda: self.select_model(canopy_arch="sail"))
+        # self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
 
         self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
@@ -293,14 +347,20 @@ class UiFunc:
     def open_file(self):
         # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
         filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        if not filenameIn: return
         self.data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
         ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
-        self.data = np.delete(self.data, 0, axis=1)
-        self.data_mean = np.mean(self.data, axis=1)
-        self.data_mean[1010:1071] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        self.data_mean[1440:1591] = np.nan
-        self.data_mean[2050:2151] = np.nan
-        self.data_mean = self.data_mean[50:]  # cut off first 50 Bands to start at Band 400
+        wl_open = self.data[:,0]
+        offset = 400 - int(wl_open[0])
+        self.data_mean = np.delete(self.data, 0, axis=1)
+        self.data_mean = np.mean(self.data_mean, axis=1)
+        if offset < 0: self.data_mean = self.data_mean[offset:]  # cut off first 50 Bands to start at Band 400
+        try:
+            self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
+            self.data_mean[1390:1541] = np.nan
+            self.data_mean[2000:2101] = np.nan
+        except:
+            QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
         self.mod_exec()
 
     def reset_in_situ(self):
@@ -318,20 +378,19 @@ class UiFunc:
     def save_spectrum(self):
         specnameout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
                                                       filter="Text files (*.txt)"))
-        np.savetxt(specnameout, self.myResult, delimiter="\t")
+        if not specnameout: return
+        save_matrix = np.zeros(shape=(2101,2))
+        save_matrix[:,0] = range(400,2501)
+        save_matrix[:,1] = self.myResult
+        np.savetxt(specnameout, save_matrix, delimiter="\t", header="wavelength (nm)")
 
     def save_paralist(self):
         paralistout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
                                                       filter="Text files (*.txt)"))
-
-        with open(paralistout, "w") as file:
-            file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Car, Canth, Cbrown, skyl\n")
-            file.write(','.join(str(line) for line in self.para_list))
-
-
-    #never ever...
-    #def exit_GUI(self):
-    #    QCoreApplication.instance().quit()
+        if paralistout:
+            with open(paralistout, "w") as file:
+                file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Car, Canth, Cbrown, skyl\n")
+                file.write(','.join(str(line) for line in self.para_list))
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

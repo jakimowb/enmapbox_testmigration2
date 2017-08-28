@@ -57,6 +57,7 @@ class UiFunc:
         self.inversion_range = None
         self.n_wl = None
         self.image = None
+        self.mask_image = None
         self.out_path = None
         self.out_mode = "single"
         self.flags =[[0,0],[0],[0],[0,0]] # to be edited!
@@ -317,9 +318,10 @@ class UiFunc:
                     return -1
 
         # Mask
-        if not self.mask_image is None and not os.path.isfile(self.mask_image):
-            self.abort(message='Mask Image does not exist')
-            return -1
+        if not self.mask_image is None:
+            if not os.path.isfile(self.mask_image):
+                self.abort(message='Mask Image does not exist')
+                return -1
 
         if self.gui.txtNodatOutput.text() == "":
             self.abort(message='Please specify no data value for output')

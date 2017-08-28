@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Creation of Look-up-table</string>
   </property>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
@@ -8937,8 +8937,8 @@
   <buttongroup name="buttonGroup_5"/>
   <buttongroup name="buttonGroup_17"/>
   <buttongroup name="buttonGroup_6"/>
-  <buttongroup name="buttonGroup_7"/>
   <buttongroup name="buttonGroup_18"/>
+  <buttongroup name="buttonGroup_7"/>
   <buttongroup name="buttonGroup_8"/>
   <buttongroup name="buttonGroup_9"/>
   <buttongroup name="buttonGroup"/>

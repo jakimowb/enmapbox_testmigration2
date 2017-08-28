@@ -459,22 +459,6 @@
               <property name="verticalSpacing">
                <number>2</number>
               </property>
-              <item row="10" column="3">
-               <widget class="QLineEdit" name="Canth_lineEdit">
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>1</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
               <item row="7" column="0" colspan="4">
                <widget class="QScrollBar" name="Cm_Slide">
                 <property name="minimum">
@@ -491,28 +475,6 @@
                 </property>
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="0">
-               <widget class="QLabel" name="Canth_Text">
-                <property name="enabled">
-                 <bool>true</bool>
-                </property>
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Anthocyanins (Canth)</string>
                 </property>
                </widget>
               </item>
@@ -687,34 +649,6 @@
                 </property>
                </spacer>
               </item>
-              <item row="13" column="0" colspan="4">
-               <widget class="QScrollBar" name="Cbrown_Slide">
-                <property name="font">
-                 <font>
-                  <strikeout>false</strikeout>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="autoFillBackground">
-                 <bool>false</bool>
-                </property>
-                <property name="maximum">
-                 <number>10000</number>
-                </property>
-                <property name="singleStep">
-                 <number>1000</number>
-                </property>
-                <property name="pageStep">
-                 <number>1000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="invertedAppearance">
-                 <bool>false</bool>
-                </property>
-               </widget>
-              </item>
               <item row="1" column="0" colspan="4">
                <widget class="QScrollBar" name="N_Slide">
                 <property name="minimum">
@@ -737,41 +671,6 @@
                 </property>
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="0">
-               <widget class="QLabel" name="Cbrown_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Brown Pigments (Cbrown)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="3">
-               <widget class="QLineEdit" name="Cbrown_lineEdit">
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>0</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
                 </property>
                </widget>
               </item>
@@ -804,25 +703,6 @@
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="0" colspan="4">
-               <widget class="QScrollBar" name="Canth_Slide">
-                <property name="maximum">
-                 <number>100000</number>
-                </property>
-                <property name="singleStep">
-                 <number>10000</number>
-                </property>
-                <property name="pageStep">
-                 <number>10000</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>10000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
                 </property>
                </widget>
               </item>
@@ -886,11 +766,134 @@
                 </property>
                </widget>
               </item>
+              <item row="10" column="3">
+               <widget class="QLineEdit" name="Cbrown_lineEdit">
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="0" colspan="4">
+               <widget class="QScrollBar" name="Canth_Slide">
+                <property name="maximum">
+                 <number>100000</number>
+                </property>
+                <property name="singleStep">
+                 <number>10000</number>
+                </property>
+                <property name="pageStep">
+                 <number>10000</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>10000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="0">
+               <widget class="QLabel" name="Canth_Text">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Anthocyanins (Canth)</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="0">
+               <widget class="QLabel" name="Cbrown_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Brown Pigments (Cbrown)</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="3">
+               <widget class="QLineEdit" name="Canth_lineEdit">
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>1</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="0" colspan="4">
+               <widget class="QScrollBar" name="Cbrown_Slide">
+                <property name="font">
+                 <font>
+                  <strikeout>false</strikeout>
+                  <kerning>true</kerning>
+                 </font>
+                </property>
+                <property name="autoFillBackground">
+                 <bool>false</bool>
+                </property>
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+                <property name="singleStep">
+                 <number>1000</number>
+                </property>
+                <property name="pageStep">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="invertedAppearance">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>
            <item>
             <widget class="QgsCollapsibleGroupBox" name="CanopyMP_Box">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
              <property name="font">
               <font>
                <pointsize>7</pointsize>
@@ -904,6 +907,9 @@
              </property>
              <property name="collapsed">
               <bool>false</bool>
+             </property>
+             <property name="saveCheckedState">
+              <bool>true</bool>
              </property>
              <layout class="QGridLayout" name="gridLayout_4">
               <property name="topMargin">
