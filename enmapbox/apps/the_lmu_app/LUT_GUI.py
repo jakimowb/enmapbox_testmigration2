@@ -11,8 +11,10 @@ from PyQt4 import uic
 import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
+import time
 
 pathUI = os.path.join(os.path.dirname(__file__),'GUI_LUT.ui')
+pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
 
 from enmapbox.gui.utils import loadUIFormClass
 
@@ -20,13 +22,20 @@ class LUT_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
         super(LUT_GUI, self).__init__(parent)
-        self.setupUi(self)    
+        self.setupUi(self)
+
+class PRG_GUI(QDialog, loadUIFormClass(pathUI2)):
+    def __init__(self, parent=None):
+        super(PRG_GUI, self).__init__(parent)
+        self.setupUi(self)
 
 class LUT:
 
-    def __init__(self):
-        
+    def __init__(self, main):
+        self.main = main
         self.gui = LUT_GUI()
+
+        self.special_chars()
         self.initial_values()
         self.dictchecks()
         self.connections()
@@ -35,13 +44,13 @@ class LUT:
             self.txt_enables(para=para, mode="fix")
         self.set_boundaries()
 
-        # self.para_list = []
-        # self.update_lineEdit_pos()
-        # self.txt_enables()
-        # self.para_init()
-        # self.select_model()
-        # self.mod_interactive()
-        # self.mod_exec()
+    def special_chars(self):
+        self.gui.lblCab.setText(u'Chlorophyll A + B (Cab) [µg/cm²]')
+        self.gui.lblCm.setText(u'Dry Matter Content (Cm) [g/cm²]')
+        self.gui.lblCar.setText(u'Carotenoids (Car) [µg/cm²]')
+        self.gui.lblCanth.setText(u'Anthocyanins (Canth) [µg/cm²]')
+        self.gui.lblLAI.setText(u'Leaf Area Index (LAI) [m²/m²]')
+
 
     def initial_values(self):
         self.typeLIDF = 2
@@ -372,35 +381,52 @@ class LUT:
         path = str(QFileDialog.getExistingDirectory(caption='Select Directory for LUT'))
 
         if path:
-            self.gui.txtPath.setText(path)
-            self.path = self.gui.txtPath.text().replace("\\", "/")
+            self.gui.lblOutPath.setText(path)
+            self.path = self.gui.lblOutPath.text().replace("\\", "/")
             if not self.path[-1] == "/":
                 self.path += "/"
             print self.path
 
     def test_LUT(self):
         self.get_lutsize()
-        app.processEvents()
+        self.main.QGis_app.processEvents()
         self.gui.lcdNumber.display(int(self.nlut_total))
         self.gui.lcdSpeed.display(self.speed)
 
+        self.main.prg_widget.gui.lblCaption_l.setText("Global Inversion")
+        self.main.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
+        self.main.prg_widget.gui.show()
+        self.main.QGis_app.processEvents()
+
         model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
                                  int_boost=1000, s2s="default")
-        model_I.initialize_multiple(LUT_dir="D:/ECST_III/Processor/VegProc/results_test/", LUT_name="Test1", ns=2000,
+        lut_run = model_I.initialize_multiple(LUT_dir="D:/ECST_III/Processor/VegProc/results_test/", LUT_name="Test1", ns=2000,
                                     tts=[20.0, 50.0, 4.0],
                                     tto=[0.0], psi=[45.0], N=[1.0, 2.5],
                                     cab=[0.0, 80.0, 45.0, 5.0], cw=[0.002, 0.02], cm=[0.018],
                                     LAI=[1.0, 8.0], LIDF=[20.0, 80.0, 40.0, 10.0], typeLIDF=[2],
                                     hspot=[0.1], psoil=[0.0, 1.0], car=[0.0, 15.0],
-                                    cbrown=[0.0, 1.0], anth=[5.0])
+                                    cbrown=[0.0, 1.0], anth=[5.0], prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+        if lut_run:
+            self.abort(message=lut_run)
+        else:
+            QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
 
     def run_LUT(self):
         self.get_inputs()
         if not self.check_inputs(): return
         self.get_lutsize()
-        app.processEvents()
+        self.main.QGis_app.processEvents()
         self.gui.lcdNumber.display(int(self.nlut_total))
         self.gui.lcdSpeed.display(self.speed)
+
+        self.main.prg_widget.gui.lblCaption_l.setText("Global Inversion")
+        self.main.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
+        self.main.prg_widget.gui.prgBar.setValue(0)
+        self.main.prg_widget.gui.setModal(True)
+        self.main.prg_widget.gui.show()
+        self.main.QGis_app.processEvents()
 
         model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
                                  int_boost=self.intboost, s2s=self.sensor)
@@ -409,11 +435,14 @@ class LUT:
                                     cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
                                     LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
                                     hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
-                                    cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'])
+                                    cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'],
+                                    prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
         if lut_run:
             self.abort(message=lut_run)
         else:
             QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
+            self.gui.close()
 
     def get_inputs(self):
         self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
@@ -498,7 +527,7 @@ class LUT:
                 self.abort(message='Canopy Architecture parameter(s) missing')
                 return False
 
-        if not os.path.isdir(self.gui.txtPath.text()):
+        if not os.path.isdir(self.gui.lblOutPath.text()):
             self.abort(message='Incorrect Path')
             return False
 
@@ -550,11 +579,29 @@ class LUT:
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)
 
+class PRG:
+    def __init__(self, main):
+        self.main = main
+        self.gui = PRG_GUI()
+        self.connections()
+
+    def connections(self):
+        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+
+class MainUiFunc:
+    def __init__(self):
+        self.QGis_app = QApplication(sys.argv)
+        self.LUT = LUT(self)
+        self.prg_widget = PRG(self)
+
+    def show(self):
+        self.LUT.gui.show()
+
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
-    myUI = LUT()
-    myUI.gui.show()
+    main = MainUiFunc()
+    main.show()
     sys.exit(app.exec_())
 
 

@@ -15,6 +15,7 @@ from Spec2Sensor_cl import Spec2Sensor
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_Global_Inversion.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Select_Wavelengths.ui')
 pathUI3 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
+pathUI_prg = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
 
 from enmapbox.gui.utils import loadUIFormClass
 
@@ -36,10 +37,15 @@ class Nodat_GUI(QDialog, loadUIFormClass(pathUI3)):
         super(Nodat_GUI, self).__init__(parent)
         self.setupUi(self)
 
+class PRG_GUI(QDialog, loadUIFormClass(pathUI_prg)):
+    def __init__(self, parent=None):
+        super(PRG_GUI, self).__init__(parent)
+        self.setupUi(self)
+
 class Global_Inversion:
 
-    def __init__(self):
-
+    def __init__(self, main):
+        self.main = main
         self.gui = Global_Inversion_GUI()
         self.initial_values()
         self.connections()
@@ -351,10 +357,10 @@ class Global_Inversion:
                 nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
                 return nodata, nbands, nrows, ncols
             except:
-                main.nodat_widget.init(image_type=image_type, image=image)
-                main.nodat_widget.gui.setModal(True) # parent window is blocked
-                main.nodat_widget.gui.exec_() # unlike .show(), .exec_() waits with execution of the code, until the app is closed
-                return main.nodat_widget.nodat, nbands, nrows, ncols
+                self.main.nodat_widget.init(image_type=image_type, image=image)
+                self.main.nodat_widget.gui.setModal(True) # parent window is blocked
+                self.main.nodat_widget.gui.exec_() # unlike .show(), .exec_() waits with execution of the code, until the app is closed
+                return self.main.nodat_widget.nodat, nbands, nrows, ncols
 
     def run_inversion(self):
 
@@ -429,9 +435,9 @@ class Global_Inversion:
                 self.gui.txtExclude.setText("")
                 pass_exclude = []
 
-        main.select_wavelengths.populate(default_exclude=pass_exclude)
-        main.select_wavelengths.gui.setModal(True)
-        main.select_wavelengths.gui.show()
+        self.main.select_wavelengths.populate(default_exclude=pass_exclude)
+        self.main.select_wavelengths.gui.setModal(True)
+        self.main.select_wavelengths.gui.show()
 
     def debug(self):
 
@@ -448,31 +454,48 @@ class Global_Inversion:
         self.sensor = 1
         self.mask_image = None
         self.out_mode = "individual"
+        self.prg_widget = self.main.prg_widget
+        self.exclude_bands = range(0, 50) + range(1009, 1129) + range(1371, 1650) # 350-400nm, 1359-1479nm, 1721-200nm
+
+        self.prg_widget.gui.lblCaption_l.setText("Global Inversion")
+        self.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
+        self.main.prg_widget.gui.prgBar.setValue(0)
+        self.main.prg_widget.gui.setModal(True)
+        self.prg_widget.gui.show()
+
+        self.main.QGis_app.processEvents()
 
         inv = inverse.RTM_Inversion()
         inv_setup = inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
                             nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
-                            noiselevel=self.noiselevel, exclude_bands=[], geo_image=self.geo_file,
+                            noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
                             geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
                             nodat=[-999]*3, which_para=range(15))
+
         if inv_setup:
             self.abort(message=inv_setup)
             return
 
-        run_inv = inv.run_inversion()
+        run_inv = inv.run_inversion(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
         if run_inv:
             self.abort(message=run_inv)
             return
+
+        self.prg_widget.gui.lblCaption_r.setText("Writing Output-File...")
+        self.main.QGis_app.processEvents()
 
         write_inv = inv.write_image()
         if write_inv:
             self.abort(message=write_inv)
             return
 
+        self.prg_widget.gui.close()
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
+        self.gui.close()
 
 class Select_Wavelengths:
-    def __init__(self):
+    def __init__(self, main):
+        self.main = main
         self.gui = Select_Wavelengths_GUI()
         self.connections()
 
@@ -485,19 +508,19 @@ class Select_Wavelengths:
         self.gui.cmdOK.clicked.connect(lambda: self.OK())
 
     def populate(self, default_exclude):
-        if main.global_inversion.nbands < 10: width = 1
-        elif main.global_inversion.nbands < 100: width = 2
-        elif main.global_inversion.nbands < 1000: width = 3
+        if self.main.global_inversion.nbands < 10: width = 1
+        elif self.main.global_inversion.nbands < 100: width = 2
+        elif self.main.global_inversion.nbands < 1000: width = 3
         else: width = 4
 
-        for i in xrange(main.global_inversion.nbands):
+        for i in xrange(self.main.global_inversion.nbands):
             if i in default_exclude:
                 str_band_no = '{num:0{width}}'.format(num=i + 1, width=width)
-                label = "band %s: %6.2f %s" % (str_band_no, main.global_inversion.wl[i], main.global_inversion.wunit)
+                label = "band %s: %6.2f %s" % (str_band_no, self.main.global_inversion.wl[i], self.main.global_inversion.wunit)
                 self.gui.lstExcluded.addItem(label)
             else:
                 str_band_no = '{num:0{width}}'.format(num=i+1, width=width)
-                label = "band %s: %6.2f %s" %(str_band_no, main.global_inversion.wl[i], main.global_inversion.wunit)
+                label = "band %s: %6.2f %s" %(str_band_no, self.main.global_inversion.wl[i], self.main.global_inversion.wunit)
                 self.gui.lstIncluded.addItem(label)
 
     def send(self, direction):
@@ -536,9 +559,9 @@ class Select_Wavelengths:
             item = list_object.item(i).text()
             raw_list.append(item)
 
-        main.global_inversion.exclude_bands = [int(raw_list[i].split(" ")[1][:-1])-1 for i in xrange(len(raw_list))]
-        exclude_string = " ".join(str(x+1) for x in main.global_inversion.exclude_bands)
-        main.global_inversion.gui.txtExclude.setText(exclude_string)
+        self.main.global_inversion.exclude_bands = [int(raw_list[i].split(" ")[1][:-1])-1 for i in xrange(len(raw_list))]
+        exclude_string = " ".join(str(x+1) for x in self.main.global_inversion.exclude_bands)
+        self.main.global_inversion.gui.txtExclude.setText(exclude_string)
 
         for list_object in [self.gui.lstIncluded, self.gui.lstExcluded]:
             list_object.clear()
@@ -546,7 +569,8 @@ class Select_Wavelengths:
         self.gui.close()
 
 class Nodat:
-    def __init__(self):
+    def __init__(self, main):
+        self.main = main
         self.gui = Nodat_GUI()
         self.connections()
         self.image = None
@@ -555,9 +579,6 @@ class Nodat:
         topstring = '%s @ %s' % (image_type, image)
         self.gui.lblSource.setText(topstring)
         self.gui.txtNodat.setText("")
-        # if image_type == "Input Image": self.which_nodat = 0
-        # elif image_type == "Geometry Image": self.which_nodat = 1
-        # elif image_type == "Output Image": self.which_nodat = 2
         self.image = image
         self.nodat = None
 
@@ -579,21 +600,32 @@ class Nodat:
         self.nodat = nodat
         self.gui.close()
 
+class PRG:
+    def __init__(self, main):
+        self.main = main
+        self.gui = PRG_GUI()
+        self.connections()
+
+    def connections(self):
+        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+
+
 class MainUiFunc:
     def __init__(self):
-        self.global_inversion = Global_Inversion()
-        self.select_wavelengths = Select_Wavelengths()
-        self.nodat_widget = Nodat()
+        self.QGis_app = QApplication(sys.argv)
+        self.global_inversion = Global_Inversion(self)
+        self.select_wavelengths = Select_Wavelengths(self)
+        self.nodat_widget = Nodat(self)
+        self.prg_widget = PRG(self)
 
-main = MainUiFunc()
+    def show(self):
+        self.global_inversion.gui.show()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
-    myUI2 = Select_Wavelengths()
-    myUI3 = Nodat()
-    myUI = Global_Inversion(myUI2, myUI3)
-    myUI.gui.show()
-    sys.exit(app.exec_())
+    m = MainUiFunc()
+    m.show()
+    app.exec_()
 
 

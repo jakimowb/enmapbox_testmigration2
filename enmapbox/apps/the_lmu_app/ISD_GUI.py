@@ -14,7 +14,6 @@ import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 
-#app = QApplication(sys.argv)
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_ISD.ui')
 from enmapbox.gui.utils import loadUIFormClass
@@ -30,9 +29,8 @@ class ISD:
     def __init__(self):
         
         self.gui = ISD_GUI()
-        
+        self.special_chars()
         self.initial_values()
-        self.para_list = []
         self.update_slider_pos()
         self.update_lineEdit_pos()
         self.deactivate_sliders()
@@ -40,6 +38,13 @@ class ISD:
         self.select_model()
         self.mod_interactive()
         self.mod_exec()
+
+    def special_chars(self):
+        self.gui.lblCab.setText(u'[µg/cm²]')
+        self.gui.lblCm.setText(u'[g/cm²]')
+        self.gui.lblCar.setText(u'[µg/cm²]')
+        self.gui.lblCanth.setText(u'[µg/cm²]')
+        self.gui.lblLAI.setText(u'[m²/m²]')
 
     def initial_values(self):
         self.typeLIDF = 2
@@ -49,6 +54,7 @@ class ISD:
         self.plot_count = 0
         self.current_slider = None
         self.data_mean = None
+        self.para_list = []
 
     def update_slider_pos(self):
         self.gui.N_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.N_Slide, self.gui.N_lineEdit))

@@ -23,8 +23,8 @@ import os
 from PyQt4.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from the_lmu_app import APP_DIR
-class LMU_EnMAPBoxApp(EnMAPBoxApplication):
 
+class LMU_EnMAPBoxApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super(LMU_EnMAPBoxApp, self).__init__(enmapBox,parent=parent)
         self.name = 'Agricultural Applications'
@@ -58,10 +58,17 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         c = menu.addAction('Invert Look-up-table')
         c.triggered.connect(self.start_GUI_Inv)
 
+        d = menu.addAction('Vegetation Indices Toolbox')
+        d.triggered.connect(self.start_GUI_VIT)
+
         appMenu.addMenu(menu)
 
         return menu
 
+    def start_GUI_VIT(self, *args):
+        from VIT_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
 
     def start_GUI_ISD(self, *args):
         from ISD_GUI import ISD
@@ -71,19 +78,17 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         # gui1.sigFileCreated.connect(self.enmapbox.addSource)
 
     def start_GUI_LUT(self, *args):
-        from LUT_GUI import LUT
-        uifunc = LUT()
-        uifunc.gui.show()
+        from LUT_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
 
     def start_GUI_Inv(self, *args):
-        from Global_Inversion_GUI import main
-        main.global_inversion.gui.show()
-
+        from Global_Inversion_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
 
     def geoAlgorithms(self):
         return [LMU_GeoAlgorithm()]
-
-
 
 ### Interfaces to use algorithms in algorithms.py within
 ### QGIS Processing Framework
@@ -105,9 +110,7 @@ class LMU_GeoAlgorithm(GeoAlgorithm):
             #map processing framework parameters to that of you algorithm
             infile = self.getParameterValue('infile')
             outfile = self.getOutputValue('outfile')
-
             raise NotImplementedError()
-
 
         def help(self):
             return True, 'Calculates the NDVI using GDAL'

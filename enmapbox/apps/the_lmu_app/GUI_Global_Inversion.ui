@@ -39,7 +39,7 @@
     <item>
      <widget class="QRadioButton" name="radFullRange">
       <property name="text">
-       <string>Full range (ASD)</string>
+       <string>ASD 350-2500nm</string>
       </property>
       <property name="checked">
        <bool>false</bool>
@@ -197,7 +197,7 @@
     <item row="1" column="2">
      <widget class="QRadioButton" name="radOutIndividual">
       <property name="text">
-       <string>Output to indivudal files</string>
+       <string>Output to individual files</string>
       </property>
      </widget>
     </item>
@@ -405,7 +405,7 @@
     <item row="3" column="0">
      <widget class="QRadioButton" name="radGeoOff">
       <property name="text">
-       <string>Do not use geometry</string>
+       <string>Ignore Geometry</string>
       </property>
       <property name="checked">
        <bool>true</bool>
@@ -591,7 +591,7 @@
        <item>
         <widget class="QRadioButton" name="radmNSE">
          <property name="text">
-          <string>modified Nash-Sutcliffe-Efficiency mNSE)</string>
+          <string>modified Nash-Sutcliffe-Efficiency (mNSE)</string>
          </property>
         </widget>
        </item>

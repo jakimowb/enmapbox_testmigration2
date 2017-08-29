@@ -8,7 +8,7 @@ import gdal
 from gdalconst import *
 import struct
 
-class AVI:
+class VIT:
     def __init__(self, IT, nodat, IDW_exp=None):
 
         self.nodat = nodat # set no data value (0: in, 1: out)
@@ -73,9 +73,9 @@ class AVI:
         string_chaos = string_chaos.replace("}", "")
         string_chaos = string_chaos.split(",")
 
-        if dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() == 'nanometers' or 'nm':
+        if dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['nanometers', 'nm']:
             wave_convert = 1
-        elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() == 'microometers' or 'µm':
+        elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['micrometers', 'µm']:
             wave_convert = 1000
         else:
             exit("No wavelength units provided in ENVI header file")
@@ -191,8 +191,17 @@ class AVI:
             band_out = [int(band_out[i]) for i in xrange(len(band_out))]
 
         self.dict_senswl = dict(zip(wl_list, band_out)) # maps index wavelengths with sensor bands
+        print "wl_list: ", wl_list
+        print "self.dict_senswl: ", self.dict_senswl
 
-    def calculate_AVI(self, ImageIn_matrix):
+    def prgbar_process(self, index_no):
+        if self.prg:
+            self.prg.gui.prgBar.setValue(index_no*100 // self.n_indices)
+            self.QGis_app.processEvents()
+
+    def calculate_VIT(self, ImageIn_matrix, prg_widget=None, QGis_app=None):
+        self.prg = prg_widget
+        self.QGis_app = QGis_app
 
         old_settings = np.seterr(all='ignore') # override numpy-settings: math errors will be ignored (nodata will remain in matrix)
 
@@ -211,23 +220,29 @@ class AVI:
             if self.StructIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[827], self.dict_senswl[668])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[1] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[900], self.dict_senswl[680])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[2] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[800], self.dict_senswl[680])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[3] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[800], self.dict_senswl[670])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[4] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[774], self.dict_senswl[677])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[5] == 1:
                 temp_val[:,:,0] = 2.5 * (self.ImageIn_matrix[:,:,self.dict_senswl[800]] - self.ImageIn_matrix[:,:,self.dict_senswl[670]])
                 temp_val[:,:,1] = 1.3 * (self.ImageIn_matrix[:,:,self.dict_senswl[800]] - self.ImageIn_matrix[:,:,self.dict_senswl[550]])
                 IndexOut_matrix[:,:,index_no] = 1.2 * (temp_val[:,:,0] - temp_val[:,:,1])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[6] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -239,6 +254,7 @@ class AVI:
                 temp_val[:,:,7] = np.sqrt(temp_val[:,:,5] - temp_val[:,:,6] - 0.5)
                 IndexOut_matrix[:,:,index_no] = temp_val[:,:,4] / temp_val[:,:,7]
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[7] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -248,6 +264,7 @@ class AVI:
                 temp_val[:,:,5] = np.sqrt(temp_val[:,:,3] - temp_val[:,:,4])
                 IndexOut_matrix[:,:,index_no] = 0.5 * (temp_val[:,:,2] - temp_val[:,:,5])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[8] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -256,6 +273,7 @@ class AVI:
                 temp_val[:,:,4] = 2.5 * (temp_val[:,:,1] - temp_val[:,:,2])
                 IndexOut_matrix[:,:,index_no] = 1.2 * (temp_val[:,:,3] - temp_val[:,:,4])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[9] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -270,6 +288,7 @@ class AVI:
                 temp_val[:,:,10] = np.sqrt(temp_val[:,:,6] - temp_val[:,:,9] - 0.5)
                 IndexOut_matrix[:,:,index_no] = temp_val[:,:,5] / temp_val[:,:,10]
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[10] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -277,6 +296,7 @@ class AVI:
                 temp_val[:,:,3] = temp_val[:,:,0] + temp_val[:,:,1] + 0.16
                 IndexOut_matrix[:,:,index_no] = temp_val[:,:,2] / temp_val[:,:,3]
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[11] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -284,6 +304,7 @@ class AVI:
                 temp_val[:,:,3] = np.sqrt(temp_val[:,:,0] + temp_val[:,:,1])
                 IndexOut_matrix[:,:,index_no] = temp_val[:,:,2] / temp_val[:,:,3]
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.StructIndices[12] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -292,26 +313,33 @@ class AVI:
                 temp_val[:,:,4] = 1.2 * (temp_val[:,:,2] - temp_val[:,:,1])
                 IndexOut_matrix[:,:,index_no] = 0.4 * (temp_val[:,:,3] - temp_val[:,:,4])
                 index_no += 1
+                self.prgbar_process(index_no)
 
         if sum(self.ChlIndices) > 0:
             if self.ChlIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[695], self.dict_senswl[420])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[1] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[695], self.dict_senswl[760])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[2] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[554], self.dict_senswl[677])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[3] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[750], self.dict_senswl[550])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[4] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[750], self.dict_senswl[700])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[5] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[750], self.dict_senswl[550])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[6] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[700]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -319,12 +347,15 @@ class AVI:
                 IndexOut_matrix[:,:,index_no] = ((temp_val[:,:,0] - temp_val[:,:,1]) - 0.2 *
                                                  (temp_val[:,:,0] - temp_val[:,:,2])) * (temp_val[:,:,0] / temp_val[:,:,1])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[7] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[415], self.dict_senswl[435])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[8] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[528], self.dict_senswl[567])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[9] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[780]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -333,6 +364,7 @@ class AVI:
                 IndexOut_matrix[:,:,index_no] = 700 + (740 / 700) * ((temp_val[:,:,0] / temp_val[:,:,1]) -
                                                 temp_val[:,:,0]) / (temp_val[:,:,2] + temp_val[:,:,3])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[10] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[780]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -341,14 +373,17 @@ class AVI:
                 IndexOut_matrix[:,:,index_no] = 700 + 40 * (((temp_val[:,:,1] + temp_val[:,:,0]) / 2 -
                                                 temp_val[:,:,3]) / (temp_val[:,:,2] + temp_val[:,:,3]))
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[11] == 1:
                 IndexOut_matrix[:,:,index_no] = self.ImageIn_matrix[:,:,self.dict_senswl[672]] / \
                                                 (self.ImageIn_matrix[:,:,self.dict_senswl[550]] *
                                                  self.ImageIn_matrix[:,:,self.dict_senswl[708]])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[12] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[750], self.dict_senswl[705])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[13] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[700]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -357,6 +392,7 @@ class AVI:
                                                 0.2 * (temp_val[:,:,0] - temp_val[:,:,2])) * \
                                                 (temp_val[:,:,0] / temp_val[:,:,1])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[14] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[750]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[670]]
@@ -364,68 +400,83 @@ class AVI:
                 IndexOut_matrix[:,:,index_no] = 0.5 * (120 * (temp_val[:,:,0] - temp_val[:,:,2]) -
                                                        200 * (temp_val[:,:,1] - temp_val[:,:,2]))
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[15] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[740], self.dict_senswl[720])
                 index_no += 1
-
+                self.prgbar_process(index_no)
             if self.ChlIndices[16] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[734] - self.dict_senswl[747],
                                                                self.dict_senswl[715] + self.dict_senswl[726])
                 index_no += 1
-
+                self.prgbar_process(index_no)
                 # former ChlIndices16 is now skipped!
 
             if self.ChlIndices[17] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[750], self.dict_senswl[710])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[18] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[675], self.dict_senswl[700])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[19] == 1:
                 IndexOut_matrix[:,:,index_no] = self.ImageIn_matrix[:,:,self.dict_senswl[672]] / \
                                                 (self.ImageIn_matrix[:,:,self.dict_senswl[650]] *
                                                  self.ImageIn_matrix[:,:,self.dict_senswl[700]])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[20] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[672], self.dict_senswl[708])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[21] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[760], self.dict_senswl[550])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[22] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[800], self.dict_senswl[675])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[23] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[800], self.dict_senswl[650])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[24] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[745], self.dict_senswl[724])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.ChlIndices[25] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[531], self.dict_senswl[645])
+                index_no += 1
+                self.prgbar_process(index_no)
 
         if sum(self.CarIndices) > 0:
             if self.CarIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = (1 / self.ImageIn_matrix[:,:,self.dict_senswl[550]]) \
                                                 - (1 / self.ImageIn_matrix[:,:,self.dict_senswl[700]])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.CarIndices[1] == 1:
                 IndexOut_matrix[:,:,index_no] = (1 / self.ImageIn_matrix[:,:,self.dict_senswl[510]]) \
                                                   - (1 / self.ImageIn_matrix[:,:,self.dict_senswl[550]])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.CarIndices[2] == 1:
                 IndexOut_matrix[:,:,index_no] = (1 / self.ImageIn_matrix[:,:,self.dict_senswl[510]]) \
                                                   - (1 / self.ImageIn_matrix[:,:,self.dict_senswl[700]])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.CarIndices[3] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[800], self.dict_senswl[500])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.CarIndices[4] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[800]]
                 IndexOut_matrix[:,:,index_no] = (self.ImageIn_matrix[:,:,self.dict_senswl[445]] - temp_val[:,:,0]) / \
                                                 (self.ImageIn_matrix[:,:,self.dict_senswl[680]] - temp_val[:,:,0])
                 index_no += 1
-
+                self.prgbar_process(index_no)
         if sum(self.WatIndices) > 0:
             if self.WatIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = (self.ImageIn_matrix[:,:,self.dict_senswl[802]] -
@@ -433,30 +484,38 @@ class AVI:
                                                 (self.ImageIn_matrix[:,:,self.dict_senswl[1657]] +
                                                  self.ImageIn_matrix[:,:,self.dict_senswl[682]])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.WatIndices[1] == 1:
                 IndexOut_matrix[:,:,index_no] = (self.ImageIn_matrix[:,:,self.dict_senswl[800]] +
                                                    self.ImageIn_matrix[:,:,self.dict_senswl[550]]) / \
                                                   (self.ImageIn_matrix[:,:,self.dict_senswl[1660]] +
                                                    self.ImageIn_matrix[:,:,self.dict_senswl[680]])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.WatIndices[2] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[1094], self.dict_senswl[983])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.WatIndices[3] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[1094], self.dict_senswl[1205])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.WatIndices[4] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[1600], self.dict_senswl[820])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.WatIndices[5] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[860], self.dict_senswl[1240])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.WatIndices[6] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[970], self.dict_senswl[900])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.WatIndices[7] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[858], self.dict_senswl[1240])
                 index_no += 1
+                self.prgbar_process(index_no)
 
         if sum(self.DmIndices) > 0:
             if self.DmIndices[0] == 1:
@@ -464,38 +523,47 @@ class AVI:
                 IndexOut_matrix[:,:,index_no] = 37.27 * (self.ImageIn_matrix[:,:,self.dict_senswl[2210]] + temp_val[:,:,0]) + 26.27 * \
                                                         (self.ImageIn_matrix[:,:,self.dict_senswl[2208]] - temp_val[:,:,0]) - 0.57
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[1] == 1:
                 IndexOut_matrix[:,:,index_no] = 0.5 * (
                     self.ImageIn_matrix[:,:,self.dict_senswl[2015]] + self.ImageIn_matrix[:,:,self.dict_senswl[2195]]) - \
                                                 self.ImageIn_matrix[:,:,self.dict_senswl[2106]]
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[2] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[1094]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[1205]]
                 IndexOut_matrix[:,:,index_no] = self.norm_diff1((1 / np.log10(temp_val[:,:,0])),
                                                                 (1 / np.log10(temp_val[:,:,1])))
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[3] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[1510]]
                 temp_val[:,:,1] = self.ImageIn_matrix[:,:,self.dict_senswl[1680]]
                 IndexOut_matrix[:,:,index_no] = self.norm_diff1((1 / np.log10(temp_val[:,:,0])),
                                                                 (1 / np.log10(temp_val[:,:,1])))
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[4] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[450], self.dict_senswl[550])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[5] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[450], self.dict_senswl[690])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[6] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[690], self.dict_senswl[550])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[7] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[430], self.dict_senswl[680])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.DmIndices[8] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[680], self.dict_senswl[430])
                 index_no += 1
+                self.prgbar_process(index_no)
 
         if sum(self.FlIndices) > 0:
             if self.FlIndices[0] == 1:
@@ -503,15 +571,19 @@ class AVI:
                                                  self.ImageIn_matrix[:,:,self.dict_senswl[550]]) / \
                                                 (self.ImageIn_matrix[:,:,self.dict_senswl[683]] ** 2)
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.FlIndices[1] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[800], self.dict_senswl[680])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.FlIndices[2] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[440], self.dict_senswl[690])
                 index_no += 1
+                self.prgbar_process(index_no)
             if self.FlIndices[3] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[440], self.dict_senswl[740])
                 index_no += 1
+                self.prgbar_process(index_no)
 
         np.seterr(**old_settings) # restore old numpy settings
         IndexOut_matrix[np.logical_or(np.isnan(IndexOut_matrix), np.isinf(IndexOut_matrix))] = self.nodat[1] # change nan and inf into nodat
@@ -597,11 +669,11 @@ def example():
     FlIndices = [1] * 4
 
 
-    avi = AVI(IT=IT, nodat=[-999,-999], IDW_exp=IDW_exp)
-    ImageIn_matrix = avi.read_image(ImgIn=ImgIn, Convert_Refl=Convert_Refl)
-    avi.toggle_indices(StructIndices=StructIndices, ChlIndices=ChlIndices, CarIndices=CarIndices, WatIndices=WatIndices,
+    vit = VIT(IT=IT, nodat=[-999, -999], IDW_exp=IDW_exp)
+    ImageIn_matrix = vit.read_image(ImgIn=ImgIn, Convert_Refl=Convert_Refl)
+    vit.toggle_indices(StructIndices=StructIndices, ChlIndices=ChlIndices, CarIndices=CarIndices, WatIndices=WatIndices,
                        DmIndices=DmIndices, FlIndices=FlIndices)
-    IndexOut_matrix = avi.calculate_AVI(ImageIn_matrix=ImageIn_matrix)
+    IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix)
     # avi.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=OutDir, OutFilename=OutFilename, OutSingle=OutSingle)
 
 if __name__ == '__main__':

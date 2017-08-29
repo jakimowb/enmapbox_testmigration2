@@ -9,28 +9,34 @@ from PyQt4.QtGui import *
 from PyQt4 import uic
 from osgeo import gdal
 from enmapbox.gui.applications import EnMAPBoxApplication
-import AVI_core
+import VIT_core
 
-pathUI = os.path.join(os.path.dirname(__file__), 'AVI.ui')
-pathUI3 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
+pathUI = os.path.join(os.path.dirname(__file__), 'GUI_VIT.ui')
+pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
+pathUI_Prg = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
 
 from enmapbox.gui.utils import loadUIFormClass
 
-class AVI_GUI(QDialog, loadUIFormClass(pathUI)):
+class VIT_GUI(QDialog, loadUIFormClass(pathUI)):
     def __init__(self, parent=None):
-        super(AVI_GUI, self).__init__(parent)
+        super(VIT_GUI, self).__init__(parent)
         self.setupUi(self)
 
-class Nodat_GUI(QDialog, loadUIFormClass(pathUI3)):
-
+class Nodat_GUI(QDialog, loadUIFormClass(pathUI2)):
     def __init__(self, parent=None):
         super(Nodat_GUI, self).__init__(parent)
         self.setupUi(self)
 
-class AVI:
+class PRG_GUI(QDialog, loadUIFormClass(pathUI_Prg)):
+    def __init__(self, parent=None):
+        super(PRG_GUI, self).__init__(parent)
+        self.setupUi(self)
 
-    def __init__(self):
-        self.gui = AVI_GUI()
+class VIT:
+    def __init__(self, main):
+        self.main = main
+        self.gui = VIT_GUI()
+
         self.checkboxes = self.gui.findChildren(QCheckBox)
         self.dictchecks()
         self.connections()
@@ -52,7 +58,7 @@ class AVI:
     def connections(self):
         self.gui.cmdSelectAll.clicked.connect(lambda: self.check(bool=True))
         self.gui.cmdDeselectAll.clicked.connect(lambda: self.check(bool=False))
-        self.gui.cmdOK.clicked.connect(lambda: self.run_AVI())
+        self.gui.cmdOK.clicked.connect(lambda: self.run_VIT())
         self.gui.cmdInput.clicked.connect(lambda: self.Image(IO="in"))
         self.gui.cmdOutput.clicked.connect(lambda: self.Image(IO="out"))
         self.gui.cmdCancel.clicked.connect(lambda: self.exit_gui())
@@ -138,9 +144,9 @@ class AVI:
         elif self.gui.radLinear.isChecked():
             self.IT = 2
             self.gui.spinIDW_exp.setDisabled(True)
-        elif self.gui.radNo.isChecked():
-            self.IT = 0
-            self.gui.spinIDW_exp.setDisabled(True)
+        # elif self.gui.radNo.isChecked():
+        #     self.IT = 0
+        #     self.gui.spinIDW_exp.setDisabled(True)
         else:
             self.IT = 3
             self.gui.spinIDW_exp.setDisabled(False)
@@ -187,9 +193,9 @@ class AVI:
                 nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
                 self.nodat[0] = nodata
             except:
-                main.nodat_widget.init(image=inFile)
-                main.nodat_widget.gui.setModal(True)  # parent window is blocked
-                main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code, until the app is closed
+                self.main.nodat_widget.init(image=inFile)
+                self.main.nodat_widget.gui.setModal(True)  # parent window is blocked
+                self.main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code, until the app is closed
 
             self.inFile = inFile
             self.gui.lblInputImage.setText(self.inFile)
@@ -210,8 +216,7 @@ class AVI:
     def exit_gui(self):
         self.gui.close()
 
-    def run_AVI(self):
-
+    def run_VIT(self):
         if self.inFile is None:
             QMessageBox.critical(self.gui, "No image selected", "Please select an image to continue!")
             return
@@ -232,28 +237,47 @@ class AVI:
             question = QMessageBox.question(self.gui, "No Interpolation", "Please note: Only those indices will be calculated, for which wavelengths are directly supported by the sensor. Do you wish to continue without interpolation option?", QMessageBox.Yes | QMessageBox.No)
             if question == QMessageBox.No: return
 
-        avi = AVI_core.AVI(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat)
-        ImageIn_matrix = avi.read_image(ImgIn=self.inFile, Convert_Refl=1)
+        self.main.prg_widget.gui.lblCaption_l.setText("Vegetation Indices Toolbox")
+        self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...")
+        self.main.prg_widget.gui.prgBar.setValue(0)
+        self.main.prg_widget.gui.setModal(True)
+        self.main.prg_widget.gui.show()
+        self.main.QGis_app.processEvents()
+
+        vit = VIT_core.VIT(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat)
+        ImageIn_matrix = vit.read_image(ImgIn=self.inFile, Convert_Refl=1)
 
         if ImageIn_matrix is None:
             QMessageBox.critical(self.gui, "Image unreadable", "The image file could not be read.")
             return
 
-        avi.toggle_indices(StructIndices=self.structIndices, ChlIndices=self.chlIndices, CarIndices=self.carIndices,
+        self.main.prg_widget.gui.lblCaption_r.setText("Preparing Indices")
+        self.main.QGis_app.processEvents()
+
+        vit.toggle_indices(StructIndices=self.structIndices, ChlIndices=self.chlIndices, CarIndices=self.carIndices,
                            WatIndices=self.watIndices, DmIndices=self.dmIndices, FlIndices=self.flIndices)
 
-        if not avi.n_indices > 0:
+        if not vit.n_indices > 0:
             QMessageBox.critical(self.gui, "No index selected", "Please select at least one index to continue!")
             return
 
-        IndexOut_matrix = avi.calculate_AVI(ImageIn_matrix=ImageIn_matrix)
-        avi.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=self.outDir, OutFilename=self.outFileName,
+        IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+        self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
+        self.main.QGis_app.processEvents()
+        result_vit = vit.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=self.outDir, OutFilename=self.outFileName,
                       OutExtension=self.outExtension, OutSingle=self.outSingle)
 
-        self.gui.close()
+        if result_vit:
+            QMessageBox.critical(self.gui, 'error', result_vit)
+        else:
+            self.main.prg_widget.gui.close()
+            QMessageBox.information(self.gui, "Finish", "Inversion finished")
+            self.gui.close()
 
 class Nodat:
-    def __init__(self):
+    def __init__(self, main):
+        self.main = main
         self.gui = Nodat_GUI()
         self.connections()
         self.image = None
@@ -281,20 +305,31 @@ class Nodat:
                                      "'%s' is not a valid number" % self.gui.txtNodat.text())
                 self.gui.txtNodat.setText("")
                 return
-        main.avi.nodat[0] = nodat
+        self.main.vit.nodat[0] = nodat
         self.gui.close()
+
+class PRG:
+    def __init__(self, main):
+        self.main = main
+        self.gui = PRG_GUI()
+        self.connections()
+
+    def connections(self):
+        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
 
 class MainUiFunc:
     def __init__(self):
-        self.avi = AVI()
-        self.nodat_widget = Nodat()
+        self.QGis_app = QApplication(sys.argv)
+        self.vit = VIT(self)
+        self.nodat_widget = Nodat(self)
+        self.prg_widget = PRG(self)
 
-main = MainUiFunc()
+    def show(self):
+        self.vit.gui.show()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
-    myUI = AVI()
-    myUI3 = Nodat()
-    myUI.gui.show()
+    m = MainUiFunc()
+    m.show()
     sys.exit(app.exec_())

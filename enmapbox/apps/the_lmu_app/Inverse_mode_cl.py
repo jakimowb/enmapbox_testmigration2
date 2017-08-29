@@ -220,11 +220,13 @@ class RTM_Inversion:
         if self.nbfits_type == "rel":
             self.nbfits = int(self.ns * (self.nbfits/100.0))
 
-    def run_inversion(self):
+    def run_inversion(self, prg_widget=None, QGis_app=None):
 
+        pix_total = self.nrows * self.ncols
         for r in xrange(self.nrows):
             for c in xrange(self.ncols):
 
+                pix_current = r*self.ncols + c + 1
                 print "row: %i | col: %i" % (r, c)
 
                 # Check if Pixel shall be excluded
@@ -252,6 +254,11 @@ class RTM_Inversion:
                 result = np.median([LUT_params[:,i] for i in L1_subset], axis=0)
 
                 self.out_matrix[r,c,:] = result
+                if prg_widget:
+                    prg_widget.gui.lblCaption_r.setText('Inverting pixel #%i of %i' % (pix_current, pix_total))
+                    prg_widget.gui.prgBar.setValue(pix_current*100 // pix_total)
+                    QGis_app.processEvents()
+
 
     def write_image(self):
         driver = gdal.GetDriverByName('ENVI')
