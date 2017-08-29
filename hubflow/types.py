@@ -1,3 +1,7 @@
+import matplotlib
+matplotlib.use('QT4Agg')
+from matplotlib import pyplot
+
 from operator import xor
 import random, os, pickle
 import gdal
@@ -10,14 +14,15 @@ import hubflow.ip_algorithms as ipalg
 import hubflow.dp_algorithms as dpalg
 from hubflow.report import *
 from hubflow import signals
-import matplotlib
-matplotlib.use('Qt4Agg')
-try:
-    from matplotlib import pyplot
-except:
-    pass
 
 spectral.settings.envi_support_nonlowercase_params = True
+
+
+class FlowObjectPickleFileError(Exception):
+    pass
+
+class FlowObjectTypeError(Exception):
+    pass
 
 
 class FlowObject():
@@ -30,10 +35,21 @@ class FlowObject():
         signals.sigFileCreated.emit(filename)
 
     @classmethod
-    def unpickle(cls, filename):
-        with open(filename, 'rb') as f:
-            obj = pickle.load(file=f)
-        assert isinstance(obj, cls), 'wrong type ({t1}), expected type: {t2}'.format(t1=type(obj), t2=cls)
+    def unpickle(cls, filename, raiseError=True):
+        try:
+            with open(filename, 'rb') as f:
+                obj = pickle.load(file=f)
+        except:
+            if raiseError:
+                raise FlowObjectPickleFileError('not a valid pickle file: '+str(filename))
+            else:
+                return None
+
+        if not isinstance(obj, cls):
+            if raiseError:
+                raise FlowObjectTypeError('wrong type ({t1}), expected type: {t2}'.format(t1=obj.__class__, t2=cls))
+            else:
+                return None
         return obj
 
     def browse(self):
@@ -53,6 +69,8 @@ class FlowObject():
                              reset = False)
         return
 
+
+
 class Image(FlowObject):
 
     def __init__(self, filename):
@@ -62,8 +80,8 @@ class Image(FlowObject):
     def pixelGrid(self):
         return PixelGrid.fromFile(self.filename)
 
-    def asMask(self, ufunc=None):
-        return Mask(filename=self.filename, ufunc=ufunc)
+    def asMask(self, ufunc=None, noData=None):
+        return Mask(filename=self.filename, ufunc=ufunc, noData=noData)
 
     def asProbability(self, classDefinition):
         return Probability(filename=self.filename, classDefinition=classDefinition)
@@ -97,10 +115,12 @@ class Image(FlowObject):
 
 class Mask(Image):
 
-    def __init__(self, filename, ufunc=None):
+    def __init__(self, filename, ufunc=None, noData=None):
         Image.__init__(self, filename)
         self.ufunc = ufunc
-        self.noData = 0
+        if noData==None:
+            noData = 0
+        self.noData = noData
 
 class Vector(FlowObject):
 
@@ -147,13 +167,6 @@ class ClassDefinition(FlowObject):
         lookup = ds.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
         return ClassDefinition(classes=classes-1, names=names[1:], lookup=lookup[3:])
 
-    def equal(self, other, compareLookup=True):
-        assert isinstance(other, ClassDefinition)
-        equal = self.classes == other.classes
-        equal &= all([a == b for a, b in zip(self.names, other.names)])
-        equal &= not compareLookup or all([a == b for a, b in zip(self.lookup, other.lookup)])
-        return equal
-
     def __init__(self, classes=None, names=None, lookup=None):
 
         assert classes is not None or names is not None
@@ -178,10 +191,34 @@ class ClassDefinition(FlowObject):
             names=repr(self.names),
             lookup=repr(self.lookup))
 
-    def getColor(self, id=None, name=None):
-        if id is None:
-            id = self.names.index((name))
-        return self.lookup[id*3:id*3+3]
+    def equal(self, other, compareLookup=True):
+        assert isinstance(other, ClassDefinition)
+        equal = self.classes == other.classes
+        equal &= all([a == b for a, b in zip(self.names, other.names)])
+        equal &= not compareLookup or all([a == b for a, b in zip(self.lookup, other.lookup)])
+        return equal
+
+    def getColorByLabel(self, label):
+        index = label - 1
+        return self.lookup[index*3:index*3+3]
+
+    def getColorByName(self, name):
+        return self.getColorByLabel(label=self.names.index((name))+1)
+
+    def getNameByLabel(self, label):
+        return self.names[label - 1]
+
+    def getLabelByName(self, name):
+        return self.names.index(name)+1
+
+    def subsetClassesByLabel(self, labels):
+        classes = len(labels)
+        lookup = list()
+        names = list()
+        for label in labels:
+            lookup.extend(self.getColorByLabel(label=label))
+            names.append(self.getNameByLabel(label=label))
+        return ClassDefinition(classes=classes, names=names, lookup=lookup)
 
 class Classification(Image):
 
@@ -216,23 +253,34 @@ class Regression(Image):
         self.noData = noData
         self.outputNames = outputNames
 
+    def asMask(self, ufunc=None):
+        return Image.asMask(self, ufunc=ufunc, noData=self.noData)
+
     def assessRegressionPerformance(self, regression, **kwargs):
         assert isinstance(regression, Regression)
-        yP = self.sampleByMask(mask=regression.asMask(), grid=regression.pixelGrid,
-                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
-        yT = regression.sampleByMask(mask=regression.asMask(), grid=regression.pixelGrid,
-                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
+        mask = regression.asMask()
+        yP = self.sampleByRegression(regression=regression, mask=mask, grid=regression.pixelGrid,
+                                     imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
+        yT = regression.sampleByRegression(regression=regression, mask=mask, grid=regression.pixelGrid,
+                                           imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
 
         return RegressionPerformance(yT=yT, yP=yP, outputNamesT=regression.outputNames, outputNamesP=self.outputNames)
-
 
 class Probability(Regression):
 
     def __init__(self, filename, classDefinition=None):
         if classDefinition is None:
             classDefinition = ClassDefinition.fromENVIMeta(filename)
+        assert isinstance(classDefinition, ClassDefinition)
         Regression.__init__(self, filename=filename, noData=-1, outputNames=classDefinition.names)
         self.classDefinition = classDefinition
+
+    def subsetClassesByLabel(self, filename, labels, **kwargs):
+        names = self.classDefinition.getColorByName()
+        return ipalg.probabilitySubsetClassesByNames(probability=self, filename=filename, names=names, **kwargs)
+
+    def subsetClassesByName(self, filename, names, **kwargs):
+        return ipalg.probabilitySubsetClassesByNames(probability=self, filename=filename, names=names, **kwargs)
 
     def asClassColorRGBImage(self, imageFilename, filterById=None, filterByName=None, **kwargs):
         return ipalg.probabilityAsClassColorRGBImage(probability=self, imageFilename=imageFilename,
@@ -336,6 +384,12 @@ class ClassificationSample(SupervisedSample):
         header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
         header['class spectra names'] = numpy.array(self.classDefinition.names)[self.labels.ravel()-1]
 
+    def asProbabilitySample(self):
+        probabilityArray = numpy.zeros(shape=(self.classDefinition.classes, self.nsamples), dtype=numpy.float32)
+        for index in range(self.classDefinition.classes):
+            probabilityArray[index][self.labels[0] == index+1] = 1.
+        return ProbabilitySample(features=self.features, labels=probabilityArray, classDefinition=self.classDefinition, metadata=self.metadata)
+
     def synthMix(self, mixingComplexities, classLikelihoods=None, n=10):
         if classLikelihoods is None:
             classLikelihoods = 'proportional'
@@ -357,7 +411,6 @@ class RegressionSample(SupervisedSample):
             noData=repr(self.noData),
             outputNames=repr(self.outputNames)
         )
-
 
 class ProbabilitySample(RegressionSample):
 
@@ -389,15 +442,14 @@ class ProbabilitySample(RegressionSample):
         valid = labels != 0
         return ClassificationSample(features=self.features[:, valid[0]], labels=labels[:, valid[0]], classDefinition=self.classDefinition)
 
-    def subsetClassesByNames(self, names):
-        ids = [self.classDefinition.names.index(name) for name in names]
-        return self.subsetClasses(ids=ids)
+    def subsetClassesByName(self, names):
+        labels = [self.classDefinition.getLabelByName(name) for name in names]
+        return self.subsetClassesByLabel(labels=labels)
 
-    def subsetClasses(self, ids):
-        lookup = [self.classDefinition.getColor(id) for id in ids]
-        names = [self.classDefinition.names[id] for id in ids]
-        return ProbabilitySample(features=self.features, labels=self.labels[ids],
-                                 classDefinition=ClassDefinition(classes=len(ids), names=names, lookup=lookup))
+    def subsetClassesByLabel(self, labels):
+        indicies = [label-1 for label in labels]
+        return ProbabilitySample(features=self.features, labels=self.labels[indicies],
+                                 classDefinition=self.classDefinition.subsetClassesByLabel(labels=labels))
 
     def _saveAsENVISpectralLibraryUpdateHeader(self, header):
         UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)
@@ -659,7 +711,7 @@ class RegressionPerformance(FlowObject):
         self.outputNamesT = outputNamesT
         self.outputNamesP = outputNamesP
         self.residuals = self.yP - self.yT
-        self.n = self.yT.size
+        self.n = self.yT[0].size
 
         self.explained_variance_score = [sklearn.metrics.explained_variance_score(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
         self.mean_absolute_error = [sklearn.metrics.mean_absolute_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
@@ -689,12 +741,14 @@ class RegressionPerformance(FlowObject):
         rowHeaders = [['Explained variance score',
                        'Mean absolute error (MAE)',
                        'Mean squared error (MSE)',
+                       'Root MSE (RMSE)',
                        'Median absolute error (MedAE)',
                        'Coefficient of determination (R^2)']]
 
         data =numpy.array([numpy.round(numpy.array(self.explained_variance_score).astype(float), 4),
                            numpy.round(numpy.array(self.mean_absolute_error).astype(float), 4),
                            numpy.round(numpy.array(self.mean_squared_error).astype(float), 4),
+                           numpy.round(numpy.sqrt(numpy.array(self.mean_squared_error)).astype(float), 4),
                            numpy.round(numpy.array(self.median_absolute_error).astype(float), 4),
                            numpy.round(numpy.array(self.r2_score).astype(float), 4)])
 

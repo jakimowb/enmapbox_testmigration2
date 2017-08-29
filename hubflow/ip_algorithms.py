@@ -3,13 +3,13 @@ from os.path import exists
 import numpy
 import hubflow.types
 from hubflow.applier import Applier, ApplierOperator
-from hubdc.applier import PixelGrid, CUIProgressBar, ApplierInputOptions
+from hubdc.applier import PixelGrid, CUIProgressBar, ProgressBarDelegate
 
 def getProgressBar(currentProgressBar):
     if currentProgressBar is None:
         return CUIProgressBar()
     else:
-        return currentProgressBar
+        return ProgressBarDelegate(progressBar=currentProgressBar)
 
 def vectorRasterize(vector, imageFilename, grid, **kwargs):
 
@@ -101,6 +101,25 @@ class ProbabilityAsClassColorRGBImage(ApplierOperator):
         numpy.clip(rgb, a_min=1, a_max=255, out=rgb)
         rgb *= mask
         self.setArray('image', array=rgb, dtype=numpy.uint8)
+
+def probabilitySubsetClassesByNames(probability, filename, names, **kwargs):
+
+    assert isinstance(probability, hubflow.types.Probability)
+    indicies = [probability.classDefinition.names.index(name) for name in names]
+    applier = Applier(defaultGrid=probability, **kwargs)
+    applier.setFlowImage('probability', image=probability)
+    applier.setOutput('probability2', filename=filename)
+    applier.apply(operator=ProbabilitySubsetClassesByNames, indicies=indicies, probability=probability)
+    return hubflow.types.Probability(filename=filename)
+
+
+class ProbabilitySubsetClassesByNames(ApplierOperator):
+    def ufunc(self, indicies, probability):
+        assert isinstance(probability, hubflow.types.Probability)
+        probability2 = self.getArray('probability', indicies=indicies)
+        self.setArray('probability2', array=probability2)
+        self.setFlowMetadataProbabilityDefinition('probability2', probability.classDefinition.subsetClassesByLabel(
+            labels=[index + 1 for index in indicies]))
 
 def imageSample(image, labels, mask=None, **kwargs):
 
