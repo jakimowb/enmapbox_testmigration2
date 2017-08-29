@@ -1,75 +1,111 @@
-from processing.gui.AlgorithmDialog import AlgorithmDialog
+import numpy
+from collections import OrderedDict
+from processing.core.Processing import Processing
+from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import *
 from processing.core.outputs import *
-import numpy
+from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
 from hubflow.types import *
 from enmapboxgeoalgorithms.estimators import *
 
+class EnMAPPlugin:
+    def __init__(self, iface):
+        self.iface = iface
+
+    def initGui(self):
+        self.provider = EnMAPProvider()
+        Processing.addProvider(self.provider)
+
+    def unload(self):
+        Processing.removeProvider(self.provider)
+
+class EnMAPProvider(AlgorithmProvider):
+
+    def getName(self):
+        return 'EBTest'
+
+    def getDescription(self):
+        return 'EnMAP-Box TestProvider (v'+ENMAPBOXGEOALGORITHMS_VERSION+')'
+
+    def getSupportedOutputRasterLayerExtensions(self):
+        return ['img', 'tif']
+
+    def _loadAlgorithms(self):
+        self.algs.extend(ALGORITHMS)
+
 def parseList(text, dtype=str):
+    for c in "'[]{}()":
+        text = text.replace(c,'')
     result = [dtype(value.strip()) for value in text.split(',') if value.strip() != '']
     if len(result) == 0:
         result = None
     return result
 
+DTYPE = OrderedDict()
+DTYPE['int16'] = numpy.int16, 'Integer 16 Bit'
+DTYPE['int32'] = numpy.int32,'Integer 32 Bit'
+DTYPE['int64'] = numpy.int64,'Integer 64 Bit'
+DTYPE['uint8'] = numpy.uint8,'Unsigned Integer 8 Bit'
+DTYPE['uint16'] = numpy.uint16,'Unsigned Integer 16 Bit'
+DTYPE['uint32'] = numpy.uint32,'Unsigned Integer 32 Bit'
+DTYPE['uint64'] = numpy.uint64,'Unsigned Integer 64 Bit'
+DTYPE['float32'] = numpy.float32,'Single Precision Float 32 Bit'
+DTYPE['float64'] = numpy.float64,'Double precision float 64 Bit'
+
+class EnMAPGeoAlgorithm(GeoAlgorithm):
+
+    def checkOutputFileExtensions(self):
+        for out in self.outputs:
+            if not out.hidden and out.value is not None:
+                if not os.path.isabs(out.value):
+                    continue
+                if isinstance(out, OutputRaster):
+                    exts = EnMAPProvider().getSupportedOutputRasterLayerExtensions()
+                else:
+                    continue
+                idx = out.value.rfind('.')
+                if idx == -1:
+                    out.value = out.value + '.' + exts[0]
+                else:
+                    ext = out.value[idx + 1:]
+                    if ext not in exts + ['dbf']:
+                        out.value = out.value + '.' + exts[0]
+
 ALGORITHMS = list()
-class OpenTestdata(GeoAlgorithm):
+
+class ClassificationAssessClassificationPerformance(EnMAPGeoAlgorithm):
 
     def defineCharacteristics(self):
-        self.name = 'Open Testdata'
-        self.group = 'Open'
+        self.name = 'Classification Performance'
+        self.group = 'Accuracy Assessment'
 
-        self.addOutput(OutputRaster('enmap', 'EnMAP (30m; 244 bands)'))
-        self.addOutput(OutputRaster('hymap', 'HyMap (3.6m; Blue, Green, Red, NIR bands)'))
-        self.addOutput(OutputVector('landcover', 'LandCover Layer'))
-        self.addOutput(OutputFile('speclib', 'ENVI Spectral Library'))
+        self.addParameter(ParameterRaster('prediction', 'Prediction'))
+        self.addParameter(ParameterRaster('reference', 'Reference'))
+        self.addOutput(OutputFile('report', 'HTML Report', ext='.html'))
 
-    def processAlgorithm(self, progress):
-
-        import enmapboxtestdata
-        self.setOutputValue('enmap', enmapboxtestdata.enmap)
-        self.setOutputValue('hymap', enmapboxtestdata.hymap)
-        self.setOutputValue('landcover', enmapboxtestdata.landcover)
-        self.setOutputValue('speclib', enmapboxtestdata.speclib)
+    def processAlgorithm(self, progressBar):
+        prediction = Classification(filename=self.getParameterValue('prediction'))
+        reference = Classification(filename=self.getParameterValue('reference'))
+        prediction.assessClassificationPerformance(classification=reference, progressBar=progressBar).report().saveHTML(filename=self.getOutputValue('report'), open=True)
 
     def help(self):
-        return True, 'Open EnMAP-Box Testdata'
-ALGORITHMS.append(OpenTestdata())
+        return True, 'Returns an accuracy assessment report.'
+ALGORITHMS.append(ClassificationAssessClassificationPerformance())
 
-class UnsupervisedSampleFromENVISpectralLibrary(GeoAlgorithm):
+class ClassificationSampleFromENVISpectralLibrary(EnMAPGeoAlgorithm):
 
     def defineCharacteristics(self):
-        self.name = 'Import ENVI Spectral Library'
-        self.group = 'Import'
+        self.name = 'ClassificationSample from ENVI Spectral Library'
+        self.group = 'Create Sample'
 
         self.addParameter(ParameterFile('envi', 'ENVI Spectral Library', optional=False))
-        self.addParameter(ParameterBoolean('view', 'View result', default=True))
-        self.addOutput(OutputFile('sample', 'UnsupervisedSample', ext='pkl'))
-
-    def processAlgorithm(self, progressBar):
-        sample = UnsupervisedSample.fromENVISpectralLibrary(filename=self.getParameterValue('envi'))
-        sample.pickle(filename=self.getOutputValue('sample'))
-        if self.getParameterValue('view'):
-            sample.browse()
-
-    def help(self):
-        return True, 'Returns an UnsupervisedSample imported from an ENVI Spectral Library file.'
-ALGORITHMS.append(UnsupervisedSampleFromENVISpectralLibrary())
-
-class UnsupervisedSampleClassifyByClassName(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'Classify Sample By Class Name'
-        self.group = 'Sample'
-
-        self.addParameter(ParameterFile('sample', 'Sample', optional=False))
         self.addParameter(ParameterString('prefix', 'ClassDefinition prefix', default=''))
         self.addParameter(ParameterBoolean('view', 'View result', default=True))
-        self.addOutput(OutputFile('csample', 'ClassificationSample', ext='pkl'))
+        self.addOutput(OutputFile('classificationSample', 'ClassificationSample', ext='pkl'))
 
     def processAlgorithm(self, progressBar):
-
-        unsupervisedSample = UnsupervisedSample.unpickle(filename=self.getParameterValue('sample'))
+        unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=self.getParameterValue('envi'))
         prefix = self.getParameterValue('prefix')
         if not prefix.endswith(' '):
             prefix = prefix+' '
@@ -84,126 +120,47 @@ class UnsupervisedSampleClassifyByClassName(GeoAlgorithm):
         classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata[prefix+'class spectra names'],
                                                                       classDefinition=classDefinition)
 
-        classificationSample.pickle(filename=self.getOutputValue('csample'))
+        classificationSample.pickle(filename=self.getOutputValue('classificationSample'))
         if self.getParameterValue('view'):
             classificationSample.browse()
 
     def help(self):
-        return True, 'Returns a ClassificationSample. The input Sample is classified by using a ClassDefinition that must be provided inside the Sample metatdata'+\
-                     '(i.e. <i>prefix</i> class names, <i>prefix</i> class lookup, <i>prefix</i> class names, <i>prefix</i> class spectra names).'
-ALGORITHMS.append(UnsupervisedSampleClassifyByClassName())
+        return True, 'Returns an ClassificationSample imported from an ENVI Spectral Library.'
+ALGORITHMS.append(ClassificationSampleFromENVISpectralLibrary())
 
-#        classificationSample.scaleFeaturesInplace(factor=10000.)
-
-class UnsupervisedSampleScaleFeatures(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'Scale Sample Features'
-        self.group = 'Sample'
-
-        self.addParameter(ParameterFile('sample', 'Sample', optional=False))
-        self.addParameter(ParameterNumber('factor', 'Scale factor', default=1.))
-        self.addParameter(ParameterBoolean('view', 'View result', default=True))
-        self.addOutput(OutputFile('outsample', 'Scaled Sample', ext='pkl'))
-
-    def processAlgorithm(self, progressBar):
-
-        sample = UnsupervisedSample.unpickle(filename=self.getParameterValue('sample'))
-        sample.scaleFeaturesInplace(factor=self.getParameterValue('factor'))
-        sample.pickle(filename=self.getOutputValue('outsample'))
-        if self.getParameterValue('view'):
-            sample.browse()
-
-    def help(self):
-        return True, 'Returns a Sample with scaled features.'
-ALGORITHMS.append(UnsupervisedSampleScaleFeatures())
-
-class ClassificationSampleSynthMix(GeoAlgorithm):
+class ClassificationSampleSynthMix(EnMAPGeoAlgorithm):
     options = ['proportional', 'equalized']
     def defineCharacteristics(self):
-        self.name = 'Generate synthetically mixed ProbabilitySample'
-        self.group = 'Sample'
+        self.name = 'ClassProbabilitySample from synthetically mixed ClassificationSample'
+        self.group = 'Create Sample'
 
-        self.addParameter(ParameterFile('csample', 'ClassificationSample', optional=False))
+        self.addParameter(ParameterFile('classificationSample', 'ClassificationSample', optional=False))
         self.addParameter(ParameterNumber('n', 'n', default=1000))
         self.addParameter(ParameterNumber('complex2', 'Likelihood for mixing complexity 2', default=1.0))
         self.addParameter(ParameterNumber('complex3', 'Likelihood for mixing complexity 3', default=0.0))
         self.addParameter(ParameterSelection('option', 'Class likelihoods', options=self.options, default=0))
         self.addParameter(ParameterBoolean('view', 'View Result', default=True))
-        self.addOutput(OutputFile('outsample', 'ProbabilitySample', ext='pkl'))
+        self.addOutput(OutputFile('probabilitySample', 'ClassProbabilitySample', ext='pkl'))
 
     def processAlgorithm(self, progressBar):
 
-        classificationSample = ClassificationSample.unpickle(filename=self.getParameterValue('csample'))
+        classificationSample = ClassificationSample.unpickle(filename=self.getParameterValue('classificationSample'))
         mixingComplexities = {2:self.getParameterValue('complex2'), 3:self.getParameterValue('complex3')}
         probabilitySample = classificationSample.synthMix(mixingComplexities=mixingComplexities,
                                                           classLikelihoods=self.options[self.getParameterValue('option')],
                                                           n=self.getParameterValue('n'))
-        probabilitySample.pickle(filename=self.getOutputValue('outsample'))
+        probabilitySample.pickle(filename=self.getOutputValue('probabilitySample'))
         if self.getParameterValue('view'):
             probabilitySample.browse()
 
     def help(self):
-        return True, 'Returns a synthetically mixed ProbabilitySample.'
+        return True, 'Returns a synthetically mixed ClassProbabilitySample.'
 ALGORITHMS.append(ClassificationSampleSynthMix())
 
-class ProbabilitySampleSubsetClassesByClassName(GeoAlgorithm):
+class EstimatorFit(EnMAPGeoAlgorithm):
 
     def defineCharacteristics(self):
-        self.name = 'Subset ProbabilitySample Classes'
-        self.group = 'Sample'
-
-        self.addParameter(ParameterFile('sample', 'ProbabilitySample', optional=False))
-        self.addParameter(ParameterString('names', 'Class names', default=''))
-        self.addParameter(ParameterBoolean('view', 'View Result', default=True))
-        self.addOutput(OutputFile('outsample', 'ProbabilitySample', ext='pkl'))
-
-    def processAlgorithm(self, progressBar):
-
-        probabilitySample = ProbabilitySample.unpickle(filename=self.getParameterValue('sample'))
-        names = self.getParameterValue('names')
-        for c in '{[( )]}':
-            names = names.replace(c, ' ').strip()
-        names = [name.strip() for name in names.split(' ')]
-        probabilitySample = probabilitySample.subsetClassesByNames(names=names)
-        probabilitySample.pickle(filename=self.getOutputValue('outsample'))
-        if self.getParameterValue('view'):
-            probabilitySample.browse()
-
-
-    def help(self):
-        return True, 'Returns a ProbabilitySample with subsetted classes.'
-ALGORITHMS.append(ProbabilitySampleSubsetClassesByClassName())
-
-class ProbabilitySampleClassify(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'Classify ProbabilitySample'
-        self.group = 'Sample'
-
-        self.addParameter(ParameterFile('probabilitySample', 'ProbabilitySample', optional=False))
-        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=1.))
-        self.addParameter(ParameterNumber('minWinnerCoverage', 'Minimal winner class coverage', minValue=0., maxValue=1., default=0.5))
-        self.addParameter(ParameterBoolean('view', 'View Result', default=True))
-        self.addOutput(OutputFile('outsample', 'ClassificationSample', ext='pkl'))
-
-    def processAlgorithm(self, progressBar):
-
-        probabilitySample = ProbabilitySample.unpickle(filename=self.getParameterValue('probabilitySample'))
-        classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=self.getParameterValue('minOverallCoverage'),
-                                                                       minWinnerCoverage=self.getParameterValue('minWinnerCoverage'))
-        classificationSample.pickle(filename=self.getOutputValue('outsample'))
-        if self.getParameterValue('view'):
-            classificationSample.browse()
-
-    def help(self):
-        return True, 'Returns a ClassificationSample.'
-ALGORITHMS.append(ProbabilitySampleClassify())
-
-class EstimatorFit(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = TMP_NAME + ' Fit'
+        self.name = 'Fit '+TMP_NAME
         self.group = TMP_GROUP
 
         if self.group == REGRESSORS_GROUP:
@@ -227,7 +184,7 @@ class EstimatorFit(GeoAlgorithm):
             estimator = Classifier(sklEstimator=sklEstimator)
         else:
             assert 0
-        estimator.fit(sample=sample)
+        estimator.fit(sample=sample, progressBar=progressBar)
         estimator.pickle(filename=self.getOutputValue('model'))
         if self.getParameterValue('view'):
             estimator.browse()
@@ -240,11 +197,11 @@ class EstimatorFit(GeoAlgorithm):
         else:
             assert 0
 
-class EstimatorPredict(GeoAlgorithm):
+class EstimatorPredict(EnMAPGeoAlgorithm):
 
     def defineCharacteristics(self):
 
-        self.name = TMP_GROUP[:-1] + ' Predict'
+        self.name = 'Predict ' + TMP_GROUP
         self.group = TMP_GROUP
 
         self.addParameter(ParameterRaster('image', 'Image'))
@@ -266,7 +223,7 @@ class EstimatorPredict(GeoAlgorithm):
             assert 0
         image = Image(filename=self.getParameterValue('image'))
         mask = Mask(filename=self.getParameterValue('mask'))
-        estimator.predict(predictionFilename=self.getOutputValue('prediction'), image=image, mask=mask)
+        estimator.predict(predictionFilename=self.getOutputValue('prediction'), image=image, mask=mask, progressBar=progressBar)
 
     def help(self):
         if self.group == REGRESSORS_GROUP:
@@ -276,13 +233,230 @@ class EstimatorPredict(GeoAlgorithm):
         else:
             assert 0
 
-CLASSIFIERS_GROUP, REGRESSORS_GROUP = 'Classifiers', 'Regressors'
+CLASSIFIERS_GA = dict()
+REGRESSORS_GA = dict()
+CLASSIFIERS_GROUP, REGRESSORS_GROUP = 'Classification', 'Regression'
 for TMP_GROUP, TMP_ESTIMATORS in [(CLASSIFIERS_GROUP, CLASSIFIERS), (REGRESSORS_GROUP, REGRESSORS)]:
     for TMP_NAME, TMP_ESTIMATOR in TMP_ESTIMATORS.items():
         ALGORITHMS.append(EstimatorFit())
+        if TMP_GROUP==CLASSIFIERS_GROUP: CLASSIFIERS_GA[TMP_NAME] = ALGORITHMS[-1]
+        if TMP_GROUP==REGRESSORS_GROUP: REGRESSORS_GA[TMP_NAME] = ALGORITHMS[-1]
     ALGORITHMS.append(EstimatorPredict())
 
-class VectorClassificationRasterizeAsClassification(GeoAlgorithm):
+class ImageSampleByClassification(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'ClassificationSample from Image'
+        self.group = 'Create Sample'
+        self.addParameter(ParameterRaster('image', 'Image'))
+        self.addParameter(ParameterRaster('classification', 'Classification'))
+        self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
+        self.addParameter(ParameterBoolean('view', 'View Result', default=True))
+        self.addOutput(OutputFile('probabilitySample', 'ClassProbabilitySample'))
+
+    def processAlgorithm(self, progressBar):
+        image = Image(filename=self.getParameterValue('image'))
+        classification = Classification(filename=self.getParameterValue('classification'))
+        mask = Mask(filename=self.getParameterValue('mask'))
+        probabilitySample = image.sampleByClassification(classification=classification, mask=mask, progressBar=progressBar)
+        probabilitySample.pickle(filename=self.getOutputValue('probabilitySample'))
+        if self.getParameterValue('view'):
+            probabilitySample.browse()
+
+    def help(self):
+        return True, 'Returns a ClassProbabilitySample.'
+ALGORITHMS.append(ImageSampleByClassification())
+
+class OpenTestdata(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'Open Testdata'
+        self.group = 'Auxilliary'
+
+        self.addOutput(OutputRaster('enmap', 'EnMAP (30m; 244 bands)'))
+        self.addOutput(OutputRaster('hymap', 'HyMap (3.6m; Blue, Green, Red, NIR bands)'))
+        self.addOutput(OutputVector('landcover', 'LandCover Layer'))
+        self.addOutput(OutputFile('speclib', 'ENVI Spectral Library'))
+
+    def processAlgorithm(self, progress):
+
+        import enmapboxtestdata
+        self.setOutputValue('enmap', enmapboxtestdata.enmap)
+        self.setOutputValue('hymap', enmapboxtestdata.hymap)
+        self.setOutputValue('landcover', enmapboxtestdata.landcover)
+        self.setOutputValue('speclib', enmapboxtestdata.speclib)
+
+    def help(self):
+        return True, 'Open EnMAP-Box Testdata'
+ALGORITHMS.append(OpenTestdata())
+
+class ProbabilityAsClassColorRGB(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'ClassProbability as RGB Image'
+        self.group = 'Post-Processing'
+
+        self.addParameter(ParameterRaster('probability', 'ClassProbability'))
+        self.addParameter(ParameterString('filterById', 'Filter classes by id', optional=True))
+        self.addParameter(ParameterString('filterByName', 'Filter classes by names', optional=True))
+        self.addOutput(OutputRaster('image', 'RGB Image'))
+
+    def processAlgorithm(self, progressBar):
+
+        probability = Probability(filename=self.getParameterValue('probability'))
+        probability.asClassColorRGBImage(imageFilename=self.getOutputValue('image'),
+                                         filterById=parseList(self.getParameterValue('filterById'), dtype=int),
+                                         filterByName=parseList(self.getParameterValue('filterByName')),
+                                         progressBar=progressBar)
+
+    def help(self):
+        return True, 'Returns a RGB Image.'
+ALGORITHMS.append(ProbabilityAsClassColorRGB())
+
+class ProbabilitySampleClassify(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'ClassificationSample from ClassProbabilitySample'
+        self.group = 'Create Sample'
+
+        self.addParameter(ParameterFile('probabilitySample', 'ClassProbabilitySample', optional=False))
+        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=1.))
+        self.addParameter(ParameterNumber('minWinnerCoverage', 'Minimal winner class coverage', minValue=0., maxValue=1., default=0.5))
+        self.addParameter(ParameterBoolean('view', 'View Result', default=True))
+        self.addOutput(OutputFile('classificationSample', 'ClassificationSample', ext='pkl'))
+
+    def processAlgorithm(self, progressBar):
+        probabilitySample = ProbabilitySample.unpickle(filename=self.getParameterValue('probabilitySample'))
+        classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=self.getParameterValue('minOverallCoverage'),
+                                                                       minWinnerCoverage=self.getParameterValue('minWinnerCoverage'))
+        classificationSample.pickle(filename=self.getOutputValue('classificationSample'))
+        if self.getParameterValue('view'):
+            classificationSample.browse()
+
+    def help(self):
+        return True, 'Returns a ClassificationSample.'
+ALGORITHMS.append(ProbabilitySampleClassify())
+
+class ProbabilitySampleSubsetClassesByClassName(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'Subset ClassProbabilitySample (by Class)'
+        self.group = 'Create Sample'
+
+        self.addParameter(ParameterFile('probabilitySample', 'ClassProbabilitySample', optional=False))
+        self.addParameter(ParameterString('names', 'Class names', default=''))
+        self.addParameter(ParameterBoolean('view', 'View Result', default=True))
+        self.addOutput(OutputFile('probabilitySample2', 'ClassProbabilitySample', ext='pkl'))
+
+    def processAlgorithm(self, progressBar):
+
+        probabilitySample = ProbabilitySample.unpickle(filename=self.getParameterValue('probabilitySample'))
+        names = parseList(self.getParameterValue('names'))
+        probabilitySample = probabilitySample.subsetClassesByName(names=names)
+        probabilitySample.pickle(filename=self.getOutputValue('probabilitySample2'))
+        if self.getParameterValue('view'):
+            probabilitySample.browse()
+
+
+    def help(self):
+        return True, 'Returns a ClassProbabilitySample with subsetted classes.'
+ALGORITHMS.append(ProbabilitySampleSubsetClassesByClassName())
+
+class RegressionAssessRegressionPerformance(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'Regression Performance'
+        self.group = 'Accuracy Assessment'
+
+        self.addParameter(ParameterRaster('prediction', 'Prediction'))
+        self.addParameter(ParameterRaster('reference', 'Reference'))
+        self.addOutput(OutputFile('report', 'HTML Report', ext='.html'))
+
+    def processAlgorithm(self, progressBar):
+        prediction = Regression(filename=self.getParameterValue('prediction'))
+        reference = Regression(filename=self.getParameterValue('reference'))
+        prediction.assessRegressionPerformance(regression=reference, progressBar=progressBar).report().saveHTML(filename=self.getOutputValue('report'), open=True)
+
+    def help(self):
+        return True, 'Returns an accuracy assessment report.'
+ALGORITHMS.append(RegressionAssessRegressionPerformance())
+
+class UnsupervisedSampleFromENVISpectralLibrary(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'UnsupervisedSample from ENVI Spectral Library'
+        self.group = 'Create Sample'
+
+        self.addParameter(ParameterFile('envi', 'ENVI Spectral Library', optional=False))
+        self.addParameter(ParameterBoolean('view', 'View result', default=True))
+        self.addOutput(OutputFile('unsupervisedSample', 'UnsupervisedSample', ext='pkl'))
+
+    def processAlgorithm(self, progressBar):
+        sample = UnsupervisedSample.fromENVISpectralLibrary(filename=self.getParameterValue('envi'))
+        sample.pickle(filename=self.getOutputValue('unsupervisedSample'))
+        if self.getParameterValue('view'):
+            sample.browse()
+
+    def help(self):
+        return True, 'Returns an UnsupervisedSample imported from an ENVI Spectral Library file.'
+ALGORITHMS.append(UnsupervisedSampleFromENVISpectralLibrary())
+
+class UnsupervisedSampleScaleFeatures(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'Scale Sample Features'
+        self.group = 'Auxilliary'
+
+        self.addParameter(ParameterFile('unsupervisedSample', 'Sample', optional=False))
+        self.addParameter(ParameterNumber('factor', 'Scale factor', default=1.))
+        self.addParameter(ParameterBoolean('view', 'View result', default=True))
+        self.addOutput(OutputFile('unsupervisedSample2', 'Scaled Sample', ext='pkl'))
+
+    def processAlgorithm(self, progressBar):
+
+        sample = UnsupervisedSample.unpickle(filename=self.getParameterValue('unsupervisedSample'))
+        sample.scaleFeaturesInplace(factor=self.getParameterValue('factor'))
+        sample.pickle(filename=self.getOutputValue('unsupervisedSample2'))
+        if self.getParameterValue('view'):
+            sample.browse()
+
+    def help(self):
+        return True, 'Returns a Sample with scaled features.'
+ALGORITHMS.append(UnsupervisedSampleScaleFeatures())
+
+class VectorRasterize(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'Rasterize Vector'
+        self.group = 'Vector'
+
+        self.addParameter(ParameterRaster('image', 'Image (defining the PixelGrid)'))
+        self.addParameter(ParameterVector('vector', 'Vector'))
+        self.addParameter(ParameterNumber('initValue', 'Init Value', default=0))
+        self.addParameter(ParameterNumber('burnValue', 'Burn Value', default=1))
+        self.addParameter(ParameterTableField('burnAttribute', 'Burn Attribute', datatype=ParameterTableField.DATA_TYPE_NUMBER, parent='vector', optional=True))
+        self.addParameter(ParameterBoolean('allTouched', 'All touched', default=False))
+        self.addParameter(ParameterString('filterSQL', 'Filter SQL', default='', optional=True))
+        self.addParameter(ParameterSelection('dtype', 'Data Type', options=DTYPE.keys(), default=DTYPE.keys().index('uint8')))
+        self.addOutput(OutputRaster('image2', 'Image'))
+
+    def processAlgorithm(self, progressBar):
+
+        image = Image(filename=self.getParameterValue('image'))
+        vector = Vector(filename=self.getParameterValue('vector'),
+                        initValue=self.getParameterValue('initValue'),
+                        burnValue=self.getParameterValue('burnValue'),
+                        burnAttribute=self.getParameterValue('burnAttribute'),
+                        allTouched=self.getParameterValue('allTouched'),
+                        filterSQL=self.getParameterValue('filterSQL') if self.getParameterValue('filterSQL')!='' else None,
+                        dtype=DTYPE.values()[self.getParameterValue('dtype')][0])
+        vector.rasterize(imageFilename=self.getOutputValue('image2'), grid=image.pixelGrid, progressBar=progressBar)
+
+    def help(self):
+        return True, 'Returns an Image.'
+ALGORITHMS.append(VectorRasterize())
+
+class VectorClassificationRasterizeAsClassification(EnMAPGeoAlgorithm):
 
     def defineCharacteristics(self):
         self.name = 'Rasterize Vector as Classification'
@@ -317,17 +491,17 @@ class VectorClassificationRasterizeAsClassification(GeoAlgorithm):
                                                     minWinnerCoverage=self.getParameterValue('minWinnerCoverage'),
                                                     classDefinition=classDefinition)
         vectorClassification.rasterizeAsClassification(classificationFilename=self.getOutputValue('classification'),
-                                                       grid=image.pixelGrid,
-                                                       oversampling=self.getParameterValue('oversampling'))
+                                                       grid=image.pixelGrid, oversampling=self.getParameterValue('oversampling'),
+                                                       progressBar=progressBar)
 
     def help(self):
         return True, 'Returns a Classification.'
 ALGORITHMS.append(VectorClassificationRasterizeAsClassification())
 
-class VectorClassificationRasterizeAsProbability(GeoAlgorithm):
+class VectorClassificationRasterizeAsProbability(EnMAPGeoAlgorithm):
 
     def defineCharacteristics(self):
-        self.name = 'Rasterize Vector as Probability'
+        self.name = 'Rasterize Vector as ClassProbability'
         self.group = 'Vector'
 
         self.addParameter(ParameterRaster('image', 'Image (defining the PixelGrid)'))
@@ -338,7 +512,7 @@ class VectorClassificationRasterizeAsProbability(GeoAlgorithm):
         self.addParameter(ParameterString('lookup', 'Class colors', optional=True))
         self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=1.))
         self.addParameter(ParameterNumber('oversampling', 'Oversampling factor', minValue=1, maxValue=10, default=10))
-        self.addOutput(OutputRaster('probability', 'Probability'))
+        self.addOutput(OutputRaster('probability', 'ClassProbability'))
 
     def processAlgorithm(self, progressBar):
 
@@ -346,7 +520,7 @@ class VectorClassificationRasterizeAsProbability(GeoAlgorithm):
         names = parseList(self.getParameterValue('names'))
         if names is None:
             classes = numpy.max(Vector(filename=self.getParameterValue('vector')).uniqueValues(attribute=self.getParameterValue('idAttribute')))
-        lookup = parseList(self.getParameterValue('lookup'))
+        lookup = parseList(self.getParameterValue('lookup'), dtype=int)
         classDefinition = ClassDefinition(classes=classes, names=names, lookup=lookup)
 
 
@@ -356,94 +530,16 @@ class VectorClassificationRasterizeAsProbability(GeoAlgorithm):
                                                     minOverallCoverage=self.getParameterValue('minOverallCoverage'),
                                                     classDefinition=classDefinition)
         vectorClassification.rasterizeAsProbability(probabilityFilename=self.getOutputValue('probability'),
-                                                       grid=image.pixelGrid,
-                                                       oversampling=self.getParameterValue('oversampling'))
+                                                    grid=image.pixelGrid, oversampling=self.getParameterValue('oversampling'),
+                                                    progressBar=progressBar)
 
     def help(self):
-        return True, 'Returns a Probability.'
+        return True, 'Returns a ClassProbability.'
 ALGORITHMS.append(VectorClassificationRasterizeAsProbability())
 
-class ProbabilityAsClassColorRGB(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'Probability as RGB Image'
-        self.group = 'Probability'
-
-        self.addParameter(ParameterRaster('probability', 'Probability'))
-        self.addParameter(ParameterString('filterById', 'Filter classes by id', optional=True))
-        self.addParameter(ParameterString('filterByName', 'Filter classes by names', optional=True))
-        self.addOutput(OutputRaster('image', 'RGB Image'))
-
-    def processAlgorithm(self, progressBar):
-
-        probability = Probability(filename=self.getParameterValue('probability'))
-        probability.asClassColorRGBImage(imageFilename=self.getOutputValue('image'),
-                                         filterById=parseList(self.getParameterValue('filterById'), dtype=int),
-                                         filterByName=parseList(self.getParameterValue('filterByName')))
-
-    def help(self):
-        return True, 'Returns a RGB Image.'
-ALGORITHMS.append(ProbabilityAsClassColorRGB())
-
-class ClassificationAssessClassificationPerformance(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'Assess Classification performance'
-        self.group = 'Classification'
-
-        self.addParameter(ParameterRaster('prediction', 'Prediction'))
-        self.addParameter(ParameterRaster('reference', 'Reference'))
-        self.addOutput(OutputFile('report', 'HTML Report', ext='.html'))
-
-    def processAlgorithm(self, progressBar):
-        prediction = Classification(filename=self.getParameterValue('prediction'))
-        reference = Classification(filename=self.getParameterValue('reference'))
-        prediction.assessClassificationPerformance(classification=reference).report().saveHTML(filename=self.getOutputValue('report'), open=True)
-
-    def help(self):
-        return True, 'Returns an accuracy assessment report.'
-ALGORITHMS.append(ClassificationAssessClassificationPerformance())
-
-class RegressionAssessRegressionPerformance(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'Assess Regression performance'
-        self.group = 'Regression'
-
-        self.addParameter(ParameterRaster('prediction', 'Prediction'))
-        self.addParameter(ParameterRaster('reference', 'Reference'))
-        self.addOutput(OutputFile('report', 'HTML Report', ext='.html'))
-
-    def processAlgorithm(self, progressBar):
-        prediction = Regression(filename=self.getParameterValue('prediction'))
-        reference = Regression(filename=self.getParameterValue('reference'))
-        prediction.assessRegressionPerformance(regression=reference).report().saveHTML(filename=self.getOutputValue('report'), open=True)
-
-    def help(self):
-        return True, 'Returns an accuracy assessment report.'
-ALGORITHMS.append(RegressionAssessRegressionPerformance())
-
-class ImageSampleByClassification(GeoAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'Sample Image by Classification'
-        self.group = 'Image'
-        self.addParameter(ParameterRaster('image', 'Image'))
-        self.addParameter(ParameterRaster('classification', 'Classification'))
-        self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
-        self.addParameter(ParameterBoolean('view', 'View Result', default=True))
-        self.addOutput(OutputFile('probabilitySample', 'ProbabilitySample'))
-
-    def processAlgorithm(self, progressBar):
-        image = Image(filename=self.getParameterValue('image'))
-        classification = Classification(filename=self.getParameterValue('classification'))
-        mask = Mask(filename=self.getParameterValue('mask'))
-        probabilitySample = image.sampleByClassification(classification=classification, mask=mask)
-        probabilitySample.pickle(filename=self.getOutputValue('probabilitySample'))
-        if self.getParameterValue('view'):
-            probabilitySample.browse()
-
-
-    def help(self):
-        return True, 'Returns a ProbabilitySample.'
-ALGORITHMS.append(ImageSampleByClassification())
+# todo
+#Create Sample
+#  RegressionSample from Image
+#  UnsupervisedSample from Image#
+#  Subset ClassificationSample (by Class)
+#  Subset RegressionSample (by Output)
