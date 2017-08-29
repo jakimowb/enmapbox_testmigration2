@@ -26,7 +26,7 @@ class Applier(hubdc.applier.Applier):
     def setOutput(self, name, filename):
         hubdc.applier.Applier.setOutput(self, name=name, filename=filename, options=self.kwargs.get(name+'Options', None))
 
-    def setFlowImage(self, name, image, **kwargs):
+    def setFlowImage(self, name, image):
         assert isinstance(image, hubflow.types.Image), image
         self.setInput(name, filename=image.filename)
 
@@ -91,7 +91,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             assert 0
         elif isinstance(probability, hubflow.types.VectorClassification):
             ids = range(1, probability.classDefinition.classes + 1)
-            array = self.getVectorCategoricalFractionArray(name, ids=ids, minOverallCoverage=probability.minOverallCoverage, oversampling=oversampling,
+            array = self.getVectorCategoricalFractionArray(name, ids=ids, minOverallCoverage=probability.minOverallCoverage, noData=-1, oversampling=oversampling,
                                                                  burnAttribute=probability.idAttribute, allTouched=probability.allTouched, filterSQL=probability.filterSQL)
         return array
 
