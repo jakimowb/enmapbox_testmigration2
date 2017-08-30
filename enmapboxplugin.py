@@ -41,16 +41,18 @@ class EnMAPBoxPlugin(object):
         dir_repo = os.path.dirname(__file__)
         site.addsitedir(dir_repo)
 
-        # add the EnMAP-Box Provider
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-        from processing.core.Processing import Processing
-        self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
-
         try:
             import enmapboxgeoalgorithms.algorithms
             enmapboxgeoalgorithms.algorithms.EnMAPProvider = None
         except Exception as ex:
             pass
+
+        # add the EnMAP-Box Provider
+        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        from processing.core.Processing import Processing
+        self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
+
+
 
         Processing.addProvider(self.enmapBoxProvider)
 
