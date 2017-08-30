@@ -21,16 +21,24 @@ import sys, os, site
 
 
 def run():
-    from enmapbox.gui.enmapboxgui import EnMAPBox
+
     from enmapbox.gui.utils import initQgisApplication
-    from qgis.utils import iface
+    qgisApp = initQgisApplication()
+
+    from enmapbox.gui.enmapboxgui import EnMAPBox
     import enmapbox.gui
+    enmapbox.gui.DEBUG = False
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
     enmapbox.gui.LOAD_EXTERNAL_APPS = True
-    qgisApp = initQgisApplication()
+
+    from qgis.utils import iface
     enmapbox = EnMAPBox(iface)
     enmapbox.run()
     enmapbox.openExampleData(mapWindows=1)
+
+    from enmapbox.gui.utils import file_search
+    #enmapbox.addSource(r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\testsample.pkl')
+    enmapbox.addSource(r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\testclass.tif')
     qgisApp.exec_()
 
 

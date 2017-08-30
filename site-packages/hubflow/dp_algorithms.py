@@ -1,11 +1,12 @@
 import numpy
-from hubdc.applier import CUIProgressBar
+from sklearn.multioutput import MultiOutputEstimator
+from hubdc.applier import CUIProgressBar, ProgressBarDelegate
 
 def getProgressBar(currentProgressBar):
     if currentProgressBar is None:
         return CUIProgressBar()
     else:
-        return currentProgressBar
+        return ProgressBarDelegate(progressBar=currentProgressBar)
 
 def is2darray(array):
     return isinstance(array, numpy.ndarray) and array.ndim == 2
@@ -34,7 +35,7 @@ def estimatorFitData(estimator, features, labels, progressBar=None):
 
     progressBar.setLabelText('fit sample (N={}) with {}'.format(features.shape[1], ' '.join(str(estimator).split())))
     X = features.T
-    if labels.shape[0] == 1:
+    if labels.shape[0] == 1 and not isinstance(estimator, MultiOutputEstimator):
         y = labels.ravel()
     else:
         y = labels.T

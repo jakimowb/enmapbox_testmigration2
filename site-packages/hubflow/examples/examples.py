@@ -80,7 +80,7 @@ def probabilitySample_saveAsSpectralLibrary():
 
 def probabilitySample_subsetClassesByNames():
     probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
-    probabilitySample = probabilitySample.subsetClassesByNames(names=['Roof', 'Tree'])
+    probabilitySample = probabilitySample.subsetClassesByName(names=['Roof', 'Tree'])
     probabilitySample.pickle(filename=probabilitySampleFilename)
 
 def classifier_fit():

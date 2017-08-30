@@ -23,7 +23,7 @@ from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QAction
 
 
-class EnMAPBoxPlugin:
+class EnMAPBoxPlugin(object):
 
     def __init__(self, iface):
         # make site-packages available to python
@@ -45,6 +45,13 @@ class EnMAPBoxPlugin:
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
         from processing.core.Processing import Processing
         self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
+
+        try:
+            import enmapboxgeoalgorithms.algorithms
+            enmapboxgeoalgorithms.algorithms.EnMAPProvider = None
+        except Exception as ex:
+            pass
+
         Processing.addProvider(self.enmapBoxProvider)
 
         from enmapboxgeoalgorithms.algorithms import ALGORITHMS
