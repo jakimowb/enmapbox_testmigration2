@@ -758,6 +758,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
     def onSaveAs(self, dataSource):
 
         pass
+
 class DataSourceManager(QObject):
 
     """
@@ -768,7 +769,7 @@ class DataSourceManager(QObject):
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-    SOURCE_TYPES = ['ALL', 'RASTER', 'VECTOR', 'MODEL']
+    SOURCE_TYPES = ['ALL','ANY', 'RASTER', 'VECTOR', 'MODEL']
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
@@ -872,7 +873,7 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
 
         assert sourcetype in DataSourceManager.SOURCE_TYPES
-        if sourcetype == 'ALL':
+        if sourcetype == ['ALL','ANY']:
             return [ds.uri() for ds in self.mSources]
         elif sourcetype == 'VECTOR':
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
@@ -880,6 +881,8 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
         elif sourcetype == 'MODEL':
             return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
+        else:
+            return []
 
     def addSources(self, sources):
         for s in sources:

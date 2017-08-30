@@ -9,6 +9,7 @@ from enmapbox.utils import *
 import numpy as np
 from osgeo import gdal, ogr
 
+
 def openPlatformDefault(uri):
     if os.path.isfile(uri):
         if sys.platform == 'darwin':
@@ -161,8 +162,14 @@ class DataSourceFactory(object):
         :param icon: QIcon, optional
         :return:
         """
+        if src is None:
+            return None
 
-        if isinstance(src, DataSource): return src
+        if type(src) in [str, unicode] and (len(src) == 0):
+            return None
+
+        if isinstance(src, DataSource):
+            return src
 
         uri = DataSourceFactory.isRasterSource(src)
         if uri is not None:
@@ -198,6 +205,7 @@ class DataSourceFactory(object):
 
         logger.warning('Can not open {}'.format(str(src)))
         return None
+
 
 
 class DataSource(object):
@@ -461,3 +469,119 @@ class DataSourceVector(DataSourceSpatial):
 
 
 
+
+class DataSourceListModel(QAbstractListModel):
+
+
+    def __init__(self, *args, **kwds):
+
+        super(DataSourceListModel, self).__init__(*args, **kwds)
+
+        self.mFiles = []
+        self.mAddedFiles = []
+        self.mFileType = 'ANY'
+        self.mAddToEnMAPBox = True
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            EnMAPBox.instance().dataSourceManager.sigDataSourceAdded.connect(self.refreshDataSources)
+        self.refreshDataSources()
+
+    def setSourceType(self, fileType):
+        from enmapbox.gui.datasourcemanager import DataSourceManager
+        assert fileType in DataSourceManager.SOURCE_TYPES
+        self.mFileType = fileType
+        self.refreshDataSources()
+
+    def addSource(self, uri):
+        from enmapbox.gui.datasources import DataSourceFactory, DataSource, DataSourceRaster, DataSourceVector, HubFlowDataSource
+
+        ds = DataSourceFactory.Factory(uri)
+        if isinstance(ds, DataSource):
+            #is is a DataSource the EnMAP-Box can handle
+            #SOURCE_TYPES = ['ALL', 'RASTER', 'VECTOR', 'MODEL']
+            if self.mFileType in ['ALL','ANY'] or \
+                (self.mFileType == 'RASTER' and isinstance(ds, DataSourceRaster)) or \
+                (self.mFileType == 'VECTOR' and isinstance(ds, DataSourceVector)) or \
+                (self.mFileType == 'MODEL' and isinstance(ds, HubFlowDataSource)):
+
+                self.mAddedFiles.append(ds.uri())
+
+                from enmapbox.gui.enmapboxgui import EnMAPBox
+                if self.mAddToEnMAPBox and isinstance(EnMAPBox.instance(), EnMAPBox):
+                    EnMAPBox.instance().addSource(ds)
+
+
+    def refreshDataSources(self):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            enmapBox = EnMAPBox.instance()
+            uris = enmapBox.dataSourceManager.getUriList(self.mFileType)
+            del self.mFiles[:]
+            self.mFiles.extend(self.mAddedFiles)
+            for uri in uris:
+                if uri not in self.mFiles:
+                    self.mFiles.append(uri)
+            self.layoutChanged.emit()
+
+    def rowCount(self, index):
+        return len(self.mFiles)
+
+    def data(self,index, role=Qt.DisplayRole):
+        if role is None or not index.isValid():
+            return None
+
+        file = self.mFiles[index.row()]
+        value = None
+        if role == Qt.DisplayRole:
+            value = os.path.basename(file)
+        elif role == Qt.ToolTipRole:
+            value = file
+        elif role == Qt.UserRole:
+            value = file
+        elif role == Qt.EditRole:
+            value = file
+        elif role == Qt.ForegroundRole:
+            if os.path.exists(file):
+                value = QColor('black')
+            else:
+                value = QColor('red')
+        return value
+
+    def setData(self, index, value, role=None):
+        if role is None or not index.isValid():
+            return None
+
+
+        s = ""
+
+        return False
+
+    def uri2index(self, uri):
+        from enmapbox.gui.datasources import DataSource
+        if isinstance(uri, DataSource):
+            uri = uri.uri()
+
+        uri = str(uri)
+        for i in range(self.rowCount(None)):
+            index = self.createIndex(0, i)
+            modelUri = str(self.data(index, role=Qt.UserRole))
+            if uri == modelUri:
+                return index
+        return None
+
+    def index2uri(self, index):
+        if index.isValid():
+            return self.mFiles[index.row()]
+        else:
+            return None
+    def flags(self, index ):
+        if index.isValid():
+            uri = self.index2uri(index)
+
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+            flags = flags | Qt.ItemIsEditable
+            return flags
+
+        return None
