@@ -329,17 +329,24 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
             TreeNode(self.profiles, name)
 
 
-class ProcessingTypeTreeNode(DataSourceTreeNode):
+class HubFlowObjectTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
-        super(ProcessingTypeTreeNode, self).__init__(*args, **kwds)
-        self.pfType = None
+        super(HubFlowObjectTreeNode, self).__init__(*args, **kwds)
+        self.flowObject = None
 
     def connectDataSource(self, processingTypeDataSource):
-        super(ProcessingTypeTreeNode, self).connectDataSource(processingTypeDataSource)
+        super(HubFlowObjectTreeNode, self).connectDataSource(processingTypeDataSource)
         assert isinstance(self.dataSource, HubFlowDataSource)
-        self.pfType = processingTypeDataSource.pfType
 
+        self.flowObject = self.dataSource.flowObject()
+        if isinstance(self.flowObject, hubflow.types.FlowObject):
+
+            t = type(self.flowObject)
+            s = "!"
+
+
+    def __addInfo(self, obj):
         metaData = self.pfType.getMetadataDict()
 
         handled = list()
@@ -609,7 +616,7 @@ class DataSourceManagerTreeModel(TreeModel):
             a = menu.addAction('Remove')
             a.triggered.connect(lambda: self.dataSourceManager.removeSource(node.dataSource))
 
-        if isinstance(node, ProcessingTypeTreeNode):
+        if isinstance(node, HubFlowObjectTreeNode):
             a = menu.addAction('Show report')
             a.triggered.connect(lambda : self.onShowModelReport(node.dataSource))
 
@@ -792,14 +799,6 @@ class DataSourceManager(QObject):
 
         self.updateFromQgsMapLayerRegistry()
 
-        #signals
-        self.processing = None
-        try:
-            import enmapbox.processing
-            self.processing = enmapbox.processing
-            self.processing.sigFileCreated.connect(lambda file: self.addSource(file))
-        except:
-            pass
 
     def qgsLayerTreeGroup(self):
         return None

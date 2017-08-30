@@ -119,20 +119,13 @@ class DataSourceFactory(object):
         :return: uri (str) | None
         """
 
-        uri = None
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str) and os.path.exists(src):
-
-            try:
-                import hubflow.types
-                with open(src, 'rb') as f:
-                    obj = pickle.load(file=f)
-                    if isinstance(obj, hubflow.types.FlowObject):
-                        return src
-
-            except Exception, e:
-                pass
-        return uri
+            import hubflow.types
+            obj = hubflow.types.FlowObject.unpickle(src, raiseError=False)
+            if isinstance(obj, hubflow.types.FlowObject):
+                return src
+        return None
 
     @staticmethod
     def fromXML(domElement):
@@ -348,6 +341,7 @@ class DataSourceSpatial(DataSourceFile):
         raise NotImplementedError()
 
 
+import hubflow.types
 class HubFlowDataSource(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
         super(HubFlowDataSource, self).__init__(uri, name, icon)
@@ -355,20 +349,22 @@ class HubFlowDataSource(DataSourceFile):
 
         if not isinstance(icon, QIcon):
             self.mIcon = QIcon(':/enmapbox/icons/alg.png')
-        import pickle
 
-        import hubflow.types
-        with open(self.mUri, 'rb') as f:
-            obj = pickle.load(file=f)
-            assert isinstance(obj, hubflow.types.FlowObject)
-        self.mFlowObj = obj
+
+        self.loadFlowObject()
         s = ""
-    def report(self):
-        return self.pfType.report()
 
+    def loadFlowObject(self):
+        self.mFlowObj = hubflow.types.FlowObject.unpickle(self.mUri, raiseError=False)
+        s = ""
 
-    def metadataDict(self):
-        return self.pfType.getMetadataDict()
+    def flowObject(self):
+        if not isinstance(self.mFlowObj, hubflow.types.FlowObject):
+            self.loadFlowObject()
+        if isinstance(self.mFlowObj, hubflow.types.FlowObject):
+            return self.mFlowObj
+        else:
+            return None
 
 
 class DataSourceSpectralLibrary(DataSourceFile):
@@ -585,3 +581,4 @@ class DataSourceListModel(QAbstractListModel):
             return flags
 
         return None
+

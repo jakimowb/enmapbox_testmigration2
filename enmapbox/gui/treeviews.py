@@ -26,14 +26,14 @@ class TreeNodeProvider():
     @staticmethod
     def CreateNodeFromDataSource(dataSource, parent):
 
-        from enmapbox.gui.datasourcemanager import DataSource, ProcessingTypeTreeNode, \
+        from enmapbox.gui.datasourcemanager import DataSource, HubFlowObjectTreeNode, \
         FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode, \
         SpeclibDataSourceTreeNode
         assert isinstance(dataSource, DataSource)
 
         #hint: take care of class inheritance order
         if isinstance(dataSource, HubFlowDataSource):
-            node = ProcessingTypeTreeNode(parent, dataSource)
+            node = HubFlowObjectTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceRaster):
             node = RasterDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceVector):
