@@ -21,7 +21,6 @@
 
 """
 Sandbox examples that show how to run own EnMAP-box applications without starting a QGIS GUI Instance
-
 """
 import qgis
 def sandboxWithEnMapBox(loadPF=False):
@@ -47,7 +46,11 @@ def sandboxGuiOnly():
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
 
-    from VIT_GUI import MainUiFunc
+    # from VIT_GUI import MainUiFunc
+    # from LUT_GUI import MainUiFunc
+    # from Global_Inversion_GUI import MainUiFunc
+    from ISD_GUI import MainUiFunc
+
     m = MainUiFunc()
     m.show()
     qgsApp.exec_()

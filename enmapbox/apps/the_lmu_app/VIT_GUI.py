@@ -319,7 +319,7 @@ class PRG:
 
 class MainUiFunc:
     def __init__(self):
-        self.QGis_app = QApplication(sys.argv)
+        self.QGis_app = QApplication.instance()
         self.vit = VIT(self)
         self.nodat_widget = Nodat(self)
         self.prg_widget = PRG(self)

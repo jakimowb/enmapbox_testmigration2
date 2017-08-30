@@ -8,8 +8,6 @@ from osgeo import gdal
 import struct
 import os
 from Sensor_Info import get_wl
-import winsound
-
 
 class RTM_Inversion:
 

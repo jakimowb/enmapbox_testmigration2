@@ -612,7 +612,7 @@ class PRG:
 
 class MainUiFunc:
     def __init__(self):
-        self.QGis_app = QApplication(sys.argv)
+        self.QGis_app = QApplication.instance()
         self.global_inversion = Global_Inversion(self)
         self.select_wavelengths = Select_Wavelengths(self)
         self.nodat_widget = Nodat(self)

@@ -26,8 +26,8 @@ class ISD_GUI(QDialog, loadUIFormClass(pathUI)):
 
 class ISD:
 
-    def __init__(self):
-        
+    def __init__(self, main):
+        self.main = main
         self.gui = ISD_GUI()
         self.special_chars()
         self.initial_values()
@@ -395,11 +395,17 @@ class ISD:
                 file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Car, Canth, Cbrown, skyl\n")
                 file.write(','.join(str(line) for line in self.para_list))
 
+class MainUiFunc:
+    def __init__(self):
+        self.isd = ISD(self)
+    def show(self):
+        self.isd.gui.show()
+
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
-    myUI = ISD()
-    myUI.gui.show()
+    m = MainUiFunc()
+    m.show()
     sys.exit(app.exec_())
 
 
