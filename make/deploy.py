@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     #the directory to build the "enmapboxplugin" folder
     DIR_DEPLOY = jp(DIR_REPO, 'deploy')
-    DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
+    #DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
 
     #local pb_tool configuration file.
     pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
