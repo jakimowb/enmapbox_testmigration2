@@ -117,7 +117,7 @@ class Global_Inversion:
         self.gui.radAbs.clicked.connect(lambda: self.select_costfun(type="abs"))
 
         # Execute
-        self.gui.cmdExcludeBands.clicked.connect(lambda: self.invoke_selection())
+        self.gui.cmdExcludeBands.clicked.connect(lambda: self.open_wavelength_selection())
         self.gui.cmdRun.clicked.connect(lambda: self.run_inversion())
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
 
@@ -129,7 +129,11 @@ class Global_Inversion:
             if not result: return
             self.image = result
             self.image = self.image.replace("\\", "/")
-            meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            try:
+                meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            except ValueError as e:
+                self.abort(message=str(e))
+                return
             if None in meta:
                 self.image = None
                 self.nodat[0] = None
@@ -239,27 +243,17 @@ class Global_Inversion:
 
     def check_and_assign(self):
         # Image In
-        if self.image is None:
-            self.abort(message='Input Image missing')
-            return -1
-        elif not os.path.isfile(self.image):
-            self.abort(message='Input Image does not exist')
-            return -1
+        if self.image is None: raise ValueError('Input Image missing')
+        elif not os.path.isfile(self.image): raise ValueError('Input Image does not exist')
 
         # LUT
-        if self.LUT_path is None:
-            self.abort(message='LUT metafile missing')
-            return -1
-        elif not os.path.isfile(self.LUT_path):
-            self.abort(message='LUT metafile does not exist')
-            return -1
+        if self.LUT_path is None: raise ValueError('LUT metafile missing')
+        elif not os.path.isfile(self.LUT_path): raise ValueError('LUT metafile does not exist')
 
         # Output path
         self.out_path = self.gui.txtOutputImage.text()
         self.out_path = self.out_path.replace("\\", "/")
-        if self.out_path is None:
-            self.abort(message='Output file missing')
-            return -1
+        if self.out_path is None: raise ValueError('Output file missing')
         else:
             try:
                 os.path.splitext(self.out_path)[1]
@@ -268,85 +262,63 @@ class Global_Inversion:
 
         # Geometry file:
         if self.geo_mode == "file":
-            if self.geo_file is None:
-                self.abort(message='Geometry-Input via file selected, but no file specified')
-                return -1
-            elif not os.path.isfile(self.geo_file):
-                self.abort(message='Geometry-Input file does not exist')
-                return -1
+            if self.geo_file is None: raise ValueError('Geometry-Input via file selected, but no file specified')
+            elif not os.path.isfile(self.geo_file): raise ValueError('Geometry-Input file does not exist')
 
         elif self.geo_mode == "fix":
             if self.gui.txtSZA.text() == "" or self.gui.txtOZA.text() == "" or self.gui.txtRAA.text() == "":
-                self.abort(message='Geometry-Input via fixed values selected, but angles are incomplete')
-                return -1
+                raise ValueError('Geometry-Input via fixed values selected, but angles are incomplete')
             else:
                 try:
                     self.geo_fixed = [float(self.gui.txtSZA.text()), float(self.gui.txtOZA.text()), float(self.gui.txtRAA.text())]
                 except ValueError:
-                    self.abort(message='Cannot interpret Geometry angles as numbers')
-                    return -1
+                    raise ValueError('Cannot interpret Geometry angles as numbers')
 
         # Noise
         if not self.noisetype == 0:
-            if self.gui.txtNoiseLevel.text() == "":
-                self.abort(message='Please specify level for artificial noise')
-                return -1
+            if self.gui.txtNoiseLevel.text() == "": raise ValueError('Please specify level for artificial noise')
+
             else:
                 self.noiselevel = self.gui.txtNoiseLevel.text()
                 try:
                     self.noiselevel = float(self.noiselevel)
                 except ValueError:
-                    self.abort(message='Cannot interpret noise level as decimal number')
-                    return -1
+                    raise ValueError('Cannot interpret noise level as decimal number')
 
         # Cost Function Type:
         if self.nbfits_type == "rel":
-            if self.gui.txtRel.text() == "":
-                self.abort(message='Please specify number of best fits')
-                return -1
+            if self.gui.txtRel.text() == "": raise ValueError('Please specify number of best fits')
             else:
                 self.nbfits = self.gui.txtRel.text()
                 try:
                     self.nbfits = float(self.nbfits)
                 except ValueError:
-                    self.abort(message='Cannot interpret number of best fits as a real number')
-                    return -1
+                    raise ValueError('Cannot interpret number of best fits as a real number')
+
         elif self.nbfits_type == "abs":
-            if self.gui.txtAbs.text() == "":
-                self.abort(message='Please specify number of best fits')
-                return -1
+            if self.gui.txtAbs.text() == "": raise ValueError('Please specify number of best fits')
             else:
                 self.nbfits = self.gui.txtAbs.text()
                 try:
                     self.nbfits = int(self.nbfits)
                 except ValueError:
-                    self.abort(message='Cannot interpret number of best fits as a real number')
-                    return -1
+                    raise ValueError('Cannot interpret number of best fits as a real number')
 
         # Mask
         if not self.mask_image is None:
-            if not os.path.isfile(self.mask_image):
-                self.abort(message='Mask Image does not exist')
-                return -1
+            if not os.path.isfile(self.mask_image): raise ValueError('Mask Image does not exist')
 
-        if self.gui.txtNodatOutput.text() == "":
-            self.abort(message='Please specify no data value for output')
-            return -1
+        if self.gui.txtNodatOutput.text() == "": raise ValueError('Please specify no data value for output')
         else:
             try:
                 self.nodat[2] = int(self.gui.txtNodatOutput.text())
             except:
-                self.abort(message='%s is not a valid no data value for output' % self.gui.txtNodatOutput.text())
-                return -1
-
-        return 1
+                raise ValueError('%s is not a valid no data value for output' % self.gui.txtNodatOutput.text())
 
     def get_image_meta(self, image, image_type):
 
         dataset = gdal.Open(image)
-        if dataset is None:
-            self.abort(message='%s could not be read. Please make sure it is a valid ENVI image' % image_type)
-            return None
+        if dataset is None: raise ValueError('%s could not be read. Please make sure it is a valid ENVI image' % image_type)
         else:
             nbands = dataset.RasterCount
             nrows = dataset.RasterYSize
@@ -364,61 +336,85 @@ class Global_Inversion:
 
     def run_inversion(self):
 
-        cas = self.check_and_assign()
-        if cas < 0:
+        try:
+            self.check_and_assign()
+        except ValueError as e:
+            self.abort(message=str(e))
             return
+
+        self.prg_widget = self.main.prg_widget
+        self.prg_widget.gui.lblCaption_l.setText("Global Inversion")
+        self.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
+        self.main.prg_widget.gui.prgBar.setValue(0)
+        self.main.prg_widget.gui.setModal(True)
+        self.prg_widget.gui.show()
+
+        self.main.QGis_app.processEvents()
 
         inv = inverse.RTM_Inversion()
-        inv_setup = inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
-                            nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
-                            noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
-                            geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
-                            nodat=self.nodat, which_para=range(15))
-        if inv_setup:
-            self.abort(message=inv_setup)
+
+        try:
+            inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
+                                nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
+                                noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
+                                geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
+                                nodat=self.nodat, which_para=range(15))
+        except ValueError as e:
+            self.abort(message="Failed to setup inversion: %s" % str(e))
             return
 
-        run_inv = inv.run_inversion()
-        if run_inv:
-            self.abort(message=run_inv)
+        try:
+            inv.run_inversion(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
+        except ValueError as e:
+            self.abort(message="An error occurred during inversion: %s" % str(e))
             return
 
-        write_inv = inv.write_image()
-        if write_inv:
-            self.abort(message=write_inv)
+        self.prg_widget.gui.lblCaption_r.setText("Writing Output-File...")
+        self.main.QGis_app.processEvents()
+
+        try:
+            inv.write_image()
+        except ValueError as e:
+            self.abort(message="An error occurred while trying to write output-image: %s" % str(e))
             return
 
+        self.prg_widget.gui.close()
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
+        self.gui.close()
+
+    def open_wavelength_selection(self):
+        try:
+            self.invoke_selection()
+        except ValueError as e:
+            self.abort(message=str(e))
 
     def invoke_selection(self):
-
         # Check ImageIn
-        if self.image is None:
-            self.abort(message='Specify Input Image first')
-            return
-        elif not os.path.isfile(self.image):
-            self.abort(message='Input Image not found')
-            return
+        if self.image is None: raise ValueError('Specify Input Image first')
+        elif not os.path.isfile(self.image): raise ValueError('Input Image not found')
 
         # Read ImageIn
         dataset = gdal.Open(self.image)
-        if dataset is None:
-            self.abort(message='Input Image could not be read. Please make sure it is a valid ENVI image')
-            return
-        wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
-        wavelengths = wavelengths.replace("{","")
-        wavelengths = wavelengths.replace("}", "")
-        wavelengths = wavelengths.split(",")
+        if dataset is None: raise ValueError('Input Image could not be read. Please make sure it is a valid ENVI image')
 
-        if dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['nanometers', 'nm', 'nanometer']:
+        try:
+            wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
+            wavelengths = wavelengths.replace("{","")
+            wavelengths = wavelengths.replace("}", "")
+            wavelengths = wavelengths.split(",")
+        except ValueError:
+            raise ValueError('Input Image does not have wavelengths supplied. Check header file!')
+
+        if dataset.GetMetadataItem('wavelength_units', 'ENVI') is None:
+            raise ValueError('No wavelength units provided in ENVI header file')
+        elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['nanometers', 'nm', 'nanometer']:
             wave_convert = 1
             self.wunit = u'nm'
         elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['micrometers', 'µm', 'micrometer']:
             wave_convert = 1000
             self.wunit = u"\u03bcm"
         else:
-            self.abort(message="No wavelength units provided in ENVI header file")
-            return
+            raise ValueError("Wavelength units must be nanometers or micrometers. Got '%s' instead" % dataset.GetMetadataItem('wavelength_units', 'ENVI'))
 
         self.wl = [float(item) * wave_convert for item in wavelengths]
         self.nbands = dataset.RasterCount

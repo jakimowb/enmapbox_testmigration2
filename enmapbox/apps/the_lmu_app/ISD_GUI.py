@@ -364,6 +364,7 @@ class ISD:
             self.data_mean[2000:2101] = np.nan
         except:
             QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
+            return
         self.mod_exec()
 
     def reset_in_situ(self):

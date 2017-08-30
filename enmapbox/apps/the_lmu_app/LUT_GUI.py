@@ -307,15 +307,15 @@ class LUT:
         self.dict_boundaries = {"N": [1.0, 3.0],
                             "chl": [0.0, 100.0],
                              "cw": [0.001, 0.7],
-                             "cm": [0.001, 0.02],
-                             "car": [0.0, 30.,0],
+                             "cm": [0.0001, 0.02],
+                             "car": [0.0, 30.0],
                              "cbr": [0.0, 1.0],
                              "canth": [0.0, 10.0],
                              "lai": [0.01, 10.0],
                              "alia": [0.0, 90.0],
                              "hspot": [0.0, 1.0],
-                             "oza": [0.0, 80.0],
-                             "sza": [0.0, 80.0],
+                             "oza": [0.0, 89.0],
+                             "sza": [0.0, 89.0],
                              "raa": [0.0, 180.0],
                              "psoil": [0.0, 1.0],
                              "laiu": [0.0, 100.0], # forest parameters temporary!
@@ -453,7 +453,8 @@ class LUT:
                         self.dict_vals[para].append(float(self.dict_objects[para][object].text()))
                     except ValueError:
                         QMessageBox.critical(self.gui, "Not a number", "'%s' is not a valid number" % self.dict_objects[para][object].text())
-                        self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
+                        self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat)))) # reset dict_vals
+                        return
 
         self.LUT_name = self.gui.txtLUTname.text()
         self.ns = int(self.gui.spinNS.value())

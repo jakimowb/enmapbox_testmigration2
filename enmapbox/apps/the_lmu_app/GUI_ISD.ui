@@ -427,7 +427,7 @@
                  <number>30000</number>
                 </property>
                 <property name="singleStep">
-                 <number>1000</number>
+                 <number>100</number>
                 </property>
                 <property name="pageStep">
                  <number>1000</number>
@@ -448,6 +448,9 @@
                 <property name="maximum">
                  <number>1000000</number>
                 </property>
+                <property name="singleStep">
+                 <number>1000</number>
+                </property>
                 <property name="pageStep">
                  <number>100000</number>
                 </property>
@@ -462,10 +465,13 @@
               <item row="5" column="0" colspan="4">
                <widget class="QScrollBar" name="Cw_Slide">
                 <property name="minimum">
-                 <number>1</number>
+                 <number>2</number>
                 </property>
                 <property name="maximum">
                  <number>700</number>
+                </property>
+                <property name="singleStep">
+                 <number>2</number>
                 </property>
                 <property name="value">
                  <number>200</number>
@@ -500,7 +506,7 @@
                  <number>300000</number>
                 </property>
                 <property name="singleStep">
-                 <number>10000</number>
+                 <number>1000</number>
                 </property>
                 <property name="pageStep">
                  <number>10000</number>
@@ -528,7 +534,7 @@
                  <number>10000</number>
                 </property>
                 <property name="singleStep">
-                 <number>1000</number>
+                 <number>100</number>
                 </property>
                 <property name="pageStep">
                  <number>1000</number>
@@ -547,7 +553,7 @@
                  <number>100000</number>
                 </property>
                 <property name="singleStep">
-                 <number>10000</number>
+                 <number>200</number>
                 </property>
                 <property name="pageStep">
                  <number>10000</number>
@@ -1180,6 +1186,9 @@
                 <property name="maximum">
                  <number>100000</number>
                 </property>
+                <property name="singleStep">
+                 <number>100</number>
+                </property>
                 <property name="sliderPosition">
                  <number>30000</number>
                 </property>
@@ -1501,8 +1510,14 @@
               <height>23</height>
              </size>
             </property>
+            <property name="focusPolicy">
+             <enum>Qt::TabFocus</enum>
+            </property>
             <property name="text">
              <string>Load In Situ Data...</string>
+            </property>
+            <property name="autoDefault">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1511,12 +1526,18 @@
             <property name="text">
              <string>Close App</string>
             </property>
+            <property name="autoDefault">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QPushButton" name="Push_ResetInSitu">
             <property name="text">
              <string>Reset In Situ</string>
+            </property>
+            <property name="autoDefault">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1544,12 +1565,18 @@
             <property name="text">
              <string>Save Spectrum...</string>
             </property>
+            <property name="autoDefault">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item row="0" column="5">
            <widget class="QPushButton" name="Push_SaveParams">
             <property name="text">
              <string>Save Parameter Set...</string>
+            </property>
+            <property name="autoDefault">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1601,6 +1628,9 @@
            <widget class="QPushButton" name="pushClearPlot">
             <property name="text">
              <string>Reset Plot</string>
+            </property>
+            <property name="autoDefault">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1929,7 +1959,7 @@
                <number>10000</number>
               </property>
               <property name="singleStep">
-               <number>1000</number>
+               <number>100</number>
               </property>
               <property name="pageStep">
                <number>1000</number>

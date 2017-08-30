@@ -17,7 +17,7 @@ class RTM_Inversion:
         self.nbfits = 0
         self.noisetype = 0
         self.noiselevel = 0
-        self.nodat = [0]*3
+        self.nodat = [0]*3 # 0: input image, 1: geometry image, 2: output image
         self.exclude_bands, self.exclude_bands_model = (None, None)
         self.wl_sensor = None
         self.fwhm_sensor = None
@@ -87,7 +87,7 @@ class RTM_Inversion:
         try:
             self.geometry_matrix[0,0,0]
         except:
-            exit("No geometry supplied")
+            raise ValueError("No geometry supplied")
 
         self.whichLUT = np.zeros(shape=(self.nrows, self.ncols),dtype=np.int16)
 
@@ -221,19 +221,24 @@ class RTM_Inversion:
     def run_inversion(self, prg_widget=None, QGis_app=None):
 
         pix_total = self.nrows * self.ncols
+        nbands_valid = len(self.image[0,0,:])
+
         for r in xrange(self.nrows):
             for c in xrange(self.ncols):
 
                 pix_current = r*self.ncols + c + 1
-                print "row: %i | col: %i" % (r, c)
 
                 # Check if Pixel shall be excluded
                 if len(self.exclude_pixels) > 0 and self.exclude_pixels[r,c] < 1:
                     self.out_matrix[r,c,:] = self.nodat[2]
+                    continue
 
-                # Check if valid geometry exists:
-                if any(self.geometry_matrix[r,c,i] for i in xrange(3)) == self.nodat[0]:
+                # Check if Pixel is NoData or Geometry is not available
+                if all(self.image[r,c,j] == self.nodat[0] for j in xrange(nbands_valid)) or \
+                        any(self.geometry_matrix[r,c,i] == self.nodat[0] for i in xrange(3)):
                     self.out_matrix[r,c,:] = self.nodat[2]
+                    print r, c
+                    continue
 
                 estimates = np.zeros(self.ns)
                 lut = np.load(self.LUT_base + "_" + str(self.whichLUT[r,c])+".npy")

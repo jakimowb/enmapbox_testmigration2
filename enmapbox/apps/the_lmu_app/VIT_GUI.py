@@ -195,7 +195,7 @@ class VIT:
             except:
                 self.main.nodat_widget.init(image=inFile)
                 self.main.nodat_widget.gui.setModal(True)  # parent window is blocked
-                self.main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code, until the app is closed
+                self.main.nodat_widget.gui.exec_()
 
             self.inFile = inFile
             self.gui.lblInputImage.setText(self.inFile)
@@ -244,8 +244,13 @@ class VIT:
         self.main.prg_widget.gui.show()
         self.main.QGis_app.processEvents()
 
-        vit = VIT_core.VIT(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat)
-        ImageIn_matrix = vit.read_image(ImgIn=self.inFile, Convert_Refl=1)
+        try:
+            vit = VIT_core.VIT(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat)
+            ImageIn_matrix = vit.read_image(ImgIn=self.inFile, Convert_Refl=1)
+        except ValueError as e:
+            QMessageBox.critical(self.gui, 'error', e)
+            self.main.prg_widget.gui.close()
+            return
 
         if ImageIn_matrix is None:
             QMessageBox.critical(self.gui, "Image unreadable", "The image file could not be read.")
@@ -261,19 +266,27 @@ class VIT:
             QMessageBox.critical(self.gui, "No index selected", "Please select at least one index to continue!")
             return
 
-        IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+        try:
+            IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+        except:
+            QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
+            self.main.prg_widget.gui.close()
+            return
 
         self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
         self.main.QGis_app.processEvents()
-        result_vit = vit.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=self.outDir, OutFilename=self.outFileName,
-                      OutExtension=self.outExtension, OutSingle=self.outSingle)
 
-        if result_vit:
-            QMessageBox.critical(self.gui, 'error', result_vit)
-        else:
+        try:
+            vit.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=self.outDir, OutFilename=self.outFileName,
+                          OutExtension=self.outExtension, OutSingle=self.outSingle)
+        except:
+            QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data.")
             self.main.prg_widget.gui.close()
-            QMessageBox.information(self.gui, "Finish", "Inversion finished")
-            self.gui.close()
+            return
+
+        self.main.prg_widget.gui.close()
+        QMessageBox.information(self.gui, "Finish", "Inversion finished")
+        self.gui.close()
 
 class Nodat:
     def __init__(self, main):

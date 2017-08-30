@@ -63,7 +63,7 @@ class VIT:
 
         ### Reading the spectral image
         dataset = gdal.Open(ImgIn)
-        if dataset is None: exit("Input Image not found")
+        if dataset is None: raise ValueError("Input Image not found!")
         nbands = dataset.RasterCount
 
         self.nodat[0] = dataset.GetMetadataItem('data_ignore_value', 'ENVI')
@@ -78,7 +78,7 @@ class VIT:
         elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['micrometers', 'µm']:
             wave_convert = 1000
         else:
-            exit("No wavelength units provided in ENVI header file")
+            raise ValueError("No wavelength units provided in ENVI header file")
 
         self.wl = [float(item) * wave_convert for item in string_chaos]  # Wavelengths of the Image Input
 
@@ -191,8 +191,6 @@ class VIT:
             band_out = [int(band_out[i]) for i in xrange(len(band_out))]
 
         self.dict_senswl = dict(zip(wl_list, band_out)) # maps index wavelengths with sensor bands
-        print "wl_list: ", wl_list
-        print "self.dict_senswl: ", self.dict_senswl
 
     def prgbar_process(self, index_no):
         if self.prg:
@@ -618,7 +616,7 @@ class VIT:
                 b.WriteArray(IndexOut_matrix[:,:,i])
 
             destination.SetMetadataItem('data ignore value', str(self.nodat[1]), 'ENVI')
-            print OutDir+OutFilename+".bsq"
+
         dataset = None
         destination = None
 
