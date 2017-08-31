@@ -286,6 +286,16 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
+class ClassificationNode(TreeNode):
+
+    def __init__(self, parent, classificationScheme, name='Classification Scheme'):
+        super(ClassificationNode, self).__init__(parent, name)
+        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+        assert isinstance(classificationScheme, ClassificationScheme)
+        self.setName(name)
+        for i, ci in enumerate(classificationScheme):
+            assert isinstance(ci, ClassInfo)
+            TreeNode(parent, str(i), value=ci.name(), icon=ci.icon())
 
 class CRSTreeNode(TreeNode):
     def __init__(self, parent, crs):
