@@ -133,6 +133,17 @@ class CanvasLinkTreeNodeGroup(TreeNode):
             else:
                 self.removeChildNode(node)
 
+class SpeclibDockTreeNode(DockTreeNode):
+    def __init__(self, parent, dock):
+
+        super(MapDockTreeNode, self).__init__(parent, dock)
+        #KeepRefs.__init__(self)
+        self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
+        self.addedChildren.connect(lambda: self.updateCanvas())
+        self.removedChildren.connect(lambda: self.updateCanvas())
+
+
+
 
 class MapDockTreeNode(DockTreeNode):
     """

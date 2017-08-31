@@ -878,17 +878,13 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         return pathHdr
 
 
-class SpectralLibraryPanel(QDockWidget, loadUI('speclibviewpanel.ui')):
-
+class SpectralLibraryPanel(QgsDockWidget):
+    sigLoadFromMapRequest = None
     def __init__(self, parent=None):
-        """Constructor."""
         super(SpectralLibraryPanel, self).__init__(parent)
-        # Set up the user interface from Designer.
-        # After setupUI you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
-        self.setupUi(self)
+
+        self.SLW = SpectralLibraryWidget(self)
+        self.setWidget(self.SLW)
 
 
 
@@ -1466,14 +1462,6 @@ class UnitComboBoxItemModel(QAbstractListModel):
         return value
 
 
-class SpectralLibraryViewPanel(QgsDockWidget):
-    sigLoadFromMapRequest = None
-    def __init__(self, parent=None):
-        super(SpectralLibrary, self).__init__(parent)
-
-        self.SLW = SpectralLibraryWidget(self)
-        self.sigLoadFromMapRequest = self.speclibWidget.sigLoadFromMapRequest
-
 
 
 
@@ -1532,6 +1520,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
                 QInputDialog.getText(self, 'Add Attribute', 'Attribute', text='New Attribute')[0])
         )
 
+        self.btnRemoveAttribute.setEnabled(len(self.mSpeclib) > 0)
         self.btnRemoveAttribute.clicked.connect(
             lambda : self.mModel.removeAttribute(
                 QInputDialog.getItem(self, 'Delete Attribute', 'Attributes',
@@ -1735,17 +1724,21 @@ if __name__ == "__main__":
     spec2.setMetadata('My Attr', 9876)
     #mySpec.plot()
 
-    sl0 = SpectralLibrary(profiles=[spec1, spec2])
-    path = r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\speclibtest.sli'
-    sl0.exportProfiles(path)
+    sp  = SpectralLibraryPanel()
+    sp.show()
+
+    if False:
+        sl0 = SpectralLibrary(profiles=[spec1, spec2])
+        path = r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\speclibtest.sli'
+        sl0.exportProfiles(path)
 
 
-    panel2 = SpectralLibraryWidget()
-    panel2.show()
+        panel2 = SpectralLibraryWidget()
+        panel2.show()
 
-    panel = SpectralLibraryWidget()
-    panel.addSpeclib(SpectralLibrary.readFrom(path))
-    panel.show()
+        panel = SpectralLibraryWidget()
+        panel.addSpeclib(SpectralLibrary.readFrom(path))
+        panel.show()
 
 
     #sl1 = SpectralLibrary.readFrom(speclib)

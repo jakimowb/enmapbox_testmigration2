@@ -306,8 +306,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
         area = Qt.BottomDockWidgetArea
-        from enmapbox.gui.spectrallibraries import SpectraLibraryViewPanel
-        self.specLibViewPanel = addPanel(SpectraLibraryViewPanel(self))
+        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
+        self.specLibViewPanel = addPanel(SpectralLibraryPanel(self))
         self.specLibViewPanel.setVisible(False)
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -389,7 +389,7 @@ class EnMAPBox(QObject):
 
         self.mCurrentSpectra=[] #set of currently selected spectral profiles
         self.mCurrentMapSpectraLoading = 'TOP'
-        self.sigCurrentSpectraChanged.connect(self.ui.specLibViewPanel.setCurrentSpectra)
+        self.sigCurrentSpectraChanged.connect(self.ui.specLibViewPanel.SLW.setCurrentSpectra)
 
         # define managers (the center of all actions and all evil)
         import enmapbox.gui
@@ -444,7 +444,7 @@ class EnMAPBox(QObject):
         self.ui.actionSettings.triggered.connect(self.saveProject)
         self.ui.actionExit.triggered.connect(self.exit)
         self.ui.actionSelectProfiles.triggered.connect(lambda : self.activateMapTool('SPECTRUMREQUEST'))
-        self.ui.specLibViewPanel.btnLoadfromMap.clicked.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
+        self.ui.specLibViewPanel.SLW.btnLoadfromMap.clicked.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
