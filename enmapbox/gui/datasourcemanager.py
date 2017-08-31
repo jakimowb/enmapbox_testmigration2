@@ -380,7 +380,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                 csi = ClassificationScheme()
                 colors = np.asarray(obj.lookup).reshape((obj.classes,3))
                 for label in range(obj.classes):
-                    ci = ClassInfo(label=obj.names[label], color=QColor(*colors[label,:]))
+                    ci = ClassInfo(label=label, name=obj.names[label], color=QColor(*colors[label,:]))
                     csi.addClass(ci)
                 ClassificationNode(parent, csi, name='ClassDefinition')
 
