@@ -297,8 +297,21 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
 
 
         ds = gdal.Open(dataSource.uri())
+
+
+
         for b in range(ds.RasterCount):
             band = ds.GetRasterBand(b+1)
+            assert isinstance(band, gdal.Band)
+            if b == 0:
+
+                if band.GetCategoryNames() is not None:
+                    self.setIcon(QIcon(':/enmapbox/icons/filelist_classification.png'))
+                elif ds.RasterCount == 1 and band.DataType == gdal.GDT_Byte:
+                    self.setIcon(QIcon(':/enmapbox/icons/filelist_mask.png'))
+                else:
+                    self.setIcon(QIcon(':/enmapbox/icons/filelist_image.png'))
+
             name = band.GetDescription()
 
             if len(name) == 0:
@@ -352,10 +365,68 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         assert isinstance(self.dataSource, HubFlowDataSource)
 
         self.flowObject = self.dataSource.flowObject()
+
+        objects = set()
+
+        def fetchInternals(parent, obj, objects):
+            assert isinstance(parent, TreeNode)
+            if id(obj) in objects:
+                return
+            else:
+                objects.add(id(obj))
+
+            if isinstance(obj, hubflow.types.ClassDefinition):
+                from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+                csi = ClassificationScheme()
+                colors = np.asarray(obj.lookup).reshape((obj.classes,3))
+                for label in range(obj.classes):
+                    ci = ClassInfo(label=obj.names[label], color=QColor(*colors[label,:]))
+                    csi.addClass(ci)
+                ClassificationNode(parent, csi, name='ClassDefinition')
+
+            elif isinstance(obj, dict):
+                for k, i in obj.items():
+                    name = str(k)
+                    if name.startswith('_'):
+                        continue
+                    node = TreeNode(parent, name)
+                    if isinstance(i, list) or \
+                        isinstance(i, set):
+                        node.setValue(str(len(i)))
+                        fetchInternals(node, i, objects)
+                    elif isinstance(i, np.ndarray):
+                        text = '{} {} {}...'.format(i.shape, i.dtype, re.split('[\n]', str(i))[0])
+                        node.setValue(text)
+                    else:
+                        fetchInternals(node, i, objects)
+
+            elif isinstance(obj, list) or isinstance(obj, set):
+                for i, item in enumerate(obj):
+                    node = TreeNode(parent, str(i))
+                    if isinstance(item, hubflow.types.FlowObject) or \
+                       isinstance(item, dict) or \
+                       isinstance(item, list):
+                        fetchInternals(node, item, objects)
+                    else:
+                        text = str(item)
+                        node.setValue(text.replace('\n',' '))
+                    if i > 100:
+                        break
+            elif isinstance(obj, hubflow.types.FlowObject):
+                parent.setName(obj.__class__.__name__)
+                fetchInternals(parent, obj.__dict__, objects)
+            else:
+                parent.setValue(str(obj))
+
+
         if isinstance(self.flowObject, hubflow.types.FlowObject):
 
-            t = type(self.flowObject)
-            s = "!"
+            self.setValue(self.flowObject.__class__.__name__)
+            #todo: type specific icon
+
+            fetchInternals(self, self.flowObject.__dict__, objects)
+
+
 
 
     def __addInfo(self, obj):

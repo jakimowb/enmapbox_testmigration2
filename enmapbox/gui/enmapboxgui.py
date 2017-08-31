@@ -288,8 +288,6 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         import enmapbox.gui.dockmanager
         import enmapbox.gui.datasourcemanager
 
-
-
         def addPanel(panel):
             """
             shortcut to add a created panel and return it
@@ -302,6 +300,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         area = Qt.LeftDockWidgetArea
         self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
         self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
+
 
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
@@ -316,8 +315,9 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
 
         #tabbify dock widgets
-        self.tabifyDockWidget(self.dataSourcePanel, self.dockPanel)
-        self.tabifyDockWidget(self.dataSourcePanel, self.processingPanel)
+
+        #self.tabifyDockWidget(self.dockPanel, self.dataSourcePanel)
+        #self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
 
     def setIsInitialized(self):
         self.isInitialized = True
@@ -365,7 +365,7 @@ class EnMAPBox(QObject):
     def __init__(self, iface):
         assert EnMAPBox.instance() is None
 
-
+        from enmapbox.gui.ui import resources
 
         super(EnMAPBox, self).__init__()
         splash = EnMAPBoxSplashScreen(self)
