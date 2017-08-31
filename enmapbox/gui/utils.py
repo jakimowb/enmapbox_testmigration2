@@ -69,6 +69,10 @@ LUT_WAVELENGTH = dict({'B': 480,
                         })
 
 
+def mkdir(path):
+    if not os.path.isdir(path):
+        os.mkdir(path)
+
 class TestObjects():
     @staticmethod
     def inMemoryClassification(n=3, nl=10, ns=20, nb=1):
@@ -99,7 +103,7 @@ class TestObjects():
 
 
 
-def initQgisApplication(pythonPlugins=None, PATH_QGIS=None):
+def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
     """
     Initializes the QGIS Environment
     :return: QgsApplication instance of local QGIS installation
@@ -124,6 +128,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None):
 
     #make plugin paths available to QGIS and Python
     os.environ['QGIS_PLUGINPATH'] = ';'.join(pythonPlugins)
+    os.environ['QGIS_DEBUG'] = '1' if qgisDebug else '0'
     for p in pythonPlugins:
         sys.path.append(p)
 
