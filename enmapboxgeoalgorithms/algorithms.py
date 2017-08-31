@@ -238,10 +238,9 @@ ALGORITHMS.append(ImageSampleByClassification())
 class OpenTestdata(EnMAPGeoAlgorithm):
 
     def defineCharacteristics(self):
-        self.name = 'Open Testdata'
+        self.name = 'Open Testdata (small dataset)'
         self.group = 'Auxilliary'
-
-        self.addOutput(OutputRaster('enmap', 'EnMAP (30m; 244 bands)'))
+        self.addOutput(OutputRaster('enmap', 'EnMAP (30m; 177 bands)'))
         self.addOutput(OutputRaster('hymap', 'HyMap (3.6m; Blue, Green, Red, NIR bands)'))
         self.addOutput(OutputVector('landcover', 'LandCover Layer'))
         self.addOutput(OutputFile('speclib', 'ENVI Spectral Library'))
@@ -257,6 +256,49 @@ class OpenTestdata(EnMAPGeoAlgorithm):
     def help(self):
         return True, 'Open EnMAP-Box Testdata'
 ALGORITHMS.append(OpenTestdata())
+
+class OpenTestdataRaw(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'Open Testdata (small dataset with bad bands)'
+        self.group = 'Auxilliary'
+        self.addOutput(OutputRaster('enmap', 'EnMAP (30m; 244 bands)'))
+        self.addOutput(OutputRaster('hymap', 'HyMap (3.6m; Blue, Green, Red, NIR bands)'))
+        self.addOutput(OutputVector('landcover', 'LandCover Layer'))
+        self.addOutput(OutputFile('speclib', 'ENVI Spectral Library'))
+
+    def processAlgorithm(self, progress):
+
+        import enmapboxtestdata_raw
+        self.setOutputValue('enmap', enmapboxtestdata_raw.enmap)
+        self.setOutputValue('hymap', enmapboxtestdata_raw.hymap)
+        self.setOutputValue('landcover', enmapboxtestdata_raw.landcover)
+        self.setOutputValue('speclib', enmapboxtestdata_raw.speclib)
+
+    def help(self):
+        return True, 'Open EnMAP-Box Testdata'
+ALGORITHMS.append(OpenTestdataRaw())
+
+class OpenTestdataFull(EnMAPGeoAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'Open Testdata (full dataset)'
+        self.group = 'Auxilliary'
+        self.addOutput(OutputRaster('enmap', 'EnMAP (30m; 177 bands)'))
+        self.addOutput(OutputVector('landcover', 'LandCover Layer'))
+        self.addOutput(OutputFile('speclib', 'ENVI Spectral Library'))
+
+    def processAlgorithm(self, progress):
+
+        import enmapboxtestdata_full
+        self.setOutputValue('enmap', enmapboxtestdata_full.enmap)
+        self.setOutputValue('landcover', enmapboxtestdata_full.landcover)
+        self.setOutputValue('speclib', enmapboxtestdata_full.speclib)
+
+    def help(self):
+        return True, 'Open EnMAP-Box Testdata'
+ALGORITHMS.append(OpenTestdataFull())
+
 
 class ProbabilityAsClassColorRGB(EnMAPGeoAlgorithm):
 
