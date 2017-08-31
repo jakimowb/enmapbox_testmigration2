@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>879</width>
-    <height>830</height>
+    <width>874</width>
+    <height>831</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -779,7 +779,7 @@
     <rect>
      <x>10</x>
      <y>310</y>
-     <width>831</width>
+     <width>851</width>
      <height>411</height>
     </rect>
    </property>
@@ -790,8 +790,8 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>0</y>
-      <width>812</width>
+      <y>-104</y>
+      <width>832</width>
       <height>950</height>
      </rect>
     </property>
@@ -830,35 +830,49 @@
         <item row="7" column="1">
          <widget class="QLabel" name="label_7">
           <property name="text">
-           <string>Brown Pigments (Cbrown)</string>
+           <string>Brown Pigments (Cbrown) [-]</string>
           </property>
          </widget>
         </item>
         <item row="5" column="1">
-         <widget class="QLabel" name="label_5">
+         <widget class="QLabel" name="lblCar">
           <property name="text">
-           <string>Carotenoids (Car)</string>
+           <string>Carotenoids (Car) [mug/cm2]</string>
           </property>
          </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="lblCab">
           <property name="text">
-           <string>Chlorophyll A + B (Cab)</string>
+           <string>Chlorophyll A + B (Cab) [mug/cm2]</string>
           </property>
          </widget>
         </item>
         <item row="3" column="1">
          <widget class="QLabel" name="label_3">
           <property name="text">
-           <string>Water Content (Cw)</string>
+           <string>Water Content (Cw) [cm]</string>
           </property>
          </widget>
         </item>
         <item row="4" column="1">
-         <widget class="QLabel" name="label_4">
+         <widget class="QLabel" name="lblCm">
           <property name="text">
-           <string>Dry Mater Content (Cm)</string>
+           <string>Dry Mater Content (Cm) [g/cm2]</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <widget class="QLabel" name="lblCanth">
+          <property name="text">
+           <string>Anthocyanins (Canth) [mug/cm2]</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLabel" name="label_32">
+          <property name="text">
+           <string>Structure Parameter (N) [-]</string>
           </property>
          </widget>
         </item>
@@ -2469,6 +2483,9 @@
                 <property name="text">
                  <string>Logical</string>
                 </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">buttonGroup_10</string>
+                </attribute>
                </widget>
               </item>
               <item row="0" column="0">
@@ -2487,6 +2504,9 @@
                   <height>12</height>
                  </size>
                 </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">buttonGroup_10</string>
+                </attribute>
                </widget>
               </item>
               <item row="1" column="4">
@@ -2657,6 +2677,9 @@
                    <property name="text">
                     <string>Statistical: Gauss</string>
                    </property>
+                   <attribute name="buttonGroup">
+                    <string notr="true">buttonGroup_10</string>
+                   </attribute>
                   </widget>
                  </item>
                  <item>
@@ -2669,6 +2692,9 @@
                    <property name="text">
                     <string>Statistical: Uniform</string>
                    </property>
+                   <attribute name="buttonGroup">
+                    <string notr="true">buttonGroup_10</string>
+                   </attribute>
                   </widget>
                  </item>
                  <item>
@@ -2804,36 +2830,6 @@
            </item>
           </layout>
          </widget>
-        </item>
-        <item row="8" column="1">
-         <widget class="QLabel" name="label_6">
-          <property name="text">
-           <string>Anthocyanins (Canth)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLabel" name="label_32">
-          <property name="text">
-           <string>Structure Parameter (N)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="2">
-         <spacer name="horizontalSpacer_59">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Maximum</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>32</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
         </item>
         <item row="1" column="3">
          <widget class="QFrame" name="frame_170">
@@ -3616,6 +3612,22 @@
            </item>
           </layout>
          </widget>
+        </item>
+        <item row="1" column="2">
+         <spacer name="horizontalSpacer_59">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Maximum</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>
@@ -5604,51 +5616,51 @@
          </widget>
         </item>
         <item row="0" column="0">
-         <widget class="QLabel" name="label_9">
+         <widget class="QLabel" name="lblLAI">
           <property name="text">
-           <string>Leaf Area Index (LAI)</string>
+           <string>Leaf Area Index (LAI) [m2/m2]</string>
           </property>
          </widget>
         </item>
         <item row="3" column="0">
          <widget class="QLabel" name="label_10">
           <property name="text">
-           <string>Obs. Zenith Angle (Theta_O)</string>
+           <string>Obs. Zenith Angle (Theta_O) [deg]</string>
           </property>
          </widget>
         </item>
         <item row="6" column="0">
          <widget class="QLabel" name="label_14">
           <property name="text">
-           <string>Soil Brightness Faktor (psoil)</string>
+           <string>Soil Brightness Faktor (psoil) [-]</string>
           </property>
          </widget>
         </item>
         <item row="4" column="0">
          <widget class="QLabel" name="label_12">
           <property name="text">
-           <string>Sun Zenith Angle (Theta_S)</string>
+           <string>Sun Zenith Angle (Theta_S) [deg]</string>
           </property>
          </widget>
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="label_11">
           <property name="text">
-           <string>Hot Spot Size Parameter</string>
+           <string>Hot Spot Size Parameter [-]</string>
           </property>
          </widget>
         </item>
         <item row="5" column="0">
          <widget class="QLabel" name="label_13">
           <property name="text">
-           <string>Relative Azimuth Angle (Psi)</string>
+           <string>Relative Azimuth Angle (Psi) [deg]</string>
           </property>
          </widget>
         </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_8">
           <property name="text">
-           <string>Leaf Angle (ALIA)</string>
+           <string>Leaf Angle (ALIA) [deg]</string>
           </property>
          </widget>
         </item>
@@ -5696,7 +5708,7 @@
                  <string>Logical</string>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">buttonGroup_10</string>
+                 <string notr="true">buttonGroup_19</string>
                 </attribute>
                </widget>
               </item>
@@ -5717,7 +5729,7 @@
                  </size>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">buttonGroup_10</string>
+                 <string notr="true">buttonGroup_19</string>
                 </attribute>
                </widget>
               </item>
@@ -5890,7 +5902,7 @@
                     <string>Statistical: Gauss</string>
                    </property>
                    <attribute name="buttonGroup">
-                    <string notr="true">buttonGroup_10</string>
+                    <string notr="true">buttonGroup_19</string>
                    </attribute>
                   </widget>
                  </item>
@@ -5905,7 +5917,7 @@
                     <string>Statistical: Uniform</string>
                    </property>
                    <attribute name="buttonGroup">
-                    <string notr="true">buttonGroup_10</string>
+                    <string notr="true">buttonGroup_19</string>
                    </attribute>
                   </widget>
                  </item>
@@ -8119,7 +8131,7 @@
     <rect>
      <x>230</x>
      <y>730</y>
-     <width>621</width>
+     <width>641</width>
      <height>91</height>
     </rect>
    </property>
@@ -8171,7 +8183,7 @@
     <rect>
      <x>10</x>
      <y>140</y>
-     <width>851</width>
+     <width>861</width>
      <height>171</height>
     </rect>
    </property>
@@ -8188,17 +8200,17 @@
        <string>Settings</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_67">
-       <item row="4" column="0">
+       <item row="5" column="0">
         <widget class="QLabel" name="label_27">
          <property name="text">
           <string>LUT name:</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
+       <item row="4" column="0">
         <widget class="QLabel" name="label_28">
          <property name="text">
-          <string>Select Folder for storage:</string>
+          <string>Select Destination Folder</string>
          </property>
         </widget>
        </item>
@@ -8224,6 +8236,20 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_34">
+         <property name="text">
+          <string>Multiplication Factor for reflectances</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_33">
+         <property name="text">
+          <string>No Data Value</string>
+         </property>
+        </widget>
        </item>
        <item row="0" column="2" colspan="2">
         <widget class="QFrame" name="frame_29">
@@ -8293,21 +8319,7 @@
          </layout>
         </widget>
        </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label_34">
-         <property name="text">
-          <string>Multiplication Factor for reflectances</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="label_33">
-         <property name="text">
-          <string>No Data Value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="2">
+       <item row="4" column="2">
         <widget class="QFrame" name="frame_168">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -8344,7 +8356,20 @@
            <number>0</number>
           </property>
           <item>
-           <widget class="QLineEdit" name="txtPath"/>
+           <widget class="QLabel" name="lblOutPath">
+            <property name="frameShape">
+             <enum>QFrame::Panel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Sunken</enum>
+            </property>
+            <property name="lineWidth">
+             <number>2</number>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QPushButton" name="cmdOpenFolder">
@@ -8362,7 +8387,7 @@
          </layout>
         </widget>
        </item>
-       <item row="4" column="2">
+       <item row="5" column="2">
         <widget class="QFrame" name="frame_167">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -8404,7 +8429,7 @@
          </layout>
         </widget>
        </item>
-       <item row="5" column="2">
+       <item row="6" column="2">
         <widget class="QFrame" name="frame_176">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -8475,7 +8500,7 @@
          </layout>
         </widget>
        </item>
-       <item row="6" column="2">
+       <item row="7" column="2">
         <widget class="QFrame" name="frame_177">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -8566,34 +8591,6 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="1" colspan="2">
-        <widget class="QLCDNumber" name="lcdNumber">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>200</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Plain</enum>
-         </property>
-         <property name="numDigits">
-          <number>7</number>
-         </property>
-         <property name="intValue" stdset="0">
-          <number>0</number>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="3">
         <widget class="QLabel" name="label_31">
          <property name="text">
@@ -8618,7 +8615,7 @@
          </property>
          <property name="maximumSize">
           <size>
-           <width>200</width>
+           <width>150</width>
            <height>500</height>
           </size>
          </property>
@@ -8629,7 +8626,7 @@
           <enum>QFrame::Plain</enum>
          </property>
          <property name="numDigits">
-          <number>7</number>
+          <number>5</number>
          </property>
          <property name="intValue" stdset="0">
           <number>0</number>
@@ -8640,6 +8637,34 @@
         <widget class="QLabel" name="label_35">
          <property name="text">
           <string>Estimated calc. time:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLCDNumber" name="lcdNumber">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>150</width>
+           <height>500</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::NoFrame</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Plain</enum>
+         </property>
+         <property name="numDigits">
+          <number>5</number>
+         </property>
+         <property name="intValue" stdset="0">
+          <number>0</number>
          </property>
         </widget>
        </item>
@@ -8850,7 +8875,6 @@
   <tabstop>SType_Sentinel_B</tabstop>
   <tabstop>radio_log_oza</tabstop>
   <tabstop>radio_fix_oza</tabstop>
-  <tabstop>txtPath</tabstop>
   <tabstop>B_FindBackSpec</tabstop>
   <tabstop>B_LoadBackSpec</tabstop>
   <tabstop>radio_gauss_cw</tabstop>
@@ -8924,7 +8948,6 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_10"/>
   <buttongroup name="buttonGroup_11"/>
   <buttongroup name="buttonGroup_12"/>
   <buttongroup name="buttonGroup_13"/>
@@ -8942,5 +8965,7 @@
   <buttongroup name="buttonGroup_8"/>
   <buttongroup name="buttonGroup_9"/>
   <buttongroup name="buttonGroup"/>
+  <buttongroup name="buttonGroup_10"/>
+  <buttongroup name="buttonGroup_19"/>
  </buttongroups>
 </ui>

@@ -174,7 +174,8 @@ class Init_Model:
         self.s2s = s2s
 
     def initialize_multiple(self, LUT_dir, LUT_name, ns, tts, tto, psi, N, cab, cw, cm, LAI, LIDF, typeLIDF, hspot,
-                            psoil, car=None, cbrown=None, anth=None, max_files=10000, testmode=0):
+                            psoil, car=None, cbrown=None, anth=None, max_files=10000, testmode=0, prgbar_widget=None,
+                            QGis_app=None):
         # Setup multiple runs with l size logical distribution & n size statistical distribution
         param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi, car, anth, cbrown]
         npara = len(param_input)
@@ -241,6 +242,10 @@ class Init_Model:
             for i in xrange(len(psi_str)):
                 meta.write(psi_str[i] + ";")
 
+        if prgbar_widget:
+            prgbar_widget.gui.lblCaption_l.setText("Creating LUT")
+            QGis_app.processEvents()
+
         for ensemble_run in xrange(n_ensembles):
             if rest >= max_files:
                 runs_per_ensemble.append(max_files)
@@ -254,12 +259,26 @@ class Init_Model:
             for i in xrange(nruns):
                 run = (crun_max - rest) + i
                 if i % 100 == 0:
-                    print "LUT ensemble #" + str(ensemble_run + 1) + " of %s: " % str(n_ensembles), str(crun_max - run)
+                    if prgbar_widget:
+                        prgbar_widget.gui.lblCaption_r.setText('File %s of %s' % (str(run), str(crun_max)))
+                        QGis_app.processEvents()
+                    else:
+                        print "LUT ensemble #" + str(ensemble_run + 1) + " of %s: " % str(n_ensembles), str(crun_max - run)
+                else:
+                    if prgbar_widget:
+                        prgbar_widget.gui.prgBar.setValue(run*100/crun_max)
+                        QGis_app.processEvents()
+
                 save_array[npara:, i] = self.run_model(parameters=para_grid[run, :])
                 save_array[:npara, i] = para_grid[run,:]  # krieg ich die Parameter auch auf Integer? oder schenk ich mir die Int-Umwandlung der Spektren?
 
             rest -= max_files
             np.save("%s_%i" % (LUT_dir+LUT_name, ensemble_run), save_array)
+
+        if prgbar_widget:
+            prgbar_widget.gui.lblCaption_r.setText('File %s of %s' % (str(crun_max), str(crun_max)))
+            prgbar_widget.gui.prgBar.setValue(100)
+            prgbar_widget.gui.close()
 
     def initialize_single(self, N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi,
                    car, anth, cbrown):

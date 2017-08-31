@@ -14,28 +14,23 @@ import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 
-#app = QApplication(sys.argv)
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_ISD.ui')
-
-#gui = uic.loadUi("GUI_ISD.ui")
-#loadUIFormClass allows to load QGIS Widgets and some more...
 from enmapbox.gui.utils import loadUIFormClass
 
-class GUI_ISD(QDialog, loadUIFormClass(pathUI)):
+class ISD_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
-        super(GUI_ISD, self).__init__(parent)
+        super(ISD_GUI, self).__init__(parent)
         self.setupUi(self)    
 
-class UiFunc:
+class ISD:
 
-    def __init__(self):
-        
-        self.gui = GUI_ISD() 
-        
+    def __init__(self, main):
+        self.main = main
+        self.gui = ISD_GUI()
+        self.special_chars()
         self.initial_values()
-        self.para_list = []
         self.update_slider_pos()
         self.update_lineEdit_pos()
         self.deactivate_sliders()
@@ -43,6 +38,13 @@ class UiFunc:
         self.select_model()
         self.mod_interactive()
         self.mod_exec()
+
+    def special_chars(self):
+        self.gui.lblCab.setText(u'[µg/cm²]')
+        self.gui.lblCm.setText(u'[g/cm²]')
+        self.gui.lblCar.setText(u'[µg/cm²]')
+        self.gui.lblCanth.setText(u'[µg/cm²]')
+        self.gui.lblLAI.setText(u'[m²/m²]')
 
     def initial_values(self):
         self.typeLIDF = 2
@@ -52,6 +54,7 @@ class UiFunc:
         self.plot_count = 0
         self.current_slider = None
         self.data_mean = None
+        self.para_list = []
 
     def update_slider_pos(self):
         self.gui.N_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.N_Slide, self.gui.N_lineEdit))
@@ -361,6 +364,7 @@ class UiFunc:
             self.data_mean[2000:2101] = np.nan
         except:
             QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
+            return
         self.mod_exec()
 
     def reset_in_situ(self):
@@ -392,11 +396,17 @@ class UiFunc:
                 file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Car, Canth, Cbrown, skyl\n")
                 file.write(','.join(str(line) for line in self.para_list))
 
+class MainUiFunc:
+    def __init__(self):
+        self.isd = ISD(self)
+    def show(self):
+        self.isd.gui.show()
+
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
-    app =  initQgisEnvironment()
-    myUI = UiFunc()
-    myUI.gui.show()
+    app = initQgisEnvironment()
+    m = MainUiFunc()
+    m.show()
     sys.exit(app.exec_())
 
 

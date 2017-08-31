@@ -8,8 +8,6 @@ from osgeo import gdal
 import struct
 import os
 from Sensor_Info import get_wl
-import winsound
-
 
 class RTM_Inversion:
 
@@ -19,7 +17,7 @@ class RTM_Inversion:
         self.nbfits = 0
         self.noisetype = 0
         self.noiselevel = 0
-        self.nodat = [0]*3
+        self.nodat = [0]*3 # 0: input image, 1: geometry image, 2: output image
         self.exclude_bands, self.exclude_bands_model = (None, None)
         self.wl_sensor = None
         self.fwhm_sensor = None
@@ -89,7 +87,7 @@ class RTM_Inversion:
         try:
             self.geometry_matrix[0,0,0]
         except:
-            exit("No geometry supplied")
+            raise ValueError("No geometry supplied")
 
         self.whichLUT = np.zeros(shape=(self.nrows, self.ncols),dtype=np.int16)
 
@@ -220,20 +218,27 @@ class RTM_Inversion:
         if self.nbfits_type == "rel":
             self.nbfits = int(self.ns * (self.nbfits/100.0))
 
-    def run_inversion(self):
+    def run_inversion(self, prg_widget=None, QGis_app=None):
+
+        pix_total = self.nrows * self.ncols
+        nbands_valid = len(self.image[0,0,:])
 
         for r in xrange(self.nrows):
             for c in xrange(self.ncols):
 
-                print "row: %i | col: %i" % (r, c)
+                pix_current = r*self.ncols + c + 1
 
                 # Check if Pixel shall be excluded
                 if len(self.exclude_pixels) > 0 and self.exclude_pixels[r,c] < 1:
                     self.out_matrix[r,c,:] = self.nodat[2]
+                    continue
 
-                # Check if valid geometry exists:
-                if any(self.geometry_matrix[r,c,i] for i in xrange(3)) == self.nodat[0]:
+                # Check if Pixel is NoData or Geometry is not available
+                if all(self.image[r,c,j] == self.nodat[0] for j in xrange(nbands_valid)) or \
+                        any(self.geometry_matrix[r,c,i] == self.nodat[0] for i in xrange(3)):
                     self.out_matrix[r,c,:] = self.nodat[2]
+                    print r, c
+                    continue
 
                 estimates = np.zeros(self.ns)
                 lut = np.load(self.LUT_base + "_" + str(self.whichLUT[r,c])+".npy")
@@ -252,6 +257,11 @@ class RTM_Inversion:
                 result = np.median([LUT_params[:,i] for i in L1_subset], axis=0)
 
                 self.out_matrix[r,c,:] = result
+                if prg_widget:
+                    prg_widget.gui.lblCaption_r.setText('Inverting pixel #%i of %i' % (pix_current, pix_total))
+                    prg_widget.gui.prgBar.setValue(pix_current*100 // pix_total)
+                    QGis_app.processEvents()
+
 
     def write_image(self):
         driver = gdal.GetDriverByName('ENVI')

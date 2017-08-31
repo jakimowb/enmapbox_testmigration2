@@ -23,11 +23,11 @@ import os
 from PyQt4.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from the_lmu_app import APP_DIR
-class LMU_EnMAPBoxApp(EnMAPBoxApplication):
 
+class LMU_EnMAPBoxApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super(LMU_EnMAPBoxApp, self).__init__(enmapBox,parent=parent)
-        self.name = 'Eine LMU EnMAPBox Application'
+        self.name = 'Agricultural Applications'
         self.version = 'Version 0.42'
         self.licence = 'BSD-3'
 
@@ -49,38 +49,46 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         menu = QMenu(self.name, appMenu)
         menu.setIcon(self.icon())
 
-        #add a QAction that starts your GUI
-        a = menu.addAction('GUI 1')
-        a.triggered.connect(self.startGUI1)
+        a = menu.addAction('Interactive Spectrum Display')
+        a.triggered.connect(self.start_GUI_ISD)
 
-        # add another QAction
-        a = menu.addAction('GUI 2')
-        #todo: connect this action with something meaningful
-        #a.triggered.connect(self. ....)
+        b = menu.addAction('Create Look-up-table')
+        b.triggered.connect(self.start_GUI_LUT)
+
+        c = menu.addAction('Invert Look-up-table')
+        c.triggered.connect(self.start_GUI_Inv)
+
+        d = menu.addAction('Vegetation Indices Toolbox')
+        d.triggered.connect(self.start_GUI_VIT)
 
         appMenu.addMenu(menu)
 
         return menu
 
+    def start_GUI_VIT(self, *args):
+        from VIT_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
 
-    def startGUI1(self, *args):
-        # from .userinterfaces import GUI1
-        # ui = GUI1(parent=self.enmapbox.ui)
-        # ui.show()
-        #
-        # #the the EnMAP-Box know if you create any new file
-        # ui.sigFileCreated.connect(self.enmapbox.addSource)
-
-        from GUI_ISD import UiFunc
-        uifunc = UiFunc()
-        uifunc.gui.show()
+    def start_GUI_ISD(self, *args):
+        from ISD_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
         # #the the EnMAP-Box know if you create any new file
         # gui1.sigFileCreated.connect(self.enmapbox.addSource)
 
+    def start_GUI_LUT(self, *args):
+        from LUT_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
+    def start_GUI_Inv(self, *args):
+        from Global_Inversion_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
     def geoAlgorithms(self):
         return [LMU_GeoAlgorithm()]
-
-
 
 ### Interfaces to use algorithms in algorithms.py within
 ### QGIS Processing Framework
@@ -102,9 +110,7 @@ class LMU_GeoAlgorithm(GeoAlgorithm):
             #map processing framework parameters to that of you algorithm
             infile = self.getParameterValue('infile')
             outfile = self.getOutputValue('outfile')
-
             raise NotImplementedError()
-
 
         def help(self):
             return True, 'Calculates the NDVI using GDAL'
