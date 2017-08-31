@@ -21,10 +21,45 @@ from enmapbox.gui.utils import *
 QGIS_APP = initQgisEnvironment()
 from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
+from hubflow.types import *
 
 class testclassData(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+
+        from enmapbox.gui.utils import DIR_REPO, jp, mkdir
+        dirTmp = jp(DIR_REPO, 'tmp')
+        mkdir(dirTmp)
+
+        from enmapboxtestdata import enmap, landcover
+
+        classes = numpy.max(Vector(filename=landcover).uniqueValues(
+            attribute=''))
+
+        classDefinition = ClassDefinition(classes=classes)
+
+        image = Image(filename=self.getParameterValue('image'))
+
+        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover,
+                                                    classDefinition=classDefinition,
+                                                    idAttribute='Level_2_ID', minWinnerCoverage=0.5)
+        gtClassification = vectorClassification.rasterizeAsClassification(
+            classificationFilename=join(outdir, 'gtClassification.img'), grid=image.pixelGrid,
+            oversampling=10, overwrite=overwrite)
+
+        vectorClassification = VectorClassification(filename=landcover,
+                                                    #idAttribute=,
+                                                    #minOverallCoverage=self.getParameterValue('minOverallCoverage'),
+                                                    #minWinnerCoverage=self.getParameterValue('minWinnerCoverage'),
+                                                    #classDefinition=classDefinition
+                                                    )
+        pathDst = jp(dirTmp, 'classification.img')
+        vectorClassification.rasterizeAsClassification(classificationFilename=pathDst)
+
+
     def setUp(self):
+
 
         pass
 

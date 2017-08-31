@@ -398,7 +398,11 @@ class DataSourceRaster(DataSourceSpatial):
         self.dataType = -1
         self.pxSizeX = -1
         self.pxSizeY = -1
+        self.mDatasetMetadata = collections.OrderedDict()
+        self.mBandMetadata = []
         self.updateMetadata()
+
+
 
     def updateMetadata(self, icon=None, name=None):
         super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
@@ -407,18 +411,44 @@ class DataSourceRaster(DataSourceSpatial):
         assert isinstance(ds, gdal.Dataset)
         self.nSamples, self.nLines = ds.RasterXSize, ds.RasterYSize
         self.nBands = ds.RasterCount
-        b1 = ds.GetRasterBand(1)
-        assert isinstance(b1, gdal.Band)
-        self.dataType = b1.DataType
-        ds.GetGeoTransform()
         gt = ds.GetGeoTransform()
 
         from enmapbox.gui.utils import px2geo
-        v = px2geo(QPoint(0,0), gt) - px2geo(QPoint(1,1), gt)
+        v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)
         self.pxSize = QSizeF(abs(v.x()), abs(v.y()))
 
-        # change icon
-        if b1.GetCategoryNames() is not None:
+
+        def fetchMetadata(obj):
+            assert type(obj) in [gdal.Dataset, gdal.Band]
+
+            md = collections.OrderedDict()
+            domains = obj.GetMetadataDomainList()
+            if isinstance(domains , list):
+                for domain in sorted(domains):
+                    tmp = obj.GetMetadata_Dict(domain)
+                    if len(tmp) > 0:
+                        md[domain] = tmp
+            return md
+
+        self.mDatasetMetadata = fetchMetadata(ds)
+        self.mBandMetadata = []
+        hasClassInfo = False
+        from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
+        for b in range(ds.RasterCount):
+            band = ds.GetRasterBand(b+1)
+            cs = ClassificationScheme.fromRasterImage(ds, b)
+            md = fetchMetadata(band)
+            if isinstance(cs, ClassificationScheme):
+                hasClassInfo = True
+                md['__ClassificationScheme__'] = cs
+
+            self.mBandMetadata.append(md)
+
+            if b == 0:
+                self.dataType = band.DataType
+
+
+        if hasClassInfo is not None:
             icon = QIcon(':/enmapbox/icons/filelist_classification.png')
         elif self.dataType in [gdal.GDT_Byte]:
             icon = QIcon(':/enmapbox/icons/filelist_mask.png')

@@ -91,7 +91,7 @@ class TreeNode(QgsLayerTreeGroup):
     sigRemoveMe = pyqtSignal()
     def __init__(self, parent, name, value=None, checked=Qt.Unchecked, tooltip=None, icon=None):
         #QObject.__init__(self)
-        super(TreeNode, self).__init__(name, checked)
+        super(TreeNode, self).__init__(str(name), checked)
         #assert name is not None and len(str(name)) > 0
 
         self.mParent = parent

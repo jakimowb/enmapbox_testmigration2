@@ -107,6 +107,16 @@ class ClassInfo(QObject):
         self.mName = name
         self.sigSettingsChanged.emit()
 
+
+    def icon(self, *args):
+        if len(args) == 0:
+            args = (QSize(20,20),)
+
+        pm = QPixmap(*args)
+        pm.fill(self.mColor)
+        return QIcon(pm)
+
+
     def clone(self):
         return ClassInfo(name=self.mName, color=self.mColor)
 
@@ -162,7 +172,7 @@ class ClassificationScheme(QObject):
         band = ds.GetRasterBand(bandIndex + 1)
         cat = band.GetCategoryNames()
         ct = band.GetColorTable()
-        if len(cat) == 0:
+        if cat is None or len(cat) == 0:
             return None
         scheme = ClassificationScheme()
         classes = []
@@ -400,10 +410,7 @@ class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             value = '{} {}'.format(classInfo.mLabel, classInfo.mName)
         if role == Qt.DecorationRole:
-            value = QBrush(classInfo.mColor)
-            pm = QPixmap(20,20)
-            pm.fill(classInfo.mColor)
-            value = QIcon(pm)
+            value = classInfo.icon(QSize(20,20))
 
         if role == Qt.UserRole:
             value = classInfo

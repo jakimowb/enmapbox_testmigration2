@@ -34,11 +34,11 @@ def run():
     from qgis.utils import iface
     enmapbox = EnMAPBox(iface)
     enmapbox.run()
-    enmapbox.openExampleData(mapWindows=1)
+    #enmapbox.openExampleData(mapWindows=1)
 
-    from enmapbox.gui.utils import file_search
+    from enmapbox.gui.utils import file_search, jp, DIR_REPO
     #enmapbox.addSource(r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\testsample.pkl')
-    enmapbox.addSource(r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\testclass.tif')
+    enmapbox.addSource(jp(DIR_REPO, 'tmp/testclassification.tif'))
     qgisApp.exec_()
 
 

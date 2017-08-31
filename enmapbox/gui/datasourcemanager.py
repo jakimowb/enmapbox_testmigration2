@@ -245,6 +245,16 @@ class RasterBandTreeNode(TreeNode):
         self.mDataSource = dataSource
         self.mBandIndex = bandIndex
 
+        md = self.mDataSource.mBandMetadata[bandIndex]
+        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+        classScheme = md.get('__ClassificationScheme__')
+        if isinstance(classScheme, ClassificationScheme):
+            for ci in classScheme:
+                assert isinstance(ci, ClassInfo)
+                TreeNode(self, str(ci.label()),ci.name(), icon=ci.icon())
+
+
+
 
 class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
@@ -290,9 +300,11 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         for b in range(ds.RasterCount):
             band = ds.GetRasterBand(b+1)
             name = band.GetDescription()
+
             if len(name) == 0:
-                name = '<no band name specified>'
-            RasterBandTreeNode(dataSource, b, self.nodeBands, 'Band {}'.format(b+1), value=name)
+                name = ''
+            bandNode = RasterBandTreeNode(dataSource, b, self.nodeBands, 'Band {}'.format(b+1), value=name)
+
 
         ds = None
 
