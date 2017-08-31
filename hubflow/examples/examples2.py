@@ -3,6 +3,9 @@ matplotlib.use('QT4Agg')
 from matplotlib import pyplot
 from tempfile import gettempdir
 from os.path import join
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 import gdal
 from hubdc.applier import ApplierControls, ApplierInputOptions
 from hubflow.types import *
@@ -15,11 +18,17 @@ vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover,
                                             classDefinition=ClassDefinition(names=['Roof',  'Pavement',   'Grass',   'Tree',   'Soil',    'Other'],
                                                                             lookup=[168,0,0, 156,156,156,  151,229,0, 35,114,0, 136,89,67, 236,214,0]),
                                             minOverallCoverage=1., minWinnerCoverage=0.5)
-def getRMask():
-    return vectorClassification_rasterizeAsClassification().asMask()
-
-def getVMask():
-    return vector
+def getRMask(): return vectorClassification_rasterizeAsClassification().asMask()
+def getVMask(): return vector
+def getClassification(): return vectorClassification_rasterizeAsClassification()
+def getProbability(): return vectorClassification_rasterizeAsProbability()
+def getRegression(): return getProbability().asRegression()
+def getUnsupervisedSample(): return UnsupervisedSample.fromImageAndMask(image=image, mask=getRMask())
+def getClassificationSample(): return ClassificationSample.fromImageAndClassification(image=image, classification=getClassification())
+def getRegressionSample(): return RegressionSample.fromImageAndRegression(image=image, regression=getRegression())
+def getProbabilitySample(): return ProbabilitySample.fromImageAndProbability(image=image, probability=getProbability())
+def getClassifier(): return Classifier(sklEstimator=RandomForestClassifier()).fit(sample=getClassificationSample())
+def getRegressor(): return Regressor(sklEstimator=RandomForestRegressor()).fit(sample=getRegressionSample())
 
 outdir = join(gettempdir(), 'hubflow_test')
 overwrite = not True
@@ -30,11 +39,11 @@ rasteredProbabilityRGBFilename = join(outdir, 'rasteredProbabilityRGB.img')
 reportFilename = join(outdir, 'report.html')
 
 def flowObject_unpickle():
-    FlowObject.unpickle(enmapboxtestdata.enmap)
+    #FlowObject.unpickle(enmapboxtestdata.enmap)
 
     classDefinition = ClassDefinition(classes=3)
     classDefinition.pickle(filename=r'c:\outputs\classDefinition.pkl')
-    image = Image.unpickle(filename=r'c:\outputs\classDefinition.pkl')
+    x = ClassDefinition.unpickle(filename=r'c:\outputs\classDefinition.pkl')
 
 def vector_rasterize():
     image = vector.rasterize(imageFilename=rasteredMaskFilename, grid=image2.pixelGrid, overwrite=overwrite)
@@ -125,10 +134,31 @@ def test_signalingFileCreation():
 
     FlowObject().pickle(filename=join(outdir, 'dummy.pkl'))
 
+def createAllFlowTypesAsPickle():
+    print(FlowObject().pickle(join(outdir, 'FlowObject.pkl')))
+    print('')
+    print(getClassification().classDefinition.pickle(join(outdir, 'ClassDefinition.pkl')))
+    print('')
+    print(getUnsupervisedSample().pickle(join(outdir, 'UnsupervisedSample.pkl')))
+    print('')
+    print(getClassificationSample().pickle(join(outdir, 'ClassificationSample.pkl')))
+    print('')
+    print(getRegressionSample().pickle(join(outdir, 'RegressionSample.pkl')))
+    print('')
+    print(getProbabilitySample().pickle(join(outdir, 'ProbabilitySample.pkl')))
+    print('')
+    print(getClassifier().pickle(join(outdir, 'Classifier.pkl')))
+    print('')
+    print(getRegressor().pickle(join(outdir, 'Regressor.pkl')))
+    print('')
+    print('created pkl files are here: '+outdir)
 
 if __name__ == '__main__':
     print('output directory: ' + outdir)
-    #flowObject_unpickle()
+
+    createAllFlowTypesAsPickle()
+    exit()
+    flowObject_unpickle()
     #vector_rasterize()
     #print(vector_uniqueValues())
     #vectorClassification_rasterizeAsClassification()
@@ -136,9 +166,9 @@ if __name__ == '__main__':
 
     #probability_asClassColorRGBImage()
     print(image_sampleByClassification())
-    #print(image_sampleByRegression())
-    #print(image_sampleByProbability())
-    #print(image_sampleByMask())
+    print(image_sampleByRegression())
+    print(image_sampleByProbability())
+    print(image_sampleByMask())
     #print(image_basicStatistics(mask=getRMask()))
     #print(image_basicStatistics(mask=getVMask()))
 

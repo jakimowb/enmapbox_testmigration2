@@ -123,6 +123,9 @@ class ProbabilitySubsetClassesByNames(ApplierOperator):
 
 def imageSample(image, labels, mask=None, **kwargs):
 
+    # todo make 3 different functions!
+    # todo consider minOverallCoverage=1. for the regression
+
     assert isinstance(image, hubflow.types.Image), image
     assert isinstance(labels, (hubflow.types.Classification, hubflow.types.Regression, hubflow.types.Mask)), labels
 
