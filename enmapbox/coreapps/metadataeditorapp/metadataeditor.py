@@ -290,7 +290,7 @@ class Win(QtGui.QDialog):
         from gdal import GA_Update, GA_ReadOnly
         if self.validatePath(str(self.inputFile.currentText())):
             self.inDS = None
-            self.inDS = gdal.Open(str(self.inputFile.currentText()), GA_Update)
+            self.inDS = gdal.Open(str(self.inputFile.currentText()))
             self.readOnly = False
             if self.inDS is None:
                 self.inDS = gdal.Open(str(self.inputFile.currentText()), GA_ReadOnly)

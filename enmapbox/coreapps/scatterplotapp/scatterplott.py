@@ -186,7 +186,7 @@ class Win(QtGui.QDialog):
             i in range(self.inputFile1.count())]
         if src not in addedItems:
             #bn = os.path.basename(src)
-            self.inputFile.addItem(src)
+            self.inputFile1.addItem(src)
         self.validatePath(src)
 
     def fileFound(self, item):

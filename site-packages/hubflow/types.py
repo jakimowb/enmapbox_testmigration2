@@ -8,6 +8,7 @@ import gdal
 import numpy
 import sklearn.metrics
 import spectral
+
 from hubdc.applier import ApplierInputOptions
 from hubdc.model import Open, OpenLayer, PixelGrid
 import hubflow.ip_algorithms as ipalg
@@ -25,7 +26,7 @@ class FlowObjectTypeError(Exception):
     pass
 
 
-class FlowObject():
+class FlowObject(object):
 
     def pickle(self, filename):
         if not os.path.exists(os.path.dirname(filename)):
@@ -33,6 +34,7 @@ class FlowObject():
         with open(filename, 'wb') as f:
             pickle.dump(obj=self, file=f, protocol=1)
         signals.sigFileCreated.emit(filename)
+        return self
 
     @classmethod
     def unpickle(cls, filename, raiseError=True):
@@ -282,6 +284,9 @@ class Probability(Regression):
     def subsetClassesByName(self, filename, names, **kwargs):
         return ipalg.probabilitySubsetClassesByNames(probability=self, filename=filename, names=names, **kwargs)
 
+    def asRegression(self):
+        return Regression(filename=self.filename, noData=self.noData, outputNames=self.outputNames)
+
     def asClassColorRGBImage(self, imageFilename, filterById=None, filterByName=None, **kwargs):
         return ipalg.probabilityAsClassColorRGBImage(probability=self, imageFilename=imageFilename,
                                                      filterById=filterById, filterByName=filterByName, **kwargs)
@@ -306,6 +311,11 @@ class UnsupervisedSample(FlowObject):
                 library = spectral.envi.open(file=header)
                 return UnsupervisedSample(features=library.spectra.T, metadata=library.metadata)
         raise Exception('header file not found')
+
+    @staticmethod
+    def fromImageAndMask(image, mask, **kwargs):
+        assert isinstance(image, Image)
+        return image.sampleByMask(mask=mask, **kwargs)
 
     def saveAsENVISpectralLibrary(self, filename):
         metadata = self.metadata.copy()
@@ -384,6 +394,13 @@ class ClassificationSample(SupervisedSample):
         header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
         header['class spectra names'] = numpy.array(self.classDefinition.names)[self.labels.ravel()-1]
 
+    @staticmethod
+    def fromImageAndClassification(image, classification, mask=None, minOverallCoverage=1., minWinnerCoverage=0.5, **kwargs):
+        assert isinstance(image, Image)
+        probabilitySample = image.sampleByClassification(classification=classification, mask=mask, **kwargs)
+        classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, **kwargs)
+        return classificationSample
+
     def asProbabilitySample(self):
         probabilityArray = numpy.zeros(shape=(self.classDefinition.classes, self.nsamples), dtype=numpy.float32)
         for index in range(self.classDefinition.classes):
@@ -412,6 +429,12 @@ class RegressionSample(SupervisedSample):
             outputNames=repr(self.outputNames)
         )
 
+    @staticmethod
+    def fromImageAndRegression(image, regression, mask=None, **kwargs):
+        assert isinstance(image, Image)
+        regressionSample = image.sampleByRegression(regression=regression, mask=mask, **kwargs)
+        return regressionSample
+
 class ProbabilitySample(RegressionSample):
 
     def __init__(self, features, labels, classDefinition, metadata=None):
@@ -437,7 +460,19 @@ class ProbabilitySample(RegressionSample):
         probabilities = numpy.array([sample.metadata['probabilities '+name] for name in classDefinition.names], dtype=numpy.float32)
         return ProbabilitySample(features=sample.features, labels=probabilities, classDefinition=classDefinition)
 
-    def classifyByProbability(self, minOverallCoverage=0, minWinnerCoverage=0, progressBar=None):
+    @staticmethod
+    def fromImageAndClassification(image, classification, mask=None, minOverallCoverage=1., minWinnerCoverage=0.5, **kwargs):
+        assert isinstance(image, Image)
+        probabilitySample = image.sampleByClassification(classification=classification, mask=mask, **kwargs)
+        return probabilitySample
+
+    @staticmethod
+    def fromImageAndProbability(image, probability, mask=None, minOverallCoverage=1., minWinnerCoverage=0.5, **kwargs):
+        assert isinstance(image, Image)
+        probabilitySample = image.sampleByProbability(probability=probability, mask=mask, **kwargs)
+        return probabilitySample
+
+    def classifyByProbability(self, minOverallCoverage=1., minWinnerCoverage=0.5, progressBar=None):
         labels = dpalg.argmaxProbability(probabilities=self.labels, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, progressBar=progressBar)
         valid = labels != 0
         return ClassificationSample(features=self.features[:, valid[0]], labels=labels[:, valid[0]], classDefinition=self.classDefinition)

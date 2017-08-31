@@ -83,7 +83,7 @@ if __name__ == "__main__":
     pb_tool.get_plugin_directory = lambda : DIR_DEPLOY
     cfg = pb_tool.get_config(config=pathCfg)
 
-    if False:
+    if True:
         #1. clean an existing directory = the enmapboxplugin folder
         pb_tool.clean_deployment(ask_first=False, config=pathCfg)
 
