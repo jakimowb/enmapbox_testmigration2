@@ -1,38 +1,10 @@
 import numpy
 from collections import OrderedDict
-from processing.core.Processing import Processing
-from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import *
 from processing.core.outputs import *
-from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
 from hubflow.types import *
-from enmapboxgeoalgorithms.estimators import *
-
-class EnMAPPlugin:
-    def __init__(self, iface):
-        self.iface = iface
-
-    def initGui(self):
-        self.provider = EnMAPProvider()
-        Processing.addProvider(self.provider)
-
-    def unload(self):
-        Processing.removeProvider(self.provider)
-
-class EnMAPProvider(AlgorithmProvider):
-
-    def getName(self):
-        return 'EBTest'
-
-    def getDescription(self):
-        return 'EnMAP-Box TestProvider (v'+ENMAPBOXGEOALGORITHMS_VERSION+')'
-
-    def getSupportedOutputRasterLayerExtensions(self):
-        return ['img', 'tif']
-
-    def _loadAlgorithms(self):
-        self.algs.extend(ALGORITHMS)
+from enmapboxgeoalgorithms.estimators import parseClassifiers, parseRegressors
 
 def parseList(text, dtype=str):
     for c in "'[]{}()":
@@ -54,23 +26,7 @@ DTYPE['float32'] = numpy.float32,'Single Precision Float 32 Bit'
 DTYPE['float64'] = numpy.float64,'Double precision float 64 Bit'
 
 class EnMAPGeoAlgorithm(GeoAlgorithm):
-
-    def checkOutputFileExtensions(self):
-        for out in self.outputs:
-            if not out.hidden and out.value is not None:
-                if not os.path.isabs(out.value):
-                    continue
-                if isinstance(out, OutputRaster):
-                    exts = EnMAPProvider().getSupportedOutputRasterLayerExtensions()
-                else:
-                    continue
-                idx = out.value.rfind('.')
-                if idx == -1:
-                    out.value = out.value + '.' + exts[0]
-                else:
-                    ext = out.value[idx + 1:]
-                    if ext not in exts + ['dbf']:
-                        out.value = out.value + '.' + exts[0]
+    pass
 
 ALGORITHMS = list()
 
@@ -176,11 +132,16 @@ class EstimatorFit(EnMAPGeoAlgorithm):
     def processAlgorithm(self, progressBar):
         if self.group == REGRESSORS_GROUP:
             sample = RegressionSample.unpickle(filename=self.getParameterValue('sample'))
-            sklEstimator = eval(self.getParameterValue('parameters'))
+            #sklEstimator = eval(self.getParameterValue('parameters'))
+            exec self.getParameterValue('parameters')
+            sklEstimator = eval('estimator')
             estimator = Regressor(sklEstimator=sklEstimator)
         elif self.group == CLASSIFIERS_GROUP:
             sample = ClassificationSample.unpickle(filename=self.getParameterValue('sample'))
-            sklEstimator = eval(self.getParameterValue('parameters'))
+            #sklEstimator = eval(self.getParameterValue('parameters'))
+            exec self.getParameterValue('estimator')
+            sklEstimator = eval('classifier')
+
             estimator = Classifier(sklEstimator=sklEstimator)
         else:
             assert 0
@@ -233,6 +194,8 @@ class EstimatorPredict(EnMAPGeoAlgorithm):
         else:
             assert 0
 
+CLASSIFIERS = parseClassifiers()
+REGRESSORS = parseRegressors()
 CLASSIFIERS_GA = dict()
 REGRESSORS_GA = dict()
 CLASSIFIERS_GROUP, REGRESSORS_GROUP = 'Classification', 'Regression'
@@ -251,20 +214,25 @@ class ImageSampleByClassification(EnMAPGeoAlgorithm):
         self.addParameter(ParameterRaster('image', 'Image'))
         self.addParameter(ParameterRaster('classification', 'Classification'))
         self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
+        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=1.))
+        self.addParameter(ParameterNumber('minWinnerCoverage', 'Minimal winner class coverage', minValue=0., maxValue=1., default=0.5))
         self.addParameter(ParameterBoolean('view', 'View Result', default=True))
-        self.addOutput(OutputFile('probabilitySample', 'ClassProbabilitySample'))
+        self.addOutput(OutputFile('classificationSample', 'ClassificationSample'))
 
     def processAlgorithm(self, progressBar):
         image = Image(filename=self.getParameterValue('image'))
         classification = Classification(filename=self.getParameterValue('classification'))
         mask = Mask(filename=self.getParameterValue('mask'))
         probabilitySample = image.sampleByClassification(classification=classification, mask=mask, progressBar=progressBar)
-        probabilitySample.pickle(filename=self.getOutputValue('probabilitySample'))
+        classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=self.getParameterValue('minOverallCoverage'),
+                                                   minWinnerCoverage=self.getParameterValue('minWinnerCoverage'),
+                                                   progressBar=progressBar)
+        classificationSample.pickle(filename=self.getOutputValue('classificationSample'))
         if self.getParameterValue('view'):
-            probabilitySample.browse()
+            classificationSample.browse()
 
     def help(self):
-        return True, 'Returns a ClassProbabilitySample.'
+        return True, 'Returns a ClassificationSample.'
 ALGORITHMS.append(ImageSampleByClassification())
 
 class OpenTestdata(EnMAPGeoAlgorithm):
