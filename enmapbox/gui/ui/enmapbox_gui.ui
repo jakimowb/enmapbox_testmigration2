@@ -160,6 +160,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionAddDataSource"/>
+   <addaction name="actionAddMapView"/>
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
@@ -168,10 +169,10 @@
    <addaction name="actionZoomFullExtent"/>
    <addaction name="actionPan"/>
    <addaction name="separator"/>
-   <addaction name="actionIdentify"/>
    <addaction name="actionSelectProfiles"/>
    <addaction name="actionSettings"/>
    <addaction name="actionAbout"/>
+   <addaction name="separator"/>
   </widget>
   <action name="actionAddMapView">
    <property name="icon">
@@ -391,8 +392,8 @@
   <action name="actionSelectProfiles">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/spectralprofile.png</normaloff>
-     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/spectralprofile.png</iconset>
+     <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>
+     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/pickrasterspectrum.png</iconset>
    </property>
    <property name="text">
     <string>Select pixel profiles</string>

@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle
+import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle, zipfile
 logger = logging.getLogger(__name__)
 
 from qgis.core import *
@@ -389,7 +389,19 @@ def check_package(name, package=None, stop_on_error=False):
         return False
     return True
 
-
+def zipdir(pathDir, pathZip):
+    """
+    :param pathDir: directory to compress
+    :param pathZip: path to new zipfile
+    """
+    #thx to https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
+    import zipfile
+    assert os.path.isdir(pathDir)
+    zipf = zipfile.ZipFile(pathZip, 'w', zipfile.ZIP_DEFLATED)
+    for root, dirs, files in os.walk(pathDir):
+        for file in files:
+            zipf.write(os.path.join(root, file))
+    zipf.close()
 
 def convertMetricUnit(value, u1, u2):
     """converts value, given in unit u1, to u2"""

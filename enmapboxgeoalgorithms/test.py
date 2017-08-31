@@ -6,6 +6,7 @@ matplotlib.use('QT4Agg')
 # init QGIS
 import processing.core.Processing
 from processing.core.Processing import Processing
+from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.alglist import algList
 from qgis.core import QgsApplication
 
@@ -20,8 +21,19 @@ qgsApp = QgsApplication([], True)
 qgsApp.initQgis()
 
 # load Enmap-Box TestProvider
+from enmapboxgeoalgorithms.algorithms import ALGORITHMS
+class EnMAPProvider(AlgorithmProvider):
+    def getName(self):
+        return 'EBTest'
+
+    def getDescription(self):
+        return 'EnMAP-Box TestProvider'
+
+    def _loadAlgorithms(self):
+        self.algs.extend(ALGORITHMS)
+
+
 Processing.initialize()
-from enmapboxgeoalgorithms.algorithms import EnMAPProvider
 Processing.addProvider(EnMAPProvider())
 
 # setup test environment
@@ -70,7 +82,7 @@ view = False
 unsupervisedSampleFilename = join(outdir, 'unsupervisedSample.pkl')
 classificationSampleFilename = join(outdir, 'classificationSample.pkl')
 probabilitySampleFilename = join(outdir, 'probabilitySample.pkl')
-regressionSampleFilename = join(outdir, 'regressionSample.pkl')
+regressionSampleFilename = probabilitySampleFilename
 dummyPklFilename = join(outdir, 'dummy.pkl')
 
 vectorFilename = enmapboxtestdata.landcover
@@ -97,13 +109,27 @@ def classification_assessClassificationPerformance():
 
 
 def classificationSample_fromENVISpectralLibrary():
-    io = {'envi':enmapboxtestdata.speclib, 'prefix':'level 2', 'view':view, 'classificationSample':dummyPklFilename}
+    io = {'envi':enmapboxtestdata.speclib, 'prefix':'level 2', 'view':view, 'classificationSample':classificationSampleFilename}
     return runalg(ClassificationSampleFromENVISpectralLibrary(), io)
 
 def classificationSample_synthMix():
     io = {'classificationSample':classificationSampleFilename, 'n':100, 'complex2':1.0, 'complex3':0.0, 'option':0,
           'view':view, 'probabilitySample':probabilitySampleFilename}
     return runalg(ClassificationSampleSynthMix(), io)
+
+def classifier_fit():
+    for alg in CLASSIFIERS_GA.values():
+        io = {'sample':classificationSampleFilename,
+              'parameters':alg.getParameterValue('parameters'),
+              'view':view, 'model':dummyPklFilename}
+        runalg(alg, io)
+
+def regressor_fit():
+    for alg in REGRESSORS_GA.values():
+        io = {'sample':regressionSampleFilename,
+              'parameters':alg.getParameterValue('parameters'),
+              'view':view, 'model':dummyPklFilename}
+        runalg(alg, io)
 
 def estimator_fit():
     for name, classifierFitGA in CLASSIFIERS_GA.items():
@@ -115,7 +141,7 @@ def estimator_fit():
 
 def image_SampleByClassification():
     io = {'image':imageFilename, 'classification':classificationFilename, 'mask':maskFilename, 'view':view,
-          'probabilitySample':dummyPklFilename}
+          'classificationSample':dummyPklFilename}
     return runalg(ImageSampleByClassification(), io)
 
 def probability_asClassColorRGB():
@@ -147,7 +173,7 @@ def vector_rasterize():
 
     io = {'image':enmapboxtestdata.enmap, 'vector':enmapboxtestdata.landcover, 'initValue':0, 'burnValue':1,
           'burnAttribute':enmapboxtestdata.landcoverAttributes.Level_2_ID, 'allTouched':True, 'dtype':3,
-          'image2':dummyImageFilename}
+          'image2':maskFilename}
     return runalg(VectorRasterize(), io)
 
 def vectorClassification_rasterizeAsClassification():
@@ -167,6 +193,7 @@ def vectorClassification_rasterizeAsProbability():
 def createAllTestInputs():
     classificationSample_fromENVISpectralLibrary()
     classificationSample_synthMix()
+    vector_rasterize()
     vectorClassification_rasterizeAsClassification()
     vectorClassification_rasterizeAsProbability()
 
@@ -176,6 +203,7 @@ def testAll():
     classification_assessClassificationPerformance()
     classificationSample_fromENVISpectralLibrary()
     classificationSample_synthMix()
+    classifier_fit()
     estimator_fit()
     image_SampleByClassification()
     probability_asClassColorRGB()
@@ -213,7 +241,7 @@ if __name__ == '__main__':
     print('output directory: ' + outdir)
     #printAllAlgs()
     #createAllTestInputs()
-    testAll()
+    #testAll()
     #printMenu()
-    #vector_rasterize()
-
+    #classifier_fit()
+    regressor_fit()

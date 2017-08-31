@@ -38,7 +38,8 @@ def run():
 
     from enmapbox.gui.utils import file_search, jp, DIR_REPO
     #enmapbox.addSource(r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\testsample.pkl')
-    enmapbox.addSource(jp(DIR_REPO, 'tmp/testclassification.tif'))
+    enmapbox.addSource(jp(DIR_REPO, 'tmp/testclass.tif'))
+    enmapbox.addSource(jp(DIR_REPO, 'tmp/classsample.pkl'))
     qgisApp.exec_()
 
 
@@ -64,6 +65,5 @@ if __name__ == '__main__':
         site.addsitedir(pathQgs)
         site.addsitedir(pathQgsPlugins)
 
-    # todo: find good default locations for other OS
 
     run()
