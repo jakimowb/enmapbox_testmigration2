@@ -78,7 +78,7 @@ class Report():
         shutil.copy(os.path.join(os.path.dirname(__file__), 'stylesheet.css'), dirname)
 
         import hubflow.signals
-        hubflow.signals.sigFileCreated(filename)
+        hubflow.signals.sigFileCreated.emit(filename)
 
         if open:
             import webbrowser
