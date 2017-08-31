@@ -26,14 +26,14 @@ class TreeNodeProvider():
     @staticmethod
     def CreateNodeFromDataSource(dataSource, parent):
 
-        from enmapbox.gui.datasourcemanager import DataSource, ProcessingTypeTreeNode, \
+        from enmapbox.gui.datasourcemanager import DataSource, HubFlowObjectTreeNode, \
         FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode, \
         SpeclibDataSourceTreeNode
         assert isinstance(dataSource, DataSource)
 
         #hint: take care of class inheritance order
         if isinstance(dataSource, HubFlowDataSource):
-            node = ProcessingTypeTreeNode(parent, dataSource)
+            node = HubFlowObjectTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceRaster):
             node = RasterDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceVector):
@@ -91,7 +91,7 @@ class TreeNode(QgsLayerTreeGroup):
     sigRemoveMe = pyqtSignal()
     def __init__(self, parent, name, value=None, checked=Qt.Unchecked, tooltip=None, icon=None):
         #QObject.__init__(self)
-        super(TreeNode, self).__init__(name, checked)
+        super(TreeNode, self).__init__(str(name), checked)
         #assert name is not None and len(str(name)) > 0
 
         self.mParent = parent
@@ -286,6 +286,16 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
+class ClassificationNode(TreeNode):
+
+    def __init__(self, parent, classificationScheme, name='Classification Scheme'):
+        super(ClassificationNode, self).__init__(parent, name)
+        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+        assert isinstance(classificationScheme, ClassificationScheme)
+        self.setName(name)
+        for i, ci in enumerate(classificationScheme):
+            assert isinstance(ci, ClassInfo)
+            TreeNode(parent, str(i), value=ci.name(), icon=ci.icon())
 
 class CRSTreeNode(TreeNode):
     def __init__(self, parent, crs):

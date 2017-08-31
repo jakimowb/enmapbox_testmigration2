@@ -17,7 +17,8 @@ from hubdc.model import Open, OpenLayer, CreateFromArray
 from hubdc import const
 from hubdc.writer import Writer, WriterProcess, QueueMock
 from hubdc.model import PixelGrid
-from hubdc.progressbar import CUIProgressBar, SilentProgressBar, ProgressBar
+from hubdc.progressbar import CUIProgressBar, SilentProgressBar, ProgressBar, ProgressBarDelegate
+
 
 DEFAULT_INPUT_RESAMPLEALG = gdal.GRA_NearestNeighbour
 DEFAULT_INPUT_ERRORTHRESHOLD = 0.
@@ -166,10 +167,10 @@ class Applier(object):
         results = self._runProcessSubgrids()
         self._runClose()
 
-        self.controls.progressBar.setLabelText('100%')
+        self.controls.progressBar.setProgress(self.nsubgrids)
         s = (now()-runT0); m = s/60; h = m/60
 
-        self.controls.progressBar.setLabelText('done {description} in {s} sec | {m}  min | {h} hours'.format(description=description, s=int(s), m=round(m, 2), h=round(h, 2))); sys.stdout.flush()
+        self.controls.progressBar.setLabelText('done {description} in {s} sec | {m}  min | {h} hours'.format(description=description, s=int(s), m=round(m, 2), h=round(h, 2)))
         return results
 
     def _runCreateGrid(self):
@@ -203,6 +204,7 @@ class Applier(object):
 
         subgrids = self.grid.subgrids(windowxsize=self.controls.windowxsize,
                                       windowysize=self.controls.windowysize)
+        self.nsubgrids = len(subgrids)
         if self.controls._multiprocessing:
             applyResults = list()
         else:
@@ -902,7 +904,7 @@ class ApplierOperator(object):
         array = dataset.readAsArray(scale=scale)
         return array
 
-    def getVectorCategoricalFractionArray(self, name, ids, minOverallCoverage=None, oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
+    def getVectorCategoricalFractionArray(self, name, ids, minOverallCoverage=None, noData=0, oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
                        overlap=0):
         """
         Returns input vector rasterization data like :meth:`~hubdc.applier.ApplierOperator.getVectorArray`,
@@ -948,7 +950,7 @@ class ApplierOperator(object):
 
         if minOverallCoverage > 0:
             invalid = numpy.sum(fractions, axis=0) < minOverallCoverage
-            fractions[:, invalid] = 0
+            fractions[:, invalid] = noData
 
         return fractions
 
@@ -1245,7 +1247,8 @@ class ApplierControls(object):
         """
         if progressBar is None:
             progressBar = CUIProgressBar()
-        self.progressBar = progressBar
+
+        self.progressBar = ProgressBarDelegate(progressBar=progressBar)
         return self
 
     DEFAULT_WINDOWXSIZE = 256

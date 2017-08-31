@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 from __future__ import absolute_import
-import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle
+import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle, zipfile
 logger = logging.getLogger(__name__)
 
 from qgis.core import *
@@ -42,6 +42,36 @@ DIR_TESTDATA = os.path.join(DIR_ENMAPBOX, 'enmapboxtestdata')
 
 REPLACE_TMP = True #required for loading *.ui files directly
 
+
+
+
+######### Lookup  tables
+METRIC_EXPONENTS = {
+    "nm":-9,"um": -6,u"µm": -6, "mm":-3, "cm":-2, "dm":-1, "m": 0,"hm":2, "km":3
+}
+#add synonyms
+METRIC_EXPONENTS['nanometers'] = METRIC_EXPONENTS['nm']
+METRIC_EXPONENTS['micrometers'] = METRIC_EXPONENTS['um']
+METRIC_EXPONENTS['millimeters'] = METRIC_EXPONENTS['mm']
+METRIC_EXPONENTS['centimeters'] = METRIC_EXPONENTS['cm']
+METRIC_EXPONENTS['decimeters'] = METRIC_EXPONENTS['dm']
+METRIC_EXPONENTS['meters'] = METRIC_EXPONENTS['m']
+METRIC_EXPONENTS['hectometers'] = METRIC_EXPONENTS['hm']
+METRIC_EXPONENTS['kilometers'] = METRIC_EXPONENTS['km']
+
+LUT_WAVELENGTH = dict({'B': 480,
+                       'G': 570,
+                       'R': 660,
+                       'NIR': 850,
+                       'SWIR': 1650,
+                       'SWIR1': 1650,
+                       'SWIR2': 2150
+                        })
+
+
+def mkdir(path):
+    if not os.path.isdir(path):
+        os.mkdir(path)
 
 class TestObjects():
     @staticmethod
@@ -73,7 +103,7 @@ class TestObjects():
 
 
 
-def initQgisApplication(pythonPlugins=None, PATH_QGIS=None):
+def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
     """
     Initializes the QGIS Environment
     :return: QgsApplication instance of local QGIS installation
@@ -98,6 +128,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None):
 
     #make plugin paths available to QGIS and Python
     os.environ['QGIS_PLUGINPATH'] = ';'.join(pythonPlugins)
+    os.environ['QGIS_DEBUG'] = '1' if qgisDebug else '0'
     for p in pythonPlugins:
         sys.path.append(p)
 
@@ -358,6 +389,125 @@ def check_package(name, package=None, stop_on_error=False):
         return False
     return True
 
+def zipdir(pathDir, pathZip):
+    """
+    :param pathDir: directory to compress
+    :param pathZip: path to new zipfile
+    """
+    #thx to https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
+    import zipfile
+    assert os.path.isdir(pathDir)
+    zipf = zipfile.ZipFile(pathZip, 'w', zipfile.ZIP_DEFLATED)
+    for root, dirs, files in os.walk(pathDir):
+        for file in files:
+            zipf.write(os.path.join(root, file))
+    zipf.close()
+
+def convertMetricUnit(value, u1, u2):
+    """converts value, given in unit u1, to u2"""
+    assert u1 in METRIC_EXPONENTS.keys()
+    assert u2 in METRIC_EXPONENTS.keys()
+
+    e1 = METRIC_EXPONENTS[u1]
+    e2 = METRIC_EXPONENTS[u2]
+
+    return value * 10**(e1-e2)
+
+def defaultBands(dataset):
+    if isinstance(dataset, str) or isinstance(dataset, unicode):
+        return defaultBands(gdal.Open(dataset))
+    elif isinstance(dataset, QgsRasterDataProvider):
+        return defaultBands(dataset.dataSourceUri())
+    elif isinstance(dataset, gdal.Dataset):
+
+        db = dataset.GetMetadataItem('default_bands', 'ENVI')
+        if db != None:
+            db = [int(n) for n in re.findall('\d+')]
+            return db
+        db = [0,0,0]
+        cis = [gdal.GCI_RedBand, gdal.GCI_GreenBand, gdal.GCI_BlueBand]
+        for b in range(dataset.RasterCount):
+            band = dataset.GetRasterBand(b+1)
+            assert isinstance(band, gdal.Band)
+            ci = band.GetColorInterpretation()
+            if ci in cis:
+                db[cis.index(ci)] = b
+        return db
+
+
+    else:
+        raise Exception()
+
+def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
+    """
+    Returns the band index of an image dataset closest to wavelength `wl`.
+    :param dataset: str | gdal.Dataset
+    :param wl: wavelength to search the closed band for
+    :param wl_unit: unit of wavelength. Default = nm
+    :return: band index | 0 of wavelength information is not provided
+    """
+    if isinstance(wl, str):
+        assert wl.upper() in LUT_WAVELENGTH.keys()
+        return bandClosestToWavelength(dataset, LUT_WAVELENGTH[wl.upper()], wl_unit='nm')
+    else:
+        wl = float(wl)
+        ds_wl, ds_wlu = parseWavelength(dataset)
+
+        if ds_wl is None or ds_wlu is None:
+            return 0
+
+        if ds_wlu != wl_unit:
+            wl = convertMetricUnit(wl, wl_unit, ds_wlu)
+        return np.argmin(np.abs(ds_wl - wl))
+
+def parseWavelength(dataset):
+    wl = None
+    wlu = None
+
+    if isinstance(dataset, str) or isinstance(dataset, unicode):
+        return parseWavelength(gdal.Open(dataset))
+    elif isinstance(dataset, QgsRasterDataProvider):
+        return parseWavelength(dataset.dataSourceUri())
+    elif isinstance(dataset, gdal.Dataset):
+
+        for domain in dataset.GetMetadataDomainList():
+            # see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
+
+            mdDict = dataset.GetMetadata_Dict(domain)
+
+            for key, values in mdDict.items():
+                key = key.lower()
+                if re.search('wavelength$', key, re.I):
+                    tmp = re.findall('\d*\.\d+|\d+', values)  # find floats
+                    if len(tmp) != dataset.RasterCount:
+                        tmp = re.findall('\d+', values)  # find integers
+                    if len(tmp) == dataset.RasterCount:
+                        wl = np.asarray([float(w) for w in tmp])
+
+                if re.search(r'wavelength.units?', key):
+                    if re.search('(Micrometers?|um)', values, re.I):
+                        wlu = 'um'  # fix with python 3 UTF
+                    elif re.search('(Nanometers?|nm)', values, re.I):
+                        wlu = 'nm'
+                    elif re.search('(Millimeters?|mm)', values, re.I):
+                        wlu = 'nm'
+                    elif re.search('(Centimeters?|cm)', values, re.I):
+                        wlu = 'nm'
+                    elif re.search('(Meters?|m)', values, re.I):
+                        wlu = 'nm'
+                    elif re.search('Wavenumber', values, re.I):
+                        wlu = '-'
+                    elif re.search('GHz', values, re.I):
+                        wlu = 'GHz'
+                    elif re.search('MHz', values, re.I):
+                        wlu = 'MHz'
+                    elif re.search('Index', values, re.I):
+                        wlu = '-'
+                    else:
+                        wlu = '-'
+
+    return wl, wlu
+
 
 class Singleton(type):
     _instances = {}
@@ -516,6 +666,7 @@ def findParent(qObject, parentType, checkInstance = False):
         while parent != None and type(parent) != parentType:
             parent = parent.parent()
     return parent
+
 
 
 def saveTransform(geom, crs1, crs2):
@@ -1018,3 +1169,10 @@ class MimeDataHelper():
         return dataSources
 
 
+if __name__ == '__main__':
+    from enmapboxtestdata import enmap
+
+
+
+    for b in ['B','G','R', 'NIR', 'SWIR']:
+        print(bandClosestToWavelength(enmap, b))

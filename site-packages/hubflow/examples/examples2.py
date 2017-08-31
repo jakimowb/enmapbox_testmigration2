@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('QT4Agg')
+from matplotlib import pyplot
 from tempfile import gettempdir
 from os.path import join
 import gdal
@@ -26,6 +29,13 @@ rasteredProbabilityFilename = join(outdir, 'rasteredProbability.img')
 rasteredProbabilityRGBFilename = join(outdir, 'rasteredProbabilityRGB.img')
 reportFilename = join(outdir, 'report.html')
 
+def flowObject_unpickle():
+    FlowObject.unpickle(enmapboxtestdata.enmap)
+
+    classDefinition = ClassDefinition(classes=3)
+    classDefinition.pickle(filename=r'c:\outputs\classDefinition.pkl')
+    image = Image.unpickle(filename=r'c:\outputs\classDefinition.pkl')
+
 def vector_rasterize():
     image = vector.rasterize(imageFilename=rasteredMaskFilename, grid=image2.pixelGrid, overwrite=overwrite)
     return image
@@ -45,6 +55,21 @@ def probability_asClassColorRGBImage():
     probability = vectorClassification_rasterizeAsProbability()
     image = probability.asClassColorRGBImage(imageFilename=rasteredProbabilityRGBFilename, overwrite=overwrite)
     return image
+
+def probability_subsetClassesByNames():
+    probability = vectorClassification_rasterizeAsProbability()
+    probability2 = probability.subsetClassesByName(filename=join(outdir, 'fractionsSubset.img'), names=probability.classDefinition.names)
+
+def probabilitySample_subsetClassesByNames():
+    probabilitySample = image_sampleByProbability()
+    probabilitySample2 = probabilitySample.subsetClassesByName(names=probabilitySample.classDefinition.names[-1:])
+    print(numpy.all(probabilitySample.features == probabilitySample2.features))
+    print(numpy.all(probabilitySample.labels[-1:] == probabilitySample2.labels))
+
+def classificationSample_asProbabilitySample():
+    classificationSample = image_sampleByClassification()
+    probabilitySample = classificationSample.asProbabilitySample()
+    return probabilitySample
 
 def image_sampleByClassification():
     classification = vectorClassification_rasterizeAsClassification()
@@ -97,17 +122,20 @@ def test_signalingFileCreation():
     def handler(filename):
         print('Handler was invoked by file creation: {}'.format(filename))
     signals.sigFileCreated.connect(handler)
+
     FlowObject().pickle(filename=join(outdir, 'dummy.pkl'))
+
 
 if __name__ == '__main__':
     print('output directory: ' + outdir)
+    #flowObject_unpickle()
     #vector_rasterize()
     #print(vector_uniqueValues())
     #vectorClassification_rasterizeAsClassification()
     #vectorClassification_rasterizeAsProbability()
 
     #probability_asClassColorRGBImage()
-    #print(image_sampleByClassification())
+    print(image_sampleByClassification())
     #print(image_sampleByRegression())
     #print(image_sampleByProbability())
     #print(image_sampleByMask())
@@ -118,4 +146,7 @@ if __name__ == '__main__':
 
     #classificationAssessClassificationPerformance().report().saveHTML(filename=reportFilename)
     #regressionAssessRegressionPerformance().report().saveHTML(filename=reportFilename)
-    test_signalingFileCreation()
+    #test_signalingFileCreation()
+    #probability_subsetClassesByNames()
+    #probabilitySample_subsetClassesByNames()
+    #classificationSample_asProbabilitySample()

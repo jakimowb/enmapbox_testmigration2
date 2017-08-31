@@ -43,7 +43,7 @@ class testclassData(unittest.TestCase):
         self.dialog.close()
 
     def test_dataSourceManager(self):
-        from enmapbox.testdata.UrbanGradient import EnMAP, LandCover
+        from enmapboxtestdata import enmap, hymap, speclib, landcover
         from enmapbox.gui.datasources import DataSourceRaster, DataSourceVector
 
         global signalArgs
@@ -52,8 +52,8 @@ class testclassData(unittest.TestCase):
             signalArgs.append(dataSource)
         self.dataSourceManager.sigDataSourceAdded.connect(onSignal)
 
-        self.dataSourceManager.addSource(EnMAP)
-        self.dataSourceManager.addSource(LandCover)
+        self.dataSourceManager.addSource(enmap)
+        self.dataSourceManager.addSource(landcover)
 
         self.assertTrue(len(signalArgs) == 2)
         self.assertIsInstance(signalArgs[0], DataSourceRaster)

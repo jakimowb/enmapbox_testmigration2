@@ -245,6 +245,16 @@ class RasterBandTreeNode(TreeNode):
         self.mDataSource = dataSource
         self.mBandIndex = bandIndex
 
+        md = self.mDataSource.mBandMetadata[bandIndex]
+        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+        classScheme = md.get('__ClassificationScheme__')
+        if isinstance(classScheme, ClassificationScheme):
+            for ci in classScheme:
+                assert isinstance(ci, ClassInfo)
+                TreeNode(self, str(ci.label()),ci.name(), icon=ci.icon())
+
+
+
 
 class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
@@ -287,12 +297,27 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
 
 
         ds = gdal.Open(dataSource.uri())
+
+
+
         for b in range(ds.RasterCount):
             band = ds.GetRasterBand(b+1)
+            assert isinstance(band, gdal.Band)
+            if b == 0:
+
+                if band.GetCategoryNames() is not None:
+                    self.setIcon(QIcon(':/enmapbox/icons/filelist_classification.png'))
+                elif ds.RasterCount == 1 and band.DataType == gdal.GDT_Byte:
+                    self.setIcon(QIcon(':/enmapbox/icons/filelist_mask.png'))
+                else:
+                    self.setIcon(QIcon(':/enmapbox/icons/filelist_image.png'))
+
             name = band.GetDescription()
+
             if len(name) == 0:
-                name = '<no band name specified>'
-            RasterBandTreeNode(dataSource, b, self.nodeBands, 'Band {}'.format(b+1), value=name)
+                name = ''
+            bandNode = RasterBandTreeNode(dataSource, b, self.nodeBands, 'Band {}'.format(b+1), value=name)
+
 
         ds = None
 
@@ -329,17 +354,82 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
             TreeNode(self.profiles, name)
 
 
-class ProcessingTypeTreeNode(DataSourceTreeNode):
+class HubFlowObjectTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
-        super(ProcessingTypeTreeNode, self).__init__(*args, **kwds)
-        self.pfType = None
+        super(HubFlowObjectTreeNode, self).__init__(*args, **kwds)
+        self.flowObject = None
 
     def connectDataSource(self, processingTypeDataSource):
-        super(ProcessingTypeTreeNode, self).connectDataSource(processingTypeDataSource)
+        super(HubFlowObjectTreeNode, self).connectDataSource(processingTypeDataSource)
         assert isinstance(self.dataSource, HubFlowDataSource)
-        self.pfType = processingTypeDataSource.pfType
 
+        self.flowObject = self.dataSource.flowObject()
+
+        objects = set()
+
+        def fetchInternals(parent, obj, objects):
+            assert isinstance(parent, TreeNode)
+            if id(obj) in objects:
+                return
+            else:
+                objects.add(id(obj))
+
+            if isinstance(obj, hubflow.types.ClassDefinition):
+                from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+                csi = ClassificationScheme()
+                colors = np.asarray(obj.lookup).reshape((obj.classes,3))
+                for label in range(obj.classes):
+                    ci = ClassInfo(label=label, name=obj.names[label], color=QColor(*colors[label,:]))
+                    csi.addClass(ci)
+                ClassificationNode(parent, csi, name='ClassDefinition')
+
+            elif isinstance(obj, dict):
+                for k, i in obj.items():
+                    name = str(k)
+                    if name.startswith('_'):
+                        continue
+                    node = TreeNode(parent, name)
+                    if isinstance(i, list) or \
+                        isinstance(i, set):
+                        node.setValue(str(len(i)))
+                        fetchInternals(node, i, objects)
+                    elif isinstance(i, np.ndarray):
+                        text = '{} {} {}...'.format(i.shape, i.dtype, re.split('[\n]', str(i))[0])
+                        node.setValue(text)
+                    else:
+                        fetchInternals(node, i, objects)
+
+            elif isinstance(obj, list) or isinstance(obj, set):
+                for i, item in enumerate(obj):
+                    node = TreeNode(parent, str(i))
+                    if isinstance(item, hubflow.types.FlowObject) or \
+                       isinstance(item, dict) or \
+                       isinstance(item, list):
+                        fetchInternals(node, item, objects)
+                    else:
+                        text = str(item)
+                        node.setValue(text.replace('\n',' '))
+                    if i > 100:
+                        break
+            elif isinstance(obj, hubflow.types.FlowObject):
+                parent.setName(obj.__class__.__name__)
+                fetchInternals(parent, obj.__dict__, objects)
+            else:
+                parent.setValue(str(obj))
+
+
+        if isinstance(self.flowObject, hubflow.types.FlowObject):
+
+            self.setValue(self.flowObject.__class__.__name__)
+            #todo: type specific icon
+
+            fetchInternals(self, self.flowObject.__dict__, objects)
+
+
+
+
+    def __addInfo(self, obj):
         metaData = self.pfType.getMetadataDict()
 
         handled = list()
@@ -609,7 +699,7 @@ class DataSourceManagerTreeModel(TreeModel):
             a = menu.addAction('Remove')
             a.triggered.connect(lambda: self.dataSourceManager.removeSource(node.dataSource))
 
-        if isinstance(node, ProcessingTypeTreeNode):
+        if isinstance(node, HubFlowObjectTreeNode):
             a = menu.addAction('Show report')
             a.triggered.connect(lambda : self.onShowModelReport(node.dataSource))
 
@@ -700,7 +790,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             a = m.addAction('Band statistics')
 
             a = m.addAction('Open in new map')
-            a.triggered.connect(lambda : self.onOpenInNewMap(node.mDataSource, bands=[node.mBandIndex]))
+            a.triggered.connect(lambda : self.onOpenInNewMap(node.mDataSource, rgb=[node.mBandIndex]))
 
 
         if col == 1 and node.value() != None:
@@ -716,7 +806,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 a.setParent(m)
         return m
 
-    def onOpenInNewMap(self, dataSource, rgb=None, bands=None):
+    def onOpenInNewMap(self, dataSource, rgb=None):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         emb = EnMAPBox.instance()
 
@@ -727,20 +817,27 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             lyr = dataSource.createUnregisteredMapLayer()
             dock = emb.createDock('MAP')
             assert isinstance(dock, MapDock)
-
+            from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
             if isinstance(lyr, QgsRasterLayer):
                 r = lyr.renderer()
-                if rgb is None:
-                    rgb = [3,2,1]
-                if bands is None:
-                    rgb = [3,2,1]
+                ds = gdal.Open(lyr.source())
+                if isinstance(rgb, str):
+                    if re.search('DEFAULT', rgb):
+                        rgb = defaultBands(ds)
+                    else:
+                        rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
+                assert isinstance(rgb, list)
+                if len(rgb) == 3:
 
-                if isinstance(r, QgsMultiBandColorRenderer):
+                    if isinstance(r, QgsMultiBandColorRenderer):
+                        r.setRedBand(rgb[0])
+                        r.setGreenBand(rgb[1])
+                        r.setBlueBand(rgb[2])
+                elif len(rgb) == 1:
                     r.setRedBand(rgb[0])
-                    r.setGreenBand(rgb[1])
-                    r.setBlueBand(rgb[2])
+                    r.setGreenBand(rgb[0])
+                    r.setBlueBand(rgb[0])
 
-                s = ""
             elif isinstance(lyr, QgsVectorLayer):
 
                 pass
@@ -751,6 +848,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
     def onSaveAs(self, dataSource):
 
         pass
+
 class DataSourceManager(QObject):
 
     """
@@ -761,7 +859,7 @@ class DataSourceManager(QObject):
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-    SOURCE_TYPES = ['ALL', 'RASTER', 'VECTOR', 'MODEL']
+    SOURCE_TYPES = ['ALL','ANY', 'RASTER', 'VECTOR', 'MODEL']
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
@@ -784,14 +882,6 @@ class DataSourceManager(QObject):
 
         self.updateFromQgsMapLayerRegistry()
 
-        #signals
-        self.processing = None
-        try:
-            import enmapbox.processing
-            self.processing = enmapbox.processing
-            self.processing.sigFileCreated.connect(lambda file: self.addSource(file))
-        except:
-            pass
 
     def qgsLayerTreeGroup(self):
         return None
@@ -865,7 +955,7 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
 
         assert sourcetype in DataSourceManager.SOURCE_TYPES
-        if sourcetype == 'ALL':
+        if sourcetype == ['ALL','ANY']:
             return [ds.uri() for ds in self.mSources]
         elif sourcetype == 'VECTOR':
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
@@ -873,6 +963,8 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
         elif sourcetype == 'MODEL':
             return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
+        else:
+            return []
 
     def addSources(self, sources):
         for s in sources:

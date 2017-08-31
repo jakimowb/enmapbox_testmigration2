@@ -21,16 +21,25 @@ import sys, os, site
 
 
 def run():
-    from enmapbox.gui.enmapboxgui import EnMAPBox
+
     from enmapbox.gui.utils import initQgisApplication
-    from qgis.utils import iface
+    qgisApp = initQgisApplication()
+
+    from enmapbox.gui.enmapboxgui import EnMAPBox
     import enmapbox.gui
+    enmapbox.gui.DEBUG = False
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
     enmapbox.gui.LOAD_EXTERNAL_APPS = True
-    qgisApp = initQgisApplication()
+
+    from qgis.utils import iface
     enmapbox = EnMAPBox(iface)
     enmapbox.run()
-    enmapbox.openExampleData(mapWindows=1)
+    #enmapbox.openExampleData(mapWindows=1)
+
+    from enmapbox.gui.utils import file_search, jp, DIR_REPO
+    #enmapbox.addSource(r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\testsample.pkl')
+    enmapbox.addSource(jp(DIR_REPO, 'tmp/testclass.tif'))
+    enmapbox.addSource(jp(DIR_REPO, 'tmp/classsample.pkl'))
     qgisApp.exec_()
 
 
@@ -56,6 +65,5 @@ if __name__ == '__main__':
         site.addsitedir(pathQgs)
         site.addsitedir(pathQgsPlugins)
 
-    # todo: find good default locations for other OS
 
     run()

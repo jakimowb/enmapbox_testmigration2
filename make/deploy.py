@@ -26,30 +26,13 @@ import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
 
 
-#DIR_BUILD = jp(DIR_REPO, 'build')
-#DIR_DEPLOY = jp(DIR_REPO, 'deploy')
-
-DIR_BUILD = jp(DIR_REPO, 'build')
-DIR_DEPLOY = jp(DIR_REPO, 'deploy')
 
 
-
-
-DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys'
-DIR_MOST_RECENT = jp(DIR_DEPLOY, 'most_recent_version')
-#list of deploy options:
-# ZIP - add zipped plugin to DIR_DEPLOY
-# UNZIPPED - add the non-zipped plugin to DIR_DEPLOY
-DEPLOY_OPTIONS = ['ZIP', 'UNZIPPED']
-ADD_TESTDATA = True
-
-#directories below the <enmapbox-repository> folder whose content is to be copied without filtering
-PLAIN_COPY_SUBDIRS = ['site-packages']
 
 ########## End of config section
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
+timestamp = timestamp.replace('-','')
 buildID = '{}.{}'.format(enmapbox.__version__, timestamp)
-dirBuildPlugin = jp(DIR_BUILD, 'enmapboxplugin')
 
 def rm(p):
     """
@@ -88,16 +71,17 @@ if __name__ == "__main__":
 
     #the directory to build the "enmapboxplugin" folder
     DIR_DEPLOY = jp(DIR_REPO, 'deploy')
-    DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
+    #DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
 
     #local pb_tool configuration file.
     pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
+
     mkDir(DIR_DEPLOY)
 
     #required to choose andy DIR_DEPLOY of choice
     #issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
     pb_tool.get_plugin_directory = lambda : DIR_DEPLOY
-
+    cfg = pb_tool.get_config(config=pathCfg)
     #1. clean an existing directory = the enmapboxplugin folder
     pb_tool.clean_deployment(ask_first=False, config=pathCfg)
 
@@ -123,9 +107,17 @@ if __name__ == "__main__":
     # we need to remove them afterwards.
     # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
     print('Remove files...')
-    for f in file_search(jp(DIR_DEPLOY, 'enmapboxplugin'), re.compile('(svg|pyc)$'), recursive=True):
+
+    for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
         os.remove(f)
 
+    #5. create a zip
+    print('Create zipfile...')
+    from enmapbox.gui.utils import zipdir
 
+    pluginname= cfg.get('plugin', 'name')
+    pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname,timestamp))
+    dirPlugin = jp(DIR_DEPLOY, pluginname)
+    zipdir(dirPlugin, pathZip)
 
     print('Finished')
