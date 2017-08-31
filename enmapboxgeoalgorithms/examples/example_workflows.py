@@ -8,8 +8,10 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.svm import SVR, LinearSVR
+from sklearn.kernel_ridge import KernelRidge
 
 from hubflow.types import *
+
 import enmapboxtestdata
 
 def synthMixRegressionWorkflow():
@@ -109,25 +111,30 @@ def classificationWorkflow():
     classification.assessClassificationPerformance(classification=gtClassification).report().saveHTML(filename=join(outdir, 'report.html'), open=True)
 
 def debug_synthMixRegressionWorkflow():
-
     outdir = join(gettempdir(), 'hubflow_synthMixRegressionWorkflow')
     overwrite = True
 
     print('\n### SyntMixRegression Workflow ###'
           '\nOutput directory: {}'.format(outdir))
 
+    image = Image(filename=enmapboxtestdata.enmap)
+    #image = Image(filename=r'F:\newdata\hymap_specsubset.bsq')  # hymap_specsubset_scaled.bsq
+    #image = Image(filename=r'F:\newdata\enmap_subset_noSchleife.bsq')  # hymap_specsubset_scaled.bsq
+
     # create training data
     # - import ENVI speclib
     unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+    #unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=r'F:\newdata\lib_subset.sli')
 
     # - label spectra
-    classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
-                                      lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
+    classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 1 class names'][1:],
+                                      lookup=unsupervisedSample.metadata['level 1 class lookup'][3:])
 
-    classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 2 class spectra names'],
+    classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 1 class spectra names'],
                                                                   classDefinition=classDefinition)
 
     # - scale spectra into image data range
+    x = classificationSample.features*1
     classificationSample.scaleFeaturesInplace(factor=10000.)
 
     # - generate synthetic mixtures
@@ -136,46 +143,100 @@ def debug_synthMixRegressionWorkflow():
     probabilitySample = ProbabilitySample(features=numpy.hstack((probabilitySamplePure.features, probabilitySampleMixed.features)),
                                           labels=numpy.hstack((probabilitySamplePure.labels, probabilitySampleMixed.labels)),
                                           classDefinition=probabilitySamplePure.classDefinition)
-    #probabilitySample = probabilitySample
+    probabilitySample = probabilitySampleMixed
 
     # - subset output classes to be modeled
-    probabilitySample = probabilitySample.subsetClassesByName(names=['Tree'])
-
-    # fit model and predict fraction image
-    image = Image(filename=enmapboxtestdata.enmap)
-
-    svr = SVR(epsilon=0.00001, tol=0.00001, verbose=True)
-    tunedSVR = GridSearchCV(cv=3, estimator=svr, scoring='mean_absolute_error', verbose=True,
-                            param_grid = {'kernel': ['rbf'],
-                                          'gamma': [0.001, 0.01, 0.1, 1, 10, 100, 1000],
-                                          'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]})
-    scaledAndTunedSVR = make_pipeline(MinMaxScaler(), tunedSVR)
-    scaledAndTunedSVR = make_pipeline(MinMaxScaler(), SVR(kernel='rbf', C=10000, gamma=0.0000001))
-
-    #scaledAndTunedSVR = LinearSVR(C=100000, epsilon=0., tol=0.00001)
-    #scaledAndTunedSVR = make_pipeline(MinMaxScaler(), RandomForestRegressor())
-    #scaledAndTunedSVR = RandomForestRegressor()
-
-    #regressor = Regressor(sklEstimator=MultiOutputRegressor(estimator=scaledAndTunedSVR))
-    regressor = Regressor(sklEstimator=scaledAndTunedSVR)
-
-    regressor.fit(sample=probabilitySample)
-    fractions = regressor.predict(predictionFilename=join(outdir, 'fractions.img'), image=image, overwrite=overwrite)
+    #probabilitySample = probabilitySample.subsetClassesByName(names=['Tree'])
 
     # create testing data
-    vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, classDefinition=classDefinition, idAttribute='Level_2_ID',
+    vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, classDefinition=classDefinition, idAttribute='Level_1_ID',
                                                 minOverallCoverage=1.)
 
     # - rasterize ground truth classification into probabilities
     gtFractions = vectorClassification.rasterizeAsProbability(probabilityFilename=join(outdir, 'gtFractions.img'), grid=image.pixelGrid,
                                                               minOverallCoverage=0.8, oversampling=10, overwrite=overwrite)
-    gtFractions = gtFractions.subsetClassesByName(filename=join(outdir, 'fractions1Class.img'), names=['Tree'])
+    #gtFractions = gtFractions.subsetClassesByName(filename=join(outdir, 'fractions1Class.img'), names=['Tree'])
+    gtFractionsSample = image.sampleByRegression(regression=gtFractions)
+
+    # fit model and predict fraction image
+    svr = SVR(epsilon=0.05, tol=0.00001, verbose=True, shrinking=True)
+    tunedSVR = GridSearchCV(cv=3, estimator=svr, scoring='mean_absolute_error', verbose=True, n_jobs=-1,
+                            param_grid = {'kernel': ['rbf'],
+                                          'gamma': [0.001, 0.01, 0.1, 1, 10, 100, 1000][::1],
+                                          'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000][::1]})
+    scaledAndTuned = make_pipeline(MinMaxScaler(), tunedSVR)
+
+    from sklearn.gaussian_process.kernels import RBF
+    krr = KernelRidge()
+    tunedKRR = GridSearchCV(cv=3, estimator=krr, scoring='mean_absolute_error', verbose=True, n_jobs=-1,
+                            param_grid = {"alpha": [1e0, 1e-1, 1e-2, 1e-3],
+                                          "kernel": [RBF(scale) for scale in numpy.logspace(-3, 3, 5)]})
+
+    scaledAndTuned = make_pipeline(MinMaxScaler(), tunedKRR)
+    #scaledAndTuned = tunedKRR
+
+    #scaledAndTunedSVR = make_pipeline(MinMaxScaler(), SVR(kernel='rbf', C=10000, gamma=0.0000001))
+
+    #scaledAndTunedSVR = LinearSVR(C=100000, epsilon=0., tol=0.00001)
+    #scaledAndTunedSVR = make_pipeline(MinMaxScaler(), RandomForestRegressor())
+    #scaledAndTuned = RandomForestRegressor()
+
+    #regressor = Regressor(sklEstimator=MultiOutputRegressor(estimator=scaledAndTuned))
+#todo: MultiOutput!!!
+    regressor = Regressor(sklEstimator=scaledAndTuned)
+
+    if 1:
+        regressor.fit(sample=probabilitySample)
+    else:
+        regressor.fit(sample=gtFractionsSample)
+
+    fractions = regressor.predict(predictionFilename=join(outdir, 'fractions.img'), image=image, overwrite=overwrite)
+    fractions.asProbability(classDefinition=classDefinition).asClassColorRGBImage(imageFilename=join(outdir, 'fractionsRGB.img'), overwrite=overwrite)
+
 
     # accuracy assessment
     fractions.assessRegressionPerformance(regression=gtFractions).report().saveHTML(filename=join(outdir, 'report2.html'), open=True)
 
+def hymapRegressionWorkflow():
+    datadir = r'C:\EnMAP-Box\SourceCode\lib\hubAPI\_resource\testData\image'
+    outdir = join(gettempdir(), 'hubflow_hymapRegression')
+    overwrite = True
+    print('\nOutput directory: {}'.format(outdir))
+
+    # create training data
+    image = Image(join(datadir, 'Hymap_Berlin-B_Image'))
+    train = Regression(join(datadir, 'Hymap_Berlin-B_Regression-Training-Sample'))
+    test = Regression(join(datadir, 'Hymap_Berlin-B_Regression-Validation-Sample'))
+    trainSample = image.sampleByRegression(regression=train)
+
+    # fit model and predict
+    if 1:
+        svr = SVR(epsilon=0.00001, tol=0.00001)
+        tunedSVR = GridSearchCV(cv=10, estimator=svr, scoring='mean_absolute_error', n_jobs=-1,
+                                param_grid = {'kernel': ['rbf'],
+                                              'gamma': [0.001, 0.01, 0.1, 1, 10, 100, 1000],
+                                              'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]})
+        scaledAndTuned = make_pipeline(MinMaxScaler(), tunedSVR)
+    else:
+        krr = KernelRidge()
+        tunedKRR = GridSearchCV(cv=10, estimator=krr, scoring='mean_absolute_error', verbose=True, n_jobs=-1,
+                                param_grid={'kernel': ['rbf'],
+                                            'gamma': [0.001, 0.01, 0.1, 1, 10, 100, 1000],
+                                            'alpha': [0.001, 0.01, 0.1, 1, 10, 100, 1000]})
+        scaledAndTuned = make_pipeline(MinMaxScaler(), tunedKRR)
+
+    #regressor = Regressor(sklEstimator=MultiOutputRegressor(estimator=scaledAndTunedSVR))
+    regressor = Regressor(sklEstimator=scaledAndTuned)
+
+    regressor.fit(sample=trainSample)
+    prediction = regressor.predict(predictionFilename=join(outdir, 'fractions.img'), image=image, overwrite=overwrite)
+
+
+    # accuracy assessment
+    prediction.assessRegressionPerformance(regression=test).report().saveHTML(filename=join(outdir, 'report2.html'), open=True)
+
 if __name__ == '__main__':
     #synthMixRegressionWorkflow()
     #classificationWorkflow()
-    #regressionWorkflow_oldTestdata()
     debug_synthMixRegressionWorkflow()
+    #hymapRegressionWorkflow()
