@@ -1,21 +1,21 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis version="2.18.10" minimumScale="inf" maximumScale="1e+08" hasScaleBasedVisibilityFlag="0">
+<qgis version="2.18.11" minimumScale="inf" maximumScale="1e+08" hasScaleBasedVisibilityFlag="0">
   <pipe>
-    <rasterrenderer opacity="1" alphaBand="-1" blueBand="8" greenBand="26" type="multibandcolor" redBand="42">
+    <rasterrenderer opacity="1" alphaBand="-1" blueBand="1" greenBand="18" type="multibandcolor" redBand="33">
       <rasterTransparency/>
       <redContrastEnhancement>
-        <minValue>143</minValue>
-        <maxValue>2048</maxValue>
+        <minValue>174</minValue>
+        <maxValue>1598</maxValue>
         <algorithm>StretchToMinimumMaximum</algorithm>
       </redContrastEnhancement>
       <greenContrastEnhancement>
-        <minValue>178</minValue>
-        <maxValue>1711</maxValue>
+        <minValue>236</minValue>
+        <maxValue>1322</maxValue>
         <algorithm>StretchToMinimumMaximum</algorithm>
       </greenContrastEnhancement>
       <blueContrastEnhancement>
-        <minValue>160</minValue>
-        <maxValue>1493</maxValue>
+        <minValue>138</minValue>
+        <maxValue>1086</maxValue>
         <algorithm>StretchToMinimumMaximum</algorithm>
       </blueContrastEnhancement>
     </rasterrenderer>

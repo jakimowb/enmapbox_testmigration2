@@ -1,12 +1,23 @@
 from distutils.version import LooseVersion
 from os.path import dirname, join
 
-ENMAPBOXTESTDATA_VERSION = '0.1'
+ENMAPBOXTESTDATA_VERSION = '0.2'
 ENMAPBOXTESTDATA_VERSION_OBJ = LooseVersion(ENMAPBOXTESTDATA_VERSION)
 __version__ = ENMAPBOXTESTDATA_VERSION
 
-enmap = join(dirname(__file__), 'EnMAP02_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-hymap = join(dirname(__file__), 'HighResolution_Berlin_Urban_Gradient_2009_testData_compressed.bsq')
-landcover = join(dirname(__file__), 'LandCov_Vec_Berlin_Urban_Gradient_2009_subset.shp')
-speclib = join(dirname(__file__), 'SpecLib_Berlin_Urban_Gradient_2009_244bands.sli')
-
+enmap = join(dirname(__file__), 'EnMAP_BerlinUrbanGradient.bsq')
+hymap = join(dirname(__file__), 'HighResolution_BerlinUrbanGradient.bsq')
+landcover = join(dirname(__file__), 'LandCov_BerlinUrbanGradient.shp')
+class landcoverAttributes():
+    Level_1 = 'Level_1'
+    Level_2 = 'Level_2'
+    Level_1_ID = 'Level_1_ID'
+    Level_2_ID = 'Level_2_ID'
+class landcoverClassDefinition():
+    class level1():
+        names = ['Impervious', 'Vegetation', 'Soil', 'Other']
+        lookup = [156, 156, 156, 56, 168, 0, 168, 112, 0, 245, 245, 122]
+    class level2():
+        names = ['Roof', 'Pavement', 'Low Vegetation', 'Tree', 'Soil', 'Other']
+        lookup = [230, 0, 0,   156, 156, 156,   152, 230, 0,   38, 115, 0,   168, 112, 0, 245, 245, 122]
+speclib = join(dirname(__file__), 'SpecLib_BerlinUrbanGradient.sli')
