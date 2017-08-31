@@ -82,34 +82,36 @@ if __name__ == "__main__":
     #issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
     pb_tool.get_plugin_directory = lambda : DIR_DEPLOY
     cfg = pb_tool.get_config(config=pathCfg)
-    #1. clean an existing directory = the enmapboxplugin folder
-    pb_tool.clean_deployment(ask_first=False, config=pathCfg)
 
-    #2. Compile. Basically call pyrcc to create the resources.rc file
-    #I don't know how to call this from pure python
-    if True:
-        import subprocess
-        import guimake
+    if False:
+        #1. clean an existing directory = the enmapboxplugin folder
+        pb_tool.clean_deployment(ask_first=False, config=pathCfg)
+
+        #2. Compile. Basically call pyrcc to create the resources.rc file
+        #I don't know how to call this from pure python
+        if True:
+            import subprocess
+            import guimake
 
 
-        os.chdir(DIR_REPO)
-        subprocess.call(['pb_tool', 'compile'])
-        guimake.compile_rc_files(DIR_REPO)
+            os.chdir(DIR_REPO)
+            subprocess.call(['pb_tool', 'compile'])
+            guimake.compile_rc_files(DIR_REPO)
 
-    else:
-        cfgParser = pb_tool.get_config(config=pathCfg)
-        pb_tool.compile_files(cfgParser)
+        else:
+            cfgParser = pb_tool.get_config(config=pathCfg)
+            pb_tool.compile_files(cfgParser)
 
-    #3. Deploy = write the data to the new enmapboxplugin folder
-    pb_tool.deploy_files(pathCfg, confirm=False)
+        #3. Deploy = write the data to the new enmapboxplugin folder
+        pb_tool.deploy_files(pathCfg, confirm=False)
 
-    #4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
-    # we need to remove them afterwards.
-    # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
-    print('Remove files...')
+        #4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
+        # we need to remove them afterwards.
+        # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
+        print('Remove files...')
 
-    for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
-        os.remove(f)
+        for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
+            os.remove(f)
 
     #5. create a zip
     print('Create zipfile...')
@@ -119,5 +121,6 @@ if __name__ == "__main__":
     pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname,timestamp))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
     zipdir(dirPlugin, pathZip)
-
+    #os.chdir(dirPlugin)
+    #shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
     print('Finished')

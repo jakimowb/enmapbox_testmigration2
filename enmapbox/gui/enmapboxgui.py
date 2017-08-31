@@ -308,7 +308,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         area = Qt.BottomDockWidgetArea
         from enmapbox.gui.spectrallibraries import SpectraLibraryViewPanel
         self.specLibViewPanel = addPanel(SpectraLibraryViewPanel(self))
-
+        self.specLibViewPanel.setVisible(False)
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
             self.menuPanels.addAction(dock.toggleViewAction())
@@ -364,7 +364,7 @@ class EnMAPBox(QObject):
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface):
         assert EnMAPBox.instance() is None
-
+        #necessary to make the resource file available
         from enmapbox.gui.ui import resources
 
         super(EnMAPBox, self).__init__()
@@ -637,9 +637,13 @@ class EnMAPBox(QObject):
 
     def setCurrentSpectra(self, spectra):
         assert isinstance(spectra, list)
-
+        b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
+
+        if b and len(self.mCurrentSpectra) > 0:
+            self.ui.specLibViewPanel.setVisible(True)
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
+
 
     def currentSpectra(self):
         """
