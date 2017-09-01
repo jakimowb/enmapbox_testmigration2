@@ -180,7 +180,7 @@ class Init_Model:
         self.geo_mode = None
 
     def initialize_multiple(self, LUT_dir, LUT_name, ns, tts, tto, psi, N, cab, cw, cm, LAI, LIDF, typeLIDF, hspot,
-                            psoil, car=None, cbrown=None, anth=None, max_per_file=1300, testmode=0, prgbar_widget=None,
+                            psoil, car=None, cbrown=None, anth=None, max_per_file=2000, testmode=0, prgbar_widget=None,
                             QGis_app=None):
         # Setup multiple runs with l size logical distribution & n size statistical distribution
         param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, car, anth, cbrown, tts, tto, psi] # update: geometry comes lastly
@@ -189,6 +189,7 @@ class Init_Model:
         else:
             self.geo_mode = "no_geo"
 
+        self.max_filelength = max_per_file
         npara = len(param_input)
         setup = Setup_multiple(param_input, ns=ns)
         para_grid = setup.create_grid()
@@ -260,6 +261,9 @@ class Init_Model:
             meta.write("lop_model=%s\n" % self.lop)
             meta.write("canopy_architecture_model=%s\n" % self.canopy_arch)
             meta.write("geo_mode=%s\n" % self.geo_mode)
+            meta.write("geo_ensembles=%i\n" % n_ensembles_geo)
+            meta.write("splits=%i\n" % n_ensembles_split)
+            meta.write("max_file_length=%i\n" % self.max_filelength)
             meta.write("tts=")
             for i in xrange(len(tts_str)):
                 meta.write(tts_str[i] + ";")
@@ -269,6 +273,7 @@ class Init_Model:
             meta.write("\npsi=")
             for i in xrange(len(psi_str)):
                 meta.write(psi_str[i] + ";")
+            meta.write("\nmultiplication_factor=%i" % self.int_boost)
 
         if prgbar_widget:
             prgbar_widget.gui.lblCaption_l.setText("Creating LUT")
