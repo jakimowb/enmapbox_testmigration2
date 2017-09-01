@@ -428,6 +428,7 @@ class EnMAPBox(QObject):
         self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
+        self.ui.actionAddSpeclibView.triggered.connect(lambda: self.dockManager.createDock('SPECLIB'))
 
         from enmapbox.gui.mapcanvas import MapDock
         self.ui.actionLoadExampleData.triggered.connect(lambda: self.openExampleData(

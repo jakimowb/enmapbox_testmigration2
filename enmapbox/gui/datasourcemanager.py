@@ -613,6 +613,16 @@ class DataSourceManagerTreeModel(TreeModel):
         txt = doc.toString()
         mimeData.setData("application/enmapbox.datasourcetreemodeldata", txt)
 
+        specLibNodes = [n for n in exportedNodes if isinstance(n, SpeclibDataSourceTreeNode)]
+        if len(specLibNodes) > 0:
+            from enmapbox.gui.spectrallibraries import SpectralLibrary
+            sl = SpectralLibrary()
+            for node in specLibNodes:
+                slib = SpectralLibrary.readFrom(node.dataSource.uri())
+                sl.addSpeclib(slib)
+            if len(sl) > 0:
+                mimeData.setData(MimeDataHelper.MDF_SPECTRALLIBRARY, sl.asPickleDump())
+
         # set text/uri-list
         if len(uriList) > 0:
             mimeData.setUrls(uriList)

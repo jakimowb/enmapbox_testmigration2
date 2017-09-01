@@ -494,7 +494,13 @@ class MimeDataDock(TextDock):
         self.layout.addWidget(self.textEdit)
 
 
+class SpectralLibraryDock(Dock):
+    def __init__(self,*args, **kwds):
+        super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
+        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        self.SLV = SpectralLibraryWidget(self)
+        self.layout.addWidget(self.SLV)
 
 
 if __name__ == '__main__':

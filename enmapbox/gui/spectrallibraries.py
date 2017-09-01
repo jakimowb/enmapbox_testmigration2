@@ -262,7 +262,6 @@ class SpectralProfileMapTool(QgsMapToolEmitPoint):
         self.rubberband.reset()
 
 
-
 class SpectralProfilePlotDataItem(pg.PlotDataItem):
 
     def __init__(self, spectralProfle):
@@ -292,7 +291,6 @@ class SpectralProfilePlotDataItem(pg.PlotDataItem):
         assert isinstance(pen, QPen)
         pen.setWidth(width)
         self.setPen(pen)
-
 
 
 class SpectralProfile(QObject):
@@ -890,6 +888,11 @@ class SpectralLibraryPanel(QgsDockWidget):
 
 
 class SpectralLibrary(QObject):
+    _pickle_protocol = pickle.HIGHEST_PROTOCOL
+    @staticmethod
+    def readFromPickleDump(data):
+        return pickle.loads(data)
+
     @staticmethod
     def readFromSourceDialog(parent=None):
         """
@@ -931,7 +934,6 @@ class SpectralLibrary(QObject):
         return None
 
 
-
     def __init__(self, parent=None, profiles=None):
         super(SpectralLibrary, self).__init__(parent)
 
@@ -941,8 +943,8 @@ class SpectralLibrary(QObject):
             self.mProfiles.extend(profiles[:])
 
 
-    sigNameChanged = pyqtSignal(str)
 
+    sigNameChanged = pyqtSignal(str)
     def setName(self, name):
         if name != self.mName:
             self.mName = name
@@ -1016,6 +1018,9 @@ class SpectralLibrary(QObject):
 
     def asTextLines(self, separator='\t'):
         return CSVSpectralLibraryIO.asTextLines(self, separator=separator)
+
+    def asPickleDump(self):
+        return pickle.dumps(self, SpectralLibrary._pickle_protocol)
 
     def exportProfiles(self, path=None):
 
@@ -1377,9 +1382,9 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         assert isinstance(parent, QModelIndex)
 
         if mimeData.hasFormat(MimeDataHelper.MDF_SPECTRALLIBRARY):
-            import pickle
+
             dump = mimeData.data(MimeDataHelper.MDF_SPECTRALLIBRARY)
-            speclib = pickle.loads(dump)
+            speclib = SpectralLibrary.readFromPickleDump(dump)
             self.mSpecLib.addSpeclib(speclib)
             return True
         return False
@@ -1392,9 +1397,7 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         profiles = self.indices2profiles(indexes)
         speclib = SpectralLibrary(profiles=profiles)
         mimeData = QMimeData()
-        import pickle
-        d = pickle.dumps(speclib)
-        mimeData.setData(MimeDataHelper.MDF_SPECTRALLIBRARY, d)
+        mimeData.setData(MimeDataHelper.MDF_SPECTRALLIBRARY, speclib.asPickleDump())
 
         #as text
         mimeData.setText('\n'.join(speclib.asTextLines()))
@@ -1508,7 +1511,17 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         #self.mSelectionModel.currentChanged.connect(self.onCurrentSelectionChanged)
         self.tableViewSpeclib.setSelectionModel(self.mSelectionModel)
 
+
         self.plotWidget.setAntialiasing(True)
+        self.plotWidget.setAcceptDrops(True)
+
+        self.plotWidget.dragEnterEvent = self.dragEnterEvent
+        self.plotWidget.dragMoveEvent = self.dragMoveEvent
+        pi = self.plotWidget.getPlotItem()
+        pi.setAcceptDrops(True)
+
+        pi.dropEvent = self.dropEvent
+
 
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
         self.btnExportSpeclib.clicked.connect(self.onExportSpectra)
@@ -1527,6 +1540,27 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
                                      self.mModel.mAttributeColumns, editable=False)[0]
             )
         )
+
+
+    def dragEnterEvent(self, event):
+        assert isinstance(event, QDragEnterEvent)
+        if event.mimeData().hasFormat(MimeDataHelper.MDF_SPECTRALLIBRARY):
+            event.accept()
+
+    def dragMoveEvent(self, event):
+        assert isinstance(event, QDragMoveEvent)
+        if event.mimeData().hasFormat(MimeDataHelper.MDF_SPECTRALLIBRARY):
+            event.accept()
+
+
+    def dropEvent(self, event):
+        assert isinstance(event, QDropEvent)
+        mimeData = event.mimeData()
+
+        if mimeData.hasFormat(MimeDataHelper.MDF_SPECTRALLIBRARY):
+            speclib = SpectralLibrary.readFromPickleDump(mimeData.data(MimeDataHelper.MDF_SPECTRALLIBRARY))
+            self.mSpeclib.addSpeclib(speclib)
+            event.accept()
 
     def onAttributesChanged(self):
         self.btnRemoveAttribute.setEnabled(len(self.mSpeclib.metadataAttributes()) > 0)
@@ -1724,10 +1758,7 @@ if __name__ == "__main__":
     spec2.setMetadata('My Attr', 9876)
     #mySpec.plot()
 
-    sp  = SpectralLibraryPanel()
-    sp.show()
-
-    if False:
+    if True:
         sl0 = SpectralLibrary(profiles=[spec1, spec2])
         path = r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\speclibtest.sli'
         sl0.exportProfiles(path)

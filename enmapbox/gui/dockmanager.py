@@ -136,11 +136,27 @@ class CanvasLinkTreeNodeGroup(TreeNode):
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
 
-        super(MapDockTreeNode, self).__init__(parent, dock)
-        #KeepRefs.__init__(self)
-        self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
-        self.addedChildren.connect(lambda: self.updateCanvas())
-        self.removedChildren.connect(lambda: self.updateCanvas())
+        super(SpeclibDockTreeNode, self).__init__(parent, dock)
+        self.setIcon(QIcon(':/enmapbox/icons/viewlist_spectrumdock.png'))
+
+
+
+    def connectDock(self, dock):
+        assert isinstance(dock, SpectralLibraryDock)
+        super(SpeclibDockTreeNode, self).connectDock(dock)
+        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        self.SLW = dock.SLV
+        assert isinstance(self.SLW, SpectralLibraryWidget)
+
+        self.profilesNode = TreeNode(self, 'Profiles', value=0)
+        self.SLW.mSpeclib.sigProfilesAdded.connect(self.updateNodes)
+        self.SLW.mSpeclib.sigProfilesRemoved.connect(self.updateNodes)
+
+
+    def updateNodes(self):
+        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        assert isinstance(self.SLW, SpectralLibraryWidget)
+        self.profilesNode.setValue(len(self.SLW.mSpeclib))
 
 
 
@@ -887,7 +903,9 @@ class DockManager(QgsLegendInterface):
         elif dockType == 'WEBVIEW':
             kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
             dock = WebViewDock(*args, **kwds)
-
+        elif dockType == 'SPECLIB':
+            kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
+            dock = SpectralLibraryDock(*args, **kwds)
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 

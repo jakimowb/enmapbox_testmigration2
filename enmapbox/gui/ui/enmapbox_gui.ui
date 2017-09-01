@@ -112,6 +112,7 @@
     <addaction name="actionIdentify"/>
     <addaction name="separator"/>
     <addaction name="actionAddMapView"/>
+    <addaction name="actionAddSpeclibView"/>
     <addaction name="actionAddTextView"/>
     <addaction name="actionAddMimeView"/>
     <addaction name="separator"/>
@@ -161,6 +162,8 @@
    </attribute>
    <addaction name="actionAddDataSource"/>
    <addaction name="actionAddMapView"/>
+   <addaction name="actionAddSpeclibView"/>
+   <addaction name="actionAddTextView"/>
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
@@ -182,23 +185,32 @@
    <property name="text">
     <string>Add Map Window</string>
    </property>
+   <property name="toolTip">
+    <string>Open a map window</string>
+   </property>
   </action>
   <action name="actionAddTextView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_textview.png</normaloff>:/enmapbox/icons/viewlist_textview.png</iconset>
    </property>
    <property name="text">
     <string>Add Text Window</string>
    </property>
+   <property name="toolTip">
+    <string>Open an text window</string>
+   </property>
   </action>
-  <action name="actionAddGraphView">
+  <action name="actionAddSpeclibView">
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</iconset>
    </property>
    <property name="text">
-    <string>addGraphView</string>
+    <string>Add Spectral Library Window</string>
+   </property>
+   <property name="toolTip">
+    <string>Open a spectral library window</string>
    </property>
   </action>
   <action name="actionZoomIn">
