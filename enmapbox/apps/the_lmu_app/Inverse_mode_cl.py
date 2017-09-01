@@ -70,11 +70,11 @@ class RTM_Inversion:
 
         #0: Generate geometry matrix
         self.geometry_matrix = np.empty(shape=(self.nrows, self.ncols, 3))
-        self.geometry_matrix.fill(self.nodat[0])
+        self.geometry_matrix.fill(self.nodat[2])
 
         #1: import geometry-file from read_image or
         if geo_image:
-            geometry_raw = self.read_image(geo_image, nodat=self.nodat[0])
+            geometry_raw = self.read_image(geo_image, nodat=self.nodat[1])
             if not geometry_raw[0] == self.nrows or not geometry_raw[1] == self.ncols:
                 exit("Geometry image and Sensor image do not match")
             self.geometry_matrix = geometry_raw[3]/100
@@ -276,7 +276,7 @@ class RTM_Inversion:
 
         elif self.out_mode == "individual":
             for i in xrange(self.npara):
-                out = os.path.splitext(self.image_out)[0] + "_" + self.para_names[self.whichpara[i]] + os.path.splitext(self.image_out)[1]
+                out = os.path.splitext(self.image_out)[0] + "_" + self.para_names[self.whichpara[i]] + '.' + os.path.splitext(self.image_out)[1]
                 destination = driver.Create(out, self.ncols, self.nrows, 1, gdal.GDT_Float32)
                 band = destination.GetRasterBand(1)
                 band.SetDescription(self.para_names[self.whichpara[i]])

@@ -353,15 +353,22 @@ class Global_Inversion:
 
         inv = inverse.RTM_Inversion()
 
-        try:
-            inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
+        # try:
+        #     inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
+        #                         nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
+        #                         noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
+        #                         geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
+        #                         nodat=self.nodat, which_para=range(15))
+        # except ValueError as e:
+        #     self.abort(message="Failed to setup inversion: %s" % str(e))
+        #     return
+
+
+        inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
                                 nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
                                 noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
                                 geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
                                 nodat=self.nodat, which_para=range(15))
-        except ValueError as e:
-            self.abort(message="Failed to setup inversion: %s" % str(e))
-            return
 
         try:
             inv.run_inversion(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
@@ -437,9 +444,9 @@ class Global_Inversion:
 
     def debug(self):
 
-        self.image = "D:/Temp/LUT/WW_nadir_short.bsq"
-        self.out_path = "D:/Temp/LUT/Out/myresults.bsq"
-        self.LUT_path = "D:/Temp/LUT/Test_Lut_00meta.lut"
+        self.image = "D:/Temp/LUT/WW_0.bsq"
+        self.out_path = "D:/Temp/LUT/debug/Restuls_Five.bsq"
+        self.LUT_path = "D:/Temp/LUT/debug/Five_00meta.lut"
         self.ctype = 2
         self.nbfits = 20
         self.nbfits_type = "abs"
@@ -533,8 +540,10 @@ class Select_Wavelengths:
 
         origin.sortItems()
         destination.sortItems()
+        self.gui.setDisabled(False)
 
     def select(self, select):
+        self.gui.setDisabled(True)
         if select == "all":
             list_object = self.gui.lstIncluded
             direction = "in_to_ex"
