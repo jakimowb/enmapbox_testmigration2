@@ -470,6 +470,86 @@ class CanvasLink(QObject):
         cs = list(self.canvases)
         return 'CanvasLink "{}" {} <-> {}'.format(self.linkType, cs[0], cs[1])
 
+class MapCanvasInfoItem(QgsMapCanvasItem):
+
+    def __init__(self, mapCanvas):
+        assert isinstance(mapCanvas, MapCanvas)
+        super(MapCanvasInfoItem, self).__init__(mapCanvas)
+
+        self.canvas = mapCanvas
+        self.mFGColor = QColor('red')
+        self.mBGColor = QColor(125,0,0, 125)
+        self.mShowMovingCrosshair = True
+        self.mShowPixelLocationInfo = True
+        self.mShow = True
+
+
+    def setMapMouseEvent(self, mapMouseEvent):
+        self.mMapMouseEvent = mapMouseEvent
+        self.updatePosition()
+
+
+
+    def setShow(self, b):
+        assert isinstance(b, bool)
+        old = self.mShow
+        self.mShow = b
+        if old != b:
+            self.canvas.update()
+
+
+    def paint(self, painter, QStyleOptionGraphicsItem=None, QWidget_widget=None):
+        if not self.mShow:
+            return
+
+        #paint the crosshair
+        size = self.canvas.size()
+        m2p = self.canvas.mapSettings().mapToPixel()
+        centerGeo = self.canvas.center()
+        centerPx = self.toCanvasCoordinates(centerGeo)
+
+        infoLR = []
+        if isinstance(self.canvas.mMapMouseEvent, QgsMapMouseEvent):
+            match = self.canvas.mMapMouseEvent.mapPointMatch()
+            pt = self.canvas.mMapMouseEvent.mapPoint()
+            px = self.canvas.mMapMouseEvent.originalPixelPoint()
+
+            if len(pt) == 2:
+                infoLR.append('{} {}'.format(*pt))
+            for layer in self.canvas.layers():
+                if isinstance(layer, QgsRasterLayer):
+
+                    s = ""
+
+
+        #this is what we want to draw
+        lines = []
+        polygons = []
+        """
+        lines.append(QLineF(x0, centerPx.y(), centerPx.x() - gap, centerPx.y()))
+        lines.append(QLineF(x1, centerPx.y(), centerPx.x() + gap, centerPx.y()))
+        lines.append(QLineF(centerPx.x(), y0, centerPx.x(), centerPx.y() - gap))
+        lines.append(QLineF(centerPx.x(), y1, centerPx.x(), centerPx.y() + gap))
+        """
+
+
+        pen = QPen(Qt.SolidLine)
+        #pen.setWidth(crosshairStyle.mThickness)
+        pen.setColor(self.mFGColor)
+        pen.setBrush(self.mFGColor)
+        brush = QBrush(Qt.NoBrush)
+        brush.setColor(self.mBGColor)
+        painter.setBrush(brush)
+        painter.setPen(pen)
+        for p in polygons:
+            painter.drawPolygon(p)
+        for p in lines:
+            painter.drawLine(p)
+
+        if len(infoLR) > 0:
+            #print('TEST')
+            painter.drawText(0,50,'\n'.join(infoLR))
+
 
 class MapCanvas(QgsMapCanvas):
 
@@ -526,7 +606,13 @@ class MapCanvas(QgsMapCanvas):
         self.registerMapTools()
         #activate default map tool
         self.activateMapTool('PAN')
+        self.mMapMouseEvent = None
         MapCanvas._instances.add(self)
+
+
+
+    def mouseMoveEvent(self, event):
+        self.mMapMouseEvent = QgsMapMouseEvent(self,event)
 
     def refresh(self, force=False):
 
@@ -1052,9 +1138,19 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui import sandbox
-    qgsApp = sandbox.initQgisEnvironment()
+    from enmapbox.gui.utils import initQgisApplication
+    from enmapboxtestdata import enmap
+    qgsApp = initQgisApplication()
 
+    map = MapCanvas()
+
+    mapInfo = MapCanvasInfoItem(map)
+
+    lyr = QgsRasterLayer(enmap)
+    QgsMapLayerRegistry.instance().addMapLayer(lyr)
+    map.setLayers([lyr])
+    map.setExtent(lyr.extent())
+    map.show()
 
     qgsApp.exec_()
     qgsApp.exitQgis()
