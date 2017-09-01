@@ -563,10 +563,15 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         md = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=True)
         data = None
         try:
+            to_delete = []
+            if tmpVrt is None:
+                tmpVrt = tempfile.mktemp(prefix='tmpESLVrt', suffix='.esl.vrt')
+                to_delete.append(tmpVrt)
             ds = EnviSpectralLibraryIO.esl2vrt(pathESL, tmpVrt)
-            to_delete = ds.GetFileList() if tmpVrt == None else []
             data = ds.ReadAsArray()
             ds = None
+
+            #remove the temporary VRT, as it was created internally only
             for file in to_delete:
                 os.remove(file)
 

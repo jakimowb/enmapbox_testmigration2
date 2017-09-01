@@ -141,7 +141,8 @@ if __name__ == "__main__":
             addRemote(REMOTEINFOS[rn])
 
     #update remotes
-    to_update = ['hub-datacube', 'hub-workflow']
+    to_update = ['hub-datacube', 'hub-workflow','enmap-box-geoalgorithmsprovider']#enmap-box-geoalgorithmsprovider
+    #to_update = []
     for p in to_update:
         updateRemote(p)
 
