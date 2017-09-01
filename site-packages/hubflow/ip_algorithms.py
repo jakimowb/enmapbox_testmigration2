@@ -268,7 +268,7 @@ def estimatorTransform(transformation, noData, estimator, image,
 def imageBasicStatistics(image, bandIndicies=None, mask=None, **kwargs):
 
     applier = Applier(defaultGrid=image, **kwargs)
-    applier.setFlowImage('image', image=image, **kwargs)
+    applier.setFlowImage('image', image=image)
     applier.setFlowMask('mask', mask=mask)
     results = applier.apply(operator=ImageBasicStatistics, image=image, bandIndicies=bandIndicies, mask=mask)
 
@@ -302,8 +302,8 @@ def imageScatterMatrix(image1, image2, bandIndex1, bandIndex2, range1, range2, b
                        mask=None, stratification=None, **kwargs):
 
     applier = Applier(defaultGrid=image1)
-    applier.setFlowImage('image1', image=image1, **kwargs)
-    applier.setFlowImage('image2', image=image2, **kwargs)
+    applier.setFlowImage('image1', image=image1)
+    applier.setFlowImage('image2', image=image2)
     applier.setFlowMask('mask', mask=mask)
     applier.setFlowClassification('stratification', classification=stratification)
 
