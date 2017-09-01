@@ -148,6 +148,9 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.SLW = dock.SLV
         assert isinstance(self.SLW, SpectralLibraryWidget)
 
+        self.showMapSpectra = CheckableTreeNode(self, 'Show map profiles', checked=Qt.Checked)
+        self.showMapSpectra.setCheckState(Qt.Checked if self.SLW.mapInteraction() else Qt.Unchecked)
+        self.showMapSpectra.sigCheckStateChanged.connect(lambda s: self.SLW.setMapInteraction(s == Qt.Checked))
         self.profilesNode = TreeNode(self, 'Profiles', value=0)
         self.SLW.mSpeclib.sigProfilesAdded.connect(self.updateNodes)
         self.SLW.mSpeclib.sigProfilesRemoved.connect(self.updateNodes)
@@ -454,7 +457,11 @@ class DockManagerTreeModel(TreeModel):
                         flags |= Qt.ItemIsDropEnabled
                 if isinstance(node.parent(), MapDockTreeNode) and node.name() == 'Layers':
                     flags |= Qt.ItemIsUserCheckable
-        #mapCanvas Layer Tree Nodes
+
+                if isinstance(node, CheckableTreeNode):
+                    flags |= Qt.ItemIsUserCheckable
+
+                        #mapCanvas Layer Tree Nodes
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
             if column == 0:
                 flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
@@ -615,6 +622,8 @@ class DockManagerTreeModel(TreeModel):
                     if isinstance(node, DockTreeNode):
                         if isinstance(node.dock, Dock):
                             return Qt.Checked if node.dock.isVisible() else Qt.Unchecked
+                    if isinstance(node, CheckableTreeNode):
+                        return node.checkState()
             else:
                 if role == Qt.DisplayRole:
                     return node.value()
@@ -637,6 +646,10 @@ class DockManagerTreeModel(TreeModel):
             if role == Qt.EditRole and len(value) > 0:
                 node.dock.setTitle(value)
                 result = True
+
+        if isinstance(node, CheckableTreeNode) and role == Qt.CheckStateRole:
+            node.setCheckState(Qt.Unchecked if value in [False, 0, Qt.Unchecked] else Qt.Checked)
+            return True
 
         if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
 
@@ -709,9 +722,6 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 menu = QMenu()
                 a = menu.addAction('Copy')
                 a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
-
-
-
 
         return menu
 
@@ -906,6 +916,12 @@ class DockManager(QgsLegendInterface):
         elif dockType == 'SPECLIB':
             kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
+            from enmapbox.gui.enmapboxgui import EnMAPBox
+            emb = EnMAPBox.instance()
+            if isinstance(emb, EnMAPBox):
+                emb.sigCurrentSpectraChanged.connect(dock.setCurrentProfiles)
+
+
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 

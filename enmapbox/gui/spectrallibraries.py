@@ -880,7 +880,7 @@ class SpectralLibraryPanel(QgsDockWidget):
     sigLoadFromMapRequest = None
     def __init__(self, parent=None):
         super(SpectralLibraryPanel, self).__init__(parent)
-
+        self.setWindowTitle('Spectral Library Panel')
         self.SLW = SpectralLibraryWidget(self)
         self.setWidget(self.SLW)
 
@@ -1541,6 +1541,12 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
             )
         )
 
+    def setMapInteraction(self, b):
+        assert isinstance(b, bool)
+        self.btnBoxMapInteraction.setVisible(b)
+
+    def mapInteraction(self):
+        return self.btnBoxMapInteraction.isVisible()
 
     def dragEnterEvent(self, event):
         assert isinstance(event, QDragEnterEvent)
@@ -1634,6 +1640,8 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
     sigCurrentSpectraChanged = pyqtSignal(list)
     def setCurrentSpectra(self, listOfSpectra):
+        if not self.mapInteraction():
+            return None
         plotItem =  self.getPlotItem()
         #remove old items
         for p in self.mCurrentSpectra:

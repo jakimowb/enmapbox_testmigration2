@@ -501,6 +501,20 @@ class SpectralLibraryDock(Dock):
         from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
         self.SLV = SpectralLibraryWidget(self)
         self.layout.addWidget(self.SLV)
+        self.mShowMapInteraction = True
+
+
+    def setMapInteraction(self,b):
+        assert isinstance(b, bool)
+        self.mShowMapInteraction = b
+        self.SLV.setMapInteraction(b)
+    def mapInteraction(self):
+        return self.mShowMapInteraction
+
+    def setCurrentProfiles(self, listOfSpectra):
+        if self.mShowMapInteraction:
+            self.SLV.setCurrentSpectra(listOfSpectra)
+
 
 
 if __name__ == '__main__':

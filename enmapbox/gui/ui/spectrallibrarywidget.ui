@@ -54,64 +54,92 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QToolButton" name="btnLoadfromMap">
-        <property name="toolTip">
-         <string>Select a spectrum from a map.</string>
-        </property>
-        <property name="text">
-         <string>Select from map</string>
-        </property>
-        <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>:/enmapbox/icons/pickrasterspectrum.png</iconset>
-        </property>
-        <property name="iconSize">
+       <widget class="QFrame" name="btnBoxMapInteraction">
+        <property name="minimumSize">
          <size>
-          <width>32</width>
-          <height>32</height>
+          <width>50</width>
+          <height>0</height>
          </size>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QToolButton" name="btnAddCurrentToSpeclib">
-        <property name="toolTip">
-         <string>Add the current spectrum to the spectral library.</string>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
         </property>
-        <property name="text">
-         <string>Add last profile to spectral library</string>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
         </property>
-        <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/profile2speclib.png</normaloff>:/enmapbox/icons/profile2speclib.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>32</width>
-          <height>32</height>
-         </size>
-        </property>
-        <property name="checkable">
-         <bool>false</bool>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cbAddCurrentSpectraToSpeclib">
-        <property name="font">
-         <font>
-          <pointsize>10</pointsize>
-         </font>
-        </property>
-        <property name="toolTip">
-         <string>Check to add current spectra automatically to the spectral library.</string>
-        </property>
-        <property name="text">
-         <string>Add Profiles</string>
-        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="margin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QToolButton" name="btnLoadfromMap">
+           <property name="toolTip">
+            <string>Select a spectrum from a map.</string>
+           </property>
+           <property name="text">
+            <string>Select from map</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resources.qrc">
+             <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>:/enmapbox/icons/pickrasterspectrum.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>32</width>
+             <height>32</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="btnAddCurrentToSpeclib">
+           <property name="toolTip">
+            <string>Add the current spectrum to the spectral library.</string>
+           </property>
+           <property name="text">
+            <string>Add last profile to spectral library</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resources.qrc">
+             <normaloff>:/enmapbox/icons/profile2speclib.png</normaloff>:/enmapbox/icons/profile2speclib.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>32</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="cbAddCurrentSpectraToSpeclib">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>Check to add current spectra automatically to the spectral library.</string>
+           </property>
+           <property name="text">
+            <string>Add Profiles</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+        <zorder>btnLoadfromMap</zorder>
+        <zorder>btnLoadfromMap</zorder>
+        <zorder>btnAddCurrentToSpeclib</zorder>
+        <zorder>cbAddCurrentSpectraToSpeclib</zorder>
        </widget>
       </item>
       <item>
@@ -136,7 +164,7 @@
          </sizepolicy>
         </property>
         <property name="toolTip">
-         <string>Add spectra from another spectral library.</string>
+         <string>Load spectral library.</string>
         </property>
         <property name="text">
          <string>Import</string>

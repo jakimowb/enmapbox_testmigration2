@@ -697,6 +697,10 @@ class DataSourceManagerTreeModel(TreeModel):
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
                 flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+
+        if isinstance(node, CheckableTreeNode):
+            flags |= Qt.ItemIsUserCheckable
+
         return flags
 
     def contextMenu(self, node):

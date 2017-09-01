@@ -308,6 +308,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         area = Qt.BottomDockWidgetArea
         from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
         self.specLibViewPanel = addPanel(SpectralLibraryPanel(self))
+        self.specLibViewPanel.setWindowTitle('Spectral Library Panel')
         self.specLibViewPanel.setVisible(False)
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -641,7 +642,7 @@ class EnMAPBox(QObject):
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
 
-        if b and len(self.mCurrentSpectra) > 0:
+        if b and len(self.mCurrentSpectra) > 0 and len(self.dockManager.docks(SpectralLibraryDock)) == 0:
             self.ui.specLibViewPanel.setVisible(True)
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 

@@ -56,6 +56,19 @@ def reclassify(pathSrc, pathDst, labelLookup,
                drvDst = None,
                dstClassScheme = None,
                bandIndices=0, tileSize=None, co=None):
+    from hubflow.types import Classification
+
+    classification.reclassify(filename=join(outdir, 'output_classificationReclassify.img'),
+                          classDefinition=ClassDefinition(names=['Impervious', 'Vegetation', 'Soil', 'Other'],
+                                                          lookup=[156, 156, 156, 56, 168, 0, 168, 112, 0, 245, 245, 122]),
+                          mapping={'Low Vegetation': 'Vegetation', 'Soil': 'Soil', 'Tree': 'Vegetation', 'Roof': 'Impervious', 'Pavement': 'Impervious', 'Other': 'Other'})
+
+
+
+def depr_reclassify(pathSrc, pathDst, labelLookup,
+               drvDst = None,
+               dstClassScheme = None,
+               bandIndices=0, tileSize=None, co=None):
     """
     Reclassifies the class labels of the source dataset (pathSrc)
     :param pathSrc: path or gdal.Dataset of source data
