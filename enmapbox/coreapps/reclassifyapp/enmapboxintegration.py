@@ -64,5 +64,5 @@ class ReclassifyTool(EnMAPBoxApplication):
             import reclassify
             reclassify.reclassify(settings.get('pathSrc'),
                                   settings.get('pathDst'),
-                                  settings.get('LUT'),
-                                  dstClassScheme=settings.get('dstClassScheme'))
+                                  settings.get('dstClassScheme'),
+                                  settings.get('LUT'))

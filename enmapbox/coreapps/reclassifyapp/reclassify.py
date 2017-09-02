@@ -52,16 +52,22 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     band.SetColorTable(ct)
 
 
-def reclassify(pathSrc, pathDst, labelLookup,
+def reclassify(pathSrc, pathDst, dstClassScheme, labelLookup,
                drvDst = None,
-               dstClassScheme = None,
                bandIndices=0, tileSize=None, co=None):
-    from hubflow.types import Classification
+    assert os.path.isfile(pathSrc)
+    assert isinstance(dstClassScheme, ClassificationScheme)
+    assert isinstance(labelLookup, dict)
 
-    classification.reclassify(filename=join(outdir, 'output_classificationReclassify.img'),
-                          classDefinition=ClassDefinition(names=['Impervious', 'Vegetation', 'Soil', 'Other'],
-                                                          lookup=[156, 156, 156, 56, 168, 0, 168, 112, 0, 245, 245, 122]),
-                          mapping={'Low Vegetation': 'Vegetation', 'Soil': 'Soil', 'Tree': 'Vegetation', 'Roof': 'Impervious', 'Pavement': 'Impervious', 'Other': 'Other'})
+
+    import hubflow.types
+    classification = hubflow.types.Classification(pathSrc)
+    names = dstClassScheme.classNames()
+    lookup = dstClassScheme.classColorArray()[:,0:4].flatten()
+    newDef = hubflow.types.ClassDefinition(names=names, lookup=lookup)
+    classification.reclassify(filename=pathDst,
+                          classDefinition=newDef,
+                          mapping=labelLookup)
 
 
 
