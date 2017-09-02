@@ -459,7 +459,7 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
     :return: band index | 0 of wavelength information is not provided
     """
     if isinstance(wl, str):
-        assert wl.upper() in LUT_WAVELENGTH.keys()
+        assert wl.upper() in LUT_WAVELENGTH.keys(), wl
         return bandClosestToWavelength(dataset, LUT_WAVELENGTH[wl.upper()], wl_unit='nm')
     else:
         wl = float(wl)
@@ -480,6 +480,8 @@ def parseWavelength(dataset):
         return parseWavelength(gdal.Open(dataset))
     elif isinstance(dataset, QgsRasterDataProvider):
         return parseWavelength(dataset.dataSourceUri())
+    elif isinstance(dataset, QgsRasterLayer):
+        return parseWavelength(dataset.source())
     elif isinstance(dataset, gdal.Dataset):
 
         for domain in dataset.GetMetadataDomainList():

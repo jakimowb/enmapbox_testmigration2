@@ -138,10 +138,10 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
         self.wavelengths = wl
         self.wavelengthUnit = wlu
 
-        self.actionSetDefault.triggered.connect(lambda : self.setBandSelection('defaultMB'))
-        self.actionSetTrueColor.triggered.connect(lambda : self.setBandSelection('TrueColor'))
-        self.actionSetCIR.triggered.connect(lambda : self.setBandSelection('CIR'))
-        self.actionSet453.triggered.connect(lambda : self.setBandSelection('453'))
+        self.actionSetDefault.triggered.connect(lambda : self.setBandSelection('default'))
+        self.actionSetTrueColor.triggered.connect(lambda : self.setBandSelection('R,G,B'))
+        self.actionSetCIR.triggered.connect(lambda : self.setBandSelection('nIR,R,G'))
+        self.actionSet453.triggered.connect(lambda : self.setBandSelection('nIR,swIR,R'))
 
         self.btnDef.setDefaultAction(self.actionSetDefault)
         self.btnTrueColor.setDefaultAction(self.actionSetTrueColor)
@@ -153,23 +153,14 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
 
     def setBandSelection(self, key):
 
+        from enmapbox.gui.utils import defaultBands, bandClosestToWavelength
         if key == 'default':
             bands = self.defaultBands[:]
 
         else:
-            if key in ['R', 'G', 'B', 'nIR', 'swIR']:
-                colors = [key]
-            elif key == 'TrueColor':
-                colors = ['R', 'G', 'B']
-            elif key == 'CIR':
-                colors = ['nIR', 'R', 'G']
-            elif key == '453':
-                colors = ['nIR', 'swIR', 'R']
+            colors = re.split('[ ,;:]', key)
 
-
-
-            wls = [LUT_Wavelenghts[c] for c in colors]
-            bands = [self.bandClosestToWavelength(wl) for wl in wls]
+            bands = [bandClosestToWavelength(self.rasterLayer(), c) for c in colors]
 
         if len(bands) == 3:
             for i, b in enumerate(bands):
@@ -614,27 +605,11 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui.utils import DIR_SITEPACKAGES
-    site.addsitedir(DIR_SITEPACKAGES)
+    from enmapbox.gui.utils import initQgisApplication
+    qgsApp = initQgisApplication()
 
-    #prepare QGIS environment
-    if sys.platform == 'darwin':
-        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
-    else:
-        # assume OSGeo4W startup
-        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    assert os.path.exists(PATH_QGS)
-
-    qgsApp = QgsApplication([], True)
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
-
-
-    pathL = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_01_image_products\01_image_products\EnMAP02_Berlin_Urban_Gradient_2009.bsq'
-    pathV = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover\LandCov_Vec_polygons_Berlin_Urban_Gradient_2009.shp'
+    from enmapboxtestdata import enmap as pathL
+    from enmapboxtestdata import landcover as pathV
     QgsRendererV2Registry.instance().renderersList()
 
     l = QgsRasterLayer(pathL)
@@ -642,7 +617,7 @@ if __name__ == '__main__':
 
     QgsMapLayerRegistry.instance().addMapLayers([l,v])
     c = QgsMapCanvas()
-    c.setLayerSet([QgsMapCanvasLayer(v)])
+    c.setLayerSet([QgsMapCanvasLayer(l)])
     c.setDestinationCrs(l.crs())
     c.setExtent(l.extent())
     c.refreshAllLayers()
@@ -651,7 +626,7 @@ if __name__ == '__main__':
     #w.show()
     b = QPushButton()
     b.setText('Show Properties')
-    b.clicked.connect(lambda: showLayerPropertiesDialog(v, c))
+    b.clicked.connect(lambda: showLayerPropertiesDialog(l, c))
     br = QPushButton()
     br.setText('Refresh')
     br.clicked.connect(lambda : c.refresh())
