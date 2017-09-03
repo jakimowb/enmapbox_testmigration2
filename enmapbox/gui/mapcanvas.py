@@ -629,14 +629,14 @@ class MapCanvas(QgsMapCanvas):
 
     def saveMapImageDialog(self, fileType):
         from enmapbox.gui import settings
-        lastDir = settings().value('CANVAS_SAVE_IMG_DIR', os.path.expanduser('~'))
-        path = jp(lastDir, '{}.{}.{}'.format(self.tsdView.TSD.date, self.mapView.title(), fileType.lower()))
+        lastDir = settings.value('EMB_SAVE_IMG_DIR', os.path.expanduser('~'))
+        path = jp(lastDir, 'screenshot.{}'.format(fileType.lower()))
 
         path = QFileDialog.getSaveFileName(self, 'Save map as {}'.format(fileType), path)
 
         if len(path) > 0:
             self.saveAsImage(path, None, fileType)
-            settings().setValue('EMB_SAVE_IMG_DIR', os.path.dirname(path))
+            settings.setValue('EMB_SAVE_IMG_DIR', os.path.dirname(path))
 
     def setCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
