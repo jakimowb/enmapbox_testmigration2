@@ -391,6 +391,7 @@ class Global_Inversion:
             inv.run_inversion(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
         except ValueError as e:
             self.abort(message="An error occurred during inversion: %s" % str(e))
+            self.prg_widget.gui.close()
             return
 
         self.prg_widget.gui.lblCaption_r.setText("Writing Output-File...")
@@ -399,10 +400,14 @@ class Global_Inversion:
         try:
             inv.write_image()
         except ValueError as e:
-            self.abort(message="An error occurred while trying to write output-image: %s" % str(e))
+            if str(e) == "Inversion canceled":
+                self.abort(message=str(e))
+                self.prg_widget.gui.close()
+            else:
+                self.abort(message="An error occurred while trying to write output-image: %s" % str(e))
             return
 
-        self.prg_widget.gui.close()
+        self.prg_widget.gui.lblCancel.setText("")
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
         self.gui.close()
 
@@ -626,11 +631,15 @@ class PRG:
     def __init__(self, main):
         self.main = main
         self.gui = PRG_GUI()
+        self.gui.lblCancel.setVisible(False)
         self.connections()
 
     def connections(self):
-        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+        self.gui.cmdCancel.clicked.connect(lambda: self.cancel())
 
+    def cancel(self):
+        self.gui.cmdCancel.setDisabled(True)
+        self.gui.lblCancel.setText("-1")
 
 class MainUiFunc:
     def __init__(self):

@@ -90,10 +90,6 @@ class RTM_Inversion:
         if self.geo_mode == "sort":
             for row in xrange(self.nrows):
                 for col in xrange(self.ncols):
-                    print self.geometry_matrix[row,col,0], self.tts_LUT
-                    print self.geometry_matrix[row,col,1], self.tto_LUT
-                    print self.geometry_matrix[row,col,2], self.psi_LUT
-                    print "***"
                     angles = []
                     angles.append(np.argmin(abs(self.geometry_matrix[row,col,0] - self.tts_LUT))) # tts
                     angles.append(np.argmin(abs(self.geometry_matrix[row,col,1] - self.tto_LUT))) # tto
@@ -250,8 +246,6 @@ class RTM_Inversion:
         if self.canopy_arch == "sail":
             self.whichpara.append([4,5,6,7,8,12,13,14])
         self.whichpara = [item for sublist in self.whichpara for item in sublist] # flatten list back
-        print self.whichpara
-
 
     def run_inversion(self, prg_widget=None, QGis_app=None):
 
@@ -263,6 +257,12 @@ class RTM_Inversion:
 
                 pix_current = r*self.ncols + c + 1
 
+                # Check if process shall be aborted
+                if prg_widget.gui.lblCancel.text() == "-1":
+                    prg_widget.gui.lblCancel.setText("")
+                    prg_widget.gui.cmdCancel.setDisabled(False)
+                    raise ValueError("Inversion canceled")
+
                 # Check if Pixel shall be excluded
                 if len(self.exclude_pixels) > 0 and self.exclude_pixels[r,c] < 1:
                     self.out_matrix[r,c,:] = self.nodat[2]
@@ -272,7 +272,7 @@ class RTM_Inversion:
                 if all(self.image[r,c,j] == self.nodat[0] for j in xrange(nbands_valid)) or \
                         any(self.geometry_matrix[r,c,i] == self.nodat[0] for i in xrange(3)):
                     self.out_matrix[r,c,:] = self.nodat[2]
-                    print "skipping: ", r, c
+                    # print "skipping: ", r, c
                     continue
 
                 estimates = np.zeros(self.ns)
@@ -307,7 +307,7 @@ class RTM_Inversion:
                 band = destination.GetRasterBand(i+1)
                 band.SetDescription(self.para_names[self.whichpara[i]])
                 band.WriteArray(self.out_matrix[:,:,i])
-            destination.SetMetadataItem('data ignore value', '-999', 'ENVI')
+            destination.SetMetadataItem('data ignore value', str(self.nodat[2]), 'ENVI')
 
         elif self.out_mode == "individual":
             for i in xrange(self.npara):
@@ -316,7 +316,7 @@ class RTM_Inversion:
                 band = destination.GetRasterBand(1)
                 band.SetDescription(self.para_names[self.whichpara[i]])
                 band.WriteArray(self.out_matrix[:,:,i])
-                destination.SetMetadataItem('data ignore value','-999','ENVI')
+                destination.SetMetadataItem('data ignore value',str(self.nodat[2]),'ENVI')
         
 def example():
     ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
