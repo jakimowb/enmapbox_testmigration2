@@ -52,6 +52,8 @@ class MetadataEditorApp(EnMAPBoxApplication):
         #assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
+
+        return None #disable metadata editor
         return a
 
 
