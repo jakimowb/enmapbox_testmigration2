@@ -207,7 +207,7 @@ enhancement</string>
      <item row="0" column="0" colspan="3">
       <widget class="QFrame" name="btnBar">
        <property name="frameShape">
-        <enum>QFrame::StyledPanel</enum>
+        <enum>QFrame::NoFrame</enum>
        </property>
        <property name="frameShadow">
         <enum>QFrame::Raised</enum>

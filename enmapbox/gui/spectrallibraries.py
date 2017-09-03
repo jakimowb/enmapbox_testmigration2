@@ -1522,10 +1522,11 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
         pi.dropEvent = self.dropEvent
 
-
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
         self.btnExportSpeclib.clicked.connect(self.onExportSpectra)
+
         self.btnAddCurrentToSpeclib.clicked.connect(self.addCurrentSpectraToSpeclib)
+
         self.btnLoadfromMap.clicked.connect(self.sigLoadFromMapRequest.emit)
 
         self.btnAddAttribute.clicked.connect(
@@ -1543,7 +1544,9 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
     def setMapInteraction(self, b):
         assert isinstance(b, bool)
-        self.btnBoxMapInteraction.setVisible(b)
+        if b is None or b is False:
+            self.setCurrentSpectra(None)
+        self.btnBoxMapInteraction.setEnabled(b)
 
     def mapInteraction(self):
         return self.btnBoxMapInteraction.isVisible()
@@ -1632,14 +1635,17 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
     def addSpeclib(self, speclib):
         if isinstance(speclib, SpectralLibrary):
-            self.mSpeclib.addProfiles([copy.copy(p) for p in speclib])
 
+            self.mSpeclib.addProfiles([copy.copy(p) for p in speclib])
+            self.btnRemoveAttribute.setEnabled(len(self.mSpeclib.metadataAttributes()) > 0)
 
     def addCurrentSpectraToSpeclib(self, *args):
         self.mSpeclib.addProfiles([p.clone() for p in self.mCurrentSpectra])
 
     sigCurrentSpectraChanged = pyqtSignal(list)
     def setCurrentSpectra(self, listOfSpectra):
+        if listOfSpectra is None:
+            listOfSpectra = []
         if not self.mapInteraction():
             return None
         plotItem =  self.getPlotItem()

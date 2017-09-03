@@ -340,14 +340,15 @@ def appendItemsToMenu(menu, itemsToAdd):
         itemsToAdd = itemsToAdd.children()
     if not isinstance(itemsToAdd, list):
         itemsToAdd = [itemsToAdd]
+
     for item in itemsToAdd:
         if isinstance(item, QAction):
             item.setParent(menu)
             menu.addAction(item)
             s = ""
         elif isinstance(item, QMenu):
-            item.setParent(menu)
-            menu.addMenu(menu)
+            #item.setParent(menu)
+            menu.addMenu(item)
         else:
             s = ""
     return menu

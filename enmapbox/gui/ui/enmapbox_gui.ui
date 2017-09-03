@@ -295,10 +295,10 @@
      <normaloff>:/enmapbox/icons/mActionZoomActual.png</normaloff>:/enmapbox/icons/mActionZoomActual.png</iconset>
    </property>
    <property name="text">
-    <string>Zoom Pixel Scale</string>
+    <string>Zoom 1:1</string>
    </property>
    <property name="toolTip">
-    <string>Zoom to pixel scale</string>
+    <string>Zoom to native resolution</string>
    </property>
   </action>
   <action name="actionAbout">

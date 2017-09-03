@@ -145,21 +145,21 @@ class SpeclibDockTreeNode(DockTreeNode):
         assert isinstance(dock, SpectralLibraryDock)
         super(SpeclibDockTreeNode, self).connectDock(dock)
         from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
-        self.SLW = dock.SLV
-        assert isinstance(self.SLW, SpectralLibraryWidget)
+        self.speclibWidget = dock.speclibWidget
+        assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
         self.showMapSpectra = CheckableTreeNode(self, 'Show map profiles', checked=Qt.Checked)
-        self.showMapSpectra.setCheckState(Qt.Checked if self.SLW.mapInteraction() else Qt.Unchecked)
-        self.showMapSpectra.sigCheckStateChanged.connect(lambda s: self.SLW.setMapInteraction(s == Qt.Checked))
+        self.showMapSpectra.setCheckState(Qt.Checked if self.speclibWidget.mapInteraction() else Qt.Unchecked)
+        self.showMapSpectra.sigCheckStateChanged.connect(lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
         self.profilesNode = TreeNode(self, 'Profiles', value=0)
-        self.SLW.mSpeclib.sigProfilesAdded.connect(self.updateNodes)
-        self.SLW.mSpeclib.sigProfilesRemoved.connect(self.updateNodes)
+        self.speclibWidget.mSpeclib.sigProfilesAdded.connect(self.updateNodes)
+        self.speclibWidget.mSpeclib.sigProfilesRemoved.connect(self.updateNodes)
 
 
     def updateNodes(self):
         from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
-        assert isinstance(self.SLW, SpectralLibraryWidget)
-        self.profilesNode.setValue(len(self.SLW.mSpeclib))
+        assert isinstance(self.speclibWidget, SpectralLibraryWidget)
+        self.profilesNode.setValue(len(self.speclibWidget.mSpeclib))
 
 
 
@@ -943,7 +943,7 @@ class DockManager(QgsLegendInterface):
             from enmapbox.gui.enmapboxgui import EnMAPBox
             emb = EnMAPBox.instance()
             if isinstance(emb, EnMAPBox):
-                emb.sigCurrentSpectraChanged.connect(dock.setCurrentProfiles)
+                emb.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
 
         else:
