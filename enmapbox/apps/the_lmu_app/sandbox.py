@@ -37,7 +37,6 @@ def sandboxWithEnMapBox(loadPF=False):
     qgsApp.exec_()
     qgsApp.quit()
 
-
 def sandboxGuiOnly():
     """
     Show & Test the GUI, without any EnMAP-Box / QGIS

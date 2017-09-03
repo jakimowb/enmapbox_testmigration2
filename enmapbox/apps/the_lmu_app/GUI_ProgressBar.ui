@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>380</width>
     <height>130</height>
    </rect>
   </property>
@@ -21,13 +21,13 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>400</width>
+    <width>380</width>
     <height>130</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>400</width>
+    <width>380</width>
     <height>130</height>
    </size>
   </property>
@@ -50,7 +50,7 @@
   <widget class="QPushButton" name="cmdCancel">
    <property name="geometry">
     <rect>
-     <x>300</x>
+     <x>280</x>
      <y>90</y>
      <width>75</width>
      <height>23</height>

@@ -329,8 +329,10 @@ class LUT:
             s2s = Spec2Sensor(sensor=sensor, nodat=-999)
             s2s.init_sensor()
             self.wl = s2s.wl_sensor
+            self.gui.spinIntBoost.setValue(10000)
         else:
             self.wl = range(400, 2501)
+            self.gui.spinIntBoost.setValue(1)
 
     def select_model(self, lop="prospectD", canopy_arch="sail"):
         self.lop = lop
@@ -385,64 +387,6 @@ class LUT:
             self.path = self.gui.lblOutPath.text().replace("\\", "/")
             if not self.path[-1] == "/":
                 self.path += "/"
-            print self.path
-
-    def test_LUT(self):
-        self.get_lutsize()
-        self.main.QGis_app.processEvents()
-        self.gui.lcdNumber.display(int(self.nlut_total))
-        self.gui.lcdSpeed.display(self.speed)
-
-        self.main.prg_widget.gui.lblCaption_l.setText("Global Inversion")
-        self.main.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
-        self.main.prg_widget.gui.show()
-        self.main.QGis_app.processEvents()
-
-        model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
-                                 int_boost=1000, s2s="default")
-        lut_run = model_I.initialize_multiple(LUT_dir="D:/ECST_III/Processor/VegProc/results_test/", LUT_name="Test1", ns=2000,
-                                    tts=[20.0, 50.0, 4.0],
-                                    tto=[0.0], psi=[45.0], N=[1.0, 2.5],
-                                    cab=[0.0, 80.0, 45.0, 5.0], cw=[0.002, 0.02], cm=[0.018],
-                                    LAI=[1.0, 8.0], LIDF=[20.0, 80.0, 40.0, 10.0], typeLIDF=[2],
-                                    hspot=[0.1], psoil=[0.0, 1.0], car=[0.0, 15.0],
-                                    cbrown=[0.0, 1.0], anth=[5.0], prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
-
-        if lut_run:
-            self.abort(message=lut_run)
-        else:
-            QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
-
-    def run_LUT(self):
-        self.get_inputs()
-        if not self.check_inputs(): return
-        self.get_lutsize()
-        self.main.QGis_app.processEvents()
-        self.gui.lcdNumber.display(int(self.nlut_total))
-        self.gui.lcdSpeed.display(self.speed)
-
-        self.main.prg_widget.gui.lblCaption_l.setText("Global Inversion")
-        self.main.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
-        self.main.prg_widget.gui.prgBar.setValue(0)
-        self.main.prg_widget.gui.setModal(True)
-        self.main.prg_widget.gui.show()
-        self.main.QGis_app.processEvents()
-
-        model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
-                                 int_boost=self.intboost, s2s=self.sensor)
-        lut_run = model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
-                                    tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
-                                    cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
-                                    LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
-                                    hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
-                                    cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'],
-                                    prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
-
-        if lut_run:
-            self.abort(message=lut_run)
-        else:
-            QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
-            self.gui.close()
 
     def get_inputs(self):
         self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
@@ -575,7 +519,78 @@ class LUT:
                                     hspot=[0.1], psoil=[0.5], car=[0.0, 12.0], cbrown=[0.0, 1.0], anth=[0.0, 10.0],
                                     testmode=1)
 
-        return time50x
+        return time50x/2
+
+    def test_LUT(self):
+
+        self.main.prg_widget.gui.lblCaption_l.setText("Global Inversion")
+        self.main.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
+        self.main.prg_widget.gui.show()
+        self.main.QGis_app.processEvents()
+
+
+        # model_I = mod.Init_Model(lop="prospect4", canopy_arch=None, nodat=-999,
+        #                          int_boost=1, s2s="default")
+        # model_I.initialize_multiple(LUT_dir="D:/Temp/LUT/", LUT_name="One", ns=3,
+        #                             tts=[],
+        #                             tto=[], psi=[], N=[1.0],
+        #                             cab=[0.0, 8.0, 9], cw=[0.2, 1.0, 5], cm=[0.018],
+        #                             LAI=[], LIDF=[], typeLIDF=[],
+        #                             hspot=[], psoil=[], car=[],
+        #                             cbrown=[], anth=[], prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+        model_I = mod.Init_Model(lop="prospect4", canopy_arch="sail", nodat=-999,
+                                 int_boost=1, s2s="default")
+        model_I.initialize_multiple(LUT_dir="D:/Temp/LUT/debug/", LUT_name="Five", ns=100,
+                                    tts=[20,50,3],
+                                    tto=[0,30,2], psi=[0], N=[1.0],
+                                    cab=[1.0, 80.0, 5], cw=[0.02, 0.04, 3], cm=[0.018],
+                                    LAI=[5.0], LIDF=[45.0], typeLIDF=[2],
+                                    hspot=[0.1], psoil=[0.5], car=[],
+                                    cbrown=[], anth=[], prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+        # model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
+        #                          int_boost=1000, s2s="default")
+        # lut_run = model_I.initialize_multiple(LUT_dir="D:/Work/Temp/LUT/", LUT_name="One", ns=2000,
+        #                             tts=[20.0, 50.0, 4.0],
+        #                             tto=[0.0], psi=[45.0], N=[1.0, 2.5],
+        #                             cab=[0.0, 80.0, 45.0, 5.0], cw=[0.002, 0.02], cm=[0.018],
+        #                             LAI=[1.0, 8.0], LIDF=[20.0, 80.0, 40.0, 10.0], typeLIDF=[2],
+        #                             hspot=[0.1], psoil=[0.0, 1.0], car=[0.0, 15.0],
+        #                             cbrown=[0.0, 1.0], anth=[5.0], prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+        QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
+
+    def run_LUT(self):
+        self.get_inputs()
+        if not self.check_inputs(): return
+        self.get_lutsize()
+        self.gui.lcdNumber.display(int(self.nlut_total))
+        self.gui.lcdSpeed.display(self.speed)
+        self.main.QGis_app.processEvents()
+
+        self.main.prg_widget.gui.lblCaption_l.setText("Global Inversion")
+        self.main.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
+        self.main.prg_widget.gui.prgBar.setValue(0)
+        self.main.prg_widget.gui.setModal(True)
+        self.main.prg_widget.gui.show()
+        self.main.QGis_app.processEvents()
+
+        model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
+                                 int_boost=self.intboost, s2s=self.sensor)
+        lut_run = model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
+                                    tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
+                                    cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
+                                    LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
+                                    hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
+                                    cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'],
+                                    prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+        if lut_run:
+            self.abort(message=lut_run)
+        else:
+            QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
+            self.gui.close()
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)

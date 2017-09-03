@@ -6,9 +6,27 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>874</width>
-    <height>831</height>
+    <width>880</width>
+    <height>830</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>880</width>
+    <height>830</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>880</width>
+    <height>830</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Creation of Look-up-table</string>
@@ -28,21 +46,20 @@
     </property>
     <item row="0" column="0">
      <widget class="QGroupBox" name="groupBox_2">
+      <property name="whatsThis">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specify sensor output for the Look-up-table. &amp;quot;Original&amp;quot; will retain the spectral configuration of the selected model&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
       <property name="title">
        <string>Sensor Type</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QRadioButton" name="SType_Landsat_B">
+        <widget class="QRadioButton" name="SType_None_B">
          <property name="text">
-          <string>Landsat8</string>
+          <string>Original</string>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="SType_Sentinel_B">
-         <property name="text">
-          <string>Sentinel2</string>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -54,12 +71,16 @@
         </widget>
        </item>
        <item>
-        <widget class="QRadioButton" name="SType_None_B">
+        <widget class="QRadioButton" name="SType_Sentinel_B">
          <property name="text">
-          <string>Original</string>
+          <string>Sentinel2</string>
          </property>
-         <property name="checked">
-          <bool>true</bool>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="SType_Landsat_B">
+         <property name="text">
+          <string>Landsat8</string>
          </property>
         </widget>
        </item>
@@ -85,6 +106,9 @@
         <width>0</width>
         <height>0</height>
        </size>
+      </property>
+      <property name="whatsThis">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select an Optical Leaf Properties Model&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="title">
        <string>Select Leaf Model</string>
@@ -161,6 +185,9 @@
         <height>130</height>
        </size>
       </property>
+      <property name="whatsThis">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose whether only the Optical Leaf Properties Model is run, or if it is coupled with a Canopy Architecture Model.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
       <property name="title">
        <string>Select Canopy Model</string>
       </property>
@@ -211,6 +238,9 @@
         <width>380</width>
         <height>130</height>
        </size>
+      </property>
+      <property name="whatsThis">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose to either&lt;/p&gt;&lt;p&gt;...use the model's default soil spectra from literature (and adjust the brightness factor with 1 being the bright representation and 0 being the dark representationl)&lt;/p&gt;&lt;p&gt;...load your own background spectrum&lt;/p&gt;&lt;p&gt;...locate a background spectrum in an image and use it as background for the model output&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="title">
        <string>Select Background</string>
@@ -790,7 +820,7 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>-104</y>
+      <y>0</y>
       <width>832</width>
       <height>950</height>
      </rect>
@@ -8183,7 +8213,7 @@
     <rect>
      <x>10</x>
      <y>140</y>
-     <width>861</width>
+     <width>851</width>
      <height>171</height>
     </rect>
    </property>
@@ -8194,6 +8224,12 @@
     <enum>QFrame::Raised</enum>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_116">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
     <item>
      <widget class="QGroupBox" name="groupBox_5">
       <property name="title">
@@ -8289,8 +8325,11 @@
           </property>
           <item>
            <widget class="QSpinBox" name="spinNS">
+            <property name="whatsThis">
+             <string>Sum of variations in the parameters that are statistically distributed</string>
+            </property>
             <property name="maximum">
-             <number>1000000</number>
+             <number>50000</number>
             </property>
             <property name="singleStep">
              <number>100</number>
@@ -8379,6 +8418,9 @@
               <height>16777215</height>
              </size>
             </property>
+            <property name="whatsThis">
+             <string>Select destination folder where the LUT files and meta file will be stored</string>
+            </property>
             <property name="text">
              <string>...</string>
             </property>
@@ -8424,7 +8466,11 @@
            <number>0</number>
           </property>
           <item>
-           <widget class="QLineEdit" name="txtLUTname"/>
+           <widget class="QLineEdit" name="txtLUTname">
+            <property name="whatsThis">
+             <string>Specify the name of your LUT</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -8467,6 +8513,9 @@
           </property>
           <item>
            <widget class="QSpinBox" name="spinNoData">
+            <property name="whatsThis">
+             <string>Select a no data value for your LUT outputs</string>
+            </property>
             <property name="minimum">
              <number>-9999</number>
             </property>
@@ -8538,6 +8587,9 @@
           </property>
           <item>
            <widget class="QSpinBox" name="spinIntBoost">
+            <property name="whatsThis">
+             <string>A multiplication factor for the modelled output. By default, reflectances between 0 and 1 are modelled. This is important if the LUT is to be used for sensor data that has a different range for reflectances (e.g. 0 to 10,000)</string>
+            </property>
             <property name="maximum">
              <number>1000000</number>
             </property>
@@ -8545,7 +8597,7 @@
              <number>10</number>
             </property>
             <property name="value">
-             <number>1000</number>
+             <number>1</number>
             </property>
            </widget>
           </item>
@@ -8579,6 +8631,9 @@
       <layout class="QGridLayout" name="gridLayout_68">
        <item row="2" column="0">
         <widget class="QPushButton" name="cmdLUTcalc">
+         <property name="whatsThis">
+          <string>Invoke a few model runs to check computer performance and estimate the total computation time</string>
+         </property>
          <property name="text">
           <string>Calculate LUT size/time</string>
          </property>
@@ -8864,15 +8919,12 @@
   <tabstop>radio_log_psoil</tabstop>
   <tabstop>radio_fix_psoil</tabstop>
   <tabstop>B_Prospect4</tabstop>
-  <tabstop>SType_Enmap_B</tabstop>
-  <tabstop>SType_None_B</tabstop>
   <tabstop>radio_gauss_N</tabstop>
   <tabstop>radio_gauss_psoil</tabstop>
   <tabstop>radio_uni_psoil</tabstop>
   <tabstop>radio_log_N</tabstop>
   <tabstop>mGroupBox</tabstop>
   <tabstop>scrollArea</tabstop>
-  <tabstop>SType_Sentinel_B</tabstop>
   <tabstop>radio_log_oza</tabstop>
   <tabstop>radio_fix_oza</tabstop>
   <tabstop>B_FindBackSpec</tabstop>
@@ -8948,6 +9000,7 @@
  <resources/>
  <connections/>
  <buttongroups>
+  <buttongroup name="buttonGroup_10"/>
   <buttongroup name="buttonGroup_11"/>
   <buttongroup name="buttonGroup_12"/>
   <buttongroup name="buttonGroup_13"/>
@@ -8962,10 +9015,9 @@
   <buttongroup name="buttonGroup_6"/>
   <buttongroup name="buttonGroup_18"/>
   <buttongroup name="buttonGroup_7"/>
+  <buttongroup name="buttonGroup_19"/>
   <buttongroup name="buttonGroup_8"/>
   <buttongroup name="buttonGroup_9"/>
   <buttongroup name="buttonGroup"/>
-  <buttongroup name="buttonGroup_10"/>
-  <buttongroup name="buttonGroup_19"/>
  </buttongroups>
 </ui>

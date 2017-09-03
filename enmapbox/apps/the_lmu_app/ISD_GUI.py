@@ -328,14 +328,14 @@ class ISD:
 
             self.plot_own_spec()
 
-            mae = np.nansum(abs(self.myResult - self.data_mean)) / len(self.myResult)
-            rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean)**2))
-            nse = 1.0 - ((np.nansum((self.data_mean - self.myResult)**2)) /
-                         (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
-            mnse = 1.0 - ((np.nansum(abs(self.data_mean - self.myResult))) /
-                          (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
-            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (self.myResult - np.nanmean(self.myResult))))
-                         / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
+            mae = np.nansum(abs(self.myResult - self.data_mean_stats)) / len(self.myResult)
+            rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean_stats)**2))
+            nse = 1.0 - ((np.nansum((self.data_mean_stats - self.myResult)**2)) /
+                         (np.nansum((self.data_mean_stats - (np.nanmean(self.data_mean_stats)))**2)))
+            mnse = 1.0 - ((np.nansum(abs(self.data_mean_stats - self.myResult))) /
+                          (np.nansum(abs(self.data_mean_stats - (np.nanmean(self.data_mean_stats))))))
+            r_squared = ((np.nansum((self.data_mean_stats - np.nanmean(self.data_mean_stats)) * (self.myResult - np.nanmean(self.myResult))))
+                         / ((np.sqrt(np.nansum((self.data_mean_stats - np.nanmean(self.data_mean_stats))**2)))
                             * (np.sqrt(np.nansum((self.myResult - np.nanmean(self.myResult))**2)))))**2
 
             errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) +
@@ -353,11 +353,11 @@ class ISD:
         if not filenameIn: return
         self.data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
         ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
-        wl_open = self.data[:,0]
-        offset = 400 - int(wl_open[0])
+        self.wl_open = self.data[:,0]
+        self.offset = 400 - int(self.wl_open[0])
         self.data_mean = np.delete(self.data, 0, axis=1)
         self.data_mean = np.mean(self.data_mean, axis=1)
-        if offset < 0: self.data_mean = self.data_mean[offset:]  # cut off first 50 Bands to start at Band 400
+        if self.offset > 0: self.data_mean_stats = self.data_mean[self.offset:]  # cut off first 50 Bands to start at Band 400
         try:
             self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
             self.data_mean[1390:1541] = np.nan
@@ -373,7 +373,10 @@ class ISD:
 
     def plot_own_spec(self):
         if self.data_mean is not None:
-            self.gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
+            print len(self.data_mean)
+            print len(range(400,2501))
+            # self.gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
+            self.gui.graphicsView.plot(self.wl_open, self.data_mean, name='observed')
 
     def clear_plot(self):
         self.gui.graphicsView.clear()

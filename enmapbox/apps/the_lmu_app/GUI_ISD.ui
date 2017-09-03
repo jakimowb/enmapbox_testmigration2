@@ -688,7 +688,7 @@
               <item row="10" column="0" colspan="3">
                <widget class="QScrollBar" name="SZA_Slide">
                 <property name="maximum">
-                 <number>900000</number>
+                 <number>890000</number>
                 </property>
                 <property name="singleStep">
                  <number>10000</number>
@@ -752,7 +752,7 @@
               <item row="8" column="0" colspan="3">
                <widget class="QScrollBar" name="OZA_Slide">
                 <property name="maximum">
-                 <number>900000</number>
+                 <number>890000</number>
                 </property>
                 <property name="singleStep">
                  <number>10000</number>
@@ -1513,6 +1513,9 @@
             <property name="focusPolicy">
              <enum>Qt::TabFocus</enum>
             </property>
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your own spectrum can be loaded and displayed together with the model output. Additional statistics are shown to allow for a manual optimization.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Load In Situ Data...</string>
             </property>
@@ -1533,6 +1536,9 @@
           </item>
           <item row="0" column="1">
            <widget class="QPushButton" name="Push_ResetInSitu">
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove the loaded spectrum from the current view&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Reset In Situ</string>
             </property>
@@ -1562,6 +1568,9 @@
               <height>0</height>
              </size>
             </property>
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Save the current output to file and be able to reload it via &amp;quot;Load In Situ Data&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Save Spectrum...</string>
             </property>
@@ -1572,6 +1581,9 @@
           </item>
           <item row="0" column="5">
            <widget class="QPushButton" name="Push_SaveParams">
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Save the current set of parameters to text-file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Save Parameter Set...</string>
             </property>
@@ -1606,6 +1618,9 @@
           </property>
           <item row="0" column="0">
            <widget class="QCheckBox" name="CheckPlotAcc">
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Draw plots on top of each other. This may cause your computer to become slower if too many spectra are displayed. Use &amp;quot;Reset Plot&amp;quot; occasionally.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Plot Accumulative</string>
             </property>
@@ -1626,6 +1641,9 @@
           </item>
           <item row="0" column="1">
            <widget class="QPushButton" name="pushClearPlot">
+            <property name="whatsThis">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove all plots from the current view&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
              <string>Reset Plot</string>
             </property>
@@ -1639,46 +1657,6 @@
        </item>
        <item row="0" column="0">
         <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="0">
-          <widget class="QGroupBox" name="groupBox_2">
-           <property name="title">
-            <string>Sensor Type</string>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_2">
-            <item>
-             <widget class="QRadioButton" name="SType_Landsat_B">
-              <property name="text">
-               <string>Landsat8</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QRadioButton" name="SType_Sentinel_B">
-              <property name="text">
-               <string>Sentinel</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QRadioButton" name="SType_Enmap_B">
-              <property name="text">
-               <string>EnMAP</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QRadioButton" name="SType_None_B">
-              <property name="text">
-               <string>Original</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
          <item row="0" column="1">
           <widget class="QGroupBox" name="groupBox">
            <property name="minimumSize">
@@ -1699,6 +1677,9 @@
              <height>0</height>
             </size>
            </property>
+           <property name="whatsThis">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select an Optical Leaf Properties Model&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
            <property name="title">
             <string>Select Leaf Model</string>
            </property>
@@ -1706,16 +1687,6 @@
             <bool>false</bool>
            </property>
            <layout class="QGridLayout" name="gridLayout_6">
-            <item row="2" column="2">
-             <widget class="QRadioButton" name="B_Liberty">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="text">
-               <string>Liberty</string>
-              </property>
-             </widget>
-            </item>
             <item row="2" column="1">
              <widget class="QRadioButton" name="B_Prospect5">
               <property name="text">
@@ -1730,6 +1701,23 @@
               </property>
              </widget>
             </item>
+            <item row="0" column="2">
+             <widget class="QRadioButton" name="B_Prospect5b">
+              <property name="text">
+               <string>Prospect 5b</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="2">
+             <widget class="QRadioButton" name="B_Liberty">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Liberty</string>
+              </property>
+             </widget>
+            </item>
             <item row="1" column="2">
              <widget class="QRadioButton" name="B_ProspectD">
               <property name="text">
@@ -1737,13 +1725,6 @@
               </property>
               <property name="checked">
                <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2">
-             <widget class="QRadioButton" name="B_Prospect5b">
-              <property name="text">
-               <string>Prospect 5b</string>
               </property>
              </widget>
             </item>
@@ -1773,6 +1754,9 @@
              <width>119</width>
              <height>130</height>
             </size>
+           </property>
+           <property name="whatsThis">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose whether only the Optical Leaf Properties Model is run, or if it is coupled with a Canopy Architecture Model.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="title">
             <string>Select Canopy Model</string>
@@ -1824,6 +1808,9 @@
              <width>380</width>
              <height>130</height>
             </size>
+           </property>
+           <property name="whatsThis">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose to either&lt;/p&gt;&lt;p&gt;...use the models' default soil spectra from literature (and adjust the brightness factor with 1 being the bright representation and 0 being the dark representationl)&lt;/p&gt;&lt;p&gt;...load your own background spectrum&lt;/p&gt;&lt;p&gt;...locate a background spectrum in an image and use it as background for the model output&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="title">
             <string>Select Background</string>
@@ -1923,8 +1910,11 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="whatsThis">
+               <string/>
+              </property>
               <property name="text">
-               <string>1</string>
+               <string>0.5</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2004,6 +1994,49 @@
               </property>
               <property name="text">
                <string>Load background spectrum</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QGroupBox" name="groupBox_2">
+           <property name="whatsThis">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Originally, the ISD-tool draws spectra according to the model output. If you wish to analyze spectra of how other sensors would have recorded them, you can select one of the available sensors.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="title">
+            <string>Sensor Type</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <item>
+             <widget class="QRadioButton" name="SType_None_B">
+              <property name="text">
+               <string>Original</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="SType_Enmap_B">
+              <property name="text">
+               <string>EnMAP</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="SType_Sentinel_B">
+              <property name="text">
+               <string>Sentinel2</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="SType_Landsat_B">
+              <property name="text">
+               <string>Landsat8</string>
               </property>
              </widget>
             </item>

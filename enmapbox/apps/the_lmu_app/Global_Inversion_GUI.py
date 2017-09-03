@@ -149,6 +149,19 @@ class Global_Inversion:
             self.LUT_path = result
             self.LUT_path = self.LUT_path.replace("\\", "/")
             self.gui.lblInputLUT.setText(result)
+            with open(self.LUT_path, 'r') as metafile:
+                metacontent = metafile.readlines()
+                metacontent = [line.rstrip('\n') for line in metacontent]
+            if metacontent[4].split("=")[1] == "None":
+                self.gui.radGeoFix.setDisabled(True)
+                self.gui.radGeoFromFile.setDisabled(True)
+                self.gui.radGeoOff.setChecked(True)
+                self.select_geo(mode="off")
+            else:
+                self.gui.radGeoFix.setDisabled(False)
+                self.gui.radGeoFromFile.setDisabled(False)
+
+
         elif mode=="output":
             result = str(QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)"))
             if not result: return
@@ -274,6 +287,10 @@ class Global_Inversion:
                 except ValueError:
                     raise ValueError('Cannot interpret Geometry angles as numbers')
 
+        elif self.geo_mode == "off":
+            self.geo_fixed = None
+            self.geo_file = None
+
         # Noise
         if not self.noisetype == 0:
             if self.gui.txtNoiseLevel.text() == "": raise ValueError('Please specify level for artificial noise')
@@ -358,10 +375,17 @@ class Global_Inversion:
                                 nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
                                 noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
                                 geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
-                                nodat=self.nodat, which_para=range(15))
+                                nodat=self.nodat)
         except ValueError as e:
             self.abort(message="Failed to setup inversion: %s" % str(e))
             return
+
+
+        # inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
+        #                         nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
+        #                         noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
+        #                         geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
+        #                         nodat=self.nodat)
 
         try:
             inv.run_inversion(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
@@ -437,9 +461,9 @@ class Global_Inversion:
 
     def debug(self):
 
-        self.image = "D:/Temp/LUT/WW_nadir_short.bsq"
-        self.out_path = "D:/Temp/LUT/Out/myresults.bsq"
-        self.LUT_path = "D:/Temp/LUT/Test_Lut_00meta.lut"
+        self.image = "D:/Temp/LUT/WW_0.bsq"
+        self.out_path = "D:/Temp/LUT/debug/Restuls_Five.bsq"
+        self.LUT_path = "D:/Temp/LUT/debug/Five_00meta.lut"
         self.ctype = 2
         self.nbfits = 20
         self.nbfits_type = "abs"
@@ -466,7 +490,7 @@ class Global_Inversion:
                             nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
                             noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
                             geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
-                            nodat=[-999]*3, which_para=range(15))
+                            nodat=[-999]*3)
 
         if inv_setup:
             self.abort(message=inv_setup)
@@ -533,8 +557,10 @@ class Select_Wavelengths:
 
         origin.sortItems()
         destination.sortItems()
+        self.gui.setDisabled(False)
 
     def select(self, select):
+        self.gui.setDisabled(True)
         if select == "all":
             list_object = self.gui.lstIncluded
             direction = "in_to_ex"
