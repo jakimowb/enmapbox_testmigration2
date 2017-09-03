@@ -1705,11 +1705,12 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         currentSelection = self.mSelectionModel.selection()
 
         profileSelection = QItemSelection(m.createIndex(idx.row(), 0), \
-                                   m.createIndex(idx.row(), m.columnCount()-1))
+                                          m.createIndex(idx.row(), m.columnCount()-1))
 
         modifiers = QApplication.keyboardModifiers()
         if modifiers == Qt.ShiftModifier:
-            profileSelection.merge(currentSelection, QItemSelectionModel.Select)
+            profileSelection.merge(currentSelection, QItemSelectionModel.Toggle)
+
         self.mSelectionModel.select(profileSelection, QItemSelectionModel.ClearAndSelect)
 
 
