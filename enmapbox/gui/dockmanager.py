@@ -849,8 +849,11 @@ class DockManager(QgsLegendInterface):
 
         elif isinstance(event, QDropEvent):
             MH = MimeDataHelper(event.mimeData())
+
             layers = []
             textfiles = []
+            speclibs = []
+
             if MH.hasMapLayers():
                 layers = MH.mapLayers()
             elif MH.hasDataSources():
@@ -859,15 +862,25 @@ class DockManager(QgsLegendInterface):
                         layers.append(ds.createUnregisteredMapLayer())
                     elif isinstance(ds, DataSourceTextFile):
                         textfiles.append(ds)
+                    elif isinstance(ds, DataSourceSpectralLibrary):
+                        speclibs.append(ds)
 
             #register datasources
-            for src in layers + textfiles:
+            for src in layers + textfiles + speclibs:
                 self.dataSourceManager.addSource(src)
 
             #open map dock for new layers
             if len(layers) > 0:
-                NEW_MAP_DOCK = self.createDock('MAP')
-                NEW_MAP_DOCK.addLayers(layers)
+                NEW_DOCK = self.createDock('MAP')
+                assert isinstance(NEW_SPECLIB_DOCK, MapDock)
+                NEW_DOCK.addLayers(layers)
+
+            if len(speclibs) > 0:
+                NEW_DOCK = self.createDock('SPECLIB')
+                assert isinstance(NEW_DOCK, SpectralLibraryDock)
+                from spectrallibraries import SpectralLibrary
+                for speclib in speclibs:
+                    NEW_DOCK.speclibWidget.addSpeclib(SpectralLibrary.readFrom(speclib.uri()))
 
             #open test dock for new text files
             for textSource in textfiles:

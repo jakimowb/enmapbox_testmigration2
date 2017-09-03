@@ -348,7 +348,9 @@ def appendItemsToMenu(menu, itemsToAdd):
             s = ""
         elif isinstance(item, QMenu):
             #item.setParent(menu)
-            menu.addMenu(item)
+            sub = menu.addMenu(item.title())
+            sub.setIcon(item.icon())
+            appendItemsToMenu(sub, item.children()[1:])
         else:
             s = ""
     return menu
