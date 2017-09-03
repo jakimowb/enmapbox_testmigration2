@@ -431,13 +431,16 @@ class DockManagerTreeModel(TreeModel):
     def flags(self, index):
         if not index.isValid():
             return Qt.NoItemFlags
-
-
-
         node = self.index2node(index)
         dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)
         if len(dockNode) == 0:
             return Qt.NoItemFlags
+        elif len(dockNode) > 1:
+            print('DEBUG: Multiple docknodes selected')
+            return Qt.NoItemFlags
+        else:
+            dockNode = dockNode[0]
+
 
         if node is None:
             return Qt.NoItemFlags
@@ -466,8 +469,8 @@ class DockManagerTreeModel(TreeModel):
             if column == 0:
                 flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
 
-                if not (isinstance(dockNode, MapDockTreeNode) and node == dockNode.layerNode):
-                    flags |= Qt.ItemIsDragEnabled
+            if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
+                flags |= Qt.ItemIsDragEnabled
 
 
         return flags
@@ -540,14 +543,22 @@ class DockManagerTreeModel(TreeModel):
         if len(indexes) == 0:
             return None
 
+        """
+        nodesFinal = []
+        for idx in indexes:
+            node = self.index2node(idx)
+            if type(node) == QgsLayerTreeGroup:
+                if not isinstance(node.parent(), MapDockTreeNode):
+                    nodesFinal.append(node)
+            elif type(node) == QgsLayerTreeLayer:
+                nodesFinal.append(node)
+
+        """
         nodesFinal = self.indexes2nodes(indexes, True)
 
 
 
-        #docktree to mime data
-        from enmapbox.gui.utils import EnMAPBoxMimeData
         mimeData = QMimeData()
-        #MimeDataHelper.storeObjectReferences(mimeData, nodesFinal)
 
         doc = QDomDocument()
         rootElem = doc.createElement("dock_tree_model_data")
@@ -557,6 +568,19 @@ class DockManagerTreeModel(TreeModel):
         mimeData.setData("application/enmapbox.docktreemodeldata", doc.toString())
 
         # layertree to mime data
+
+        mapNodes = [n for n in nodesFinal if type(n) in [QgsLayerTreeLayer, QgsLayerTreeGroup]]
+        if len(mapNodes) > 0:
+            doc = QDomDocument()
+            rootElem = doc.createElement('layer_tree_model_data')
+            for node in mapNodes:
+                if type(node) == QgsLayerTreeGroup:
+                    node.writeLayerTreeGroupXML(rootElem)
+                elif type(node) == QgsLayerTreeLayer:
+                    node.writeXML(rootElem)
+            doc.appendChild(rootElem)
+            mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
+        """
         mapDockNodes = self.parentNodesFromIndices(indexes, nodeInstanceType=MapDockTreeNode)
         if len(mapDockNodes) > 0:
             doc = QDomDocument()
@@ -565,7 +589,7 @@ class DockManagerTreeModel(TreeModel):
                 dockNode.writeLayerTreeGroupXML(rootElem)
             doc.appendChild(rootElem)
             mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
-
+        """
 
         return mimeData
 
