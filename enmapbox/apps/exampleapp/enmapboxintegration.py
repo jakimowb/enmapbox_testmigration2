@@ -55,6 +55,7 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
 
         appMenu.addMenu(menu)
 
+        return None #remove this line to load ExamplAlgorithm QMenu
         return menu
 
 
@@ -72,6 +73,7 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         ui.show()
 
     def geoAlgorithms(self):
+        return [] #remove this line to load geoAlgorithms
         return [MyEnMAPBoxAppGeoAlgorithm()]
 
 
