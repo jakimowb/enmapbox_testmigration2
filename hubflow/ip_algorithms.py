@@ -29,6 +29,28 @@ class VectorRasterize(ApplierOperator):
         array = self.getFlowVectorArray('vector', vector=vector)
         self.setArray('image', array=array)
 
+def maskFromVector(vector, maskFilename, grid, **kwargs):
+
+    assert isinstance(vector, hubflow.types.Vector)
+    assert isinstance(grid, PixelGrid)
+
+    assert 0 #todo
+
+    #use soft mask
+
+    applier = Applier(defaultGrid=grid, **kwargs)
+    applier.setFlowVector('vector', vector=vector)
+    applier.setOutput('mask', filename=maskFilename)
+    applier.apply(operator=MaskFromVector, vector=vector)
+    return hubflow.types.Mask(filename=maskFilename)
+
+class MaskFromVector(ApplierOperator):
+
+    def ufunc(self, vector):
+        array = self.getFlowVectorArray('vector', vector=vector)
+        self.setArray('image', array=array)
+
+
 def vectorUniqueValues(vector, attribute):
 
     assert isinstance(vector, hubflow.types.Vector)
@@ -301,7 +323,7 @@ class ImageBasicStatistics(ApplierOperator):
 def imageScatterMatrix(image1, image2, bandIndex1, bandIndex2, range1, range2, bins,
                        mask=None, stratification=None, **kwargs):
 
-    applier = Applier(defaultGrid=image1)
+    applier = Applier(defaultGrid=image1, **kwargs)
     applier.setFlowImage('image1', image=image1)
     applier.setFlowImage('image2', image=image2)
     applier.setFlowMask('mask', mask=mask)
@@ -341,3 +363,26 @@ class ImageScatterMatrix(ApplierOperator):
             H = numpy.stack(HList)
 
         return H
+
+def classificationReclassify(filename, classification, classDefinition, mapping, **kwargs):
+    assert isinstance(classification, hubflow.types.Classification)
+    assert isinstance(classDefinition, hubflow.types.ClassDefinition)
+    assert isinstance(mapping, dict)
+
+    applier = Applier(defaultGrid=classification, **kwargs)
+    applier.setFlowImage('inclassification', image=classification)
+    applier.setOutput('outclassification', filename=filename)
+    applier.apply(operator=ClassificationReclassify, classification=classification, classDefinition=classDefinition, mapping=mapping)
+
+class ClassificationReclassify(ApplierOperator):
+
+    def ufunc(self, classification, classDefinition, mapping):
+
+        inclassification = self.getFlowImageArray('inclassification', image=classification)
+        outclassification = self.getFull(value=0, bands=1, dtype=numpy.uint8)
+        for inclass, outclass in mapping.items():
+            if inclass in classification.classDefinition.names: inclass = classification.classDefinition.names.index(inclass) + 1
+            if outclass in classDefinition.names: outclass = classDefinition.names.index(outclass) + 1
+            outclassification[inclassification==inclass] = outclass
+        self.setArray('outclassification', array=outclassification)
+        self.setFlowMetadataClassDefinition('outclassification', classDefinition=classDefinition)
