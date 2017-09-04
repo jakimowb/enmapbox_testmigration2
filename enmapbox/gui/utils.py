@@ -429,10 +429,17 @@ def convertMetricUnit(value, u1, u2):
     return value * 10**(e1-e2)
 
 def defaultBands(dataset):
+    """
+    Returns a list of 3 default bands
+    :param dataset:
+    :return:
+    """
     if isinstance(dataset, str) or isinstance(dataset, unicode):
         return defaultBands(gdal.Open(dataset))
     elif isinstance(dataset, QgsRasterDataProvider):
         return defaultBands(dataset.dataSourceUri())
+    elif isinstance(dataset, QgsRasterLayer):
+        return defaultBands(dataset.source())
     elif isinstance(dataset, gdal.Dataset):
 
         db = dataset.GetMetadataItem('default_bands', 'ENVI')
@@ -447,8 +454,18 @@ def defaultBands(dataset):
             ci = band.GetColorInterpretation()
             if ci in cis:
                 db[cis.index(ci)] = b
-        return db
+        if db != [0,0,0]:
+            return db
 
+        rl = QgsRasterLayer(dataset.GetFileList()[0])
+        defaultRenderer = rl.renderer()
+        if isinstance(defaultRenderer, QgsRasterRenderer):
+            db = defaultRenderer.usesBands()
+            if len(db) == 0:
+                return [0,1,2]
+            elif len(db) > 3:
+                return db[0:3]
+        return db
 
     else:
         raise Exception()
