@@ -17,16 +17,7 @@
    <property name="spacing">
     <number>2</number>
    </property>
-   <property name="leftMargin">
-    <number>2</number>
-   </property>
-   <property name="topMargin">
-    <number>2</number>
-   </property>
-   <property name="rightMargin">
-    <number>2</number>
-   </property>
-   <property name="bottomMargin">
+   <property name="margin">
     <number>2</number>
    </property>
    <item>
@@ -39,6 +30,9 @@
      </property>
      <item>
       <widget class="QToolButton" name="btnLoadClasses">
+       <property name="toolTip">
+        <string>Load classification scheme from raster image</string>
+       </property>
        <property name="text">
         <string>Load</string>
        </property>
@@ -53,6 +47,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="btnAddClasses">
+       <property name="toolTip">
+        <string>Add a new class</string>
+       </property>
        <property name="text">
         <string>Add</string>
        </property>
@@ -67,6 +64,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="btnRemoveClasses">
+       <property name="toolTip">
+        <string>Remove selected classes</string>
+       </property>
        <property name="text">
         <string>Remove</string>
        </property>

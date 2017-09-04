@@ -76,6 +76,18 @@ class TextDockTreeNode(DockTreeNode):
         super(TextDockTreeNode, self).__init__(parent, dock)
         self.setIcon(QIcon(IconProvider.Dock))
 
+    def connectDock(self, dock):
+        assert isinstance(dock, TextDock)
+        super(TextDockTreeNode, self).connectDock(dock)
+
+        self.fileNode = TreeNode(self, 'File')
+        dock.textDockWidget.sigSourceChanged.connect(self.setLinkedFile)
+        self.setLinkedFile(dock.textDockWidget.mFile)
+
+    def setLinkedFile(self, path):
+        self.fileNode.setValue(path)
+        self.fileNode.setTooltip(path)
+
     def writeXML(self, parentElement):
         return super(MapDockTreeNode, self).writeXML(parentElement, 'text-dock-tree-node')
 

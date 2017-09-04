@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import itertools
+import itertools, codecs
 import os
 import uuid
 from qgis.gui import *
@@ -390,6 +390,67 @@ class CursorLocationValueDock(Dock):
     def showLocationValues(self, *args):
         self.w.showLocationValues(*args)
 
+class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
+
+    FILTERS = ';;'.join(["Textfiles (*.txt *.csv *.hdr)", \
+                        "HTML (*.html)" \
+                        "Any file (*.*)"
+                         ])
+
+    sigSourceChanged = pyqtSignal(str)
+    def __init__(self, parent=None):
+        super(TextDockWidget, self).__init__(parent=parent)
+        self.setupUi(self)
+        self.mFile = None
+
+        self.btnLoadFile.setIcon(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton))
+        self.btnLoadFile.clicked.connect(lambda: self.loadFile(
+            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
+        self.btnSaveFile.clicked.connect(lambda: self.save(saveAs=False))
+        self.btnSaveAs.clicked.connect(lambda :self.save(saveAs=True))
+
+    def loadFile(self, path):
+        if os.path.isfile(path):
+            data = None
+            with codecs.open(path, 'r', 'utf-8') as file:
+                data = ''.join(file.readlines())
+
+            ext = os.path.splitext(path)[-1].lower()
+            if data is not None:
+                if ext in ['.html']:
+                    self.textEdit.setHtml(data)
+                else:
+                    self.textEdit.setText(data)
+
+                self.mFile = path
+
+        else:
+            self.mFile = None
+        self.sigSourceChanged.emit(str(path))
+
+
+    def save(self, saveAs=False):
+        if self.mFile is None or saveAs:
+            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+                                        directory=self.mFile,
+                                        filter=TextDockWidget.FILTERS)
+            s = ""
+            if len(path) > 0:
+                self.mFile = path
+
+        if self.mFile is not None and len(self.mFile) > 0:
+            ext = os.path.splitext(self.mFile)[-1].lower()
+            import codecs
+            if ext in ['.txt','.csv', '.hdr']:
+
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toPlainText())
+            elif ext in ['.html']:
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toHtml())
+
+
+
 class TextDock(Dock):
     """
     A dock to visualize textural data
@@ -400,13 +461,13 @@ class TextDock(Dock):
 
         super(TextDock, self).__init__(*args, **kwds)
 
-        self.textEdit = QTextEdit(self)
+        self.textDockWidget = TextDockWidget(self)
 
         if html:
-            self.textEdit.insertHtml(html)
+            self.textDockWidget.textEdit.insertHtml(html)
         elif plainTxt:
-            self.textEdit.insertPlainText(plainTxt)
-        self.layout.addWidget(self.textEdit)
+            self.textDockWidget.textEdit.insertPlainText(plainTxt)
+        self.layout.addWidget(self.textDockWidget)
 
 
 class WebViewDock(Dock):
@@ -524,13 +585,10 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui import sandbox
-    qgsApp = sandbox.initQgisEnvironment()
+    from enmapbox.gui.utils import initQgisApplication
+    qgsApp = initQgisApplication()
     da = DockArea()
     dock = TextDock(name='title')
-    dock2 = TextDock(name='Super duper long label Super duper long label Super duper long label')
     da.addDock(dock)
-    da.addDock(dock2)
     da.show()
     qgsApp.exec_()
-    qgsApp.exitQgis()

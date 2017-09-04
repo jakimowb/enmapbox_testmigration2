@@ -20,7 +20,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="movable">
       <bool>true</bool>
@@ -116,8 +116,6 @@
            </widget>
           </item>
          </layout>
-         <zorder>widgetDstFile</zorder>
-         <zorder>widgetDstFile</zorder>
         </widget>
        </item>
        <item>
