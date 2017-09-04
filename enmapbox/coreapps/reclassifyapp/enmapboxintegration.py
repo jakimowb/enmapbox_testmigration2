@@ -62,7 +62,7 @@ class ReclassifyTool(EnMAPBoxApplication):
         #        'classNames': dstScheme.classNames(), 'classColors': dstScheme.classColors()}
         if len(settings) > 0 :
             import reclassify
-            reclassify.reclassify(settings.get('pathSrc'),
-                                  settings.get('pathDst'),
-                                  settings.get('dstClassScheme'),
-                                  settings.get('LUT'))
+            reclassify.reclassify(settings['pathSrc'],
+                                  settings['pathDst'],
+                                  settings['dstClassScheme'],
+                                  settings['labelLookup'])

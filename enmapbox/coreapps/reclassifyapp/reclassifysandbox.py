@@ -60,9 +60,10 @@ def sandboxGuiOnly():
 
     ui1.show()
 
-    from enmapbox.testdata.UrbanGradient import EnMAP
-    ui1.addSrcRaster(EnMAP)
-    ui1.setDstRaster(r'D:\Temp\testclass.bsq')
+    from enmapbox.gui.utils import DIR_REPO, jp
+
+    pathSrc = jp(DIR_REPO, 'tmp/testclassification.tif')
+    ui1.addSrcRaster(pathSrc)
     from enmapbox.gui.classificationscheme import ClassificationScheme
     ui1.setDstClassification(ClassificationScheme.create(3))
     print(ui1.reclassificationSettings())
@@ -70,6 +71,6 @@ def sandboxGuiOnly():
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if False: sandboxGuiOnly()
-    if True: sandboxWithEnMapBox(loadPF=False)
+    if True: sandboxGuiOnly()
+    if False: sandboxWithEnMapBox(loadPF=False)
 

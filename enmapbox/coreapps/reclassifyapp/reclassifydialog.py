@@ -79,6 +79,12 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         self.validate()
 
     def setDstClassification(self, classScheme):
+        """
+        Sets the destination ClassificationScheme
+        :param classScheme: path of classification file or ClassificationScheme
+        """
+        if (isinstance(classScheme, str) or isinstance(classScheme, unicode)) and os.path.isfile(classScheme):
+            classScheme = ClassificationScheme.fromRasterImage(classScheme)
         self.dstClassificationSchemeWidget.setClassificationScheme(classScheme)
 
     def setDstRaster(self,path):
