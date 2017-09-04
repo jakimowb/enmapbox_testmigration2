@@ -25,7 +25,6 @@ class FlowObjectPickleFileError(Exception):
 class FlowObjectTypeError(Exception):
     pass
 
-
 class FlowObject(object):
 
     def pickle(self, filename):
@@ -124,6 +123,11 @@ class Mask(Image):
             noData = 0
         self.noData = noData
 
+    @staticmethod
+    def fromVector(filename, vector, grid, **kwargs):
+        assert isinstance(vector, Vector)
+        return vector.rasterize(imageFilename=filename, grid=grid, **kwargs).asMask()
+
 class Vector(FlowObject):
 
     def __init__(self, filename, layer=0, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, dtype=numpy.float32):
@@ -144,7 +148,7 @@ class Vector(FlowObject):
 
 class VectorClassification(Vector):
 
-    def __init__(self, filename, classDefinition, idAttribute, layer=0, allTouched=False, filterSQL=None, minOverallCoverage=0.5, minWinnerCoverage=0.5):
+    def __init__(self, filename, classDefinition, idAttribute, layer=0, allTouched=False, filterSQL=None, minOverallCoverage=1., minWinnerCoverage=0.):
         Vector.__init__(self, filename=filename, layer=layer, initValue=0, burnAttribute=idAttribute, allTouched=allTouched, filterSQL=filterSQL, dtype=numpy.uint8)
         assert isinstance(classDefinition, ClassDefinition)
         self.classDefinition = classDefinition
@@ -233,6 +237,13 @@ class Classification(Image):
         self.minOverallCoverage = minOverallCoverage
         self.minWinnerCoverage = minWinnerCoverage
 
+    @classmethod
+    def fromVectorClassification(cls, filename, vectorClassification, grid, oversampling, **kwargs):
+        return vectorClassification.rasterizeAsClassification(classificationFilename=filename, grid=grid, oversampling=oversampling, **kwargs)
+
+    def reclassify(self, filename, classDefinition, mapping):
+        return ipalg.classificationReclassify(filename=filename, classification=self, classDefinition=classDefinition, mapping=mapping)
+
     def assessClassificationPerformance(self, classification, **kwargs):
         assert isinstance(classification, Classification)
         yP = self.sampleByMask(mask=classification.asMask(), grid=classification.pixelGrid,
@@ -276,6 +287,10 @@ class Probability(Regression):
         assert isinstance(classDefinition, ClassDefinition)
         Regression.__init__(self, filename=filename, noData=-1, outputNames=classDefinition.names)
         self.classDefinition = classDefinition
+
+    @classmethod
+    def fromVectorClassification(cls, filename, vectorClassification, grid, oversampling, **kwargs):
+        return vectorClassification.rasterizeAsProbability(probabilityFilename=filename, grid=grid, oversampling=oversampling, **kwargs)
 
     def subsetClassesByLabel(self, filename, labels, **kwargs):
         names = self.classDefinition.getColorByName()
