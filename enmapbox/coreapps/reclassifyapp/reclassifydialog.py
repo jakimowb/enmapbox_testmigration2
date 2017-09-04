@@ -59,7 +59,7 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
 
         self.btnSelectSrcfile.clicked.connect(lambda:self.addSrcRaster(QFileDialog.getOpenFileName()))
         self.btnSelectDstFile.clicked.connect(lambda:self.tbDstFile.setText(QFileDialog.getSaveFileName()))
-        self.widgetDstFile.setType(QgsRasterFormatSaveOptionsWidget.LineEdit)
+        self.widgetDstFile.setType(QgsRasterFormatSaveOptionsWidget.Full)
         self.widgetDstFile.setProvider('gdal')
         self.widgetDstFile.setFormat('GTIFF')
         self.widgetDstFile.setRasterFileName('reclassifified.bsq')
@@ -68,6 +68,11 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
         self.tableWidget.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.mapLayerComboBox.currentIndexChanged.connect(self.refreshTransformationTable)
+
+
+        #start validation if content changes in...
+        self.tbDstFile.textChanged.connect(self.validate)
+
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapBox = EnMAPBox.instance()
@@ -87,8 +92,11 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
             classScheme = ClassificationScheme.fromRasterImage(classScheme)
         self.dstClassificationSchemeWidget.setClassificationScheme(classScheme)
 
+
     def setDstRaster(self,path):
         self.tbDstFile.setText(path)
+        self.widgetDstFile.setRasterFileName(path)
+
 
     def addSrcRaster(self, src):
         addedItems = [self.mapLayerComboBox.itemData(i, role=Qt.UserRole) for
@@ -96,7 +104,8 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         if hasClassification(src) and src not in addedItems:
             bn = os.path.basename(src)
             self.mapLayerComboBox.addItem(bn, src)
-        self.validate()
+            self.validate()
+
 
     def srcClassificationScheme(self):
         return self.mSrcClassScheme
@@ -164,7 +173,6 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         self.validate()
 
 
-    sigValidationChanged = pyqtSignal(bool)
     def validate(self):
 
         isOk = True
@@ -173,7 +181,8 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         isOk &= len(self.tbDstFile.text()) > 0
         isOk &= self.tableWidget.rowCount() > 0
 
-        self.sigValidationChanged.emit(isOk)
+        btnAccept = self.buttonBox.button(QDialogButtonBox.Ok)
+        btnAccept.setEnabled(isOk)
 
 
     def reclassificationSettings(self):
