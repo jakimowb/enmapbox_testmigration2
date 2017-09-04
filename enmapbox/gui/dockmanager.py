@@ -872,7 +872,7 @@ class DockManager(QgsLegendInterface):
             #open map dock for new layers
             if len(layers) > 0:
                 NEW_DOCK = self.createDock('MAP')
-                assert isinstance(NEW_SPECLIB_DOCK, MapDock)
+                assert isinstance(NEW_DOCK, MapDock)
                 NEW_DOCK.addLayers(layers)
 
             if len(speclibs) > 0:
