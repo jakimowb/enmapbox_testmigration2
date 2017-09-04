@@ -104,7 +104,19 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         if hasClassification(src) and src not in addedItems:
             bn = os.path.basename(src)
             self.mapLayerComboBox.addItem(bn, src)
+
+            assert isinstance(self.dstClassificationSchemeWidget, ClassificationSchemeWidget)
+            if len(self.dstClassificationSchemeWidget.classificationScheme())== 0:
+                try:
+                    scheme = ClassificationScheme.fromRasterImage(src)
+                    if len(scheme) > 0:
+                        self.dstClassificationSchemeWidget.setClassificationScheme(scheme)
+                except:
+                    pass
+
+
             self.validate()
+
 
 
     def srcClassificationScheme(self):

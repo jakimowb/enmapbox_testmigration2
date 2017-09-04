@@ -64,7 +64,7 @@ def reclassify(pathSrc, pathDst, dstClassScheme, labelLookup,
     classification = hubflow.types.Classification(pathSrc)
     names = dstClassScheme.classNames()
     lookup = dstClassScheme.classColorArray()[:,0:3].flatten()
-    newDef = hubflow.types.ClassDefinition(names=names, lookup=lookup)
+    newDef = hubflow.types.ClassDefinition(names=names[1:], lookup=lookup[3:])
     result = classification.reclassify(filename=pathDst,
                           classDefinition=newDef,
                           mapping=labelLookup)
