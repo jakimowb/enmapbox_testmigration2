@@ -1,8 +1,8 @@
 import os, sys, logging, site, re
 #package providing gui stuff
 
-from enmapbox.gui.utils import settings
-settings = settings()
+from enmapbox.gui.settings import qtSettingsObj
+settings = qtSettingsObj()
 DEBUG = settings.value('EMB_DEBUG', False)
 LOAD_PROCESSING_FRAMEWORK = settings.value('EMB_LOAD_PF', True)
 LOAD_EXTERNAL_APPS = settings.value('EMB_LOAD_EA', True)

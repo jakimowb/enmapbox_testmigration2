@@ -89,7 +89,9 @@
     <addaction name="actionAddDataSource"/>
     <addaction name="actionLoadExampleData"/>
     <addaction name="separator"/>
-    <addaction name="actionSettings"/>
+    <addaction name="actionProjectSettings"/>
+    <addaction name="actionSaveProject"/>
+    <addaction name="actionSaveProjectAs"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -284,11 +286,6 @@
     <string>Add MimeData Viewer (experimental)</string>
    </property>
   </action>
-  <action name="actionSave_Settings">
-   <property name="text">
-    <string>Save Settings</string>
-   </property>
-  </action>
   <action name="actionZoomPixelScale">
    <property name="icon">
     <iconset resource="resources.qrc">
@@ -322,13 +319,16 @@
     <string>Identify map layers</string>
    </property>
   </action>
-  <action name="actionSettings">
+  <action name="actionProjectSettings">
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/enmapbox/icons/system.png</normaloff>:/enmapbox/icons/system.png</iconset>
    </property>
    <property name="text">
-    <string>Settings</string>
+    <string>Project Settings</string>
+   </property>
+   <property name="toolTip">
+    <string>Show project settings</string>
    </property>
   </action>
   <action name="actionExit">
@@ -369,6 +369,10 @@
    </property>
   </action>
   <action name="actionSaveProject">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionFileSave.png</normaloff>:/enmapbox/icons/mActionFileSave.png</iconset>
+   </property>
    <property name="text">
     <string>Save Project</string>
    </property>
@@ -410,6 +414,18 @@
    </property>
    <property name="toolTip">
     <string>Select pixel profiles from map</string>
+   </property>
+  </action>
+  <action name="actionSaveProjectAs">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionFileSaveAs.png</normaloff>:/enmapbox/icons/mActionFileSaveAs.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Projects as</string>
+   </property>
+   <property name="toolTip">
+    <string>Save the project to a new file</string>
    </property>
   </action>
  </widget>

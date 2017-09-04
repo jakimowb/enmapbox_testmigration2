@@ -658,6 +658,7 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         self.tableClassificationScheme.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.tableClassificationScheme.setModel(self.schemeModel)
         self.tableClassificationScheme.doubleClicked.connect(self.onTableDoubleClick)
+        self.tableClassificationScheme.resizeColumnsToContents()
         self.selectionModel = QItemSelectionModel(self.schemeModel)
         self.selectionModel.selectionChanged.connect(self.onSelectionChanged)
         self.onSelectionChanged() #enable/disabel widgets depending on a selection
@@ -706,8 +707,8 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
 
 
     def loadClasses(self, *args):
-        from enmapbox.gui.utils import settings
-        settings = settings()
+        from enmapbox.gui.settings import qtSettingsObj
+        settings = qtSettingsObj()
         settingsKey = 'DEF_DIR_ClassificationSchemeWidget.loadClasses'
         defDir = settings.value(settingsKey, None)
         path = QFileDialog.getOpenFileName(self, 'Select Raster File', directory=defDir)
