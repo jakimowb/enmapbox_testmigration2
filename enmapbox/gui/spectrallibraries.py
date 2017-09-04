@@ -1250,6 +1250,8 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         assert isinstance(profile, SpectralProfile)
         #return self.createIndex(self.mSpecLib.index(profile), 0)
         #pw = self.mProfileWrappers[profile]
+        if not profile in self.mProfileWrappers.keys():
+            return None
         return self.createIndex(self.mProfileWrappers.keys().index(profile), 0)
 
 
@@ -1304,7 +1306,8 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
             elif columnName == self.cSrc:
                 value = profile.source()
             elif columnName in self.mAttributeColumns:
-                value = str(profile.metadata(columnName))
+                value = profile.metadata(columnName)
+                value = '' if value is None else str(value)
             if px is not None:
                 if columnName == self.cPxX:
                     value = profile.pxCoordinate().x()
@@ -1478,7 +1481,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         self.mColorCurrentSpectra = QColor('green')
         self.mColorSelectedSpectra = QColor('yellow')
 
-        self.m_plot_max = 50
+        self.m_plot_max = 500
         self.mPlotXUnitModel = UnitComboBoxItemModel(self)
         self.mPlotXUnitModel.addUnit('Index')
 
@@ -1663,6 +1666,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
             pdi = self.createPDI(p)
             pdi.setPen(fn.mkPen(QColor('green'), width=3))
             plotItem.addItem(pdi)
+            pdi.setZValue(len(plotItem.dataItems))
 
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra)
 
@@ -1699,8 +1703,10 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
     def onProfileClicked(self, pdi):
         m = self.mModel
-        idx = m.profile2idx(pdi.mProfile)
 
+        idx = m.profile2idx(pdi.mProfile)
+        if idx is None:
+            return
 
         currentSelection = self.mSelectionModel.selection()
 
@@ -1752,6 +1758,8 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         l = len(pi.dataItems)
         for pdi in to_front:
             pdi.setZValue(l)
+            if pdi not in pi.dataItems:
+                pi.addItem(pdi)
 
 
 if __name__ == "__main__":
