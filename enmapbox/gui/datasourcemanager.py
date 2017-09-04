@@ -688,15 +688,11 @@ class DataSourceManagerTreeModel(TreeModel):
         column = index.column()
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-        if isinstance(node, TreeNode):
-
-            if isinstance(node, DataSourceGroupTreeNode):
-                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
-            elif isinstance(node, DataSourceTreeNode):
-                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+        if isinstance(node, DataSourceTreeNode):
+            flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-                flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         if isinstance(node, CheckableTreeNode):
             flags |= Qt.ItemIsUserCheckable
