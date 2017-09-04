@@ -28,6 +28,13 @@ class PRG_GUI(QDialog, loadUIFormClass(pathUI2)):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
         self.setupUi(self)
+        self.allow_cancel = False
+
+    def closeEvent(self, event):
+        if self.allow_cancel:
+            event.accept()
+        else:
+            event.ignore()
 
 class LUT:
 
@@ -269,7 +276,7 @@ class LUT:
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
         self.gui.cmdOpenFolder.clicked.connect(lambda: self.get_folder())
         self.gui.cmdLUTcalc.clicked.connect(lambda: self.get_lutsize())
-        self.gui.cmdTest.clicked.connect(lambda: self.test_LUT())
+        # self.gui.cmdTest.clicked.connect(lambda: self.test_LUT()) #debug
 
     def txt_enables(self, para, mode):
 
@@ -488,7 +495,6 @@ class LUT:
         for para in self.dict_vals:
             if len(self.dict_vals[para]) == 3 and any(self.dict_objects[para][i].isEnabled() for i in xrange(4)):
                 self.nlut_total *= self.dict_vals[para][2]
-        # print "total size of LUT: ", self.nlut_total
         self.gui.lcdNumber.display(int(self.nlut_total))
 
         if self.speed is None: self.speedtest()
@@ -576,21 +582,36 @@ class LUT:
         self.main.prg_widget.gui.show()
         self.main.QGis_app.processEvents()
 
-        model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
-                                 int_boost=self.intboost, s2s=self.sensor)
-        lut_run = model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
-                                    tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
-                                    cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
-                                    LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
-                                    hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
-                                    cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'],
-                                    prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
 
-        if lut_run:
-            self.abort(message=lut_run)
-        else:
-            QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
-            self.gui.close()
+        try:
+            model_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=self.nodat,
+                                     int_boost=self.intboost, s2s=self.sensor)
+        except ValueError as e:
+            self.abort(message="An error occurred while initializing the LUT: %s" % str(e))
+            self.main.prg_widget.gui.lblCancel.setText("")
+            self.main.prg_widget.gui.close()
+            return
+
+        try:
+            model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
+                                        tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
+                                        cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
+                                        LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
+                                        hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
+                                        cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'],
+                                        prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+        except ValueError as e:
+            self.abort(message="An error occured while creating the LUT: %s" % str(e))
+            self.main.prg_widget.gui.lblCancel.setText("")
+            self.main.prg_widget.gui.close()
+            return
+
+        QMessageBox.information(self.gui, "Successfull", "The Look-Up-Table has successfully been created!")
+        self.main.prg_widget.gui.lblCancel.setText("")
+        self.main.prg_widget.gui.allow_cancel = True
+        self.main.prg_widget.gui.close()
+        self.gui.close()
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)
@@ -599,10 +620,16 @@ class PRG:
     def __init__(self, main):
         self.main = main
         self.gui = PRG_GUI()
+        self.gui.lblCancel.setVisible(False)
         self.connections()
 
     def connections(self):
-        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+        self.gui.cmdCancel.clicked.connect(lambda: self.cancel())
+
+    def cancel(self):
+        self.gui.allow_cancel = True
+        self.gui.cmdCancel.setDisabled(True)
+        self.gui.lblCancel.setText("-1")
 
 class MainUiFunc:
     def __init__(self):

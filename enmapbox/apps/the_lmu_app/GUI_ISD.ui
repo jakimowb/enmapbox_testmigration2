@@ -12,7 +12,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Vegetation Processor</string>
+   <string>Interactive Spectrum Display</string>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
@@ -34,7 +34,7 @@
      </property>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
-       <string>Forward Modelling</string>
+       <string>Interactive Spectrum Display</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_7">
        <item row="2" column="0">
@@ -51,7 +51,7 @@
             <x>0</x>
             <y>0</y>
             <width>300</width>
-            <height>687</height>
+            <height>692</height>
            </rect>
           </property>
           <property name="maximumSize">
@@ -84,59 +84,54 @@
               <property name="verticalSpacing">
                <number>2</number>
               </property>
-              <item row="10" column="3">
-               <widget class="QLineEdit" name="Cbrown_lineEdit">
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
+              <item row="4" column="3">
+               <widget class="QLabel" name="label_3">
                 <property name="text">
-                 <string>0</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
+                 <string>[cm]</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="0">
-               <widget class="QLabel" name="N_Text">
+              <item row="2" column="0" colspan="2">
+               <widget class="QLabel" name="Cab_Text">
                 <property name="minimumSize">
                  <size>
                   <width>125</width>
                   <height>0</height>
                  </size>
                 </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
                 <property name="text">
-                 <string>Structure Parameter (N)</string>
+                 <string>Chlorophyll A + B (Cab)</string>
                 </property>
                </widget>
               </item>
-              <item row="12" column="3">
-               <widget class="QLineEdit" name="Canth_lineEdit">
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
+              <item row="13" column="0" colspan="3">
+               <widget class="QScrollBar" name="Canth_Slide">
+                <property name="maximum">
+                 <number>100000</number>
                 </property>
-                <property name="text">
-                 <string>1</string>
+                <property name="singleStep">
+                 <number>200</number>
                 </property>
-                <property name="frame">
-                 <bool>true</bool>
+                <property name="pageStep">
+                 <number>10000</number>
                 </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
+                <property name="sliderPosition">
+                 <number>10000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
                 </property>
                </widget>
               </item>
-              <item row="8" column="0">
-               <widget class="QLabel" name="Car_Text">
+              <item row="10" column="3">
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>[-]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="0">
+               <widget class="QLabel" name="Cbrown_Text">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                   <horstretch>0</horstretch>
@@ -150,54 +145,151 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>Carotenoids (Car)</string>
+                 <string>Brown Pigments (Cbrown)</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="0">
-               <widget class="QLabel" name="Cm_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
+              <item row="3" column="0" colspan="3">
+               <widget class="QScrollBar" name="Cab_Slide">
+                <property name="maximum">
+                 <number>1000000</number>
                 </property>
+                <property name="singleStep">
+                 <number>1000</number>
+                </property>
+                <property name="pageStep">
+                 <number>100000</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>400000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="2">
+               <widget class="QLineEdit" name="Car_lineEdit">
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>10</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="0" colspan="3">
+               <widget class="QScrollBar" name="Car_Slide">
+                <property name="maximum">
+                 <number>300000</number>
+                </property>
+                <property name="singleStep">
+                 <number>1000</number>
+                </property>
+                <property name="pageStep">
+                 <number>10000</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>100000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="0" colspan="3">
+               <widget class="QScrollBar" name="Cbrown_Slide">
+                <property name="font">
+                 <font>
+                  <strikeout>false</strikeout>
+                  <kerning>true</kerning>
+                 </font>
+                </property>
+                <property name="autoFillBackground">
+                 <bool>false</bool>
+                </property>
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+                <property name="singleStep">
+                 <number>100</number>
+                </property>
+                <property name="pageStep">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="invertedAppearance">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0" colspan="3">
+               <widget class="QScrollBar" name="N_Slide">
+                <property name="minimum">
+                 <number>10000</number>
+                </property>
+                <property name="maximum">
+                 <number>30000</number>
+                </property>
+                <property name="singleStep">
+                 <number>100</number>
+                </property>
+                <property name="pageStep">
+                 <number>1000</number>
+                </property>
+                <property name="value">
+                 <number>18000</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>18000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="3">
+               <widget class="QLabel" name="lblCm">
+                <property name="text">
+                 <string>[g/cm2]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="3">
+               <widget class="QLabel" name="lblCab">
+                <property name="text">
+                 <string>[ug/cm2]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="Cw_Text">
                 <property name="minimumSize">
                  <size>
                   <width>125</width>
                   <height>0</height>
                  </size>
                 </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
                 <property name="text">
-                 <string>Dry Matter (Cm)</string>
+                 <string>Water Content (Cw)</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="3">
-               <widget class="QLineEdit" name="Cm_lineEdit">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>20</width>
-                  <height>0</height>
-                 </size>
-                </property>
+              <item row="2" column="2">
+               <widget class="QLineEdit" name="Cab_lineEdit">
                 <property name="inputMethodHints">
                  <set>Qt::ImhDigitsOnly</set>
                 </property>
                 <property name="text">
-                 <string>0.004</string>
+                 <string>40</string>
                 </property>
                 <property name="frame">
                  <bool>true</bool>
@@ -207,23 +299,7 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="3">
-               <widget class="QLineEdit" name="Cw_lineEdit">
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>0.02</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="3">
+              <item row="0" column="2">
                <widget class="QLineEdit" name="N_lineEdit">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
@@ -254,26 +330,13 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="Cw_Text">
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Water Content (Cw)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="3">
-               <widget class="QLineEdit" name="Cab_lineEdit">
+              <item row="10" column="2">
+               <widget class="QLineEdit" name="Cbrown_lineEdit">
                 <property name="inputMethodHints">
                  <set>Qt::ImhDigitsOnly</set>
                 </property>
                 <property name="text">
-                 <string>40</string>
+                 <string>0</string>
                 </property>
                 <property name="frame">
                  <bool>true</bool>
@@ -282,57 +345,6 @@
                  <set>Qt::AlignCenter</set>
                 </property>
                </widget>
-              </item>
-              <item row="8" column="3">
-               <widget class="QLineEdit" name="Car_lineEdit">
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>10</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="0">
-               <widget class="QLabel" name="Cbrown_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Brown Pigments (Cbrown)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <spacer name="horizontalSpacer_3">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeType">
-                 <enum>QSizePolicy::Fixed</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>90</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
               <item row="12" column="0">
                <widget class="QLabel" name="Canth_Text">
@@ -356,132 +368,7 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="0" colspan="2">
-               <widget class="QLabel" name="Cab_Text">
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Chlorophyll A + B (Cab)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="4">
-               <widget class="QLabel" name="label">
-                <property name="text">
-                 <string>[-]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="4">
-               <widget class="QLabel" name="lblCab">
-                <property name="text">
-                 <string>[ug/cm2]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="4">
-               <widget class="QLabel" name="label_3">
-                <property name="text">
-                 <string>[cm]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="4">
-               <widget class="QLabel" name="lblCm">
-                <property name="text">
-                 <string>[g/cm2]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="4">
-               <widget class="QLabel" name="lblCar">
-                <property name="text">
-                 <string>[ug/cm2]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="4">
-               <widget class="QLabel" name="label_6">
-                <property name="text">
-                 <string>[-]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="4">
-               <widget class="QLabel" name="lblCanth">
-                <property name="text">
-                 <string>[ug/cm2]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0" colspan="4">
-               <widget class="QScrollBar" name="N_Slide">
-                <property name="minimum">
-                 <number>10000</number>
-                </property>
-                <property name="maximum">
-                 <number>30000</number>
-                </property>
-                <property name="singleStep">
-                 <number>100</number>
-                </property>
-                <property name="pageStep">
-                 <number>1000</number>
-                </property>
-                <property name="value">
-                 <number>18000</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>18000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0" colspan="4">
-               <widget class="QScrollBar" name="Cab_Slide">
-                <property name="maximum">
-                 <number>1000000</number>
-                </property>
-                <property name="singleStep">
-                 <number>1000</number>
-                </property>
-                <property name="pageStep">
-                 <number>100000</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>400000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0" colspan="4">
-               <widget class="QScrollBar" name="Cw_Slide">
-                <property name="minimum">
-                 <number>2</number>
-                </property>
-                <property name="maximum">
-                 <number>700</number>
-                </property>
-                <property name="singleStep">
-                 <number>2</number>
-                </property>
-                <property name="value">
-                 <number>200</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="0" colspan="4">
+              <item row="7" column="0" colspan="3">
                <widget class="QScrollBar" name="Cm_Slide">
                 <property name="minimum">
                  <number>19</number>
@@ -500,66 +387,163 @@
                 </property>
                </widget>
               </item>
-              <item row="9" column="0" colspan="4">
-               <widget class="QScrollBar" name="Car_Slide">
-                <property name="maximum">
-                 <number>300000</number>
+              <item row="6" column="0">
+               <widget class="QLabel" name="Cm_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
                 </property>
-                <property name="singleStep">
-                 <number>1000</number>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
                 </property>
-                <property name="pageStep">
-                 <number>10000</number>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
                 </property>
-                <property name="sliderPosition">
-                 <number>100000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="0" colspan="4">
-               <widget class="QScrollBar" name="Cbrown_Slide">
-                <property name="font">
-                 <font>
-                  <strikeout>false</strikeout>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="autoFillBackground">
-                 <bool>false</bool>
-                </property>
-                <property name="maximum">
-                 <number>10000</number>
-                </property>
-                <property name="singleStep">
-                 <number>100</number>
-                </property>
-                <property name="pageStep">
-                 <number>1000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="invertedAppearance">
-                 <bool>false</bool>
+                <property name="text">
+                 <string>Dry Matter (Cm)</string>
                 </property>
                </widget>
               </item>
-              <item row="13" column="0" colspan="4">
-               <widget class="QScrollBar" name="Canth_Slide">
+              <item row="6" column="2">
+               <widget class="QLineEdit" name="Cm_lineEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>20</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>0.004</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="N_Text">
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Structure Parameter (N)</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="2">
+               <widget class="QLineEdit" name="Canth_lineEdit">
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>1</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="3">
+               <widget class="QLabel" name="label">
+                <property name="text">
+                 <string>[-]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="3">
+               <widget class="QLabel" name="lblCanth">
+                <property name="text">
+                 <string>[ug/cm2]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="2">
+               <widget class="QLineEdit" name="Cw_lineEdit">
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>0.02</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="0">
+               <widget class="QLabel" name="Car_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Carotenoids (Car)</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="3">
+               <widget class="QLabel" name="lblCar">
+                <property name="text">
+                 <string>[ug/cm2]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="0" colspan="3">
+               <widget class="QScrollBar" name="Cw_Slide">
+                <property name="minimum">
+                 <number>2</number>
+                </property>
                 <property name="maximum">
-                 <number>100000</number>
+                 <number>700</number>
                 </property>
                 <property name="singleStep">
+                 <number>2</number>
+                </property>
+                <property name="value">
                  <number>200</number>
-                </property>
-                <property name="pageStep">
-                 <number>10000</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>10000</number>
                 </property>
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -601,7 +585,376 @@
               <property name="verticalSpacing">
                <number>1</number>
               </property>
+              <item row="5" column="0">
+               <widget class="QLabel" name="LIDFB_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Leaf Angle</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="3">
+               <widget class="QLineEdit" name="LAI_lineEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>3</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="3">
+               <widget class="QLineEdit" name="hspot_lineEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>0.1</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
               <item row="13" column="0">
+               <widget class="QLabel" name="rAA_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Relative Azimuth Angle</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="4">
+               <widget class="QLabel" name="label_11">
+                <property name="text">
+                 <string>[deg]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="15" column="4">
+               <widget class="QLabel" name="label_14">
+                <property name="text">
+                 <string>[-]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="4">
+               <widget class="QLabel" name="label_13">
+                <property name="text">
+                 <string>[deg]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0" colspan="4">
+               <widget class="QScrollBar" name="LAI_Slide">
+                <property name="minimum">
+                 <number>100</number>
+                </property>
+                <property name="maximum">
+                 <number>100000</number>
+                </property>
+                <property name="singleStep">
+                 <number>100</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>30000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="3">
+               <widget class="QLineEdit" name="SZA_lineEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>45.0</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="4">
+               <widget class="QLabel" name="label_9">
+                <property name="text">
+                 <string>[deg]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="4">
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>[-]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="4">
+               <widget class="QLabel" name="label_12">
+                <property name="text">
+                 <string>[deg]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="16" column="0" colspan="4">
+               <widget class="QScrollBar" name="skyl_Slide">
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+                <property name="singleStep">
+                 <number>1000</number>
+                </property>
+                <property name="pageStep">
+                 <number>1000</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="3">
+               <widget class="QLineEdit" name="OZA_lineEdit">
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="15" column="3">
+               <widget class="QLineEdit" name="skyl_lineEdit">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>0.1</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="0" colspan="4">
+               <widget class="QScrollBar" name="hspot_Slide">
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+                <property name="singleStep">
+                 <number>100</number>
+                </property>
+                <property name="pageStep">
+                 <number>100</number>
+                </property>
+                <property name="value">
+                 <number>1000</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>1000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="14" column="0" colspan="4">
+               <widget class="QScrollBar" name="rAA_Slide">
+                <property name="maximum">
+                 <number>1800000</number>
+                </property>
+                <property name="singleStep">
+                 <number>10000</number>
+                </property>
+                <property name="pageStep">
+                 <number>10000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0" colspan="4">
+               <widget class="QScrollBar" name="LIDFB_Slide">
+                <property name="maximum">
+                 <number>900000</number>
+                </property>
+                <property name="singleStep">
+                 <number>10000</number>
+                </property>
+                <property name="pageStep">
+                 <number>10000</number>
+                </property>
+                <property name="sliderPosition">
+                 <number>450000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="4">
+               <widget class="QLabel" name="lblLAI">
+                <property name="text">
+                 <string>[m2/m2]</string>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="0">
+               <widget class="QLabel" name="SZA_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Sun Zenith Angle</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="0">
+               <widget class="QLabel" name="OZA_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Obs. Zenith Angle</string>
+                </property>
+               </widget>
+              </item>
+              <item row="15" column="0">
                <widget class="QLabel" name="skyl_Text">
                 <property name="enabled">
                  <bool>false</bool>
@@ -654,38 +1007,7 @@
                 </property>
                </widget>
               </item>
-              <item row="13" column="2">
-               <widget class="QLineEdit" name="skyl_lineEdit">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>0.1</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="0" colspan="3">
+              <item row="12" column="0" colspan="4">
                <widget class="QScrollBar" name="SZA_Slide">
                 <property name="maximum">
                  <number>890000</number>
@@ -704,7 +1026,114 @@
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
+              <item row="10" column="0" colspan="4">
+               <widget class="QScrollBar" name="OZA_Slide">
+                <property name="maximum">
+                 <number>890000</number>
+                </property>
+                <property name="singleStep">
+                 <number>10000</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="3">
+               <widget class="QLineEdit" name="rAA_lineEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="0">
+               <widget class="QLabel" name="hspot_Text">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>125</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Hot Spot Size Parameter</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="3">
+               <widget class="QLineEdit" name="LIDFB_lineEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="inputMethodHints">
+                 <set>Qt::ImhDigitsOnly</set>
+                </property>
+                <property name="text">
+                 <string>45.0</string>
+                </property>
+                <property name="frame">
+                 <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="2">
+               <spacer name="horizontalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="4" column="3">
                <widget class="QComboBox" name="LIDF_combobox">
                 <property name="currentIndex">
                  <number>0</number>
@@ -749,453 +1178,21 @@
                 </item>
                </widget>
               </item>
-              <item row="8" column="0" colspan="3">
-               <widget class="QScrollBar" name="OZA_Slide">
-                <property name="maximum">
-                 <number>890000</number>
-                </property>
-                <property name="singleStep">
-                 <number>10000</number>
-                </property>
+              <item row="2" column="3">
+               <spacer name="verticalSpacer_2">
                 <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="2">
-               <widget class="QLineEdit" name="rAA_lineEdit">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>0</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="2">
-               <widget class="QLineEdit" name="LIDFB_lineEdit">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>45.0</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <spacer name="horizontalSpacer_7">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+                 <enum>Qt::Vertical</enum>
                 </property>
                 <property name="sizeType">
-                 <enum>QSizePolicy::Fixed</enum>
+                 <enum>QSizePolicy::Minimum</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
-                  <width>90</width>
-                  <height>20</height>
+                  <width>20</width>
+                  <height>15</height>
                  </size>
                 </property>
                </spacer>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="hspot_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Hot Spot Size Parameter</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="2">
-               <widget class="QLineEdit" name="OZA_lineEdit">
-                <property name="text">
-                 <string>0</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="0" colspan="3">
-               <widget class="QScrollBar" name="hspot_Slide">
-                <property name="maximum">
-                 <number>10000</number>
-                </property>
-                <property name="singleStep">
-                 <number>100</number>
-                </property>
-                <property name="pageStep">
-                 <number>100</number>
-                </property>
-                <property name="value">
-                 <number>1000</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>1000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0" colspan="3">
-               <widget class="QScrollBar" name="LIDFB_Slide">
-                <property name="maximum">
-                 <number>900000</number>
-                </property>
-                <property name="singleStep">
-                 <number>10000</number>
-                </property>
-                <property name="pageStep">
-                 <number>10000</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>450000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="0" colspan="3">
-               <widget class="QScrollBar" name="rAA_Slide">
-                <property name="maximum">
-                 <number>1800000</number>
-                </property>
-                <property name="singleStep">
-                 <number>10000</number>
-                </property>
-                <property name="pageStep">
-                 <number>10000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="2">
-               <widget class="QLineEdit" name="hspot_lineEdit">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>0.1</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLineEdit" name="LAI_lineEdit">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>3</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="0">
-               <widget class="QLabel" name="rAA_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Relative Azimuth Angle (Psi)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="0">
-               <widget class="QLabel" name="SZA_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Sun Zenith Angle (Theta_S)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="0">
-               <widget class="QLabel" name="OZA_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Obs. Zenith Angle (Theta_O)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="LIDFB_Text">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>125</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Leaf Angle</string>
-                </property>
-               </widget>
-              </item>
-              <item row="14" column="0" colspan="3">
-               <widget class="QScrollBar" name="skyl_Slide">
-                <property name="maximum">
-                 <number>10000</number>
-                </property>
-                <property name="singleStep">
-                 <number>1000</number>
-                </property>
-                <property name="pageStep">
-                 <number>1000</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>1000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="2">
-               <widget class="QLineEdit" name="SZA_lineEdit">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="inputMethodHints">
-                 <set>Qt::ImhDigitsOnly</set>
-                </property>
-                <property name="text">
-                 <string>45.0</string>
-                </property>
-                <property name="frame">
-                 <bool>true</bool>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="3">
-               <widget class="QLabel" name="lblLAI">
-                <property name="text">
-                 <string>[m2/m2]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="3">
-               <widget class="QLabel" name="label_9">
-                <property name="text">
-                 <string>[deg]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="3">
-               <widget class="QLabel" name="label_10">
-                <property name="text">
-                 <string>[-]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="3">
-               <widget class="QLabel" name="label_11">
-                <property name="text">
-                 <string>[deg]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="3">
-               <widget class="QLabel" name="label_12">
-                <property name="text">
-                 <string>[deg]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="3">
-               <widget class="QLabel" name="label_13">
-                <property name="text">
-                 <string>[deg]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="13" column="3">
-               <widget class="QLabel" name="label_14">
-                <property name="text">
-                 <string>[-]</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0" colspan="3">
-               <widget class="QScrollBar" name="LAI_Slide">
-                <property name="minimum">
-                 <number>100</number>
-                </property>
-                <property name="maximum">
-                 <number>100000</number>
-                </property>
-                <property name="singleStep">
-                 <number>100</number>
-                </property>
-                <property name="sliderPosition">
-                 <number>30000</number>
-                </property>
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
               </item>
              </layout>
             </widget>
@@ -1496,10 +1493,10 @@
        <item row="3" column="0">
         <widget class="QFrame" name="frame_2">
          <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
+          <enum>QFrame::NoFrame</enum>
          </property>
          <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
+          <enum>QFrame::Plain</enum>
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
           <item row="0" column="0">
@@ -1598,10 +1595,10 @@
        <item row="1" column="0">
         <widget class="QFrame" name="frame">
          <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
+          <enum>QFrame::NoFrame</enum>
          </property>
          <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
+          <enum>QFrame::Plain</enum>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
           <property name="topMargin">

@@ -30,7 +30,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Agricultural Vegetation Indices (AVI)</string>
+   <string>Vegetation Index Toolbox</string>
   </property>
   <property name="locale">
    <locale language="English" country="UnitedStates"/>
@@ -38,6 +38,9 @@
   <layout class="QGridLayout" name="gridLayout_7">
    <item row="9" column="0">
     <widget class="QScrollArea" name="scrollArea">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
      <property name="widgetResizable">
       <bool>true</bool>
      </property>
@@ -46,8 +49,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>661</width>
-        <height>541</height>
+        <width>678</width>
+        <height>373</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -169,7 +172,7 @@
           <string>Chlorophyll</string>
          </property>
          <property name="collapsed">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout">
           <item row="0" column="2">
@@ -392,7 +395,7 @@
           <string>Carotenoids and Anthocyanin</string>
          </property>
          <property name="collapsed">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
           <item row="0" column="3">
@@ -439,7 +442,7 @@
           <string>Leaf Water</string>
          </property>
          <property name="collapsed">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="0" column="2">
@@ -657,10 +660,10 @@
    <item row="17" column="0">
     <widget class="QFrame" name="frame_3">
      <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
+      <enum>QFrame::NoFrame</enum>
      </property>
      <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
+      <enum>QFrame::Plain</enum>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_3">
       <property name="leftMargin">
@@ -702,16 +705,13 @@
    <item row="8" column="0">
     <widget class="QFrame" name="frame_5">
      <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
+      <enum>QFrame::NoFrame</enum>
      </property>
      <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
+      <enum>QFrame::Plain</enum>
      </property>
      <layout class="QGridLayout" name="gridLayout_8">
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
+      <property name="margin">
        <number>0</number>
       </property>
       <item row="0" column="5">
@@ -749,12 +749,15 @@
       <item row="0" column="2" rowspan="2">
        <widget class="QFrame" name="frame_6">
         <property name="frameShape">
-         <enum>QFrame::StyledPanel</enum>
+         <enum>QFrame::NoFrame</enum>
         </property>
         <property name="frameShadow">
-         <enum>QFrame::Raised</enum>
+         <enum>QFrame::Plain</enum>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
          <property name="topMargin">
           <number>5</number>
          </property>
@@ -787,10 +790,10 @@
       <item row="0" column="4" rowspan="2">
        <widget class="QFrame" name="frame_4">
         <property name="frameShape">
-         <enum>QFrame::StyledPanel</enum>
+         <enum>QFrame::NoFrame</enum>
         </property>
         <property name="frameShadow">
-         <enum>QFrame::Raised</enum>
+         <enum>QFrame::Plain</enum>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
          <property name="topMargin">
@@ -837,14 +840,17 @@
       <item row="0" column="6" rowspan="2" colspan="2">
        <widget class="QFrame" name="frame_8">
         <property name="frameShape">
-         <enum>QFrame::StyledPanel</enum>
+         <enum>QFrame::NoFrame</enum>
         </property>
         <property name="frameShadow">
-         <enum>QFrame::Raised</enum>
+         <enum>QFrame::Plain</enum>
         </property>
         <layout class="QGridLayout" name="gridLayout_11">
          <property name="topMargin">
           <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
          </property>
          <property name="bottomMargin">
           <number>5</number>
@@ -858,10 +864,10 @@
             <item row="0" column="0">
              <widget class="QFrame" name="frame_2">
               <property name="frameShape">
-               <enum>QFrame::StyledPanel</enum>
+               <enum>QFrame::NoFrame</enum>
               </property>
               <property name="frameShadow">
-               <enum>QFrame::Raised</enum>
+               <enum>QFrame::Plain</enum>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout">
                <property name="topMargin">
@@ -905,10 +911,10 @@
             <item row="1" column="0">
              <widget class="QFrame" name="frame_7">
               <property name="frameShape">
-               <enum>QFrame::StyledPanel</enum>
+               <enum>QFrame::NoFrame</enum>
               </property>
               <property name="frameShadow">
-               <enum>QFrame::Raised</enum>
+               <enum>QFrame::Plain</enum>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_2">
                <property name="topMargin">
@@ -964,16 +970,13 @@
    <item row="0" column="0">
     <widget class="QFrame" name="frame">
      <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
+      <enum>QFrame::NoFrame</enum>
      </property>
      <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
+      <enum>QFrame::Plain</enum>
      </property>
      <layout class="QGridLayout" name="gridLayout_9">
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
+      <property name="margin">
        <number>0</number>
       </property>
       <item row="0" column="0">
@@ -1055,10 +1058,10 @@
             </size>
            </property>
            <property name="frameShape">
-            <enum>QFrame::StyledPanel</enum>
+            <enum>QFrame::NoFrame</enum>
            </property>
            <property name="frameShadow">
-            <enum>QFrame::Raised</enum>
+            <enum>QFrame::Plain</enum>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_5">
             <property name="margin">
@@ -1120,10 +1123,10 @@
          <item>
           <widget class="QFrame" name="frame_12">
            <property name="frameShape">
-            <enum>QFrame::StyledPanel</enum>
+            <enum>QFrame::NoFrame</enum>
            </property>
            <property name="frameShadow">
-            <enum>QFrame::Raised</enum>
+            <enum>QFrame::Plain</enum>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_7">
             <property name="margin">

@@ -41,6 +41,13 @@ class PRG_GUI(QDialog, loadUIFormClass(pathUI_prg)):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
         self.setupUi(self)
+        self.allow_cancel = False
+
+    def closeEvent(self, event):
+        if self.allow_cancel:
+            event.accept()
+        else:
+            event.ignore()
 
 class Global_Inversion:
 
@@ -121,7 +128,7 @@ class Global_Inversion:
         self.gui.cmdRun.clicked.connect(lambda: self.run_inversion())
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
 
-        self.gui.cmdDebug.clicked.connect(lambda: self.debug())
+        # self.gui.cmdDebug.clicked.connect(lambda: self.debug()) # Debug
 
     def open_file(self, mode):
         if mode=="image":
@@ -390,7 +397,13 @@ class Global_Inversion:
         try:
             inv.run_inversion(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
         except ValueError as e:
-            self.abort(message="An error occurred during inversion: %s" % str(e))
+            if str(e) == "Inversion canceled":
+                self.abort(message=str(e))
+            else:
+                self.abort(message="An error occurred during inversion: %s" % str(e))
+            self.prg_widget.gui.lblCancel.setText("")
+            self.prg_widget.gui.allow_cancel = True
+            self.prg_widget.gui.close()
             return
 
         self.prg_widget.gui.lblCaption_r.setText("Writing Output-File...")
@@ -402,6 +415,8 @@ class Global_Inversion:
             self.abort(message="An error occurred while trying to write output-image: %s" % str(e))
             return
 
+        self.prg_widget.gui.lblCancel.setText("")
+        self.prg_widget.gui.allow_cancel = True
         self.prg_widget.gui.close()
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
         self.gui.close()
@@ -509,6 +524,7 @@ class Global_Inversion:
             self.abort(message=write_inv)
             return
 
+        self.prg_widget.gui.allow_cancel = True
         self.prg_widget.gui.close()
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
         self.gui.close()
@@ -626,11 +642,16 @@ class PRG:
     def __init__(self, main):
         self.main = main
         self.gui = PRG_GUI()
+        self.gui.lblCancel.setVisible(False)
         self.connections()
 
     def connections(self):
-        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+        self.gui.cmdCancel.clicked.connect(lambda: self.cancel())
 
+    def cancel(self):
+        self.gui.allow_cancel = True
+        self.gui.cmdCancel.setDisabled(True)
+        self.gui.lblCancel.setText("-1")
 
 class MainUiFunc:
     def __init__(self):

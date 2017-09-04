@@ -57,9 +57,8 @@ class Call_model:
 
         try:
             self.prospect.any()
-        except:
-            print "A leaf optical properties model needs to be run first!"
-            return
+        except ValueError:
+            raise ValueError("A leaf optical properties model needs to be run first!")
 
         sail_instance = SAIL.Sail(radians(self.tts), radians(self.tto), radians(self.psi)) # Create Instance of SAIL and initialize angles
         self.sail = sail_instance.Pro4sail(self.prospect[:,1], self.prospect[:,2], self.LIDF, self.typeLIDF, self.LAI, self.hspot, self.psoil) # call 4SAIL from the SAIL instance
@@ -145,14 +144,14 @@ class Setup_multiple:
         return return_list
 
     def logical_distribution(self,para_name,min,max,repeat,multiply,nsteps,increment=None):
-        return_list = np.tile(np.repeat(np.linspace(start=min,stop=max,num=nsteps), repeat), multiply)
+        return_list = np.tile(np.repeat(np.linspace(start=min,stop=max,num=int(nsteps)), repeat), multiply)
         return return_list
 
     def gauss_distribution(self,para_name,min,max,mean,sigma,multiply):
         try:
             return_list = np.tile(truncnorm((min-mean)/sigma, (max-mean)/sigma, loc=mean, scale=sigma).rvs(self.ns),multiply)
         except:
-            exit("Cannot create gaussian distribution for parameter %s. Check values!" % para_name)
+            raise ValueError("Cannot create gaussian distribution for parameter %s. Check values!" % para_name)
 
         return return_list
 
@@ -160,7 +159,7 @@ class Setup_multiple:
         try:
             return_list = np.tile(np.random.uniform(low=min, high=max, size=self.ns), multiply)
         except:
-            exit("Cannot create uniform distribution for parameter %s. Check values!" % para_name)
+            raise ValueError("Cannot create uniform distribution for parameter %s. Check values!" % para_name)
 
         return return_list
 
@@ -229,7 +228,7 @@ class Init_Model:
 
         # Meta-File:
         if len(tts) == 3:
-            tts_fl = np.linspace(start=setup.param_input[-3][0], stop=setup.param_input[-3][1], num=setup.param_input[-3][2])
+            tts_fl = np.linspace(start=setup.param_input[-3][0], stop=setup.param_input[-3][1], num=int(setup.param_input[-3][2]))
             tts_str = [tts_fl.astype(str)[i] for i in xrange(len(tts_fl))]
         elif len(tts) == 1:
             tts_str = [str(tts[0])]
@@ -238,7 +237,7 @@ class Init_Model:
 
         if len(tto) == 3:
             tto_fl = np.linspace(start=setup.param_input[-2][0], stop=setup.param_input[-2][1],
-                                 num=setup.param_input[-2][2])
+                                 num=int(setup.param_input[-2][2]))
             tto_str = [tto_fl.astype(str)[i] for i in xrange(len(tto_fl))]
         elif len(tto) == 1:
             tto_str = [str(tto[0])]
@@ -247,7 +246,7 @@ class Init_Model:
 
         if len(psi) == 3:
             psi_fl = np.linspace(start=setup.param_input[-1][0], stop=setup.param_input[-1][1],
-                                 num=setup.param_input[-1][2])
+                                 num=int(setup.param_input[-1][2]))
             psi_str = [psi_fl.astype(str)[i] for i in xrange(len(psi_fl))]
         elif len(psi) == 1:
             psi_str = [str(psi[0])]
@@ -296,6 +295,11 @@ class Init_Model:
                     run = geo_ensemble * crun_pergeo + split * max_per_file + i
                     if i % 100 == 0:
                         if prgbar_widget:
+                            if prgbar_widget.gui.lblCancel.text()=="-1":
+                                prgbar_widget.gui.lblCancel.setText("")
+                                prgbar_widget.gui.cmdCancel.setDisabled(False)
+                                raise ValueError("LUT creation cancelled!")
+
                             prgbar_widget.gui.lblCaption_r.setText('File %s of %s' % (str(run), str(crun_max)))
                             QGis_app.processEvents()
                         else:
@@ -310,7 +314,6 @@ class Init_Model:
 
                 rest -= max_per_file
                 np.save("%s_%i_%i" % (LUT_dir+LUT_name, geo_ensemble, split), save_array)
-                print "%s_%i_%i" % (LUT_dir+LUT_name, geo_ensemble, split)
 
         if prgbar_widget:
             prgbar_widget.gui.lblCaption_r.setText('File %s of %s' % (str(crun_max), str(crun_max)))

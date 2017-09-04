@@ -150,7 +150,7 @@ class Spec2Sensor:
 
     def run_SRF(self, reflectance):
 
-        if any(reflectance) is None: return [self.nodat] * self.n_wl
+        if np.any(np.equal(reflectance, None)): return [self.nodat] * self.n_wl_sensor
         hash_getspec = dict(zip(self.wl, reflectance))
         spec_corr = [0] * self.n_wl_sensor
 

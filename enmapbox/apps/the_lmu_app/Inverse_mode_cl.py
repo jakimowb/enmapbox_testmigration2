@@ -74,26 +74,24 @@ class RTM_Inversion:
         self.geometry_matrix.fill(self.nodat[2])
 
         #1: import geometry-file from read_image or
+
         if geo_image:
             geometry_raw = self.read_image(geo_image, nodat=self.nodat[1])
             if not geometry_raw[0] == self.nrows or not geometry_raw[1] == self.ncols:
                 exit("Geometry image and Sensor image do not match")
             self.geometry_matrix = geometry_raw[3]
 
-        if not all(v is None for v in geo_fixed):
-            for angle in xrange(3):
-                if not geo_fixed[angle] is None:
+        if not geo_fixed is None:
+            try:
+                for angle in xrange(3):
                     self.geometry_matrix[:,:,angle] = geo_fixed[angle]
+            except: raise ValueError("Problem with reading fixed angles")
 
         self.whichLUT = np.zeros(shape=(self.nrows, self.ncols),dtype=np.int16)
 
         if self.geo_mode == "sort":
             for row in xrange(self.nrows):
                 for col in xrange(self.ncols):
-                    print self.geometry_matrix[row,col,0], self.tts_LUT
-                    print self.geometry_matrix[row,col,1], self.tto_LUT
-                    print self.geometry_matrix[row,col,2], self.psi_LUT
-                    print "***"
                     angles = []
                     angles.append(np.argmin(abs(self.geometry_matrix[row,col,0] - self.tts_LUT))) # tts
                     angles.append(np.argmin(abs(self.geometry_matrix[row,col,1] - self.tto_LUT))) # tto
@@ -111,18 +109,21 @@ class RTM_Inversion:
             return Ref_list
 
         elif type == 1:  # additive noise
-            Ref_noisy = [Ref_list[i] + np.random.normal(loc=0.0, scale=sigma_c) for i in xrange(n_entries)]
-            # Ref_noisy = [Ref_noisy[i]*10 for i in xrange(len(Ref_noisy))]
+            # Ref_noisy = [Ref_list[i] + np.random.normal(loc=0.0, scale=sigma_c) for i in xrange(n_entries)]
+            Ref_noisy = np.random.normal(loc=0.0, scale=sigma_c, size=n_entries) + Ref_list
 
         elif type == 2:  # multiplicative noise
-            Ref_noisy = [Ref_list[i] * (1 + np.random.normal(loc=0.0, scale=sigma / 100)) for i in xrange(n_entries)]
+            # Ref_noisy = [Ref_list[i] * (1 + np.random.normal(loc=0.0, scale=sigma / 100)) for i in xrange(n_entries)]
+            Ref_noisy = (1 + np.random.normal(loc=0.0, scale=sigma/100, size=n_entries)) * Ref_list
 
         elif type == 3:  # inverse multiplicative noise
-            Ref_noisy = [1 - ((1 - Ref_list[i]) * (1 + np.random.normal(loc=0.0, scale=sigma / 100))) for i in
-                         xrange(n_entries)]
+            # Ref_noisy = [1 - ((1 - Ref_list[i]) * (1 + np.random.normal(loc=0.0, scale=sigma / 100))) for i in
+            #              xrange(n_entries)]
+            Ref_noisy = 1 - (1 - Ref_list) * (1 + np.random.normal(loc=0.0, scale=sigma/100))
 
-        Ref_noisy = [Ref_noisy[i] if Ref_noisy[i] > 0.0 else 0.1 for i in xrange(n_entries)]
+        # Ref_noisy = [Ref_noisy[i] if Ref_noisy[i] > 0.0 else 0.1 for i in xrange(n_entries)]
 
+        Ref_noisy[Ref_noisy<0] = 0
         return Ref_noisy
 
     def visualize(self):
@@ -231,7 +232,7 @@ class RTM_Inversion:
             self.psi_LUT = [float(angle) for angle in temp[:-1]]
         else:
             self.psi_LUT = []
-        self.conversion_factor = metacontent[12].split("=")[1]
+        self.conversion_factor = int(metacontent[12].split("=")[1])
 
 
         self.nangles_LUT = [len(self.tts_LUT), len(self.tto_LUT), len(self.psi_LUT)]
@@ -250,8 +251,6 @@ class RTM_Inversion:
         if self.canopy_arch == "sail":
             self.whichpara.append([4,5,6,7,8,12,13,14])
         self.whichpara = [item for sublist in self.whichpara for item in sublist] # flatten list back
-        print self.whichpara
-
 
     def run_inversion(self, prg_widget=None, QGis_app=None):
 
@@ -263,6 +262,12 @@ class RTM_Inversion:
 
                 pix_current = r*self.ncols + c + 1
 
+                # Check if process shall be aborted
+                if prg_widget.gui.lblCancel.text() == "-1":
+                    prg_widget.gui.lblCancel.setText("")
+                    prg_widget.gui.cmdCancel.setDisabled(False)
+                    raise ValueError("Inversion canceled")
+
                 # Check if Pixel shall be excluded
                 if len(self.exclude_pixels) > 0 and self.exclude_pixels[r,c] < 1:
                     self.out_matrix[r,c,:] = self.nodat[2]
@@ -272,7 +277,7 @@ class RTM_Inversion:
                 if all(self.image[r,c,j] == self.nodat[0] for j in xrange(nbands_valid)) or \
                         any(self.geometry_matrix[r,c,i] == self.nodat[0] for i in xrange(3)):
                     self.out_matrix[r,c,:] = self.nodat[2]
-                    print "skipping: ", r, c
+                    # print "skipping: ", r, c
                     continue
 
                 estimates = np.zeros(self.ns)
@@ -307,7 +312,7 @@ class RTM_Inversion:
                 band = destination.GetRasterBand(i+1)
                 band.SetDescription(self.para_names[self.whichpara[i]])
                 band.WriteArray(self.out_matrix[:,:,i])
-            destination.SetMetadataItem('data ignore value', '-999', 'ENVI')
+            destination.SetMetadataItem('data ignore value', str(self.nodat[2]), 'ENVI')
 
         elif self.out_mode == "individual":
             for i in xrange(self.npara):
@@ -316,7 +321,7 @@ class RTM_Inversion:
                 band = destination.GetRasterBand(1)
                 band.SetDescription(self.para_names[self.whichpara[i]])
                 band.WriteArray(self.out_matrix[:,:,i])
-                destination.SetMetadataItem('data ignore value','-999','ENVI')
+                destination.SetMetadataItem('data ignore value',str(self.nodat[2]),'ENVI')
         
 def example():
     ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
