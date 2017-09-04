@@ -29,7 +29,7 @@ def scaledUnitString(num, infix=' ', suffix='B', div=1000):
 class CrosshairStyle(object):
     def __init__(self, **kwds):
 
-        self.mColor = QColor.fromRgb(255,0,0, 125)
+        self.mColor = QColor.fromRgb(255,0,0, 255)
         self.mThickness = 1 #in px
         self.mSize = 1.0 #normalized
         self.mGap = 0.05 #normalized
