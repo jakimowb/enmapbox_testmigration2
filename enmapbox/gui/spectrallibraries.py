@@ -1625,6 +1625,8 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
             self.mPlotXUnitModel.addUnit(p.xUnit())
             pi.addItem(self.createPDI(p))
 
+        self.btnRemoveAttribute.setEnabled(len(self.mSpeclib.metadataAttributes()) > 0)
+
     def addSpectralPlotItem(self, pdi):
         assert isinstance(pdi, SpectralProfilePlotDataItem)
         pi = self.getPlotItem()
@@ -1635,12 +1637,12 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         pi = self.getPlotItem()
         for p in profiles:
             self.removePDI(p)
+        self.btnRemoveAttribute.setEnabled(len(self.mSpeclib.metadataAttributes()) > 0)
 
     def addSpeclib(self, speclib):
         if isinstance(speclib, SpectralLibrary):
 
             self.mSpeclib.addProfiles([copy.copy(p) for p in speclib])
-            self.btnRemoveAttribute.setEnabled(len(self.mSpeclib.metadataAttributes()) > 0)
 
     def addCurrentSpectraToSpeclib(self, *args):
         self.mSpeclib.addProfiles([p.clone() for p in self.mCurrentSpectra])
