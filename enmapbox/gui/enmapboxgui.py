@@ -229,7 +229,8 @@ from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
-SETTINGS = settings()
+from enmapbox.gui.settings import qtSettingsObj
+SETTINGS = qtSettingsObj()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 class CentralFrame(QFrame):
@@ -306,8 +307,9 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
         area = Qt.BottomDockWidgetArea
-        from enmapbox.gui.spectrallibraries import SpectraLibraryViewPanel
-        self.specLibViewPanel = addPanel(SpectraLibraryViewPanel(self))
+        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
+        self.specLibViewPanel = addPanel(SpectralLibraryPanel(self))
+        self.specLibViewPanel.setWindowTitle('Spectral Library Panel')
         self.specLibViewPanel.setVisible(False)
         #add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -389,7 +391,7 @@ class EnMAPBox(QObject):
 
         self.mCurrentSpectra=[] #set of currently selected spectral profiles
         self.mCurrentMapSpectraLoading = 'TOP'
-        self.sigCurrentSpectraChanged.connect(self.ui.specLibViewPanel.setCurrentSpectra)
+        self.sigCurrentSpectraChanged.connect(self.ui.specLibViewPanel.SLW.setCurrentSpectra)
 
         # define managers (the center of all actions and all evil)
         import enmapbox.gui
@@ -428,6 +430,7 @@ class EnMAPBox(QObject):
         self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
         self.ui.actionAddMimeView.triggered.connect(lambda : self.dockManager.createDock('MIME'))
+        self.ui.actionAddSpeclibView.triggered.connect(lambda: self.dockManager.createDock('SPECLIB'))
 
         from enmapbox.gui.mapcanvas import MapDock
         self.ui.actionLoadExampleData.triggered.connect(lambda: self.openExampleData(
@@ -441,10 +444,15 @@ class EnMAPBox(QObject):
         self.ui.actionZoomFullExtent.triggered.connect(lambda: self.activateMapTool('ZOOM_FULL'))
         self.ui.actionZoomPixelScale.triggered.connect(lambda: self.activateMapTool('ZOOM_PIXEL_SCALE'))
         self.ui.actionIdentify.triggered.connect(lambda : self.activateMapTool('CURSORLOCATIONVALUE'))
-        self.ui.actionSettings.triggered.connect(self.saveProject)
+        self.ui.actionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
+        self.ui.actionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
+        from enmapbox.gui.about import AboutDialog
+        self.ui.actionAbout.triggered.connect(lambda :AboutDialog(parent=self.ui).show())
+        from enmapbox.gui.settings import showSettingsDialog
+        self.ui.actionProjectSettings.triggered.connect(lambda : showSettingsDialog(self.ui))
         self.ui.actionExit.triggered.connect(self.exit)
         self.ui.actionSelectProfiles.triggered.connect(lambda : self.activateMapTool('SPECTRUMREQUEST'))
-        self.ui.specLibViewPanel.btnLoadfromMap.clicked.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
+        self.ui.specLibViewPanel.SLW.btnLoadfromMap.clicked.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
@@ -528,7 +536,9 @@ class EnMAPBox(QObject):
         appDirs = []
         appDirs.append(os.path.join(DIR_ENMAPBOX, *['coreapps']))
         appDirs.append(os.path.join(DIR_ENMAPBOX, *['apps']))
-        for appDir in re.split('[:;]', settings().value('EMB_APPLICATION_PATH', '')):
+        from enmapbox.gui.settings import qtSettingsObj
+        settings = qtSettingsObj()
+        for appDir in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
             if os.path.isdir(appDir):
                 appDirs.append(appDir)
         for appDir in appDirs:
@@ -615,13 +625,18 @@ class EnMAPBox(QObject):
         if len(uris) > 0:
             SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
 
-    def saveProject(self):
+    def saveProject(self, saveAs=False):
         proj = QgsProject.instance()
-        proj.dumpObjectInfo()
-        proj.dumpObjectTree()
-        proj.dumpProperties()
-        raise NotImplementedError()
+        path = proj.fileName()
+        if saveAs or not os.path.exists(path):
+            path = QFileDialog.getSaveFileName(self.ui, \
+                                               'Choose a filename to save the QGIS project file',
+                                               #directory=os.path.dirname(path)
+                                               filter='QGIS files (*.qgs *.QGIS)')
+            if len(path) > 0:
+                proj.setFileName(path)
 
+        proj.write()
 
     def restoreProject(self):
         raise NotImplementedError()
@@ -640,7 +655,7 @@ class EnMAPBox(QObject):
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
 
-        if b and len(self.mCurrentSpectra) > 0:
+        if b and len(self.mCurrentSpectra) > 0 and len(self.dockManager.docks(SpectralLibraryDock)) == 0:
             self.ui.specLibViewPanel.setVisible(True)
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 

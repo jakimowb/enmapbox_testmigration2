@@ -171,7 +171,7 @@
        <item>
         <widget class="QToolButton" name="btnAddAttribute">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="toolTip">
           <string>Add attribute</string>
@@ -182,6 +182,29 @@
          <property name="icon">
           <iconset resource="resources.qrc">
            <normaloff>:/enmapbox/icons/add_class.png</normaloff>:/enmapbox/icons/add_class.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="btnRemoveAttribute">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="toolTip">
+          <string>Add attribute</string>
+         </property>
+         <property name="text">
+          <string>Add Attribute</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resources.qrc">
+           <normaloff>:/enmapbox/icons/remove_class.png</normaloff>:/enmapbox/icons/remove_class.png</iconset>
          </property>
          <property name="iconSize">
           <size>

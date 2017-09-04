@@ -73,7 +73,7 @@ class ApplicationRegistry(QObject):
         appPkgName = os.path.basename(appPackagePath)
         pkgFile = os.path.join(appPackagePath, '__init__.py')
         appFolder = os.path.dirname(appPackagePath)
-        if not os.path.exists(pkgFile):
+        if not os.path.isfile(pkgFile):
             return False
 
 

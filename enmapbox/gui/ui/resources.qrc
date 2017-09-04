@@ -93,6 +93,7 @@
   <file>icons/viewlist_dock.png</file>
   <file>icons/viewlist_mapdock.png</file>
   <file>icons/viewlist_spectrumdock.png</file>
+  <file>icons/viewlist_textview.png</file>
   <file>icons/zoomToFullExtent.png</file>
   <file>splashscreen.png</file>
  </qresource>

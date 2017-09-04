@@ -52,13 +52,15 @@ class TreeNodeProvider():
     def CreateNodeFromDock(dock, parent):
         assert isinstance(dock, Dock)
         dockType = type(dock)
-        from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode
+        from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode, SpeclibDockTreeNode
         if dockType is MapDock:
             return MapDockTreeNode(parent, dock)
         elif dockType in [TextDock, MimeDataDock]:
             return TextDockTreeNode(parent, dock)
         elif dockType is CursorLocationValueDock:
             return DockTreeNode(parent, dock)
+        elif dockType is SpectralLibraryDock:
+            return SpeclibDockTreeNode(parent, dock)
         else:
             return DockTreeNode(parent, dock)
 
@@ -83,6 +85,7 @@ class TreeNodeProvider():
                 node = nodeClass.readXml(elem)
                 break
         return node
+
 
 
 class TreeNode(QgsLayerTreeGroup):
@@ -216,6 +219,26 @@ class TreeNode(QgsLayerTreeGroup):
     def __hash__(self):
         return hash(id(self))
 
+
+
+class CheckableTreeNode(TreeNode):
+
+    sigCheckStateChanged = pyqtSignal(Qt.CheckState)
+    def __init__(self, *args, **kwds):
+        super(CheckableTreeNode, self).__init__(*args, **kwds)
+        self.mCheckState = Qt.Unchecked
+
+    def setCheckState(self, checkState):
+        if isinstance(checkState, bool):
+            checkState == Qt.Checked if checkState else Qt.Unchecked
+        assert isinstance(checkState, Qt.CheckState)
+        old = self.mCheckState
+        self.mCheckState = checkState
+        if old != self.mCheckState:
+            self.sigCheckStateChanged.emit(self.mCheckState)
+
+    def checkState(self):
+        return self.mCheckState
 
 class TreeModel(QgsLayerTreeModel):
     def __init__(self, parent=None):
@@ -385,7 +408,7 @@ class TreeView(QgsLayerTreeView):
             idxParent = model.node2index(parent)
             span = True
             if isinstance(node, TreeNode):
-                span = node.value() == None or len(node.value()) == 0
+                span = node.value() == None or str(node.value()).strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)

@@ -172,7 +172,9 @@ def settings():
     Returns the QSettings object with EnMAPBox Settings
     :return:
     """
-    return QSettings('HU-Berlin', 'EnMAP-Box')
+    print('DEPRECATED CALL enmapbox.gui.utils.settings()')
+    from enmapbox.gui.settings import qtSettingsObj
+    return qtSettingsObj()
 
 
 def showMessage(message, title, level):
@@ -340,14 +342,17 @@ def appendItemsToMenu(menu, itemsToAdd):
         itemsToAdd = itemsToAdd.children()
     if not isinstance(itemsToAdd, list):
         itemsToAdd = [itemsToAdd]
+
     for item in itemsToAdd:
         if isinstance(item, QAction):
             item.setParent(menu)
             menu.addAction(item)
             s = ""
         elif isinstance(item, QMenu):
-            item.setParent(menu)
-            menu.addMenu(menu)
+            #item.setParent(menu)
+            sub = menu.addMenu(item.title())
+            sub.setIcon(item.icon())
+            appendItemsToMenu(sub, item.children()[1:])
         else:
             s = ""
     return menu
@@ -426,10 +431,17 @@ def convertMetricUnit(value, u1, u2):
     return value * 10**(e1-e2)
 
 def defaultBands(dataset):
+    """
+    Returns a list of 3 default bands
+    :param dataset:
+    :return:
+    """
     if isinstance(dataset, str) or isinstance(dataset, unicode):
         return defaultBands(gdal.Open(dataset))
     elif isinstance(dataset, QgsRasterDataProvider):
         return defaultBands(dataset.dataSourceUri())
+    elif isinstance(dataset, QgsRasterLayer):
+        return defaultBands(dataset.source())
     elif isinstance(dataset, gdal.Dataset):
 
         db = dataset.GetMetadataItem('default_bands', 'ENVI')
@@ -444,8 +456,18 @@ def defaultBands(dataset):
             ci = band.GetColorInterpretation()
             if ci in cis:
                 db[cis.index(ci)] = b
-        return db
+        if db != [0,0,0]:
+            return db
 
+        rl = QgsRasterLayer(dataset.GetFileList()[0])
+        defaultRenderer = rl.renderer()
+        if isinstance(defaultRenderer, QgsRasterRenderer):
+            db = defaultRenderer.usesBands()
+            if len(db) == 0:
+                return [0,1,2]
+            elif len(db) > 3:
+                return db[0:3]
+        return db
 
     else:
         raise Exception()
@@ -459,7 +481,7 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
     :return: band index | 0 of wavelength information is not provided
     """
     if isinstance(wl, str):
-        assert wl.upper() in LUT_WAVELENGTH.keys()
+        assert wl.upper() in LUT_WAVELENGTH.keys(), wl
         return bandClosestToWavelength(dataset, LUT_WAVELENGTH[wl.upper()], wl_unit='nm')
     else:
         wl = float(wl)
@@ -480,6 +502,8 @@ def parseWavelength(dataset):
         return parseWavelength(gdal.Open(dataset))
     elif isinstance(dataset, QgsRasterDataProvider):
         return parseWavelength(dataset.dataSourceUri())
+    elif isinstance(dataset, QgsRasterLayer):
+        return parseWavelength(dataset.source())
     elif isinstance(dataset, gdal.Dataset):
 
         for domain in dataset.GetMetadataDomainList():

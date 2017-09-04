@@ -10,6 +10,24 @@
     <height>320</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>474</width>
+    <height>320</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>474</width>
+    <height>320</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>Select Bands</string>
   </property>
@@ -23,14 +41,17 @@
     </rect>
    </property>
    <property name="frameShape">
-    <enum>QFrame::StyledPanel</enum>
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="frameShadow">
-    <enum>QFrame::Raised</enum>
+    <enum>QFrame::Plain</enum>
    </property>
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="3" column="4">
      <widget class="QListWidget" name="lstExcluded">
+      <property name="whatsThis">
+       <string>A list of bands that are selected to be excluded from the inversion</string>
+      </property>
       <property name="selectionMode">
        <enum>QAbstractItemView::ExtendedSelection</enum>
       </property>
@@ -52,6 +73,9 @@
     </item>
     <item row="3" column="0">
      <widget class="QListWidget" name="lstIncluded">
+      <property name="whatsThis">
+       <string>A list of bands available from the sensor</string>
+      </property>
       <property name="selectionMode">
        <enum>QAbstractItemView::ExtendedSelection</enum>
       </property>
@@ -60,10 +84,10 @@
     <item row="3" column="3">
      <widget class="QFrame" name="frame">
       <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
+       <enum>QFrame::NoFrame</enum>
       </property>
       <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
+       <enum>QFrame::Plain</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
@@ -93,6 +117,9 @@
            <height>16777215</height>
           </size>
          </property>
+         <property name="whatsThis">
+          <string>Send selected bands from &quot;include&quot; to &quot;exclude&quot;</string>
+         </property>
          <property name="text">
           <string>&gt;</string>
          </property>
@@ -111,6 +138,9 @@
            <width>30</width>
            <height>16777215</height>
           </size>
+         </property>
+         <property name="whatsThis">
+          <string>Send selected bands from &quot;exclude&quot; to &quot;include&quot;</string>
          </property>
          <property name="text">
           <string>&lt;</string>
@@ -140,30 +170,49 @@
     <rect>
      <x>0</x>
      <y>270</y>
-     <width>151</width>
+     <width>211</width>
      <height>43</height>
     </rect>
    </property>
    <property name="frameShape">
-    <enum>QFrame::StyledPanel</enum>
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="frameShadow">
-    <enum>QFrame::Raised</enum>
+    <enum>QFrame::Plain</enum>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QPushButton" name="cmdAll">
+      <property name="whatsThis">
+       <string>Exclude All</string>
+      </property>
       <property name="text">
-       <string>All</string>
+       <string>Exclude all</string>
       </property>
      </widget>
     </item>
     <item>
      <widget class="QPushButton" name="cmdNone">
+      <property name="whatsThis">
+       <string>Exclude None</string>
+      </property>
       <property name="text">
-       <string>None</string>
+       <string>Exclude none</string>
       </property>
      </widget>
+    </item>
+    <item>
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
     </item>
    </layout>
   </widget>
@@ -177,10 +226,10 @@
     </rect>
    </property>
    <property name="frameShape">
-    <enum>QFrame::StyledPanel</enum>
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="frameShadow">
-    <enum>QFrame::Raised</enum>
+    <enum>QFrame::Plain</enum>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_2">
     <item>

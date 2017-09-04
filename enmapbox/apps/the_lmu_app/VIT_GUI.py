@@ -31,6 +31,13 @@ class PRG_GUI(QDialog, loadUIFormClass(pathUI_Prg)):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
         self.setupUi(self)
+        self.allow_cancel = False
+
+    def closeEvent(self, event):
+        if self.allow_cancel:
+            event.accept()
+        else:
+            event.ignore()
 
 class VIT:
     def __init__(self, main):
@@ -62,14 +69,11 @@ class VIT:
         self.gui.cmdInput.clicked.connect(lambda: self.Image(IO="in"))
         self.gui.cmdOutput.clicked.connect(lambda: self.Image(IO="out"))
         self.gui.cmdCancel.clicked.connect(lambda: self.exit_gui())
-        # self.gui.structural_group.clicked.connect(lambda: self.check(group=2))
 
         self.gui.radNN.toggled.connect(lambda: self.toggle_interpol())
         self.gui.radLinear.toggled.connect(lambda: self.toggle_interpol())
-        # self.gui.radNo.toggled.connect(lambda: self.toggle_interpol())
         self.gui.radIDW.toggled.connect(lambda: self.toggle_interpol())
         self.gui.spinIDW_exp.valueChanged.connect(lambda: self.toggle_interpol())
-
 
         self.gui.radSingle.toggled.connect(lambda: self.toggle_write())
         self.gui.radIndiv.toggled.connect(lambda: self.toggle_write())
@@ -207,7 +211,7 @@ class VIT:
             self.gui.txtOutput.setText(outFile)
             try:
                 self.outFileName = basename(outFile).split('.')[0]
-                self.outExtension = basename(outFile).split('.')[1]
+                self.outExtension = '.' + basename(outFile).split('.')[1]
             except:
                 self.outExtension = '.bsq'
                 self.outFileName = basename(outFile)
@@ -238,7 +242,7 @@ class VIT:
             if question == QMessageBox.No: return
 
         self.main.prg_widget.gui.lblCaption_l.setText("Vegetation Indices Toolbox")
-        self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...")
+        self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...this may take several minutes")
         self.main.prg_widget.gui.prgBar.setValue(0)
         self.main.prg_widget.gui.setModal(True)
         self.main.prg_widget.gui.show()
@@ -249,6 +253,7 @@ class VIT:
             ImageIn_matrix = vit.read_image(ImgIn=self.inFile, Convert_Refl=1)
         except ValueError as e:
             QMessageBox.critical(self.gui, 'error', e)
+            self.main.prg_widget.gui.allow_cancel = True
             self.main.prg_widget.gui.close()
             return
 
@@ -267,9 +272,11 @@ class VIT:
             return
 
         try:
-            IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+            IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget,
+                                                QGis_app=self.main.QGis_app)
         except:
             QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
+            self.main.prg_widget.gui.allow_cancel = True
             self.main.prg_widget.gui.close()
             return
 
@@ -281,11 +288,13 @@ class VIT:
                           OutExtension=self.outExtension, OutSingle=self.outSingle)
         except:
             QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data.")
+            self.main.prg_widget.gui.allow_cancel = True
             self.main.prg_widget.gui.close()
             return
 
+        self.main.prg_widget.gui.allow_cancel = True
         self.main.prg_widget.gui.close()
-        QMessageBox.information(self.gui, "Finish", "Inversion finished")
+        QMessageBox.information(self.gui, "Finish", "Calculation of indices finished")
         self.gui.close()
 
 class Nodat:
@@ -325,10 +334,16 @@ class PRG:
     def __init__(self, main):
         self.main = main
         self.gui = PRG_GUI()
+        self.gui.lblCancel.setVisible(False)
         self.connections()
 
     def connections(self):
         self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+
+    def cancel(self):
+        self.gui.allow_cancel = True
+        self.gui.cmdCancel.setDisabled(True)
+        self.gui.lblCancel.setText("-1")
 
 class MainUiFunc:
     def __init__(self):

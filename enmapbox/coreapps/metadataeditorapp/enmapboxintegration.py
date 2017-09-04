@@ -44,6 +44,7 @@ class MetadataEditorApp(EnMAPBoxApplication):
         Specify menu, submenus and actions
         :return: the QMenu or QAction to be added to the "Applications" menu.
         """
+        return None  # disable metadata editor
         appMenu = self.enmapbox.menu('Tools')
 
         #add a QAction that starts your GUI
@@ -52,6 +53,8 @@ class MetadataEditorApp(EnMAPBoxApplication):
         #assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
+
+
         return a
 
 

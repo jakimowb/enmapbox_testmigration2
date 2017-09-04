@@ -44,20 +44,5 @@ if __name__ == '__main__':
 
     args = sys.argv[1:]
 
-    pathQgs = None
-    pathQgsPlugins  = None
-
-    # todo: add command line options
-
-    if sys.platform == 'darwin':
-        if pathQgs is None:
-            pathQgs = r'/Applications/QGIS.app/Contents/Resources/python'
-
-        if pathQgsPlugins is None:
-            pathQgsPlugins = os.path.join(pathQgs, 'plugins')
-
-        site.addsitedir(pathQgs)
-        site.addsitedir(pathQgsPlugins)
-
 
     run()

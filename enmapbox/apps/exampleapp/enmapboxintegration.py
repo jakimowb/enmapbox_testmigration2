@@ -41,6 +41,7 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         Specify menu, submenus and actions
         :return: the QMenu or QAction to be added to the "Applications" menu.
         """
+        return None  # remove this line to load ExamplAlgorithm QMenu
         if False:
             # this way you can add your QMenu/QAction to
             # any other EnMAP-Box Menu
@@ -54,6 +55,7 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         a.triggered.connect(self.startGUI)
 
         appMenu.addMenu(menu)
+
 
         return menu
 
@@ -72,6 +74,7 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         ui.show()
 
     def geoAlgorithms(self):
+        return [] #remove this line to load geoAlgorithms
         return [MyEnMAPBoxAppGeoAlgorithm()]
 
 

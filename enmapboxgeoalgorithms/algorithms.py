@@ -139,8 +139,8 @@ class EstimatorFit(EnMAPGeoAlgorithm):
         elif self.group == CLASSIFIERS_GROUP:
             sample = ClassificationSample.unpickle(filename=self.getParameterValue('sample'))
             #sklEstimator = eval(self.getParameterValue('parameters'))
-            exec self.getParameterValue('estimator')
-            sklEstimator = eval('classifier')
+            exec self.getParameterValue('parameters')
+            sklEstimator = eval('estimator')
 
             estimator = Classifier(sklEstimator=sklEstimator)
         else:

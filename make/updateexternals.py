@@ -149,7 +149,7 @@ if __name__ == "__main__":
     to_update = ['hub-datacube', 'hub-workflow','enmap-box-geoalgorithmsprovider']#enmap-box-geoalgorithmsprovider
     #to_update = ['objbrowser']
 
-    #to_update = ['enmap-box-testdata']# + to_update
+    to_update = ['enmap-box-testdata'] + to_update
     for p in to_update:
         updateRemote(p)
 

@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>130</height>
+    <width>380</width>
+    <height>120</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -21,18 +21,18 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>400</width>
-    <height>130</height>
+    <width>380</width>
+    <height>120</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>400</width>
-    <height>130</height>
+    <width>380</width>
+    <height>120</height>
    </size>
   </property>
   <property name="windowTitle">
-   <string>ProgressBar</string>
+   <string>Progress</string>
   </property>
   <widget class="QProgressBar" name="prgBar">
    <property name="geometry">
@@ -47,19 +47,6 @@
     <number>0</number>
    </property>
   </widget>
-  <widget class="QPushButton" name="cmdCancel">
-   <property name="geometry">
-    <rect>
-     <x>300</x>
-     <y>90</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Cancel</string>
-   </property>
-  </widget>
   <widget class="QFrame" name="frame">
    <property name="geometry">
     <rect>
@@ -70,10 +57,10 @@
     </rect>
    </property>
    <property name="frameShape">
-    <enum>QFrame::StyledPanel</enum>
+    <enum>QFrame::NoFrame</enum>
    </property>
    <property name="frameShadow">
-    <enum>QFrame::Raised</enum>
+    <enum>QFrame::Plain</enum>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <property name="leftMargin">
@@ -100,6 +87,32 @@
      </widget>
     </item>
    </layout>
+  </widget>
+  <widget class="QLabel" name="lblCancel">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>80</y>
+     <width>46</width>
+     <height>13</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="cmdCancel">
+   <property name="geometry">
+    <rect>
+     <x>260</x>
+     <y>80</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Cancel</string>
+   </property>
   </widget>
  </widget>
  <resources/>

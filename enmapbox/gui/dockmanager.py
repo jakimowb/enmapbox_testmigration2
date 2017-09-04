@@ -76,6 +76,18 @@ class TextDockTreeNode(DockTreeNode):
         super(TextDockTreeNode, self).__init__(parent, dock)
         self.setIcon(QIcon(IconProvider.Dock))
 
+    def connectDock(self, dock):
+        assert isinstance(dock, TextDock)
+        super(TextDockTreeNode, self).connectDock(dock)
+
+        self.fileNode = TreeNode(self, 'File')
+        dock.textDockWidget.sigSourceChanged.connect(self.setLinkedFile)
+        self.setLinkedFile(dock.textDockWidget.mFile)
+
+    def setLinkedFile(self, path):
+        self.fileNode.setValue(path)
+        self.fileNode.setTooltip(path)
+
     def writeXML(self, parentElement):
         return super(MapDockTreeNode, self).writeXML(parentElement, 'text-dock-tree-node')
 
@@ -132,6 +144,36 @@ class CanvasLinkTreeNodeGroup(TreeNode):
                 node.canvasLink.removeMe()
             else:
                 self.removeChildNode(node)
+
+class SpeclibDockTreeNode(DockTreeNode):
+    def __init__(self, parent, dock):
+
+        super(SpeclibDockTreeNode, self).__init__(parent, dock)
+        self.setIcon(QIcon(':/enmapbox/icons/viewlist_spectrumdock.png'))
+
+
+
+    def connectDock(self, dock):
+        assert isinstance(dock, SpectralLibraryDock)
+        super(SpeclibDockTreeNode, self).connectDock(dock)
+        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        self.speclibWidget = dock.speclibWidget
+        assert isinstance(self.speclibWidget, SpectralLibraryWidget)
+
+        self.showMapSpectra = CheckableTreeNode(self, 'Show map profiles', checked=Qt.Checked)
+        self.showMapSpectra.setCheckState(Qt.Checked if self.speclibWidget.mapInteraction() else Qt.Unchecked)
+        self.showMapSpectra.sigCheckStateChanged.connect(lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
+        self.profilesNode = TreeNode(self, 'Profiles', value=0)
+        self.speclibWidget.mSpeclib.sigProfilesAdded.connect(self.updateNodes)
+        self.speclibWidget.mSpeclib.sigProfilesRemoved.connect(self.updateNodes)
+
+
+    def updateNodes(self):
+        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        assert isinstance(self.speclibWidget, SpectralLibraryWidget)
+        self.profilesNode.setValue(len(self.speclibWidget.mSpeclib))
+
+
 
 
 class MapDockTreeNode(DockTreeNode):
@@ -401,13 +443,16 @@ class DockManagerTreeModel(TreeModel):
     def flags(self, index):
         if not index.isValid():
             return Qt.NoItemFlags
-
-
-
         node = self.index2node(index)
         dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)
         if len(dockNode) == 0:
             return Qt.NoItemFlags
+        elif len(dockNode) > 1:
+            print('DEBUG: Multiple docknodes selected')
+            return Qt.NoItemFlags
+        else:
+            dockNode = dockNode[0]
+
 
         if node is None:
             return Qt.NoItemFlags
@@ -427,13 +472,17 @@ class DockManagerTreeModel(TreeModel):
                         flags |= Qt.ItemIsDropEnabled
                 if isinstance(node.parent(), MapDockTreeNode) and node.name() == 'Layers':
                     flags |= Qt.ItemIsUserCheckable
-        #mapCanvas Layer Tree Nodes
+
+                if isinstance(node, CheckableTreeNode):
+                    flags |= Qt.ItemIsUserCheckable
+
+                        #mapCanvas Layer Tree Nodes
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
             if column == 0:
                 flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
 
-                if not (isinstance(dockNode, MapDockTreeNode) and node == dockNode.layerNode):
-                    flags |= Qt.ItemIsDragEnabled
+            if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
+                flags |= Qt.ItemIsDragEnabled
 
 
         return flags
@@ -506,14 +555,22 @@ class DockManagerTreeModel(TreeModel):
         if len(indexes) == 0:
             return None
 
+        """
+        nodesFinal = []
+        for idx in indexes:
+            node = self.index2node(idx)
+            if type(node) == QgsLayerTreeGroup:
+                if not isinstance(node.parent(), MapDockTreeNode):
+                    nodesFinal.append(node)
+            elif type(node) == QgsLayerTreeLayer:
+                nodesFinal.append(node)
+
+        """
         nodesFinal = self.indexes2nodes(indexes, True)
 
 
 
-        #docktree to mime data
-        from enmapbox.gui.utils import EnMAPBoxMimeData
         mimeData = QMimeData()
-        #MimeDataHelper.storeObjectReferences(mimeData, nodesFinal)
 
         doc = QDomDocument()
         rootElem = doc.createElement("dock_tree_model_data")
@@ -523,6 +580,19 @@ class DockManagerTreeModel(TreeModel):
         mimeData.setData("application/enmapbox.docktreemodeldata", doc.toString())
 
         # layertree to mime data
+
+        mapNodes = [n for n in nodesFinal if type(n) in [QgsLayerTreeLayer, QgsLayerTreeGroup]]
+        if len(mapNodes) > 0:
+            doc = QDomDocument()
+            rootElem = doc.createElement('layer_tree_model_data')
+            for node in mapNodes:
+                if type(node) == QgsLayerTreeGroup:
+                    node.writeLayerTreeGroupXML(rootElem)
+                elif type(node) == QgsLayerTreeLayer:
+                    node.writeXML(rootElem)
+            doc.appendChild(rootElem)
+            mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
+        """
         mapDockNodes = self.parentNodesFromIndices(indexes, nodeInstanceType=MapDockTreeNode)
         if len(mapDockNodes) > 0:
             doc = QDomDocument()
@@ -531,7 +601,7 @@ class DockManagerTreeModel(TreeModel):
                 dockNode.writeLayerTreeGroupXML(rootElem)
             doc.appendChild(rootElem)
             mimeData.setData('application/qgis.layertreemodeldata', doc.toString())
-
+        """
 
         return mimeData
 
@@ -588,6 +658,8 @@ class DockManagerTreeModel(TreeModel):
                     if isinstance(node, DockTreeNode):
                         if isinstance(node.dock, Dock):
                             return Qt.Checked if node.dock.isVisible() else Qt.Unchecked
+                    if isinstance(node, CheckableTreeNode):
+                        return node.checkState()
             else:
                 if role == Qt.DisplayRole:
                     return node.value()
@@ -610,6 +682,10 @@ class DockManagerTreeModel(TreeModel):
             if role == Qt.EditRole and len(value) > 0:
                 node.dock.setTitle(value)
                 result = True
+
+        if isinstance(node, CheckableTreeNode) and role == Qt.CheckStateRole:
+            node.setCheckState(Qt.Unchecked if value in [False, 0, Qt.Unchecked] else Qt.Checked)
+            return True
 
         if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
 
@@ -682,9 +758,6 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 menu = QMenu()
                 a = menu.addAction('Copy')
                 a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
-
-
-
 
         return menu
 
@@ -788,8 +861,11 @@ class DockManager(QgsLegendInterface):
 
         elif isinstance(event, QDropEvent):
             MH = MimeDataHelper(event.mimeData())
+
             layers = []
             textfiles = []
+            speclibs = []
+
             if MH.hasMapLayers():
                 layers = MH.mapLayers()
             elif MH.hasDataSources():
@@ -798,15 +874,25 @@ class DockManager(QgsLegendInterface):
                         layers.append(ds.createUnregisteredMapLayer())
                     elif isinstance(ds, DataSourceTextFile):
                         textfiles.append(ds)
+                    elif isinstance(ds, DataSourceSpectralLibrary):
+                        speclibs.append(ds)
 
             #register datasources
-            for src in layers + textfiles:
+            for src in layers + textfiles + speclibs:
                 self.dataSourceManager.addSource(src)
 
             #open map dock for new layers
             if len(layers) > 0:
-                NEW_MAP_DOCK = self.createDock('MAP')
-                NEW_MAP_DOCK.addLayers(layers)
+                NEW_DOCK = self.createDock('MAP')
+                assert isinstance(NEW_DOCK, MapDock)
+                NEW_DOCK.addLayers(layers)
+
+            if len(speclibs) > 0:
+                NEW_DOCK = self.createDock('SPECLIB')
+                assert isinstance(NEW_DOCK, SpectralLibraryDock)
+                from spectrallibraries import SpectralLibrary
+                for speclib in speclibs:
+                    NEW_DOCK.speclibWidget.addSpeclib(SpectralLibrary.readFrom(speclib.uri()))
 
             #open test dock for new text files
             for textSource in textfiles:
@@ -876,6 +962,14 @@ class DockManager(QgsLegendInterface):
         elif dockType == 'WEBVIEW':
             kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
             dock = WebViewDock(*args, **kwds)
+        elif dockType == 'SPECLIB':
+            kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
+            dock = SpectralLibraryDock(*args, **kwds)
+            from enmapbox.gui.enmapboxgui import EnMAPBox
+            emb = EnMAPBox.instance()
+            if isinstance(emb, EnMAPBox):
+                emb.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
+
 
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
