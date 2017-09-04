@@ -194,6 +194,10 @@ class VIT:
 
     def prgbar_process(self, index_no):
         if self.prg:
+            if self.prg.gui.lblCancel.text() == "-1":
+                self.prg.gui.lblCancel.setText("")
+                self.prg.gui.cmdCancel.setDisabled(False)
+                raise ValueError("Calculation of Indices canceled")
             self.prg.gui.prgBar.setValue(index_no*100 // self.n_indices)
             self.QGis_app.processEvents()
 

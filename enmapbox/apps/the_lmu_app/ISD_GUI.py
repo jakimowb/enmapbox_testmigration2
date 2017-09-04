@@ -280,7 +280,7 @@ class ISD:
 
         self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
-        self.gui.pushClearPlot.clicked.connect(self.clear_plot)  #clear the plot canvas
+        self.gui.pushClearPlot.clicked.connect(lambda: self.clear_plot(rescale=True))  #clear the plot canvas
         self.gui.Push_LoadInSitu.clicked.connect(self.open_file)  #load own spectrum
         self.gui.Push_Exit.clicked.connect(self.gui.accept)  #exit app
         self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)  #remove own spectrum from plot canvas
@@ -373,13 +373,14 @@ class ISD:
 
     def plot_own_spec(self):
         if self.data_mean is not None:
-            print len(self.data_mean)
-            print len(range(400,2501))
-            # self.gui.graphicsView.plot(range(400, 2501), self.data_mean, name='observed')
             self.gui.graphicsView.plot(self.wl_open, self.data_mean, name='observed')
 
-    def clear_plot(self):
+    def clear_plot(self, rescale=False):
+        if rescale:
+            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
+            self.gui.graphicsView.setXRange(350, 2550, padding=0)
         self.gui.graphicsView.clear()
+
         self.plot_count = 0
 
     def save_spectrum(self):

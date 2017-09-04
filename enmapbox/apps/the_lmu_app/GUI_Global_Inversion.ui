@@ -354,6 +354,9 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout_4">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
        <item row="1" column="1">
         <widget class="QLineEdit" name="txtOZA">
          <property name="enabled">
@@ -900,17 +903,36 @@
   <widget class="QGroupBox" name="groupBox_8">
    <property name="geometry">
     <rect>
-     <x>770</x>
-     <y>310</y>
-     <width>201</width>
-     <height>81</height>
+     <x>780</x>
+     <y>300</y>
+     <width>191</width>
+     <height>91</height>
     </rect>
    </property>
    <property name="title">
     <string>Execute</string>
    </property>
    <layout class="QGridLayout" name="gridLayout_8">
-    <item row="1" column="0">
+    <item row="1" column="2">
+     <widget class="QPushButton" name="cmdClose">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Close Application</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="2">
      <widget class="QPushButton" name="cmdRun">
       <property name="enabled">
        <bool>true</bool>
@@ -929,32 +951,6 @@
       </property>
       <property name="text">
        <string>Start Inversion</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="2">
-     <widget class="QPushButton" name="cmdDebug">
-      <property name="text">
-       <string>Debug Run</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="2">
-     <widget class="QPushButton" name="cmdClose">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>Close Application</string>
       </property>
      </widget>
     </item>
@@ -1165,7 +1161,6 @@
   <tabstop>cmdInputMask</tabstop>
   <tabstop>txtExclude</tabstop>
   <tabstop>cmdExcludeBands</tabstop>
-  <tabstop>cmdDebug</tabstop>
  </tabstops>
  <resources/>
  <connections/>

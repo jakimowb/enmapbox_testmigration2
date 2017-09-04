@@ -74,16 +74,18 @@ class RTM_Inversion:
         self.geometry_matrix.fill(self.nodat[2])
 
         #1: import geometry-file from read_image or
+
         if geo_image:
             geometry_raw = self.read_image(geo_image, nodat=self.nodat[1])
             if not geometry_raw[0] == self.nrows or not geometry_raw[1] == self.ncols:
                 exit("Geometry image and Sensor image do not match")
             self.geometry_matrix = geometry_raw[3]
 
-        if not all(v is None for v in geo_fixed):
-            for angle in xrange(3):
-                if not geo_fixed[angle] is None:
+        if not geo_fixed is None:
+            try:
+                for angle in xrange(3):
                     self.geometry_matrix[:,:,angle] = geo_fixed[angle]
+            except: raise ValueError("Problem with reading fixed angles")
 
         self.whichLUT = np.zeros(shape=(self.nrows, self.ncols),dtype=np.int16)
 
@@ -107,18 +109,21 @@ class RTM_Inversion:
             return Ref_list
 
         elif type == 1:  # additive noise
-            Ref_noisy = [Ref_list[i] + np.random.normal(loc=0.0, scale=sigma_c) for i in xrange(n_entries)]
-            # Ref_noisy = [Ref_noisy[i]*10 for i in xrange(len(Ref_noisy))]
+            # Ref_noisy = [Ref_list[i] + np.random.normal(loc=0.0, scale=sigma_c) for i in xrange(n_entries)]
+            Ref_noisy = np.random.normal(loc=0.0, scale=sigma_c, size=n_entries) + Ref_list
 
         elif type == 2:  # multiplicative noise
-            Ref_noisy = [Ref_list[i] * (1 + np.random.normal(loc=0.0, scale=sigma / 100)) for i in xrange(n_entries)]
+            # Ref_noisy = [Ref_list[i] * (1 + np.random.normal(loc=0.0, scale=sigma / 100)) for i in xrange(n_entries)]
+            Ref_noisy = (1 + np.random.normal(loc=0.0, scale=sigma/100, size=n_entries)) * Ref_list
 
         elif type == 3:  # inverse multiplicative noise
-            Ref_noisy = [1 - ((1 - Ref_list[i]) * (1 + np.random.normal(loc=0.0, scale=sigma / 100))) for i in
-                         xrange(n_entries)]
+            # Ref_noisy = [1 - ((1 - Ref_list[i]) * (1 + np.random.normal(loc=0.0, scale=sigma / 100))) for i in
+            #              xrange(n_entries)]
+            Ref_noisy = 1 - (1 - Ref_list) * (1 + np.random.normal(loc=0.0, scale=sigma/100))
 
-        Ref_noisy = [Ref_noisy[i] if Ref_noisy[i] > 0.0 else 0.1 for i in xrange(n_entries)]
+        # Ref_noisy = [Ref_noisy[i] if Ref_noisy[i] > 0.0 else 0.1 for i in xrange(n_entries)]
 
+        Ref_noisy[Ref_noisy<0] = 0
         return Ref_noisy
 
     def visualize(self):
@@ -227,7 +232,7 @@ class RTM_Inversion:
             self.psi_LUT = [float(angle) for angle in temp[:-1]]
         else:
             self.psi_LUT = []
-        self.conversion_factor = metacontent[12].split("=")[1]
+        self.conversion_factor = int(metacontent[12].split("=")[1])
 
 
         self.nangles_LUT = [len(self.tts_LUT), len(self.tto_LUT), len(self.psi_LUT)]

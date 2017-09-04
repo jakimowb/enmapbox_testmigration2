@@ -39,6 +39,7 @@
 from scipy.special import exp1
 from dataSpec import *
 import numpy as np
+import warnings
 
 class Prospect:
 
@@ -83,22 +84,10 @@ class Prospect:
 
         vb = np.zeros(self.nlambd)
 
-
-
-        # # old method, causes a warning:
-        # ind_vb_le = np.where(va*(beta-r90)<=1e-14)
-        # ind_vb_gt = np.where(va*(beta-r90)>1e-14)
-        # vb[ind_vb_le]=np.sqrt(beta*(va-r90)/(1e-14))
-        # vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
-
-        # # new method:
-
-        vb = np.where(va * (beta - r90) <= 1e-14, \
-                      np.sqrt(beta * (va - r90) / (1e-14)), \
-                      vb)
-        vb = np.where(va * (beta - r90) > 1e-14, \
-                      np.sqrt(beta * (va - r90) / (va * (beta - r90))),
-                      vb)
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
 
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN
@@ -160,13 +149,10 @@ class Prospect:
         # vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
 
         # # new method:
-
-        vb = np.where(va * (beta - r90) <= 1e-14, \
-                      np.sqrt(beta * (va - r90) / (1e-14)), \
-                      vb)
-        vb = np.where(va * (beta - r90) > 1e-14, \
-                      np.sqrt(beta * (va - r90) / (va * (beta - r90))),
-                      vb)
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
 
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN
@@ -228,13 +214,10 @@ class Prospect:
         # vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
 
         # # new method:
-
-        vb = np.where(va * (beta - r90) <= 1e-14, \
-                      np.sqrt(beta * (va - r90) / (1e-14)), \
-                      vb)
-        vb = np.where(va * (beta - r90) > 1e-14, \
-                      np.sqrt(beta * (va - r90) / (va * (beta - r90))),
-                      vb)
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
 
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN
@@ -291,9 +274,10 @@ class Prospect:
 
         vb = np.zeros(self.nlambd)
 
-        #Proposal BJ to avoid deprecation warning
-        vb = np.where(va*(beta-r90)<=1e-14,np.sqrt(beta*(va-r90)/(1e-14)), vb )
-        vb = np.where(va*(beta-r90)>1e-14 ,np.sqrt(beta*(va-r90)/(va*(beta-r90))), vb)
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
 
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN

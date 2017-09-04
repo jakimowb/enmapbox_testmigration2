@@ -12,7 +12,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Vegetation Processor</string>
+   <string>Interactive Spectrum Display</string>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
@@ -34,7 +34,7 @@
      </property>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
-       <string>Forward Modelling</string>
+       <string>Interactive Spectrum Display</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_7">
        <item row="2" column="0">
