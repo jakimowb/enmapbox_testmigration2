@@ -172,7 +172,9 @@ def settings():
     Returns the QSettings object with EnMAPBox Settings
     :return:
     """
-    return QSettings('HU-Berlin', 'EnMAP-Box')
+    print('DEPRECATED CALL enmapbox.gui.utils.settings()')
+    from enmapbox.gui.settings import qtSettingsObj
+    return qtSettingsObj()
 
 
 def showMessage(message, title, level):
