@@ -62,7 +62,7 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         self.widgetDstFile.setType(QgsRasterFormatSaveOptionsWidget.Full)
         self.widgetDstFile.setProvider('gdal')
         self.widgetDstFile.setFormat('GTIFF')
-        self.widgetDstFile.setRasterFileName('reclassifified.bsq')
+        self.widgetDstFile.setRasterFileName('reclassifified.tif')
 
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
