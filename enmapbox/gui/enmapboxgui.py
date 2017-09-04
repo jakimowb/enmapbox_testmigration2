@@ -446,6 +446,8 @@ class EnMAPBox(QObject):
         self.ui.actionIdentify.triggered.connect(lambda : self.activateMapTool('CURSORLOCATIONVALUE'))
         self.ui.actionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
         self.ui.actionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
+        from enmapbox.gui.about import AboutDialog
+        self.ui.actionAbout.triggered.connect(lambda :AboutDialog(parent=self.ui).show())
         from enmapbox.gui.settings import showSettingsDialog
         self.ui.actionProjectSettings.triggered.connect(lambda : showSettingsDialog(self.ui))
         self.ui.actionExit.triggered.connect(self.exit)
