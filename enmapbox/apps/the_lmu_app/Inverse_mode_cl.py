@@ -64,7 +64,6 @@ class RTM_Inversion:
             scancol = band.ReadRaster(0,0, ncols, nrows, ncols, nrows, GDT_Float32)
             in_matrix[:, :, band_no-skip] = np.reshape(np.asarray(struct.unpack('f' * nrows * ncols, scancol),
                                                              dtype=dtype), (nrows, ncols))
-
         return nrows, ncols, nbands, in_matrix
 
     def get_geometry(self, geo_fixed, geo_image=None):
@@ -78,14 +77,15 @@ class RTM_Inversion:
         if geo_image:
             geometry_raw = self.read_image(geo_image, nodat=self.nodat[1])
             if not geometry_raw[0] == self.nrows or not geometry_raw[1] == self.ncols:
-                exit("Geometry image and Sensor image do not match")
+                raise ValueError("Geometry image and Sensor image do not match")
             self.geometry_matrix = geometry_raw[3]
 
-        if not geo_fixed is None:
-            try:
-                for angle in xrange(3):
-                    self.geometry_matrix[:,:,angle] = geo_fixed[angle]
-            except: raise ValueError("Problem with reading fixed angles")
+        if geo_fixed:
+            if not any(geo_fixed[i] is None for i in range(len(geo_fixed))):
+                try:
+                    for angle in xrange(3):
+                        self.geometry_matrix[:,:,angle] = geo_fixed[angle]
+                except: raise ValueError("Problem with reading fixed angles")
 
         self.whichLUT = np.zeros(shape=(self.nrows, self.ncols),dtype=np.int16)
 

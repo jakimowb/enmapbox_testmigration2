@@ -13,6 +13,7 @@ from PyQt4 import uic
 import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
+import warnings
 
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_ISD.ui')
@@ -328,14 +329,16 @@ class ISD:
 
             self.plot_own_spec()
 
-            mae = np.nansum(abs(self.myResult - self.data_mean_stats)) / len(self.myResult)
-            rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean_stats)**2))
-            nse = 1.0 - ((np.nansum((self.data_mean_stats - self.myResult)**2)) /
-                         (np.nansum((self.data_mean_stats - (np.nanmean(self.data_mean_stats)))**2)))
-            mnse = 1.0 - ((np.nansum(abs(self.data_mean_stats - self.myResult))) /
-                          (np.nansum(abs(self.data_mean_stats - (np.nanmean(self.data_mean_stats))))))
-            r_squared = ((np.nansum((self.data_mean_stats - np.nanmean(self.data_mean_stats)) * (self.myResult - np.nanmean(self.myResult))))
-                         / ((np.sqrt(np.nansum((self.data_mean_stats - np.nanmean(self.data_mean_stats))**2)))
+            warnings.filterwarnings('ignore')
+
+            mae = np.nansum(abs(self.myResult - self.data_mean)) / len(self.myResult)
+            rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean)**2))
+            nse = 1.0 - ((np.nansum((self.data_mean - self.myResult)**2)) /
+                         (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
+            mnse = 1.0 - ((np.nansum(abs(self.data_mean - self.myResult))) /
+                          (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
+            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (self.myResult - np.nanmean(self.myResult))))
+                         / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
                             * (np.sqrt(np.nansum((self.myResult - np.nanmean(self.myResult))**2)))))**2
 
             errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) +
@@ -347,6 +350,8 @@ class ISD:
             errors.setPos(2500, 0.55)
             self.gui.graphicsView.addItem(errors)
 
+            warnings.filterwarnings('once')
+
     def open_file(self):
         # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
         filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
@@ -357,7 +362,9 @@ class ISD:
         self.offset = 400 - int(self.wl_open[0])
         self.data_mean = np.delete(self.data, 0, axis=1)
         self.data_mean = np.mean(self.data_mean, axis=1)
-        if self.offset > 0: self.data_mean_stats = self.data_mean[self.offset:]  # cut off first 50 Bands to start at Band 400
+        if self.offset > 0:
+            self.data_mean = self.data_mean[self.offset:]  # cut off first 50 Bands to start at Band 400
+
         try:
             self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
             self.data_mean[1390:1541] = np.nan
@@ -405,6 +412,16 @@ class MainUiFunc:
         self.isd = ISD(self)
     def show(self):
         self.isd.gui.show()
+
+# sandbox:
+
+# a = np.array([1,2,3,4,5])
+# b = np.array([11,12,13,14,15])
+#
+# c = np.nansum(abs(a-b))
+# print c
+#
+# exit()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
