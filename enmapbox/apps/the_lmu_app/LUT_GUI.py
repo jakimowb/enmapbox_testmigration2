@@ -396,7 +396,7 @@ class LUT:
                 self.path += "/"
 
     def get_inputs(self):
-        self.dict_vals = dict(zip(self.para_flat, ([] for i in xrange(self.npara_flat))))
+        self.dict_vals = dict(zip(self.para_flat, ([] for _ in xrange(self.npara_flat))))
         for para in self.dict_objects:
             for object in xrange(4, 12):
                 if not self.dict_objects[para][object].text() == "":
@@ -495,7 +495,6 @@ class LUT:
         for para in self.dict_vals:
             if len(self.dict_vals[para]) == 3 and any(self.dict_objects[para][i].isEnabled() for i in xrange(4)):
                 self.nlut_total *= self.dict_vals[para][2]
-        self.gui.lcdNumber.display(int(self.nlut_total))
 
         if self.speed is None: self.speedtest()
         time50x = self.speedtest()
@@ -513,7 +512,9 @@ class LUT:
         else:
             self.gui.lblTimeUnit.setText("sec")
 
+        self.gui.lcdNumber.display(self.nlut_total)
         self.gui.lcdSpeed.display(self.speed)
+
 
     def speedtest(self):
 
@@ -571,7 +572,7 @@ class LUT:
         self.get_inputs()
         if not self.check_inputs(): return
         self.get_lutsize()
-        self.gui.lcdNumber.display(int(self.nlut_total))
+        self.gui.lcdNumber.display(self.nlut_total)
         self.gui.lcdSpeed.display(self.speed)
         self.main.QGis_app.processEvents()
 

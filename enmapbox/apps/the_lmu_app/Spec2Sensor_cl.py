@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import os
 import gdal
 import time
 import math
@@ -24,10 +25,12 @@ class Spec2Sensor:
         self.nodat = nodat
             
     def init_sensor(self):
-        
+
+        path = os.path.dirname(os.path.realpath(__file__))
+
         if self.sens_modus == 1:
-            self.SRF_File = "S2_srf.rsp"
-            self.SRFnpy = "S2_srf.npz"
+            self.SRF_File = path + "/S2_srf.rsp"
+            self.SRFnpy = path + "/S2_srf.npz"
             self.wl_sensor = [442.25, 492.22, 560.31, 663.09, 703.96, 742.38, 781.72, 833.33, 865.82, 942.25,
             1373.67, 1609.43, 2193.89] # Zentrumswellenlängen von Sentinel-2
     
@@ -35,8 +38,8 @@ class Spec2Sensor:
             28.00, 87.00, 172.00] # Full Width Half Maxima von Sentinel-2
           
         elif self.sens_modus == 2:
-            self.SRF_File = "E_srf.rsp"
-            self.SRFnpy = "E_srf.npz"
+            self.SRF_File = path + "/E_srf.rsp"
+            self.SRFnpy = path + "/E_srf.npz"
             self.wl_sensor = [423.00, 429.00, 434.00, 440.00, 445.00, 450.00, 455.00, 460.00, 464.00, 469.00,
             474.00, 479.00, 484.00, 488.00, 493.00, 498.00, 503.00, 508.00, 513.00, 518.00,
             523.00, 528.00, 533.00, 538.00, 543.00, 548.00, 553.00, 559.00, 564.00, 569.00,
@@ -89,8 +92,8 @@ class Spec2Sensor:
             8.00,   8.00] # Full Width Half Maximum von EnMAP
         
         elif self.sens_modus == 3:
-            self.SRF_File = "L8_srf.rsp"
-            self.SRFnpy = "L8_srf.npz"
+            self.SRF_File = path + "/L8_srf.rsp"
+            self.SRFnpy = path + "/L8_srf.npz"
             self.wl_sensor = [442.96, 482.04, 561.41, 654.59, 864.67, 1373.43, 1608.86, 2200.73]
             self.fwhm = [16.00, 60.00, 57.00, 37.00, 28.00, 20.00, 85.00, 187.00]
 
@@ -179,5 +182,5 @@ if __name__ == '__main__':
     s2s.init_sensor()
     # s2s.SRF2npy()
 
-    spectrum = np.load("test_spec.npy")
-    s2s.run_SRF(reflectance=spectrum)
+    # spectrum = np.load("test_spec.npy")
+    # s2s.run_SRF(reflectance=spectrum)
