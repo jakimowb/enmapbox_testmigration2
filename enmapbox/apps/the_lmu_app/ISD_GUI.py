@@ -325,28 +325,36 @@ class ISD:
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 
-        if self.data_mean is not None and self.gui.SType_None_B.isChecked() and not self.gui.CheckPlotAcc.isChecked():
+        if self.data_mean is not None and not self.gui.CheckPlotAcc.isChecked():
 
             self.plot_own_spec()
 
             warnings.filterwarnings('ignore')
 
-            mae = np.nansum(abs(self.myResult - self.data_mean)) / len(self.myResult)
-            rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean)**2))
-            nse = 1.0 - ((np.nansum((self.data_mean - self.myResult)**2)) /
-                         (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
-            mnse = 1.0 - ((np.nansum(abs(self.data_mean - self.myResult))) /
-                          (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
-            r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (self.myResult - np.nanmean(self.myResult))))
-                         / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
-                            * (np.sqrt(np.nansum((self.myResult - np.nanmean(self.myResult))**2)))))**2
+            try:
+                mae = np.nansum(abs(self.myResult - self.data_mean)) / len(self.myResult)
+                rmse = np.sqrt(np.nanmean((self.myResult - self.data_mean)**2))
+                nse = 1.0 - ((np.nansum((self.data_mean - self.myResult)**2)) /
+                             (np.nansum((self.data_mean - (np.nanmean(self.data_mean)))**2)))
+                mnse = 1.0 - ((np.nansum(abs(self.data_mean - self.myResult))) /
+                              (np.nansum(abs(self.data_mean - (np.nanmean(self.data_mean))))))
+                r_squared = ((np.nansum((self.data_mean - np.nanmean(self.data_mean)) * (self.myResult - np.nanmean(self.myResult))))
+                             / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
+                                * (np.sqrt(np.nansum((self.myResult - np.nanmean(self.myResult))**2)))))**2
 
-            errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) +
-                                 "\nMAE: " + str(round(mae, 6)) +
-                                 "\nNSE: " + str(round(nse, 6)) +
-                                 "\nmNSE: " + str(round(mnse, 6)) +
-                                 '\n' + u'R²: ' + str(round(r_squared, 6)), (100, 200, 255),
-                                 border="w", anchor=(1, 0))
+                errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) +
+                                     "\nMAE: " + str(round(mae, 6)) +
+                                     "\nNSE: " + str(round(nse, 6)) +
+                                     "\nmNSE: " + str(round(mnse, 6)) +
+                                     '\n' + u'R²: ' + str(round(r_squared, 6)), (100, 200, 255),
+                                     border="w", anchor=(1, 0))
+            except:
+                errors = pg.TextItem("RMSE: sensors mismatch" +
+                                     "\nMAE: sensors mismatch " +
+                                     "\nNSE: sensors mismatch" +
+                                     "\nmNSE: sensors mismatch" +
+                                     '\n' + u'R²: sensors mismatch ', (100, 200, 255),
+                                     border="w", anchor=(1, 0))
             errors.setPos(2500, 0.55)
             self.gui.graphicsView.addItem(errors)
 
@@ -364,14 +372,20 @@ class ISD:
         self.data_mean = np.mean(self.data_mean, axis=1)
         if self.offset > 0:
             self.data_mean = self.data_mean[self.offset:]  # cut off first 50 Bands to start at Band 400
+            self.wl_open = self.wl_open[self.offset:]
 
-        try:
-            self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
-            self.data_mean[1390:1541] = np.nan
-            self.data_mean[2000:2101] = np.nan
-        except:
-            QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
-            return
+        water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
+        self.data_mean = np.asarray([self.data_mean[i] if self.wl_open[i] not in water_absorption_bands
+                                     else np.nan for i in xrange(len(self.data_mean))])
+
+
+        # try:
+        #     self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
+        #     self.data_mean[1390:1541] = np.nan
+        #     self.data_mean[2000:2101] = np.nan
+        # except:
+        #     QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
+        #     return
         self.mod_exec()
 
     def reset_in_situ(self):
@@ -394,8 +408,8 @@ class ISD:
         specnameout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
                                                       filter="Text files (*.txt)"))
         if not specnameout: return
-        save_matrix = np.zeros(shape=(2101,2))
-        save_matrix[:,0] = range(400,2501)
+        save_matrix = np.zeros(shape=(len(self.wl),2))
+        save_matrix[:,0] = self.wl
         save_matrix[:,1] = self.myResult
         np.savetxt(specnameout, save_matrix, delimiter="\t", header="wavelength (nm)")
 
@@ -413,13 +427,14 @@ class MainUiFunc:
     def show(self):
         self.isd.gui.show()
 
-# sandbox:
-
-# a = np.array([1,2,3,4,5])
-# b = np.array([11,12,13,14,15])
+# # sandbox:
 #
-# c = np.nansum(abs(a-b))
+# a = np.asarray(range(10, 15) + range(20,25))
+# b = np.arange(5,45)
+#
+# c = [b[i] for i in xrange(len(b)) if b[i] in a]
 # print c
+#
 #
 # exit()
 
