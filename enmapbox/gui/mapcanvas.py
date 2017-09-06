@@ -470,7 +470,7 @@ class CanvasLink(QObject):
         cs = list(self.canvases)
         return 'CanvasLink "{}" {} <-> {}'.format(self.linkType, cs[0], cs[1])
 
-class MapCanvasInfoItem(QgsMapCanvasItem):
+class MapCanvasInfoItem(QgsAnnotationItem):
 
     def __init__(self, mapCanvas):
         assert isinstance(mapCanvas, MapCanvas)
@@ -486,7 +486,7 @@ class MapCanvasInfoItem(QgsMapCanvasItem):
 
     def setMapMouseEvent(self, mapMouseEvent):
         self.mMapMouseEvent = mapMouseEvent
-        self.updatePosition()
+        self.update()
 
 
 
@@ -611,8 +611,8 @@ class MapCanvas(QgsMapCanvas):
 
 
 
-    def mouseMoveEvent(self, event):
-        self.mMapMouseEvent = QgsMapMouseEvent(self,event)
+    #def mouseMoveEvent(self, event):
+    #    self.mMapMouseEvent = QgsMapMouseEvent(self,event)
 
     def refresh(self, force=False):
 
@@ -783,7 +783,7 @@ class MapCanvas(QgsMapCanvas):
     def activateMapTool(self, key):
         assert key in self.mMapTools.keys(), 'No QgsMapTool registered with key "{}"'.format(key)
         self.setMapTool(self.mMapTools[key])
-
+        s= ""
     def onScaleChanged(self, scale):
         CanvasLink.applyLinking(self)
         pass
