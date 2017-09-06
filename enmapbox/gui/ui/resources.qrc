@@ -33,6 +33,10 @@
   <file>icons/link_open.png</file>
   <file>icons/locked.png</file>
   <file>icons/lockedGray.png</file>
+  <file>icons/logo_dlr.png</file>
+  <file>icons/logo_enmapproject.png</file>
+  <file>icons/logo_gfz.png</file>
+  <file>icons/logo_hu-berlin.png</file>
   <file>icons/mActionAdd.png</file>
   <file>icons/mActionAddMapView.png</file>
   <file>icons/mActionAddRasterLayer.png</file>
