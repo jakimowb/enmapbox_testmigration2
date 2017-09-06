@@ -56,6 +56,19 @@ def hasQPFExtensions():
     from processing.tools import dataobjects
     return hasattr(dataobjects, '_getRasterLayers')
 
+
+def removeEnMAPBoxOnlyLayers():
+    REG = QgsMapLayerRegistry.instance()
+    to_remove = []
+    for lyr in REG.mapLayers().values():
+        assert isinstance(lyr, QgsMapLayer)
+        if lyr.customProperty('__enmapbox__') == True:
+            to_remove.append(lyr)
+    if len(to_remove) > 0:
+        REG.removeMapLayers(to_remove)
+
+
+
 def installQPFExtensions(force=False):
     """
     Modifies the QGIS Processing Framework to recognize EnMAP-Box data sources as well.
@@ -71,7 +84,15 @@ def installQPFExtensions(force=False):
         return settings.value('EMB_QPF_LAYERNAME_PREFIX', '[EnMAP-Box]')
 
     def registerMergeSort(embLayers, qgsLayers, sorting):
-        QgsMapLayerRegistry.instance().addMapLayers(embLayers, False)
+
+        removeEnMAPBoxOnlyLayers()
+
+        REG = QgsMapLayerRegistry.instance()
+        for lyr in embLayers:
+            assert isinstance(lyr, QgsMapLayer)
+            lyr.setCustomProperty('__enmapbox__',True)
+        REG.addMapLayers(embLayers, False)
+
         qgsLayers = embLayers + qgsLayers
         if sorting:
             qgsLayers = sorted(qgsLayers, key=lambda layer: layer.name().lower())
@@ -156,7 +177,7 @@ def removeQPFExtensions():
             dataobjects.getRasterLayers = dataobjects._getRasterLayers
             dataobjects.getVectorLayers = dataobjects._getVectorLayers
             dataobjects.getTables = dataobjects._getTables
-
+            removeEnMAPBoxOnlyLayers()
             del dataobjects._getRasterLayers
             del dataobjects._getVectorLayers
             del dataobjects._getTables

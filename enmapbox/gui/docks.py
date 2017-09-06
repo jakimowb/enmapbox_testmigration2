@@ -564,6 +564,7 @@ class SpectralLibraryDock(Dock):
         self.layout.addWidget(self.speclibWidget)
         self.mShowMapInteraction = True
 
+
     """
     def setMapInteraction(self,b):
         assert isinstance(b, bool)

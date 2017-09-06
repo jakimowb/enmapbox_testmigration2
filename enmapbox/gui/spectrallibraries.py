@@ -1552,7 +1552,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         self.btnBoxMapInteraction.setEnabled(b)
 
     def mapInteraction(self):
-        return self.btnBoxMapInteraction.isVisible()
+        return self.btnBoxMapInteraction.isEnabled()
 
     def dragEnterEvent(self, event):
         assert isinstance(event, QDragEnterEvent)
@@ -1649,10 +1649,9 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
     sigCurrentSpectraChanged = pyqtSignal(list)
     def setCurrentSpectra(self, listOfSpectra):
-        if listOfSpectra is None:
+        if listOfSpectra is None or not self.mapInteraction():
             listOfSpectra = []
-        if not self.mapInteraction():
-            return None
+
         plotItem =  self.getPlotItem()
         #remove old items
         for p in self.mCurrentSpectra:
