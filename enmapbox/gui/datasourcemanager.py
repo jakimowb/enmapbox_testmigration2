@@ -771,6 +771,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 a = m.addAction('Copy URI / path')
                 a.triggered.connect(lambda: QApplication.clipboard().setText(str(src.uri())))
                 a = m.addAction('Rename')
+                a.setEnabled(False)
                 #todo: implement rename function
                 #a.triggered.connect(node.dataSource.rename)
 
@@ -783,8 +784,15 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 a = sub.addAction('Default Colors')
                 a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='DEFAULT'))
                 a = sub.addAction('True Color')
+                a.setToolTip('Red-Green-Blue true colors')
                 a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='R,G,B'))
-                a = sub.addAction('nIR swIR Red')
+
+                a = sub.addAction('CIR')
+                a.setToolTip('nIR Red Green')
+                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,R,G'))
+
+                a = sub.addAction('SWIR')
+                a.setToolTip('nIR swIR Red')
                 a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,SWIR,R'))
 
             if isinstance(src, DataSourceVector):
@@ -793,11 +801,14 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
             if isinstance(src, DataSourceSpectralLibrary):
                 a = m.addAction('Save as...')
+                a.setEnabled(False)
 
                 a = m.addAction('Open')
+                a.setEnabled(False)
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
+            a.setEnabled(False)
 
             a = m.addAction('Open in new map')
             a.triggered.connect(lambda : self.onOpenInNewMap(node.mDataSource, rgb=[node.mBandIndex]))
