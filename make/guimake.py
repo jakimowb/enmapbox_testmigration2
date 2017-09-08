@@ -580,7 +580,7 @@ if __name__ == '__main__':
 
     if True:
         #convert SVG to PNG and add link them into the resource file
-        svg2png(icondir, overwrite=False)
+        #svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)
 
     if True: compile_rc_files(DIR_UIFILES)

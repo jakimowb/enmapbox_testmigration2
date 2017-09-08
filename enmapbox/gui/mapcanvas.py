@@ -604,6 +604,7 @@ class MapCanvas(QgsMapCanvas):
 
         self.mMapTools = {}
         self.registerMapTools()
+
         #activate default map tool
         self.activateMapTool('PAN')
         self.mMapMouseEvent = None
