@@ -884,7 +884,88 @@ class SpectralLibraryPanel(QgsDockWidget):
         self.SLW = SpectralLibraryWidget(self)
         self.setWidget(self.SLW)
 
+class SpectralLibraryVectorLayer(QgsVectorLayer):
 
+    def __init__(self, speclib, crs=None):
+        assert isinstance(speclib, SpectralLibrary)
+        if crs is None:
+            crs = QgsCoordinateReferenceSystem('EPSG:4862')
+
+        uri = 'Point?crs={}'.format(crs.authid())
+        super(SpectralLibraryVectorLayer, self).__init__(uri, speclib.name(), 'memory', False)
+        self.mCrs = crs
+        self.mSpeclib = speclib
+        self.mSpeclib.sigNameChanged.connect(self.setName)
+        self.nameChanged.connect(self.mSpeclib.setName)
+
+        #todo QGIS3: use QgsFieldContraint instead self.mOIDs
+        self.mOIDs = dict()
+
+
+        #initialize fields
+        assert self.startEditing()
+        # standard field names, types, etc.
+        fieldDefs = [('oid', QVariant.Int, 'integer'),
+                     ('name', QVariant.String, 'string'),
+                     ('geo_x', QVariant.Double, 'decimal'),
+                     ('geo_y', QVariant.Double, 'decimal'),
+                     ('px_x', QVariant.Int, 'integer'),
+                     ('px_y', QVariant.Int, 'integer'),
+                     ('source', QVariant.String, 'string'),
+                     ]
+        # initialize fields
+        for fieldDef in fieldDefs:
+            field = QgsField(fieldDef[0], fieldDef[1], fieldDef[2])
+            self.addAttribute(field)
+        self.commitChanges()
+
+        self.mSpeclib.sigProfilesAdded.connect(self.onProfilesAdded)
+        self.mSpeclib.sigProfilesRemoved.connect(self.onProfilesRemoved)
+        self.onProfilesAdded(self.mSpeclib[:])
+
+    def onProfilesAdded(self, profiles):
+        for p in [p for p in profiles if p.geoCoordinate() is not None]:
+            assert isinstance(p, SpectralProfile)
+            oid = str(id(p))
+            if oid in self.mOIDs.keys():
+                continue
+            geo = p.geoCoordinate().toCrs(self.mCrs)
+            if isinstance(geo, SpatialPoint):
+                geometry = QgsPointV2(geo.x(), geo.y())
+                feature = QgsFeature(self.fields())
+                feature.setGeometry(QgsGeometry(geometry))
+                feature.setAttribute('oid', oid)
+                feature.setAttribute('name', str(p.name()))
+                feature.setAttribute('geo_x', p.geoCoordinate().x())
+                feature.setAttribute('geo_y', p.geoCoordinate().y())
+                feature.setAttribute('source', str(p.source()))
+
+                px = p.pxCoordinate()
+                if isinstance(px, QPoint):
+                    feature.setAttribute('px_x', px.x())
+                    feature.setAttribute('px_y', px.y())
+
+            self.startEditing()
+            assert self.addFeature(feature)
+
+            assert self.commitChanges()
+            self.mOIDs[oid] = feature.id()
+            self.updateExtents()
+
+    def onProfilesRemoved(self, profiles):
+
+        oids = [str(id(p)) for p in profiles]
+        oids = [o for o in oids if o in self.mOIDs.keys()]
+        #fids = [self.mOIDs[o] for o in  oids]
+        self.selectByExpression('"oid" in ({})'.format(','.join(oids)))
+        self.deleteSelectedFeatures()
+
+
+    def spectralLibrary(self):
+        return self.mSpeclib
+
+    def nSpectra(self):
+        return len(self.mSpeclib)
 
 
 class SpectralLibrary(QObject):
@@ -1780,21 +1861,34 @@ if __name__ == "__main__":
     spec2 = SpectralProfile()
     spec2.setValues([0.3, 0.7, 0.8, 0.75])
     spec2.setMetadata('My Attr', 9876)
+    crs = QgsCoordinateReferenceSystem('EPSG:32632')
+    spec2.setCoordinates(QPoint(30,40), SpatialPoint(crs, 30000, 40000))
     #mySpec.plot()
 
     if True:
-        sl0 = SpectralLibrary(profiles=[spec1, spec2])
-        path = r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\speclibtest.sli'
-        sl0.exportProfiles(path)
 
+        from enmapboxtestdata import enmap, landcover
 
-        panel2 = SpectralLibraryWidget()
-        panel2.show()
+        sl0 = SpectralLibrary()
+        lyrS1 = SpectralLibraryVectorLayer(sl0)
 
-        panel = SpectralLibraryWidget()
-        panel.addSpeclib(SpectralLibrary.readFrom(path))
-        panel.show()
+        sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(25,25)))
+        sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(30, 20)))
+        sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(30, 19)))
+        lyrS2 = QgsVectorLayer(landcover, 'landcover', 'ogr',True)
+        lyrR = QgsRasterLayer(enmap)
+        REG = QgsMapLayerRegistry.instance()
+        REG.addMapLayers([lyrR,lyrS2, lyrS1])
 
+        from enmapbox.gui.mapcanvas import MapCanvas
+        c = MapCanvas()
+        c.setDestinationCrs(lyrS2.crs())
+        c.setLayers([lyrS1, lyrS2, lyrR])
+        c.setExtent(lyrS2.extent())
+
+        c.show()
+
+        s = ""
 
     #sl1 = SpectralLibrary.readFrom(speclib)
 
