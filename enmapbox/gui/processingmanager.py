@@ -58,11 +58,13 @@ def hasQPFExtensions():
 
 
 def removeEnMAPBoxOnlyLayers():
+
+    qgsLayers = dataobjects._getRasterLayers() + dataobjects._getVectorLayers()
+
     REG = QgsMapLayerRegistry.instance()
     to_remove = []
     for lyr in REG.mapLayers().values():
-        assert isinstance(lyr, QgsMapLayer)
-        if lyr.customProperty('__enmapbox__') == True:
+        if lyr not in qgsLayers and lyr.customProperty('__enmapbox__') == True:
             to_remove.append(lyr)
     if len(to_remove) > 0:
         REG.removeMapLayers(to_remove)
@@ -85,7 +87,7 @@ def installQPFExtensions(force=False):
 
     def registerMergeSort(embLayers, qgsLayers, sorting):
 
-        removeEnMAPBoxOnlyLayers()
+        #removeEnMAPBoxOnlyLayers()
 
         REG = QgsMapLayerRegistry.instance()
         for lyr in embLayers:
