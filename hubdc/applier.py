@@ -17,7 +17,7 @@ from hubdc.model import Open, OpenLayer, CreateFromArray
 from hubdc import const
 from hubdc.writer import Writer, WriterProcess, QueueMock
 from hubdc.model import PixelGrid
-from hubdc.progressbar import CUIProgressBar, SilentProgressBar, ProgressBar, ProgressBarDelegate
+from hubdc.progressbar import CUIProgressBar, ProgressBar, ProgressBarDelegate
 
 
 DEFAULT_INPUT_RESAMPLEALG = gdal.GRA_NearestNeighbour
