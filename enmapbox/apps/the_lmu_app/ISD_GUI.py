@@ -51,11 +51,65 @@ class ISD:
         self.typeLIDF = 2
         self.lop = "prospectD"
         self.canopy_arch = "sail"
-        self.plot_color = dict(zip(range(7), ["g", "r", "b", "y", "m", "c", "w"]))
+        self.colors = [tuple([219,183,255]), tuple([51,204,51]), tuple([69,30,234]), tuple([0,255,255]),
+                        tuple([255,255,0]), tuple([0,0,0]), tuple([255,0,0]), tuple([255,255,255]),
+                        tuple([255,124,128]), tuple([178,178,178]), tuple([144, 204, 154]),
+                        tuple([255,153,255]), tuple([255,153,51]), tuple([204, 0, 153]), tuple([172, 86, 38])]
+        self.lineEdits = [self.gui.N_lineEdit, self.gui.Cab_lineEdit, self.gui.Cw_lineEdit, self.gui.Cm_lineEdit,
+                          self.gui.LAI_lineEdit, self.gui.lblFake, self.gui.LIDFB_lineEdit, self.gui.hspot_lineEdit,
+                          self.gui.psoil_lineEdit, self.gui.SZA_lineEdit, self.gui.OZA_lineEdit, self.gui.rAA_lineEdit,
+                          self.gui.Car_lineEdit, self.gui.Canth_lineEdit, self.gui.Cbrown_lineEdit]
+        self.penStyle = 1
+        self.item = 1
+        # self.plot_color = dict(zip(range(7), ["g", "r", "b", "y", "m", "c", "w"]))
         self.plot_count = 0
         self.current_slider = None
         self.data_mean = None
         self.para_list = []
+
+    # def color_constructor(self, color):
+    #     if color == "g":
+    #         rgb_string = "rgb(%i, %i, %i)" % (0, 255, 0)
+    #     elif color == "r":
+    #         rgb_string = "rgb(%i, %i, %i)" % (255, 0, 0)
+    #     elif color == "b":
+    #         rgb_string = "rgb(%i, %i, %i)" % (0, 0, 255)
+    #     elif color == "y":
+    #         rgb_string = "rgb(%i, %i, %i)" % (255, 255, 0)
+    #     elif color == "m":
+    #         rgb_string = "rgb(%i, %i, %i)" % (255, 0, 255)
+    #     elif color == "c":
+    #         rgb_string = "rgb(%i, %i, %i)" % (0, 255, 255)
+    #     elif color == "w":
+    #         rgb_string = "rgb(%i, %i, %i)" % (255, 255, 255)
+    #     return rgb_string
+
+    # def style_constructor(self, colors):
+    #
+    #     # assume colors=["y", "r"]
+    #     n = len(colors)
+    #     color_str = [] # list for all the RGB-values
+    #     for color in colors:
+    #         color_str.append(self.color_constructor(color=color))
+    #     color_str = [x for pair in zip(color_str, color_str) for x in pair] # duplicate all colors (start & stop)
+    #
+    #     style_str = "background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 " # "Intro"
+    #
+    #     style_str += ", stop:1 %s);" % self.color_constructor(color="w") # "Outro"
+    #
+    #     print style_str
+
+    # def flag_colors(self):
+        # self.style_constructor(colors=["y", "r"])
+        # self.gui.color_N.setStyleSheet("""background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
+        # stop:0 """ + self.color_constructor("y") + """, stop:0.499 rgb(255, 255, 0),
+        # stop:0.501 rgb(255, 0, 0), stop:1 rgb(255, 0, 0));""")
+        # self.gui.color_Cab.setStyleSheet("""background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
+        # stop:0 rgb(255, 0, 0), stop:1 rgb(255, 0, 0));""")
+        # self.gui.color_Cw.setStyleSheet("""background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
+        # stop:0 rgb(255, 0, 0), stop:0.330 rgb(255, 0, 0),
+        # stop:0.335 rgb(0, 255, 0), stop:0.665 rgb(0, 255, 0),
+        # stop:0.670 rgb(0,0,255), stop:1 rgb(0, 0, 255));""")
 
     def update_slider_pos(self):
         self.gui.N_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.N_Slide, self.gui.N_lineEdit))
@@ -79,7 +133,6 @@ class ISD:
         self.gui.CD_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.CD_Slide, self.gui.CD_lineEdit))
     
     def update_lineEdit_pos(self):
-        
         self.gui.N_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.N_lineEdit, self.gui.N_Slide))
         self.gui.Cab_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cab_lineEdit, self.gui.Cab_Slide))
         self.gui.Cw_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cw_lineEdit, self.gui.Cw_Slide))
@@ -117,7 +170,7 @@ class ISD:
 
     def select_s2s(self, sensor, trigger=True):
         self.sensor = sensor
-        if not sensor == "default":
+        if sensor in ["EnMAP", "Sentinel2", "Landsat8"]:
             s2s = Spec2Sensor(sensor=sensor, nodat=-999)
             s2s.init_sensor()
             self.wl = s2s.wl_sensor
@@ -126,7 +179,18 @@ class ISD:
             self.wl = range(400, 2501)
 
         if trigger:
+            self.makePen(sensor=sensor)
             self.mod_exec()
+
+    def makePen(self, sensor):
+        if sensor == "default":
+            self.penStyle = 1
+        elif sensor == "EnMAP":
+            self.penStyle = 3
+        elif sensor == "Sentinel2":
+            self.penStyle = 2
+        elif sensor == "Landsat8":
+            self.penStyle = 4
 
     def select_LIDF(self, index):
         if index > 0:
@@ -134,7 +198,7 @@ class ISD:
             self.para_list[6] = index - 1
             self.gui.LIDFB_Slide.setDisabled(True)
             self.gui.LIDFB_lineEdit.setDisabled(True)
-            self.mod_exec()
+            self.mod_exec(item=6)
         else:
             self.typeLIDF = 2 # Ellipsoidal Distribution
             self.mod_exec(self.gui.LIDFB_Slide, item=6)
@@ -270,24 +334,31 @@ class ISD:
         self.gui.SType_Landsat_B.clicked.connect(lambda: self.select_s2s(sensor="Landsat8"))
         self.gui.SType_Enmap_B.clicked.connect(lambda: self.select_s2s(sensor="EnMAP"))
 
-        # self.gui.B_Prospect4.clicked.connect(lambda: self.select_model(lop="prospect4"))
-        # self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5"))
-        # self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B"))
-        # self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD"))
-        #
-        # self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(canopy_arch="None"))
-        # self.gui.B_4Sail.clicked.connect(lambda: self.select_model(canopy_arch="sail"))
-        # self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
-
         self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
-        self.gui.pushClearPlot.clicked.connect(lambda: self.clear_plot(rescale=True))  #clear the plot canvas
+        self.gui.CheckPlotAcc.stateChanged.connect(lambda: self.txtColorBars())
+        self.gui.pushClearPlot.clicked.connect(lambda: self.clear_plot(rescale=True, clearPlots=True))  #clear the plot canvas
+        self.gui.cmdResetScale.clicked.connect(lambda: self.clear_plot(rescale=True, clearPlots=False))
         self.gui.Push_LoadInSitu.clicked.connect(self.open_file)  #load own spectrum
         self.gui.Push_Exit.clicked.connect(self.gui.accept)  #exit app
         self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)  #remove own spectrum from plot canvas
 
         self.gui.Push_SaveSpec.clicked.connect(self.save_spectrum)
         self.gui.Push_SaveParams.clicked.connect(self.save_paralist)
+
+        self.gui.lblFake.setVisible(False) # placeholder for typeLIDF object in coloring
+
+    def txtColorBars(self):
+        if self.gui.CheckPlotAcc.isChecked():
+            for i, lineEdit in enumerate(self.lineEdits):
+                color_str = "rgb%s" % str(self.colors[i])
+                lineEdit.setStyleSheet("""background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
+                stop:0 rgb(255, 255, 255), stop:0.849 rgb(255, 255, 255),
+                stop:0.85 %s, stop:1 %s);""" % (color_str, color_str))
+
+        else:
+            for lineEdit in self.lineEdits:
+                lineEdit.setStyleSheet("background - color: rgb(255, 255, 255);")
 
     def mod_exec(self, slider=None, item=None):
 
@@ -304,12 +375,12 @@ class ISD:
 
         # self.myResult[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
         # self.myResult[1390:1541] = np.nan
+        if not item is None: self.item = item
         self.plotting()
 
     def plotting(self):
 
         if not self.gui.CheckPlotAcc.isChecked():
-
             self.clear_plot()
             self.gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
                                         name='modelled')
@@ -318,8 +389,8 @@ class ISD:
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
-            self.plot = self.gui.graphicsView.plot(self.wl, self.myResult,
-                                              pen=self.plot_color[self.plot_count % 7])
+            myPen = pg.mkPen(color=self.colors[self.item], style=self.penStyle)
+            self.plot = self.gui.graphicsView.plot(self.wl, self.myResult, pen=myPen)
             self.plot_own_spec()
             self.gui.graphicsView.setYRange(0, 0.6, padding=0)
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
@@ -396,13 +467,14 @@ class ISD:
         if self.data_mean is not None:
             self.gui.graphicsView.plot(self.wl_open, self.data_mean, name='observed')
 
-    def clear_plot(self, rescale=False):
+    def clear_plot(self, rescale=False, clearPlots=True):
         if rescale:
             self.gui.graphicsView.setYRange(0, 0.6, padding=0)
             self.gui.graphicsView.setXRange(350, 2550, padding=0)
-        self.gui.graphicsView.clear()
 
-        self.plot_count = 0
+        if clearPlots:
+            self.gui.graphicsView.clear()
+            self.plot_count = 0
 
     def save_spectrum(self):
         specnameout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',

@@ -63,7 +63,7 @@
     <item>
      <widget class="QRadioButton" name="radFullRange">
       <property name="text">
-       <string>ASD 350-2500nm</string>
+       <string>350-2500nm @1nm</string>
       </property>
       <property name="checked">
        <bool>false</bool>
