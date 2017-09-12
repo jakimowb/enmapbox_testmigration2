@@ -612,8 +612,9 @@ class MapCanvas(QgsMapCanvas):
 
 
 
-    #def mouseMoveEvent(self, event):
-    #    self.mMapMouseEvent = QgsMapMouseEvent(self,event)
+    def mouseMoveEvent(self, event):
+        self.mMapMouseEvent = QgsMapMouseEvent(self,event)
+        return super(MapCanvas, self).mouseMoveEvent(event)
 
     def refresh(self, force=False):
 
@@ -841,6 +842,15 @@ class MapCanvas(QgsMapCanvas):
         ME = MimeDataHelper(event.mimeData())
         # check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
+        if ME.hasPythonObjects():
+            objects = ME.pythonObjects()
+            for o in objects:
+                from enmapbox.gui.spectrallibraries import SpectralLibrary
+                if isinstance(o, SpectralLibrary):
+                    event.setDropAction(Qt.CopyAction)
+                    event.accept()
+                    return
+
         if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
             event.setDropAction(Qt.CopyAction)  # copy but do not remove
             event.accept()
@@ -850,9 +860,17 @@ class MapCanvas(QgsMapCanvas):
 
     def dropEvent(self, event):
         ME = MimeDataHelper(event.mimeData())
-        newLayers = None
-        if ME.hasMapLayers():
+        newLayers = []
+        if ME.hasPythonObjects():
+            from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralLibraryVectorLayer
+            for obj in ME.pythonObjects(typeFilter=SpectralLibrary):
+                slLyr = SpectralLibraryVectorLayer(obj)
+                newLayers.append(slLyr)
+                event.setDropAction(Qt.CopyAction)
+
+        elif ME.hasMapLayers():
             newLayers = ME.mapLayers()
+
         elif ME.hasDataSources():
             from enmapbox.gui.datasources import DataSourceSpatial
             from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -860,7 +878,7 @@ class MapCanvas(QgsMapCanvas):
             dataSources = [EnMAPBox.instance().dataSourceManager.addSource(d) for d in dataSources]
             newLayers = [d.createUnregisteredMapLayer() for d in dataSources]
 
-        if newLayers != None:
+        if len(newLayers) > 0:
             self.setLayers(newLayers + self.layers())
             event.accept()
             event.acceptProposedAction()

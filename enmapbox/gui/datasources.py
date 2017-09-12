@@ -164,10 +164,15 @@ class DataSourceFactory(object):
         if isinstance(src, DataSource):
             return src
 
+        from enmapbox.gui.spectrallibraries import SpectralLibraryVectorLayer, SpectralLibrary
+        if isinstance(src, SpectralLibraryVectorLayer):
+            return DataSourceFactory.Factory(src.mSpeclib)
+
         uri = DataSourceFactory.isRasterSource(src)
         if uri is not None:
             return DataSourceRaster(uri, name=name, icon=icon)
         uri = DataSourceFactory.isVectorSource(src)
+
         if uri is not None:
             return DataSourceVector(uri, name=name, icon=icon)
 
@@ -327,7 +332,7 @@ class DataSourceSpatial(DataSourceFile):
         self.spatialExtent = SpatialExtent.fromLayer(lyr)
 
         assert isinstance(lyr, QgsMapLayer)
-        assert lyr.isValid()
+        #assert lyr.isValid()
 
 
 
@@ -372,20 +377,20 @@ class DataSourceSpectralLibrary(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
         super(DataSourceSpectralLibrary, self).__init__(uri, name, icon)
 
+        self.mSpeclib = None
         self.nProfiles = None
         self.profileNames = []
         self.updateMetadata()
 
     def updateMetadata(self, *args, **kwds):
-
         from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
-        slib = SpectralLibrary.readFrom(self.mUri)
-        assert isinstance(slib, SpectralLibrary)
-        self.nProfiles = len(slib)
-        self.profileNames = []
-        for p in slib:
-            assert isinstance(p, SpectralProfile)
-            self.profileNames.append(p.name())
+        self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
+        assert isinstance(mSpeclib, SpectralLibrary)
+        #self.nProfiles = len(slib)
+        #self.profileNames = []
+        #for p in slib:
+        #    assert isinstance(p, SpectralProfile)
+        #    self.profileNames.append(p.name())
 
 
 class DataSourceRaster(DataSourceSpatial):

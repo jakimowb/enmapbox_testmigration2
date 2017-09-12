@@ -341,15 +341,19 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(SpeclibDataSourceTreeNode, self).__init__(*args, **kwds)
 
-        self.profiles = None
+        self.mSpeclib = None
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
 
+        from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
+        self.mSpeclib = dataSource.mSpeclib
+        assert isinstance(self.mSpeclib, SpectralLibrary)
+
         self.profiles= TreeNode(self, 'Profiles',
                                     tooltip='Spectral profiles',
-                                    value='{}'.format(dataSource.nProfiles))
+                                    value='{}'.format(len(dataSource.nProfiles))
         for name in dataSource.profileNames:
             TreeNode(self.profiles, name)
 
@@ -588,7 +592,7 @@ class DataSourceManagerTreeModel(TreeModel):
         mimeData = QMimeData()
         # define application/enmapbox.datasourcetreemodeldata
         exportedNodes = []
-
+        pythonObjects = []
         #collect nodes to be exported as mimeData
         for node in nodesFinal:
             #avoid doubling
@@ -620,13 +624,33 @@ class DataSourceManagerTreeModel(TreeModel):
             for node in specLibNodes:
                 slib = SpectralLibrary.readFrom(node.dataSource.uri())
                 sl.addSpeclib(slib)
+
             if len(sl) > 0:
                 mimeData.setData(MimeDataHelper.MDF_SPECTRALLIBRARY, sl.asPickleDump())
+                pythonObjects.append(sl)
+
+        if len(pythonObjects) > 0:
+            MimeDataHelper.setObjectReferences(mimeData, pythonObjects)
 
         # set text/uri-list
         if len(uriList) > 0:
             mimeData.setUrls(uriList)
         return mimeData
+
+    def canFetchMode(self, index):
+        node = self.index2node(index)
+        if not isinstance(node, TreeNode):
+            return False
+
+        if isinstance(node.parent(), SpeclibDataSourceTreeNode) and node.name() == 'Profiles':
+            parent = node.parent()
+            l = len(parent.mSpeclib)
+            return index.row() < l
+
+    def fetchMore(self):
+        node = self.index2node(index)
+        if not isinstance(node, TreeNode):
+            return False
 
     def getSourceGroup(self, dataSource):
         """Returns the source group relate to a data source"""

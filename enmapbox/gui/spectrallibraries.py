@@ -889,7 +889,7 @@ class SpectralLibraryVectorLayer(QgsVectorLayer):
     def __init__(self, speclib, crs=None):
         assert isinstance(speclib, SpectralLibrary)
         if crs is None:
-            crs = QgsCoordinateReferenceSystem('EPSG:4862')
+            crs = QgsCoordinateReferenceSystem('EPSG:4326')
 
         uri = 'Point?crs={}'.format(crs.authid())
         super(SpectralLibraryVectorLayer, self).__init__(uri, speclib.name(), 'memory', False)
@@ -1844,16 +1844,17 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
                 pi.addItem(pdi)
 
 
-if __name__ == "__main__":
+
+def __Test__():
     import enmapboxtestdata
     from enmapboxtestdata import speclib
 
     from enmapbox.gui.utils import SpatialPoint, SpatialExtent, initQgisApplication
     qapp = initQgisApplication()
 
-    #p = r'E:\_EnMAP\temp\temp_bj\SpecLib_Berlin_Urban_Gradient_2009.sli'
-    #sl = SpectralLibrary.readFrom(p)
-    #sl.plot()
+    # p = r'E:\_EnMAP\temp\temp_bj\SpecLib_Berlin_Urban_Gradient_2009.sli'
+    # sl = SpectralLibrary.readFrom(p)
+    # sl.plot()
 
     spec1 = SpectralProfile()
     spec1.setValues([0.2, 0.3, 0.5, 0.7])
@@ -1862,36 +1863,37 @@ if __name__ == "__main__":
     spec2.setValues([0.3, 0.7, 0.8, 0.75])
     spec2.setMetadata('My Attr', 9876)
     crs = QgsCoordinateReferenceSystem('EPSG:32632')
-    spec2.setCoordinates(QPoint(30,40), SpatialPoint(crs, 30000, 40000))
-    #mySpec.plot()
+    spec2.setCoordinates(QPoint(30, 40), SpatialPoint(crs, 30000, 40000))
+    # mySpec.plot()
 
     if True:
-
         from enmapboxtestdata import enmap, landcover
 
         sl0 = SpectralLibrary()
         lyrS1 = SpectralLibraryVectorLayer(sl0)
 
-        sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(25,25)))
+        from enmapbox.gui.datasources import DataSourceFactory
+
+        ds = DataSourceFactory.Factory(lyrS1)
+        sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(25, 25)))
         sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(30, 20)))
         sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(30, 19)))
-        lyrS2 = QgsVectorLayer(landcover, 'landcover', 'ogr',True)
+        lyrS2 = QgsVectorLayer(landcover, 'landcover', 'ogr', True)
         lyrR = QgsRasterLayer(enmap)
         REG = QgsMapLayerRegistry.instance()
-        REG.addMapLayers([lyrR,lyrS2, lyrS1])
+        REG.addMapLayers([lyrR, lyrS2, lyrS1])
+        lyrS1.updateExtents()
 
         from enmapbox.gui.mapcanvas import MapCanvas
-        c = MapCanvas()
-        c.setDestinationCrs(lyrS2.crs())
-        c.setLayers([lyrS1, lyrS2, lyrR])
-        c.setExtent(lyrS2.extent())
 
+        c = MapCanvas()
+        c.setDestinationCrs(lyrR.crs())
+        c.setLayers([lyrS2, lyrS1, lyrR])
+        c.setExtent(lyrR.extent())
         c.show()
 
-        s = ""
-
-    #sl1 = SpectralLibrary.readFrom(speclib)
-
-
     qapp.exec_()
+
+if __name__ == "__main__":
+    __Test__()
 

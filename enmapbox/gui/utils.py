@@ -987,7 +987,7 @@ class MimeDataHelper():
     MDF_TEXT_PLAIN = 'text/plain'
 
     @staticmethod
-    def storeObjectReferences(mimeData, listOfObjects):
+    def setObjectReferences(mimeData, listOfObjects):
         """
         Saves a reference into QMimeData "mimeData"
         :param mimeData: QMimeData
@@ -1068,8 +1068,6 @@ class MimeDataHelper():
 
         if typeFilter and not isinstance(typeFilter, list):
             typeFilter = [typeFilter]
-        else:
-            assert isinstance(typeFilter, list)
 
         if self.hasPythonObjects():
 

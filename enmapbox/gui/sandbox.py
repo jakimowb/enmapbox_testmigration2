@@ -88,7 +88,7 @@ def sandboxDragDrop():
 def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    EB.openExampleData(mapWindows=2)
+    EB.openExampleData(mapWindows=1)
 
 
 
@@ -317,8 +317,8 @@ if __name__ == '__main__':
         if False: sandboxPureGui(loadProcessingFramework=True)
         if False: sandboxPFReport()
         if False: sandboxDragDrop()
-        if True: sandboxQgisBridge()
-        if False: sandboxGUI()
+        if False: sandboxQgisBridge()
+        if True: sandboxGUI()
         if False: sandboxDialog()
 
         qgsApp.exec_()

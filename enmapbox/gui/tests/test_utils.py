@@ -118,7 +118,7 @@ class testclassData(unittest.TestCase):
         #md.setUrls([url])
         md.setText(text)
 
-        MimeDataHelper.storeObjectReferences(md, [oA, oB])
+        MimeDataHelper.setObjectReferences(md, [oA, oB])
         mdh = MimeDataHelper(md)
         self.assertTrue(mdh.hasPythonObjects())
 
