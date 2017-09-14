@@ -46,9 +46,9 @@ def sandboxGuiOnly():
     qgsApp = initQgisEnvironment()
 
     # from VIT_GUI import MainUiFunc
-    # from LUT_GUI import MainUiFunc
+    from LUT_GUI import MainUiFunc
     # from Global_Inversion_GUI import MainUiFunc
-    from ISD_GUI import MainUiFunc
+    # from IVVM_GUI import MainUiFunc
 
     m = MainUiFunc()
     m.show()

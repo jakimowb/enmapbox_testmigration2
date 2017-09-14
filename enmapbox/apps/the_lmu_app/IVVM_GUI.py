@@ -16,20 +16,20 @@ from Spec2Sensor_cl import Spec2Sensor
 import warnings
 
 
-pathUI = os.path.join(os.path.dirname(__file__), 'GUI_ISD.ui')
+pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVM.ui')
 from enmapbox.gui.utils import loadUIFormClass
 
-class ISD_GUI(QDialog, loadUIFormClass(pathUI)):
+class IVVM_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
-        super(ISD_GUI, self).__init__(parent)
+        super(IVVM_GUI, self).__init__(parent)
         self.setupUi(self)    
 
-class ISD:
+class IVVM:
 
     def __init__(self, main):
         self.main = main
-        self.gui = ISD_GUI()
+        self.gui = IVVM_GUI()
         self.special_chars()
         self.initial_values()
         self.update_slider_pos()
@@ -495,7 +495,7 @@ class ISD:
 
 class MainUiFunc:
     def __init__(self):
-        self.isd = ISD(self)
+        self.isd = IVVM(self)
     def show(self):
         self.isd.gui.show()
 

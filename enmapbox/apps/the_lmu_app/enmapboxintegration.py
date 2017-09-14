@@ -71,7 +71,7 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         m.show()
 
     def start_GUI_ISD(self, *args):
-        from ISD_GUI import MainUiFunc
+        from IVVM_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
         # #the the EnMAP-Box know if you create any new file

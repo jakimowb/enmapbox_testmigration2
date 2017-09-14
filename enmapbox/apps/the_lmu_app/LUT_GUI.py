@@ -5,12 +5,14 @@ import numpy as np
 
 from qgis.gui import *
 #ensure to call QGIS before PyQtGraph
+import pyqtgraph as pg
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4 import uic
 import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
+from scipy.stats import norm
 import time
 
 pathUI = os.path.join(os.path.dirname(__file__),'GUI_LUT.ui')
@@ -276,6 +278,7 @@ class LUT:
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
         self.gui.cmdOpenFolder.clicked.connect(lambda: self.get_folder())
         self.gui.cmdLUTcalc.clicked.connect(lambda: self.get_lutsize())
+        self.gui.cmdPlot.clicked.connect(lambda: self.plot_para())
         # self.gui.cmdTest.clicked.connect(lambda: self.test_LUT()) #debug
 
     def txt_enables(self, para, mode):
@@ -515,6 +518,26 @@ class LUT:
         self.gui.lcdNumber.display(self.nlut_total)
         self.gui.lcdSpeed.display(self.speed)
 
+    def plot_para(self):
+
+        min = 1.0
+        max = 3.0
+        mean = 1.7
+        sigma = 0.3
+        ns = 2000
+
+        # bla = truncnorm((min - mean) / sigma, (max - mean) / sigma, loc=mean, scale=sigma).rvs(ns)
+
+        xVals = np.arange(1.0, 3.0, 0.001)
+        self.gui.viewN.plot(xVals, norm.pdf(xVals, loc=1.7, scale=0.3))
+        # self.gui.viewN.setRange(rect=None, xRange=(0,15), yRange=(0,50), padding=None, update=True, disableAutoRange=True)
+
+        # self.gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
+        #                            name='modelled')
+        #
+        # self.gui.graphicsView.setYRange(0, 0.6, padding=0)
+        # self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
+        # self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 
     def speedtest(self):
 
