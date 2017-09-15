@@ -12,7 +12,7 @@ from PyQt4 import uic
 import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
-from scipy.stats import norm
+from scipy.stats import norm, uniform
 import time
 
 pathUI = os.path.join(os.path.dirname(__file__),'GUI_LUT.ui')
@@ -38,12 +38,69 @@ class PRG_GUI(QDialog, loadUIFormClass(pathUI2)):
         else:
             event.ignore()
 
+# Class for event filter "Focus lost"
+class Filter(QtCore.QObject):
+    def __init__(self, gui=None, lut=None):
+        super(Filter, self).__init__()
+        self.gui = gui
+        self.lut = lut
+
+    def eventFilter(self, widget, event):
+        # FocusOut event
+        if event.type() == QtCore.QEvent.FocusOut:
+            if self.lut.dict_objects["N"][0].isChecked():  # fix
+                pass
+            elif self.lut.dict_objects["N"][1].isChecked(): # gauss
+                try:
+                    vals = [float(self.lut.dict_objects["N"][i].text()) for i in [5,6,7,8]]
+                    xIncr = (vals[1] - vals[0]) / 100.0
+                    xVals = np.arange(vals[0], vals[1], xIncr)
+                    self.gui.viewN.plot(xVals, norm.pdf(xVals, loc=vals[2], scale=vals[3]))
+                except:
+                    print "didn't work"
+            elif self.lut.dict_objects["N"][2].isChecked():  # uniform
+                try:
+                    vals = [float(self.lut.dict_objects["N"][i].text()) for i in [5, 6]]
+                    xIncr = (vals[1] - vals[0]) / 100.0
+                    xVals = np.arange(vals[0], vals[1], xIncr)
+                    self.gui.viewN.plot(xVals, uniform.pdf(xVals, loc=vals[0], scale=vals[1]))
+                except:
+                    print "didn't work"
+
+
+            # if len(self.dict_vals[self.para_list[0][i]]) > 3:
+            #     if self.dict_vals[self.para_list[0][i]][2] > self.dict_vals[self.para_list[0][i]][1] or \
+            #                     self.dict_vals[self.para_list[0][i]][2] < self.dict_vals[self.para_list[0][i]][0]:
+            #         self.abort(message='Parameter %s: mean value must lie between min and max' % self.para_list[0][i])
+            #         return False
+            #     elif self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
+            #                     self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
+            #         self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
+            #         return False
+            # elif len(self.dict_vals[self.para_list[0][i]]) > 1:  # min and max specified
+            #     if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
+            #                     self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
+            #         self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
+            #         return False
+            # elif len(self.dict_vals[self.para_list[0][i]]) > 0:  # fixed value specified
+            #     if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
+            #                     self.dict_vals[self.para_list[0][i]][0] > self.dict_boundaries[key][1]:
+            #         self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
+            #         return False
+
+            # return False so that the widget will also handle the event
+            # otherwise it won't focus out
+            return False
+        else:
+            # we don't care about other events
+            return False
+
 class LUT:
 
     def __init__(self, main):
         self.main = main
         self.gui = LUT_GUI()
-
+        self._filter = Filter(gui=self.gui, lut=self)
         self.special_chars()
         self.initial_values()
         self.dictchecks()
@@ -280,6 +337,9 @@ class LUT:
         self.gui.cmdLUTcalc.clicked.connect(lambda: self.get_lutsize())
         self.gui.cmdPlot.clicked.connect(lambda: self.plot_para())
         # self.gui.cmdTest.clicked.connect(lambda: self.test_LUT()) #debug
+
+        # Focus Out (Line Edits)
+        self.gui.txt_gauss_min_N.installEventFilter(self._filter)
 
     def txt_enables(self, para, mode):
 

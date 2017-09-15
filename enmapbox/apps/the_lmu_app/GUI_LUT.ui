@@ -908,7 +908,7 @@
            <x>0</x>
            <y>0</y>
            <width>952</width>
-           <height>1051</height>
+           <height>680</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_19">
@@ -3905,7 +3905,7 @@
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>16777215</height>
+              <height>20</height>
              </size>
             </property>
             <property name="font">
@@ -3919,7 +3919,7 @@
              <string>Canopy Model Parameters</string>
             </property>
             <property name="collapsed">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_18">
              <item row="2" column="0">
@@ -8918,6 +8918,5 @@
   <buttongroup name="buttonGroup_19"/>
   <buttongroup name="buttonGroup_8"/>
   <buttongroup name="buttonGroup_9"/>
-  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>
