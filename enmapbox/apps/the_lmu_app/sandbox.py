@@ -42,6 +42,7 @@ def sandboxGuiOnly():
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
     """
+
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
 
