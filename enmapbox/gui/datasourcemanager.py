@@ -132,7 +132,11 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         self.setIcon(dataSource.icon())
         self.setCustomProperty('uuid', str(self.dataSource.mUuid))
         self.setCustomProperty('uri', self.dataSource.uri())
-        self.mSrcSize = os.path.getsize(self.dataSource.uri())
+        uri = self.dataSource.uri()
+        if os.path.isfile(uri):
+            self.mSrcSize = os.path.getsize(self.dataSource.uri())
+        else:
+            self.mSrcSize = -1
         self.nodeSize = TreeNode(self, 'Size', value=fileSizeString(self.mSrcSize))
 
     def disconnectDataSource(self):

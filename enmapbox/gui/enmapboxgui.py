@@ -580,7 +580,7 @@ class EnMAPBox(QObject):
                               SETTINGS.value('EMB_MESSAGE_TIMEOUT', 0))
 
             #print on normal console
-            print('{}({}): {}'.format(tag, level, message))
+            print(u'{}({}): {}'.format(tag, level, message))
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
