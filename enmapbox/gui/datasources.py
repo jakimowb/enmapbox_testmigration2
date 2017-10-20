@@ -385,7 +385,7 @@ class DataSourceSpectralLibrary(DataSourceFile):
     def updateMetadata(self, *args, **kwds):
         from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
-        assert isinstance(mSpeclib, SpectralLibrary)
+        assert isinstance(self.mSpeclib, SpectralLibrary)
         #self.nProfiles = len(slib)
         #self.profileNames = []
         #for p in slib:

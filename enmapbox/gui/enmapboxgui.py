@@ -501,7 +501,8 @@ class EnMAPBox(QObject):
         from enmapbox.gui.mapcanvas import MapDock
         if isinstance(dock, MapDock):
             dock.canvas.sigProfileRequest.connect(self.loadCurrentMapSpectra)
-
+        if isinstance(dock, SpectralLibraryDock):
+            dock.sigLoadFromMapRequest.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
 
     def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
         assert self.mCurrentMapSpectraLoading in ['TOP', 'ALL']

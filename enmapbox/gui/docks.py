@@ -450,6 +450,95 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
                     file.write(self.textEdit.toHtml())
 
 
+class MimeDataTextEdit(QTextEdit):
+
+    def __init__(self, *args, **kwargs):
+        super(MimeDataTextEdit,self).__init__(*args, **kwargs)
+        #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
+        self.setOverwriteMode(False)
+
+    def canInsertFromMimeData(self, QMimeData):
+        return True
+
+    def insertFromMimeData(self, mimeData):
+        assert isinstance(mimeData, QMimeData)
+        formats = [str(f) for f in mimeData.formats()]
+        self.clear()
+        def append(txt):
+            self.moveCursor(QTextCursor.End)
+            self.insertPlainText(txt+'\n')
+            self.moveCursor(QTextCursor.End)
+
+        for format in formats:
+            append('####{}####'.format(format))
+            if format == 'text/uri-list':
+                self.insertPlainText(str(mimeData.data('text/uri-list')))
+            if format == 'text/html':
+                self.insertHtml(mimeData.html())
+            elif format == 'text/plain':
+                self.insertPlainText(mimeData.text())
+            else:
+                append('### (raw data as string) ###')
+                self.insertPlainText(str(mimeData.data(format)))
+            append('\n')
+
+    def dragEnterEvent(self, event):
+        event.setDropAction(Qt.CopyAction)  # copy but do not remove
+        event.accept()
+
+    def dropEvent(self, event):
+        self.insertFromMimeData(event.mimeData())
+        event.setDropAction(Qt.CopyAction)
+        event.accept()
+
+
+class MimeDataDockWidget(QWidget, loadUI('mimedatadockwidget.ui')):
+
+
+    def __init__(self, parent=None):
+        super(MimeDataDockWidget, self).__init__(parent=parent)
+        self.setupUi(self)
+
+    def loadFile(self, path):
+        if os.path.isfile(path):
+            data = None
+            with codecs.open(path, 'r', 'utf-8') as file:
+                data = ''.join(file.readlines())
+
+            ext = os.path.splitext(path)[-1].lower()
+            if data is not None:
+                if ext in ['.html']:
+                    self.textEdit.setHtml(data)
+                else:
+                    self.textEdit.setText(data)
+
+                self.mFile = path
+
+        else:
+            self.mFile = None
+        self.sigSourceChanged.emit(str(path))
+
+
+    def save(self, saveAs=False):
+        if self.mFile is None or saveAs:
+            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+                                        directory=self.mFile,
+                                        filter=TextDockWidget.FILTERS)
+            s = ""
+            if len(path) > 0:
+                self.mFile = path
+
+        if self.mFile is not None and len(self.mFile) > 0:
+            ext = os.path.splitext(self.mFile)[-1].lower()
+            import codecs
+            if ext in ['.txt','.csv', '.hdr']:
+
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toPlainText())
+            elif ext in ['.html']:
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toHtml())
+
 
 class TextDock(Dock):
     """
@@ -500,67 +589,25 @@ class WebViewDock(Dock):
         settings.setAttribute(QWebSettings.AutoLoadImages, True)
 
 
-class MimeDataTextEdit(QTextEdit):
-
-    def __init__(self, *args, **kwargs):
-        super(MimeDataTextEdit,self).__init__(*args, **kwargs)
-        #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
-        self.setOverwriteMode(False)
-
-    def canInsertFromMimeData(self, QMimeData):
-        return True
-
-    def insertFromMimeData(self, mimeData):
-        assert isinstance(mimeData, QMimeData)
-        formats = [str(f) for f in mimeData.formats()]
-        self.clear()
-        def append(txt):
-            self.moveCursor(QTextCursor.End)
-            self.insertPlainText(txt+'\n')
-            self.moveCursor(QTextCursor.End)
-
-        for format in formats:
-            append('####{}####'.format(format))
-            if format == 'text/uri-list':
-                self.insertPlainText(str(mimeData.data('text/uri-list')))
-            if format == 'text/html':
-                self.insertHtml(mimeData.html())
-            elif format == 'text/plain':
-                self.insertPlainText(mimeData.text())
-            else:
-                append('### (raw data as string) ###')
-                self.insertPlainText(str(mimeData.data(format)))
-            append('\n')
-
-    def dragEnterEvent(self, event):
-        event.setDropAction(Qt.CopyAction)  # copy but do not remove
-        event.accept()
-
-    def dropEvent(self, event):
-        self.insertFromMimeData(event.mimeData())
-        event.setDropAction(Qt.CopyAction)
-        event.accept()
-
-class MimeDataDock(TextDock):
+class MimeDataDock(Dock):
     """
     A dock to show dropped mime data
     """
     def __init__(self,*args, **kwds):
         super(MimeDataDock, self).__init__(*args, **kwds)
 
-
-
-        self.layout.removeWidget(self.textEdit)
-        self.textEdit = MimeDataTextEdit(self)
-        self.layout.addWidget(self.textEdit)
+        self.mimeDataWidget = MimeDataDockWidget(self)
+        self.layout.addWidget(self.mimeDataWidget)
 
 
 class SpectralLibraryDock(Dock):
+    sigLoadFromMapRequest = pyqtSignal()
     def __init__(self,*args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
         from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
         self.speclibWidget = SpectralLibraryWidget(self)
+        self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.speclibWidget)
         self.mShowMapInteraction = True
 
@@ -589,7 +636,7 @@ if __name__ == '__main__':
     from enmapbox.gui.utils import initQgisApplication
     qgsApp = initQgisApplication()
     da = DockArea()
-    dock = TextDock(name='title')
+    dock = MimeDataDock()
     da.addDock(dock)
     da.show()
     qgsApp.exec_()

@@ -336,11 +336,35 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(FileDataSourceTreeNode,self).__init__( *args, **kwds)
 
+class SpeclibProfilesTreeNode(TreeNode):
+
+    def __init__(self, parent, speclib, **kwds):
+        super(SpeclibProfilesTreeNode, self).__init__(parent, 'Profiles', **kwds)
+        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        self.mSpeclib = speclib
+        assert isinstance(self.mSpeclib, SpectralLibrary)
+
+
+    def fetchCount(self):
+        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        if isinstance(self.mSpeclib, SpectralLibrary):
+            return len(self.mSpeclib)
+        else:
+            return 0
+
+    def fetchNext(self):
+        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        if isinstance(self.mSpeclib, SpectralLibrary):
+            for p in self.mSpeclib:
+                TreeNode(self, p.name())
+
+
 
 class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(SpeclibDataSourceTreeNode, self).__init__(*args, **kwds)
 
+        self.profileNode = None
         self.mSpeclib = None
 
     def connectDataSource(self, dataSource):
@@ -348,14 +372,15 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
 
         from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
-        self.mSpeclib = dataSource.mSpeclib
-        assert isinstance(self.mSpeclib, SpectralLibrary)
 
-        self.profiles= TreeNode(self, 'Profiles',
-                                    tooltip='Spectral profiles',
-                                    value='{}'.format(len(dataSource.nProfiles))
-        for name in dataSource.profileNames:
-            TreeNode(self.profiles, name)
+        assert isinstance(self.dataSource.mSpeclib, SpectralLibrary)
+        self.profileNode = SpeclibProfilesTreeNode(self, dataSource.mSpeclib)
+        #self.profileNode.mSpeclib = dataSource.mSpeclib
+        #self.profiles= TreeNode(self, 'Profiles',
+        #                            tooltip='Spectral profiles',
+        #                            value='{}'.format(len(self.dataSource.mSpeclib)))
+        #for name in dataSource.profileNames:
+        #    TreeNode(self.profiles, name)
 
 
 class HubFlowObjectTreeNode(DataSourceTreeNode):
@@ -637,20 +662,7 @@ class DataSourceManagerTreeModel(TreeModel):
             mimeData.setUrls(uriList)
         return mimeData
 
-    def canFetchMode(self, index):
-        node = self.index2node(index)
-        if not isinstance(node, TreeNode):
-            return False
 
-        if isinstance(node.parent(), SpeclibDataSourceTreeNode) and node.name() == 'Profiles':
-            parent = node.parent()
-            l = len(parent.mSpeclib)
-            return index.row() < l
-
-    def fetchMore(self):
-        node = self.index2node(index)
-        if not isinstance(node, TreeNode):
-            return False
 
     def getSourceGroup(self, dataSource):
         """Returns the source group relate to a data source"""

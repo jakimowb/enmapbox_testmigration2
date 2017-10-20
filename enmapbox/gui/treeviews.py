@@ -55,7 +55,7 @@ class TreeNodeProvider():
         from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode, SpeclibDockTreeNode
         if dockType is MapDock:
             return MapDockTreeNode(parent, dock)
-        elif dockType in [TextDock, MimeDataDock]:
+        elif dockType in [TextDock]:
             return TextDockTreeNode(parent, dock)
         elif dockType is CursorLocationValueDock:
             return DockTreeNode(parent, dock)
@@ -116,6 +116,12 @@ class TreeNode(QgsLayerTreeGroup):
         if node in self.children():
             self.removeChildNode(node)
         return None
+
+    def fetchCount(self):
+        return 0
+
+    def fetchNext(self):
+        pass
 
     def removeFromParent(self):
         """
@@ -309,6 +315,19 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
+    def fetchMore(self, index):
+        pass
+
+    def canFetchMore(self, index):
+        node = self.index2node(index)
+        if isinstance(node, TreeNode):
+            from enmapbox.gui.datasourcemanager import SpeclibProfilesTreeNode
+            if isinstance(node, SpeclibProfilesTreeNode):
+                s  = ""
+            return len(node.children()) < node.fetchCount()
+        return False
+
+
 class ClassificationNode(TreeNode):
 
     def __init__(self, parent, classificationScheme, name='Classification Scheme'):
@@ -397,8 +416,6 @@ class TreeView(QgsLayerTreeView):
                 node.sigValueChanged.connect(self.setColumnSpan)
 
             self.setColumnSpan(node)
-        #self.resizeColumnToContents(0)
-        #self.resizeColumnToContents(1)
 
     def setColumnSpan(self, node):
         parent = node.parent()
