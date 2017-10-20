@@ -70,6 +70,10 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
                   prefixRemote = r'enmapboxtestdata',
                   )
 
+RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
+                  prefixLocal = r'site-packages/vrtbuilder',
+                  prefixRemote = r'vrtbuilder',
+                  )
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   prefixLocal  = r'enmapboxgeoalgorithms',
@@ -148,8 +152,8 @@ if __name__ == "__main__":
     #update remotes
     to_update = ['hub-datacube', 'hub-workflow','enmap-box-geoalgorithmsprovider']#enmap-box-geoalgorithmsprovider
     #to_update = ['objbrowser']
-
-    to_update = ['enmap-box-testdata'] + to_update
+    to_update = ['virtual-raster-builder']
+    #to_update = ['enmap-box-testdata'] + to_update
     for p in to_update:
         updateRemote(p)
 
