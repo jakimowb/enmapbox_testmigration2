@@ -56,7 +56,18 @@ class Filter(QtCore.QObject):
 
         if event.type() == QtCore.QEvent.FocusOut:
             if self.lut.dict_objects[para][0].isChecked():  # fix
-                pass
+                try:
+                    vals = [float(self.lut.dict_objects[para][4].text())] # needs to be of type "list" (even single values)
+                    ns = self.gui.spinNS.value()
+                    self.lut.dict_objects[para][12].clear()
+                    bar = pg.BarGraphItem(x=vals, height=ns, width=0.01)
+                    self.lut.dict_objects[para][12].addItem(bar)
+                    self.lut.dict_objects[para][12].plot()
+                    # if vals < 1.0:
+                    #     self.lut.dict_objects[para][12].setXRange(vals - width * 2, xVals[-1] + width * 2)
+                except ValueError as e:
+                    print str(e)
+
             elif self.lut.dict_objects[para][1].isChecked(): # gauss
                 try:
                     vals = [float(self.lut.dict_objects[para][i].text()) for i in [5,6,7,8]]
@@ -73,6 +84,23 @@ class Filter(QtCore.QObject):
                     xVals = np.arange(vals[0], vals[1], xIncr)
                     self.lut.dict_objects[para][12].clear()
                     self.lut.dict_objects[para][12].plot(xVals, uniform.pdf(xVals, loc=vals[0], scale=vals[1]))
+                except:
+                    pass
+            elif self.lut.dict_objects[para][3].isChecked(): # logical
+                try:
+                    vals = [float(self.lut.dict_objects[para][i].text()) for i in [9, 10, 11]]
+                    xVals = np.linspace(start=vals[0], stop=vals[1], num=int(vals[2]))
+                    ns = self.gui.spinNS.value()
+                    width = (xVals[1]-xVals[0])/8
+                    # self.lut.dict_objects[para][12].enableAutoRange(enable=False)
+                    self.lut.dict_objects[para][12].clear()
+                    bar = pg.BarGraphItem(x=xVals, height=ns, width=width)
+                    self.lut.dict_objects[para][12].addItem(bar)
+                    self.lut.dict_objects[para][12].plot()
+                    if vals[1] < 1.0:
+                        self.lut.dict_objects[para][12].setXRange(xVals[0]-width*2, xVals[-1]+width*2)
+                    # existingViewRect = self.lut.dict_objects[para][12].getViewBox().viewRange()
+                    # print existingViewRect
                 except:
                     pass
 
@@ -367,7 +395,7 @@ class LUT:
 
         # Focus Out (Line Edits)
         for para in self.dict_objects:
-            for i in range(5,9): # 5-8: min, max, mean, std
+            for i in range(4,12): # 4: fixed; 5-8: min, max, mean, std; 9-11: logical min, max, step
                 self.dict_objects[para][i].installEventFilter(self._filter)
 
     def txt_enables(self, para, mode):

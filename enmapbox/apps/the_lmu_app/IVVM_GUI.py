@@ -2,6 +2,7 @@
 
 import sys, os
 import numpy as np
+from scipy.interpolate import interp1d
 
 
 from qgis.gui import *
@@ -45,6 +46,8 @@ class IVVM:
         self.gui.lblCm.setText(u'[g/cm²]')
         self.gui.lblCar.setText(u'[µg/cm²]')
         self.gui.lblCanth.setText(u'[µg/cm²]')
+        self.gui.lblCp.setText(u'[g/cm²]')
+        self.gui.lblCcl.setText(u'[g/cm²]')
         self.gui.lblLAI.setText(u'[m²/m²]')
 
     def initial_values(self):
@@ -54,11 +57,13 @@ class IVVM:
         self.colors = [tuple([219,183,255]), tuple([51,204,51]), tuple([69,30,234]), tuple([0,255,255]),
                         tuple([255,255,0]), tuple([0,0,0]), tuple([255,0,0]), tuple([255,255,255]),
                         tuple([255,124,128]), tuple([178,178,178]), tuple([144, 204, 154]),
-                        tuple([255,153,255]), tuple([255,153,51]), tuple([204, 0, 153]), tuple([172, 86, 38])]
+                        tuple([255,153,255]), tuple([25,41,70]), tuple([169,139,100]),
+                       tuple([255,153,51]), tuple([204, 0, 153]), tuple([172, 86, 38])]
         self.lineEdits = [self.gui.N_lineEdit, self.gui.Cab_lineEdit, self.gui.Cw_lineEdit, self.gui.Cm_lineEdit,
                           self.gui.LAI_lineEdit, self.gui.lblFake, self.gui.LIDFB_lineEdit, self.gui.hspot_lineEdit,
                           self.gui.psoil_lineEdit, self.gui.SZA_lineEdit, self.gui.OZA_lineEdit, self.gui.rAA_lineEdit,
-                          self.gui.Car_lineEdit, self.gui.Canth_lineEdit, self.gui.Cbrown_lineEdit]
+                          self.gui.Cp_lineEdit, self.gui.Ccl_lineEdit, self.gui.Car_lineEdit, self.gui.Canth_lineEdit,
+                          self.gui.Cbrown_lineEdit]
         self.penStyle = 1
         self.item = 1
         # self.plot_color = dict(zip(range(7), ["g", "r", "b", "y", "m", "c", "w"]))
@@ -66,6 +71,8 @@ class IVVM:
         self.current_slider = None
         self.data_mean = None
         self.para_list = []
+        self.bg_spec = None
+        self.bg_type = "default"
 
     # def color_constructor(self, color):
     #     if color == "g":
@@ -116,6 +123,8 @@ class IVVM:
         self.gui.Cab_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cab_Slide, self.gui.Cab_lineEdit))
         self.gui.Cw_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cw_Slide, self.gui.Cw_lineEdit))
         self.gui.Cm_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cm_Slide, self.gui.Cm_lineEdit))
+        self.gui.Cp_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cp_Slide, self.gui.Cp_lineEdit))
+        self.gui.Ccl_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Ccl_Slide, self.gui.Ccl_lineEdit))
         self.gui.Car_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Car_Slide, self.gui.Car_lineEdit))
         self.gui.Canth_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Canth_Slide, self.gui.Canth_lineEdit))
         self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cbrown_Slide, self.gui.Cbrown_lineEdit))
@@ -137,6 +146,8 @@ class IVVM:
         self.gui.Cab_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cab_lineEdit, self.gui.Cab_Slide))
         self.gui.Cw_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cw_lineEdit, self.gui.Cw_Slide))
         self.gui.Cm_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cm_lineEdit, self.gui.Cm_Slide))
+        self.gui.Cp_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cp_lineEdit, self.gui.Cp_Slide))
+        self.gui.Ccl_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Ccl_lineEdit, self.gui.Ccl_Slide))
         self.gui.Car_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Car_lineEdit, self.gui.Car_Slide))
         self.gui.Canth_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Canth_lineEdit, self.gui.Canth_Slide))
         self.gui.Cbrown_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.Cbrown_lineEdit, self.gui.Cbrown_Slide))
@@ -182,6 +193,25 @@ class IVVM:
             self.makePen(sensor=sensor)
             self.mod_exec()
 
+    def select_background(self,bg_type):
+        self.bg_type = bg_type
+        if bg_type == "default":
+            self.gui.B_DefSoilSpec.setEnabled(True)
+            self.gui.B_LoadBackSpec.setEnabled(True)
+            self.gui.BrightFac_Text.setEnabled(True)
+            self.gui.psoil_Slide.setEnabled(True)
+            self.gui.psoil_lineEdit.setEnabled(True)
+            self.gui.push_SelectFile.setEnabled(False)
+            self.gui.BackSpec_lineEdit.setEnabled(False)
+        elif bg_type == "load":
+            self.gui.B_DefSoilSpec.setEnabled(True)
+            self.gui.B_LoadBackSpec.setEnabled(True)
+            self.gui.BrightFac_Text.setEnabled(False)
+            self.gui.psoil_Slide.setEnabled(False)
+            self.gui.psoil_lineEdit.setEnabled(False)
+            self.gui.push_SelectFile.setEnabled(True)
+            self.gui.BackSpec_lineEdit.setEnabled(True)
+
     def makePen(self, sensor):
         if sensor == "default":
             self.penStyle = 1
@@ -212,6 +242,7 @@ class IVVM:
         self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5", canopy_arch=self.canopy_arch))
         self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B", canopy_arch=self.canopy_arch))
         self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD", canopy_arch=self.canopy_arch))
+        self.gui.B_ProspectCp.clicked.connect(lambda: self.select_model(lop="prospectCp", canopy_arch=self.canopy_arch))
 
         self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch=None))
         self.gui.B_4Sail.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail"))
@@ -219,20 +250,22 @@ class IVVM:
 
     def select_model(self, lop="prospectD", canopy_arch="sail"):
         self.lop = lop
+
         if canopy_arch is None:
             self.canopy_arch = None
             self.gui.CanopyMP_Box.setDisabled(True)
-            self.gui.B_DefSoilSpec.setDisabled(True)
-            self.gui.psoil_Slide.setDisabled(True)
-            self.gui.psoil_lineEdit.setDisabled(True)
-            self.gui.BrightFac_Text.setDisabled(True)
+            self.gui.BrightFac_Text.setEnabled(False)
+            self.gui.psoil_Slide.setEnabled(False)
+            self.gui.psoil_lineEdit.setEnabled(False)
+            self.gui.push_SelectFile.setEnabled(False)
+            self.gui.BackSpec_lineEdit.setEnabled(False)
+            self.gui.B_DefSoilSpec.setEnabled(False)
+            self.gui.B_LoadBackSpec.setEnabled(False)
         else:
             self.canopy_arch = canopy_arch
             self.gui.CanopyMP_Box.setDisabled(False)
-            self.gui.B_DefSoilSpec.setDisabled(False)
-            self.gui.psoil_Slide.setDisabled(False)
-            self.gui.psoil_lineEdit.setDisabled(False)
-            self.gui.BrightFac_Text.setDisabled(False)
+            self.select_background(bg_type=self.bg_type)
+
 
         if lop == "prospectD":
             self.gui.Canth_Slide.setDisabled(False)
@@ -247,6 +280,35 @@ class IVVM:
             self.gui.Car_lineEdit.setDisabled(False)
             self.gui.Car_Text.setDisabled(False)
 
+            self.gui.Cp_Slide.setDisabled(True)
+            self.gui.Cp_lineEdit.setDisabled(True)
+            self.gui.Cp_Text.setDisabled(True)
+
+            self.gui.Ccl_Slide.setDisabled(True)
+            self.gui.Ccl_lineEdit.setDisabled(True)
+            self.gui.Ccl_Text.setDisabled(True)
+
+        elif lop == "prospectCp":
+            self.gui.Canth_Slide.setDisabled(False)
+            self.gui.Canth_lineEdit.setDisabled(False)
+            self.gui.Canth_Text.setDisabled(False)
+
+            self.gui.Cbrown_Slide.setDisabled(False)
+            self.gui.Cbrown_lineEdit.setDisabled(False)
+            self.gui.Cbrown_Text.setDisabled(False)
+
+            self.gui.Car_Slide.setDisabled(False)
+            self.gui.Car_lineEdit.setDisabled(False)
+            self.gui.Car_Text.setDisabled(False)
+
+            self.gui.Cp_Slide.setDisabled(False)
+            self.gui.Cp_lineEdit.setDisabled(False)
+            self.gui.Cp_Text.setDisabled(False)
+    
+            self.gui.Ccl_Slide.setDisabled(False)
+            self.gui.Ccl_lineEdit.setDisabled(False)
+            self.gui.Ccl_Text.setDisabled(False)
+
         elif lop == "prospect5B":
             self.gui.Canth_Slide.setDisabled(True)
             self.gui.Canth_lineEdit.setDisabled(True)
@@ -259,6 +321,14 @@ class IVVM:
             self.gui.Car_Slide.setDisabled(False)
             self.gui.Car_lineEdit.setDisabled(False)
             self.gui.Car_Text.setDisabled(False)
+
+            self.gui.Cp_Slide.setDisabled(True)
+            self.gui.Cp_lineEdit.setDisabled(True)
+            self.gui.Cp_Text.setDisabled(True)
+
+            self.gui.Ccl_Slide.setDisabled(True)
+            self.gui.Ccl_lineEdit.setDisabled(True)
+            self.gui.Ccl_Text.setDisabled(True)
 
         elif lop == "prospect5":
             self.gui.Canth_Slide.setDisabled(True)
@@ -273,6 +343,14 @@ class IVVM:
             self.gui.Car_lineEdit.setDisabled(False)
             self.gui.Car_Text.setDisabled(False)
 
+            self.gui.Cp_Slide.setDisabled(True)
+            self.gui.Cp_lineEdit.setDisabled(True)
+            self.gui.Cp_Text.setDisabled(True)
+
+            self.gui.Ccl_Slide.setDisabled(True)
+            self.gui.Ccl_lineEdit.setDisabled(True)
+            self.gui.Ccl_Text.setDisabled(True)
+
         elif lop == "prospect4":
             self.gui.Canth_Slide.setDisabled(True)
             self.gui.Canth_lineEdit.setDisabled(True)
@@ -285,6 +363,14 @@ class IVVM:
             self.gui.Car_Slide.setDisabled(True)
             self.gui.Car_lineEdit.setDisabled(True)
             self.gui.Car_Text.setDisabled(True)
+
+            self.gui.Cp_Slide.setDisabled(True)
+            self.gui.Cp_lineEdit.setDisabled(True)
+            self.gui.Cp_Text.setDisabled(True)
+
+            self.gui.Ccl_Slide.setDisabled(True)
+            self.gui.Ccl_lineEdit.setDisabled(True)
+            self.gui.Ccl_Text.setDisabled(True)
 
         self.mod_exec()
 
@@ -302,10 +388,12 @@ class IVVM:
         self.para_list.append(float(self.gui.SZA_lineEdit.text())) #9
         self.para_list.append(float(self.gui.OZA_lineEdit.text())) #10
         self.para_list.append(float(self.gui.rAA_lineEdit.text())) #11
-        self.para_list.append(float(self.gui.Car_lineEdit.text())) #12
-        self.para_list.append(float(self.gui.Canth_lineEdit.text())) #13
-        self.para_list.append(float(self.gui.Cbrown_lineEdit.text())) #14
-        self.para_list.append(float(self.gui.skyl_lineEdit.text())) #15
+        self.para_list.append(float(self.gui.Cp_lineEdit.text()))  # 12
+        self.para_list.append(float(self.gui.Ccl_lineEdit.text()))  # 13
+        self.para_list.append(float(self.gui.Car_lineEdit.text())) #14
+        self.para_list.append(float(self.gui.Canth_lineEdit.text())) #15
+        self.para_list.append(float(self.gui.Cbrown_lineEdit.text())) #16
+        self.para_list.append(float(self.gui.skyl_lineEdit.text())) #17
         self.typeLIDF = 2
 
     def mod_interactive(self):
@@ -320,19 +408,25 @@ class IVVM:
         self.gui.SZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SZA_Slide, item=9))
         self.gui.OZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.OZA_Slide, item=10))
         self.gui.rAA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.rAA_Slide, item=11))
-        self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item=12))
-        self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item=13))
-        self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item=14))
-        self.gui.skyl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.skyl_Slide, item=15))
-        self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=16))
-        self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=17))
-        self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=18))
-        self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item=19))
+        self.gui.Cp_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cp_Slide, item=12))
+        self.gui.Ccl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Ccl_Slide, item=13))
+        self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item=14))
+        self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item=15))
+        self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item=16))
+        self.gui.skyl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.skyl_Slide, item=17))
+        self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=18))
+        self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=19))
+        self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=20))
+        self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item=21))
 
         self.gui.SType_None_B.clicked.connect(lambda: self.select_s2s(sensor="default"))
         self.gui.SType_Sentinel_B.clicked.connect(lambda: self.select_s2s(sensor="Sentinel2"))
         self.gui.SType_Landsat_B.clicked.connect(lambda: self.select_s2s(sensor="Landsat8"))
         self.gui.SType_Enmap_B.clicked.connect(lambda: self.select_s2s(sensor="EnMAP"))
+
+        self.gui.B_DefSoilSpec.clicked.connect(lambda: self.select_background(bg_type="default"))
+        self.gui.B_LoadBackSpec.clicked.connect(lambda: self.select_background(bg_type="load"))
+        self.gui.push_SelectFile.clicked.connect(self.open_soil)
 
         self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
@@ -370,8 +464,8 @@ class IVVM:
                                            N=self.para_list[0], cab=self.para_list[1], cw=self.para_list[2],
                                            cm=self.para_list[3], LAI=self.para_list[4], LIDF=self.para_list[6],
                                            typeLIDF=self.typeLIDF, hspot=self.para_list[7], psoil=self.para_list[8],
-                                           car=self.para_list[12],
-                                           cbrown=self.para_list[14], anth=self.para_list[13])
+                                            cp=self.para_list[12], ccl=self.para_list[13], car=self.para_list[14],
+                                           cbrown=self.para_list[16], anth=self.para_list[15], soil=self.bg_spec)
 
         # self.myResult[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
         # self.myResult[1390:1541] = np.nan
@@ -459,6 +553,34 @@ class IVVM:
         #     return
         self.mod_exec()
 
+    def open_soil(self):
+        # Dialog to open background as .csv or textfile
+        filenameIn = str(QFileDialog.getOpenFileName(caption='Select Soil Spectrum'))
+        if not filenameIn: return
+        data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
+        ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
+        wl_open = data[:, 0]
+        data_open = data[:, 1]
+        offset = 400 - int(wl_open[0])
+
+        if offset > 0:
+            data_open = data_open[offset:]  # cut off first 50 Bands to start at Band 400
+            wl_open = wl_open[offset:]
+
+        # linear interpolation water absorption
+
+        # water_absorption_bands = [range(1360, 1421), range(1790, 1941), range(2400, 2501)]
+        water_absorption_bands = [range(959, 1022), range(1390, 1541)]
+
+        for interp_bands in water_absorption_bands:
+            y = [data_open[interp_bands[0]], data_open[interp_bands[-1]]]
+            f = interp1d([interp_bands[0], interp_bands[-1]], [y[0], y[1]])
+            data_open[interp_bands[1:-1]] = f(interp_bands[1:-1])
+
+        self.bg_spec = data_open
+
+        self.mod_exec()
+
     def reset_in_situ(self):
         self.data_mean = None
         self.mod_exec()
@@ -490,7 +612,7 @@ class IVVM:
                                                       filter="Text files (*.txt)"))
         if paralistout:
             with open(paralistout, "w") as file:
-                file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Car, Canth, Cbrown, skyl\n")
+                file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Cp, Ccl, Car, Canth, Cbrown, skyl\n")
                 file.write(','.join(str(line) for line in self.para_list))
 
 class MainUiFunc:
@@ -498,17 +620,6 @@ class MainUiFunc:
         self.isd = IVVM(self)
     def show(self):
         self.isd.gui.show()
-
-# # sandbox:
-#
-# a = np.asarray(range(10, 15) + range(20,25))
-# b = np.arange(5,45)
-#
-# c = [b[i] for i in xrange(len(b)) if b[i] in a]
-# print c
-#
-#
-# exit()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

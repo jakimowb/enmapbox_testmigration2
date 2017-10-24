@@ -283,7 +283,7 @@
           <item row="2" column="3">
            <widget class="QCheckBox" name="box_srch1">
             <property name="text">
-             <string>SRch 1</string>
+             <string>SRchl</string>
             </property>
            </widget>
           </item>

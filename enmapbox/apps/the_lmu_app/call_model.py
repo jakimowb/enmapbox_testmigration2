@@ -12,7 +12,7 @@ from Spec2Sensor_cl import Spec2Sensor
 # Model class
 class Call_model:
 
-    def __init__(self,N,cab,cw,cm,LAI,typeLIDF,LIDF,hspot,psoil,tts,tto,psi,car=None,anth=None,cbrown=None):
+    def __init__(self,N,cab,cw,cm,LAI,typeLIDF,LIDF,hspot,psoil,tts,tto,psi,cp=None,ccl=None,car=None,anth=None,cbrown=None,soil=None):
         self.N = N
         self.cab = cab
         self.cw = cw
@@ -28,6 +28,9 @@ class Call_model:
         self.car = car
         self.anth = anth
         self.cbrown = cbrown
+        self.cp = cp
+        self.ccl = ccl
+        self.soil = soil
 
     def call_prospect4(self):
         prospect_instance = prospect.Prospect()
@@ -53,6 +56,12 @@ class Call_model:
 
         return self.prospect
 
+    def call_prospectCp(self):
+        prospect_instance = prospect.Prospect()
+        self.prospect = prospect_instance.prospect_Cp(self.N, self.cab, self.car, self.anth, self.cp, self.ccl, self.cbrown, self.cw, self.cm)
+
+        return self.prospect
+
     def call_4sail(self):
 
         try:
@@ -61,7 +70,7 @@ class Call_model:
             raise ValueError("A leaf optical properties model needs to be run first!")
 
         sail_instance = SAIL.Sail(radians(self.tts), radians(self.tto), radians(self.psi)) # Create Instance of SAIL and initialize angles
-        self.sail = sail_instance.Pro4sail(self.prospect[:,1], self.prospect[:,2], self.LIDF, self.typeLIDF, self.LAI, self.hspot, self.psoil) # call 4SAIL from the SAIL instance
+        self.sail = sail_instance.Pro4sail(self.prospect[:,1], self.prospect[:,2], self.LIDF, self.typeLIDF, self.LAI, self.hspot, self.psoil, self.soil) # call 4SAIL from the SAIL instance
 
         return self.sail
 
@@ -224,6 +233,10 @@ class Init_Model:
             start = time.time()
             for run in xrange(crun_max):
                 self.run_model(parameters=para_grid[run, :])
+            # temp:
+            print time.time() - start
+            print crun_max
+            exit()
             return time.time() - start
 
         # Meta-File:
@@ -278,6 +291,8 @@ class Init_Model:
             prgbar_widget.gui.lblCaption_l.setText("Creating LUT")
             QGis_app.processEvents()
 
+        self.run_model(parameters=para_grid[run, :])
+
         for geo_ensemble in xrange(n_ensembles_geo):
 
             rest = crun_pergeo
@@ -321,8 +336,8 @@ class Init_Model:
             prgbar_widget.gui.close()
 
     def initialize_single(self, N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi,
-                   car, anth, cbrown):
-        param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi, car, anth, cbrown]
+                   cp, ccl, car, anth, cbrown, soil):
+        param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, tts, tto, psi, cp, ccl, car, anth, cbrown, soil]
 
         if not self.s2s == "default":
             self.s2s_I = Spec2Sensor(sensor=self.s2s, nodat=self.nodat)
@@ -333,13 +348,14 @@ class Init_Model:
         iModel = Call_model(N=parameters[0],cab=parameters[1],cw=parameters[2],cm=parameters[3],
                             LAI=parameters[4],typeLIDF=parameters[5],LIDF=parameters[6],
                             hspot=parameters[7],psoil=parameters[8], tts=parameters[9],
-                            tto=parameters[10],psi=parameters[11],car=parameters[12],
-                            anth=parameters[13],cbrown=parameters[14])
+                            tto=parameters[10],psi=parameters[11],cp=parameters[12],ccl=parameters[13],
+                            car=parameters[14], anth=parameters[15],cbrown=parameters[16],soil=parameters[17])
 
         if self.lop=="prospect4": iModel.call_prospect4()
         elif self.lop=="prospect5": iModel.call_prospect5()
         elif self.lop=="prospect5B": iModel.call_prospect5B()
         elif self.lop=="prospectD": iModel.call_prospectD()
+        elif self.lop == "prospectCp": iModel.call_prospectCp()
         else:
             print("Unknown Prospect version. Try 'prospect4', 'prospect5', 'prospect5B' or 'prospectD'")
             return
@@ -363,6 +379,8 @@ def example_single():
     cab = 55.0
     car = 10.0
     anth = 4.5
+    cp = 0.001 # g/cm-2
+    ccl = 0.0025 # g/cm-2
     cbrown = 0.1
     cw = 0.03
     cm = 0.0065
@@ -372,16 +390,17 @@ def example_single():
     LIDF = 60.0
     typeLIDF = 2
 
-    lop = "prospectD"
+    lop = "prospectCp"
     canopy_arch = "sail"
     s2s = "default"
     int_boost = 1000
     nodat = -999
+    soil = [0.1]*2101
 
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     return model_I.initialize_single(tts=tts, tto=tto, psi=psi, N=N, cab=cab, cw=cw, cm=cm,
-                                    LAI=LAI, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, car=car,
-                                    cbrown=cbrown, anth=anth)
+                                    LAI=LAI, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, cp=cp, ccl=ccl,
+                                    car=car, cbrown=cbrown, anth=anth, soil=soil)
 
 def example_multi():
 
@@ -423,13 +442,14 @@ def example_multi():
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     model_I.initialize_multiple(LUT_dir=LUT_dir, LUT_name=LUT_name, ns=ns, tts=tts, tto=tto, psi=psi, N=N, cab=cab, cw=cw, cm=cm,
                                 LAI=LAI, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, car=car, cbrown=cbrown,
-                                anth=anth)
+                                anth=anth, testmode=1)
 
 if __name__ == '__main__':
     # print(example_single() / 1000.0)
     # plt.plot(range(len(example_single())), example_single() / 1000.0)
     # plt.show()
-    example_multi()
+    # example_multi()
+    example_single()
 
 
 

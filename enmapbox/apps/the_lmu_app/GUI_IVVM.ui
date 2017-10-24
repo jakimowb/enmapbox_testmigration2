@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1132</width>
-    <height>758</height>
+    <height>729</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -126,12 +126,12 @@
            </widget>
           </item>
           <item row="2" column="2">
-           <widget class="QRadioButton" name="B_Liberty">
+           <widget class="QRadioButton" name="B_ProspectCp">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="text">
-             <string>Liberty</string>
+             <string>Prospect Cp</string>
             </property>
            </widget>
           </item>
@@ -267,7 +267,7 @@
           <item row="5" column="0">
            <widget class="QRadioButton" name="B_LoadBackSpec">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="maximumSize">
              <size>
@@ -616,6 +616,16 @@
      </item>
     </layout>
    </item>
+   <item row="1" column="0">
+    <widget class="QFrame" name="frame_3">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="1">
     <widget class="QScrollArea" name="scrollArea">
      <property name="widgetResizable">
@@ -629,8 +639,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>298</width>
-        <height>738</height>
+        <width>293</width>
+        <height>779</height>
        </rect>
       </property>
       <property name="maximumSize">
@@ -657,7 +667,7 @@
          <property name="maximumSize">
           <size>
            <width>275</width>
-           <height>19</height>
+           <height>16777215</height>
           </size>
          </property>
          <property name="font">
@@ -675,7 +685,7 @@
           <bool>true</bool>
          </property>
          <property name="collapsed">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout_9">
           <property name="topMargin">
@@ -684,27 +694,7 @@
           <property name="verticalSpacing">
            <number>2</number>
           </property>
-          <item row="4" column="3">
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>[cm]</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0" colspan="2">
-           <widget class="QLabel" name="Cab_Text">
-            <property name="minimumSize">
-             <size>
-              <width>125</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Chlorophyll A + B (Cab)</string>
-            </property>
-           </widget>
-          </item>
-          <item row="13" column="0" colspan="3">
+          <item row="13" column="1" colspan="3">
            <widget class="QScrollBar" name="Canth_Slide">
             <property name="maximum">
              <number>100000</number>
@@ -723,14 +713,34 @@
             </property>
            </widget>
           </item>
-          <item row="10" column="3">
+          <item row="2" column="1" colspan="2">
+           <widget class="QLabel" name="Cab_Text">
+            <property name="minimumSize">
+             <size>
+              <width>125</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Chlorophyll A + B (Cab)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="4">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>[cm]</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="4">
            <widget class="QLabel" name="label_6">
             <property name="text">
              <string>[-]</string>
             </property>
            </widget>
           </item>
-          <item row="10" column="0">
+          <item row="10" column="1">
            <widget class="QLabel" name="Cbrown_Text">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -749,7 +759,7 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0" colspan="3">
+          <item row="3" column="1" colspan="3">
            <widget class="QScrollBar" name="Cab_Slide">
             <property name="maximum">
              <number>1000000</number>
@@ -768,7 +778,7 @@
             </property>
            </widget>
           </item>
-          <item row="8" column="2">
+          <item row="8" column="3">
            <widget class="QLineEdit" name="Car_lineEdit">
             <property name="inputMethodHints">
              <set>Qt::ImhDigitsOnly</set>
@@ -784,7 +794,7 @@
             </property>
            </widget>
           </item>
-          <item row="9" column="0" colspan="3">
+          <item row="9" column="1" colspan="3">
            <widget class="QScrollBar" name="Car_Slide">
             <property name="maximum">
              <number>300000</number>
@@ -803,7 +813,7 @@
             </property>
            </widget>
           </item>
-          <item row="11" column="0" colspan="3">
+          <item row="11" column="1" colspan="3">
            <widget class="QScrollBar" name="Cbrown_Slide">
             <property name="font">
              <font>
@@ -831,7 +841,7 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0" colspan="3">
+          <item row="1" column="1" colspan="3">
            <widget class="QScrollBar" name="N_Slide">
             <property name="minimum">
              <number>10000</number>
@@ -856,21 +866,21 @@
             </property>
            </widget>
           </item>
-          <item row="6" column="3">
+          <item row="6" column="4">
            <widget class="QLabel" name="lblCm">
             <property name="text">
              <string>[g/cm2]</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="3">
+          <item row="2" column="4">
            <widget class="QLabel" name="lblCab">
             <property name="text">
              <string>[ug/cm2]</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="0">
+          <item row="4" column="1">
            <widget class="QLabel" name="Cw_Text">
             <property name="minimumSize">
              <size>
@@ -883,7 +893,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="2">
+          <item row="2" column="3">
            <widget class="QLineEdit" name="Cab_lineEdit">
             <property name="inputMethodHints">
              <set>Qt::ImhDigitsOnly</set>
@@ -899,7 +909,7 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="2">
+          <item row="0" column="3">
            <widget class="QLineEdit" name="N_lineEdit">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
@@ -943,7 +953,7 @@
             </property>
            </widget>
           </item>
-          <item row="10" column="2">
+          <item row="10" column="3">
            <widget class="QLineEdit" name="Cbrown_lineEdit">
             <property name="inputMethodHints">
              <set>Qt::ImhDigitsOnly</set>
@@ -959,7 +969,7 @@
             </property>
            </widget>
           </item>
-          <item row="12" column="0">
+          <item row="12" column="1">
            <widget class="QLabel" name="Canth_Text">
             <property name="enabled">
              <bool>true</bool>
@@ -981,7 +991,7 @@
             </property>
            </widget>
           </item>
-          <item row="7" column="0" colspan="3">
+          <item row="7" column="1" colspan="3">
            <widget class="QScrollBar" name="Cm_Slide">
             <property name="minimum">
              <number>19</number>
@@ -1000,7 +1010,7 @@
             </property>
            </widget>
           </item>
-          <item row="6" column="0">
+          <item row="6" column="1">
            <widget class="QLabel" name="Cm_Text">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -1025,7 +1035,7 @@
             </property>
            </widget>
           </item>
-          <item row="6" column="2">
+          <item row="6" column="3">
            <widget class="QLineEdit" name="Cm_lineEdit">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -1053,7 +1063,7 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="0">
+          <item row="0" column="1">
            <widget class="QLabel" name="N_Text">
             <property name="minimumSize">
              <size>
@@ -1072,7 +1082,7 @@
             </property>
            </widget>
           </item>
-          <item row="12" column="2">
+          <item row="12" column="3">
            <widget class="QLineEdit" name="Canth_lineEdit">
             <property name="inputMethodHints">
              <set>Qt::ImhDigitsOnly</set>
@@ -1088,21 +1098,21 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="3">
+          <item row="0" column="4">
            <widget class="QLabel" name="label">
             <property name="text">
              <string>[-]</string>
             </property>
            </widget>
           </item>
-          <item row="12" column="3">
+          <item row="12" column="4">
            <widget class="QLabel" name="lblCanth">
             <property name="text">
              <string>[ug/cm2]</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="2">
+          <item row="4" column="3">
            <widget class="QLineEdit" name="Cw_lineEdit">
             <property name="inputMethodHints">
              <set>Qt::ImhDigitsOnly</set>
@@ -1118,7 +1128,7 @@
             </property>
            </widget>
           </item>
-          <item row="8" column="0">
+          <item row="8" column="1">
            <widget class="QLabel" name="Car_Text">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -1137,14 +1147,14 @@
             </property>
            </widget>
           </item>
-          <item row="8" column="3">
+          <item row="8" column="4">
            <widget class="QLabel" name="lblCar">
             <property name="text">
              <string>[ug/cm2]</string>
             </property>
            </widget>
           </item>
-          <item row="5" column="0" colspan="3">
+          <item row="5" column="1" colspan="3">
            <widget class="QScrollBar" name="Cw_Slide">
             <property name="minimum">
              <number>2</number>
@@ -1163,8 +1173,151 @@
             </property>
            </widget>
           </item>
+          <item row="15" column="1">
+           <widget class="QLabel" name="Cp_Text">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>7</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Proteins (Cp)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="15" column="3">
+           <widget class="QLineEdit" name="Cp_lineEdit">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>7</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>0.001</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="16" column="1" colspan="3">
+           <widget class="QScrollBar" name="Cp_Slide">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="maximum">
+             <number>20</number>
+            </property>
+            <property name="singleStep">
+             <number>1</number>
+            </property>
+            <property name="pageStep">
+             <number>1</number>
+            </property>
+            <property name="value">
+             <number>10</number>
+            </property>
+            <property name="sliderPosition">
+             <number>10</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="15" column="4">
+           <widget class="QLabel" name="lblCp">
+            <property name="font">
+             <font>
+              <pointsize>7</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>[ug/cm2]</string>
+            </property>
+           </widget>
+          </item>
+          <item row="17" column="1">
+           <widget class="QLabel" name="Ccl_Text">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>7</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Cellulose &amp; Lignin (Ccl)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="17" column="3">
+           <widget class="QLineEdit" name="Ccl_lineEdit">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>7</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>0.0025</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="18" column="1" colspan="3">
+           <widget class="QScrollBar" name="Ccl_Slide">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="maximum">
+             <number>50</number>
+            </property>
+            <property name="singleStep">
+             <number>1</number>
+            </property>
+            <property name="pageStep">
+             <number>1</number>
+            </property>
+            <property name="value">
+             <number>25</number>
+            </property>
+            <property name="sliderPosition">
+             <number>25</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="17" column="4">
+           <widget class="QLabel" name="lblCcl">
+            <property name="font">
+             <font>
+              <pointsize>7</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>[ug/cm2]</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_2"/>
        </item>
        <item>
         <widget class="QgsCollapsibleGroupBox" name="CanopyMP_Box">
@@ -1186,7 +1339,7 @@
          <property name="maximumSize">
           <size>
            <width>275</width>
-           <height>19</height>
+           <height>16777215</height>
           </size>
          </property>
          <property name="font">
@@ -1201,7 +1354,7 @@
           <bool>true</bool>
          </property>
          <property name="collapsed">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <property name="saveCheckedState">
           <bool>true</bool>
