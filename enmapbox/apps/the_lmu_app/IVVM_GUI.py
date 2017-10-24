@@ -74,50 +74,6 @@ class IVVM:
         self.bg_spec = None
         self.bg_type = "default"
 
-    # def color_constructor(self, color):
-    #     if color == "g":
-    #         rgb_string = "rgb(%i, %i, %i)" % (0, 255, 0)
-    #     elif color == "r":
-    #         rgb_string = "rgb(%i, %i, %i)" % (255, 0, 0)
-    #     elif color == "b":
-    #         rgb_string = "rgb(%i, %i, %i)" % (0, 0, 255)
-    #     elif color == "y":
-    #         rgb_string = "rgb(%i, %i, %i)" % (255, 255, 0)
-    #     elif color == "m":
-    #         rgb_string = "rgb(%i, %i, %i)" % (255, 0, 255)
-    #     elif color == "c":
-    #         rgb_string = "rgb(%i, %i, %i)" % (0, 255, 255)
-    #     elif color == "w":
-    #         rgb_string = "rgb(%i, %i, %i)" % (255, 255, 255)
-    #     return rgb_string
-
-    # def style_constructor(self, colors):
-    #
-    #     # assume colors=["y", "r"]
-    #     n = len(colors)
-    #     color_str = [] # list for all the RGB-values
-    #     for color in colors:
-    #         color_str.append(self.color_constructor(color=color))
-    #     color_str = [x for pair in zip(color_str, color_str) for x in pair] # duplicate all colors (start & stop)
-    #
-    #     style_str = "background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 " # "Intro"
-    #
-    #     style_str += ", stop:1 %s);" % self.color_constructor(color="w") # "Outro"
-    #
-    #     print style_str
-
-    # def flag_colors(self):
-        # self.style_constructor(colors=["y", "r"])
-        # self.gui.color_N.setStyleSheet("""background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
-        # stop:0 """ + self.color_constructor("y") + """, stop:0.499 rgb(255, 255, 0),
-        # stop:0.501 rgb(255, 0, 0), stop:1 rgb(255, 0, 0));""")
-        # self.gui.color_Cab.setStyleSheet("""background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
-        # stop:0 rgb(255, 0, 0), stop:1 rgb(255, 0, 0));""")
-        # self.gui.color_Cw.setStyleSheet("""background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
-        # stop:0 rgb(255, 0, 0), stop:0.330 rgb(255, 0, 0),
-        # stop:0.335 rgb(0, 255, 0), stop:0.665 rgb(0, 255, 0),
-        # stop:0.670 rgb(0,0,255), stop:1 rgb(0, 0, 255));""")
-
     def update_slider_pos(self):
         self.gui.N_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.N_Slide, self.gui.N_lineEdit))
         self.gui.Cab_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cab_Slide, self.gui.Cab_lineEdit))
@@ -202,7 +158,10 @@ class IVVM:
             self.gui.psoil_Slide.setEnabled(True)
             self.gui.psoil_lineEdit.setEnabled(True)
             self.gui.push_SelectFile.setEnabled(False)
-            self.gui.BackSpec_lineEdit.setEnabled(False)
+            self.gui.BackSpec_label.setEnabled(False)
+            self.gui.BackSpec_label.setText("")
+            self.bg_spec = None
+            self.mod_exec()
         elif bg_type == "load":
             self.gui.B_DefSoilSpec.setEnabled(True)
             self.gui.B_LoadBackSpec.setEnabled(True)
@@ -210,7 +169,7 @@ class IVVM:
             self.gui.psoil_Slide.setEnabled(False)
             self.gui.psoil_lineEdit.setEnabled(False)
             self.gui.push_SelectFile.setEnabled(True)
-            self.gui.BackSpec_lineEdit.setEnabled(True)
+            self.gui.BackSpec_label.setEnabled(True)
 
     def makePen(self, sensor):
         if sensor == "default":
@@ -258,7 +217,7 @@ class IVVM:
             self.gui.psoil_Slide.setEnabled(False)
             self.gui.psoil_lineEdit.setEnabled(False)
             self.gui.push_SelectFile.setEnabled(False)
-            self.gui.BackSpec_lineEdit.setEnabled(False)
+            self.gui.BackSpec_label.setEnabled(False)
             self.gui.B_DefSoilSpec.setEnabled(False)
             self.gui.B_LoadBackSpec.setEnabled(False)
         else:
@@ -467,8 +426,8 @@ class IVVM:
                                             cp=self.para_list[12], ccl=self.para_list[13], car=self.para_list[14],
                                            cbrown=self.para_list[16], anth=self.para_list[15], soil=self.bg_spec)
 
-        # self.myResult[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        # self.myResult[1390:1541] = np.nan
+
+
         if not item is None: self.item = item
         self.plotting()
 
@@ -578,7 +537,7 @@ class IVVM:
             data_open[interp_bands[1:-1]] = f(interp_bands[1:-1])
 
         self.bg_spec = data_open
-
+        self.gui.BackSpec_label.setText(os.path.basename(filenameIn))
         self.mod_exec()
 
     def reset_in_situ(self):

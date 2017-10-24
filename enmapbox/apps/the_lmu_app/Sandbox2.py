@@ -4,15 +4,16 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
 
-x = [range(10), range(5)]
-print x
-exit()
-y = [1.0,2.0,13.0,18.0,44.0,39.0,22.0,35.0,4.0,5.0]
-a = y[1]
-b = y[-2]
+content = np.genfromtxt("palmer_williams_1974.txt", skip_header=True)
+wavelengths = content[:, 0]
+abs_coef = content[:, 1]
+full_wavelengths = range(int(wavelengths[0]), 2501)
+f = interp1d(wavelengths, abs_coef)
 
-f = interp1d([2,8], [y[1],y[-2]])
-print f(8)
+final_coef = [float(f(lambd)) for lambd in full_wavelengths]
+
+for i, lambd in enumerate(full_wavelengths):
+    print lambd, final_coef[i]
 
 exit()
 

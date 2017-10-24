@@ -29,10 +29,9 @@ class Sail:
         dso = sqrt(tantts**2 + tantto**2 - 2*tantts*tantto*self.cospsi)
 
         # Soil Reflectance Properties
-        if not soil:
+
+        if not isinstance(soil, np.ndarray): # "soil" is not supplied as np.array, but is "None" instead
             soil = psoil*Rsoil1+(1-psoil)*Rsoil2
-        else:
-            soil = np.asarray(soil)
 
         # Generate Leaf Angle Distribution From Average Leaf Angle (ellipsoidal) or (a,b) parameters
         lidf = self.LIDF_calc(LIDF, TypeLIDF)
