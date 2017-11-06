@@ -59,7 +59,7 @@ def runFootprint(mgrsFootprint, grid, landsatArchive, nworker, nwriter):
     applier.setInputs('sr5', filenames=sr5, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
     applier.setInputs('sr6', filenames=sr6, errorThreshold=0.125, warpMemoryLimit=5000*2**20, multithread=True)
 
-    applier.setOutput('dataAvailability', filename=r'h:\ar_temp\dataAvailability{mgrsFootprint}.img'.format(mgrsFootprint=mgrsFootprint), format='GTiff')
+    applier.setOutputRaster('dataAvailability', filename=r'h:\ar_temp\dataAvailability{mgrsFootprint}.img'.format(mgrsFootprint=mgrsFootprint), format='GTiff')
     applier.run(ufuncClass=ClearObservations, description=descr)
     #print('---')
 

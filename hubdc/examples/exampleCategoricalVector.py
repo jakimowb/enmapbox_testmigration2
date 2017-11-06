@@ -7,7 +7,7 @@ def script():
     applier = Applier()
     applier.controls.setReferenceGridByVector(filename=shpfile, xRes=5, yRes=5)
     applier.setVector('vector', filename=r'C:\output\LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
-    applier.setOutput('id_l1', filename=r'c:\output\id_l1.img')
+    applier.setOutputRaster('id_l1', filename=r'c:\output\id_l1.img')
     applier.apply(operator=SimpleIO)
 
 class SimpleIO(ApplierOperator):
