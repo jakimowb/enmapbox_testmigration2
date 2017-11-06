@@ -406,6 +406,7 @@ class EnMAPBox(QObject):
 
         # self.enmapBox = enmapbox
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
+        self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
         self.dockManager.connectDockArea(self.ui.dockArea)
         self.dockManager.sigDockAdded.connect(self.onDockAdded)
 
@@ -626,6 +627,24 @@ class EnMAPBox(QObject):
         if len(uris) > 0:
             SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
 
+
+
+    sigDataSourceAdded = pyqtSignal(str)
+
+    sigSpectralLibraryAdded = pyqtSignal(str)
+    sigRasterSourceAdded = pyqtSignal(str)
+    sigVectorSourceAdded = pyqtSignal(str)
+
+    def onDataSourceAdded(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        self.sigDataSourceAdded.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceRaster):
+            self.sigRasterSourceAdded.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceVector):
+            self.sigDataSourceAdded.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceSpectralLibrary):
+            self.sigSpectralLibraryAdded.emit(dataSource.uri())
+
     def saveProject(self, saveAs=False):
         proj = QgsProject.instance()
         path = proj.fileName()
@@ -734,4 +753,5 @@ class EnMAPBox(QObject):
         self.ui.close()
 
         #this will trigger the closeEvent
+
 

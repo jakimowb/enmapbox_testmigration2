@@ -578,7 +578,7 @@ if __name__ == '__main__':
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
 
-    if True:
+    if False:
         #convert SVG to PNG and add link them into the resource file
         #svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)

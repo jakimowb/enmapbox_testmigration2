@@ -53,6 +53,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
     def startGUI(self, *args):
         w = VRTBuilderWidget()
         w.sigRasterCreated.connect(self.enmapbox.addSource)
+        self.enmapbox.sigRasterSourceAdded.connect(lambda path : w.addSourceFiles([path]))
         w.addSourceFiles(self.enmapbox.dataSources('RASTER'))
         w.show()
 
