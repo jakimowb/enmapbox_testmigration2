@@ -9,7 +9,7 @@ def script():
     applier = Applier()
     #applier.controls.setWindowFullSize()
     applier.setInput('in', filename=filename)
-    applier.setOutput('out', filename=r'c:\output\out.tif', format='ENVI')
+    applier.setOutputRaster('out', filename=r'c:\output\out.tif', format='ENVI')
     applier.apply(operator=SimpleIO)
 
 class SimpleIO(ApplierOperator):

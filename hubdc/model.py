@@ -12,6 +12,8 @@ def Open(filename, eAccess=gdal.GA_ReadOnly):
     return Dataset(gdal.Open(filename, eAccess))
 
 def OpenLayer(filename, layerNameOrIndex=0, update=False):
+    if str(layerNameOrIndex).isdigit():
+        layerNameOrIndex = int(layerNameOrIndex)
     return Layer(ogrDataSource=ogr.Open(filename, int(update)), nameOrIndex=layerNameOrIndex)
 
 def Create(pixelGrid, bands=1, eType=gdal.GDT_Float32, dstName='', format='MEM', creationOptions=[]):
@@ -21,7 +23,13 @@ def Create(pixelGrid, bands=1, eType=gdal.GDT_Float32, dstName='', format='MEM',
 
     driver = gdal.GetDriverByName(format)
     ysize, xsize = pixelGrid.getDimensions()
-    gdalDataset = driver.Create(dstName, xsize, ysize, bands, eType, creationOptions)
+    if driver.ShortName in ['PNG']:
+        tmpdriver = gdal.GetDriverByName('MEM')
+        tmpds = tmpdriver.Create('', xsize, ysize, bands, eType)
+        strict =0
+        gdalDataset = driver.CreateCopy(dstName, tmpds, strict, creationOptions)
+    else:
+        gdalDataset = driver.Create(dstName, xsize, ysize, bands, eType, creationOptions)
     gdalDataset.SetProjection(pixelGrid.projection)
     gdalDataset.SetGeoTransform(pixelGrid.makeGeoTransform())
     return Dataset(gdalDataset=gdalDataset)
@@ -46,6 +54,33 @@ def CreateFromArray(pixelGrid, array, dstName='', format='MEM', creationOptions=
     dataset.writeArray(array=array, pixelGrid=pixelGrid)
 
     return dataset
+
+def CreateVRT(dstName, srcDSOrSrcDSTab, **kwargs):
+    options = gdal.BuildVRTOptions(**kwargs)
+    gdalDataset = gdal.BuildVRT(destName=dstName, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
+    return Dataset(gdalDataset=gdalDataset)
+
+def buildOverviews(filename, minsize=None, levels=None, resampling='average'):
+    assert resampling in ['average', 'gauss', 'cubic', 'cubicspline', 'lanczos', 'average_mp', 'average_magphase',
+                          'mode']
+    if levels is None:
+        assert minsize is not None
+        levels = []
+        nextLevel = 2
+        size = float(max(Open(filename=filename).shape))
+        while size > minsize:
+            levels.append(nextLevel)
+            size /= 2
+            nextLevel *= 2
+
+    import subprocess
+    subprocess.call(['gdaladdo', '-ro',
+                     #'--config', 'COMPRESS_OVERVIEW', 'JPEG',
+                     #'--config', 'JPEG_QUALITY_OVERVIEW 25'
+                     #'--config', 'INTERLEAVE_OVERVIEW', 'BAND',
+                     '-r', 'average',
+                     '--config', 'COMPRESS_OVERVIEW', 'LZW',
+                     filename, ' '.join(map(str, levels))])
 
 class PixelGrid(PixelGridDefn):
 
@@ -96,10 +131,14 @@ class PixelGrid(PixelGridDefn):
 
     @property
     def ySize(self):
-        return int(round(float(self.yMax-self.yMin)/self.yRes))
+        return int(round(float(self.yMax - self.yMin) / self.yRes))
+
+    @property
+    def shape(self):
+        return self.ySize, self.xSize
 
     def getDimensions(self):
-        return self.ySize, self.xSize
+        return self.shape
 
     def equalUL(self, other):
         return (self.xMin == other.xMin and
@@ -119,6 +158,12 @@ class PixelGrid(PixelGridDefn):
 
     def reproject(self, targetGrid):
         return PixelGrid.fromPixelGrid(PixelGridDefn.reproject(self, targetGrid))
+
+    def extent(self):
+        return self.xMin, self.xMax, self.yMin, self.yMax
+
+    def setExtent(self, extent):
+        self.xMin, self.xMax, self.yMin, self.yMax = extent
 
     def reprojectExtent(self, targetProjection):
 
@@ -177,7 +222,6 @@ class PixelGrid(PixelGridDefn):
         return anchored
 
     def newResolution(self, xRes, yRes):
-
         pixelGrid = self.copy()
         pixelGrid.xRes = xRes
         pixelGrid.yRes = yRes
@@ -194,20 +238,23 @@ class PixelGrid(PixelGridDefn):
         pixelGrid = PixelGrid(projection=self.projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=self.xRes, yRes=self.yRes)
         return pixelGrid
 
-    def iterSubgrids(self, windowxsize, windowysize):
+    def subgrids(self, windowxsize, windowysize, trim=True):
         ysize, xsize = self.getDimensions()
         yoff = 0
+        i = iy = 0
         while yoff < ysize:
             xoff = 0
+            ix = 0
             while xoff < xsize:
                 pixelGridTile = self.subsetPixelWindow(xoff=xoff, yoff=yoff, width=windowxsize, height=windowysize)
-                pixelGridTile = pixelGridTile.intersection(self) # ensures that tiles at the left and lower edges are trimmed
-                yield pixelGridTile
+                if trim==True:
+                    pixelGridTile = pixelGridTile.intersection(self) # ensures that tiles at the left and lower edges are trimmed
+                yield pixelGridTile, i, iy, ix
                 xoff += windowxsize
+                ix += 1
+                i += 1
             yoff += windowysize
-
-    def subgrids(self, windowxsize, windowysize):
-        return list(self.iterSubgrids(windowxsize=windowxsize, windowysize=windowysize))
+            iy += 1
 
 class Dataset():
 
@@ -223,26 +270,23 @@ class Dataset():
     def getFormat(self):
         return self.gdalDataset.GetDriver().ShortName
 
-    def readAsArray(self, pixelGrid=None, dtype=None, scale=None, resample_alg=gdal.GRIORA_NearestNeighbour):
-
+    def readAsArray(self, pixelGrid=None, resample_alg=gdal.GRIORA_NearestNeighbour):
         if pixelGrid is None:
             array = self.gdalDataset.ReadAsArray()
         else:
             assert isinstance(pixelGrid, PixelGrid)
-            xoff = round((pixelGrid.xMin - self.pixelGrid.xMin) / self.pixelGrid.xRes, 0)
-            yoff = round((self.pixelGrid.yMax - pixelGrid.yMax) / self.pixelGrid.yRes, 0)
-            xsize = round((pixelGrid.xMax - pixelGrid.xMin) / self.pixelGrid.xRes, 0)
-            ysize = round((pixelGrid.yMax - pixelGrid.yMin) / self.pixelGrid.yRes, 0)
+            xoff = int(round((pixelGrid.xMin - self.pixelGrid.xMin) / self.pixelGrid.xRes, 0))
+            yoff = int(round((self.pixelGrid.yMax - pixelGrid.yMax) / self.pixelGrid.yRes, 0))
+            xsize = int(round((pixelGrid.xMax - pixelGrid.xMin) / self.pixelGrid.xRes, 0))
+            ysize = int(round((pixelGrid.yMax - pixelGrid.yMin) / self.pixelGrid.yRes, 0))
+
             buf_ysize, buf_xsize = pixelGrid.getDimensions()
             array = self.gdalDataset.ReadAsArray(xoff=xoff, yoff=yoff, xsize=xsize, ysize=ysize,
                                                  buf_xsize=buf_xsize, buf_ysize=buf_ysize,
                                                  resample_alg=resample_alg)
 
-        array = array if array.ndim == 3 else array[None] # add third dimension if missing
-        if dtype is not None:
-            array = array.astype(dtype)
-        if scale is not None:
-            array *= scale
+        if array.ndim==2:
+            array = array[None]
 
         return array
 
@@ -280,6 +324,12 @@ class Dataset():
             noDataValue = default
         return noDataValue
 
+    def setDescription(self, value):
+        self.gdalDataset.SetDescription(value)
+
+    def getDescription(self):
+        return self.gdalDataset.GetDescription()
+
     def getMetadataDomainList(self):
         domains = self.gdalDataset.GetMetadataDomainList()
         return domains if domains is not None else []
@@ -298,19 +348,24 @@ class Dataset():
             return None
         return _GDALStringFormatter.gdalStringToValue(gdalString, dtype=dtype)
 
-    def getMetadata(self):
-        meta = dict()
+    def getMetadataDict(self):
+        metadataDict = dict()
         for domain in self.getMetadataDomainList():
-            meta[domain] = self.gdalDataset.GetMetadata(domain)
-        return meta
+            metadataDict[domain] = dict()
+            for key, value in self.getMetadataDomain(domain=domain).items():
+                metadataDict[domain][key] = self.getMetadataItem(key=key, domain=domain)
+        return metadataDict
 
-    def setMetadata(self, meta):
-        assert isinstance(meta, dict)
-        for domain in meta:
-            self.gdalDataset.SetMetadata(meta[domain], domain)
+    def setMetadataDict(self, metadataDict):
+        assert isinstance(metadataDict, dict)
+        for domain in metadataDict:
+            for key, value in metadataDict[domain].items():
+                self.setMetadataItem(key=key, value=value, domain=domain)
 
     def getMetadataDomain(self, domain):
-        return self.gdalDataset.GetMetadata(domain)
+        domainDict = self.gdalDataset.GetMetadata(domain)
+        assert isinstance(domainDict, dict)
+        return domainDict
 
     def copyMetadata(self, other):
         assert isinstance(other, Dataset)
@@ -500,16 +555,39 @@ class Band():
         self.gdalBand = gdalBand
         self.pixelGrid = pixelGrid
 
-    def readAsArray(self, dtype=None, ** kwargs):
-        array = self.gdalBand.ReadAsArray(**kwargs)
-        if dtype is not None:
-            array = array.astype(dtype)
+    def readAsArray(self, pixelGrid=None, resample_alg=gdal.GRIORA_NearestNeighbour):
+
+        if pixelGrid is None:
+            array = self.gdalBand.ReadAsArray(resample_alg=resample_alg)
+        else:
+            assert isinstance(pixelGrid, PixelGrid)
+            xoff = round((pixelGrid.xMin - self.pixelGrid.xMin) / self.pixelGrid.xRes, 0)
+            yoff = round((self.pixelGrid.yMax - pixelGrid.yMax) / self.pixelGrid.yRes, 0)
+            xsize = round((pixelGrid.xMax - pixelGrid.xMin) / self.pixelGrid.xRes, 0)
+            ysize = round((pixelGrid.yMax - pixelGrid.yMin) / self.pixelGrid.yRes, 0)
+
+            # fix for out of bounds error (not sure if I want to use it!)
+            #xsize = min(xsize, self.pixelGrid.xSize)
+            #ysize = min(ysize, self.pixelGrid.ySize)
+
+            buf_ysize, buf_xsize = pixelGrid.getDimensions()
+            array = self.gdalBand.ReadAsArray(xoff=xoff, yoff=yoff, win_xsize=xsize, win_ysize=ysize,
+                                                 buf_xsize=buf_xsize, buf_ysize=buf_ysize,
+                                                 resample_alg=resample_alg)
+
         return array
 
     def writeArray(self, array, pixelGrid=None):
 
+        assert isinstance(array, numpy.ndarray)
+        if array.ndim == 3:
+            assert len(array) == 1
+            array = array[0]
+
         if pixelGrid is None:
             pixelGrid = self.pixelGrid
+
+
 
         assert array.shape == pixelGrid.getDimensions()
         assert isinstance(pixelGrid, PixelGrid)
@@ -519,6 +597,26 @@ class Band():
         xoff=int(round((pixelGrid.xMin - self.pixelGrid.xMin)/self.pixelGrid.xRes, 0))
         yoff=int(round((self.pixelGrid.yMax - pixelGrid.yMax)/self.pixelGrid.yRes, 0))
         self.gdalBand.WriteArray(array, xoff=xoff, yoff=yoff)
+
+    def setMetadataItem(self, key, value, domain=''):
+        if value is None:
+            return
+        key = key.replace(' ', '_')
+        gdalString = _GDALStringFormatter.valueToGDALString(value)
+        self.gdalBand.SetMetadataItem(key, gdalString, domain)
+
+    def getMetadataItem(self, key, domain='', dtype=str):
+        key = key.replace(' ', '_')
+        gdalString = self.gdalBand.GetMetadataItem(key, domain)
+        if gdalString is None:
+            return None
+        return _GDALStringFormatter.gdalStringToValue(gdalString, dtype=dtype)
+
+    def copyMetadata(self, other):
+        assert isinstance(other, Band)
+
+        for domain in other.getMetadataDomainList():
+            self.gdalBand.SetMetadata(other.gdalBand.GetMetadata(domain), domain)
 
     def setNoDataValue(self, value):
         self.gdalBand.SetNoDataValue(float(value))
@@ -621,3 +719,14 @@ class Layer(object):
         layer = Layer(ogrDataSource=ogr.Open(vrtFilename), nameOrIndex=0)
         remove(vrtFilename)
         return layer
+
+    def getFeatureCount(self):
+        return self.ogrLayer.GetFeatureCount()
+
+    def getFieldCount(self):
+        return self.ogrLayer.GetLayerDefn().GetFieldCount()
+
+#        ldefn = layer.GetLayerDefn()
+#    for n in range(ldefn.GetFieldCount()):
+#        fdefn = ldefn.GetFieldDefn(n)
+#        schema.append(fdefn.name)

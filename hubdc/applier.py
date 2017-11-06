@@ -8,56 +8,689 @@ See :doc:`ApplierExamples` for more information.
 
 from __future__ import print_function
 import sys, os
+from collections import OrderedDict
 from multiprocessing import Pool
 from timeit import default_timer as now
 import numpy
-from osgeo import gdal
+from osgeo import gdal, osr, ogr
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
-from hubdc.model import Open, OpenLayer, CreateFromArray
+from hubdc.model import Open, OpenLayer, CreateFromArray, Dataset, Band
 from hubdc import const
 from hubdc.writer import Writer, WriterProcess, QueueMock
 from hubdc.model import PixelGrid
-from hubdc.progressbar import CUIProgressBar, SilentProgressBar, ProgressBar, ProgressBarDelegate
+from hubdc.progressbar import CUIProgressBar, ProgressBarDelegate
 
-
-DEFAULT_INPUT_RESAMPLEALG = gdal.GRA_NearestNeighbour
-DEFAULT_INPUT_ERRORTHRESHOLD = 0.
-DEFAULT_INPUT_WARPMEMORYLIMIT = 100*2**20
-DEFAULT_INPUT_MULTITHREAD = False
+#DEFAULT_INPUT_RESAMPLEALG = gdal.GRA_NearestNeighbour
+DEFAULT_GDALWARP_ERRORTHRESHOLD = 0.
+DEFAULT_GDALWARP_MEMORYLIMIT = 100 * 2 ** 20
+DEFAULT_GDALWARP_MULTITHREAD = False
 DEFAULT_OUTPUT_FORMAT = 'ENVI'
 DEFAULT_OUTPUT_CREATIONOPTIONS = dict()
 DEFAULT_OUTPUT_CREATIONOPTIONS['ENVI'] = ['INTERLEAVE=BSQ']
 DEFAULT_OUTPUT_CREATIONOPTIONS['GTiff'] = ['COMPRESS=LZW', 'INTERLEAVE=BAND', 'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256', 'SPARSE_OK=TRUE', 'BIGTIFF=YES']
 
+def is3darray(array):
+    return isinstance(array, numpy.ndarray) and array.ndim == 3
+
+def is3darrayList(arrayList):
+    return isinstance(arrayList, list) and all([is3darray(array) for array in arrayList])
+
+def is3darrayDict(arrayDict):
+    return isinstance(arrayDict, dict) and all([is3darray(array) for array in arrayDict.values()])
+
+def is3darrayListOfLists(arrayListOfLists):
+    return isinstance(arrayListOfLists, list) and all([is3darrayList(arrayList) for arrayList in arrayListOfLists])
+
+def is3darrayListOfDicts(arrayListOfLists):
+    return isinstance(arrayListOfLists, list) and all([is3darrayDict(arrayList) for arrayList in arrayListOfLists])
+
+def is3darrayDictOfLists(arrayDictOfLists):
+    return isinstance(arrayDictOfLists, dict) and all([is3darrayList(arrayList) for arrayList in arrayDictOfLists.values()])
+
+def is3darrayDictOfDicts(arrayDictOfDicts):
+    return isinstance(arrayDictOfDicts, dict) and all([is3darrayDict(arrayDict) for arrayDict in arrayDictOfDicts.values()])
+
+def applierInputRasterGroupFromFolder(folder, extensions):
+
+    off = len(os.path._abspath_split(folder)[2])
+    group = ApplierInputRasterGroup()
+    for root, dirs, files in os.walk(folder):
+        key = '/'.join(os.path._abspath_split(root)[2][off:])
+        if key=='':
+            subgroup = group
+        else:
+            subgroup = group.getGroup(key=key)
+        for dir in dirs:
+            subgroup.setGroup(key=dir, value=ApplierInputRasterGroup())
+        for file in files:
+            for extension in extensions:
+                if file.endswith(extension):
+                    subgroup.setRaster(key=os.path.splitext(file)[0], value=ApplierInputRaster(filename=os.path.join(root, file)))
+    return group
+
+class ApplierInputRaster():
+
+    @classmethod
+    def fromDataset(cls, dataset):
+        assert isinstance(dataset, Dataset)
+        applierInputRaster = ApplierInputRaster(filename='')
+        applierInputRaster._dataset = dataset
+        return applierInputRaster
+
+    def __init__(self, filename):
+        self.filename = filename
+        self._dataset = None
+        self._operator = None
+
+    @property
+    def operator(self):
+        assert isinstance(self._operator, ApplierOperator)
+        return self._operator
+
+    @operator.setter
+    def operator(self, value):
+        assert isinstance(value, ApplierOperator)
+        self._operator = value
+
+    @property
+    def dataset(self):
+        if self._dataset is None:
+            self._dataset = Open(filename=self.filename)
+        assert isinstance(self._dataset, Dataset)
+        return self._dataset
+
+    def _freeUnpickableResources(self):
+        self._dataset = None
+
+    def getImageArray(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+                      errorThreshold=DEFAULT_GDALWARP_ERRORTHRESHOLD,
+                      warpMemoryLimit=DEFAULT_GDALWARP_MEMORYLIMIT,
+                      multithread=DEFAULT_GDALWARP_MULTITHREAD):
+
+        dstGrid = self.operator.workingGrid.pixelBuffer(buffer=overlap)
+        if self.operator.workingGrid.equalProjection(self.dataset.pixelGrid):
+            datasetResampled = self.dataset.translate(dstPixelGrid=dstGrid, dstName='', format='MEM',
+                                                      resampleAlg=resampleAlg,
+                                                      noData=noData)
+        else:
+            datasetResampled = self.dataset.warp(dstPixelGrid=dstGrid, dstName='', format='MEM',
+                                                 resampleAlg=resampleAlg,
+                                                 errorThreshold=errorThreshold,
+                                                 warpMemoryLimit=warpMemoryLimit,
+                                                 multithread=multithread,
+                                                 srcNodata=noData)
+        array = datasetResampled.readAsArray()
+        datasetResampled.close()
+        return array
+
+    def getBandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+                     errorThreshold=DEFAULT_GDALWARP_ERRORTHRESHOLD,
+                     warpMemoryLimit=DEFAULT_GDALWARP_MEMORYLIMIT,
+                     multithread=DEFAULT_GDALWARP_MULTITHREAD):
+
+        if isinstance(indicies, int):
+            indicies = [indicies]
+
+        bandList = [i + 1 for i in indicies]
+        dstGrid = self.operator.workingGrid.pixelBuffer(buffer=overlap)
+        if self.operator.workingGrid.equalProjection(self.dataset.pixelGrid):
+            datasetResampled = self.dataset.translate(dstPixelGrid=dstGrid, dstName='', format='MEM',
+                                                 bandList=bandList,
+                                                 resampleAlg=resampleAlg,
+                                                 noData=noData)
+        else:
+            selfGridReprojected = self.operator.workingGrid.reproject(self.dataset.pixelGrid)
+            selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1+overlap)
+
+            datasetClipped = self.dataset.translate(dstPixelGrid=selfGridReprojectedWithBuffer, dstName='', format='MEM',
+                                               bandList=bandList,
+                                               noData=noData)
+
+            datasetResampled = datasetClipped.warp(dstPixelGrid=dstGrid, dstName='', format='MEM',
+                                                   resampleAlg=resampleAlg,
+                                                   errorThreshold=errorThreshold,
+                                                   warpMemoryLimit=warpMemoryLimit,
+                                                   multithread=multithread,
+                                                   srcNodata=noData)
+            datasetClipped.close()
+
+        array = datasetResampled.readAsArray()
+        datasetResampled.close()
+        return array
+
+    def getFractionArray(self, categories, overlap=0, noData=None, index=None):
+
+        assert self.dataset.zsize == 1 or index is not None
+        if index is None:
+            index = 0
+        grid = self.operator.workingGrid.pixelBuffer(buffer=overlap)
+
+        # create tmp dataset with binarized categories in original resolution
+        gridInSourceProjection = grid.reproject(self.dataset.pixelGrid)
+        tmpDataset = self.dataset.translate(dstPixelGrid=gridInSourceProjection, dstName='', format='MEM', noData=noData, bandList=[index+1])
+        tmpArray = tmpDataset.readAsArray()
+
+        binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
+        binarizedDataset = CreateFromArray(pixelGrid=gridInSourceProjection, array=binarizedArray,
+                                         dstName='', format='MEM', creationOptions=[])
+
+        binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
+        binarizedInputRaster.operator = self.operator
+
+        array = binarizedInputRaster.getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Average)
+        return array
+
+    def getMetadataItem(self, key, domain):
+        """Return a metadata item."""
+        return self.dataset.getMetadataItem(key=key, domain=domain)
+
+    def getMetadataDict(self):
+        """Return metadata dictionary."""
+        meta = dict()
+        for domain in self.dataset.getMetadataDomainList():
+            meta[domain] = dict()
+            for key in self.dataset.getMetadataDomain(domain):
+                meta[domain][key] = self.getMetadataItem(key=key, domain=domain)
+        return meta
+
+    def getNoDataValue(self, default=None):
+        """Return image no data value."""
+        return self.dataset.getNoDataValue(default=default)
+
+    def getNoDataValues(self, default=None):
+        """Return band no data values"""
+        return self.dataset.getNoDataValues(default=default)
+
+
+class ApplierInputRasterArchive(object):
+
+    def __init__(self, folder, extensions, filter=None, overwrite=False):
+        assert isinstance(extensions, (list, tuple))
+        self.folder = folder
+        self.extensions = extensions
+        self.filter = filter
+        self.indexFilename = os.path.join(folder, '.spatialindex')
+        projection = osr.SpatialReference()
+        projection.ImportFromEPSG(4326) # WGS84
+        self.projection = str(projection)
+        self._createIndex(overwrite=overwrite)
+        self._operator = None
+
+    @property
+    def operator(self):
+        assert isinstance(self._operator, ApplierOperator)
+        return self._operator
+
+    @operator.setter
+    def operator(self, value):
+        assert isinstance(value, ApplierOperator)
+        self._operator = value
+
+    def _createIndex(self, overwrite):
+        import rtree
+
+        for ext in ['.dat', '.idx']:
+            f = self.indexFilename+ext
+            if overwrite and os.path.exists(f):
+                os.remove(f)
+
+        create = not os.path.exists(self.indexFilename+'.idx') or overwrite
+        if create:
+            try:
+                index = rtree.index.Index(self.indexFilename, interleaved=False)
+                id=0
+                for root, dirs, files in os.walk(self.folder):
+                    for file in files:
+                        for extension in self.extensions:
+                            if file.endswith(extension):
+                                filename = os.path.join(root, file)
+                                print(filename)
+                                grid = PixelGrid.fromFile(filename=filename)
+                                coordinates = grid.reprojectExtent(targetProjection=self.projection)
+                                index.insert(id, coordinates, obj=filename)
+                                id += 1
+                print('RTree index created ({})'.format(self.indexFilename))
+            except:
+                self.filenames = list()
+                for root, dirs, files in os.walk(self.folder):
+                    for file in files:
+                        for extension in self.extensions:
+                            if file.endswith(extension):
+                                filename = os.path.join(root, file)
+                                self.filenames.append(filename)
+
+    def _getIntersectionByPixelGrid(self, grid):
+        assert isinstance(grid, PixelGrid)
+        coordinates = grid.reprojectExtent(self.projection)
+        try:
+            import rtree
+            index = rtree.index.Index(self.indexFilename, interleaved=False)
+            filenames = [item.object for item in index.intersection(coordinates=coordinates, objects=True)]
+            index.close()
+        except:
+            print('rtree error')
+            filenames = self.filenames
+        group = ApplierInputRasterGroup()
+        for f in filenames:
+            if self.filter is not None:
+                if not self.filter(f):
+                    continue
+            k = os.path.splitext('/'.join(os.path._abspath_split(f[len(self.folder):])[2]))[0]
+            group.setRaster(key=k, value=ApplierInputRaster(filename=f))
+
+        return group
+
+    def getIntersection(self):
+        group = self._getIntersectionByPixelGrid(grid=self.operator.workingGrid)
+        group.operator = self.operator
+        assert isinstance(group, ApplierInputRasterGroup)
+        return group
+
+class ApplierInputVector(object):
+
+    def __init__(self, filename, layerNameOrIndex=0):
+        self.filename = filename
+        self.layerNameOrIndex = layerNameOrIndex
+        self._layer = None
+        self._dataset = None
+        self._operator = None
+
+    @property
+    def operator(self):
+        '''Return the parent :class:`~hubdc.applier.ApplierOperator` object'''
+        assert isinstance(self._operator, ApplierOperator)
+        return self._operator
+
+    @operator.setter
+    def operator(self, value):
+        '''Set the parent :class:`~hubdc.applier.ApplierOperator` object'''
+        assert isinstance(value, ApplierOperator)
+        self._operator = value
+
+    @property
+    def layer(self):
+        '''Return the :class:`~hubdc.model.Layer` object'''
+        if self._layer is None:
+            self._layer = OpenLayer(filename=self.filename, layerNameOrIndex=self.layerNameOrIndex, update=False)
+        return self._layer
+
+    def _rasterize(self, initValue, burnValue, burnAttribute, allTouched, filterSQL, overlap, dtype, xRes, yRes):
+        '''For internal use only.'''
+
+        grid = self.operator.workingGrid.pixelBuffer(buffer=overlap)
+        gridOversampled = grid.newResolution(xRes=xRes, yRes=yRes)
+
+        dataset = self.layer.rasterize(dstPixelGrid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(dtype),
+                                       initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute,
+                                       allTouched=allTouched,
+                                       filter=filterSQL, dstName='', format='MEM', creationOptions=[])
+        raster = ApplierInputRaster.fromDataset(dataset=dataset)
+        raster.operator = self.operator
+        return raster
+
+    def getImageArray(self, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0, dtype=numpy.float32):
+        '''Returns the vector rasterization of the current block in form of a 3-d numpy array.
+
+        :param initValue: value to pre-initialize the output array
+        :param burnValue: value to burn into the output array for all objects; exclusive with ``burnAttribute``
+        :param burnAttribute: identifies an attribute field on the features to be used for a burn-in value; exclusive with ``burnValue``
+        :param allTouched: whether to enable that all pixels touched by lines or polygons will be updated, not just those on the line render path, or whose center point is within the polygon
+        :param filterSQL: set an SQL WHERE clause which will be used to filter vector features
+        :param overlap: the amount of margin (number of pixels) added to the image data block in each direction, so that the blocks will overlap; this is important for spatial operators like filters.
+        '''
+
+        raster = self._rasterize(initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched, filterSQL=filterSQL, overlap=overlap, dtype=dtype,
+                                 xRes=self.operator.workingGrid.xRes, yRes=self.operator.workingGrid.yRes)
+        return raster.dataset.readAsArray()
+
+    def getFractionArray(self, categories, categoryAttribute=None, oversampling=10, overlap=0):
+        '''Returns aggregated category fractions of the current block in form of a 3d numpy array.
+
+        :param categories: list of categories (numbers or names)
+        :param categoryAttribute: attribute field on the features holding the categories
+        :param oversampling: factor defining the relative degree of rasterization detail compared to the target resolution. If for example the target resolution is 30m and the oversampling factor is 10, then the categories are first rasterized at 3m, and finally aggregated to the target resolution.
+        :param overlap: the amount of margin (number of pixels) added to the image data block in each direction, so that the blocks will overlap; this is important for spatial operators like filters.
+        '''
+
+        xRes = self.operator.workingGrid.xRes / float(oversampling)
+        yRes = self.operator.workingGrid.yRes / float(oversampling)
+
+        array = list()
+        for category in categories:
+            filterSQL = str('"' + categoryAttribute + '" = ' + "'"+str(category)+"'")
+            oversampledRaster = self._rasterize(initValue=0, burnValue=1, burnAttribute=None, allTouched=False,
+                                                filterSQL=filterSQL,
+                                                overlap=overlap*oversampling, dtype=numpy.float32,
+                                                xRes=xRes, yRes=yRes)
+            array.append(oversampledRaster.getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Average))
+
+        return numpy.vstack(array)
+
+class ApplierOutputRaster(object):
+
+    def __init__(self, filename, format=None, creationOptions=None):
+        self._filename = filename
+        if format is None:
+            format = DEFAULT_OUTPUT_FORMAT
+        self.format = format
+        if creationOptions is None:
+            creationOptions = DEFAULT_OUTPUT_CREATIONOPTIONS.get(self.format, [])
+        self.creationOptions = creationOptions
+        self._operator = None
+        self._writerQueue = None
+        self._bands = None
+
+    def initialize(self, bands):
+        """Specify the number of output bands. This is only required if the output is written band-wise."""
+        self._bands = bands
+
+    @property
+    def filename(self):
+        return self._filename
+
+    @property
+    def operator(self):
+        assert isinstance(self._operator, ApplierOperator)
+        return self._operator
+
+    @operator.setter
+    def operator(self, value):
+        assert isinstance(value, ApplierOperator)
+        self._operator = value
+
+    def getFlatList(self):
+        return [self]
+
+    def getBand(self, index):
+        if self._bands is None:
+            raise Exception('Output raster is not initialized. Use ApplierOutputRaster.initialize(bands) to specify the number of output bands.')
+        return ApplierOutputRasterBand(parent=self, bandNumber=index+1)
+
+    def getBandIterator(self):
+        for index in range(self._bands):
+            yield self.getBand(index=index)
+
+    def setImageArray(self, array, overlap=0):
+        """
+        Write data to an output raster image.
+        The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setOutput`.
+
+        :param name:  output raster name
+        :param array: 3-d or 2-d numpy array to be written
+        :param overlap: the amount of margin (number of pixels) to be removed from the image data block in each direction;
+                        this is useful when the overlap keyword was also used with :meth:`~hubdc.applier.ApplierOperator.getArray`
+        """
+
+        if not isinstance(array, numpy.ndarray):
+            array = numpy.array(array)
+
+        if array.ndim == 2:
+            array = array[None]
+
+        if overlap > 0:
+            array = array[:, overlap:-overlap, overlap:-overlap]
+
+        self._writerQueue.put((Writer.WRITE_IMAGEARRAY, self.filename, array, self.operator.workingGrid, self.operator.mainGrid,
+                               self.format, self.creationOptions))
+
+        self.initialize(bands=len(array))
+
+        return self
+
+    def setMetadataItem(self, key, value, domain):
+        """Set image metadata item."""
+        self._callImageMethod(method=Dataset.setMetadataItem, key=key, value=value, domain=domain)
+
+    def setMetadataDict(self, metadataDict):
+        """Set metadata dictionary."""
+        assert isinstance(metadataDict, dict)
+        for domain in metadataDict:
+            assert isinstance(metadataDict[domain], dict)
+            for key, value in metadataDict[domain].items():
+                self.setMetadataItem(key=key, value=value, domain=domain)
+
+    def setNoDataValue(self, value):
+        """Set no data value to all bands."""
+        self._callImageMethod(method=Dataset.setNoDataValue, value=value)
+
+    def _callImageMethod(self, method, **kwargs):
+        if self.operator.isFirstBlock():
+            self._writerQueue.put((Writer.CALL_IMAGEMETHOD, self.filename, method, kwargs))
+
+class ApplierOutputRasterBand(object):
+
+    def __init__(self, parent, bandNumber):
+        assert isinstance(parent, ApplierOutputRaster)
+        self.parent = parent
+        self.bandNumber = bandNumber
+
+    def setArray(self, array, overlap=0):
+
+        if not isinstance(array, numpy.ndarray):
+            array = numpy.array(array)
+
+        if array.ndim == 2:
+            array = array[None]
+
+        if overlap > 0:
+            array = array[:, overlap:-overlap, overlap:-overlap]
+
+        self.parent._writerQueue.put((Writer.WRITE_BANDARRAY, self.parent.filename, array, self.bandNumber, self.parent._bands, self.parent.operator.workingGrid, self.parent.operator.mainGrid,
+                               self.parent.format, self.parent.creationOptions))
+
+        return self
+
+
+    def _callMethod(self, method, **kwargs):
+        if self.parent.operator.isFirstBlock():
+            self.parent._writerQueue.put((Writer.CALL_BANDMETHOD, self.parent.filename, self.bandNumber, method, kwargs))
+
+    def setDescription(self, value):
+        self._callMethod(method=Band.setDescription, value=value)
+
+    def setMetadataItem(self, key, value, domain=''):
+        """Set metadata item."""
+        self._callMethod(method=Band.setMetadataItem, key=key, value=value, domain=domain)
+
+    def setNoDataValue(self, value):
+        """Set no data value."""
+        self._callMethod(method=Band.setNoDataValue, value=value)
+
+class ApplierIOGroup(object):
+
+    def __init__(self):
+        self.items = dict()
+        self._operator = None
+
+    @property
+    def operator(self):
+        assert isinstance(self._operator, ApplierOperator)
+        return self._operator
+
+    @operator.setter
+    def operator(self, value):
+        assert isinstance(value, ApplierOperator)
+        self._operator = value
+        for item in self.items.values():
+            item.operator = self._operator
+
+    def _freeUnpickableResources(self):
+        for item in self.items.values():
+            item._freeUnpickableResources()
+
+    def _getFlatValues(self):
+        result = list()
+        for value in self.items.values():
+            if isinstance(value, self.__class__):
+                result.extend(value._getFlatValues())
+            else:
+                result.append(value)
+        return result
+
+    def _getFlatKeys(self):
+        result = list()
+        for key, value in self.items.items():
+            if isinstance(value, self.__class__):
+                result.extend(value._getFlatKeys())
+            else:
+                result.append(key)
+        return result
+
+    def setGroup(self, key, value):
+        assert isinstance(value, self.__class__)
+
+        keys = key.split('/')
+        subgroup = self
+        for k in keys[:-1]:
+            subgroup.items[k] = subgroup.items.get(k, self.__class__())
+            subgroup = subgroup.items[k]
+        k = keys[-1]
+        subgroup.items[k] = value
+        return subgroup.items[k]
+
+    def getGroup(self, key):
+        groupkeys = key.split('/')
+        group = self
+        for groupkey in groupkeys:
+            group = group.items[groupkey]
+        assert isinstance(group, self.__class__)
+        return group
+
+    def _setItem(self, key, value):
+        subkeys = key.split('/')
+        groupkeys, iokey = subkeys[:-1], subkeys[-1]
+        group = self
+        for groupkey in groupkeys:
+            group.items[groupkey] = group.items.get(groupkey, self.__class__())
+            group = group.items[groupkey]
+        group.items[iokey] = value
+        return group.items[iokey]
+
+    def _getItem(self, key):
+        subkeys = key.split('/')
+        groupkeys, iokey = subkeys[:-1], subkeys[-1]
+        group = self
+        for groupkey in groupkeys:
+            group = group.items[groupkey]
+        value = group.items[iokey]
+        return value
+
+class ApplierInputRasterGroup(ApplierIOGroup):
+
+    def setRaster(self, key, value):
+        assert isinstance(value, ApplierInputRaster)
+        return ApplierIOGroup._setItem(self, key=key, value=value)
+
+    def getRaster(self, key):
+        value = ApplierIOGroup._getItem(self, key=key)
+        assert isinstance(value, ApplierInputRaster)
+        return value
+
+    def getFlatRasters(self):
+        for input in ApplierIOGroup._getFlatValues(self):
+            assert isinstance(input, ApplierInputRaster)
+            yield input
+
+    def getFlatRasterKeys(self):
+        for input in ApplierIOGroup._getFlatKeys(self):
+            yield input
+
+    def getGroups(self):
+        for v in self.items.values():
+            if isinstance(v, ApplierInputRasterGroup):
+                yield v
+
+    def getGroupKeys(self):
+        for k, v in self.items.items():
+            if isinstance(v, ApplierInputRasterGroup):
+                yield k
+
+    def getRasters(self):
+        for v in self.items.values():
+            if isinstance(v, ApplierInputRaster):
+                yield v
+
+    def getRasterKeys(self):
+        for k, v in self.items.items():
+            if isinstance(v, ApplierInputRaster):
+                assert isinstance(input, str)
+                yield k
+
+    def findRaster(self, endswith=None):
+        for basename in self.getRasterKeys():
+            if basename.endswith(endswith):
+                return basename
+        return None
+
+class ApplierInputRasterArchiveGroup(ApplierIOGroup):
+
+    def setArchive(self, key, value):
+        assert isinstance(value, ApplierInputRasterArchive)
+        return ApplierIOGroup._setItem(self, key=key, value=value)
+
+    def getArchive(self, key):
+        value = ApplierIOGroup._getItem(self, key=key)
+        assert isinstance(value, ApplierInputRasterArchive)
+        return value
+
+class ApplierInputVectorGroup(ApplierIOGroup):
+
+    def setVector(self, key, value):
+        assert isinstance(value, ApplierInputVector)
+        return ApplierIOGroup._setItem(self, key=key, value=value)
+
+    def getVector(self, key):
+        value = ApplierIOGroup._getItem(self, key=key)
+        assert isinstance(value, ApplierInputVector)
+        return value
+
+    def getFlatVectors(self):
+        for input in ApplierIOGroup._getFlatValues(self):
+            assert isinstance(input, ApplierInputVector)
+            yield input
+
+    def getFlatVectorKeys(self):
+        for input in ApplierIOGroup._getFlatKeys(self):
+            assert isinstance(input, str)
+            yield input
+
+class ApplierOutputRasterGroup(ApplierIOGroup):
+
+    def setRaster(self, key, value):
+        assert isinstance(value, ApplierOutputRaster)
+        return ApplierIOGroup._setItem(self, key=key, value=value)
+
+    def getRaster(self, key):
+        value = ApplierIOGroup._getItem(self, key=key)
+        assert isinstance(value, ApplierOutputRaster)
+        return value
+
+    def getFlatRasterKeys(self):
+        for key in ApplierIOGroup._getFlatKeys(self):
+            assert isinstance(key, str)
+            yield key
+
+    def getFlatRasters(self):
+        for v in self._getFlatValues():
+            assert isinstance(v, ApplierOutputRaster)
+            yield v
+
 class Applier(object):
 
     def __init__(self, controls=None):
-        self.inputs = dict()
-        self.vectors = dict()
-        self.outputs = dict()
+        self.inputRaster = ApplierInputRasterGroup()
+        self.inputRasterArchive = ApplierInputRasterArchiveGroup()
+        self.inputVector = ApplierInputVectorGroup()
+        self.outputRaster = ApplierOutputRasterGroup()
         self.controls = controls if controls is not None else ApplierControls()
-        self.grid = None
+        self._mainGrid = None
 
-    def setInput(self, name, filename, noData=None,
-                 resampleAlg=DEFAULT_INPUT_RESAMPLEALG,
-                 errorThreshold=DEFAULT_INPUT_ERRORTHRESHOLD,
-                 warpMemoryLimit=DEFAULT_INPUT_WARPMEMORYLIMIT,
-                 multithread=DEFAULT_INPUT_MULTITHREAD, options=None):
-        """
-        Define a new input raster named ``name``, that is located at ``filename``.
+    @property
+    def mainGrid(self):
+        assert isinstance(self._mainGrid, PixelGrid)
+        return self._mainGrid
 
-        :param name: name of the raster
-        :param filename: filename of the raster
-        :param noData: overwrite the noData value of the raster
-        :param resampleAlg: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :param errorThreshold: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :param warpMemoryLimit: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :param multithread: see `GDAL WarpOptions <http://gdal.org/python/osgeo.gdal-module.html#WarpOptions>`_
-        :param options: set all the above options via an :class:`~hubdc.applier.ApplierInputOptions` object
-        """
-        self.inputs[name] = ApplierInput(filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread, options=options)
-
-    def setVector(self, name, filename, layer=0):
+    '''def setInputVector(self, name, filename, layer=0):
         """
         Define a new input vector layer named ``name``, that is located at ``filename``.
 
@@ -66,45 +699,23 @@ class Applier(object):
         :type filename:
         :param layer: specify the layer to be used from the vector datasource
         """
-        self.vectors[name] = ApplierVector(filename=filename, layer=layer)
+        self.inputVector[name] = _createApplierInputVector(filename=filename, layerNameOrIndex=layer)
 
-    def setInputList(self, name, filenames, noData=None,
-                     resampleAlg = DEFAULT_INPUT_RESAMPLEALG,
-                     errorThreshold = DEFAULT_INPUT_ERRORTHRESHOLD,
-                     warpMemoryLimit = DEFAULT_INPUT_WARPMEMORYLIMIT,
-                     multithread = DEFAULT_INPUT_MULTITHREAD, options = None):
-
-        """
-        Define a new list of input rasters named ``name``, that are located at the ``filenames``.
-        For each filename a new input raster named ``(name, i)`` is added using :meth:`hubdc.applier.Applier.setInput`.
-        """
-
-        for i, filename in enumerate(filenames):
-            self.setInput(name=(name, i), filename=filename, noData=noData, resampleAlg=resampleAlg, errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit, multithread=multithread, options=options)
-
-    def setOutput(self, name, filename, format=None, creationOptions=None, options=None):
+    def setOutputRaster(self, name, filename, format=DEFAULT_OUTPUT_FORMAT, creationOptions=None, options=None):
         """
         Define a new output raster named ``name``, that will be created at ``filename``.
 
         :param name: name of the raster
         :param filename: filename of the raster
         :param format: see `GDAL Raster Formats <http://www.gdal.org/formats_list.html>`_
-        :param creationOptions: see the `Creation Options` section for a specific `GDAL Raster Format`.
-                                Predefined default creation options are used if set to ``None``, see
-                                :meth:`hubdc.applier.ApplierOutput.getDefaultCreationOptions` for details.
-        :type creationOptions: list of strings
-        :param options: set all the above options via an :class:`~hubdc.applier.ApplierOutputOptions` object
-        """
-        self.outputs[name] = ApplierOutput(filename=filename, format=format, creationOptions=creationOptions, options=options)
-
-    def setOutputList(self, name, filenames, format=None, creationOptions=None, options=None):
-        """
-        Define a new list of output rasters named ``name``, that are located at the ``filenames``.
-        For each filename a new output raster named ``(name, i)`` is added using :meth:`hubdc.applier.Applier.setOutput`.
+        :param creationOptions: see the `Creation Options` section for the specific `GDAL Raster Format`.
+                                Predefined default creation options are used if set to ``None``.
         """
 
-        for i, filename in enumerate(filenames):
-            self.setOutput(name=(name, i), filename=filename, format=format, creationOptions=creationOptions, options=options)
+        if creationOptions is None:
+            creationOptions = DEFAULT_OUTPUT_CREATIONOPTIONS.get(format, None)
+
+        self.outputRaster[name] = ApplierOutputRaster(filename=filename, format=format, creationOptions=creationOptions)'''
 
     def apply(self, operator=None, description=None, overwrite=True, *ufuncArgs, **ufuncKwargs):
         """
@@ -141,7 +752,7 @@ class Applier(object):
             description = operator.__name__
 
         if not overwrite:
-            allExists = all([os.path.exists(output.filename) for output in self.outputs.values()])
+            allExists = all([os.path.exists(raster.filename) for raster in self.outputRaster.getFlatRasters()])
             if allExists:
                 self.controls.progressBar.setLabelText('skip {} (all outputs exist and OVERWRITE=FALSE)'.format(description))
                 return
@@ -161,7 +772,7 @@ class Applier(object):
 
         runT0 = now()
         self._runCreateGrid()
-        self.controls.progressBar.setLabelText('start {} [{}x{}]'.format(description, self.grid.xSize, self.grid.ySize))
+        self.controls.progressBar.setLabelText('start {} [{}x{}]'.format(description, self._mainGrid.xSize, self._mainGrid.ySize))
         self._runInitWriters()
         self._runInitPool()
         results = self._runProcessSubgrids()
@@ -176,9 +787,11 @@ class Applier(object):
     def _runCreateGrid(self):
 
         if self.controls.referenceGrid is not None:
-            self.grid = self.controls.referenceGrid
+            self._mainGrid = self.controls.referenceGrid
         else:
-            self.grid = self.controls._makeAutoGrid(inputs=self.inputs)
+            self._mainGrid = self.controls._makeAutoGrid(inputRasterContainer=self.inputRaster)
+        if self.controls.xRes is not None: self._mainGrid.xRes = self.controls.xRes
+        if self.controls.yRes is not None: self._mainGrid.yRes = self.controls.yRes
 
     def _runInitWriters(self):
         self.writers = list()
@@ -190,11 +803,16 @@ class Applier(object):
                 w.start()
                 self.writers.append(w)
                 self.queues.append(w.queue)
-        self.queueByFilename = self._getQueueByFilenameDict()
+        self._assignQueues()
 
     def _runInitPool(self):
         if self.controls._multiprocessing:
-            writers, self.writers = self.writers, None  # writers arn't pickable, need to detache them before passing self to Pool initializer
+            # exclude non-pickable members
+            # - writers arn't pickable, need to detache them before passing self to Pool initializer
+            writers, self.writers = self.writers, None
+            # - free cached gdal datasets
+            self.inputRaster._freeUnpickableResources()
+
             self.pool = Pool(processes=self.controls.nworker, initializer=_pickableWorkerInitialize, initargs=(self,))
             self.writers = writers  # put writers back
         else:
@@ -202,20 +820,30 @@ class Applier(object):
 
     def _runProcessSubgrids(self):
 
-        subgrids = self.grid.subgrids(windowxsize=self.controls.windowxsize,
-                                      windowysize=self.controls.windowysize)
-        self.nsubgrids = len(subgrids)
+        subgrids = list(self._mainGrid.subgrids(windowxsize=self.controls.windowxsize, windowysize=self.controls.windowysize,
+                                           trim=not self.controls.disableWindowTrimToFootprint))
+        n = ny = nx = 0
+        for workingGrid, i, iy, ix in subgrids:
+            n += 1
+            ny = max(ny, iy + 1)
+            nx = max(nx, ix + 1)
+
+        self.nsubgrids = n
         if self.controls._multiprocessing:
             applyResults = list()
         else:
             results = list()
 
-        self.controls.progressBar.setTotalSteps(len(subgrids))
+        self.controls.progressBar.setTotalSteps(n)
 
-        for i, subgrid in enumerate(subgrids):
+        for workingGrid, i, iy, ix in subgrids:
             kwargs = {'i': i,
                       'n': len(subgrids),
-                      'subgrid': subgrid}
+                      'iy' : iy,
+                      'ix' : ix,
+                      'ny' : ny,
+                      'nx' : nx,
+                      'workingGrid': workingGrid}
 
             if self.controls._multiprocessing:
                 applyResults.append(self.pool.apply_async(func=_pickableWorkerProcessSubgrid, kwds=kwargs))
@@ -227,7 +855,7 @@ class Applier(object):
 
         return results
 
-    def _getQueueByFilenameDict(self):
+    '''def _getQueueByFilenameDict(self):
 
         def lessFilledQueue():
             lfq = self.queues[0]
@@ -237,12 +865,29 @@ class Applier(object):
             return lfq
 
         queueByFilename = dict()
-        for output in self.outputs.values():
+        for output in self.outputRaster.values():
             if self.controls._multiwriting:
                 queueByFilename[output.filename] = lessFilledQueue()
             else:
                 queueByFilename[output.filename] = self.queueMock
-        return queueByFilename
+            output.queue = queueByFilename[output.filename]
+        return queueByFilename'''
+
+    def _assignQueues(self):
+
+        def lessFilledQueue():
+            lfq = self.queues[0]
+            for q in self.queues:
+                if lfq.qsize() > q.qsize():
+                    lfq = q
+            return lfq
+
+        for output in self.outputRaster.getFlatRasters():
+            assert isinstance(output, ApplierOutputRaster)
+            if self.controls._multiwriting:
+                output._writerQueue = lessFilledQueue()
+            else:
+                output._writerQueue = self.queueMock
 
     def _runClose(self):
         if self.controls._multiprocessing:
@@ -262,11 +907,10 @@ class _Worker(object):
     For internal use only.
     """
 
-    queues = list()
-    inputDatasets = dict()
-    inputOptions = dict()
-    outputFilenames = dict()
-    outputOptions = dict()
+    #queues = list()
+    inputRaster = None
+    inputVector = None
+    outputRaster = None
     applier = None
     operator = None
 
@@ -283,46 +927,29 @@ class _Worker(object):
 
         assert isinstance(applier, Applier)
         cls.applier = applier
-        cls.inputDatasets = dict()
-        cls.inputOptions = dict()
-        cls.inputFilenames = dict()
-        cls.outputFilenames = dict()
-        cls.outputOptions = dict()
-        cls.vectorDatasets = dict()
-        cls.vectorFilenames = dict()
-        cls.vectorLayers = dict()
-
-        # prepare datasets of current main grid without opening
-        for key, applierInput in applier.inputs.items():
-            assert isinstance(applierInput, ApplierInput)
-            cls.inputDatasets[key] = None
-            cls.inputFilenames[key] = applierInput.filename
-            cls.inputOptions[key] = applierInput.options
-
-        for key, applierOutput in applier.outputs.items():
-            assert isinstance(applierOutput, ApplierOutput)
-            cls.outputFilenames[key] = applierOutput.filename
-            cls.outputOptions[key] = applierOutput.options
-
-        for key, applierVector in applier.vectors.items():
-            assert isinstance(applierVector, ApplierVector)
-            cls.vectorDatasets[key] = None
-            cls.vectorFilenames[key] = applierVector.filename
-            cls.vectorLayers[key] = applierVector.layer
+        cls.inputRaster = applier.inputRaster
+        cls.inputRasterArchive = applier.inputRasterArchive
+        cls.inputVector = applier.inputVector
+        cls.outputRaster = applier.outputRaster
 
         # create operator
-        cls.operator = applier.ufuncClass(maingrid=applier.grid,
-                                          inputDatasets=cls.inputDatasets, inputFilenames=cls.inputFilenames, inputOptions=cls.inputOptions,
-                                          outputFilenames=cls.outputFilenames, outputOptions=cls.outputOptions,
-                                          vectorDatasets=cls.vectorDatasets, vectorFilenames=cls.vectorFilenames, vectorLayers=cls.vectorLayers,
-                                          queueByFilename=applier.queueByFilename,
-                                          progressBar=applier.controls.progressBar,
-                                          ufuncFunction=applier.ufuncFunction, ufuncArgs=applier.ufuncArgs, ufuncKwargs=applier.ufuncKwargs)
+        try:
+            cls.operator = applier.ufuncClass(mainGrid=applier.mainGrid,
+                                              inputRaster=cls.inputRaster,
+                                              inputRasterArchive=cls.inputRasterArchive,
+                                              inputVector=cls.inputVector,
+                                              outputRaster=cls.outputRaster,
+                                              controls=applier.controls,
+                                              ufuncFunction=applier.ufuncFunction, ufuncArgs=applier.ufuncArgs, ufuncKwargs=applier.ufuncKwargs)
+        except:
+            import traceback
+            traceback.print_exc()
 
     @classmethod
-    def processSubgrid(cls, i, n, subgrid):
+    def processSubgrid(cls, i, n, iy, ix, ny, nx, workingGrid):
+        cls.operator.progressBar.setTotalSteps(n)
         cls.operator.progressBar.setProgress(i)
-        return cls.operator._apply(subgrid=subgrid, iblock=i, nblock=n)
+        return cls.operator._apply(workingGrid=workingGrid, iblock=i, nblock=n, yblock=iy, xblock=ix, nyblock=ny, nxblock=nx)
 
 def _pickableWorkerProcessSubgrid(**kwargs):
     return _Worker.processSubgrid(**kwargs)
@@ -330,881 +957,105 @@ def _pickableWorkerProcessSubgrid(**kwargs):
 def _pickableWorkerInitialize(*args):
     return _Worker.initialize(*args)
 
-class ApplierInputOptions(object):
-
-    def __init__(self, noData=None,
-                 resampleAlg=DEFAULT_INPUT_RESAMPLEALG,
-                 errorThreshold=DEFAULT_INPUT_ERRORTHRESHOLD,
-                 warpMemoryLimit=DEFAULT_INPUT_WARPMEMORYLIMIT,
-                 multithread=DEFAULT_INPUT_MULTITHREAD):
-
-        self.noData = noData
-        self.resampleAlg = resampleAlg
-        self.errorThreshold = errorThreshold
-        self.warpMemoryLimit = warpMemoryLimit
-        self.multithread = multithread
-
-class ApplierOutputOptions(object):
-
-    def __init__(self, format=None, creationOptions=None):
-
-        if format is None:
-            format = DEFAULT_OUTPUT_FORMAT
-        if creationOptions is None:
-            creationOptions = DEFAULT_OUTPUT_CREATIONOPTIONS.get(format, None)
-        self.format = format
-        self.creationOptions = creationOptions
-
-class ApplierInput(object):
-    """
-    Data structure for storing input specifications defined by :meth:`hubdc.applier.Applier.setInput`.
-    For internal use only.
-    """
-    def __init__(self, filename, noData=None, options=None,
-                 resampleAlg=DEFAULT_INPUT_RESAMPLEALG,
-                 errorThreshold=DEFAULT_INPUT_ERRORTHRESHOLD,
-                 warpMemoryLimit=DEFAULT_INPUT_WARPMEMORYLIMIT,
-                 multithread=DEFAULT_INPUT_MULTITHREAD):
-
-        self.filename = filename
-
-        if options is not None:
-            assert isinstance(options, ApplierInputOptions)
-            self.options = options.__dict__
-        else:
-            self.options = {'noData' : noData,
-                            'resampleAlg' : resampleAlg,
-                            'errorThreshold' : errorThreshold,
-                            'warpMemoryLimit' : warpMemoryLimit,
-                            'multithread' : multithread}
-
-class ApplierOutput(object):
-    """
-    Data structure for storing output specifications defined by :meth:`hubdc.applier.Applier.setOutput`.
-    For internal use only.
-    """
-
-    def __init__(self, filename, options=None, format=None, creationOptions=None):
-
-        self.filename = filename
-        if options is not None:
-            assert isinstance(options, ApplierOutputOptions)
-        else:
-            options = ApplierOutputOptions(format=format, creationOptions=creationOptions)
-        self.options = options.__dict__
-
-class ApplierVector(object):
-    """
-    Data structure for storing input specifications defined by :meth:`hubdc.applier.Applier.setVector`.
-    For internal use only.
-    """
-
-    def __init__(self, filename, layer=0):
-        self.filename = filename
-        self.layer = layer
-
 class ApplierOperator(object):
     """
     This is the baseclass for an user defined applier operator.
     For details on user defined operators see :meth:`hubdc.applier.Applier.apply`
     """
 
-    def __init__(self, maingrid, inputDatasets, inputFilenames, inputOptions,
-                 outputFilenames, outputOptions,
-                 vectorDatasets, vectorFilenames, vectorLayers,
-                 progressBar, queueByFilename, ufuncArgs, ufuncKwargs, ufuncFunction=None):
-        assert isinstance(maingrid, PixelGrid)
-        self._grid = None
-        self._maingrid = maingrid
-        self._inputDatasets = inputDatasets
-        self._inputFilenames = inputFilenames
-        self._inputOptions = inputOptions
-        self._outputFilenames = outputFilenames
-        self._outputOptions = outputOptions
-        self._vectorDatasets = vectorDatasets
-        self._vectorFilenames = vectorFilenames
-        self._vectorLayers = vectorLayers
-        self._queueByFilename = queueByFilename
-        self._progressBar = progressBar
+    def __init__(self, mainGrid, inputRaster, inputRasterArchive, inputVector, outputRaster,
+                 controls, ufuncArgs, ufuncKwargs, ufuncFunction=None):
+        assert isinstance(mainGrid, PixelGrid)
+        assert isinstance(inputRaster, ApplierInputRasterGroup)
+        assert isinstance(inputRasterArchive, ApplierInputRasterArchiveGroup)
+        assert isinstance(inputVector, ApplierInputVectorGroup)
+        assert isinstance(outputRaster, ApplierOutputRasterGroup)
+        assert isinstance(controls, ApplierControls)
+
+        self._workingGrid = None
+        self._mainGrid = mainGrid
+
+        self.inputRaster = inputRaster
+        self.inputRasterArchive = inputRasterArchive
+        self.inputVector = inputVector
+        self.outputRaster = outputRaster
+
+        self.inputRaster.operator = self
+        self.inputRasterArchive.operator = self
+        self.inputVector.operator = self
+        self.outputRaster.operator = self
+
+        self._controls = controls
         self._ufuncArgs = ufuncArgs
         self._ufuncKwargs = ufuncKwargs
         self._ufuncFunction = ufuncFunction
-        self._iblock = 0
-        self._nblock = 0
+        self.iblock = 0
+        self.nblock = 0
 
     @property
-    def grid(self):
+    def workingGrid(self):
         """
-        Returns the :class:`~hubdc.applier.PixelGrid` object of the currently processed block.
+        Returns the :class:`~hubdc.applier.PixelGrid` of the currently processed block.
         """
-        assert isinstance(self._grid, PixelGrid)
-        return self._grid
+        assert isinstance(self._workingGrid, PixelGrid)
+        return self._workingGrid
+
+    @property
+    def mainGrid(self):
+        """
+        Returns the :class:`~hubdc.applier.PixelGrid`.
+        """
+        assert isinstance(self._mainGrid, PixelGrid)
+        return self._mainGrid
+
+    def _setWorkingGrid(self, grid):
+        assert isinstance(grid, PixelGrid)
+        self._workingGrid = grid
 
     @property
     def progressBar(self):
         """
         Returns the progress bar.
         """
-        assert isinstance(self._progressBar, ProgressBar)
-        return self._progressBar
+        return self._controls.progressBar
 
     def isFirstBlock(self):
         """
         Returns wether or not the current block is the first one.
         """
-        return self._iblock == 0
+        return self.iblock == 0
 
     def isLastBlock(self):
         """
         Returns wether or not the current block is the last one.
         """
-        return self._iblock == self._nblock - 1
+        return self.iblock == self.nblock - 1
 
-    def getSample(self, array, mask):
+    def isLastYBlock(self):
         """
-        Returns a data sample taken from ``array`` at locations given by ``mask``.
+        Returns wether or not the current block is the last block in y direction.
+        """
+        return self.yblock == self.nyblock - 1
 
-        :param array: data array [n, y, x] to be sampled from
-        :param mask: boolean mask array [1, y, x] indicating the locations to be sampled
-        :return: data sample [n, masked]
+    def isLastXBlock(self):
         """
-        assert isinstance(array, numpy.ndarray) and array.ndim == 3
-        assert isinstance(mask, numpy.ndarray) and mask.ndim == 3 and mask.shape[0] == 1
-        sample = array[:, mask[0]]
-        assert sample.ndim == 2
-        return sample
-
-    def setSample(self, sample, array, mask):
+        Returns wether or not the current block is the last block in x direction.
         """
-        Sets a data sample given by ``sample`` to ``array`` at locations given by ``mask``.
-
-        :param sample: data sample [n, masked]
-        :param array: data array [n, y, x] to be updated
-        :param mask: boolean mask array [1, y, x] indicating the locations to be updated
-        """
-        assert isinstance(array, numpy.ndarray) and array.ndim == 3
-        assert isinstance(mask, numpy.ndarray) and mask.ndim == 3 and mask.shape[0] == 1
-        array[:, mask[0]] = sample
-
-    def applySampleFunction(self, inarray, outarray, mask, ufunc):
-        """
-        Shortcut for :meth:`hubdc.applier.Applier.getSample` -> ufunc() -> :meth:`hubdc.applier.Applier.setSample` pipeline.
-        Ufunc must accept and return a valid data sample [n, masked].
-        """
-        if numpy.any(mask):
-            sample = self.getSample(array=inarray, mask=mask)
-            result = ufunc(sample)
-            self.setSample(sample=result, array=outarray, mask=mask)
+        return self.xblock == self.nxblock - 1
 
     def getFull(self, value, bands=1, dtype=None, overlap=0):
-        return numpy.full(shape=(bands, self.grid.ySize+2*overlap, self.grid.xSize+2*overlap),
+        return numpy.full(shape=(bands, self.workingGrid.ySize+2*overlap, self.workingGrid.xSize+2*overlap),
                           fill_value=value, dtype=dtype)
 
-    def getArray(self, name, indicies=None, overlap=0, dtype=None, scale=None):
-        """
-        Returns the input raster image data of the current block in form of a 3-d numpy array.
-        The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setInput`.
-
-        :param name: input raster name
-        :param indicies: subset image bands by a list of indicies
-        :param overlap: the amount of margin (number of pixels) added to the image data block in each direction, so that the blocks will overlap; this is important for spatial operators like filters.
-        :param dtype: convert image data to given numpy data type (this is done before the data is scaled)
-        :param scale: scale image data by given scale factor (this is done after type conversion)
-        """
-
-        if indicies is None:
-            array = self._getImage(name=name, overlap=overlap, dtype=dtype, scale=scale)
-        elif isinstance(indicies, (list, tuple)):
-            array = self._getBandSubset(name=name, overlap=overlap, indicies=indicies, dtype=dtype)
-        else:
-            raise ValueError('wrong value for indicies or wavelength')
-
-        assert isinstance(array, numpy.ndarray)
-        assert array.ndim == 3
-        return array
-
-    def getMaskArray(self, name,  indicies=None, noData=None, ufunc=None, array=None, overlap=0):
-        """
-        Returns a boolean data/noData mask for an input raster image in form of a 3-d numpy array.
-        Pixels that are equal to the image no data value are set to False, all other pixels are set to True.
-        In case of a multiband image, the final pixel mask value is False if it was False in all of the bands.
-
-        The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setInput`.
-
-        :param name: input raster name
-        :param noData: default no data value to use if the image has no no data value specified
-        :param ufunc: user function to mask out further pixels,
-                      e.g. ``ufunc = lambda array: array > 0.5`` will additionally mask out all pixels that have values larger than 0.5
-        :param array: pass in the data array directly if it was already loaded
-        :param indicies: use a band subset
-        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        :param ufunc: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        :return:
-        :rtype:
-        """
-
-        # read array data if needed
-        #noData = self.getNoDataValue(name, default=noData)
-        noDatas = self.getNoDataValues(name, indicies=indicies, default=noData)
-
-
-        if array is None:
-            array = self.getArray(name, indicies=indicies, overlap=overlap)
-        assert array.ndim == 3
-
-        # create noData mask
-        valid = self.getFull(value=True, bands=1)
-        for array2d, noData in zip(array, noDatas):
-            if noData is None:
-                numpy.logical_and(valid, self.getFull(value=True, bands=1), out=valid)
-            else:
-                numpy.logical_and(valid, array2d != noData, out=valid)
-
-        # update noData mask with ufunc mask
-        if ufunc is not None:
-            numpy.logical_and(valid, numpy.any(ufunc(array), axis=0, keepdims=True), out=valid)
-
-        return valid
-
-    def getWavebandArray(self, name, wavelengths, linear=False, overlap=0, dtype=None, scale=None):
-        """
-        Returns an image band subset like :meth:`~hubdc.applier.ApplierOperator.getArray` with specified ``indicies``,
-        but instead of specifying the bands directly, specify a list of target wavelength.
-
-        :param name: input raster name
-        :param wavelengths: list of target wavelengths specified in nanometers
-        :param linear: if set to True, linearly interpolated wavebands are returned instead of nearest neighbour wavebands.
-        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        :param dtype: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        :param scale: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        """
-
-        if not linear:
-
-            indicies = [index for index, distance in [self.findWavelength(name=name, wavelength=wavelength) for wavelength in wavelengths]]
-            array = self.getArray(name=name, overlap=overlap, indicies=indicies, dtype=dtype, scale=scale)
-
-        else:
-
-            tmp = [self.findWavelengthNeighbours(name=name, wavelength=wavelength) for wavelength in wavelengths]
-            leftIndicies, leftWeights, rightIndicies, rightWeights = zip(*tmp)
-
-            leftArray = lambda : self.getArray(name=name, overlap=overlap, indicies=leftIndicies, dtype=dtype, scale=scale)
-            rightArray = lambda : self.getArray(name=name, overlap=overlap, indicies=rightIndicies, dtype=dtype, scale=scale)
-
-            array = leftArray() * numpy.array(leftWeights).reshape((-1,1,1))
-            array += rightArray() * numpy.array(rightWeights).reshape((-1,1,1))
-
-
-        assert array.ndim == 3
-        return array
-
-    def getDerivedArray(self, name, ufunc, resampleAlg=gdal.GRA_Average, overlap=0):
-        """
-        Returns input raster image data like :meth:`~hubdc.applier.ApplierOperator.getArray`,
-        but instead of returning the data directly, a user defined function is applied to it.
-        Note that the user function is applied before resampling takes place.
-        """
-        return self._getDerivedImage(name=name, ufunc=ufunc, resampleAlg=resampleAlg, overlap=overlap)
-
-    def getCategoricalFractionArray(self, name, ids, index=0, overlap=0):
-        """
-        Returns input raster band data like :meth:`~hubdc.applier.ApplierOperator.getArray`,
-        but instead of returning the data directly, aggregated pixel fractions for the given categories (i.e. ``ids``)
-        are returned.
-
-        :param name: categorical input raster image
-        :param ids: categories to be considered
-        :param index: band index for specifying which image band to be used
-        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        """
-
-        ufunc = lambda array: numpy.stack(numpy.float32(array[index] == id) for id in ids)
-        return self.getDerivedArray(name=name, ufunc=ufunc, overlap=overlap, resampleAlg=gdal.GRA_Average)
-
-    def getCategoricalArray(self, name, ids, noData=0, minOverallCoverage=None, minWinnerCoverage=None, index=0, overlap=0):
-        """
-        Returns input raster band data like :meth:`~hubdc.applier.ApplierOperator.getArray`,
-        but instead of returning the data directly, the category array of maximum aggregated pixel fraction for the given categories (i.e. ``ids``)
-        is returned.
-
-        :param name:  categorical input raster image
-        :param ids: categories to be considered
-        :param noData: no data value for masked pixels
-        :param minOverallCoverage: mask out pixels where the overall coverage (regarding to the given categories ``ids``) is less than this threshold
-        :param minWinnerCoverage: mask out pixels where the winner category coverage is less than this threshold
-        :param index: band index for specifying which image band to be used
-        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        """
-        fractions = self.getCategoricalFractionArray(name=name, ids=ids, index=index, overlap=overlap)
-        categories = numpy.array(ids)[numpy.argmax(fractions, axis=0)[None]]
-        if minOverallCoverage is None:
-            minOverallCoverage = 0.
-        if minWinnerCoverage is None:
-            minWinnerCoverage = 0.
-
-        if noData is not None:
-            invalid = False
-            if minOverallCoverage > 0:
-                invalid += numpy.sum(fractions, axis=0, keepdims=True) < minOverallCoverage
-            if minWinnerCoverage > 0:
-                invalid += numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
-            categories[invalid] = noData
-        assert categories.ndim == 3
-        return categories
-
-    def getProbabilityArray(self, name, overlap=0):
-        """
-        Like :meth:`~hubdc.applier.ApplierOperator.getCategoricalFractionArray`, but all category related information is
-        implicitly taken from the class definition metadata.
-
-        :param name: classification input raster image
-        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        """
-
-        classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
-        ids = range(1, classes+1)
-        return self.getCategoricalFractionArray(name=name, ids=ids, index=0, overlap=overlap)
-
-    def getClassificationArray(self, name, minOverallCoverage=None, minWinnerCoverage=None, overlap=0):
-        """
-        Like :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`, but all category related information is
-        implicitly taken from the class definition metadata.
-
-        :param name: classification input raster image
-        :param minOverallCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
-        :param minWinnerCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
-        :param overlap: see :meth:`~hubdc.applier.ApplierOperator.getArray`
-        """
-
-        classes, classNames, classLookup = self.getMetadataClassDefinition(name=name)
-        ids = range(1, classes)
-        return self.getCategoricalArray(name=name, ids=ids, noData=0, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, index=0, overlap=overlap)
-
-    def getInputListSubnames(self, name):
-        """
-        Returns an iterator over the subnames of a input raster list.
-        Such subnames can be used with single input raster methods like :meth:`~hubdc.applier.ApplierOperator.getArray`
-        or :meth:`~hubdc.applier.ApplierOperator.getMetadataItem`.
-        """
-        for subname in self._getSubnames(name, self._inputFilenames):
-            yield subname
-
-    def getOutputListSubnames(self, name):
-        """
-        Returns an iterator over the subnames of a output raster list.
-        Such subnames can be used with single output raster methods like :meth:`~hubdc.applier.ApplierOperator.setArray`
-        or :meth:`~hubdc.applier.ApplierOperator.setMetadataItem`.
-        """
-
-        for subname in self._getSubnames(name, self._outputFilenames):
-            yield subname
-
-    def getInputListLen(self, name):
-        """
-        Returns the lenth of an input raster list.
-        """
-        return len(list(self.getInputListSubnames(name)))
-
-    def getOutputListLen(self, name):
-        """
-        Returns the lenth of an output raster list.
-        """
-        return len(list(self.getOutputListSubnames(name)))
-
-    def _getSubnames(self, name, subnames):
-        i = 0
-        if (name, 0) not in subnames:
-            raise KeyError('{name} is not an image list'.format(name=name))
-
-        while True:
-            if (name, i) in subnames:
-                yield (name, i)
-                i += 1
-            else:
-                break
-
-    def findWavelengthNeighbours(self, name, wavelength):
-        """
-        Returns the image band indices and inverse distance weigths of the bands that are located around the target wavelength specified in nanometers.
-        The sum of ``leftWeight`` and ``rightWeight`` is 1.
-
-        The wavelength information is taken from the ENVI metadata domain.
-        An exception is thrown if the ``wavelength`` and ``wavelength units`` metadata items are not correctly specified.
-
-        :return: leftIndex, leftWeight, rightIndex, rightWeight
-
-        """
-
-        wavelengths = self.getMetadataWavelengths(name)
-        leftWavelengths = wavelengths.copy()
-        leftWavelengths[wavelengths > wavelength] = numpy.nan
-        rightWavelengths = wavelengths.copy()
-        rightWavelengths[wavelengths < wavelength] = numpy.nan
-
-        if numpy.all(numpy.isnan(leftWavelengths)):
-            leftIndex = None
-            leftDistance = numpy.inf
-        else:
-            leftIndex = numpy.nanargmin((leftWavelengths - wavelength)**2)
-            leftDistance = abs(wavelengths[leftIndex] - wavelength)
-
-        if numpy.all(numpy.isnan(rightWavelengths)):
-            rightIndex = None
-            rightDistance = numpy.inf
-        else:
-            rightIndex = numpy.nanargmin((rightWavelengths - wavelength)**2)
-            rightDistance = abs(wavelengths[rightIndex] - wavelength)
-
-        if leftIndex is None:
-            leftIndex = rightIndex
-            leftWeight = 1.
-            rightWeight = 0.
-        else:
-            if (leftDistance+rightDistance) != 0.:
-                leftWeight = 1. - (leftDistance) / (leftDistance+rightDistance)
-            else:
-                leftWeight = 0.5
-            rightWeight = 1. - leftWeight
-
-        if rightIndex is None:
-            rightIndex = leftIndex
-
-        return leftIndex, leftWeight, rightIndex, rightWeight
-
-    def findWavelength(self, name, wavelength):
-        """
-        Returns the image band index for the waveband that is nearest to the target wavelength specified in nanometers,
-        and also returns the absolute distance (in nanometers).
-
-        The wavelength information is taken from the ENVI metadata domain.
-        An exception is thrown if the ``wavelength`` and ``wavelength units`` metadata items are not correctly specified.
-
-        :return: index, distance
-        """
-
-        wavelengths = self.getMetadataWavelengths(name)
-        distances = numpy.abs(wavelengths - wavelength)
-        index = numpy.argmin(distances)
-        return index, distances[index]
-
-    def _getInputDataset(self, name):
-        if name not in self._inputDatasets:
-            raise Exception('{name} is not a single image input'.format(name=name))
-
-        if self._inputDatasets[name] is None:
-            self._inputDatasets[name] = Open(filename=self._inputFilenames[name])
-        return self._inputDatasets[name]
-
-    def _getInputOptions(self, name):
-        return self._inputOptions[name]
-
-    def _getImage(self, name, overlap, dtype, scale):
-
-        dataset = self._getInputDataset(name)
-        options = self._getInputOptions(name)
-        grid = self.grid.pixelBuffer(buffer=overlap)
-        if self.grid.equalProjection(dataset.pixelGrid):
-            datasetResampled = dataset.translate(dstPixelGrid=grid, dstName='', format='MEM',
-                                                 resampleAlg=options['resampleAlg'],
-                                                 noData=options['noData'])
-        else:
-            datasetResampled = dataset.warp(dstPixelGrid=grid, dstName='', format='MEM',
-                                            resampleAlg=options['resampleAlg'],
-                                            errorThreshold=options['errorThreshold'],
-                                            warpMemoryLimit=options['warpMemoryLimit'],
-                                            multithread=options['multithread'],
-                                            srcNodata=options['noData'])
-        array = datasetResampled.readAsArray(dtype=dtype, scale=scale)
-        datasetResampled.close()
-        return array
-
-    def _getDerivedImage(self, name, ufunc, resampleAlg, overlap):
-
-        dataset = self._getInputDataset(name)
-        options = self._getInputOptions(name).copy()
-        options['resampleAlg'] = resampleAlg
-        grid = self.grid.pixelBuffer(buffer=overlap)
-
-        # create tmp dataset
-        gridInSourceProjection = grid.reproject(dataset.pixelGrid)
-        tmpDataset = dataset.translate(dstPixelGrid=gridInSourceProjection, dstName='', format='MEM',
-                                       noData=options['noData'])
-        tmpArray = tmpDataset.readAsArray()
-        derivedArray = ufunc(tmpArray)
-        derivedDataset = CreateFromArray(pixelGrid=gridInSourceProjection, array=derivedArray,
-                                         dstName='', format='MEM', creationOptions=[])
-
-        tmpname = '_tmp_'
-        self._inputDatasets[tmpname] = derivedDataset
-        self._inputOptions[tmpname] = options
-        array = self.getArray(name=tmpname, overlap=overlap)
-        return array
-
-    def _getBandSubset(self, name, indicies, overlap, dtype):
-
-        dataset = self._getInputDataset(name)
-        options = self._getInputOptions(name)
-        bandList = [i + 1 for i in indicies]
-        grid = self.grid.pixelBuffer(buffer=overlap)
-        if self.grid.equalProjection(dataset.pixelGrid):
-            datasetResampled = dataset.translate(dstPixelGrid=grid, dstName='', format='MEM',
-                                                 bandList=bandList,
-                                                 resampleAlg=options['resampleAlg'],
-                                                 noData=options['noData'])
-        else:
-            selfGridReprojected = self.grid.reproject(dataset.pixelGrid)
-            selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1+overlap)
-
-            datasetClipped = dataset.translate(dstPixelGrid=selfGridReprojectedWithBuffer, dstName='', format='MEM',
-                                               bandList=bandList,
-                                               noData=options['noData'])
-
-            datasetResampled = datasetClipped.warp(dstPixelGrid=grid, dstName='', format='MEM',
-                                                   resampleAlg=options['resampleAlg'],
-                                                   errorThreshold=options['errorThreshold'],
-                                                   warpMemoryLimit=options['warpMemoryLimit'],
-                                                   multithread=options['multithread'],
-                                                   srcNodata=options['noData'])
-            datasetClipped.close()
-
-        array = datasetResampled.readAsArray(dtype=dtype)
-        datasetResampled.close()
-        return array
-
-    def _getVectorDataset(self, name):
-        if name not in self._vectorDatasets:
-            raise Exception('{name} is not a vector input'.format(name=name))
-
-        if self._vectorDatasets[name] is None:
-            self._vectorDatasets[name] = OpenLayer(filename=self._vectorFilenames[name], layerNameOrIndex=self._vectorLayers[name])
-
-        return self._vectorDatasets[name]
-
-    def getVectorArray(self, name, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0, dtype=numpy.float32, scale=None):
-        """
-        Returns the vector rasterization of the current block in form of a 3-d numpy array.
-        The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setVector`.
-
-        :param name: vector name
-        :param initValue: value to pre-initialize the output array
-        :param burnValue: value to burn into the output array for all objects; exclusive with ``burnAttribute``
-        :param burnAttribute: identifies an attribute field on the features to be used for a burn-in value; exclusive with ``burnValue``
-        :param allTouched: whether to enable that all pixels touched by lines or polygons will be updated, not just those on the line render path, or whose center point is within the polygon
-        :param filterSQL: set an SQL WHERE clause which will be used to filter vector features
-        :param overlap: the amount of margin (number of pixels) added to the image data block in each direction, so that the blocks will overlap; this is important for spatial operators like filters.
-        :param dtype: convert output array to given numpy data type (this is done before the data is scaled)
-        :param scale: scale output array by given scale factor (this is done after type conversion)
-        """
-        layer = self._getVectorDataset(name)
-        grid = self.grid.pixelBuffer(buffer=overlap)
-        dataset = layer.rasterize(dstPixelGrid=grid, eType=NumericTypeCodeToGDALTypeCode(dtype),
-                                  initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched,
-                                  filter=filterSQL, dstName='', format='MEM', creationOptions=[])
-        array = dataset.readAsArray(scale=scale)
-        return array
-
-    def getVectorCategoricalFractionArray(self, name, ids, minOverallCoverage=None, noData=0, oversampling=10, xRes=None, yRes=None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
-                       overlap=0):
-        """
-        Returns input vector rasterization data like :meth:`~hubdc.applier.ApplierOperator.getVectorArray`,
-        but instead of returning the data directly, rasterization is performed at a specified resolution ``xRes`` and ``yRes``,
-        aggregated pixel fractions for the given categories (i.e. ``ids``) are returned.
-
-        :param name: vector name
-        :param ids: list of categry ids to use
-        :param oversampling: set the rasterization resolution to a multiple (i.e. the oversampling factor) of the reference grid resolution
-        :param xRes: set xRes rasterization resolution explicitely
-        :param yRes: set yRes rasterization resolution explicitely
-
-        For all other arguments see :meth:`~hubdc.applier.ApplierOperator.getVector`
-        """
-        layer = self._getVectorDataset(name)
-        grid = self.grid.pixelBuffer(buffer=overlap)
-
-        # rasterize vector layer at fine resolution
-        if xRes is None or yRes is None:
-            xRes = grid.xRes / float(oversampling)
-            yRes = grid.yRes / float(oversampling)
-
-        gridOversampled = grid.newResolution(xRes=xRes, yRes=yRes)
-        tmpDataset = layer.rasterize(dstPixelGrid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(numpy.float32),
-                                     initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched,
-                                     filter=filterSQL, dstName='', format='MEM', creationOptions=[])
-
-        tmpArrayCatecories = tmpDataset.readAsArray()
-        tmpArrayFractions = numpy.stack(numpy.float32(tmpArrayCatecories[0] == id) for id in ids)
-
-        # store as tmp input raster and aggregate fractions to target grid
-        derivedDataset = CreateFromArray(pixelGrid=gridOversampled, array=tmpArrayFractions,
-                                         dstName='', format='MEM', creationOptions=[])
-
-        tmpname = '_tmp_'
-        self._inputDatasets[tmpname] = derivedDataset
-        self._inputOptions[tmpname] = {'resampleAlg' : gdal.GRA_Average, 'noData' : None}
-        fractions = self.getArray(name=tmpname, overlap=overlap)
-
-        # mask out pixel that are not sufficiently covered
-        if minOverallCoverage is None:
-            minOverallCoverage = 0.
-
-        if minOverallCoverage > 0:
-            invalid = numpy.sum(fractions, axis=0) < minOverallCoverage
-            fractions[:, invalid] = noData
-
-        return fractions
-
-    def getVectorCategoricalArray(self, name, ids, noData, minOverallCoverage=None, minWinnerCoverage=None,
-                                  oversampling=10, xRes=None, yRes=None, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None,
-                                  overlap=0):
-        """
-        Returns input raster band data like :meth:`~hubdc.applier.ApplierOperator.getVectorArray`,
-        but instead of returning the data directly, the category array of maximum aggregated pixel fraction for the given categories (i.e. ``ids``)
-        is returned.
-
-        :param name: vector name
-        :param ids:
-        :param noData: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
-        :param minOverallCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
-        :param minWinnerCoverage: see :meth:`~hubdc.applier.ApplierOperator.getCategoricalArray`
-
-
-        For all other arguments see :meth:`~hubdc.applier.ApplierOperator.getVector`
-        and :meth:`~hubdc.applier.ApplierOperator.getVectorCategoricalFractionArray`.
-        """
-        fractions = self.getVectorCategoricalFractionArray(name=name, ids=ids, minOverallCoverage=minOverallCoverage, oversampling=oversampling, xRes=xRes, yRes=yRes,
-                                                           initValue=noData, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched, filterSQL=filterSQL,
-                                                           overlap=overlap)
-
-        categories = numpy.array(ids)[fractions.argmax(axis=0)[None]]
-
-        if minWinnerCoverage is None:
-            minWinnerCoverage = 0.
-
-        if minWinnerCoverage > 0:
-            invalid = numpy.max(fractions, axis=0, keepdims=True) < minWinnerCoverage
-            categories[invalid] = noData
-
-        assert categories.ndim == 3
-        return categories
-
-    def getInputFilename(self, name):
-        """
-        Returns the input image filename
-        """
-        return self._inputFilenames[name]
-
-    def getOutputFilename(self, name):
-        """
-        Returns the output image filename
-        """
-        return self._outputFilenames[name]
-
-    def getVectorFilename(self, name):
-        """
-        Returns the vector layer filename.
-        """
-        return self._vectorFilenames[name]
-
-    def setArray(self, name, array, overlap=0, replace=None, scale=None, dtype=None):
-        """
-        Write data to an output raster image.
-        The ``name`` identifier must match the identifier used with :meth:`hubdc.applier.Applier.setOutput`.
-
-        :param name:  output raster name
-        :param array: 3-d or 2-d numpy array to be written
-        :param overlap: the amount of margin (number of pixels) to be removed from the image data block in each direction;
-                        this is useful when the overlap keyword was also used with :meth:`~hubdc.applier.ApplierOperator.getArray`
-        :param replace: tuple of ``(sourceValue, targetValue)`` values; replace all occurances of ``sourceValue`` inside the array with ``targetValue``;
-                        this is done after type conversion and scaling)
-        :param scale: scale array data by given scale factor (this is done after type conversion)
-        :param dtype: convert array data to given numpy data type (this is done before the data is scaled)
-        """
-
-        if not isinstance(array, numpy.ndarray):
-            array = numpy.array(array)
-
-        if array.ndim == 2:
-            array = array[None]
-
-        if overlap > 0:
-            array = array[:, overlap:-overlap, overlap:-overlap]
-
-        if replace is not None:
-            if replace[0] is numpy.nan:
-                mask = numpy.isnan(array)
-            else:
-                mask = numpy.equal(array, replace[0])
-
-        if scale is not None:
-            array *= scale
-
-        if dtype is not None:
-            array = array.astype(dtype)
-
-        if replace is not None:
-            array[mask] = replace[1]
-
-        filename = self.getOutputFilename(name)
-        self._queueByFilename[filename].put((Writer.WRITE_ARRAY, filename, array, self.grid, self._maingrid, self._outputOptions[name]['format'], self._outputOptions[name]['creationOptions']))
-
-    def setMetadataItem(self, name, key, value, domain):
-        """
-        Set the metadata item to an output raster image.
-
-        :param name: output image name
-        :param key: metadata item name
-        :param value: metadata item value
-        :param domain: metadata item domain
-        """
-
-        if self.isFirstBlock():
-            filename = self.getOutputFilename(name)
-            self._queueByFilename[filename].put((Writer.SET_META, filename, key, value, domain))
-
-    def getMetadataItem(self, name, key, domain):
-        """
-        Returns the metadata item of an input raster image.
-
-        :param name: input raster name
-        :param key: metadata item name
-        :param value: metadata item value
-        :param domain: metadata item domain
-        """
-        dataset = self._getInputDataset(name)
-        return dataset.getMetadataItem(key=key, domain=domain)
-
-    def setMetadataWavelengths(self, name, wavelengths):
-        """
-        Set wavelengths (in nanometers) metadata information for an output raster.
-
-        The wavelength information is stored in the ENVI metadata domain inside the
-        ``wavelength`` and ``wavelength units`` metadata items.
-        """
-
-        filename = self.getOutputFilename(name)
-        self.setMetadataItem(name=name, key='wavelength', value=wavelengths, domain='ENVI')
-        self.setMetadataItem(name=name, key='wavelength units', value='nanometers', domain='ENVI')
-
-    def getMetadataWavelengths(self, name):
-        """
-        Returns wavelengths (in nanometers) metadata information for an input raster.
-
-        The wavelength information is taken from the ENVI metadata domain.
-        An exception is thrown if the ``wavelength`` and ``wavelength units`` metadata items are not correctly specified.
-        """
-
-        dataset = self._getInputDataset(name)
-        wavelength = dataset.getMetadataItem(key='wavelength', domain='ENVI', dtype=float)
-        wavelengthUnits = dataset.getMetadataItem(key='wavelength units', domain='ENVI')
-        if wavelength is None or wavelengthUnits is None:
-            raise Exception('missing wavelength or wavelength units information')
-        wavelength = numpy.array(wavelength)
-        if wavelengthUnits.lower() == 'micrometers':
-            wavelength *= 1000.
-        elif wavelengthUnits.lower() == 'nanometers':
-            pass
-        else:
-            raise Exception('wavelength units must be nanometers or micrometers')
-        return wavelength
-
-    def setMetadataClassDefinition(self, name, classes, classNames=None, classLookup=None, fileType='ENVI Classification'):
-        """
-        Set class definition metadata information for an output raster.
-
-        The class definition information is stored in the ENVI metadata domain items ``classes``, ``class names`` and ``class lookup``.
-        Note that the "unclassified" (class id=0) class is added.
-        """
-
-        if classNames is None:
-            classNames = ['class {}'.format(i+1) for i in range(classes)]
-        if classLookup is None:
-            import random
-            classLookup = [random.randint(1,255) for i in range(classes*3)]
-
-        if len(classNames) != classes:
-            raise Exception('wrong number of class names')
-        if len(classLookup) != classes*3:
-            raise Exception('wrong number of class colors')
-
-        classes += 1
-        classNames = ['unclassified'] + classNames
-        classLookup = [0, 0, 0] + classLookup
-
-        filename = self.getOutputFilename(name)
-        self.setMetadataItem(name=name, key='file type', value=fileType, domain='ENVI')
-        self.setMetadataItem(name=name, key='classes', value=classes, domain='ENVI')
-        self.setMetadataItem(name=name, key='class names', value=classNames, domain='ENVI')
-        self.setMetadataItem(name=name, key='class lookup', value=classLookup, domain='ENVI')
-        self.setNoDataValue(name=name, value=0)
-
-    def setMetadataProbabilityDefinition(self, name, classes, classNames=None, classLookup=None):
-        """
-        Sets class definition metadata like :meth:`hubdc.applier.ApplierOperator.setMetadataClassDefinition`,
-        file type to `ENVI Standard` and noDataValue to -1.
-        """
-        self.setMetadataClassDefinition(name=name, classes=classes, classNames=classNames, classLookup=classLookup, fileType='ENVI Standard')
-        self.setMetadataBandNames(name=name, bandNames=classNames)
-        self.setNoDataValue(name=name, value=-1)
-
-    def getMetadataClassDefinition(self, name):
-        """
-        Returns class definition metadata information for an input raster.
-
-        The class definition information is taken from the ENVI metadata domain items ``classes``, ``class names`` and ``class lookup``.
-        Note that the "unclassified" (class id=0) class is removed.
-
-        :return: classes, classNames, classLookup
-        """
-
-        dataset = self._getInputDataset(name)
-        classes = dataset.getMetadataItem(key='classes', domain='ENVI', dtype=int)
-        classNames = dataset.getMetadataItem(key='class names', domain='ENVI', dtype=str)
-        classLookup = dataset.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
-
-        return classes-1, classNames[1:], classLookup[3:]
-
-
-
-    def setMetadataBandNames(self, name, bandNames):
-        """
-        Set band names definition metadata information for an output raster.
-
-        The information is stored in the ENVI metadata domain item ``band names`` and in the GDAL band descriptions.
-        """
-        self.setMetadataItem(name=name, key='band names', value=bandNames, domain='ENVI')
-
-    def setNoDataValue(self, name, value):
-        """
-        Set the no data value for an output raster image.
-        """
-        self.setMetadataItem(name=name, key='data ignore value', value=value, domain='ENVI')
-        filename = self.getOutputFilename(name)
-        self._queueByFilename[filename].put((Writer.SET_NODATA, filename, value))
-
-    def getNoDataValue(self, name, default=None):
-        """
-        Returns the no data value for an input raster image. If a no data value is not specified, the ``default`` value is returned.
-        """
-        dataset = self._getInputDataset(name)
-        noDataValue = dataset.getNoDataValue(default=default)
-        return default
-
-    def getNoDataValues(self, name, indicies=None, default=None):
-        """
-        Returns the list of no data values for all bands of an input raster image. If a no data value is not specified, the ``default`` value is returned.
-        Use ``indicies`` to return noData values only for a subset of bands.
-        """
-        dataset = self._getInputDataset(name)
-        noDataValues = dataset.getNoDataValues(default=default)
-        if indicies is not None:
-            noDataValues = [noDataValues[i] for i in indicies]
-        return noDataValues
-
-    def _apply(self, subgrid, iblock, nblock):
-        self._iblock = iblock
-        self._nblock = nblock
-        self._grid = subgrid
+    def _apply(self, workingGrid, iblock, nblock, yblock, xblock, nyblock, nxblock):
+        self.iblock = iblock
+        self.nblock = nblock
+        self.yblock = yblock
+        self.xblock = xblock
+        self.nyblock = nyblock
+        self.nxblock = nxblock
+
+        self._setWorkingGrid(workingGrid)
         return self.ufunc(*self._ufuncArgs, **self._ufuncKwargs)
 
     def ufunc(self, *args, **kwargs):
@@ -1234,10 +1085,14 @@ class ApplierControls(object):
         self.setFootprint()
         self.setProjection()
         self.setReferenceGrid()
+        self.setDisableWindowTrimToFootprint()
         self.setGDALCacheMax()
         self.setGDALSwathSize()
         self.setGDALDisableReadDirOnOpen()
         self.setGDALMaxDatasetPoolSize()
+        self.setGDALWarpErrorThreshold()
+        self.setGDALWarpMemoryLimit()
+        self.setGDALWarpMultithread()
         self.setProgressBar()
 
     def setProgressBar(self, progressBar=None):
@@ -1286,6 +1141,10 @@ class ApplierControls(object):
         """
         Set the number of pool worker for multiprocessing. Set to None to disable multiprocessing (recommended for debugging).
         """
+        if nworker==-1:
+            import multiprocessing
+            nworker = multiprocessing.cpu_count()
+
         self.nworker = nworker
         return self
 
@@ -1376,6 +1235,9 @@ class ApplierControls(object):
         self.setReferenceGrid(grid=grid)
         return self
 
+    def setDisableWindowTrimToFootprint(self, disable=False):
+        self.disableWindowTrimToFootprint = disable
+
     DEFAULT_GDALCACHEMAX = 100*2**20
     def setGDALCacheMax(self, bytes=DEFAULT_GDALCACHEMAX):
         """
@@ -1408,6 +1270,15 @@ class ApplierControls(object):
         self.maxDatasetPoolSize = nfiles
         return self
 
+    def setGDALWarpErrorThreshold(self, errorThreshold=DEFAULT_GDALWARP_ERRORTHRESHOLD):
+        self.gdalWarpErrorThreshold = errorThreshold
+
+    def setGDALWarpMemoryLimit(self, memoryLimit=DEFAULT_GDALWARP_MEMORYLIMIT):
+        self.gdalWarpMemoryLimit = memoryLimit
+
+    def setGDALWarpMultithread(self, multithread=DEFAULT_GDALWARP_MULTITHREAD):
+        self.gdalWarpMultithread = multithread
+
     @property
     def _multiprocessing(self):
         return self.nworker is not None
@@ -1416,8 +1287,9 @@ class ApplierControls(object):
     def _multiwriting(self):
         return self._multiprocessing or (self.nwriter is not None)
 
-    def _makeAutoGrid(self, inputs):
-        grids = [PixelGrid.fromFile(input.filename) for input in inputs.values()]
+    def _makeAutoGrid(self, inputRasterContainer):
+        assert isinstance(inputRasterContainer, ApplierInputRasterGroup)
+        grids = [inputRaster.dataset.pixelGrid for inputRaster in inputRasterContainer.getFlatRasters()]
 
         projection = self._deriveProjection(grids)
         xMin, xMax, yMin, yMax = self._deriveFootprint(grids, projection)
