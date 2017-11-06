@@ -1,21 +1,16 @@
-import matplotlib
-matplotlib.use('QT4Agg')
-from matplotlib import pyplot
-
 from operator import xor
 import random, os, pickle
-import gdal
+from osgeo import gdal, ogr
 import numpy
 import sklearn.metrics
-import spectral
+import sklearn.multioutput
 
-from hubdc.applier import ApplierInputOptions
 from hubdc.model import Open, OpenLayer, PixelGrid
-import hubflow.ip_algorithms as ipalg
-import hubflow.dp_algorithms as dpalg
+from hubflow.applier import Applier, ApplierOperator
 from hubflow.report import *
 from hubflow import signals
 
+import spectral
 spectral.settings.envi_support_nonlowercase_params = True
 
 
@@ -53,80 +48,128 @@ class FlowObject(object):
                 return None
         return obj
 
-    def browse(self):
-        from objbrowser import ObjectBrowser
-        from objbrowser.attribute_model import ATTR_MODEL_REPR, ATTR_MODEL_NAME, DEFAULT_ATTR_COLS
-
-
-        objects = dict()
-        objects[self.__class__.__name__.split('.')[-1]] = self
-        ObjectBrowser.browse(objects,
-                             attribute_columns = DEFAULT_ATTR_COLS,
-                             attribute_details = (ATTR_MODEL_REPR,),
-                             show_callable_attributes = None,
-                             show_special_attributes = None,
-                             auto_refresh=None,
-                             refresh_rate=None,
-                             reset = False)
-        return
-
-
-
 class Image(FlowObject):
 
     def __init__(self, filename):
         self.filename = filename
 
+    def __repr__(self):
+        return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename))
+
     @property
     def pixelGrid(self):
         return PixelGrid.fromFile(self.filename)
 
-    def asMask(self, ufunc=None, noData=None):
-        return Mask(filename=self.filename, ufunc=ufunc, noData=noData)
+    @classmethod
+    def fromVector(cls, filename, vector, grid, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowVector('vector', vector=vector)
+        applier.setOutputRaster('image', filename=filename)
+        applier.apply(operator=_ImageFromVector, vector=vector)
+        return Image(filename=filename)
+
+    def asMask(self, noData=None):
+        return Mask(filename=self.filename, noData=noData)
 
     def asProbability(self, classDefinition):
+        assert 0 # do we need this???
         return Probability(filename=self.filename, classDefinition=classDefinition)
 
-    def sampleByClassification(self, classification, mask=None, **kwargs):
-        sample = ipalg.imageSample(image=self, labels=classification, mask=mask, **kwargs)
-        assert isinstance(sample, ProbabilitySample)
-        return sample
-
-    def sampleByRegression(self, regression, mask=None, **kwargs):
-        sample = ipalg.imageSample(image=self, labels=regression, mask=mask, **kwargs)
-        assert isinstance(sample, RegressionSample)
-        return sample
-
-    def sampleByProbability(self, probability, mask=None, **kwargs):
-        sample = ipalg.imageSample(image=self, labels=probability, mask=mask, **kwargs)
-        assert isinstance(sample, ProbabilitySample)
-        return sample
-
-    def sampleByMask(self, mask, **kwargs):
-        sample = ipalg.imageSample(image=self, labels=mask, mask=None, **kwargs)
-        assert isinstance(sample, UnsupervisedSample)
-        return sample
-
     def basicStatistics(self, bandIndicies=None, mask=None, **kwargs):
-        return ipalg.imageBasicStatistics(image=self, bandIndicies=bandIndicies, mask=mask, **kwargs)
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.setFlowImage('image', image=self)
+        applier.setFlowMask('mask', mask=mask)
+        results = applier.apply(operator=_ImageBasicStatistics, image=self, bandIndicies=bandIndicies, mask=mask)
+
+        results = numpy.array(results, dtype=numpy.float64)
+        min = numpy.nanmin(results[:, :, 0], axis=0)
+        max = numpy.nanmax(results[:, :, 1], axis=0)
+        sum = numpy.nansum(results[:, :, 2], axis=0)
+        n = numpy.sum(results[:, :, 3], axis=0)
+        mean = sum / n
+        return min, max, mean, n
 
     def scatterMatrix(self, image2, bandIndex1, bandIndex2, range1, range2, bins=256, mask=None, stratification=None, **kwargs):
-        return ipalg.imageScatterMatrix(image1=self, image2=image2, bandIndex1=bandIndex1, bandIndex2=bandIndex2,
-                                        range1=range1, range2=range2, bins=bins, mask=mask, stratification=stratification, **kwargs)
+
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.setFlowImage('image1', image=self)
+        applier.setFlowImage('image2', image=image2)
+        applier.setFlowMask('mask', mask=mask)
+        applier.setFlowClassification('stratification', classification=stratification)
+
+        _, xedges, yedges = numpy.histogram2d(x=[0], y=[0], bins=bins, range=[range1, range2])
+        bins = [xedges, yedges]
+        results = applier.apply(operator=_ImageScatterMatrix, image1=self, image2=image2,
+                                bandIndex1=bandIndex1, bandIndex2=bandIndex2, bins=bins, mask=mask, stratification=stratification)
+        H = numpy.sum(numpy.stack(results), axis=0, dtype=numpy.uint64)
+        return H, xedges, yedges
+
+class _ImageBasicStatistics(ApplierOperator):
+    def ufunc(self, image, bandIndicies, mask):
+        array = self.getFlowImageArray('image', image=image, indicies=bandIndicies).astype(dtype=numpy.float64)
+        maskValid = self.getFlowMaskArray('mask', mask=mask)
+
+        def bandBasicStatistics(index, band):
+            valid = self.getMaskFromBandArray(array=band, noDataSource='image', index=index)
+            valid *= maskValid
+            band[numpy.logical_not(valid)] = numpy.nan
+            min = numpy.nanmin(band)
+            max = numpy.nanmax(band)
+            sum = numpy.nansum(band)
+            n = numpy.sum(valid)
+            return min, max, sum, n
+
+        return [bandBasicStatistics(index=i, band=band[None]) for i, band in enumerate(array)]
+
+class _ImageFromVector(ApplierOperator):
+    def ufunc(self, vector):
+        array = self.getFlowVectorArray('vector', vector=vector)
+        self.outputRaster.getRaster(key='image').setImageArray(array=array)
+
+class _ImageScatterMatrix(ApplierOperator):
+    def ufunc(self, image1, image2, bandIndex1, bandIndex2, bins, mask, stratification):
+
+        band1 = self.getFlowImageArray('image1', image=image1, indicies=[bandIndex1])
+        band2 = self.getFlowImageArray('image2', image=image2, indicies=[bandIndex2])
+        strata = self.getFlowClassificationArray('stratification', classification=stratification)
+
+        valid = self.getMaskFromBandArray(array=band1, noDataSource='image1', index=bandIndex1)
+        valid *= self.getMaskFromBandArray(array=band2, noDataSource='image2', index=bandIndex2)
+        valid *= self.getFlowMaskArray('mask', mask=mask)
+
+        x = band1[valid]
+        y = band2[valid]
+
+        if strata.size == 0:
+            H = numpy.histogram2d(x=x, y=y, bins=bins)[0]
+        else:
+            s = strata[valid]
+            HList = list()
+            for i in range(1, stratification.classDefinition.classes+1):
+                v = s==i
+                Hi = numpy.histogram2d(x=x[v], y=y[v], bins=bins)[0]
+                HList.append(numpy.array(Hi))
+            H = numpy.stack(HList)
+
+        return H
 
 class Mask(Image):
 
-    def __init__(self, filename, ufunc=None, noData=None):
+    def __init__(self, filename, noData=None):
         Image.__init__(self, filename)
-        self.ufunc = ufunc
         if noData==None:
-            noData = 0
+            noData = Open(filename=filename).getNoDataValue(default=0)
         self.noData = noData
+
+    def __repr__(self):
+        return '{cls}(filename={filename}, noData={noData})'.format(
+            cls=self.__class__.__name__,
+            filename=str(self.filename),
+            noData=repr(self.noData))
 
     @staticmethod
     def fromVector(filename, vector, grid, **kwargs):
-        assert isinstance(vector, Vector)
-        return vector.rasterize(imageFilename=filename, grid=grid, **kwargs).asMask()
+        return Image.fromVector(filename=filename, vector=vector, grid=grid).asMask()
 
 class Vector(FlowObject):
 
@@ -140,27 +183,45 @@ class Vector(FlowObject):
         self.filterSQL = filterSQL
         self.dtype = dtype
 
-    def rasterize(self, imageFilename, grid, **kwargs):
-        return ipalg.vectorRasterize(vector=self, imageFilename=imageFilename, grid=grid, **kwargs)
+    def __repr__(self):
+        return '{cls}(filename={filename}, layer={layer}, initValue={initValue}, burnValue={burnValue}, burnAttribute={burnAttribute}, allTouched={allTouched}, filterSQL={filterSQL}, dtype={dtype})'.format(
+            cls=self.__class__.__name__,
+            filename=str(self.filename),
+            layer=repr(self.layer),
+            initValue=repr(self.initValue),
+            burnValue=repr(self.burnValue),
+            burnAttribute=repr(self.burnAttribute),
+            allTouched=repr(self.allTouched),
+            filterSQL=repr(self.filterSQL),
+            dtype=repr(self.dtype))
 
-    def uniqueValues(self, attribute, **kwargs):
-        return ipalg.vectorUniqueValues(vector=self, attribute=attribute, **kwargs)
+    def uniqueValues(self, attribute):
+        ds = ogr.Open(self.filename, self.layer)
+        layer = ds.GetLayer()
+        layer.SetAttributeFilter(self.filterSQL)
+        return sorted(set(feature.GetField(attribute) for feature in layer))
 
-class VectorClassification(Vector):
+class VectorClassification(FlowObject):
 
-    def __init__(self, filename, classDefinition, idAttribute, layer=0, allTouched=False, filterSQL=None, minOverallCoverage=1., minWinnerCoverage=0.):
-        Vector.__init__(self, filename=filename, layer=layer, initValue=0, burnAttribute=idAttribute, allTouched=allTouched, filterSQL=filterSQL, dtype=numpy.uint8)
+    def __init__(self, filename, classDefinition, idAttribute=None, nameAttribute=None, layer=0, minOverallCoverage=1., minWinnerCoverage=0., dtype=numpy.uint8):
         assert isinstance(classDefinition, ClassDefinition)
         self.classDefinition = classDefinition
-        self.idAttribute = idAttribute
+        self.filename = filename
+        self.layer = layer
+        assert xor(idAttribute is None, nameAttribute is None)
+        if idAttribute is not None:
+            self.classAttribute = idAttribute
+            self.classAttributeType = 'id'
+        if nameAttribute is not None:
+            self.classAttribute = nameAttribute
+            self.classAttributeType = 'name'
         self.minOverallCoverage = minOverallCoverage
         self.minWinnerCoverage = minWinnerCoverage
+        self.dtype = dtype
 
-    def rasterizeAsClassification(self, classificationFilename, grid, oversampling=1, **kwargs):
-        return ipalg.vectorClassificationRasterizeAsClassification(vectorClassification=self, classificationFilename=classificationFilename, grid=grid, oversampling=oversampling, **kwargs)
+    def asVector(self):
+        return Vector(filename=self.filename, layer=self.layer, initValue=0, burnAttribute=self.classAttribute, dtype=self.dtype)
 
-    def rasterizeAsProbability(self, probabilityFilename, grid, oversampling=1, **kwargs):
-        return ipalg.vectorClassificationRasterizeAsProbability(vectorClassification=self, probabilityFilename=probabilityFilename, grid=grid, oversampling=oversampling, **kwargs)
 
 
 class ClassDefinition(FlowObject):
@@ -171,24 +232,29 @@ class ClassDefinition(FlowObject):
         classes = ds.getMetadataItem(key='classes', domain='ENVI', dtype=int)
         names = ds.getMetadataItem(key='class names', domain='ENVI')
         lookup = ds.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
-        return ClassDefinition(classes=classes-1, names=names[1:], lookup=lookup[3:])
+        return ClassDefinition(classes=classes-1, names=names[1:], lookup=numpy.array(lookup[3:]).reshape((classes-1, 3)))
 
     def __init__(self, classes=None, names=None, lookup=None):
 
         assert classes is not None or names is not None
         if classes is None:
             classes = len(names)
+        assert classes > 0
         self.classes = classes
         if names is None:
             names = ['class {}'.format(i+1) for i in range(classes)]
         if lookup is None:
-            lookup = [random.randint(1, 255) for i in range(classes * 3)]
+            lookup = [(random.randint(1, 255), random.randint(1, 255), random.randint(1, 255)) for i in range(classes)]
+        if len(lookup) == classes*3:
+            lookup = [[lookup[i*3+k] for k in range(3)] for i in range(classes)]
 
         assert len(names) == classes
-        assert len(lookup) == classes*3
+        assert len(lookup) == classes
+        for color in lookup:
+            assert len(color)==3, color
 
-        self.names = names
-        self.lookup = [int(v) for v in lookup]
+        self.names = [str(name) for name in names]
+        self.lookup = [[int(v) for v in color] for color in lookup]
 
     def __repr__(self):
         return '{cls}(classes={classes}, names={names}, lookup={lookup})'.format(
@@ -201,62 +267,85 @@ class ClassDefinition(FlowObject):
         assert isinstance(other, ClassDefinition)
         equal = self.classes == other.classes
         equal &= all([a == b for a, b in zip(self.names, other.names)])
-        equal &= not compareLookup or all([a == b for a, b in zip(self.lookup, other.lookup)])
+        if compareLookup:
+            for color1, color2 in zip(self.lookup, other.lookup):
+                for v1, v2 in zip(color1, color2):
+                    equal &= v1==v2
         return equal
 
-    def getColorByLabel(self, label):
-        index = label - 1
-        return self.lookup[index*3:index*3+3]
+    def getColor(self, label):
+        return self.lookup[label-1]
 
     def getColorByName(self, name):
-        return self.getColorByLabel(label=self.names.index((name))+1)
+        return self.getColor(label=self.names.index((name))+1)
 
-    def getNameByLabel(self, label):
+    def getName(self, label):
         return self.names[label - 1]
 
     def getLabelByName(self, name):
         return self.names.index(name)+1
 
-    def subsetClassesByLabel(self, labels):
-        classes = len(labels)
-        lookup = list()
-        names = list()
-        for label in labels:
-            lookup.extend(self.getColorByLabel(label=label))
-            names.append(self.getNameByLabel(label=label))
-        return ClassDefinition(classes=classes, names=names, lookup=lookup)
-
 class Classification(Image):
 
-    def __init__(self, filename, classDefinition=None, minOverallCoverage=0.5, minWinnerCoverage=0.5):
+    def __init__(self, filename, classDefinition=None, minOverallCoverage=0., minWinnerCoverage=0.):
         Image.__init__(self, filename)
         if classDefinition is None:
             classDefinition = ClassDefinition.fromENVIMeta(filename)
         self.classDefinition = classDefinition
         self.noData = 0
+        self.dtype = numpy.uint8
         self.minOverallCoverage = minOverallCoverage
         self.minWinnerCoverage = minWinnerCoverage
 
+    def __repr__(self):
+        return '{cls}(filename={filename}, classDefinition={classDefinition}, minOverallCoverage={minOverallCoverage}, minWinnerCoverage={minWinnerCoverage})'.format(
+            cls=self.__class__.__name__,
+            filename=str(self.filename),
+            classDefinition=repr(self.classDefinition),
+            minOverallCoverage=repr(self.minOverallCoverage),
+            minWinnerCoverage=repr(self.minWinnerCoverage))
+
     @classmethod
     def fromVectorClassification(cls, filename, vectorClassification, grid, oversampling, **kwargs):
-        return vectorClassification.rasterizeAsClassification(classificationFilename=filename, grid=grid, oversampling=oversampling, **kwargs)
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowClassification('vectorClassification', classification=vectorClassification)
+        applier.setOutputRaster('classification', filename=filename)
+        applier.apply(operator=_ClassificationFromVectorClassification, vectorClassification=vectorClassification, oversampling=oversampling)
+        return Classification(filename=filename)
 
-    def reclassify(self, filename, classDefinition, mapping):
-        return ipalg.classificationReclassify(filename=filename, classification=self, classDefinition=classDefinition, mapping=mapping)
+    def reclassify(self, filename, classDefinition, mapping, **kwargs):
+        assert isinstance(classDefinition, ClassDefinition)
+        assert isinstance(mapping, dict)
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.setFlowImage('inclassification', image=self)
+        applier.setOutputRaster('outclassification', filename=filename)
+        applier.apply(operator=_ClassificationReclassify, classification=self, classDefinition=classDefinition, mapping=mapping)
+        return Classification(filename=filename)
 
-    def assessClassificationPerformance(self, classification, **kwargs):
-        assert isinstance(classification, Classification)
-        yP = self.sampleByMask(mask=classification.asMask(), grid=classification.pixelGrid,
-                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features[0]
-        yT = classification.sampleByMask(mask=classification.asMask(), grid=classification.pixelGrid,
-                               imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features[0]
+class _ClassificationReclassify(ApplierOperator):
 
-        return ClassificationPerformance(yP=yP, yT=yT, classDefinitionP=self.classDefinition, classDefinitionT=classification.classDefinition)
+    def ufunc(self, classification, classDefinition, mapping):
+        inclassification = self.getFlowClassificationArray('inclassification', classification=classification)
+        outclassification = self.getFull(value=0, bands=1, dtype=numpy.uint8)
+        for inclass, outclass in mapping.items():
+            if inclass in classification.classDefinition.names:
+                inclass = classification.classDefinition.names.index(inclass) + 1
+            if outclass in classDefinition.names:
+                outclass = classDefinition.names.index(outclass) + 1
+            outclassification[inclassification == inclass] = outclass
+        self.outputRaster.getRaster(key='outclassification').setImageArray(array=outclassification)
+        self.setFlowMetadataClassDefinition(name='outclassification', classDefinition=classDefinition)
 
+class _ClassificationFromVectorClassification(ApplierOperator):
+    def ufunc(self, vectorClassification, oversampling):
+        array = self.getFlowClassificationArray('vectorClassification', classification=vectorClassification)
+        self.outputRaster.getRaster(key='classification').setImageArray(array=array)
+        self.setFlowMetadataClassDefinition(name='classification',
+                                            classDefinition=vectorClassification.classDefinition)
 
 class Regression(Image):
 
-    def __init__(self, filename, noData=None, outputNames=None):
+    def __init__(self, filename, noData=None, outputNames=None, minOverallCoverage=0.):
         Image.__init__(self, filename)
         if noData is None:
             noData = Open(filename).getNoDataValue()
@@ -265,19 +354,18 @@ class Regression(Image):
         assert noData is not None
         self.noData = noData
         self.outputNames = outputNames
+        self.minOverallCoverage = minOverallCoverage
 
-    def asMask(self, ufunc=None):
-        return Image.asMask(self, ufunc=ufunc, noData=self.noData)
+    def __repr__(self):
+        return '{cls}(filename={filename}, noData={noData}, outputNames={outputNames}, minOverallCoverage={minOverallCoverage})'.format(
+            cls=self.__class__.__name__,
+            filename=str(self.filename),
+            noData=repr(self.noData),
+            outputNames=repr(self.outputNames),
+            minOverallCoverage=repr(self.minOverallCoverage))
 
-    def assessRegressionPerformance(self, regression, **kwargs):
-        assert isinstance(regression, Regression)
-        mask = regression.asMask()
-        yP = self.sampleByRegression(regression=regression, mask=mask, grid=regression.pixelGrid,
-                                     imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
-        yT = regression.sampleByRegression(regression=regression, mask=mask, grid=regression.pixelGrid,
-                                           imageOptions=ApplierInputOptions(resampleAlg=gdal.GRA_NearestNeighbour), **kwargs).features
-
-        return RegressionPerformance(yT=yT, yP=yP, outputNamesT=regression.outputNames, outputNamesP=self.outputNames)
+    def asMask(self):
+        return Image.asMask(self, noData=self.noData)
 
 class Probability(Regression):
 
@@ -288,24 +376,74 @@ class Probability(Regression):
         Regression.__init__(self, filename=filename, noData=-1, outputNames=classDefinition.names)
         self.classDefinition = classDefinition
 
-    @classmethod
-    def fromVectorClassification(cls, filename, vectorClassification, grid, oversampling, **kwargs):
-        return vectorClassification.rasterizeAsProbability(probabilityFilename=filename, grid=grid, oversampling=oversampling, **kwargs)
+    def __repr__(self):
+        return '{cls}(filename={filename}, classDefinition={classDefinition})'.format(
+            cls=self.__class__.__name__,
+            filename=str(self.filename),
+            classDefinition=repr(self.classDefinition))
 
-    def subsetClassesByLabel(self, filename, labels, **kwargs):
-        names = self.classDefinition.getColorByName()
-        return ipalg.probabilitySubsetClassesByNames(probability=self, filename=filename, names=names, **kwargs)
+    @classmethod
+    def fromVectorClassification(cls, filename, vectorClassification, grid, oversampling=10, **kwargs):
+            applier = Applier(defaultGrid=grid, **kwargs)
+            applier.setFlowClassification('vectorClassification', classification=vectorClassification)
+            applier.setOutputRaster('probability', filename=filename)
+            applier.apply(operator=_ProbabilityFromVectorClassification, vectorClassification=vectorClassification, oversampling=oversampling)
+            return Probability(filename=filename)
+
+    def subsetClasses(self, filename, labels, **kwargs):
+        indicies = [label-1 for label in labels]
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.setFlowImage('probability', image=self)
+        applier.setOutputRaster('probabilitySubset', filename=filename)
+        applier.apply(operator=_ProbabilitySubsetClasses, indicies=indicies, probability=self)
+        return Probability(filename=filename)
 
     def subsetClassesByName(self, filename, names, **kwargs):
-        return ipalg.probabilitySubsetClassesByNames(probability=self, filename=filename, names=names, **kwargs)
+        labels = [self.classDefinition.names.index(name)+1 for name in names]
+        return self.subsetClasses(filename=filename, labels=labels, **kwargs)
 
-    def asRegression(self):
-        return Regression(filename=self.filename, noData=self.noData, outputNames=self.outputNames)
+    def asClassColorRGBImage(self, filename, filterById=None, filterByName=None, **kwargs):
+        filter = []
+        if filterById is not None:
+            filter.extend(filterById)
+        if filterByName is not None:
+            filter.extend([self.classDefinition.names.index[name] for name in filterByName])
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.setFlowImage('probability', image=self)
+        applier.setOutputRaster('image', filename=filename)
+        applier.apply(operator=_ProbabilityAsClassColorRGBImage, probability=self, filter=filter)
+        return Image(filename=filename)
 
-    def asClassColorRGBImage(self, imageFilename, filterById=None, filterByName=None, **kwargs):
-        return ipalg.probabilityAsClassColorRGBImage(probability=self, imageFilename=imageFilename,
-                                                     filterById=filterById, filterByName=filterByName, **kwargs)
+class _ProbabilityAsClassColorRGBImage(ApplierOperator):
+    def ufunc(self, filter, probability):
+        assert isinstance(probability, Probability)
+        colors = numpy.array(probability.classDefinition.lookup).reshape((-1, 3))
+        array = self.getFlowImageArray('probability', image=probability)
+        rgb = self.getFull(value=0, bands=3, dtype=numpy.float32)
+        for id, (band, color) in enumerate(zip(array, colors), start=1):
+            if len(filter) > 0 and id not in filter: continue
+            rgb += band * color.reshape((3, 1, 1))
+        numpy.uint8(numpy.clip(rgb, a_min=0, a_max=255, out=rgb))
+        mask = numpy.any(rgb != 0, axis=0)
+        numpy.clip(rgb, a_min=1, a_max=255, out=rgb)
+        rgb *= mask
+        self.outputRaster.getRaster(key='image').setImageArray(array=numpy.uint8(rgb))
 
+class _ProbabilityFromVectorClassification(ApplierOperator):
+    def ufunc(self, vectorClassification, oversampling):
+        array = self.getFlowProbabilityArray('vectorClassification', probability=vectorClassification, oversampling=oversampling)
+        self.outputRaster.getRaster(key='probability').setImageArray(array=array)
+        self.setFlowMetadataProbabilityDefinition(name='probability', classDefinition=vectorClassification.classDefinition)
+
+class _ProbabilitySubsetClasses(ApplierOperator):
+    def ufunc(self, indicies, probability):
+        classes = len(indicies)
+        lookup = [probability.classDefinition.getColor(label=index+1) for index in indicies]
+        names = [probability.classDefinition.getName(label=index+1) for index in indicies]
+        classDefinition = ClassDefinition(classes=classes, names=names, lookup=lookup)
+        probabilitySubset = self.inputRaster.getRaster(key='probability').getBandArray(indicies=indicies)
+        self.outputRaster.getRaster(key='probabilitySubset').setImageArray(array=probabilitySubset)
+        self.setFlowMetadataProbabilityDefinition(name='probabilitySubset', classDefinition=classDefinition)
 
 class UnsupervisedSample(FlowObject):
 
@@ -316,7 +454,7 @@ class UnsupervisedSample(FlowObject):
         self.nbands , self.nsamples = self.features.shape
 
     def __repr__(self):
-        return '{cls}(features=array{features}'.format(cls=self.__class__.__name__, features=repr(list(self.features.shape)))
+        return '{cls}(features=array{features})'.format(cls=self.__class__.__name__, features=repr(list(self.features.shape)))
 
     @staticmethod
     def fromENVISpectralLibrary(filename):
@@ -328,9 +466,13 @@ class UnsupervisedSample(FlowObject):
         raise Exception('header file not found')
 
     @staticmethod
-    def fromImageAndMask(image, mask, **kwargs):
-        assert isinstance(image, Image)
-        return image.sampleByMask(mask=mask, **kwargs)
+    def fromImageAndMask(image, mask, grid, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowImage(name='image', image=image)
+        applier.setFlowMask('mask', mask=mask)
+        results = applier.apply(operator=_UnsupervisedSampleFromImageAndProbability, image=image, mask=mask)
+        features = numpy.hstack(results)
+        return UnsupervisedSample(features=features)
 
     def saveAsENVISpectralLibrary(self, filename):
         metadata = self.metadata.copy()
@@ -356,11 +498,19 @@ class UnsupervisedSample(FlowObject):
     def scaleFeaturesInplace(self, factor):
         self.features = self.features*factor
 
-    def classifyByClassName(self, names, classDefinition):
+    def classifyByName(self, names, classDefinition):
         assert len(names) == self.nsamples
         assert isinstance(classDefinition, ClassDefinition)
-        labels = numpy.atleast_2d(numpy.array(dpalg.classifyNames(names, classNames=classDefinition.names, indexBase=1), dtype=numpy.uint8))
+        assert set(names).issubset(set(classDefinition.names))
+        labels = [classDefinition.names.index(name)+1 for name in names]
+        labels = numpy.atleast_2d(numpy.array(labels, dtype=numpy.uint8))
         return ClassificationSample(features=self.features, labels=labels, metadata=self.metadata, classDefinition=classDefinition)
+
+class _UnsupervisedSampleFromImageAndProbability(ApplierOperator):
+    def ufunc(self, image, mask):
+        features = self.getFlowImageArray(name='image', image=image)
+        labeled = self.getFlowMaskArray('mask', mask=mask)
+        return features[:, labeled[0]]
 
 class SupervisedSample(UnsupervisedSample):
 
@@ -383,22 +533,23 @@ class ClassificationSample(SupervisedSample):
         self.histogram = numpy.histogram(labels, bins=self.classDefinition.classes, range=[1, self.classDefinition.classes+1])[0]
 
     def __repr__(self):
-        return '{cls}(features=array{features}, labels=array{labels}, classDefinition={classDefinition}'.format(
+        return '{cls}(features=array{features}, labels=array{labels}, classDefinition={classDefinition})'.format(
             cls=self.__class__.__name__,
             features=repr(list(self.features.shape)),
             labels=repr(list(self.labels.shape)),
             classDefinition=repr(self.classDefinition))
 
     @staticmethod
-    def fromENVISpectralLibrary(filename):
+    def fromENVISpectralLibrary(filename, classificationSchemeName=''):
         sample = UnsupervisedSample.fromENVISpectralLibrary(filename=filename)
-        classDefinition = ClassDefinition(classes=int(sample.metadata['classes'])-1,
-                                          names=list(map(str, sample.metadata['class names'][1:])),
-                                          lookup=list(map(int, sample.metadata['class lookup'][3:])))
+        names = sample.metadata[classificationSchemeName + 'class names'][1:]
+        classes = len(names)
+        lookup = numpy.array(sample.metadata[classificationSchemeName + 'class lookup'][3:]).reshape((classes, 3))
+        classDefinition = ClassDefinition(classes=classes, names=names, lookup=lookup)
 
-        labels = numpy.array(sample.metadata['class spectra names'])
-        for i, name in enumerate(sample.metadata['class names']):
-            labels[labels==name] = str(i)
+        labels = numpy.array(sample.metadata[classificationSchemeName + 'class spectra names'])
+        for i, name in enumerate(names):
+            labels[labels==name] = str(i+1)
         labels = numpy.atleast_2d(numpy.uint8(labels))
         return ClassificationSample(features=sample.features, labels=labels, classDefinition=classDefinition)
 
@@ -409,12 +560,21 @@ class ClassificationSample(SupervisedSample):
         header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
         header['class spectra names'] = numpy.array(self.classDefinition.names)[self.labels.ravel()-1]
 
-    @staticmethod
-    def fromImageAndClassification(image, classification, mask=None, minOverallCoverage=1., minWinnerCoverage=0.5, **kwargs):
-        assert isinstance(image, Image)
-        probabilitySample = image.sampleByClassification(classification=classification, mask=mask, **kwargs)
-        classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, **kwargs)
+    @classmethod
+    def fromImageAndProbability(cls, image, probability, grid, mask=None, **kwargs):
+        probabilitySample = ProbabilitySample.fromImageAndProbability(image=image, probability=probability, grid=grid, mask=mask, **kwargs)
+        classificationSample = ClassificationSample.fromProbabilitySample(sample=probabilitySample)
         return classificationSample
+
+    @classmethod
+    def fromImageAndClassification(cls, image, classification, grid, mask=None, **kwargs):
+        return cls.fromImageAndProbability(image=image, probability=classification, grid=grid, mask=mask, **kwargs)
+
+    @classmethod
+    def fromProbabilitySample(cls, sample):
+        assert isinstance(sample, ProbabilitySample)
+        labels = numpy.argmax(sample.labels, axis=0)[None] + 1
+        return ClassificationSample(features=sample.features, labels=labels, classDefinition=sample.classDefinition)
 
     def asProbabilitySample(self):
         probabilityArray = numpy.zeros(shape=(self.classDefinition.classes, self.nsamples), dtype=numpy.float32)
@@ -423,6 +583,7 @@ class ClassificationSample(SupervisedSample):
         return ProbabilitySample(features=self.features, labels=probabilityArray, classDefinition=self.classDefinition, metadata=self.metadata)
 
     def synthMix(self, mixingComplexities, classLikelihoods=None, n=10):
+
         if classLikelihoods is None:
             classLikelihoods = 'proportional'
         if classLikelihoods is 'proportional':
@@ -430,25 +591,65 @@ class ClassificationSample(SupervisedSample):
         elif classLikelihoods is 'equalized':
             classLikelihoods = {i+1 : 1./self.classDefinition.classes for i in range(self.classDefinition.classes)}
 
-        mixtures, fractions = dpalg.synthMix(features=self.features, labels=self.labels, classes=self.classDefinition.classes, mixingComplexities=mixingComplexities, classLikelihoods=classLikelihoods, n=n)
+        assert isinstance(mixingComplexities, dict)
+        assert isinstance(classLikelihoods, dict)
+
+        features=self.features
+        labels=self.labels
+        classes=self.classDefinition.classes
+
+        # cache label indices and setup 0%/100% fractions from class labels
+        indices = dict()
+        zeroOneFractions = numpy.zeros((classes, features.shape[1]), dtype=numpy.float32)
+        for label in range(1, classes + 1):
+            indices[label] = numpy.where(labels == label)[1]
+            zeroOneFractions[label - 1, indices[label]] = 1.
+
+        # create mixtures
+        mixtures = list()
+        fractions = list()
+        for i in range(n):
+            complexity = numpy.random.choice(mixingComplexities.keys(), p=mixingComplexities.values())
+            drawnLabels = numpy.random.choice(classLikelihoods.keys(), size=complexity, replace=True, p=classLikelihoods.values())
+            drawnIndices = [numpy.random.choice(indices[label]) for label in drawnLabels]
+            drawnFeatures = features[:, drawnIndices]
+            drawnFractions = zeroOneFractions[:, drawnIndices]
+            randomWeights = numpy.atleast_2d(numpy.float32(numpy.random.randint(low=1, high=100, size=complexity)))
+            randomWeights /= randomWeights.sum()
+            mixtures.append(numpy.sum(drawnFeatures * randomWeights, axis=1))
+            fractions.append(numpy.sum(drawnFractions * randomWeights, axis=1))
+
+        mixtures, fractions = numpy.array(mixtures).T, numpy.array(fractions).T
         return ProbabilitySample(features=mixtures, labels=fractions, classDefinition=self.classDefinition)
 
 class RegressionSample(SupervisedSample):
 
     def __repr__(self):
-        return '{cls}(features=array{features}, labels=array{labels}, noData={noData}, outputNames={outputNames}'.format(
+        return '{cls}(features=array{features}, labels=array{labels}, noData={noData}, outputNames={outputNames})'.format(
             cls=self.__class__.__name__,
             features=repr(list(self.features.shape)),
             labels=repr(list(self.labels.shape)),
             noData=repr(self.noData),
-            outputNames=repr(self.outputNames)
-        )
+            outputNames=repr(self.outputNames))
 
     @staticmethod
-    def fromImageAndRegression(image, regression, mask=None, **kwargs):
-        assert isinstance(image, Image)
-        regressionSample = image.sampleByRegression(regression=regression, mask=mask, **kwargs)
-        return regressionSample
+    def fromImageAndRegression(image, regression, grid, mask=None, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowImage(name='image', image=image)
+        applier.setFlowRegression(name='regression', regression=regression)
+        applier.setFlowMask('mask', mask=mask)
+        results = applier.apply(operator=_RegressionSampleFromImageAndProbability, image=image, regression=regression, mask=mask)
+        features = numpy.hstack(result[0] for result in results)
+        fractions = numpy.hstack(result[1] for result in results)
+        return RegressionSample(features=features, labels=fractions, noData=regression.noData, outputNames=regression.outputNames)
+
+class _RegressionSampleFromImageAndProbability(ApplierOperator):
+    def ufunc(self, image, regression, mask):
+        features = self.getFlowImageArray(name='image', image=image)
+        fractions = self.getFlowRegressionArray(name='regression', regression=regression)
+        labeled = fractions != regression.noData
+        labeled *= self.getFlowMaskArray('mask', mask=mask)
+        return features[:, labeled[0]], fractions[:, labeled[0]]
 
 class ProbabilitySample(RegressionSample):
 
@@ -459,56 +660,45 @@ class ProbabilitySample(RegressionSample):
         self.classDefinition = classDefinition
 
     def __repr__(self):
-        return '{cls}(features=array{features}, labels=array{labels}, classDefinition={classDefinition}'.format(
+        return '{cls}(features=array{features}, labels=array{labels}, classDefinition={classDefinition})'.format(
             cls=self.__class__.__name__,
             features=repr(list(self.features.shape)),
             labels=repr(list(self.labels.shape)),
             classDefinition=repr(self.classDefinition))
 
-    @staticmethod
-    def fromENVISpectralLibrary(filename):
-        sample = UnsupervisedSample.fromENVISpectralLibrary(filename=filename)
-        classDefinition = ClassDefinition(classes=int(sample.metadata['classes'])-1,
-                                          names=list(map(str, sample.metadata['class names'][1:])),
-                                          lookup=list(map(int, sample.metadata['class lookup'][3:])))
-
-        probabilities = numpy.array([sample.metadata['probabilities '+name] for name in classDefinition.names], dtype=numpy.float32)
-        return ProbabilitySample(features=sample.features, labels=probabilities, classDefinition=classDefinition)
+    @classmethod
+    def fromImageAndClassification(cls, image, classification, mask=None, **kwargs):
+        return cls.fromImageAndProbability(image=image, probability=classification, mask=mask, **kwargs)
 
     @staticmethod
-    def fromImageAndClassification(image, classification, mask=None, minOverallCoverage=1., minWinnerCoverage=0.5, **kwargs):
-        assert isinstance(image, Image)
-        probabilitySample = image.sampleByClassification(classification=classification, mask=mask, **kwargs)
-        return probabilitySample
-
-    @staticmethod
-    def fromImageAndProbability(image, probability, mask=None, minOverallCoverage=1., minWinnerCoverage=0.5, **kwargs):
-        assert isinstance(image, Image)
-        probabilitySample = image.sampleByProbability(probability=probability, mask=mask, **kwargs)
-        return probabilitySample
-
-    def classifyByProbability(self, minOverallCoverage=1., minWinnerCoverage=0.5, progressBar=None):
-        labels = dpalg.argmaxProbability(probabilities=self.labels, minOverallCoverage=minOverallCoverage, minWinnerCoverage=minWinnerCoverage, progressBar=progressBar)
-        valid = labels != 0
-        return ClassificationSample(features=self.features[:, valid[0]], labels=labels[:, valid[0]], classDefinition=self.classDefinition)
+    def fromImageAndProbability(image, probability, grid, mask=None, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowImage(name='image', image=image)
+        applier.setFlowProbability(name='probability', probability=probability)
+        applier.setFlowMask('mask', mask=mask)
+        results = applier.apply(operator=_ProbabilitySampleFromImageAndProbability, image=image, probability=probability, mask=mask)
+        features = numpy.hstack(result[0] for result in results)
+        fractions = numpy.hstack(result[1] for result in results)
+        return ProbabilitySample(features=features, labels=fractions, classDefinition=probability.classDefinition)
 
     def subsetClassesByName(self, names):
         labels = [self.classDefinition.getLabelByName(name) for name in names]
-        return self.subsetClassesByLabel(labels=labels)
+        return self.subsetClasses(labels=labels)
 
-    def subsetClassesByLabel(self, labels):
+    def subsetClasses(self, labels):
         indicies = [label-1 for label in labels]
-        return ProbabilitySample(features=self.features, labels=self.labels[indicies],
-                                 classDefinition=self.classDefinition.subsetClassesByLabel(labels=labels))
+        classDefinition = ClassDefinition(classes=len(indicies),
+                                          names=[self.classDefinition.getName(index+1) for index in indicies],
+                                          lookup=[self.classDefinition.getColor(index+1) for index in indicies])
+        return ProbabilitySample(features=self.features, labels=self.labels[indicies], classDefinition=classDefinition)
 
-    def _saveAsENVISpectralLibraryUpdateHeader(self, header):
-        UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)
-        header['classes'] = self.classDefinition.classes + 1
-        header['class names'] = ['Unclassified'] + self.classDefinition.names
-        header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
-        for i, name in enumerate(self.classDefinition.names):
-            header['probabilities ' + name] = self.labels[i]
-            header['probabilities Unclassified'] = 1. - numpy.sum(self.labels, axis=0)
+class _ProbabilitySampleFromImageAndProbability(ApplierOperator):
+    def ufunc(self, image, probability, mask):
+        features = self.getFlowImageArray(name='image', image=image)
+        fractions = self.getFlowProbabilityArray(name='probability', probability=probability)
+        labeled = numpy.any(fractions != -1, axis=0, keepdims=True)
+        labeled *= self.getFlowMaskArray('mask', mask=mask)
+        return features[:, labeled[0]], fractions[:, labeled[0]]
 
 class Estimator(FlowObject):
 
@@ -519,34 +709,112 @@ class Estimator(FlowObject):
         self.sklEstimator = sklEstimator
         self.sample = None
 
-    def _fit(self, sample, progressBar=None):
-        assert isinstance(sample, self.SAMPLE_TYPE), (sample, self.SAMPLE_TYPE)
+    def __repr__(self):
+        return '{cls}(sklEstimator={sklEstimator})'.format(cls=self.__class__.__name__, sklEstimator=repr(self.sklEstimator))
+
+    def _fit(self, sample):
+        assert isinstance(sample, self.SAMPLE_TYPE)
         self.sample = sample
-        dpalg.estimatorFitData(estimator=self.sklEstimator, features=sample.features, labels=sample.labels, progressBar=progressBar)
+
+        X = numpy.float64(sample.features.T)
+
+        if hasattr(sample, 'labels'):
+            if sample.labels.shape[0] == 1 and not isinstance(self.sklEstimator, sklearn.multioutput.MultiOutputEstimator):
+                y = sample.labels.ravel()
+            else:
+                y = sample.labels.T
+        else:
+            y = None
+
+        self.sklEstimator.fit(X=X, y=y)
         return self
 
-    def _predict(self, predictionFilename, image, mask=None, **kwargs):
-        return ipalg.estimatorPredict(estimator=self, predictionFilename=predictionFilename, image=image, mask=mask, **kwargs)
+    def _predict(self, filename, image, mask=None, **kwargs):
+        applier = Applier(defaultGrid=image, **kwargs)
+        applier.setFlowImage('image', image=image)
+        applier.setFlowMask('mask', mask=mask)
+        applier.setOutputRaster('prediction', filename=filename)
+        applier.apply(operator=_EstimatorPredict, image=image, estimator=self, mask=mask)
+        prediction = self.PREDICT_TYPE(filename=filename)
+        assert isinstance(prediction, Image)
+        return prediction
 
-    def _transform(self, filename, image, inverse=False, mask=None, vmask=None, progressBar=None):
-        assert 0
-        assert isinstance(image, Image)
-        if mask is None: mask = Mask(None)
-        if vmask is None: vmask = Vector(None)
-        assert isinstance(mask, Mask)
-        assert isinstance(vmask, Vector)
-
-        ipalg.estimatorTransform(transformation=filename, noData=self.sample.noData, estimator=self.sklEstimator, image=image.filename,
-                                 inverse=inverse,
-                                 mask=mask.filename, maskFunc=mask.ufunc,
-                                 vmask=vmask.filename, vmaskAllTouched=vmask.allTouched, vmaskFilterSQL=vmask.filterSQL,
-                                 progressBar=progressBar)
-
+    def _transform(self, filename, image, inverse=False, mask=None, **kwargs):
+        applier = Applier(defaultGrid=image, **kwargs)
+        applier.setFlowImage('image', image=image)
+        applier.setFlowMask('mask', mask=mask)
+        applier.setOutputRaster('transformation', filename=filename)
+        applier.apply(operator=_EstimatorTransform, estimator=self, image=image, mask=mask, inverse=inverse)
         return Image(filename=filename)
 
-    def _inverseTransform(self, filename, image, inverse=True, mask=None, vmask=None, progressBar=None):
-        assert 0
-        return self._transform(filename=filename, image=image, inverse=inverse, mask=mask, vmask=vmask, progressBar=progressBar)
+    def _inverseTransform(self, filename, image, mask=None, **kwargs):
+        return self._transform(filename=filename, image=image, inverse=True, mask=mask, **kwargs)
+
+class _EstimatorPredict(ApplierOperator):
+    def ufunc(self, estimator, image, mask):
+        self.features = self.getFlowImageArray('image', image=image)
+        etype, dtype, noutputs = self.getInfos(estimator)
+        noData = estimator.sample.noData
+        prediction = self.getFull(value=noData, bands=noutputs, dtype=dtype)
+
+        valid = self.getMaskFromImageArray(array=self.features, noDataSource='image')
+        valid *= self.getFlowMaskArray('mask', mask=mask)
+
+        X = numpy.float64(self.features[:, valid[0]].T)
+        y = estimator.sklEstimator.predict(X=X)
+        prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
+
+        self.outputRaster.getRaster(key='prediction').setImageArray(array=prediction)
+
+        if etype == 'classifier':
+            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.sample.classDefinition)
+        if etype == 'clusterer':
+            self.setFlowMetadataClassDefinition('prediction', classDefinition=ClassDefinition(classes=estimator.sklEstimator.n_clusters))
+        if etype == 'regressor':
+            if isinstance(estimator.sample, ProbabilitySample):
+                self.setFlowMetadataProbabilityDefinition('prediction', classDefinition=estimator.sample.classDefinition)
+            else:
+                self.outputRaster.getRaster(key='prediction').setNoDataValue(value=noData)
+        self.setFlowMetadataBandNames('prediction', bandNames=estimator.sample.outputNames)
+
+    def getInfos(self, estimator):
+        etype = estimator.sklEstimator._estimator_type
+        if etype in ['classifier', 'clusterer']:
+            noutputs = 1
+            dtype = numpy.uint8
+        elif etype == 'regressor':
+            X0 = numpy.float64(numpy.atleast_2d(self.features[:, 0, 0]))
+            y0 = estimator.sklEstimator.predict(X=X0)
+            noutputs = max(y0.shape)
+            dtype = numpy.float32
+        else:
+            raise Exception('unexpected estimator type')
+        return etype, dtype, noutputs
+
+class _EstimatorTransform(ApplierOperator):
+    def ufunc(self, estimator, image, mask, inverse):
+        if inverse:
+            sklTransform = estimator.sklEstimator.inverse_transform
+        else:
+            sklTransform = estimator.sklEstimator.transform
+
+        noData = numpy.finfo(numpy.float32).min
+        features = self.getFlowImageArray('image', image=image)
+
+        X0 = numpy.float64(numpy.atleast_2d(features[:, 0, 0]))
+        _, noutputs = sklTransform(X=X0).shape
+
+        transformation = self.getFull(value=noData, bands=noutputs, dtype=numpy.float32)
+
+        valid = self.getMaskFromImageArray(array=features, noDataSource='image')
+        valid *= self.getFlowMaskArray('mask', mask=mask)
+
+        X = numpy.float64(features[:, valid[0]].T)
+        y = sklTransform(X=X)
+        transformation[:, valid[0]] = numpy.float32(y.reshape(-1, noutputs).T)
+
+        self.outputRaster.getRaster(key='transformation').setImageArray(array=transformation)
+        self.outputRaster.getRaster(key='transformation').setNoDataValue(value=noData)
 
 class Classifier(Estimator):
     SAMPLE_TYPE = ClassificationSample
@@ -587,11 +855,30 @@ class ClassificationPerformance(FlowObject):
         self.classDefinitionP = classDefinitionP
 
         import sklearn.metrics
+        self.yP = yP
+        self.yT = yT
         self.mij = numpy.int64(sklearn.metrics.confusion_matrix(yT, yP, labels=range(1, classDefinitionT.classes+1)).T)
         self.m = numpy.int64(yP.size)
         self.Wi = classProportions
         self.adjusted = False
         self._assessPerformance()
+
+    def __repr__(self):
+        return '{cls}(yP=array{yP}, yT=array{yT}, classDefinitionP={classDefinitionP}, classDefinitionT={classDefinitionT}, classProportions={classProportions})'.format(
+            cls=self.__class__.__name__,
+            yP=repr(list(self.yP.shape)),
+            yT=repr(list(self.yT.shape)),
+            classDefinitionP=repr(self.classDefinitionP),
+            classDefinitionT=repr(self.classDefinitionT),
+            classProportions=repr(list(self.Wi)))
+
+    @classmethod
+    def fromClassification(self, prediction, reference, **kwargs):
+        assert isinstance(prediction, Classification)
+        assert isinstance(reference, Classification)
+        yP = UnsupervisedSample.fromImageAndMask(image=prediction, mask=reference.asMask(), grid=reference, **kwargs).features[0]
+        yT = UnsupervisedSample.fromImageAndMask(image=reference, mask=reference.asMask(), grid=reference, **kwargs).features[0]
+        return ClassificationPerformance(yP=yP, yT=yT, classDefinitionP=prediction.classDefinition, classDefinitionT=reference.classDefinition)
 
     def _assessPerformance(self):
 
@@ -766,11 +1053,29 @@ class RegressionPerformance(FlowObject):
         self.explained_variance_score = [sklearn.metrics.explained_variance_score(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
         self.mean_absolute_error = [sklearn.metrics.mean_absolute_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
         self.mean_squared_error = [sklearn.metrics.mean_squared_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
-        #self.mean_squared_logarithmic_error = [sklearn.metrics.mean_squared_log_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
         self.median_absolute_error = [sklearn.metrics.median_absolute_error(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
         self.r2_score = [sklearn.metrics.r2_score(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
 
+    def __repr__(self):
+        return '{cls}(yP=array{yP}, yT=array{yT}, outputNamesT={outputNamesT}, outputNamesP={outputNamesP})'.format(
+            cls=self.__class__.__name__,
+            yP=repr(list(self.yP.shape)),
+            yT=repr(list(self.yT.shape)),
+            outputNamesT=repr(self.outputNamesT),
+            outputNamesP=repr(self.outputNamesP))
+
+    @classmethod
+    def fromRegression(self, prediction, reference, **kwargs):
+        assert isinstance(prediction, Regression)
+        assert isinstance(reference, Regression)
+        yP = UnsupervisedSample.fromImageAndMask(image=prediction, mask=reference.asMask(), grid=reference, **kwargs).features
+        yT = UnsupervisedSample.fromImageAndMask(image=reference, mask=reference.asMask(), grid=reference, **kwargs).features
+        return RegressionPerformance(yP=yP, yT=yT, outputNamesP=prediction.outputNames, outputNamesT=reference.outputNames)
+
     def report(self):
+        import matplotlib
+        # matplotlib.use('QT4Agg')
+        from matplotlib import pyplot
 
         report = Report('Regression Performance')
 
