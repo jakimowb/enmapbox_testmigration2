@@ -46,6 +46,7 @@ def sandboxGuiOnly():
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
 
+    # from OAWI_GUI import MainUiFunc
     # from VIT_GUI import MainUiFunc
     # from LUT_GUI import MainUiFunc
     # from Global_Inversion_GUI import MainUiFunc

@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 # function definitions
 # ======================================================================================================================
 
-class OAWI_core:
+class PWR_core:
 
     def __init__(self, nodat_val):
         self.nodat_val = nodat_val
@@ -26,7 +26,7 @@ class OAWI_core:
         self.pixel_total = None
         self.nrows, self.ncols, self.nbands, self.in_raster = (None, None, None, None)
 
-    def initialize_OAWI(self, input, output, lims, NDVI_th=0.37):
+    def initialize_PWR(self, input, output, lims, NDVI_th=0.37):
         self.wl, self.nrows, self.ncols, self.nbands, self.in_raster = self.read_image(image=input)
         self.n_wl = len(self.wl)
         self.pixel_total = self.nrows * self.ncols
@@ -106,7 +106,7 @@ class OAWI_core:
 
         return ndvi
 
-    def execute_OAWI(self, prg_widget=None, QGis_app=None):
+    def execute_PWR(self, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
         self.QGis_app = QGis_app
         res_raster = np.zeros([self.nrows, self.ncols])  # result raster of minimized d-values

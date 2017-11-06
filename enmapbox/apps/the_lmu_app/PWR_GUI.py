@@ -8,18 +8,18 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4 import uic
 from osgeo import gdal
-from OAWI_core import OAWI_core
+from PWR_core import PWR_core
 from enmapbox.gui.applications import EnMAPBoxApplication
 
-pathUI = os.path.join(os.path.dirname(__file__), 'GUI_OAWI.ui')
+pathUI = os.path.join(os.path.dirname(__file__), 'GUI_PWR.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
 pathUI_prg = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
 
 from enmapbox.gui.utils import loadUIFormClass
 
-class OAWI_GUI(QDialog, loadUIFormClass(pathUI)):
+class PWR_GUI(QDialog, loadUIFormClass(pathUI)):
     def __init__(self, parent=None):
-        super(OAWI_GUI, self).__init__(parent)
+        super(PWR_GUI, self).__init__(parent)
         self.setupUi(self)
 
 class Nodat_GUI(QDialog, loadUIFormClass(pathUI2)):
@@ -39,11 +39,11 @@ class PRG_GUI(QDialog, loadUIFormClass(pathUI_prg)):
         else:
             event.ignore()
 
-class OAWI:
+class PWR:
 
     def __init__(self, main):
         self.main = main
-        self.gui = OAWI_GUI()
+        self.gui = PWR_GUI()
         self.initial_values()
         self.connections()
 
@@ -58,7 +58,7 @@ class OAWI:
 
         self.gui.SpinNDVI.valueChanged.connect(lambda: self.NDVI_th_change())
 
-        self.gui.pushRun.clicked.connect(lambda: self.run_oawi())
+        self.gui.pushRun.clicked.connect(lambda: self.run_pwr())
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
@@ -109,7 +109,7 @@ class OAWI:
     def NDVI_th_change(self):
         self.NDVI_th = self.gui.SpinNDVI.value()
 
-    def run_oawi(self):
+    def run_pwr(self):
         if self.image is None:
             QMessageBox.critical(self.gui, "No image selected", "Please select an image to continue!")
             return
@@ -135,8 +135,8 @@ class OAWI:
         self.main.QGis_app.processEvents()
 
         try:
-            iOawi = OAWI_core(nodat_val=self.nodat)
-            iOawi.initialize_OAWI(input=self.image, output=self.out_path, lims=[926,1070], NDVI_th=self.NDVI_th)
+            iPWR = PWR_core(nodat_val=self.nodat)
+            iPWR.initialize_PWR(input=self.image, output=self.out_path, lims=[926, 1070], NDVI_th=self.NDVI_th)
         except ValueError as e:
             QMessageBox.critical(self.gui, 'error', str(e))
             self.main.prg_widget.gui.allow_cancel = True # The window may be cancelled
@@ -144,7 +144,7 @@ class OAWI:
             return
 
         try: # give it a shot
-            result = iOawi.execute_OAWI(prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+            result = iPWR.execute_PWR(prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
         except:
             QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
             self.main.prg_widget.gui.allow_cancel = True
@@ -155,7 +155,7 @@ class OAWI:
         self.main.QGis_app.processEvents()
 
         try:
-            iOawi.write_image(result=result)
+            iPWR.write_image(result=result)
         except:
             QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
             self.main.prg_widget.gui.allow_cancel = True
@@ -165,7 +165,7 @@ class OAWI:
         self.main.prg_widget.gui.allow_cancel = True
         self.main.prg_widget.gui.close()
 
-        QMessageBox.information(self.gui, "Finish", "Calculation of OAWI finished successfully")
+        QMessageBox.information(self.gui, "Finish", "Calculation of PWR finished successfully")
         self.gui.close()
 
     def abort(self, message):
@@ -221,12 +221,12 @@ class PRG:
 class MainUiFunc:
     def __init__(self):
         self.QGis_app = QApplication.instance()
-        self.oawi = OAWI(self)
+        self.pwr = PWR(self)
         self.nodat_widget = Nodat(self)
         self.prg_widget = PRG(self)
 
     def show(self):
-        self.oawi.gui.show()
+        self.pwr.gui.show()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

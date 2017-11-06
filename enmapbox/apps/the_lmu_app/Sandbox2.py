@@ -4,16 +4,75 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
 
-content = np.genfromtxt("palmer_williams_1974.txt", skip_header=True)
-wavelengths = content[:, 0]
-abs_coef = content[:, 1]
-full_wavelengths = range(int(wavelengths[0]), 2501)
-f = interp1d(wavelengths, abs_coef)
+from queue import Queue, Empty
+import numpy as np
+from scipy.signal import savgol_filter
 
-final_coef = [float(f(lambd)) for lambd in full_wavelengths]
+a = "hallo"
+try:
+    b = int(a) + 5
+except ValueError:
+    print "nope"
 
-for i, lambd in enumerate(full_wavelengths):
-    print lambd, final_coef[i]
+exit()
+
+
+window_size = 3
+half_window_size = window_size // 2
+data = list()
+q = Queue()
+d = [2.22, 2.22, 5.55, 2.22, 1.11, 0.01, 1.11, 4.44, 9.99, 1.11, 3.33]
+for i in d:
+    q.put(i)
+
+res = [None]*window_size
+while not q.empty():
+    element = q.get()
+    data.append(element)
+    length = len(data)
+    npd = np.array(data[length - window_size:])
+    if length == window_size:
+        # calculate the polynomial fit for elements 0,1,2,3,4
+        poly = np.polyfit(range(window_size), data, deg=2)
+        p = np.poly1d(poly)
+        for poly_i in range(half_window_size):
+            res[poly_i] = p(poly_i) # insert the polynomial fits at index 1
+        res[(length-1)-half_window_size] = savgol_filter(npd, window_size, 2)[half_window_size] # insert the sav_gol-value at index 2
+        poly = np.polyfit(range(window_size - 1, -1, -1), data[-window_size:], deg=2)
+        p = np.poly1d(poly)
+        for poly_i_end in range(half_window_size):
+            res[(window_size-1)-poly_i_end] = p(poly_i_end)
+            # res[3] = p(1) # insert the polynomial fits at index 4
+            # res[4] = p(0) # insert the polynomial fits at index 5
+    elif length > window_size:
+        res.append(None) # add another slot in the res-list
+        res[(length-1)-half_window_size] = savgol_filter(npd, window_size, 2)[half_window_size] # overwrite poly-value with savgol
+        poly = np.polyfit(range(window_size - 1, -1, -1), data[-window_size:], deg=2)
+        p = np.poly1d(poly)
+        for poly_i_end in range(half_window_size):
+            res[-poly_i_end-1] = p(poly_i_end)
+        #
+        # res[-2] = p(1)
+        # res[-1] = p(0)
+
+
+# # calculate the polynomial fit for the 5 last elements (range runs like [4,3,2,1,0])
+# poly = np.polyfit(range(window_size-1, -1, -1), d[-window_size:], deg=2)
+# p = np.poly1d(poly)
+# res.append(p(1))
+# res.append(p(0))
+
+npd = np.array(data)
+res2 = savgol_filter(npd, window_size, 2)
+
+
+diff = res - res2 # in your example you were calculating the wrong diff btw
+np.set_printoptions(precision=2)
+print('source data ', npd)
+print('online res  ', np.array(res))
+print('offline res ', res2)
+print('error       ', diff.sum())
+
 
 exit()
 

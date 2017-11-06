@@ -2,6 +2,7 @@
 
 import sys, os
 import numpy as np
+import time
 from scipy.interpolate import interp1d
 
 
@@ -429,7 +430,10 @@ class IVVM:
 
 
         if not item is None: self.item = item
-        self.plotting()
+        try:
+            self.plotting()
+        except:
+            print "I wanted to crash"
 
     def plotting(self):
 
@@ -574,6 +578,12 @@ class IVVM:
                 file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Cp, Ccl, Car, Canth, Cbrown, skyl\n")
                 file.write(','.join(str(line) for line in self.para_list))
 
+class AThread(QThread):
+    def run(self):
+        while True:
+            print "beep!"
+            time.sleep(1)
+
 class MainUiFunc:
     def __init__(self):
         self.isd = IVVM(self)
@@ -583,6 +593,8 @@ class MainUiFunc:
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
+    thread = AThread()
+    thread.start()
     m = MainUiFunc()
     m.show()
     sys.exit(app.exec_())
