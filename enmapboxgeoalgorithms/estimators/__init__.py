@@ -26,7 +26,7 @@ if __name__ == '__main__':
     from hubflow.types import *
     aImage = Image(hymaptestdata.aImage)
     aTrain = Classification(hymaptestdata.aTrain)
-    aSample = aImage.sampleByClassification(classification=aTrain).classifyByProbability()
+    aSample = aImage.sampleByClassification(classification=aTrain).argmaxProbability()
 
     bImage = Image(hymaptestdata.bImage)
     bTrain = Regression(hymaptestdata.bTrain)
