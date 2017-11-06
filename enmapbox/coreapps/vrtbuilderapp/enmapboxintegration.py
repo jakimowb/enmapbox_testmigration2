@@ -52,9 +52,15 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
     def startGUI(self, *args):
         w = VRTBuilderWidget()
-        w.sigRasterCreated.connect(self.enmapbox.addSource)
+
+        #show EnMAP-Box raster sources in VRTBuilder
         self.enmapbox.sigRasterSourceAdded.connect(lambda path : w.addSourceFiles([path]))
+
+        #populate VRT Builder with raster files known by EnMAP-Box
         w.addSourceFiles(self.enmapbox.dataSources('RASTER'))
+
+        #add created files to EnMAP-Box
+        w.sigRasterCreated.connect(self.enmapbox.addSource)
         w.show()
 
     def geoAlgorithms(self):
