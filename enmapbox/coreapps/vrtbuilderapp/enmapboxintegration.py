@@ -23,7 +23,6 @@
 import os
 from PyQt4.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
-from exampleapp import APP_DIR
 from vrtbuilder.widgets import VRTBuilderWidget
 from vrtbuilder import VERSION, LICENSE, PATH_ICON
 
