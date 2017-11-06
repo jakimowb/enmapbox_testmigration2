@@ -44,15 +44,15 @@ def image_sampleByClassification():
 
 def probabilitySample_classify():
     probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
-    classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=0.75, minWinnerCoverage=0.5)
+    classificationSample = probabilitySample.argmaxProbability(minOverallCoverage=0.75, minWinnerCoverage=0.5)
     classificationSample.pickle(filename=classificationSampleFilename)
 
 def unsupervisedSample_classifyByName():
     unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
                                       lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
-    classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 2 spectra names'],
-                                                                  classDefinition=classDefinition)
+    classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 2 spectra names'],
+                                                             classDefinition=classDefinition)
     classificationSample.scaleFeaturesInplace(factor=10000.)
     classificationSample.pickle(filename=classificationSampleFilename)
 

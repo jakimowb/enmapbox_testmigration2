@@ -20,7 +20,7 @@ def script():
     if 1:  # draw from image
         probabilitySample = image.sampleByClassification(classification=classification,
                                                          mask=image.asMask())  # use image as mask to not draw samples from the noData region
-        classificationSample = probabilitySample.classifyByProbability(minOverallCoverage=0.99, minWinnerCoverage=0.99)
+        classificationSample = probabilitySample.argmaxProbability(minOverallCoverage=0.99, minWinnerCoverage=0.99)
         classificationSample.pickle(filename=r'C:\subset_image\sample.pkl')
     else:  # load from file
         classificationSample = ClassificationSample.unpickle(filename=r'C:\subset_image\sample.pkl')
