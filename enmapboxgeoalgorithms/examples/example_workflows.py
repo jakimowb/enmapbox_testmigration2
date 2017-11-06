@@ -30,8 +30,8 @@ def synthMixRegressionWorkflow():
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
                                       lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
 
-    classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 2 class spectra names'],
-                                                                  classDefinition=classDefinition)
+    classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 2 class spectra names'],
+                                                             classDefinition=classDefinition)
 
     # - scale spectra into image data range
     classificationSample.scaleFeaturesInplace(factor=10000.)
@@ -98,7 +98,7 @@ def classificationWorkflow():
 
     # - sample from image
     fractionsSample = image.sampleByClassification(classification=gtClassification)
-    classificationSample = fractionsSample.classifyByProbability(minWinnerCoverage=0.5)
+    classificationSample = fractionsSample.argmaxProbability(minWinnerCoverage=0.5)
     classificationSample.pickle(filename=join(outdir, 'train.pkl'))
 
     # fit model and predict classification image
@@ -130,8 +130,8 @@ def debug_synthMixRegressionWorkflow():
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 1 class names'][1:],
                                       lookup=unsupervisedSample.metadata['level 1 class lookup'][3:])
 
-    classificationSample = unsupervisedSample.classifyByClassName(names=unsupervisedSample.metadata['level 1 class spectra names'],
-                                                                  classDefinition=classDefinition)
+    classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 1 class spectra names'],
+                                                             classDefinition=classDefinition)
 
     # - scale spectra into image data range
     x = classificationSample.features*1
