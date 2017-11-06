@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 from os.path import dirname, join
 
-ENMAPBOXTESTDATA_VERSION = '0.2'
+ENMAPBOXTESTDATA_VERSION = '0.3'
 ENMAPBOXTESTDATA_VERSION_OBJ = LooseVersion(ENMAPBOXTESTDATA_VERSION)
 __version__ = ENMAPBOXTESTDATA_VERSION
 
