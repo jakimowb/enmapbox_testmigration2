@@ -12,7 +12,7 @@ def script():
     applier = Applier()
     applier.controls.setResolution(xRes=1000, yRes=1000)
     applier.setInput('cfmask', filename=filename, resampleAlg=gdal.GRA_Average)
-    applier.setOutput('cloudFraction', filename=r'c:\output\out.img', format='ENVI')
+    applier.setOutputRaster('cloudFraction', filename=r'c:\output\out.img', format='ENVI')
     applier.apply(operator=SimpleIO)
 
 class SimpleIO(ApplierOperator):

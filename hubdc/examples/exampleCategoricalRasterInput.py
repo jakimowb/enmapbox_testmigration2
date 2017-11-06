@@ -10,8 +10,8 @@ def script():
     applier = Applier()
     applier.controls.setResolution(xRes=1000, yRes=1000)
     applier.setInput('cfmask30m', filename=filename)
-    applier.setOutput('cfmask1000m', filename=r'c:\output\cfmask1000m.img')
-    applier.setOutput('cfmaskFractions1000m', filename=r'c:\output\cfmaskFractions1000m.img')
+    applier.setOutputRaster('cfmask1000m', filename=r'c:\output\cfmask1000m.img')
+    applier.setOutputRaster('cfmaskFractions1000m', filename=r'c:\output\cfmaskFractions1000m.img')
 
     applier.apply(operator=SimpleIO)
 

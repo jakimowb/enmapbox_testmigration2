@@ -9,7 +9,7 @@ def script():
     grid = PixelGrid(projection='EPSG:3035', xRes=1000, yRes=1000, xMin=4400000, xMax=4440000, yMin=3150000, yMax=3200000)
     applier = Applier()
     applier.setInput('in', filename=filename)
-    applier.setOutput('out', filename=r'c:\output\out.tif', format='ENVI')
+    applier.setOutputRaster('out', filename=r'c:\output\out.tif', format='ENVI')
     applier.controls.setProgressBar()
     applier.apply(operator=SimpleIO)
 

@@ -8,7 +8,7 @@ def script():
     applier.controls.setResolution(xRes=300, yRes=300)
     applier.controls.setWindowFullSize()
     applier.setInput('LC8', filename=r'C:\Work\data\gms\LC81940242015235LGN00_sr.img')
-    applier.setOutput('out', filename=r'c:\output\resampled.img')
+    applier.setOutputRaster('out', filename=r'c:\output\resampled.img')
     applier.apply(operator=SimpleReader)
 
 class SimpleReader(ApplierOperator):
