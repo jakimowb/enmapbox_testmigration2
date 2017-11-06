@@ -65,7 +65,6 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         e.triggered.connect(self.start_GUI_PWR)
 
         appMenu.addMenu(menu)
-
         return menu
 
     def start_GUI_IVVM(self, *args):

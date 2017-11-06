@@ -4,6 +4,7 @@ import gdal
 from gdalconst import *
 import numpy as np
 import struct
+import os
 
 from scipy.optimize import minimize
 from scipy.interpolate import interp1d
@@ -34,7 +35,8 @@ class PWR_core:
         self.low_lim, self.upp_lim = (self.find_closest(lambd=lims[0]), self.find_closest(lambd=lims[1]))
         self.NDVI_th = NDVI_th
 
-        content = np.genfromtxt("water_absorp_coef.txt", skip_header=True)
+        absorption_file = os.path.join(os.path.dirname(__file__), 'water_absorp_coef.txt')
+        content = np.genfromtxt(absorption_file, skip_header=True)
         wl = [int(content[i, 0]) for i in range(len(content[:, 0]))]
         abs_coef = content[:, 1]
         n_wl = len(wl)
