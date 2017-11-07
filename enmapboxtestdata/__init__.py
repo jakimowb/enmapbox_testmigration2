@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 from os.path import dirname, join
 
-ENMAPBOXTESTDATA_VERSION = '0.2'
+ENMAPBOXTESTDATA_VERSION = '0.3'
 ENMAPBOXTESTDATA_VERSION_OBJ = LooseVersion(ENMAPBOXTESTDATA_VERSION)
 __version__ = ENMAPBOXTESTDATA_VERSION
 
@@ -16,8 +16,14 @@ class landcoverAttributes():
 class landcoverClassDefinition():
     class level1():
         names = ['Impervious', 'Vegetation', 'Soil', 'Other']
-        lookup = [156, 156, 156, 56, 168, 0, 168, 112, 0, 245, 245, 122]
+        lookup = [(156, 156, 156), (56, 168, 0), (168, 112, 0), (245, 245, 122)]
     class level2():
-        names = ['Roof', 'Pavement', 'Low Vegetation', 'Tree', 'Soil', 'Other']
-        lookup = [230, 0, 0,   156, 156, 156,   152, 230, 0,   38, 115, 0,   168, 112, 0, 245, 245, 122]
+        names = ['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other']
+        lookup = [(230, 0, 0),   (156, 156, 156),   (152, 230, 0),   (38, 115, 0),   (168, 112, 0), (245, 245, 122)]
+        mappingToLevel1ByName = {'Roof':'Impervious', 'Pavement':'Impervious',
+                                 'Low vegetation':'Vegetation', 'Tree':'Vegetation',
+                                 'Soil':'Soil',
+                                 'Other':'Other'}
+        mappingToLevel1ById = {1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 4}
+
 speclib = join(dirname(__file__), 'SpecLib_BerlinUrbanGradient.sli')

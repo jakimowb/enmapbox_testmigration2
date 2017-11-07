@@ -66,7 +66,7 @@ wavelength = {
  
 level 1 class names = {Unclassified, Impervious, Vegetation, Soil, Other}
 level 1 class lookup = {0,0,0, 156, 156, 156, 56, 168, 0, 168, 112, 0, 245, 245, 122}
-level 2 class names = {Unclassified, Roof, Pavement, Low Vegetation, Tree, Soil, Other}
+level 2 class names = {Unclassified, Roof, Pavement, Low vegetation, Tree, Soil, Other}
 level 2 class lookup = {0,0,0, 230, 0, 0,   156, 156, 156,   152, 230, 0,   38, 115, 0,   168, 112, 0, 245, 245, 122}
 
 level 1 class spectra names = {
@@ -81,8 +81,8 @@ Other, Other, Other, Other, Other, Other, Other, Other, Other, Other}
 
 level 2 class spectra names = {
 Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof, Roof,
-Roof, Roof, Roof, Pavement, Pavement, Pavement, Pavement, Pavement, Pavement, Pavement, Low Vegetation, Low Vegetation,
-Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation,
-Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation, Low Vegetation,
-Low Vegetation, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Soil, Soil, Soil, Soil,
+Roof, Roof, Roof, Pavement, Pavement, Pavement, Pavement, Pavement, Pavement, Pavement, Low vegetation, Low vegetation,
+Low vegetation, Low vegetation, Low vegetation, Low vegetation, Low vegetation, Low vegetation, Low vegetation,
+Low vegetation, Low vegetation, Low vegetation, Low vegetation, Low vegetation, Low vegetation, Low vegetation, Low vegetation,
+Low vegetation, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Tree, Soil, Soil, Soil, Soil,
 Other, Other, Other, Other, Other, Other, Other, Other, Other, Other}
