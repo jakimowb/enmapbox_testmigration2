@@ -44,7 +44,6 @@ class CUIProgressBar(ProgressBar):
         print('{}Info: {}'.format(type, text))
         sys.stdout.flush()
 
-
 try:
     from processing.core.SilentProgress import SilentProgress as SP
     from processing.gui.AlgorithmDialogBase import AlgorithmDialogBase as ADB
@@ -85,7 +84,7 @@ class ProgressBarDelegate(ProgressBar):
         self.progressBar.displayInfo(text=text, type=type)
 
     def setText(self, text):
-        self.progressBar.setText(text)
+        self.progressBar.setLabelText(text)
 
     def setPercentage(self, i):
         self.progressBar.setPercentage(i)

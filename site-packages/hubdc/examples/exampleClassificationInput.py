@@ -9,8 +9,8 @@ def script():
     applier = Applier()
     applier.controls.setResolution(xRes=10, yRes=10)
     applier.setInput('classification', filename=r'C:\Work\source\QGISPlugIns\enmap-box\enmapbox\testdata\HymapBerlinA\HymapBerlinA_truth.img')
-    applier.setOutput('probability10m', filename=r'c:\output\probability10m.img')
-    applier.setOutput('classification10m', filename=r'c:\output\classification10m.img')
+    applier.setOutputRaster('probability10m', filename=r'c:\output\probability10m.img')
+    applier.setOutputRaster('classification10m', filename=r'c:\output\classification10m.img')
     applier.apply(operator=SimpleIO)
 
 class SimpleIO(ApplierOperator):
