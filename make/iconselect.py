@@ -90,7 +90,7 @@ class AvailableIcons(QWidget):
         for name in icons:
             btn = QPushButton()
             btn.setIcon(self.style().standardIcon(getattr(QStyle, name)))
-            btn.clicked.connect(lambda : QApplication.clipboard().setText(name))
+            btn.clicked.connect(self.onClicked)
             btn.setToolTip(name)
             layout.addWidget(btn, count / colSize, count % colSize)
             count += 1
@@ -110,8 +110,8 @@ class AvailableIcons(QWidget):
     def onClicked(self, *args):
 
         btn = self.sender()
-        assert isinstance(btn, QPushButton)
-        QApplication.clipboard().setText(btn.toolTip())
+        if isinstance(btn, QPushButton):
+            QApplication.clipboard().setText(btn.toolTip())
 
 from PyQt4.QtCore import *
 i = QDirIterator(":/timeseriesviewer", QDirIterator.Subdirectories)

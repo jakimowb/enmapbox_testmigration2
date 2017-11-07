@@ -62,6 +62,9 @@ class EnMAPBoxPlugin(object):
     def initGui(self):
         self.toolbarActions = []
 
+        from enmapbox.gui.ui.resources import qInitResources
+        qInitResources()
+
         from enmapbox.gui.enmapboxgui import EnMAPBox
         self.enmapBox = None
         action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)

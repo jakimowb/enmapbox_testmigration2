@@ -189,7 +189,10 @@ def compile_rc_files(ROOT):
         bn = os.path.basename(f)
         bn = os.path.splitext(bn)[0]
         pathPy2 = os.path.join(DIR_UIFILES, bn+'.py' )
+        tmp = os.getcwd()
+        os.chdir(os.path.dirname(__file__))
         subprocess.call(['pyrcc4', '-py2', '-o', pathPy2, pathQrc])
+        os.chdir(tmp)
 
 def fileNeedsUpdate(file1, file2):
     """
@@ -584,28 +587,6 @@ if __name__ == '__main__':
         png2qrc(icondir, pathQrc)
 
     if True: compile_rc_files(DIR_UIFILES)
-
-    if False:
-        #create a test data set
-        dirSrc = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
-        dirDst = jp(DIR_TESTDATA, 'UrbanGradient')
-
-        from qgis.core import *
-        from enmapbox.gui.utils import SpatialExtent
-
-        UL = QgsPoint(383851.349,5819308.225)
-        LR = QgsPoint(384459.867,5818407.722)
-        crs = QgsCoordinateReferenceSystem('EPSG:32633')
-        ext = SpatialExtent(crs, UL, LR)
-        createTestData(dirSrc, dirDst, ext)
-        createFilePackage(dirDst)
-
-    if False:
-        #update __init__.py of testdata directories
-
-        for d in filter(os.path.isdir, [os.path.join(DIR_TESTDATA,f) for f in os.listdir(DIR_TESTDATA)]):
-            createFilePackage(d)
-        s = ""
 
     print('Done')
 

@@ -92,11 +92,11 @@ if __name__ == "__main__":
         if True:
             import subprocess
             import guimake
-
+            from enmapbox.gui.utils import DIR_UIFILES
 
             os.chdir(DIR_REPO)
             subprocess.call(['pb_tool', 'compile'])
-            guimake.compile_rc_files(DIR_REPO)
+            guimake.compile_rc_files(DIR_UIFILES)
 
         else:
             cfgParser = pb_tool.get_config(config=pathCfg)
@@ -123,4 +123,17 @@ if __name__ == "__main__":
     zipdir(dirPlugin, pathZip)
     #os.chdir(dirPlugin)
     #shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
+
+    #6. copy to local QGIS user DIR
+    if True:
+        import shutil
+        pathQGIS = r'C:\Users\geo_beja\.qgis2\python\plugins'
+
+        assert os.path.isdir(pathQGIS)
+        pathDst = os.path.join(pathQGIS, os.path.basename(dirPlugin))
+        rm(pathDst)
+        shutil.copytree(dirPlugin, pathDst)
+        s  =""
+
+
     print('Finished')
