@@ -487,7 +487,7 @@ class EnMAPBox(QObject):
             s = ""
 
         #load EnMAP-Box applications
-        self.loadEnMAPBoxApplications()
+        self.initEnMAPBoxApplications()
 
 
         self.ui.setVisible(True)
@@ -532,12 +532,15 @@ class EnMAPBox(QObject):
         return self.dockManager.activateMapTool(mapToolKey)
 
 
-    def loadEnMAPBoxApplications(self):
+    def initEnMAPBoxApplications(self):
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
-        appDirs = []
-        appDirs.append(os.path.join(DIR_ENMAPBOX, *['coreapps']))
-        appDirs.append(os.path.join(DIR_ENMAPBOX, *['apps']))
+        COREAPPS = jp(DIR_ENMAPBOX, *['coreapps'])
+
+
+
+        APPS = jp(DIR_ENMAPBOX, *['apps'])
+        appDirs = [COREAPPS, APPS]
         from enmapbox.gui.settings import qtSettingsObj
         settings = qtSettingsObj()
         for appDir in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
@@ -545,6 +548,11 @@ class EnMAPBox(QObject):
                 appDirs.append(appDir)
         for appDir in appDirs:
             self.applicationRegistry.addApplicationPackageRootFolder(appDir)
+
+
+        pathAppDefs = jp(COREAPPS, 'others.txt')
+        self.applicationRegistry.addApplicationPackageFile(pathAppDefs)
+        s = ""
 
     def exit(self):
         self.ui.close()

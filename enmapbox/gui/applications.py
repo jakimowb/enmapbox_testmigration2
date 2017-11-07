@@ -1,4 +1,4 @@
-import os, sys, site, collections, inspect, logging
+import os, sys, site, collections, inspect, logging, re
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from PyQt4.QtCore import *
@@ -34,6 +34,25 @@ class ApplicationRegistry(QObject):
         self.processingAlgManager = self.enmapBox.processingAlgManager
         self.appList = collections.OrderedDict()
 
+    def addApplicationPackageFile(self, appPkgFile):
+        assert isinstance(appPkgFile, str)
+        assert os.path.isfile(appPkgFile)
+
+        lines = open(appPkgFile).readlines()
+        lines = [l.strip() for l in lines]
+        lines = [l for l in lines if len(l) > 0 and not l.startswith('#')]
+        from enmapbox.gui.utils import DIR_REPO as ROOT
+        lines = [(l if os.path.isabs(l) else os.path.join(ROOT, l)) for l in lines]
+        lines = [l for l in lines if os.path.isdir(l)]
+        for appPath in lines:
+            appDir = os.path.normpath(os.path.dirname(appPath))
+            if not appDir in sys.path:
+                sys.path.append(appDir)
+
+            self.addApplicationPackageSavely(appPath)
+
+
+
     def addApplicationPackageRootFolder(self, appPkgRootFolder):
         """
         Searches and loads the EnMAP-Box application packages located in appDir
@@ -50,14 +69,8 @@ class ApplicationRegistry(QObject):
             appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
             break
 
-        s  =""
         for appPackage in appPackages:
-            try:
-                if self.isApplicationPackage(appPackage):
-                    self.addApplicationPackage(appPackage)
-            except Exception as ex:
-                QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackage, str(ex))
-                                                    , level=QgsMessageLog.CRITICAL)
+           self.addApplicationPackageSavely(appPackage)
         return self
 
     def isApplicationPackage(self, appPackagePath):
@@ -88,6 +101,13 @@ class ApplicationRegistry(QObject):
 
         return True
 
+    def addApplicationPackageSavely(self, appPackagePath):
+        try:
+            if self.isApplicationPackage(appPackagePath):
+                self.addApplicationPackage(appPackagePath)
+        except Exception as ex:
+            QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackagePath, str(ex))
+                                                , level=QgsMessageLog.CRITICAL)
 
 
     def addApplicationPackage(self, appPackagePath):
