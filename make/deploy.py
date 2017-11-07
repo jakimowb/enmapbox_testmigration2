@@ -113,6 +113,8 @@ if __name__ == "__main__":
         for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
             os.remove(f)
 
+
+
     #5. create a zip
     print('Create zipfile...')
     from enmapbox.gui.utils import zipdir
@@ -127,7 +129,10 @@ if __name__ == "__main__":
     #6. copy to local QGIS user DIR
     if True:
         import shutil
-        pathQGIS = r'C:\Users\geo_beja\.qgis2\python\plugins'
+
+        from os.path import expanduser
+
+        pathQGIS = os.path.join(expanduser("~"), *['.qgis2','python','plugins'])
 
         assert os.path.isdir(pathQGIS)
         pathDst = os.path.join(pathQGIS, os.path.basename(dirPlugin))
