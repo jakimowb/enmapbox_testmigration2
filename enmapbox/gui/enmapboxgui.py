@@ -641,7 +641,7 @@ class EnMAPBox(QObject):
         if isinstance(dataSource, DataSourceRaster):
             self.sigRasterSourceAdded.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceVector):
-            self.sigDataSourceAdded.emit(dataSource.uri())
+            self.sigVectorSourceAdded.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceSpectralLibrary):
             self.sigSpectralLibraryAdded.emit(dataSource.uri())
 
