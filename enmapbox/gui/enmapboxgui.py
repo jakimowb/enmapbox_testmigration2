@@ -342,7 +342,7 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
     def __init__(self, parent=None):
         pm = QPixmap(':/enmapbox/splashscreen.png')
-        super(EnMAPBoxSplashScreen, self).__init__(pm, Qt.WindowStaysOnTopHint)
+        super(EnMAPBoxSplashScreen, self).__init__(pm)
 
     def showMessage(self, text, alignment=None, color=None):
         if alignment is None:
@@ -368,7 +368,7 @@ class EnMAPBox(QObject):
         assert EnMAPBox.instance() is None
         #necessary to make the resource file available
         from enmapbox.gui.ui import resources
-
+        resources.qInitResources()
         super(EnMAPBox, self).__init__()
         splash = EnMAPBoxSplashScreen(self)
         if not HIDE_SPLASHSCREEN:
