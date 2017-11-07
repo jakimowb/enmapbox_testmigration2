@@ -933,7 +933,7 @@ class DataSourceManager(QObject):
         #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
         # noinspection PyArgumentList
         from qgis.core import QgsMapLayerRegistry
-        QgsMapLayerRegistry.instance().layersAdded.connect(self.addSources)
+        QgsMapLayerRegistry.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
         QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
         try:
             from hubflow import signals
@@ -1026,6 +1026,19 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
         else:
             return []
+
+    def onMapLayerRegistryLayersAdded(self, lyrs):
+        #remove layers that should not be added automatically
+        lyrsToAdd = []
+        for lyr in lyrs:
+            if isinstance(lyr, QgsVectorLayer):
+                if lyr.dataProvider().dataSourceUri().startswith('memory?'):
+                    continue
+            lyrsToAdd.append(lyr)
+
+        self.addSources(lyrsToAdd)
+
+
 
     def addSources(self, sources):
         for s in sources:
