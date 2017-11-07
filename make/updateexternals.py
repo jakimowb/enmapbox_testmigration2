@@ -152,7 +152,7 @@ if __name__ == "__main__":
     #update remotes
     to_update = ['hub-datacube', 'hub-workflow','enmap-box-testdata','enmap-box-geoalgorithmsprovider']#enmap-box-geoalgorithmsprovider
     #to_update = ['objbrowser']
-    to_update = ['virtual-raster-builder']
+    #to_update = ['virtual-raster-builder']
     #to_update = ['hub-datacube']
     #to_update = ['enmap-box-testdata'] + to_update
     for p in to_update:
