@@ -157,15 +157,24 @@ def test_ClassificationSample():
 
 def test_Classifier():
     for alg in CLASSIFIERS_GA.values()[1:]:
+
+        # fit
         model = join(outdir, 'Classifier{}.pkl'.format(alg.name.replace(' ','')))
-        if alg.name in ['Fit RandomForestClassifier']:
-            continue
         io = {'sample':enmapClassificationSample,
               'parameters':alg.getParameterValue('parameters'),
               'model':model}
         runalg(alg, io)
         print(model)
         print(Classifier.unpickle(filename=model))
+
+        # predict
+        prediction = join(outdir, 'ClassifierPredict{}.img'.format(alg.name.split()[1]))
+        io = {'image':enmap, 'mask':enmapMask, 'model':model,
+              'prediction':prediction}
+        runalg(EstimatorPredict(group=CLASSIFIERS_GROUP), io)
+        print(Classification(filename=prediction))
+
+
 
 def test_Regressor():
     for alg in REGRESSORS_GA.values():
@@ -250,11 +259,11 @@ def printMenu():
             print('  {} ({})'.format(name, className))
 
 def run():
-    pass
+
     #test_Classification()
     #test_ClassificationPerformance()
     #test_ClassificationSample()
-    #test_Classifier()
+    test_Classifier()
     #test_Image()
     #test_Probability()
     #test_ProbabilitySample()
