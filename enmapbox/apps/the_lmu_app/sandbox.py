@@ -58,7 +58,7 @@ def sandboxGuiOnly():
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if True:
+    if False:
         sandboxGuiOnly()
     else:
         sandboxWithEnMapBox(loadPF=True)
