@@ -14,64 +14,49 @@ from timeit import default_timer as now
 import numpy
 from osgeo import gdal, osr, ogr
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
-from hubdc.model import Open, OpenLayer, CreateFromArray, Dataset, Band
-from hubdc import const
+from hubdc.model import Open, OpenLayer, CreateFromArray, Dataset, Band, PixelGrid
+import hubdc.model # needed for sphinx
 from hubdc.writer import Writer, WriterProcess, QueueMock
-from hubdc.model import PixelGrid
 from hubdc.progressbar import CUIProgressBar, ProgressBarDelegate
 
-#DEFAULT_INPUT_RESAMPLEALG = gdal.GRA_NearestNeighbour
-DEFAULT_GDALWARP_ERRORTHRESHOLD = 0.
-DEFAULT_GDALWARP_MEMORYLIMIT = 100 * 2 ** 20
-DEFAULT_GDALWARP_MULTITHREAD = False
-DEFAULT_OUTPUT_FORMAT = 'ENVI'
-DEFAULT_OUTPUT_CREATIONOPTIONS = dict()
-DEFAULT_OUTPUT_CREATIONOPTIONS['ENVI'] = ['INTERLEAVE=BSQ']
-DEFAULT_OUTPUT_CREATIONOPTIONS['GTiff'] = ['COMPRESS=LZW', 'INTERLEAVE=BAND', 'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256', 'SPARSE_OK=TRUE', 'BIGTIFF=YES']
+class Enum(object):
+    '''Enumerats for various settings used inside an applier processing chain.'''
+    class Footprint(object):
+        UNION = 0
+        INTERSECTION = 1
+    class Resolution(object):
+        MINIMUM = 0
+        MAXIMUM = 1
+        AVERAGE = 2
 
-def is3darray(array):
-    return isinstance(array, numpy.ndarray) and array.ndim == 3
+class Default(object):
+    '''Defaults values for various settings used inside an applier processing chain.'''
+    CREATEENVIHEADER = True
+    CREATIONOPTIONS = dict()
+    CREATIONOPTIONS['ENVI'] = ['INTERLEAVE=BSQ']
+    CREATIONOPTIONS['GTiff'] = ['COMPRESS=LZW', 'INTERLEAVE=BAND', 'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256', 'SPARSE_OK=TRUE', 'BIGTIFF=YES']
+    GDAL_CACHEMAX = 100*2**20
+    GDAL_SWATHSIZE = 100*2**20
+    GDAL_DISABLEREADDIRONOPEN = True
+    GDAL_MAXDATASETPOOLSIZE = 100
+    GDALWARP_ERRORTHRESHOLD = 0.
+    GDALWARP_MEMORYLIMIT = 100 * 2 ** 20
+    GDALWARP_MULTITHREAD = False
+    FOOTPRINTTYPE = Enum.Footprint.INTERSECTION
+    FORMAT = 'ENVI'
+    NWORKER = None
+    NWRITER = None
+    RESOLUTIONTYPE = Enum.Resolution.MINIMUM
+    WINDOWXSIZE = 256
+    WINDOWYSIZE = 256
 
-def is3darrayList(arrayList):
-    return isinstance(arrayList, list) and all([is3darray(array) for array in arrayList])
-
-def is3darrayDict(arrayDict):
-    return isinstance(arrayDict, dict) and all([is3darray(array) for array in arrayDict.values()])
-
-def is3darrayListOfLists(arrayListOfLists):
-    return isinstance(arrayListOfLists, list) and all([is3darrayList(arrayList) for arrayList in arrayListOfLists])
-
-def is3darrayListOfDicts(arrayListOfLists):
-    return isinstance(arrayListOfLists, list) and all([is3darrayDict(arrayList) for arrayList in arrayListOfLists])
-
-def is3darrayDictOfLists(arrayDictOfLists):
-    return isinstance(arrayDictOfLists, dict) and all([is3darrayList(arrayList) for arrayList in arrayDictOfLists.values()])
-
-def is3darrayDictOfDicts(arrayDictOfDicts):
-    return isinstance(arrayDictOfDicts, dict) and all([is3darrayDict(arrayDict) for arrayDict in arrayDictOfDicts.values()])
-
-def applierInputRasterGroupFromFolder(folder, extensions):
-
-    off = len(os.path._abspath_split(folder)[2])
-    group = ApplierInputRasterGroup()
-    for root, dirs, files in os.walk(folder):
-        key = '/'.join(os.path._abspath_split(root)[2][off:])
-        if key=='':
-            subgroup = group
-        else:
-            subgroup = group.getGroup(key=key)
-        for dir in dirs:
-            subgroup.setGroup(key=dir, value=ApplierInputRasterGroup())
-        for file in files:
-            for extension in extensions:
-                if file.endswith(extension):
-                    subgroup.setRaster(key=os.path.splitext(file)[0], value=ApplierInputRaster(filename=os.path.join(root, file)))
-    return group
-
-class ApplierInputRaster():
+class ApplierInputRaster(object):
+    '''Class for handling the raster dataset given by it's ``filename``.'''
 
     @classmethod
     def fromDataset(cls, dataset):
+        '''Create an input raster from an :class:`~hubdc.model.Dataset`.'''
+
         assert isinstance(dataset, Dataset)
         applierInputRaster = ApplierInputRaster(filename='')
         applierInputRaster._dataset = dataset
@@ -84,16 +69,19 @@ class ApplierInputRaster():
 
     @property
     def operator(self):
+        '''Returns the :class:`~hubdc.applier.ApplierOperator` object.'''
         assert isinstance(self._operator, ApplierOperator)
         return self._operator
 
     @operator.setter
     def operator(self, value):
+        '''Sets the :class:`~hubdc.applier.ApplierOperator` object.'''
         assert isinstance(value, ApplierOperator)
         self._operator = value
 
     @property
     def dataset(self):
+        '''Returns the :class:`~hubdc.model.Dataset` object associated with the input raster.'''
         if self._dataset is None:
             self._dataset = Open(filename=self.filename)
         assert isinstance(self._dataset, Dataset)
@@ -103,11 +91,27 @@ class ApplierInputRaster():
         self._dataset = None
 
     def getImageArray(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                      errorThreshold=DEFAULT_GDALWARP_ERRORTHRESHOLD,
-                      warpMemoryLimit=DEFAULT_GDALWARP_MEMORYLIMIT,
-                      multithread=DEFAULT_GDALWARP_MULTITHREAD):
+                      errorThreshold=Default.GDALWARP_ERRORTHRESHOLD,
+                      warpMemoryLimit=Default.GDALWARP_MEMORYLIMIT,
+                      multithread=Default.GDALWARP_MULTITHREAD,
+                      grid=None):
+        '''
+        Returns image data as 3-d numpy array.
 
-        dstGrid = self.operator.workingGrid.pixelBuffer(buffer=overlap)
+        :param overlap: the number of pixels to additionally read along each spatial dimension
+        :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
+        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
+        :param errorThreshold: error threshold for approximation transformer (in pixels)
+        :param warpMemoryLimit: size of working buffer in bytes
+        :param multithread: whether to multithread computation and I/O operations
+        :param grid: explicitly set the :class:`~hubdc.model.PixelGrid`, for which image data is returned
+        '''
+
+        if grid is None:
+            dstGrid = self.operator.workingGrid.pixelBuffer(buffer=overlap)
+        else:
+            dstGrid = grid
+
         if self.operator.workingGrid.equalProjection(self.dataset.pixelGrid):
             datasetResampled = self.dataset.translate(dstPixelGrid=dstGrid, dstName='', format='MEM',
                                                       resampleAlg=resampleAlg,
@@ -124,9 +128,20 @@ class ApplierInputRaster():
         return array
 
     def getBandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                     errorThreshold=DEFAULT_GDALWARP_ERRORTHRESHOLD,
-                     warpMemoryLimit=DEFAULT_GDALWARP_MEMORYLIMIT,
-                     multithread=DEFAULT_GDALWARP_MULTITHREAD):
+                     errorThreshold=Default.GDALWARP_ERRORTHRESHOLD,
+                     warpMemoryLimit=Default.GDALWARP_MEMORYLIMIT,
+                     multithread=Default.GDALWARP_MULTITHREAD):
+        '''
+        Returns a band subset of the image data as 3-d numpy array.
+
+        :param indicies: list of band indicies
+        :param overlap: the number of pixels to additionally read along each spatial dimension
+        :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
+        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
+        :param errorThreshold: error threshold for approximation transformer (in pixels)
+        :param warpMemoryLimit: size of working buffer in bytes
+        :param multithread: whether to multithread computation and I/O operations
+        '''
 
         if isinstance(indicies, int):
             indicies = [indicies]
@@ -159,6 +174,14 @@ class ApplierInputRaster():
         return array
 
     def getFractionArray(self, categories, overlap=0, noData=None, index=None):
+        '''
+        Returns a stack of category fractions for the given ``categories`` as a 3-d numpy array.
+
+        :param categories: list of categories of interest
+        :param overlap: the number of pixels to additionally read along each spatial dimension
+        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
+        :param index: index to the band holding the categories
+        '''
 
         assert self.dataset.zsize == 1 or index is not None
         if index is None:
@@ -180,12 +203,32 @@ class ApplierInputRaster():
         array = binarizedInputRaster.getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Average)
         return array
 
+    def getImageSample(self, mask, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+                      errorThreshold=Default.GDALWARP_ERRORTHRESHOLD,
+                      warpMemoryLimit=Default.GDALWARP_MEMORYLIMIT,
+                      multithread=Default.GDALWARP_MULTITHREAD):
+
+        assert isinstance(mask, numpy.ndarray)
+        assert mask.dtype == numpy.bool
+        assert mask.ndim == 3
+        assert mask.shape[0] == 1
+        assert mask.shape[1:] == self.operator.workingGrid.shape
+
+        ys, xs = numpy.indices(mask.shape[1:])[:, mask[0]]
+        profiles = list()
+        for y, x in zip(ys, xs):
+            grid = self.operator.workingGrid.subsetPixelWindow(xoff=x, yoff=y, width=1, height=1)
+            profiles.append(self.getImageArray(resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
+                            warpMemoryLimit=warpMemoryLimit, multithread=multithread, grid=grid))
+        profiles = numpy.hstack(profiles)[:,:,0]
+        return profiles
+
     def getMetadataItem(self, key, domain):
         """Return a metadata item."""
         return self.dataset.getMetadataItem(key=key, domain=domain)
 
     def getMetadataDict(self):
-        """Return metadata dictionary."""
+        """Return metadata as a dictionary."""
         meta = dict()
         for domain in self.dataset.getMetadataDomainList():
             meta[domain] = dict()
@@ -343,7 +386,7 @@ class ApplierInputVector(object):
                                  xRes=self.operator.workingGrid.xRes, yRes=self.operator.workingGrid.yRes)
         return raster.dataset.readAsArray()
 
-    def getFractionArray(self, categories, categoryAttribute=None, oversampling=10, overlap=0):
+    def getFractionArray(self, categories, categoryAttribute=None, oversampling=10, xRes=None, yRes=None, overlap=0):
         '''Returns aggregated category fractions of the current block in form of a 3d numpy array.
 
         :param categories: list of categories (numbers or names)
@@ -352,8 +395,10 @@ class ApplierInputVector(object):
         :param overlap: the amount of margin (number of pixels) added to the image data block in each direction, so that the blocks will overlap; this is important for spatial operators like filters.
         '''
 
-        xRes = self.operator.workingGrid.xRes / float(oversampling)
-        yRes = self.operator.workingGrid.yRes / float(oversampling)
+        if xRes is None:
+            xRes = self.operator.workingGrid.xRes / float(oversampling)
+        if yRes is None:
+            yRes = self.operator.workingGrid.yRes / float(oversampling)
 
         array = list()
         for category in categories:
@@ -371,10 +416,10 @@ class ApplierOutputRaster(object):
     def __init__(self, filename, format=None, creationOptions=None):
         self._filename = filename
         if format is None:
-            format = DEFAULT_OUTPUT_FORMAT
+            format = Default.FORMAT
         self.format = format
         if creationOptions is None:
-            creationOptions = DEFAULT_OUTPUT_CREATIONOPTIONS.get(self.format, [])
+            creationOptions = Default.CREATIONOPTIONS.get(self.format, [])
         self.creationOptions = creationOptions
         self._operator = None
         self._writerQueue = None
@@ -577,6 +622,31 @@ class ApplierIOGroup(object):
 
 class ApplierInputRasterGroup(ApplierIOGroup):
 
+    @classmethod
+    def fromFolder(cls, folder, extensions, filter=None):
+        assert isinstance(extensions, list)
+        off = len(os.path._abspath_split(folder)[2])
+        group = ApplierInputRasterGroup()
+        for root, dirs, files in os.walk(folder):
+            key = '/'.join(os.path._abspath_split(root)[2][off:])
+            if key == '':
+                subgroup = group
+            else:
+                subgroup = group.getGroup(key=key)
+            for dir in dirs:
+                subgroup.setGroup(key=dir, value=ApplierInputRasterGroup())
+            for file in files:
+                fileBasenameWithoutExtension, fileExtension = os.path.splitext(file)
+                for extension in extensions:
+                    if extension != '': assert extension[0] == '.'
+                    if fileExtension[1:].lower() != extension.lower():
+                        continue
+                    if filter is not None:
+                        if not filter(root=root, basename=fileBasenameWithoutExtension, extension=fileExtension):
+                            continue
+                    subgroup.setRaster(key=fileBasenameWithoutExtension, value=ApplierInputRaster(filename=os.path.join(root, file)))
+        return group
+
     def setRaster(self, key, value):
         assert isinstance(value, ApplierInputRaster)
         return ApplierIOGroup._setItem(self, key=key, value=value)
@@ -613,7 +683,7 @@ class ApplierInputRasterGroup(ApplierIOGroup):
     def getRasterKeys(self):
         for k, v in self.items.items():
             if isinstance(v, ApplierInputRaster):
-                assert isinstance(input, str)
+                assert isinstance(k, str)
                 yield k
 
     def findRaster(self, endswith=None):
@@ -689,33 +759,6 @@ class Applier(object):
     def mainGrid(self):
         assert isinstance(self._mainGrid, PixelGrid)
         return self._mainGrid
-
-    '''def setInputVector(self, name, filename, layer=0):
-        """
-        Define a new input vector layer named ``name``, that is located at ``filename``.
-
-        :param name: name of the vector layer
-        :param filename: filename of the vector layer
-        :type filename:
-        :param layer: specify the layer to be used from the vector datasource
-        """
-        self.inputVector[name] = _createApplierInputVector(filename=filename, layerNameOrIndex=layer)
-
-    def setOutputRaster(self, name, filename, format=DEFAULT_OUTPUT_FORMAT, creationOptions=None, options=None):
-        """
-        Define a new output raster named ``name``, that will be created at ``filename``.
-
-        :param name: name of the raster
-        :param filename: filename of the raster
-        :param format: see `GDAL Raster Formats <http://www.gdal.org/formats_list.html>`_
-        :param creationOptions: see the `Creation Options` section for the specific `GDAL Raster Format`.
-                                Predefined default creation options are used if set to ``None``.
-        """
-
-        if creationOptions is None:
-            creationOptions = DEFAULT_OUTPUT_CREATIONOPTIONS.get(format, None)
-
-        self.outputRaster[name] = ApplierOutputRaster(filename=filename, format=format, creationOptions=creationOptions)'''
 
     def apply(self, operator=None, description=None, overwrite=True, *ufuncArgs, **ufuncKwargs):
         """
@@ -1106,8 +1149,7 @@ class ApplierControls(object):
         self.progressBar = ProgressBarDelegate(progressBar=progressBar)
         return self
 
-    DEFAULT_WINDOWXSIZE = 256
-    def setWindowXSize(self, windowxsize=DEFAULT_WINDOWXSIZE):
+    def setWindowXSize(self, windowxsize=Default.WINDOWXSIZE):
         """
         Set the X size of the blocks used. Images are processed in blocks (windows)
         of 'windowxsize' columns, and 'windowysize' rows.
@@ -1116,8 +1158,7 @@ class ApplierControls(object):
         self.windowxsize = windowxsize
         return self
 
-    DEFAULT_WINDOWYSIZE = 256
-    def setWindowYSize(self, windowysize=DEFAULT_WINDOWYSIZE):
+    def setWindowYSize(self, windowysize=Default.WINDOWYSIZE):
         """
         Set the Y size of the blocks used. Images are processed in blocks (windows)
         of 'windowxsize' columns, and 'windowysize' rows.
@@ -1136,8 +1177,7 @@ class ApplierControls(object):
         self.setWindowYSize(veryLargeNumber)
         return self
 
-    DEFAULT_NWORKER = None
-    def setNumThreads(self, nworker=DEFAULT_NWORKER):
+    def setNumThreads(self, nworker=Default.NWORKER):
         """
         Set the number of pool worker for multiprocessing. Set to None to disable multiprocessing (recommended for debugging).
         """
@@ -1148,16 +1188,14 @@ class ApplierControls(object):
         self.nworker = nworker
         return self
 
-    DEFAULT_NWRITER = None
-    def setNumWriter(self, nwriter=DEFAULT_NWRITER):
+    def setNumWriter(self, nwriter=Default.NWRITER):
         """
         Set the number of writer processes. Set to None to disable multiwriting (recommended for debugging).
         """
         self.nwriter = nwriter
         return self
 
-    DEFAULT_CREATEENVIHEADER = True
-    def setCreateEnviHeader(self, createEnviHeader=DEFAULT_CREATEENVIHEADER):
+    def setCreateEnviHeader(self, createEnviHeader=Default.CREATEENVIHEADER):
         """
         Set to True to create additional ENVI header files for all output rasters.
         The header files store all metadata items from the GDAL PAM ENVI domain,
@@ -1167,16 +1205,14 @@ class ApplierControls(object):
         self.createEnviHeader = createEnviHeader
         return self
 
-    DEFAULT_FOOTPRINTTYPE = const.FOOTPRINT_UNION
-    def setAutoFootprint(self, footprintType=DEFAULT_FOOTPRINTTYPE):
+    def setAutoFootprint(self, footprintType=Default.FOOTPRINTTYPE):
         """
         Derive extent of the reference pixel grid from input files. Possible options are 'union' or 'intersect'.
         """
         self.footprintType = footprintType
         return self
 
-    DEFAULT_RESOLUTIONTYPE = const.RESOLUTION_MINIMUM
-    def setAutoResolution(self, resolutionType=DEFAULT_RESOLUTIONTYPE):
+    def setAutoResolution(self, resolutionType=Default.RESOLUTIONTYPE):
         """
         Derive resolution of the reference pixel grid from input files. Possible options are 'minimum', 'maximum' or 'average'.
         """
@@ -1208,10 +1244,20 @@ class ApplierControls(object):
         self.projection = projection
         return self
 
+    def setProjectionFromEPSG(self, epsg=None):
+        """
+        Set projection of the reference pixel grid .
+        """
+        projection = osr.SpatialReference()
+        projection.ImportFromEPSG(int(epsg))
+        self.setProjection(projection=projection)
+        return self
+
     def setReferenceGrid(self, grid=None):
         """
         Set the reference pixel grid. Pass an instance of the :py:class:`~hubdc.model.PixelGrid.PixelGrid` class.
         """
+        assert grid is None or isinstance(grid, PixelGrid)
         self.referenceGrid = grid
         return self
 
@@ -1238,45 +1284,41 @@ class ApplierControls(object):
     def setDisableWindowTrimToFootprint(self, disable=False):
         self.disableWindowTrimToFootprint = disable
 
-    DEFAULT_GDALCACHEMAX = 100*2**20
-    def setGDALCacheMax(self, bytes=DEFAULT_GDALCACHEMAX):
+    def setGDALCacheMax(self, bytes=Default.GDAL_CACHEMAX):
         """
         For details see the `GDAL_CACHEMAX Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX>`_.
         """
         self.cacheMax = bytes
         return self
 
-    DEFAULT_GDALSWATHSIZE = 100*2**20
-    def setGDALSwathSize(self, bytes=DEFAULT_GDALSWATHSIZE):
+    def setGDALSwathSize(self, bytes=Default.GDAL_SWATHSIZE):
         """
         For details see the `GDAL_SWATH_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_SWATH_SIZE>`_.
         """
         self.swathSize = bytes
         return self
 
-    DEFAULT_GDALDISABLEREADDIRONOPEN = True
-    def setGDALDisableReadDirOnOpen(self, disable=DEFAULT_GDALDISABLEREADDIRONOPEN):
+    def setGDALDisableReadDirOnOpen(self, disable=Default.GDAL_DISABLEREADDIRONOPEN):
         """
         For details see the `GDAL_DISABLE_READDIR_ON_OPEN Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_DISABLE_READDIR_ON_OPEN>`_.
         """
         self.disableReadDirOnOpen = disable
         return self
 
-    DEFAULT_GDALMAXDATASETPOOLSIZE = 100
-    def setGDALMaxDatasetPoolSize(self, nfiles=DEFAULT_GDALMAXDATASETPOOLSIZE):
+    def setGDALMaxDatasetPoolSize(self, nfiles=Default.GDAL_MAXDATASETPOOLSIZE):
         """
         For details see the `GDAL_MAX_DATASET_POOL_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_MAX_DATASET_POOL_SIZE>`_.
         """
         self.maxDatasetPoolSize = nfiles
         return self
 
-    def setGDALWarpErrorThreshold(self, errorThreshold=DEFAULT_GDALWARP_ERRORTHRESHOLD):
+    def setGDALWarpErrorThreshold(self, errorThreshold=Default.GDALWARP_ERRORTHRESHOLD):
         self.gdalWarpErrorThreshold = errorThreshold
 
-    def setGDALWarpMemoryLimit(self, memoryLimit=DEFAULT_GDALWARP_MEMORYLIMIT):
+    def setGDALWarpMemoryLimit(self, memoryLimit=Default.GDALWARP_MEMORYLIMIT):
         self.gdalWarpMemoryLimit = memoryLimit
 
-    def setGDALWarpMultithread(self, multithread=DEFAULT_GDALWARP_MULTITHREAD):
+    def setGDALWarpMultithread(self, multithread=Default.GDALWARP_MULTITHREAD):
         self.gdalWarpMultithread = multithread
 
     @property
@@ -1319,12 +1361,12 @@ class ApplierControls(object):
             xMins, xMaxs, yMins, yMaxs = numpy.array([grid.reprojectExtent(targetProjection=projection) for grid in grids]).T
 
 
-            if self.footprintType == const.FOOTPRINT_UNION:
+            if self.footprintType == Enum.Footprint.UNION:
                 xMin = xMins.min()
                 xMax = xMaxs.max()
                 yMin = yMins.min()
                 yMax = yMaxs.max()
-            elif self.footprintType == const.FOOTPRINT_INTERSECTION:
+            elif self.footprintType == Enum.Footprint.INTERSECTION:
                 xMin = xMins.max()
                 xMax = xMaxs.min()
                 yMin = yMins.max()
@@ -1344,13 +1386,13 @@ class ApplierControls(object):
         if self.xRes is None or self.yRes is None:
             xResList = numpy.array([grid.xRes for grid in grids])
             yResList = numpy.array([grid.yRes for grid in grids])
-            if self.resolutionType == const.RESOLUTION_MINIMUM:
+            if self.resolutionType == Enum.Resolution.MINIMUM:
                 xRes = xResList.min()
                 yRes = yResList.min()
-            elif self.resolutionType == const.RESOLUTION_MAXIMUM:
+            elif self.resolutionType == Enum.Resolution.MAXIMUM:
                 xRes = xResList.max()
                 yRes = yResList.max()
-            elif self.resolutionType == const.RESOLUTION_AVERAGE:
+            elif self.resolutionType == Enum.Resolution.AVERAGE:
                 xRes = xResList.mean()
                 yRes = yResList.mean()
             else:
