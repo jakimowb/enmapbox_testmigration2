@@ -898,7 +898,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                             r.setGrayBand(rgb[0])
 
                     elif len(rgb) == 1:
-                        
+
                         if isinstance(r, QgsMultiBandColorRenderer):
                             r.setRedBand(rgb[0])
                             r.setGreenBand(rgb[0])

@@ -110,17 +110,22 @@ ALGORITHMS.append(ClassificationSampleSynthMix())
 
 class EstimatorFit(EnMAPGeoAlgorithm):
 
-    def defineCharacteristics(self):
-        self.name = 'Fit '+TMP_NAME
-        self.group = TMP_GROUP
+    def __init__(self, name, group, code):
+        self._name = 'Fit ' + name
+        self._group = group
+        self.code = code
+        EnMAPGeoAlgorithm.__init__(self)
 
+    def defineCharacteristics(self):
+        self.name = self._name
+        self.group = self._group
         if self.group == REGRESSORS_GROUP:
             self.addParameter(ParameterFile('sample', 'RegressionSample', optional=False))
         elif self.group == CLASSIFIERS_GROUP:
             self.addParameter(ParameterFile('sample', 'ClassificationSample', optional=False))
         else:
             assert 0
-        self.addParameter(ParameterString('parameters', 'Parameters', TMP_ESTIMATOR, multiline=True))
+        self.addParameter(ParameterString('parameters', 'Parameters', self.code, multiline=True))
         self.addOutput(OutputFile('model', 'Fitted Model', ext='pkl'))
 
     def processAlgorithm(self, progressBar):
@@ -149,11 +154,14 @@ class EstimatorFit(EnMAPGeoAlgorithm):
 
 class EstimatorPredict(EnMAPGeoAlgorithm):
 
+    def __init__(self, group):
+        self._name = 'Predict ' + group
+        self._group = group
+        EnMAPGeoAlgorithm.__init__(self)
+
     def defineCharacteristics(self):
-
-        self.name = 'Predict ' + TMP_GROUP
-        self.group = TMP_GROUP
-
+        self.name = self._name
+        self.group = self._group
         self.addParameter(ParameterRaster('image', 'Image'))
         self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
         if self.group == REGRESSORS_GROUP:
@@ -173,13 +181,13 @@ class EstimatorPredict(EnMAPGeoAlgorithm):
             assert 0
         image = Image(filename=self.getParameterValue('image'))
         mask = Mask(filename=self.getParameterValue('mask'))
-        estimator.predict(predictionFilename=self.getOutputValue('prediction'), image=image, mask=mask, progressBar=progressBar)
+        estimator.predict(filename=self.getOutputValue('prediction'), image=image, mask=mask, progressBar=progressBar)
 
     def help(self):
         if self.group == REGRESSORS_GROUP:
             return True, 'Returns a Regression.'
         elif self.group == CLASSIFIERS_GROUP:
-            return True, 'Returns a Classifier.'
+            return True, 'Returns a Classification.'
         else:
             assert 0
 
@@ -188,12 +196,12 @@ REGRESSORS = parseRegressors()
 CLASSIFIERS_GA = dict()
 REGRESSORS_GA = dict()
 CLASSIFIERS_GROUP, REGRESSORS_GROUP = 'Classification', 'Regression'
-for TMP_GROUP, TMP_ESTIMATORS in [(CLASSIFIERS_GROUP, CLASSIFIERS), (REGRESSORS_GROUP, REGRESSORS)]:
-    for TMP_NAME, TMP_ESTIMATOR in TMP_ESTIMATORS.items():
-        ALGORITHMS.append(EstimatorFit())
-        if TMP_GROUP==CLASSIFIERS_GROUP: CLASSIFIERS_GA[TMP_NAME] = ALGORITHMS[-1]
-        if TMP_GROUP==REGRESSORS_GROUP: REGRESSORS_GA[TMP_NAME] = ALGORITHMS[-1]
-    ALGORITHMS.append(EstimatorPredict())
+for group, estimators in [(CLASSIFIERS_GROUP, CLASSIFIERS), (REGRESSORS_GROUP, REGRESSORS)]:
+    for name, code in estimators.items():
+        ALGORITHMS.append(EstimatorFit(name=name, group=group, code=code))
+        if group==CLASSIFIERS_GROUP: CLASSIFIERS_GA[name] = ALGORITHMS[-1]
+        if group==REGRESSORS_GROUP: REGRESSORS_GA[name] = ALGORITHMS[-1]
+    ALGORITHMS.append(EstimatorPredict(group=group))
 
 class ClassificationSampleFromClassification(EnMAPGeoAlgorithm):
 
