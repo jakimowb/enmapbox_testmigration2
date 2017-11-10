@@ -1,5 +1,0 @@
-FOOTPRINT_UNION = 'union'
-FOOTPRINT_INTERSECTION = 'intersection'
-RESOLUTION_MINIMUM = 'minimun'
-RESOLUTION_MAXIMUM = 'maximum'
-RESOLUTION_AVERAGE = 'average'
