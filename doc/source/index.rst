@@ -16,27 +16,33 @@ Example
 
 ::
 
-
     """
-    Reads in two input files and adds them together.
-    Assumes that they have the same number of bands.
+    Calculate Normalized Difference Vegetation Index (NDVI) for a Landsat 5.
     """
 
-    from hubdc import Applier
+    import tempfile
+    import os
+    import numpy
+    from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
+    from hubdc.testdata import LT51940232010189KIS01
 
     # Set up input and output filenames.
     applier = Applier()
-    applier.setInput('image1', filename='file1.img')
-    applier.setInput('image2', filename='file2.img')
-    applier.setOutput('outimage', filename='outfile.img')
+    applier.inputRaster.setRaster(key='red', value=ApplierInputRaster(filename=LT51940232010189KIS01.red))
+    applier.inputRaster.setRaster(key='nir', value=ApplierInputRaster(filename=LT51940232010189KIS01.nir))
+    applier.outputRaster.setRaster(key='ndvi', value=ApplierOutputRaster(filename=os.path.join(tempfile.gettempdir(), 'ndvi.img')))
 
     # Set up the operator to be applied
-    def addThem(operator):
-        outimage = operator.getArray('image1') + operator.getArray('image2')
-        operator.setArray('outimage', array=outimage)
+    class NDVIOperator(ApplierOperator):
+        def ufunc(operator):
+            red = operator.inputRaster.getRaster(key='red').getImageArray()
+            nir = operator.inputRaster.getRaster(key='nir').getImageArray()
+            ndvi = numpy.float32(nir-red)/(nir+red)
+            operator.outputRaster.getRaster(key='ndvi').setImageArray(array=ndvi)
 
     # Apply the operator to the inputs, creating the outputs.
-    applier.apply(addThem)
+    applier.apply(operator=NDVIOperator)
+    print(applier.outputRaster.getRaster(key='ndvi').filename)
 
 
 See :doc:`ApplierExamples` for more information.
@@ -48,6 +54,8 @@ See :doc:`ApplierExamples` for more information.
     ApplierExamples.rst
     Downloads.rst
     hubdc_applier.rst
-
+    hubdc_model.rst
+    hubdc_testdata.rst
+    indices.rst
 
 .. codeauthor:: Andreas Rabe

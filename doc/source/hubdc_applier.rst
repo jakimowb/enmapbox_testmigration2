@@ -1,6 +1,6 @@
-=====================================================
-Processing Raster and Vector files with hubdc.applier
-=====================================================
+=======================
+Applier (hubdc.applier)
+=======================
 
 .. automodule:: hubdc.applier
     :members:
