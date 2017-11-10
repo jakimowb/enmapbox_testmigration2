@@ -881,23 +881,30 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
             if isinstance(lyr, QgsRasterLayer):
                 r = lyr.renderer()
-                ds = gdal.Open(lyr.source())
-                if isinstance(rgb, str):
-                    if re.search('DEFAULT', rgb):
-                        rgb = defaultBands(ds)
-                    else:
-                        rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
-                assert isinstance(rgb, list)
-                if len(rgb) == 3:
+                if isinstance(r, QgsRasterRenderer):
+                    ds = gdal.Open(lyr.source())
+                    if isinstance(rgb, str):
+                        if re.search('DEFAULT', rgb):
+                            rgb = defaultBands(ds)
+                        else:
+                            rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
+                    assert isinstance(rgb, list)
+                    if len(rgb) == 3:
+                        if isinstance(r, QgsMultiBandColorRenderer):
+                            r.setRedBand(rgb[0])
+                            r.setGreenBand(rgb[1])
+                            r.setBlueBand(rgb[2])
+                        if isinstance(r, QgsSingleBandGrayRenderer):
+                            r.setGrayBand(rgb[0])
 
-                    if isinstance(r, QgsMultiBandColorRenderer):
-                        r.setRedBand(rgb[0])
-                        r.setGreenBand(rgb[1])
-                        r.setBlueBand(rgb[2])
-                elif len(rgb) == 1:
-                    r.setRedBand(rgb[0])
-                    r.setGreenBand(rgb[0])
-                    r.setBlueBand(rgb[0])
+                    elif len(rgb) == 1:
+                        
+                        if isinstance(r, QgsMultiBandColorRenderer):
+                            r.setRedBand(rgb[0])
+                            r.setGreenBand(rgb[0])
+                            r.setBlueBand(rgb[0])
+                        if isinstance(r, QgsSingleBandGrayRenderer):
+                            r.setGrayBand(rgb[0])
 
             elif isinstance(lyr, QgsVectorLayer):
 
