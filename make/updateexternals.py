@@ -28,6 +28,7 @@ REPO = git.Repo(DIR_REPO)
 
 REMOTEINFOS = dict()
 
+
 class RemoteInfo(object):
     @staticmethod
     def create(*args, **kwds):
@@ -59,46 +60,47 @@ class RemoteInfo(object):
         if self.prefixRemote is None or len(self.prefixRemote) == 0:
             return self.remoteBranch
         else:
-            return self.remoteBranch+':'+self.prefixRemote
+            return self.remoteBranch + ':' + self.prefixRemote
 
-#specifiy remote branches
+
+# specifiy remote branches
 RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
-                  prefixLocal = r'site-packages/pyqtgraph')
+                  prefixLocal=r'site-packages/pyqtgraph')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
-                  prefixLocal = r'enmapboxtestdata',
-                  prefixRemote = r'enmapboxtestdata',
+                  prefixLocal=r'enmapboxtestdata',
+                  prefixRemote=r'enmapboxtestdata',
                   )
 
 RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
-                  prefixLocal = r'site-packages/vrtbuilder',
-                  prefixRemote = r'vrtbuilder',
+                  prefixLocal=r'site-packages/vrtbuilder',
+                  prefixRemote=r'vrtbuilder',
                   )
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-                  prefixLocal  = r'enmapboxgeoalgorithms',
-                  prefixRemote = r'enmapboxgeoalgorithms')
+                  prefixLocal=r'enmapboxgeoalgorithms',
+                  prefixRemote=r'enmapboxgeoalgorithms')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
-                  prefixLocal = r'site-packages/hubdc',
-                  prefixRemote = r'hubdc',
+                  prefixLocal=r'site-packages/hubdc',
+                  prefixRemote=r'hubdc',
                   excluded=['gis'])
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
-                  prefixLocal = r'site-packages/hubflow',
-                  prefixRemote = r'hubflow')
+                  prefixLocal=r'site-packages/hubflow',
+                  prefixRemote=r'hubflow')
 
 RemoteInfo.create(r'https://github.com/titusjan/objbrowser.git',
-                  prefixLocal = r'site-packages/objbrowser',
-                  prefixRemote = r'objbrowser')
+                  prefixLocal=r'site-packages/objbrowser',
+                  prefixRemote=r'objbrowser')
 
 
 def updateRemote(remoteInfo):
     if isinstance(remoteInfo, str):
         remoteInfo = REMOTEINFOS[remoteInfo]
 
-    #see https://stackoverflow.com/questions/23937436/add-subdirectory-of-remote-repo-with-git-subtree
-    #see https://blisqu.wordpress.com/2012/09/08/merge-subdirectory-from-another-git-repository/
+    # see https://stackoverflow.com/questions/23937436/add-subdirectory-of-remote-repo-with-git-subtree
+    # see https://blisqu.wordpress.com/2012/09/08/merge-subdirectory-from-another-git-repository/
     assert isinstance(remoteInfo, RemoteInfo)
     remote = REPO.remote(remoteInfo.key)
 
@@ -109,18 +111,18 @@ def updateRemote(remoteInfo):
         info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal, r=True, f=True)])
         print(info)
 
-
     info = ''.join([i for i in REPO.git.read_tree(prefix=remoteInfo.prefixLocal, u='{key}/{path}'.format(
         key=remoteInfo.key, path=remoteInfo.remotePath()
     ))])
     print(info)
 
-    #remove excluded files
+    # remove excluded files
     for e in remoteInfo.excluded:
-        info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal+'/'+e, r=True, f=True)])
+        info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal + '/' + e, r=True, f=True)])
         print(info)
 
     print('Update {} done'.format(remoteInfo.key))
+
 
 def addRemote(remoteInfo):
     assert isinstance(remoteInfo, RemoteInfo)
@@ -134,10 +136,10 @@ def addRemote(remoteInfo):
     newRemote = REPO.create_remote(remoteInfo.key, remoteInfo.uri)
     newRemote.fetch(remoteInfo.remoteBranch)
 
+
 if __name__ == "__main__":
 
-
-    #check existing remotes
+    # check existing remotes
     print('Remotes:')
     existingRemoteNames = [r.name for r in REPO.remotes if r.name != 'origin']
     for rn in existingRemoteNames:
@@ -149,12 +151,13 @@ if __name__ == "__main__":
             print('Need to add {}'.format(rn))
             addRemote(REMOTEINFOS[rn])
 
-    #update remotes
-    to_update = ['hub-datacube', 'hub-workflow','enmap-box-testdata','enmap-box-geoalgorithmsprovider']#enmap-box-geoalgorithmsprovider
-    #to_update = ['objbrowser']
-    #to_update = ['virtual-raster-builder']
-    #to_update = ['hub-datacube']
-    #to_update = ['enmap-box-testdata'] + to_update
+    # update remotes
+    to_update = ['hub-datacube', 'hub-workflow', 'enmap-box-testdata',
+                 'enmap-box-geoalgorithmsprovider']  # enmap-box-geoalgorithmsprovider
+    # to_update = ['objbrowser']
+    # to_update = ['virtual-raster-builder']
+    # to_update = ['hub-datacube']
+    # to_update = ['enmap-box-testdata'] + to_update
     for p in to_update:
         updateRemote(p)
 
