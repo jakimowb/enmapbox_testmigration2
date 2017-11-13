@@ -5,8 +5,8 @@ Calculate Normalized Difference Vegetation Index (NDVI) for a Landsat 5 scene an
 import tempfile
 import os
 import numpy
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierInputRasterArchive, ApplierInputRasterGroup
-from hubdc.examples.testdata import LT51940232010189KIS01, BrandenburgDistricts
+from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierInputRasterIndex, ApplierInputRasterGroup
+from hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
 
 # Set up input and output filenames.
 applier = Applier()
@@ -26,20 +26,23 @@ scene = row024.setGroup(key='LT51940242010189KIS01', value=ApplierInputRasterGro
 scene.setRaster(key='LT51940242010189KIS01_cfmask', value=ApplierInputRaster(filename=r'C:\Work\data\gms\landsat\194\024\LT51940242010189KIS01\LT51940242010189KIS01_cfmask.img'))
 
 applier.inputRaster.setGroup(key='landsat', value=ApplierInputRasterGroup.fromFolder(folder=r'C:\Work\data\gms\landsat',
-                                                                                     extensions=['img'],
-                                                                                     filter=lambda root, basename, extension: basename.endswith('cfmask')))
+                                                                                     extensions=['.img'],
+                                                                                     ufunc=lambda root, basename, extension: basename.endswith('cfmask')))
 
 class Operator(ApplierOperator):
     def ufunc(operator):
         # access individual dataset
         cfmask = operator.inputRaster.getGroup(key='194').getGroup(key='023').getGroup(key='LC81940232015235LGN00').getRaster(key='LC81940232015235LGN00_cfmask')
         array = cfmask.getImageArray()
+        # ... or
+        cfmask = operator.inputRaster.getRaster(key='194/023/LC81940232015235LGN00/LC81940232015235LGN00_cfmask')
+
 
         # iterate over all datasets
         for path in operator.inputRaster.getGroups():
             for row in path.getGroups():
                 for scene in row.getGroups():
-                    key = scene.findRaster(endswith='cfmask')
+                    key = scene.findRaster(filteendswith='cfmask')
                     cfmask = scene.getRaster(key=key)
                     array = cfmask.getImageArray()
 

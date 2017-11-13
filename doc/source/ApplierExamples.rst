@@ -241,11 +241,12 @@ from all inputs.
 To alter this default behaviour, use for example the :meth:`~hubdc.applier.ApplierControls.setAutoFootprint`
 methods of the ``applier.controls`` object to change the footprint type to *intersection*::
 
-    applier.controls.setAutoFootprint(footprintType='intersection')
+    from hubdc.applier import Enum
+    applier.controls.setAutoFootprint(footprintType=Enum.Footprint.INTERSECTION)
 
 Or use :meth:`~hubdc.applier.ApplierControls.setAutoResolution` to set the resolution type to *average* or *maximum*::
 
-    applier.controls.setAutoResolution(resolutionType='average')
+    applier.controls.setAutoResolution(resolutionType=Enum.Resolution.AVERAGE)
 
 Or explicitly define the reference pixel grid in terms of
 pixel resolution (use :meth:`~hubdc.applier.ApplierControls.setResolution`),
@@ -265,7 +266,7 @@ Arbitrary Numbers of Input (and Output) Files Example
 =====================================================
 
 As mentioned before, the applier members ``applier.inputRaster``, ``applier.inputVector`` and ``applier.outputRaster``
-are container object of type
+are container objects of type
 :class:`~hubdc.applier.ApplierInputRasterGroup`,
 :class:`~hubdc.applier.ApplierInputVectorGroup` and
 :class:`~hubdc.applier.ApplierOutputRasterGroup` respectively.
@@ -327,7 +328,7 @@ which takes a ``folder`` and searches recursively for all raster matching the gi
 
     filter = lambda root, basename, extension: basename.endswith('cfmask'))
     applier.inputRaster.setGroup(key='landsat', value=ApplierInputRasterGroup.fromFolder(folder=r'C:\Work\data\gms\landsat',
-                                                                                         extensions=['img'],
+                                                                                         extensions=['.img'],
                                                                                          filter=filter)
 
 Inside the operator ufunc, individual datasets can then be accessed as follows::
@@ -337,6 +338,10 @@ Inside the operator ufunc, individual datasets can then be accessed as follows::
         cfmask = operator.inputRaster.getGroup(key='landsat').getGroup(key='194').getGroup(key='023').getGroup(key='LC81940232015235LGN00').getRaster(key='LC81940232015235LGN00_cfmask')
         array = cfmask.getImageArray()
 
+Or as a shortcut to this it is possible to also use key concatenation like so::
+
+        cfmask = operator.inputRaster.getRaster(key='landsat/194/023/LC81940232015235LGN00/LC81940232015235LGN00_cfmask')
+
 To visit all datasets, the structure can be iterated in accordance to how it was created, from landsat, over pathes, over rows, over scenes, to the cfmask rasters::
 
     def ufunc(operator):
@@ -345,8 +350,7 @@ To visit all datasets, the structure can be iterated in accordance to how it was
         for path in landsat.getGroups():
             for row in path.getGroups():
                 for scene in row.getGroups():
-                    key = scene.findRaster(endswith='cfmask')
-                    cfmask = scene.getRaster(key=key)
+                    cfmask = scene.findRaster(filter = lambda key, raster: key.endswith('cfmask'))
                     array = cfmask.getImageArray()
 
 The rasters can also be flat iterated, ignoring the group structure completely::

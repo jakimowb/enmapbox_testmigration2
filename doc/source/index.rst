@@ -14,36 +14,9 @@ but it gives the user more flexibility and has some performance improvements.
 Example
 -------
 
-::
+.. image:: images/ndvi.png
 
-    """
-    Calculate Normalized Difference Vegetation Index (NDVI) for a Landsat 5.
-    """
-
-    import tempfile
-    import os
-    import numpy
-    from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
-    from hubdc.testdata import LT51940232010189KIS01
-
-    # Set up input and output filenames.
-    applier = Applier()
-    applier.inputRaster.setRaster(key='red', value=ApplierInputRaster(filename=LT51940232010189KIS01.red))
-    applier.inputRaster.setRaster(key='nir', value=ApplierInputRaster(filename=LT51940232010189KIS01.nir))
-    applier.outputRaster.setRaster(key='ndvi', value=ApplierOutputRaster(filename=os.path.join(tempfile.gettempdir(), 'ndvi.img')))
-
-    # Set up the operator to be applied
-    class NDVIOperator(ApplierOperator):
-        def ufunc(operator):
-            red = operator.inputRaster.getRaster(key='red').getImageArray()
-            nir = operator.inputRaster.getRaster(key='nir').getImageArray()
-            ndvi = numpy.float32(nir-red)/(nir+red)
-            operator.outputRaster.getRaster(key='ndvi').setImageArray(array=ndvi)
-
-    # Apply the operator to the inputs, creating the outputs.
-    applier.apply(operator=NDVIOperator)
-    print(applier.outputRaster.getRaster(key='ndvi').filename)
-
+.. literalinclude:: examples/example.py
 
 See :doc:`ApplierExamples` for more information.
 

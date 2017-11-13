@@ -126,7 +126,7 @@ class CalculatorOperator(ApplierOperator):
         print = self.progressBar.setLabelText
         global inputRasterByArray, outputRasterByArray, outputNoDataValueByArray, outputMetadataByArray
 
-        ySize, xSize = self.workingGrid.shape
+        ySize, xSize = self.subgrid.shape
         for key in self.inputRaster.getFlatRasterKeys():
             raster = self.inputRaster.getRaster(key=key)
             array = raster.getImageArray(resampleAlg=options[key]['resampleAlg'], noData=options[key]['noData'])

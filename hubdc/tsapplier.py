@@ -1,7 +1,7 @@
 from osgeo import gdal, osr, ogr
 from multiprocessing.pool import ThreadPool
 from applier import (Applier, ApplierControls, ApplierOperator, ApplierInputRaster, ApplierOutputRaster,
-                     ApplierInputRasterGroup, ApplierOutputRasterGroup, ApplierInputRasterArchive, PixelGrid)
+                     ApplierInputRasterGroup, ApplierOutputRasterGroup, ApplierInputRasterIndex, Grid)
 
 tilingSchemeShp = r'C:\Work\data\applier_ts\tiling_scheme.shp'
 
@@ -71,10 +71,10 @@ class TSApplierTile(object):
 
         bb = tileGeometry.GetEnvelope()
         xrange, yrange = bb[:2], bb[2:]
-        grid = PixelGrid(projection=str(self.gridProjection),
-                                 xMin=min(xrange), xMax=max(xrange),
-                                 yMin=min(yrange), yMax=max(yrange),
-                                 xRes=gridResolution, yRes=gridResolution)
+        grid = Grid(projection=str(self.gridProjection),
+                    xMin=min(xrange), xMax=max(xrange),
+                    yMin=min(yrange), yMax=max(yrange),
+                    xRes=gridResolution, yRes=gridResolution)
         grid = grid.pixelBuffer(buffer=gridBuffer)
         grid = grid.anchor(xAnchor=gridAnchor[0], yAnchor=gridAnchor[1])
         return grid
@@ -138,7 +138,7 @@ class TSApplier(object):
 
             tileApplier = Applier(controls=self_controls)
             pixelGrid = tile.makePixelGrid(gridResolution=30, gridAnchor=(15,15), gridBuffer=1)
-            tileApplier.controls.setReferenceGrid(grid=pixelGrid)
+            tileApplier.controls.setGrid(grid=pixelGrid)
             for k, v in self__inputRasterArchive.items():
                 group = v.getIntersectionByPixelGrid(grid=pixelGrid)
                 tileApplier.inputRaster.setGroup(key=k, value=group)

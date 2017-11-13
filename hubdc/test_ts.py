@@ -3,7 +3,7 @@ import numpy, numpy.random
 #from osgeo import gdal
 #from tempfile import gettempdir
 #from os.path import join, exists, basename, dirname
-from hubdc.applier import ApplierOperator, ApplierInputRasterArchive
+from hubdc.applier import ApplierOperator, ApplierInputRasterIndex
 from hubdc.tsapplier import TSApplier, TSApplierOutputRaster, TSApplierTilingScheme, TSApplierTile, TSApplierRegionOfInterest
 
 #outdir = join(gettempdir(), 'hubdc_test')
@@ -19,7 +19,7 @@ def test():
     #applier.controls.setNumWriter(nwriter=1)
     #applier.controls.setResolution(3000,3000)
     filter = lambda filename: os.path.basename(filename).startswith('LC8')
-    applier.setInputRasterArchive(key='landsat', value=ApplierInputRasterArchive(folder=r'C:\Work\data\gms\landsat', extensions=['img'], filter=filter))
+    applier.setInputRasterArchive(key='landsat', value=ApplierInputRasterIndex(folder=r'C:\Work\data\gms\landsat', extensions=['img'], filter=filter))
     #applier.outputRaster.setOutput(key='rgb', value=TSApplierOutputRaster(filename=r'c:\output\ts\rgb_{tilename}.img'))
     #applier.outputRaster.setOutput(key='counts', value=TSApplierOutputRaster(filename=r'c:\output\ts\counts_{tilename}.img'))
     applier.apply(operator=Operator)

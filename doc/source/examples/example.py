@@ -1,5 +1,6 @@
 """
-Calculate Normalized Difference Vegetation Index (NDVI) for a Landsat 5 scene and cut the result to the German state Brandenburg.
+Calculate the Normalized Difference Vegetation Index (NDVI) for a Landsat 5 scene.
+Mask the resulting image to the shape of Brandenburg (a federated state of Germany).
 """
 
 import tempfile
@@ -34,3 +35,6 @@ class NDVIOperator(ApplierOperator):
 # Apply the operator to the inputs, creating the outputs.
 applier.apply(operator=NDVIOperator)
 print(applier.outputRaster.getRaster(key='ndvi').filename)
+
+# Python prints something like:
+# >>> c:\users\USER\appdata\local\temp\ndvi.img

@@ -1,4 +1,4 @@
-from hubdc.applier import PixelGrid, Applier, ApplierOperator, CUIProgressBar, SilentProgressBar
+from hubdc.applier import Grid, Applier, ApplierOperator, CUIProgressBar, SilentProgressBar
 
 def script():
 

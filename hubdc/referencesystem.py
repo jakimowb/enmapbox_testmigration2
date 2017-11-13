@@ -1,6 +1,6 @@
 from os.path import join, dirname
 from osgeo import osr, ogr
-from hubdc.model import PixelGrid
+from hubdc.model import Grid
 
 def getMGRSShapefile():
     return join(dirname(__file__), 'gis', 'mgrs', 'mgrs.shp')
@@ -28,10 +28,10 @@ def getMGRSPixelGridsByNames(names, res, anchor, buffer=0):
         geom.Transform(transform)
         bb = geom.GetEnvelope()
         xrange, yrange = bb[:2], bb[2:]
-        grid = PixelGrid(projection=str(targetSRS),
-                         xMin=min(xrange), xMax=max(xrange),
-                         yMin=min(yrange), yMax=max(yrange),
-                         xRes=res, yRes=res)
+        grid = Grid(projection=str(targetSRS),
+                    xMin=min(xrange), xMax=max(xrange),
+                    yMin=min(yrange), yMax=max(yrange),
+                    xRes=res, yRes=res)
         grid = grid.buffer(buffer=buffer)
         grid = grid.anchor(xAnchor=anchor[0], yAnchor=anchor[1])
         yield name, grid
@@ -61,10 +61,10 @@ def getMGRSPixelGridsByShape(shape, res, anchor, pixelBuffer=0, trim=True):
         geom.Transform(transform)
         bb = geom.GetEnvelope()
         xrange, yrange = bb[:2], bb[2:]
-        grid = PixelGrid(projection=str(targetSRS),
-                         xMin=min(xrange), xMax=max(xrange),
-                         yMin=min(yrange), yMax=max(yrange),
-                         xRes=res, yRes=res)
+        grid = Grid(projection=str(targetSRS),
+                    xMin=min(xrange), xMax=max(xrange),
+                    yMin=min(yrange), yMax=max(yrange),
+                    xRes=res, yRes=res)
         grid = grid.pixelBuffer(buffer=pixelBuffer)
         grid = grid.anchor(xAnchor=anchor[0], yAnchor=anchor[1])
 
@@ -74,7 +74,7 @@ def getWRS2Shapefile():
     return join(dirname(__file__), 'gis', 'wrs2', 'wrs2.shp')
 
 def getWRS2NamesInsidePixelGrid(grid):
-    assert isinstance(grid, PixelGrid)
+    assert isinstance(grid, Grid)
 
     ds = ogr.Open(getWRS2Shapefile())
     layer = ds.GetLayer()
