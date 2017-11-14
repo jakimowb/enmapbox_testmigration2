@@ -33,7 +33,7 @@ def getMGRSPixelGridsByNames(names, res, anchor, buffer=0):
                     yMin=min(yrange), yMax=max(yrange),
                     xRes=res, yRes=res)
         grid = grid.buffer(buffer=buffer)
-        grid = grid.anchor(xAnchor=anchor[0], yAnchor=anchor[1])
+        grid = grid.anchor(x=anchor[0], y=anchor[1])
         yield name, grid
 
 def getMGRSPixelGridsByShape(shape, res, anchor, pixelBuffer=0, trim=True):
@@ -66,7 +66,7 @@ def getMGRSPixelGridsByShape(shape, res, anchor, pixelBuffer=0, trim=True):
                     yMin=min(yrange), yMax=max(yrange),
                     xRes=res, yRes=res)
         grid = grid.pixelBuffer(buffer=pixelBuffer)
-        grid = grid.anchor(xAnchor=anchor[0], yAnchor=anchor[1])
+        grid = grid.anchor(x=anchor[0], y=anchor[1])
 
         yield name, grid
 

@@ -1,3 +1,4 @@
 # Add any directories, files, or patterns you don't want to be tracked by version control
 *.pyc
 doc/build
+hubdc/testdata/LT51940232010189KIS01/LT51940232010189KIS01_sr_band1.img.aux.xml

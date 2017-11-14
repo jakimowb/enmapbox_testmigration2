@@ -2,7 +2,7 @@ from osgeo import gdal, gdal_array
 from multiprocessing import Process, Queue
 from time import sleep
 import numpy
-from hubdc.model import Create, Dataset
+from hubdc.model import Create, Dataset, Band
 
 class Writer():
     WRITE_IMAGEARRAY, WRITE_BANDARRAY, CALL_IMAGEMETHOD, CALL_BANDMETHOD, CLOSE_DATASETS, CLOSE_WRITER = range(6)
@@ -32,9 +32,9 @@ class Writer():
 
     @staticmethod
     def createDataset(outputDatasets, filename, bands, dtype, grid, format, creationOptions):
-        outputDatasets[filename] = Create(pixelGrid=grid, bands=bands,
+        outputDatasets[filename] = Create(grid=grid, bands=bands,
                                           eType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
-                                          dstName=filename, format=format, creationOptions=creationOptions)
+                                          filename=filename, format=format, creationOptions=creationOptions)
 
     @staticmethod
     def closeDatasets(outputDatasets, createEnviHeader):
@@ -57,15 +57,15 @@ class Writer():
 
         if filename not in outputDatasets:
             Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=bands, dtype=array.dtype, grid=maingrid, format=format, creationOptions=creationOptions)
-        cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber).writeArray(array=array, pixelGrid=subgrid)
+        cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber).writeArray(array=array, grid=subgrid)
 
     @classmethod
     def callImageMethode(cls, outputDatasets, filename, method, kwargs):
-        method(cls.getDatasets(outputDatasets, filename), **kwargs)
+        getattr(*method)(cls.getDatasets(outputDatasets, filename), **kwargs)
 
     @classmethod
     def callBandMethode(cls, outputDatasets, filename, bandNumber, method, kwargs):
-        method(cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber), **kwargs)
+        getattr(*method)(cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber), **kwargs)
 
 class WriterProcess(Process):
 

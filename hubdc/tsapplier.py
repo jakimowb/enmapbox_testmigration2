@@ -76,7 +76,7 @@ class TSApplierTile(object):
                     yMin=min(yrange), yMax=max(yrange),
                     xRes=gridResolution, yRes=gridResolution)
         grid = grid.pixelBuffer(buffer=gridBuffer)
-        grid = grid.anchor(xAnchor=gridAnchor[0], yAnchor=gridAnchor[1])
+        grid = grid.anchor(x=gridAnchor[0], y=gridAnchor[1])
         return grid
 
 class TSApplierRegionOfInterest(object):

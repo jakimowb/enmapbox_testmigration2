@@ -11,6 +11,7 @@ class SilentProgressBar(ProgressBar):
 class CUIProgressBar(ProgressBar):
 
     def setPercentage(self, percentage):
+        percentage = int(percentage)
         if percentage == 100:
             print('100%')
         else:

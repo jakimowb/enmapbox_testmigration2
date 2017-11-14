@@ -1,11 +1,10 @@
 from os import makedirs, remove
 from os.path import dirname, exists, join, basename
+import copy
 from random import randint
 import tempfile
 from osgeo import gdal, gdal_array, ogr, osr
 import numpy
-# from rios.pixelgrid import PixelGridDefn
-from hubdc.util import equalProjection
 
 
 def Open(filename, eAccess=gdal.GA_ReadOnly):
@@ -19,25 +18,25 @@ def OpenLayer(filename, layerNameOrIndex=0, update=False):
     return Layer(ogrDataSource=ogr.Open(filename, int(update)), nameOrIndex=layerNameOrIndex)
 
 
-def Create(pixelGrid, bands=1, eType=gdal.GDT_Float32, dstName='', format='MEM', creationOptions=[]):
-    if format != 'MEM' and not exists(dirname(dstName)):
-        makedirs(dirname(dstName))
+def Create(grid, bands=1, eType=gdal.GDT_Float32, filename='', format='MEM', creationOptions=[]):
+    assert isinstance(grid, Grid)
+    if format != 'MEM' and not exists(dirname(filename)):
+        makedirs(dirname(filename))
 
     driver = gdal.GetDriverByName(format)
-    ysize, xsize = pixelGrid.getDimensions()
     if driver.ShortName in ['PNG']:
         tmpdriver = gdal.GetDriverByName('MEM')
-        tmpds = tmpdriver.Create('', xsize, ysize, bands, eType)
+        tmpds = tmpdriver.Create('', grid.xSize, grid.ySize, bands, eType)
         strict = 0
-        gdalDataset = driver.CreateCopy(dstName, tmpds, strict, creationOptions)
+        gdalDataset = driver.CreateCopy(filename, tmpds, strict, creationOptions)
     else:
-        gdalDataset = driver.Create(dstName, xsize, ysize, bands, eType, creationOptions)
-    gdalDataset.SetProjection(pixelGrid.projection)
-    gdalDataset.SetGeoTransform(pixelGrid.makeGeoTransform())
+        gdalDataset = driver.Create(filename, grid.xSize, grid.ySize, bands, eType, creationOptions)
+    gdalDataset.SetProjection(grid.projection.wkt)
+    gdalDataset.SetGeoTransform(grid.makeGeoTransform())
     return Dataset(gdalDataset=gdalDataset)
 
 
-def CreateFromArray(pixelGrid, array, dstName='', format='MEM', creationOptions=[]):
+def CreateFromArray(grid, array, filename='', format='MEM', creationOptions=[]):
     if isinstance(array, numpy.ndarray):
         if array.ndim == 2:
             array = array[None]
@@ -52,16 +51,16 @@ def CreateFromArray(pixelGrid, array, dstName='', format='MEM', creationOptions=
     if dtype == numpy.bool:
         dtype = numpy.uint8
     eType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
-    dataset = Create(pixelGrid, bands=bands, eType=eType, dstName=dstName, format=format,
+    dataset = Create(grid=grid, bands=bands, eType=eType, filename=filename, format=format,
                      creationOptions=creationOptions)
-    dataset.writeArray(array=array, pixelGrid=pixelGrid)
+    dataset.writeArray(array=array, pixelGrid=grid)
 
     return dataset
 
 
-def CreateVRT(dstName, srcDSOrSrcDSTab, **kwargs):
+def CreateVRT(filename, srcDSOrSrcDSTab, **kwargs):
     options = gdal.BuildVRTOptions(**kwargs)
-    gdalDataset = gdal.BuildVRT(destName=dstName, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
+    gdalDataset = gdal.BuildVRT(destName=filename, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
     return Dataset(gdalDataset=gdalDataset)
 
 
@@ -88,308 +87,6 @@ def buildOverviews(filename, minsize=None, levels=None, resampling='average'):
                      filename, ' '.join(map(str, levels))])
 
 
-class _PixelGridDefn(object):
-    """
-    Definition of a pixel grid, including
-    the size and extent, and by implication the
-    resolution and alignment.
-
-    Methods are defined for relationships with
-    other instances, including:
-
-        * intersection()
-        * union()
-        * reproject()
-        * alignedWith()
-        * isComparable()
-
-    Attributes defined on the object:
-
-        * xMin
-        * xMax
-        * yMin
-        * yMax
-        * xRes
-        * yRes
-        * projection
-
-    NOTE: The bounds defined the external corners of the image, i.e. the
-    top-left corner of the top-left pixel, through to the bottom-right
-    corner of the bottom-right pixel. This is in accordance with GDAL conventions.
-
-    """
-
-    def __init__(self, geotransform=None, nrows=None, ncols=None, projection=None,
-                 xMin=None, xMax=None, yMin=None, yMax=None, xRes=None, yRes=None):
-        """
-        Can define in terms of a GDAL geotransform plus
-        the number of rows and columns.
-        Can also be defined by giving xMin, xMax, yMin, yMax,
-        and xRes, yRes directly.
-
-        Projection is given as a WKT string.
-
-        """
-        self.projection = projection
-        self.xMin = xMin
-        self.xMax = xMax
-        self.yMin = yMin
-        self.yMax = yMax
-        self.xRes = xRes
-        self.yRes = yRes
-        if geotransform is not None and nrows is not None and ncols is not None:
-            self.xRes = geotransform[1]
-            self.yRes = abs(geotransform[5])
-            self.xMin = geotransform[0]
-            self.yMax = geotransform[3]
-            self.xMax = self.xMin + ncols * self.xRes
-            self.yMin = self.yMax - nrows * self.yRes
-
-    def __str__(self):
-        s = "xMin:%s,xMax:%s,yMin:%s,yMax:%s,xRes:%s,yRes:%s" % (self.xMin, self.xMax,
-                                                                 self.yMin, self.yMax, self.xRes, self.yRes)
-        return s
-
-    def alignedWith(self, other):
-        """
-        Returns True if self is aligned with other. This means that
-        they represent the same grid, with different extents.
-
-        Alignment is checked within a small tolerance, so that exact
-        floating point matches are not required. However, notionally it
-        is possible to get a match which shouldn't be. The tolerance is
-        calculated as::
-
-            tolerance = 0.01 * pixsize / npix
-
-        and if a mis-alignment is <= tolerance, it is assumed to be zero.
-        For further details, read the source code.
-
-        """
-        aligned = True
-        if not self.isComparable(other):
-            aligned = False
-
-        # Calculate a tolerance, based on the pixel size and the number of pixels,
-        # so that when the tolerance is accumulated across the whole grid, the
-        # total still comes out to be well under a pixel.
-        # First get the largest dimension of either grid
-        npix = self.getNumPix(self.xMax, self.xMin, self.xRes)
-        npix = max(npix, self.getNumPix(other.xMax, other.xMin, other.xRes))
-        npix = max(npix, self.getNumPix(self.yMax, self.yMin, self.yRes))
-        npix = max(npix, self.getNumPix(other.yMax, other.yMin, other.yRes))
-        res = min(self.xRes, self.yRes)
-        tolerance = 0.001 * res / npix
-
-        xMinSnapped = self.snapToGrid(self.xMin, other.xMin, self.xRes)
-        if abs(xMinSnapped - self.xMin) > tolerance:
-            aligned = False
-        yMaxSnapped = self.snapToGrid(self.yMax, other.yMax, self.yRes)
-        if abs(yMaxSnapped - self.yMax) > tolerance:
-            aligned = False
-
-        return aligned
-
-    def intersection(self, other):
-        """
-        Returns a new instance which is the intersection
-        of self and other.
-
-        """
-        if not self.isComparable(other):
-            return None
-
-        xMin = max(self.xMin, other.xMin)
-        xMax = min(self.xMax, other.xMax)
-        yMin = max(self.yMin, other.yMin)
-        yMax = min(self.yMax, other.yMax)
-
-        if xMin >= xMax or yMin >= yMax:
-            msg = "Images don't intersect"
-            raise Exception(msg)
-
-        newPixelGrid = _PixelGridDefn(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
-                                      xRes=self.xRes, yRes=self.yRes, projection=self.projection)
-        return newPixelGrid
-
-    def union(self, other):
-        """
-        Returns a new instance which is the union of self
-        with other.
-
-        """
-        if not self.isComparable(other):
-            return None
-
-        xMin = min(self.xMin, other.xMin)
-        xMax = max(self.xMax, other.xMax)
-        yMin = min(self.yMin, other.yMin)
-        yMax = max(self.yMax, other.yMax)
-
-        newPixelGrid = _PixelGridDefn(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
-                                      xRes=self.xRes, yRes=self.yRes, projection=self.projection)
-        return newPixelGrid
-
-    def isComparable(self, other):
-        """
-        Checks whether self is comparable with other. Returns
-        True or False. Grids are comparable if they have equal pixel
-        size, and the same projection.
-
-        """
-        comparable = True
-        # Check resolution
-        if not self.equalPixSize(other):
-            comparable = False
-        # Check projection
-        if not self.equalProjection(other):
-            comparable = False
-        return comparable
-
-    def equalPixSize(self, other):
-        """
-        Returns True if pixel size of self is equal to that of other.
-        Currently only checks absolute equality, probably should
-        work out a tolerance.
-
-        """
-        return (self.xRes == other.xRes and self.yRes == other.yRes)
-
-    def equalProjection(self, other):
-        """
-        Returns True if the projection of self is the same as the
-        projection of other
-
-        """
-        selfProj = str(self.projection) if self.projection is not None else ''
-        otherProj = str(other.projection) if other.projection is not None else ''
-        srSelf = osr.SpatialReference(wkt=selfProj)
-        srOther = osr.SpatialReference(wkt=otherProj)
-        return bool(srSelf.IsSame(srOther))
-
-    def equivalentProjection(self, otherspatialref, pixtolerance):
-        """
-        Similar to equalProjection but does a less accurate test
-        by checking converting coordinates from projection of self
-        to otherspatialref and checking they are within pixtolerance
-        pixels of each other.
-        The coordinates used for this are the four corners and centre
-        of image.
-        """
-        srSelf = osr.SpatialReference(str(self.projection))
-        transform = osr.CoordinateTransformation(srSelf, otherspatialref)
-
-        xtol = pixtolerance * self.xRes
-        ytol = pixtolerance * self.yRes
-
-        points = []
-        points.append((self.xMin, self.yMax))  # upper left
-        points.append((self.xMax, self.yMax))  # upper right
-        points.append((self.xMax, self.yMin))  # bottom right
-        points.append((self.xMin, self.yMin))  # bottom left
-        points.append((self.xMin + ((self.xMax - self.xMin) / 2),
-                       self.yMin + ((self.yMax - self.yMin) / 2)))  # middle
-
-        equal = True
-        for (x, y) in points:
-            otherx, othery, z = transform.TransformPoint(x, y)
-            if abs(x - otherx) > xtol or abs(y - othery) > ytol:
-                equal = False
-                break
-
-        return equal
-
-    def makeGeoTransform(self):
-        """
-        Returns a GDAL geotransform tuple from bounds and resolution
-
-        """
-        geotransform = (self.xMin, self.xRes, 0.0, self.yMax, 0.0, -self.yRes)
-        return geotransform
-
-    def reproject(self, targetGrid):
-        """
-        Returns a new instance which is the reprojection
-        of self to be in the same projection and pixel size
-        as targetGrid
-
-        """
-        srSelf = osr.SpatialReference(str(self.projection))
-        srTarget = osr.SpatialReference(str(targetGrid.projection))
-        t = osr.CoordinateTransformation(srSelf, srTarget)
-
-        (tl_x, tl_y, z) = t.TransformPoint(self.xMin, self.yMax)
-        (bl_x, bl_y, z) = t.TransformPoint(self.xMin, self.yMin)
-        (tr_x, tr_y, z) = t.TransformPoint(self.xMax, self.yMax)
-        (br_x, br_y, z) = t.TransformPoint(self.xMax, self.yMin)
-
-        xMin = min(tl_x, bl_x)
-        xMax = max(tr_x, br_x)
-        yMin = min(bl_y, br_y)
-        yMax = max(tl_y, tr_y)
-
-        # Snap bounds to align with those in target grid
-        xMin = self.snapToGrid(xMin, targetGrid.xMin, targetGrid.xRes)
-        xMax = self.snapToGrid(xMax, targetGrid.xMin, targetGrid.xRes)
-        yMin = self.snapToGrid(yMin, targetGrid.yMin, targetGrid.yRes)
-        yMax = self.snapToGrid(yMax, targetGrid.yMin, targetGrid.yRes)
-
-        # Construct a new pixel grid object
-        newPixelGrid = _PixelGridDefn(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
-                                      xRes=targetGrid.xRes, yRes=targetGrid.yRes, projection=targetGrid.projection)
-
-        return newPixelGrid
-
-    def getDimensions(self):
-        """
-        Utility method which returns the number of rows and columns
-        in the grid. Returns a tuple::
-
-            (nrows, ncols)
-
-        calculated from the min/max/res values.
-
-        """
-        nrows = self.getNumPix(self.yMax, self.yMin, self.yRes)
-        ncols = self.getNumPix(self.xMax, self.xMin, self.xRes)
-        return (nrows, ncols)
-
-    @staticmethod
-    def roundAway(x):
-        """
-        Simulates Python 2 round behavour
-        This is what we want as it rounds away from 0.
-        The decimal module seems to be the only way to do this properly
-        """
-        import decimal
-        dec = decimal.Decimal(x).quantize(decimal.Decimal('1'),
-                                          rounding=decimal.ROUND_HALF_UP)
-        return float(dec.to_integral_value())
-
-    @staticmethod
-    def getNumPix(gridMax, gridMin, gridRes):
-        """
-        Works out how many pixels lie between the given min and max,
-        at the given resolution. This is for internal use only.
-        """
-        npix = int(_PixelGridDefn.roundAway((gridMax - gridMin) / gridRes))
-        return npix
-
-    @staticmethod
-    def snapToGrid(val, valOnGrid, res):
-        """
-        Returns the nearest value to val which is a whole multiple of
-        res away from valOnGrid, so that val is effectively on the same
-        grid as valOnGrid. This is for internal use only.
-
-        """
-        diff = val - valOnGrid
-        numPix = diff / res
-        numWholePix = _PixelGridDefn.roundAway(numPix)
-        snappedVal = valOnGrid + numWholePix * res
-        return snappedVal
-
-
 class Extent(object):
     def __init__(self, xMin, xMax, yMin, yMax):
         self.xMin = float(xMin)
@@ -409,17 +106,34 @@ class Extent(object):
         polygon.AddGeometry(ring)
         return polygon
 
-    def transform(self, transformation):
-        assert isinstance(transformation, Transformation)
-        t = transformation.osrCoordinateTransformation
+    @property
+    def ul(self):
+        return self.xMin, self.yMax
+
+    @property
+    def lr(self):
+        return self.xMax, self.yMin
+
+    @property
+    def wkt(self):
+        ring = ogr.Geometry(ogr.wkbLinearRing)
+        for x, y in zip([self.xMin, self.xMax, self.xMax, self.xMin, self.xMin],
+                        [self.yMax, self.yMax, self.yMin, self.yMin, self.yMax]):
+            ring.AddPoint(x, y)
+        poly = ogr.Geometry(ogr.wkbPolygon)
+        poly.AddGeometry(ring)
+        wkt = poly.ExportToWkt()
+        return wkt
+
+    def reproject(self, sourceProjection, targetProjection):
+        assert isinstance(sourceProjection, Projection)
+        assert isinstance(targetProjection, Projection)
+        t = osr.CoordinateTransformation(sourceProjection.osrSpatialReference, targetProjection.osrSpatialReference)
         (tl_x, tl_y, z) = t.TransformPoint(self.xMin, self.yMax)
         (bl_x, bl_y, z) = t.TransformPoint(self.xMin, self.yMin)
         (tr_x, tr_y, z) = t.TransformPoint(self.xMax, self.yMax)
         (br_x, br_y, z) = t.TransformPoint(self.xMax, self.yMin)
-        return Extent(xMin=min(tl_x, bl_x),
-                      xMax=max(tr_x, br_x),
-                      yMin=min(bl_y, br_y),
-                      yMax=max(tl_y, tr_y))
+        return Extent(xMin=min(tl_x, bl_x), xMax=max(tr_x, br_x), yMin=min(bl_y, br_y), yMax=max(tl_y, tr_y))
 
     def intersects(self, other):
         assert isinstance(other, Extent)
@@ -453,23 +167,49 @@ class Extent(object):
         return Extent(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
 
 
+class SpatialExtent(Extent):
+    def __init__(self, extent, projection):
+        assert isinstance(extent, Extent)
+        assert isinstance(projection, Projection)
+        Extent.__init__(self, xMin=extent.xMin, xMax=extent.xMax, yMin=extent.yMin, yMax=extent.yMax)
+        self.projection = projection
+
+    def reproject(self, targetProjection):
+        assert isinstance(targetProjection, Projection)
+        extent = Extent.reproject(self, sourceProjection=self.projection, targetProjection=targetProjection)
+        return SpatialExtent(extent=extent, projection=targetProjection)
+
+
 class Resolution(object):
-    def __init__(self, xRes, yRes):
-        self.xRes = float(xRes)
-        self.yRes = float(yRes)
-        assert self.xRes > 0
-        assert self.yRes > 0
+    def __init__(self, x, y):
+        self.x = float(x)
+        self.y = float(y)
+        assert self.x > 0
+        assert self.y > 0
 
 
 class Projection(object):
-    def __init__(self, projection):
-        self.wkt = str(projection)
+
+    def __init__(self, wkt):
+        self.wkt = str(wkt)
+
+    def __repr__(self):
+        wkt = self.wkt.replace(' ', '').replace('\n', ' ')
+        return '{cls}(wkt={wkt})'.format(cls=self.__class__.__name__, wkt=wkt)
 
     @staticmethod
     def fromEPSG(epsg):
         projection = osr.SpatialReference()
         projection.ImportFromEPSG(int(epsg))
-        return Projection(projection=projection)
+        return Projection(wkt=projection)
+
+    @staticmethod
+    def WGS84PseudoMercator():
+        return Projection.fromEPSG(epsg=3857)
+
+    @staticmethod
+    def WGS84():
+        return Projection.fromEPSG(epsg=4326)
 
     @property
     def osrSpatialReference(self):
@@ -483,18 +223,8 @@ class Projection(object):
         projection of other
         '''
 
-        assert isinstance(other, Projection)
+        assert isinstance(other, Projection), other
         return bool(self.osrSpatialReference.IsSame(other.osrSpatialReference))
-
-
-class Transformation(object):
-    def __init__(self, sourceProjection, targetProjection):
-        assert isinstance(sourceProjection, Projection)
-        assert isinstance(targetProjection, Projection)
-        self.sourceProjection = sourceProjection
-        self.targetProjection = targetProjection
-        self.osrCoordinateTransformation = osr.CoordinateTransformation(sourceProjection.osrSpatialReference,
-                                                                        targetProjection.osrSpatialReference)
 
 
 class Offset(object):
@@ -502,28 +232,32 @@ class Offset(object):
         self.x = int(x)
         self.y = int(y)
 
+
 class Size(object):
-    def __init__(self, x, y=None):
-        self.x = float(x)
-        if y is None:
-            y = x
-        self.y = float(y)
+    def __init__(self, x, y):
+        self.x = int(x)
+        self.y = int(y)
         assert self.x > 0
         assert self.y > 0
+
 
 class Grid(object):
     def __init__(self, extent, resolution, projection):
         assert isinstance(extent, Extent)
-        assert isinstance(resolution, Resolution)
-        assert isinstance(projection, Projection)
+        assert isinstance(resolution, Resolution), resolution
+        assert isinstance(projection, Projection), projection
         self.resolution = resolution
-        self.size = Size(x=int(round(float(extent.xMax - extent.xMin) / resolution.xRes)),
-                         y=int(round(float(extent.yMax - extent.yMin) / resolution.yRes)))
+        self.size = Size(x=int(round(float(extent.xMax - extent.xMin) / resolution.x)),
+                         y=int(round(float(extent.yMax - extent.yMin) / resolution.y)))
         self.extent = Extent(xMin=extent.xMin,
-                             xMax=extent.xMin + self.size.x * resolution.xRes,
+                             xMax=extent.xMin + self.size.x * resolution.x,
                              yMin=extent.yMin,
-                             yMax=extent.yMin + self.size.y * resolution.yRes)
+                             yMax=extent.yMin + self.size.y * resolution.y)
         self.projection = projection
+
+    @property
+    def spatialExtent(self):
+        return SpatialExtent(extent=self.extent, projection=self.projection)
 
     @property
     def xSize(self):
@@ -537,155 +271,95 @@ class Grid(object):
     def shape(self):
         return self.ySize, self.xSize
 
-    def equalUL(self, other):
-        return (self.xMin == other.xMin and
-                self.yMax == other.yMax)
+    def makeGeoTransform(self):
+        '''Returns a GDAL geotransform tuple from bounds and resolution'''
 
-    def equalDimensions(self, other):
-        return self.getDimensions() == other.getDimensions()
+        geotransform = (self.extent.xMin, self.resolution.x, 0.0, self.extent.yMax, 0.0, -self.resolution.y)
+        return geotransform
 
     def equal(self, other):
-        return (self.equalProjection(other=other) and
-                self.equalUL(other=other) and
-                self.equalPixSize(other=other) and
-                self.equalDimensions(other=other))
+        assert isinstance(other, Grid)
+        return (self.projection.equal(other=other.projection) and
+                self.extent.ul == other.extent.ul and
+                self.shape == other.shape)
 
-    def reproject(self, targetGrid):
-        srSelf = osr.SpatialReference(str(self.projection))
-        srTarget = osr.SpatialReference(str(targetGrid.projection))
-        t = osr.CoordinateTransformation(srSelf, srTarget)
-
-        (tl_x, tl_y, z) = t.TransformPoint(self.xMin, self.yMax)
-        (bl_x, bl_y, z) = t.TransformPoint(self.xMin, self.yMin)
-        (tr_x, tr_y, z) = t.TransformPoint(self.xMax, self.yMax)
-        (br_x, br_y, z) = t.TransformPoint(self.xMax, self.yMin)
-
-        xMin = min(tl_x, bl_x)
-        xMax = max(tr_x, br_x)
-        yMin = min(bl_y, br_y)
-        yMax = max(tl_y, tr_y)
-
-        # snap
-        xMin = self.snapToGrid(xMin, targetGrid.xMin, targetGrid.xRes)
-        xMax = self.snapToGrid(xMax, targetGrid.xMin, targetGrid.xRes)
-        yMin = self.snapToGrid(yMin, targetGrid.yMin, targetGrid.yRes)
-        yMax = self.snapToGrid(yMax, targetGrid.yMin, targetGrid.yRes)
-
-        return Grid(extent=Extent(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, projection=targetGrid.projection),
-                    resolution=Resolution(xRes=targetGrid.xRes, yRes=targetGrid.yRes))
-
-    @staticmethod
-    def snapToGrid(val, valOnGrid, res):
-        diff = val - valOnGrid
-        numPix = diff / res
-        numWholePix = Grid.roundAway(numPix)
-        snappedVal = valOnGrid + numWholePix * res
-        return snappedVal
-
-    @staticmethod
-    def roundAway(x):
-        import decimal
-        dec = decimal.Decimal(x).quantize(decimal.Decimal('1'),
-                                          rounding=decimal.ROUND_HALF_UP)
-        return float(dec.to_integral_value())
-
-    def extent_(self):
-        assert 0
-        return self.xMin, self.xMax, self.yMin, self.yMax
-
-    def extentAsGeometry(self):
-        assert 0
-        ring = ogr.Geometry(ogr.wkbLinearRing)
-        for x, y in zip([self.xMin, self.xMax, self.xMax, self.xMin, self.xMin],
-                        [self.yMax, self.yMax, self.yMin, self.yMin, self.yMax]):
-            ring.AddPoint(x, y)
-        poly = ogr.Geometry(ogr.wkbPolygon)
-        poly.AddGeometry(ring)
-        return poly
-
-    def setExtent(self, extent):
-        assert 0
-        self.xMin, self.xMax, self.yMin, self.yMax = extent
-
-    def reprojectExtent(self, targetProjection):
-        assert isinstance(targetProjection, Projection)
-
-        t = osr.CoordinateTransformation(self.projection.osrSpatialReference, targetProjection.osrSpatialReference)
-        t = Transformation(sourceProjection=self.projection, targetProjection=targetProjection)
-        return t.transformExtent(extent=self.extent)
+    def reproject(self, other):
+        assert isinstance(other, Grid)
+        extent = self.extent.reproject(sourceProjection=self.projection, targetProjection=other.projection)
+        grid = Grid(extent=extent, resolution=other.resolution, projection=other.projection)
+        return grid.anchor(x=other.extent.xMin, y=other.extent.yMin)
 
     def mapBuffer(self, buffer, north=True, west=True, south=True, east=True):
-        buffered = self.copy()
-        if west: buffered.xMin -= buffer
-        if east: buffered.xMax += buffer
-        if south: buffered.yMin -= buffer
-        if north: buffered.yMax += buffer
-        return Grid.fromPixelGrid(buffered)
+        assert isinstance(buffer, float)
+        extent = copy.deepcopy(self.extent)
+        if west: extent.xMin -= buffer
+        if east: extent.xMax += buffer
+        if south: extent.yMin -= buffer
+        if north: extent.yMax += buffer
+        return Grid(extent=extent, resolution=self.resolution, projection=self.projection)
 
     def pixelBuffer(self, buffer, left=True, right=True, upper=True, lower=True):
-        buffered = self.copy()
-        if left: buffered.xMin -= buffer * self.xRes
-        if right: buffered.xMax += buffer * self.xRes
-        if lower: buffered.yMin -= buffer * self.yRes
-        if upper: buffered.yMax += buffer * self.yRes
-        return Grid.fromPixelGrid(buffered)
+        assert isinstance(buffer, int)
+        extent = copy.deepcopy(self.extent)
+        if left: extent.xMin -= buffer * self.resolution.x
+        if right: extent.xMax += buffer * self.resolution.x
+        if lower: extent.yMin -= buffer * self.resolution.y
+        if upper: extent.yMax += buffer * self.resolution.y
+        return Grid(extent=extent, resolution=self.resolution, projection=self.projection)
 
-    def anchor(self, xAnchor, yAnchor):
-        anchored = self.copy()
+    def anchor(self, x, y):
 
-        xMinOff = (anchored.xMin - xAnchor) % anchored.xRes
-        yMinOff = (anchored.yMin - yAnchor) % anchored.yRes
-        xMaxOff = (anchored.xMax - xAnchor) % anchored.xRes
-        yMaxOff = (anchored.yMax - yAnchor) % anchored.yRes
+        xMinOff = (self.extent.xMin - x) % self.resolution.x
+        yMinOff = (self.extent.yMin - y) % self.resolution.y
+        xMaxOff = (self.extent.xMax - x) % self.resolution.x
+        yMaxOff = (self.extent.yMax - y) % self.resolution.y
 
         # round snapping offset
-        if xMinOff > anchored.xRes / 2.: xMinOff -= anchored.xRes
-        if yMinOff > anchored.yRes / 2.: yMinOff -= anchored.yRes
-        if xMaxOff > anchored.xRes / 2.: xMaxOff -= anchored.xRes
-        if yMaxOff > anchored.yRes / 2.: yMaxOff -= anchored.yRes
+        if xMinOff > self.resolution.x / 2.: xMinOff -= self.resolution.x
+        if yMinOff > self.resolution.y / 2.: yMinOff -= self.resolution.y
+        if xMaxOff > self.resolution.x / 2.: xMaxOff -= self.resolution.x
+        if yMaxOff > self.resolution.y / 2.: yMaxOff -= self.resolution.y
 
-        anchored.xMin -= xMinOff
-        anchored.yMin -= yMinOff
-        anchored.xMax -= xMaxOff
-        anchored.yMax -= yMaxOff
+        anchored = copy.deepcopy(self)
+        anchored.extent.xMin -= xMinOff
+        anchored.extent.yMin -= yMinOff
+        anchored.extent.xMax -= xMaxOff
+        anchored.extent.yMax -= yMaxOff
 
         return anchored
 
-    def newResolution(self, xRes, yRes):
-        pixelGrid = self.copy()
-        pixelGrid.xRes = xRes
-        pixelGrid.yRes = yRes
-        return self.fromPixelGrid(pixelGrid)
+    def newResolution(self, resolution):
+        return Grid(extent=self.extent, resolution=resolution, projection=self.projection)
 
-    def copy(self):
-        return self.fromPixelGrid(self)
-
-    def subsetPixelWindow(self, xOff, yOff, xSize, ySize):
-        xMin = self.extent.xMin + xOff * self.resolution.xRes
-        xMax = xMin + xSize * self.resolution.xRes
-        yMax = self.extent.yMax - yOff * self.resolution.yRes
-        yMin = yMax - ySize * self.resolution.yRes
+    def subset(self, offset, size):
+        xMin = self.extent.xMin + offset.x * self.resolution.x
+        xMax = xMin + size.x * self.resolution.x
+        yMax = self.extent.yMax - offset.y * self.resolution.y
+        yMin = yMax - size.y * self.resolution.y
         return Grid(projection=self.projection,
                     resolution=self.resolution,
                     extent=Extent(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax))
 
-    def subgrids(self, windowSize):
-        assert isinstance(windowSize, Size)
-        ysize, xsize = self.getDimensions()
-        off = Offset(x=0, y=0)
+    def subgrids(self, size):
+        assert isinstance(size, Size)
+        size = Size(x=min(size.x, self.size.x), y=min(size.y, self.size.y))
+        result = list()
+
+        offset = Offset(x=0, y=0)
         i = iy = 0
-        while off.xOffyoff < ysize:
-            xoff = 0
+        while offset.y < self.size.y:
+            offset.x = 0
             ix = 0
-            while xoff < xsize:
-                subgrid = self.subsetPixelWindow(xoff=xoff, yoff=yoff, width=windowxsize, height=windowysize)
-                subgrid = subgrid.intersection(self)
-                yield subgrid, i, iy, ix
-                xoff += windowxsize
+            while offset.x < self.size.x:
+                subgrid = self.subset(offset=offset, size=size)
+                subgrid.extent = subgrid.extent.intersection(self.extent)
+                result.append((subgrid, i, iy, ix))
+                offset.x += size.x
                 ix += 1
                 i += 1
-            yoff += windowysize
+            offset.y += size.y
             iy += 1
+        return result
 
 
 class Dataset():
@@ -699,7 +373,12 @@ class Dataset():
 
     @property
     def projection(self):
-        return Projection(projection=self.gdalDataset.GetProjection())
+        return Projection(wkt=self.gdalDataset.GetProjection())
+
+    @property
+    def resolution(self):
+        gt = self.gdalDataset.GetGeoTransform()
+        return Resolution(x=gt[1], y=abs(gt[5]))
 
     @property
     def extent(self):
@@ -707,18 +386,17 @@ class Dataset():
         xSize = self.gdalDataset.RasterXSize
         ySize = self.gdalDataset.RasterYSize
         return Extent(xMin=gt[0],
-                      xMax=gt[0] + xSize * self.resolution.xRes,
-                      yMin=gt[3] - ySize * self.resolution.yRes,
+                      xMax=gt[0] + xSize * self.resolution.x,
+                      yMin=gt[3] - ySize * self.resolution.y,
                       yMax=gt[3])
-
-    @property
-    def resolution(self):
-        gt = self.gdalDataset.GetGeoTransform()
-        return Resolution(xRes=gt[1], yRes=abs(gt[5]))
 
     @property
     def grid(self):
         return Grid(extent=self.extent, resolution=self.resolution, projection=self.projection)
+
+    @property
+    def spatialExtent(self):
+        return self.grid.spatialExtent
 
     def getFormat(self):
         return self.gdalDataset.GetDriver().ShortName
@@ -747,7 +425,7 @@ class Dataset():
         assert len(array) == self.shape[0]
 
         for band, bandArray in zip(self, array):
-            band.writeArray(bandArray, pixelGrid=pixelGrid)
+            band.writeArray(bandArray, grid=pixelGrid)
 
     def flushCache(self):
         self.gdalDataset.FlushCache()
@@ -756,7 +434,7 @@ class Dataset():
         self.gdalDataset = None
 
     def getBand(self, bandNumber):
-        return Band(gdalBand=self.gdalDataset.GetRasterBand(bandNumber), pixelGrid=self.grid)
+        return Band(gdalBand=self.gdalDataset.GetRasterBand(bandNumber), grid=self.grid)
 
     def setNoDataValues(self, values):
         for band, value in zip(self, values):
@@ -883,75 +561,75 @@ class Dataset():
                 if value is not None:
                     f.write('{key} = {value}\n'.format(key=key.replace('_', ' '), value=value))
 
-    def warp(self, dstPixelGrid, dstName='', format='MEM', creationOptions=[], **kwargs):
+    def warp(self, grid, filename='', format='MEM', creationOptions=[], **kwargs):
 
-        assert isinstance(dstPixelGrid, Grid)
+        assert isinstance(grid, Grid)
 
-        xRes, yRes, dstSRS = (getattr(dstPixelGrid, key) for key in ('xRes', 'yRes', 'projection'))
-        outputBounds = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMin', 'xMax', 'yMax'))
+        if format != 'MEM' and not exists(dirname(filename)):
+            makedirs(dirname(filename))
 
-        if format != 'MEM' and not exists(dirname(dstName)):
-            makedirs(dirname(dstName))
-
-        warpOptions = gdal.WarpOptions(format=format, outputBounds=outputBounds, xRes=xRes, yRes=yRes, dstSRS=dstSRS,
+        outputBounds = tuple(getattr(grid.extent, key) for key in ('xMin', 'yMin', 'xMax', 'yMax'))
+        warpOptions = gdal.WarpOptions(format=format, outputBounds=outputBounds, xRes=grid.resolution.x,
+                                       yRes=grid.resolution.y, dstSRS=grid.projection.wkt,
                                        creationOptions=creationOptions, **kwargs)
-        gdalDataset = gdal.Warp(destNameOrDestDS=dstName, srcDSOrSrcDSTab=self.gdalDataset, options=warpOptions)
-        # gdalDataset = gdal.Warp(destNameOrDestDS=dstName, srcDSOrSrcDSTab=self.gdalDataset)#, options=warpOptions)
+        gdalDataset = gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=self.gdalDataset, options=warpOptions)
 
         return Dataset(gdalDataset=gdalDataset)
 
-    def warpOptions(self, dstPixelGrid, format, creationOptions, **kwargs):
-        assert isinstance(dstPixelGrid, Grid)
+    def warpOptions(self, grid, format, creationOptions, **kwargs):
+        assert isinstance(grid, Grid)
 
-        xRes, yRes, dstSRS = (getattr(dstPixelGrid, key) for key in ('xRes', 'yRes', 'projection'))
-        outputBounds = tuple(getattr(dstPixelGrid, key) for key in ('xMin', 'yMin', 'xMax', 'yMax'))
+        xRes, yRes, dstSRS = (getattr(grid, key) for key in ('xRes', 'yRes', 'projection'))
+        outputBounds = tuple(getattr(grid, key) for key in ('xMin', 'yMin', 'xMax', 'yMax'))
 
         options = gdal.WarpOptions(format=format, outputBounds=outputBounds, xRes=xRes, yRes=yRes, dstSRS=dstSRS,
                                    creationOptions=creationOptions, **kwargs)
 
         return options
 
-    def translate(self, dstPixelGrid=None, dstName='', format='MEM', creationOptions=[], **kwargs):
+    def translate(self, grid=None, filename='', format='MEM', creationOptions=[], **kwargs):
 
-        if dstPixelGrid is None:
-            dstPixelGrid = self.grid
+        if grid is None:
+            grid = self.grid
 
-        assert isinstance(dstPixelGrid, Grid)
-        assert self.grid.equalProjection(dstPixelGrid)
+        assert isinstance(grid, Grid)
+        assert self.grid.projection.equal(other=grid.projection)
 
-        if format != 'MEM' and not exists(dirname(dstName)):
-            makedirs(dirname(dstName))
+        if format != 'MEM' and not exists(dirname(filename)):
+            makedirs(dirname(filename))
 
-        ulx, uly, lrx, lry, xRes, yRes = tuple(
-            getattr(dstPixelGrid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin', 'xRes', 'yRes'))
+        ulx, uly = grid.extent.ul
+        lrx, lry = grid.extent.lr
+        xRes, yRes = grid.resolution.x, grid.resolution.y
+        #            getattr(grid, key) for key in ('xMin', 'yMax', 'xMax', 'yMin', 'xRes', 'yRes'))
 
         # Note that given a projWin, it is not garantied that gdal.Translate will produce a dataset
         # with the same pixel extent as gdal.Warp!
         # The problem seams to only appear if the target resolution is smaller than the source resolution.
 
-        if self.grid.xRes > dstPixelGrid.xRes or self.grid.yRes > dstPixelGrid.yRes:
+        if self.grid.resolution.x > xRes or self.grid.resolution.y > yRes:
             if format != 'MEM':
                 raise Exception('spatial resolution oversampling is only supported for MEM format')
 
             # read one extra source column and line
             translateOptions = gdal.TranslateOptions(format=format, creationOptions=creationOptions,
-                                                     projWin=[ulx, uly, lrx + self.grid.xRes,
-                                                              lry - self.grid.yRes],
+                                                     projWin=[ulx, uly, lrx + self.grid.resolution.x,
+                                                              lry - self.grid.resolution.y],
                                                      xRes=xRes, yRes=yRes, **kwargs)
             tmpGdalDataset = gdal.Translate(destName='', srcDS=self.gdalDataset, options=translateOptions)
 
             # subset to the exact target grid
             translateOptions = gdal.TranslateOptions(format=format, creationOptions=creationOptions,
-                                                     srcWin=[0, 0, dstPixelGrid.xSize, dstPixelGrid.ySize])
+                                                     srcWin=[0, 0, grid.xSize, grid.ySize])
             gdalDataset = gdal.Translate(destName='', srcDS=tmpGdalDataset, options=translateOptions)
 
         else:
             translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,
                                                      creationOptions=creationOptions, **kwargs)
-            gdalDataset = gdal.Translate(destName=dstName, srcDS=self.gdalDataset, options=translateOptions)
+            gdalDataset = gdal.Translate(destName=filename, srcDS=self.gdalDataset, options=translateOptions)
 
         # make sure, that the workaround is correct
-        assert gdalDataset.RasterXSize == dstPixelGrid.xSize and gdalDataset.RasterYSize == dstPixelGrid.ySize
+        assert gdalDataset.RasterXSize == grid.xSize and gdalDataset.RasterYSize == grid.ySize
 
         return Dataset(gdalDataset=gdalDataset)
 
@@ -1000,12 +678,12 @@ class _GDALStringFormatter(object):
 
 
 class Band():
-    def __init__(self, gdalBand, pixelGrid):
+    def __init__(self, gdalBand, grid):
         assert isinstance(gdalBand, gdal.Band)
-        assert isinstance(pixelGrid, Grid)
+        assert isinstance(grid, Grid)
 
         self.gdalBand = gdalBand
-        self.pixelGrid = pixelGrid
+        self.grid = grid
 
     def readAsArray(self, pixelGrid=None, resample_alg=gdal.GRIORA_NearestNeighbour):
 
@@ -1013,10 +691,10 @@ class Band():
             array = self.gdalBand.ReadAsArray(resample_alg=resample_alg)
         else:
             assert isinstance(pixelGrid, Grid)
-            xoff = round((pixelGrid.xMin - self.pixelGrid.xMin) / self.pixelGrid.xRes, 0)
-            yoff = round((self.pixelGrid.yMax - pixelGrid.yMax) / self.pixelGrid.yRes, 0)
-            xsize = round((pixelGrid.xMax - pixelGrid.xMin) / self.pixelGrid.xRes, 0)
-            ysize = round((pixelGrid.yMax - pixelGrid.yMin) / self.pixelGrid.yRes, 0)
+            xoff = round((pixelGrid.xMin - self.grid.xMin) / self.grid.xRes, 0)
+            yoff = round((self.grid.yMax - pixelGrid.yMax) / self.grid.yRes, 0)
+            xsize = round((pixelGrid.xMax - pixelGrid.xMin) / self.grid.xRes, 0)
+            ysize = round((pixelGrid.yMax - pixelGrid.yMin) / self.grid.yRes, 0)
 
             # fix for out of bounds error (not sure if I want to use it!)
             # xsize = min(xsize, self.pixelGrid.xSize)
@@ -1029,24 +707,22 @@ class Band():
 
         return array
 
-    def writeArray(self, array, pixelGrid=None):
+    def writeArray(self, array, grid=None):
 
         assert isinstance(array, numpy.ndarray)
         if array.ndim == 3:
             assert len(array) == 1
             array = array[0]
 
-        if pixelGrid is None:
-            pixelGrid = self.pixelGrid
+        if grid is None:
+            grid = self.grid
 
-        assert array.shape == pixelGrid.getDimensions()
-        assert isinstance(pixelGrid, Grid)
-        assert self.pixelGrid.equalProjection(
-            pixelGrid), 'selfProjection: ' + self.pixelGrid.projection + '\notherProjection: ' + pixelGrid.projection
-        assert self.pixelGrid.equalPixSize(pixelGrid)
+        assert isinstance(grid, Grid)
+        assert array.shape == grid.shape, (array.shape, grid.shape)
+        assert self.grid.projection.equal(other=grid.projection)
 
-        xoff = int(round((pixelGrid.xMin - self.pixelGrid.xMin) / self.pixelGrid.xRes, 0))
-        yoff = int(round((self.pixelGrid.yMax - pixelGrid.yMax) / self.pixelGrid.yRes, 0))
+        xoff = int(round((grid.extent.xMin - self.grid.extent.xMin) / self.grid.resolution.x, 0))
+        yoff = int(round((self.grid.extent.yMax - grid.extent.yMax) / self.grid.resolution.y, 0))
         self.gdalBand.WriteArray(array, xoff=xoff, yoff=yoff)
 
     def setMetadataItem(self, key, value, domain=''):
@@ -1098,7 +774,7 @@ class Layer(object):
         self.ogrDataSource = ogrDataSource
         self.ogrLayer = ogrDataSource.GetLayer(iLayer=nameOrIndex)
         self.filename = self.ogrDataSource.GetDescription()
-        self.projection = self.ogrLayer.GetSpatialRef()
+        self.projection = Projection(wkt=self.ogrLayer.GetSpatialRef())
 
     def close(self):
         self.ogrLayer = None
@@ -1108,28 +784,27 @@ class Layer(object):
         xMin, xMax, yMin, yMax = self.ogrLayer.GetExtent()
         return Grid(projection=self.projection, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax, xRes=xRes, yRes=yRes)
 
-    def rasterize(self, dstPixelGrid, eType=gdal.GDT_Float32,
+    def rasterize(self, grid, eType=gdal.GDT_Float32,
                   initValue=None, burnValue=1, burnAttribute=None, allTouched=False,
                   filter=None, noDataValue=None,
-                  dstName='', format='MEM', creationOptions=[]):
+                  filename='', format='MEM', creationOptions=[]):
 
-        assert isinstance(dstPixelGrid, Grid)
+        assert isinstance(grid, Grid)
 
-        if not equalProjection(self.ogrLayer.GetSpatialRef(), dstPixelGrid.projection):
+        if not self.projection.equal(other=grid.projection):
             layer = self
         else:
-            layer = self.reprojectOnTheFly(projection=dstPixelGrid.projection)
+            layer = self.reprojectOnTheFly(projection=grid.projection)
 
         layer.ogrLayer.SetAttributeFilter(filter)
 
-        if format != 'MEM' and not exists(dirname(dstName)):
-            makedirs(dirname(dstName))
+        if format != 'MEM' and not exists(dirname(filename)):
+            makedirs(dirname(filename))
 
         driver = gdal.GetDriverByName(format)
-        ysize, xsize = dstPixelGrid.getDimensions()
-        gdalDataset = driver.Create(dstName, xsize, ysize, 1, eType, creationOptions)
-        gdalDataset.SetProjection(dstPixelGrid.projection)
-        gdalDataset.SetGeoTransform(dstPixelGrid.makeGeoTransform())
+        gdalDataset = driver.Create(filename, grid.xSize, grid.ySize, 1, eType, creationOptions)
+        gdalDataset.SetProjection(grid.projection.wkt)
+        gdalDataset.SetGeoTransform(grid.makeGeoTransform())
         dataset = Dataset(gdalDataset=gdalDataset)
         if noDataValue is not None:
             dataset.setNoDataValue(noDataValue)

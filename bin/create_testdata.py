@@ -33,7 +33,7 @@ for root, dirs, files in os.walk(inroot):
         if f[:-4].endswith('cfmask'):
             print(f)
             ds = Open(filename=join(root, f))
-            ds.translate(dstName=join(outroot, f.split('_')[0], f), format='GTiff',
-                         dstPixelGrid=ds.pixelGrid.newResolution(500,500),
+            ds.translate(filename=join(outroot, f.split('_')[0], f), format='GTiff',
+                         grid=ds.pixelGrid.newResolution(500, 500),
                          creationOptions=['COMPRESS=LZW', 'INTERLEAVE=BAND'],
                          resampleAlg=gdal.GRA_Mode)
