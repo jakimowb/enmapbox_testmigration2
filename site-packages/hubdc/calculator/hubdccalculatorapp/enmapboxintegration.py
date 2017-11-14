@@ -25,17 +25,14 @@ class HubDatacubeCalculatorApp(EnMAPBoxApplication):
 
     def startGUI(self, *args):
 
-        def startGUI(self, *args):
+        ui = hubdc.calculator.gui.CalculatorMainWindow(parent=self.enmapbox.ui)
 
-            ui = hubdc.calculator.gui.CalculatorMainWindow(parent=self.enmapbox.ui)
+        self.enmapbox.sigRasterSourceAdded.connect(lambda filename: ui.insertRasterInput(name=os.path.basename(filename), filename=filename))
+        self.enmapbox.sigVectorSourceAdded.connect(lambda filename: ui.insertVectorInput(name=os.path.basename(filename), filename=filename))
 
-            self.enmapbox.sigRasterSourceAdded.connect(lambda filename: ui.insertRasterInput(name=os.path.basename(filename), filename=filename))
-            self.enmapbox.sigVectorSourceAdded.connect(lambda filename: ui.insertVectorInput(name=os.path.basename(filename), filename=filename))
-
-            for uri in self.enmapbox.dataSources('RASTER'):
-                ui.insertRasterInput(name=os.path.basename(uri), filename=uri)
-            for uri in self.enmapbox.dataSources('VECTOR'):
-                ui.insertVectorInput(name=os.path.basename(uri), filename=uri)
-            ui.insertRasterOutput(name='result', filename=os.path.join(tempfile.gettempdir(), 'result.img'))
-            ui.show()
-
+        for uri in self.enmapbox.dataSources('RASTER'):
+            ui.insertRasterInput(name=os.path.basename(uri), filename=uri)
+        for uri in self.enmapbox.dataSources('VECTOR'):
+            ui.insertVectorInput(name=os.path.basename(uri), filename=uri)
+        ui.insertRasterOutput(name='result', filename=os.path.join(tempfile.gettempdir(), 'result.img'))
+        ui.show()

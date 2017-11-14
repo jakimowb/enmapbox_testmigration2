@@ -19,15 +19,15 @@
 *                                                                         *
 ***************************************************************************
 """
+# noinspection PyPep8Naming
 
-import os
-from PyQt4.QtGui import QIcon, QMenu, QAction
+from PyQt4.QtGui import QIcon
 from enmapbox.gui.applications import EnMAPBoxApplication
 from vrtbuilder.widgets import VRTBuilderWidget
 from vrtbuilder import VERSION, LICENSE, PATH_ICON
 
-class VRTBuilderApp(EnMAPBoxApplication):
 
+class VRTBuilderApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super(VRTBuilderApp, self).__init__(enmapBox, parent=parent)
         self.name = 'Raster Builder'
@@ -48,20 +48,18 @@ class VRTBuilderApp(EnMAPBoxApplication):
         a.triggered.connect(self.startGUI)
         return None
 
-
     def startGUI(self, *args):
         w = VRTBuilderWidget()
 
-        #show EnMAP-Box raster sources in VRTBuilder
-        self.enmapbox.sigRasterSourceAdded.connect(lambda path : w.addSourceFiles([path]))
+        # show EnMAP-Box raster sources in VRTBuilder
+        self.enmapbox.sigRasterSourceAdded.connect(lambda path: w.addSourceFiles([path]))
 
-        #populate VRT Builder with raster files known by EnMAP-Box
+        # populate VRT Builder with raster files known by EnMAP-Box
         w.addSourceFiles(self.enmapbox.dataSources('RASTER'))
 
-        #add created files to EnMAP-Box
+        # add created files to EnMAP-Box
         w.sigRasterCreated.connect(self.enmapbox.addSource)
         w.show()
 
     def geoAlgorithms(self):
-        return [] #remove this line to load geoAlgorithms
-
+        return []  # remove this line to load geoAlgorithms

@@ -42,7 +42,8 @@ class RemoteInfo(object):
         :param key: name under which the remote repo will be knows.
             Defaults to remote-repo if uri is like ..remote-repo.git
         :param prefixLocal: local location. Defaults to <this-repo>/<key>
-        :param prefixRemote: remote location behind <remoteBranch>, e.g. "subfolder" to get "<remoteBranch>:subfolder" only.
+        :param prefixRemote: remote location behind <remoteBranch>,
+            e.g. "subfolder" to get "<remoteBranch>:subfolder" only.
             Defaults to root of remote repository
         :param remoteBranch: the remote branch. Defaults to "master"
         """
@@ -155,9 +156,9 @@ if __name__ == "__main__":
     to_update = ['hub-datacube', 'hub-workflow', 'enmap-box-testdata',
                  'enmap-box-geoalgorithmsprovider']  # enmap-box-geoalgorithmsprovider
     # to_update = ['objbrowser']
-    # to_update = ['virtual-raster-builder']
-    # to_update = ['hub-datacube']
-    # to_update = ['enmap-box-testdata'] + to_update
+    to_update = ['virtual-raster-builder']
+
+
     for p in to_update:
         updateRemote(p)
 

@@ -88,8 +88,10 @@ def sandboxDragDrop():
 def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    EB.openExampleData(mapWindows=1)
-
+    #EB.openExampleData(mapWindows=1)
+    p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
+    EB.addSources([p])
+    s = ""
 
 
 #for backward compatibility

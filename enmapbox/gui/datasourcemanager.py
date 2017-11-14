@@ -933,6 +933,7 @@ class DataSourceManager(QObject):
         super(DataSourceManager, self).__init__()
 
         self.mSources = list()
+        self.mSubsetSelection = {}
         self.mQgsLayerTreeGroup = None
         #self.qgsLayerTreeGroup()
 
@@ -1048,8 +1049,13 @@ class DataSourceManager(QObject):
 
 
     def addSources(self, sources):
+        added = []
         for s in sources:
-            self.addSource(s)
+            added.append(self.addSource(s))
+        added = [a for a in added if isinstance(a, DataSource)]
+        self.mSubsetSelection.clear()
+        return added
+
 
     @pyqtSlot(str)
     @pyqtSlot('QString')

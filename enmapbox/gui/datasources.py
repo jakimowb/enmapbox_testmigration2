@@ -24,6 +24,8 @@ def openPlatformDefault(uri):
 
 class DataSourceFactory(object):
 
+    SUBDATASETPREFERENCES = {}
+
     @staticmethod
     def srcToString(src):
         if isinstance(src, QUrl):
@@ -85,7 +87,36 @@ class DataSourceFactory(object):
         if isinstance(src, QgsRasterDataProvider):
             uri = str(src.dataSourceUri())
         if isinstance(src, gdal.Dataset):
-            uri = src.GetFileList()[0]
+
+            subDataSets = src.GetSubDatasets()
+
+            if len(subDataSets) == 0:
+                uri = src.GetFileList()[0]
+            else:
+                #this is a container format (S2 Driver, HDF)
+
+                #1. describe the container type
+                import collections
+                subdatasets = collections.OrderedDict()
+                for s in subDataSets:
+                    subsetPath, description = s
+                    itemKey = subsetPath.replace(src.GetFileList()[0], '')
+                    subdatasets[itemKey] = subsetPath
+                containerType = '{}::{}'.format(src.GetDriver().ShortName,
+                                             ':'.join(subdatasets.keys()))
+
+                #known key? than use this sub-dataset
+                if containerType in DataSourceFactory.SUBDATASETPREFERENCES.keys():
+                    itemKey = DataSourceFactory.SUBDATASETPREFERENCES[containerType]
+                    uri = subdatasets[itemKey]
+
+                else:
+                    #ask how to handle subdatasets
+                    itemKey, accepted = QInputDialog.getItem(None,"Select a subdataset",'Please select a subdataset',
+                                                             subdatasets.keys(), editable=False)
+                    if accepted:
+                        uri = subdatasets[itemKey]
+
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
@@ -616,4 +647,3 @@ class DataSourceListModel(QAbstractListModel):
             return flags
 
         return None
-

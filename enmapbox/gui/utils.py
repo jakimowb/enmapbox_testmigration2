@@ -18,6 +18,7 @@
 """
 from __future__ import absolute_import
 import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle, zipfile
+
 logger = logging.getLogger(__name__)
 
 from qgis.core import *
@@ -29,27 +30,24 @@ from PyQt4 import uic
 from osgeo import gdal
 import numpy as np
 import enmapbox.gui
+
 jp = os.path.join
 
 DIR_ENMAPBOX = os.path.dirname(enmapbox.__file__)
 DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
-DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui','ui'])
-DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui','ui','icons'])
+DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
+DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
 
 DIR_TESTDATA = os.path.join(DIR_ENMAPBOX, 'enmapboxtestdata')
 
-
-REPLACE_TMP = True #required for loading *.ui files directly
-
-
-
+REPLACE_TMP = True  # required for loading *.ui files directly
 
 ######### Lookup  tables
 METRIC_EXPONENTS = {
-    "nm":-9,"um": -6,u"µm": -6, "mm":-3, "cm":-2, "dm":-1, "m": 0,"hm":2, "km":3
+    "nm": -9, "um": -6, u"µm": -6, "mm": -3, "cm": -2, "dm": -1, "m": 0, "hm": 2, "km": 3
 }
-#add synonyms
+# add synonyms
 METRIC_EXPONENTS['nanometers'] = METRIC_EXPONENTS['nm']
 METRIC_EXPONENTS['micrometers'] = METRIC_EXPONENTS['um']
 METRIC_EXPONENTS['millimeters'] = METRIC_EXPONENTS['mm']
@@ -66,12 +64,13 @@ LUT_WAVELENGTH = dict({'B': 480,
                        'SWIR': 1650,
                        'SWIR1': 1650,
                        'SWIR2': 2150
-                        })
+                       })
 
 
 def mkdir(path):
     if not os.path.isdir(path):
         os.mkdir(path)
+
 
 class TestObjects():
     @staticmethod
@@ -88,19 +87,18 @@ class TestObjects():
         step = np.ceil(float(nl) / len(scheme))
 
         assert isinstance(ds, gdal.Dataset)
-        for b in range(1,nb+1):
+        for b in range(1, nb + 1):
             band = ds.GetRasterBand(b)
-            array = np.zeros((nl, ns), dtype=np.uint8)-1
+            array = np.zeros((nl, ns), dtype=np.uint8) - 1
             y0 = 0
             for i, c in enumerate(scheme):
-                y1 = min(y0+step, nl-1)
-                array[y0:y1,:] = c.label()
-                y0 += y1+1
+                y1 = min(y0 + step, nl - 1)
+                array[y0:y1, :] = c.label()
+                y0 += y1 + 1
             band.SetCategoryNames(scheme.classNames())
             band.SetColorTable(scheme.gdalColorTable())
         ds.FlushCache()
         return ds
-
 
 
 def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
@@ -114,7 +112,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
     assert isinstance(pythonPlugins, list)
 
     from enmapbox.gui.utils import DIR_REPO
-    #pythonPlugins.append(os.path.dirname(DIR_REPO))
+    # pythonPlugins.append(os.path.dirname(DIR_REPO))
     PLUGIN_DIR = os.path.dirname(DIR_REPO)
 
     if os.path.isdir(PLUGIN_DIR):
@@ -126,33 +124,31 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
     if isinstance(envVar, list):
         pythonPlugins.extend(re.split('[;:]', envVar))
 
-    #make plugin paths available to QGIS and Python
+    # make plugin paths available to QGIS and Python
     os.environ['QGIS_PLUGINPATH'] = ';'.join(pythonPlugins)
     os.environ['QGIS_DEBUG'] = '1' if qgisDebug else '0'
     for p in pythonPlugins:
         sys.path.append(p)
 
     if isinstance(QgsApplication.instance(), QgsApplication):
-        #alread started
+        # alread started
         return QgsApplication.instance()
     else:
-
-
 
         if PATH_QGIS is None:
             # find QGIS Path
             if sys.platform == 'darwin':
-                #search for the QGIS.app
+                # search for the QGIS.app
                 import qgis, re
                 assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
-                PATH_QGIS_APP = re.split('\.app[\/]', qgis.__file__)[0]+ '.app'
-                PATH_QGIS = os.path.join(PATH_QGIS_APP, *['Contents','MacOS'])
+                PATH_QGIS_APP = re.split('\.app[\/]', qgis.__file__)[0] + '.app'
+                PATH_QGIS = os.path.join(PATH_QGIS_APP, *['Contents', 'MacOS'])
 
                 if not 'GDAL_DATA' in os.environ.keys():
                     os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
 
                 QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
-                QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns','qgis']))
+                QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns', 'qgis']))
 
 
             else:
@@ -166,6 +162,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
         qgsApp.setPrefixPath(PATH_QGIS, True)
         qgsApp.initQgis()
         return qgsApp
+
 
 def settings():
     """
@@ -182,8 +179,8 @@ def showMessage(message, title, level):
     v.setTitle(title)
 
     v.setMessage(message, QgsMessageOutput.MessageHtml \
-                    if message.startswith('<html>')
-                    else QgsMessageOutput.MessageText)
+        if message.startswith('<html>')
+    else QgsMessageOutput.MessageText)
 
     v.showMessage(True)
 
@@ -224,13 +221,12 @@ def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
     return pathOrDataset
 
 
-
 FORM_CLASSES = dict()
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 
-
-#dictionary to store form classes and avoid multiple calls to read <myui>.ui
+# dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()
+
 
 def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
     """
@@ -242,16 +238,16 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
     :return: the form class, e.g. to be used in a class definition like MyClassUI(QFrame, loadUi('myclassui.ui'))
     """
 
-    RC_SUFFIX =  resourceSuffix
+    RC_SUFFIX = resourceSuffix
     assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
 
-    buffer = StringIO.StringIO() #buffer to store modified XML
+    buffer = StringIO.StringIO()  # buffer to store modified XML
     if pathUi not in FORM_CLASSES.keys():
-        #parse *.ui xml and replace *.h by qgis.gui
+        # parse *.ui xml and replace *.h by qgis.gui
         doc = QDomDocument()
 
-        #remove new-lines. this prevents uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
-        #to mess up the *.ui xml
+        # remove new-lines. this prevents uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
+        # to mess up the *.ui xml
         txt = ''.join(open(pathUi).readlines())
         doc.setContent(txt)
 
@@ -267,7 +263,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
                 cHeader = child.firstChildElement('header').firstChild()
                 cHeader.setNodeValue('qgis.gui')
 
-        #collect resource file locations
+        # collect resource file locations
         elem = doc.elementsByTagName('include')
         qrcPathes = []
         for child in [elem.item(i) for i in range(elem.count())]:
@@ -275,12 +271,12 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
             if path.endswith('.qrc'):
                 qrcPathes.append(path)
 
-        #logger.debug('Load UI file: {}'.format(pathUi))
+        # logger.debug('Load UI file: {}'.format(pathUi))
         buffer.write(doc.toString())
         buffer.flush()
         buffer.seek(0)
 
-        #make resource file directories available to the python path (sys.path)
+        # make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)
         tmpDirs = []
         for qrcPath in qrcPathes:
@@ -289,7 +285,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
                 tmpDirs.append(d)
         sys.path.extend(tmpDirs)
 
-        #load form class
+        # load form class
         try:
             FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
         except SyntaxError as ex:
@@ -298,14 +294,11 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
 
         FORM_CLASSES[pathUi] = FORM_CLASS
 
-        #remove temporary added directories from python path
+        # remove temporary added directories from python path
         for d in tmpDirs:
             sys.path.remove(d)
 
     return FORM_CLASSES[pathUi]
-
-
-
 
 
 def typecheck(variable, type_):
@@ -313,13 +306,16 @@ def typecheck(variable, type_):
         for i in range(len(type_)):
             typecheck(variable[i], type_[i])
     else:
-        assert isinstance(variable,type_)
+        assert isinstance(variable, type_)
 
 
 from collections import defaultdict
 import weakref
+
+
 class KeepRefs(object):
     __refs__ = defaultdict(list)
+
     def __init__(self):
         self.__refs__[self.__class__].append(weakref.ref(self))
 
@@ -329,6 +325,7 @@ class KeepRefs(object):
             inst = inst_ref()
             if inst is not None:
                 yield inst
+
 
 def appendItemsToMenu(menu, itemsToAdd):
     """
@@ -349,13 +346,14 @@ def appendItemsToMenu(menu, itemsToAdd):
             menu.addAction(item)
             s = ""
         elif isinstance(item, QMenu):
-            #item.setParent(menu)
+            # item.setParent(menu)
             sub = menu.addMenu(item.title())
             sub.setIcon(item.icon())
             appendItemsToMenu(sub, item.children()[1:])
         else:
             s = ""
     return menu
+
 
 def allSubclasses(cls):
     """
@@ -367,11 +365,11 @@ def allSubclasses(cls):
     return cls.__subclasses__() + [g for s in cls.__subclasses__()
                                    for g in allSubclasses(s)]
 
+
 class PanelWidgetBase(QgsDockWidget):
     def __init__(self, parent):
         super(PanelWidgetBase, self).__init__(parent)
         self.setupUi(self)
-
 
     def _blockSignals(self, widgets, block=True):
         states = dict()
@@ -384,7 +382,6 @@ class PanelWidgetBase(QgsDockWidget):
         return states
 
 
-
 def check_package(name, package=None, stop_on_error=False):
     try:
         importlib.import_module(name, package)
@@ -394,12 +391,13 @@ def check_package(name, package=None, stop_on_error=False):
         return False
     return True
 
+
 def zipdir(pathDir, pathZip):
     """
     :param pathDir: directory to compress
     :param pathZip: path to new zipfile
     """
-    #thx to https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
+    # thx to https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
     """
     import zipfile
     assert os.path.isdir(pathDir)
@@ -420,6 +418,7 @@ def zipdir(pathDir, pathZip):
                     arcname = os.path.join(os.path.relpath(root, relroot), file)
                     zip.write(filename, arcname)
 
+
 def convertMetricUnit(value, u1, u2):
     """converts value, given in unit u1, to u2"""
     assert u1 in METRIC_EXPONENTS.keys()
@@ -428,7 +427,8 @@ def convertMetricUnit(value, u1, u2):
     e1 = METRIC_EXPONENTS[u1]
     e2 = METRIC_EXPONENTS[u2]
 
-    return value * 10**(e1-e2)
+    return value * 10 ** (e1 - e2)
+
 
 def defaultBands(dataset):
     """
@@ -448,15 +448,15 @@ def defaultBands(dataset):
         if db != None:
             db = [int(n) for n in re.findall('\d+')]
             return db
-        db = [0,0,0]
+        db = [0, 0, 0]
         cis = [gdal.GCI_RedBand, gdal.GCI_GreenBand, gdal.GCI_BlueBand]
         for b in range(dataset.RasterCount):
-            band = dataset.GetRasterBand(b+1)
+            band = dataset.GetRasterBand(b + 1)
             assert isinstance(band, gdal.Band)
             ci = band.GetColorInterpretation()
             if ci in cis:
                 db[cis.index(ci)] = b
-        if db != [0,0,0]:
+        if db != [0, 0, 0]:
             return db
 
         rl = QgsRasterLayer(dataset.GetFileList()[0])
@@ -464,13 +464,14 @@ def defaultBands(dataset):
         if isinstance(defaultRenderer, QgsRasterRenderer):
             db = defaultRenderer.usesBands()
             if len(db) == 0:
-                return [0,1,2]
+                return [0, 1, 2]
             elif len(db) > 3:
                 return db[0:3]
         return db
 
     else:
         raise Exception()
+
 
 def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
     """
@@ -493,6 +494,7 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
         if ds_wlu != wl_unit:
             wl = convertMetricUnit(wl, wl_unit, ds_wlu)
         return np.argmin(np.abs(ds_wl - wl))
+
 
 def parseWavelength(dataset):
     wl = None
@@ -547,10 +549,12 @@ def parseWavelength(dataset):
 
 class Singleton(type):
     _instances = {}
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
 
 def getDOMAttributes(elem):
     assert isinstance(elem, QDomElement)
@@ -560,6 +564,7 @@ def getDOMAttributes(elem):
         attr = attributes.item(a)
         values[attr.nodeName()] = attr.nodeValue()
     return values
+
 
 def fileSizeString(num, suffix='B', div=1000):
     """
@@ -571,12 +576,11 @@ def fileSizeString(num, suffix='B', div=1000):
     :param div: divisor of num, 1000 by default.
     :return: the file size string
     """
-    for unit in ['','K','M','G','T','P','E','Z']:
+    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < div:
             return "{:3.1f}{}{}".format(num, unit, suffix)
         num /= div
     return "{:.1f} {}{}".format(num, unit, suffix)
-
 
 
 def geo2pxF(geo, gt):
@@ -590,7 +594,8 @@ def geo2pxF(geo, gt):
     # see http://www.gdal.org/gdal_datamodel.html
     px = (geo.x() - gt[0]) / gt[1]  # x pixel
     py = (geo.y() - gt[3]) / gt[5]  # y pixel
-    return QPointF(px,py)
+    return QPointF(px, py)
+
 
 def geo2px(geo, gt):
     """
@@ -603,11 +608,12 @@ def geo2px(geo, gt):
     px = geo2pxF(geo, gt)
     return QPoint(int(px.x()), int(px.y()))
 
+
 def px2geo(px, gt):
-    #see http://www.gdal.org/gdal_datamodel.html
-    gx = gt[0] + px.x()*gt[1]+px.y()*gt[2]
-    gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
-    return QgsPoint(gx,gy)
+    # see http://www.gdal.org/gdal_datamodel.html
+    gx = gt[0] + px.x() * gt[1] + px.y() * gt[2]
+    gy = gt[3] + px.x() * gt[4] + px.y() * gt[5]
+    return QgsPoint(gx, gy)
 
 
 class SpatialPoint(QgsPoint):
@@ -693,7 +699,7 @@ class SpatialPoint(QgsPoint):
         return '{} {} {}'.format(self.x(), self.y(), self.crs().authid())
 
 
-def findParent(qObject, parentType, checkInstance = False):
+def findParent(qObject, parentType, checkInstance=False):
     parent = qObject.parent()
     if checkInstance:
         while parent != None and not isinstance(parent, parentType):
@@ -704,7 +710,6 @@ def findParent(qObject, parentType, checkInstance = False):
     return parent
 
 
-
 def saveTransform(geom, crs1, crs2):
     crs1 = QgsCoordinateReferenceSystem(crs1)
     crs2 = QgsCoordinateReferenceSystem(crs2)
@@ -713,7 +718,6 @@ def saveTransform(geom, crs1, crs2):
     if isinstance(geom, QgsRectangle):
         if geom.isEmpty():
             return None
-
 
         transform = QgsCoordinateTransform(crs1, crs2);
         try:
@@ -739,6 +743,7 @@ class SpatialExtent(QgsRectangle):
     """
     Object to keep QgsRectangle and QgsCoordinateReferenceSystem together
     """
+
     @staticmethod
     def fromMapCanvas(mapCanvas, fullExtent=False):
         assert isinstance(mapCanvas, QgsMapCanvas)
@@ -753,9 +758,8 @@ class SpatialExtent(QgsRectangle):
     @staticmethod
     def world():
         crs = QgsCoordinateReferenceSystem('EPSG:4326')
-        ext = QgsRectangle(-180,-90,180,90)
+        ext = QgsRectangle(-180, -90, 180, 90)
         return SpatialExtent(crs, ext)
-
 
     @staticmethod
     def fromRasterSource(pathSrc):
@@ -769,16 +773,12 @@ class SpatialExtent(QgsRectangle):
         yValues = []
         for x in [0, ns]:
             for y in [0, nl]:
-                px = px2geo(QPoint(x,y), gt)
+                px = px2geo(QPoint(x, y), gt)
                 xValues.append(px.x())
                 yValues.append(px.y())
 
         return SpatialExtent(crs, min(xValues), min(yValues),
-                                  max(xValues), max(yValues))
-
-
-
-
+                             max(xValues), max(yValues))
 
     @staticmethod
     def fromLayer(mapLayer):
@@ -849,7 +849,6 @@ class SpatialExtent(QgsRectangle):
     def lowerLeftPt(self):
         return QgsPoint(*self.lowerLeft())
 
-
     def upperRight(self):
         return self.xMaximum(), self.yMaximum()
 
@@ -861,7 +860,6 @@ class SpatialExtent(QgsRectangle):
 
     def lowerLeft(self):
         return self.xMinimum(), self.yMinimum()
-
 
     def __eq__(self, other):
         return self.toString() == other.toString()
@@ -880,6 +878,7 @@ class SpatialExtent(QgsRectangle):
                                 self.xMinimum(), self.yMinimum(),
                                 self.xMaximum(), self.yMaximum()
                                 ), {}
+
     def __str__(self):
         return self.__repr__()
 
@@ -915,11 +914,10 @@ class IconProvider:
     MapDock = ':/enmapbox/png/icons/viewlist_mapdock.png'
     SpectralDock = ':/enmapbox/png/icons/viewlist_spectrumdock.png'
 
-
     @staticmethod
     def resourceIconsPaths():
         import inspect
-        return inspect.getmembers(IconProvider, lambda a: not(inspect.isroutine(a)) and a.startswith(':'))
+        return inspect.getmembers(IconProvider, lambda a: not (inspect.isroutine(a)) and a.startswith(':'))
 
     @staticmethod
     def icon(path):
@@ -938,19 +936,17 @@ class IconProvider:
 
     @staticmethod
     def test():
-        required = set(['png','svg'])
+        required = set(['png', 'svg'])
         available = set([str(p) for p in QImageReader.supportedImageFormats()])
         missing = required - available
-
-
 
         for name, uri in IconProvider.resourceIconsPaths():
             icon = QIcon(uri)
             w = h = 16
-            s = icon.actualSize(QSize(w,h))
+            s = icon.actualSize(QSize(w, h))
+
 
 class EnMAPBoxMimeData(QMimeData):
-
     def __init__(self):
         super(EnMAPBoxMimeData, self).__init__()
         self.mData = None
@@ -965,15 +961,13 @@ class EnMAPBoxMimeData(QMimeData):
         return self.mData != None
 
 
-
 class MimeDataHelper():
     """
     A class to simplify I/O on QMimeData objects, aiming on Drag & Drop operations.
     """
 
-
     from weakref import WeakValueDictionary
-    #PYTHON_OBJECTS = WeakValueDictionary()
+    # PYTHON_OBJECTS = WeakValueDictionary()
     PYTHON_OBJECTS = dict()
 
     MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'
@@ -1007,7 +1001,6 @@ class MimeDataHelper():
         mimeData.setData(MimeDataHelper.MDF_PYTHON_OBJECTS, ';'.join(refIds))
         return mimeData
 
-
     def __init__(self, mimeData):
         assert isinstance(mimeData, QMimeData)
         self.mMimeData = mimeData
@@ -1030,7 +1023,7 @@ class MimeDataHelper():
                 if nodes.count() > 0:
                     id = nodes.item(0).toElement().attribute('id')
                     # we can read layer-tree-layer xml format only if is exists in same QgsMapLayerRegistry
-                    return  QgsMapLayerRegistry.instance().mapLayer(id) is not None
+                    return QgsMapLayerRegistry.instance().mapLayer(id) is not None
             elif t in self.mMimeDataFormats:
                 return True
         return False
@@ -1142,7 +1135,7 @@ class MimeDataHelper():
         if self.setContent(MimeDataHelper.MDF_LAYERTREEMODELDATA):
             layers = self._readMapLayersFromXML(self.doc.documentElement())
         if len(layers) == 0:
-            s= ""
+            s = ""
         return layers
 
     def hasUrls(self):
@@ -1164,16 +1157,14 @@ class MimeDataHelper():
         """
         return self.mMimeData.data(mimeDataKey)
 
-
     def hasDataSources(self):
         """
         :return: True, if any data can be returned as EnMAPBox DataSource
         """
         return self.containsMimeType([
-                MimeDataHelper.MDF_DATASOURCETREEMODELDATA,
-                MimeDataHelper.MDF_LAYERTREEMODELDATA,
-                MimeDataHelper.MDF_URILIST])
-
+            MimeDataHelper.MDF_DATASOURCETREEMODELDATA,
+            MimeDataHelper.MDF_LAYERTREEMODELDATA,
+            MimeDataHelper.MDF_URILIST])
 
     def dataSources(self):
         """
@@ -1206,7 +1197,5 @@ class MimeDataHelper():
 if __name__ == '__main__':
     from enmapboxtestdata import enmap
 
-
-
-    for b in ['B','G','R', 'NIR', 'SWIR']:
+    for b in ['B', 'G', 'R', 'NIR', 'SWIR']:
         print(bandClosestToWavelength(enmap, b))
