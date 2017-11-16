@@ -9,7 +9,7 @@ See :doc:`ApplierExamples` for more information.
 from __future__ import print_function
 import sys, os, pickle
 from collections import OrderedDict
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from timeit import default_timer as now
 import numpy
 from osgeo import gdal, osr, ogr
@@ -63,7 +63,24 @@ class Default(object):
         multithread = False
 
 
-class ApplierInputRaster(object):
+class ApplierIO(object):
+    def __init__(self, filename):
+        self._operator = None
+        self._filename = str(filename)
+
+    def setOperator(self, operator):
+        assert isinstance(operator, ApplierOperator)
+        self._operator = operator
+
+    def operator(self):
+        assert isinstance(self._operator, ApplierOperator)
+        return self._operator
+
+    def filename(self):
+        return self._filename
+
+
+class ApplierInputRaster(ApplierIO):
     '''Class for handling input raster dataset.'''
 
     @classmethod
@@ -81,41 +98,27 @@ class ApplierInputRaster(object):
         :param filename: filename
         '''
 
-        self.filename = filename
+        ApplierIO.__init__(self,filename=filename)
         self._dataset = None
-        self._operator = None
+
 
     def __repr__(self):
-        return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename))
+        return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename()))
 
-    @property
-    def operator(self):
-        '''Returns the :class:`~hubdc.applier.ApplierOperator` object.'''
-        assert isinstance(self._operator, ApplierOperator)
-        return self._operator
-
-    @operator.setter
-    def operator(self, value):
-        '''Sets the :class:`~hubdc.applier.ApplierOperator` object.'''
-        assert isinstance(value, ApplierOperator)
-        self._operator = value
-
-    @property
     def dataset(self):
-        '''Returns the :class:`~hubdc.model.Dataset` object associated with the input raster.'''
         if self._dataset is None:
-            self._dataset = Open(filename=self.filename)
-        assert isinstance(self._dataset, Dataset)
+            self._dataset = Open(filename=self.filename())
+
         return self._dataset
 
     def _freeUnpickableResources(self):
         self._dataset = None
 
-    def getImageArray(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                      errorThreshold=Default.GDALWarp.errorThreshold,
-                      warpMemoryLimit=Default.GDALWarp.memoryLimit,
-                      multithread=Default.GDALWarp.multithread,
-                      grid=None):
+    def imageArray(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+                   errorThreshold=Default.GDALWarp.errorThreshold,
+                   warpMemoryLimit=Default.GDALWarp.memoryLimit,
+                   multithread=Default.GDALWarp.multithread,
+                   grid=None):
         '''
         Returns image data as 3-d numpy array of shape = (bands, ysize, xsize).
 
@@ -129,27 +132,27 @@ class ApplierInputRaster(object):
         '''
 
         if grid is None:
-            grid = self.operator.subgrid.pixelBuffer(buffer=overlap)
+            grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
-        if self.operator.subgrid.projection.equal(other=self.dataset.grid.projection):
-            datasetResampled = self.dataset.translate(grid=grid, filename='', format='MEM',
-                                                      resampleAlg=resampleAlg,
-                                                      noData=noData)
+        if self.operator().subgrid().projection().equal(other=self.dataset().grid().projection()):
+            datasetResampled = self.dataset().translate(grid=grid, filename='', format='MEM',
+                                                        resampleAlg=resampleAlg,
+                                                        noData=noData)
         else:
-            datasetResampled = self.dataset.warp(grid=grid, filename='', format='MEM',
-                                                 resampleAlg=resampleAlg,
-                                                 errorThreshold=errorThreshold,
-                                                 warpMemoryLimit=warpMemoryLimit,
-                                                 multithread=multithread,
-                                                 srcNodata=noData)
+            datasetResampled = self.dataset().warp(grid=grid, filename='', format='MEM',
+                                                   resampleAlg=resampleAlg,
+                                                   errorThreshold=errorThreshold,
+                                                   warpMemoryLimit=warpMemoryLimit,
+                                                   multithread=multithread,
+                                                   srcNodata=noData)
         array = datasetResampled.readAsArray()
         datasetResampled.close()
         return array
 
-    def getBandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                     errorThreshold=Default.GDALWarp.errorThreshold,
-                     warpMemoryLimit=Default.GDALWarp.memoryLimit,
-                     multithread=Default.GDALWarp.multithread):
+    def bandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+                  errorThreshold=Default.GDALWarp.errorThreshold,
+                  warpMemoryLimit=Default.GDALWarp.memoryLimit,
+                  multithread=Default.GDALWarp.multithread):
         '''
         Returns a band subset of the image data as 3-d numpy array of shape = (indicies, ysize, xsize).
 
@@ -163,17 +166,17 @@ class ApplierInputRaster(object):
         '''
 
         bandList = [i + 1 for i in indicies]
-        grid = self.operator.subgrid.pixelBuffer(buffer=overlap)
-        if self.operator.subgrid.projection.equal(self.dataset.grid.projection):
-            datasetResampled = self.dataset.translate(grid=grid, filename='', format='MEM',
+        grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
+        if self.operator().subgrid().projection().equal(self.dataset().grid().projection()):
+            datasetResampled = self.dataset().translate(grid=grid, filename='', format='MEM',
                                                       bandList=bandList,
                                                       resampleAlg=resampleAlg,
                                                       noData=noData)
         else:
-            selfGridReprojected = self.operator.subgrid.reproject(self.dataset.grid)
+            selfGridReprojected = self.operator().subgrid().reproject(self.dataset().grid())
             selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1 + overlap)
 
-            datasetClipped = self.dataset.translate(grid=selfGridReprojectedWithBuffer, filename='',
+            datasetClipped = self.dataset().translate(grid=selfGridReprojectedWithBuffer, filename='',
                                                     format='MEM',
                                                     bandList=bandList,
                                                     noData=noData)
@@ -190,7 +193,7 @@ class ApplierInputRaster(object):
         datasetResampled.close()
         return array
 
-    def getFractionArray(self, categories, overlap=0, noData=None, index=None):
+    def fractionArray(self, categories, overlap=0, noData=None, index=None):
         '''
         Returns a stack of category fractions for the given ``categories`` as a 3-d numpy array of shape = (categories, ysize, xsize).
 
@@ -200,14 +203,14 @@ class ApplierInputRaster(object):
         :param index: index to the band holding the categories
         '''
 
-        assert self.dataset.zsize == 1 or index is not None
+        assert self.dataset().zsize() == 1 or index is not None
         if index is None:
             index = 0
-        grid = self.operator.subgrid.pixelBuffer(buffer=overlap)
+        grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
         # create tmp dataset with binarized categories in original resolution
-        gridInSourceProjection = grid.reproject(self.dataset.grid)
-        tmpDataset = self.dataset.translate(grid=gridInSourceProjection, filename='', format='MEM',
+        gridInSourceProjection = grid.reproject(self.dataset().grid())
+        tmpDataset = self.dataset().translate(grid=gridInSourceProjection, filename='', format='MEM',
                                             noData=noData, bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
 
@@ -216,15 +219,15 @@ class ApplierInputRaster(object):
                                            filename='', format='MEM', creationOptions=[])
 
         binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
-        binarizedInputRaster.operator = self.operator
+        binarizedInputRaster.setOperator(operator=self.operator())
 
-        array = binarizedInputRaster.getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Average)
+        array = binarizedInputRaster.imageArray(overlap=overlap, resampleAlg=gdal.GRA_Average)
         return array
 
-    def getImageSample(self, mask, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                       errorThreshold=Default.GDALWarp.errorThreshold,
-                       warpMemoryLimit=Default.GDALWarp.memoryLimit,
-                       multithread=Default.GDALWarp.multithread):
+    def imageSample(self, mask, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+                    errorThreshold=Default.GDALWarp.errorThreshold,
+                    warpMemoryLimit=Default.GDALWarp.memoryLimit,
+                    multithread=Default.GDALWarp.multithread):
         '''
         Returns all pixel profiles for which ``mask`` is True as a 2-d numpy array of shape = (bands, samples).
 
@@ -241,43 +244,43 @@ class ApplierInputRaster(object):
         assert mask.dtype == numpy.bool
         assert mask.ndim == 3
         assert mask.shape[0] == 1
-        assert mask.shape[1:] == self.operator.subgrid.shape
+        assert mask.shape[1:] == self.operator().subgrid().shape()
 
         ys, xs = numpy.indices(mask.shape[1:])[:, mask[0]]
         profiles = list()
         for y, x in zip(ys, xs):
-            grid = self.operator.subgrid.subset(offset=Offset(x=x, y=y), size=Size(x=1, y=1))
-            profiles.append(self.getImageArray(resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
-                                               warpMemoryLimit=warpMemoryLimit, multithread=multithread, grid=grid))
+            grid = self.operator().subgrid().subset(offset=Pixel(x=x, y=y), size=Size(x=1, y=1))
+            profiles.append(self.imageArray(resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
+                                            warpMemoryLimit=warpMemoryLimit, multithread=multithread, grid=grid))
         if len(profiles) != 0:
             profiles = numpy.hstack(profiles)[:, :, 0]
         else:
-            profiles = numpy.empty((self.dataset.zsize, 0))
+            profiles = numpy.empty((self.dataset().zsize(), 0))
         return profiles
 
-    def getMetadataItem(self, key, domain):
+    def metadataItem(self, key, domain):
         """Return a metadata item."""
-        return self.dataset.getMetadataItem(key=key, domain=domain)
+        return self.dataset().metadataItem(key=key, domain=domain)
 
-    def getMetadataDict(self):
+    def metadataDict(self):
         """Return metadata as a dictionary."""
         meta = dict()
-        for domain in self.dataset.getMetadataDomainList():
+        for domain in self.dataset().metadataDomainList():
             meta[domain] = dict()
-            for key in self.dataset.getMetadataDomain(domain):
-                meta[domain][key] = self.getMetadataItem(key=key, domain=domain)
+            for key in self.dataset().metadataDomain(domain):
+                meta[domain][key] = self.metadataItem(key=key, domain=domain)
         return meta
 
-    def getNoDataValue(self, default=None):
+    def noDataValue(self, default=None):
         '''Return single image no data value. Only valid to use if all bands have the same ne data value.'''
-        return self.dataset.getNoDataValue(default=default)
+        return self.dataset().noDataValue(default=default)
 
-    def getNoDataValues(self, default=None):
+    def noDataValues(self, default=None):
         """Return band no data values."""
-        return self.dataset.getNoDataValues(default=default)
+        return self.dataset().noDataValues(default=default)
 
 
-class ApplierInputVector(object):
+class ApplierInputVector(ApplierIO):
     '''Class for handling the vector dataset given by it's ``filename`` and ``layerNameOrIndex``.'''
 
     def __init__(self, filename, layerNameOrIndex=0):
@@ -288,52 +291,41 @@ class ApplierInputVector(object):
         :type layerNameOrIndex: str or int
         '''
 
-        self.filename = filename
-        self.layerNameOrIndex = layerNameOrIndex
+        ApplierIO.__init__(self,filename=filename)
+        self._layerNameOrIndex = layerNameOrIndex
         self._layer = None
-        self._dataset = None
-        self._operator = None
+
 
     def __repr__(self):
         return '{cls}(filename={filename}, layerNameOrIndex={layerNameOrIndex})'.format(
             cls=self.__class__.__name__,
-            filename=str(self.filename),
-            layerNameOrIndex=repr(self.layerNameOrIndex))
+            filename=str(self.filename()),
+            layerNameOrIndex=repr(self.layerNameOrIndex()))
 
-    @property
-    def operator(self):
-        '''Returns the :class:`~hubdc.applier.ApplierOperator` object.'''
-        assert isinstance(self._operator, ApplierOperator)
-        return self._operator
-
-    @operator.setter
-    def operator(self, value):
-        '''Set the :class:`~hubdc.applier.ApplierOperator` object.'''
-        assert isinstance(value, ApplierOperator)
-        self._operator = value
-
-    @property
     def layer(self):
         '''Return the :class:`~hubdc.model.Layer` object.'''
         if self._layer is None:
-            self._layer = OpenLayer(filename=self.filename, layerNameOrIndex=self.layerNameOrIndex, update=False)
+            self._layer = OpenLayer(filename=self.filename(), layerNameOrIndex=self.layerNameOrIndex(), update=False)
         return self._layer
+
+    def layerNameOrIndex(self):
+        return self._layerNameOrIndex
 
     def _rasterize(self, initValue, burnValue, burnAttribute, allTouched, filterSQL, overlap, dtype, resolution):
 
-        grid = self.operator.subgrid.pixelBuffer(buffer=overlap)
-        gridOversampled = grid.newResolution(resolution=resolution)
+        grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
+        gridOversampled = Grid(extent=grid.extent(), resolution=resolution, projection=grid.projection())
 
-        dataset = self.layer.rasterize(grid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(dtype),
+        dataset = self.layer().rasterize(grid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(dtype),
                                        initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute,
                                        allTouched=allTouched,
                                        filter=filterSQL, filename='', format='MEM', creationOptions=[])
         raster = ApplierInputRaster.fromDataset(dataset=dataset)
-        raster.operator = self.operator
+        raster.setOperator(operator=self.operator())
         return raster
 
-    def getImageArray(self, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0,
-                      dtype=numpy.float32):
+    def imageArray(self, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0,
+                   dtype=numpy.float32):
         '''Returns the vector rasterization of the current block in form of a 3-d numpy array of shape = (1, ysize, xsize).
 
         :param initValue: value to pre-initialize the output array
@@ -346,10 +338,10 @@ class ApplierInputVector(object):
 
         raster = self._rasterize(initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute,
                                  allTouched=allTouched, filterSQL=filterSQL, overlap=overlap, dtype=dtype,
-                                 resolution=self.operator.subgrid.resolution)
-        return raster.dataset.readAsArray()
+                                 resolution=self.operator().subgrid().resolution())
+        return raster.dataset().readAsArray()
 
-    def getFractionArray(self, categories, categoryAttribute=None, oversampling=10, resolution=None, overlap=0):
+    def fractionArray(self, categories, categoryAttribute=None, oversampling=10, resolution=None, overlap=0):
         '''Returns aggregated category fractions of the current block in form of a 3d numpy array of shape = (categories, ysize, xsize).
 
         :param categories: list of categories (numbers or names)
@@ -359,8 +351,8 @@ class ApplierInputVector(object):
         '''
 
         if resolution is None:
-            resolution = Resolution(x=self.operator.subgrid.resolution.x / float(oversampling),
-                                    y=self.operator.subgrid.resolution.y / float(oversampling))
+            resolution = Resolution(x=self.operator().subgrid().resolution().x() / float(oversampling),
+                                    y=self.operator().subgrid().resolution().y() / float(oversampling))
 
         array = list()
         for category in categories:
@@ -369,12 +361,12 @@ class ApplierInputVector(object):
                                                 filterSQL=filterSQL,
                                                 overlap=overlap * oversampling, dtype=numpy.float32,
                                                 resolution=resolution)
-            array.append(oversampledRaster.getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Average))
+            array.append(oversampledRaster.imageArray(overlap=overlap, resampleAlg=gdal.GRA_Average))
 
         return numpy.vstack(array)
 
 
-class ApplierOutputRaster(object):
+class ApplierOutputRaster(ApplierIO):
     '''Class for creating and handling an output raster dataset.'''
 
     def __init__(self, filename, format=None, creationOptions=None):
@@ -388,65 +380,48 @@ class ApplierOutputRaster(object):
 
         :type creationOptions: list of str
         '''
-        self._filename = filename
+
+        ApplierIO.__init__(self, filename=filename)
         if format is None:
             format = Default.format
         self.format = format
         if creationOptions is None:
             creationOptions = Default.creationOptions.get(self.format, [])
         self.creationOptions = creationOptions
-        self._operator = None
         self._writerQueue = None
-        self._bands = None
+        self._zsize = None
 
     def __repr__(self):
         return '{cls}(filename={filename}, format={format}, creationOptions={creationOptions})'.format(
             cls=self.__class__.__name__,
-            filename=str(self.filename),
+            filename=str(self.filename()),
             format=repr(self.format),
             creationOptions=repr(self.creationOptions))
 
-    def initialize(self, bands):
+    def setZsize(self, zsize):
         """Specify the number of output bands. This is only required if the output is written band-wise."""
-        self._bands = bands
+        self._zsize = zsize
 
-    @property
-    def filename(self):
-        '''Returns the filename.'''
-        return self._filename
+    def zsize(self):
+        if self._zsize is None:
+            raise errors.ApplierOutputRasterNotInitializedError
+        return int(self._zsize)
 
-    @property
-    def operator(self):
-        '''Returns the :class:`~hubdc.applier.ApplierOperator` object.'''
-
-        assert isinstance(self._operator, ApplierOperator)
-        return self._operator
-
-    @operator.setter
-    def operator(self, value):
-        '''Set the :class:`~hubdc.applier.ApplierOperator` object.'''
-
-        assert isinstance(value, ApplierOperator)
-        self._operator = value
-
-    def getFlatList(self):
+    def flatList(self):
         '''Returns itself inside a list, i.e. ``[self]``.'''
-
         return [self]
 
-    def getBand(self, index):
+    def band(self, index):
         '''Returns the :class:`~hubdc.applier.ApplierOutputRasterBand` for the given ``index``.'''
 
-        if self._bands is None:
-            raise Exception(
-                'Output raster is not initialized. Use ApplierOutputRaster.initialize(bands) to specify the number of output bands.')
-        return ApplierOutputRasterBand(parent=self, bandNumber=index + 1)
+        assert self.zsize() is not None
+        return ApplierOutputRasterBand(parent=self, index=index)
 
-    def getBandIterator(self):
+    def bands(self):
         '''Returns an iterator over all :class:`~hubdc.applier.ApplierOutputRasterBand`'s.'''
 
-        for index in range(self._bands):
-            yield self.getBand(index=index)
+        for index in range(self.zsize()):
+            yield self.band(index=index)
 
     def setImageArray(self, array, overlap=0):
         """
@@ -467,10 +442,10 @@ class ApplierOutputRaster(object):
             array = array[:, overlap:-overlap, overlap:-overlap]
 
         self._writerQueue.put(
-            (Writer.WRITE_IMAGEARRAY, self.filename, array, self.operator.subgrid, self.operator.grid,
+            (Writer.WRITE_IMAGEARRAY, self.filename(), array, self.operator().subgrid(), self.operator().grid(),
              self.format, self.creationOptions))
 
-        self.initialize(bands=len(array))
+        self.setZsize(zsize=len(array))
 
         return self
 
@@ -498,19 +473,19 @@ class ApplierOutputRaster(object):
         self._callImageMethod(method=Dataset.setNoDataValue, value=value)
 
     def _callImageMethod(self, method, **kwargs):
-        if self.operator.isFirstBlock():
+        if self.operator().isFirstBlock():
             method = (Dataset, method.__name__)
-            self._writerQueue.put((Writer.CALL_IMAGEMETHOD, self.filename, method, kwargs))
+            self._writerQueue.put((Writer.CALL_IMAGEMETHOD, self.filename(), method, kwargs))
 
 
-class ApplierOutputRasterBand(object):
+class ApplierOutputRasterBand(ApplierIO):
     '''Class for handling an output raster band dataset.'''
 
-    def __init__(self, parent, bandNumber):
+    def __init__(self, parent, index):
         '''For internal use only.'''
         assert isinstance(parent, ApplierOutputRaster)
         self.parent = parent
-        self.bandNumber = bandNumber
+        self._index = index
 
     def setArray(self, array, overlap=0):
         '''
@@ -531,17 +506,17 @@ class ApplierOutputRasterBand(object):
         if overlap > 0:
             array = array[:, overlap:-overlap, overlap:-overlap]
 
-        self.parent._writerQueue.put((Writer.WRITE_BANDARRAY, self.parent.filename, array, self.bandNumber,
-                                      self.parent._bands, self.parent.operator.subgrid,
-                                      self.parent.operator.grid,
+        self.parent._writerQueue.put((Writer.WRITE_BANDARRAY, self.parent.filename(), array, self._index,
+                                      self.parent.zsize(), self.parent.operator().subgrid(),
+                                      self.parent.operator().grid(),
                                       self.parent.format, self.parent.creationOptions))
         return self
 
     def _callMethod(self, method, **kwargs):
-        if self.parent.operator.isFirstBlock():
+        if self.parent.operator().isFirstBlock():
             method = (Band, method.__name__)
             self.parent._writerQueue.put(
-                (Writer.CALL_BANDMETHOD, self.parent.filename, self.bandNumber, method, kwargs))
+                (Writer.CALL_BANDMETHOD, self.parent.filename(), self._index, method, kwargs))
 
     def setDescription(self, value):
         '''Set band description.'''
@@ -556,7 +531,7 @@ class ApplierOutputRasterBand(object):
         self._callMethod(method=Band.setNoDataValue, value=value)
 
 
-class _ApplierIOGroup(object):
+class ApplierIOGroup(object):
     def __init__(self):
         self.items = dict()
         self._operator = None
@@ -565,43 +540,41 @@ class _ApplierIOGroup(object):
         space = 2
         result = '{indent}{key}\n'.format(indent=' ' * indent, key=key)
         for k, v in self.items.items():
-            if isinstance(v, _ApplierIOGroup):
+            if isinstance(v, ApplierIOGroup):
                 result += v.__repr__(key=k, indent=indent + space)
             else:
                 result += '{indent}{k} : '.format(indent=' ' * (indent + space), k=k)
                 result += repr(v) + '\n'
         return result
 
-    @property
     def operator(self):
         assert isinstance(self._operator, ApplierOperator)
         return self._operator
 
-    @operator.setter
-    def operator(self, value):
-        assert isinstance(value, ApplierOperator)
-        self._operator = value
+    def setOperator(self, operator):
+        assert isinstance(operator, ApplierOperator)
+        self._operator = operator
         for item in self.items.values():
-            item.operator = self._operator
+            item.setOperator(operator= self._operator)
 
     def _freeUnpickableResources(self):
         for item in self.items.values():
             item._freeUnpickableResources()
 
-    def _getFlatValues(self):
+    def _flatValues(self):
         result = list()
         for value in self.items.values():
             if isinstance(value, self.__class__):
-                result.extend(value._getFlatValues())
+                result.extend(value._flatValues())
             else:
                 result.append(value)
         return result
 
-    def _getFlatKeys(self):
+    def _flatKeys(self):
         result = list()
         for key, value in self.items.items():
             if isinstance(value, self.__class__):
-                result.extend(['{}/{}'.format(key, key2) for key2 in value._getFlatKeys()])
+                result.extend(['{}/{}'.format(key, key2) for key2 in value._flatKeys()])
             else:
                 result.append(key)
         return result
@@ -618,7 +591,7 @@ class _ApplierIOGroup(object):
         subgroup.items[k] = value
         return subgroup.items[k]
 
-    def getGroup(self, key):
+    def group(self, key):
         groupkeys = key.split('/')
         group = self
         for groupkey in groupkeys:
@@ -636,7 +609,7 @@ class _ApplierIOGroup(object):
         group.items[iokey] = value
         return group.items[iokey]
 
-    def _getItem(self, key):
+    def _item(self, key):
         subkeys = key.split('/')
         groupkeys, iokey = subkeys[:-1], subkeys[-1]
         group = self
@@ -646,7 +619,7 @@ class _ApplierIOGroup(object):
         return value
 
 
-class ApplierInputRasterGroup(_ApplierIOGroup):
+class ApplierInputRasterGroup(ApplierIOGroup):
     '''Container for :class:`~hubdc.applier.ApplierInputRaster` and :class:`~hubdc.applier.ApplierInputRasterGroup` objects.'''
 
     @classmethod
@@ -668,7 +641,7 @@ class ApplierInputRasterGroup(_ApplierIOGroup):
             if key == '':
                 subgroup = group
             else:
-                subgroup = group.getGroup(key=key)
+                subgroup = group.group(key=key)
             for dir in dirs:
                 subgroup.setGroup(key=dir, value=ApplierInputRasterGroup())
             for file in files:
@@ -690,7 +663,7 @@ class ApplierInputRasterGroup(_ApplierIOGroup):
 
         assert isinstance(index, ApplierInputRasterIndex)
         group = ApplierInputRasterGroup()
-        for key, filename, extent in zip(index.key, index.filename, index.extent):
+        for key, filename, extent in zip(index._keys, index._filenames, index._extents):
             group.setRaster(key=key, value=ApplierInputRaster(filename=filename))
         return group
 
@@ -698,48 +671,48 @@ class ApplierInputRasterGroup(_ApplierIOGroup):
         '''Add an :class:`~hubdc.applier.ApplierInputRaster` given by ``value`` and named ``key``.'''
 
         assert isinstance(value, ApplierInputRaster)
-        return _ApplierIOGroup._setItem(self, key=key, value=value)
+        return ApplierIOGroup._setItem(self, key=key, value=value)
 
-    def getRaster(self, key):
+    def raster(self, key):
         '''Returns the :class:`~hubdc.applier.ApplierInputRaster` named ``key``.'''
 
-        value = _ApplierIOGroup._getItem(self, key=key)
+        value = ApplierIOGroup._item(self, key=key)
         assert isinstance(value, ApplierInputRaster)
         return value
 
-    def getFlatRasters(self):
+    def flatRasters(self):
         '''Returns an iterator over all contained :class:`~hubdc.applier.ApplierInputRaster`'s. Traverses the group structure recursively.'''
-        for input in _ApplierIOGroup._getFlatValues(self):
+        for input in ApplierIOGroup._flatValues(self):
             assert isinstance(input, ApplierInputRaster)
             yield input
 
-    def getFlatRasterKeys(self):
+    def flatRasterKeys(self):
         '''Returns an iterator over the keys of all contained :class:`~hubdc.applier.ApplierInputRaster`'s. Traverses the group structure recursively.'''
-        for key in _ApplierIOGroup._getFlatKeys(self):
+        for key in ApplierIOGroup._flatKeys(self):
             yield key
 
-    def getGroups(self):
+    def groups(self):
         '''Returns an iterator over all directly contained :class:`~hubdc.applier.ApplierInputRasterGroups`'s. No recursion.'''
 
         for v in self.items.values():
             if isinstance(v, ApplierInputRasterGroup):
                 yield v
 
-    def getGroupKeys(self):
+    def groupKeys(self):
         '''Returns an iterator over the keys of all directly contained :class:`~hubdc.applier.ApplierInputRasterGroups`'s. No recursion.'''
 
         for k, v in self.items.items():
             if isinstance(v, ApplierInputRasterGroup):
                 yield k
 
-    def getRasters(self):
+    def rasters(self):
         '''Returns an iterator over all directly contained :class:`~hubdc.applier.ApplierInputRaster`'s. No recursion.'''
 
         for v in self.items.values():
             if isinstance(v, ApplierInputRaster):
                 yield v
 
-    def getRasterKeys(self):
+    def rasterKeys(self):
         '''Returns an iterator over the keys of all directly contained :class:`~hubdc.applier.ApplierInputRaster`'s. No recursion.'''
 
         for k, v in self.items.items():
@@ -751,8 +724,8 @@ class ApplierInputRasterGroup(_ApplierIOGroup):
         '''Returns the first :class:`~hubdc.applier.ApplierInputRaster` for that the user defined function ``ufunc(key, raster)`` matches.
         Returns None in case of no match.'''
 
-        for key in self.getRasterKeys():
-            raster = self.getRaster(key=key)
+        for key in self.rasterKeys():
+            raster = self.raster(key=key)
             if ufunc(key=key, raster=raster):
                 return raster
         return None
@@ -761,8 +734,8 @@ class ApplierInputRasterGroup(_ApplierIOGroup):
         '''Returns the first key for that the user defined function ``ufunc(key, raster)`` matches.
         Returns None in case of no match.'''
 
-        for key in self.getRasterKeys():
-            raster = self.getRaster(key=key)
+        for key in self.rasterKeys():
+            raster = self.raster(key=key)
             if ufunc(key=key, raster=raster):
                 return key
         return None
@@ -772,14 +745,14 @@ class ApplierInputRasterIndex(object):
     WGS84 = Projection.WGS84()
 
     def __init__(self):
-        self.key = list()
-        self.filename = list()
-        self.extent = list()
+        self._keys = list()
+        self._filenames = list()
+        self._extents = list()
 
     def __repr__(self):
 
         result = 'ApplierInputRasterIndex\n'
-        for key, filename, extent in zip(self.key, self.filename, self.extent):
+        for key, filename, extent in zip(self._keys, self._filenames, self._extents):
             result += '  {} : {} {}\n'.format(key, filename, extent)
         return result
 
@@ -787,8 +760,8 @@ class ApplierInputRasterIndex(object):
     def fromFolder(folder, extensions, ufunc=None):
         group = ApplierInputRasterGroup.fromFolder(folder=folder, extensions=extensions, ufunc=ufunc)
         index = ApplierInputRasterIndex()
-        for key in group.getFlatRasterKeys():
-            index.insertRaster(key=key, raster=group.getRaster(key=key))
+        for key in group.flatRasterKeys():
+            index.insertRaster(key=key, raster=group.raster(key=key))
         return index
 
     @staticmethod
@@ -806,64 +779,64 @@ class ApplierInputRasterIndex(object):
 
     def insertRaster(self, key, raster):
         assert isinstance(raster, ApplierInputRaster)
-        extent = raster.dataset.spatialExtent.reproject(targetProjection=self.WGS84)
-        self.insertFilename(key=key, filename=raster.filename, extent=extent)
+        extent = raster.dataset().spatialExtent().reproject(targetProjection=self.WGS84)
+        self.insertFilename(key=key, filename=raster.filename(), extent=extent)
 
     def insertFilename(self, key, filename, extent):
-        self.key.append(key)
-        self.filename.append(filename)
-        self.extent.append(extent)
+        self._keys.append(key)
+        self._filenames.append(filename)
+        self._extents.append(extent)
 
-    def getIntersection(self, grid):
+    def intersection(self, grid):
         assert isinstance(grid, Grid)
 
-        gridExtent = grid.spatialExtent.reproject(targetProjection=self.WGS84)
+        gridExtent = grid.spatialExtent().reproject(targetProjection=self.WGS84)
 
         index = ApplierInputRasterIndex()
 
-        for key, filename, extent in zip(self.key, self.filename, self.extent):
+        for key, filename, extent in zip(self._keys, self._filenames, self._extents):
             if extent.intersects(gridExtent):
                 index.insertFilename(key=key, filename=filename, extent=extent)
 
         return index
 
 
-class ApplierInputVectorGroup(_ApplierIOGroup):
+class ApplierInputVectorGroup(ApplierIOGroup):
     '''Container for :class:`~hubdc.applier.ApplierInputVector` and :class:`~hubdc.applier.ApplierInputVectorGroup` objects.'''
 
     def setVector(self, key, value):
         '''Add an :class:`~hubdc.applier.ApplierInputVector` given by ``value`` and named ``key``.'''
 
         assert isinstance(value, ApplierInputVector)
-        return _ApplierIOGroup._setItem(self, key=key, value=value)
+        return ApplierIOGroup._setItem(self, key=key, value=value)
 
-    def getVector(self, key):
+    def vector(self, key):
         '''Returns the :class:`~hubdc.applier.ApplierInputVector` named ``key``.'''
 
-        value = _ApplierIOGroup._getItem(self, key=key)
+        value = ApplierIOGroup._item(self, key=key)
         assert isinstance(value, ApplierInputVector)
         return value
 
-    def getFlatVectors(self):
+    def flatVectors(self):
         '''Returns an iterator over all contained :class:`~hubdc.applier.ApplierInputVector`'s. Traverses the group structure recursively.'''
-        for input in _ApplierIOGroup._getFlatValues(self):
+        for input in ApplierIOGroup._flatValues(self):
             assert isinstance(input, ApplierInputVector)
             yield input
 
-    def getFlatVectorKeys(self):
+    def flatVectorKeys(self):
         '''Returns an iterator over the keys of all contained :class:`~hubdc.applier.ApplierInputVectors`'s. Traverses the group structure recursively.'''
-        for input in _ApplierIOGroup._getFlatKeys(self):
+        for input in ApplierIOGroup._flatKeys(self):
             assert isinstance(input, str)
             yield input
 
-    def getGroups(self):
+    def groups(self):
         '''Returns an iterator over all directly contained :class:`~hubdc.applier.ApplierInputVectorGroups`'s. No recursion.'''
 
         for v in self.items.values():
             if isinstance(v, ApplierInputVectorGroup):
                 yield v
 
-    def getGroupKeys(self):
+    def groupKeys(self):
         '''Returns an iterator over the keys of all directly contained :class:`~hubdc.applier.ApplierInputVectorGroups`'s. No recursion.'''
 
         for k, v in self.items.items():
@@ -871,33 +844,33 @@ class ApplierInputVectorGroup(_ApplierIOGroup):
                 yield k
 
 
-class ApplierOutputRasterGroup(_ApplierIOGroup):
+class ApplierOutputRasterGroup(ApplierIOGroup):
     '''Container for :class:`~hubdc.applier.ApplierOutputRaster` and :class:`~hubdc.applier.ApplierOutputRasterGroup` objects.'''
 
     def setRaster(self, key, value):
         '''Add an :class:`~hubdc.applier.ApplierOutputRaster` given by ``value`` and named ``key``.'''
 
         assert isinstance(value, ApplierOutputRaster)
-        return _ApplierIOGroup._setItem(self, key=key, value=value)
+        return ApplierIOGroup._setItem(self, key=key, value=value)
 
-    def getRaster(self, key):
+    def raster(self, key):
         '''Returns the :class:`~hubdc.applier.ApplierOutputRaster` named ``key``.'''
 
-        value = _ApplierIOGroup._getItem(self, key=key)
+        value = ApplierIOGroup._item(self, key=key)
         assert isinstance(value, ApplierOutputRaster)
         return value
 
-    def getFlatRasters(self):
+    def flatRasters(self):
         '''Returns an iterator over all contained :class:`~hubdc.applier.ApplierOutputRaster`'s. Traverses the group structure recursively.'''
 
-        for v in self._getFlatValues():
+        for v in self._flatValues():
             assert isinstance(v, ApplierOutputRaster)
             yield v
 
-    def getFlatRasterKeys(self):
+    def flatRasterKeys(self):
         '''Returns an iterator over the keys of all contained :class:`~hubdc.applier.ApplierOutputRaster`'s. Traverses the group structure recursively.'''
 
-        for key in _ApplierIOGroup._getFlatKeys(self):
+        for key in ApplierIOGroup._flatKeys(self):
             assert isinstance(key, str)
             yield key
 
@@ -926,14 +899,13 @@ class Applier(object):
         self.controls = controls if controls is not None else ApplierControls()
         self._grid = None
 
-    @property
     def grid(self):
         '''Returns the output :class:`~hubdc.model.Grid` object.'''
 
         assert isinstance(self._grid, Grid)
         return self._grid
 
-    def apply(self, operator=None, description=None, overwrite=True, *ufuncArgs, **ufuncKwargs):
+    def apply(self, operatorType=None, operatorFunction=None, description=None, overwrite=True, *ufuncArgs, **ufuncKwargs):
         """
         Applies the ``operator`` blockwise over a raster processing chain and returns a list of results, one for each block.
 
@@ -957,29 +929,26 @@ class Applier(object):
 
         For detailed usage examples see :doc:`ApplierExamples`.
 
-        :param operator: applier operator
-        :type operator: :class:`~hubdc.applier.ApplierOperator` or function
         :param description: short description that is displayed on the progress bar
         :param ufuncArgs: additional arguments that will be passed to the operators ufunc() method.
         :param ufuncKwargs: additional keyword arguments that will be passed to the operators ufunc() method.
         :return: list of results, one for each processed block
         """
 
-        import inspect
-        if inspect.isclass(operator):
-            self.ufuncClass = operator
-            self.ufuncFunction = None
-        elif callable(operator):
-            self.ufuncClass = ApplierOperator
-            self.ufuncFunction = operator
+        if isinstance(operatorType, type):
+            self.operatorType = operatorType
+            self.operatorUFunc = None
+        elif callable(operatorFunction):
+            self.operatorType = ApplierOperator
+            self.operatorUFunc = operatorFunction
         else:
             raise errors.ApplierOperatorTypeError()
 
         if description is None:
-            description = operator.__name__
+            description = self.operatorType.__name__
 
         if not overwrite:
-            allExists = all([os.path.exists(raster.filename) for raster in self.outputRaster.getFlatRasters()])
+            allExists = all([os.path.exists(raster.filename()) for raster in self.outputRaster.flatRasters()])
             if allExists:
                 self.controls.progressBar.setText('skip {} (all outputs exist and OVERWRITE=FALSE)'.format(description))
                 return
@@ -991,7 +960,7 @@ class Applier(object):
         self._grid = self.controls.deriveGrid(inputRasterGroup=self.inputRaster)
 
         self.controls.progressBar.setText(
-            'start {} [{}x{}] {}'.format(description, self.grid.ySize, self.grid.xSize, self.grid.projection))
+            'start {}, {}, {}'.format(description, self.grid().size(), self.grid()))
         self._runInitWriters()
         self._runInitPool()
         results = self._runProcessSubgrids()
@@ -1035,7 +1004,7 @@ class Applier(object):
     def _runProcessSubgrids(self):
 
         n = ny = nx = 0
-        subgrids = self.grid.subgrids(size=self.controls.blockSize)
+        subgrids = self.grid().subgrids(size=self.controls.blockSize)
         _, n, ny, nx = subgrids[-1]
 
         self.nsubgrids = n
@@ -1072,7 +1041,7 @@ class Applier(object):
                     lfq = q
             return lfq
 
-        for output in self.outputRaster.getFlatRasters():
+        for output in self.outputRaster.flatRasters():
             assert isinstance(output, ApplierOutputRaster)
             if self.controls._multiwriting:
                 output._writerQueue = lessFilledQueue()
@@ -1122,13 +1091,13 @@ class _Worker(object):
         cls.outputRaster = applier.outputRaster
 
         # create operator
-        cls.operator = applier.ufuncClass(mainGrid=applier.grid,
-                                          inputRaster=cls.inputRaster,
-                                          inputVector=cls.inputVector,
-                                          outputRaster=cls.outputRaster,
-                                          controls=applier.controls,
-                                          ufuncFunction=applier.ufuncFunction, ufuncArgs=applier.ufuncArgs,
-                                          ufuncKwargs=applier.ufuncKwargs)
+        cls.operator = applier.operatorType(mainGrid=applier.grid(),
+                                            inputRaster=cls.inputRaster,
+                                            inputVector=cls.inputVector,
+                                            outputRaster=cls.outputRaster,
+                                            controls=applier.controls,
+                                            operatorUFunc=applier.operatorUFunc, ufuncArgs=applier.ufuncArgs,
+                                            ufuncKwargs=applier.ufuncKwargs)
 
     @classmethod
     def processSubgrid(cls, i, n, iy, ix, ny, nx, workingGrid):
@@ -1152,7 +1121,7 @@ class ApplierOperator(object):
     """
 
     def __init__(self, mainGrid, inputRaster, inputVector, outputRaster,
-                 controls, ufuncArgs, ufuncKwargs, ufuncFunction=None):
+                 controls, ufuncArgs, ufuncKwargs, operatorUFunc=None):
         assert isinstance(mainGrid, Grid)
         assert isinstance(inputRaster, ApplierInputRasterGroup)
         assert isinstance(inputVector, ApplierInputVectorGroup)
@@ -1166,18 +1135,17 @@ class ApplierOperator(object):
         self.inputVector = inputVector
         self.outputRaster = outputRaster
 
-        self.inputRaster.operator = self
-        self.inputVector.operator = self
-        self.outputRaster.operator = self
+        self.inputRaster.setOperator(operator=self)
+        self.inputVector.setOperator(operator=self)
+        self.outputRaster.setOperator(operator=self)
 
         self._controls = controls
         self._ufuncArgs = ufuncArgs
         self._ufuncKwargs = ufuncKwargs
-        self._ufuncFunction = ufuncFunction
+        self._ufuncFunction = operatorUFunc
         self.iblock = 0
         self.nblock = 0
 
-    @property
     def subgrid(self):
         """
         Returns the current block :class:`~hubdc.applier.Grid`.
@@ -1185,7 +1153,6 @@ class ApplierOperator(object):
         assert isinstance(self._subgrid, Grid)
         return self._subgrid
 
-    @property
     def grid(self):
         """
         Returns the :class:`~hubdc.applier.Grid`.
@@ -1231,7 +1198,7 @@ class ApplierOperator(object):
     def getFull(self, value, bands=1, dtype=None, overlap=0):
         '''Returns a 3-d numpy array of shape = (bands, ysize+2*overlap, xsize+2*overlap) filled with constant ``value``.'''
 
-        return numpy.full(shape=(bands, self.subgrid.ySize + 2 * overlap, self.subgrid.xSize + 2 * overlap),
+        return numpy.full(shape=(bands, self.subgrid().size().y() + 2 * overlap, self.subgrid().size().x() + 2 * overlap),
                           fill_value=value, dtype=dtype)
 
     def _apply(self, workingGrid, iblock, nblock, yblock, xblock, nyblock, nxblock):
@@ -1269,14 +1236,10 @@ class ApplierControls(object):
         self.setExtent()
         self.setProjection()
         self.setGrid()
-        # self.setDisableWindowTrimToFootprint()
         self.setGDALCacheMax()
         self.setGDALSwathSize()
         self.setGDALDisableReadDirOnOpen()
         self.setGDALMaxDatasetPoolSize()
-        # self.setGDALWarpErrorThreshold()
-        # self.setGDALWarpMemoryLimit()
-        # self.setGDALWarpMultithread()
         self.setProgressBar()
 
     def setProgressBar(self, progressBar=None):
@@ -1290,21 +1253,22 @@ class ApplierControls(object):
         self.progressBar = progressBar
         return self
 
-    def setBlockSize(self, size=Default.blockSize):
+    def setBlockSize(self, blockSize=Default.blockSize):
         '''
-        Set the processing block x and y size.
-        Pass a) an int defining x and y size to be the same,
-        b) a tuple (int, int) defining x and y size separately,
-        or c) a :class:`~hubdc.model.Size` object.
+        Set the processing block x and y size. Pass an int defining x and y size to be the same,
+        or a tuple (int, int) defining x and y size separately,
+        or a :class:`~hubdc.model.Size` object.
         '''
 
-        if not isinstance(size, Size):
-            if not isinstance(size, (tuple, list)):
-                size = size, size
-            assert len(size) == 2
-            size = Size(x=size[0], y=size[1])
-        assert isinstance(size, Size)
-        self.blockSize = size
+        if isinstance(blockSize, (int, long)):
+            blockSize = Size(*[blockSize] * 2)
+        elif isinstance(blockSize, (tuple, list)) and len(blockSize) == 2:
+            blockSize = Size(*blockSize)
+        elif isinstance(blockSize, Size):
+            pass
+        else:
+            raise ValueError('not a valid block size')
+        self.blockSize = blockSize
         return self
 
     def setBlockFullSize(self):
@@ -1319,10 +1283,10 @@ class ApplierControls(object):
     def setNumThreads(self, nworker=Default.nworker):
         """
         Set the number of pool worker for multiprocessing. Set to None to disable multiprocessing (recommended for debugging).
+        Set to -1 to use all CPUs.
         """
         if nworker == -1:
-            import multiprocessing
-            nworker = multiprocessing.cpu_count()
+            nworker = cpu_count()
 
         self.nworker = nworker
         return self
@@ -1331,99 +1295,126 @@ class ApplierControls(object):
         """
         Set the number of writer processes. Set to None to disable multiwriting (recommended for debugging).
         """
+
         self.nwriter = nwriter
         return self
 
     def setWriteENVIHeader(self, createEnviHeader=Default.writeENVIHeader):
         """
         Set to True to create additional ENVI header files for all output rasters.
-        The header files store all metadata items from the GDAL PAM ENVI domain,
+        The header files store all metadata items from the ENVI domain,
         so that the images can be correctly interpreted by the ENVI software.
         Currently only the native ENVI format and the GTiff format is supported.
         """
+
         self.createEnviHeader = createEnviHeader
         return self
 
     def setAutoExtent(self, autoExtent=Default.autoExtent):
         """
         Define how the grid extent is derived from the input rasters.
-        Possible options are listed in :class:`~hubdc.applier.Enum.AutoExtent`.
+        Possible options are listed in :class:`~hubdc.applier.Options.AutoExtent`.
         """
+
+        if autoExtent not in Options.AutoExtent.__dict__.values():
+            raise errors.UnknownApplierAutoExtentOption
         self.autoExtent = autoExtent
+
         return self
 
     def setAutoResolution(self, autoResolution=Default.autoResolution):
         """
         Define how the grid resolution is derived from the input rasters.
-        Possible options are listed in :class:`~hubdc.applier.Enum.AutoResolution`.
+        Possible options are listed in :class:`~hubdc.applier.Options.AutoResolution`.
         """
+
+        if autoResolution not in Options.AutoResolution.__dict__.values():
+            raise errors.UnknownApplierAutoResolutionOption
         self.autoResolution = autoResolution
         return self
 
     def setResolution(self, resolution=None):
         '''
-        Set the grid resolution.
+        Set the applier resolution.
         Pass a float defining x and y resolution to be the same,
         or a (float, float) tuple defining x and y resolution separately,
-        or a :class:`~hubdc.applier.Resolution` object.
+        or a :class:`~hubdc.model.Resolution` object,
+        or None (default) to derive the resolution from the input rasters.
         '''
 
-        if resolution is not None:
-            if not isinstance(resolution, Resolution):
-                if not isinstance(resolution, (tuple, list)):
-                    resolution = resolution, resolution
-                assert len(resolution) == 2
-                resolution = Resolution(x=resolution[0], y=resolution[1])
-            assert isinstance(resolution, Resolution)
+        if resolution is None:
+            pass
+        elif isinstance(resolution, Resolution):
+            pass
+        elif isinstance(resolution, (int, float)):
+            resolution = Resolution(*[resolution] * 2)
+        elif (isinstance(resolution, (tuple, list)) and len(resolution) == 2 and
+                  isinstance(resolution[0], (int, float)) and isinstance(resolution[1], (int, float))):
+            resolution = Resolution(*resolution)
+        else:
+            raise ValueError('not a valid resolution')
         self.resolution = resolution
         return self
 
     def setExtent(self, extent=None):
         """
-        Set the grid extent.
+        Set the applier extent.
         Pass a (float, float, float, float) tuple defining the extent as (xMin, xMax, yMin, yMax),
-        or an :class:`~hubdc.applier.Extent` object.
+        or an :class:`~hubdc.model.Extent` object,
+        or None (default) to derive the extent from the input rasters.
         """
-        if extent is not None:
-            assert isinstance(extent, Extent)
+        if extent is None:
+            pass
+        elif isinstance(extent, Extent):
+            pass
+        elif isinstance(extent, (tuple, list)) and len(extent) == 4 and all(
+                [isinstance(v, (int, long, float)) for v in extent]):
+            extent = Extent(*extent)
+        else:
+            raise ValueError('not a valid extent')
         self.extent = extent
         return self
 
     def setProjection(self, projection=None):
         '''
-        Set the grid projection.
+        Set the applier projection.
         Pass a Well-Known Text (WKT) projection string,
         or an Authority EPSG ID as int,
-        or a :class:`~hubdc.applier.Projection` object.
+        or a :class:`~hubdc.model.Projection` object,
+        or None (default) to use the projection that is shared by all input rasters.
         '''
 
-        if projection is not None:
-            if isinstance(projection, str):
-                projection = Projection(wkt=projection)
-            elif isinstance(projection, int):
-                projection = Projection.fromEPSG(epsg=projection)
-            assert isinstance(projection, Projection)
+        if projection is None:
+            pass
+        elif isinstance(projection, Projection):
+            pass
+        elif isinstance(projection, str):
+            projection = Projection(wkt=projection)
+        elif isinstance(projection, int):
+            projection = Projection.fromEPSG(epsg=projection)
+        else:
+            raise ValueError('not a valid projection')
         self.projection = projection
         return self
 
     def setGrid(self, grid=None):
         """
-        Set the :class:`~hubdc.model.Grid`.
+        Set the applier grid defining the extent, resolution and projection.
+        Pass a :class:`~hubdc.model.Grid` object,
+        or None (default) to derive the grid from the input rasters.
         """
 
         if grid is None:
             self.setExtent()
             self.setResolution()
             self.setProjection()
+        elif isinstance(grid, Grid):
+            self.setExtent(extent=grid.extent())
+            self.setResolution(resolution=grid.resolution())
+            self.setProjection(projection=grid.projection())
         else:
-            assert grid is None or isinstance(grid, Grid)
-            self.setExtent(extent=grid.extent)
-            self.setResolution(resolution=grid.resolution)
-            self.setProjection(projection=grid.projection)
+            raise ValueError('not a valid grid')
         return self
-
-    #    def setDisableWindowTrimToFootprint(self, disable=False):
-    #        self.disableWindowTrimToFootprint = disable
 
     def setGDALCacheMax(self, bytes=Default.GDALEnv.cacheMax):
         """
@@ -1453,15 +1444,6 @@ class ApplierControls(object):
         self.maxDatasetPoolSize = nfiles
         return self
 
-    # def setGDALWarpErrorThreshold(self, errorThreshold=Default.GDALWARP_ERRORTHRESHOLD):
-    #    self.gdalWarpErrorThreshold = errorThreshold
-
-    # def setGDALWarpMemoryLimit(self, memoryLimit=Default.GDALWARP_MEMORYLIMIT):
-    #    self.gdalWarpMemoryLimit = memoryLimit
-
-    # def setGDALWarpMultithread(self, multithread=Default.GDALWARP_MULTITHREAD):
-    #    self.gdalWarpMultithread = multithread
-
     @property
     def _multiprocessing(self):
         return self.nworker is not None
@@ -1471,37 +1453,40 @@ class ApplierControls(object):
         return self._multiprocessing or (self.nwriter is not None)
 
     def deriveGrid(self, inputRasterGroup):
+        '''Derives the grid from the given :class:`~hubdc.applier.ApplierInputRasterGroup`'s.'''
         assert isinstance(inputRasterGroup, ApplierInputRasterGroup)
-        grids = [inputRaster.dataset.grid for inputRaster in inputRasterGroup.getFlatRasters()]
+        grids = [inputRaster.dataset().grid() for inputRaster in inputRasterGroup.flatRasters()]
         projection = self.deriveProjection(grids)
         return Grid(projection=projection,
                     extent=self.deriveExtent(grids, projection),
                     resolution=self.deriveResolution(grids))
 
     def deriveProjection(self, grids):
+        '''Derives the projection from the given :class:`~hubdc.model.Grid`'s.'''
 
         if self.projection is None:
             if len(grids) == 0:
                 raise errors.MissingApplierProjectionError()
-            projection = grids[0].projection
+            projection = grids[0].projection()
             for grid in grids:
-                if not grid.projection.equal(other=projection):
+                if not grid.projection().equal(other=projection):
                     raise errors.MissingApplierProjectionError()
         else:
             projection = self.projection
         return projection
 
     def deriveExtent(self, grids, projection):
+        '''Derives the extent from the given :class:`~hubdc.model.Grid`'s in the given :class:`~hubdc.model.Projection`.'''
 
         if self.extent is None:
 
             if len(grids) == 0:
                 raise errors.MissingApplierExtentError()
 
-            extent = grids[0].spatialExtent.reproject(targetProjection=projection)
+            extent = grids[0].spatialExtent().reproject(targetProjection=projection)
 
             for grid in grids:
-                extent_ = grid.spatialExtent.reproject(targetProjection=projection)
+                extent_ = grid.spatialExtent().reproject(targetProjection=projection)
                 if self.autoExtent == Options.AutoExtent.union:
                     extent = extent.union(other=extent_)
                 elif self.autoExtent == Options.AutoExtent.intersection:
@@ -1515,6 +1500,7 @@ class ApplierControls(object):
         return extent
 
     def deriveResolution(self, grids):
+        '''Derives the resolution from the given :class:`~hubdc.model.Grid`.'''
 
         if self.resolution is None:
 
@@ -1526,8 +1512,8 @@ class ApplierControls(object):
                 f = numpy.mean
             else:
                 raise errors.UnknownApplierAutoResolutionOption()
-            resolution = Resolution(x=f([grid.resolution.x for grid in grids]),
-                                    y=f([grid.resolution.y for grid in grids]))
+            resolution = Resolution(x=f([grid.resolution().x() for grid in grids]),
+                                    y=f([grid.resolution().y() for grid in grids]))
 
         else:
             resolution = self.resolution

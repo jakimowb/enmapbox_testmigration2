@@ -33,22 +33,22 @@ class Operator(ApplierOperator):
         arrays['g'] = list()
         arrays['b'] = list()
 
-        landsat = self.inputRaster.getGroup(key='landsat')
-        for path in landsat.getGroups():
-            for row in path.getGroups():
-                for sceneID in row.getGroupKeys():
-                    scene = row.getGroup(sceneID)
+        landsat = self.inputRaster.group(key='landsat')
+        for path in landsat.groups():
+            for row in path.groups():
+                for sceneID in row.groupKeys():
+                    scene = row.group(sceneID)
                     if sceneID.startswith('LC8'):
                         rgbBandNumbers = [5, 6, 4]
                     else:
                         rgbBandNumbers = [4, 5, 3]
 
-                    cfmask = scene.getRaster(key='{sceneID}_cfmask'.format(sceneID=sceneID))
-                    cfmaskArray = cfmask.getImageArray()
+                    cfmask = scene.raster(key='{sceneID}_cfmask'.format(sceneID=sceneID))
+                    cfmaskArray = cfmask.imageArray()
                     invalid = cfmaskArray > 1
                     for key, i in zip(['r','g','b'], rgbBandNumbers):
-                        raster = scene.getRaster(key='{sceneID}_sr_band{i}'.format(sceneID=sceneID, i=i))
-                        array = numpy.float32(raster.getImageArray())
+                        raster = scene.raster(key='{sceneID}_sr_band{i}'.format(sceneID=sceneID, i=i))
+                        array = numpy.float32(raster.imageArray())
                         array[invalid] = numpy.nan
                         arrays[key].append(array)
                     arrays['counts'].append(invalid==False)

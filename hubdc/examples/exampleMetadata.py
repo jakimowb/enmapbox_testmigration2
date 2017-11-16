@@ -17,12 +17,12 @@ class CopyMetadataOperator(ApplierOperator):
     def ufunc(operator):
 
         # copy raster data
-        array = operator.inputRaster.getRaster(key='image').getImageArray()
-        operator.outputRaster.getRaster(key='outimage').setImageArray(array=array)
+        array = operator.inputRaster.raster(key='image').imageArray()
+        operator.outputRaster.raster(key='outimage').setImageArray(array=array)
 
         # copy ENVI/wavelength metadata
-        wavelength = operator.inputRaster.getRaster(key='image').getMetadataItem(key='wavelength', domain='ENVI')
-        operator.outputRaster.getRaster(key='outimage').setMetadataItem(key='wavelength', value=wavelength, domain='ENVI')
+        wavelength = operator.inputRaster.raster(key='image').getMetadataItem(key='wavelength', domain='ENVI')
+        operator.outputRaster.raster(key='outimage').setMetadataItem(key='wavelength', value=wavelength, domain='ENVI')
 
-applier.apply(operator=CopyMetadataOperator)
-print(applier.outputRaster.getRaster(key='outimage').filename)
+applier.apply(operatorType=CopyMetadataOperator)
+print(applier.outputRaster.raster(key='outimage').filename)

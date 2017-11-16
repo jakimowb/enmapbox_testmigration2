@@ -7,7 +7,7 @@ def script():
     applier = Applier()
     applier.controls.setProgressBar(progressBar=None)
     applier.setInput('in', filename=filename)
-    applier.apply(operator=SimpleIO)
+    applier.apply(operatorType=SimpleIO)
 
 class SimpleIO(ApplierOperator):
     def ufunc(self):

@@ -50,22 +50,22 @@ class Writer():
 
         if filename not in outputDatasets:
             Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=len(array), dtype=array.dtype, grid=maingrid, format=format, creationOptions=creationOptions)
-        cls.getDatasets(outputDatasets, filename).writeArray(array=array, pixelGrid=subgrid)
+        cls.getDatasets(outputDatasets, filename).writeArray(array=array, grid=subgrid)
 
     @classmethod
-    def writeBandArray(cls, outputDatasets, filename, array, bandNumber, bands, subgrid, maingrid, format, creationOptions):
+    def writeBandArray(cls, outputDatasets, filename, array, index, bands, subgrid, maingrid, format, creationOptions):
 
         if filename not in outputDatasets:
             Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=bands, dtype=array.dtype, grid=maingrid, format=format, creationOptions=creationOptions)
-        cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber).writeArray(array=array, grid=subgrid)
+        cls.getDatasets(outputDatasets, filename).band(index=index).writeArray(array=array, grid=subgrid)
 
     @classmethod
     def callImageMethode(cls, outputDatasets, filename, method, kwargs):
         getattr(*method)(cls.getDatasets(outputDatasets, filename), **kwargs)
 
     @classmethod
-    def callBandMethode(cls, outputDatasets, filename, bandNumber, method, kwargs):
-        getattr(*method)(cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber), **kwargs)
+    def callBandMethode(cls, outputDatasets, filename, index, method, kwargs):
+        getattr(*method)(cls.getDatasets(outputDatasets, filename).band(index=index), **kwargs)
 
 class WriterProcess(Process):
 

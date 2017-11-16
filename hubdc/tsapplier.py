@@ -143,9 +143,9 @@ class TSApplier(object):
                 group = v.getIntersectionByPixelGrid(grid=pixelGrid)
                 tileApplier.inputRaster.setGroup(key=k, value=group)
             tileApplier.outputRaster = self_outputRaster
-            for outputRaster in tileApplier.outputRaster.getFlatRasters():
+            for outputRaster in tileApplier.outputRaster.flatRasters():
                 outputRaster.tilename = tile.name
-            return tileApplier.apply(operator=operator,
+            return tileApplier.apply(operatorType=operator,
                                      description='Tile {i}/{n} ({name})'.format(i=i+1, n=len(self.tilingScheme.tiles), name=tile.name),
                                      overwrite=True, *ufuncArgs, **ufuncKwargs)
 

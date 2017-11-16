@@ -32,22 +32,22 @@ applier.inputRaster.setGroup(key='landsat', value=ApplierInputRasterGroup.fromFo
 class Operator(ApplierOperator):
     def ufunc(operator):
         # access individual dataset
-        cfmask = operator.inputRaster.getGroup(key='194').getGroup(key='023').getGroup(key='LC81940232015235LGN00').getRaster(key='LC81940232015235LGN00_cfmask')
-        array = cfmask.getImageArray()
+        cfmask = operator.inputRaster.group(key='194').group(key='023').group(key='LC81940232015235LGN00').raster(key='LC81940232015235LGN00_cfmask')
+        array = cfmask.imageArray()
         # ... or
-        cfmask = operator.inputRaster.getRaster(key='194/023/LC81940232015235LGN00/LC81940232015235LGN00_cfmask')
+        cfmask = operator.inputRaster.raster(key='194/023/LC81940232015235LGN00/LC81940232015235LGN00_cfmask')
 
 
         # iterate over all datasets
-        for path in operator.inputRaster.getGroups():
-            for row in path.getGroups():
-                for scene in row.getGroups():
+        for path in operator.inputRaster.groups():
+            for row in path.groups():
+                for scene in row.groups():
                     key = scene.findRaster(filteendswith='cfmask')
-                    cfmask = scene.getRaster(key=key)
-                    array = cfmask.getImageArray()
+                    cfmask = scene.raster(key=key)
+                    array = cfmask.imageArray()
 
         # flat iterate over all datasets
-        for cfmask in operator.inputRaster.getFlatRasters():
-            array = cfmask.getImageArray()
+        for cfmask in operator.inputRaster.flatRasters():
+            array = cfmask.imageArray()
 
-applier.apply(operator=Operator)
+applier.apply(operatorType=Operator)

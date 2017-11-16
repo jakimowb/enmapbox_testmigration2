@@ -16,10 +16,10 @@ applier.outputRaster.setRaster(key='stack453', value=ApplierOutputRaster(filenam
 
 class Landsat453Operator(ApplierOperator):
     def ufunc(operator):
-        array = numpy.vstack([operator.inputRaster.getRaster(key='b4').getImageArray(),
-                              operator.inputRaster.getRaster(key='b5').getImageArray(),
-                              operator.inputRaster.getRaster(key='b3').getImageArray()])
-        operator.outputRaster.getRaster(key='stack453').setImageArray(array=array)
+        array = numpy.vstack([operator.inputRaster.raster(key='b4').imageArray(),
+                              operator.inputRaster.raster(key='b5').imageArray(),
+                              operator.inputRaster.raster(key='b3').imageArray()])
+        operator.outputRaster.raster(key='stack453').setImageArray(array=array)
 
-applier.apply(operator=Landsat453Operator)
-print(applier.outputRaster.getRaster(key='stack453').filename)
+applier.apply(operatorType=Landsat453Operator)
+print(applier.outputRaster.raster(key='stack453').filename)

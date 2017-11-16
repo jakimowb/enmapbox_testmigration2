@@ -8,8 +8,8 @@ To honor the similarities of HUBDC with RIOS, we replicate the
 Simple Example (explained in detail)
 ====================================
 
-Use the Red and NIR bands of the Landsat :class:`~hubdc.examples.testdata.LT51940232010189KIS01` scene to calculate the Normalized Difference Vegetation Index (NDVI).
-Additionally, use the :class:`~hubdc.examples.testdata.BrandenburgDistricts` vector polygon layer to mask the result.
+Use the Red and NIR bands of the Landsat :class:`~hubdc.testdata.LT51940232010189KIS01` scene to calculate the Normalized Difference Vegetation Index (NDVI).
+Additionally, use the :class:`~hubdc.testdata.BrandenburgDistricts` vector polygon layer to mask the result.
 
 .. image:: images/ndvi.png
 
@@ -228,7 +228,7 @@ Controlling the Reference Pixel Grid Example
 Normally, the applier will raise an exception if the input rasters are on different projections,
 but if requested to do so, it will reproject on-the-fly.
 
-This is enabled by telling it which of the input rasters should be used as the reference 
+This is enabled by telling it which of the input rasters should be used as the reference
 (all other inputs will be reprojected onto this reference pixel grid).
 This is done by using :meth:`~hubdc.applier.ApplierControls.setReferenceGridByImage` as follows::
 

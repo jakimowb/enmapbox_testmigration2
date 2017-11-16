@@ -12,7 +12,7 @@ def script():
     applier.controls.setGDALSwathSize(bytes=1000*2**20)
     applier.controls.setGDALDisableReadDirOnOpen(disable=True)
     applier.controls.setGDALMaxDatasetPoolSize(nfiles=1000)
-    applier.apply(operator=SimpleIO)
+    applier.apply(operatorType=SimpleIO)
 
 class SimpleIO(ApplierOperator):
 
