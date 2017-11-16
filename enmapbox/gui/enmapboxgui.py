@@ -379,7 +379,7 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.mapcanvas import MapDock
 
         if isinstance(dock, SpectralLibraryDock):
-            dock.sigLoadFromMapRequest.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
+            dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
