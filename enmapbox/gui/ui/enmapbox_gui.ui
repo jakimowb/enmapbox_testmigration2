@@ -81,6 +81,8 @@
      <string>Help</string>
     </property>
     <addaction name="actionAbout"/>
+    <addaction name="actionOpenIssueReportPage"/>
+    <addaction name="actionOpenProjectPage"/>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
@@ -175,6 +177,7 @@
    <addaction name="actionPan"/>
    <addaction name="separator"/>
    <addaction name="actionSelectProfiles"/>
+   <addaction name="actionIdentify"/>
    <addaction name="separator"/>
   </widget>
   <action name="actionAddMapView">
@@ -426,6 +429,19 @@
    </property>
    <property name="toolTip">
     <string>Save the project to a new file</string>
+   </property>
+  </action>
+  <action name="actionOpenIssueReportPage">
+   <property name="text">
+    <string>Report Issue</string>
+   </property>
+   <property name="toolTip">
+    <string>Report an issue to the EnMAP-Box project (feature requests, bugs, ...)</string>
+   </property>
+  </action>
+  <action name="actionOpenProjectPage">
+   <property name="text">
+    <string>Project Webpage</string>
    </property>
   </action>
  </widget>

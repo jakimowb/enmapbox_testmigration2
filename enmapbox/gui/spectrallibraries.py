@@ -198,6 +198,7 @@ class SpectralLibraryTableView(QTableView):
     def mimeTypes(self):
         pass
 
+"""
 class SpectralProfileMapTool(QgsMapToolEmitPoint):
 
     sigProfileRequest = pyqtSignal(SpatialPoint, QgsMapCanvas)
@@ -261,6 +262,7 @@ class SpectralProfileMapTool(QgsMapToolEmitPoint):
     def hideRubberband(self):
         self.rubberband.reset()
 
+"""
 
 class SpectralProfilePlotDataItem(pg.PlotDataItem):
 

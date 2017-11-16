@@ -88,9 +88,9 @@ def sandboxDragDrop():
 def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    #EB.openExampleData(mapWindows=1)
-    p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
-    EB.addSources([p])
+    EB.openExampleData(mapWindows=1)
+    #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
+    #EB.addSources([p])
     s = ""
 
 
@@ -306,12 +306,8 @@ if __name__ == '__main__':
         howToStartEnMAPBoxInPython()
         exit(0)
     else:
-        qgsApp = initQgisEnvironment()
-
-        #p = r'D:\Repositories\QGIS_Plugins'
-        #pluginPath = [os.environ.get('QGIS_PLUGINPATH', '')]+[p]
-        #os.environ['QGIS_PLUGINPATH'] = ';'.join(pluginPath)
-
+        from enmapbox.gui.utils import initQgisApplication
+        qgsApp = initQgisApplication()
 
         if False: sandboxTreeNodes()
         if False: sandboxDataSourceManager()

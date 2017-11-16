@@ -1183,12 +1183,12 @@ class MimeDataHelper():
                 uri = cp.value('uri')
                 dataSources.append(DataSourceFactory.Factory(uri, name=name))
 
-        elif MimeDataHelper.MDF_LAYERTREEMODELDATA in self.formats:
+        elif MimeDataHelper.MDF_LAYERTREEMODELDATA in self.mMimeData.formats():
             layers = self._readMapLayersFromXML(self.doc.documentElement())
             dataSources = [DataSourceFactory.Factory(l) for l in layers]
 
-        elif MimeDataHelper.MDF_URILIST in self.formats:
-            dataSources = [DataSourceFactory.Factory(uri) for uri in self.mimeData.urls()]
+        elif MimeDataHelper.MDF_URILIST in self.mMimeData.formats():
+            dataSources = [DataSourceFactory.Factory(uri) for uri in self.mMimeData.urls()]
 
         dataSources = list(set([d for d in dataSources if d is not None]))
         return dataSources
