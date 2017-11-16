@@ -27,8 +27,11 @@
     <string notr="true"/>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="spacing">
+     <number>2</number>
+    </property>
     <property name="margin">
-     <number>6</number>
+     <number>2</number>
     </property>
     <item>
      <widget class="CentralFrame" name="centralFrame">
