@@ -22,21 +22,82 @@ from qgis.gui import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from qgis import utils as qgsUtils
+import warnings
 import qgis.utils
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.settings import qtSettingsObj
-from enmapbox.gui.mapcanvas import MapCanvas
+from enmapbox.gui.mapcanvas import MapCanvas, MapDock
+from enmapbox.gui.mapcanvas import *
 
-
-
-#if qgis.utils.iface is None:
+# if qgis.utils.iface is None:
 #    qgis.utils.iface = EnMAPBoxQgisInterface()
 
 SETTINGS = qtSettingsObj()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
+class Views(object):
+    def __init__(self):
+        raise Exception('This class is not for any instantiation')
+
+    MapView= 'MAP'
+    SpecLibView = 'SPECLIB'
+    TextView = 'TEXT'
+    EmptyView = 'EMPTY'
+
+
+class MapTools(object):
+    """
+    Static class to support handling of nQgsMapTools.
+    """
+    def __init__(self):
+        raise Exception('This class is not for any instantiation')
+    ZoomIn = 'ZOOM_IN'
+    ZoomOut = 'ZOOM_OUT'
+    ZoomFull = 'ZOOM_FULL'
+    Pan = 'PAN'
+    ZoomPixelScale = 'ZOOM_PIXEL_SCALE'
+    CursorLocation = 'CURSOR_LOCATION'
+    SpectralProfile = 'SPECTRAL_PROFILE'
+    MoveToCenter = 'MOVE_CENTER'
+
+    @staticmethod
+    def copy(mapTool):
+        assert isinstance(mapTool, QgsMapTool)
+        s = ""
+
+
+    @staticmethod
+    def create(mapToolKey, canvas, *args, **kwds):
+        assert mapToolKey in MapTools.mapToolKeys()
+
+        assert isinstance(canvas, QgsMapCanvas)
+
+        if mapToolKey == MapTools.ZoomIn:
+            return QgsMapToolZoom(canvas, False)
+        if mapToolKey == MapTools.ZoomOut:
+            return QgsMapToolZoom(canvas, True)
+        if mapToolKey == MapTools.ZoomPixelScale:
+            return PixelScaleExtentMapTool(canvas)
+        if mapToolKey == MapTools.ZoomFull:
+            return FullExtentMapTool(canvas)
+        if mapToolKey == MapTools.CursorLocation:
+            return CursorLocationMapTool(canvas, *args, **kwds)
+        if mapToolKey == MapTools.MoveToCenter:
+            tool = CursorLocationMapTool(canvas, *args, **kwds)
+            tool.sigLocationRequest.connect(canvas.setCenter)
+            return tool
+        if mapToolKey == MapTools.SpectralProfile:
+            return SpectralProfileMapTool(canvas, *args, **kwds)
+
+
+        raise Exception('Unknown mapToolKey {}'.format(mapToolKey))
+
+
+    @staticmethod
+    def mapToolKeys():
+        return [MapTools.__dict__[k] for k in MapTools.__dict__.keys() if not k.startswith('_')]
 
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
@@ -107,13 +168,11 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
         self.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self))
 
-
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
         self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
 
         area = Qt.BottomDockWidgetArea
         from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
-
 
         # add entries to menu panels
         for dock in self.findChildren(QDockWidget):
@@ -167,7 +226,7 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.ui import resources
         resources.qInitResources()
         QObject.__init__(self)
-        #super(EnMAPBox, self).__init__()
+        # super(EnMAPBox, self).__init__()
         QgisInterface.__init__(self)
         splash = EnMAPBoxSplashScreen(self)
         if not HIDE_SPLASHSCREEN:
@@ -182,18 +241,17 @@ class EnMAPBox(QgisInterface, QObject):
             self.iface = self
             qgis.utils.iface = self
 
-
         # register loggers etc.
         splash.showMessage('Load UI')
         self.ui = EnMAPBoxUI()
         self.ui.closeEvent = self.closeEvent
 
-        self.mVirtualLayerSet = dict()
-        self.mVirtualMapCanvas = QgsMapCanvas()
-        self.mVirtualMapCanvas.setCrsTransformEnabled(True)
+        self.initQgisInterface()
 
-        msgLog = QgsMessageLog.instance()
-        msgLog.messageReceived.connect(self.onLogMessage)
+        from enmapbox.gui import DEBUG
+        if not DEBUG:
+            msgLog = QgsMessageLog.instance()
+            msgLog.messageReceived.connect(self.onLogMessage)
 
         assert isinstance(qgsUtils.iface, QgisInterface)
 
@@ -202,6 +260,8 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.mCurrentMapLocation = None
         self.mMapToolActivator = None
+        self.mMapTools = []
+        self.mMapToolBlock = False
 
         # define managers (the center of all actions and all evil)
         import enmapbox.gui
@@ -235,39 +295,14 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.centralFrame.sigDropEvent.connect(
             lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
 
-        # link action to managers
-        self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
-        self.ui.actionAddMapView.triggered.connect(lambda: self.dockManager.createDock('MAP'))
-        self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
-        self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
-        self.ui.actionAddMimeView.triggered.connect(lambda: self.dockManager.createDock('MIME'))
-        self.ui.actionAddSpeclibView.triggered.connect(lambda: self.dockManager.createDock('SPECLIB'))
+        self.initActions()
 
-        from enmapbox.gui.mapcanvas import MapDock
-        self.ui.actionLoadExampleData.triggered.connect(lambda: self.openExampleData(
-            mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
 
-        # activate map tools
-        self.ui.actionZoomIn.triggered.connect(lambda: self.activateMapTool('ZOOM_IN'))
-        self.ui.actionZoomOut.triggered.connect(lambda: self.activateMapTool('ZOOM_OUT'))
-        self.ui.actionMoveCenter.triggered.connect(lambda: self.activateMapTool('MOVE_CENTER'))
-        self.ui.actionPan.triggered.connect(lambda: self.activateMapTool('PAN'))
-        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.activateMapTool('ZOOM_FULL'))
-        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.activateMapTool('ZOOM_PIXEL_SCALE'))
-        self.ui.actionIdentify.triggered.connect(lambda: self.activateMapTool('CURSORLOCATION'))
-        self.ui.actionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
-        self.ui.actionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
-        from enmapbox.gui.about import AboutDialog
-        self.ui.actionAbout.triggered.connect(lambda: AboutDialog(parent=self.ui).show())
-        from enmapbox.gui.settings import showSettingsDialog
-        self.ui.actionProjectSettings.triggered.connect(lambda: showSettingsDialog(self.ui))
-        self.ui.actionExit.triggered.connect(self.exit)
 
-        self.ui.actionSelectProfiles.triggered.connect(lambda: self.activateMapTool('CURSORLOCATION'))
+        self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
-        self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.activateMapTool('CURSORLOCATION'))
-        self.sigCurrentLocationChanged[SpatialPoint, MapCanvas, QObject].connect(
-            lambda pt, canvas, obj : self.ui.cursorLocationValuePanel.loadCursorLocation(pt, canvas))
+        self.sigCurrentLocationChanged[SpatialPoint, MapCanvas].connect(
+            lambda pt, canvas: self.ui.cursorLocationValuePanel.loadCursorLocation(pt, canvas))
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
@@ -298,7 +333,6 @@ class EnMAPBox(QgisInterface, QObject):
                 logger.warning('Failed to initialize QGIS Processing framework')
                 logger.warning(str(ex))
 
-
         # load EnMAP-Box applications
         self.initEnMAPBoxApplications()
 
@@ -308,20 +342,50 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
 
+    def initActions(self):
+        # link action to managers
+        self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
+        self.ui.actionAddMapView.triggered.connect(lambda: self.dockManager.createDock('MAP'))
+        self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
+        self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
+        self.ui.actionAddMimeView.triggered.connect(lambda: self.dockManager.createDock('MIME'))
+        self.ui.actionAddSpeclibView.triggered.connect(lambda: self.dockManager.createDock('SPECLIB'))
+        self.ui.actionLoadExampleData.triggered.connect(lambda: self.openExampleData(
+            mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
+        # activate map tools
+        self.ui.actionZoomIn.triggered.connect(lambda: self.setMapTool(MapTools.ZoomIn))
+        self.ui.actionZoomOut.triggered.connect(lambda: self.setMapTool(MapTools.ZoomOut))
+        self.ui.actionMoveCenter.triggered.connect(lambda: self.setMapTool(MapTools.MoveToCenter))
+        self.ui.actionPan.triggered.connect(lambda: self.setMapTool(MapTools.Pan))
+        self.ui.actionZoomFullExtent.triggered.connect(lambda: self.setMapTool(MapTools.ZoomFull))
+        self.ui.actionZoomPixelScale.triggered.connect(lambda: self.setMapTool(MapTools.ZoomPixelScale))
+        self.ui.actionIdentify.triggered.connect(lambda: self.setMapTool(MapTools.CursorLocation))
+        self.ui.actionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
+        self.ui.actionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
+        from enmapbox.gui.about import AboutDialog
+        self.ui.actionAbout.triggered.connect(lambda: AboutDialog(parent=self.ui).show())
+        from enmapbox.gui.settings import showSettingsDialog
+        self.ui.actionProjectSettings.triggered.connect(lambda: showSettingsDialog(self.ui))
+        self.ui.actionExit.triggered.connect(self.exit)
+        self.ui.actionSelectProfiles.triggered.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
+
+        import webbrowser
+        self.ui.actionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.TRACKER))
+        self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.HOMEPAGE))
+
+
     def onDockAdded(self, dock):
         assert isinstance(dock, Dock)
         from enmapbox.gui.mapcanvas import MapDock
-        if isinstance(dock, MapDock):
-            dock.canvas.sigCursorLocationIdentified.connect(self.setCurrentLocation)
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.activateMapTool('SPECTRUMREQUEST'))
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
+    @pyqtSlot(SpatialPoint, QgsMapCanvas)
     def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
         assert self.mCurrentMapSpectraLoading in ['TOP', 'ALL']
         assert isinstance(spatialPoint, SpatialPoint)
-
         assert isinstance(mapCanvas, QgsMapCanvas)
 
         currentSpectra = []
@@ -340,12 +404,41 @@ class EnMAPBox(QgisInterface, QObject):
         # if len(currentSpectra) > 0:
         self.setCurrentSpectra(currentSpectra)
 
-    def activateMapTool(self, mapToolKey, activator=None):
-        #filter map tools
-        if not isinstance(activator, QObject):
-            self.mMapToolActivator = self.sender()
+    def activateMapTool(self, mapToolKey, *args, **kwds):
+        import warnings
+        warnings.warn('Please use setMapTool instead', DeprecationWarning)
+        self.setMapTool(mapToolKey, *args, **kwds)
 
-        return self.dockManager.activateMapTool(mapToolKey)
+    def setMapTool(self, mapToolKey, *args, **kwds):
+        # filter map tools
+        self.mMapToolActivator = self.sender()
+
+        #disconnect previous map-tools?
+
+        del self.mMapTools[:]
+
+        for canvas in self.mapCanvases():
+            mt = None
+            if mapToolKey in MapTools.mapToolKeys():
+                mt = MapTools.create(mapToolKey, canvas, *args, **kwds)
+
+            if isinstance(mapToolKey, QgsMapTool):
+                mt = MapTools.copy(mapToolKey, canvas, *args, **kwds)
+
+            if isinstance(mt, QgsMapTool):
+                canvas.setMapTool(mt)
+                self.mMapTools.append(mt)
+
+                #if required, link map-tool with specific EnMAP-Box slots
+                if type(mt) is CursorLocationMapTool:
+                    mt.sigLocationRequest[SpatialPoint, QgsMapCanvas].connect(self.setCurrentLocation)
+
+                if type(mt) is SpectralProfileMapTool:
+                    mt.sigLocationRequest[SpatialPoint, QgsMapCanvas].connect(self.loadCurrentMapSpectra)
+
+        return self.mMapTools
+
+
 
     def initEnMAPBoxApplications(self):
         from enmapbox.gui.applications import ApplicationRegistry
@@ -413,7 +506,9 @@ class EnMAPBox(QgisInterface, QObject):
                 if mapDock is None:
                     mapDock = self.createDock('MAP')
                 mapDock.addLayers(dataSrc.createRegisteredMapLayer())
-            s = ""
+
+            #any other types to handle?
+
 
     def openExampleData(self, mapWindows=0):
         import enmapboxtestdata
@@ -478,34 +573,17 @@ class EnMAPBox(QgisInterface, QObject):
     def restoreProject(self):
         raise NotImplementedError()
 
-
-
     sigCurrentLocationChanged = pyqtSignal([SpatialPoint],
-                                           [SpatialPoint, MapCanvas],
-                                           [SpatialPoint, MapCanvas, QObject])
+                                           [SpatialPoint, QgsMapCanvas])
 
 
-    def setCurrentLocation(self, spatialPoint):
-
-        if spatialPoint == self.mCurrentMapLocation:
-            return
+    def setCurrentLocation(self, spatialPoint, mapCanvas=None):
+        assert isinstance(spatialPoint, SpatialPoint)
 
         self.mCurrentMapLocation = spatialPoint
-
-        if isinstance(spatialPoint, SpatialPoint):
-            self.sigCurrentLocationChanged.emit(self.mCurrentMapLocation)
-
-            locationSender = self.sender()
-            if isinstance(locationSender, QgsMapCanvas):
-                if self.mMapToolActivator == self.ui.actionSelectProfiles:
-                    self.loadCurrentMapSpectra(self.mCurrentMapLocation, locationSender)
-
-
-            if isinstance(self.mMapToolActivator, QObject):
-                self.sigCurrentLocationChanged[SpatialPoint, MapCanvas, QObject].emit(self.mCurrentMapLocation, locationSender, self.mMapToolActivator)
-
-
-
+        self.sigCurrentLocationChanged[SpatialPoint].emit(self.mCurrentMapLocation)
+        if isinstance(mapCanvas, QgsMapCanvas):
+            self.sigCurrentLocationChanged[SpatialPoint, QgsMapCanvas].emit(self.mCurrentMapLocation, mapCanvas)
 
     def currentLocation(self):
         """
@@ -594,68 +672,388 @@ class EnMAPBox(QgisInterface, QObject):
         enmapbox.gui.processingmanager.removeQPFExtensions()
         self.ui.close()
 
-        # this will trigger the closeEvent
-
 
     """
     Implementation of QGIS Interface 
     """
 
-    def enmapBox(self):
-        return EnMAPBox.instance()
+    def initQgisInterface(self):
+        """
+        Initializes internal variables required to provide the QgisInterface
+        :return:
+        """
+        self.mQgisInterfaceLayerSet = dict()
+        self.mQgisInterfaceMapCanvas = QgsMapCanvas()
+        self.mQgisInterfaceMapCanvas.setCrsTransformEnabled(True)
+
+    ### SIGNALS from QgisInterface ####
+
+    initializationCompleted = pyqtSignal()
+    layerSavedAs = pyqtSignal([QgsMapLayer, str], [QgsMapLayer, unicode])
+    currentLayerChanged = pyqtSignal(QgsMapLayer)
+    composerRemoved = pyqtSignal(QgsComposerView)
+    composerWillBeRemoved = pyqtSignal()
+
+
+    ### ACTIONS ###
+    def actionAbout(self):
+        return self.ui.actionAbout
+
+    def actionAddAfsLayer(self):
+        return self.ui.actionAddDataSource
+
+    def actionAddAllToOverview(self):
+        return self.ui.actionAddDataSource
+
+    def actionAddAmsLayer(self):
+        return self.ui.actionAddDataSource
+
+    def actionAddFeature(self):
+        return self.ui.actionAddDataSource
+
+    def actionAddOgrLayer(self):
+        return self.ui.actionAddDataSource
+
+    # def actionAddPart(self): pass
+    def actionAddPgLayer(self):
+        return self.ui.actionAddDataSource
+
+    def actionAddRasterLayer(self):
+        return self.ui.actionAddDataSource
+
+    # def actionAddRing(self):
+    # def actionAddToOverview(self):
+    def actionAddWmsLayer(self):
+        return self.ui.actionAddDataSource
+
+    def actionAllEdits(self):
+        pass
+
+    def actionCancelAllEdits(self):
+        pass
+
+    def actionCancelEdits(self):
+        pass
+
+    def actionCheckQgisVersion(self):
+        pass  # todo: set EnMAP-Box check
+
+    def actionCopyFeatures(self):
+        pass
+
+    def actionCopyLayerStyle(self):
+        pass
+
+    def actionCustomProjection(slf):
+        pass
+
+    def actionCutFeatures(self):
+        pass
+
+    def actionDeletePart(self):
+        pass
+
+    def actionDeleteRing(self):
+        pass
+
+    def actionDeleteSelected(self):
+        pass
+
+    def actionDraw(self):
+        pass
+
+    def actionDuplicateLayer(self):
+        pass
+
+    def actionExit(self):
+        return self.ui.actionExit()
+
+    def actionFeatureAction(self):
+        pass
+
+    def actionHelpContents(self):
+        pass
+
+    def actionHideAllLayers(self):
+        pass
+
+    def actionHideSelectedLayers(self):
+        pass
+
+    def actionIdentify(self):
+        return self.ui.actionIdentify
+
+    def actionAddToOverview(self):
+        pass
+
+    def actionAddRing(self):
+        pass
+
+    def actionAddPart(self):
+        pass
+
+    def actionLayerProperties(self):
+        pass
+
+    def actionLayerSaveAs(self):
+        pass
+
+    def actionLayerSelectionSaveAs(self):
+        pass
+
+    def actionManagePlugins(self):
+        pass
+
+    def actionMapTips(self):
+        pass
+
+    def actionMeasure(self):
+        pass
+
+    def actionMeasureArea(self):
+        pass
+
+    def actionMoveFeature(self):
+        pass
+
+    def actionNewBookmark(self):
+        pass
+
+    def actionNewProject(self):
+        pass
+
+    def actionNewVectorLayer(self):
+        pass
+
+    def actionNodeTool(self):
+        pass
+
+    def actionOpenFieldCalculator(self):
+        pass
+
+    def actionOpenProject(self):
+        pass
+
+    def actionOpenTable(self):
+        pass
+
+    def actionOptions(self):
+        pass
+
+    def actionPan(self):
+        return self.ui.actionPan
+
+    def actionPanToSelected(self):
+        pass
+
+    def actionPasteFeatures(self):
+        pass
+
+    def actionPasteLayerStyle(self):
+        pass
+
+    def actionPluginListSeparator(self):
+        pass
+
+    def actionPrintComposer(self):
+        pass
+
+    def actionProjectProperties(self):
+        pass
+
+    def actionQgisHomePage(self):
+        pass
+
+    def actionRemoveAllFromOverview(self):
+        pass
+
+    def actionRemoveLayer(self):
+        pass
+
+    def actionRollbackAllEdits(self):
+        pass
+
+    def actionRollbackEdits(self):
+        pass
+
+    def actionSaveActiveLayerEdits(self):
+        pass
+
+    def actionSaveAllEdits(self):
+        pass
+
+    def actionSaveEdits(self):
+        pass
+
+    def actionSaveMapAsImage(self):
+        pass
+
+    def actionSaveProject(self):
+        pass
+
+    def actionSaveProjectAs(self):
+        pass
+
+    def actionSelect(self):
+        pass
+
+    def actionSelectFreehand(self):
+        pass
+
+    def actionSelectPolygon(self):
+        pass
+
+    def actionSelectRadius(self):
+        pass
+
+    def actionSelectRectangle(self):
+        pass
+
+    def actionShowAllLayers(self):
+        pass
+
+    def actionShowBookmarks(self):
+        pass
+
+    def actionShowComposerManager(self):
+        pass
+
+    def actionShowPythonDialog(self):
+        pass
+
+    def actionShowSelectedLayers(self):
+        pass
+
+    def actionSimplifyFeature(self):
+        pass
+
+    def actionSplitFeatures(self):
+        pass
+
+    def actionSplitParts(self):
+        pass
+
+    def actionToggleEditing(self):
+        pass
+
+    def actionToggleFullScreen(self):
+        pass
+
+    def actionTouch(self):
+        pass
+
+    def actionZoomActualSize(self):
+        return self.ui.actionZoomPixelScale
+
+    def actionZoomFullExtent(self):
+        return self.ui.actionZoomFullExtent
+
+    def actionZoomIn(self):
+        return self.ui.actionZoomIn
+
+    def actionZoomLast(self):
+        pass
+
+    def actionZoomNext(self):
+        pass
+
+    def actionZoomOut(self):
+        return self.ui.actionZoomOut
+
+    def actionZoomToLayer(self):
+        pass
+
+    def actionZoomToSelected(self):
+        pass
+
+
+
+    def activeComposers(self):
+        pass
+
+    ###
+    ### addXYZ() routines
+    ####
+    def addDatabaseToolBarIcon(self, QAction):
+        pass
+
+    def addDatabaseToolBarWidget(self, QWidget):
+        pass
+
+
+    def addDockWidget(self, area, dockWidget, orientation=None):
+        'Add a dock widget to the main window'
+        self.ui.addDockWidget(area, dockWidget, orientation=orientation)
+
+    def addLayerMenu(self):
+        pass
 
     def mainWindow(self):
-        return self.enmapBox().ui
+        return self.ui
 
     def messageBar(self):
-        return self.enmapBox().ui.messageBar
+        return self.ui.messageBar
+
+    def mapCanvases(self):
+        """
+        Returns all MapCanvas(QgsMapCanvas) objects known to the EnMAP-Box
+        :return: [list-of-MapCanvases]
+        """
+        from enmapbox.gui.mapcanvas import MapDock
+        return [d.canvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
 
     def mapCanvas(self):
-        assert isinstance(self.mVirtualMapCanvas, QgsMapCanvas)
-        self.mVirtualMapCanvas.setLayerSet([])
+        assert isinstance(self.mQgisInterfaceMapCanvas, QgsMapCanvas)
+        self.mQgisInterfaceMapCanvas.setLayerSet([])
 
-        for ds in self.enmapBox().dataSourceManager.mSources:
+        for ds in self.dataSourceManager.mSources:
             if isinstance(ds, DataSourceSpatial):
                 uri = ds.uri()
-                if uri not in self.mVirtualLayerSet.keys():
+                if uri not in self.mQgisInterfaceLayerSet.keys():
                     lyr = ds.createUnregisteredMapLayer()
                     QgsMapLayerRegistry.instance().addMapLayer(lyr, addToLegend=False)
-                    self.mVirtualLayerSet[uri] = lyr
+                    self.mQgisInterfaceLayerSet[uri] = lyr
 
-        if len(self.mVirtualLayerSet.values()) > 0:
-            lyr = self.mVirtualLayerSet.values()[0]
-            self.mVirtualMapCanvas.mapSettings().setDestinationCrs(lyr.crs())
-            self.mVirtualMapCanvas.setExtent(lyr.extent())
-            self.mVirtualMapCanvas.setLayerSet([QgsMapCanvasLayer(l) for l in self.mVirtualLayerSet.values()])
+        if len(self.mQgisInterfaceLayerSet.values()) > 0:
+            lyr = self.mQgisInterfaceLayerSet.values()[0]
+            self.mQgisInterfaceMapCanvas.mapSettings().setDestinationCrs(lyr.crs())
+            self.mQgisInterfaceMapCanvas.setExtent(lyr.extent())
+            self.mQgisInterfaceMapCanvas.setLayerSet(
+                [QgsMapCanvasLayer(l) for l in self.mQgisInterfaceLayerSet.values()])
 
         logger.debug(
-            'layers shown in (temporary) QgsInterface::mapCanvas() {}'.format(len(self.mVirtualMapCanvas.layers())))
-        return self.mVirtualMapCanvas
+            'layers shown in (temporary) QgsInterface::mapCanvas() {}'.format(
+                len(self.mQgisInterfaceMapCanvas.layers())))
+        return self.mQgisInterfaceMapCanvas
 
     def firstRightStandardMenu(self):
-        return self.enmapBox().ui.menuApplications
+        return self.ui.menuApplications
 
     def registerMainWindowAction(self, action, defaultShortcut):
-        self.enmapBox().ui.addAction(action)
-        pass
+        self.ui.addAction(action)
 
     def vectorMenu(self):
         s = ""
 
     def addDockWidget(self, area, dockwidget):
-        self.enmapBox().ui.addDockWidget(area, dockwidget)
+        self.ui.addDockWidget(area, dockwidget)
 
-    def openMessageLog(self):
-        logger.debug('TODO: implement openMessageLog')
+    def loadExampleData(self):
+        """
+        Loads the EnMAP-Box example data
+        """
+        self.ui.actionLoadExampleData.trigger()
 
-        pass
+    def legendInterface(self):
+        """DockManager implements legend interface"""
+        return self.dockManager
 
     def refreshLayerSymbology(self, layerId):
         pass
 
-    def legendInterface(self):
-        """DockManager implements legend interface"""
-        return self.enmapBox().dockManager
+    def openMessageLog(self):
+        logger.debug('TODO: implement openMessageLog')
+        pass
 
     ###
     ###
@@ -705,7 +1103,7 @@ class EnMAPBox(QgisInterface, QObject):
     def removeAllLayers(self):
 
         """Remove layers from the canvas before they get deleted."""
-        self.mVirtualMapCanvas.setLayerSet([])
+        self.mQgisInterfaceMapCanvas.setLayerSet([])
 
     def newProject(self):
         """Create new project."""
@@ -785,5 +1183,3 @@ class EnMAPBox(QgisInterface, QObject):
         :type name: str
         """
         pass
-
-

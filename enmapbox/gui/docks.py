@@ -612,23 +612,6 @@ class SpectralLibraryDock(Dock):
         self.mShowMapInteraction = True
 
 
-    """
-    def setMapInteraction(self,b):
-        assert isinstance(b, bool)
-        self.mShowMapInteraction = b
-        self.SLV.setMapInteraction(b)
-
-    def mapInteraction(self):
-        return self.mShowMapInteraction
-
-    def setCurrentProfiles(self, listOfSpectra):
-        if self.mShowMapInteraction:
-            self.SLV.setCurrentSpectra(listOfSpectra)
-        else:
-            self.SLV.setCurrentSpectra(None)
-    """
-
-
 if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
