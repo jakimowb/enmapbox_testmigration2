@@ -14,7 +14,10 @@
    <string>EnMAP-Box</string>
   </property>
   <property name="dockOptions">
-   <set>QMainWindow::AllowNestedDocks|QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks|QMainWindow::ForceTabbedDocks|QMainWindow::VerticalTabs</set>
+   <set>QMainWindow::AllowNestedDocks|QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks|QMainWindow::VerticalTabs</set>
+  </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>true</bool>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="acceptDrops">
@@ -25,7 +28,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <property name="margin">
-     <number>0</number>
+     <number>6</number>
     </property>
     <item>
      <widget class="CentralFrame" name="centralFrame">
