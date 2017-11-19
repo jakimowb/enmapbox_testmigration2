@@ -6,7 +6,7 @@ Mask the resulting image to the shape of Brandenburg (a federated state of Germa
 import tempfile
 import os
 import numpy
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster
+from hubdc.applier import *
 from hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
 
 # Set up input and output filenames.
