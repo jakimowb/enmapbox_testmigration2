@@ -570,7 +570,7 @@ class MapCanvas(QgsMapCanvas):
     def instances():
         return list(MapCanvas._instances)
 
-    #sigContextMenuEvent = pyqtSignal(QContextMenuEvent)
+    #sigContextMenuEvent = pyqtSignal(QContextMe7nuEvent)
     sigSpatialExtentChanged = pyqtSignal(SpatialExtent)
     sigCrsChanged  = pyqtSignal(QgsCoordinateReferenceSystem)
 

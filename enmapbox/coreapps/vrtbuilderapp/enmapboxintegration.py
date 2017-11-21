@@ -33,6 +33,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
         self.name = 'Raster Builder'
         self.version = 'Version {}'.format(VERSION)
         self.licence = LICENSE
+        self.mapTools = []
 
     def icon(self):
         return QIcon(PATH_ICON)
@@ -59,7 +60,22 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
         # add created files to EnMAP-Box
         w.sigRasterCreated.connect(self.enmapbox.addSource)
+        w.actionSelectSpatialExtent.triggered.connect(lambda: self.onSelectSpatialExtent(w))
         w.show()
+
+    def onSelectSpatialExtent(self, w):
+        assert isinstance(w, VRTBuilderWidget)
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        from vrtbuilder.widgets import MapToolSpatialExtent
+        del self.mapTools[:]
+        if isinstance(self.enmapbox, EnMAPBox):
+            for mapCanvas in self.enmapbox.mapCanvases():
+                t = MapToolSpatialExtent(mapCanvas)
+                t.sigSpatialExtentSelected.connect(w.setBounds)
+                mapCanvas.setMapTool(t)
+                self.mapTools.append(t)
+
+
 
     def geoAlgorithms(self):
         return []  # remove this line to load geoAlgorithms
