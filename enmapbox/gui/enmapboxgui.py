@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtGui import *
@@ -187,7 +187,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.isInitialized = True
 
     def menusWithTitle(self, title):
-        return [m for m in self.findChildren(QMenu) if str(m.title()) == title]
+        return [m for m in self.findChildren(QMenu) if m.title() == title]
 
     def closeEvent(event):
         pass
@@ -331,7 +331,7 @@ class EnMAPBox(QgisInterface, QObject):
                 self.ui.menuProcessing.setEnabled(False)
                 self.ui.menuProcessing.setVisible(False)
                 logger.warning('Failed to initialize QGIS Processing framework')
-                logger.warning(str(ex))
+                logger.warning('{}'.format(ex))
 
         # load EnMAP-Box applications
         self.initEnMAPBoxApplications()
@@ -635,7 +635,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def menu(self, title):
         for menu in self.ui.menuBar().findChildren(QMenu):
-            if str(menu.title()) == title:
+            if menu.title() == title:
                 return menu
         return None
 

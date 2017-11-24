@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    treeviews.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
 from PyQt4.QtXml import *
 
 import enmapbox
@@ -67,8 +86,7 @@ class TreeNodeProvider():
 
     @staticmethod
     def CreateNodeFromXml(elem):
-        assert isinstance(elem, QDomElement), str(elem)
-        tagName = str(elem.tagName())
+        tagName = elem.tagName()
         node = None
         attributes = getDOMAttributes(elem)
         tagMap = [('tree-node', TreeNode),
@@ -94,7 +112,7 @@ class TreeNode(QgsLayerTreeGroup):
     sigRemoveMe = pyqtSignal()
     def __init__(self, parent, name, value=None, checked=Qt.Unchecked, tooltip=None, icon=None):
         #QObject.__init__(self)
-        super(TreeNode, self).__init__(str(name), checked)
+        super(TreeNode, self).__init__(name, checked)
         #assert name is not None and len(str(name)) > 0
 
         self.mParent = parent
@@ -151,7 +169,7 @@ class TreeNode(QgsLayerTreeGroup):
 
     def setIcon(self, icon):
         if icon:
-            assert isinstance(icon, QIcon), str(icon)
+            assert isinstance(icon, QIcon)
         self.mIcon = icon
         self.sigIconChanged.emit()
 
@@ -282,14 +300,16 @@ class TreeModel(QgsLayerTreeModel):
 
             if col == 0:
                 if role == Qt.DisplayRole:
-                    return node.name()
+                    name = node.name()
+                    return name
                 if role == Qt.DecorationRole:
                     return node.icon()
                 if role == Qt.ToolTipRole:
                     return node.tooltip()
             if col == 1:
                 if role == Qt.DisplayRole:
-                    return node.value()
+                    value = node.value()
+                    return value
         else:
             if col == 0:
                 return super(TreeModel, self).data(index, role)
@@ -337,7 +357,7 @@ class ClassificationNode(TreeNode):
         self.setName(name)
         for i, ci in enumerate(classificationScheme):
             assert isinstance(ci, ClassInfo)
-            TreeNode(parent, str(i), value=ci.name(), icon=ci.icon())
+            TreeNode(parent, '{}'.format(i), value=ci.name(), icon=ci.icon())
 
 class CRSTreeNode(TreeNode):
     def __init__(self, parent, crs):
@@ -425,7 +445,7 @@ class TreeView(QgsLayerTreeView):
             idxParent = model.node2index(parent)
             span = True
             if isinstance(node, TreeNode):
-                span = node.value() == None or str(node.value()).strip() == ''
+                span = node.value() == None or node.value().strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)

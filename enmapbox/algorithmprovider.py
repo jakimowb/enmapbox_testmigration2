@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 import sys, os
 
 from enmapbox import __version__

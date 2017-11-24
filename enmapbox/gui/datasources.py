@@ -1,4 +1,22 @@
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    datasources.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
 import six, sys, os, gc, re, collections, uuid, logging, pickle
 logger = logging.getLogger(__name__)
 from qgis.core import *
@@ -30,13 +48,12 @@ class DataSourceFactory(object):
     def srcToString(src):
         if isinstance(src, QUrl):
             if src.isLocalFile():
-                src = str(src.toLocalFile())
+                src = src.toLocalFile()
             else:
-                src = str(src.path())
-        if isinstance(src, unicode):
-            src = str(src)
-
+                src = src.path()
         if isinstance(src, str):
+            src = src.encode('utf-8')
+        if isinstance(src, unicode):
             src = os.path.abspath(src)
         else:
             src = None
@@ -68,8 +85,11 @@ class DataSourceFactory(object):
             except Exception:
                 s = ""
                 pass
+        if isinstance(uri, unicode):
+            uri = str(uri.decode('utf-8'))
 
-        assert uri is None or isinstance(uri, str)
+        if not (uri is None or isinstance(uri, str)):
+            s = ""
         return uri
 
     @staticmethod
@@ -85,7 +105,7 @@ class DataSourceFactory(object):
         if isinstance(src, QgsRasterLayer) and src.isValid():
             uri = DataSourceFactory.isRasterSource(src.dataProvider())
         if isinstance(src, QgsRasterDataProvider):
-            uri = str(src.dataSourceUri())
+            uri = src.dataSourceUri()
         if isinstance(src, gdal.Dataset):
 
             subDataSets = src.GetSubDatasets()
@@ -120,13 +140,17 @@ class DataSourceFactory(object):
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
-
+            src = src.encode('utf-8')
+        if isinstance(src, unicode):
             try:
                 uri = DataSourceFactory.isRasterSource(gdal.Open(src))
             except RuntimeError, e:
                 uri = None
 
-        assert uri is None or isinstance(uri, str)
+        #if isinstance(uri, unicode):
+        #    uri = uri.encode('utf-8')
+
+        assert uri is None or isinstance(uri, unicode)
         return uri
 
     @staticmethod
@@ -186,10 +210,8 @@ class DataSourceFactory(object):
         :param icon: QIcon, optional
         :return:
         """
-        if src is None:
-            return None
-
-        if type(src) in [str, unicode] and (len(src) == 0):
+        if src is None or \
+                (type(src) in [str, unicode] and (len(src) == 0)):
             return None
 
         if isinstance(src, DataSource):
@@ -216,7 +238,7 @@ class DataSourceFactory(object):
             return HubFlowDataSource(uri, name=name, icon=icon)
 
         src = DataSourceFactory.srcToString(src)
-        if isinstance(src, str):
+        if isinstance(src, unicode):
             if os.path.isfile(src):
                 ext = os.path.splitext(src)[1].lower()
                 if ext in ['.csv', '.txt']:
@@ -226,13 +248,13 @@ class DataSourceFactory(object):
                 return DataSourceFile(src, name=name, icon=icon)
 
             reg = QgsMapLayerRegistry.instance()
-            ids = [str(l.id()) for l in reg.mapLayers().values()]
+            ids = [l.id() for l in reg.mapLayers().values()]
             if src in ids:
                 mapLyr = reg.mapLayer(src)
                 logger.debug('MAP LAYER: {}'.format(mapLyr))
                 return DataSourceFactory.Factory(reg.mapLayer(src), name)
 
-        logger.warning('Can not open {}'.format(str(src)))
+        logger.warning('Can not open {}'.format(src))
         return None
 
 
@@ -248,16 +270,18 @@ class DataSource(object):
         :param uri: uri of data source. must be a string
         :param name: name as it appears in the source file list
         """
-        assert type(uri) is str
+        assert isinstance(uri, unicode)
         self.mUuid = uuid.uuid4()
-        self.mUri = uri
+        self.mUri = ''
+        self.setUri(uri)
         self.mIcon = None
         self.mName = ''
 
         self.updateMetadata(name=name, icon=icon)
 
     def setUri(self, uri):
-        self.mUri = str(uri)
+        assert isinstance(uri, unicode)
+        self.mUri = uri
         self.updateMetadata()
 
     def updateMetadata(self, icon=None, name=None):
@@ -288,7 +312,7 @@ class DataSource(object):
 
     def uri(self):
         """Returns the URI string that describes the data source"""
-        return str(self.mUri)
+        return self.mUri
 
     def setIcon(self, icon):
         self.mIcon = icon
@@ -311,8 +335,12 @@ class DataSource(object):
         :param name:
         :return: self
         """
+        assert isinstance(name, unicode)
         self.mName = name
         return self
+
+    def name(self):
+        return self.mName
 
     def writeXml(self, element):
         """
@@ -323,7 +351,14 @@ class DataSource(object):
         pass
 
     def __repr__(self):
-        return 'DataSource: {} {}'.format(self.mName, str(self.mUri))
+
+        def u2s(u):
+            if isinstance(u, unicode):
+                u = u.encode('utf-8')
+            return u
+        n = u2s(self.mName)
+        m = u2s(self.mUri)
+        return 'DataSource: {} {}'.format(n, m)
 
 class DataSourceFile(DataSource):
 
@@ -463,7 +498,7 @@ class DataSourceRaster(DataSourceSpatial):
                 for domain in sorted(domains):
                     tmp = obj.GetMetadata_Dict(domain)
                     if len(tmp) > 0:
-                        md[domain] = tmp
+                        md[domain.decode('utf-8')] = tmp
             return md
 
         self.mDatasetMetadata = fetchMetadata(ds)

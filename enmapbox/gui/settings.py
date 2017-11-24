@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 import sys, os, site
 from qgis.core import *
 from qgis.gui import *
@@ -59,7 +59,8 @@ class SettingsInfo(object):
 
     def __init__(self, key, value, description, defaultValue=None, range = None):
 
-        assert isinstance(key, str)
+        if isinstance(key, str):
+            key = key.decode('utf-8')
         if range:
             assert len(range) == 2
         assert value is not None

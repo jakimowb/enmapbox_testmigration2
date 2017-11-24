@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    applications.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
 import os, sys, site, collections, inspect, logging, re
 logger = logging.getLogger(__name__)
 from qgis.core import *
@@ -35,7 +54,6 @@ class ApplicationRegistry(QObject):
         self.appList = collections.OrderedDict()
 
     def addApplicationPackageFile(self, appPkgFile):
-        assert isinstance(appPkgFile, str)
         assert os.path.isfile(appPkgFile)
 
         lines = open(appPkgFile).readlines()

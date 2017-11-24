@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 import six, sys, os, gc, re, collections, uuid, logging
 logger = logging.getLogger(__name__)
 from qgis.core import *

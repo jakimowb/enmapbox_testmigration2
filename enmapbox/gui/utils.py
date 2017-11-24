@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 import os, sys, importlib, tempfile, re, six, logging, fnmatch, StringIO, pickle, zipfile
 
 logger = logging.getLogger(__name__)
@@ -258,7 +258,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
         elem = doc.elementsByTagName('customwidget')
         for child in [elem.item(i) for i in range(elem.count())]:
             child = child.toElement()
-            className = str(child.firstChildElement('class').firstChild().nodeValue())
+            className = child.firstChildElement('class').firstChild().nodeValue()
             if className.startswith('Qgs'):
                 cHeader = child.firstChildElement('header').firstChild()
                 cHeader.setNodeValue('qgis.gui')
@@ -436,7 +436,9 @@ def defaultBands(dataset):
     :param dataset:
     :return:
     """
-    if isinstance(dataset, str) or isinstance(dataset, unicode):
+    if isinstance(dataset, str):
+        dataset = dataset.encode('utf-8')
+    if isinstance(dataset, unicode):
         return defaultBands(gdal.Open(dataset))
     elif isinstance(dataset, QgsRasterDataProvider):
         return defaultBands(dataset.dataSourceUri())
@@ -482,6 +484,8 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
     :return: band index | 0 of wavelength information is not provided
     """
     if isinstance(wl, str):
+        wl = wl.encode('utf-8')
+    if isinstance(wl, unicode):
         assert wl.upper() in LUT_WAVELENGTH.keys(), wl
         return bandClosestToWavelength(dataset, LUT_WAVELENGTH[wl.upper()], wl_unit='nm')
     else:
@@ -499,9 +503,10 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
 def parseWavelength(dataset):
     wl = None
     wlu = None
-
-    if isinstance(dataset, str) or isinstance(dataset, unicode):
-        return parseWavelength(gdal.Open(dataset))
+    if isinstance(dataset, str):
+        dataset = dataset.decode('utf-8')
+    if isinstance(dataset, unicode):
+        return parseWavelength(gdal.Open(dataset).encode('utf-8'))
     elif isinstance(dataset, QgsRasterDataProvider):
         return parseWavelength(dataset.dataSourceUri())
     elif isinstance(dataset, QgsRasterLayer):
@@ -725,7 +730,7 @@ def saveTransform(geom, crs1, crs2):
             result = SpatialExtent(crs2, rect)
         except:
             logger.debug('Can not transform from {} to {} on rectangle {}'.format( \
-                crs1.description(), crs2.description(), str(geom)))
+                crs1.description(), crs2.description(), '{}'.format(geom)))
 
     elif isinstance(geom, QgsPoint):
 
@@ -735,7 +740,7 @@ def saveTransform(geom, crs1, crs2):
             result = SpatialPoint(crs2, pt)
         except:
             logger.debug('Can not transform from {} to {} on QgsPoint {}'.format( \
-                crs1.description(), crs2.description(), str(geom)))
+                crs1.description(), crs2.description(), '{}'.format(geom)))
     return result
 
 
@@ -937,7 +942,7 @@ class IconProvider:
     @staticmethod
     def test():
         required = set(['png', 'svg'])
-        available = set([str(p) for p in QImageReader.supportedImageFormats()])
+        available = set([p for p in QImageReader.supportedImageFormats()])
         missing = required - available
 
         for name, uri in IconProvider.resourceIconsPaths():
@@ -994,7 +999,7 @@ class MimeDataHelper():
 
         refIds = []
         for o in listOfObjects:
-            idStr = str(id(o))
+            idStr = '{}'.format(id(o))
             MimeDataHelper.PYTHON_OBJECTS[idStr] = o
             refIds.append(idStr)
 
@@ -1004,7 +1009,7 @@ class MimeDataHelper():
     def __init__(self, mimeData):
         assert isinstance(mimeData, QMimeData)
         self.mMimeData = mimeData
-        self.mMimeDataFormats = [str(f) for f in self.mMimeData.formats()]
+        self.mMimeDataFormats = [f for f in self.mMimeData.formats()]
         self.doc = QDomDocument()
 
     def containsMimeType(self, types):
@@ -1036,7 +1041,8 @@ class MimeDataHelper():
         """
         r = False
         if format in self.mMimeDataFormats:
-            r = self.doc.setContent(self.mMimeData.data(format))
+            ba = self.mMimeData.data(format)
+            r = self.doc.setContent(ba)
         return r
 
     def hasPythonObjects(self):
@@ -1045,7 +1051,7 @@ class MimeDataHelper():
         :return: True or False
         """
         if self.containsMimeType(MimeDataHelper.MDF_PYTHON_OBJECTS):
-            refIds = str(self.data(MimeDataHelper.MDF_PYTHON_OBJECTS)).split(';')
+            refIds = self.data(MimeDataHelper.MDF_PYTHON_OBJECTS).split(';')
             for id in refIds:
                 if id in MimeDataHelper.PYTHON_OBJECTS.keys():
                     return True
@@ -1064,7 +1070,7 @@ class MimeDataHelper():
 
         if self.hasPythonObjects():
 
-            for refId in str(self.data(MimeDataHelper.MDF_PYTHON_OBJECTS)).split(';'):
+            for refId in self.data(MimeDataHelper.MDF_PYTHON_OBJECTS).split(';'):
                 o = MimeDataHelper.PYTHON_OBJECTS.get(refId)
 
                 if o is not None:
@@ -1092,7 +1098,7 @@ class MimeDataHelper():
             child = root.firstChildElement()
             while not child.isNull():
                 child = child.toElement()
-                tagName = str(child.tagName())
+                tagName = child.tagName()
                 if 'dock-tree-node' in tagName:
                     nodes.append(TreeNodeProvider.CreateNodeFromXml(child))
                 elif tagName in ['layer-tree-layer', 'layer-tree-group']:
@@ -1191,6 +1197,7 @@ class MimeDataHelper():
             dataSources = [DataSourceFactory.Factory(uri) for uri in self.mMimeData.urls()]
 
         dataSources = list(set([d for d in dataSources if d is not None]))
+        #print(dataSources)
         return dataSources
 
 

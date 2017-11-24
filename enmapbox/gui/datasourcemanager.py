@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
+# noinspection PyPep8Naming
 """
 ***************************************************************************
-    __main__
+    datasourcemanager.py
     ---------------------
     Date                 : August 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 import sys, os, logging
 logger = logging.getLogger(__name__)
 from qgis.core import *
@@ -126,7 +126,7 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         from enmapbox.gui.datasources import DataSource
         assert isinstance(dataSource, DataSource)
         self.dataSource = dataSource
-        self.setName(os.path.basename(dataSource.uri()))
+        self.setName(dataSource.name())
 
         self.setTooltip(dataSource.uri())
         self.setIcon(dataSource.icon())
@@ -170,7 +170,7 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         super(DataSourceTreeNode, self).writeXML(parentElement)
         elem = parentElement.lastChild().toElement()
         elem.setTagName('datasource-tree-node')
-        elem.setAttribute('uuid', str(self.dataSource.uuid()))
+        elem.setAttribute('uuid', '{}'.format(self.dataSource.uuid()))
 
 
 class SpatialDataSourceTreeNode(DataSourceTreeNode):
@@ -644,7 +644,7 @@ class DataSourceManagerTreeModel(TreeModel):
         #set application/enmapbox.datasourcetreemodeldata
         doc.appendChild(rootElem)
         txt = doc.toString()
-        mimeData.setData("application/enmapbox.datasourcetreemodeldata", txt)
+        mimeData.setData("application/enmapbox.datasourcetreemodeldata", QByteArray(txt.encode('utf-8')))
 
         specLibNodes = [n for n in exportedNodes if isinstance(n, SpeclibDataSourceTreeNode)]
         if len(specLibNodes) > 0:
@@ -1074,7 +1074,7 @@ class DataSourceManager(QObject):
             # check if source is already registered
 
             for src in self.mSources:
-                logger.debug(str(ds.uri()))
+                logger.debug(ds.uri())
                 if os.path.abspath(src.uri()) == os.path.abspath(ds.uri()):
                     return src #return object reference of an already existing source
             #this datasource is new

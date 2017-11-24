@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# noinspection PyPep8Naming
 """
 ***************************************************************************
     spectrallibraries.py
@@ -18,7 +18,9 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
+#see http://python-future.org/unicode_literals.html for unicode issue discussion
+from future.utils import text_to_native_str
 import os, re, tempfile, pickle, copy, shutil, unicodedata
 from collections import OrderedDict
 from qgis.core import *
@@ -35,17 +37,6 @@ from enmapbox.gui.utils import MimeDataHelper
 
 
 
-def u2s(s):
-    if isinstance(s, unicode):
-        #s = s.encode(s, 'utf-8')
-        #s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
-        s = unicodedata.normalize('NFKD', s).encode('utf-8', 'ignore')
-    return s
-
-def s2u(s):
-    if isinstance(s, str):
-        s = unicode(s.decode('utf-8'))
-    return s
 
 #Lookup table for ENVI IDL DataTypes to GDAL Data Types
 LUT_IDL2GDAL = {1:gdal.GDT_Byte,
@@ -312,7 +303,6 @@ class SpectralProfile(QObject):
     @staticmethod
     def fromRasterSource(source, position):
 
-        from osgeo import gdal_array
 
         ds = gdalDataset(source)
         crs = QgsCoordinateReferenceSystem(ds.GetProjection())
@@ -325,7 +315,7 @@ class SpectralProfile(QObject):
         elif isinstance(position, QgsPoint):
             px = geo2px(position, ds.GetGeoTransform())
         else:
-            raise Exception('Unsupported type of argument "position" {}'.format(unicode(position)))
+            raise Exception('Unsupported type of argument "position" {}'.format('{}'.format(position)))
         #check out-of-raster
         if px.x() < 0 or px.y() < 0: return None
         if px.x() > ds.RasterXSize - 1 or px.y() > ds.RasterYSize - 1: return None
@@ -340,8 +330,8 @@ class SpectralProfile(QObject):
             if nodata and values[b] == nodata:
                 return None
 
-        wl = ds.GetMetadataItem('wavelength','ENVI')
-        wlu = ds.GetMetadataItem('wavelength_units','ENVI')
+        wl = ds.GetMetadataItem(str('wavelength'),str('ENVI'))
+        wlu = ds.GetMetadataItem(str('wavelength_units'),str('ENVI'))
         if wl is not None and len(wl) > 0:
             wl = re.sub(r'[ {}]','', wl).split(',')
             wl = [float(w) for w in wl]
@@ -364,10 +354,10 @@ class SpectralProfile(QObject):
         self.mPxCoordinate = None
         self.mGeoCoordinate = None
 
-    sigNameChanged = pyqtSignal(str)
+    sigNameChanged = pyqtSignal(unicode)
     def setName(self, name):
+        assert isinstance(name, unicode)
 
-        name = s2u(name)
         if name != self.mName:
             self.mName = name
             self.sigNameChanged.emit(name)
@@ -376,7 +366,8 @@ class SpectralProfile(QObject):
         return self.mName
 
     def setSource(self, uri):
-        self.mSource = unicode(uri)
+        assert isinstance(uri, unicode)
+        self.mSource = uri
 
     def source(self):
         return self.mSource
@@ -416,14 +407,12 @@ class SpectralProfile(QObject):
         self.mMetadata.update(metaData)
 
     def setMetadata(self, key, value):
-        key = s2u(key)
-        value = s2u(value)
-
         assert isinstance(key, unicode)
+
         self.mMetadata[key] = value
 
     def metadata(self, key, default=None):
-        key = s2u(key)
+        assert isinstance(key, unicode)
         v = self.mMetadata.get(key)
         return default if v is None else v
 
@@ -596,8 +585,8 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         :param pathESL: path to ENVI Spectral Library (ESL)
         :return: True, if pathESL can be read as Spectral Library.
         """
-
-        if not os.path.isfile(s2u(pathESL)):
+        assert isinstance(pathESL, unicode)
+        if not os.path.isfile(pathESL):
             return False
         hdr = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=False)
         if hdr is None or hdr[u'file type'] != u'ENVI Spectral Library':
@@ -612,7 +601,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         :param tmpVrt: (optional) path of GDAL VRt that is used to read the ESL
         :return: SpectralLibrary
         """
-        pathESL = s2u(pathESL)
+        assert isinstance(pathESL, unicode)
         md = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=True)
         data = None
         try:
@@ -700,6 +689,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
 
     @staticmethod
     def write(speclib, path, ext='sli'):
+        assert isinstance(path, unicode)
         dn = os.path.dirname(path)
         bn = os.path.basename(path)
 
@@ -717,7 +707,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
 
             if isinstance(values, list):
                 lines = ['{']
-                values = [unicode(v).replace(',','-') for v in values]
+                values = [u'{}'.format(v).replace(',','-') for v in values]
                 line = ' '
                 l = len(values)
                 for i, v in enumerate(values):
@@ -731,9 +721,9 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
                 s = '\n'.join(lines)
 
             else:
-                s = unicode(values)
+                s = u'{}'.format(values)
 
-            return u2s(s)
+            return u'{}'.format(s)
 
 
         for iGrp, grp in enumerate(speclib.groupBySpectralProperties().values()):
@@ -748,11 +738,11 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
             pNames = [p.name() for p in grp]
 
             if iGrp == 0:
-                pathDst = os.path.join(dn, u'{}.{}'.format(bn, ext))
+                pathDst = os.path.join(dn, '{}.{}'.format(bn, ext))
             else:
-                pathDst = os.path.join(dn, u'{}.{}.{}'.format(bn, iGrp, ext))
+                pathDst = os.path.join(dn, '{}.{}.{}'.format(bn, iGrp, ext))
 
-            drv = gdal.GetDriverByName('ENVI')
+            drv = gdal.GetDriverByName(str('ENVI'))
             assert isinstance(drv, gdal.Driver)
 
 
@@ -766,16 +756,16 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
             #ds = gdal_array.SaveArray(pData, pathDst, format='ENVI')
 
             assert isinstance(ds, gdal.Dataset)
-            ds.SetDescription(speclib.name())
-            ds.SetMetadataItem('band names', 'Spectral Library', 'ENVI')
-            ds.SetMetadataItem('spectra names',value2hdrString(pNames),'ENVI')
-            ds.SetMetadataItem('wavelength', value2hdrString(wl), 'ENVI')
-            ds.SetMetadataItem('wavelength units', wlu, 'ENVI')
+            ds.SetDescription(str(speclib.name()))
+            ds.SetMetadataItem(str('band names'), str('Spectral Library'), str('ENVI'))
+            ds.SetMetadataItem(str('spectra names'),value2hdrString(pNames), str('ENVI'))
+            ds.SetMetadataItem(str('wavelength'), value2hdrString(wl), str('ENVI'))
+            ds.SetMetadataItem(str('wavelength units'), wlu, str('ENVI'))
 
 
             for a in speclib.metadataAttributes():
                 v = value2hdrString([p.metadata(a) for p in grp])
-                ds.SetMetadataItem(u2s(a), u2s(v), 'ENVI')
+                ds.SetMetadataItem(a, str(v), 'ENVI')
 
             pathHdr = ds.GetFileList()[1]
             ds = None
@@ -823,8 +813,8 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         ds = describeRawFile(pathESL, pathVrt, xSize, ySize, bands=bands, eType=eType, byteOrder=byteOrder)
         for key, value in hdr.items():
             if isinstance(value, list):
-                value = ','.join(unicode(v) for v in value)
-            ds.SetMetadataItem(key, unicode(value), 'ENVI')
+                value = u','.join(v for v in value)
+            ds.SetMetadataItem(key, text_to_native_str(value), 'ENVI')
         ds.FlushCache()
         return ds
 
@@ -838,7 +828,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         values into numeric data types (int / float)
         :return: dict
         """
-        pathESL = s2u(pathESL)
+        assert isinstance(pathESL, unicode)
         if not os.path.isfile(pathESL):
             return None
 
@@ -1118,7 +1108,8 @@ class SpectralLibrary(QObject):
 
     def renameMetadataAttribute(self,oldName, newName):
         assert oldName in self.metadataAttributes()
-        newName = s2u(newName)
+        assert isinstance(oldName, unicode)
+        assert isinstance(newName, unicode)
 
         for p in self:
             if oldName in p.mMetadata.keys:
@@ -1135,7 +1126,6 @@ class SpectralLibrary(QObject):
         if path is None:
             filters = 'ENVI Spectral Library (*.esl *.sli);;CSV Table (*.csv)'
             path = QFileDialog.getSaveFileName(parent=None, caption="Save Spectral Library", filter=filters)
-
 
         if len(path) > 0:
             ext = os.path.splitext(path)[-1].lower()
@@ -1267,14 +1257,14 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         self.onProfilesAdded([p for p in self.mSpecLib])
 
     def addAttribute(self, name):
-        name = s2u(name)
+        assert isinstance(name, unicode)
         if name != self.cName and name not in self.mAttributeColumns:
             self.mAttributeColumns.append(name)
             self.layoutChanged.emit()
         self.sigAttributeAdded.emit(name)
 
     def removeAttribute(self, name):
-        name = s2u(name)
+        assert isinstance(name, unicode)
 
         if name in self.mAttributeColumns:
             self.mAttributeColumns.remove(name)
@@ -1315,9 +1305,9 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
             return col
         return None
 
-    def setHeaderData(self, col, orientation, value, role=None):
+    def setHeaderData(self, col, orientation, newName, role=None):
         oldName = self.columnNames()[col]
-        newName = s2u(value)
+        assert isinstance(newName, unicode)
         if orientation == Qt.Horizontal:
             if role == Qt.EditRole and oldName in self.mAttributeColumns:
                 self.mSpecLib.renameMetadataAttribute(oldName, newName)
@@ -1885,15 +1875,34 @@ def __Test__():
 
     spec1 = SpectralProfile()
     spec1.setValues([0.2, 0.3, 0.5, 0.7])
-    spec1.setMetadata('My Attr', 2323)
+    spec1.setMetadata('Üä', 2323)
+
+    sl = SpectralLibrary()
+    sl.addProfile(spec1)
+    for p in [
+        r'D:\Temp\sl1.sli',
+        u'D:\Temp\sl2.sli',
+        r'D:\Temp\sl3ä.sli',
+        u'D:\Temp\sl4ä.sli',
+    ]:
+        sl.exportProfiles(p)
+        sl2 = SpectralLibrary.readFrom(p)
+        #assert sl == sl2
+
+
     spec2 = SpectralProfile()
     spec2.setValues([0.3, 0.7, 0.8, 0.75])
     spec2.setMetadata('My Attr', 9876)
     crs = QgsCoordinateReferenceSystem('EPSG:32632')
     spec2.setCoordinates(QPoint(30, 40), SpatialPoint(crs, 30000, 40000))
+
+    dump = pickle.dumps(spec2)
+    s2 = pickle.loads(dump)
+
+    same = spec2 == s2
     # mySpec.plot()
     from enmapboxtestdata import speclib
-    speclib = r'D:\Repositories\QGIS_Plugins\enmap-box\enmapbox\gui\tests\üüü.esl.sli'
+    #speclib = r'D:\Repositories\QGIS_Plugins\enmap-box\enmapbox\gui\tests\üüü.esl.sli'
     sl = SpectralLibrary.readFrom(speclib)
 
     p = SpectralLibraryWidget()
