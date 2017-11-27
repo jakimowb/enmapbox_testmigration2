@@ -17,13 +17,13 @@
 *                                                                         *
 ***************************************************************************
 """
-
+from __future__ import absolute_import, unicode_literals
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from osgeo import gdal
 import ogr
-
+import unicodedata
 import pyqtgraph
 #from imagestatisticsapp import APP_DIR
 
@@ -34,6 +34,18 @@ from enmapbox.gui.enmapboxgui import EnMAPBox
 #BJ: es gibt immer nur eine QApplication. Zur Laufzeit ist das die von QGiS.
 #  Daher sollte das nie eine Modul-Variable sein
 #app = QtGui.QApplication([])
+
+def u2s(s):
+    if isinstance(s, unicode):
+        try:
+            s = str(s)
+        except:
+            try:
+                s = s.encode('utf-8')
+            except:
+                s = unicodedata.normalize('NFKD', s).encode('utf-8', 'ignore')
+    return s
+
 
 class Win(QtGui.QDialog):
 
@@ -127,17 +139,17 @@ class Win(QtGui.QDialog):
         self.inputMask.setCurrentIndex(counter - 1)
 
     def comboIndexChanged(self):
-        if self.validatePath(str(self.inputFile.currentText())):
+        if self.validatePath(self.inputFile.currentText()):
             self.selectionTable.clear()
 
-            self.inDS = gdal.Open(str(self.inputFile.currentText()))
+            self.inDS = gdal.Open(self.inputFile.currentText())
 
-            self.selectionTable.setRowCount(self.inDS.RasterCount - 1)
+            self.selectionTable.setRowCount(self.inDS.RasterCount)
             self.selectionTable.setColumnCount(4) # Samples, Min , Max, Mean, Stdev
 
             rowlabels = []
-            for index in range(1, self.inDS.RasterCount):
-                rowlabels.append(self.inDS.GetRasterBand(index).GetDescription())
+            for index in range(self.inDS.RasterCount):
+                rowlabels.append(self.inDS.GetRasterBand(index+1).GetDescription())
 
             self.selectionTable.setVerticalHeaderLabels(rowlabels)  # Name, Samples, Min , Max, Mean, Stdev
             self.selectionTable.setHorizontalHeaderLabels(["Samples", "Min", "Max", "Mean"])#, "Stand. Dev."]) # Name, Samples, Min , Max, Mean, Stdev
@@ -214,9 +226,9 @@ class Win(QtGui.QDialog):
 
     def computeStats(self):
 
-        image = Image(filename=self.inDS.GetFileList()[0])
+        image = Image(filename=u2s(self.inDS.GetFileList()[0]))
 
-        pathMask = str(self.inputMask.currentText())
+        pathMask = self.inputMask.currentText()
         if os.path.isfile(pathMask) and gdal.Open(pathMask):
             mask = Mask(filename=pathMask)
         elif os.path.isfile(pathMask) and ogr.Open(pathMask):
@@ -275,7 +287,7 @@ class Win(QtGui.QDialog):
         if sender == self.inputFile:
             path = self.inputFile.currentText()
 
-            ds = gdal.Open(str(path))
+            ds = gdal.Open(path)
 
             if ds is None:
                 style = 'QComboBox {{ background-color: {} }}'.format(hexRed)

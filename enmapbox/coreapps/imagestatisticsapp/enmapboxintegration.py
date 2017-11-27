@@ -18,7 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
-
+from __future__ import absolute_import, unicode_literals
 import os
 
 from PyQt4.QtGui import QIcon

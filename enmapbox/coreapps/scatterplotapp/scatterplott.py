@@ -18,7 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
-
+from __future__ import absolute_import, unicode_literals
 import gdal
 import ogr
 from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -196,12 +196,12 @@ class Win(QtGui.QDialog):
 
     def comboIndexChanged1(self):
         if self.validatePath(self.inputFile1):
-            self.inDS1 = gdal.Open(str(self.inputFile1.currentText()))
+            self.inDS1 = gdal.Open(self.inputFile1.currentText())
 
             self.inputFile2.addItem(self.inputFile1.currentText())
             counter = self.inputFile2.count()
             self.inputFile2.setCurrentIndex(counter - 1)
-            self.inDS2 = gdal.Open(str(self.inputFile1.currentText()))
+            self.inDS2 = gdal.Open(self.inputFile1.currentText())
 
             self.clearBandList()
             self.populateBandList()
@@ -210,7 +210,7 @@ class Win(QtGui.QDialog):
 
     def comboIndexChanged2(self):
         if self.validatePath(self.inputFile2):
-            self.inDS2 = gdal.Open(str(self.inputFile2.currentText()))
+            self.inDS2 = gdal.Open(self.inputFile2.currentText())
 
             self.clearBandList()
             self.populateBandList()
@@ -248,7 +248,7 @@ class Win(QtGui.QDialog):
         image1 = Image(filename=self.inDS1.GetFileList()[0])
         image2 = Image(filename=self.inDS2.GetFileList()[0])
 
-        pathMask = str(self.inputMask.currentText())
+        pathMask = self.inputMask.currentText()
         if os.path.isfile(pathMask) and gdal.Open(pathMask):
             mask = Mask(filename=pathMask)
         elif os.path.isfile(pathMask) and ogr.Open(pathMask):
@@ -488,11 +488,11 @@ class Win(QtGui.QDialog):
             from osgeo import gdal
 
             if(item.currentText() != ""):
-                ds = gdal.Open(str(path))
+                ds = gdal.Open(path)
 
                 vs = None
                 if(item is self.inputMask):
-                    vs = ogr.Open(str(path))
+                    vs = ogr.Open(path)
 
                     if ds and vs is None:
                         style = 'QComboBox {{ background-color: {} }}'.format(hexRed)
