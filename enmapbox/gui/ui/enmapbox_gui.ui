@@ -178,9 +178,9 @@
    <addaction name="actionAddSpeclibView"/>
    <addaction name="actionAddTextView"/>
    <addaction name="separator"/>
+   <addaction name="actionMoveCenter"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
-   <addaction name="actionMoveCenter"/>
    <addaction name="actionZoomPixelScale"/>
    <addaction name="actionZoomFullExtent"/>
    <addaction name="actionPan"/>
@@ -404,7 +404,7 @@
   <action name="actionMoveCenter">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomPoint.png</normaloff>:/enmapbox/icons/mActionZoomPoint.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomPoint.svg</normaloff>:/enmapbox/icons/mActionZoomPoint.svg</iconset>
    </property>
    <property name="text">
     <string>Move to Point</string>

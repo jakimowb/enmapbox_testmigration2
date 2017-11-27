@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="enmapbox">
+    <file>icons/mActionZoomPoint.svg</file>
     <file>icons/ActionIdentifyTimeSeries.png</file>
     <file>icons/IconTimeSeries.png</file>
     <file>icons/add_class.png</file>
