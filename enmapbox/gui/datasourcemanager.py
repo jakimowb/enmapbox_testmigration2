@@ -686,6 +686,7 @@ class DataSourceManagerTreeModel(TreeModel):
                 # create new group node and add it to the model
                 srcGrp = DataSourceGroupTreeNode(self.rootNode, groupName, groupDataType)
                 srcGrp.setIcon(groupIcon)
+                srcGrp.setExpanded(True)
 
         elif len(srcGrp) == 1:
             srcGrp = srcGrp[0]
@@ -698,7 +699,7 @@ class DataSourceManagerTreeModel(TreeModel):
         dataSourceNode = TreeNodeProvider.CreateNodeFromDataSource(dataSource, None)
         sourceGroup = self.getSourceGroup(dataSource)
         sourceGroup.addChildNode(dataSourceNode)
-        dataSourceNode.setExpanded(False)
+        dataSourceNode.setExpanded(True)
         s = ""
 
     def removeDataSource(self, dataSource):

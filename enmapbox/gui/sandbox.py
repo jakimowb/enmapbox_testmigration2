@@ -85,10 +85,12 @@ def sandboxDragDrop():
 
 def sandboxUmlaut():
     import enmapbox.gui
+    enmapbox.gui.DEBUG = False
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    EB.addSource(r'D:\Temp\landsat22ü.bsq.vrt')
+    EB.loadExampleData()
+    #EB.addSource(r'D:\Temp\landsat22ü.bsq.vrt')
     #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
     #EB.addSources([p])
     s = ""

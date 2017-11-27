@@ -18,7 +18,7 @@
 """
 from __future__ import absolute_import, unicode_literals
 import six, sys, os, gc, re, collections, uuid, logging, pickle
-logger = logging.getLogger(__name__)
+
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
@@ -52,7 +52,7 @@ class DataSourceFactory(object):
             else:
                 src = src.path()
         if isinstance(src, str):
-            src = src.encode('utf-8')
+            src = ''+src.encode('utf-8')
         if isinstance(src, unicode):
             src = os.path.abspath(src)
         else:
@@ -70,26 +70,23 @@ class DataSourceFactory(object):
         if isinstance(src, QgsVectorLayer) and src.isValid():
             uri = DataSourceFactory.isVectorSource(src.dataProvider())
         if isinstance(src, QgsVectorDataProvider):
-            uri = str(src.dataSourceUri()).split('|')[0]
+            uri = DataSourceFactory.srcToString(src.dataSourceUri()).split('|')[0]
         if isinstance(src, ogr.DataSource):
 
-            uri = src.GetName()
+            uri = DataSourceFactory.srcToString(src.GetName())
 
-        src = DataSourceFactory.srcToString(src)
         if isinstance(src, str):
+            src = DataSourceFactory.srcToString(src)
+        if isinstance(src, unicode):
             # todo: check different providers, not only ogr
             try:
                 result = DataSourceFactory.isVectorSource(ogr.Open(src))
                 if result is not None:
-                    uri = result
+                    uri = DataSourceFactory.srcToString(result)
             except Exception:
                 s = ""
                 pass
-        if isinstance(uri, unicode):
-            uri = str(uri.decode('utf-8'))
-
-        if not (uri is None or isinstance(uri, str)):
-            s = ""
+        assert uri is None or isinstance(uri, unicode)
         return uri
 
     @staticmethod
@@ -139,8 +136,6 @@ class DataSourceFactory(object):
 
 
         src = DataSourceFactory.srcToString(src)
-        if isinstance(src, str):
-            src = src.encode('utf-8')
         if isinstance(src, unicode):
             try:
                 uri = DataSourceFactory.isRasterSource(gdal.Open(src))
@@ -149,15 +144,18 @@ class DataSourceFactory(object):
 
         #if isinstance(uri, unicode):
         #    uri = uri.encode('utf-8')
-
-        assert uri is None or isinstance(uri, unicode)
+        if isinstance(uri, str):
+            uri = u''+uri.encode('utf-8')
+        if not (uri is None or isinstance(uri, unicode)):
+            s = ""
+            return None
         return uri
 
     @staticmethod
     def isSpeclib(src):
         uri = None
         src = DataSourceFactory.srcToString(src)
-        if isinstance(src, str) and os.path.exists(src):
+        if not src is None and os.path.exists(src):
             from enmapbox.gui.spectrallibraries import SpectralLibraryIO
             for cls in SpectralLibraryIO.__subclasses__():
                 if cls.canRead(src):
@@ -175,7 +173,7 @@ class DataSourceFactory(object):
         """
 
         src = DataSourceFactory.srcToString(src)
-        if isinstance(src, str) and os.path.exists(src):
+        if not src is None and os.path.exists(src):
             import hubflow.types
             obj = hubflow.types.FlowObject.unpickle(src, raiseError=False)
             if isinstance(obj, hubflow.types.FlowObject):
@@ -224,8 +222,8 @@ class DataSourceFactory(object):
         uri = DataSourceFactory.isRasterSource(src)
         if uri is not None:
             return DataSourceRaster(uri, name=name, icon=icon)
-        uri = DataSourceFactory.isVectorSource(src)
 
+        uri = DataSourceFactory.isVectorSource(src)
         if uri is not None:
             return DataSourceVector(uri, name=name, icon=icon)
 
@@ -238,7 +236,7 @@ class DataSourceFactory(object):
             return HubFlowDataSource(uri, name=name, icon=icon)
 
         src = DataSourceFactory.srcToString(src)
-        if isinstance(src, unicode):
+        if not src is None:
             if os.path.isfile(src):
                 ext = os.path.splitext(src)[1].lower()
                 if ext in ['.csv', '.txt']:
@@ -247,14 +245,14 @@ class DataSourceFactory(object):
                     return DataSourceXMLFile(src, name=name, icon=icon)
                 return DataSourceFile(src, name=name, icon=icon)
 
+            #
             reg = QgsMapLayerRegistry.instance()
             ids = [l.id() for l in reg.mapLayers().values()]
             if src in ids:
                 mapLyr = reg.mapLayer(src)
-                logger.debug('MAP LAYER: {}'.format(mapLyr))
                 return DataSourceFactory.Factory(reg.mapLayer(src), name)
 
-        logger.warning('Can not open {}'.format(src))
+
         return None
 
 
