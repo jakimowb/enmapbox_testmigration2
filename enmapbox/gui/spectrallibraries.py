@@ -339,7 +339,7 @@ class SpectralProfile(QObject):
         profile = SpectralProfile()
         profile.setValues(values, valuePositions=wl, valuePositionUnit=wlu)
         profile.setCoordinates(px=px, spatialPoint=SpatialPoint(crs,px2geo(px, gt)))
-        profile.setSource(ds.GetFileList()[0])
+        profile.setSource('{}'.format(ds.GetFileList()[0]))
         return profile
 
     def __init__(self, parent=None):

@@ -445,7 +445,7 @@ class TreeView(QgsLayerTreeView):
             idxParent = model.node2index(parent)
             span = True
             if isinstance(node, TreeNode):
-                span = node.value() == None or node.value().strip() == ''
+                span = node.value() == None or ''.format(node.value()).strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)

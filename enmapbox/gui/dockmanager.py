@@ -961,12 +961,6 @@ class DockManager(QgsLegendInterface):
         elif dockType == 'SPECLIB':
             kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
-            from enmapbox.gui.enmapboxgui import EnMAPBox
-            emb = EnMAPBox.instance()
-            if isinstance(emb, EnMAPBox):
-                emb.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
-
-
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 
