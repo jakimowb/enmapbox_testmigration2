@@ -95,6 +95,9 @@ RemoteInfo.create(r'https://github.com/titusjan/objbrowser.git',
                   prefixLocal=r'site-packages/objbrowser',
                   prefixRemote=r'objbrowser')
 
+RemoteInfo.create(r'https://github.com/dask/dask.git',
+                  prefixLocal='site-packages/dask',
+                  excluded=['docs','.github','continuous_integration'])
 
 def updateRemote(remoteInfo):
     if isinstance(remoteInfo, str):
@@ -157,6 +160,7 @@ if __name__ == "__main__":
                  'enmap-box-geoalgorithmsprovider']  # enmap-box-geoalgorithmsprovider
     # to_update = ['objbrowser']
     to_update = ['virtual-raster-builder']
+    to_update = ['dask']
 
 
     for p in to_update:
