@@ -89,8 +89,9 @@ def sandboxUmlaut():
     enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
+
     EB.loadExampleData()
-    #EB.addSource(r'D:\Temp\landsat22ü.bsq.vrt')
+    EB.addSource(r'D:\Temp\landsatüddüüä22.vrt')
     #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
     #EB.addSources([p])
     s = ""
@@ -104,7 +105,9 @@ initQgisEnvironment = initQgisApplication
 def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    EB.openExampleData(mapWindows=1)
+    #EB.openExampleData(mapWindows=1)
+
+    EB.addSource(p)
     #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
     #EB.addSources([p])
     s = ""

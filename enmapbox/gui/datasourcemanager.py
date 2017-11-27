@@ -810,7 +810,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 a = m.addAction('Remove')
                 a.triggered.connect(lambda : model.dataSourceManager.removeSource(src))
                 a = m.addAction('Copy URI / path')
-                a.triggered.connect(lambda: QApplication.clipboard().setText(str(src.uri())))
+                a.triggered.connect(lambda: QApplication.clipboard().setText(src.uri()))
                 a = m.addAction('Rename')
                 a.setEnabled(False)
                 #todo: implement rename function
@@ -1057,7 +1057,7 @@ class DataSourceManager(QObject):
         self.mSubsetSelection.clear()
         return added
 
-
+    @pyqtSlot(unicode)
     @pyqtSlot(str)
     @pyqtSlot('QString')
     def addSource(self, src, name=None, icon=None):
