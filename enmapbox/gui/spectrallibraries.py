@@ -21,7 +21,7 @@
 from __future__ import absolute_import, unicode_literals
 #see http://python-future.org/unicode_literals.html for unicode issue discussion
 from future.utils import text_to_native_str
-import os, re, tempfile, pickle, copy, shutil, unicodedata
+import os, re, tempfile, pickle, copy, shutil, unicodedata,six
 from collections import OrderedDict
 from qgis.core import *
 from qgis.gui import *
@@ -618,6 +618,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
                 os.remove(file)
 
         except Exception as ex:
+        #if False:
             pathHdr = EnviSpectralLibraryIO.findENVIHeader(pathESL)
 
             pathTmpBin = tempfile.mktemp(prefix='tmpESL', suffix='.esl.bsq')
@@ -627,12 +628,13 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
             assert os.path.isfile(pathTmpBin)
             assert os.path.isfile(pathTmpHdr)
 
-            hdr = open(pathTmpHdr).readlines()
+            import codecs
+            hdr = codecs.open(pathTmpHdr, encoding='utf-8').readlines()
             for iLine in range(len(hdr)):
                 if re.search('file type =', hdr[iLine]):
                     hdr[iLine] = 'file type = ENVI Standard\n'
                     break
-            file = open(pathTmpHdr, 'w')
+            file = codecs.open(pathTmpHdr, 'w', encoding='utf-8')
             file.writelines(hdr)
             file.flush()
             file.close()
@@ -707,7 +709,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
 
             if isinstance(values, list):
                 lines = ['{']
-                values = [u'{}'.format(v).replace(',','-') for v in values]
+                values = ['{}'.format(v).replace(',','-') for v in values]
                 line = ' '
                 l = len(values)
                 for i, v in enumerate(values):
@@ -721,9 +723,11 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
                 s = '\n'.join(lines)
 
             else:
-                s = u'{}'.format(values)
+                s = '{}'.format(values)
 
-            return u'{}'.format(s)
+            #unicodedata.normalize('NFKD', title).encode('ascii','ignore')
+            #return s
+            return u2s(s)
 
 
         for iGrp, grp in enumerate(speclib.groupBySpectralProperties().values()):
@@ -760,12 +764,12 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
             ds.SetMetadataItem(str('band names'), str('Spectral Library'), str('ENVI'))
             ds.SetMetadataItem(str('spectra names'),value2hdrString(pNames), str('ENVI'))
             ds.SetMetadataItem(str('wavelength'), value2hdrString(wl), str('ENVI'))
-            ds.SetMetadataItem(str('wavelength units'), wlu, str('ENVI'))
+            ds.SetMetadataItem(str('wavelength units'), str(wlu), str('ENVI'))
 
 
             for a in speclib.metadataAttributes():
                 v = value2hdrString([p.metadata(a) for p in grp])
-                ds.SetMetadataItem(a, str(v), 'ENVI')
+                ds.SetMetadataItem(u2s(a), v, str('ENVI'))
 
             pathHdr = ds.GetFileList()[1]
             ds = None
@@ -814,7 +818,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         for key, value in hdr.items():
             if isinstance(value, list):
                 value = u','.join(v for v in value)
-            ds.SetMetadataItem(key, text_to_native_str(value), 'ENVI')
+            ds.SetMetadataItem(u2s(key), text_to_native_str(value), str('ENVI'))
         ds.FlushCache()
         return ds
 
@@ -836,7 +840,9 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
         if pathHdr is None:
             return None
 
-        hdr = open(pathHdr).readlines()
+        import codecs
+        #hdr = open(pathHdr).readlines()
+        hdr = codecs.open(pathHdr, encoding='utf-8').readlines()
         i = 0
         while i < len(hdr):
             if '{' in hdr[i]:
@@ -1861,6 +1867,13 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
                 pi.addItem(pdi)
 
 
+def u2s(s):
+    if isinstance(s, unicode):
+        try:
+            s = s.encode('utf-8')
+        except:
+            s = unicodedata.normalize('NFKD', s).encode('utf-8', 'ignore')
+    return s
 
 def __Test__():
     import enmapboxtestdata
@@ -1876,7 +1889,9 @@ def __Test__():
     spec1 = SpectralProfile()
     spec1.setValues([0.2, 0.3, 0.5, 0.7])
     spec1.setMetadata('Üä', 2323)
+    spec1.setMetadata('Äü', 'üÄäasa')
 
+    SLIB = SpectralLibrary()
     sl = SpectralLibrary()
     sl.addProfile(spec1)
     for p in [
@@ -1885,29 +1900,16 @@ def __Test__():
         r'D:\Temp\sl3ä.sli',
         u'D:\Temp\sl4ä.sli',
     ]:
+
         sl.exportProfiles(p)
         sl2 = SpectralLibrary.readFrom(p)
-        #assert sl == sl2
+        SLIB.addSpeclib(sl2)
 
-
-    spec2 = SpectralProfile()
-    spec2.setValues([0.3, 0.7, 0.8, 0.75])
-    spec2.setMetadata('My Attr', 9876)
-    crs = QgsCoordinateReferenceSystem('EPSG:32632')
-    spec2.setCoordinates(QPoint(30, 40), SpatialPoint(crs, 30000, 40000))
-
-    dump = pickle.dumps(spec2)
-    s2 = pickle.loads(dump)
-
-    same = spec2 == s2
-    # mySpec.plot()
-    from enmapboxtestdata import speclib
-    #speclib = r'D:\Repositories\QGIS_Plugins\enmap-box\enmapbox\gui\tests\üüü.esl.sli'
-    sl = SpectralLibrary.readFrom(speclib)
 
     p = SpectralLibraryWidget()
-    p.addSpeclib(sl)
+    p.addSpeclib(SLIB)
     p.show()
+
 
     if False:
         from enmapboxtestdata import enmap, landcover
