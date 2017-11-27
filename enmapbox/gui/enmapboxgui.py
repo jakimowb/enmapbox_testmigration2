@@ -78,6 +78,8 @@ class MapTools(object):
             return QgsMapToolZoom(canvas, False)
         if mapToolKey == MapTools.ZoomOut:
             return QgsMapToolZoom(canvas, True)
+        if mapToolKey == MapTools.Pan:
+            return QgsMapToolPan(canvas)
         if mapToolKey == MapTools.ZoomPixelScale:
             return PixelScaleExtentMapTool(canvas)
         if mapToolKey == MapTools.ZoomFull:
