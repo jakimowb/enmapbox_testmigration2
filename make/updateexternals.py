@@ -160,7 +160,7 @@ if __name__ == "__main__":
                  'enmap-box-geoalgorithmsprovider']  # enmap-box-geoalgorithmsprovider
     # to_update = ['objbrowser']
     to_update = ['virtual-raster-builder']
-    to_update = ['dask']
+    #to_update = ['dask']
 
 
     for p in to_update:
