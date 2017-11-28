@@ -672,7 +672,6 @@ class DataSourceManagerTreeModel(TreeModel):
         return mimeData
 
 
-
     def getSourceGroup(self, dataSource):
         """Returns the source group relate to a data source"""
         assert isinstance(dataSource, DataSource)
