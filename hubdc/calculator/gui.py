@@ -1,5 +1,3 @@
-# todo - io options
-
 import sys, os
 from collections import OrderedDict
 import tempfile
@@ -16,7 +14,7 @@ from hubdc.calculator.calculator import *
 import hubdc.const
 import hubdc.progressbar
 
-gdal.UseExceptions()
+#gdal.UseExceptions()
 
 class ProgressBar(hubdc.progressbar.CUIProgressBar):
 
