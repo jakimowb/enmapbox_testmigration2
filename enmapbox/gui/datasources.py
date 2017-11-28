@@ -71,10 +71,10 @@ class DataSourceFactory(object):
             uri = DataSourceFactory.isVectorSource(src.dataProvider())
         if isinstance(src, QgsVectorDataProvider):
             uri = DataSourceFactory.srcToString(src.dataSourceUri()).split('|')[0]
+        if isinstance(src, QgsLayerTreeLayer):
+            uri = DataSourceFactory.isVectorSource(src.layer())
         if isinstance(src, ogr.DataSource):
-
             uri = DataSourceFactory.srcToString(src.GetName())
-
         if isinstance(src, str):
             src = DataSourceFactory.srcToString(src)
         if isinstance(src, unicode):
@@ -103,6 +103,8 @@ class DataSourceFactory(object):
             uri = DataSourceFactory.isRasterSource(src.dataProvider())
         if isinstance(src, QgsRasterDataProvider):
             uri = src.dataSourceUri()
+        if isinstance(src, QgsLayerTreeLayer):
+            uri = DataSourceFactory.isRasterSource(src.layer())
         if isinstance(src, gdal.Dataset):
 
             subDataSets = src.GetSubDatasets()

@@ -595,7 +595,21 @@ class DataSourceManagerTreeModel(TreeModel):
 
             # add data dragged from QGIS
             elif data.hasFormat("application/qgis.layertreemodeldata"):
-                result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
+
+                doc = QDomDocument()
+                doc.setContent(data.data('application/qgis.layertreemodeldata'))
+                rootElem = doc.documentElement()
+                elem = rootElem.firstChildElement()
+                added = []
+                while not elem.isNull():
+                    node = QgsLayerTreeNode.readXml(elem)
+                    #QGIS3:  node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
+                    added.append(self.dataSourceManager.addSource(node))
+                    elem = elem.nextSiblingElement()
+
+                return any([isinstance(ds, DataSource) for ds in added])
+
+                #result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
 
         return result
 
