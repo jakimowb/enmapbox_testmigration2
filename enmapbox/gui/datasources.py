@@ -215,6 +215,9 @@ class DataSourceFactory(object):
         if isinstance(src, DataSource):
             return src
 
+        if type(src) in [str, unicode, QUrl]:
+            src = DataSourceFactory.srcToString(src)
+
         from enmapbox.gui.spectrallibraries import SpectralLibraryVectorLayer, SpectralLibrary
         if isinstance(src, SpectralLibraryVectorLayer):
             return DataSourceFactory.Factory(src.mSpeclib)
@@ -276,6 +279,10 @@ class DataSource(object):
         self.mName = ''
 
         self.updateMetadata(name=name, icon=icon)
+
+    def isSameSource(self, dataSource):
+        assert isinstance(dataSource, DataSource)
+        return self.mUri == dataSource.mUri
 
     def setUri(self, uri):
         assert isinstance(uri, unicode)
@@ -349,19 +356,25 @@ class DataSource(object):
         pass
 
     def __repr__(self):
-
-        def u2s(u):
-            if isinstance(u, unicode):
-                u = u.encode('utf-8')
-            return u
-        n = u2s(self.mName)
-        m = u2s(self.mUri)
-        return 'DataSource: {} {}'.format(n, m)
+        return 'DataSource: {} {}'.format(self.mName, self.mUri)
 
 class DataSourceFile(DataSource):
 
     def __init__(self, uri, name=None, icon=None):
         super(DataSourceFile, self).__init__(uri, name, icon)
+        self.mModificationTime = -1
+        self.setModificationTime()
+
+    def setModificationTime(self):
+        self.mLastModified = QFileInfo(self.mUri).lastModified()
+
+    def isNewVersionOf(self, dataSource):
+        if type(dataSource) != type(self):
+            return False
+        assert isinstance(dataSource, DataSourceFile)
+        if self.mUri != dataSource.mUri:
+            return False
+        return self.mModificationTime > dataSource.mModificationTime
 
 
 
@@ -471,7 +484,10 @@ class DataSourceRaster(DataSourceSpatial):
         self.mBandMetadata = []
         self.updateMetadata()
 
-
+    def setModificationTime(self, dataSet = None):
+        if not isinstance(dataSet, gdal.Dataset):
+            dataSet = gdal.Open(self.mUri)
+        self.mModificationTime = max([QFileInfo(f).lastModified() for f in dataSet.GetFileList()])
 
     def updateMetadata(self, icon=None, name=None):
         super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
@@ -481,6 +497,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.nSamples, self.nLines = ds.RasterXSize, ds.RasterYSize
         self.nBands = ds.RasterCount
         gt = ds.GetGeoTransform()
+        self.setModificationTime(ds)
 
         from enmapbox.gui.utils import px2geo
         v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)

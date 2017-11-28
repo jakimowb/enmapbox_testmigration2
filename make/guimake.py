@@ -566,24 +566,14 @@ if __name__ == '__main__':
     from enmapbox.gui.utils import DIR_TESTDATA, DIR_UIFILES, DIR_ICONS
 
     qgsApp = QgsApplication([], True)
-
     qgsApp.initQgis()
-
-    #create classification from shapefile
-    if False:
-        root = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover'
-        pathShp = jp(root,'LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
-        pathDst = jp(root,'LandCov_Class_Berlin_Urban_Gradient_2009.bsq')
-        pathRef = jp(root,'LandCov_Layer_Level1_Berlin_Urban_Gradient_2009.bsq')
-        rasterize_vector_labels(pathRef, pathDst, pathShp, 'Level_1')
-        s = ""
 
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
 
-    if False:
+    if True:
         #convert SVG to PNG and add link them into the resource file
-        #svg2png(icondir, overwrite=False)
+        svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)
 
     if True: compile_rc_files(DIR_UIFILES)

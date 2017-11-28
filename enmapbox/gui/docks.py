@@ -54,14 +54,51 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         super(DockArea, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
 
+        s = ""
+
+    def closeEvent(self, closeEvent):
+        assert isinstance(closeEvent, QCloseEvent)
+        s = ""
+
+    def makeContainer(self, typ):
+        c = super(DockArea, self).makeContainer(typ)
+        #c.apoptose = lambda x : DockArea.containerApoptose(c, x)
+        #c.apoptose = lambda p : DockArea.containerApoptose(c,p)
+        #c.apoptose(True)
+        return c
+
+    #todo: somehow manipulate this to solve issue #21
+    #ask user to really close DockArea if more than one dock is opened
+    #"Do you really want to close this window and all contents?"
+    @staticmethod
+    def containerApoptose(self, propagate):
+        ##if there is only one (or zero) item in this container, disappear.
+        cont = self._container
+        c = self.count()
+        if c > 1:
+            return
+        if self.count() == 1:  ## if there is one item, give it to the parent container (unless this is the top)
+            if self is self.area.topContainer:
+                return
+            self.container().insert(self.widget(0), 'before', self)
+        # print "apoptose:", self
+        self.close()
+        if propagate and cont is not None:
+            cont.apoptose()
+
     def apoptose(self):
         #print "apoptose area:", self.temporary, self.topContainer, self.topContainer.count()
         if self.topContainer.count() == 0:
             self.topContainer = None
             from enmapbox.gui.enmapboxgui import EnMAPBoxUI
-            if not isinstance(self.topLevelWidget(), EnMAPBoxUI):
-                s = ""
-
+            if not isinstance(self.topLevelWidget(), EnMAPBoxUI) and \
+                len(self.docks) > 0:
+                info = 'Do you really want to close these {} windows?'.format(len(self.docks))
+                result = QMessageBox.question(self, "Question",info,
+                                              buttons = QMessageBox.Yes | QMessageBox.No,
+                                              defaultButton=QMessageBox.No)
+                if result == QMessageBox.No:
+                    return
             if self.temporary and self.home is not None:
                 self.home.removeTempArea(self)
         else:
@@ -131,7 +168,7 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
         self.topLayout.removeWidget(self.label)
         del self.label
         self.label = self._createLabel(title=title)
-
+        self.label.setMinimumHeight(50)
         self.topLayout.addWidget(self.label, 0, 1)
         self.uuid = uuid.uuid4()
         if closable:
@@ -256,6 +293,9 @@ class DockLabel(VerticalLabel):
         self.setAutoFillBackground(False)
         self.startedDrag = False
 
+        #adjust minimum size
+        self.setMinimumSize(50,50)
+
         self.pressPos = QtCore.QPoint()
 
         closeButton = QToolButton(self)
@@ -272,9 +312,20 @@ class DockLabel(VerticalLabel):
             floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.buttons.append(floatButton)
 
+    def sizeHint(self):
+        s_min = 50
+        if self.orientation == 'vertical':
+            if hasattr(self, 'hint'):
+                return QtCore.QSize(self.hint.height(), self.hint.width())
+            else:
+                return QtCore.QSize(s_min, 50)
+        else:
+            if hasattr(self, 'hint'):
+                return QtCore.QSize(self.hint.width(), self.hint.height())
+            else:
+                return QtCore.QSize(50, s_min)
 
     def minimumSizeHint(self):
-        hn = self.sizeHint()
         h = super(DockLabel, self).minimumSizeHint()
         m = min([h.width(), h.height()])
         return QSize(m,m)
@@ -284,10 +335,6 @@ class DockLabel(VerticalLabel):
         self.sigContextMenuRequest.emit(event)
 
     def updateStyle(self):
-
-        if self.dock.hasFocus():
-            s = ""
-
 
         r = '3px'
 

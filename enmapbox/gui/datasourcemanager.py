@@ -1075,9 +1075,16 @@ class DataSourceManager(QObject):
             # check if source is already registered
 
             for src in self.mSources:
-                logger.debug(ds.uri())
-                if os.path.abspath(src.uri()) == os.path.abspath(ds.uri()):
-                    return src #return object reference of an already existing source
+                assert isinstance(src, DataSource)
+                if ds.isSameSource(src):
+                    if isinstance(ds, DataSourceFile):
+                        if ds.isNewVersionOf(src):
+                            #remove old version
+                            self.removeSource(src)
+                        else:
+                            return src #return object reference of an already existing source
+                    else:
+                        return src #return object reference of an already existing source
             #this datasource is new
             self.mSources.append(ds)
             self.sigDataSourceAdded.emit(ds)

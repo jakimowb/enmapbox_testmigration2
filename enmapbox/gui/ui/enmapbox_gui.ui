@@ -404,7 +404,7 @@
   <action name="actionMoveCenter">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomPoint.svg</normaloff>:/enmapbox/icons/mActionZoomPoint.svg</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomPoint.png</normaloff>:/enmapbox/icons/mActionZoomPoint.png</iconset>
    </property>
    <property name="text">
     <string>Move to Point</string>
