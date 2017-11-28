@@ -490,14 +490,12 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
         assert wl.upper() in LUT_WAVELENGTH.keys(), wl
         return bandClosestToWavelength(dataset, LUT_WAVELENGTH[wl.upper()], wl_unit='nm')
     else:
-        assert isinstance(dataset, gdal.Dataset)
         wl = float(wl)
         ds_wl, ds_wlu = parseWavelength(dataset)
 
         if ds_wl is None or ds_wlu is None:
             return 0
-        if len(ds_wl) > dataset.RasterCount:
-            ds_wl = ds_wl[0:dataset.RasterCount]
+
 
         if ds_wlu != wl_unit:
             wl = convertMetricUnit(wl, wl_unit, ds_wlu)
@@ -552,6 +550,9 @@ def parseWavelength(dataset):
                         wlu = '-'
                     else:
                         wlu = '-'
+
+        if len(wl) > dataset.RasterCount:
+            wl = wl[0:dataset.RasterCount]
 
     return wl, wlu
 
