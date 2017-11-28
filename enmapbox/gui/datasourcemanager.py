@@ -976,7 +976,7 @@ class DataSourceManager(QObject):
         # noinspection PyArgumentList
         from qgis.core import QgsMapLayerRegistry
         QgsMapLayerRegistry.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
-        QgsMapLayerRegistry.instance().removeAll.connect(self.removeSources)
+        QgsMapLayerRegistry.instance().removeAll.connect(lambda : self.removeSources(self.sources()))
         try:
             from hubflow import signals
             signals.sigFileCreated.connect(self.addSource)
