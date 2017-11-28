@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>HUB Datacube Calculator</string>
+   <string>imageMath Calculator</string>
   </property>
   <property name="documentMode">
    <bool>false</bool>
@@ -338,8 +338,8 @@
                <widget class="QWidget" name="scrollAreaWidgetContents">
                 <property name="geometry">
                  <rect>
-                  <x>-55</x>
-                  <y>-106</y>
+                  <x>0</x>
+                  <y>0</y>
                   <width>419</width>
                   <height>413</height>
                  </rect>

@@ -9,8 +9,8 @@ class HubDatacubeCalculatorApp(EnMAPBoxApplication):
 
     def __init__(self, enmapBox, parent=None):
         EnMAPBoxApplication.__init__(self, enmapBox, parent=parent)
-        self.name = 'HUB-Datacube Calculator'
-        self.version = 'Version 0.1'
+        self.name = 'imageMath Calculator'
+        self.version = 'Version 0.1.1'
         self.licence = 'GPL-3'
 
     def icon(self):
@@ -18,7 +18,7 @@ class HubDatacubeCalculatorApp(EnMAPBoxApplication):
 
     def menu(self, appMenu):
         appMenu = self.enmapbox.menu('Tools')
-        a = appMenu.addAction('HUB-Datacube Calculator')
+        a = appMenu.addAction('imageMath Calculator')
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
         return a
