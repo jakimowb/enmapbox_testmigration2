@@ -610,9 +610,9 @@ class CalculatorMainWindow(QMainWindow):
                     self.uiInputs.takeTopLevelItem(i)
 
     def handleAddOutputRaster(self):
-        filename = QFileDialog.getSaveFileName(self)
-        if not filename.isEmpty():
-            self.insertRasterOutput(name=os.path.basename(str(filename)), filename=(filename))
+        filename = str(QFileDialog.getSaveFileName(self))
+        if filename != '':
+            self.insertRasterOutput(name=os.path.basename(filename), filename=(filename))
 
     def handleRemoveOutput(self):
         for item in self.uiOutputs.selectedItems():
