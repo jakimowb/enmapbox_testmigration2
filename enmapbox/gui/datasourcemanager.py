@@ -606,7 +606,7 @@ class DataSourceManagerTreeModel(TreeModel):
                     #QGIS3:  node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
                     added.append(self.dataSourceManager.addSource(node))
                     elem = elem.nextSiblingElement()
-
+                print('Added ds'.format(added))
                 return any([isinstance(ds, DataSource) for ds in added])
 
                 #result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
@@ -795,7 +795,12 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
         model = self.treeView.model()
         assert isinstance(model, DataSourceManagerTreeModel)
 
+        selectionModel = self.treeView.selectionModel()
+        assert isinstance(selectionModel, QItemSelectionModel)
 
+        selectedNodes = [self.model.index2node(i) for i in selectionModel.selectedIndexes()]
+        dataSources = list(set([n.dataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
+        srcURIs = list(set([s.uri() for s in dataSources]))
         m = QMenu()
 
         if isinstance(node, DataSourceGroupTreeNode):
@@ -809,11 +814,11 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
             if isinstance(src, DataSource):
                 a = m.addAction('Remove')
-                a.triggered.connect(lambda : model.dataSourceManager.removeSource(src))
+                a.triggered.connect(lambda : model.dataSourceManager.removeSources(dataSources))
                 a = m.addAction('Copy URI / path')
-                a.triggered.connect(lambda: QApplication.clipboard().setText(src.uri()))
-                a = m.addAction('Rename')
-                a.setEnabled(False)
+                a.triggered.connect(lambda: QApplication.clipboard().setText('\n'.join(srcURIs)))
+                #a = m.addAction('Rename')
+                #a.setEnabled(False)
                 #todo: implement rename function
                 #a.triggered.connect(node.dataSource.rename)
 
