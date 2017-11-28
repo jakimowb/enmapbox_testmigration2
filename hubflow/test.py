@@ -55,7 +55,6 @@ def test_ClassificationSample():
     print(classificationSample)
     print(classificationSample.synthMix(mixingComplexities={2:0.7, 3:0.3}, classLikelihoods='equalized', n=10))
 
-
 def test_Classifier():
     rfc = Classifier(sklEstimator=RandomForestClassifier())
     print(rfc)

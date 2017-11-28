@@ -11,14 +11,14 @@ class Applier(hubdc.applier.Applier):
         grid = kwargs.get('grid', defaultGrid)
         if isinstance(grid, hubflow.types.Image):
             grid = grid.pixelGrid
-        assert isinstance(grid, hubdc.applier.PixelGrid)
-        self.controls.setReferenceGrid(grid)
+        assert isinstance(grid, hubdc.applier.Grid)
+        self.controls.setGrid(grid)
         self.kwargs = kwargs
 
     def apply(self, operator=None, description=None, *ufuncArgs, **ufuncKwargs):
-        results = hubdc.applier.Applier.apply(self, operator=operator, description=description,
+        results = hubdc.applier.Applier.apply(self, operatorType=operator, description=description,
                                               overwrite=self.kwargs.get('overwrite', True), *ufuncArgs, **ufuncKwargs)
-        for raster in self.outputRaster.getFlatRasters():
+        for raster in self.outputRaster.flatRasters():
             hubflow.signals.sigFileCreated.emit(raster.filename)
         return results
 
@@ -91,11 +91,11 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         elif isinstance(image, hubflow.types.Classification):
             array = self.getFlowClassificationArray(name=name, classification=image, overlap=overlap)
         elif isinstance(image, hubflow.types.Image):
-            raster = self.inputRaster.getRaster(key=name)
+            raster = self.inputRaster.raster(key=name)
             if indicies is None:
-                array = raster.getImageArray(overlap=overlap)
+                array = raster.imageArray(overlap=overlap)
             else:
-                array = raster.getBandArray(indicies=indicies, overlap=overlap)
+                array = raster.bandArray(indicies=indicies, overlap=overlap)
         else:
             assert 0, image
         return array
@@ -104,12 +104,12 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         if mask is None or mask.filename is None:
             array = self.getFull(value=True, bands=1, dtype=numpy.bool, overlap=overlap)
         elif isinstance(mask, hubflow.types.Mask):
-            array = self.inputRaster.getRaster(key=name).getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Mode, noData="none")
+            array = self.inputRaster.raster(key=name).imageArray(overlap=overlap, resampleAlg=gdal.GRA_Mode, noData="none")
             array = aggregateFunction(array != mask.noData, axis=0, keepdims=True)
         elif isinstance(mask, hubflow.types.Vector):
-            array = self.inputVector.getVector(key=name).getImageArray(overlap=overlap, allTouched=mask.allTouched, filterSQL=mask.filterSQL, dtype=numpy.uint8)==1
+            array = self.inputVector.vector(key=name).imageArray(overlap=overlap, allTouched=mask.allTouched, filterSQL=mask.filterSQL, dtype=numpy.uint8) == 1
         elif isinstance(mask, hubflow.types.VectorClassification):
-            array = self.inputVector.getVector(key=name).getImageArray(overlap=overlap, dtype=numpy.uint8) == 1
+            array = self.inputVector.vector(key=name).imageArray(overlap=overlap, dtype=numpy.uint8) == 1
         else:
             raise Exception('wrong mask type')
 
@@ -131,8 +131,8 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         if regression is None or regression.filename is None:
             array = numpy.array([])
         elif isinstance(regression, hubflow.types.Regression):
-            array = self.inputRaster.getRaster(key=name).getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Average, noData=regression.noData)
-            noDataFraction = self.inputRaster.getRaster(key=name).getFractionArray(categories=[regression.noData], overlap=overlap, index=0)
+            array = self.inputRaster.raster(key=name).imageArray(overlap=overlap, resampleAlg=gdal.GRA_Average, noData=regression.noData)
+            noDataFraction = self.inputRaster.raster(key=name).fractionArray(categories=[regression.noData], overlap=overlap, index=0)
             overallCoverageArray = 1. - noDataFraction
             invalid = overallCoverageArray <= regression.minOverallCoverage
             array[:, invalid[0]] = regression.noData
@@ -144,10 +144,10 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         if probability is None or probability.filename is None:
             array = numpy.array([])
         elif isinstance(probability, hubflow.types.Probability):
-            array = self.inputRaster.getRaster(key=name).getImageArray(overlap=overlap, resampleAlg=gdal.GRA_Average)
+            array = self.inputRaster.raster(key=name).imageArray(overlap=overlap, resampleAlg=gdal.GRA_Average)
         elif isinstance(probability, hubflow.types.Classification):
             categories = range(1, probability.classDefinition.classes+1)
-            array = self.inputRaster.getRaster(key=name).getFractionArray(categories=categories, overlap=overlap)
+            array = self.inputRaster.raster(key=name).fractionArray(categories=categories, overlap=overlap)
             overallCoverageArray = numpy.sum(array, axis=0)
             winnerCoverageArray = numpy.max(array, axis=0)
             invalid = numpy.logical_or(overallCoverageArray <= probability.minOverallCoverage,
@@ -155,7 +155,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             array[:, invalid] = -1
         elif isinstance(probability, hubflow.types.VectorClassification):
             categories = probability.asVector().uniqueValues(attribute=probability.classAttribute)
-            fractionArray = self.inputVector.getVector(key=name).getFractionArray(categories=categories, categoryAttribute=probability.classAttribute, oversampling=oversampling, overlap=overlap)
+            fractionArray = self.inputVector.vector(key=name).fractionArray(categories=categories, categoryAttribute=probability.classAttribute, oversampling=oversampling, overlap=overlap)
             overallCoverageArray = numpy.sum(fractionArray, axis=0)
             winnerCoverageArray = numpy.max(fractionArray, axis=0)
             valid = numpy.logical_and(overallCoverageArray > probability.minOverallCoverage,
@@ -172,13 +172,13 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
 
     def getFlowVectorArray(self, name, vector, overlap=0):
         assert isinstance(vector, hubflow.types.Vector)
-        return self.inputVector.getVector(key=name).getImageArray(initValue=vector.initValue, burnValue=vector.burnValue,
-                                                                  burnAttribute=vector.burnAttribute, allTouched=vector.allTouched,
-                                                                  filterSQL=vector.filterSQL, overlap=overlap, dtype=vector.dtype)
+        return self.inputVector.vector(key=name).imageArray(initValue=vector.initValue, burnValue=vector.burnValue,
+                                                            burnAttribute=vector.burnAttribute, allTouched=vector.allTouched,
+                                                            filterSQL=vector.filterSQL, overlap=overlap, dtype=vector.dtype)
 
     def setFlowMetadataClassDefinition(self, name, classDefinition):
         assert isinstance(classDefinition, hubflow.types.ClassDefinition)
-        raster = self.outputRaster.getRaster(key=name)
+        raster = self.outputRaster.raster(key=name)
         raster.setMetadataItem(key='classes', value=classDefinition.classes+1, domain='ENVI')
         raster.setMetadataItem(key='class names', value=['unclassified'] + classDefinition.names, domain='ENVI')
         lookup = [0, 0, 0] + list(numpy.array(classDefinition.lookup).flatten())
@@ -187,28 +187,28 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
     def setFlowMetadataProbabilityDefinition(self, name, classDefinition):
         assert isinstance(classDefinition, hubflow.types.ClassDefinition)
         self.setFlowMetadataClassDefinition(name=name, classDefinition=classDefinition)
-        raster = self.outputRaster.getRaster(key=name)
+        raster = self.outputRaster.raster(key=name)
         raster.setMetadataItem(key='band names', value=classDefinition.names, domain='ENVI')
         raster.setMetadataItem(key='data ignore value', value=-1, domain='ENVI')
         raster.setNoDataValue(value=-1)
 
     def setFlowMetadataBandNames(self, name, bandNames):
-        raster = self.outputRaster.getRaster(key=name)
+        raster = self.outputRaster.raster(key=name)
         raster.setMetadataItem(key='band names', value=bandNames, domain='ENVI')
-        for band, bandName in zip(raster.getBandIterator(), bandNames):
+        for band, bandName in zip(raster.bands(), bandNames):
             band.setDescription(value=bandName)
 
     def getMaskFromBandArray(self, array, noData=None, noDataSource=None, index=None):
         if noData is None:
             assert noDataSource is not None
             assert index is not None
-            noData = self.inputRaster.getRaster(key=noDataSource).getNoDataValues()[index]
+            noData = self.inputRaster.raster(key=noDataSource).noDataValues()[index]
         mask = array != noData
         return mask
 
     def getMaskFromImageArray(self, array, noData=None, noDataSource=None, aggregateFunction=numpy.all):
         if noData is None:
             assert noDataSource is not None
-            noData = self.inputRaster.getRaster(key=noDataSource).getNoDataValue()
+            noData = self.inputRaster.raster(key=noDataSource).noDataValue()
         mask = aggregateFunction(array != noData, axis=0, keepdims=True)
         return mask

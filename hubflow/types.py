@@ -5,7 +5,7 @@ import numpy
 import sklearn.metrics
 import sklearn.multioutput
 
-from hubdc.model import Open, OpenLayer, PixelGrid
+from hubdc.model import Open, OpenLayer, Grid
 from hubflow.applier import Applier, ApplierOperator
 from hubflow.report import *
 from hubflow import signals
@@ -58,7 +58,7 @@ class Image(FlowObject):
 
     @property
     def pixelGrid(self):
-        return PixelGrid.fromFile(self.filename)
+        return Grid.fromFile(self.filename)
 
     @classmethod
     def fromVector(cls, filename, vector, grid, **kwargs):
@@ -124,7 +124,7 @@ class _ImageBasicStatistics(ApplierOperator):
 class _ImageFromVector(ApplierOperator):
     def ufunc(self, vector):
         array = self.getFlowVectorArray('vector', vector=vector)
-        self.outputRaster.getRaster(key='image').setImageArray(array=array)
+        self.outputRaster.raster(key='image').setImageArray(array=array)
 
 class _ImageScatterMatrix(ApplierOperator):
     def ufunc(self, image1, image2, bandIndex1, bandIndex2, bins, mask, stratification):
@@ -158,7 +158,7 @@ class Mask(Image):
     def __init__(self, filename, noData=None):
         Image.__init__(self, filename)
         if noData==None:
-            noData = Open(filename=filename).getNoDataValue(default=0)
+            noData = Open(filename=filename).noDataValue(default=0)
         self.noData = noData
 
     def __repr__(self):
@@ -333,13 +333,13 @@ class _ClassificationReclassify(ApplierOperator):
             if outclass in classDefinition.names:
                 outclass = classDefinition.names.index(outclass) + 1
             outclassification[inclassification == inclass] = outclass
-        self.outputRaster.getRaster(key='outclassification').setImageArray(array=outclassification)
+        self.outputRaster.raster(key='outclassification').setImageArray(array=outclassification)
         self.setFlowMetadataClassDefinition(name='outclassification', classDefinition=classDefinition)
 
 class _ClassificationFromVectorClassification(ApplierOperator):
     def ufunc(self, vectorClassification, oversampling):
         array = self.getFlowClassificationArray('vectorClassification', classification=vectorClassification)
-        self.outputRaster.getRaster(key='classification').setImageArray(array=array)
+        self.outputRaster.raster(key='classification').setImageArray(array=array)
         self.setFlowMetadataClassDefinition(name='classification',
                                             classDefinition=vectorClassification.classDefinition)
 
@@ -348,7 +348,7 @@ class Regression(Image):
     def __init__(self, filename, noData=None, outputNames=None, minOverallCoverage=0.):
         Image.__init__(self, filename)
         if noData is None:
-            noData = Open(filename).getNoDataValue()
+            noData = Open(filename).noDataValue()
         if outputNames is None:
             outputNames = [band.getDescription() for band in Open(filename)]
         assert noData is not None
@@ -427,12 +427,12 @@ class _ProbabilityAsClassColorRGBImage(ApplierOperator):
         mask = numpy.any(rgb != 0, axis=0)
         numpy.clip(rgb, a_min=1, a_max=255, out=rgb)
         rgb *= mask
-        self.outputRaster.getRaster(key='image').setImageArray(array=numpy.uint8(rgb))
+        self.outputRaster.raster(key='image').setImageArray(array=numpy.uint8(rgb))
 
 class _ProbabilityFromVectorClassification(ApplierOperator):
     def ufunc(self, vectorClassification, oversampling):
         array = self.getFlowProbabilityArray('vectorClassification', probability=vectorClassification, oversampling=oversampling)
-        self.outputRaster.getRaster(key='probability').setImageArray(array=array)
+        self.outputRaster.raster(key='probability').setImageArray(array=array)
         self.setFlowMetadataProbabilityDefinition(name='probability', classDefinition=vectorClassification.classDefinition)
 
 class _ProbabilitySubsetClasses(ApplierOperator):
@@ -441,8 +441,8 @@ class _ProbabilitySubsetClasses(ApplierOperator):
         lookup = [probability.classDefinition.getColor(label=index+1) for index in indicies]
         names = [probability.classDefinition.getName(label=index+1) for index in indicies]
         classDefinition = ClassDefinition(classes=classes, names=names, lookup=lookup)
-        probabilitySubset = self.inputRaster.getRaster(key='probability').getBandArray(indicies=indicies)
-        self.outputRaster.getRaster(key='probabilitySubset').setImageArray(array=probabilitySubset)
+        probabilitySubset = self.inputRaster.raster(key='probability').bandArray(indicies=indicies)
+        self.outputRaster.raster(key='probabilitySubset').setImageArray(array=probabilitySubset)
         self.setFlowMetadataProbabilityDefinition(name='probabilitySubset', classDefinition=classDefinition)
 
 class UnsupervisedSample(FlowObject):
@@ -764,7 +764,7 @@ class _EstimatorPredict(ApplierOperator):
         y = estimator.sklEstimator.predict(X=X)
         prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
 
-        self.outputRaster.getRaster(key='prediction').setImageArray(array=prediction)
+        self.outputRaster.raster(key='prediction').setImageArray(array=prediction)
 
         if etype == 'classifier':
             self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.sample.classDefinition)
@@ -774,7 +774,7 @@ class _EstimatorPredict(ApplierOperator):
             if isinstance(estimator.sample, ProbabilitySample):
                 self.setFlowMetadataProbabilityDefinition('prediction', classDefinition=estimator.sample.classDefinition)
             else:
-                self.outputRaster.getRaster(key='prediction').setNoDataValue(value=noData)
+                self.outputRaster.raster(key='prediction').setNoDataValue(value=noData)
         self.setFlowMetadataBandNames('prediction', bandNames=estimator.sample.outputNames)
 
     def getInfos(self, estimator):
@@ -813,8 +813,8 @@ class _EstimatorTransform(ApplierOperator):
         y = sklTransform(X=X)
         transformation[:, valid[0]] = numpy.float32(y.reshape(-1, noutputs).T)
 
-        self.outputRaster.getRaster(key='transformation').setImageArray(array=transformation)
-        self.outputRaster.getRaster(key='transformation').setNoDataValue(value=noData)
+        self.outputRaster.raster(key='transformation').setImageArray(array=transformation)
+        self.outputRaster.raster(key='transformation').setNoDataValue(value=noData)
 
 class Classifier(Estimator):
     SAMPLE_TYPE = ClassificationSample
