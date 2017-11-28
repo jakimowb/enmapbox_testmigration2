@@ -523,12 +523,12 @@ class Dataset():
             array = self._gdalDataset.ReadAsArray()
         else:
             assert isinstance(grid, Grid)
-            xoff = int(round((grid.xmin() - self.grid().xmin()) / self.grid().xRes, 0))
-            yoff = int(round((self.grid().ymax() - grid.ymax()) / self.grid().yRes, 0))
-            xsize = int(round((grid.xmax() - grid.xmin()) / self.grid().xRes, 0))
-            ysize = int(round((grid.ymax() - grid.ymin()) / self.grid().yRes, 0))
+            xoff = int(round((grid.extent().xmin() - self.grid().extent().xmin()) / self.grid().resolution().x(), 0))
+            yoff = int(round((self.grid().extent().ymax() - grid.extent().ymax()) / self.grid().resolution().y(), 0))
+            xsize = int(round((grid.extent().xmax() - grid.extent().xmin()) / self.grid().resolution().x(), 0))
+            ysize = int(round((grid.extent().ymax() - grid.extent().ymin()) / self.grid().resolution().y(), 0))
 
-            buf_ysize, buf_xsize = grid.getDimensions()
+            buf_ysize, buf_xsize = grid.shape()
             array = self._gdalDataset.ReadAsArray(xoff=xoff, yoff=yoff, xsize=xsize, ysize=ysize,
                                                   buf_xsize=buf_xsize, buf_ysize=buf_ysize,
                                                   resample_alg=resample_alg)

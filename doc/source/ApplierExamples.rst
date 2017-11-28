@@ -527,10 +527,3 @@ processing times and memory consumption::
     applier.controls.setGDALMaxDatasetPoolSize(nfiles=1000)
 
 
- .. toctree::
-    :maxdepth: 1
-    :caption: Contents:
-
-    Downloads.rst
-    hubdc_applier.rst
-    hubdc_examples_testdata.rst
