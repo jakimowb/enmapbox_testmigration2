@@ -640,7 +640,11 @@ class DataSourceManagerTreeModel(TreeModel):
         rootElem = doc.createElement("datasource_tree_model_data");
         for node in exportedNodes:
             node.writeXML(rootElem)
-            uriList.append(QUrl(node.dataSource.uri()))
+            uri = node.dataSource.uri()
+            if os.path.isfile(uri):
+                uriList.append(QUrl.fromLocalFile(uri))
+            else:
+                uriList.append(QUrl(uri))
 
         #set application/enmapbox.datasourcetreemodeldata
         doc.appendChild(rootElem)

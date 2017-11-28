@@ -552,8 +552,7 @@ def parseWavelength(dataset):
                         wlu = '-'
                     else:
                         wlu = '-'
-        if len(wl) != dataset.RasterCount:
-            s  =""
+
     return wl, wlu
 
 
