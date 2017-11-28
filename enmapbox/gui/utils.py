@@ -446,7 +446,7 @@ def defaultBands(dataset):
         return defaultBands(dataset.source())
     elif isinstance(dataset, gdal.Dataset):
 
-        db = dataset.GetMetadataItem('default_bands', 'ENVI')
+        db = dataset.GetMetadataItem(str('default_bands'), str('ENVI'))
         if db != None:
             db = [int(n) for n in re.findall('\d+')]
             return db
@@ -467,8 +467,9 @@ def defaultBands(dataset):
             db = defaultRenderer.usesBands()
             if len(db) == 0:
                 return [0, 1, 2]
-            elif len(db) > 3:
-                return db[0:3]
+            if len(db) > 3:
+                db = db[0:3]
+            db = [b-1 for b in db]
         return db
 
     else:
@@ -489,15 +490,18 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
         assert wl.upper() in LUT_WAVELENGTH.keys(), wl
         return bandClosestToWavelength(dataset, LUT_WAVELENGTH[wl.upper()], wl_unit='nm')
     else:
+        assert isinstance(dataset, gdal.Dataset)
         wl = float(wl)
         ds_wl, ds_wlu = parseWavelength(dataset)
 
         if ds_wl is None or ds_wlu is None:
             return 0
+        if len(ds_wl) > dataset.RasterCount:
+            ds_wl = ds_wl[0:dataset.RasterCount]
 
         if ds_wlu != wl_unit:
             wl = convertMetricUnit(wl, wl_unit, ds_wlu)
-        return np.argmin(np.abs(ds_wl - wl))
+        return int(np.argmin(np.abs(ds_wl - wl)))
 
 
 def parseWavelength(dataset):
@@ -506,7 +510,7 @@ def parseWavelength(dataset):
     if isinstance(dataset, str):
         dataset = dataset.decode('utf-8')
     if isinstance(dataset, unicode):
-        return parseWavelength(gdal.Open(dataset).encode('utf-8'))
+        return parseWavelength(gdal.Open(dataset))
     elif isinstance(dataset, QgsRasterDataProvider):
         return parseWavelength(dataset.dataSourceUri())
     elif isinstance(dataset, QgsRasterLayer):
@@ -548,7 +552,8 @@ def parseWavelength(dataset):
                         wlu = '-'
                     else:
                         wlu = '-'
-
+        if len(wl) != dataset.RasterCount:
+            s  =""
     return wl, wlu
 
 

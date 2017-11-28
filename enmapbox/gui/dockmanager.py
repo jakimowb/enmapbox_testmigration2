@@ -50,7 +50,7 @@ class DockTreeNode(TreeNode):
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
         if uuid:
-            dock = dockManager.getDockWithUUID(str(uuid))
+            dock = dockManager.getDockWithUUID('{}'.format(uuid))
 
         if dock is None:
             dock = dockManager.createDock('MAP', name=dockName)
@@ -87,7 +87,7 @@ class DockTreeNode(TreeNode):
             self.setName(dock.title())
             self.dock.sigTitleChanged.connect(self.setName)
             # self.dock.sigVisibilityChanged.connec(self.)
-            self.setCustomProperty('uuid', str(dock.uuid))
+            self.setCustomProperty('uuid', '{}'.format(dock.uuid))
             # self.dock.sigClosed.connect(self.removedisconnectDock)
 
 
@@ -152,7 +152,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
             name = theOtherDock.title()
             theOtherDock.sigTitleChanged.connect(linkNode.setName)
         else:
-            name = str(theOtherCanvas)
+            name = '{}'.format(theOtherCanvas)
         linkNode.setName(name)
 
     def removeCanvasLink(self, canvasLink):
@@ -304,7 +304,7 @@ class MapDockTreeNode(DockTreeNode):
 
         toRemove = []
         for lyrNode in self.findLayers():
-            uriLyr = str(lyrNode.layer().dataProvider().dataSourceUri())
+            uriLyr = lyrNode.layer().dataProvider().dataSourceUri()
             if uriLyr == uri:
                 toRemove.append(lyrNode)
 
@@ -347,7 +347,7 @@ class MapDockTreeNode(DockTreeNode):
         dockManager = EnMAPBox.instance().dockManager
         uuid = node.customProperty('uuid', None)
         if uuid:
-            dock = dockManager.getDockWithUUID(str(uuid))
+            dock = dockManager.getDockWithUUID(''.format(uuid))
         if dock is None:
             dock = dockManager.createDock('MAP', name=node.name())
         node.connectDock(dock)
@@ -764,7 +764,7 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
             elif col == 1:
                 menu = QMenu()
                 a = menu.addAction('Copy')
-                a.triggered.connect(lambda: QApplication.clipboard().setText(str(node.value())))
+                a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
 
         return menu
 

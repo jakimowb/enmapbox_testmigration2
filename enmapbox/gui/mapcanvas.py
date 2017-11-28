@@ -727,7 +727,7 @@ class MapCanvas(QgsMapCanvas):
         Returns the paths/URIs of presented QgsMapLayers
         :return:
         """
-        return [str(l.source()) for l in self.layers()]
+        return [l.source() for l in self.layers()]
 
     def pixmap(self):
         """
@@ -1127,7 +1127,7 @@ class MapDock(Dock):
         uri = os.path.abspath(uri)
 
         for lyr in self.canvas.layers():
-            lyrUri = os.path.abspath(str(lyr.dataProvider().dataSourceUri()))
+            lyrUri = os.path.abspath(lyr.dataProvider().dataSourceUri())
             if uri == lyrUri:
                 to_remove.append(lyr)
 

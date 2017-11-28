@@ -93,12 +93,13 @@ class DockArea(pyqtgraph.dockarea.DockArea):
             from enmapbox.gui.enmapboxgui import EnMAPBoxUI
             if not isinstance(self.topLevelWidget(), EnMAPBoxUI) and \
                 len(self.docks) > 0:
-                info = 'Do you really want to close these {} windows?'.format(len(self.docks))
-                result = QMessageBox.question(self, "Question",info,
-                                              buttons = QMessageBox.Yes | QMessageBox.No,
-                                              defaultButton=QMessageBox.No)
-                if result == QMessageBox.No:
-                    return
+                pass
+                #info = 'Do you really want to close these {} windows?'.format(len(self.docks))
+                #result = QMessageBox.question(self, "Question",info,
+                 #                             buttons = QMessageBox.Yes | QMessageBox.No,
+                #                              defaultButton=QMessageBox.No)
+                #if result == QMessageBox.No:
+                #    return
             if self.temporary and self.home is not None:
                 self.home.removeTempArea(self)
         else:

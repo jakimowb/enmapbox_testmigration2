@@ -890,28 +890,52 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 r = lyr.renderer()
                 if isinstance(r, QgsRasterRenderer):
                     ds = gdal.Open(lyr.source())
-                    if isinstance(rgb, str):
+                    if isinstance(rgb, unicode):
                         if re.search('DEFAULT', rgb):
                             rgb = defaultBands(ds)
                         else:
                             rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
+                            s = ""
                     assert isinstance(rgb, list)
+
+                    stats = [ds.GetRasterBand(b+1).ComputeRasterMinMax() for b in rgb]
+
+                    def setCE_MinMax(ce, st):
+                        assert isinstance(ce, QgsContrastEnhancement)
+                        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum)
+                        ce.setMinimumValue(st[0])
+                        ce.setMaximumValue(st[1])
+
                     if len(rgb) == 3:
                         if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0])
-                            r.setGreenBand(rgb[1])
-                            r.setBlueBand(rgb[2])
+                            r.setRedBand(rgb[0]+1)
+                            r.setGreenBand(rgb[1]+1)
+                            r.setBlueBand(rgb[2]+1)
+                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
+                            setCE_MinMax(r.greenContrastEnhancement(), stats[1])
+                            setCE_MinMax(r.blueContrastEnhancement(), stats[2])
+
                         if isinstance(r, QgsSingleBandGrayRenderer):
                             r.setGrayBand(rgb[0])
+                            setCE_MinMax(r.contrastEnhancement(), stats[0])
 
                     elif len(rgb) == 1:
 
                         if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0])
-                            r.setGreenBand(rgb[0])
-                            r.setBlueBand(rgb[0])
+                            r.setRedBand(rgb[0]+1)
+                            r.setGreenBand(rgb[0]+1)
+                            r.setBlueBand(rgb[0]+1)
+                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
+                            setCE_MinMax(r.greenContrastEnhancement(), stats[0])
+                            setCE_MinMax(r.blueContrastEnhancement(), stats[0])
+
                         if isinstance(r, QgsSingleBandGrayRenderer):
-                            r.setGrayBand(rgb[0])
+                            r.setGrayBand(rgb[0]+1)
+                            setCE_MinMax(r.contrastEnhancement(), stats[0])
+                            s = ""
+
+                    #get
+                    s = ""
 
             elif isinstance(lyr, QgsVectorLayer):
 

@@ -45,7 +45,7 @@ def displayBandNames(provider_or_dataset, bands=None):
     results = None
 
     if isinstance(provider_or_dataset, QgsRasterDataProvider):
-        if str(provider_or_dataset.name()) == 'gdal':
+        if provider_or_dataset.name() == 'gdal':
             ds = gdal.Open(provider_or_dataset.dataSourceUri())
             results = displayBandNames(ds, bands=bands)
         else:
@@ -55,7 +55,7 @@ def displayBandNames(provider_or_dataset, bands=None):
                 bands = range(1, provider_or_dataset.bandCount() + 1)
             for band in bands:
                 result = provider_or_dataset.generateBandName(band)
-                colorInterp = str(provider_or_dataset.colorInterpretationName(band))
+                colorInterp ='{}'.format(provider_or_dataset.colorInterpretationName(band))
                 if colorInterp != 'Undefined':
                     result += '({})'.format(colorInterp)
                 results.append(result)
@@ -197,12 +197,12 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
         if theMin is None or qIsNaN(theMax):
             myMinLineEdit.clear()
         else:
-            myMinLineEdit.setText(str(np.round(theMin, 5)))
+            myMinLineEdit.setText('{}'.format(np.round(theMin, 5)))
 
         if theMax is None or qIsNaN(theMax):
             myMaxLineEdit.clear()
         else:
-            myMaxLineEdit.setText(str(np.round(theMax, 5)))
+            myMaxLineEdit.setText('{}'.format(np.round(theMax, 5)))
 
     def onBandChanged(self, index):
         myBands = [c.currentIndex() for c in self.cBoxes]
@@ -234,15 +234,15 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
             return self.bandNames[band+1]
 
     def min(self, index):
-        if index == 0: return str(self.mRedMinLineEdit.text())
-        if index == 1: return str(self.mGreenMinLineEdit.text())
-        if index == 2: return str(self.mBlueMinLineEdit.text())
+        if index == 0: return'{}'.format(self.mRedMinLineEdit.text())
+        if index == 1: return'{}'.format(self.mGreenMinLineEdit.text())
+        if index == 2: return'{}'.format(self.mBlueMinLineEdit.text())
         return ''
 
     def max(self, index):
-        if index == 0: return str(self.mRedMaxLineEdit.text())
-        if index == 1: return str(self.mGreenMaxLineEdit.text())
-        if index == 2: return str(self.mBlueMaxLineEdit.text())
+        if index == 0: return'{}'.format(self.mRedMaxLineEdit.text())
+        if index == 1: return'{}'.format(self.mGreenMaxLineEdit.text())
+        if index == 2: return'{}'.format(self.mBlueMaxLineEdit.text())
         return ''
 
     def minMax(self, index):
@@ -250,7 +250,7 @@ class MultiBandColorRendererWidget(QgsRasterRendererWidget, loadUI('multibandcol
 
 
     def _roundedFloatStr(self, value):
-        return str(np.round(value, 5))
+        return '{}'.format(np.round(value, 5))
 
     def setMin(self, value, index):
         t = self._roundedFloatStr(value)
@@ -400,7 +400,7 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
 
         assert isinstance(rl, QgsRasterLayer)
         dp = rl.dataProvider()
-        name = str(rl.name())
+        name = rl.name()
         if name == '':
             name = os.path.basename(rl.source())
 
@@ -443,7 +443,7 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
         renderer = self.rasterLayer.renderer()
 
         if renderer:
-            idx = self.mRenderTypeComboBox.findText(str(renderer.type()))
+            idx = self.mRenderTypeComboBox.findText('{}'.format(renderer.type()))
             if idx != -1:
                 self.mRenderTypeComboBox.setCurrentIndex(idx)
         self.mRenderTypeComboBox.currentIndexChanged.connect(self.on_mRenderTypeComboBox_currentIndexChanged)
@@ -459,7 +459,7 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
     def on_mRenderTypeComboBox_currentIndexChanged(self, index):
         if index < 0:
             return None
-        rendererName = str(self.mRenderTypeComboBox.itemData(index))
+        rendererName ='{}'.format(self.mRenderTypeComboBox.itemData(index))
         self.setRendererWidget(rendererName)
 
 
@@ -488,7 +488,7 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
     def syncToLayer(self):
         renderer = self.rasterLayer.renderer()
         if renderer:
-            self.setRendererWidget(str(renderer.type()))
+            self.setRendererWidget('{}'.format(renderer.type()))
 
         self.sync()
         self.rasterLayer.triggerRepaint()

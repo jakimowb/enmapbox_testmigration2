@@ -91,7 +91,7 @@ def sandboxUmlaut():
     EB = EnMAPBox(None)
 
     EB.loadExampleData()
-    EB.addSource(r'D:\Temp\landsatüddüüä22.vrt')
+    #EB.addSource(r'D:\Temp\landsatüddüüä22.vrt')
     #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
     #EB.addSources([p])
     s = ""
