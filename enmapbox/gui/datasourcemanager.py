@@ -508,11 +508,7 @@ class DataSourceTreeView(TreeView):
 
     def __init__(self, *args, **kwds):
         super(DataSourceTreeView, self).__init__(*args, **kwds)
-
-    def dragEnterEvent(self, event):
-        assert isinstance(event, QDragEnterEvent)
-        #no removal, copy only
-        #event.setDropAction(Qt.CopyAction)
+        self.setAcceptDrops(True)
 
 
 
@@ -530,6 +526,8 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
         self.model = DataSourceManagerTreeModel(self, self.dataSourceManager)
         self.dataSourceTreeView.setModel(self.model)
         self.dataSourceTreeView.setMenuProvider(DataSourceManagerTreeModelMenuProvider(self.dataSourceTreeView))
+        self.dataSourceTreeView.setDragEnabled(True)
+        self.dataSourceTreeView.setAcceptDrops(True)
 
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
@@ -582,10 +580,8 @@ class DataSourceManagerTreeModel(TreeModel):
         parentNode = self.index2node(parent)
         assert isinstance(data, QMimeData)
 
-        isL1Node = parentNode.parent() == self.rootNode
-
         result = False
-        if action == Qt.MoveAction:
+        if action in [Qt.MoveAction, Qt.CopyAction]:
             # collect nodes
             nodes = []
 
@@ -600,15 +596,6 @@ class DataSourceManagerTreeModel(TreeModel):
             # add data dragged from QGIS
             elif data.hasFormat("application/qgis.layertreemodeldata"):
                 result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
-
-            nodes = [n for n in nodes if n is not None]
-
-            # insert nodes, if possible
-            if len(nodes) > 0:
-                if row == -1 and column == -1:
-                    parentNode = parentNode.parent()
-                parentNode.insertChildNodes(-1, nodes)
-                result = True
 
         return result
 
@@ -722,12 +709,12 @@ class DataSourceManagerTreeModel(TreeModel):
 
     def flags(self, index):
         if not index.isValid():
-            return Qt.NoItemFlags
+            return Qt.ItemIsDropEnabled
 
         # specify TreeNode specific actions
         node = self.index2node(index)
         column = index.column()
-        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDropEnabled
 
         if isinstance(node, DataSourceTreeNode):
             flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
