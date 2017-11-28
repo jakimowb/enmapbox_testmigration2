@@ -35,7 +35,7 @@ class ApplicationWrapper(QObject):
         super(ApplicationWrapper, self).__init__(parent)
         assert isinstance(app, EnMAPBoxApplication)
         self.app = app
-        self.appId = str(app.__class__)
+        self.appId = '{}'.format(app.__class__)
         self.menuItems = []
         self.geoAlgorithms = []
 
@@ -124,7 +124,7 @@ class ApplicationRegistry(QObject):
             if self.isApplicationPackage(appPackagePath):
                 self.addApplicationPackage(appPackagePath)
         except Exception as ex:
-            QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackagePath, str(ex))
+            QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackagePath, '{}'.format(ex))
                                                 , level=QgsMessageLog.CRITICAL)
 
 
@@ -173,14 +173,14 @@ class ApplicationRegistry(QObject):
         for app in apps:
             if not isinstance(app, EnMAPBoxApplication):
                 QgsMessageLog.logMessage('Not an EnMAPBoxApplication instance: {}\n{}'.format(
-                    app.__module__, str(ex))
+                    app.__module__, '{}'.format(ex))
                     , level=QgsMessageLog.CRITICAL)
                 continue
             try:
                 self.addApplication(app)
             except Exception as ex:
                 QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
-                    app.__module__, str(ex))
+                    app.__module__, '{}'.format(ex))
                         , level=QgsMessageLog.CRITICAL)
 
     def addApplication(self, app):
