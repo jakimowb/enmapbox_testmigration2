@@ -15,16 +15,23 @@ import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 import warnings
-
+import csv
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVM.ui')
+pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_LoadTxtFile.ui')
 from enmapbox.gui.utils import loadUIFormClass
 
 class IVVM_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
         super(IVVM_GUI, self).__init__(parent)
-        self.setupUi(self)    
+        self.setupUi(self)
+
+class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
+
+    def __init__(self, parent=None):
+        super(Load_Txt_File_GUI, self).__init__(parent)
+        self.setupUi(self)
 
 class IVVM:
 
@@ -64,6 +71,8 @@ class IVVM:
                           self.gui.psoil_lineEdit, self.gui.SZA_lineEdit, self.gui.OZA_lineEdit, self.gui.rAA_lineEdit,
                           self.gui.Cp_lineEdit, self.gui.Ccl_lineEdit, self.gui.Car_lineEdit, self.gui.Canth_lineEdit,
                           self.gui.Cbrown_lineEdit]
+        self.para_names = ["N", "Cab", "Cw", "Cm", "LAI", "Fake", "LIDFB/ALIA", "Hspot", "psoil", "SZA", "OZA", "rAA",
+                           "Cp", "Ccl", "Car", "Canth", "Cbrown"]
         self.penStyle = 1
         self.item = 1
         # self.plot_color = dict(zip(range(7), ["g", "r", "b", "y", "m", "c", "w"]))
@@ -91,7 +100,6 @@ class IVVM:
         self.gui.OZA_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.OZA_Slide, self.gui.OZA_lineEdit))
         self.gui.SZA_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.SZA_Slide, self.gui.SZA_lineEdit))
         self.gui.rAA_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.rAA_Slide, self.gui.rAA_lineEdit))
-        self.gui.skyl_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.skyl_Slide, self.gui.skyl_lineEdit))
         self.gui.LAIu_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.LAIu_Slide, self.gui.LAIu_lineEdit))
         self.gui.SD_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.SD_Slide, self.gui.SD_lineEdit))
         self.gui.TreeH_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.TreeH_Slide, self.gui.TreeH_lineEdit))
@@ -114,7 +122,6 @@ class IVVM:
         self.gui.OZA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.OZA_lineEdit, self.gui.OZA_Slide))
         self.gui.SZA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.SZA_lineEdit, self.gui.SZA_Slide))
         self.gui.rAA_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.rAA_lineEdit, self.gui.rAA_Slide))
-        self.gui.skyl_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.skyl_lineEdit, self.gui.skyl_Slide))
         self.gui.LAIu_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.LAIu_lineEdit, self.gui.LAIu_Slide))
         self.gui.SD_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.SD_lineEdit, self.gui.SD_Slide))
         self.gui.TreeH_lineEdit.returnPressed.connect(lambda: self.any_lineEdit_change(self.gui.TreeH_lineEdit, self.gui.TreeH_Slide))
@@ -352,7 +359,6 @@ class IVVM:
         self.para_list.append(float(self.gui.Car_lineEdit.text())) #14
         self.para_list.append(float(self.gui.Canth_lineEdit.text())) #15
         self.para_list.append(float(self.gui.Cbrown_lineEdit.text())) #16
-        self.para_list.append(float(self.gui.skyl_lineEdit.text())) #17
         self.typeLIDF = 2
 
     def mod_interactive(self):
@@ -372,11 +378,10 @@ class IVVM:
         self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item=14))
         self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item=15))
         self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item=16))
-        self.gui.skyl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.skyl_Slide, item=17))
-        self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=18))
-        self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=19))
-        self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=20))
-        self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item=21))
+        # self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=17))
+        # self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=18))
+        # self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=19))
+        # self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item=20))
 
         self.gui.SType_None_B.clicked.connect(lambda: self.select_s2s(sensor="default"))
         self.gui.SType_Sentinel_B.clicked.connect(lambda: self.select_s2s(sensor="Sentinel2"))
@@ -466,11 +471,11 @@ class IVVM:
                              / ((np.sqrt(np.nansum((self.data_mean - np.nanmean(self.data_mean))**2)))
                                 * (np.sqrt(np.nansum((self.myResult - np.nanmean(self.myResult))**2)))))**2
 
-                errors = pg.TextItem("RMSE: " + str(round(rmse, 6)) +
-                                     "\nMAE: " + str(round(mae, 6)) +
-                                     "\nNSE: " + str(round(nse, 6)) +
-                                     "\nmNSE: " + str(round(mnse, 6)) +
-                                     '\n' + u'R²: ' + str(round(r_squared, 6)), (100, 200, 255),
+                errors = pg.TextItem("RMSE: %.4f" % rmse +
+                                     "\nMAE: %.4f" % mae +
+                                     "\nNSE: %.4f" % nse +
+                                     "\nmNSE: %.2f" % mnse +
+                                     '\n' + u'R²: %.2f' % r_squared, (100, 200, 255),
                                      border="w", anchor=(1, 0))
             except:
                 errors = pg.TextItem("RMSE: sensors mismatch" +
@@ -485,32 +490,37 @@ class IVVM:
             warnings.filterwarnings('once')
 
     def open_file(self):
-        # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
-        filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
-        if not filenameIn: return
-        self.data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
-        ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
-        self.wl_open = self.data[:,0]
-        self.offset = 400 - int(self.wl_open[0])
-        self.data_mean = np.delete(self.data, 0, axis=1)
-        self.data_mean = np.mean(self.data_mean, axis=1)
-        if self.offset > 0:
-            self.data_mean = self.data_mean[self.offset:]  # cut off first 50 Bands to start at Band 400
-            self.wl_open = self.wl_open[self.offset:]
 
-        water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
-        self.data_mean = np.asarray([self.data_mean[i] if self.wl_open[i] not in water_absorption_bands
-                                     else np.nan for i in xrange(len(self.data_mean))])
+        # Wo ist der Shit?
+        self.main.loadtxtfile.gui.setModal(True)
+        self.main.loadtxtfile.gui.show()
 
-
-        # try:
-        #     self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        #     self.data_mean[1390:1541] = np.nan
-        #     self.data_mean[2000:2101] = np.nan
-        # except:
-        #     QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
-        #     return
-        self.mod_exec()
+        # vorübergehend deaktiviert!
+        # # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
+        # filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        # if not filenameIn: return
+        # self.data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
+        # ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
+        # self.wl_open = self.data[:,0]
+        # self.offset = 400 - int(self.wl_open[0])
+        # self.data_mean = np.delete(self.data, 0, axis=1)
+        # self.data_mean = np.mean(self.data_mean, axis=1)
+        # if self.offset > 0:
+        #     self.data_mean = self.data_mean[self.offset:]  # cut off first 50 Bands to start at Band 400
+        #     self.wl_open = self.wl_open[self.offset:]
+        #
+        # water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
+        # self.data_mean = np.asarray([self.data_mean[i] if self.wl_open[i] not in water_absorption_bands
+        #                              else np.nan for i in xrange(len(self.data_mean))])
+        #
+        #
+        # # try:
+        # #     self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
+        # #     self.data_mean[1390:1541] = np.nan
+        # #     self.data_mean[2000:2101] = np.nan
+        # # except:
+        # #     QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
+        # #     return
 
     def open_soil(self):
         # Dialog to open background as .csv or textfile
@@ -571,14 +581,130 @@ class IVVM:
                                                       filter="Text files (*.txt)"))
         if paralistout:
             with open(paralistout, "w") as file:
-                file.write("N, Cab, Cw, Cm, LAI, LIDF, ALIA, hspot, psoil, SZA, OZA, rAA, Cp, Ccl, Car, Canth, Cbrown, skyl\n")
-                file.write(','.join(str(line) for line in self.para_list))
+                for i in range(len(self.para_list)-1):
+                    if self.lineEdits[i].isEnabled():
+                        file.write("%s\t%f\n" % (self.para_names[i], self.para_list[i]))
+                if self.lineEdits[-1].isEnabled(): # last parameter without eol character
+                    file.write("%s\t%f" % (self.para_names[-1], self.para_list[-1]))
+
+class LoadTxtFile:
+    def __init__(self, main):
+        self.main = main
+        self.gui = Load_Txt_File_GUI()
+        self.connections()
+        self.initial_values()
+        self.tutto_bene = False
+
+    def connections(self):
+        self.gui.cmdOK.clicked.connect(lambda: self.OK())
+        self.gui.cmdInputFile.clicked.connect(lambda: self.open_file())
+        self.gui.cmdUpdatePreview.clicked.connect(lambda: self.read_file())
+        self.gui.radioHeader.toggled.connect(lambda: self.change_radioHeader())
+        self.gui.cmbDelimiter.activated.connect(lambda: self.change_cmbDelimiter()) # "activated" signal is user interaction only
+
+    def initial_values(self):
+        self.header_bool = None
+        self.delimiter_str = ["Tab", "Double space", ",", ";"]
+        self.gui.cmbDelimiter.clear()
+        self.gui.cmbDelimiter.addItems(self.delimiter_str)
+
+    def open_file(self):
+        self.filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        if not self.filenameIn: return
+        self.gui.lblInputFile.setText(self.filenameIn)
+        self.gui.radioHeader.setEnabled(True)
+        self.gui.cmbDelimiter.setEnabled(True)
+        self.gui.cmdUpdatePreview.setEnabled(True)
+        self.inspect_file()
+
+    def inspect_file(self):
+        sniffer = csv.Sniffer()
+        with open(self.filenameIn, 'r') as raw_file:
+            self.header_bool = sniffer.has_header(raw_file.readline())
+            raw_file.seek(0)
+            self.dialect = sniffer.sniff(raw_file.readline())
+            self.gui.radioHeader.setChecked(self.header_bool)
+            if self.dialect.delimiter == "\t": self.gui.cmbDelimiter.setCurrentIndex(0)
+            elif self.dialect.delimiter == "  ": self.gui.cmbDelimiter.setCurrentIndex(1)
+            elif self.dialect.delimiter == ",": self.gui.cmbDelimiter.setCurrentIndex(2)
+            elif self.dialect.delimiter == ";": self.gui.cmbDelimiter.setCurrentIndex(3)
+            self.read_file()
+
+    def change_radioHeader(self):
+        self.header_bool = self.gui.radioHeader.isChecked()
+
+    def change_cmbDelimiter(self):
+        index = self.gui.cmbDelimiter.currentIndex()
+        if index == 0: self.dialect.delimiter = "\t"
+        elif index == 1: self.dialect.delimiter = "  "
+        elif index == 2: self.dialect.delimiter = ","
+        elif index == 3: self.dialect.delimiter = ";"
+
+    def read_file(self):
+        header_offset = 0
+        with open(self.filenameIn, 'r') as raw_file:
+            raw_file.seek(0)
+            raw = csv.reader(raw_file, self.dialect)
+
+            data = list()
+            for content in raw:
+                data.append(content)
+
+        n_entries = len(data)
+        if self.header_bool:
+            header = data[0]
+            if not len(header) == len(data[1]):
+                print "error, header and data length vary"
+            header_offset += 1
+            n_entries -= 1
+        n_cols = len(data[0+header_offset])
+        self.main.ivvm.wl_open = [int(float(data[i+header_offset][0])) for i in xrange(n_entries)]
+        row_labels = [str(self.main.ivvm.wl_open[i]) for i in xrange(n_entries)]
+
+        wl_offset = 400 - self.main.ivvm.wl_open[0]
+
+        data_array = np.zeros(shape=(n_entries,n_cols-1))
+        for data_list in xrange(n_entries):
+            data_array[data_list,:] = np.asarray(data[data_list+header_offset][1:]).astype(dtype=np.float16)
+
+        self.main.ivvm.data_mean = np.mean(data_array, axis=1)
+
+        # populate QTableWidget:
+        self.gui.tablePreview.setRowCount(n_entries)
+        self.gui.tablePreview.setColumnCount(1)
+        if self.header_bool:
+            self.gui.tablePreview.setHorizontalHeaderLabels('Reflectances')
+        self.gui.tablePreview.setVerticalHeaderLabels(row_labels)
+
+        for row in xrange(n_entries):
+            item = QTableWidgetItem(str(self.main.ivvm.data_mean[row]))
+            self.gui.tablePreview.setItem(row, 0, item)
+
+        # Prepare for Statistics
+        if wl_offset > 0:
+            self.main.ivvm.data_mean = self.main.ivvm.data_mean[wl_offset:]  # cut off first 50 Bands to start at Band 400
+            self.main.ivvm.wl_open = self.main.ivvm.wl_open[wl_offset:]
+
+        water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
+        self.main.ivvm.data_mean = np.asarray([self.main.ivvm.data_mean[i] if self.main.ivvm.wl_open[i] not in water_absorption_bands
+                                     else np.nan for i in xrange(len(self.main.ivvm.data_mean))])
+
+
+
+        self.gui.cmdOK.setEnabled(True)
+
+    def OK(self):
+        self.main.ivvm.mod_exec()
+        self.gui.close()
+
 
 class MainUiFunc:
     def __init__(self):
-        self.isd = IVVM(self)
+        self.ivvm = IVVM(self)
+        self.loadtxtfile = LoadTxtFile(self)
+
     def show(self):
-        self.isd.gui.show()
+        self.ivvm.gui.show()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment
