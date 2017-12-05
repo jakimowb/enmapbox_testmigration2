@@ -601,12 +601,14 @@ class LoadTxtFile:
         self.gui.cmdUpdatePreview.clicked.connect(lambda: self.read_file())
         self.gui.radioHeader.toggled.connect(lambda: self.change_radioHeader())
         self.gui.cmbDelimiter.activated.connect(lambda: self.change_cmbDelimiter()) # "activated" signal is user interaction only
+        self.gui.spinDivisionFactor.valueChanged.connect(lambda: self.change_division())
 
     def initial_values(self):
         self.header_bool = None
         self.delimiter_str = ["Tab", "Double space", ",", ";"]
         self.gui.cmbDelimiter.clear()
         self.gui.cmbDelimiter.addItems(self.delimiter_str)
+        self.divide_by = 1.0
 
     def open_file(self):
         self.filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
@@ -614,6 +616,7 @@ class LoadTxtFile:
         self.gui.lblInputFile.setText(self.filenameIn)
         self.gui.radioHeader.setEnabled(True)
         self.gui.cmbDelimiter.setEnabled(True)
+        self.gui.spinDivisionFactor.setEnabled(True)
         self.gui.cmdUpdatePreview.setEnabled(True)
         self.inspect_file()
 
@@ -639,6 +642,9 @@ class LoadTxtFile:
         elif index == 1: self.dialect.delimiter = "  "
         elif index == 2: self.dialect.delimiter = ","
         elif index == 3: self.dialect.delimiter = ";"
+
+    def change_division(self):
+        self.divide_by = self.gui.spinDivisionFactor.value()
 
     def read_file(self):
         header_offset = 0
@@ -667,7 +673,7 @@ class LoadTxtFile:
         for data_list in xrange(n_entries):
             data_array[data_list,:] = np.asarray(data[data_list+header_offset][1:]).astype(dtype=np.float16)
 
-        self.main.ivvm.data_mean = np.mean(data_array, axis=1)
+        self.main.ivvm.data_mean = np.mean(data_array, axis=1)/self.divide_by
 
         # populate QTableWidget:
         self.gui.tablePreview.setRowCount(n_entries)
@@ -692,6 +698,7 @@ class LoadTxtFile:
 
 
         self.gui.cmdOK.setEnabled(True)
+
 
     def OK(self):
         self.main.ivvm.mod_exec()
