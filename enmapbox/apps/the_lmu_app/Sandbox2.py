@@ -8,20 +8,12 @@ from queue import Queue, Empty
 import numpy as np
 from scipy.signal import savgol_filter
 
-a = "hallo"
-try:
-    b = int(a) + 5
-except ValueError:
-    print "nope"
 
-exit()
-
-
-window_size = 3
+window_size = 5
 half_window_size = window_size // 2
 data = list()
 q = Queue()
-d = [2.22, 2.22, 5.55, 2.22, 1.11, 0.01, 1.11, 4.44, 9.99, 1.11, 3.33]
+d = [10, 12, 7, 18, 14, 13, 17, 15]
 for i in d:
     q.put(i)
 
@@ -44,6 +36,8 @@ while not q.empty():
             res[(window_size-1)-poly_i_end] = p(poly_i_end)
             # res[3] = p(1) # insert the polynomial fits at index 4
             # res[4] = p(0) # insert the polynomial fits at index 5
+        print res
+        exit()
     elif length > window_size:
         res.append(None) # add another slot in the res-list
         res[(length-1)-half_window_size] = savgol_filter(npd, window_size, 2)[half_window_size] # overwrite poly-value with savgol

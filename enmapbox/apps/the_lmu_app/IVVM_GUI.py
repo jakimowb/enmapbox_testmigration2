@@ -390,14 +390,15 @@ class IVVM:
 
         self.gui.B_DefSoilSpec.clicked.connect(lambda: self.select_background(bg_type="default"))
         self.gui.B_LoadBackSpec.clicked.connect(lambda: self.select_background(bg_type="load"))
-        self.gui.push_SelectFile.clicked.connect(self.open_soil)
+        # self.gui.push_SelectFile.clicked.connect(self.open_soil)
 
         self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
         self.gui.CheckPlotAcc.stateChanged.connect(lambda: self.txtColorBars())
         self.gui.pushClearPlot.clicked.connect(lambda: self.clear_plot(rescale=True, clearPlots=True))  #clear the plot canvas
         self.gui.cmdResetScale.clicked.connect(lambda: self.clear_plot(rescale=True, clearPlots=False))
-        self.gui.Push_LoadInSitu.clicked.connect(self.open_file)  #load own spectrum
+        self.gui.Push_LoadInSitu.clicked.connect(lambda: self.open_file(type="in situ"))  #load own spectrum
+        self.gui.push_SelectFile.clicked.connect(lambda: self.open_file(type="background"))  # load own spectrum
         self.gui.Push_Exit.clicked.connect(self.gui.accept)  #exit app
         self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)  #remove own spectrum from plot canvas
 
@@ -489,66 +490,8 @@ class IVVM:
 
             warnings.filterwarnings('once')
 
-    def open_file(self):
-
-        # Wo ist der Shit?
-        self.main.loadtxtfile.gui.setModal(True)
-        self.main.loadtxtfile.gui.show()
-
-        # vorübergehend deaktiviert!
-        # # Dialog to open own spectrum, .asc exported by ViewSpecPro as single file
-        # filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
-        # if not filenameIn: return
-        # self.data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
-        # ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
-        # self.wl_open = self.data[:,0]
-        # self.offset = 400 - int(self.wl_open[0])
-        # self.data_mean = np.delete(self.data, 0, axis=1)
-        # self.data_mean = np.mean(self.data_mean, axis=1)
-        # if self.offset > 0:
-        #     self.data_mean = self.data_mean[self.offset:]  # cut off first 50 Bands to start at Band 400
-        #     self.wl_open = self.wl_open[self.offset:]
-        #
-        # water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
-        # self.data_mean = np.asarray([self.data_mean[i] if self.wl_open[i] not in water_absorption_bands
-        #                              else np.nan for i in xrange(len(self.data_mean))])
-        #
-        #
-        # # try:
-        # #     self.data_mean[960:1021] = np.nan  # set atmospheric water vapour absorption bands to NaN
-        # #     self.data_mean[1390:1541] = np.nan
-        # #     self.data_mean[2000:2101] = np.nan
-        # # except:
-        # #     QMessageBox.critical(self.gui, "error", "Cannot display selected spectrum")
-        # #     return
-
-    def open_soil(self):
-        # Dialog to open background as .csv or textfile
-        filenameIn = str(QFileDialog.getOpenFileName(caption='Select Soil Spectrum'))
-        if not filenameIn: return
-        data = np.genfromtxt(filenameIn, delimiter="\t", skip_header=True)
-        ## "\OSGEO4~1\apps\Python27\lib\site-packages\numpy\lib\npyio.py" changed endswith to endsWith to work:
-        wl_open = data[:, 0]
-        data_open = data[:, 1]
-        offset = 400 - int(wl_open[0])
-
-        if offset > 0:
-            data_open = data_open[offset:]  # cut off first 50 Bands to start at Band 400
-            wl_open = wl_open[offset:]
-
-        # linear interpolation water absorption
-
-        # water_absorption_bands = [range(1360, 1421), range(1790, 1941), range(2400, 2501)]
-        water_absorption_bands = [range(959, 1022), range(1390, 1541)]
-
-        for interp_bands in water_absorption_bands:
-            y = [data_open[interp_bands[0]], data_open[interp_bands[-1]]]
-            f = interp1d([interp_bands[0], interp_bands[-1]], [y[0], y[1]])
-            data_open[interp_bands[1:-1]] = f(interp_bands[1:-1])
-
-        self.bg_spec = data_open
-        self.gui.BackSpec_label.setText(os.path.basename(filenameIn))
-        self.mod_exec()
+    def open_file(self, type):
+        self.main.loadtxtfile.open(type=type)
 
     def reset_in_situ(self):
         self.data_mean = None
@@ -593,60 +536,92 @@ class LoadTxtFile:
         self.gui = Load_Txt_File_GUI()
         self.connections()
         self.initial_values()
-        self.tutto_bene = False
 
     def connections(self):
         self.gui.cmdOK.clicked.connect(lambda: self.OK())
+        self.gui.cmdCancel.clicked.connect(self.gui.close)
         self.gui.cmdInputFile.clicked.connect(lambda: self.open_file())
-        self.gui.cmdUpdatePreview.clicked.connect(lambda: self.read_file())
         self.gui.radioHeader.toggled.connect(lambda: self.change_radioHeader())
         self.gui.cmbDelimiter.activated.connect(lambda: self.change_cmbDelimiter()) # "activated" signal is user interaction only
         self.gui.spinDivisionFactor.valueChanged.connect(lambda: self.change_division())
 
     def initial_values(self):
         self.header_bool = None
-        self.delimiter_str = ["Tab", "Double space", ",", ";"]
+        self.filenameIn = None
+        self.delimiter_str = ["Tab", "Space", ",", ";"]
         self.gui.cmbDelimiter.clear()
         self.gui.cmbDelimiter.addItems(self.delimiter_str)
+        self.gui.tablePreview.setRowCount(0)
+        self.gui.tablePreview.setColumnCount(0)
+        self.gui.radioHeader.setDisabled(True)
+        self.gui.radioHeader.setChecked(False)
+        self.gui.cmbDelimiter.setDisabled(True)
+        self.gui.spinDivisionFactor.setDisabled(True)
+        self.gui.spinDivisionFactor.setValue(1.0)
+        self.gui.cmdOK.setDisabled(True)
+        self.gui.label.setStyleSheet("color: rgb(170, 0, 0);")
+        self.gui.label.setText("No File selected")
+        self.gui.lblInputFile.setText("")
         self.divide_by = 1.0
+        self.open_type = None
+        self.wl_open, self.data_mean = (None, None)
+
+    def open(self, type):
+        self.initial_values()
+        self.open_type = type
+        self.gui.setWindowTitle("Open %s Spectrum" % type)
+        self.gui.show()
 
     def open_file(self):
-        self.filenameIn = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
-        if not self.filenameIn: return
+        file_choice = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        if not file_choice: # Cancel clicked
+            if not self.filenameIn: self.houston(message="No File selected") # no file in memory
+            return
+        self.filenameIn = file_choice
         self.gui.lblInputFile.setText(self.filenameIn)
         self.gui.radioHeader.setEnabled(True)
         self.gui.cmbDelimiter.setEnabled(True)
         self.gui.spinDivisionFactor.setEnabled(True)
-        self.gui.cmdUpdatePreview.setEnabled(True)
+        self.header_bool = False
         self.inspect_file()
 
     def inspect_file(self):
         sniffer = csv.Sniffer()
         with open(self.filenameIn, 'r') as raw_file:
-            self.header_bool = sniffer.has_header(raw_file.readline())
-            raw_file.seek(0)
             self.dialect = sniffer.sniff(raw_file.readline())
-            self.gui.radioHeader.setChecked(self.header_bool)
             if self.dialect.delimiter == "\t": self.gui.cmbDelimiter.setCurrentIndex(0)
-            elif self.dialect.delimiter == "  ": self.gui.cmbDelimiter.setCurrentIndex(1)
+            elif self.dialect.delimiter == " ": self.gui.cmbDelimiter.setCurrentIndex(1)
             elif self.dialect.delimiter == ",": self.gui.cmbDelimiter.setCurrentIndex(2)
             elif self.dialect.delimiter == ";": self.gui.cmbDelimiter.setCurrentIndex(3)
+
+            raw_file.seek(0)
+            raw = csv.reader(raw_file, self.dialect)
+            try:
+                _ = int(next(raw)[0])
+                self.header_bool = False
+            except:
+                self.header_bool = True
+            self.gui.radioHeader.setChecked(self.header_bool)
             self.read_file()
 
     def change_radioHeader(self):
         self.header_bool = self.gui.radioHeader.isChecked()
+        self.read_file()
 
     def change_cmbDelimiter(self):
         index = self.gui.cmbDelimiter.currentIndex()
         if index == 0: self.dialect.delimiter = "\t"
-        elif index == 1: self.dialect.delimiter = "  "
+        elif index == 1: self.dialect.delimiter = " "
         elif index == 2: self.dialect.delimiter = ","
         elif index == 3: self.dialect.delimiter = ";"
+        self.read_file()
 
     def change_division(self):
         self.divide_by = self.gui.spinDivisionFactor.value()
+        self.read_file()
 
     def read_file(self):
+        if not self.filenameIn: return
         header_offset = 0
         with open(self.filenameIn, 'r') as raw_file:
             raw_file.seek(0)
@@ -660,20 +635,26 @@ class LoadTxtFile:
         if self.header_bool:
             header = data[0]
             if not len(header) == len(data[1]):
-                print "error, header and data length vary"
+                self.houston(message="Error: Data has %i columns, but header has %i columns" % (len(data[1]), len(header)))
+                return
             header_offset += 1
             n_entries -= 1
         n_cols = len(data[0+header_offset])
-        self.main.ivvm.wl_open = [int(float(data[i+header_offset][0])) for i in xrange(n_entries)]
-        row_labels = [str(self.main.ivvm.wl_open[i]) for i in xrange(n_entries)]
+        try:
+            self.wl_open = [int(float(data[i+header_offset][0])) for i in xrange(n_entries)]
+        except ValueError:
+            self.houston(message="Error: Cannot read file. Please check delimiter and header!")
+            return
 
-        wl_offset = 400 - self.main.ivvm.wl_open[0]
+        row_labels = [str(self.wl_open[i]) for i in xrange(n_entries)]
+
+        wl_offset = 400 - self.wl_open[0]
 
         data_array = np.zeros(shape=(n_entries,n_cols-1))
         for data_list in xrange(n_entries):
             data_array[data_list,:] = np.asarray(data[data_list+header_offset][1:]).astype(dtype=np.float16)
 
-        self.main.ivvm.data_mean = np.mean(data_array, axis=1)/self.divide_by
+        self.data_mean = np.mean(data_array, axis=1)/self.divide_by
 
         # populate QTableWidget:
         self.gui.tablePreview.setRowCount(n_entries)
@@ -683,24 +664,45 @@ class LoadTxtFile:
         self.gui.tablePreview.setVerticalHeaderLabels(row_labels)
 
         for row in xrange(n_entries):
-            item = QTableWidgetItem(str(self.main.ivvm.data_mean[row]))
+            item = QTableWidgetItem(str(self.data_mean[row]))
             self.gui.tablePreview.setItem(row, 0, item)
 
         # Prepare for Statistics
         if wl_offset > 0:
-            self.main.ivvm.data_mean = self.main.ivvm.data_mean[wl_offset:]  # cut off first 50 Bands to start at Band 400
-            self.main.ivvm.wl_open = self.main.ivvm.wl_open[wl_offset:]
+            self.data_mean = self.data_mean[wl_offset:]  # cut off first 50 Bands to start at Band 400
+            self.wl_open = self.wl_open[wl_offset:]
 
-        water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
-        self.main.ivvm.data_mean = np.asarray([self.main.ivvm.data_mean[i] if self.main.ivvm.wl_open[i] not in water_absorption_bands
-                                     else np.nan for i in xrange(len(self.main.ivvm.data_mean))])
+        if self.open_type == "in situ":
+            water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
+            self.main.ivvm.data_mean = np.asarray([self.data_mean[i] if self.wl_open[i] not in water_absorption_bands
+                                     else np.nan for i in xrange(len(self.data_mean))])
 
+        elif self.open_type == "background":
+            water_absorption_bands = [range(959, 1022), range(1390, 1541)]
+            for interp_bands in water_absorption_bands:
+                y = [self.data_mean[interp_bands[0]], self.data_mean[interp_bands[-1]]]
+                f = interp1d([interp_bands[0], interp_bands[-1]], [y[0], y[1]])
+                self.data_mean[interp_bands[1:-1]] = f(interp_bands[1:-1])
 
-
+        self.gui.label.setStyleSheet("color: rgb(0, 170, 0);")
+        self.gui.label.setText("Ok. No Errors")
         self.gui.cmdOK.setEnabled(True)
 
+    def houston(self, message): # we have a problem
+        self.gui.label.setStyleSheet("color: rgb(170, 0, 0);")
+        self.gui.label.setText(message)
+        self.gui.tablePreview.setRowCount(0)
+        self.gui.tablePreview.setColumnCount(0)
+        self.gui.cmdOK.setDisabled(True)
 
     def OK(self):
+        if self.open_type == "in situ":
+            self.main.ivvm.data_mean = self.data_mean
+            self.main.ivvm.wl_open = self.wl_open
+        elif self.open_type == "background":
+            self.main.ivvm.bg_spec = self.data_mean
+            self.main.ivvm.gui.BackSpec_label.setText(os.path.basename(self.filenameIn))
+
         self.main.ivvm.mod_exec()
         self.gui.close()
 
