@@ -1,5 +1,6 @@
 from os import makedirs, remove
 from os.path import dirname, exists, join, basename
+import functools
 import copy
 from random import randint
 import tempfile
@@ -8,16 +9,16 @@ import numpy
 import hubdc.hubdcerrors as errors
 
 
-def Open(filename, eAccess=gdal.GA_ReadOnly):
+def openRaster(filename, eAccess=gdal.GA_ReadOnly):
     if not exists(str(filename)):
         raise errors.FileNotExistError(str(filename))
     gdalDataset = gdal.Open(filename, eAccess)
     if gdalDataset is None:
         raise errors.InvalidGDALDatasetError(filename)
-    return Dataset(gdalDataset=gdalDataset)
+    return Raster(gdalDataset=gdalDataset)
 
 
-def OpenLayer(filename, layerNameOrIndex=0, update=False):
+def openVector(filename, layerNameOrIndex=0, update=False):
     if not exists(str(filename)):
         raise errors.FileNotExistError(str(filename))
     if str(layerNameOrIndex).isdigit():
@@ -26,15 +27,15 @@ def OpenLayer(filename, layerNameOrIndex=0, update=False):
     if ogrDataSource is None:
         raise errors.InvalidOGRDataSourceError(filename)
 
-    return Layer(ogrDataSource=ogrDataSource, nameOrIndex=layerNameOrIndex)
+    return Vector(ogrDataSource=ogrDataSource, nameOrIndex=layerNameOrIndex)
 
 
-def Create(grid, bands=1, eType=gdal.GDT_Float32, filename='', format='MEM', creationOptions=()):
+def createRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', format='MEM', options=()):
     driver = Driver(name=format)
-    return driver.create(grid, bands=bands, eType=eType, filename=filename, options=creationOptions)
+    return driver.create(grid, bands=bands, eType=gdalType, filename=filename, options=options)
 
 
-def CreateFromArray(grid, array, filename='', format='MEM', creationOptions=()):
+def createRasterFromArray(grid, array, filename='', format='MEM', creationOptions=()):
     if isinstance(array, numpy.ndarray):
         if array.ndim == 2:
             array = array[None]
@@ -49,17 +50,17 @@ def CreateFromArray(grid, array, filename='', format='MEM', creationOptions=()):
     if dtype == numpy.bool:
         dtype = numpy.uint8
     eType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
-    dataset = Create(grid=grid, bands=bands, eType=eType, filename=filename, format=format,
-                     creationOptions=creationOptions)
+    dataset = createRaster(grid=grid, bands=bands, gdalType=eType, filename=filename, format=format,
+                           options=creationOptions)
     dataset.writeArray(array=array, grid=grid)
 
     return dataset
 
 
-def CreateVRT(filename, srcDSOrSrcDSTab, **kwargs):
+def createVRT(filename, srcDSOrSrcDSTab, **kwargs):
     options = gdal.BuildVRTOptions(**kwargs)
     gdalDataset = gdal.BuildVRT(destName=filename, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
-    return Dataset(gdalDataset=gdalDataset)
+    return Raster(gdalDataset=gdalDataset)
 
 
 def buildOverviews(filename, minsize=None, levels=None, resampling='average'):
@@ -69,7 +70,7 @@ def buildOverviews(filename, minsize=None, levels=None, resampling='average'):
         assert minsize is not None
         levels = []
         nextLevel = 2
-        size = float(max(Open(filename=filename).shape))
+        size = float(max(openRaster(filename=filename).shape))
         while size > minsize:
             levels.append(nextLevel)
             size /= 2
@@ -110,7 +111,7 @@ class Driver(object):
         gdalDataset = self.gdalDriver().Create(filename, grid.size().x(), grid.size().y(), bands, eType, options)
         gdalDataset.SetProjection(grid.projection().wkt())
         gdalDataset.SetGeoTransform(grid.makeGeoTransform())
-        return Dataset(gdalDataset=gdalDataset)
+        return Raster(gdalDataset=gdalDataset)
 
 
 class Extent(object):
@@ -123,12 +124,22 @@ class Extent(object):
         assert self._ymax > self._ymin
 
     def __repr__(self):
-        return '{cls}(xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}'.format(
+        return '{cls}(xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax})'.format(
             cls=self.__class__.__name__,
             xmin=repr(self.xmin()),
             xmax=repr(self.xmax()),
             ymin=repr(self.ymin()),
             ymax=repr(self.ymax()))
+
+    @staticmethod
+    def fromCorners(points):
+        for p in points:
+            assert isinstance(p, Point)
+        xs = [p.x() for p in points]
+        ys = [p.y() for p in points]
+
+        return Extent(xmin=functools.reduce(min, xs), xmax=functools.reduce(max, xs),
+                      ymin=functools.reduce(min, ys), ymax=functools.reduce(max, ys))
 
     def xmin(self):
         return self._xmin
@@ -151,11 +162,17 @@ class Extent(object):
         polygon.AddGeometry(ring)
         return polygon
 
-    def ul(self):
-        return self.xmin(), self.ymax()
+    def upperLeft(self):
+        return Point(x=self.xmin(), y=self.ymax())
 
-    def lr(self):
-        return self.xmax(), self.ymin()
+    def upperRight(self):
+        return Point(x=self.xmax(), y=self.ymax())
+
+    def lowerRight(self):
+        return Point(x=self.xmax(), y=self.ymin())
+
+    def lowerLeft(self):
+        return Point(x=self.xmin(), y=self.ymin())
 
     def wkt(self):
         ring = ogr.Geometry(ogr.wkbLinearRing)
@@ -170,12 +187,11 @@ class Extent(object):
     def reproject(self, sourceProjection, targetProjection):
         assert isinstance(sourceProjection, Projection)
         assert isinstance(targetProjection, Projection)
-        t = osr.CoordinateTransformation(sourceProjection.osrSpatialReference(), targetProjection.osrSpatialReference())
-        (tl_x, tl_y, z) = t.TransformPoint(self.xmin(), self.ymax())
-        (bl_x, bl_y, z) = t.TransformPoint(self.xmin(), self.ymin())
-        (tr_x, tr_y, z) = t.TransformPoint(self.xmax(), self.ymax())
-        (br_x, br_y, z) = t.TransformPoint(self.xmax(), self.ymin())
-        return Extent(xmin=min(tl_x, bl_x), xmax=max(tr_x, br_x), ymin=min(bl_y, br_y), ymax=max(tl_y, tr_y))
+        ul = self.upperLeft().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
+        ur = self.upperRight().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
+        ll = self.lowerLeft().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
+        lr = self.lowerRight().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
+        return Extent.fromCorners((ul, ur, ll, lr))
 
     def intersects(self, other):
         assert isinstance(other, Extent)
@@ -193,8 +209,7 @@ class Extent(object):
         ymax = min(self.ymax(), other.ymax())
 
         if xmin >= xmax or ymin >= ymax:
-            msg = "Images don't intersect"
-            raise Exception(msg)
+            raise Exception('Extents do not intersect')
 
         return Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
 
@@ -217,20 +232,63 @@ class Extent(object):
 
 
 class SpatialExtent(Extent):
-    def __init__(self, extent, projection):
-        assert isinstance(extent, Extent)
+    def __init__(self, xmin, xmax, ymin, ymax, projection):
         assert isinstance(projection, Projection)
-        Extent.__init__(self, xmin=extent.xmin(), xmax=extent.xmax(), ymin=extent.ymin(), ymax=extent.ymax())
+        Extent.__init__(self, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
         self._projection = projection
+
+    def __repr__(self):
+        return '{cls}(extent={extent}, projection={projection})'.format(
+            cls=self.__class__.__name__,
+            extent=Extent.__repr__(self).replace('SpatialExtent', 'Extent'),
+            projection=repr(self.projection()))
+
+    @staticmethod
+    def fromExtent(extent, projection):
+        assert isinstance(extent, Extent)
+        return SpatialExtent(xmin=extent.xmin(), xmax=extent.xmax(), ymin=extent.ymin(), ymax=extent.ymax(),
+                             projection=projection)
 
     def projection(self):
         return self._projection
 
+    def upperLeft(self):
+        return SpatialPoint(x=self.xmin(), y=self.ymax(), projection=self.projection())
+
+    def upperRight(self):
+        return SpatialPoint(x=self.xmax(), y=self.ymax(), projection=self.projection())
+
+    def lowerRight(self):
+        return SpatialPoint(x=self.xmax(), y=self.ymin(), projection=self.projection())
+
+    def lowerLeft(self):
+        return SpatialPoint(x=self.xmin(), y=self.ymin(), projection=self.projection())
+
     def reproject(self, targetProjection):
         assert isinstance(targetProjection, Projection)
         extent = Extent.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
-        return SpatialExtent(extent=extent, projection=targetProjection)
+        return SpatialExtent.fromExtent(extent=extent, projection=targetProjection)
 
+    def intersects(self, other):
+        '''Returns wether self and other intersect.'''
+        assert isinstance(other, SpatialExtent)
+        otherReprojected = other.reproject(targetProjection=self.projection())
+        return SpatialExtent.fromExtent(extent=Extent.intersects(self, other=otherReprojected),
+                                        projection=self.projection())
+
+    def intersection(self, other):
+        '''Returns the intersection of self and other.'''
+        assert isinstance(other, SpatialExtent)
+        otherReprojected = other.reproject(targetProjection=self.projection())
+        return SpatialExtent.fromExtent(extent=Extent.intersection(self, other=otherReprojected),
+                                        projection=self.projection())
+
+    def union(self, other):
+        '''Returns the union of self and other.'''
+        assert isinstance(other, SpatialExtent)
+        otherReprojected = other.reproject(targetProjection=self.projection())
+        return SpatialExtent.fromExtent(extent=Extent.union(self, other=otherReprojected),
+                                        projection=self.projection())
 
 class Resolution(object):
     def __init__(self, x, y):
@@ -240,13 +298,17 @@ class Resolution(object):
         assert self._y > 0
 
     def __repr__(self):
-        return '{cls}(x={x}, y={y}'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
+        return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
 
     def x(self):
         return self._x
 
     def y(self):
         return self._y
+
+    def equal(self, other):
+        assert isinstance(other, Resolution)
+        return self.x() == other.x() and self.y() == other.y()
 
 
 class Projection(object):
@@ -274,6 +336,14 @@ class Projection(object):
     def WGS84():
         return Projection.fromEPSG(epsg=4326)
 
+    @classmethod
+    def UTM(cls, zone, north=True):
+        assert zone >= 1 and zone <= 60
+        if north:
+            return cls.fromEPSG(epsg=32600 + zone)
+        else:
+            return cls.fromEPSG(epsg=32722 + zone)
+
     def osrSpatialReference(self):
         srs = osr.SpatialReference()
         srs.ImportFromWkt(self.wkt())
@@ -294,6 +364,9 @@ class Pixel(object):
     def __init__(self, x, y):
         self._x = int(x)
         self._y = int(y)
+
+    def __repr__(self):
+        return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
 
     def x(self):
         return self._x
@@ -317,22 +390,32 @@ class Point(object):
     def y(self):
         return self._y
 
+    def reproject(self, sourceProjection, targetProjection):
+        assert isinstance(sourceProjection, Projection)
+        assert isinstance(targetProjection, Projection)
+        transformation = osr.CoordinateTransformation(sourceProjection.osrSpatialReference(),
+                                                      targetProjection.osrSpatialReference())
+        x, y, z = transformation.TransformPoint(self.x(), self.y())
+        return Point(x=x, y=y)
+
 
 class SpatialPoint(Point):
     '''Map location with associated projection.'''
 
-    def __init__(self, point, projection):
-        assert isinstance(point, Point)
+    def __init__(self, x, y, projection):
         assert isinstance(projection, Projection)
-        Point.__init__(self, x=point.x(), y=point.y())
-        self._point = point
+        Point.__init__(self, x=x, y=y)
         self._projection = projection
-
-    def point(self):
-        return self._point
 
     def projection(self):
         return self._projection
+
+    def reproject(self, targetProjection, sourceProjection=None):
+        assert isinstance(targetProjection, Projection)
+        if sourceProjection is not None:
+            assert self.projection().equal(other=sourceProjection)
+        point = Point.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
+        return SpatialPoint(x=point.x(), y=point.y(), projection=targetProjection)
 
 
 class Size(object):
@@ -356,10 +439,12 @@ class Size(object):
 
 
 class Grid(object):
-    def __init__(self, extent, resolution, projection):
+    def __init__(self, extent, resolution, projection=None):
+        if isinstance(extent, SpatialExtent):
+            projection = extent.projection()
         assert isinstance(extent, Extent)
-        assert isinstance(resolution, Resolution), resolution
-        assert isinstance(projection, Projection), projection
+        assert isinstance(resolution, Resolution)
+        assert isinstance(projection, Projection)
         self._resolution = resolution
 
         size = extent.size(resolution=resolution)
@@ -395,6 +480,12 @@ class Grid(object):
     def shape(self):
         return self.size().shape()
 
+    def xcoords(self):
+        return [self.extent().xmin() + (xoff + 0.5) * self.resolution().x() for xoff in range(self.size().x())]
+
+    def ycoords(self):
+        return [self.extent().ymax() - (yoff + 0.5) * self.resolution().y() for yoff in range(self.size().y())]
+
     def makeGeoTransform(self):
         '''Returns a GDAL geotransform tuple from bounds and resolution'''
 
@@ -405,7 +496,7 @@ class Grid(object):
     def equal(self, other):
         assert isinstance(other, Grid)
         return (self.projection().equal(other=other.projection()) and
-                self.extent().ul() == other.extent().ul() and
+                self.extent().upperLeft() == other.extent().upperLeft() and
                 self.size().shape() == other.size().shape())
 
     def reproject(self, other):
@@ -452,11 +543,19 @@ class Grid(object):
 
         return Grid(extent=anchoredExtent, resolution=self.resolution(), projection=self.projection())
 
-    def subset(self, offset, size):
+    def subset(self, offset, size, trim=False):
+        assert isinstance(offset, Pixel)
+        assert isinstance(size, Size)
+        if trim:
+            offset = Pixel(x=max(offset.x(), 0), y=max(offset.y(), 0))
+            size = Size(x=min(size.x(), self.size().x() - offset.x()),
+                        y=min(size.y(), self.size().y() - offset.y()))
+
         xmin = self.extent().xmin() + offset.x() * self.resolution().x()
         xmax = xmin + size.x() * self.resolution().x()
         ymax = self.extent().ymax() - offset.y() * self.resolution().y()
         ymin = ymax - size.y() * self.resolution().y()
+
         return Grid(projection=self.projection(),
                     resolution=self.resolution(),
                     extent=Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax))
@@ -484,7 +583,7 @@ class Grid(object):
         return result
 
 
-class Dataset():
+class Raster(object):
     def __init__(self, gdalDataset):
         assert isinstance(gdalDataset, gdal.Dataset)
         self._gdalDataset = gdalDataset
@@ -616,7 +715,7 @@ class Dataset():
         return domainDict
 
     def copyMetadata(self, other):
-        assert isinstance(other, Dataset)
+        assert isinstance(other, Raster)
 
         for domain in other.metadataDomainList():
             self._gdalDataset.SetMetadata(other.gdalDataset.GetMetadata(domain), domain)
@@ -695,7 +794,7 @@ class Dataset():
                                        creationOptions=creationOptions, **kwargs)
         gdalDataset = gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=self._gdalDataset, options=warpOptions)
 
-        return Dataset(gdalDataset=gdalDataset)
+        return Raster(gdalDataset=gdalDataset)
 
     def warpOptions(self, grid, format, creationOptions, **kwargs):
         assert isinstance(grid, Grid)
@@ -719,8 +818,9 @@ class Dataset():
         if format != 'MEM' and not exists(dirname(filename)):
             makedirs(dirname(filename))
 
-        ulx, uly = grid.extent().ul()
-        lrx, lry = grid.extent().lr()
+
+        ul = grid.extent().upperLeft()
+        lr = grid.extent().lowerRight()
         xRes, yRes = grid.resolution().x(), grid.resolution().y()
         #            getattr(grid, key) for key in ('xmin', 'ymax', 'xmax', 'ymin', 'xRes', 'yRes'))
 
@@ -734,8 +834,8 @@ class Dataset():
 
             # read one extra source column and line
             translateOptions = gdal.TranslateOptions(format=format, creationOptions=creationOptions,
-                                                     projWin=[ulx, uly, lrx + self.grid().resolution().x(),
-                                                              lry - self.grid().resolution().y()],
+                                                     projWin=[ul.x(), ul.y(), lr.x() + self.grid().resolution().x(),
+                                                              lr.y() - self.grid().resolution().y()],
                                                      xRes=xRes, yRes=yRes, **kwargs)
             tmpGdalDataset = gdal.Translate(destName='', srcDS=self._gdalDataset, options=translateOptions)
 
@@ -745,11 +845,40 @@ class Dataset():
             gdalDataset = gdal.Translate(destName='', srcDS=tmpGdalDataset, options=translateOptions)
 
         else:
-            translateOptions = gdal.TranslateOptions(format=format, projWin=[ulx, uly, lrx, lry], xRes=xRes, yRes=yRes,
+            translateOptions = gdal.TranslateOptions(format=format, projWin=[ul.x(), ul.y(), lr.x(), lr.y()], xRes=xRes, yRes=yRes,
                                                      creationOptions=creationOptions, **kwargs)
             gdalDataset = gdal.Translate(destName=filename, srcDS=self._gdalDataset, options=translateOptions)
 
-        return Dataset(gdalDataset=gdalDataset)
+        return Raster(gdalDataset=gdalDataset)
+
+    def array(self, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noData=None, errorThreshold=0.,
+              warpMemoryLimit=100 * 2 ** 20, multithread=False):
+        '''
+        Returns image data as 3-d numpy array of shape = (bands, ysize, xsize).
+
+        :param overlap: the number of pixels to additionally read along each spatial dimension
+        :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
+        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
+        :param errorThreshold: error threshold for approximation transformer (in pixels)
+        :param warpMemoryLimit: size of working buffer in bytes
+        :param multithread: whether to multithread computation and I/O operations
+        :param grid: explicitly set the :class:`~hubdc.model.Grid`, for which image data is returned
+        '''
+
+        if grid is None:
+            grid = self.grid()
+
+        if self.grid().projection().equal(other=grid.projection()):
+            datasetResampled = self.translate(grid=grid, filename='', format='MEM', resampleAlg=resampleAlg,
+                                              noData=noData)
+        else:
+            datasetResampled = self.warp(grid=grid, filename='', format='MEM', resampleAlg=resampleAlg,
+                                         errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit,
+                                         multithread=multithread, srcNodata=noData)
+
+        array = datasetResampled.readAsArray()
+        datasetResampled.close()
+        return array
 
     def xsize(self):
         return self._gdalDataset.RasterXSize
@@ -762,6 +891,9 @@ class Dataset():
 
     def shape(self):
         return self.zsize(), self.ysize(), self.xsize()
+
+    def dtype(self):
+        return self._gdalDataset.GetRasterBand(1).ReadAsArray(win_xsize=1, win_ysize=1).dtype
 
 
 class _GDALStringFormatter(object):
@@ -793,7 +925,7 @@ class _GDALStringFormatter(object):
 
 class Band():
     def __init__(self, dataset, index):
-        assert isinstance(dataset, Dataset)
+        assert isinstance(dataset, Raster)
         if index < 0 or index > dataset.zsize() - 1:
             raise IndexError()
 
@@ -872,7 +1004,8 @@ class Band():
             self._gdalBand.SetMetadata(other._gdalBand.GetMetadata(domain), domain)
 
     def setNoDataValue(self, value):
-        self._gdalBand.SetNoDataValue(float(value))
+        if value is not None:
+            self._gdalBand.SetNoDataValue(float(value))
 
     def noDataValue(self, default=None):
         noDataValue = self._gdalBand.GetNoDataValue()
@@ -894,7 +1027,7 @@ class Band():
         self._gdalBand.Fill(value)
 
 
-class Layer(object):
+class Vector(object):
     def __init__(self, ogrDataSource, nameOrIndex=0):
         assert isinstance(ogrDataSource, ogr.DataSource)
         self._ogrDataSource = ogrDataSource
@@ -911,14 +1044,15 @@ class Layer(object):
     def projection(self):
         return Projection(wkt=self._ogrLayer.GetSpatialRef())
 
-    def makePixelGrid(self, xRes, yRes):
+    def grid(self, xRes, yRes):
         xmin, xmax, ymin, ymax = self._ogrLayer.GetExtent()
-        return Grid(projection=self.projection(), xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, xRes=xRes, yRes=yRes)
+        return Grid(extent=Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), resolution=Resolution(x=xRes, y=yRes),
+                    projection=self.projection())
 
     def rasterize(self, grid, eType=gdal.GDT_Float32,
-                  initValue=None, burnValue=1, burnAttribute=None, allTouched=False,
+                  initValue=0, burnValue=1, burnAttribute=None, allTouched=False,
                   filter=None, noDataValue=None,
-                  filename='', format='MEM', creationOptions=[]):
+                  filename='', format='MEM', creationOptions=()):
 
         assert isinstance(grid, Grid)
 
@@ -936,11 +1070,10 @@ class Layer(object):
         gdalDataset = driver.Create(filename, grid.size().x(), grid.size().y(), 1, eType, creationOptions)
         gdalDataset.SetProjection(grid.projection().wkt())
         gdalDataset.SetGeoTransform(grid.makeGeoTransform())
-        dataset = Dataset(gdalDataset=gdalDataset)
+        dataset = Raster(gdalDataset=gdalDataset)
         if noDataValue is not None:
             dataset.setNoDataValue(noDataValue)
-        if initValue is not None:
-            dataset.band(0).fill(value=initValue)
+        dataset.band(0).fill(value=initValue)
 
         options = list()
         # special options controlling rasterization:
@@ -973,7 +1106,7 @@ class Layer(object):
         with open(vrtFilename, 'w') as f:
             f.writelines(vrtDefinition)
 
-        layer = Layer(ogrDataSource=ogr.Open(vrtFilename), nameOrIndex=0)
+        layer = Vector(ogrDataSource=ogr.Open(vrtFilename), nameOrIndex=0)
         remove(vrtFilename)
         return layer
 

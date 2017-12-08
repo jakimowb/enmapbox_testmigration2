@@ -33,7 +33,7 @@ def test_ApplierInputRaster():
 
     applier.controls.setProjection(projection=Projection.WGS84())
     applier.controls.setExtent(
-        extent=Open(filename=LT51940232010189KIS01.cfmask).spatialExtent().reproject(
+        extent=openRaster(filename=LT51940232010189KIS01.cfmask).spatialExtent().reproject(
             targetProjection=Projection.WGS84()))
     applier.controls.setResolution(resolution=0.01)
     applier.apply(operatorType=Operator)
@@ -90,7 +90,7 @@ def test_ApplierInputRasterIndex():
     index = ApplierInputRasterIndex.unpickle(filename=filename)
     print(index)
     # - get intersection that covers both scenes
-    grid = Open(filename=LT51940232010189KIS01.cfmask).grid()
+    grid = openRaster(filename=LT51940232010189KIS01.cfmask).grid()
     index2 = index.intersection(grid=grid)
     print(index2)
     # - get intersection that covers only one scene
@@ -111,7 +111,7 @@ def test_ApplierInputVector():
 
     # add vector
     applier = Applier()
-    applier.controls.setGrid(Open(LT51940232010189KIS01.cfmask).grid())
+    applier.controls.setGrid(openRaster(LT51940232010189KIS01.cfmask).grid())
     applier.inputVector.setVector(key='vector', value=ApplierInputVector(filename=BrandenburgDistricts.shp))
     print(applier.inputVector.vector(key='vector'))
     applier.inputVector.setVector(key='vectorFolder/vector',
@@ -170,7 +170,7 @@ def test_ApplierOutputRaster():
     applier.outputRaster.setRaster(key='stack', value=ApplierOutputRaster(filename=join(outdir, 'stack.img')))
     applier.outputRaster.setRaster(key='folder/stack',
                                    value=ApplierOutputRaster(filename=join(outdir, 'folder', 'stack.img')))
-    applier.controls.setGrid(grid=Open(LT51940242010189KIS01.cfmask).grid())
+    applier.controls.setGrid(grid=openRaster(LT51940242010189KIS01.cfmask).grid())
     applier.apply(operatorType=Operator)
 
 
@@ -187,7 +187,7 @@ class TestApplier(TestCase):
                 constArray = operator.getFull(value=42)
 
         applier = Applier()
-        applier.controls.setGrid(grid=Open(LT51940232010189KIS01.cfmask).grid())
+        applier.controls.setGrid(grid=openRaster(LT51940232010189KIS01.cfmask).grid())
         applier.apply(operatorType=Operator)
         applier.apply(operatorType=Operator, overwrite=False)
         applier.apply(operatorFunction=lambda operator, *args, **kwargs: None)
@@ -208,7 +208,7 @@ class TestApplierControls(TestCase):
         applier = Applier()
         applier.inputRaster.setRaster(key='', value=ApplierInputRaster(filename=LT51940232010189KIS01.cfmask))
 
-        ds = Open(filename=LT51940232010189KIS01.cfmask)
+        ds = openRaster(filename=LT51940232010189KIS01.cfmask)
         self.assertRaises(excClass=ValueError, callableObj=applier.controls.setBlockSize, blockSize='not a number')
         applier.controls.setBlockSize(255)
         applier.controls.setBlockSize((255, 255))

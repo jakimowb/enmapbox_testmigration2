@@ -87,7 +87,7 @@ class ApplierInputRaster(ApplierIO):
     def fromDataset(cls, dataset):
         '''Create an input raster from an :class:`~hubdc.model.Dataset`.'''
 
-        assert isinstance(dataset, Dataset)
+        assert isinstance(dataset, Raster)
         applierInputRaster = ApplierInputRaster(filename='')
         applierInputRaster._dataset = dataset
         return applierInputRaster
@@ -107,7 +107,7 @@ class ApplierInputRaster(ApplierIO):
 
     def dataset(self):
         if self._dataset is None:
-            self._dataset = Open(filename=self.filename())
+            self._dataset = openRaster(filename=self.filename())
 
         return self._dataset
 
@@ -177,9 +177,9 @@ class ApplierInputRaster(ApplierIO):
             selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1 + overlap)
 
             datasetClipped = self.dataset().translate(grid=selfGridReprojectedWithBuffer, filename='',
-                                                    format='MEM',
-                                                    bandList=bandList,
-                                                    noData=noData)
+                                                      format='MEM',
+                                                      bandList=bandList,
+                                                      noData=noData)
 
             datasetResampled = datasetClipped.warp(grid=grid, filename='', format='MEM',
                                                    resampleAlg=resampleAlg,
@@ -215,8 +215,8 @@ class ApplierInputRaster(ApplierIO):
         tmpArray = tmpDataset.readAsArray()
 
         binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
-        binarizedDataset = CreateFromArray(grid=gridInSourceProjection, array=binarizedArray,
-                                           filename='', format='MEM', creationOptions=[])
+        binarizedDataset = createRasterFromArray(grid=gridInSourceProjection, array=binarizedArray,
+                                                 filename='', format='MEM', creationOptions=[])
 
         binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
         binarizedInputRaster.setOperator(operator=self.operator())
@@ -305,7 +305,7 @@ class ApplierInputVector(ApplierIO):
     def layer(self):
         '''Return the :class:`~hubdc.model.Layer` object.'''
         if self._layer is None:
-            self._layer = OpenLayer(filename=self.filename(), layerNameOrIndex=self.layerNameOrIndex(), update=False)
+            self._layer = openVector(filename=self.filename(), layerNameOrIndex=self.layerNameOrIndex(), update=False)
         return self._layer
 
     def layerNameOrIndex(self):
@@ -452,7 +452,7 @@ class ApplierOutputRaster(ApplierIO):
     def setMetadataItem(self, key, value, domain):
         '''Set image metadata item.'''
 
-        self._callImageMethod(method=Dataset.setMetadataItem, key=key, value=value, domain=domain)
+        self._callImageMethod(method=Raster.setMetadataItem, key=key, value=value, domain=domain)
 
     def setMetadataDict(self, metadataDict):
         '''
@@ -470,11 +470,11 @@ class ApplierOutputRaster(ApplierIO):
     def setNoDataValue(self, value):
         """Set no data value to all bands."""
 
-        self._callImageMethod(method=Dataset.setNoDataValue, value=value)
+        self._callImageMethod(method=Raster.setNoDataValue, value=value)
 
     def _callImageMethod(self, method, **kwargs):
         if self.operator().isFirstBlock():
-            method = (Dataset, method.__name__)
+            method = (Raster, method.__name__)
             self._writerQueue.put((Writer.CALL_IMAGEMETHOD, self.filename(), method, kwargs))
 
 

@@ -2,7 +2,7 @@ from os.path import join, dirname, basename
 import os
 import numpy
 from osgeo import gdal
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster, Open
+from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster, openRaster
 inroot = r'C:\Work\data\gms\landsat'
 outroot = r'C:\Work\source\hub-datacube\hubdc\examples\testdata'
 for root, dirs, files in os.walk(inroot):
@@ -32,7 +32,7 @@ for root, dirs, files in os.walk(inroot):
 
         if f[:-4].endswith('cfmask'):
             print(f)
-            ds = Open(filename=join(root, f))
+            ds = openRaster(filename=join(root, f))
             ds.translate(filename=join(outroot, f.split('_')[0], f), format='GTiff',
                          grid=ds.pixelGrid.newResolution(500, 500),
                          creationOptions=['COMPRESS=LZW', 'INTERLEAVE=BAND'],

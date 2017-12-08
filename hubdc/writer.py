@@ -2,7 +2,7 @@ from osgeo import gdal, gdal_array
 from multiprocessing import Process, Queue
 from time import sleep
 import numpy
-from hubdc.model import Create, Dataset, Band
+from hubdc.model import createRaster, Raster, Band
 
 class Writer():
     WRITE_IMAGEARRAY, WRITE_BANDARRAY, CALL_IMAGEMETHOD, CALL_BANDMETHOD, CLOSE_DATASETS, CLOSE_WRITER = range(6)
@@ -10,7 +10,7 @@ class Writer():
     @classmethod
     def getDatasets(cls, outputDatasets, filename):
         ds = outputDatasets[filename]
-        assert isinstance(ds, Dataset)
+        assert isinstance(ds, Raster)
         return ds
 
     @classmethod
@@ -32,9 +32,9 @@ class Writer():
 
     @staticmethod
     def createDataset(outputDatasets, filename, bands, dtype, grid, format, creationOptions):
-        outputDatasets[filename] = Create(grid=grid, bands=bands,
-                                          eType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
-                                          filename=filename, format=format, creationOptions=creationOptions)
+        outputDatasets[filename] = createRaster(grid=grid, bands=bands,
+                                                gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
+                                                filename=filename, format=format, options=creationOptions)
 
     @staticmethod
     def closeDatasets(outputDatasets, createEnviHeader):

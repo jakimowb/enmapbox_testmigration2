@@ -8,25 +8,25 @@ from hubdc.model import *
 from hubdc.testdata import LT51940232010189KIS01, LT51940242010189KIS01, BrandenburgDistricts, root
 
 outdir = join(gettempdir(), 'hubdc_test')
-ds = Open(LT51940232010189KIS01.cfmask)
-grid = Open(LT51940232010189KIS01.cfmask).grid()
+ds = openRaster(LT51940232010189KIS01.cfmask)
+grid = openRaster(LT51940232010189KIS01.cfmask).grid()
 
 
 class Test(TestCase):
     def test_Open(self):
-        self.assertIsInstance(obj=Open(filename=LT51940232010189KIS01.cfmask), cls=Dataset)
-        self.assertRaises(excClass=errors.FileNotExistError, callableObj=Open, filename='not a valid file')
-        self.assertRaises(excClass=errors.InvalidGDALDatasetError, callableObj=Open,
+        self.assertIsInstance(obj=openRaster(filename=LT51940232010189KIS01.cfmask), cls=Raster)
+        self.assertRaises(excClass=errors.FileNotExistError, callableObj=openRaster, filename='not a valid file')
+        self.assertRaises(excClass=errors.InvalidGDALDatasetError, callableObj=openRaster,
                           filename=LT51940232010189KIS01.root)
 
     def test_OpenLayer(self):
-        self.assertIsInstance(obj=OpenLayer(filename=BrandenburgDistricts.shp), cls=Layer)
-        self.assertRaises(excClass=errors.FileNotExistError, callableObj=Open, filename='not a valid file')
-        self.assertRaises(excClass=errors.InvalidOGRDataSourceError, callableObj=OpenLayer,
+        self.assertIsInstance(obj=openVector(filename=BrandenburgDistricts.shp), cls=Vector)
+        self.assertRaises(excClass=errors.FileNotExistError, callableObj=openRaster, filename='not a valid file')
+        self.assertRaises(excClass=errors.InvalidOGRDataSourceError, callableObj=openVector,
                           filename=LT51940232010189KIS01.root)
 
     def test_Create(self):
-        self.assertIsInstance(obj=Create(grid=grid), cls=Dataset)
+        self.assertIsInstance(obj=createRaster(grid=grid), cls=Raster)
 
 
 class TestDriver(TestCase):
@@ -42,12 +42,12 @@ class TestDriver(TestCase):
         self.assertFalse(d1.equal(d2))
 
     def test_create(self):
-        self.assertIsInstance(obj=Driver('MEM').create(grid=grid), cls=Dataset)
+        self.assertIsInstance(obj=Driver('MEM').create(grid=grid), cls=Raster)
 
 
 class TestBand(TestCase):
     def test_readAsArray(self):
-        ds = Open(LT51940232010189KIS01.cfmask)
+        ds = openRaster(LT51940232010189KIS01.cfmask)
         band = ds.band(0)
         self.assertIsInstance(obj=band, cls=Band)
         self.assertIsInstance(obj=band.readAsArray(), cls=numpy.ndarray)
@@ -63,7 +63,7 @@ class TestBand(TestCase):
         self.assertTrue(numpy.all(a == b))
 
     def test_writeArray(self):
-        ds = Create(grid=grid)
+        ds = createRaster(grid=grid)
         band = ds.band(index=0)
         array2d = numpy.full(shape=grid.shape(), fill_value=42)
         array3d = numpy.full(shape=grid.shape(), fill_value=42)
@@ -78,7 +78,7 @@ class TestBand(TestCase):
                           grid=grid.subset(offset=Pixel(x=10, y=10), size=grid.size()))
 
     def test_setMetadataItem(self):
-        ds = Create(grid=grid)
+        ds = createRaster(grid=grid)
         band = ds.band(index=0)
         band.setMetadataItem(key='my key', value=42, domain='ENVI')
         self.assertEqual(band.metadataItem(key='my key', domain='ENVI', dtype=int), 42)
@@ -87,8 +87,8 @@ class TestBand(TestCase):
         self.test_setMetadataItem()
 
     def test_copyMetadata(self):
-        ds = Create(grid=grid)
-        ds2 = Create(grid=grid)
+        ds = createRaster(grid=grid)
+        ds2 = createRaster(grid=grid)
         band = ds.band(index=0)
         band2 = ds2.band(index=0)
         band.setMetadataItem(key='my key', value=42, domain='ENVI')
@@ -96,7 +96,7 @@ class TestBand(TestCase):
         self.assertEqual(band2.metadataItem(key='my key', domain='ENVI', dtype=int), 42)
 
     def test_setNoDataValue(self):
-        ds = Create(grid=grid)
+        ds = createRaster(grid=grid)
         band = ds.band(index=0)
         self.assertEqual(band.noDataValue(default=123), 123)
         band.setNoDataValue(value=42)
@@ -106,7 +106,7 @@ class TestBand(TestCase):
         self.test_setNoDataValue()
 
     def test_setDescription(self):
-        ds = Create(grid=grid)
+        ds = createRaster(grid=grid)
         band = ds.band(index=0)
         band.setDescription(value='Hello')
         self.assertEqual(band.description(), 'Hello')
@@ -115,7 +115,7 @@ class TestBand(TestCase):
         self.test_setDescription()
 
     def test_metadataDomainList(self):
-        ds = Create(grid=grid)
+        ds = createRaster(grid=grid)
         band = ds.band(index=0)
         band.setMetadataItem(key='my key', value=42, domain='ENVI')
         band.setMetadataItem(key='my key', value=42, domain='xyz')
@@ -124,7 +124,7 @@ class TestBand(TestCase):
         self.assertSetEqual(gold, lead)
 
     def test_fill(self):
-        ds = Create(grid=grid)
+        ds = createRaster(grid=grid)
         band = ds.band(index=0)
         band.fill(value=42)
         array = band.readAsArray()
