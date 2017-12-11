@@ -16,15 +16,17 @@ from enmapbox.gui.applications import EnMAPBoxApplication
 from Spec2Sensor_cl import Spec2Sensor
 import warnings
 import csv
+import time
 
-pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVM.ui')
+pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVRM.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_LoadTxtFile.ui')
+pathUI3 = os.path.join(os.path.dirname(__file__),'GUI_Select_Wavelengths.ui')
 from enmapbox.gui.utils import loadUIFormClass
 
-class IVVM_GUI(QDialog, loadUIFormClass(pathUI)):
+class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
     
     def __init__(self, parent=None):
-        super(IVVM_GUI, self).__init__(parent)
+        super(IVVRM_GUI, self).__init__(parent)
         self.setupUi(self)
 
 class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
@@ -33,11 +35,17 @@ class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
         super(Load_Txt_File_GUI, self).__init__(parent)
         self.setupUi(self)
 
-class IVVM:
+class Select_Wavelengths_GUI(QDialog, loadUIFormClass(pathUI3)):
+
+    def __init__(self, parent=None):
+        super(Select_Wavelengths_GUI, self).__init__(parent)
+        self.setupUi(self)
+
+class IVVRM:
 
     def __init__(self, main):
         self.main = main
-        self.gui = IVVM_GUI()
+        self.gui = IVVRM_GUI()
         self.special_chars()
         self.initial_values()
         self.update_slider_pos()
@@ -78,6 +86,7 @@ class IVVM:
         # self.plot_color = dict(zip(range(7), ["g", "r", "b", "y", "m", "c", "w"]))
         self.plot_count = 0
         self.current_slider = None
+
         self.data_mean = None
         self.para_list = []
         self.bg_spec = None
@@ -429,7 +438,7 @@ class IVVM:
                                            N=self.para_list[0], cab=self.para_list[1], cw=self.para_list[2],
                                            cm=self.para_list[3], LAI=self.para_list[4], LIDF=self.para_list[6],
                                            typeLIDF=self.typeLIDF, hspot=self.para_list[7], psoil=self.para_list[8],
-                                            cp=self.para_list[12], ccl=self.para_list[13], car=self.para_list[14],
+                                           cp=self.para_list[12], ccl=self.para_list[13], car=self.para_list[14],
                                            cbrown=self.para_list[16], anth=self.para_list[15], soil=self.bg_spec)
 
 
@@ -517,7 +526,7 @@ class IVVM:
         save_matrix = np.zeros(shape=(len(self.wl),2))
         save_matrix[:,0] = self.wl
         save_matrix[:,1] = self.myResult
-        np.savetxt(specnameout, save_matrix, delimiter="\t", header="wavelength (nm)")
+        np.savetxt(specnameout, save_matrix, delimiter="\t", header="Wavelength_nm\tReflectance")
 
     def save_paralist(self):
         paralistout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
@@ -564,7 +573,7 @@ class LoadTxtFile:
         self.gui.lblInputFile.setText("")
         self.divide_by = 1.0
         self.open_type = None
-        self.wl_open, self.data_mean = (None, None)
+        self.wl_open, self.data_mean, self.nbands = (None, None, None)
 
     def open(self, type):
         self.initial_values()
@@ -573,7 +582,7 @@ class LoadTxtFile:
         self.gui.show()
 
     def open_file(self):
-        file_choice = str(QFileDialog.getOpenFileName(caption='Select Spectrum File'))
+        file_choice = str(QFileDialog.getOpenFileName(caption='Select Spectrum File', filter="Text-File (*.txt *.csv)"))
         if not file_choice: # Cancel clicked
             if not self.filenameIn: self.houston(message="No File selected") # no file in memory
             return
@@ -660,7 +669,7 @@ class LoadTxtFile:
         self.gui.tablePreview.setRowCount(n_entries)
         self.gui.tablePreview.setColumnCount(1)
         if self.header_bool:
-            self.gui.tablePreview.setHorizontalHeaderLabels('Reflectances')
+            self.gui.tablePreview.setHorizontalHeaderLabels(('Reflectances', 'bla'))
         self.gui.tablePreview.setVerticalHeaderLabels(row_labels)
 
         for row in xrange(n_entries):
@@ -671,18 +680,6 @@ class LoadTxtFile:
         if wl_offset > 0:
             self.data_mean = self.data_mean[wl_offset:]  # cut off first 50 Bands to start at Band 400
             self.wl_open = self.wl_open[wl_offset:]
-
-        if self.open_type == "in situ":
-            water_absorption_bands = range(1360, 1421) + range(1790, 1941) + range(2400, 2501)
-            self.main.ivvm.data_mean = np.asarray([self.data_mean[i] if self.wl_open[i] not in water_absorption_bands
-                                     else np.nan for i in xrange(len(self.data_mean))])
-
-        elif self.open_type == "background":
-            water_absorption_bands = [range(959, 1022), range(1390, 1541)]
-            for interp_bands in water_absorption_bands:
-                y = [self.data_mean[interp_bands[0]], self.data_mean[interp_bands[-1]]]
-                f = interp1d([interp_bands[0], interp_bands[-1]], [y[0], y[1]])
-                self.data_mean[interp_bands[1:-1]] = f(interp_bands[1:-1])
 
         self.gui.label.setStyleSheet("color: rgb(0, 170, 0);")
         self.gui.label.setText("Ok. No Errors")
@@ -696,24 +693,131 @@ class LoadTxtFile:
         self.gui.cmdOK.setDisabled(True)
 
     def OK(self):
-        if self.open_type == "in situ":
-            self.main.ivvm.data_mean = self.data_mean
-            self.main.ivvm.wl_open = self.wl_open
-        elif self.open_type == "background":
-            self.main.ivvm.bg_spec = self.data_mean
-            self.main.ivvm.gui.BackSpec_label.setText(os.path.basename(self.filenameIn))
-
-        self.main.ivvm.mod_exec()
+        self.nbands = len(self.wl_open)
+        self.main.ivvrm.wl_open = self.wl_open
+        self.main.select_wavelengths.populate()
+        self.main.select_wavelengths.gui.setModal(True)
+        self.main.select_wavelengths.gui.show()
         self.gui.close()
 
+class Select_Wavelengths:
+    def __init__(self, main):
+        self.main = main
+        self.gui = Select_Wavelengths_GUI()
+        self.connections()
+
+    def connections(self):
+        self.gui.cmdSendExclude.clicked.connect(lambda: self.send(direction="in_to_ex"))
+        self.gui.cmdSendInclude.clicked.connect(lambda: self.send(direction="ex_to_in"))
+        self.gui.cmdAll.clicked.connect(lambda: self.select(select="all"))
+        self.gui.cmdNone.clicked.connect(lambda: self.select(select="none"))
+        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+        self.gui.cmdOK.clicked.connect(lambda: self.OK())
+
+    def populate(self):
+        if self.main.loadtxtfile.nbands < 10: width = 1
+        elif self.main.loadtxtfile.nbands < 100: width = 2
+        elif self.main.loadtxtfile.nbands < 1000: width = 3
+        else: width = 4
+
+        if self.main.loadtxtfile.open_type == "in situ":
+            self.default_exclude = range(960, 1021) + range(1390, 1551) + range(2000, 2101)
+        elif self.main.loadtxtfile.open_type == "background":
+            self.default_exclude = range(960, 1021) + range(1390, 1551) + range(2000, 2101)
+
+        for i in xrange(self.main.loadtxtfile.nbands):
+            if i in self.default_exclude:
+                str_band_no = '{num:0{width}}'.format(num=i + 1, width=width)
+                label = "band %s: %6.2f %s" % (str_band_no, self.main.loadtxtfile.wl_open[i], u'nm') # Ersetze durch variable Unit!
+                self.gui.lstExcluded.addItem(label)
+            else:
+                str_band_no = '{num:0{width}}'.format(num=i+1, width=width)
+                label = "band %s: %6.2f %s" %(str_band_no, self.main.loadtxtfile.wl_open[i], u'nm')
+                self.gui.lstIncluded.addItem(label)
+
+    def send(self, direction):
+        if direction == "in_to_ex":
+            origin = self.gui.lstIncluded
+            destination = self.gui.lstExcluded
+        elif direction == "ex_to_in":
+            origin = self.gui.lstExcluded
+            destination = self.gui.lstIncluded
+
+        for item in origin.selectedItems():
+            index = origin.indexFromItem(item).row()
+            destination.addItem(origin.takeItem(index))
+
+        origin.sortItems()
+        destination.sortItems()
+        self.gui.setDisabled(False)
+
+    def select(self, select):
+        self.gui.setDisabled(True)
+        if select == "all":
+            list_object = self.gui.lstIncluded
+            direction = "in_to_ex"
+        elif select == "none":
+            list_object = self.gui.lstExcluded
+            direction = "ex_to_in"
+
+        for i in xrange(list_object.count()):
+            item = list_object.item(i)
+            list_object.setItemSelected(item, True)
+
+        self.send(direction=direction)
+
+    def OK(self):
+        list_object = self.gui.lstExcluded
+        raw_list = []
+        for i in xrange(list_object.count()):
+            item = list_object.item(i).text()
+            raw_list.append(item)
+
+        exclude_bands = [int(raw_list[i].split(" ")[1][:-1]) - 1 for i in xrange(len(raw_list))]
+
+        if self.main.loadtxtfile.open_type == "in situ":
+            self.main.ivvrm.data_mean = np.asarray([self.main.loadtxtfile.data_mean[i] if i not in exclude_bands
+                                                   else np.nan for i in xrange(len(self.main.loadtxtfile.data_mean))])
+
+        elif self.main.loadtxtfile.open_type == "background":
+            water_absorption_ranges = self.generate_ranges(range_list=exclude_bands)
+
+            for interp_bands in water_absorption_ranges:
+                y = [self.main.loadtxtfile.data_mean[interp_bands[0]], self.main.loadtxtfile.data_mean[interp_bands[-1]]]
+                f = interp1d([interp_bands[0], interp_bands[-1]], [y[0], y[1]])
+                self.main.loadtxtfile.data_mean[interp_bands[1:-1]] = f(interp_bands[1:-1])
+
+            self.main.ivvrm.bg_spec = self.main.loadtxtfile.data_mean
+            self.main.ivvrm.gui.BackSpec_label.setText(os.path.basename(self.main.loadtxtfile.filenameIn))
+
+        for list_object in [self.gui.lstIncluded, self.gui.lstExcluded]:
+            list_object.clear()
+
+        self.main.ivvrm.mod_exec()
+        self.gui.close()
+
+    def generate_ranges(self, range_list):
+        water_absorption_ranges = list()
+        last = -2
+        start = -1
+
+        for item in range_list:
+            if item != last + 1:
+                if start != -1:
+                    water_absorption_ranges.append(range(start, last + 1))
+                start = item
+            last = item
+        water_absorption_ranges.append(range(start, last + 1))
+        return water_absorption_ranges
 
 class MainUiFunc:
     def __init__(self):
-        self.ivvm = IVVM(self)
+        self.ivvrm = IVVRM(self)
         self.loadtxtfile = LoadTxtFile(self)
+        self.select_wavelengths = Select_Wavelengths(self)
 
     def show(self):
-        self.ivvm.gui.show()
+        self.ivvrm.gui.show()
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

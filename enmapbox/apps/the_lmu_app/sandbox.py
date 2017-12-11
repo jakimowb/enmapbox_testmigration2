@@ -50,7 +50,7 @@ def sandboxGuiOnly():
     # from VIT_GUI import MainUiFunc
     # from LUT_GUI import MainUiFunc
     # from Global_Inversion_GUI import MainUiFunc
-    from IVVM_GUI import MainUiFunc
+    from IVVRM_GUI import MainUiFunc
 
     m = MainUiFunc()
     m.show()

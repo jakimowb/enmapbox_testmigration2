@@ -49,8 +49,8 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         menu = QMenu(self.name, appMenu)
         menu.setIcon(self.icon())
 
-        a = menu.addAction('Interactive Visualization of Vegetation Models (IVVM)')
-        a.triggered.connect(self.start_GUI_IVVM)
+        a = menu.addAction('Interactive Visualization of Vegetation Reflectance Models (IVVRM)')
+        a.triggered.connect(self.start_GUI_IVVRM)
 
         b = menu.addAction('Create Look-up-table')
         b.triggered.connect(self.start_GUI_LUT)
@@ -67,8 +67,8 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         appMenu.addMenu(menu)
         return menu
 
-    def start_GUI_IVVM(self, *args):
-        from IVVM_GUI import MainUiFunc
+    def start_GUI_IVVRM(self, *args):
+        from IVVRM_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
         # #the the EnMAP-Box know if you create any new file
