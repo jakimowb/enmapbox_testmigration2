@@ -536,14 +536,14 @@ class DataSourceRaster(DataSourceSpatial):
                 self.dataType = band.DataType
 
 
-        if hasClassInfo is not None:
+        if hasClassInfo is True:
             icon = QIcon(':/enmapbox/icons/filelist_classification.png')
-        elif self.dataType in [gdal.GDT_Byte]:
+        elif self.dataType in [gdal.GDT_Byte] and ds.RasterCount == 1:
             icon = QIcon(':/enmapbox/icons/filelist_mask.png')
-        elif self.dataType in [gdal.GDT_Float32, gdal.GDT_Float64, gdal.GDT_CFloat32, gdal.GDT_CFloat64]:
-                icon = QIcon(':/enmapbox/icons/filelist_regression.png')
+        elif ds.RasterCount == 1:
+            icon = QIcon(':/enmapbox/icons/filelist_regression.png')
         else:
-            icon = QIcon(':/enmapbox/icons/mIconRasterLayer.png')
+            icon = QIcon(':/enmapbox/icons/filelist_image.png')
         self.setIcon(icon)
 
     def createUnregisteredMapLayer(self, *args, **kwargs):
