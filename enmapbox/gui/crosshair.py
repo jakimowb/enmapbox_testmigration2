@@ -1,4 +1,22 @@
-
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    crosshair.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
 import os
 
 from qgis.core import *
@@ -29,7 +47,7 @@ def scaledUnitString(num, infix=' ', suffix='B', div=1000):
 class CrosshairStyle(object):
     def __init__(self, **kwds):
 
-        self.mColor = QColor.fromRgb(255,0,0, 125)
+        self.mColor = QColor.fromRgb(255,0,0, 255)
         self.mThickness = 1 #in px
         self.mSize = 1.0 #normalized
         self.mGap = 0.05 #normalized

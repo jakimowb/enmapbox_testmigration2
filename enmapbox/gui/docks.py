@@ -1,6 +1,24 @@
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    docks.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
 
-import itertools
+import itertools, codecs
 import os
 import uuid
 from qgis.gui import *
@@ -36,14 +54,52 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         super(DockArea, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
 
+        s = ""
+
+    def closeEvent(self, closeEvent):
+        assert isinstance(closeEvent, QCloseEvent)
+        s = ""
+
+    def makeContainer(self, typ):
+        c = super(DockArea, self).makeContainer(typ)
+        #c.apoptose = lambda x : DockArea.containerApoptose(c, x)
+        #c.apoptose = lambda p : DockArea.containerApoptose(c,p)
+        #c.apoptose(True)
+        return c
+
+    #todo: somehow manipulate this to solve issue #21
+    #ask user to really close DockArea if more than one dock is opened
+    #"Do you really want to close this window and all contents?"
+    @staticmethod
+    def containerApoptose(self, propagate):
+        ##if there is only one (or zero) item in this container, disappear.
+        cont = self._container
+        c = self.count()
+        if c > 1:
+            return
+        if self.count() == 1:  ## if there is one item, give it to the parent container (unless this is the top)
+            if self is self.area.topContainer:
+                return
+            self.container().insert(self.widget(0), 'before', self)
+        # print "apoptose:", self
+        self.close()
+        if propagate and cont is not None:
+            cont.apoptose()
+
     def apoptose(self):
         #print "apoptose area:", self.temporary, self.topContainer, self.topContainer.count()
         if self.topContainer.count() == 0:
             self.topContainer = None
             from enmapbox.gui.enmapboxgui import EnMAPBoxUI
-            if not isinstance(self.topLevelWidget(), EnMAPBoxUI):
-                s = ""
-
+            if not isinstance(self.topLevelWidget(), EnMAPBoxUI) and \
+                len(self.docks) > 0:
+                pass
+                #info = 'Do you really want to close these {} windows?'.format(len(self.docks))
+                #result = QMessageBox.question(self, "Question",info,
+                 #                             buttons = QMessageBox.Yes | QMessageBox.No,
+                #                              defaultButton=QMessageBox.No)
+                #if result == QMessageBox.No:
+                #    return
             if self.temporary and self.home is not None:
                 self.home.removeTempArea(self)
         else:
@@ -113,7 +169,7 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
         self.topLayout.removeWidget(self.label)
         del self.label
         self.label = self._createLabel(title=title)
-
+        self.label.setMinimumHeight(50)
         self.topLayout.addWidget(self.label, 0, 1)
         self.uuid = uuid.uuid4()
         if closable:
@@ -238,6 +294,9 @@ class DockLabel(VerticalLabel):
         self.setAutoFillBackground(False)
         self.startedDrag = False
 
+        #adjust minimum size
+        self.setMinimumSize(50,50)
+
         self.pressPos = QtCore.QPoint()
 
         closeButton = QToolButton(self)
@@ -254,9 +313,20 @@ class DockLabel(VerticalLabel):
             floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.buttons.append(floatButton)
 
+    def sizeHint(self):
+        s_min = 50
+        if self.orientation == 'vertical':
+            if hasattr(self, 'hint'):
+                return QtCore.QSize(self.hint.height(), self.hint.width())
+            else:
+                return QtCore.QSize(s_min, 50)
+        else:
+            if hasattr(self, 'hint'):
+                return QtCore.QSize(self.hint.width(), self.hint.height())
+            else:
+                return QtCore.QSize(50, s_min)
 
     def minimumSizeHint(self):
-        hn = self.sizeHint()
         h = super(DockLabel, self).minimumSizeHint()
         m = min([h.width(), h.height()])
         return QSize(m,m)
@@ -266,10 +336,6 @@ class DockLabel(VerticalLabel):
         self.sigContextMenuRequest.emit(event)
 
     def updateStyle(self):
-
-        if self.dock.hasFocus():
-            s = ""
-
 
         r = '3px'
 
@@ -390,53 +456,64 @@ class CursorLocationValueDock(Dock):
     def showLocationValues(self, *args):
         self.w.showLocationValues(*args)
 
-class TextDock(Dock):
-    """
-    A dock to visualize textural data
-    """
-    def __init__(self, *args, **kwds):
-        html = kwds.pop('html', None)
-        plainTxt = kwds.pop('plainTxt', None)
+class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
 
-        super(TextDock, self).__init__(*args, **kwds)
+    FILTERS = ';;'.join(["Textfiles (*.txt *.csv *.hdr)", \
+                        "HTML (*.html)" \
+                        "Any file (*.*)"
+                         ])
 
-        self.textEdit = QTextEdit(self)
+    sigSourceChanged = pyqtSignal(str)
+    def __init__(self, parent=None):
+        super(TextDockWidget, self).__init__(parent=parent)
+        self.setupUi(self)
+        self.mFile = None
 
-        if html:
-            self.textEdit.insertHtml(html)
-        elif plainTxt:
-            self.textEdit.insertPlainText(plainTxt)
-        self.layout.addWidget(self.textEdit)
+        self.btnLoadFile.setIcon(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton))
+        self.btnLoadFile.clicked.connect(lambda: self.loadFile(
+            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
+        self.btnSaveFile.clicked.connect(lambda: self.save(saveAs=False))
+        self.btnSaveAs.clicked.connect(lambda :self.save(saveAs=True))
 
+    def loadFile(self, path):
+        if os.path.isfile(path):
+            data = None
+            with codecs.open(path, 'r', 'utf-8') as file:
+                data = ''.join(file.readlines())
 
-class WebViewDock(Dock):
-    def __init__(self, *args, **kwargs):
-        uri = kwargs.pop('uri', None)
-        url = kwargs.pop('url', None)
-        super(WebViewDock,self).__init__(*args, **kwargs)
-        #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
+            ext = os.path.splitext(path)[-1].lower()
+            if data is not None:
+                if ext in ['.html']:
+                    self.textEdit.setHtml(data)
+                else:
+                    self.textEdit.setText(data)
 
-        from PyQt4.QtWebKit import QWebView
-        self.webView = QWebView(self)
-        self.layout.addWidget(self.webView)
+                self.mFile = path
 
-        if uri is not None:
-            self.load(uri)
-        elif url is not None:
-            self.load(url)
-
-    def load(self, uri):
-        if os.path.isfile(uri):
-            url = QUrl.fromLocalFile(uri)
         else:
-            url = QUrl(uri)
-        self.webView.load(url)
-        settings = self.webView.page().settings()
-        from PyQt4.QtWebKit import QWebSettings
-        settings.setAttribute(QWebSettings.LocalContentCanAccessRemoteUrls, True)
-        settings.setAttribute(QWebSettings.LocalContentCanAccessFileUrls, True)
-        settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
-        settings.setAttribute(QWebSettings.AutoLoadImages, True)
+            self.mFile = None
+        self.sigSourceChanged.emit(str(path))
+
+
+    def save(self, saveAs=False):
+        if self.mFile is None or saveAs:
+            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+                                        directory=self.mFile,
+                                        filter=TextDockWidget.FILTERS)
+            s = ""
+            if len(path) > 0:
+                self.mFile = path
+
+        if self.mFile is not None and len(self.mFile) > 0:
+            ext = os.path.splitext(self.mFile)[-1].lower()
+            import codecs
+            if ext in ['.txt','.csv', '.hdr']:
+
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toPlainText())
+            elif ext in ['.html']:
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toHtml())
 
 
 class MimeDataTextEdit(QTextEdit):
@@ -480,34 +557,135 @@ class MimeDataTextEdit(QTextEdit):
         event.setDropAction(Qt.CopyAction)
         event.accept()
 
-class MimeDataDock(TextDock):
+
+class MimeDataDockWidget(QWidget, loadUI('mimedatadockwidget.ui')):
+
+
+    def __init__(self, parent=None):
+        super(MimeDataDockWidget, self).__init__(parent=parent)
+        self.setupUi(self)
+
+    def loadFile(self, path):
+        if os.path.isfile(path):
+            data = None
+            with codecs.open(path, 'r', 'utf-8') as file:
+                data = ''.join(file.readlines())
+
+            ext = os.path.splitext(path)[-1].lower()
+            if data is not None:
+                if ext in ['.html']:
+                    self.textEdit.setHtml(data)
+                else:
+                    self.textEdit.setText(data)
+
+                self.mFile = path
+
+        else:
+            self.mFile = None
+        self.sigSourceChanged.emit(str(path))
+
+
+    def save(self, saveAs=False):
+        if self.mFile is None or saveAs:
+            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+                                        directory=self.mFile,
+                                        filter=TextDockWidget.FILTERS)
+            s = ""
+            if len(path) > 0:
+                self.mFile = path
+
+        if self.mFile is not None and len(self.mFile) > 0:
+            ext = os.path.splitext(self.mFile)[-1].lower()
+            import codecs
+            if ext in ['.txt','.csv', '.hdr']:
+
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toPlainText())
+            elif ext in ['.html']:
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.textEdit.toHtml())
+
+
+class TextDock(Dock):
+    """
+    A dock to visualize textural data
+    """
+    def __init__(self, *args, **kwds):
+        html = kwds.pop('html', None)
+        plainTxt = kwds.pop('plainTxt', None)
+
+        super(TextDock, self).__init__(*args, **kwds)
+
+        self.textDockWidget = TextDockWidget(self)
+
+        if html:
+            self.textDockWidget.textEdit.insertHtml(html)
+        elif plainTxt:
+            self.textDockWidget.textEdit.insertPlainText(plainTxt)
+        self.layout.addWidget(self.textDockWidget)
+
+
+class WebViewDock(Dock):
+    def __init__(self, *args, **kwargs):
+        uri = kwargs.pop('uri', None)
+        url = kwargs.pop('url', None)
+        super(WebViewDock,self).__init__(*args, **kwargs)
+        #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
+
+        from PyQt4.QtWebKit import QWebView
+        self.webView = QWebView(self)
+        self.layout.addWidget(self.webView)
+
+        if uri is not None:
+            self.load(uri)
+        elif url is not None:
+            self.load(url)
+
+    def load(self, uri):
+        if os.path.isfile(uri):
+            url = QUrl.fromLocalFile(uri)
+        else:
+            url = QUrl(uri)
+        self.webView.load(url)
+        settings = self.webView.page().settings()
+        from PyQt4.QtWebKit import QWebSettings
+        settings.setAttribute(QWebSettings.LocalContentCanAccessRemoteUrls, True)
+        settings.setAttribute(QWebSettings.LocalContentCanAccessFileUrls, True)
+        settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
+        settings.setAttribute(QWebSettings.AutoLoadImages, True)
+
+
+class MimeDataDock(Dock):
     """
     A dock to show dropped mime data
     """
     def __init__(self,*args, **kwds):
         super(MimeDataDock, self).__init__(*args, **kwds)
 
+        self.mimeDataWidget = MimeDataDockWidget(self)
+        self.layout.addWidget(self.mimeDataWidget)
 
 
-        self.layout.removeWidget(self.textEdit)
-        self.textEdit = MimeDataTextEdit(self)
-        self.layout.addWidget(self.textEdit)
+class SpectralLibraryDock(Dock):
+    sigLoadFromMapRequest = pyqtSignal()
+    def __init__(self,*args, **kwds):
+        super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-
-
+        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        self.speclibWidget = SpectralLibraryWidget(self)
+        self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
+        self.layout.addWidget(self.speclibWidget)
+        self.mShowMapInteraction = True
 
 
 if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui import sandbox
-    qgsApp = sandbox.initQgisEnvironment()
+    from enmapbox.gui.utils import initQgisApplication
+    qgsApp = initQgisApplication()
     da = DockArea()
-    dock = TextDock(name='title')
-    dock2 = TextDock(name='Super duper long label Super duper long label Super duper long label')
+    dock = MimeDataDock()
     da.addDock(dock)
-    da.addDock(dock2)
     da.show()
     qgsApp.exec_()
-    qgsApp.exitQgis()

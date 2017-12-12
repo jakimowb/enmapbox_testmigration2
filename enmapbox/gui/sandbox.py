@@ -1,4 +1,23 @@
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    sandbox.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
+
 
 import os
 from qgis.core import *
@@ -35,27 +54,6 @@ def _sandboxTemplate():
     qgsApp.exec_()
     qgsApp.exitQgis()
 
-def sandboxPFReport():
-    qgsApp = initQgisEnvironment()
-    import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    EB = EnMAPBox(None)
-    EB.run()
-
-    #create a report in Processing Framework?
-    from enmapbox.testdata import RandomForestModel
-    from enmapboxplugin.processing.Signals import Signals
-    from enmapbox.testdata import HymapBerlinB
-    #EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
-
-    Signals.pickleCreated.emit(RandomForestModel)
-    from enmapbox.gui.utils import DIR_REPO
-    Signals.htmlCreated.emit(jp(DIR_REPO,r'documentation/build/html/hub.gdal.html'))
-
-    qgsApp.exec_()
-    qgsApp.exitQgis()
-
 def sandboxPureGui(dataSources=None, loadProcessingFramework=False, loadExampleData=False):
     qgsApp = initQgisEnvironment()
 
@@ -85,11 +83,34 @@ def sandboxDragDrop():
     qgsApp.exitQgis()
 
 
+def sandboxUmlaut():
+    import enmapbox.gui
+    enmapbox.gui.DEBUG = False
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+
+    EB.loadExampleData()
+    EB.addSource(r'D:\Temp\landsatüddüüä22.vrt')
+    #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
+    #EB.addSources([p])
+    s = ""
+
+
+#for backward compatibility
+initQgisEnvironment = initQgisApplication
+
+
+
 def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
-    EB.openExampleData(mapWindows=2)
+    #EB.openExampleData(mapWindows=1)
 
+    EB.addSource(p)
+    #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
+    #EB.addSources([p])
+    s = ""
 
 
 #for backward compatibility
@@ -163,24 +184,6 @@ def sandboxTreeNodes():
     ui.show()
 
 
-def sandboxDockManager():
-
-
-    from enmapbox.gui.dockmanager import DockManager, DockPanelUI
-    from enmapbox.gui.docks import DockArea
-
-    dm = DockManager()
-    ui = DockPanelUI()
-    ui.connectDockManager(dm)
-    rootNode = ui.model.rootNode
-    from enmapbox.testdata.UrbanGradient import EnMAP
-    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
-
-    da = DockArea()
-    dm.connectDockArea(da)
-    dm.createDock('MAP', initSrc=EnMAP)
-
-    ui.show()
 
 
 
@@ -280,11 +283,11 @@ def sandboxDataSourceManager():
     ui = DataSourcePanelUI()
     ui.connectDataSourceManager(dm)
     d.layout().addWidget(ui)
-    from enmapbox.testdata.UrbanGradient import EnMAP, LandCover
+    from enmapboxtestdata import enmap, landcover
     from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
 
-    dm.addSource(EnMAP)
-    dm.addSource(LandCover)
+    dm.addSource(enmap)
+    dm.addSource(landcover)
     d.show()
     s = ""
 
@@ -304,21 +307,18 @@ if __name__ == '__main__':
         howToStartEnMAPBoxInPython()
         exit(0)
     else:
-        qgsApp = initQgisEnvironment()
-
-        #p = r'D:\Repositories\QGIS_Plugins'
-        #pluginPath = [os.environ.get('QGIS_PLUGINPATH', '')]+[p]
-        #os.environ['QGIS_PLUGINPATH'] = ';'.join(pluginPath)
-
+        from enmapbox.gui.utils import initQgisApplication
+        qgsApp = initQgisApplication()
 
         if False: sandboxTreeNodes()
         if False: sandboxDataSourceManager()
-        if False: sandboxDockManager()
+
         if False: sandboxPureGui(loadProcessingFramework=True)
-        if False: sandboxPFReport()
+
         if False: sandboxDragDrop()
-        if True: sandboxQgisBridge()
+        if False: sandboxQgisBridge()
         if False: sandboxGUI()
+        if True: sandboxUmlaut()
         if False: sandboxDialog()
 
         qgsApp.exec_()

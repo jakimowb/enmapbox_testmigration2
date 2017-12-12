@@ -1,6 +1,5 @@
 <RCC>
  <qresource prefix="enmapbox">
-  <file>Startscreen.png</file>
   <file>icons/ActionIdentifyTimeSeries.png</file>
   <file>icons/IconTimeSeries.png</file>
   <file>icons/add_class.png</file>
@@ -33,6 +32,10 @@
   <file>icons/link_open.png</file>
   <file>icons/locked.png</file>
   <file>icons/lockedGray.png</file>
+  <file>icons/logo_dlr.png</file>
+  <file>icons/logo_enmapproject.png</file>
+  <file>icons/logo_gfz.png</file>
+  <file>icons/logo_hu-berlin.png</file>
   <file>icons/mActionAdd.png</file>
   <file>icons/mActionAddMapView.png</file>
   <file>icons/mActionAddRasterLayer.png</file>
@@ -93,6 +96,7 @@
   <file>icons/viewlist_dock.png</file>
   <file>icons/viewlist_mapdock.png</file>
   <file>icons/viewlist_spectrumdock.png</file>
+  <file>icons/viewlist_textview.png</file>
   <file>icons/zoomToFullExtent.png</file>
   <file>splashscreen.png</file>
  </qresource>

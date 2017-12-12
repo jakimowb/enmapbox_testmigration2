@@ -18,7 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 import os
 from qgis.core import *
 from qgis.gui import *
@@ -30,7 +30,8 @@ from enmapbox.gui.utils import loadUI, gdalDataset
 from itertools import cycle
 
 DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
-DEFAULT_CLASSCOLORS = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99']
+DEFAULT_CLASSCOLORS = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00',
+                       '#cab2d6', '#6a3d9a', '#ffff99']
 DEFAULT_CLASSCOLORS = [QColor(c) for c in DEFAULT_CLASSCOLORS]
 
 COLOR_CYCLE = cycle(DEFAULT_CLASSCOLORS)
@@ -53,12 +54,11 @@ def hasClassification(pathOrDataset):
         return False
 
     for b in range(ds.RasterCount):
-        band = ds.GetRasterBand(b+1)
+        band = ds.GetRasterBand(b + 1)
         assert isinstance(band, gdal.Band)
         if band.GetCategoryNames() or band.GetColorTable():
             return True
     return False
-
 
 
 def getTextColorWithContrast(c):
@@ -71,6 +71,7 @@ def getTextColorWithContrast(c):
 
 class ClassInfo(QObject):
     sigSettingsChanged = pyqtSignal()
+
     def __init__(self, label=0, name=None, color=None, parent=None):
         super(ClassInfo, self).__init__(parent)
 
@@ -92,30 +93,32 @@ class ClassInfo(QObject):
         self.mLabel = label
         self.sigSettingsChanged.emit()
 
-    def label(self): return self.mLabel
-    def color(self): return QColor(self.mColor)
-    def name(self): return self.mName
+    def label(self):
+        return self.mLabel
+
+    def color(self):
+        return QColor(self.mColor)
+
+    def name(self):
+        return self.mName
 
     def setColor(self, color):
         assert isinstance(color, QColor)
         self.mColor = color
         self.sigSettingsChanged.emit()
 
-
     def setName(self, name):
         assert isinstance(name, str)
         self.mName = name
         self.sigSettingsChanged.emit()
 
-
     def icon(self, *args):
         if len(args) == 0:
-            args = (QSize(20,20),)
+            args = (QSize(20, 20),)
 
         pm = QPixmap(*args)
         pm.fill(self.mColor)
         return QIcon(pm)
-
 
     def clone(self):
         return ClassInfo(name=self.mName, color=self.mColor)
@@ -130,16 +133,14 @@ class ClassInfo(QObject):
                other.mLabel == self.mLabel and \
                other.mColor == self.mColor
 
-
     def __repr__(self):
-        return 'ClassInfo'+self.__str__()
+        return 'ClassInfo' + self.__str__()
 
     def __str__(self):
-        return '{} "{}"'.format(self.mLabel,self.mName, str(self.mColor.toRgb()))
+        return '{} "{}"'.format(self.mLabel, self.mName, str(self.mColor.toRgb()))
 
 
 class ClassificationScheme(QObject):
-
     @staticmethod
     def create(n):
         """
@@ -225,13 +226,12 @@ class ClassificationScheme(QObject):
         return not self.__eq__(other)
 
     def __eq__(self, other):
-        if not (isinstance(other, ClassificationScheme)  and len(self) == len(other)):
+        if not (isinstance(other, ClassificationScheme) and len(self) == len(other)):
             return False
         return all(self[i] == other[i] for i in range(len(self)))
 
-
     def __str__(self):
-        return self.__repr__()+'{} classes'.format(len(self))
+        return self.__repr__() + '{} classes'.format(len(self))
 
     def range(self):
         """
@@ -260,6 +260,12 @@ class ClassificationScheme(QObject):
         :return: [list-of-class-colors (QColor)]
         """
         return [QColor(c.mColor) for c in self.mClasses]
+
+    def classColorArray(self):
+        """
+        Returns the RGBA class-colors as array [nClasses,4]
+        """
+        return np.asarray([c.color().getRgb() for c in self])
 
     def gdalColorTable(self):
         """
@@ -291,21 +297,20 @@ class ClassificationScheme(QObject):
             self.mClasses.remove(c)
         self.sigClassesRemoved.emit(classes[:])
 
-
     def removeClass(self, c):
         self.removeClasses([c])
 
     def createClasses(self, n):
         classes = []
         for i in range(n):
-            l = len(self)+len(classes)
+            l = len(self) + len(classes)
             if l == 0:
                 color = QColor('black')
                 name = 'Unclassified'
             else:
                 color = COLOR_CYCLE.next()
                 name = 'Class {}'.format(l)
-            c = ClassInfo(label=l, name = name, color = color)
+            c = ClassInfo(label=l, name=name, color=color)
             classes.append(c)
         self.addClasses(classes)
 
@@ -316,7 +321,7 @@ class ClassificationScheme(QObject):
             addedClasses = []
             for i, c in enumerate(classes):
                 assert isinstance(c, ClassInfo)
-                j = index+i
+                j = index + i
                 c.setLabel(j)
                 c.sigSettingsChanged.connect(self.onClassInfoSettingChanged)
                 addedClasses.append(c)
@@ -325,6 +330,7 @@ class ClassificationScheme(QObject):
             self.sigClassesAdded.emit(addedClasses)
 
     sigClassInfoChanged = pyqtSignal(ClassInfo)
+
     def onClassInfoSettingChanged(self, *args):
         self.sigClassInfoChanged.emit(self.sender())
 
@@ -337,7 +343,7 @@ class ClassificationScheme(QObject):
         ds = gdal.Open(path)
         assert ds is not None
         assert ds.RasterCount < bandIndex
-        band = ds.GetRasterBand(bandIndex+1)
+        band = ds.GetRasterBand(bandIndex + 1)
         ct = gdal.ColorTable()
         cat = []
         for i, classInfo in enumerate(self.mClasses):
@@ -351,7 +357,6 @@ class ClassificationScheme(QObject):
         band.SetCategoryNames(cat)
 
         ds = None
-
 
     def toString(self, sep=';'):
         lines = [sep.join(['class_value', 'class_name', 'R', 'G', 'B', 'A'])]
@@ -379,19 +384,16 @@ class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
         self.mScheme.sigClassesRemoved.connect(self.reset)
         self.mScheme.sigClassInfoChanged.connect(self.onClassInfoChanged)
 
-
     def onClassInfoChanged(self, classInfo):
         i = self.mScheme.index(classInfo)
         idx = self.createIndex(i, 0)
         self.dataChanged.emit(idx, idx)
-
 
     def rowCount(self, parent=None, *args, **kwargs):
         return len(self.mScheme)
 
     def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
         return 1
-
 
     def getClassInfoFromIndex(self, index):
         if index.isValid():
@@ -410,15 +412,14 @@ class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             value = '{} {}'.format(classInfo.mLabel, classInfo.mName)
         if role == Qt.DecorationRole:
-            value = classInfo.icon(QSize(20,20))
+            value = classInfo.icon(QSize(20, 20))
 
         if role == Qt.UserRole:
             value = classInfo
         return value
 
+
 class ClassificationSchemeTableModel(QAbstractTableModel):
-
-
     def __init__(self, scheme, parent=None):
         self.cLABEL = 'Label'
         self.cNAME = 'Name'
@@ -427,16 +428,14 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         assert isinstance(scheme, ClassificationScheme)
         super(ClassificationSchemeTableModel, self).__init__(parent)
 
-
         self.valLabel = QIntValidator(0, 99999)
 
         self.mSchema0 = scheme.clone()
         self.scheme = scheme
 
-
     def removeClasses(self, classes):
         assert isinstance(classes, list)
-        rowIndices = sorted([self.getIndexFromClassInfo(c) for c in classes], key=lambda i:i.row(), reverse=True)
+        rowIndices = sorted([self.getIndexFromClassInfo(c) for c in classes], key=lambda i: i.row(), reverse=True)
         for idx in rowIndices:
             self.beginRemoveRows(idx.parent(), idx.row(), idx.row())
             self.endRemoveRows()
@@ -446,7 +445,7 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         assert isinstance(classes, list)
         if i is None:
             i = len(self.scheme)
-        self.beginInsertRows(QModelIndex(), i, i+len(classes)-1)
+        self.beginInsertRows(QModelIndex(), i, i + len(classes) - 1)
         self.scheme.addClasses(classes, index=i)
         self.endInsertRows()
 
@@ -454,27 +453,24 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         assert isinstance(c, ClassInfo)
         self.insertClasses([c], i=i)
 
-
     def clear(self):
-        self.beginRemoveRows(QModelIndex(), 0, self.rowCount()-1)
+        self.beginRemoveRows(QModelIndex(), 0, self.rowCount() - 1)
         self.scheme.clear()
         self.endRemoveRows()
 
     def rowCount(self, QModelIndex_parent=None, *args, **kwargs):
         return len(self.scheme)
 
-    def columnCount(self, parent = QModelIndex()):
+    def columnCount(self, parent=QModelIndex()):
         return len(self.columnNames)
 
     def getIndexFromClassInfo(self, classInfo):
-        return self.createIndex(self.scheme.mClasses.index(classInfo),0)
+        return self.createIndex(self.scheme.mClasses.index(classInfo), 0)
 
     def getClassInfoFromIndex(self, index):
         if index.isValid():
             return self.scheme[index.row()]
         return None
-
-
 
     def data(self, index, role=Qt.DisplayRole):
         if role is None or not index.isValid():
@@ -529,7 +525,7 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
                 classInfo.setColor(value)
                 return True
             if columnName == self.cLABEL and \
-               self.valLabel.validate(str(value),0)[0] == QValidator.Acceptable:
+                            self.valLabel.validate(str(value), 0)[0] == QValidator.Acceptable:
                 classInfo.setLabel(int(value))
                 return True
         return False
@@ -542,9 +538,9 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         rev = order == Qt.DescendingOrder
 
         if columnName == self.cLABEL:
-            self.scheme.classes.sort(key= lambda c: c.mLabel, reverse= rev)
+            self.scheme.classes.sort(key=lambda c: c.mLabel, reverse=rev)
         if columnName == self.cNAME:
-            self.scheme.classes.sort(key= lambda c: c.mName, reverse= rev)
+            self.scheme.classes.sort(key=lambda c: c.mName, reverse=rev)
 
         self.layoutChanged.emit()
 
@@ -569,13 +565,12 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
 
 
 class ClassificationWidgetDelegates(QStyledItemDelegate):
-
     def __init__(self, tableView, parent=None):
         assert isinstance(tableView, QTableView)
         super(ClassificationWidgetDelegates, self).__init__(parent=parent)
         self.tableView = tableView
         self.tableView.doubleClicked.connect(self.onDoubleClick)
-        #self.tableView.model().rowsInserted.connect(self.onRowsInserted)
+        # self.tableView.model().rowsInserted.connect(self.onRowsInserted)
 
     def onDoubleClick(self, idx):
         model = self.tableView.model()
@@ -587,8 +582,6 @@ class ClassificationWidgetDelegates(QStyledItemDelegate):
             if w1.result() == QDialog.Accepted:
                 c = w1.getColor()
                 model.setData(idx, c, role=Qt.EditRole)
-
-
 
     def getColumnName(self, index):
         assert index.isValid()
@@ -631,10 +624,8 @@ class ClassificationWidgetDelegates(QStyledItemDelegate):
             if index.data() != w.color():
                 model.setData(index, w.color(), Qt.EditRole)
 
+
 class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
-
-
-
     def __init__(self, parent=None, classificationScheme=None):
         super(ClassificationSchemeWidget, self).__init__(parent)
         self.setupUi(self)
@@ -651,27 +642,28 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         self.tableClassificationScheme.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.tableClassificationScheme.setModel(self.schemeModel)
         self.tableClassificationScheme.doubleClicked.connect(self.onTableDoubleClick)
+        self.tableClassificationScheme.resizeColumnsToContents()
         self.selectionModel = QItemSelectionModel(self.schemeModel)
         self.selectionModel.selectionChanged.connect(self.onSelectionChanged)
-        self.onSelectionChanged() #enable/disabel widgets depending on a selection
+        self.onSelectionChanged()  # enable/disabel widgets depending on a selection
         self.tableClassificationScheme.setSelectionModel(self.selectionModel)
 
-        #self.delegate = ClassificationWidgetDelegates(self.tableClassificationScheme)
-        #self.tableClassificationScheme.setItemDelegateForColumn(2, self.delegate)
+        # self.delegate = ClassificationWidgetDelegates(self.tableClassificationScheme)
+        # self.tableClassificationScheme.setItemDelegateForColumn(2, self.delegate)
 
 
         self.btnLoadClasses.clicked.connect(self.loadClasses)
         self.btnRemoveClasses.clicked.connect(self.removeSelectedClasses)
-        self.btnAddClasses.clicked.connect(lambda:self.createClasses(1))
+        self.btnAddClasses.clicked.connect(lambda: self.createClasses(1))
 
     def onTableDoubleClick(self, idx):
         model = self.tableClassificationScheme.model()
         classInfo = model.getClassInfoFromIndex(idx)
         if idx.column() == model.columnNames.index(model.cCOLOR):
-
             c = QColorDialog.getColor(classInfo.mColor, self.tableClassificationScheme, \
                                       'Set class color')
             model.setData(idx, c, role=Qt.EditRole)
+
     def onSelectionChanged(self, *args):
         self.btnRemoveClasses.setEnabled(self.selectionModel is not None and
                                          len(self.selectionModel.selectedRows()) > 0)
@@ -686,10 +678,9 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
             else:
                 color = COLOR_CYCLE.next()
                 name = 'Class {}'.format(l)
-            c = ClassInfo(label=l, name = name, color = color)
+            c = ClassInfo(label=l, name=name, color=color)
             classes.append(c)
         self.schemeModel.insertClasses(classes)
-
 
     def removeSelectedClasses(self):
         model = self.tableClassificationScheme.model()
@@ -697,10 +688,9 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         classes = [self.schemeModel.getClassInfoFromIndex(idx) for idx in indices]
         self.schemeModel.removeClasses(classes)
 
-
     def loadClasses(self, *args):
-        from enmapbox.gui.utils import settings
-        settings = settings()
+        from enmapbox.gui.settings import qtSettingsObj
+        settings = qtSettingsObj()
         settingsKey = 'DEF_DIR_ClassificationSchemeWidget.loadClasses'
         defDir = settings.value(settingsKey, None)
         path = QFileDialog.getOpenFileName(self, 'Select Raster File', directory=defDir)
@@ -710,11 +700,9 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
             if scheme is not None:
                 self.appendClassificationScheme(scheme)
 
-
     def appendClassificationScheme(self, classificationScheme):
         assert isinstance(classificationScheme, ClassificationScheme)
         self.schemeModel.insertClasses([c for c in classificationScheme])
-
 
     def setClassificationScheme(self, classificationScheme):
         assert isinstance(classificationScheme, ClassificationScheme)
@@ -726,7 +714,6 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
 
 
 class ClassificationSchemeDialog(QgsDialog):
-
     @staticmethod
     def getClassificationScheme(*args, **kwds):
         """
@@ -744,19 +731,19 @@ class ClassificationSchemeDialog(QgsDialog):
             return None
 
     def __init__(self, parent=None, classificationScheme=None, title='Specify Classification Scheme'):
-        super(ClassificationSchemeDialog, self).__init__(parent=parent , \
-            buttons=QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        super(ClassificationSchemeDialog, self).__init__(parent=parent, \
+                                                         buttons=QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.w = ClassificationSchemeWidget(parent=self, classificationScheme=classificationScheme)
         self.setWindowTitle(title)
         self.btOk = QPushButton('Ok')
         self.btCancel = QPushButton('Cancel')
         buttonBar = QHBoxLayout()
-        #buttonBar.addWidget(self.btCancel)
-        #buttonBar.addWidget(self.btOk)
+        # buttonBar.addWidget(self.btCancel)
+        # buttonBar.addWidget(self.btOk)
         l = self.layout()
         l.addWidget(self.w)
         l.addLayout(buttonBar)
-        #self.setLayout(l)
+        # self.setLayout(l)
 
         if isinstance(classificationScheme, ClassificationScheme):
             self.setClassificationSheme(classificationScheme)
@@ -770,39 +757,6 @@ class ClassificationSchemeDialog(QgsDialog):
         self.w.setClassificationScheme(classificationScheme)
 
 
-from unittest import TestCase
-class TestReclassify(TestCase):
-
-    def testClassInfo(self):
-        name = 'TestName'
-        label = 2
-        color = QColor('green')
-        c = ClassInfo(name=name, label=label, color=color)
-        self.assertEqual(c.name(), name)
-        self.assertEqual(c.label(), label)
-        self.assertEqual(c.color(), color)
-
-        name2 = 'TestName2'
-        label2 = 3
-        color2 = QColor('red')
-        c.setLabel(label2)
-        c.setColor(color2)
-        c.setName(name2)
-        self.assertEqual(c.name(), name2)
-        self.assertEqual(c.label(), label2)
-        self.assertEqual(c.color(), color2)
-
-
-    def testClassificationScheme(self):
-        cs = ClassificationScheme.createClasses(3)
-
-        self.assertIsInstance(cs, ClassificationScheme)
-        self.assertEqual(cs[0].color(), DEFAULT_UNCLASSIFIEDCOLOR)
-        self.assertEqual(cs[1].color(), DEFAULT_CLASSCOLORS[0])
-        self.assertEqual(cs[2].color(), DEFAULT_CLASSCOLORS[1])
-        c = ClassInfo(label=1, name='New Class', color=QColor('red'))
-        cs.addClass(c)
-        self.assertEqual(cs[3], c)
-        cs.resetLabels()
-        self.assertEqual(cs[3].label(), 3)
-
+if __name__ == '__main__':
+    ci = ClassificationScheme.create(4)
+    print(ci.classColorArray())

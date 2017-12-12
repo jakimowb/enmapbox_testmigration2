@@ -1,4 +1,23 @@
-import os, sys, site, collections, inspect, logging
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    applications.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
+import os, sys, site, collections, inspect, logging, re
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from PyQt4.QtCore import *
@@ -16,7 +35,7 @@ class ApplicationWrapper(QObject):
         super(ApplicationWrapper, self).__init__(parent)
         assert isinstance(app, EnMAPBoxApplication)
         self.app = app
-        self.appId = str(app.__class__)
+        self.appId = '{}'.format(app.__class__)
         self.menuItems = []
         self.geoAlgorithms = []
 
@@ -34,6 +53,24 @@ class ApplicationRegistry(QObject):
         self.processingAlgManager = self.enmapBox.processingAlgManager
         self.appList = collections.OrderedDict()
 
+    def addApplicationPackageFile(self, appPkgFile):
+        assert os.path.isfile(appPkgFile)
+
+        lines = open(appPkgFile).readlines()
+        lines = [l.strip() for l in lines]
+        lines = [l for l in lines if len(l) > 0 and not l.startswith('#')]
+        from enmapbox.gui.utils import DIR_REPO as ROOT
+        lines = [(l if os.path.isabs(l) else os.path.join(ROOT, l)) for l in lines]
+        lines = [l for l in lines if os.path.isdir(l)]
+        for appPath in lines:
+            appDir = os.path.normpath(os.path.dirname(appPath))
+            if not appDir in sys.path:
+                sys.path.append(appDir)
+
+            self.addApplicationPackageSavely(appPath)
+
+
+
     def addApplicationPackageRootFolder(self, appPkgRootFolder):
         """
         Searches and loads the EnMAP-Box application packages located in appDir
@@ -50,14 +87,8 @@ class ApplicationRegistry(QObject):
             appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
             break
 
-        s  =""
         for appPackage in appPackages:
-            try:
-                if self.isApplicationPackage(appPackage):
-                    self.addApplicationPackage(appPackage)
-            except Exception as ex:
-                QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackage, str(ex))
-                                                    , level=QgsMessageLog.CRITICAL)
+           self.addApplicationPackageSavely(appPackage)
         return self
 
     def isApplicationPackage(self, appPackagePath):
@@ -73,7 +104,7 @@ class ApplicationRegistry(QObject):
         appPkgName = os.path.basename(appPackagePath)
         pkgFile = os.path.join(appPackagePath, '__init__.py')
         appFolder = os.path.dirname(appPackagePath)
-        if not os.path.exists(pkgFile):
+        if not os.path.isfile(pkgFile):
             return False
 
 
@@ -88,6 +119,13 @@ class ApplicationRegistry(QObject):
 
         return True
 
+    def addApplicationPackageSavely(self, appPackagePath):
+        try:
+            if self.isApplicationPackage(appPackagePath):
+                self.addApplicationPackage(appPackagePath)
+        except Exception as ex:
+            QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackagePath, '{}'.format(ex))
+                                                , level=QgsMessageLog.CRITICAL)
 
 
     def addApplicationPackage(self, appPackagePath):
@@ -135,14 +173,14 @@ class ApplicationRegistry(QObject):
         for app in apps:
             if not isinstance(app, EnMAPBoxApplication):
                 QgsMessageLog.logMessage('Not an EnMAPBoxApplication instance: {}\n{}'.format(
-                    app.__module__, str(ex))
+                    app.__module__, '{}'.format(ex))
                     , level=QgsMessageLog.CRITICAL)
                 continue
             try:
                 self.addApplication(app)
             except Exception as ex:
                 QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
-                    app.__module__, str(ex))
+                    app.__module__, '{}'.format(ex))
                         , level=QgsMessageLog.CRITICAL)
 
     def addApplication(self, app):

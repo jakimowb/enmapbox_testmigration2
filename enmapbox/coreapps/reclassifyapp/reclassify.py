@@ -52,7 +52,26 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     band.SetColorTable(ct)
 
 
-def reclassify(pathSrc, pathDst, labelLookup,
+def reclassify(pathSrc, pathDst, dstClassScheme, labelLookup,
+               drvDst = None,
+               bandIndices=0, tileSize=None, co=None):
+    assert os.path.isfile(pathSrc)
+    assert isinstance(dstClassScheme, ClassificationScheme)
+    assert isinstance(labelLookup, dict)
+
+
+    import hubflow.types
+    classification = hubflow.types.Classification(pathSrc)
+    names = dstClassScheme.classNames()
+    lookup = dstClassScheme.classColorArray()[:,0:3].flatten()
+    newDef = hubflow.types.ClassDefinition(names=names[1:], lookup=lookup[3:])
+    result = classification.reclassify(filename=pathDst,
+                          classDefinition=newDef,
+                          mapping=labelLookup)
+
+
+
+def depr_reclassify(pathSrc, pathDst, labelLookup,
                drvDst = None,
                dstClassScheme = None,
                bandIndices=0, tileSize=None, co=None):

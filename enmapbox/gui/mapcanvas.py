@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    mapcanvas.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
@@ -13,66 +32,76 @@ from enmapbox.gui.crosshair import CrosshairMapCanvasItem, CrosshairStyle
 
 class CursorLocationMapTool(QgsMapToolEmitPoint):
 
-    sigLocationRequest = pyqtSignal(SpatialPoint)
+    sigLocationRequest = pyqtSignal([SpatialPoint],[SpatialPoint, QgsMapCanvas])
 
-    def __init__(self, canvas, showCrosshair=True):
+    def __init__(self, canvas, showCrosshair=True, purpose=None):
         self.mShowCrosshair = showCrosshair
-        self.canvas = canvas
-        QgsMapToolEmitPoint.__init__(self, self.canvas)
-        self.marker = QgsVertexMarker(self.canvas)
-        self.rubberband = QgsRubberBand(self.canvas, QGis.Polygon)
+        self.mCanvas = canvas
+        self.mPurpose = purpose
+        QgsMapToolEmitPoint.__init__(self, self.mCanvas)
+
+        self.mMarker = QgsVertexMarker(self.mCanvas)
+        self.mRubberband = QgsRubberBand(self.mCanvas, QGis.Polygon)
 
         color = QColor('red')
 
-        self.rubberband.setLineStyle(Qt.SolidLine)
-        self.rubberband.setColor(color)
-        self.rubberband.setWidth(2)
+        self.mRubberband.setLineStyle(Qt.SolidLine)
+        self.mRubberband.setColor(color)
+        self.mRubberband.setWidth(2)
 
-        self.marker.setColor(color)
-        self.marker.setPenWidth(3)
-        self.marker.setIconSize(5)
-        self.marker.setIconType(QgsVertexMarker.ICON_CROSS)  # or ICON_CROSS, ICON_X
+        self.mMarker.setColor(color)
+        self.mMarker.setPenWidth(3)
+        self.mMarker.setIconSize(5)
+        self.mMarker.setIconType(QgsVertexMarker.ICON_CROSS)  # or ICON_CROSS, ICON_X
 
     def canvasPressEvent(self, e):
         geoPoint = self.toMapCoordinates(e.pos())
-        self.marker.setCenter(geoPoint)
-        #self.marker.show()
+        self.mMarker.setCenter(geoPoint)
 
     def setStyle(self, color=None, brushStyle=None, fillColor=None, lineStyle=None):
         if color:
-            self.rubberband.setColor(color)
+            self.mRubberband.setColor(color)
         if brushStyle:
-            self.rubberband.setBrushStyle(brushStyle)
+            self.mRubberband.setBrushStyle(brushStyle)
         if fillColor:
-            self.rubberband.setFillColor(fillColor)
+            self.mRubberband.setFillColor(fillColor)
         if lineStyle:
-            self.rubberband.setLineStyle(lineStyle)
+            self.mRubberband.setLineStyle(lineStyle)
+
     def canvasReleaseEvent(self, e):
 
 
         pixelPoint = e.pixelPoint()
 
-        crs = self.canvas.mapSettings().destinationCrs()
-        self.marker.hide()
+        crs = self.mCanvas.mapSettings().destinationCrs()
+        self.mMarker.hide()
         geoPoint = self.toMapCoordinates(pixelPoint)
         if self.mShowCrosshair:
             #show a temporary crosshair
-            ext = SpatialExtent.fromMapCanvas(self.canvas)
+            ext = SpatialExtent.fromMapCanvas(self.mCanvas)
             cen = geoPoint
             geom = QgsGeometry()
             geom.addPart([QgsPoint(ext.upperLeftPt().x(),cen.y()), QgsPoint(ext.lowerRightPt().x(), cen.y())],
                           QGis.Line)
             geom.addPart([QgsPoint(cen.x(), ext.upperLeftPt().y()), QgsPoint(cen.x(), ext.lowerRightPt().y())],
                           QGis.Line)
-            self.rubberband.addGeometry(geom, None)
-            self.rubberband.show()
+            self.mRubberband.addGeometry(geom, None)
+            self.mRubberband.show()
             #remove crosshair after 0.25 sec
             QTimer.singleShot(250, self.hideRubberband)
 
-        self.sigLocationRequest.emit(SpatialPoint(crs, geoPoint))
+        pt = SpatialPoint(crs, geoPoint)
+        self.sigLocationRequest[SpatialPoint].emit(pt)
+        self.sigLocationRequest[SpatialPoint, QgsMapCanvas].emit(pt, self.canvas())
 
     def hideRubberband(self):
-        self.rubberband.reset()
+        self.mRubberband.reset()
+
+
+class SpectralProfileMapTool(CursorLocationMapTool):
+
+    def __init__(self, *args, **kwds):
+        super(SpectralProfileMapTool, self).__init__(*args, **kwds)
 
 
 class FullExtentMapTool(QgsMapTool):
@@ -85,6 +114,7 @@ class FullExtentMapTool(QgsMapTool):
 
     def flags(self):
         return QgsMapTool.Transient
+
 
 class PixelScaleExtentMapTool(QgsMapTool):
     def __init__(self, canvas):
@@ -470,6 +500,86 @@ class CanvasLink(QObject):
         cs = list(self.canvases)
         return 'CanvasLink "{}" {} <-> {}'.format(self.linkType, cs[0], cs[1])
 
+class MapCanvasInfoItem(QgsAnnotationItem):
+
+    def __init__(self, mapCanvas):
+        assert isinstance(mapCanvas, MapCanvas)
+        super(MapCanvasInfoItem, self).__init__(mapCanvas)
+
+        self.canvas = mapCanvas
+        self.mFGColor = QColor('red')
+        self.mBGColor = QColor(125,0,0, 125)
+        self.mShowMovingCrosshair = True
+        self.mShowPixelLocationInfo = True
+        self.mShow = True
+
+
+    def setMapMouseEvent(self, mapMouseEvent):
+        self.mMapMouseEvent = mapMouseEvent
+        self.update()
+
+
+
+    def setShow(self, b):
+        assert isinstance(b, bool)
+        old = self.mShow
+        self.mShow = b
+        if old != b:
+            self.canvas.update()
+
+
+    def paint(self, painter, QStyleOptionGraphicsItem=None, QWidget_widget=None):
+        if not self.mShow:
+            return
+
+        #paint the crosshair
+        size = self.canvas.size()
+        m2p = self.canvas.mapSettings().mapToPixel()
+        centerGeo = self.canvas.center()
+        centerPx = self.toCanvasCoordinates(centerGeo)
+
+        infoLR = []
+        if isinstance(self.canvas.mMapMouseEvent, QgsMapMouseEvent):
+            match = self.canvas.mMapMouseEvent.mapPointMatch()
+            pt = self.canvas.mMapMouseEvent.mapPoint()
+            px = self.canvas.mMapMouseEvent.originalPixelPoint()
+
+            if len(pt) == 2:
+                infoLR.append('{} {}'.format(*pt))
+            for layer in self.canvas.layers():
+                if isinstance(layer, QgsRasterLayer):
+
+                    s = ""
+
+
+        #this is what we want to draw
+        lines = []
+        polygons = []
+        """
+        lines.append(QLineF(x0, centerPx.y(), centerPx.x() - gap, centerPx.y()))
+        lines.append(QLineF(x1, centerPx.y(), centerPx.x() + gap, centerPx.y()))
+        lines.append(QLineF(centerPx.x(), y0, centerPx.x(), centerPx.y() - gap))
+        lines.append(QLineF(centerPx.x(), y1, centerPx.x(), centerPx.y() + gap))
+        """
+
+
+        pen = QPen(Qt.SolidLine)
+        #pen.setWidth(crosshairStyle.mThickness)
+        pen.setColor(self.mFGColor)
+        pen.setBrush(self.mFGColor)
+        brush = QBrush(Qt.NoBrush)
+        brush.setColor(self.mBGColor)
+        painter.setBrush(brush)
+        painter.setPen(pen)
+        for p in polygons:
+            painter.drawPolygon(p)
+        for p in lines:
+            painter.drawLine(p)
+
+        if len(infoLR) > 0:
+            #print('TEST')
+            painter.drawText(0,50,'\n'.join(infoLR))
+
 
 class MapCanvas(QgsMapCanvas):
 
@@ -479,15 +589,12 @@ class MapCanvas(QgsMapCanvas):
     def instances():
         return list(MapCanvas._instances)
 
-    #sigContextMenuEvent = pyqtSignal(QContextMenuEvent)
+    #sigContextMenuEvent = pyqtSignal(QContextMe7nuEvent)
     sigSpatialExtentChanged = pyqtSignal(SpatialExtent)
     sigCrsChanged  = pyqtSignal(QgsCoordinateReferenceSystem)
 
     sigLayersRemoved = pyqtSignal(list)
     sigLayersAdded = pyqtSignal(list)
-
-    sigCursorLocationRequest = pyqtSignal(SpatialPoint)
-    sigProfileRequest = pyqtSignal(SpatialPoint, QgsMapCanvas)
 
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
@@ -521,12 +628,16 @@ class MapCanvas(QgsMapCanvas):
         self.extentsChanged.connect(self.onExtentsChanged)
 
         self.destinationCrsChanged.connect(lambda : self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
-
-        self.mMapTools = {}
-        self.registerMapTools()
         #activate default map tool
-        self.activateMapTool('PAN')
+        self.setMapTool(QgsMapToolPan(self))
+        self.mMapMouseEvent = None
         MapCanvas._instances.add(self)
+
+
+
+    def mouseMoveEvent(self, event):
+        self.mMapMouseEvent = QgsMapMouseEvent(self,event)
+        return super(MapCanvas, self).mouseMoveEvent(event)
 
     def refresh(self, force=False):
 
@@ -616,7 +727,7 @@ class MapCanvas(QgsMapCanvas):
         Returns the paths/URIs of presented QgsMapLayers
         :return:
         """
-        return [str(l.source()) for l in self.layers()]
+        return [l.source() for l in self.layers()]
 
     def pixmap(self):
         """
@@ -629,14 +740,14 @@ class MapCanvas(QgsMapCanvas):
 
     def saveMapImageDialog(self, fileType):
         from enmapbox.gui import settings
-        lastDir = settings().value('CANVAS_SAVE_IMG_DIR', os.path.expanduser('~'))
-        path = jp(lastDir, '{}.{}.{}'.format(self.tsdView.TSD.date, self.mapView.title(), fileType.lower()))
+        lastDir = settings.value('EMB_SAVE_IMG_DIR', os.path.expanduser('~'))
+        path = jp(lastDir, 'screenshot.{}'.format(fileType.lower()))
 
         path = QFileDialog.getSaveFileName(self, 'Save map as {}'.format(fileType), path)
 
         if len(path) > 0:
             self.saveAsImage(path, None, fileType)
-            settings().setValue('EMB_SAVE_IMG_DIR', os.path.dirname(path))
+            settings.setValue('EMB_SAVE_IMG_DIR', os.path.dirname(path))
 
     def setCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
@@ -666,37 +777,6 @@ class MapCanvas(QgsMapCanvas):
 
     def crosshairIsVisible(self):
         return self.mCrosshairItem.mShow
-
-    def registerMapTool(self, key, mapTool):
-        assert isinstance(key, str)
-        assert isinstance(mapTool, QgsMapTool)
-        assert key not in self.mMapTools.keys()
-        self.mMapTools[key] = mapTool
-        return mapTool
-
-    def registerMapTools(self):
-        self.registerMapTool('PAN', QgsMapToolPan(self))
-        self.registerMapTool('ZOOM_IN', QgsMapToolZoom(self, False))
-        self.registerMapTool('ZOOM_OUT', QgsMapToolZoom(self, True))
-        self.registerMapTool('ZOOM_FULL', FullExtentMapTool(self))
-        self.registerMapTool('ZOOM_PIXEL_SCALE', PixelScaleExtentMapTool(self))
-
-        tool = self.registerMapTool('CURSORLOCATIONVALUE', CursorLocationMapTool(self, showCrosshair=True))
-        tool.sigLocationRequest.connect(self.sigCursorLocationRequest.emit)
-
-        from enmapbox.gui.spectrallibraries import SpectralProfileMapTool
-        tool = self.registerMapTool('SPECTRUMREQUEST', SpectralProfileMapTool(self, showCrosshair=True))
-        assert isinstance(tool, SpectralProfileMapTool)
-        tool.setStyle(color=QColor('green'))
-        tool.sigProfileRequest.connect(self.sigProfileRequest.emit)
-
-        tool = self.registerMapTool('MOVE_CENTER', CursorLocationMapTool(self, showCrosshair=True))
-        tool.sigLocationRequest.connect(self.setCenter)
-
-
-    def activateMapTool(self, key):
-        assert key in self.mMapTools.keys(), 'No QgsMapTool registered with key "{}"'.format(key)
-        self.setMapTool(self.mMapTools[key])
 
     def onScaleChanged(self, scale):
         CanvasLink.applyLinking(self)
@@ -754,6 +834,15 @@ class MapCanvas(QgsMapCanvas):
         ME = MimeDataHelper(event.mimeData())
         # check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
+        if ME.hasPythonObjects():
+            objects = ME.pythonObjects()
+            for o in objects:
+                from enmapbox.gui.spectrallibraries import SpectralLibrary
+                if isinstance(o, SpectralLibrary):
+                    event.setDropAction(Qt.CopyAction)
+                    event.accept()
+                    return
+
         if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
             event.setDropAction(Qt.CopyAction)  # copy but do not remove
             event.accept()
@@ -763,9 +852,17 @@ class MapCanvas(QgsMapCanvas):
 
     def dropEvent(self, event):
         ME = MimeDataHelper(event.mimeData())
-        newLayers = None
-        if ME.hasMapLayers():
+        newLayers = []
+        if ME.hasPythonObjects():
+            from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralLibraryVectorLayer
+            for obj in ME.pythonObjects(typeFilter=SpectralLibrary):
+                slLyr = SpectralLibraryVectorLayer(obj)
+                newLayers.append(slLyr)
+                event.setDropAction(Qt.CopyAction)
+
+        elif ME.hasMapLayers():
             newLayers = ME.mapLayers()
+
         elif ME.hasDataSources():
             from enmapbox.gui.datasources import DataSourceSpatial
             from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -773,7 +870,7 @@ class MapCanvas(QgsMapCanvas):
             dataSources = [EnMAPBox.instance().dataSourceManager.addSource(d) for d in dataSources]
             newLayers = [d.createUnregisteredMapLayer() for d in dataSources]
 
-        if newLayers != None:
+        if len(newLayers) > 0:
             self.setLayers(newLayers + self.layers())
             event.accept()
             event.acceptProposedAction()
@@ -988,10 +1085,6 @@ class MapDock(Dock):
     def sandboxSlot(self,crs):
         self.canvas.setDestinationCrs(crs)
 
-
-    def activateMapTool(self, key):
-        self.canvas.activateMapTool(key)
-
     def mimeData(self):
         return ['']
 
@@ -1034,7 +1127,7 @@ class MapDock(Dock):
         uri = os.path.abspath(uri)
 
         for lyr in self.canvas.layers():
-            lyrUri = os.path.abspath(str(lyr.dataProvider().dataSourceUri()))
+            lyrUri = os.path.abspath(lyr.dataProvider().dataSourceUri())
             if uri == lyrUri:
                 to_remove.append(lyr)
 
@@ -1052,9 +1145,19 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui import sandbox
-    qgsApp = sandbox.initQgisEnvironment()
+    from enmapbox.gui.utils import initQgisApplication
+    from enmapboxtestdata import enmap
+    qgsApp = initQgisApplication()
 
+    map = MapCanvas()
+
+    mapInfo = MapCanvasInfoItem(map)
+
+    lyr = QgsRasterLayer(enmap)
+    QgsMapLayerRegistry.instance().addMapLayer(lyr)
+    map.setLayers([lyr])
+    map.setExtent(lyr.extent())
+    map.show()
 
     qgsApp.exec_()
     qgsApp.exitQgis()

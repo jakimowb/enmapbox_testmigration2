@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 import matplotlib
 matplotlib.use('QT4Agg')
-#from matplotlib import pyplot
+import hubflow.test
+
 
 # init QGIS
 import processing.core.Processing
@@ -37,7 +38,7 @@ Processing.initialize()
 Processing.addProvider(EnMAPProvider())
 
 # setup test environment
-from os.path import join
+from os.path import join, exists
 from tempfile import gettempdir
 import enmapboxtestdata
 from enmapboxgeoalgorithms.algorithms import *
@@ -46,6 +47,7 @@ from processing.core.SilentProgress import SilentProgress as QGISSilentProgress
 
 class ProgressBar(QGISSilentProgress):
     def __init__(self):
+        QGISSilentProgress.__init__(self)
         self.cuiProgressBar = CUIProgressBar()
     def error(self, msg):
         self.cuiProgressBar.displayError(msg)
@@ -79,150 +81,169 @@ class ProgressBar(QGISSilentProgress):
 outdir = join(gettempdir(), 'eb_test')
 view = False
 
-unsupervisedSampleFilename = join(outdir, 'unsupervisedSample.pkl')
-classificationSampleFilename = join(outdir, 'classificationSample.pkl')
-probabilitySampleFilename = join(outdir, 'probabilitySample.pkl')
-regressionSampleFilename = probabilitySampleFilename
-dummyPklFilename = join(outdir, 'dummy.pkl')
+enmap = hubflow.test.enmap.filename
+enmapClassification = hubflow.test.enmapClassification.filename
+enmapProbability = hubflow.test.enmapProbability.filename
+enmapMask = hubflow.test.enmapMask.filename
+vector = hubflow.test.vector.filename
 
-vectorFilename = enmapboxtestdata.landcover
-imageFilename = enmapboxtestdata.enmap
-maskFilename = join(outdir, 'mask.img')
-classificationFilename = join(outdir, 'classification.img')
-probabilityFilename = join(outdir, 'probability.img')
-regressionFilename = probabilityFilename
-dummyImageFilename = join(outdir, 'dummy.img')
+enmapUnsupervisedSample = join(outdir, 'enmapUnsupervisedSample.pkl')
+hubflow.test.enmapUnsupervisedSample.pickle(filename=enmapUnsupervisedSample)
 
-reportFilename = join(outdir, 'report.html')
+enmapClassificationSample = join(outdir, 'enmapClassificationSample.pkl')
+hubflow.test.enmapClassificationSample.pickle(filename=enmapClassificationSample)
 
+enmapRegressionSample = join(outdir, 'enmapRegressionSample.pkl')
+hubflow.test.enmapProbabilitySample.pickle(filename=enmapRegressionSample)
+
+enmapProbabilitySample = join(outdir, 'enmapProbabilitySample.pkl')
+hubflow.test.enmapProbabilitySample.pickle(filename=enmapProbabilitySample)
+
+dummyPickle = join(outdir, 'dummy.pkl')
+
+#vectorFilename = enmapboxtestdata.landcover
+#imageFilename = enmapboxtestdata.enmap
+#maskFilename = join(outdir, 'mask.img')
+#classificationFilename = join(outdir, 'classification.img')
+#probabilityFilename = join(outdir, 'probability.img')
+#regressionFilename = probabilityFilename
+dummyImage = join(outdir, 'dummy.img')
 
 def runalg(alg, io):
-    print('##############')
+    print('\n##############')
     print(alg.__class__.__name__)
-    processing.runalg(alg, io, progress=[ProgressBar(), QGISSilentProgress()][0])
-    print('')
+    processing.runalg(alg, io, progress=[None, ProgressBar(), QGISSilentProgress()][0])
     return
 
-def classification_assessClassificationPerformance():
-    io = {'prediction':classificationFilename, 'reference':classificationFilename, 'report':reportFilename}
-    return runalg(ClassificationAssessClassificationPerformance(), io)
+def test_Classification():
 
-
-def classificationSample_fromENVISpectralLibrary():
-    io = {'envi':enmapboxtestdata.speclib, 'prefix':'level 2', 'view':view, 'classificationSample':classificationSampleFilename}
-    return runalg(ClassificationSampleFromENVISpectralLibrary(), io)
-
-def classificationSample_synthMix():
-    io = {'classificationSample':classificationSampleFilename, 'n':100, 'complex2':1.0, 'complex3':0.0, 'option':0,
-          'view':view, 'probabilitySample':probabilitySampleFilename}
-    return runalg(ClassificationSampleSynthMix(), io)
-
-def classifier_fit():
-    for alg in CLASSIFIERS_GA.values():
-        io = {'sample':classificationSampleFilename,
-              'parameters':alg.getParameterValue('parameters'),
-              'view':view, 'model':dummyPklFilename}
-        runalg(alg, io)
-
-def regressor_fit():
-    for alg in REGRESSORS_GA.values():
-        io = {'sample':regressionSampleFilename,
-              'parameters':alg.getParameterValue('parameters'),
-              'view':view, 'model':dummyPklFilename}
-        runalg(alg, io)
-
-def estimator_fit():
-    for name, classifierFitGA in CLASSIFIERS_GA.items():
-        assert isinstance(classifierFitGA, EnMAPGeoAlgorithm)
-        io = {'sample':classificationSampleFilename,
-              'parameters':classifierFitGA.getParameterFromName('parameters').default,
-              'view':view, 'model':dummyPklFilename}
-        return runalg(classifierFitGA, io)
-
-def image_SampleByClassification():
-    io = {'image':imageFilename, 'classification':classificationFilename, 'mask':maskFilename, 'view':view,
-          'classificationSample':dummyPklFilename}
-    return runalg(ImageSampleByClassification(), io)
-
-def probability_asClassColorRGB():
-    io = {'probability':probabilityFilename, 'filterById':'', 'filterByName':'', 'image':dummyImageFilename}
-    return runalg(ProbabilityAsClassColorRGB(), io)
-
-def probabilitySample_classify():
-    io = {'probabilitySample':probabilitySampleFilename, 'minOverallCoverage':1., 'minWinnerCoverage':0.5,
-          'view':view, 'classificationSample':dummyPklFilename}
-    return runalg(ProbabilitySampleClassify(), io)
-
-def probabilitySample_subsetClassesByClassName():
-    io = {'probabilitySample':probabilitySampleFilename, 'names':'Roof, Tree', 'view':view, 'probabilitySample2':dummyImageFilename}
-    return runalg(ProbabilitySampleSubsetClassesByClassName(), io)
-
-def regression_assessRegressionPerformance():
-    io = {'prediction':regressionFilename, 'reference':regressionFilename, 'report':reportFilename}
-    return runalg(RegressionAssessRegressionPerformance(), io)
-
-def unsupervisedSample_fromENVISpectralLibrary():
-    io = {'envi':enmapboxtestdata.speclib, 'view':view, 'unsupervisedSample':unsupervisedSampleFilename}
-    return runalg(UnsupervisedSampleFromENVISpectralLibrary(), io)
-
-def unsupervisedSample_scaleFeatures():
-    io = {'unsupervisedSample':unsupervisedSampleFilename, 'factor':1., 'view':view, 'unsupervisedSample2':dummyPklFilename}
-    return runalg(UnsupervisedSampleScaleFeatures(), io)
-
-def vector_rasterize():
-
-    io = {'image':enmapboxtestdata.enmap, 'vector':enmapboxtestdata.landcover, 'initValue':0, 'burnValue':1,
-          'burnAttribute':enmapboxtestdata.landcoverAttributes.Level_2_ID, 'allTouched':True, 'dtype':3,
-          'image2':maskFilename}
-    return runalg(VectorRasterize(), io)
-
-def vectorClassification_rasterizeAsClassification():
-    io = {'image':imageFilename, 'vector':vectorFilename, 'idAttribute':enmapboxtestdata.landcoverAttributes.Level_2_ID,
+    filename = join(outdir, 'ClassificationFromVectorClassification.img')
+    io = {'image':enmap, 'vector':vector, 'idAttribute':enmapboxtestdata.landcoverAttributes.Level_2_ID,
           'names':enmapboxtestdata.landcoverClassDefinition.level2.names,
           'lookup':enmapboxtestdata.landcoverClassDefinition.level2.lookup,
           'minOverallCoverage':1., 'minWinnerCoverage':0.5, 'oversampling':10,
-          'classification':classificationFilename}
-    return runalg(VectorClassificationRasterizeAsClassification(), io)
+          'classification':filename}
+    runalg(ClassificationFromVectorClassification(), io)
+    print(Classification(filename=filename))
 
-def vectorClassification_rasterizeAsProbability():
-    io = {'image':imageFilename, 'vector':vectorFilename, 'idAttribute':enmapboxtestdata.landcoverAttributes.Level_2_ID,
-	 'names': str(enmapboxtestdata.landcoverClassDefinition.level2.names), 'lookup': str(enmapboxtestdata.landcoverClassDefinition.level2.lookup),
-     'minOverallCoverage':1, 'oversampling':10, 'probability':probabilityFilename}
-    return runalg(VectorClassificationRasterizeAsProbability(), io)
+def test_ClassificationPerformance():
+    io = {'prediction':enmapClassification, 'reference':enmapClassification, 'report':join(outdir, 'ClassificationPerformanceFromClassification.html')}
+    runalg(ClassificationPerformanceFromClassification(), io)
 
-def createAllTestInputs():
-    classificationSample_fromENVISpectralLibrary()
-    classificationSample_synthMix()
-    vector_rasterize()
-    vectorClassification_rasterizeAsClassification()
-    vectorClassification_rasterizeAsProbability()
+def test_ClassificationSample():
+    sample = join(outdir, 'ClassificationSampleFromENVISpectralLibrary.pkl')
+    io = {'envi':enmapboxtestdata.speclib, 'prefix':'level 2',
+          'classificationSample':sample}
+    runalg(ClassificationSampleFromENVISpectralLibrary(), io)
+    print(ClassificationSample.unpickle(filename=sample))
 
-# todo test EstimatorFit, EstimatorPredict
+    sample = join(outdir, 'ClassificationSampleFromENVISpectralLibrary.pkl')
+    io = {'probabilitySample':enmapProbabilitySample,
+          'classificationSample':sample}
+    runalg(ClassificationSampleFromProbabilitySample(), io)
+    print(ClassificationSample.unpickle(filename=sample))
 
-def testAll():
-    classification_assessClassificationPerformance()
-    classificationSample_fromENVISpectralLibrary()
-    classificationSample_synthMix()
-    classifier_fit()
-    estimator_fit()
-    image_SampleByClassification()
-    probability_asClassColorRGB()
-    probabilitySample_classify()
-    probabilitySample_subsetClassesByClassName()
-    regression_assessRegressionPerformance()
-    unsupervisedSample_fromENVISpectralLibrary()
-    unsupervisedSample_scaleFeatures()
-    vector_rasterize()
-    vectorClassification_rasterizeAsClassification()
-    vectorClassification_rasterizeAsProbability()
+    sample = join(outdir, 'ClassificationSampleSynthMix.pkl')
+    io = {'classificationSample':enmapClassificationSample, 'n':100, 'complex2':1.0, 'complex3':0.0, 'option':0,
+          'probabilitySample':sample}
+    runalg(ClassificationSampleSynthMix(), io)
+    print(ClassificationSample.unpickle(filename=sample))
+
+    sample = join(outdir, 'ClassificationSampleFromClassification.pkl')
+    io = {'image':enmap, 'classification':enmapClassification, 'mask':enmapMask,
+          'classificationSample':sample}
+    runalg(ClassificationSampleFromClassification(), io)
+    print(ClassificationSample.unpickle(filename=sample))
+
+def test_Classifier():
+    for alg in CLASSIFIERS_GA.values()[1:]:
+
+        # fit
+        model = join(outdir, 'Classifier{}.pkl'.format(alg.name.replace(' ','')))
+        io = {'sample':enmapClassificationSample,
+              'parameters':alg.getParameterValue('parameters'),
+              'model':model}
+        runalg(alg, io)
+        print(model)
+        print(Classifier.unpickle(filename=model))
+
+        # predict
+        prediction = join(outdir, 'ClassifierPredict{}.img'.format(alg.name.split()[1]))
+        io = {'image':enmap, 'mask':enmapMask, 'model':model,
+              'prediction':prediction}
+        runalg(EstimatorPredict(group=CLASSIFIERS_GROUP), io)
+        print(Classification(filename=prediction))
+
+
+
+def test_Regressor():
+    for alg in REGRESSORS_GA.values():
+        model = join(outdir, 'Regressor{}.pkl'.format(alg.name.replace(' ', '')))
+        io = {'sample':enmapProbabilitySample,
+              'parameters':alg.getParameterValue('parameters'),
+              'model':model}
+        runalg(alg, io)
+        print(model)
+        print(Regressor.unpickle(filename=model))
+
+def test_Probability():
+    filename = join(outdir, 'ProbabilityAsClassColorRGB.img')
+    io = {'probability':enmapProbability, 'filterById':'', 'filterByName':'',
+          'image':filename}
+    runalg(ProbabilityAsClassColorRGB(), io)
+    print(Image(filename=filename))
+
+    filename = join(outdir, 'ProbabilityFromVectorClassification.img')
+    io = {'image': enmap, 'vector': vector,
+      'idAttribute': enmapboxtestdata.landcoverAttributes.Level_2_ID,
+      'names': str(enmapboxtestdata.landcoverClassDefinition.level2.names),
+      'lookup': str(enmapboxtestdata.landcoverClassDefinition.level2.lookup),
+      'minOverallCoverage': 1, 'oversampling': 10, 'probability': filename}
+    runalg(ProbabilityFromVectorClassification(), io)
+    print(Probability(filename=filename))
+
+def test_ProbabilitySample():
+
+    print('!!! ProbabilitySampleSubsetClassesByName NOT WORKING !!!')
+    # todo: not working
+    #sample = join((outdir, 'ProbabilitySampleSubsetClassesByName.pkl'))
+    #io = {'probabilitySample':enmapProbabilitySample, 'names':'Roof, Tree',
+    #      'probabilitySample2':sample}
+    #runalg(ProbabilitySampleSubsetClassesByName(), io)
+    #print(ProbabilitySample.unpickle(filename=sample))
+
+def test_RegressionPerformance():
+    io = {'prediction':enmapProbability, 'reference':enmapProbability, 'report':join(outdir, 'RegressionPerformanceFromRegression.html')}
+    runalg(RegressionPerformanceFromRegression(), io)
+
+def test_UnsupervisedSample():
+    sample = join(outdir, 'UnsupervisedSampleFromENVISpectralLibrary.pkl')
+    io = {'envi':enmapboxtestdata.speclib, 'unsupervisedSample':sample}
+    runalg(UnsupervisedSampleFromENVISpectralLibrary(), io)
+    print(UnsupervisedSample.unpickle(filename=sample))
+
+    sample = join(outdir, 'UnsupervisedSampleScaleFeatures.pkl')
+    io = {'unsupervisedSample':enmapUnsupervisedSample, 'factor':1.,
+          'unsupervisedSample2':sample}
+    runalg(UnsupervisedSampleScaleFeatures(), io)
+    print(UnsupervisedSample.unpickle(filename=sample))
+
+def test_Image():
+
+    image2 = join(outdir, 'ImageFromVector.img')
+    io = {'image':enmapboxtestdata.enmap, 'vector':enmapboxtestdata.landcover, 'initValue':0, 'burnValue':1,
+          'burnAttribute':enmapboxtestdata.landcoverAttributes.Level_2_ID, 'allTouched':True, 'dtype':3,
+          'image2':image2}
+    runalg(ImageFromVector(), io)
+    print(Image(filename=image2))
 
 def printAllAlgs():
     for key, algs in algList.algs.items():
         print(key)
         for name, alg in algs.items():
-            if not isinstance(alg, VectorClassificationRasterizeAsProbability): continue
+            #if not isinstance(alg, VectorClassificationRasterizeAsProbability): continue
             print(name)
-            processing.alghelp(name)
+            #processing.alghelp(name)
 
 def printMenu():
     menu = dict()
@@ -231,17 +252,27 @@ def printMenu():
         for name, alg in algs.items():
             if alg.group not in menu:
                 menu[alg.group] = list()
-            menu[alg.group].append(alg.name)
+            menu[alg.group].append((alg.name, alg.__class__.__name__))
     for group in sorted(menu):
         print(group)
-        for name in menu[group]:
-            print('  '+name)
+        for name, className in sorted(menu[group]):
+            print('  {} ({})'.format(name, className))
+
+def run():
+
+    #test_Classification()
+    #test_ClassificationPerformance()
+    #test_ClassificationSample()
+    test_Classifier()
+    #test_Image()
+    #test_Probability()
+    #test_ProbabilitySample()
+    #test_RegressionPerformance()
+    #test_Regressor()
+    #test_UnsupervisedSample()
 
 if __name__ == '__main__':
     print('output directory: ' + outdir)
+    run()
     #printAllAlgs()
-    #createAllTestInputs()
-    #testAll()
     #printMenu()
-    #classifier_fit()
-    regressor_fit()

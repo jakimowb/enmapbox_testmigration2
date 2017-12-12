@@ -189,7 +189,10 @@ def compile_rc_files(ROOT):
         bn = os.path.basename(f)
         bn = os.path.splitext(bn)[0]
         pathPy2 = os.path.join(DIR_UIFILES, bn+'.py' )
+        tmp = os.getcwd()
+        os.chdir(os.path.dirname(__file__))
         subprocess.call(['pyrcc4', '-py2', '-o', pathPy2, pathQrc])
+        os.chdir(tmp)
 
 def fileNeedsUpdate(file1, file2):
     """
@@ -563,49 +566,17 @@ if __name__ == '__main__':
     from enmapbox.gui.utils import DIR_TESTDATA, DIR_UIFILES, DIR_ICONS
 
     qgsApp = QgsApplication([], True)
-
     qgsApp.initQgis()
-
-    #create classification from shapefile
-    if False:
-        root = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover'
-        pathShp = jp(root,'LandCov_Vec_Berlin_Urban_Gradient_2009.shp')
-        pathDst = jp(root,'LandCov_Class_Berlin_Urban_Gradient_2009.bsq')
-        pathRef = jp(root,'LandCov_Layer_Level1_Berlin_Urban_Gradient_2009.bsq')
-        rasterize_vector_labels(pathRef, pathDst, pathShp, 'Level_1')
-        s = ""
 
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
 
     if True:
         #convert SVG to PNG and add link them into the resource file
-        svg2png(icondir, overwrite=True)
+        svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)
 
     if True: compile_rc_files(DIR_UIFILES)
-
-    if False:
-        #create a test data set
-        dirSrc = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
-        dirDst = jp(DIR_TESTDATA, 'UrbanGradient')
-
-        from qgis.core import *
-        from enmapbox.gui.utils import SpatialExtent
-
-        UL = QgsPoint(383851.349,5819308.225)
-        LR = QgsPoint(384459.867,5818407.722)
-        crs = QgsCoordinateReferenceSystem('EPSG:32633')
-        ext = SpatialExtent(crs, UL, LR)
-        createTestData(dirSrc, dirDst, ext)
-        createFilePackage(dirDst)
-
-    if False:
-        #update __init__.py of testdata directories
-
-        for d in filter(os.path.isdir, [os.path.join(DIR_TESTDATA,f) for f in os.listdir(DIR_TESTDATA)]):
-            createFilePackage(d)
-        s = ""
 
     print('Done')
 

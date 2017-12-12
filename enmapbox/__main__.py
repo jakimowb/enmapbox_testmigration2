@@ -34,12 +34,6 @@ def run():
     from qgis.utils import iface
     enmapbox = EnMAPBox(iface)
     enmapbox.run()
-    #enmapbox.openExampleData(mapWindows=1)
-
-    from enmapbox.gui.utils import file_search, jp, DIR_REPO
-    #enmapbox.addSource(r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\testsample.pkl')
-    enmapbox.addSource(jp(DIR_REPO, 'tmp/testclass.tif'))
-    enmapbox.addSource(jp(DIR_REPO, 'tmp/classsample.pkl'))
     qgisApp.exec_()
 
 
@@ -49,21 +43,6 @@ if __name__ == '__main__':
         sys.path.remove(thisDir)
 
     args = sys.argv[1:]
-
-    pathQgs = None
-    pathQgsPlugins  = None
-
-    # todo: add command line options
-
-    if sys.platform == 'darwin':
-        if pathQgs is None:
-            pathQgs = r'/Applications/QGIS.app/Contents/Resources/python'
-
-        if pathQgsPlugins is None:
-            pathQgsPlugins = os.path.join(pathQgs, 'plugins')
-
-        site.addsitedir(pathQgs)
-        site.addsitedir(pathQgsPlugins)
 
 
     run()

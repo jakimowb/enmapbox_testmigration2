@@ -2,20 +2,27 @@ from osgeo import gdal, gdal_array
 from multiprocessing import Process, Queue
 from time import sleep
 import numpy
-from hubdc.model import Create
+from hubdc.model import Create, Dataset
 
 class Writer():
+    WRITE_IMAGEARRAY, WRITE_BANDARRAY, CALL_IMAGEMETHOD, CALL_BANDMETHOD, CLOSE_DATASETS, CLOSE_WRITER = range(6)
 
-    WRITE_ARRAY, SET_META, SET_NODATA, CLOSE_DATASETS, CLOSE_WRITER = range(5)
+    @classmethod
+    def getDatasets(cls, outputDatasets, filename):
+        ds = outputDatasets[filename]
+        assert isinstance(ds, Dataset)
+        return ds
 
     @classmethod
     def handleTask(cls, task, args, outputDatasets):
-        if task is cls.WRITE_ARRAY:
-            cls.writeArray(outputDatasets, *args)
-        elif task is cls.SET_META:
-            cls.setMetadataItem(outputDatasets, *args)
-        elif task is cls.SET_NODATA:
-            cls.setNoDataValue(outputDatasets, *args)
+        if task is cls.WRITE_IMAGEARRAY:
+            cls.writeImageArray(outputDatasets, *args)
+        elif task is cls.WRITE_BANDARRAY:
+            cls.writeBandArray(outputDatasets, *args)
+        elif task is cls.CALL_IMAGEMETHOD:
+            cls.callImageMethode(outputDatasets, *args)
+        elif task is cls.CALL_BANDMETHOD:
+            cls.callBandMethode(outputDatasets, *args)
         elif task is cls.CLOSE_DATASETS:
             cls.closeDatasets(outputDatasets, *args)
         elif task is cls.CLOSE_WRITER:
@@ -24,12 +31,9 @@ class Writer():
             raise ValueError(str(task))
 
     @staticmethod
-    def createDataset(outputDatasets, filename, array, grid, format, creationOptions):
-        if not isinstance(array, numpy.ndarray) or array.ndim != 3:
-            raise Exception('array must be a 3-d numpy array')
-
-        outputDatasets[filename] = Create(pixelGrid=grid, bands=len(array),
-                                          eType=gdal_array.NumericTypeCodeToGDALTypeCode(array.dtype),
+    def createDataset(outputDatasets, filename, bands, dtype, grid, format, creationOptions):
+        outputDatasets[filename] = Create(pixelGrid=grid, bands=bands,
+                                          eType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
                                           dstName=filename, format=format, creationOptions=creationOptions)
 
     @staticmethod
@@ -41,26 +45,27 @@ class Writer():
                 outputDataset.writeENVIHeader()
             outputDataset.close()
 
-    @staticmethod
-    def writeArray(outputDatasets, filename, array, subgrid, maingrid, format, creationOptions):
+    @classmethod
+    def writeImageArray(cls, outputDatasets, filename, array, subgrid, maingrid, format, creationOptions):
 
         if filename not in outputDatasets:
-            Writer.createDataset(outputDatasets, filename, array, maingrid, format, creationOptions)
+            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=len(array), dtype=array.dtype, grid=maingrid, format=format, creationOptions=creationOptions)
+        cls.getDatasets(outputDatasets, filename).writeArray(array=array, pixelGrid=subgrid)
 
-        outputDatasets[filename].writeArray(array=array, pixelGrid=subgrid)
-        outputDatasets[filename].flushCache()
+    @classmethod
+    def writeBandArray(cls, outputDatasets, filename, array, bandNumber, bands, subgrid, maingrid, format, creationOptions):
 
-    @staticmethod
-    def setMetadataItem(outputDatasets, filename, key, value, domain):
-        outputDatasets[filename].setMetadataItem(key=key, value=value, domain=domain)
-        if key=='band names' and domain=='ENVI' and value is not None:
-            for dsBand, bandName in zip(outputDatasets[filename], value):
-                dsBand.setDescription(str(bandName))
+        if filename not in outputDatasets:
+            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=bands, dtype=array.dtype, grid=maingrid, format=format, creationOptions=creationOptions)
+        cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber).writeArray(array=array, pixelGrid=subgrid)
 
-    @staticmethod
-    def setNoDataValue(outputDatasets, filename, value):
-        for dsBand in outputDatasets[filename]:
-            dsBand.setNoDataValue(value)
+    @classmethod
+    def callImageMethode(cls, outputDatasets, filename, method, kwargs):
+        method(cls.getDatasets(outputDatasets, filename), **kwargs)
+
+    @classmethod
+    def callBandMethode(cls, outputDatasets, filename, bandNumber, method, kwargs):
+        method(cls.getDatasets(outputDatasets, filename).getBand(bandNumber=bandNumber), **kwargs)
 
 class WriterProcess(Process):
 

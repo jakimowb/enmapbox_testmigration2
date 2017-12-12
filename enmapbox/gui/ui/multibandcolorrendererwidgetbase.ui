@@ -207,7 +207,7 @@ enhancement</string>
      <item row="0" column="0" colspan="3">
       <widget class="QFrame" name="btnBar">
        <property name="frameShape">
-        <enum>QFrame::StyledPanel</enum>
+        <enum>QFrame::NoFrame</enum>
        </property>
        <property name="frameShadow">
         <enum>QFrame::Raised</enum>
@@ -275,10 +275,10 @@ enhancement</string>
   </layout>
   <action name="actionSet453">
    <property name="text">
-    <string>NSR</string>
+    <string>SWIR</string>
    </property>
    <property name="toolTip">
-    <string>Set to swIR-mwIR-red (Landsat 4-5-3)</string>
+    <string>Set to nIR-swIR-R</string>
    </property>
   </action>
   <action name="actionSetCIR">
