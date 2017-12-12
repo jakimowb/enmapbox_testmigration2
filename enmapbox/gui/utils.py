@@ -490,21 +490,32 @@ def bandClosestToWavelength(dataset, wl, wl_unit='nm'):
         assert wl.upper() in LUT_WAVELENGTH.keys(), wl
         return bandClosestToWavelength(dataset, LUT_WAVELENGTH[wl.upper()], wl_unit='nm')
     else:
-        wl = float(wl)
-        ds_wl, ds_wlu = parseWavelength(dataset)
+        try:
+            wl = float(wl)
+            ds_wl, ds_wlu = parseWavelength(dataset)
 
-        if ds_wl is None or ds_wlu is None:
-            return 0
+            if ds_wl is None or ds_wlu is None:
+                return 0
 
 
-        if ds_wlu != wl_unit:
-            wl = convertMetricUnit(wl, wl_unit, ds_wlu)
-        return int(np.argmin(np.abs(ds_wl - wl)))
+            if ds_wlu != wl_unit:
+                wl = convertMetricUnit(wl, wl_unit, ds_wlu)
+            return int(np.argmin(np.abs(ds_wl - wl)))
+        except:
+            pass
+    return 0
 
 
 def parseWavelength(dataset):
+    """
+    Returns the wavelength + wavelength unit of a dataset
+    :param dataset:
+    :return: (wl, wl_u) or (None, None), if not existing
+    """
+
     wl = None
     wlu = None
+
     if isinstance(dataset, str):
         dataset = dataset.decode('utf-8')
     if isinstance(dataset, unicode):
@@ -551,7 +562,7 @@ def parseWavelength(dataset):
                     else:
                         wlu = '-'
 
-        if len(wl) > dataset.RasterCount:
+        if wl is not None and len(wl) > dataset.RasterCount:
             wl = wl[0:dataset.RasterCount]
 
     return wl, wlu
