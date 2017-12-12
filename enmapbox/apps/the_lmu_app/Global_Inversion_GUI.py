@@ -41,6 +41,13 @@ class PRG_GUI(QDialog, loadUIFormClass(pathUI_prg)):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
         self.setupUi(self)
+        self.allow_cancel = False
+
+    def closeEvent(self, event):
+        if self.allow_cancel:
+            event.accept()
+        else:
+            event.ignore()
 
 class Global_Inversion:
 
@@ -121,7 +128,7 @@ class Global_Inversion:
         self.gui.cmdRun.clicked.connect(lambda: self.run_inversion())
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
 
-        self.gui.cmdDebug.clicked.connect(lambda: self.debug())
+        # self.gui.cmdDebug.clicked.connect(lambda: self.debug()) # Debug
 
     def open_file(self, mode):
         if mode=="image":
@@ -149,6 +156,19 @@ class Global_Inversion:
             self.LUT_path = result
             self.LUT_path = self.LUT_path.replace("\\", "/")
             self.gui.lblInputLUT.setText(result)
+            with open(self.LUT_path, 'r') as metafile:
+                metacontent = metafile.readlines()
+                metacontent = [line.rstrip('\n') for line in metacontent]
+            if metacontent[4].split("=")[1] == "None":
+                self.gui.radGeoFix.setDisabled(True)
+                self.gui.radGeoFromFile.setDisabled(True)
+                self.gui.radGeoOff.setChecked(True)
+                self.select_geo(mode="off")
+            else:
+                self.gui.radGeoFix.setDisabled(False)
+                self.gui.radGeoFromFile.setDisabled(False)
+
+
         elif mode=="output":
             result = str(QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)"))
             if not result: return
@@ -274,6 +294,10 @@ class Global_Inversion:
                 except ValueError:
                     raise ValueError('Cannot interpret Geometry angles as numbers')
 
+        elif self.geo_mode == "off":
+            self.geo_fixed = None
+            self.geo_file = None
+
         # Noise
         if not self.noisetype == 0:
             if self.gui.txtNoiseLevel.text() == "": raise ValueError('Please specify level for artificial noise')
@@ -358,15 +382,28 @@ class Global_Inversion:
                                 nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
                                 noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
                                 geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
-                                nodat=self.nodat, which_para=range(15))
+                                nodat=self.nodat)
         except ValueError as e:
             self.abort(message="Failed to setup inversion: %s" % str(e))
             return
 
+
+        # inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
+        #                         nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
+        #                         noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
+        #                         geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
+        #                         nodat=self.nodat)
+
         try:
             inv.run_inversion(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
         except ValueError as e:
-            self.abort(message="An error occurred during inversion: %s" % str(e))
+            if str(e) == "Inversion canceled":
+                self.abort(message=str(e))
+            else:
+                self.abort(message="An error occurred during inversion: %s" % str(e))
+            self.prg_widget.gui.lblCancel.setText("")
+            self.prg_widget.gui.allow_cancel = True
+            self.prg_widget.gui.close()
             return
 
         self.prg_widget.gui.lblCaption_r.setText("Writing Output-File...")
@@ -378,6 +415,8 @@ class Global_Inversion:
             self.abort(message="An error occurred while trying to write output-image: %s" % str(e))
             return
 
+        self.prg_widget.gui.lblCancel.setText("")
+        self.prg_widget.gui.allow_cancel = True
         self.prg_widget.gui.close()
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
         self.gui.close()
@@ -437,9 +476,9 @@ class Global_Inversion:
 
     def debug(self):
 
-        self.image = "D:/Temp/LUT/WW_nadir_short.bsq"
-        self.out_path = "D:/Temp/LUT/Out/myresults.bsq"
-        self.LUT_path = "D:/Temp/LUT/Test_Lut_00meta.lut"
+        self.image = "D:/Temp/LUT/WW_0.bsq"
+        self.out_path = "D:/Temp/LUT/debug/Restuls_Five.bsq"
+        self.LUT_path = "D:/Temp/LUT/debug/Five_00meta.lut"
         self.ctype = 2
         self.nbfits = 20
         self.nbfits_type = "abs"
@@ -466,7 +505,7 @@ class Global_Inversion:
                             nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
                             noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
                             geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
-                            nodat=[-999]*3, which_para=range(15))
+                            nodat=[-999]*3)
 
         if inv_setup:
             self.abort(message=inv_setup)
@@ -485,6 +524,7 @@ class Global_Inversion:
             self.abort(message=write_inv)
             return
 
+        self.prg_widget.gui.allow_cancel = True
         self.prg_widget.gui.close()
         QMessageBox.information(self.gui, "Finish", "Inversion finished")
         self.gui.close()
@@ -533,8 +573,10 @@ class Select_Wavelengths:
 
         origin.sortItems()
         destination.sortItems()
+        self.gui.setDisabled(False)
 
     def select(self, select):
+        self.gui.setDisabled(True)
         if select == "all":
             list_object = self.gui.lstIncluded
             direction = "in_to_ex"
@@ -600,11 +642,16 @@ class PRG:
     def __init__(self, main):
         self.main = main
         self.gui = PRG_GUI()
+        self.gui.lblCancel.setVisible(False)
         self.connections()
 
     def connections(self):
-        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+        self.gui.cmdCancel.clicked.connect(lambda: self.cancel())
 
+    def cancel(self):
+        self.gui.allow_cancel = True
+        self.gui.cmdCancel.setDisabled(True)
+        self.gui.lblCancel.setText("-1")
 
 class MainUiFunc:
     def __init__(self):

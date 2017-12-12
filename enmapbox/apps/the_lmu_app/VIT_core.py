@@ -49,7 +49,8 @@ class VIT:
                       "MSI", "NDWI", "PWI", "SRWI", "SMIRVI", "CAI", "NDLI", "NDNI", "BGI", "BRI", "RGI", "SRPI",
                       "NPCI", "CUR", "LIC1", "LIC2", "LIC3"]
 
-        self.labels = [all_labels[i] for i in xrange(self.n_indices) if CollapseIndices[i] == 1]
+        self.labels = [all_labels[i] for i in xrange(len(all_labels)) if CollapseIndices[i] == 1]
+
         
         # List of wavelengths [nm] used for the indices. Append for new index!
         wl_list = [415, 420, 430, 435, 440, 445, 450, 500, 510, 528, 531, 547, 550, 554, 567, 645, 650, 665, 668, 670, 672, 675,
@@ -112,7 +113,7 @@ class VIT:
             ImageIn_matrix[:,:,band_no] = np.reshape(in_array, (self.nrows, self.ncols))  # reshape into ImageIn_matrix (band per band)
 
         self.dict_band = dict(zip(self.wl, band_range)) # maps wavelengths to (valid) sensor bands
-        self.mask = np.all(ImageIn_matrix == -999, axis=2)
+        self.mask = np.all(ImageIn_matrix == int(self.nodat[0]), axis=2)
         self.ImageIn_matrix = ImageIn_matrix
 
         return ImageIn_matrix
@@ -122,11 +123,6 @@ class VIT:
         band_out = []
 
         for wl_in in wl_list:
-            if self.IT == 0: # No interpolation
-                if wl_in in self.wl:
-                    Val_target = self.dict_band[wl_in]
-                else:
-                    Val_taget = -1
 
             if self.IT == 1:  # nearest neighbor
                 distances = [abs(wl_in - self.wl[i]) for i in
@@ -187,6 +183,7 @@ class VIT:
 
                     Val_target = self.spline(wl_in)
 
+            # band_out contains the sensor-available wavelengths that are needed for the indices
             band_out.append(Val_target)
             band_out = [int(band_out[i]) for i in xrange(len(band_out))]
 
@@ -194,8 +191,12 @@ class VIT:
 
     def prgbar_process(self, index_no):
         if self.prg:
-            self.prg.gui.prgBar.setValue(index_no*100 // self.n_indices)
-            self.QGis_app.processEvents()
+            if self.prg.gui.lblCancel.text() == "-1": # Cancel has been hit shortly before
+                self.prg.gui.lblCancel.setText("")
+                self.prg.gui.cmdCancel.setDisabled(False)
+                raise ValueError("Calculation of Indices canceled")
+            self.prg.gui.prgBar.setValue(index_no*100 // self.n_indices) # progress value is index-orientated
+            self.QGis_app.processEvents() # mach ma neu
 
     def calculate_VIT(self, ImageIn_matrix, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
@@ -607,73 +608,17 @@ class VIT:
                 destination.SetMetadataItem('data ignore value', str(self.nodat[1]), 'ENVI')
 
         else:  # Output to single file
-            destination = driver.Create(OutDir + OutFilename + '.bsq', self.ncols,
-                                        self.nrows, self.n_indices,
-                                        gdal.GDT_Float32)  # Create output file: Name, Spalten, Reihen, Kanäle, Datentyp
-            for i in xrange(self.n_indices):
-                b = destination.GetRasterBand(i + 1)
-                b.SetDescription(self.labels[i])
-                b.WriteArray(IndexOut_matrix[:,:,i])
+            try:
+                destination = driver.Create(OutDir + OutFilename + '.bsq', self.ncols,
+                                            self.nrows, self.n_indices,
+                                            gdal.GDT_Float32)  # Create output file: Name, Spalten, Reihen, Kanäle, Datentyp
+                for i in xrange(self.n_indices):
+                    b = destination.GetRasterBand(i + 1)
+                    b.SetDescription(self.labels[i])
+                    b.WriteArray(IndexOut_matrix[:,:,i])
 
-            destination.SetMetadataItem('data ignore value', str(self.nodat[1]), 'ENVI')
-
+                destination.SetMetadataItem('data ignore value', str(self.nodat[1]), 'ENVI')
+            except:
+                raise ValueError
         dataset = None
         destination = None
-
-
-def example():
-    ImgIn = "D:/Temp/LUT/E_DJ_short.bsq"  # Input-Image
-    OutDir = "Out/"  # Output-Dir
-    OutFilename = "AVI_test"  # Output-Filename (base)
-    OutSingle = 1  # Output to single file?
-    nodat = [-999, -999]  # in, out
-    IT = 1  # Interpolation Type; 1 = nearest Neighbor, 2 = linear interpolation, 3 = IDW, 4 = Spline
-    IDW_exp = 2  # Exponent for IDW interpolation (2 = quadratic, 1 = linear)
-    Convert_Refl = 0.0001  # EnMAP Segl: Refl*10,000
-    mask_pixels = []
-
-    ####
-    ## List of Indices
-    ####
-
-    ## Structural || Struct1: hNDVI (Opp.), Struct2: NDVI (Apr.), Struct3: NDVI (Dat.), Struct4: NDVI (Hab.), Struct5: NDVI (Zar.)
-    # Struct6: MCARI1, Struct7: MCARI2, Struct8: MSAVI, Struct9: MTVI1, Struct10: MTVI2, Struct11: OSAVI ,
-    # Struct12: RDVI, Struct13: SPVI
-
-    ## Chlorophyll || Chl1: CSI1, Chl2: CSI2, Chl3: G, Chl4: GM1, Chl5: GM2, Chl6: gNDVI, Chl7: MCARI, Chl8: NPQI,
-    # Chl9: PRI, Chl10: REIP1, Chl11: REP, Chl12: SRchl, Chl13: SR705, Chl14: TCARI, Chl15: TVI, Chl16: VOG1,
-    # Chl17: VOG2, Chl18: VOG3, Chl19: ZTM, Chl20: SRa, Chl21: SRb, Chl22: SRb2, Chl23: SRtot, Chl24: PSSRa, Chl25: PSSRb
-    # Chl26: LCI, Chl27: MLO, Chl28: CCI
-
-    ## Carotenoid || Car1: ARI, Car2: CRI, Car3: CRI2, Car4: PSSRc, Car5: SIPI
-
-    ## Leaf Water || Wat1: DSWI, Wat2: DWSI5, Wat3: LMVI1, Wat4: LMVI2, Wat5: MSI, Wat6: NDWI, Wat7: PWI, Wat8: SRWI
-
-    ## Dry Matter || Dm1: SMIRVI, Dm2: CAI, Dm3: NDLI, Dm4: NDNI, Dm5: BGI, Dm6: BRI, Dm7: RGI, Dm8: SRPI, Dm9: NPCI
-
-    ## Flourescence || Fl1: CUR, Fl2: LIC1, Fl3: LIC2, Fl4: LIC3
-
-    # StructIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 13 Indices
-    StructIndices = [1] * 13
-    # ChlIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 27 Indices
-    ChlIndices = [1] * 26
-    # CarIndices = [0, 0, 0, 0, 0] # 5 Indices
-    CarIndices = [1] * 5
-    # WatIndices = [0, 0, 0, 0, 0, 0, 0] # 8 Indices
-    WatIndices = [1] * 8
-    # DmIndices = [0, 0, 0, 0, 0, 0, 0, 0, 0] # 9 Indices
-    DmIndices = [1] * 9
-    # FlIndices = [0, 0, 0, 0] # 4 Indics
-    FlIndices = [1] * 4
-
-
-    vit = VIT(IT=IT, nodat=[-999, -999], IDW_exp=IDW_exp)
-    ImageIn_matrix = vit.read_image(ImgIn=ImgIn, Convert_Refl=Convert_Refl)
-    vit.toggle_indices(StructIndices=StructIndices, ChlIndices=ChlIndices, CarIndices=CarIndices, WatIndices=WatIndices,
-                       DmIndices=DmIndices, FlIndices=FlIndices)
-    IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix)
-    # avi.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=OutDir, OutFilename=OutFilename, OutSingle=OutSingle)
-
-if __name__ == '__main__':
-    example()
-

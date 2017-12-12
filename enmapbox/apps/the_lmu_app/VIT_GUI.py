@@ -31,29 +31,36 @@ class PRG_GUI(QDialog, loadUIFormClass(pathUI_Prg)):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
         self.setupUi(self)
+        self.allow_cancel = False
+
+    def closeEvent(self, event): # window may only be closed, if self.allow_cancel is TRUE (=Cancel Button hit)
+        if self.allow_cancel:
+            event.accept()
+        else:
+            event.ignore()
 
 class VIT:
     def __init__(self, main):
         self.main = main
         self.gui = VIT_GUI()
 
-        self.checkboxes = self.gui.findChildren(QCheckBox)
-        self.dictchecks()
+        self.checkboxes = self.gui.findChildren(QCheckBox) # all Checkboxes in the GUI
+        self.dictchecks() # connect checkboxes to dictionary
         self.connections()
         self.initial_values()
 
     def initial_values(self):
         self.inFile, self.outFileName, self.outExtension, self.outDir = None, None, None, None
-        self.IT = 1
-        self.IDW_exp = 2
-        self.outSingle = 1
-        self.structIndices = [-1]*13
+        self.IT = 1 # Interpolation type: 1: NN, 2: linear, 3: IDW, 4: Spline (def: 1);
+        self.IDW_exp = 2 # exponent of IDW interpolation
+        self.outSingle = 1 # 1: output to single file; else: output to individual files
+        self.structIndices = [-1]*13 # preset all indices in groups and set their flags to -1 (off)
         self.chlIndices = [-1] * 26
         self.carIndices = [-1] * 5
         self.watIndices = [-1] * 8
         self.dmIndices = [-1] * 9
         self.flIndices = [-1] * 4
-        self.nodat = [None, None]
+        self.nodat = [None, None] # nodat[0] = in, nodat[1] = out
 
     def connections(self):
         self.gui.cmdSelectAll.clicked.connect(lambda: self.check(bool=True))
@@ -62,18 +69,16 @@ class VIT:
         self.gui.cmdInput.clicked.connect(lambda: self.Image(IO="in"))
         self.gui.cmdOutput.clicked.connect(lambda: self.Image(IO="out"))
         self.gui.cmdCancel.clicked.connect(lambda: self.exit_gui())
-        # self.gui.structural_group.clicked.connect(lambda: self.check(group=2))
 
         self.gui.radNN.toggled.connect(lambda: self.toggle_interpol())
         self.gui.radLinear.toggled.connect(lambda: self.toggle_interpol())
-        # self.gui.radNo.toggled.connect(lambda: self.toggle_interpol())
         self.gui.radIDW.toggled.connect(lambda: self.toggle_interpol())
         self.gui.spinIDW_exp.valueChanged.connect(lambda: self.toggle_interpol())
-
 
         self.gui.radSingle.toggled.connect(lambda: self.toggle_write())
         self.gui.radIndiv.toggled.connect(lambda: self.toggle_write())
 
+        # assign checkboxes to function: select/deselct on click
         for id in self.dict_structural:
             self.dict_structural[id].stateChanged.connect(lambda group, iid=id: self.toggles(group="structural", cid=iid))
         for id in self.dict_chl:
@@ -87,7 +92,7 @@ class VIT:
         for id in self.dict_fluor:
             self.dict_fluor[id].stateChanged.connect(lambda group, iid=id: self.toggles(group="fluor", cid=iid))
 
-    def toggles(self, group, cid):
+    def toggles(self, group, cid): # *= -1 is a switch on/off
         if group == "structural":
             self.structIndices[cid] *= -1
         elif group == "chl":
@@ -101,7 +106,7 @@ class VIT:
         elif group == "fluor":
             self.flIndices[cid] *= -1
 
-    def dictchecks(self):
+    def dictchecks(self): # a dictionary for all the checkboxes, so they can be adressed in functions
         self.dict_structural = {0: self.gui.box_hndvi_opp, 1: self.gui.box_ndvi_apa, 2: self.gui.box_ndvi_dat, 3: self.gui.box_ndvi_hab,
                              4: self.gui.box_ndvi_zar, 5: self.gui.box_mcari1, 6: self.gui.box_mcari2, 7: self.gui.box_msavi,
                              8: self.gui.box_mtvi1, 9: self.gui.box_mtvi2, 10: self.gui.box_osavi, 11: self.gui.box_rdvi, 12: self.gui.box_spvi}
@@ -123,7 +128,7 @@ class VIT:
 
         self.dict_fluor = {0: self.gui.box_cur, 1: self.gui.box_lic1, 2: self.gui.box_lic2, 3: self.gui.box_lic3}
 
-    def check(self, bool):
+    def check(self, bool): # select/deselect checkboxes (all)
         for i in xrange(len(self.dict_structural)):
             self.dict_structural[i].setChecked(bool)
         for i in xrange(len(self.dict_chl)):
@@ -161,14 +166,14 @@ class VIT:
     def Image(self, IO):
         if IO == "in":
             inFile = str(QFileDialog.getOpenFileName(caption='Select Input Image File'))
-            if not inFile: return
+            if not inFile: return # cancel button is hit
 
             dataset = gdal.Open(inFile)
             if dataset is None:
                 QMessageBox.critical(self.gui, "error", 'Image could not be read. Please make sure it is a valid ENVI image')
                 return
             nbands = dataset.RasterCount
-            try:
+            try: # get wavelengths from input file
                 wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
                 wavelengths = wavelengths.replace("{", "")
                 wavelengths = wavelengths.replace("}", "")
@@ -177,6 +182,7 @@ class VIT:
                 QMessageBox.critical(self.gui, "error", 'Wavelengths could not be read from header file')
                 return
 
+            # find wavelength unit and set conversion if necessary
             if dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['nanometers', 'nm', 'nanometer']:
                 wave_convert = 1
                 self.wunit = u'nm'
@@ -187,15 +193,15 @@ class VIT:
                 QMessageBox.critical(self.gui, "error", 'No wavelength units supplied in header file')
                 return
 
-            self.wl = [float(item) * wave_convert for item in wavelengths]
+            self.wl = [float(item) * wave_convert for item in wavelengths] # valid wavelengths of input dataset
 
-            try:
+            try: # get nodata-Value
                 nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
                 self.nodat[0] = nodata
-            except:
+            except: # open the nodata-dialog if nodata is not supplied
                 self.main.nodat_widget.init(image=inFile)
                 self.main.nodat_widget.gui.setModal(True)  # parent window is blocked
-                self.main.nodat_widget.gui.exec_()
+                self.main.nodat_widget.gui.exec_() # exec instead of "show" to stop python from processing further code
 
             self.inFile = inFile
             self.gui.lblInputImage.setText(self.inFile)
@@ -207,14 +213,14 @@ class VIT:
             self.gui.txtOutput.setText(outFile)
             try:
                 self.outFileName = basename(outFile).split('.')[0]
-                self.outExtension = basename(outFile).split('.')[1]
+                self.outExtension = '.' + basename(outFile).split('.')[1]
             except:
                 self.outExtension = '.bsq'
                 self.outFileName = basename(outFile)
-            self.outDir = dirname(outFile) + "/"
+            self.outDir = dirname(outFile) + "/" # outDir ends with / so that a filename can be string-added
 
     def exit_gui(self):
-        self.gui.close()
+        self.gui.close() # I wonder what this does...
 
     def run_VIT(self):
         if self.inFile is None:
@@ -233,22 +239,20 @@ class VIT:
                 QMessageBox.critical(self.gui, "Error", "'%s' is not a valid  No Data Value!" % self.gui.txtNodatOutput.text())
                 return
 
-        if self.IT == 0:
-            question = QMessageBox.question(self.gui, "No Interpolation", "Please note: Only those indices will be calculated, for which wavelengths are directly supported by the sensor. Do you wish to continue without interpolation option?", QMessageBox.Yes | QMessageBox.No)
-            if question == QMessageBox.No: return
-
+        # show progressbar - window
         self.main.prg_widget.gui.lblCaption_l.setText("Vegetation Indices Toolbox")
-        self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...")
+        self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...this may take several minutes")
         self.main.prg_widget.gui.prgBar.setValue(0)
         self.main.prg_widget.gui.setModal(True)
         self.main.prg_widget.gui.show()
         self.main.QGis_app.processEvents()
 
         try:
-            vit = VIT_core.VIT(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat)
-            ImageIn_matrix = vit.read_image(ImgIn=self.inFile, Convert_Refl=1)
+            vit = VIT_core.VIT(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat) # initialize VIT
+            ImageIn_matrix = vit.read_image(ImgIn=self.inFile, Convert_Refl=1) # read the image
         except ValueError as e:
-            QMessageBox.critical(self.gui, 'error', e)
+            QMessageBox.critical(self.gui, 'error', str(e))
+            self.main.prg_widget.gui.allow_cancel = True # The window may be cancelled
             self.main.prg_widget.gui.close()
             return
 
@@ -259,6 +263,7 @@ class VIT:
         self.main.prg_widget.gui.lblCaption_r.setText("Preparing Indices")
         self.main.QGis_app.processEvents()
 
+        # check and pass all indices that were selected
         vit.toggle_indices(StructIndices=self.structIndices, ChlIndices=self.chlIndices, CarIndices=self.carIndices,
                            WatIndices=self.watIndices, DmIndices=self.dmIndices, FlIndices=self.flIndices)
 
@@ -266,29 +271,33 @@ class VIT:
             QMessageBox.critical(self.gui, "No index selected", "Please select at least one index to continue!")
             return
 
-        try:
-            IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+        try: # give it a shot
+            IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget,
+                                                QGis_app=self.main.QGis_app)
         except:
             QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
+            self.main.prg_widget.gui.allow_cancel = True
             self.main.prg_widget.gui.close()
             return
 
         self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
         self.main.QGis_app.processEvents()
 
-        try:
+        try: # write Output-File
             vit.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=self.outDir, OutFilename=self.outFileName,
                           OutExtension=self.outExtension, OutSingle=self.outSingle)
         except:
-            QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data.")
+            QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
+            self.main.prg_widget.gui.allow_cancel = True
             self.main.prg_widget.gui.close()
             return
 
+        self.main.prg_widget.gui.allow_cancel = True
         self.main.prg_widget.gui.close()
-        QMessageBox.information(self.gui, "Finish", "Inversion finished")
+        QMessageBox.information(self.gui, "Finish", "Calculation of indices finished")
         self.gui.close()
 
-class Nodat:
+class Nodat: # GUI-specifications for NoData-Dialog
     def __init__(self, main):
         self.main = main
         self.gui = Nodat_GUI()
@@ -321,18 +330,24 @@ class Nodat:
         self.main.vit.nodat[0] = nodat
         self.gui.close()
 
-class PRG:
+class PRG: # GUI specification for progressbar dialog
     def __init__(self, main):
         self.main = main
         self.gui = PRG_GUI()
+        self.gui.lblCancel.setVisible(False)
         self.connections()
 
     def connections(self):
         self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
 
+    def cancel(self):
+        self.gui.allow_cancel = True
+        self.gui.cmdCancel.setDisabled(True)
+        self.gui.lblCancel.setText("-1")
+
 class MainUiFunc:
     def __init__(self):
-        self.QGis_app = QApplication.instance()
+        self.QGis_app = QApplication.instance() # the QGIS-Application made accessible within the code
         self.vit = VIT(self)
         self.nodat_widget = Nodat(self)
         self.prg_widget = PRG(self)

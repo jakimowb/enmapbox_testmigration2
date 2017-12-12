@@ -21,7 +21,7 @@ class Sail:
         self.cospsi = cos(psi)
 
 
-    def Pro4sail(self, rho, tau, LIDF, TypeLIDF, LAI, hspot, psoil):
+    def Pro4sail(self, rho, tau, LIDF, TypeLIDF, LAI, hspot, psoil, soil):
 
         costts_costto = self.costts*self.costto
         tantts = tan(self.tts)
@@ -29,7 +29,9 @@ class Sail:
         dso = sqrt(tantts**2 + tantto**2 - 2*tantts*tantto*self.cospsi)
 
         # Soil Reflectance Properties
-        rsoil = psoil*Rsoil1+(1-psoil)*Rsoil2
+
+        if not isinstance(soil, np.ndarray): # "soil" is not supplied as np.array, but is "None" instead
+            soil = psoil*Rsoil1+(1-psoil)*Rsoil2
 
         # Generate Leaf Angle Distribution From Average Leaf Angle (ellipsoidal) or (a,b) parameters
         lidf = self.LIDF_calc(LIDF, TypeLIDF)
@@ -162,13 +164,13 @@ class Sail:
 
         # Bidirectional reflectance
         rsos = w * LAI * sumint # Single scattering contribution
-        dn = 1.0 - rsoil * rdd # Soil interaction
+        dn = 1.0 - soil * rdd # Soil interaction
         tdd_dn = tdd/dn
-        rddt = rdd + tdd*rsoil*tdd_dn # bi-hemispherical reflectance factor
-        rsdt = rsd + (tsd+tss)*rsoil*tdd_dn # directional-hemispherical reflectance factor for solar incident flux
-        rdot = rdo + rsoil*(tdo+too)*tdd_dn # hemispherical-directional reflectance factor in viewing directino
-        rsodt = rsod + ((tss+tsd)*tdo + (tsd + tss*rsoil*rdd)*too)*rsoil/dn
-        rsost = rsos + tsstoo*rsoil
+        rddt = rdd + tdd*soil*tdd_dn # bi-hemispherical reflectance factor
+        rsdt = rsd + (tsd+tss)*soil*tdd_dn # directional-hemispherical reflectance factor for solar incident flux
+        rdot = rdo + soil*(tdo+too)*tdd_dn # hemispherical-directional reflectance factor in viewing directino
+        rsodt = rsod + ((tss+tsd)*tdo + (tsd + tss*soil*rdd)*too)*soil/dn
+        rsost = rsos + tsstoo*soil
         rsot = rsost + rsodt # rsot: bi-directional reflectance factor
 
         # Direct/diffuse light

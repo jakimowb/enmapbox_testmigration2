@@ -37,19 +37,20 @@ def sandboxWithEnMapBox(loadPF=False):
     qgsApp.exec_()
     qgsApp.quit()
 
-
 def sandboxGuiOnly():
     """
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
     """
+
     from enmapbox.gui.sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
 
+    # from OAWI_GUI import MainUiFunc
     # from VIT_GUI import MainUiFunc
     # from LUT_GUI import MainUiFunc
     # from Global_Inversion_GUI import MainUiFunc
-    from ISD_GUI import MainUiFunc
+    from IVVRM_GUI import MainUiFunc
 
     m = MainUiFunc()
     m.show()
@@ -57,7 +58,7 @@ def sandboxGuiOnly():
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if False:
+    if True:
         sandboxGuiOnly()
     else:
         sandboxWithEnMapBox(loadPF=True)

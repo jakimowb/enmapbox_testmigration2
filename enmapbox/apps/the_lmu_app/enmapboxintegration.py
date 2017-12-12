@@ -49,8 +49,8 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         menu = QMenu(self.name, appMenu)
         menu.setIcon(self.icon())
 
-        a = menu.addAction('Interactive Spectrum Display')
-        a.triggered.connect(self.start_GUI_ISD)
+        a = menu.addAction('Interactive Visualization of Vegetation Reflectance Models (IVVRM)')
+        a.triggered.connect(self.start_GUI_IVVRM)
 
         b = menu.addAction('Create Look-up-table')
         b.triggered.connect(self.start_GUI_LUT)
@@ -61,17 +61,14 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         d = menu.addAction('Vegetation Indices Toolbox')
         d.triggered.connect(self.start_GUI_VIT)
 
-        appMenu.addMenu(menu)
+        e = menu.addAction('Plant Water Retrieval (PWR)')
+        e.triggered.connect(self.start_GUI_PWR)
 
+        appMenu.addMenu(menu)
         return menu
 
-    def start_GUI_VIT(self, *args):
-        from VIT_GUI import MainUiFunc
-        m = MainUiFunc()
-        m.show()
-
-    def start_GUI_ISD(self, *args):
-        from ISD_GUI import MainUiFunc
+    def start_GUI_IVVRM(self, *args):
+        from IVVRM_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
         # #the the EnMAP-Box know if you create any new file
@@ -84,6 +81,16 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
 
     def start_GUI_Inv(self, *args):
         from Global_Inversion_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
+    def start_GUI_VIT(self, *args):
+        from VIT_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
+    def start_GUI_PWR(self, *args):
+        from PWR_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
 

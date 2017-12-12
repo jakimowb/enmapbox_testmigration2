@@ -39,10 +39,81 @@
 from scipy.special import exp1
 from dataSpec import *
 import numpy as np
+import warnings
 
 class Prospect:
 
     nlambd = len(lambd)
+
+    def prospect_Cp(self,N,Cab,Car,Anth,Cp,Ccl,Cbrown,Cw,Cm):
+
+        n = Pcp_refractive
+
+        k = (Cab*Pcp_k_Cab + Car*Pcp_k_Car + Anth*Pcp_k_Anth + Cbrown*Pcp_k_Brown + Cw*Pcp_k_Cw +
+             Cm*Pcp_k_Cm + Cp*Pcp_k_Cp + Ccl*Pcp_k_Ccl) / N
+
+        # k = (Cab*Pcp_k_Cab + Car*Pcp_k_Car + Anth*Pcp_k_Anth + Cbrown*Pcp_k_Brown + Cw*Pcp_k_Cw +
+        #      Cm*Pcp_k_Cm*0.23 + Cp*Pcp_k_Cp*0.25 + Ccl*Pcp_k_Ccl*0.52) / N # weighted version
+        #
+        # k = (Cab * Pcp_k_Cab + Car * Pcp_k_Car + Anth * Pcp_k_Anth + Cbrown * Pcp_k_Brown + Cw * Pcp_k_Cw +
+        #      Cm * Pcp_k_Cm * 0.23 + Cp * Pcp_k_Cp_orig * 0.25 + Ccl * Pcp_k_Ccl_orig * 0.52) / N  # weighted version, original vals
+
+        ind_k0 = np.where(k==0)
+        if not len(ind_k0[0])==0: k[ind_k0] = np.finfo(float).eps
+        trans = (1-k)*np.exp(-k)+(k**2)*exp1(k)
+        trans2 = trans**2
+
+        # reflectance and transmittance of one layer
+
+        # reflectivity and transmissivity at the interface
+
+        # t12, tav90n are calculated once and are listet in dataSpec
+        # t12 is tav(4 0,n); tav90n is tav(90,n)
+        t21=Pcp_tav90n/(n**2)
+        r12=1-Pcp_t12
+        r21=1-t21
+        r21_2 = r21**2
+        x=Pcp_t12/PD_tav90n
+        y=x*(PD_tav90n-1)+1-Pcp_t12
+
+        # reflectance and transmittance of the elementary layer N = 1
+        ra=r12+(Pcp_t12*t21*r21*trans2)/(1-(r21_2)*(trans2))
+        ta=(Pcp_t12*t21*trans)/(1-(r21_2)*(trans2))
+        r90=(ra-y)/x
+        t90=ta/x
+
+        # reflectance and transmittance of N layers
+
+        t90_2 = t90**2
+        r90_2 = r90**2
+
+        delta=np.sqrt((t90_2-r90_2-1)**2-4*r90_2)
+        beta=(1+r90_2-t90_2-delta)/(2*r90)
+        va=(1+r90_2-t90_2+delta)/(2*r90)
+
+        vb = np.zeros(self.nlambd)
+
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
+
+        vbNN = vb**(N-1)
+        vbNNinv = 1/vbNN
+        vainv = 1/va
+        s1=ta*t90*(vbNN-vbNNinv)
+        s2=ta*(va-vainv)
+        s3=va*vbNN-vainv*vbNNinv-r90*(vbNN-vbNNinv)
+
+        RN=ra+s1/s3
+        TN=s2/s3
+        LRT = np.zeros((self.nlambd, 3))
+        LRT[:,0] = lambd
+        LRT[:,1] = RN
+        LRT[:,2] = TN
+
+        return LRT
+
 
     def prospect_D(self,N,Cab,Car,Anth,Cbrown,Cw,Cm):
 
@@ -83,22 +154,10 @@ class Prospect:
 
         vb = np.zeros(self.nlambd)
 
-
-
-        # # old method, causes a warning:
-        # ind_vb_le = np.where(va*(beta-r90)<=1e-14)
-        # ind_vb_gt = np.where(va*(beta-r90)>1e-14)
-        # vb[ind_vb_le]=np.sqrt(beta*(va-r90)/(1e-14))
-        # vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
-
-        # # new method:
-
-        vb = np.where(va * (beta - r90) <= 1e-14, \
-                      np.sqrt(beta * (va - r90) / (1e-14)), \
-                      vb)
-        vb = np.where(va * (beta - r90) > 1e-14, \
-                      np.sqrt(beta * (va - r90) / (va * (beta - r90))),
-                      vb)
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
 
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN
@@ -153,10 +212,17 @@ class Prospect:
         va=(1+r90_2-t90_2+delta)/(2*r90)
 
         vb = np.zeros(self.nlambd)
-        ind_vb_le = np.where(va*(beta-r90)<=1e-14)
-        ind_vb_gt = np.where(va*(beta-r90)>1e-14)
-        vb[ind_vb_le]=np.sqrt(beta*(va-r90)/(1e-14))
-        vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
+        # # old method, causes a warning:
+        # ind_vb_le = np.where(va*(beta-r90)<=1e-14)
+        # ind_vb_gt = np.where(va*(beta-r90)>1e-14)
+        # vb[ind_vb_le]=np.sqrt(beta*(va-r90)/(1e-14))
+        # vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
+
+        # # new method:
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
 
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN
@@ -211,10 +277,17 @@ class Prospect:
         va=(1+r90_2-t90_2+delta)/(2*r90)
 
         vb = np.zeros(self.nlambd)
-        ind_vb_le = np.where(va*(beta-r90)<=1e-14)
-        ind_vb_gt = np.where(va*(beta-r90)>1e-14)
-        vb[ind_vb_le]=np.sqrt(beta*(va-r90)/(1e-14))
-        vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
+        # # old method, causes a warning:
+        # ind_vb_le = np.where(va*(beta-r90)<=1e-14)
+        # ind_vb_gt = np.where(va*(beta-r90)>1e-14)
+        # vb[ind_vb_le]=np.sqrt(beta*(va-r90)/(1e-14))
+        # vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
+
+        # # new method:
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
 
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN
@@ -271,15 +344,11 @@ class Prospect:
 
         vb = np.zeros(self.nlambd)
 
-        #Proposal BJ to avoid deprecation warning
-        vb = np.where(va*(beta-r90)<=1e-14,np.sqrt(beta*(va-r90)/(1e-14)), vb )
-        vb = np.where(va*(beta-r90)>1e-14 ,np.sqrt(beta*(va-r90)/(va*(beta-r90))), vb)
-        """
-        ind_vb_le = np.where(va*(beta-r90)<=1e-14)
-        ind_vb_gt = np.where(va*(beta-r90)>1e-14)
-        vb[ind_vb_le]=np.sqrt(beta*(va-r90)/(1e-14))
-        vb[ind_vb_gt]=np.sqrt(beta*(va-r90)/(va*(beta-r90)))
-        """
+        ind_vb_le = np.where(va*(beta-r90) <= 1e-14)
+        ind_vb_gt = np.where(va*(beta-r90) > 1e-14)
+        vb[ind_vb_le]=np.sqrt(beta[ind_vb_le]*(va[ind_vb_le]-r90[ind_vb_le])/(1e-14))
+        vb[ind_vb_gt]=np.sqrt(beta[ind_vb_gt]*(va[ind_vb_gt]-r90[ind_vb_gt])/(va[ind_vb_gt]*(beta[ind_vb_gt]-r90[ind_vb_gt])))
+
         vbNN = vb**(N-1)
         vbNNinv = 1/vbNN
         vainv = 1/va
