@@ -2,6 +2,7 @@ from os import makedirs, remove
 from os.path import dirname, exists, join, basename
 import functools
 import copy
+import json
 from random import randint
 import tempfile
 from osgeo import gdal, gdal_array, ogr, osr
@@ -123,6 +124,7 @@ class Extent(object):
         assert self._xmax > self._xmin
         assert self._ymax > self._ymin
 
+
     def __repr__(self):
         return '{cls}(xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax})'.format(
             cls=self.__class__.__name__,
@@ -132,11 +134,10 @@ class Extent(object):
             ymax=repr(self.ymax()))
 
     @staticmethod
-    def fromCorners(points):
-        for p in points:
-            assert isinstance(p, Point)
-        xs = [p.x() for p in points]
-        ys = [p.y() for p in points]
+    def fromPolygon(polygon):
+        assert isinstance(polygon, Polygon)
+        xs = [p.x() for p in polygon.points()]
+        ys = [p.y() for p in polygon.points()]
 
         return Extent(xmin=functools.reduce(min, xs), xmax=functools.reduce(max, xs),
                       ymin=functools.reduce(min, ys), ymax=functools.reduce(max, ys))
@@ -153,14 +154,14 @@ class Extent(object):
     def ymax(self):
         return self._ymax
 
-    def ogrGeometry(self):
+    def geometry(self):
         ring = ogr.Geometry(ogr.wkbLinearRing)
         for x, y in zip([self.xmin(), self.xmax(), self.xmax(), self.xmin(), self.xmin()],
                         [self.ymax(), self.ymax(), self.ymin(), self.ymin(), self.ymax()]):
             ring.AddPoint(x, y)
-        polygon = ogr.Geometry(ogr.wkbPolygon)
-        polygon.AddGeometry(ring)
-        return polygon
+        geometry = ogr.Geometry(ogr.wkbPolygon)
+        geometry.AddGeometry(ring)
+        return geometry
 
     def upperLeft(self):
         return Point(x=self.xmin(), y=self.ymax())
@@ -173,6 +174,9 @@ class Extent(object):
 
     def lowerLeft(self):
         return Point(x=self.xmin(), y=self.ymin())
+
+    def corners(self):
+        return (self.upperLeft(), self.lowerLeft(), self.upperRight(), self.lowerRight())
 
     def wkt(self):
         ring = ogr.Geometry(ogr.wkbLinearRing)
@@ -191,11 +195,11 @@ class Extent(object):
         ur = self.upperRight().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
         ll = self.lowerLeft().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
         lr = self.lowerRight().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
-        return Extent.fromCorners((ul, ur, ll, lr))
+        return Extent.fromPolygon(polygon=Polygon(points=(ul, ur, ll, lr)))
 
     def intersects(self, other):
         assert isinstance(other, Extent)
-        return self.ogrGeometry().Intersects(other.ogrGeometry())
+        return self.geometry().Intersects(other.geometry())
 
     def intersection(self, other):
         """
@@ -264,31 +268,33 @@ class SpatialExtent(Extent):
     def lowerLeft(self):
         return SpatialPoint(x=self.xmin(), y=self.ymin(), projection=self.projection())
 
-    def reproject(self, targetProjection):
+    def reproject(self, targetProjection, sourceProjection=None):
         assert isinstance(targetProjection, Projection)
+        if sourceProjection is not None:
+            assert self.projection().equal(other=sourceProjection)
         extent = Extent.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
         return SpatialExtent.fromExtent(extent=extent, projection=targetProjection)
 
     def intersects(self, other):
         '''Returns wether self and other intersect.'''
         assert isinstance(other, SpatialExtent)
-        otherReprojected = other.reproject(targetProjection=self.projection())
-        return SpatialExtent.fromExtent(extent=Extent.intersects(self, other=otherReprojected),
-                                        projection=self.projection())
+        assert self.projection().equal(other=other.projection())
+        return SpatialExtent.fromExtent(extent=Extent.intersects(self, other=other), projection=self.projection())
 
     def intersection(self, other):
         '''Returns the intersection of self and other.'''
         assert isinstance(other, SpatialExtent)
-        otherReprojected = other.reproject(targetProjection=self.projection())
-        return SpatialExtent.fromExtent(extent=Extent.intersection(self, other=otherReprojected),
-                                        projection=self.projection())
+        assert self.projection().equal(other=other.projection())
+        return SpatialExtent.fromExtent(extent=Extent.intersection(self, other=other), projection=self.projection())
 
     def union(self, other):
         '''Returns the union of self and other.'''
         assert isinstance(other, SpatialExtent)
-        otherReprojected = other.reproject(targetProjection=self.projection())
-        return SpatialExtent.fromExtent(extent=Extent.union(self, other=otherReprojected),
-                                        projection=self.projection())
+        assert self.projection().equal(other=other.projection())
+        return SpatialExtent.fromExtent(extent=Extent.union(self, other=other), projection=self.projection())
+
+    def polygon(self):
+        return SpatialPolygon(points=self.corners(), projection=self.projection())
 
 class Resolution(object):
     def __init__(self, x, y):
@@ -379,16 +385,24 @@ class Point(object):
     '''Map location.'''
 
     def __init__(self, x, y):
-        assert isinstance(x, float)
-        assert isinstance(y, float)
-        self._x = x
-        self._y = y
+        assert isinstance(x, (float, int))
+        assert isinstance(y, (float, int))
+        self._x = float(x)
+        self._y = float(y)
 
     def x(self):
         return self._x
 
     def y(self):
         return self._y
+
+    def geometry(self):
+        point = ogr.Geometry(ogr.wkbPoint)
+        point.AddPoint(self.x(), self.y())
+        return point
+
+    def wkt(self):
+        return self.geometry().ExportToWkt()
 
     def reproject(self, sourceProjection, targetProjection):
         assert isinstance(sourceProjection, Projection)
@@ -416,6 +430,84 @@ class SpatialPoint(Point):
             assert self.projection().equal(other=sourceProjection)
         point = Point.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
         return SpatialPoint(x=point.x(), y=point.y(), projection=targetProjection)
+
+    def withinExtent(self, extent):
+        assert isinstance(extent, SpatialExtent)
+        p = self.reproject(targetProjection=extent.projection())
+        return p.geometry().Within(extent.geometry())
+
+
+class Polygon(object):
+
+    def __init__(self, points):
+        for p in points:
+            assert isinstance(p, Point)
+
+        self._points = points
+
+    @staticmethod
+    def fromGeometry(geometry):
+        assert isinstance(geometry, ogr.Geometry)
+        points = [Point(x=x, y=y) for x, y, z in json.loads(geometry.ExportToJson())['coordinates'][0]]
+        return Polygon(points=points)
+
+    def points(self):
+        return self._points
+
+    def reproject(self, sourceProjection, targetProjection):
+
+        points = [p.reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
+                  for p in self.points()]
+        return Polygon(points=points)
+
+    def geometry(self):
+        ring = ogr.Geometry(ogr.wkbLinearRing)
+        for p in self.points()+[self.points()[0]]:
+            ring.AddPoint(p.x(), p.y())
+        geometry = ogr.Geometry(ogr.wkbPolygon)
+        geometry.AddGeometry(ring)
+        return geometry
+
+    def intersects(self, other):
+        assert isinstance(other, Polygon)
+        return self.geometry().Intersects(other.geometry())
+
+    def intersection(self, other):
+        assert isinstance(other, Polygon)
+        geometry = self.geometry().Intersection(other.geometry())
+        return Polygon.fromGeometry(geometry=geometry)
+
+
+class SpatialPolygon(Polygon):
+
+    def __init__(self, points, projection):
+        assert isinstance(projection, Projection)
+        for p in points:
+            if isinstance(p, SpatialPoint):
+                if not projection.equal(other=p.projection()):
+                    raise Exception('mismatching projections')
+        Polygon.__init__(self, points=points)
+        self._projection = projection
+
+    def projection(self):
+        return self._projection
+
+    def reproject(self, targetProjection, sourceProjection=None):
+        if sourceProjection is not None:
+            assert self.projection() == sourceProjection
+        return Polygon.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
+
+    #todo weiter!!!
+    def intersects(self, other):
+        assert isinstance(other, Polygon)
+        return self.geometry().Intersects(other.geometry())
+
+
+    def intersection(self, other):
+        assert isinstance(other, SpatialPolygon)
+        assert self.projection().equal(other=other.projection())
+        polygon = Polygon.intersection(self, other=other)
+        return SpatialPolygon(points=polygon.points(), projection=self.projection())
 
 
 class Size(object):
@@ -472,7 +564,7 @@ class Grid(object):
         return self._projection
 
     def spatialExtent(self):
-        return SpatialExtent(extent=self.extent(), projection=self.projection())
+        return SpatialExtent.fromExtent(extent=self.extent(), projection=self.projection())
 
     def size(self):
         return self.extent().size(resolution=self.resolution())
@@ -503,7 +595,8 @@ class Grid(object):
         assert isinstance(other, Grid)
         extent = self.extent().reproject(sourceProjection=self.projection(), targetProjection=other.projection())
         grid = Grid(extent=extent, resolution=other.resolution(), projection=other.projection())
-        return grid.anchor(x=other.extent().xmin(), y=other.extent().ymin())
+        grid = grid.anchor(point=Point(x=other.extent().xmin(), y=other.extent().ymin()))
+        return grid
 
     def mapBuffer(self, buffer, north=True, west=True, south=True, east=True):
         assert isinstance(buffer, float)
@@ -523,12 +616,13 @@ class Grid(object):
                         ymax=self.extent().ymax() + buffer * self.resolution().y() if upper else 0)
         return Grid(extent=extent, resolution=self.resolution(), projection=self.projection())
 
-    def anchor(self, x, y):
+    def anchor(self, point):
+        assert isinstance(point, Point)
 
-        xminOff = (self.extent().xmin() - x) % self.resolution().x()
-        yminOff = (self.extent().ymin() - y) % self.resolution().y()
-        xmaxOff = (self.extent().xmax() - x) % self.resolution().x()
-        ymaxOff = (self.extent().ymax() - y) % self.resolution().y()
+        xminOff = (self.extent().xmin() - point.x()) % self.resolution().x()
+        yminOff = (self.extent().ymin() - point.y()) % self.resolution().y()
+        xmaxOff = (self.extent().xmax() - point.x()) % self.resolution().x()
+        ymaxOff = (self.extent().ymax() - point.y()) % self.resolution().y()
 
         # round snapping offset
         if xminOff > self.resolution().x() / 2.: xminOff -= self.resolution().x()
@@ -1029,7 +1123,7 @@ class Band():
 
 class Vector(object):
     def __init__(self, ogrDataSource, nameOrIndex=0):
-        assert isinstance(ogrDataSource, ogr.DataSource)
+        assert isinstance(ogrDataSource, ogr.DataSource), str(ogrDataSource)
         self._ogrDataSource = ogrDataSource
         self._ogrLayer = ogrDataSource.GetLayer(iLayer=nameOrIndex)
         self._filename = self._ogrDataSource.GetDescription()
@@ -1095,10 +1189,10 @@ class Vector(object):
         # need to create a temp VRT
         vrtDefinition = ['<OGRVRTDataSource>\n',
                          '    <OGRVRTWarpedLayer>\n',
-                         '        <OGRVRTLayer name="{}">\n'.format(basename(self.filename).replace('.shp', '')),
-                         '            <SrcDataSource>{ds}</SrcDataSource>\n'.format(ds=self.filename),
+                         '        <OGRVRTLayer name="{}">\n'.format(basename(self.filename()).replace('.shp', '')),
+                         '            <SrcDataSource>{ds}</SrcDataSource>\n'.format(ds=self.filename()),
                          '        </OGRVRTLayer>\n',
-                         '        <TargetSRS>{}</TargetSRS>\n'.format(str(projection)),
+                         '        <TargetSRS>{}</TargetSRS>\n'.format(projection.wkt()),
                          '    </OGRVRTWarpedLayer>\n',
                          '</OGRVRTDataSource>\n']
 
@@ -1106,7 +1200,9 @@ class Vector(object):
         with open(vrtFilename, 'w') as f:
             f.writelines(vrtDefinition)
 
-        layer = Vector(ogrDataSource=ogr.Open(vrtFilename), nameOrIndex=0)
+        ogrDataSource = ogr.Open(vrtFilename)
+        assert ogrDataSource is not None
+        layer = Vector(ogrDataSource=ogrDataSource, nameOrIndex=0)
         remove(vrtFilename)
         return layer
 
