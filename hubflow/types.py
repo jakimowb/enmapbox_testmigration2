@@ -5,7 +5,7 @@ import numpy
 import sklearn.metrics
 import sklearn.multioutput
 
-from hubdc.model import Open, OpenLayer, Grid
+from hubdc.model import openRaster, openVector, Grid
 from hubflow.applier import Applier, ApplierOperator
 from hubflow.report import *
 from hubflow import signals
@@ -57,8 +57,8 @@ class Image(FlowObject):
         return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename))
 
     @property
-    def pixelGrid(self):
-        return Grid.fromFile(self.filename)
+    def grid(self):
+        return openRaster(self.filename).grid()
 
     @classmethod
     def fromVector(cls, filename, vector, grid, **kwargs):
@@ -158,7 +158,7 @@ class Mask(Image):
     def __init__(self, filename, noData=None):
         Image.__init__(self, filename)
         if noData==None:
-            noData = Open(filename=filename).noDataValue(default=0)
+            noData = openRaster(filename=filename).noDataValue(default=0)
         self.noData = noData
 
     def __repr__(self):
@@ -228,10 +228,10 @@ class ClassDefinition(FlowObject):
 
     @staticmethod
     def fromENVIMeta(filename):
-        ds = Open(filename)
-        classes = ds.getMetadataItem(key='classes', domain='ENVI', dtype=int)
-        names = ds.getMetadataItem(key='class names', domain='ENVI')
-        lookup = ds.getMetadataItem(key='class lookup', domain='ENVI', dtype=int)
+        ds = openRaster(filename)
+        classes = ds.metadataItem(key='classes', domain='ENVI', dtype=int)
+        names = ds.metadataItem(key='class names', domain='ENVI')
+        lookup = ds.metadataItem(key='class lookup', domain='ENVI', dtype=int)
         return ClassDefinition(classes=classes-1, names=names[1:], lookup=numpy.array(lookup[3:]).reshape((classes-1, 3)))
 
     def __init__(self, classes=None, names=None, lookup=None):
@@ -348,9 +348,9 @@ class Regression(Image):
     def __init__(self, filename, noData=None, outputNames=None, minOverallCoverage=0.):
         Image.__init__(self, filename)
         if noData is None:
-            noData = Open(filename).noDataValue()
+            noData = openRaster(filename).noDataValue()
         if outputNames is None:
-            outputNames = [band.getDescription() for band in Open(filename)]
+            outputNames = [band.description() for band in openRaster(filename).bands()]
         assert noData is not None
         self.noData = noData
         self.outputNames = outputNames
@@ -449,12 +449,17 @@ class UnsupervisedSample(FlowObject):
 
     def __init__(self, features, metadata=None):
         assert isinstance(features, numpy.ndarray) and features.ndim == 2
+        if metadata is None:
+            metadata = dict()
         self.features = features
         self.metadata = metadata
         self.nbands , self.nsamples = self.features.shape
 
     def __repr__(self):
-        return '{cls}(features=array{features})'.format(cls=self.__class__.__name__, features=repr(list(self.features.shape)))
+        return '{cls}(features=array{features}, metadata={metadata})'.format(
+            cls=self.__class__.__name__,
+            features=repr(list(self.features.shape)),
+            metadata=repr(self.metadata))
 
     @staticmethod
     def fromENVISpectralLibrary(filename):
@@ -466,11 +471,12 @@ class UnsupervisedSample(FlowObject):
         raise Exception('header file not found')
 
     @staticmethod
-    def fromImageAndMask(image, mask, grid, **kwargs):
+    def fromImageAndMask(image, mask, grid=None, **kwargs):
         applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowImage(name='image', image=image)
         applier.setFlowMask('mask', mask=mask)
-        results = applier.apply(operator=_UnsupervisedSampleFromImageAndProbability, image=image, mask=mask)
+        results = applier.apply(operator=_UnsupervisedSampleFromImageAndProbability, image=image, mask=mask,
+                                description='UnsupervisedSample.fromImageAndMask')
         features = numpy.hstack(results)
         return UnsupervisedSample(features=features)
 

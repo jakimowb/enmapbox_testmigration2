@@ -46,18 +46,18 @@ def flowObject_unpickle():
     x = ClassDefinition.unpickle(filename=r'c:\outputs\classDefinition.pkl')
 
 def vector_rasterize():
-    image = vector.rasterize(imageFilename=rasteredMaskFilename, grid=image2.pixelGrid, overwrite=overwrite)
+    image = vector.rasterize(imageFilename=rasteredMaskFilename, grid=image2.grid, overwrite=overwrite)
     return image
 
 def vector_uniqueValues():
     return vector.uniqueValues(attribute='Level_2_ID')
 
 def vectorClassification_rasterizeAsClassification():
-    classification = vectorClassification.rasterizeAsClassification(classificationFilename=rasteredClassificationFilename, grid=image2.pixelGrid, oversampling=1, overwrite=overwrite)
+    classification = vectorClassification.rasterizeAsClassification(classificationFilename=rasteredClassificationFilename, grid=image2.grid, oversampling=1, overwrite=overwrite)
     return classification
 
 def vectorClassification_rasterizeAsProbability():
-    probability = vectorClassification.rasterizeAsProbability(probabilityFilename=rasteredProbabilityFilename, grid=image.pixelGrid, oversampling=10, overwrite=overwrite)
+    probability = vectorClassification.rasterizeAsProbability(probabilityFilename=rasteredProbabilityFilename, grid=image.grid, oversampling=10, overwrite=overwrite)
     return probability
 
 def probability_asClassColorRGBImage():
@@ -101,7 +101,7 @@ def image_sampleByMask():
     return unsupervisedSample
 
 def image_basicStatistics(mask=getRMask()):
-    grid = image.pixelGrid.newResolution(xRes=image.pixelGrid.xRes, yRes=image.pixelGrid.yRes)
+    grid = image.grid.newResolution(xRes=image.grid.xRes, yRes=image.grid.yRes)
     min, max, mean, n = image.basicStatistics(bandIndicies=None, mask=mask, grid=grid)
     return min, max, mean, n
 

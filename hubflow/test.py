@@ -32,7 +32,7 @@ enmapUnsupervisedSample = hubflow.testdata.enmapUnsupervisedSample(overwrite=ove
 outdir = join(gettempdir(), 'hubflow_test')
 
 def test_Classification():
-    print(Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.img'), vectorClassification=vectorClassification, grid=hymap.pixelGrid, oversampling=10, overwrite=overwrite))
+    print(Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.img'), vectorClassification=vectorClassification, grid=hymap.grid, oversampling=10, overwrite=overwrite))
     print(hymapClassification.reclassify(filename=join(outdir, 'classificationReclassify.img'),
                                          classDefinition=hubflow.testdata.classDefinitionL1,
                                          mapping=enmapboxtestdata.landcoverClassDefinition.level2.mappingToLevel1ByName))
@@ -68,7 +68,7 @@ def test_Clusterer():
     print(kmeans.predict(filename=join(outdir, 'kmeansClustering.img'), image=enmap, mask=vector))
 
 def test_Image():
-    print(Image.fromVector(filename=join(outdir, 'imageFromVector.img'), vector=vector, grid=hymap.pixelGrid, overwrite=overwrite))
+    print(Image.fromVector(filename=join(outdir, 'imageFromVector.img'), vector=vector, grid=hymap.grid, overwrite=overwrite))
     print(enmap.basicStatistics(bandIndicies=None, mask=vector, grid=enmap))
 
     i1, i2 = 0, 1
@@ -82,7 +82,7 @@ def test_Mask():
 
 def test_Probability():
     print(enmapProbability.asClassColorRGBImage(filename=join(outdir, 'probabilityAsClassColorRGBImage.img'), overwrite=overwrite))
-    print(Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.img'), vectorClassification=vectorClassification, grid=enmap.pixelGrid, oversampling=10, overwrite=overwrite))
+    print(Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.img'), vectorClassification=vectorClassification, grid=enmap.grid, oversampling=10, overwrite=overwrite))
     print(enmapProbability.subsetClassesByName(filename=join(outdir, 'probabilitySubsetClassesByName.img'), names=enmapProbability.classDefinition.names))
 
 def test_ProbabilitySample():

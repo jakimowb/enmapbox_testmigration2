@@ -10,8 +10,8 @@ class Applier(hubdc.applier.Applier):
         self.controls.setProgressBar(kwargs.get('progressBar', None))
         grid = kwargs.get('grid', defaultGrid)
         if isinstance(grid, hubflow.types.Image):
-            grid = grid.pixelGrid
-        assert isinstance(grid, hubdc.applier.Grid)
+            grid = grid.grid
+        #assert isinstance(grid, hubdc.applier.Grid)
         self.controls.setGrid(grid)
         self.kwargs = kwargs
 
@@ -19,7 +19,7 @@ class Applier(hubdc.applier.Applier):
         results = hubdc.applier.Applier.apply(self, operatorType=operator, description=description,
                                               overwrite=self.kwargs.get('overwrite', True), *ufuncArgs, **ufuncKwargs)
         for raster in self.outputRaster.flatRasters():
-            hubflow.signals.sigFileCreated.emit(raster.filename)
+            hubflow.signals.sigFileCreated.emit(raster.filename())
         return results
 
 #    def setInput(self, name, filename, noData=None, resampleAlg=gdal.GRA_NearestNeighbour):

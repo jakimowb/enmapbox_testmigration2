@@ -31,7 +31,7 @@ def vector_classify():
     image = Image(filename=imageFilename)
     vector = Vector(filename=vectorFilename)
     classification = vector.rasterizeAsClassification(filename=classification3mFilename,
-                                                      pixelGrid=image.pixelGrid.newResolution(xRes=3, yRes=3),
+                                                      pixelGrid=image.grid.newResolution(xRes=3, yRes=3),
                                                       ids=[1,2,3,4,5,6], idAttribute='Level_2_ID',
                                                       classNames=['Roof',  'Pavement',   'Grass',   'Tree',   'Soil',    'Other'],
                                                       classLookup=[168,0,0, 156,156,156,  151,229,0, 35,114,0, 136,89,67, 236,214,0])

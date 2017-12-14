@@ -1,7 +1,11 @@
 import numpy
 import os
 import time
-import pyqtgraph
+
+# optional imports
+try: import pyqtgraph
+except: pass
+
 from hubflow.html import Table, TableRow, TableCell
 
 class Report():

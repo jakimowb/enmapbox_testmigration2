@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use('QT4Agg')
-from matplotlib import pyplot
+#import matplotlib
+#matplotlib.use('QT4Agg')
+#from matplotlib import pyplot
 from tempfile import gettempdir
 from os.path import join, exists
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -28,17 +28,17 @@ vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.la
                                                     classDefinition=classDefinitionL2,
                                                     minOverallCoverage=0., minWinnerCoverage=0.)
 hymapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.img'),
-                                                                      vectorClassification=vectorClassification(),
-                                                                      grid=hymap().pixelGrid, oversampling=10, overwrite=overwrite)
+                                                                                          vectorClassification=vectorClassification(),
+                                                                                          grid=hymap().grid, oversampling=10, overwrite=overwrite)
 enmapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'enmaplandCover.img'),
-                                                                      vectorClassification=vectorClassification(),
-                                                                      grid=enmap().pixelGrid, oversampling=10, overwrite=overwrite)
+                                                                                          vectorClassification=vectorClassification(),
+                                                                                          grid=enmap().grid, oversampling=10, overwrite=overwrite)
 hymapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'hymapProbability.img'),
-                                                                vectorClassification=vectorClassification(),
-                                                                grid=hymap().pixelGrid, oversampling=10, overwrite=overwrite)
+                                                                                    vectorClassification=vectorClassification(),
+                                                                                    grid=hymap().grid, oversampling=10, overwrite=overwrite)
 enmapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.img'),
-                                                                vectorClassification=vectorClassification(),
-                                                                grid=enmap().pixelGrid, oversampling=10, overwrite=overwrite)
+                                                                                    vectorClassification=vectorClassification(),
+                                                                                    grid=enmap().grid, oversampling=10, overwrite=overwrite)
 
 enmapProbabilitySample = lambda overwrite=overwrite: ProbabilitySample.fromImageAndProbability(image=enmap(), probability=enmapProbability(overwrite), grid=enmap())
 enmapClassificationSample = lambda overwrite=overwrite: ClassificationSample.fromImageAndClassification(image=enmap(), classification=enmapClassification(overwrite), grid=enmap())
