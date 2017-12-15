@@ -3,6 +3,8 @@ import hubdc.applier
 import hubflow.types
 import hubflow.signals
 
+ApplierControls = hubdc.applier.ApplierControls
+
 class Applier(hubdc.applier.Applier):
 
     def __init__(self, defaultGrid=None, **kwargs):

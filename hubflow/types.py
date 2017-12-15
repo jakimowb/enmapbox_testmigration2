@@ -6,7 +6,8 @@ import sklearn.metrics
 import sklearn.multioutput
 
 from hubdc.model import openRaster, openVector, Grid
-from hubflow.applier import Applier, ApplierOperator
+from hubflow.applier import Applier, ApplierOperator, ApplierControls
+
 from hubflow.report import *
 from hubflow import signals
 
@@ -56,9 +57,12 @@ class Image(FlowObject):
     def __repr__(self):
         return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename))
 
+    def dataset(self):
+        return openRaster(self.filename)
+
     @property
     def grid(self):
-        return openRaster(self.filename).grid()
+        return self.dataset().grid()
 
     @classmethod
     def fromVector(cls, filename, vector, grid, **kwargs):
@@ -338,7 +342,7 @@ class _ClassificationReclassify(ApplierOperator):
 
 class _ClassificationFromVectorClassification(ApplierOperator):
     def ufunc(self, vectorClassification, oversampling):
-        array = self.getFlowClassificationArray('vectorClassification', classification=vectorClassification)
+        array = self.getFlowClassificationArray('vectorClassification', classification=vectorClassification, oversampling=oversampling)
         self.outputRaster.raster(key='classification').setImageArray(array=array)
         self.setFlowMetadataClassDefinition(name='classification',
                                             classDefinition=vectorClassification.classDefinition)
@@ -567,13 +571,15 @@ class ClassificationSample(SupervisedSample):
         header['class spectra names'] = numpy.array(self.classDefinition.names)[self.labels.ravel()-1]
 
     @classmethod
-    def fromImageAndProbability(cls, image, probability, grid, mask=None, **kwargs):
+    def fromImageAndProbability(cls, image, probability, grid=None, mask=None, **kwargs):
+        if grid is None:
+            grid = image.grid
         probabilitySample = ProbabilitySample.fromImageAndProbability(image=image, probability=probability, grid=grid, mask=mask, **kwargs)
         classificationSample = ClassificationSample.fromProbabilitySample(sample=probabilitySample)
         return classificationSample
 
     @classmethod
-    def fromImageAndClassification(cls, image, classification, grid, mask=None, **kwargs):
+    def fromImageAndClassification(cls, image, classification, grid=None, mask=None, **kwargs):
         return cls.fromImageAndProbability(image=image, probability=classification, grid=grid, mask=mask, **kwargs)
 
     @classmethod
