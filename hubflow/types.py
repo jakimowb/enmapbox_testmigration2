@@ -157,7 +157,7 @@ class Mask(Image):
 
     def __init__(self, filename, noData=None):
         Image.__init__(self, filename)
-        if noData==None:
+        if noData is None:
             noData = Open(filename=filename).getNoDataValue(default=0)
         self.noData = noData
 
@@ -338,7 +338,8 @@ class _ClassificationReclassify(ApplierOperator):
 
 class _ClassificationFromVectorClassification(ApplierOperator):
     def ufunc(self, vectorClassification, oversampling):
-        array = self.getFlowClassificationArray('vectorClassification', classification=vectorClassification)
+        array = self.getFlowClassificationArray('vectorClassification', classification=vectorClassification,
+                                                oversampling=oversampling)
         self.outputRaster.getRaster(key='classification').setImageArray(array=array)
         self.setFlowMetadataClassDefinition(name='classification',
                                             classDefinition=vectorClassification.classDefinition)
