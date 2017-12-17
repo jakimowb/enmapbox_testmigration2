@@ -37,20 +37,20 @@ Additionally, use the :class:`~hubdc.testdata.BrandenburgDistricts` vector polyg
         def ufunc(operator):
 
             # read image data
-            red = operator.inputRaster.getRaster(key='red').getImageArray()
-            nir = operator.inputRaster.getRaster(key='nir').getImageArray()
-            brandenburg = operator.inputVector.getVector(key='brandenburg').getImageArray(initValue=0, burnValue=1)
+            red = operator.inputRaster.raster(key='red').imageArray()
+            nir = operator.inputRaster.raster(key='nir').imageArray()
+            brandenburg = operator.inputVector.vector(key='brandenburg').imageArray(initValue=0, burnValue=1)
 
             # calculate ndvi and mask Brandenburg
             ndvi = numpy.float32(nir-red)/(nir+red)
             ndvi[brandenburg==0] = -1
 
             # write ndvi data
-            operator.outputRaster.getRaster(key='ndvi').setImageArray(array=ndvi)
+            operator.outputRaster.raster(key='ndvi').setImageArray(array=ndvi)
 
     # Apply the operator to the inputs, creating the outputs.
     applier.apply(operator=NDVIOperator)
-    print(applier.outputRaster.getRaster(key='ndvi').filename)
+    print(applier.outputRaster.raster(key='ndvi').filename)
 
 The result is stored in the file called ``ndvi.img`` stored in the user tempdir (e.g. on Windows systems ``c:\users\USER\appdata\local\temp\ndvi.img``).
 
@@ -104,18 +104,18 @@ HUB-Datacube Applier programs are usually structured in the following way:
         ::
 
             # read image data
-            red = operator.inputRaster.getRaster(key='red').getImageArray()
-            nir = operator.inputRaster.getRaster(key='nir').getImageArray()
-            brandenburg = operator.inputVector.getVector(key='brandenburg').getImageArray(initValue=0, burnValue=1, dtype=numpy.uint8)
+            red = operator.inputRaster.raster(key='red').imageArray()
+            nir = operator.inputRaster.raster(key='nir').imageArray()
+            brandenburg = operator.inputVector.vector(key='brandenburg').imageArray(initValue=0, burnValue=1, dtype=numpy.uint8)
 
 
         Note that all input datasets are access using different members of the ``operator`` object:
 
         ``operator.inputRaster`` is identical to ``applier.inputRaster`` and used to access previously defined :class:`~hubdc.applier.ApplierInputRaster` objects,
-        which can be used to read raster data, see :meth:`~hubdc.applier.ApplierInputRaster.getImageArray`
+        which can be used to read raster data, see :meth:`~hubdc.applier.ApplierInputRaster.imageArray`
 
         ``operator.inputVector`` is identical to ``applier.inputVector`` and is used to access previously defined :class:`~hubdc.applier.ApplierInputVector` objects,
-        which can be used to read and rasterize vector data, see :meth:`~hubdc.applier.ApplierInputVector.getImageArray`
+        which can be used to read and rasterize vector data, see :meth:`~hubdc.applier.ApplierInputVector.imageArray`
 
         Also note that input data is presented as numpy arrays, of the datatype corresponding to that in the raster files.
         It is the responsibility of the user to manage all conversions of datatypes.
@@ -137,7 +137,7 @@ HUB-Datacube Applier programs are usually structured in the following way:
         ::
 
             # write ndvi data
-            operator.outputRaster.getRaster(key='ndvi').setImageArray(array=ndvi)
+            operator.outputRaster.raster(key='ndvi').setImageArray(array=ndvi)
 
         Note that output raster datasets are access using the ``operator.outputRaster``, which is identical to ``applier.outputRaster``
         and used to access previously defined :class:`~hubdc.applier.ApplierOutputRaster` objects,
@@ -156,14 +156,14 @@ This simple example reads the *wavelength* information from the *ENVI* metadata 
     def ufunc(operator):
 
         # copy raster data
-        array = operator.inputRaster.getRaster(key='image').getImageArray()
-        operator.outputRaster.getRaster(key='outimage').setImageArray(array=array)
+        array = operator.inputRaster.raster(key='image').imageArray()
+        operator.outputRaster.raster(key='outimage').setImageArray(array=array)
 
         # copy ENVI/wavelength metadata
-        wavelength = operator.inputRaster.getRaster(key='image').getMetadataItem(key='wavelength', domain='ENVI')
-        operator.outputRaster.getRaster(key='outimage').setMetadataItem(key='wavelength', value=wavelength, domain='ENVI')
+        wavelength = operator.inputRaster.raster(key='image').metadataItem(key='wavelength', domain='ENVI')
+        operator.outputRaster.raster(key='outimage').setMetadataItem(key='wavelength', value=wavelength, domain='ENVI')
 
-See :meth:`~hubdc.applier.ApplierInputRaster.getMetadataItem` and :meth:`~hubdc.applier.ApplierOutputRaster.setMetadataItem` for more details.
+See :meth:`~hubdc.applier.ApplierInputRaster.metadataItem` and :meth:`~hubdc.applier.ApplierOutputRaster.setMetadataItem` for more details.
 
 For more information on the GDAL Data and Metadata Model see the
 `GDAL documentation <http://www.gdal.org/gdal_datamodel.html>`_.
@@ -184,9 +184,9 @@ might be a program to multiply an input raster by a scale value and add an offse
 
     class ScaleOperator(ApplierOperator):
         def ufunc(operator, scale, offset):
-            array = operator.inputRaster.getRaster(key='image').getImageArray()
+            array = operator.inputRaster.raster(key='image').imageArray()
             scaled = array * scale + offset
-            operator.outputRaster.getRaster(key='outimage').setImageArray(array=scaled)
+            operator.outputRaster.raster(key='outimage').setImageArray(array=scaled)
 
     applier.apply(operator=Scaleperator, scale=1, offset=0)
 
@@ -195,7 +195,7 @@ to calculate some statistic (e.g. the mean) across the whole raster::
 
     class MeanOperator(ApplierOperator):
         def ufunc(operator):
-            array = operator.inputRaster.getRaster(key='image').getImageArray()
+            array = operator.inputRaster.raster(key='image').imageArray()
             blockTotal = img.sum()
             blockCount = img.size
             return blockTotal, blockCount
@@ -335,41 +335,41 @@ Inside the operator ufunc, individual datasets can then be accessed as follows::
 
     def ufunc(operator):
         # access individual dataset
-        cfmask = operator.inputRaster.getGroup(key='landsat').getGroup(key='194').getGroup(key='023').getGroup(key='LC81940232015235LGN00').getRaster(key='LC81940232015235LGN00_cfmask')
-        array = cfmask.getImageArray()
+        cfmask = operator.inputRaster.group(key='landsat').group(key='194').group(key='023').group(key='LC81940232015235LGN00').raster(key='LC81940232015235LGN00_cfmask')
+        array = cfmask.imageArray()
 
 Or as a shortcut to this it is possible to also use key concatenation like so::
 
-        cfmask = operator.inputRaster.getRaster(key='landsat/194/023/LC81940232015235LGN00/LC81940232015235LGN00_cfmask')
+        cfmask = operator.inputRaster.raster(key='landsat/194/023/LC81940232015235LGN00/LC81940232015235LGN00_cfmask')
 
 To visit all datasets, the structure can be iterated in accordance to how it was created, from landsat, over pathes, over rows, over scenes, to the cfmask rasters::
 
     def ufunc(operator):
         # iterate over all datasets
-        landsat = operator.inputRaster.getGroup(key='landsat')
-        for path in landsat.getGroups():
-            for row in path.getGroups():
-                for scene in row.getGroups():
+        landsat = operator.inputRaster.group(key='landsat')
+        for path in landsat.groups():
+            for row in path.groups():
+                for scene in row.groups():
                     cfmask = scene.findRaster(filter = lambda key, raster: key.endswith('cfmask'))
-                    array = cfmask.getImageArray()
+                    array = cfmask.imageArray()
 
 The rasters can also be flat iterated, ignoring the group structure completely::
 
     def ufunc(operator):
         # flat iterate over all datasets
-        for cfmask in operator.inputRaster.getFlatRasters():
-            array = cfmask.getImageArray()
+        for cfmask in operator.inputRaster.flatRasters():
+            array = cfmask.imageArray()
 
 Filters and Overlap Example
 ===========================
 
 Because the applier operates on a per block basis, care must be taken to set the overlap correctly when working with filters.
 The ``overlap`` keyword must be consistently set when using input raster reading methods (
-:meth:`~hubdc.applier.ApplierInputRaster.getImageArray`,
-:meth:`~hubdc.applier.ApplierInputRaster.getBandArray`,
-:meth:`~hubdc.applier.ApplierInputRaster.getFractionArray`), input vector reading methods (
-:meth:`~hubdc.applier.ApplierInputVector.getImageArray`
-:meth:`~hubdc.applier.ApplierInputVector.getFractionArray`), and output raster writing method (
+:meth:`~hubdc.applier.ApplierInputRaster.imageArray`,
+:meth:`~hubdc.applier.ApplierInputRaster.bandArray`,
+:meth:`~hubdc.applier.ApplierInputRaster.fractionArray`), input vector reading methods (
+:meth:`~hubdc.applier.ApplierInputVector.imageArray`
+:meth:`~hubdc.applier.ApplierInputVector.fractionArray`), and output raster writing method (
 :meth:`~hubdc.applier.ApplierOutputRaster.setImageArray`).
 
 Here is a simple convolution filter example::
@@ -391,9 +391,9 @@ Here is a simple convolution filter example::
             # does a spatial 11x11 uniform filter.
             # Note: for a 3x3 the overlap is 1, 5x5 overlap is 2, ..., 11x11 overlap is 5, etc
             overlap = 5
-            array = operator.inputRaster.getRaster(key='image').getImageArray(overlap=overlap)
+            array = operator.inputRaster.raster(key='image').imageArray(overlap=overlap)
             arraySmoothed = uniform_filter(array, size=11, mode='constant')
-            operator.outputRaster.getRaster(key='outimage').setImageArray(array=arraySmoothed, overlap=overlap)
+            operator.outputRaster.raster(key='outimage').setImageArray(array=arraySmoothed, overlap=overlap)
 
     applier.apply(operator=SmoothOperator)
 
@@ -415,9 +415,9 @@ must be aggregated into pixel fraction, one for each category.
 
 In the following example a Landsat CFMask image at 30 m is resampled into 250 m, resulting in a category fractions.
 The categories are: 0 is *clear land*, 1 is *clear water*, 2 is *cloud shadow*, 3 is *ice or snow*, 4 is *cloud* and 255 is the *background*.
-Use :meth:`~hubdc.applier.ApplierInputRaster.getFractionArray` to achieve this::
+Use :meth:`~hubdc.applier.ApplierInputRaster.fractionArray` to achieve this::
 
-    cfmaskFractions250m = self.inputRaster.getRaster('cfmask30m').getFractionArray(categories=[0, 1, 2, 3, 4, 255])
+    cfmaskFractions250m = self.inputRaster.raster('cfmask30m').fractionArray(categories=[0, 1, 2, 3, 4, 255])
 
 Categories at 250 m can then be calculated from the aggregated fractions::
 
@@ -434,27 +434,27 @@ Vector layers can be included into the processing::
 Like any input raster file, vector layers can be accessed via the ``operator`` object inside the user function::
 
     def ufunc(operator):
-        vector = operator.inputVector.getVector(key='vector')
+        vector = operator.inputVector.vector(key='vector')
 
-Use :meth:`~hubdc.applier.ApplierInputVector.getImageArray` to get a rasterized version of the vector layer.
+Use :meth:`~hubdc.applier.ApplierInputVector.imageArray` to get a rasterized version of the vector layer.
 The rasterization is a binary mask by default, that is initialized with 0 and all pixels covered by features
 are filled (burned) with a value of 1::
 
-        array = vector.getImageArray()
+        array = vector.imageArray()
         
 This behaviour can be altered using the ``initValue`` and ``burnValue`` keywords::
 
-        array = vector.getImageArray(initValue=0, burnValue=1)
+        array = vector.imageArray(initValue=0, burnValue=1)
 
 Instead of a constant burn value, a burn attribute can be set by using the ``burnAttribute`` keyword::
 
-        array = vector.getImageArray(burnAttribute='ID')
+        array = vector.imageArray(burnAttribute='ID')
         
 Use the ``filterSQL`` keyword to set an attribute query string in form of a SQL WHERE clause.
 Only features for which the query evaluates as true will be returned::
 
         sqlWhere = "Name = 'Vegetation'"
-        array = vector.getImageArray(filterSQL=sqlWhere)
+        array = vector.imageArray(filterSQL=sqlWhere)
 
 Categorical Vector Inputs Example
 =================================
@@ -468,17 +468,17 @@ into pixel fraction, one for each category.
 
 Take for example a vector layer with an attribute ``CLASS_ID`` coding features as *1 -> Impervious*, *2 -> Vegetation*, *3 -> Soil* and *4 -> Other*.
 To derieve aggregated pixel fractions for *Impervious*, *Vegetation* and *Soil* categories rasterization at 5 m resolution use
-:meth:`~hubdc.applier.ApplierInputVector.getFractionArray`::
+:meth:`~hubdc.applier.ApplierInputVector.fractionArray`::
 
     def ufunc(operator):
-        vector = operator.inputVector.getVector(key='vector')
-        fractions = self.getFractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID', xRes=5, yRes=5)
+        vector = operator.inputVector.vector(key='vector')
+        fractions = self.fractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID', xRes=5, yRes=5)
 
 Instaed of explicitly specifying the rasterization resolution using ``xRes`` and ``yRes`` keywords, use the ``oversampling`` keyword to
 specify the factor by witch the target resolution should be oversampled. So for example, if the target resolution is 30 m and rasterization
 should take place at 5 m resolution, use an oversampling factor of 6 (i.e. 30 m / 5 m = 6)::
 
-        fractions = self.getFractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID', xRes=5, yRes=5)
+        fractions = self.fractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID', xRes=5, yRes=5)
 
 
 Categories at 30 m can then be calculated from the aggregated fractions::
