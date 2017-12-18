@@ -64,19 +64,26 @@ class Default(object):
 
 
 class ApplierIO(object):
+    '''
+    Base class for io items.
+    For internal use only.'''
+
     def __init__(self, filename):
         self._operator = None
         self._filename = str(filename)
 
     def setOperator(self, operator):
+        '''Pass a handle on the operator object.'''
         assert isinstance(operator, ApplierOperator)
         self._operator = operator
 
     def operator(self):
+        '''Returns the operator object.'''
         assert isinstance(self._operator, ApplierOperator)
         return self._operator
 
     def filename(self):
+        '''Returns the filename.'''
         return self._filename
 
 
@@ -93,19 +100,16 @@ class ApplierInputRaster(ApplierIO):
         return applierInputRaster
 
     def __init__(self, filename):
-        '''
+        '''Creates an instance from raster stored at ``filename``.'''
 
-        :param filename: filename
-        '''
-
-        ApplierIO.__init__(self,filename=filename)
+        ApplierIO.__init__(self, filename=filename)
         self._dataset = None
-
 
     def __repr__(self):
         return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename()))
 
     def dataset(self):
+        '''Return the :class:`~hubdc.model.Vector` object.'''
         if self._dataset is None:
             self._dataset = openRaster(filename=self.filename())
 
@@ -120,7 +124,8 @@ class ApplierInputRaster(ApplierIO):
                    multithread=Default.GDALWarp.multithread,
                    grid=None):
         '''
-        Returns image data as 3-d numpy array of shape = (bands, ysize, xsize).
+        Returns image data as 3-d numpy array of shape = (zsize, ysize, xsize),
+        where zsize is the number of bands.
 
         :param overlap: the number of pixels to additionally read along each spatial dimension
         :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
@@ -154,7 +159,8 @@ class ApplierInputRaster(ApplierIO):
                   warpMemoryLimit=Default.GDALWarp.memoryLimit,
                   multithread=Default.GDALWarp.multithread):
         '''
-        Returns a band subset of the image data as 3-d numpy array of shape = (indicies, ysize, xsize).
+        Returns a band subset of the image data as 3-d numpy array of shape = (zsize, ysize, xsize),
+        where zsize is the number of indicies.
 
         :param indicies: list of band indicies
         :param overlap: the number of pixels to additionally read along each spatial dimension
@@ -169,9 +175,9 @@ class ApplierInputRaster(ApplierIO):
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
         if self.operator().subgrid().projection().equal(self.dataset().grid().projection()):
             datasetResampled = self.dataset().translate(grid=grid, filename='', format='MEM',
-                                                      bandList=bandList,
-                                                      resampleAlg=resampleAlg,
-                                                      noData=noData)
+                                                        bandList=bandList,
+                                                        resampleAlg=resampleAlg,
+                                                        noData=noData)
         else:
             selfGridReprojected = self.operator().subgrid().reproject(self.dataset().grid())
             selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1 + overlap)
@@ -195,7 +201,8 @@ class ApplierInputRaster(ApplierIO):
 
     def fractionArray(self, categories, overlap=0, noData=None, index=None):
         '''
-        Returns a stack of category fractions for the given ``categories`` as a 3-d numpy array of shape = (categories, ysize, xsize).
+        Returns a stack of category fractions for the given ``categories`` as a 3-d numpy array of
+        shape = (zsize, ysize, xsize), where zsize is the number of categories.
 
         :param categories: list of categories of interest
         :param overlap: the number of pixels to additionally read along each spatial dimension
@@ -211,7 +218,7 @@ class ApplierInputRaster(ApplierIO):
         # create tmp dataset with binarized categories in original resolution
         gridInSourceProjection = grid.reproject(self.dataset().grid())
         tmpDataset = self.dataset().translate(grid=gridInSourceProjection, filename='', format='MEM',
-                                            noData=noData, bandList=[index + 1])
+                                              noData=noData, bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
 
         binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
@@ -229,7 +236,7 @@ class ApplierInputRaster(ApplierIO):
                     warpMemoryLimit=Default.GDALWarp.memoryLimit,
                     multithread=Default.GDALWarp.multithread):
         '''
-        Returns all pixel profiles for which ``mask`` is True as a 2-d numpy array of shape = (bands, samples).
+        Returns all pixel profiles for which ``mask`` is True as a 2-d numpy array of shape = (zsize, samples).
 
         :param overlap: the number of pixels to additionally read along each spatial dimension
         :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
@@ -291,35 +298,31 @@ class ApplierInputVector(ApplierIO):
         :type layerNameOrIndex: str or int
         '''
 
-        ApplierIO.__init__(self,filename=filename)
+        ApplierIO.__init__(self, filename=filename)
         self._layerNameOrIndex = layerNameOrIndex
-        self._layer = None
-
+        self._dataset = None
 
     def __repr__(self):
         return '{cls}(filename={filename}, layerNameOrIndex={layerNameOrIndex})'.format(
             cls=self.__class__.__name__,
             filename=str(self.filename()),
-            layerNameOrIndex=repr(self.layerNameOrIndex()))
+            layerNameOrIndex=repr(self._layerNameOrIndex))
 
-    def layer(self):
-        '''Return the :class:`~hubdc.model.Layer` object.'''
-        if self._layer is None:
-            self._layer = openVector(filename=self.filename(), layerNameOrIndex=self.layerNameOrIndex(), update=False)
-        return self._layer
-
-    def layerNameOrIndex(self):
-        return self._layerNameOrIndex
+    def dataset(self):
+        '''Return the :class:`~hubdc.model.Vector` object.'''
+        if self._dataset is None:
+            self._dataset = openVector(filename=self.filename(), layerNameOrIndex=self._layerNameOrIndex, update=False)
+        return self._dataset
 
     def _rasterize(self, initValue, burnValue, burnAttribute, allTouched, filterSQL, overlap, dtype, resolution):
 
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
         gridOversampled = Grid(extent=grid.extent(), resolution=resolution, projection=grid.projection())
 
-        dataset = self.layer().rasterize(grid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(dtype),
-                                       initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute,
-                                       allTouched=allTouched,
-                                       filter=filterSQL, filename='', format='MEM', creationOptions=[])
+        dataset = self.dataset().rasterize(grid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(dtype),
+                                           initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute,
+                                           allTouched=allTouched,
+                                           filter=filterSQL, filename='', format='MEM', creationOptions=[])
         raster = ApplierInputRaster.fromDataset(dataset=dataset)
         raster.setOperator(operator=self.operator())
         return raster
@@ -427,7 +430,7 @@ class ApplierOutputRaster(ApplierIO):
         """
         Write data to the output raster.
 
-        :param array: 3-d numpy array of shape = (bands, ysize, xsize) or 2-d numpy array of shape = (ysize, xsize)
+        :param array: 3-d numpy array of shape = (zsize, ysize, xsize) or 2-d numpy array of shape = (ysize, xsize)
         :param overlap: the amount of margin (number of pixels) to be removed from the image data block in each direction;
                         this is useful when the overlap keyword was also used during data reading.
         """
@@ -555,7 +558,7 @@ class ApplierIOGroup(object):
         assert isinstance(operator, ApplierOperator)
         self._operator = operator
         for item in self.items.values():
-            item.setOperator(operator= self._operator)
+            item.setOperator(operator=self._operator)
 
     def _freeUnpickableResources(self):
         for item in self.items.values():
@@ -905,7 +908,8 @@ class Applier(object):
         assert isinstance(self._grid, Grid)
         return self._grid
 
-    def apply(self, operatorType=None, operatorFunction=None, description=None, overwrite=True, *ufuncArgs, **ufuncKwargs):
+    def apply(self, operatorType=None, operatorFunction=None, description=None, overwrite=True, *ufuncArgs,
+              **ufuncKwargs):
         """
         Applies the ``operator`` blockwise over a raster processing chain and returns a list of results, one for each block.
 
@@ -1143,8 +1147,8 @@ class ApplierOperator(object):
         self._ufuncArgs = ufuncArgs
         self._ufuncKwargs = ufuncKwargs
         self._ufuncFunction = operatorUFunc
-        self.iblock = 0
-        self.nblock = 0
+        self._iblock = 0
+        self._nblock = 0
 
     def subgrid(self):
         """
@@ -1175,39 +1179,70 @@ class ApplierOperator(object):
         """
         Returns wether or not the current block is the first one.
         """
-        return self.iblock == 0
+        return self._iblock == 0
 
     def isLastBlock(self):
         """
         Returns wether or not the current block is the last one.
         """
-        return self.iblock == self.nblock - 1
+        return self._iblock == self.nblock() - 1
 
     def isLastYBlock(self):
         """
         Returns wether or not the current block is the last block in y direction.
         """
-        return self.yblock == self.nyblock - 1
+        return self._yblock == self.nyblock() - 1
 
     def isLastXBlock(self):
         """
         Returns wether or not the current block is the last block in x direction.
         """
-        return self.xblock == self.nxblock - 1
+        return self._xblock == self.nxblock() - 1
 
-    def getFull(self, value, bands=1, dtype=None, overlap=0):
-        '''Returns a 3-d numpy array of shape = (bands, ysize+2*overlap, xsize+2*overlap) filled with constant ``value``.'''
+    def iblock(self):
+        return self._iblock
 
-        return numpy.full(shape=(bands, self.subgrid().size().y() + 2 * overlap, self.subgrid().size().x() + 2 * overlap),
-                          fill_value=value, dtype=dtype)
+    def nblock(self):
+        return self._nblock
+
+    def yblock(self):
+        return self._yblock
+
+    def xblock(self):
+        return self._xblock
+
+    def nyblock(self):
+        return self._nyblock
+
+    def nxblock(self):
+        return self._nxblock
+
+    def yblockSize(self):
+        return self.subgrid().shape()[0]
+
+    def xblockSize(self):
+        return self.subgrid().shape()[1]
+
+    def yblockOffset(self):
+        return self.yblock() * self.yblockSize()
+
+    def xblockOffset(self):
+        return self.xblock() * self.xblockSize()
+
+    def full(self, value, bands=1, dtype=None, overlap=0):
+        '''Returns a 3-d numpy array of shape = (zsize, ysize+2*overlap, xsize+2*overlap) filled with constant ``value``.'''
+
+        return numpy.full(
+            shape=(bands, self.subgrid().size().y() + 2 * overlap, self.subgrid().size().x() + 2 * overlap),
+            fill_value=value, dtype=dtype)
 
     def _apply(self, workingGrid, iblock, nblock, yblock, xblock, nyblock, nxblock):
-        self.iblock = iblock
-        self.nblock = nblock
-        self.yblock = yblock
-        self.xblock = xblock
-        self.nyblock = nyblock
-        self.nxblock = nxblock
+        self._iblock = iblock
+        self._nblock = nblock
+        self._yblock = yblock
+        self._xblock = xblock
+        self._nyblock = nyblock
+        self._nxblock = nxblock
 
         self._setWorkingGrid(workingGrid)
         return self.ufunc(*self._ufuncArgs, **self._ufuncKwargs)

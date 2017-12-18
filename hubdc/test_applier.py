@@ -8,6 +8,7 @@ from hubdc.testdata import LT51940232010189KIS01, LT51940242010189KIS01, Branden
 
 outdir = join(gettempdir(), 'hubdc_test')
 
+
 def test_ApplierInputRaster():
     class Operator(ApplierOperator):
         def ufunc(operator, *args, **kwargs):
@@ -128,7 +129,7 @@ def test_ApplierOutputRaster():
     class Operator(ApplierOperator):
         def ufunc(operator, *args, **kwargs):
             overlap = 10
-            array = operator.getFull(value=42, bands=3, overlap=overlap)
+            array = operator.full(value=42, bands=3, overlap=overlap)
 
             # write bands individual
             stack = operator.outputRaster.raster(key='stack')
@@ -174,7 +175,6 @@ def test_ApplierOutputRaster():
     applier.apply(operatorType=Operator)
 
 
-
 class TestApplier(TestCase):
     def test_apply(self):
         class Operator(ApplierOperator):
@@ -184,7 +184,7 @@ class TestApplier(TestCase):
                 operator.isLastXBlock()
                 operator.isLastYBlock()
                 operator.grid()
-                constArray = operator.getFull(value=42)
+                constArray = operator.full(value=42)
 
         applier = Applier()
         applier.controls.setGrid(grid=openRaster(LT51940232010189KIS01.cfmask).grid())
@@ -215,7 +215,8 @@ class TestApplierControls(TestCase):
         applier.controls.setBlockSize(Size(x=255, y=255))
         applier.controls.setBlockFullSize()
 
-        self.assertRaises(excClass=ValueError, callableObj=applier.controls.setResolution, resolution='not a resolution')
+        self.assertRaises(excClass=ValueError, callableObj=applier.controls.setResolution,
+                          resolution='not a resolution')
         applier.controls.setResolution(None)
         applier.controls.setResolution(30)
         applier.controls.setResolution((30, 30))
@@ -258,4 +259,5 @@ class TestApplierControls(TestCase):
             applier.controls.setAutoExtent(26)
         except errors.UnknownApplierAutoExtentOption:
             pass
+
 
