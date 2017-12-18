@@ -324,12 +324,13 @@ The CFMask datasets can be inserted manually (preserving the file structure) as 
     row024.setRaster(key='LT51940242010189KIS01_cfmask', value=ApplierInputRaster(filename=r'C:\landsat\194\023\LT51940242010189KIS01\LT51940242010189KIS01_cfmask.img'))
 
 The same result can be achieved using the :meth:`~hubdc.applier.ApplierInputRasterGroup.fromFolder` auxilliary method,
-which takes a ``folder`` and searches recursively for all raster matching the given ``extensions`` and passes a ``filter`` function::
+which takes a ``folder`` and searches recursively for all raster matching the given ``extensions``
+and passes a (optional) ``ufunc`` filter function::
 
-    filter = lambda root, basename, extension: basename.endswith('cfmask'))
+    ufunc = lambda root, basename, extension: basename.endswith('cfmask'))
     applier.inputRaster.setGroup(key='landsat', value=ApplierInputRasterGroup.fromFolder(folder=r'C:\Work\data\gms\landsat',
                                                                                          extensions=['.img'],
-                                                                                         filter=filter)
+                                                                                         ufunc=ufunc)
 
 Inside the operator ufunc, individual datasets can then be accessed as follows::
 
@@ -350,7 +351,7 @@ To visit all datasets, the structure can be iterated in accordance to how it was
         for path in landsat.groups():
             for row in path.groups():
                 for scene in row.groups():
-                    cfmask = scene.findRaster(filter = lambda key, raster: key.endswith('cfmask'))
+                    cfmask = scene.findRaster(ufunc=lambda key, raster: key.endswith('cfmask'))
                     array = cfmask.imageArray()
 
 The rasters can also be flat iterated, ignoring the group structure completely::
@@ -404,7 +405,8 @@ Categorical Raster Inputs Example
 =================================
 
 On-the-fly resampling and reprojection of input rasters into the reference pixel grid is one key feature of the applier.
-For categorical raster inputs this default behaviour can be insufficient in terms of information content preservation, even if the resampling algorithm is carefully choosen.
+However, for categorical raster inputs, this default behaviour can be insufficient in terms of information content preservation,
+even if the resampling algorithm is carefully choosen.
 
 For example, if the goal is to process a categorical raster, where different categories are coded with unique ids,
 standard resampling algorithms will not be able to preserve the information content.
@@ -470,15 +472,21 @@ Take for example a vector layer with an attribute ``CLASS_ID`` coding features a
 To derieve aggregated pixel fractions for *Impervious*, *Vegetation* and *Soil* categories rasterization at 5 m resolution use
 :meth:`~hubdc.applier.ApplierInputVector.fractionArray`::
 
+    from hubdc.model import Resolution
+
     def ufunc(operator):
         vector = operator.inputVector.vector(key='vector')
-        fractions = self.fractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID', xRes=5, yRes=5)
+        fractions = self.fractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID',
+                                       resolution=Resolution(x=5, y=5).
 
-Instaed of explicitly specifying the rasterization resolution using ``xRes`` and ``yRes`` keywords, use the ``oversampling`` keyword to
-specify the factor by witch the target resolution should be oversampled. So for example, if the target resolution is 30 m and rasterization
+Instaed of explicitly specifying the rasterization ``resolution``, use the ``oversampling`` keyword to
+specify the factor by witch the target resolution should be oversampled.
+Note that if nothing is specified, an oversampling factor of 10 is used.
+So for example, if the target resolution is 30 m and rasterization
 should take place at 5 m resolution, use an oversampling factor of 6 (i.e. 30 m / 5 m = 6)::
 
-        fractions = self.fractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID', xRes=5, yRes=5)
+        fractions = self.fractionArray('vector', categories=[1, 2, 3], categoryAttribute='CLASS_ID',
+                                       oversampling=6)
 
 
 Categories at 30 m can then be calculated from the aggregated fractions::
