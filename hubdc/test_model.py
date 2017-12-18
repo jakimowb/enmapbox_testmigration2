@@ -152,88 +152,27 @@ class TestDataset(TestCase):
             self.assertIsInstance(obj=band, cls=Band)
 
 
-'''
-    def test_getFormat(self):
-        self.fail()
+class TestGrid(TestCase):
+    def test_coordinates(self):
+        grid = Grid(extent=Extent(xmin=0, xmax=3, ymin=0, ymax=2), resolution=Resolution(x=1, y=1),
+                    projection=Projection.WGS84())
+        xgold = np.array([[0.5, 1.5, 2.5], [0.5, 1.5, 2.5]])
+        ygold = np.array([[1.5, 1.5, 1.5], [0.5, 0.5, 0.5]])
+        self.assertTrue(np.all(grid.xMapCoordinatesArray() == xgold))
+        self.assertTrue(np.all(grid.yMapCoordinatesArray() == ygold))
 
-    def test_readAsArray(self):
-        self.fail()
+        xgold = np.array([[0, 1, 2], [0, 1, 2]])
+        ygold = np.array([[0, 0, 0], [1, 1, 1]])
 
-    def test_writeArray(self):
-        self.fail()
+        self.assertTrue(np.all(grid.xPixelCoordinatesArray() == xgold))
+        self.assertTrue(np.all(grid.yPixelCoordinatesArray() == ygold))
 
-    def test_flushCache(self):
-        self.fail()
+        subgrid = grid.subset(offset=Pixel(x=1, y=1), size=Size(x=2, y=1))
+        subxgold = xgold[1:, 1:]
+        subygold = ygold[1:, 1:]
 
-    def test_close(self):
-        self.fail()
+        print(subgrid.xPixelCoordinatesArray())
+        print(subgrid.yPixelCoordinatesArray())
 
-    def test_getBand(self):
-        self.fail()
-
-    def test_setNoDataValues(self):
-        self.fail()
-
-    def test_getNoDataValues(self):
-        self.fail()
-
-    def test_setNoDataValue(self):
-        self.fail()
-
-    def test_getNoDataValue(self):
-        self.fail()
-
-    def test_setDescription(self):
-        self.fail()
-
-    def test_getDescription(self):
-        self.fail()
-
-    def test_getMetadataDomainList(self):
-        self.fail()
-
-    def test_setMetadataItem(self):
-        self.fail()
-
-    def test_getMetadataItem(self):
-        self.fail()
-
-    def test_getMetadataDict(self):
-        self.fail()
-
-    def test_setMetadataDict(self):
-        self.fail()
-
-    def test_getMetadataDomain(self):
-        self.fail()
-
-    def test_copyMetadata(self):
-        self.fail()
-
-    def test_setENVIAcquisitionTime(self):
-        self.fail()
-
-    def test_writeENVIHeader(self):
-        self.fail()
-
-    def test_warp(self):
-        self.fail()
-
-    def test_warpOptions(self):
-        self.fail()
-
-    def test_translate(self):
-        self.fail()
-
-    def test_xsize(self):
-        self.fail()
-
-    def test_ysize(self):
-        self.fail()
-
-    def test_zsize(self):
-        self.fail()
-
-    def test_shape(self):
-        self.fail()
-'''
+        self.assertTrue(np.all(subgrid.xPixelCoordinatesArray(offset=1) == subxgold))
+        self.assertTrue(np.all(subgrid.yPixelCoordinatesArray(offset=1) == subygold))

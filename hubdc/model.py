@@ -1,12 +1,11 @@
 from os import makedirs, remove
 from os.path import dirname, exists, join, basename
-import functools
 import copy
 import json
 from random import randint
 import tempfile
 from osgeo import gdal, gdal_array, ogr, osr
-import numpy
+import numpy as np
 import hubdc.hubdcerrors as errors
 
 
@@ -37,7 +36,7 @@ def createRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', format='
 
 
 def createRasterFromArray(grid, array, filename='', format='MEM', creationOptions=()):
-    if isinstance(array, numpy.ndarray):
+    if isinstance(array, np.ndarray):
         if array.ndim == 2:
             array = array[None]
         assert array.ndim == 3
@@ -48,8 +47,8 @@ def createRasterFromArray(grid, array, filename='', format='MEM', creationOption
 
     bands = len(array)
     dtype = array[0].dtype
-    if dtype == numpy.bool:
-        dtype = numpy.uint8
+    if dtype == np.bool:
+        dtype = np.uint8
     eType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
     dataset = createRaster(grid=grid, bands=bands, gdalType=eType, filename=filename, format=format,
                            options=creationOptions)
@@ -124,7 +123,6 @@ class Extent(object):
         assert self._xmax > self._xmin
         assert self._ymax > self._ymin
 
-
     def __repr__(self):
         return '{cls}(xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax})'.format(
             cls=self.__class__.__name__,
@@ -134,13 +132,10 @@ class Extent(object):
             ymax=repr(self.ymax()))
 
     @staticmethod
-    def fromPolygon(polygon):
-        assert isinstance(polygon, Polygon)
-        xs = [p.x() for p in polygon.points()]
-        ys = [p.y() for p in polygon.points()]
-
-        return Extent(xmin=functools.reduce(min, xs), xmax=functools.reduce(max, xs),
-                      ymin=functools.reduce(min, ys), ymax=functools.reduce(max, ys))
+    def fromGeometry(geometry):
+        assert isinstance(geometry, Geometry)
+        xmin, xmax, ymin, ymax  = geometry.ogr().GetEnvelope()
+        return Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
 
     def xmin(self):
         return self._xmin
@@ -161,7 +156,7 @@ class Extent(object):
             ring.AddPoint(x, y)
         geometry = ogr.Geometry(ogr.wkbPolygon)
         geometry.AddGeometry(ring)
-        return geometry
+        return Geometry(wkt=geometry.ExportToWkt())
 
     def upperLeft(self):
         return Point(x=self.xmin(), y=self.ymax())
@@ -176,30 +171,15 @@ class Extent(object):
         return Point(x=self.xmin(), y=self.ymin())
 
     def corners(self):
-        return (self.upperLeft(), self.lowerLeft(), self.upperRight(), self.lowerRight())
-
-    def wkt(self):
-        ring = ogr.Geometry(ogr.wkbLinearRing)
-        for x, y in zip([self.xmin(), self.xmax(), self.xmax(), self.xmin(), self.xmin()],
-                        [self.ymax(), self.ymax(), self.ymin(), self.ymin(), self.ymax()]):
-            ring.AddPoint(x, y)
-        poly = ogr.Geometry(ogr.wkbPolygon)
-        poly.AddGeometry(ring)
-        wkt = poly.ExportToWkt()
-        return wkt
+        return (self.upperLeft(), self.upperRight(), self.lowerRight(), self.lowerLeft())
 
     def reproject(self, sourceProjection, targetProjection):
-        assert isinstance(sourceProjection, Projection)
-        assert isinstance(targetProjection, Projection)
-        ul = self.upperLeft().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
-        ur = self.upperRight().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
-        ll = self.lowerLeft().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
-        lr = self.lowerRight().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
-        return Extent.fromPolygon(polygon=Polygon(points=(ul, ur, ll, lr)))
+        geometry = self.geometry().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
+        return Extent.fromGeometry(geometry=geometry)
 
     def intersects(self, other):
         assert isinstance(other, Extent)
-        return self.geometry().Intersects(other.geometry())
+        return self.geometry().intersects(other.geometry())
 
     def intersection(self, other):
         """
@@ -253,6 +233,13 @@ class SpatialExtent(Extent):
         return SpatialExtent(xmin=extent.xmin(), xmax=extent.xmax(), ymin=extent.ymin(), ymax=extent.ymax(),
                              projection=projection)
 
+    @staticmethod
+    def fromGeometry(geometry):
+        assert isinstance(geometry, SpatialGeometry)
+        extent = Extent.fromGeometry(geometry=geometry)
+        return SpatialExtent.fromExtent(extent=extent, projection=geometry.projection())
+
+
     def projection(self):
         return self._projection
 
@@ -293,8 +280,10 @@ class SpatialExtent(Extent):
         assert self.projection().equal(other=other.projection())
         return SpatialExtent.fromExtent(extent=Extent.union(self, other=other), projection=self.projection())
 
-    def polygon(self):
-        return SpatialPolygon(points=self.corners(), projection=self.projection())
+    def geometry(self):
+        geometry = Extent.geometry(self)
+        return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
+
 
 class Resolution(object):
     def __init__(self, x, y):
@@ -380,6 +369,76 @@ class Pixel(object):
     def y(self):
         return self._y
 
+class Geometry(object):
+    '''Geometry'''
+
+    def __init__(self, wkt):
+        assert isinstance(wkt, str)
+        self._wkt = wkt
+
+    def wkt(self):
+        return self._wkt
+
+    def ogr(self):
+        geometry = ogr.CreateGeometryFromWkt(self._wkt)
+        return geometry
+
+    def reproject(self, sourceProjection, targetProjection):
+        transformation = osr.CoordinateTransformation(sourceProjection.osrSpatialReference(),
+                                                      targetProjection.osrSpatialReference())
+
+        ogrGeometry = self.ogr()
+        ogrGeometry.Transform(transformation)
+        return Geometry(wkt=ogrGeometry.ExportToWkt())
+
+    def intersects(self, other):
+        assert isinstance(other, Geometry)
+        return self.ogr().Intersects(other.ogr())
+
+    def intersection(self, other):
+        assert isinstance(other, Geometry)
+        ogrGeometry = self.ogr().Intersection(other.ogr())
+        assert ogrGeometry is not None
+        return Geometry(wkt=ogrGeometry.ExportToWkt())
+
+class SpatialGeometry(Geometry):
+    def __init__(self, wkt, projection):
+        assert isinstance(projection, Projection)
+        Geometry.__init__(self, wkt=wkt)
+        self._projection = projection
+
+    @staticmethod
+    def fromVector(filename, layerNameOrIndex=0):
+        vector = openVector(filename=filename, layerNameOrIndex=layerNameOrIndex)
+        layer = vector.ogrLayer()
+        ogrGeometry = ogr.Geometry(ogr.wkbMultiPolygon)
+        for feature in layer:
+            ogrGeometry.AddGeometry(feature.GetGeometryRef())
+        ogrGeometry = ogrGeometry.UnionCascaded()
+
+        return SpatialGeometry(wkt=ogrGeometry.ExportToWkt(), projection=vector.projection())
+
+    def projection(self):
+        return self._projection
+
+    def reproject(self, targetProjection, sourceProjection=None):
+        if sourceProjection is not None:
+            assert self.projection().equal(other=sourceProjection)
+        geometry = Geometry.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
+        return SpatialGeometry(wkt=geometry.wkt(), projection=targetProjection)
+
+    def intersects(self, other):
+        assert isinstance(other, SpatialGeometry)
+        assert self.projection().equal(other.projection())
+        return Geometry.intersects(self, other=other)
+
+    def intersection(self, other):
+        assert isinstance(other, SpatialGeometry)
+        assert self.projection().equal(other=other.projection())
+        geometry = Geometry.intersection(self, other=other)
+        return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
+
+
 
 class Point(object):
     '''Map location.'''
@@ -396,13 +455,13 @@ class Point(object):
     def y(self):
         return self._y
 
-    def geometry(self):
+    def wkb(self):
         point = ogr.Geometry(ogr.wkbPoint)
         point.AddPoint(self.x(), self.y())
         return point
 
     def wkt(self):
-        return self.geometry().ExportToWkt()
+        return self.wkb().ExportToWkt()
 
     def reproject(self, sourceProjection, targetProjection):
         assert isinstance(sourceProjection, Projection)
@@ -434,21 +493,20 @@ class SpatialPoint(Point):
     def withinExtent(self, extent):
         assert isinstance(extent, SpatialExtent)
         p = self.reproject(targetProjection=extent.projection())
-        return p.geometry().Within(extent.geometry())
+        return p.wkb().Within(extent.wkb())
 
 
-class Polygon(object):
-
+'''class Polygon(object):
     def __init__(self, points):
         for p in points:
             assert isinstance(p, Point)
 
-        self._points = points
+        self._points = tuple(points)
 
     @staticmethod
     def fromGeometry(geometry):
-        assert isinstance(geometry, ogr.Geometry)
-        points = [Point(x=x, y=y) for x, y, z in json.loads(geometry.ExportToJson())['coordinates'][0]]
+        assert isinstance(geometry, Geometry)
+        points = [Point(x=x, y=y) for x, y, z in json.loads(geometry.ogr().ExportToJson())['coordinates'][0]]
         return Polygon(points=points)
 
     def points(self):
@@ -462,24 +520,23 @@ class Polygon(object):
 
     def geometry(self):
         ring = ogr.Geometry(ogr.wkbLinearRing)
-        for p in self.points()+[self.points()[0]]:
+        for p in self.points() + (self.points()[0],):
             ring.AddPoint(p.x(), p.y())
         geometry = ogr.Geometry(ogr.wkbPolygon)
         geometry.AddGeometry(ring)
-        return geometry
+        return Geometry(wkt=geometry.ExportToWkt())
 
     def intersects(self, other):
         assert isinstance(other, Polygon)
-        return self.geometry().Intersects(other.geometry())
+        return self.geometry().Intersects(other.wkb())
 
     def intersection(self, other):
         assert isinstance(other, Polygon)
-        geometry = self.geometry().Intersection(other.geometry())
+        geometry = self.geometry().intersection(other.geometry())
         return Polygon.fromGeometry(geometry=geometry)
 
 
 class SpatialPolygon(Polygon):
-
     def __init__(self, points, projection):
         assert isinstance(projection, Projection)
         for p in points:
@@ -495,19 +552,18 @@ class SpatialPolygon(Polygon):
     def reproject(self, targetProjection, sourceProjection=None):
         if sourceProjection is not None:
             assert self.projection() == sourceProjection
-        return Polygon.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
+        polygon = Polygon.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
+        return SpatialPolygon(points=polygon.points(), projection=targetProjection)
 
-    #todo weiter!!!
     def intersects(self, other):
         assert isinstance(other, Polygon)
-        return self.geometry().Intersects(other.geometry())
-
+        return self.geometry().intersects(other.geometry())
 
     def intersection(self, other):
         assert isinstance(other, SpatialPolygon)
         assert self.projection().equal(other=other.projection())
         polygon = Polygon.intersection(self, other=other)
-        return SpatialPolygon(points=polygon.points(), projection=self.projection())
+        return SpatialPolygon(points=polygon.points(), projection=self.projection())'''
 
 
 class Size(object):
@@ -572,11 +628,30 @@ class Grid(object):
     def shape(self):
         return self.size().shape()
 
-    def xcoords(self):
-        return [self.extent().xmin() + (xoff + 0.5) * self.resolution().x() for xoff in range(self.size().x())]
+    def xMapCoordinates(self):
+        return [self.extent().xmin() + (x + 0.5) * self.resolution().x() for x in range(self.size().x())]
 
-    def ycoords(self):
-        return [self.extent().ymax() - (yoff + 0.5) * self.resolution().y() for yoff in range(self.size().y())]
+    def yMapCoordinates(self):
+        return [self.extent().ymax() - (y + 0.5) * self.resolution().y() for y in range(self.size().y())]
+
+    def xMapCoordinatesArray(self):
+        return np.asarray(self.xMapCoordinates()).reshape(1, -1) * np.ones(shape=self.shape())
+
+    def yMapCoordinatesArray(self):
+        return np.asarray(self.yMapCoordinates()).reshape(-1, 1) * np.ones(shape=self.shape())
+
+    def xPixelCoordinates(self, offset=0):
+        return [x + offset for x in range(self.size().x())]
+
+    def yPixelCoordinates(self, offset=0):
+        return [y + offset for y in range(self.size().y())]
+
+    def xPixelCoordinatesArray(self, offset=0):
+        return np.int32(np.asarray(self.xPixelCoordinates(offset=offset)).reshape(1, -1) * np.ones(shape=self.shape()))
+
+    def yPixelCoordinatesArray(self, offset=0):
+        return np.int32(np.asarray(self.yPixelCoordinates(offset=offset)).reshape(-1, 1) * np.ones(shape=self.shape()))
+
 
     def makeGeoTransform(self):
         '''Returns a GDAL geotransform tuple from bounds and resolution'''
@@ -912,7 +987,6 @@ class Raster(object):
         if format != 'MEM' and not exists(dirname(filename)):
             makedirs(dirname(filename))
 
-
         ul = grid.extent().upperLeft()
         lr = grid.extent().lowerRight()
         xRes, yRes = grid.resolution().x(), grid.resolution().y()
@@ -939,7 +1013,8 @@ class Raster(object):
             gdalDataset = gdal.Translate(destName='', srcDS=tmpGdalDataset, options=translateOptions)
 
         else:
-            translateOptions = gdal.TranslateOptions(format=format, projWin=[ul.x(), ul.y(), lr.x(), lr.y()], xRes=xRes, yRes=yRes,
+            translateOptions = gdal.TranslateOptions(format=format, projWin=[ul.x(), ul.y(), lr.x(), lr.y()], xRes=xRes,
+                                                     yRes=yRes,
                                                      creationOptions=creationOptions, **kwargs)
             gdalDataset = gdal.Translate(destName=filename, srcDS=self._gdalDataset, options=translateOptions)
 
@@ -1047,12 +1122,12 @@ class Band():
             if array is None or xoff < 0 or yoff < 0:  # ReadAsArray seams to accept xy offets of -1, which makes no sense, so we manually raise an error
                 raise errors.AccessGridOutOfRangeError()
 
-        assert isinstance(array, numpy.ndarray)
+        assert isinstance(array, np.ndarray)
         return array
 
     def writeArray(self, array, grid=None):
 
-        assert isinstance(array, numpy.ndarray)
+        assert isinstance(array, np.ndarray)
         if array.ndim == 3:
             assert len(array) == 1
             array = array[0]
@@ -1128,12 +1203,19 @@ class Vector(object):
         self._ogrLayer = ogrDataSource.GetLayer(iLayer=nameOrIndex)
         self._filename = self._ogrDataSource.GetDescription()
 
+    def filename(self):
+        return self._filename
+
+    def ogrDataSource(self):
+        return self._ogrDataSource
+
+    def ogrLayer(self):
+        assert isinstance(self._ogrLayer, ogr.Layer)
+        return self._ogrLayer
+
     def close(self):
         self._ogrLayer = None
         self._ogrDataSource = None
-
-    def filename(self):
-        return self._filename
 
     def projection(self):
         return Projection(wkt=self._ogrLayer.GetSpatialRef())
