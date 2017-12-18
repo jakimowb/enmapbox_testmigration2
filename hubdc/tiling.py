@@ -60,27 +60,27 @@ class UTMTilingScheme(object):
         return [cls.BANDS[index] for index in indices]
 
     @classmethod
-    def mgrsGrids(cls, zone, band, resolution, anchor):
+    def mgrsGrids(cls, zone, band, resolution, anchor, roi=None):
 
         assert isinstance(resolution, Resolution)
         assert isinstance(anchor, Point)
+        if roi is not None:
+            assert isinstance(roi, SpatialGeometry)
+            roiUTM = roi.reproject(targetProjection=Projection.UTM(zone=zone))
 
         # extent in WGS84 projection
         zoneExtent = cls.zoneExtent(zone=zone)
         bandExtent = cls.bandExtent(band=band)
         zoneBandExtent = zoneExtent.intersection(other=bandExtent)
 
-        # corner coordinates in UTM projection
-        wgs84Points = zoneBandExtent.corners()
-        utmPoints = [point.reproject(targetProjection=Projection.UTM(zone=zone)) for point in wgs84Points]
+        # extent in UTM projection
+        zoneBandExtentUTM = zoneBandExtent.reproject(targetProjection=Projection.UTM(zone=zone))
 
-        # calculate contained MGRS footprints
-        xs = [point.x() for point in utmPoints]
-        ys = [point.y() for point in utmPoints]
-        xmin = functools.reduce(min, xs)
-        xmax = functools.reduce(max, xs)
-        ymin = functools.reduce(min, ys)
-        ymax = functools.reduce(max ,ys)
+
+        xmin = zoneBandExtentUTM.xmin()
+        xmax = zoneBandExtentUTM.xmax()
+        ymin = zoneBandExtentUTM.ymin()
+        ymax = zoneBandExtentUTM.ymax()
 
         s = 100000
         xstart = int(xmin / s) * s
@@ -92,37 +92,29 @@ class UTMTilingScheme(object):
         if ystart > ymin: ystart -= s
         if yend < ymax: yend += s
 
-        grids = list()
-        for iy, y in enumerate(range(ystart, yend, s)):
-            for ix, x in enumerate(range(xstart, xend, s)):
-                #grid = Grid(extent=Extent(xmin=x, xmax=x+s, ymin=y, ymax=y+s),
-                #            resolution=resolution,
-                #            projection=Projection.UTM(zone=zone))
-                #grid = grid.anchor(p=anchor)
-                #if not any([p.withinExtent(zoneExtent) for p in grid.spatialExtent().corners()]):
-                #    continue
-                #gridTrimmed = grid.spatialExtent().intersection(other=zoneBandextent)
-                #grids.append((gridTrimmed, iy, ix))
+        grids = dict()
+        for iy, ymin in enumerate(range(ystart, yend, s)):
+            for ix, xmin in enumerate(range(xstart, xend, s)):
+                mgrsExtentUTM = SpatialExtent(xmin=xmin, xmax=xmin + s, ymin=ymin, ymax=ymin + s, projection=Projection.UTM(zone=zone))
+                mgrsGeometryUTM = mgrsExtentUTM.geometry()
+                mgrsGeometryWGS84 = mgrsGeometryUTM.reproject(targetProjection=Projection.WGS84())
 
-                # todo: create Polygon class for reprojecting/intersecting extens; Extent.reproject() is not suitable!
-                mgrsExtentUTM = SpatialExtent(xmin=x, xmax=x + s, ymin=y, ymax=y + s, projection=Projection.UTM(zone=zone))
-                mgrsPolygonWGS84 = mgrsExtentUTM.polygon().reproject(targetProjection=Projection.WGS84())
-                zoneBandPolygon = zoneBandExtent.polygon()
-                if not zoneBandPolygon.intersects(other=mgrsPolygonWGS84):
+                zoneBandGeometry = zoneBandExtent.geometry()
+
+                # skip all grids outside the utm zone
+                if not zoneBandGeometry.intersects(other=mgrsGeometryWGS84):
                     continue
-                mgrsPolygonTrimmedWSG84 = zoneBandPolygon.intersection(other=mgrsPolygonWGS84)
-                mgrsPolygonTrimmedUTM = mgrsPolygonTrimmedWSG84.reproject(targetProjection=Projection.UTM(zone=zone))
-                mgrsExtentTrimmedUTM = SpatialExtent.fromPolygon(polygon=mgrsPolygonTrimmedUTM)
+                mgrsGeometryTrimmedWSG84 = zoneBandGeometry.intersection(other=mgrsGeometryWGS84)
+                mgrsGeometryTrimmedUTM = mgrsGeometryTrimmedWSG84.reproject(targetProjection=Projection.UTM(zone=zone))
+
+                # skip all grids outside the roi
+                if roi is not None:
+                    if not roiUTM.intersects(other=mgrsGeometryTrimmedUTM):
+                        continue
+                mgrsExtentTrimmedUTM = SpatialExtent.fromGeometry(geometry=mgrsGeometryTrimmedUTM)
 
                 grid = Grid(extent=mgrsExtentTrimmedUTM, resolution=resolution)
                 grid = grid.anchor(point=anchor)
-                grids.append((grid, iy, ix))
+                grids[(iy, ix)] = grid
         return grids
-
-for grid, iy, ix in UTMTilingScheme.mgrsGrids(zone=32, band='u', resolution=Resolution(x=30, y=30), anchor=Point(x=5, y=5)):
-    print(grid.extent())
-
-#for y in range(-64, 80, 8):
-#    band = UTMTilingScheme.bandByLatitude(y=y)
-#    print(y,UTMTilingScheme.bandByLatitude(y=y))
 
