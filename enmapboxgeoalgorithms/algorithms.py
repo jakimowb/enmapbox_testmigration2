@@ -180,7 +180,11 @@ class EstimatorPredict(EnMAPGeoAlgorithm):
         else:
             assert 0
         image = Image(filename=self.getParameterValue('image'))
-        mask = Mask(filename=self.getParameterValue('mask'))
+        filenameMask = self.getParameterValue('mask')
+        if filenameMask is None:
+            mask = None
+        else:
+            mask = Mask(filename=filenameMask)
         estimator.predict(filename=self.getOutputValue('prediction'), image=image, mask=mask, progressBar=progressBar)
 
     def help(self):
@@ -211,7 +215,7 @@ class ClassificationSampleFromClassification(EnMAPGeoAlgorithm):
         self.addParameter(ParameterRaster('image', 'Image'))
         self.addParameter(ParameterRaster('classification', 'Classification'))
         self.addParameter(ParameterRaster('mask', 'Mask', optional=True))
-        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=1.))
+        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=0.75))
         self.addParameter(ParameterNumber('minWinnerCoverage', 'Minimal winner class coverage', minValue=0., maxValue=1., default=0.5))
         self.addOutput(OutputFile('classificationSample', 'ClassificationSample'))
 
@@ -220,7 +224,11 @@ class ClassificationSampleFromClassification(EnMAPGeoAlgorithm):
         classification = Classification(filename=self.getParameterValue('classification'),
                                         minOverallCoverage=self.getParameterValue('minOverallCoverage'),
                                         minWinnerCoverage=self.getParameterValue('minWinnerCoverage'))
-        mask = Mask(filename=self.getParameterValue('mask'))
+        filenameMask = self.getParameterValue('mask')
+        if filenameMask is None:
+            mask = None
+        else:
+            mask = Mask(filename=filenameMask)
         classificationSample = ClassificationSample.fromImageAndClassification(image, classification=classification, grid=image, mask=mask, progressBar=progressBar)
         classificationSample.pickle(filename=self.getOutputValue('classificationSample'))
 
@@ -455,7 +463,7 @@ class ClassificationFromVectorClassification(EnMAPGeoAlgorithm):
                                               parent='vector'))
         self.addParameter(ParameterString('names', 'Class names', optional=True))
         self.addParameter(ParameterString('lookup', 'Class colors', optional=True))
-        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=1.))
+        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=0.75))
         self.addParameter(ParameterNumber('minWinnerCoverage', 'Minimal winner class coverage', minValue=0., maxValue=1., default=0.5))
 
         self.addParameter(ParameterNumber('oversampling', 'Oversampling factor', minValue=1, maxValue=10, default=10))
@@ -499,7 +507,7 @@ class ProbabilityFromVectorClassification(EnMAPGeoAlgorithm):
                                               parent='vector'))
         self.addParameter(ParameterString('names', 'Class names', optional=True))
         self.addParameter(ParameterString('lookup', 'Class colors', optional=True))
-        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=1.))
+        self.addParameter(ParameterNumber('minOverallCoverage', 'Minimal overall coverage', minValue=0., maxValue=1., default=0.75))
         self.addParameter(ParameterNumber('minWinnerCoverage', 'Minimal winner class coverage', minValue=0., maxValue=1., default=0.5))
         self.addParameter(ParameterNumber('oversampling', 'Oversampling factor', minValue=1, maxValue=10, default=10))
         self.addOutput(OutputRaster('probability', 'ClassProbability'))

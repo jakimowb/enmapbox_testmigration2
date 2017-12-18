@@ -465,6 +465,8 @@ class DataSourceSpectralLibrary(DataSourceFile):
         from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
         assert isinstance(self.mSpeclib, SpectralLibrary)
+        self.mSpeclib.setName(os.path.basename(self.mUri))
+        self.setName(self.mSpeclib.name())
         #self.nProfiles = len(slib)
         #self.profileNames = []
         #for p in slib:

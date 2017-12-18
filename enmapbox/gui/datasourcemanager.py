@@ -338,9 +338,16 @@ class SpeclibProfilesTreeNode(TreeNode):
     def __init__(self, parent, speclib, **kwds):
         super(SpeclibProfilesTreeNode, self).__init__(parent, 'Profiles', **kwds)
         from enmapbox.gui.spectrallibraries import SpectralLibrary
+        assert isinstance(speclib, SpectralLibrary)
         self.mSpeclib = speclib
+        speclib.sigProfilesAdded.connect(self.update)
+        speclib.sigProfilesRemoved.connect(self.update)
+        self.update()
         assert isinstance(self.mSpeclib, SpectralLibrary)
 
+
+    def update(self, *args):
+        self.setValue(len(self.mSpeclib))
 
     def fetchCount(self):
         from enmapbox.gui.spectrallibraries import SpectralLibrary
@@ -371,6 +378,7 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
         from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
 
         assert isinstance(self.dataSource.mSpeclib, SpectralLibrary)
+
         self.profileNode = SpeclibProfilesTreeNode(self, dataSource.mSpeclib)
         #self.profileNode.mSpeclib = dataSource.mSpeclib
         #self.profiles= TreeNode(self, 'Profiles',
