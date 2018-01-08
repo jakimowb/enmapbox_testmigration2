@@ -123,12 +123,6 @@ if __name__ == "__main__":
             f.flush()
             f.close()
 
-            #create a tag
-            if CREATE_TAG:
-                index = REPO.index
-                index.commit('updated metadata for version: "{}"'.format(version))
-
-                REPO.create_tag('v.'+version)
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
@@ -140,10 +134,29 @@ if __name__ == "__main__":
             os.chdir(DIR_REPO)
             subprocess.call(['pb_tool', 'compile'])
             guimake.compile_rc_files(DIR_UIFILES)
+            # replace the annoying time stamp by a version number?
+
+            from enmapbox.gui.ui import resources
+            pathRC = resources.__file__
+            lines = open(pathRC).readlines()
+            lines = re.sub('# Created: .*\n', "".format(version), ''.join(lines))
+            f = open(pathRC, 'w')
+            f.write(lines)
+            f.flush()
+            f.close()
+
+
 
         else:
             cfgParser = pb_tool.get_config(config=pathCfg)
             pb_tool.compile_files(cfgParser)
+
+        # create a tag
+        if CREATE_TAG:
+            index = REPO.index
+            index.commit('updated metadata for version: "{}"'.format(version))
+
+            REPO.create_tag('v.' + version)
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, confirm=False)
