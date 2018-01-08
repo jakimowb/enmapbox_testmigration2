@@ -3,7 +3,7 @@ name=EnMAP-Box 3
 description=Imaging Spectroscopy and Remote Sensing for QGIS
 about=The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.
 category=Analysis
-version=20180108T1731
+version=20180108T1739
 qgisMinimumVersion=2.14
 
 author=Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden

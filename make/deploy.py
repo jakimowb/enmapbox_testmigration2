@@ -27,6 +27,7 @@ import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
 import git
 
+CREATE_TAG = True
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
@@ -91,13 +92,44 @@ if __name__ == "__main__":
         # 1. clean an existing directory = the enmapboxplugin folder
         pb_tool.clean_deployment(ask_first=False, config=pathCfg)
 
-        #2. set the version to all relevant files
-        pathMetadata = jp(DIR_REPO, 'metadata.txt')
-        lines = open(pathMetadata).readlines()
-        lines = re.sub('version=.*\n', 'version={}\n'.format(version), ''.join(lines))
-        r = REPO.git.execute(['git','diff', '--exit-code']).split()
-        open(pathMetadata, 'w').write(lines)
+        currentBranch = REPO.active_branch.name
 
+        if currentBranch not in ["develop", "master"]:
+            print('Skipped automatic version update because current branch is not "develop" or "master". ')
+        else:
+            #2. set the version to all relevant files
+            #r = REPO.git.execute(['git','diff', '--exit-code']).split()
+            diffs = [r for r in REPO.index.diff(None)]
+            if len(diffs) > 0:
+                # there are diffs. we need to commit them first.
+                # This should not be done automatically, as each commit should contain a proper commit message
+                raise Exception('Please commit all changes first.')
+
+            pathMetadata = jp(DIR_REPO, 'metadata.txt')
+
+            #update version number in metadata
+            lines = open(pathMetadata).readlines()
+            lines = re.sub('version=.*\n', 'version={}\n'.format(version), ''.join(lines))
+            f = open(pathMetadata, 'w')
+            f.write(lines)
+            f.flush()
+            f.close()
+
+            pathPkgInit = jp(DIR_REPO, *['enmapbox', '__init__.py'])
+            lines = open(pathPkgInit).readlines()
+            lines = re.sub('__version__ = .*\n', "__version__ = '{}'\n".format(version), ''.join(lines))
+            f = open(pathPkgInit, 'w')
+            f.write(lines)
+            f.flush()
+            f.close()
+
+            index = REPO.index
+            index.commit('updated metadata for version: "{}"'.format(version))
+
+            #create a tag
+
+            if CREATE_TAG:
+                REPO.create_tag('v.'+version)
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
