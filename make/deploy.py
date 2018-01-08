@@ -20,15 +20,20 @@
 # noinspection PyPep8Naming
 
 from __future__ import absolute_import
+from distutils.version import LooseVersion
 import os, sys, re, shutil, zipfile, datetime
 import numpy as np
 import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
+import git
 
+CREATE_TAG = True
 ########## End of config section
+REPO = git.Repo(DIR_REPO)
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
 timestamp = timestamp.replace('-', '')
-buildID = '{}.{}'.format(enmapbox.__version__, timestamp)
+version = timestamp
+
 
 
 def rm(p):
@@ -87,6 +92,38 @@ if __name__ == "__main__":
         # 1. clean an existing directory = the enmapboxplugin folder
         pb_tool.clean_deployment(ask_first=False, config=pathCfg)
 
+        currentBranch = REPO.active_branch.name
+
+        if currentBranch not in ["develop", "master"]:
+            print('Skipped automatic version update because current branch is not "develop" or "master". ')
+        else:
+            #2. set the version to all relevant files
+            #r = REPO.git.execute(['git','diff', '--exit-code']).split()
+            diffs = [r for r in REPO.index.diff(None)]
+            if len(diffs) > 0:
+                # there are diffs. we need to commit them first.
+                # This should not be done automatically, as each commit should contain a proper commit message
+                raise Exception('Please commit all changes first.')
+
+            pathMetadata = jp(DIR_REPO, 'metadata.txt')
+
+            #update version number in metadata
+            lines = open(pathMetadata).readlines()
+            lines = re.sub('version=.*\n', 'version={}\n'.format(version), ''.join(lines))
+            f = open(pathMetadata, 'w')
+            f.write(lines)
+            f.flush()
+            f.close()
+
+            pathPkgInit = jp(DIR_REPO, *['enmapbox', '__init__.py'])
+            lines = open(pathPkgInit).readlines()
+            lines = re.sub('__version__ = .*\n', "__version__ = '{}'\n".format(version), ''.join(lines))
+            f = open(pathPkgInit, 'w')
+            f.write(lines)
+            f.flush()
+            f.close()
+
+
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
         if True:
@@ -97,10 +134,29 @@ if __name__ == "__main__":
             os.chdir(DIR_REPO)
             subprocess.call(['pb_tool', 'compile'])
             guimake.compile_rc_files(DIR_UIFILES)
+            # replace the annoying time stamp by a version number?
+
+            from enmapbox.gui.ui import resources
+            pathRC = resources.__file__
+            lines = open(pathRC).readlines()
+            lines = re.sub('# Created: .*\n', "".format(version), ''.join(lines))
+            f = open(pathRC, 'w')
+            f.write(lines)
+            f.flush()
+            f.close()
+
+
 
         else:
             cfgParser = pb_tool.get_config(config=pathCfg)
             pb_tool.compile_files(cfgParser)
+
+        # create a tag
+        if CREATE_TAG:
+            index = REPO.index
+            index.commit('updated metadata for version: "{}"'.format(version))
+
+            REPO.create_tag('v.' + version)
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, confirm=False)
