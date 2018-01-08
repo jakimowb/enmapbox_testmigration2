@@ -1,4 +1,4 @@
-__version__ = '3.0.1'
+__version__ = '20180108T1730'
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
