@@ -154,6 +154,7 @@ if __name__ == "__main__":
         # create a tag
         if CREATE_TAG:
             index = REPO.index
+            index.add([pathPkgInit, pathMetadata])
             index.commit('updated metadata for version: "{}"'.format(version))
 
             REPO.create_tag('v.' + version)
