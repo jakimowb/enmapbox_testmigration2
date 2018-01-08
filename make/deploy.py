@@ -123,12 +123,11 @@ if __name__ == "__main__":
             f.flush()
             f.close()
 
-            index = REPO.index
-            index.commit('updated metadata for version: "{}"'.format(version))
-
             #create a tag
-
             if CREATE_TAG:
+                index = REPO.index
+                index.commit('updated metadata for version: "{}"'.format(version))
+
                 REPO.create_tag('v.'+version)
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
