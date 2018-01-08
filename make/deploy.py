@@ -20,15 +20,19 @@
 # noinspection PyPep8Naming
 
 from __future__ import absolute_import
+from distutils.version import LooseVersion
 import os, sys, re, shutil, zipfile, datetime
 import numpy as np
 import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
+import git
 
 ########## End of config section
+REPO = git.Repo(DIR_REPO)
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
 timestamp = timestamp.replace('-', '')
-buildID = '{}.{}'.format(enmapbox.__version__, timestamp)
+version = timestamp
+
 
 
 def rm(p):
@@ -86,6 +90,14 @@ if __name__ == "__main__":
     if True:
         # 1. clean an existing directory = the enmapboxplugin folder
         pb_tool.clean_deployment(ask_first=False, config=pathCfg)
+
+        #2. set the version to all relevant files
+        pathMetadata = jp(DIR_REPO, 'metadata.txt')
+        lines = open(pathMetadata).readlines()
+        lines = re.sub('version=.*\n', 'version={}\n'.format(version), ''.join(lines))
+
+        open(pathMetadata, 'w').write(lines)
+
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
