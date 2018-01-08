@@ -95,7 +95,7 @@ if __name__ == "__main__":
         pathMetadata = jp(DIR_REPO, 'metadata.txt')
         lines = open(pathMetadata).readlines()
         lines = re.sub('version=.*\n', 'version={}\n'.format(version), ''.join(lines))
-
+        r = REPO.git.execute(['git','diff', '--exit-code']).split()
         open(pathMetadata, 'w').write(lines)
 
 

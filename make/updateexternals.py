@@ -109,8 +109,7 @@ def updateRemote(remoteInfo):
     remote = REPO.remote(remoteInfo.key)
 
     remote.fetch(remoteInfo.remotePath())
-    files = REPO.git.execute(
-        ['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
+    files = REPO.git.execute(['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
     if len(files) > 0:
         info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal, r=True, f=True)])
         print(info)
