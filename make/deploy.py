@@ -27,7 +27,7 @@ import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
 import git
 
-CREATE_TAG = True
+CREATE_TAG = False
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
@@ -196,3 +196,4 @@ if __name__ == "__main__":
         s = ""
 
     print('Finished')
+exit(0)
