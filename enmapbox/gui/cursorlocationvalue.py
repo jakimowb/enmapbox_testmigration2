@@ -218,15 +218,21 @@ class ComboBoxOption(object):
 
 LUT_GEOMETRY_ICONS = {}
 
+RASTERBANDS = [
+    ComboBoxOption('VISIBLE', 'RGB', 'Visible bands only.'),
+    ComboBoxOption('ALL', 'All','All raster bands.'),
+
+]
+
 LAYERMODES = [
-    ComboBoxOption('ALL_LAYERS', 'All Layers'),
-    ComboBoxOption('TOP_LAYER', 'Top Layer')
+    ComboBoxOption('ALL_LAYERS', 'All Layers', 'Show values of all map layers.'),
+    ComboBoxOption('TOP_LAYER', 'Top Layer', 'Show values of the top-most map layer only.')
     ]
 
 LAYERTYPES = [
-    ComboBoxOption('ALL', 'Raster and Vector'),
-    ComboBoxOption('VECTOR', 'Vector only'),
-    ComboBoxOption('RASTER', 'Raster only')
+    ComboBoxOption('ALL', 'Raster and Vector', 'Show values of both, raster and vector layers.'),
+    ComboBoxOption('VECTOR', 'Vector only', 'Show values of vector layers only.'),
+    ComboBoxOption('RASTER', 'Raster only', 'Show values of raster layers only.')
     ]
 
 class ComboBoxOptionModel(QAbstractListModel):
@@ -269,6 +275,8 @@ class ComboBoxOptionModel(QAbstractListModel):
         value = None
         if role == Qt.DisplayRole:
             value = option.name
+        if role == Qt.ToolTipRole:
+            value = option.tooltip
         if role == Qt.DecorationRole:
             value = option.icon
         if role == Qt.UserRole:
@@ -303,20 +311,27 @@ class CursorLocationInfoDock(QDockWidget,
         self.btnCrs.setCrs(QgsCoordinateReferenceSystem())
 
 
+
         self.mLocationInfoModel = CursorLocationInfoModel(parent=self.treeView)
         self.treeView.setModel(self.mLocationInfoModel)
 
         self.mLayerModeModel = ComboBoxOptionModel(LAYERMODES, parent=self)
         self.mLayerTypeModel = ComboBoxOptionModel(LAYERTYPES, parent=self)
+        self.mRasterBandsModel = ComboBoxOptionModel(RASTERBANDS, parent=self)
 
         self.cbLayerModes.setModel(self.mLayerModeModel)
         self.cbLayerTypes.setModel(self.mLayerTypeModel)
-
+        self.cbRasterBands.setModel(self.mRasterBandsModel)
         self.actionRequestCursorLocation.triggered.connect(self.sigLocationRequest)
         self.actionReload.triggered.connect(self.reloadCursorLocation)
 
         self.btnActivateMapTool.setDefaultAction(self.actionRequestCursorLocation)
         self.btnReload.setDefaultAction(self.actionReload)
+
+
+        self.actionAllRasterBands.triggered.connect(lambda : self.btnRasterBands.setDefaultAction(self.actionAllRasterBands))
+        self.actionVisibleRasterBands.triggered.connect(lambda : self.btnRasterBands.setDefaultAction(self.actionVisibleRasterBands))
+
 
     def options(self):
 
@@ -324,8 +339,9 @@ class CursorLocationInfoDock(QDockWidget,
 
         layerType = self.mLayerTypeModel.index2option(self.cbLayerTypes.currentIndex()).value
         layerMode = self.mLayerModeModel.index2option(self.cbLayerModes.currentIndex()).value
-        s = ""
-        return (layerMode, layerType)
+        rasterBands = self.mRasterBandsModel.index2option(self.cbRasterBands.currentIndex()).value
+
+        return (layerMode, layerType, rasterBands)
 
     def loadCursorLocation(self, point, canvas):
 
@@ -345,7 +361,7 @@ class CursorLocationInfoDock(QDockWidget,
         if ptInfo is None or len(self.mCanvases) == 0:
             return
 
-        mode, type= self.options()
+        mode, type, rasterbands = self.options()
 
         def layerFilter(canvas):
             assert isinstance(canvas, QgsMapCanvas)
@@ -393,6 +409,9 @@ class CursorLocationInfoDock(QDockWidget,
             if isinstance(l, QgsRasterLayer):
                 renderer = l.renderer()
                 ds = gdal.Open(l.source())
+                if ds.RasterCount == 0:
+                    continue
+                    
                 if isinstance(renderer, QgsRasterRenderer) and isinstance(ds, gdal.Dataset):
                     #transform geo into pixel coodinates
                     px = geo2px(pointLyr, ds.GetGeoTransform())
@@ -402,7 +421,12 @@ class CursorLocationInfoDock(QDockWidget,
                         v = RasterValueSet(l.source(), crsInfo, ptInfo, px)
 
                         # !Note: b is not zero-based -> 1st band means b == 1
-                        bandNumbers = renderer.usesBands()
+                        if rasterbands == 'VISIBLE':
+                            bandNumbers = renderer.usesBands()
+                        elif rasterbands == 'ALL':
+                            bandNumbers = range(1, ds.RasterCount + 1)
+                        else:
+                            bandNumbers = [0]
 
                         for i, b in enumerate(bandNumbers):
 
