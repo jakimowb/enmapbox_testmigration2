@@ -37,6 +37,7 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
 
         #the list of GeoAlgorithms that will be used by the Processing Framework
         self.algs = []
+        self.settingsName = 'ACTIVATE_' + self.getName().upper().replace(' ', '_')
 
     def initializeSettings(self):
         """This is the place where you should add config parameters
@@ -47,13 +48,23 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         activate or deactivate algorithms from the provider.
         """
         ProcessingConfig.settingIcons[self.getDescription()] = self.getIcon()
-        name = 'ACTIVATE_' + self.getName().upper().replace(' ', '_')
-        ProcessingConfig.addSetting(Setting(self.getDescription(), name,
+
+        ProcessingConfig.addSetting(Setting(self.getDescription(), self.settingsName,
                                             self.tr('Activate'), self.activate))
 
 
+    def unload(self):
+        """Do here anything that you want to be done when the provider
+        is removed from the list of available ones.
+
+        This method is called when you remove the provider from
+        Processing. Removal of config setting should be done here.
+        """
+        name = 'ACTIVATE_' + self.getName().upper().replace(' ', '_')
+        ProcessingConfig.removeSetting(self.settingsName)
+
     def getName(self):
-        return 'EnMAP-Box 3'
+        return 'enmapbox'
 
     def getDescription(self):
         return 'EnMAP-Box 3'
