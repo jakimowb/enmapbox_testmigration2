@@ -294,27 +294,41 @@ class ProcessingAlgorithmsManager(QObject):
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         """
         if self.isInitialized():
-            return self.algList.getProviderFromName('EnMAP-Box')
+            from enmapbox.algorithmprovider import NAME
+            return self.algList.getProviderFromName(NAME)
         else:
             return None
 
-    def addAlgorithms(self, providerName, geoAlgorithms):
+    def addAlgorithms(self, algorithmProvider, geoAlgorithms):
+        """
+        Adds a list of GeoAlgorithms to a AlgorithmProvider
+        :param algorithmProvider: name of instance of AlgorithmProvider
+        :param geoAlgorithms: list-of-GeoAlgorithms
+        """
         from processing.core.GeoAlgorithm import GeoAlgorithm
         from processing.core.AlgorithmProvider import AlgorithmProvider
 
-        if isinstance(providerName, AlgorithmProvider):
-            p = providerName
+        if isinstance(algorithmProvider, AlgorithmProvider):
+            p = algorithmProvider
         else:
-            p = self.algList.getProviderFromName(providerName)
+            p = self.algList.getProviderFromName(algorithmProvider)
 
-        pAlgs = self.algList.algs[p.getName()]
+        if not isinstance(geoAlgorithms, list):
+            geoAlgorithms = [geoAlgorithms]
+
+        #print('PROVIDER      {}'.format(algorithmProvider))
+        #print('PROVIDER OBJ  {}'.format(p))
+        #print('GAs           {}'.format(geoAlgorithms))
+
         if isinstance(p, AlgorithmProvider):
+            pName = p.getName()
+            #print('PROVIDER NAME {}'.format(pName))
+            pAlgs = self.algList.algs[pName]
             for ga in geoAlgorithms:
                 assert isinstance(ga, GeoAlgorithm)
-                #todo: remove from previous provider
                 ga.provider = p
                 pAlgs[ga.commandLineName()] = ga
-            self.algList.providerUpdated.emit(p.getName())
+            self.algList.providerUpdated.emit(pName)
 
     def openCommander(self):
         from processing.gui.CommanderWindow import CommanderWindow
