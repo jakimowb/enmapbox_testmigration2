@@ -225,8 +225,8 @@ RASTERBANDS = [
 ]
 
 LAYERMODES = [
-    ComboBoxOption('ALL_LAYERS', 'All Layers', 'Show values of all map layers.'),
-    ComboBoxOption('TOP_LAYER', 'Top Layer', 'Show values of the top-most map layer only.')
+    ComboBoxOption('ALL_LAYERS', 'All layers', 'Show values of all map layers.'),
+    ComboBoxOption('TOP_LAYER', 'Top layer', 'Show values of the top-most map layer only.')
     ]
 
 LAYERTYPES = [
