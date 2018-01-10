@@ -36,6 +36,10 @@ This module describes the EnMAP-GUI <-> Processing Framework interactions
 ProcessingAlgorithmsPanelUI = None
 
 def canImportProcessingFramework():
+    """
+    Checks if the QGIS Processing Framework can be loaded.
+    :return:
+    """
     try:
         from processing.gui.ProcessingToolbox import ProcessingToolbox
         return True
@@ -53,21 +57,37 @@ else:
 
 
 def hasQPFExtensions():
-    from processing.tools import dataobjects
-    return hasattr(dataobjects, '_getRasterLayers')
+    """
+    Checks if the QPF Extensions are instantiated.
+    :return: True | False
+    """
+    result = False
+    try:
+        from processing.tools import dataobjects
+        result = hasattr(dataobjects, '_getRasterLayers')
+    except :
+        pass
+    return result
 
 
 def removeEnMAPBoxOnlyLayers():
+    """
+    Tries to identify raster and vector layers that have been used by the EnMAP-Box only and
+    removes them from the QgsMapLayerRegistry to remove any file handles on them.
+    :return:
+    """
 
-    qgsLayers = dataobjects._getRasterLayers() + dataobjects._getVectorLayers()
+    if hasQPFExtensions():
+        from processing.tools import dataobjects
+        qgsLayers = dataobjects._getRasterLayers() + dataobjects._getVectorLayers()
 
-    REG = QgsMapLayerRegistry.instance()
-    to_remove = []
-    for lyr in REG.mapLayers().values():
-        if lyr not in qgsLayers and lyr.customProperty('__enmapbox__') == True:
-            to_remove.append(lyr)
-    if len(to_remove) > 0:
-        REG.removeMapLayers(to_remove)
+        REG = QgsMapLayerRegistry.instance()
+        to_remove = []
+        for lyr in REG.mapLayers().values():
+            if lyr not in qgsLayers and lyr.customProperty('__enmapbox__') == True:
+                to_remove.append(lyr)
+        if len(to_remove) > 0:
+            REG.removeMapLayers(to_remove)
 
 
 
@@ -78,8 +98,10 @@ def installQPFExtensions(force=False):
     """
     if not force and hasQPFExtensions():
         return
-
-    from processing.tools import dataobjects
+    try:
+        from processing.tools import dataobjects
+    except:
+        return
 
     def qpfPrefix():
         from enmapbox.gui import settings
