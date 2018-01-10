@@ -36,6 +36,10 @@ This module describes the EnMAP-GUI <-> Processing Framework interactions
 ProcessingAlgorithmsPanelUI = None
 
 def canImportProcessingFramework():
+    """
+    Checks if the QGIS Processing Framework can be loaded.
+    :return:
+    """
     try:
         from processing.gui.ProcessingToolbox import ProcessingToolbox
         return True
@@ -53,21 +57,37 @@ else:
 
 
 def hasQPFExtensions():
-    from processing.tools import dataobjects
-    return hasattr(dataobjects, '_getRasterLayers')
+    """
+    Checks if the QPF Extensions are instantiated.
+    :return: True | False
+    """
+    result = False
+    try:
+        from processing.tools import dataobjects
+        result = hasattr(dataobjects, '_getRasterLayers')
+    except :
+        pass
+    return result
 
 
 def removeEnMAPBoxOnlyLayers():
+    """
+    Tries to identify raster and vector layers that have been used by the EnMAP-Box only and
+    removes them from the QgsMapLayerRegistry to remove any file handles on them.
+    :return:
+    """
 
-    qgsLayers = dataobjects._getRasterLayers() + dataobjects._getVectorLayers()
+    if hasQPFExtensions():
+        from processing.tools import dataobjects
+        qgsLayers = dataobjects._getRasterLayers() + dataobjects._getVectorLayers()
 
-    REG = QgsMapLayerRegistry.instance()
-    to_remove = []
-    for lyr in REG.mapLayers().values():
-        if lyr not in qgsLayers and lyr.customProperty('__enmapbox__') == True:
-            to_remove.append(lyr)
-    if len(to_remove) > 0:
-        REG.removeMapLayers(to_remove)
+        REG = QgsMapLayerRegistry.instance()
+        to_remove = []
+        for lyr in REG.mapLayers().values():
+            if lyr not in qgsLayers and lyr.customProperty('__enmapbox__') == True:
+                to_remove.append(lyr)
+        if len(to_remove) > 0:
+            REG.removeMapLayers(to_remove)
 
 
 
@@ -78,8 +98,10 @@ def installQPFExtensions(force=False):
     """
     if not force and hasQPFExtensions():
         return
-
-    from processing.tools import dataobjects
+    try:
+        from processing.tools import dataobjects
+    except:
+        return
 
     def qpfPrefix():
         from enmapbox.gui import settings
@@ -294,27 +316,41 @@ class ProcessingAlgorithmsManager(QObject):
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         """
         if self.isInitialized():
-            return self.algList.getProviderFromName('EnMAP-Box')
+            from enmapbox.algorithmprovider import NAME
+            return self.algList.getProviderFromName(NAME)
         else:
             return None
 
-    def addAlgorithms(self, providerName, geoAlgorithms):
+    def addAlgorithms(self, algorithmProvider, geoAlgorithms):
+        """
+        Adds a list of GeoAlgorithms to a AlgorithmProvider
+        :param algorithmProvider: name of instance of AlgorithmProvider
+        :param geoAlgorithms: list-of-GeoAlgorithms
+        """
         from processing.core.GeoAlgorithm import GeoAlgorithm
         from processing.core.AlgorithmProvider import AlgorithmProvider
 
-        if isinstance(providerName, AlgorithmProvider):
-            p = providerName
+        if isinstance(algorithmProvider, AlgorithmProvider):
+            p = algorithmProvider
         else:
-            p = self.algList.getProviderFromName(providerName)
+            p = self.algList.getProviderFromName(algorithmProvider)
 
-        pAlgs = self.algList.algs[p.getName()]
+        if not isinstance(geoAlgorithms, list):
+            geoAlgorithms = [geoAlgorithms]
+
+        #print('PROVIDER      {}'.format(algorithmProvider))
+        #print('PROVIDER OBJ  {}'.format(p))
+        #print('GAs           {}'.format(geoAlgorithms))
+
         if isinstance(p, AlgorithmProvider):
+            pName = p.getName()
+            #print('PROVIDER NAME {}'.format(pName))
+            pAlgs = self.algList.algs[pName]
             for ga in geoAlgorithms:
                 assert isinstance(ga, GeoAlgorithm)
-                #todo: remove from previous provider
                 ga.provider = p
                 pAlgs[ga.commandLineName()] = ga
-            self.algList.providerUpdated.emit(p.getName())
+            self.algList.providerUpdated.emit(pName)
 
     def openCommander(self):
         from processing.gui.CommanderWindow import CommanderWindow

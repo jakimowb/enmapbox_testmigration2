@@ -28,6 +28,7 @@ from enmapbox.gui.utils import DIR_REPO, jp, file_search
 import git
 
 CREATE_TAG = False
+CHECK_COMMITS = False
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
@@ -100,7 +101,7 @@ if __name__ == "__main__":
             #2. set the version to all relevant files
             #r = REPO.git.execute(['git','diff', '--exit-code']).split()
             diffs = [r for r in REPO.index.diff(None)]
-            if len(diffs) > 0:
+            if CHECK_COMMITS and len(diffs) > 0:
                 # there are diffs. we need to commit them first.
                 # This should not be done automatically, as each commit should contain a proper commit message
                 raise Exception('Please commit all changes first.')
@@ -196,4 +197,3 @@ if __name__ == "__main__":
         s = ""
 
     print('Finished')
-exit(0)

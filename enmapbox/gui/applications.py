@@ -120,12 +120,23 @@ class ApplicationRegistry(QObject):
         return True
 
     def addApplicationPackageSavely(self, appPackagePath):
-        try:
-            if self.isApplicationPackage(appPackagePath):
+        """
+        Adds an application package with addApplicationPackage but will catch errors.
+        :param appPackagePath:
+        """
+        if DEBUG:
+            self.addApplicationPackage(appPackagePath)
+        else:
+            try:
+                if not self.isApplicationPackage(appPackagePath):
+                    raise Exception('Invalid EnMAP-Box Application Package: {}'.format(appPackagePath))
                 self.addApplicationPackage(appPackagePath)
-        except Exception as ex:
-            QgsMessageLog.instance().logMessage('Failed to load {} {}'.format(appPackagePath, '{}'.format(ex))
-                                                , level=QgsMessageLog.CRITICAL)
+
+            except Exception as ex:
+                import traceback
+                msg = 'Failed to load {}\n Error:"{}"'.format(appPackagePath, '{}'.format(ex))
+                msg +='\n Traceback\n ' + repr(traceback.format_stack())
+                QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
 
 
     def addApplicationPackage(self, appPackagePath):
@@ -179,6 +190,11 @@ class ApplicationRegistry(QObject):
             try:
                 self.addApplication(app)
             except Exception as ex:
+                import traceback
+                msg = 'Failed to load app "{} {}"'.format(appPackagePath, '{}'.format(ex))
+                msg += '\n Traceback:\n ' + repr(traceback.format_stack())
+                #QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
+
                 QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
                     app.__module__, '{}'.format(ex))
                         , level=QgsMessageLog.CRITICAL)
@@ -188,10 +204,13 @@ class ApplicationRegistry(QObject):
         Adds a single EnMAP-Box application, i.a. a class that implemented the EnMAPBoxApplication Interface
         :param app:
         """
-
+        if DEBUG:
+            print('addApplication({})'.format(str(app)))
         assert isinstance(app, EnMAPBoxApplication)
 
         appWrapper = ApplicationWrapper(app)
+        if DEBUG:
+            print('Check requirements...')
         EnMAPBoxApplication.checkRequirements(app)
 
         if appWrapper.appId in self.appList.keys():
@@ -201,22 +220,45 @@ class ApplicationRegistry(QObject):
         self.appList[appWrapper.appId] = appWrapper
 
         #load GUI integration
+        if DEBUG:
+            print('Load menu items...')
+
         self.loadMenuItems(appWrapper)
 
         #load QGIS Processing Framework Integration
         if self.processingAlgManager.isInitialized():
+            if DEBUG:
+                print('Load GeoAlgorithms...')
             self.loadGeoAlgorithms(appWrapper)
+
+        if DEBUG:
+            print('Loading done.')
+
         return True
 
     def loadGeoAlgorithms(self, appWrapper):
+        assert isinstance(appWrapper, ApplicationWrapper)
         geoAlgorithms = appWrapper.app.geoAlgorithms()
-        if geoAlgorithms is not None:
-            if not isinstance(geoAlgorithms, list):
-                geoAlgorithms = [geoAlgorithms]
-            from processing.core.GeoAlgorithm import GeoAlgorithm
-            geoAlgorithms = [g for g in geoAlgorithms if isinstance(g, GeoAlgorithm)]
+        if DEBUG:
+            print('appWrapper.app.geoAlgorithms() returned: {}'.format(geoAlgorithms))
+
+        if not isinstance(geoAlgorithms, list):
+            geoAlgorithms = [geoAlgorithms]
+
+        from processing.core.GeoAlgorithm import GeoAlgorithm
+        geoAlgorithms = [g for g in geoAlgorithms if isinstance(g, GeoAlgorithm)]
+
+        if len(geoAlgorithms) > 0:
+            if DEBUG:
+                print('GeoAlgorithms found: {}'.format(geoAlgorithms))
             appWrapper.geoAlgorithms.extend(geoAlgorithms)
-            self.processingAlgManager.addAlgorithms(self.processingAlgManager.enmapBoxProvider(), geoAlgorithms)
+            provider = self.processingAlgManager.enmapBoxProvider()
+            from enmapbox.algorithmprovider import AlgorithmProvider
+            if isinstance(provider, AlgorithmProvider):
+                self.processingAlgManager.addAlgorithms(provider, geoAlgorithms)
+            else:
+                if DEBUG:
+                    print('Can not find EnMAPBoxAlgorithmProvider')
 
 
     def loadMenuItems(self, appWrapper, parentMenuName = 'Applications'):

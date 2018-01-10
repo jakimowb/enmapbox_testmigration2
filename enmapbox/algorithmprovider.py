@@ -25,7 +25,13 @@ from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.ProcessingConfig import ProcessingConfig, Setting
 from processing.core.Processing import Processing
 
+
+NAME = 'enmapbox'
+DESCRIPTION = "EnMAP-Box 3"
+
 class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
+
+
     """
     The EnMAPBoxAlgorithmProvider contains the GeoAlgorithms under the umbrella of the EnMAP-Box.
     It enhances the "standard" processing.core.AlgorithmProvider by functionality to add and remove GeoAlgorithms during runtime.
@@ -60,14 +66,19 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         This method is called when you remove the provider from
         Processing. Removal of config setting should be done here.
         """
-        name = 'ACTIVATE_' + self.getName().upper().replace(' ', '_')
+
         ProcessingConfig.removeSetting(self.settingsName)
 
     def getName(self):
-        return 'enmapbox'
+        """Returns the name to use to create the command-line name.
+           Should be a short descriptive name of the provider.
+        """
+        return NAME
+
 
     def getDescription(self):
-        return 'EnMAP-Box 3'
+        """Returns the full name of the provider, as it is shown in the Processing Tool Box"""
+        return DESCRIPTION
 
     def getIcon(self):
         from enmapbox.gui.enmapboxgui import getIcon
