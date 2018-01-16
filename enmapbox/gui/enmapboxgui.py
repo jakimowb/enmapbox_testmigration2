@@ -527,10 +527,10 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.datasources import DataSourceSpatial
         for dataItem in droppedData:
             if isinstance(dataItem, DataSourceSpatial):
-                dataSrc = self.dataSourceManager.addSource(dataItem)
+                dataSources = self.dataSourceManager.addSource(dataItem)
                 if mapDock is None:
                     mapDock = self.createDock('MAP')
-                mapDock.addLayers(dataSrc.createRegisteredMapLayer())
+                mapDock.addLayers([ds.createRegisteredMapLayer() for ds in dataSources])
 
             #any other types to handle?
 
@@ -541,12 +541,12 @@ class EnMAPBox(QgisInterface, QObject):
         dir = os.path.dirname(enmapboxtestdata.__file__)
         files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
 
-        for file in files:
-            self.addSource(file)
+        added = self.addSources(files)
+
         for n in range(mapWindows):
             dock = self.createDock('MAP')
             lyrs = [src.createUnregisteredMapLayer()
-                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR'])]
+                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']) if src in added]
             dock.addLayers(lyrs)
 
     def onAddDataSource(self):
@@ -652,10 +652,20 @@ class EnMAPBox(QgisInterface, QObject):
         return self.iface is not None and isinstance(self.iface, QgisInterface)
 
     def addSources(self, sourceList):
+        """
+        :param sourceList:
+        :return: Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
+        """
         assert isinstance(sourceList, list)
         return self.dataSourceManager.addSources(sourceList)
 
     def addSource(self, source, name=None):
+        """
+        Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
+        :param source:
+        :param name:
+        :return: [list-of-datasources]
+        """
         return self.dataSourceManager.addSource(source, name=name)
 
     def menu(self, title):

@@ -160,9 +160,13 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         cp.readXml(element)
 
         from enmapbox.gui.datasources import DataSourceFactory
-        dataSource = DataSourceFactory.Factory(cp.value('uri'), name=element.attribute('name'))
-        node = DataSourceTreeNode(None, dataSource)
-        TreeNode.attachCommonPropertiesFromXML(node, element)
+        dataSources = DataSourceFactory.Factory(cp.value('uri'), name=element.attribute('name'))
+        if len(dataSources) == 1:
+            node = DataSourceTreeNode(None, dataSources[0])
+            TreeNode.attachCommonPropertiesFromXML(node, element)
+        else:
+            #todo: check if this case can get true
+            pass
 
         return node
 
@@ -605,7 +609,7 @@ class DataSourceManagerTreeModel(TreeModel):
                 while not elem.isNull():
                     node = QgsLayerTreeNode.readXml(elem)
                     #QGIS3:  node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
-                    added.append(self.dataSourceManager.addSource(node))
+                    added.extend(self.dataSourceManager.addSource(node))
                     elem = elem.nextSiblingElement()
                 #print('Added ds'.format(added))
                 return any([isinstance(ds, DataSource) for ds in added])
@@ -1086,7 +1090,7 @@ class DataSourceManager(QObject):
     def addSources(self, sources):
         added = []
         for s in sources:
-            added.append(self.addSource(s))
+            added.extend(self.addSource(s))
         added = [a for a in added if isinstance(a, DataSource)]
         self.mSubsetSelection.clear()
         return added
@@ -1094,36 +1098,49 @@ class DataSourceManager(QObject):
     @pyqtSlot(unicode)
     @pyqtSlot(str)
     @pyqtSlot('QString')
-    def addSource(self, src, name=None, icon=None):
+    def addSource(self, dsOld, name=None, icon=None):
         """
         Adds a new data source.
-        :param src: any object
+        :param dsOld: any object
         :param name:
         :param icon:
-        :return: a DataSource instance, if successfully added
+        :return: a list of successfully added DataSource instances. this is required in case a container datasets
         """
-        ds = DataSourceFactory.Factory(src, name=name, icon=icon)
+        dataSources = DataSourceFactory.Factory(dsOld, name=name, icon=icon)
 
+        toAdd = []
+        for dsNew in dataSources:
+            assert isinstance(dsNew, DataSource)
+            if not isinstance(dsNew, DataSourceFile):
+                toAdd.append(dsNew)
 
-        if isinstance(ds, DataSource):
-            # check if source is already registered
+            else:
 
-            for src in self.mSources:
-                assert isinstance(src, DataSource)
-                if ds.isSameSource(src):
-                    if isinstance(ds, DataSourceFile):
-                        if ds.isNewVersionOf(src):
-                            #remove old version
-                            self.removeSource(src)
+                sameSources = [d for d in self.mSources if dsNew.isSameSource(d) ]
+                if len(sameSources) == 0:
+                    toAdd.append(dsNew)
+                else:
+                    older = []
+                    newer = []
+                    for d in sameSources:
+                        if dsNew.isNewVersionOf(d):
+                            older.append(dsNew)
                         else:
-                            return src #return object reference of an already existing source
+                            newer.append(d)
+                    #do not add this source in case there alread exists a newer one
+                    if len(newer) == 0:
+                        self.removeSources(older)
+                        toAdd.append(dsNew)
                     else:
-                        return src #return object reference of an already existing source
-            #this datasource is new
-            self.mSources.append(ds)
-            self.sigDataSourceAdded.emit(ds)
+                        toAdd.extend(newer) #us ethe reference of the existing one
 
-        return ds
+
+        for ds in toAdd:
+            if ds not in self.mSources:
+                self.mSources.append(ds)
+                self.sigDataSourceAdded.emit(ds)
+
+        return toAdd
 
     def clear(self):
         """

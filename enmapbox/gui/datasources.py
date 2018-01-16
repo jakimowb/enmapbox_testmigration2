@@ -54,7 +54,11 @@ class DataSourceFactory(object):
         if isinstance(src, str):
             src = ''+src.encode('utf-8')
         if isinstance(src, unicode):
-            src = os.path.abspath(src)
+            #identify GDAL subdataset strings
+            if re.search('(HDF|SENTINEL).*:.*:.*', src):
+                src = src
+            else:
+                src = os.path.abspath(src)
         else:
             src = None
         return src
@@ -106,7 +110,11 @@ class DataSourceFactory(object):
         if isinstance(src, QgsLayerTreeLayer):
             uri = DataSourceFactory.isRasterSource(src.layer())
         if isinstance(src, gdal.Dataset):
-
+            if 'DERIVED_SUBDATASETS' in src.GetMetadataDomainList():
+                uri = src.GetDescription()
+            else:
+                uri = src.GetFileList()[0]
+            """
             subDataSets = src.GetSubDatasets()
 
             if len(subDataSets) == 0:
@@ -135,7 +143,7 @@ class DataSourceFactory(object):
                                                              subdatasets.keys(), editable=False)
                     if accepted:
                         uri = subdatasets[itemKey]
-
+            """
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, unicode):
@@ -204,51 +212,71 @@ class DataSourceFactory(object):
     def Factory(src, name=None, icon=None):
         assert not isinstance(src, list)
         """
-        Factory method / switch to return the best suited DataSource Instance to an unknown source
+        Factory method / switch to return the best suited DataSource Instance(s) to an unknown source
         :param source: anything
         :param name: name, optional
         :param icon: QIcon, optional
-        :return:
+        :return: [list-of-datasources]
         """
+
+
         if src is None or \
                 (type(src) in [str, unicode] and (len(src) == 0)):
-            return None
+            return []
 
         if isinstance(src, DataSource):
-            return src
+            return [src]
 
         if type(src) in [str, unicode, QUrl]:
             src = DataSourceFactory.srcToString(src)
+
 
         from enmapbox.gui.spectrallibraries import SpectralLibraryVectorLayer, SpectralLibrary
         if isinstance(src, SpectralLibraryVectorLayer):
             return DataSourceFactory.Factory(src.mSpeclib)
 
+        dataSources = []
+        rasterUris = []
+        vectorUris = []
         uri = DataSourceFactory.isRasterSource(src)
         if uri is not None:
-            return DataSourceRaster(uri, name=name, icon=icon)
+
+            #check for raster containers, like HDFs
+            ds = gdal.Open(uri)
+
+            if isinstance(ds, gdal.Dataset):
+                subs = ds.GetSubDatasets()
+                if ds.RasterCount > 0:
+                    rasterUris.append(uri)
+                if len(subs) > 0:
+                    rasterUris.extend([unicode(s[0]) for s in subs])
 
         uri = DataSourceFactory.isVectorSource(src)
         if uri is not None:
-            return DataSourceVector(uri, name=name, icon=icon)
+            vectorUris.append(uri)
+
+        dataSources.extend([DataSourceRaster(r, name=name, icon=icon) for r in rasterUris])
+        dataSources.extend([DataSourceVector(r, name=name, icon=icon) for r in vectorUris])
+        if len(dataSources) > 0:
+            return dataSources
 
         uri = DataSourceFactory.isSpeclib(src)
         if uri is not None:
-            return DataSourceSpectralLibrary(uri, name=name, icon=icon)
+            return [DataSourceSpectralLibrary(uri, name=name, icon=icon)]
 
         uri = DataSourceFactory.isHubFlowObj(src)
         if uri is not None:
-            return HubFlowDataSource(uri, name=name, icon=icon)
+            return [HubFlowDataSource(uri, name=name, icon=icon)]
 
         src = DataSourceFactory.srcToString(src)
         if not src is None:
             if os.path.isfile(src):
                 ext = os.path.splitext(src)[1].lower()
                 if ext in ['.csv', '.txt']:
-                    return DataSourceTextFile(src, name=name, icon=icon)
+                    return [DataSourceTextFile(src, name=name, icon=icon)]
                 if ext in ['.xml', '.html']:
-                    return DataSourceXMLFile(src, name=name, icon=icon)
-                return DataSourceFile(src, name=name, icon=icon)
+                    return [DataSourceXMLFile(src, name=name, icon=icon)]
+                return [DataSourceFile(src, name=name, icon=icon)]
 
             #
             reg = QgsMapLayerRegistry.instance()
@@ -258,7 +286,7 @@ class DataSourceFactory(object):
                 return DataSourceFactory.Factory(reg.mapLayer(src), name)
 
 
-        return None
+        return []
 
 
 
@@ -487,11 +515,31 @@ class DataSourceRaster(DataSourceSpatial):
         self.mDatasetMetadata = collections.OrderedDict()
         self.mBandMetadata = []
         self.updateMetadata()
+        s = ""
+
+    def isNewVersionOf(self, dataSource):
+        if type(dataSource) != type(self):
+            return False
+        assert isinstance(dataSource, DataSourceRaster)
+        if self.mUri != dataSource.mUri:
+            return False
+        return self.mModificationTime > dataSource.mModificationTime
+
 
     def setModificationTime(self, dataSet = None):
         if not isinstance(dataSet, gdal.Dataset):
             dataSet = gdal.Open(self.mUri)
-        self.mModificationTime = max([QFileInfo(f).lastModified() for f in dataSet.GetFileList()])
+        times = []
+        try:
+            for path in dataSet.GetFileList():
+                try:
+                    if os.path.exists(path):
+                        times.append(QFileInfo(path).lastModified())
+                except Exception as ex:
+                    times.append(QDateTime(0,0,0, 0, 0, 0))
+        except Exception as ex:
+            times.append(QDateTime(0, 0, 0, 0, 0, 0))
+        self.mModificationTime = max(times)
 
     def updateMetadata(self, icon=None, name=None):
         super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
@@ -612,8 +660,9 @@ class DataSourceListModel(QAbstractListModel):
     def addSource(self, uri):
         from enmapbox.gui.datasources import DataSourceFactory, DataSource, DataSourceRaster, DataSourceVector, HubFlowDataSource
 
-        ds = DataSourceFactory.Factory(uri)
-        if isinstance(ds, DataSource):
+        dataSources = DataSourceFactory.Factory(uri)
+        for ds in dataSources:
+            assert isinstance(ds, DataSource)
             #is is a DataSource the EnMAP-Box can handle
             #SOURCE_TYPES = ['ALL', 'RASTER', 'VECTOR', 'MODEL']
             if self.mFileType in ['ALL','ANY'] or \
@@ -626,7 +675,6 @@ class DataSourceListModel(QAbstractListModel):
                 from enmapbox.gui.enmapboxgui import EnMAPBox
                 if self.mAddToEnMAPBox and isinstance(EnMAPBox.instance(), EnMAPBox):
                     EnMAPBox.instance().addSource(ds)
-
 
     def refreshDataSources(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox
