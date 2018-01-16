@@ -66,7 +66,10 @@ def displayBandNames(provider_or_dataset, bands=None):
             bands = range(1, provider_or_dataset.RasterCount+1)
         for band in bands:
             b = provider_or_dataset.GetRasterBand(band)
-            results.append(b.GetDescription())
+            descr = b.GetDescription()
+            if len(descr) == 0:
+                descr = 'Band {}'.format(band)
+            results.append(descr)
 
     return results
 
