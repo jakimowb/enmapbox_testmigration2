@@ -312,17 +312,10 @@ class EnMAPBox(QgisInterface, QObject):
             splash.showMessage('Connect Processing Algorithm Manager')
             self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
 
-            def initQPFW():
-                logger.debug('initialize own QGIS Processing framework')
-                from processing.core.Processing import Processing
-                Processing.initialize()
-                from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-
-                if not self.processingAlgManager.enmapBoxProvider():
-                    Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
             try:
-                initQPFW()
+                logger.debug('initializes an own QGIS Processing framework')
+                self.initQGISProcessingFramework()
                 installQPFExtensions()
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
@@ -343,6 +336,36 @@ class EnMAPBox(QgisInterface, QObject):
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
+
+    def initQGISProcessingFramework(self):
+
+        from processing.core.Processing import Processing
+
+
+
+        import processing
+        if processing.iface is None:
+
+            import processing.gui.AlgorithmDialog
+            import processing.gui.AlgorithmDialogBase
+            import processing.tools.dataobjects
+            Processing.initialize()
+            processing.iface = self.iface
+            processing.gui.AlgorithmDialog.iface = self.iface
+            processing.gui.AlgorithmDialogBase.iface = self.iface
+            processing.tools.dataobjects.iface = self.iface
+            #todo: set iface in a generic way
+            #import pkgutil
+            #prefix = str(processing.__name__ + '.')
+            #MODULES = dict()
+            #for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
+            #    MODULES[modname] = __import__(modname, fromlist="dummy")
+
+            s = ""
+
+        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        if not self.processingAlgManager.enmapBoxProvider():
+            Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
     def initActions(self):
         # link action to managers
@@ -481,7 +504,7 @@ class EnMAPBox(QgisInterface, QObject):
         m = '\n'.join(m)
 
         from enmapbox.gui import DEBUG
-        if not DEBUG and not re.search('enmapbox', m):
+        if not DEBUG and not re.search('(enmapbox|plugins)', m):
             return
 
         if level in [QgsMessageLog.CRITICAL, QgsMessageLog.WARNING]:
