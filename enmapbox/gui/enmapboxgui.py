@@ -314,10 +314,17 @@ class EnMAPBox(QgisInterface, QObject):
 
             def initQPFW():
                 logger.debug('initialize own QGIS Processing framework')
+                import processing
+                import processing.gui.AlgorithmDialogBase
+
+                if processing.iface is None:
+                    processing.iface = self.iface
+                    processing.gui.AlgorithmDialogBase.iface = self.iface
+
                 from processing.core.Processing import Processing
                 Processing.initialize()
-                from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 
+                from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
                 if not self.processingAlgManager.enmapBoxProvider():
                     Processing.addProvider(EnMAPBoxAlgorithmProvider())
 

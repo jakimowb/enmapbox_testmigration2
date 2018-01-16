@@ -71,11 +71,14 @@ def sandboxPureGui(dataSources=None, loadProcessingFramework=False, loadExampleD
     qgsApp.exitQgis()
 
 
-def sandboxDragDrop():
+def sandboxProcessingFramework():
     qgsApp = initQgisEnvironment()
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
+    EB.loadExampleData()
+
+
 
     # do something here
 
@@ -315,10 +318,10 @@ if __name__ == '__main__':
 
         if False: sandboxPureGui(loadProcessingFramework=True)
 
-        if False: sandboxDragDrop()
+        if True: sandboxProcessingFramework()
         if False: sandboxQgisBridge()
         if False: sandboxGUI()
-        if True: sandboxUmlaut()
+        if False: sandboxUmlaut()
         if False: sandboxDialog()
 
         qgsApp.exec_()
