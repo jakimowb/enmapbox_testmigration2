@@ -78,6 +78,11 @@ def sandboxProcessingFramework():
     EB.run()
     EB.loadExampleData()
 
+    from processing import Processing
+
+    # for k in sorted(Processing.algs()['enmapbox'].keys()): print(k)
+    GA = Processing.getAlgorithm('enmapbox:rasterizevectorasclassification')
+    Processing.runandload(GA, None)
 
 
     # do something here
