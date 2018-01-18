@@ -14,42 +14,41 @@ from timeit import default_timer as now
 import numpy
 from osgeo import gdal, osr, ogr
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
-from hubdc.model import *  # Open, OpenLayer, CreateFromArray, Dataset, Band, PixelGrid, Projection
+from hubdc.model import *
 import hubdc.model  # needed for sphinx
 from hubdc.writer import Writer, WriterProcess, QueueMock
 from hubdc.progressbar import CUIProgressBar
 import hubdc.hubdcerrors as errors
 
-
-class Options(object):
+class ApplierOptions(object):
     '''Enumeration types.'''
 
     class AutoExtent(object):
         '''Options for automatic extent calculation.'''
-        union = 0
-        intersection = 1
+        union = 'union'
+        intersection = 'intersection'
 
     class AutoResolution(object):
         '''Options for automatic resolution calculation.'''
-        minimum = 0
-        maximum = 1
-        average = 2
+        minimum = 'minimum'
+        maximum = 'maximum'
+        average = 'average'
 
 
-class Default(object):
+class ApplierDefaults(object):
     '''Defaults values for various settings used inside an applier processing chain.'''
 
-    autoExtent = Options.AutoExtent.intersection
-    autoResolution = Options.AutoResolution.minimum
+    autoExtent = ApplierOptions.AutoExtent.intersection
+    autoResolution = ApplierOptions.AutoResolution.minimum
     nworker = None
     nwriter = None
     blockSize = Size(x=256, y=256)
     writeENVIHeader = True
-    format = 'ENVI'
+    driver = ENVIDriver()
     creationOptions = dict()
-    creationOptions['ENVI'] = ['INTERLEAVE=BSQ']
-    creationOptions['GTiff'] = ['COMPRESS=LZW', 'INTERLEAVE=BAND', 'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256',
-                                'SPARSE_OK=TRUE', 'BIGTIFF=YES']
+    creationOptions['ENVI'] = RasterCreationOptions(options={'INTERLEAVE': 'BSQ'})
+    creationOptions['GTiff'] = RasterCreationOptions(options={'COMPRESS': 'LZW', 'INTERLEAVE': 'BAND',
+                                                              'TILED': 'YES', 'BLOCKXSIZE': 256, 'BLOCKYSIZE': 256})
 
     class GDALEnv(object):
         cacheMax = 100 * 2 ** 20
@@ -109,7 +108,7 @@ class ApplierInputRaster(ApplierIO):
         return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename()))
 
     def dataset(self):
-        '''Return the :class:`~hubdc.model.Vector` object.'''
+        '''Returns the :class:`~hubdc.model.Raster` object.'''
         if self._dataset is None:
             self._dataset = openRaster(filename=self.filename())
 
@@ -118,11 +117,11 @@ class ApplierInputRaster(ApplierIO):
     def _freeUnpickableResources(self):
         self._dataset = None
 
-    def imageArray(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                   errorThreshold=Default.GDALWarp.errorThreshold,
-                   warpMemoryLimit=Default.GDALWarp.memoryLimit,
-                   multithread=Default.GDALWarp.multithread,
-                   grid=None):
+    def array(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+              errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
+              warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
+              multithread=ApplierDefaults.GDALWarp.multithread,
+              grid=None):
         '''
         Returns image data as 3-d numpy array of shape = (zsize, ysize, xsize),
         where zsize is the number of bands.
@@ -140,12 +139,9 @@ class ApplierInputRaster(ApplierIO):
             grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
         if self.operator().subgrid().projection().equal(other=self.dataset().grid().projection()):
-            datasetResampled = self.dataset().translate(grid=grid, filename='', format='MEM',
-                                                        resampleAlg=resampleAlg,
-                                                        noData=noData)
+            datasetResampled = self.dataset().translate(grid=grid, resampleAlg=resampleAlg, noData=noData)
         else:
-            datasetResampled = self.dataset().warp(grid=grid, filename='', format='MEM',
-                                                   resampleAlg=resampleAlg,
+            datasetResampled = self.dataset().warp(grid=grid, resampleAlg=resampleAlg,
                                                    errorThreshold=errorThreshold,
                                                    warpMemoryLimit=warpMemoryLimit,
                                                    multithread=multithread,
@@ -155,9 +151,9 @@ class ApplierInputRaster(ApplierIO):
         return array
 
     def bandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                  errorThreshold=Default.GDALWarp.errorThreshold,
-                  warpMemoryLimit=Default.GDALWarp.memoryLimit,
-                  multithread=Default.GDALWarp.multithread):
+                  errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
+                  warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
+                  multithread=ApplierDefaults.GDALWarp.multithread):
         '''
         Returns a band subset of the image data as 3-d numpy array of shape = (zsize, ysize, xsize),
         where zsize is the number of indicies.
@@ -174,7 +170,7 @@ class ApplierInputRaster(ApplierIO):
         bandList = [i + 1 for i in indicies]
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
         if self.operator().subgrid().projection().equal(self.dataset().grid().projection()):
-            datasetResampled = self.dataset().translate(grid=grid, filename='', format='MEM',
+            datasetResampled = self.dataset().translate(grid=grid,
                                                         bandList=bandList,
                                                         resampleAlg=resampleAlg,
                                                         noData=noData)
@@ -182,12 +178,11 @@ class ApplierInputRaster(ApplierIO):
             selfGridReprojected = self.operator().subgrid().reproject(self.dataset().grid())
             selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1 + overlap)
 
-            datasetClipped = self.dataset().translate(grid=selfGridReprojectedWithBuffer, filename='',
-                                                      format='MEM',
+            datasetClipped = self.dataset().translate(grid=selfGridReprojectedWithBuffer,
                                                       bandList=bandList,
                                                       noData=noData)
 
-            datasetResampled = datasetClipped.warp(grid=grid, filename='', format='MEM',
+            datasetResampled = datasetClipped.warp(grid=grid,
                                                    resampleAlg=resampleAlg,
                                                    errorThreshold=errorThreshold,
                                                    warpMemoryLimit=warpMemoryLimit,
@@ -217,24 +212,23 @@ class ApplierInputRaster(ApplierIO):
 
         # create tmp dataset with binarized categories in original resolution
         gridInSourceProjection = grid.reproject(self.dataset().grid())
-        tmpDataset = self.dataset().translate(grid=gridInSourceProjection, filename='', format='MEM',
+        tmpDataset = self.dataset().translate(grid=gridInSourceProjection,
                                               noData=noData, bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
 
         binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
-        binarizedDataset = createRasterFromArray(grid=gridInSourceProjection, array=binarizedArray,
-                                                 filename='', format='MEM', creationOptions=[])
+        binarizedDataset = createRasterFromArray(grid=gridInSourceProjection, array=binarizedArray)
 
         binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
         binarizedInputRaster.setOperator(operator=self.operator())
 
-        array = binarizedInputRaster.imageArray(overlap=overlap, resampleAlg=gdal.GRA_Average)
+        array = binarizedInputRaster.array(overlap=overlap, resampleAlg=gdal.GRA_Average)
         return array
 
-    def imageSample(self, mask, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
-                    errorThreshold=Default.GDALWarp.errorThreshold,
-                    warpMemoryLimit=Default.GDALWarp.memoryLimit,
-                    multithread=Default.GDALWarp.multithread):
+    def sample(self, mask, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+               errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
+               warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
+               multithread=ApplierDefaults.GDALWarp.multithread):
         '''
         Returns all pixel profiles for which ``mask`` is True as a 2-d numpy array of shape = (zsize, samples).
 
@@ -244,7 +238,6 @@ class ApplierInputRaster(ApplierIO):
         :param errorThreshold: error threshold for approximation transformer (in pixels)
         :param warpMemoryLimit: size of working buffer in bytes
         :param multithread: whether to multithread computation and I/O operations
-        :param grid: explicitly set the :class:`~hubdc.model.Grid`, for which image data is returned
         '''
 
         assert isinstance(mask, numpy.ndarray)
@@ -257,8 +250,8 @@ class ApplierInputRaster(ApplierIO):
         profiles = list()
         for y, x in zip(ys, xs):
             grid = self.operator().subgrid().subset(offset=Pixel(x=x, y=y), size=Size(x=1, y=1))
-            profiles.append(self.imageArray(resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
-                                            warpMemoryLimit=warpMemoryLimit, multithread=multithread, grid=grid))
+            profiles.append(self.array(resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
+                                       warpMemoryLimit=warpMemoryLimit, multithread=multithread, grid=grid))
         if len(profiles) != 0:
             profiles = numpy.hstack(profiles)[:, :, 0]
         else:
@@ -266,20 +259,15 @@ class ApplierInputRaster(ApplierIO):
         return profiles
 
     def metadataItem(self, key, domain):
-        """Return a metadata item."""
+        """Returns a metadata item."""
         return self.dataset().metadataItem(key=key, domain=domain)
 
     def metadataDict(self):
-        """Return metadata as a dictionary."""
-        meta = dict()
-        for domain in self.dataset().metadataDomainList():
-            meta[domain] = dict()
-            for key in self.dataset().metadataDomain(domain):
-                meta[domain][key] = self.metadataItem(key=key, domain=domain)
-        return meta
+        """Returns the metadata dictionary."""
+        return self.dataset().metadataDict()
 
     def noDataValue(self, default=None):
-        '''Return single image no data value. Only valid to use if all bands have the same ne data value.'''
+        '''Return single image no data value. Only valid to use if all bands have the same no data value.'''
         return self.dataset().noDataValue(default=default)
 
     def noDataValues(self, default=None):
@@ -319,16 +307,16 @@ class ApplierInputVector(ApplierIO):
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
         gridOversampled = Grid(extent=grid.extent(), resolution=resolution, projection=grid.projection())
 
-        dataset = self.dataset().rasterize(grid=gridOversampled, eType=NumericTypeCodeToGDALTypeCode(dtype),
+        dataset = self.dataset().rasterize(grid=gridOversampled, gdalType=NumericTypeCodeToGDALTypeCode(dtype),
                                            initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute,
                                            allTouched=allTouched,
-                                           filter=filterSQL, filename='', format='MEM', creationOptions=[])
+                                           filterSQL=filterSQL)
         raster = ApplierInputRaster.fromDataset(dataset=dataset)
         raster.setOperator(operator=self.operator())
         return raster
 
-    def imageArray(self, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0,
-                   dtype=numpy.float32):
+    def array(self, initValue=0, burnValue=1, burnAttribute=None, allTouched=False, filterSQL=None, overlap=0,
+              dtype=numpy.float32):
         '''Returns the vector rasterization of the current block in form of a 3-d numpy array of shape = (1, ysize, xsize).
 
         :param initValue: value to pre-initialize the output array
@@ -344,7 +332,7 @@ class ApplierInputVector(ApplierIO):
                                  resolution=self.operator().subgrid().resolution())
         return raster.dataset().readAsArray()
 
-    def fractionArray(self, categories, categoryAttribute=None, oversampling=10, resolution=None, overlap=0):
+    def fractionArray(self, categories, categoryAttribute=None, oversampling=1, overlap=0):
         '''Returns aggregated category fractions of the current block in form of a 3d numpy array of shape = (categories, ysize, xsize).
 
         :param categories: list of categories (numbers or names)
@@ -353,9 +341,8 @@ class ApplierInputVector(ApplierIO):
         :param overlap: the number of pixels to additionally read along each spatial dimension
         '''
 
-        if resolution is None:
-            resolution = Resolution(x=self.operator().subgrid().resolution().x() / float(oversampling),
-                                    y=self.operator().subgrid().resolution().y() / float(oversampling))
+        resolution = Resolution(x=self.operator().subgrid().resolution().x() / float(oversampling),
+                                y=self.operator().subgrid().resolution().y() / float(oversampling))
 
         array = list()
         for category in categories:
@@ -364,7 +351,7 @@ class ApplierInputVector(ApplierIO):
                                                 filterSQL=filterSQL,
                                                 overlap=overlap * oversampling, dtype=numpy.float32,
                                                 resolution=resolution)
-            array.append(oversampledRaster.imageArray(overlap=overlap, resampleAlg=gdal.GRA_Average))
+            array.append(oversampledRaster.array(overlap=overlap, resampleAlg=gdal.GRA_Average))
 
         return numpy.vstack(array)
 
@@ -372,11 +359,11 @@ class ApplierInputVector(ApplierIO):
 class ApplierOutputRaster(ApplierIO):
     '''Class for creating and handling an output raster dataset.'''
 
-    def __init__(self, filename, format=None, creationOptions=None):
+    def __init__(self, filename, driver=None, creationOptions=None):
         '''
         :param filename: destination filename for output raster
-        :param format: GDAL file format, e.g. 'ENVI' or 'GTiff', also see http://www.gdal.org/formats_list.html.
-        :type format: str
+        :param driver:
+        :type driver: hubdc.model.Driver
         :param creationOptions: GDAL creation options; e.g. ``['INTERLEAVE=BSQ']`` for ENVI band interleaved,
                                 or ``['INTERLEAVE=BAND', 'TILED=YES', 'COMPRESS=LZW']`` for GTiff band interleaved, tiled and LZW compressed.
                                 For ENVI and GTiff files also see http://www.gdal.org/frmt_various.html#ENVI and http://www.gdal.org/frmt_gtiff.html.
@@ -385,20 +372,22 @@ class ApplierOutputRaster(ApplierIO):
         '''
 
         ApplierIO.__init__(self, filename=filename)
-        if format is None:
-            format = Default.format
-        self.format = format
+        if driver is None:
+            driver = ApplierDefaults.driver
+        self.driver = driver
+        assert isinstance(driver, Driver)
         if creationOptions is None:
-            creationOptions = Default.creationOptions.get(self.format, [])
+            creationOptions = ApplierDefaults.creationOptions.get(self.driver.name(), RasterCreationOptions())
         self.creationOptions = creationOptions
+        assert isinstance(creationOptions, RasterCreationOptions)
         self._writerQueue = None
         self._zsize = None
 
     def __repr__(self):
-        return '{cls}(filename={filename}, format={format}, creationOptions={creationOptions})'.format(
+        return '{cls}(filename={filename}, driver={driver}, creationOptions={creationOptions})'.format(
             cls=self.__class__.__name__,
             filename=str(self.filename()),
-            format=repr(self.format),
+            driver=repr(self.driver),
             creationOptions=repr(self.creationOptions))
 
     def setZsize(self, zsize):
@@ -426,7 +415,7 @@ class ApplierOutputRaster(ApplierIO):
         for index in range(self.zsize()):
             yield self.band(index=index)
 
-    def setImageArray(self, array, overlap=0):
+    def setArray(self, array, overlap=0):
         """
         Write data to the output raster.
 
@@ -446,7 +435,7 @@ class ApplierOutputRaster(ApplierIO):
 
         self._writerQueue.put(
             (Writer.WRITE_IMAGEARRAY, self.filename(), array, self.operator().subgrid(), self.operator().grid(),
-             self.format, self.creationOptions))
+             self.driver, self.creationOptions))
 
         self.setZsize(zsize=len(array))
 
@@ -517,21 +506,21 @@ class ApplierOutputRasterBand(ApplierIO):
 
     def _callMethod(self, method, **kwargs):
         if self.parent.operator().isFirstBlock():
-            method = (Band, method.__name__)
+            method = (RasterBand, method.__name__)
             self.parent._writerQueue.put(
                 (Writer.CALL_BANDMETHOD, self.parent.filename(), self._index, method, kwargs))
 
     def setDescription(self, value):
         '''Set band description.'''
-        self._callMethod(method=Band.setDescription, value=value)
+        self._callMethod(method=RasterBand.setDescription, value=value)
 
     def setMetadataItem(self, key, value, domain=''):
         """Set metadata item."""
-        self._callMethod(method=Band.setMetadataItem, key=key, value=value, domain=domain)
+        self._callMethod(method=RasterBand.setMetadataItem, key=key, value=value, domain=domain)
 
     def setNoDataValue(self, value):
         """Set no data value."""
-        self._callMethod(method=Band.setNoDataValue, value=value)
+        self._callMethod(method=RasterBand.setNoDataValue, value=value)
 
 
 class ApplierIOGroup(object):
@@ -965,12 +954,14 @@ class Applier(object):
 
         self.controls.progressBar.setText(
             'start {}, {}, {}'.format(description, self.grid().size(), self.grid()))
+
+
         self._runInitWriters()
         self._runInitPool()
         results = self._runProcessSubgrids()
         self._runClose()
-
         self.controls.progressBar.setPercentage(percentage=100)
+
         s = (now() - runT0);
         m = s / 60;
         h = m / 60
@@ -1015,7 +1006,7 @@ class Applier(object):
         if self.controls._multiprocessing:
             applyResults = list()
         else:
-            results = list()
+            blockResults = list()
 
         for subgrid, i, iy, ix in subgrids:
             kwargs = {'i': i,
@@ -1029,12 +1020,13 @@ class Applier(object):
             if self.controls._multiprocessing:
                 applyResults.append(self.pool.apply_async(func=_pickableWorkerProcessSubgrid, kwds=kwargs))
             else:
-                results.append(_Worker.processSubgrid(**kwargs))
+                blockResults.append(_Worker.processSubgrid(**kwargs))
 
         if self.controls._multiprocessing:
-            results = [applyResult.get() for applyResult in applyResults]
+            blockResults = [applyResult.get() for applyResult in applyResults]
 
-        return results
+        result = self.operatorType.aggregate(blockResults=blockResults, grid=self.grid(), *self.ufuncArgs, **self.ufuncKwargs)
+        return result
 
     def _assignQueues(self):
 
@@ -1245,7 +1237,8 @@ class ApplierOperator(object):
         self._nxblock = nxblock
 
         self._setWorkingGrid(workingGrid)
-        return self.ufunc(*self._ufuncArgs, **self._ufuncKwargs)
+        blockResult = self.ufunc(*self._ufuncArgs, **self._ufuncKwargs)
+        return blockResult
 
     def ufunc(self, *args, **kwargs):
         '''Overwrite this method to specify the image processing. See :doc:`ApplierExamples` for more information.'''
@@ -1253,7 +1246,17 @@ class ApplierOperator(object):
         if self._ufuncFunction is None:
             raise NotImplementedError()
         else:
-            return self._ufuncFunction(self, *args, **kwargs)
+            blockResults = self._ufuncFunction(self, *args, **kwargs)
+            result = self.aggregate(blockResults=blockResults, grid=self.grid())
+            return result
+
+    @staticmethod
+    def aggregate(blockResults, grid, *args, **kwargs):
+        '''
+        Overwrite this method to specify how to aggregate the list of block-wise return values.
+        See :doc:`ApplierExamples` for more information.
+        '''
+        return blockResults
 
 
 class ApplierControls(object):
@@ -1288,7 +1291,7 @@ class ApplierControls(object):
         self.progressBar = progressBar
         return self
 
-    def setBlockSize(self, blockSize=Default.blockSize):
+    def setBlockSize(self, blockSize=ApplierDefaults.blockSize):
         '''
         Set the processing block x and y size. Pass an int defining x and y size to be the same,
         or a tuple (int, int) defining x and y size separately,
@@ -1315,7 +1318,7 @@ class ApplierControls(object):
         self.setBlockSize(veryLargeNumber)
         return self
 
-    def setNumThreads(self, nworker=Default.nworker):
+    def setNumThreads(self, nworker=ApplierDefaults.nworker):
         """
         Set the number of pool worker for multiprocessing. Set to None to disable multiprocessing (recommended for debugging).
         Set to -1 to use all CPUs.
@@ -1326,7 +1329,7 @@ class ApplierControls(object):
         self.nworker = nworker
         return self
 
-    def setNumWriter(self, nwriter=Default.nwriter):
+    def setNumWriter(self, nwriter=ApplierDefaults.nwriter):
         """
         Set the number of writer processes. Set to None to disable multiwriting (recommended for debugging).
         """
@@ -1334,7 +1337,7 @@ class ApplierControls(object):
         self.nwriter = nwriter
         return self
 
-    def setWriteENVIHeader(self, createEnviHeader=Default.writeENVIHeader):
+    def setWriteENVIHeader(self, createEnviHeader=ApplierDefaults.writeENVIHeader):
         """
         Set to True to create additional ENVI header files for all output rasters.
         The header files store all metadata items from the ENVI domain,
@@ -1345,25 +1348,25 @@ class ApplierControls(object):
         self.createEnviHeader = createEnviHeader
         return self
 
-    def setAutoExtent(self, autoExtent=Default.autoExtent):
+    def setAutoExtent(self, autoExtent=ApplierDefaults.autoExtent):
         """
         Define how the grid extent is derived from the input rasters.
         Possible options are listed in :class:`~hubdc.applier.Options.AutoExtent`.
         """
 
-        if autoExtent not in Options.AutoExtent.__dict__.values():
+        if autoExtent not in ApplierOptions.AutoExtent.__dict__.values():
             raise errors.UnknownApplierAutoExtentOption
         self.autoExtent = autoExtent
 
         return self
 
-    def setAutoResolution(self, autoResolution=Default.autoResolution):
+    def setAutoResolution(self, autoResolution=ApplierDefaults.autoResolution):
         """
         Define how the grid resolution is derived from the input rasters.
         Possible options are listed in :class:`~hubdc.applier.Options.AutoResolution`.
         """
 
-        if autoResolution not in Options.AutoResolution.__dict__.values():
+        if autoResolution not in ApplierOptions.AutoResolution.__dict__.values():
             raise errors.UnknownApplierAutoResolutionOption
         self.autoResolution = autoResolution
         return self
@@ -1451,28 +1454,28 @@ class ApplierControls(object):
             raise ValueError('not a valid grid')
         return self
 
-    def setGDALCacheMax(self, bytes=Default.GDALEnv.cacheMax):
+    def setGDALCacheMax(self, bytes=ApplierDefaults.GDALEnv.cacheMax):
         """
         For details see the `GDAL_CACHEMAX Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX>`_.
         """
         self.cacheMax = bytes
         return self
 
-    def setGDALSwathSize(self, bytes=Default.GDALEnv.swathSize):
+    def setGDALSwathSize(self, bytes=ApplierDefaults.GDALEnv.swathSize):
         """
         For details see the `GDAL_SWATH_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_SWATH_SIZE>`_.
         """
         self.swathSize = bytes
         return self
 
-    def setGDALDisableReadDirOnOpen(self, disable=Default.GDALEnv.disableReadDirOnOpen):
+    def setGDALDisableReadDirOnOpen(self, disable=ApplierDefaults.GDALEnv.disableReadDirOnOpen):
         """
         For details see the `GDAL_DISABLE_READDIR_ON_OPEN Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_DISABLE_READDIR_ON_OPEN>`_.
         """
         self.disableReadDirOnOpen = disable
         return self
 
-    def setGDALMaxDatasetPoolSize(self, nfiles=Default.GDALEnv.maxDatasetPoolSize):
+    def setGDALMaxDatasetPoolSize(self, nfiles=ApplierDefaults.GDALEnv.maxDatasetPoolSize):
         """
         For details see the `GDAL_MAX_DATASET_POOL_SIZE Configuration Option <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_MAX_DATASET_POOL_SIZE>`_.
         """
@@ -1522,9 +1525,9 @@ class ApplierControls(object):
 
             for grid in grids:
                 extent_ = grid.spatialExtent().reproject(targetProjection=projection)
-                if self.autoExtent == Options.AutoExtent.union:
+                if self.autoExtent == ApplierOptions.AutoExtent.union:
                     extent = extent.union(other=extent_)
-                elif self.autoExtent == Options.AutoExtent.intersection:
+                elif self.autoExtent == ApplierOptions.AutoExtent.intersection:
                     extent = extent.intersection(other=extent_)
                 else:
                     raise errors.UnknownApplierAutoExtentOption()
@@ -1539,11 +1542,11 @@ class ApplierControls(object):
 
         if self.resolution is None:
 
-            if self.autoResolution == Options.AutoResolution.minimum:
+            if self.autoResolution == ApplierOptions.AutoResolution.minimum:
                 f = numpy.min
-            elif self.autoResolution == Options.AutoResolution.maximum:
+            elif self.autoResolution == ApplierOptions.AutoResolution.maximum:
                 f = numpy.max
-            elif self.autoResolution == Options.AutoResolution.average:
+            elif self.autoResolution == ApplierOptions.AutoResolution.average:
                 f = numpy.mean
             else:
                 raise errors.UnknownApplierAutoResolutionOption()

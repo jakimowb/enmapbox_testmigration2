@@ -20,20 +20,20 @@ for root, dirs, files in os.walk(inroot):
             applier.controls.setResolution(500, 500)
             class op(ApplierOperator):
                 def ufunc(self):
-                    array = self.inputRaster.raster(key='in').imageArray(resampleAlg=gdal.GRA_Average)
+                    array = self.inputRaster.raster(key='in').array(resampleAlg=gdal.GRA_Average)
                     invalid = array == self.inputRaster.raster(key='in').noDataValue()
                     array /= 100
                     array = numpy.clip(array, 0, 100)
                     array = numpy.uint8(array)
                     array[invalid] = 255
-                    self.outputRaster.raster(key='out').setImageArray(array=array)
+                    self.outputRaster.raster(key='out').setArray(array=array)
                     self.outputRaster.raster(key='out').setNoDataValue(value=255)
             applier.apply(operatorType=op)
 
         if f[:-4].endswith('cfmask'):
             print(f)
             ds = openRaster(filename=join(root, f))
-            ds.translate(filename=join(outroot, f.split('_')[0], f), format='GTiff',
+            ds.translate(filename=join(outroot, f.split('_')[0], f), driver='GTiff',
                          grid=ds.pixelGrid.newResolution(500, 500),
-                         creationOptions=['COMPRESS=LZW', 'INTERLEAVE=BAND'],
+                         options=['COMPRESS=LZW', 'INTERLEAVE=BAND'],
                          resampleAlg=gdal.GRA_Mode)

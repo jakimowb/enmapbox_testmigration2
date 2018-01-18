@@ -129,18 +129,18 @@ class CalculatorOperator(ApplierOperator):
         ySize, xSize = self.subgrid.shape
         for key in self.inputRaster.flatRasterKeys():
             raster = self.inputRaster.raster(key=key)
-            array = raster.imageArray(resampleAlg=options[key]['resampleAlg'], noData=options[key]['noData'])
+            array = raster.array(resampleAlg=options[key]['resampleAlg'], noData=options[key]['noData'])
             exec '{key} = array'.format(key=key)
             inputRasterByArray[id(array)] = raster
 
         for key in self.inputVector.flatVectorKeys():
             vector = self.inputVector.vector(key=key)
-            array = vector.imageArray(initValue=options[key]['initValue'],
-                                      burnValue=options[key]['burnValue'],
-                                      burnAttribute=options[key]['burnAttribute'],
-                                      allTouched=options[key]['allTouched'],
-                                      filterSQL=options[key]['filterSQL'],
-                                      dtype=options[key]['dtype'])
+            array = vector.array(initValue=options[key]['initValue'],
+                                 burnValue=options[key]['burnValue'],
+                                 burnAttribute=options[key]['burnAttribute'],
+                                 allTouched=options[key]['allTouched'],
+                                 filterSQL=options[key]['filterSQL'],
+                                 dtype=options[key]['dtype'])
             exec '{key} = array'.format(key=key)
 
         for key in self.outputRaster.flatRasterKeys():
@@ -160,7 +160,7 @@ class CalculatorOperator(ApplierOperator):
             noData = outputNoDataValueByArray.get(id(array), None)
             metadata = outputMetadataByArray.get(id(array), None)
             if array is not None:
-                raster.setImageArray(array=array)
+                raster.setArray(array=array)
                 if noData is not None:
                     raster.setNoDataValue(value=noData)
                 if metadata is not None:

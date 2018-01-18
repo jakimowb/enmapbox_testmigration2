@@ -1,8 +1,8 @@
 from osgeo import gdal, gdal_array
 from multiprocessing import Process, Queue
 from time import sleep
-import numpy
-from hubdc.model import createRaster, Raster, Band
+import numpy as np
+from hubdc.model import createRaster, Raster, RasterBand
 
 class Writer():
     WRITE_IMAGEARRAY, WRITE_BANDARRAY, CALL_IMAGEMETHOD, CALL_BANDMETHOD, CLOSE_DATASETS, CLOSE_WRITER = range(6)
@@ -31,10 +31,12 @@ class Writer():
             raise ValueError(str(task))
 
     @staticmethod
-    def createDataset(outputDatasets, filename, bands, dtype, grid, format, creationOptions):
+    def createDataset(outputDatasets, filename, bands, dtype, grid, driver, creationOptions):
+        if dtype == np.bool:
+            dtype = np.uint8
         outputDatasets[filename] = createRaster(grid=grid, bands=bands,
                                                 gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
-                                                filename=filename, format=format, options=creationOptions)
+                                                filename=filename, driver=driver, options=creationOptions)
 
     @staticmethod
     def closeDatasets(outputDatasets, createEnviHeader):
@@ -46,17 +48,17 @@ class Writer():
             outputDataset.close()
 
     @classmethod
-    def writeImageArray(cls, outputDatasets, filename, array, subgrid, maingrid, format, creationOptions):
+    def writeImageArray(cls, outputDatasets, filename, array, subgrid, maingrid, driver, creationOptions):
 
         if filename not in outputDatasets:
-            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=len(array), dtype=array.dtype, grid=maingrid, format=format, creationOptions=creationOptions)
+            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=len(array), dtype=array.dtype, grid=maingrid, driver=driver, creationOptions=creationOptions)
         cls.getDatasets(outputDatasets, filename).writeArray(array=array, grid=subgrid)
 
     @classmethod
-    def writeBandArray(cls, outputDatasets, filename, array, index, bands, subgrid, maingrid, format, creationOptions):
+    def writeBandArray(cls, outputDatasets, filename, array, index, bands, subgrid, maingrid, driver, creationOptions):
 
         if filename not in outputDatasets:
-            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=bands, dtype=array.dtype, grid=maingrid, format=format, creationOptions=creationOptions)
+            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=bands, dtype=array.dtype, grid=maingrid, driver=driver, creationOptions=creationOptions)
         cls.getDatasets(outputDatasets, filename).band(index=index).writeArray(array=array, grid=subgrid)
 
     @classmethod

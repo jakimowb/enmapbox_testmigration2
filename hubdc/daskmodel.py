@@ -10,7 +10,7 @@ DEFAULT_YCHUNK = 256
 
 
 def createSlicableRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', format='MEM', options=()):
-    dataset = createRaster(grid=grid, bands=bands, gdalType=gdalType, filename=filename, format=format, options=options)
+    dataset = createRaster(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=format, options=options)
     dataset.close()
     return SlicableRaster(filename=filename, grid=grid)
 
@@ -126,7 +126,7 @@ class SlicableVector(object):
         ds = openVector(filename=self._filename, layerNameOrIndex=self._layerNameOrIndex, update=False)
         grid, return2d = self._evaluateSlices(slices=slices)
 
-        array = ds.rasterize(grid=grid, eType=gdal_array.NumericTypeCodeToGDALTypeCode(self.dtype), noDataValue=self.noDataValue(),
+        array = ds.rasterize(grid=grid, gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(self.dtype), noDataValue=self.noDataValue(),
                              **self._kwargs).readAsArray()
         assert array.ndim == 3
         if return2d:

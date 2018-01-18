@@ -33,7 +33,7 @@ class Operator(ApplierOperator):
     def ufunc(operator):
         # access individual dataset
         cfmask = operator.inputRaster.group(key='194').group(key='023').group(key='LC81940232015235LGN00').raster(key='LC81940232015235LGN00_cfmask')
-        array = cfmask.imageArray()
+        array = cfmask.array()
         # ... or
         cfmask = operator.inputRaster.raster(key='194/023/LC81940232015235LGN00/LC81940232015235LGN00_cfmask')
 
@@ -44,10 +44,10 @@ class Operator(ApplierOperator):
                 for scene in row.groups():
                     key = scene.findRaster(filteendswith='cfmask')
                     cfmask = scene.raster(key=key)
-                    array = cfmask.imageArray()
+                    array = cfmask.array()
 
         # flat iterate over all datasets
         for cfmask in operator.inputRaster.flatRasters():
-            array = cfmask.imageArray()
+            array = cfmask.array()
 
 applier.apply(operatorType=Operator)

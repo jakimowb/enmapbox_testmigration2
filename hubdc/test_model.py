@@ -8,7 +8,8 @@ from hubdc.model import *
 from hubdc.testdata import LT51940232010189KIS01, LT51940242010189KIS01, BrandenburgDistricts, root
 
 outdir = join(gettempdir(), 'hubdc_test')
-ds = openRaster(LT51940232010189KIS01.cfmask)
+raster = openRaster(LT51940232010189KIS01.cfmask)
+vector = openVector(filename=BrandenburgDistricts.shp)
 grid = openRaster(LT51940232010189KIS01.cfmask).grid()
 
 
@@ -28,6 +29,29 @@ class Test(TestCase):
     def test_Create(self):
         self.assertIsInstance(obj=createRaster(grid=grid), cls=Raster)
 
+    def test_repr(self):
+        print(RasterCreationOptions(options={'INTERLEAVE': 'BAND'}))
+        print(Driver(name='MEM'))
+        print(MEMDriver())
+        print(ENVIDriver())
+        print(GTiffDriver())
+        print(grid.extent())
+        print(Resolution(x=30, y=30))
+        print(Projection.WGS84())
+        print(Projection.WGS84WebMercator())
+        print(Projection.UTM(zone=33))
+        print(Projection.UTM(zone=33, north=False))
+        print(Pixel(x=0, y=0))
+        print(grid.extent().geometry())
+        print(grid.spatialExtent().geometry())
+        print(Point(x=0, y=0))
+        print(SpatialPoint(x=0, y=0, projection=Projection.WGS84()))
+        print(Size(x=10, y=20))
+        print(grid)
+        print(raster)
+        print(raster.band(index=0))
+        print(vector)
+
 
 class TestDriver(TestCase):
     def test_Driver(self):
@@ -35,8 +59,8 @@ class TestDriver(TestCase):
         self.assertRaises(excClass=errors.InvalidGDALDriverError, callableObj=Driver, name='not a valid driver name')
 
     def test_equal(self):
-        d1 = Driver('ENVI')
-        d2 = Driver('GTiff')
+        d1 = ENVIDriver()
+        d2 = GTiffDriver()
         d3 = Driver('ENVI')
         self.assertTrue(d1.equal(d3))
         self.assertFalse(d1.equal(d2))
@@ -44,15 +68,29 @@ class TestDriver(TestCase):
     def test_create(self):
         self.assertIsInstance(obj=Driver('MEM').create(grid=grid), cls=Raster)
 
+    def test_options(self):
+        self.assertDictEqual(Driver(name='MEM').defaultOptions().options(), {})
+        driver = GTiffDriver()
+        options = GTiffDriver().creationOptions(tiled=GTiffDriver.TILED.YES,
+                                                nbits=8,
+                                                compress=GTiffDriver.COMPRESS.LZW,
+                                                num_threads=GTiffDriver.NUM_THREADS.ALL_CPUS,
+                                                predictor=1,
+                                                sparse_ok=True,
+                                                bigtiff=GTiffDriver.BIGTIFF.IF_NEEDED)
+        raster = createRasterFromArray(grid=grid, array=np.zeros(shape=grid.shape(), dtype=np.uint8),
+                                       filename=join(outdir, 'image.tif'),
+                                       driver=driver, options=options)
 
-class TestBand(TestCase):
+
+class TestRasterBand(TestCase):
     def test_readAsArray(self):
         ds = openRaster(LT51940232010189KIS01.cfmask)
         band = ds.band(0)
-        self.assertIsInstance(obj=band, cls=Band)
+        self.assertIsInstance(obj=band, cls=RasterBand)
         self.assertIsInstance(obj=band.readAsArray(), cls=numpy.ndarray)
         self.assertIsInstance(
-            obj=band.readAsArray(grid=ds.grid().subset(offset=Pixel(x=0, y=0), size=Size(x=10, y=10))),
+            obj=band.readAsArray(grid=ds.grid().subset(offset=Pixel(x=0, y=0), size=Size(x=10, y=10), trim=True)),
             cls=numpy.ndarray)
         self.assertRaises(excClass=errors.AccessGridOutOfRangeError, callableObj=band.readAsArray,
                           grid=ds.grid().subset(offset=Pixel(x=-1, y=-1), size=Size(x=10, y=10)))
@@ -74,6 +112,8 @@ class TestBand(TestCase):
         band.writeArray(array=array2d[:10, :10], grid=grid.subset(offset=Pixel(x=0, y=0), size=Size(x=10, y=10)))
         band.writeArray(array=array2d[:10, :10], grid=grid.subset(offset=Pixel(x=-5, y=-5), size=Size(x=10, y=10)))
         band.writeArray(array=array2d[:10, :10], grid=grid.subset(offset=Pixel(x=0, y=0), size=Size(x=10, y=10)))
+        band.writeArray(array=array2d[:10, :10][None], grid=grid.subset(offset=Pixel(x=0, y=0), size=Size(x=10, y=10)))
+
         self.assertRaises(excClass=errors.AccessGridOutOfRangeError, callableObj=band.writeArray, array=array2d,
                           grid=grid.subset(offset=Pixel(x=10, y=10), size=grid.size()))
 
@@ -131,28 +171,118 @@ class TestBand(TestCase):
         self.assertTrue(numpy.all(array == 42))
 
 
-class TestDataset(TestCase):
-    def test_projection(self):
-        self.assertIsInstance(obj=ds.projection(), cls=Projection)
+class TestRaster(TestCase):
+    def test(self):
+        self.assertIsInstance(obj=raster.grid(), cls=Grid)
+        for band in raster.bands():
+            self.assertIsInstance(obj=band, cls=RasterBand)
+        self.assertIsInstance(raster.driver(), Driver)
+        self.assertIsInstance(raster.readAsArray(), np.ndarray)
+        self.assertIsInstance(raster.readAsArray(grid=grid), np.ndarray)
 
-    def test_resolution(self):
-        self.assertIsInstance(obj=ds.resolution(), cls=Resolution)
+        raster2 = createRasterFromArray(grid=grid, array=np.ones(shape=grid.shape()))
+#        raster2 = createRasterFromArray(grid=grid, array=np.ones(shape=grid.shape()[1:]))
+        raster2 = createRasterFromArray(grid=grid, array=[np.ones(shape=grid.shape(), dtype=np.bool)])
+        raster2.setNoDataValue(value=-9999)
+        raster2.noDataValue()
+        raster2.setDescription(value='Hello')
+        raster2.description()
+        raster2.copyMetadata(other=raster)
+        raster2.setMetadataItem(key='a', value=42, domain='my domain')
+        raster2.setMetadataItem(key='b', value=[1,2,3], domain='my domain')
+        raster2.metadataItem(key='a', domain='my domain')
+        raster2.metadataItem(key='b', domain='my domain')
+        raster2.setMetadataDict(metadataDict=raster2.metadataDict())
+        import datetime
+        raster2.setAcquisitionTime(acquisitionTime=datetime.datetime(2010, 12, 31))
+        print(raster2.acquisitionTime())
 
-    def test_extent(self):
-        self.assertIsInstance(obj=ds.extent(), cls=Extent)
+        raster2.warp(grid=raster2.grid())
+        raster2.translate(grid=raster2.grid())
+        grid2 = Grid(extent=grid.spatialExtent(), resolution=Resolution(x=400, y=400))
+        raster2.translate(grid=grid2)
+        raster2.array()
+        grid2 = Grid(extent=grid.spatialExtent().reproject(targetProjection=Projection.UTM(zone=33)), resolution=grid.resolution())
+        raster2.array(grid=grid2)
+        raster2.dtype()
+        raster2.flushCache()
+        raster2.close()
 
-    def test_grid(self):
-        self.assertIsInstance(obj=ds.grid(), cls=Grid)
+        raster2 = createRasterFromArray(grid=grid, array=[np.ones(shape=grid.shape(), dtype=np.bool)],
+                                        filename=join(outdir, 'zeros.tif'), driver=GTiffDriver())
+        raster2.writeENVIHeader()
+        raster2 = createRasterFromArray(grid=grid, array=[np.ones(shape=grid.shape(), dtype=np.bool)],
+                                        filename=join(outdir, 'zeros.img'), driver=ENVIDriver())
+        raster2.writeENVIHeader()
 
-    def test_spatialExtent(self):
-        self.assertIsInstance(obj=ds.spatialExtent(), cls=SpatialExtent)
 
-    def test_bands(self):
-        for band in ds.bands():
-            self.assertIsInstance(obj=band, cls=Band)
+
+    def test_createVRT(self):
+        createVRT(filename=join(outdir, 'stack1.vrt'), rastersOrFilenames=[raster, raster])
+        createVRT(filename=join(outdir, 'stack2.vrt'), rastersOrFilenames=[LT51940232010189KIS01.cfmask]*2)
+
+    def test_buildOverviews(self):
+        buildOverviews(filename=join(outdir, 'stack1.vrt'), minsize=128)
+
+
+class TestVector(TestCase):
+    def test(self):
+
+        gridSameProjection = Grid(extent=vector.spatialExtent(), resolution=Resolution(x=1, y=1))
+        vector.rasterize(grid=grid)
+        vector.rasterize(grid=gridSameProjection, noDataValue=-9999)
+        vector.featureCount()
+        vector.fieldCount()
+        vector.fieldNames()
+        vector.fieldTypeNames()
+
+class TestExtent(TestCase):
+    def test(self):
+        extent = grid.extent()
+        Extent.fromGeometry(geometry=extent.geometry())
+        extent.upperLeft()
+        extent.upperRight()
+        extent.lowerLeft()
+        extent.lowerRight()
+
+
+class TestSpatialExtent(TestCase):
+    def test(self):
+        spatialExtent = grid.spatialExtent()
+        spatialExtent.upperLeft()
+        spatialExtent.upperRight()
+        spatialExtent.lowerLeft()
+        spatialExtent.lowerRight()
+        spatialExtent.reproject(targetProjection=Projection.WGS84(), sourceProjection=spatialExtent.projection())
+        spatialExtent.intersects(other=spatialExtent)
+        spatialExtent.intersection(other=spatialExtent)
+        spatialExtent.union(other=spatialExtent)
+
+
+class TestSpatialGeometry(TestCase):
+    def test(self):
+        spatialGeometry = grid.spatialExtent().geometry()
+        spatialGeometry.intersection(other=spatialGeometry)
+        spatialGeometry.within(other=spatialGeometry)
+        SpatialGeometry.fromVector(vector=openVector(filename=BrandenburgDistricts.shp))
+
+
+class TestResolution(TestCase):
+    def test_Resolution(self):
+        resolution = Resolution(x=30, y=30)
+        self.assertTrue(resolution.equal(other=Resolution(x=30, y=30)))
+        self.assertFalse(resolution.equal(other=Resolution(x=10, y=10)))
 
 
 class TestGrid(TestCase):
+
+    def test(self):
+        Grid(extent=grid.spatialExtent(), resolution=grid.resolution())
+        grid.equal(other=grid)
+        grid.reproject(other=grid)
+        grid.pixelBuffer(buffer=1)
+        grid.subgrids(size=Size(x=256, y=256))
+
     def test_coordinates(self):
         grid = Grid(extent=Extent(xmin=0, xmax=3, ymin=0, ymax=2), resolution=Resolution(x=1, y=1),
                     projection=Projection.WGS84())
@@ -174,5 +304,15 @@ class TestGrid(TestCase):
         print(subgrid.xPixelCoordinatesArray())
         print(subgrid.yPixelCoordinatesArray())
 
-        self.assertTrue(np.all(subgrid.xPixelCoordinatesArray(offset=1) == subxgold))
-        self.assertTrue(np.all(subgrid.yPixelCoordinatesArray(offset=1) == subygold))
+        self.assertTrue(np.all(np.equal(subgrid.xPixelCoordinatesArray(offset=1), subxgold)))
+        self.assertTrue(np.all(np.equal(subgrid.yPixelCoordinatesArray(offset=1), subygold)))
+
+
+class TestSpatialPoint(TestCase):
+    def test(self):
+        wgs84 = Projection.WGS84()
+        p = SpatialPoint(x=0, y=0, projection=wgs84)
+        self.assertIsInstance(p.geometry(), Geometry)
+        self.assertIsInstance(p.reproject(sourceProjection=wgs84, targetProjection=wgs84), Point)
+        self.assertIsInstance(p.geometry(), SpatialGeometry)
+        self.assertFalse(p.withinExtent(extent=grid.spatialExtent()))

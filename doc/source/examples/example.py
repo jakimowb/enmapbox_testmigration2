@@ -21,16 +21,16 @@ class NDVIOperator(ApplierOperator):
     def ufunc(operator):
 
         # read image data
-        red = operator.inputRaster.raster(key='red').imageArray()
-        nir = operator.inputRaster.raster(key='nir').imageArray()
-        brandenburg = operator.inputVector.vector(key='brandenburg').imageArray(initValue=0, burnValue=1)
+        red = operator.inputRaster.raster(key='red').array()
+        nir = operator.inputRaster.raster(key='nir').array()
+        brandenburg = operator.inputVector.vector(key='brandenburg').array(initValue=0, burnValue=1)
 
         # calculate ndvi and mask Brandenburg
         ndvi = numpy.float32(nir-red)/(nir+red)
         ndvi[brandenburg==0] = -1
 
         # write ndvi data
-        operator.outputRaster.raster(key='ndvi').setImageArray(array=ndvi)
+        operator.outputRaster.raster(key='ndvi').setArray(array=ndvi)
 
 # Apply the operator to the inputs, creating the outputs.
 applier.apply(operatorType=NDVIOperator)

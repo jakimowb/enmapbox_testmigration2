@@ -21,9 +21,6 @@ Install the latest release with pip::
 Or manually `download a release <https://bitbucket.org/hu-geomatics/hub-datacube/downloads/?tab=tags>`_
 from Bitbucket.
 
-
-
-
 Example
 =======
 
@@ -35,11 +32,18 @@ See :doc:`ApplierExamples` for more information.
 
 .. toctree::
    :maxdepth: 1
-   :caption: User Guide:
+   :caption: User Guides:
    :glob:
 
    ApplierExamples.rst
-   Downloads.rst
+   DataModelExamples.rst
+
+.. note::
+
+   The user guides are created from Jupiter Notebooks. For a more interactive experience and graphical outputs execute
+   these notebooks:
+
+   :download:`Data Model Usage Examples <DataModelExamples.ipynb>`
 
 .. toctree::
    :maxdepth: 2

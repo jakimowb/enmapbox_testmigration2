@@ -14,13 +14,13 @@ def test_ApplierInputRaster():
         def ufunc(operator, *args, **kwargs):
             overlap = 10
             cfmask = operator.inputRaster.raster(key='cfmask')
-            cfmaskArray = cfmask.imageArray()
+            cfmaskArray = cfmask.array()
             print(cfmaskArray.shape)
             print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
 
             print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
-            print(cfmask.imageSample(mask=cfmaskArray == 1).shape)  # water sample
-            print(cfmask.imageSample(mask=cfmaskArray == 31241).shape)  # empty sample
+            print(cfmask.sample(mask=cfmaskArray == 1).shape)  # water sample
+            print(cfmask.sample(mask=cfmaskArray == 31241).shape)  # empty sample
 
             # read raster metadata
             print(cfmask.metadataDict())
@@ -45,7 +45,7 @@ def test_ApplierInputRasterGroup():
         def ufunc(operator, *args, **kwargs):
             overlap = 10
             cfmask = operator.inputRaster.raster(key='LT51940242010189KIS01/LT51940242010189KIS01_cfmask')
-            cfmaskArray = cfmask.imageArray()
+            cfmaskArray = cfmask.array()
             print(cfmaskArray.shape)
             print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
             print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
@@ -107,7 +107,7 @@ def test_ApplierInputVector():
             overlap = 10
             vector = operator.inputVector.vector(key='vector')
             print(vector.operator)
-            print(vector.imageArray().shape)
+            print(vector.array().shape)
             print(vector.fractionArray(categories=[1, 4, 7, 9], categoryAttribute='id').shape)
 
     # add vector
@@ -137,8 +137,8 @@ def test_ApplierOutputRaster():
             # - try writing without initialization
             try:
                 stack.bands()
-            except:
-                errors.ApplierOutputRasterNotInitializedError
+            except errors.ApplierOutputRasterNotInitializedError:
+                pass
 
             stack.setZsize(zsize=3)
             for band, bandArray in zip(stack.bands(), array):
@@ -147,8 +147,8 @@ def test_ApplierOutputRaster():
                 band.setArray(array=list(bandArray[None]), overlap=overlap)  # list of 2d
 
             # write stack at once
-            stack.setImageArray(array=array, overlap=overlap)  # 3d
-            stack.setImageArray(array=list(array), overlap=overlap)  # list of 2d
+            stack.setArray(array=array, overlap=overlap)  # 3d
+            stack.setArray(array=list(array), overlap=overlap)  # list of 2d
 
             # set image no data and metadata
             stack.setNoDataValue(value=0)
@@ -237,11 +237,11 @@ class TestApplierControls(TestCase):
         applier.controls.setNumThreads(nworker=None)
 
         # auto resolution
-        applier.controls.setAutoResolution(Options.AutoResolution.average)
+        applier.controls.setAutoResolution(ApplierOptions.AutoResolution.average)
         applier.apply(operatorFunction=operatorFunction)
-        applier.controls.setAutoResolution(Options.AutoResolution.minimum)
+        applier.controls.setAutoResolution(ApplierOptions.AutoResolution.minimum)
         applier.apply(operatorFunction=operatorFunction)
-        applier.controls.setAutoResolution(Options.AutoResolution.maximum)
+        applier.controls.setAutoResolution(ApplierOptions.AutoResolution.maximum)
         applier.apply(operatorFunction=operatorFunction)
         try:
             applier.controls.setAutoResolution(26)
@@ -251,9 +251,9 @@ class TestApplierControls(TestCase):
 
         # auto extent
         applier.controls.setGrid(None)
-        applier.controls.setAutoExtent(Options.AutoExtent.union)
+        applier.controls.setAutoExtent(ApplierOptions.AutoExtent.union)
         applier.apply(operatorFunction=operatorFunction)
-        applier.controls.setAutoExtent(Options.AutoExtent.intersection)
+        applier.controls.setAutoExtent(ApplierOptions.AutoExtent.intersection)
         applier.apply(operatorFunction=operatorFunction)
         try:
             applier.controls.setAutoExtent(26)

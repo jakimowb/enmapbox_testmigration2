@@ -3,3 +3,4 @@
 doc/build
 hubdc/testdata/LT51940232010189KIS01/LT51940232010189KIS01_sr_band1.img.aux.xml
 hubdc/testdata/LT51940232010189KIS01/LT51940232010189KIS01_cfmask.img.aux.xml
+doc/source/.ipynb_checkpoints/DataModelExamples-checkpoint.ipynb

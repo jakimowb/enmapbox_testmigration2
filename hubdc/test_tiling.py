@@ -24,5 +24,5 @@ class TestUTMTilingScheme(TestCase):
                     array = np.zeros(grid.shape())
                     createRasterFromArray(grid=grid, array=array,
                                           filename=join(outdir, '{}_Y{}_X{}.tif'.format(mgrs1mil, iy, ix)),
-                                          format='GTiff',
-                                          creationOptions=['compress=lzw'])
+                                          driver='GTiff',
+                                          options=['compress=lzw'])

@@ -22,7 +22,7 @@ Additionally, use the :class:`~hubdc.testdata.BrandenburgDistricts` vector polyg
     import tempfile
     import os
     import numpy
-    from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster
+    from hubdc.applier import *
     from hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
 
     # Set up input and output filenames.
@@ -49,7 +49,7 @@ Additionally, use the :class:`~hubdc.testdata.BrandenburgDistricts` vector polyg
             operator.outputRaster.raster(key='ndvi').setImageArray(array=ndvi)
 
     # Apply the operator to the inputs, creating the outputs.
-    applier.apply(operator=NDVIOperator)
+    applier.apply(operatorType=NDVIOperator)
     print(applier.outputRaster.raster(key='ndvi').filename)
 
 The result is stored in the file called ``ndvi.img`` stored in the user tempdir (e.g. on Windows systems ``c:\users\USER\appdata\local\temp\ndvi.img``).
@@ -188,7 +188,7 @@ might be a program to multiply an input raster by a scale value and add an offse
             scaled = array * scale + offset
             operator.outputRaster.raster(key='outimage').setImageArray(array=scaled)
 
-    applier.apply(operator=Scaleperator, scale=1, offset=0)
+    applier.apply(operatorType=Scaleperator, scale=1, offset=0)
 
 An example of using the ``return`` statement to accumulate information across blocks might be a program
 to calculate some statistic (e.g. the mean) across the whole raster::
@@ -200,7 +200,7 @@ to calculate some statistic (e.g. the mean) across the whole raster::
             blockCount = img.size
             return blockTotal, blockCount
 
-    results = applier.apply(operator=MeanOperator)
+    results = applier.apply(operatorType=MeanOperator)
 
     total, count = 0., 0
     for blockTotal, blockCount in results:
@@ -225,40 +225,17 @@ Note that there are no output rasters from the last example - this is perfectly 
 Controlling the Reference Pixel Grid Example
 ============================================
 
-Normally, the applier will raise an exception if the input rasters are on different projections,
-but if requested to do so, it will reproject on-the-fly.
+Use :meth:`~hubdc.applier.ApplierControls.setProjection`, :meth:`~hubdc.applier.ApplierControls.setResolution`,
+and :meth:`~hubdc.applier.ApplierControls.setExtent` to explicitely control the
+grid projection, resolution and extent::
 
-This is enabled by telling it which of the input rasters should be used as the reference
-(all other inputs will be reprojected onto this reference pixel grid).
-This is done by using :meth:`~hubdc.applier.ApplierControls.setReferenceGridByImage` as follows::
+    applier.controls.setProjection(projection=Projection('PROJCS["UTM_Zone_33N",GEOGCS["GCS_WGS_1984",DATUM["WGS_1984",SPHEROID["WGS_84",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",15.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1]]'))
+    applier.controls.setExtent(extent=Extent(xmin=4400000, xmax=450000, ymin=3100000, ymax=3200000)
+    applier.controls.setResolution(resolution=Resolution(x=30, y=30)
 
-    applier.controls.setReferenceGridByImage(filename='image.img')
 
-If the input rasters have the same projection, but differ in their spatial extent and/or pixel resolution,
-the applier will automatically calculate the pixel grid by deriving the *union* extent and the *minimum* resolution
-from all inputs.
-
-To alter this default behaviour, use for example the :meth:`~hubdc.applier.ApplierControls.setAutoFootprint`
-methods of the ``applier.controls`` object to change the footprint type to *intersection*::
-
-    from hubdc.applier import Enum
-    applier.controls.setAutoFootprint(footprintType=Enum.Footprint.INTERSECTION)
-
-Or use :meth:`~hubdc.applier.ApplierControls.setAutoResolution` to set the resolution type to *average* or *maximum*::
-
-    applier.controls.setAutoResolution(resolutionType=Enum.Resolution.AVERAGE)
-
-Or explicitly define the reference pixel grid in terms of
-pixel resolution (use :meth:`~hubdc.applier.ApplierControls.setResolution`),
-spatial footprint (use :meth:`~hubdc.applier.ApplierControls.setFootprint`)
-and projection (use :meth:`~hubdc.applier.ApplierControls.setProjection`)::
-
-    applier.controls.setFootprint(xMin=4400000, xMax=450000, yMin=3100000, yMax=3200000)
-    applier.controls.setResolution(xRes=30, yRes=30)
-    # projection by well known text (or osr.SpatialReference)
-    applier.controls.setProjection(projection='PROJCS["UTM_Zone_33N",GEOGCS["GCS_WGS_1984",DATUM["WGS_1984",SPHEROID["WGS_84",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",15.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1]]')
-    # projection from EPSG
-    applier.controls.setProjectionFromEPSG(projection=3857)
+Other Controls
+==============
 
 Other controls which can be manipulated are detailed in the :class:`~hubdc.applier.ApplierControls` class.
 
@@ -379,7 +356,7 @@ Here is a simple convolution filter example::
     import os
     from scipy.ndimage import uniform_filter
 
-    from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
+    from hubdc.applier import *
     from hubdc.testdata import LT51940232010189KIS01
 
     applier = Applier()
@@ -396,7 +373,7 @@ Here is a simple convolution filter example::
             arraySmoothed = uniform_filter(array, size=11, mode='constant')
             operator.outputRaster.raster(key='outimage').setImageArray(array=arraySmoothed, overlap=overlap)
 
-    applier.apply(operator=SmoothOperator)
+    applier.apply(operatorType=SmoothOperator)
 
 
 Many other Scipy filters are also available and can be used in a similar way.
@@ -471,8 +448,6 @@ into pixel fraction, one for each category.
 Take for example a vector layer with an attribute ``CLASS_ID`` coding features as *1 -> Impervious*, *2 -> Vegetation*, *3 -> Soil* and *4 -> Other*.
 To derieve aggregated pixel fractions for *Impervious*, *Vegetation* and *Soil* categories rasterization at 5 m resolution use
 :meth:`~hubdc.applier.ApplierInputVector.fractionArray`::
-
-    from hubdc.model import Resolution
 
     def ufunc(operator):
         vector = operator.inputVector.vector(key='vector')

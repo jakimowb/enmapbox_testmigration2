@@ -44,11 +44,11 @@ class Operator(ApplierOperator):
                         rgbBandNumbers = [4, 5, 3]
 
                     cfmask = scene.raster(key='{sceneID}_cfmask'.format(sceneID=sceneID))
-                    cfmaskArray = cfmask.imageArray()
+                    cfmaskArray = cfmask.array()
                     invalid = cfmaskArray > 1
                     for key, i in zip(['r','g','b'], rgbBandNumbers):
                         raster = scene.raster(key='{sceneID}_sr_band{i}'.format(sceneID=sceneID, i=i))
-                        array = numpy.float32(raster.imageArray())
+                        array = numpy.float32(raster.array())
                         array[invalid] = numpy.nan
                         arrays[key].append(array)
                     arrays['counts'].append(invalid==False)

@@ -15,9 +15,9 @@ class SmoothOperator(ApplierOperator):
         # does a spatial 11x11 uniform filter.
         # Note: for a 3x3 the overlap is 1, 5x5 overlap is 2, ..., 11x11 overlap is 5, etc
         overlap = 5
-        array = operator.inputRaster.raster(key='image').imageArray(overlap=overlap)
+        array = operator.inputRaster.raster(key='image').array(overlap=overlap)
         arraySmoothed = uniform_filter(array, size=11, mode='constant')
-        operator.outputRaster.raster(key='outimage').setImageArray(array=arraySmoothed, overlap=overlap)
+        operator.outputRaster.raster(key='outimage').setArray(array=arraySmoothed, overlap=overlap)
 
 applier.apply(operatorType=SmoothOperator)
 print(applier.outputRaster.raster(key='outimage').filename)
