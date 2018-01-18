@@ -28,7 +28,7 @@ transformerFilename = r'c:\output\transformer.pkl'
 clustererFilename = r'c:\output\clusterer.pkl'
 
 def vector_classify():
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     vector = Vector(filename=vectorFilename)
     classification = vector.rasterizeAsClassification(filename=classification3mFilename,
                                                       pixelGrid=image.grid.newResolution(xRes=3, yRes=3),
@@ -37,7 +37,7 @@ def vector_classify():
                                                       classLookup=[168,0,0, 156,156,156,  151,229,0, 35,114,0, 136,89,67, 236,214,0])
 
 def image_sampleByClassification():
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     classification = Classification(filename=classification3mFilename)
     probabilitySample = image.sampleByClassification(classification=classification)
     probabilitySample.pickle(filename=probabilitySampleFilename)
@@ -92,7 +92,7 @@ def classifier_fit():
 
 def classifier_predict():
     classifier = Classifier.unpickle(filename=classifierFilename)
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     mask = Mask(filename=classification3mFilename, ufunc=lambda array: array > 3)
     vmask = VectorMask(filename=vectorFilename, allTouched=True, filterSQL="LEVEL_1 = 'Impervious'")
     classifier.predict(filename=classificationFilename, image=image)#, vmask=vmask)
@@ -101,7 +101,7 @@ def classifier_predict():
 def classifier_predictProbability():
     assert 0
     classifier = Classifier.unpickle(filename=classifierFilename)
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     mask = Mask(filename=classification3mFilename, ufunc=lambda array: array > 3)
     vmask = VectorMask(filename=vectorFilename, allTouched=True, filterSQL="LEVEL_1 = 'Impervious'")
     classifier.predictProbability(filename=probabilityFilename, image=image)#, vmask=vmask)
@@ -117,7 +117,7 @@ def regressor_fit():
 
 def regressor_predict():
     regressor = Regressor.unpickle(filename=regressorFilename)
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     mask = Mask(filename=classification3mFilename)
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
     regressor.predict(filename=regressionFilename, image=image, mask=mask)
@@ -131,14 +131,14 @@ def transformer_fit():
 
 def transformer_transform():
     transformer = Transformer.unpickle(filename=transformerFilename)
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     mask = Mask(filename=classification3mFilename)
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
     transformer.transform(filename=transformationFilename, image=image, mask=mask, vmask=vmask)
 
 def transformer_inverseTransform():
     transformer = Transformer.unpickle(filename=transformerFilename)
-    image = Image(filename=transformationFilename)
+    image = Raster(filename=transformationFilename)
     mask = Mask(filename=classification3mFilename)
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
     transformer.inverseTransform(filename=inverseTransformationFilename, image=image, mask=mask, vmask=vmask)
@@ -207,14 +207,14 @@ def clusterer_fit():
 
 def clusterer_predict():
     clusterer = Clusterer.unpickle(filename=clustererFilename)
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     mask = Mask(filename=classification3mFilename)
     vmask = VectorMask(filename=vectorFilename, allTouched=True)
     clusterer.predict(filename=clusteringFilename, image=image, mask=mask, vmask=vmask)
 
 def browse():
 
-    image = Image(filename=imageFilename)
+    image = Raster(filename=imageFilename)
     vector = Vector(filename=vectorFilename)
     mask = Mask(filename=classification3mFilename, ufunc=lambda array: array > 3)
     vmask = VectorMask(filename=vectorFilename, allTouched=True, filterSQL="LEVEL_1 = 'Impervious'")

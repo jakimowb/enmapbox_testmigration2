@@ -15,8 +15,8 @@ overwrite=False
 progressBar = hubdc.progressbar.CUIProgressBar
 outdir = join(gettempdir(), 'hubflow_testdata')
 
-hymap = lambda: Image(filename=enmapboxtestdata.hymap)
-enmap = lambda: Image(filename=enmapboxtestdata.enmap)
+hymap = lambda: Raster(filename=enmapboxtestdata.hymap)
+enmap = lambda: Raster(filename=enmapboxtestdata.enmap)
 vector = lambda: Vector(filename=enmapboxtestdata.landcover)
 landcoverAttributes = enmapboxtestdata.landcoverAttributes
 classDefinitionL1 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level1.names,
@@ -40,9 +40,9 @@ enmapProbability = lambda overwrite=overwrite: Probability.fromVectorClassificat
                                                                                     vectorClassification=vectorClassification(),
                                                                                     grid=enmap().grid, oversampling=10, overwrite=overwrite)
 
-enmapProbabilitySample = lambda overwrite=overwrite: ProbabilitySample.fromImageAndProbability(image=enmap(), probability=enmapProbability(overwrite), grid=enmap())
-enmapClassificationSample = lambda overwrite=overwrite: ClassificationSample.fromImageAndClassification(image=enmap(), classification=enmapClassification(overwrite), grid=enmap())
-enmapUnsupervisedSample = lambda overwrite=overwrite: UnsupervisedSample.fromImageAndMask(image=enmap(), mask=vector(), grid=enmap())
+enmapProbabilitySample = lambda overwrite=overwrite: ProbabilitySample.fromRasterAndProbability(raster=enmap(), probability=enmapProbability(overwrite), grid=enmap())
+enmapClassificationSample = lambda overwrite=overwrite: ClassificationSample.fromRasterAndClassification(raster=enmap(), classification=enmapClassification(overwrite), grid=enmap())
+enmapUnsupervisedSample = lambda overwrite=overwrite: UnsupervisedSample.fromRasterAndMask(raster=enmap(), mask=vector(), grid=enmap())
 
 
 #hymapMask = lambda: hymapClassification.asMask()

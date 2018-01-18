@@ -14,7 +14,7 @@ def script():
 
     # draw all labeled samples
 
-    image = Image(filename=r'C:\subset_image\subset_pca')
+    image = Raster(filename=r'C:\subset_image\subset_pca')
     classification = Classification(filename=r'C:\subset_image\training_worldview3_pca')
 
     if 1:  # draw from image

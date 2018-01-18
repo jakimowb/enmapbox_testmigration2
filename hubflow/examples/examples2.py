@@ -11,8 +11,8 @@ from hubdc.applier import ApplierControls, ApplierInputOptions
 from hubflow.types import *
 import enmapboxtestdata
 
-image = Image(filename=enmapboxtestdata.enmap)
-image2 = Image(filename=enmapboxtestdata.hymap)
+image = Raster(filename=enmapboxtestdata.enmap)
+image2 = Raster(filename=enmapboxtestdata.hymap)
 vector = Vector(filename=enmapboxtestdata.landcover, dtype=numpy.uint8)
 vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, idAttribute='Level_2_ID',
                                             classDefinition=ClassDefinition(names=['Roof',  'Pavement',   'Grass',   'Tree',   'Soil',    'Other'],
@@ -23,10 +23,10 @@ def getVMask(): return vector
 def getClassification(): return vectorClassification_rasterizeAsClassification()
 def getProbability(): return vectorClassification_rasterizeAsProbability()
 def getRegression(): return getProbability().asRegression()
-def getUnsupervisedSample(): return UnsupervisedSample.fromImageAndMask(image=image, mask=getRMask())
-def getClassificationSample(): return ClassificationSample.fromImageAndClassification(image=image, classification=getClassification())
-def getRegressionSample(): return RegressionSample.fromImageAndRegression(image=image, regression=getRegression())
-def getProbabilitySample(): return ProbabilitySample.fromImageAndProbability(image=image, probability=getProbability())
+def getUnsupervisedSample(): return UnsupervisedSample.fromRasterAndMask(raster=image, mask=getRMask())
+def getClassificationSample(): return ClassificationSample.fromRasterAndClassification(raster=image, classification=getClassification())
+def getRegressionSample(): return RegressionSample.fromRasterAndRegression(raster=image, regression=getRegression())
+def getProbabilitySample(): return ProbabilitySample.fromRasterAndProbability(raster=image, probability=getProbability())
 def getClassifier(): return Classifier(sklEstimator=RandomForestClassifier()).fit(sample=getClassificationSample())
 def getRegressor(): return Regressor(sklEstimator=RandomForestRegressor()).fit(sample=getRegressionSample())
 
@@ -62,7 +62,7 @@ def vectorClassification_rasterizeAsProbability():
 
 def probability_asClassColorRGBImage():
     probability = vectorClassification_rasterizeAsProbability()
-    image = probability.asClassColorRGBImage(imageFilename=rasteredProbabilityRGBFilename, overwrite=overwrite)
+    image = probability.asClassColorRGBRaster(imageFilename=rasteredProbabilityRGBFilename, overwrite=overwrite)
     return image
 
 def probability_subsetClassesByNames():
@@ -110,7 +110,7 @@ def image_scatterMatrix(stratify=False):
     i1, i2 = 0, 1
     (min1, min2), (max1, max2), (mean1, mean2), (n1, n2) = image.basicStatistics(bandIndicies=[i1, i2], mask=getRMask())
 
-    H, xedges, yedges = image.scatterMatrix(image2=image, bandIndex1=i1, bandIndex2=i2,
+    H, xedges, yedges = image.scatterMatrix(raster2=image, bandIndex1=i1, bandIndex2=i2,
                                             range1=[min1, max1], range2=[min2, max2], bins=10,
                                             mask=getRMask(), stratification=stratification if stratify else None)
     return H, xedges, yedges
