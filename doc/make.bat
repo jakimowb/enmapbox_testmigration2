@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=source
 set BUILDDIR=build
-set SPHINXPROJ=HUB-Datacube
+set SPHINXPROJ=EnMAP-Box3
 
 if "%1" == "" goto help
 
