@@ -21,6 +21,10 @@ import sys, os, site
 
 
 def run():
+    """
+    Starts the EnMAP-Box GUI.
+    :return:
+    """
 
     from enmapbox.gui.utils import initQgisApplication
     qgisApp = initQgisApplication()

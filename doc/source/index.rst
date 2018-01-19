@@ -8,12 +8,19 @@ EnMAP-Box 3 Documentation
 
 ..  toctree::
     :maxdepth: 1
-    :caption: Overview:
+    :caption: Overview
 
     Installation.md
     Development.md
     APIQuickStart.md
 
+
+..  autosummary::
+    :toctree: Source Code
+
+    foobar.foo
+    foobar.bar
+    foobar.bar.baz
 
 
 Indices and tables
