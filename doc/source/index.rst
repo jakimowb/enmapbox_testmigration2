@@ -15,13 +15,6 @@ EnMAP-Box 3 Documentation
     APIQuickStart.md
 
 
-..  autosummary::
-    :toctree: Source Code
-
-    foobar.foo
-    foobar.bar
-    foobar.bar.baz
-
 
 Indices and tables
 ==================

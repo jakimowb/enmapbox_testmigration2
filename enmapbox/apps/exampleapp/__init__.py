@@ -4,7 +4,7 @@
 ***************************************************************************
     exampleapp/__init__.py
 
-    Exemplary package definition.
+    Exemplary EnMAP-Box Application.
     ---------------------
     Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -22,6 +22,8 @@
 import os
 APP_DIR = os.path.dirname(__file__)
 
+VERSION = '0.8.15'
+
 
 def enmapboxApplicationFactory(enmapBox):
     """
@@ -32,4 +34,6 @@ def enmapboxApplicationFactory(enmapBox):
 
     from exampleapp.enmapboxintegration import ExampleEnMAPBoxApp
 
+    # returns a list of EnMAP-Box Applications. Usually only one is returned,
+    # but you might provide as many as you like.
     return [ExampleEnMAPBoxApp(enmapBox)]

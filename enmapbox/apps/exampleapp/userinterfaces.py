@@ -25,13 +25,14 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 """"
-Use the QtDesigner to design a GUI and save it as *.ui file
+Use the QtDesigner to open the example.ui file.  
 The example.ui can get compiled and loaded at runtime.
 """""
 from enmapbox.gui.utils import loadUIFormClass
 from __init__ import APP_DIR
-pathUi = os.path.join(APP_DIR, 'example.ui')
 
+#path to the *.ui file that was created/edited in the QDesigner
+pathUi = os.path.join(APP_DIR, 'example.ui')
 
 class ExampleGUI(QDialog, loadUIFormClass(pathUi)):
     """Constructor."""
@@ -43,15 +44,17 @@ class ExampleGUI(QDialog, loadUIFormClass(pathUi)):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
 
-        # Important!
+        # Important!!!!!!!!! this will initiate all the QWidgets etc. specified in the *.ui file
         self.setupUi(self)
 
+        # Connect widgets, add logic that can not be expressed in the QDesginer and needs to be "hard-coded"
         self.buttonBox.accepted.connect(self.startAlgorithm)
         self.buttonBox.rejected.connect(self.close)
 
+
     def collectParameters(self):
         """
-        Collect the parameterization from the UI elements.
+        Collects parameters from the UI elements.
         :return: dictionary (dict) with parameters
         """
         p = dict()

@@ -24,84 +24,74 @@ import os
 from PyQt4.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from exampleapp import APP_DIR
-class ExampleEnMAPBoxApp(EnMAPBoxApplication):
 
+class ExampleEnMAPBoxApp(EnMAPBoxApplication):
+    """
+    This Class derived from an EnMAPBoxApplication.
+
+    """
     def __init__(self, enmapBox, parent=None):
         super(ExampleEnMAPBoxApp, self).__init__(enmapBox, parent=parent)
+
+        #specify the name of this app
         self.name = 'My EnMAPBox App'
-        self.version = 'Version 0.8.15'
+
+        #specify a version string
+        from exampleapp import VERSION
+        self.version = VERSION
+
+        #specify a licence under which you distribute this application
         self.licence = 'BSD-3'
 
     def icon(self):
+        """
+        This function returns a QIcon of your Application
+        :return:
+        """
         pathIcon = os.path.join(APP_DIR, 'icon.png')
         return QIcon(pathIcon)
 
     def menu(self, appMenu):
         """
-        Specify menu, submenus and actions
+        Returns a QMenu that will be added to the parent `appMenu`
+        :param appMenu:
+        :return: QMenu
+        """
+        assert isinstance(appMenu, QMenu)
+        """
+        Specify menu, submenus and actions that become accessible from the EnMAP-Box GUI
         :return: the QMenu or QAction to be added to the "Applications" menu.
         """
-        return None  # remove this line to load ExamplAlgorithm QMenu
-        if False:
-            # this way you can add your QMenu/QAction to
-            # any other EnMAP-Box Menu
-            appMenu = self.enmapbox.menu('Tools')
+
+        # this way you can add your QMenu/QAction to an other menu entry, e.g. 'Tools'
+        # appMenu = self.enmapbox.menu('Tools')
 
         menu = appMenu.addMenu('Example App')
         menu.setIcon(self.icon())
 
-        #add a QAction that starts your GUI
+        #add a QAction that starts a process of your application.
+        #In this case it will open your GUI.
         a = menu.addAction('Show ExampleApp GUI')
         a.triggered.connect(self.startGUI)
 
         appMenu.addMenu(menu)
 
-
         return menu
 
+    def geoAlgorithms(self):
+        """
+        This function returns the QGIS Processing Framework GeoAlgorithms specified by your application
+        :return: [list-of-GeoAlgorithms]
+        """
+        #return [] #remove this line to load geoAlgorithms
+        from algorithms import MyEnMAPBoxAppGeoAlgorithm
+        return [MyEnMAPBoxAppGeoAlgorithm()]
 
     def startGUI(self, *args):
         from exampleapp.userinterfaces import ExampleGUI
         ui = ExampleGUI(self.enmapbox.ui)
         ui.show()
 
-    def startNDVIGui(self, *args):
-        from exampleapp.userinterfaces import MyNDVIUserInterface
-        ui = MyNDVIUserInterface(self.enmapbox.ui)
 
-        #let the EnMAP Box know if a new file is created
-        ui.sigFileCreated.connect(self.enmapbox.addSource)
-        ui.show()
-
-    def geoAlgorithms(self):
-        return [] #remove this line to load geoAlgorithms
-        return [MyEnMAPBoxAppGeoAlgorithm()]
-
-
-
-### Interfaces to use algorithms in algorithms.py within
-### QGIS Processing Framework
-
-from processing.core.GeoAlgorithm import GeoAlgorithm
-from processing.core.parameters import ParameterRaster
-from processing.core.outputs import OutputRaster
-class MyEnMAPBoxAppGeoAlgorithm(GeoAlgorithm):
-
-        def defineCharacteristics(self):
-            self.name = 'NDVI (using GDAL)'
-            self.group = 'My Example App'
-
-            self.addParameter(ParameterRaster('infile', 'Spectral Image'))
-            self.addOutput(OutputRaster('outfile', 'NDVI'))
-
-        def processAlgorithm(self, progress):
-            from .algorithms import ndvi
-            #map processing framework parameters to that of you algorithm
-            infile = self.getParameterValue('infile')
-            outfile = self.getOutputValue('outfile')
-            ndvi(infile, outfile, progress=progress)
-
-        def help(self):
-            return True, 'Calculates the NDVI using GDAL'
 
 

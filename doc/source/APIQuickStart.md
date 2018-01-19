@@ -1,4 +1,4 @@
-# Quick Start EnMAP-Box API
+# API - Quick Start
 
 ## Access the EnMAP-Box
 
@@ -18,17 +18,6 @@ qgsApp.exec_()
 qgsApp.quit()
 ```
 
-### Close the EnMAP-Box
-
-
-```
-#!python
-
-enmapBox = EnMAPBox.instance()
-enmapBox.close()
-
-```
-
 ### Use an existing EnMAP-Box instance
 
 The EnMAPBox object is designed as singleton, i.e. only one EnMAPBox instance can exist per thread.
@@ -40,6 +29,19 @@ from enmapbox.gui.enmapboxgui import EnMAPBox
 enmapBox = EnMAPBox.instance()
 
 ```
+
+
+### Close the EnMAP-Box
+
+
+```
+#!python
+
+enmapBox = EnMAPBox.instance()
+enmapBox.close()
+
+```
+
 
 
 ## Data sources
@@ -97,3 +99,14 @@ enmapBox.createDock('WEBVIEW') # a browser
 enmapBox.createDock('MIME') # a window to drop mime data
 
 ```
+
+
+## Create an EnMAP-Box Application
+
+
+Applications for the EnMAP-Box are normal python programs that might be called from the (i) EnMAP-Box GUI or the QGIS Processing Framework,
+where they appear in the (ii) EnMAPBoxAlgorithmProvider.
+
+Check out the enmapbox/apps/exampleapp to see an example how this can be done.
+
+
