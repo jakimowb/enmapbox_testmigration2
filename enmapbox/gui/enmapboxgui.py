@@ -610,10 +610,10 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.mCurrentSpectra[:]
 
-    def dataSources(self, sourceType):
+    def dataSources(self, sourceType='ALL'):
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
-        :param sourceType: ['ALL', 'RASTER''VECTOR', 'MODEL'],
+        :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
                             see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
         :return: [list-of-datasource-URIs]
         """
@@ -634,6 +634,13 @@ class EnMAPBox(QgisInterface, QObject):
 
     def addSource(self, source, name=None):
         return self.dataSourceManager.addSource(source, name=name)
+
+
+    def removeSources(self, dataSourceList):
+        self.dataSourceManager.removeSources(dataSourceList)
+
+    def removeSource(self, source):
+        self.dataSourceManager.removeSource(source)
 
     def menu(self, title):
         for menu in self.ui.menuBar().findChildren(QMenu):
