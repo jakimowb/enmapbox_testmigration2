@@ -1,6 +1,5 @@
 # EnMAP-Box for Developers
 
-[TOC]
 
 The following descriptions describe how to set up an environment to develop EnMAP-Box Applications.
 
