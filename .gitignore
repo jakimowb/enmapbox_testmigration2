@@ -3,7 +3,7 @@
 deploy/
 build/
 tmp/
-
+doc/build/
 # Untrack compiled files
 *.pyc 
 *.pyd

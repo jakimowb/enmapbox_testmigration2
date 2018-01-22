@@ -43,3 +43,35 @@ def dummyAlgorithm(*args, **kwds):
     info.append('Dummy Algorithm finished')
     print(info)
     return '\n'.join(info)
+
+
+### Interfaces to use algorithms in algorithms.py within
+### QGIS Processing Framework
+
+from processing.core.GeoAlgorithm import GeoAlgorithm
+from processing.core.parameters import ParameterRaster
+from processing.core.outputs import OutputRaster
+class MyEnMAPBoxAppGeoAlgorithm(GeoAlgorithm):
+
+        def defineCharacteristics(self):
+            self.name = 'Example Algorithm'
+            self.group = 'My Example App'
+
+            self.addParameter(ParameterRaster('infile', 'Example Input Image'))
+            self.addOutput(OutputRaster('outfile', 'Example Output Image'))
+
+        def processAlgorithm(self, progress):
+
+            #map processing framework parameters to that of you algorithm
+            infile = self.getParameterValue('infile')
+            outfile = self.getOutputValue('outfile')
+
+            #run your algorithm here
+
+            dummyAlgorithm(infile, outfile)
+
+
+        def help(self):
+            return True, 'Shows how to implement an GeoAlgorithm'
+
+
