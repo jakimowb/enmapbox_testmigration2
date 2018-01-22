@@ -318,6 +318,17 @@ class EnMAPBox(QgisInterface, QObject):
                 Processing.initialize()
                 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 
+                import processing.core.Processing
+                if not isinstance(processing.core.Processing.iface, QgisInterface):
+                    #fix references to iface
+                    processing.core.Processing.iface = self.iface
+                    import processing.gui.AlgorithmDialogBase
+                    processing.gui.AlgorithmDialogBase.iface = self.iface
+                    import processing.gui.ExtentSelectionPanel
+                    processing.gui.ExtentSelectionPanel.iface = self.iface
+
+                import processing.core.AlgorithmProvider
+
                 if not self.processingAlgManager.enmapBoxProvider():
                     Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
@@ -483,6 +494,14 @@ class EnMAPBox(QgisInterface, QObject):
                          }
 
     def onLogMessage(self, message, tag, level):
+        """
+        Receives QgsLogMessages to show them in the QgsMessageBar of the EnMAP-Box GUI.
+        This is necessary if the EnMAP-Box was started without the QGIS Instance
+        :param message:
+        :param tag:
+        :param level:
+        :return:
+        """
         m = message.split('\n')
         if '' in message.split('\n'):
             m = m[0:m.index('')]
