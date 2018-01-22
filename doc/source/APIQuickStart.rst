@@ -76,7 +76,7 @@ Use the data source path to remove it from the EnMAP-Box::
     enmapBox.removeSources(['list-of-sources'])
 
 
-Manage EnMAP-Box Windows
+Manage Windows
 ------------------------
 
 The EnMAP-Box provides different windows to visualize different data sources.
@@ -95,10 +95,14 @@ You can create a new windows with::
 Create EnMAP-Box Applications
 -------------------------------
 
-Applications for the EnMAP-Box are normal python programs that might be called from the (i) EnMAP-Box GUI or the QGIS Processing Framework,
-where they appear in the (ii) EnMAPBoxAlgorithmProvider.
+Applications for the EnMAP-Box are python programs that can be called from
 
-The ``enmapbox/apps/exampleapp`` shows how this can be done. Copy, rename and modify it to your needs to get
+* the EnMAP-Box GUI directly and might provide its own GUI
+* the QGIS Processing Framework. In this case they implement the GeoAlgorithm interface and are added to the EnMAPBoxAlgorithmProvider
+
+
+
+The ``examples/exampleapp`` shows how this can be done. Copy, rename and modify it to your needs to get
 your code interacting with the EnMAP-Box.
 
 

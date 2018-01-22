@@ -461,6 +461,14 @@ class EnMAPBox(QgisInterface, QObject):
         self.applicationRegistry.addApplicationPackageFile(pathAppDefs)
         s = ""
 
+    def addApplication(self, appDirectory):
+        """
+        Adds an EnMAPBoxApplication to the EnMAP-Box
+        :param appDirectory: path of the folder that contains the EnMAP-Box Application
+        """
+        assert os.path.isdir(appDirectory)
+        self.applicationRegistry.addApplicationPackage(appDirectory)
+
     def exit(self):
         self.ui.close()
         self.deleteLater()

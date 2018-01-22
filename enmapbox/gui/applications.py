@@ -107,14 +107,25 @@ class ApplicationRegistry(QObject):
         if not os.path.isfile(pkgFile):
             return False
 
+        added = False
+        if not appFolder in sys.path:
 
+            sys.path.append(appFolder)
+            added = True
         #import imp
         #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
-        appModule = __import__(appPkgName)
+        try:
+            appModule = __import__(appPkgName)
+        except Exception as ex:
+            if added:
+                sys.path.remove(appFolder)
+                return False
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
         if len(factory) != 1:
+            if added:
+                sys.path.remove(appFolder)
             return False
 
         return True
@@ -142,7 +153,7 @@ class ApplicationRegistry(QObject):
     def addApplicationPackage(self, appPackagePath):
         """
         Loads an EnMAP-Box application package and adds all its applications
-        :param appPackagePath: a path pointing to a directory <application package folde
+        :param appPackagePath: a path pointing to a directory <application package folder>
         :return:
         """
         assert self.isApplicationPackage(appPackagePath)
