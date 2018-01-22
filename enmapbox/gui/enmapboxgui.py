@@ -367,6 +367,8 @@ class EnMAPBox(QgisInterface, QObject):
         if not self.processingAlgManager.enmapBoxProvider():
             Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
+    def addApplication(self, appdir):
+        self.applicationRegistry.addApplicationPackageSavely(appdir)
     def initActions(self):
         # link action to managers
         self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
