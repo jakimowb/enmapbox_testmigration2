@@ -57,13 +57,19 @@ def sandboxShowAppGuiOnly():
     ui1.show()
 
 if __name__ == '__main__':
+
+
     from enmapbox.gui.utils import initQgisApplication
+
+    #this will initialize the QApplication/QgsApplication which runs in the background
+    #see https://qgis.org/api/classQgsApplication.html for details
     qgsApp = initQgisApplication()
 
-    if True:
+    if False:
         sandboxShowAppGuiOnly()
     else:
         sandboxShowAppInEnMapBox(True)
 
+    #start the GUI thread
     qgsApp.exec_()
-    qgsApp.quit()
+
