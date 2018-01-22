@@ -867,7 +867,7 @@ class MapCanvas(QgsMapCanvas):
             from enmapbox.gui.datasources import DataSourceSpatial
             from enmapbox.gui.enmapboxgui import EnMAPBox
             dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
-            dataSources = [EnMAPBox.instance().dataSourceManager.addSource(d) for d in dataSources]
+            dataSources = EnMAPBox.instance().dataSourceManager.addSources(dataSources)
             newLayers = [d.createUnregisteredMapLayer() for d in dataSources]
 
         if len(newLayers) > 0:
@@ -1064,9 +1064,10 @@ class MapDock(Dock):
 
         if initSrc is not None:
             from enmapbox.gui.datasources import DataSourceFactory
-            ds = DataSourceFactory.Factory(initSrc)
-            if ds is not None:
-                self.canvas.setLayers([ds.createUnregisteredMapLayer()])
+            dataSources = DataSourceFactory.Factory(initSrc)
+            lyrs = [ds.createUnregisteredMapLayer() for ds in dataSources]
+            if len(lyrs) > 0:
+                self.canvas.setLayers(lyrs)
 
     def cursorLocationValueRequest(self,*args):
         self.sigCursorLocationRequest.emit(*args)

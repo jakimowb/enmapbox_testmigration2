@@ -1919,7 +1919,7 @@ def __Test__():
 
         from enmapbox.gui.datasources import DataSourceFactory
 
-        ds = DataSourceFactory.Factory(lyrS1)
+
         sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(25, 25)))
         sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(30, 20)))
         sl0.addProfile(SpectralProfile.fromRasterSource(enmap, QPoint(30, 19)))

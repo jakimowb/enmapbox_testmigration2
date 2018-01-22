@@ -312,28 +312,10 @@ class EnMAPBox(QgisInterface, QObject):
             splash.showMessage('Connect Processing Algorithm Manager')
             self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
 
-            def initQPFW():
-                logger.debug('initialize own QGIS Processing framework')
-                from processing.core.Processing import Processing
-                Processing.initialize()
-                from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-
-                import processing.core.Processing
-                if not isinstance(processing.core.Processing.iface, QgisInterface):
-                    #fix references to iface
-                    processing.core.Processing.iface = self.iface
-                    import processing.gui.AlgorithmDialogBase
-                    processing.gui.AlgorithmDialogBase.iface = self.iface
-                    import processing.gui.ExtentSelectionPanel
-                    processing.gui.ExtentSelectionPanel.iface = self.iface
-
-                import processing.core.AlgorithmProvider
-
-                if not self.processingAlgManager.enmapBoxProvider():
-                    Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
             try:
-                initQPFW()
+                logger.debug('initializes an own QGIS Processing framework')
+                self.initQGISProcessingFramework()
                 installQPFExtensions()
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
@@ -354,6 +336,36 @@ class EnMAPBox(QgisInterface, QObject):
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
+
+    def initQGISProcessingFramework(self):
+
+        from processing.core.Processing import Processing
+
+
+
+        import processing
+        if processing.iface is None:
+
+            import processing.gui.AlgorithmDialog
+            import processing.gui.AlgorithmDialogBase
+            import processing.tools.dataobjects
+            Processing.initialize()
+            processing.iface = self.iface
+            processing.gui.AlgorithmDialog.iface = self.iface
+            processing.gui.AlgorithmDialogBase.iface = self.iface
+            processing.tools.dataobjects.iface = self.iface
+            #todo: set iface in a generic way
+            #import pkgutil
+            #prefix = str(processing.__name__ + '.')
+            #MODULES = dict()
+            #for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
+            #    MODULES[modname] = __import__(modname, fromlist="dummy")
+
+            s = ""
+
+        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        if not self.processingAlgManager.enmapBoxProvider():
+            Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
     def initActions(self):
         # link action to managers
@@ -472,14 +484,6 @@ class EnMAPBox(QgisInterface, QObject):
         self.applicationRegistry.addApplicationPackageFile(pathAppDefs)
         s = ""
 
-    def addApplication(self, appDirectory):
-        """
-        Adds an EnMAPBoxApplication to the EnMAP-Box
-        :param appDirectory: path of the folder that contains the EnMAP-Box Application
-        """
-        assert os.path.isdir(appDirectory)
-        self.applicationRegistry.addApplicationPackage(appDirectory)
-
     def exit(self):
         self.ui.close()
         self.deleteLater()
@@ -494,21 +498,13 @@ class EnMAPBox(QgisInterface, QObject):
                          }
 
     def onLogMessage(self, message, tag, level):
-        """
-        Receives QgsLogMessages to show them in the QgsMessageBar of the EnMAP-Box GUI.
-        This is necessary if the EnMAP-Box was started without the QGIS Instance
-        :param message:
-        :param tag:
-        :param level:
-        :return:
-        """
         m = message.split('\n')
         if '' in message.split('\n'):
             m = m[0:m.index('')]
         m = '\n'.join(m)
 
         from enmapbox.gui import DEBUG
-        if not DEBUG and not re.search('enmapbox', m):
+        if not DEBUG and not re.search('(enmapbox|plugins)', m):
             return
 
         if level in [QgsMessageLog.CRITICAL, QgsMessageLog.WARNING]:
@@ -531,10 +527,10 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.datasources import DataSourceSpatial
         for dataItem in droppedData:
             if isinstance(dataItem, DataSourceSpatial):
-                dataSrc = self.dataSourceManager.addSource(dataItem)
+                dataSources = self.dataSourceManager.addSource(dataItem)
                 if mapDock is None:
                     mapDock = self.createDock('MAP')
-                mapDock.addLayers(dataSrc.createRegisteredMapLayer())
+                mapDock.addLayers([ds.createRegisteredMapLayer() for ds in dataSources])
 
             #any other types to handle?
 
@@ -545,12 +541,12 @@ class EnMAPBox(QgisInterface, QObject):
         dir = os.path.dirname(enmapboxtestdata.__file__)
         files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
 
-        for file in files:
-            self.addSource(file)
+        added = self.addSources(files)
+
         for n in range(mapWindows):
             dock = self.createDock('MAP')
             lyrs = [src.createUnregisteredMapLayer()
-                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR'])]
+                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']) if src in added]
             dock.addLayers(lyrs)
 
     def onAddDataSource(self):
@@ -656,10 +652,20 @@ class EnMAPBox(QgisInterface, QObject):
         return self.iface is not None and isinstance(self.iface, QgisInterface)
 
     def addSources(self, sourceList):
+        """
+        :param sourceList:
+        :return: Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
+        """
         assert isinstance(sourceList, list)
         return self.dataSourceManager.addSources(sourceList)
 
     def addSource(self, source, name=None):
+        """
+        Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
+        :param source:
+        :param name:
+        :return: [list-of-datasources]
+        """
         return self.dataSourceManager.addSource(source, name=name)
 
 
