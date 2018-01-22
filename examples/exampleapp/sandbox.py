@@ -31,8 +31,6 @@ def sandboxShowAppInEnMapBox(loadPF=True):
     This is required if your app contributes GeoAlgorithms to the EnMAPBoxAlgorithmProvider.
     """
     """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
-    qgsApp = initQgisEnvironment()
 
     import enmapbox.gui
 
@@ -47,8 +45,6 @@ def sandboxShowAppInEnMapBox(loadPF=True):
     appDir = os.path.dirname(__file__)
     EB.addApplication(appDir)
 
-    qgsApp.exec_()
-    qgsApp.quit()
 
 
 def sandboxShowAppGuiOnly():
@@ -56,17 +52,24 @@ def sandboxShowAppGuiOnly():
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
     """
-    from enmapbox.gui.utils import initQgisApplication
-    qgsApp = initQgisApplication()
     from userinterfaces import ExampleGUI
     ui1 = ExampleGUI()
     ui1.show()
-    qgsApp.exec_()
-    qgsApp.quit()
 
 if __name__ == '__main__':
+
+
+    from enmapbox.gui.utils import initQgisApplication
+
+    #this will initialize the QApplication/QgsApplication which runs in the background
+    #see https://qgis.org/api/classQgsApplication.html for details
+    qgsApp = initQgisApplication()
+
     if False:
         sandboxShowAppGuiOnly()
     else:
         sandboxShowAppInEnMapBox(True)
+
+    #start the GUI thread
+    qgsApp.exec_()
 
