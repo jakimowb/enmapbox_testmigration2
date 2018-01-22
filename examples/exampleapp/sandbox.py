@@ -24,7 +24,7 @@ This sandbox can be used to run your EnMAP-Box Application without starting a (h
 """
 
 import qgis
-def sandboxShowAppInEnMapBox(loadPF=False):
+def sandboxShowAppInEnMapBox(loadPF=True):
     """
     A minimum example that shows how to load the EnMAP-Box
     :param loadPF: Set on True to initialize the QGIS Processing Framework (takes longer).
