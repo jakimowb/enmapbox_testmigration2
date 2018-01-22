@@ -24,22 +24,34 @@ This sandbox can be used to run your EnMAP-Box Application without starting a (h
 """
 
 import qgis
-def sandboxWithEnMapBox(loadPF=False):
+def sandboxShowAppInEnMapBox(loadPF=True):
     """
     A minimum example that shows how to load the EnMAP-Box
-    :param loadPF: Set on True to initialize the QGIS Processing Framework as well (takes longer)
-    :return:
+    :param loadPF: Set on True to initialize the QGIS Processing Framework (takes longer).
+    This is required if your app contributes GeoAlgorithms to the EnMAPBoxAlgorithmProvider.
     """
     """Minimum example to the this application"""
     from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
     qgsApp = initQgisEnvironment()
-    sandboxPureGui(loadProcessingFramework=loadPF)
+
+    import enmapbox.gui
+
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = loadPF
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
+    EB.run()
+    EB.openExampleData(mapWindows=2)
+
+    #now load your App into the EnMAP-Box
+    import os
+    appDir = os.path.dirname(__file__)
+    EB.addApplication(appDir)
 
     qgsApp.exec_()
     qgsApp.quit()
 
 
-def sandboxGuiOnly():
+def sandboxShowAppGuiOnly():
     """
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
@@ -53,6 +65,8 @@ def sandboxGuiOnly():
     qgsApp.quit()
 
 if __name__ == '__main__':
-    if False: sandboxGuiOnly()
-    if True: sandboxWithEnMapBox(True)
+    if False:
+        sandboxShowAppGuiOnly()
+    else:
+        sandboxShowAppInEnMapBox(True)
 
