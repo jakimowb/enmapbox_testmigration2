@@ -7,10 +7,11 @@ EnMAP-Box 3 Documentation
 =======================================
 
 ..  toctree::
-    :maxdepth: 1
+    :maxdepth: 2
     :caption: Overview
 
     Installation.md
+    Installation_dev.rst
     Development.md
     APIQuickStart.md
 
