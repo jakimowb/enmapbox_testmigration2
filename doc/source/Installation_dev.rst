@@ -8,7 +8,9 @@ The EnMAP-Box 3 is a QGIS plugin and therefore uses the Python distribution that
 If you like to use an Integrated Development Environment (IDE) to develop and debug python applications for the EnMAP-Box,
 or in general QGIS, we recommend that your IDE runs under the same environmental settings as your QGIS does.
 
-The following sections describe how to do so in case of the IDE PyCharm, but generally apply for other IDEs like PyDev as well.
+The following sections describe - to our experience - which settings are required to run and debug the EnMAP-Box from
+inside the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE *without starting the heavy QGIS Application*.
+Not tested yet, we assume that similar settings are required for other IDEs, e.g. `PyDev <http://www.pydev.org/>`_, as well.
 
 Overview
 --------
@@ -38,9 +40,24 @@ To setup your IDE for developing EnMAP-Box Applications, you need to:
 
         * gdal
 
+    5. Start the EnMAP-Box from your IDE (:ref:`minimal_startup`)
+
+
 
 
 .. _env_variables:
+
+Python Interpreter
+------------------
+
+It is likely that your system has multiple python environments installed.
+To find out which of them is used in your QGIS, open the QGIS Python shell and call::
+
+    import sys
+    print(sys.executable)
+
+This Python should be the one used by your IDE. In PyCharm this can be done via ``Preferences > Project > Project Interpreter``.
+
 
 Environmental Variables
 -----------------------
@@ -73,7 +90,7 @@ e.g. the PyQt and PyQGIS APIs.To find out which are required by the core QIS, op
     import sys
     for p in sorted(sys.path): print(p)
 
-To ensure that your IDE's Syntax help / Intellisense can finde it, you should add the most important paths
+To ensure that your IDE's Syntax help / Intellisense can find it, you should add the most important paths
 as source paths to your IDE project, for example:
 
 
@@ -86,49 +103,94 @@ as source paths to your IDE project, for example:
     * the QGIS PyQt4 packages
 
 
+
+
 Example Windows (OSGeo4W)
 -------------------------
 
-    *
+QGIS for windows is installed by the OSGeo4W package installer. This means that the qgis.exe is located in a folder system
+``<OSGeo4WRoot>/bin``, with <OSGeo4WRoot> being a directory like ...``QGIS
 
-    *
 
-    *
+The easiest way to ensure that your IDE operates under the same environment as QGIS is to use the same
+startup script in ``.bat`` files::
+
+
+
+    tbd.
+
+
+Settings for the IDE are than:
+
+    * Python Interpreter
+
+    * Content Root ``tbd.``
+
+    * Content Root ``tbd.``
+
+
+
 
 
 Examples for macOS (standard installation)
 ------------------------------------------
 
- from `http://www.kyngchaos.com/software/qgis`_):
+The QGIS.app for macOS can be downloaded from `<http://www.kyngchaos.com/software/qgis>`_. It is installed to
+``/Applications`` and linked against the standard macOS python.
 
-    * ``/usr/local/opt/python/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages``
+    * Python Interpreter ``/usr/bin/python`` (Standard macOS python)
 
-    * ``/usr/local/opt/qgis2/libexec/python2.7/site-packages``
+    * Content Root ``/Applications/QGIS.app/Contents/MacOS/../Resources/python``
 
-    * ``/usr/local/Cellar/qgis2/2.18.11_1/QGIS.app/Contents/MacOS/../Resources/python/plugins/processing``
+    * Content Root ``/Applications/QGIS.app/Contents/Resources/python/plugins``, if you like to access QGIS default Plugins
+      like the QGIS Processing Framwork.
 
-    * ``/Users/benjamin.jakimow/.qgis2//python``
+    * Content Root ``~/.qgis2/python/plugins``, if you like to access python plugins installed from the
+      `QGIS Python Plugins Repository <https://plugins.qgis.org/plugins/>`_.
 
 
-Examples for macOS
-------------------
 
-(homebrew cask installation `https://github.com/OSGeo/homebrew-osgeo4mac`_):
+Examples for macOS (OSGeo4Mac)
+------------------------------
 
-    * ``/usr/local/opt/python/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages``
+The `Homebrew <https://brew.sh/>`_ package installer can be used to download and install QGIS too, as described in
+`OSGeo4Mac QGIS <https://github.com/OSGeo/homebrew-osgeo4mac>`_ . In this case the locations of required packages might vary.
+Start the OSGeo4Mac QGIS, open the Python shell and step for step, check the locations of required packages and add
+them to your IDE as content root.
 
-    * ``/usr/local/opt/qgis2/libexec/python2.7/site-packages``
+    * Python Interpreter
 
-    * ``/usr/local/Cellar/qgis2/2.18.11_1/QGIS.app/Contents/MacOS/../Resources/python/plugins/processing``
+    * Python Path:
+        ``export PYTHONPATH=/usr/local/opt/qgis2/libexec/python2.7/site-packages:/usr/local/lib/qt-4/python2.7/site-packages:/usr/local/lib/python2.7/site-packages:$PYTHONPATH``
 
-    * ``/Users/benjamin.jakimow/.qgis2//python``
+    * tbd.
 
 
 Examples for Linux (Ubuntu)
 ----------------------------
 
-    *
+    * tbd.
 
     *
 
+
+.. _minimal_startup:
+
+EnMAP-Box Start Script
+----------------------
+
+If your IDE is set up correctly, you should be to start it with the following script::
+
+
+    if __name__ == '__main__':
+
+        from enmapbox.gui.utils import initQgisApplication
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+
+        qgsApp = initQgisApplication()
+        enmapBox = EnMAPBox(None)
+        enmapBox.openExampleData(mapWindows=1)
+
+        qgsApp.exec_()
+        qgsApp.quit()
 

@@ -1,12 +1,15 @@
 
 
-from enmapbox.gui.utils import initQgisApplication
-from enmapbox.gui.enmapboxgui import EnMAPBox
 
 
-app = initQgisApplication()
+if __name__ == '__main__':
 
-enmapBox = EnMAPBox(None)
-enmapBox.show()
+    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.gui.enmapboxgui import EnMAPBox
 
-app.exec_()
+    qgsApp = initQgisApplication()
+    enmapBox = EnMAPBox(None)
+    enmapBox.openExampleData(mapWindows=1)
+
+    qgsApp.exec_()
+    qgsApp.quit()

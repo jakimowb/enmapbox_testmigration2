@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     #un-comment the example you like to run
 
-    if False:
+    if True:
         example1_startEnMAPBoxWithoutQGIS()
     else:
 
