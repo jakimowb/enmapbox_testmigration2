@@ -77,7 +77,7 @@ Use the data source path to remove it from the EnMAP-Box::
 
 
 Manage Windows
-------------------------
+--------------
 
 The EnMAP-Box provides different windows to visualize different data sources.
 You can create a new windows with::
@@ -93,7 +93,7 @@ You can create a new windows with::
 
 
 Create EnMAP-Box Applications
--------------------------------
+-----------------------------
 
 Applications for the EnMAP-Box are python programs that can be called from
 
@@ -105,4 +105,49 @@ Applications for the EnMAP-Box are python programs that can be called from
 The ``examples/exampleapp`` shows how this can be done. Copy, rename and modify it to your needs to get
 your code interacting with the EnMAP-Box.
 
+
+
+List of environmental variables
+-------------------------------
+
+The following environmental variables can be set to change the starting behaviour of the EnMAP-Box.
+
+====================  ====================  ================================================================================
+Name                  Values, * = Default   Description
+====================  ====================  ================================================================================
+EMB_LOAD_PF           TRUE*/FALSE           Load QGIS processing framework.
+EMB_LOAD_EA           TRUE*/FALSE           Loads external applications.
+EMB_DEBUG             TRUE/FALSE*           Enable additional debug printouts.
+EMB_SPLASHSCREEN      TRUE*/FALSE           Splashscreen on EnMAP-Box start.
+EMB_MESSAGE_TIMEOUT   integer               Timeout in seconds for popup messages in the message bar.
+EMB_APPLICATION_PATH  string                list of directories (separated by ';' or ':') to load EnMAPBoxApplications from.
+====================  ====================  ================================================================================
+
+Further links and sources
+-------------------------
+
+https://docs.python.org/devguide
+
+Git for Beginners
+.................
+
+http://rogerdudler.github.io/git-guide/
+http://rogerdudler.github.io/git-guide/files/git_cheat_sheet.pdf
+
+
+PyQGIS
+......
+
+https://www.qgis.org/api/
+https://webgeodatavore.github.io/pyqgis-samples/
+http://plugins.qgis.org/planet/
+https://www.qgis.org/en/site/getinvolved/development/qgisdevelopersguide.html
+
+
+Python Code Documentation
+.........................
+
+http://www.sphinx-doc.org/en/stable/tutorial.html
+https://docs.python.org/devguide/documenting.html
+http://docutils.sourceforge.net/rst.html
 

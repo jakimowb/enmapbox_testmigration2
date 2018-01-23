@@ -10,10 +10,13 @@ EnMAP-Box 3 Documentation
     :maxdepth: 2
     :caption: Overview
 
-    Installation.md
+    Installation.rst
     Installation_dev.rst
-    Development.md
-    APIQuickStart.md
+    APIQuickStart.rst
+    FAQ.rst
+
+..    Development.md
+
 
 
 
