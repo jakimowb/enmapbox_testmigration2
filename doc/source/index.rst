@@ -1,0 +1,28 @@
+..  EnMAP-Box 3 documentation master file, created by
+    sphinx-quickstart on Fri Jan 19 05:59:30 2018.
+    You can adapt this file completely to your liking, but it should at least
+    contain the root `toctree` directive.
+
+EnMAP-Box 3 Documentation
+=======================================
+
+..  toctree::
+    :maxdepth: 2
+    :caption: Overview
+
+    Installation.rst
+    Installation_dev.rst
+    APIQuickStart.rst
+    FAQ.rst
+
+..    Development.md
+
+
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

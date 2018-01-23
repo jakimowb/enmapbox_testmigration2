@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    treeviews.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
 from PyQt4.QtXml import *
 
 import enmapbox
@@ -26,17 +45,20 @@ class TreeNodeProvider():
     @staticmethod
     def CreateNodeFromDataSource(dataSource, parent):
 
-        from enmapbox.gui.datasourcemanager import DataSource, ProcessingTypeTreeNode, \
-        FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode
+        from enmapbox.gui.datasourcemanager import DataSource, HubFlowObjectTreeNode, \
+        FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode, \
+        SpeclibDataSourceTreeNode
         assert isinstance(dataSource, DataSource)
 
         #hint: take care of class inheritance order
-        if isinstance(dataSource, ProcessingTypeDataSource):
-            node = ProcessingTypeTreeNode(parent, dataSource)
+        if isinstance(dataSource, HubFlowDataSource):
+            node = HubFlowObjectTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceRaster):
             node = RasterDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceVector):
             node = VectorDataSourceTreeNode(parent, dataSource)
+        elif isinstance(dataSource, DataSourceSpectralLibrary):
+            node = SpeclibDataSourceTreeNode(parent, dataSource)
         elif isinstance(dataSource, DataSourceFile):
             node = FileDataSourceTreeNode(parent, dataSource)
         else:
@@ -49,21 +71,22 @@ class TreeNodeProvider():
     def CreateNodeFromDock(dock, parent):
         assert isinstance(dock, Dock)
         dockType = type(dock)
-        from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode
+        from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode, SpeclibDockTreeNode
         if dockType is MapDock:
             return MapDockTreeNode(parent, dock)
-        elif dockType in [TextDock, MimeDataDock]:
+        elif dockType in [TextDock]:
             return TextDockTreeNode(parent, dock)
         elif dockType is CursorLocationValueDock:
             return DockTreeNode(parent, dock)
+        elif dockType is SpectralLibraryDock:
+            return SpeclibDockTreeNode(parent, dock)
         else:
             return DockTreeNode(parent, dock)
 
 
     @staticmethod
     def CreateNodeFromXml(elem):
-        assert isinstance(elem, QDomElement), str(elem)
-        tagName = str(elem.tagName())
+        tagName = elem.tagName()
         node = None
         attributes = getDOMAttributes(elem)
         tagMap = [('tree-node', TreeNode),
@@ -80,6 +103,7 @@ class TreeNodeProvider():
                 node = nodeClass.readXml(elem)
                 break
         return node
+
 
 
 class TreeNode(QgsLayerTreeGroup):
@@ -111,6 +135,12 @@ class TreeNode(QgsLayerTreeGroup):
             self.removeChildNode(node)
         return None
 
+    def fetchCount(self):
+        return 0
+
+    def fetchNext(self):
+        pass
+
     def removeFromParent(self):
         """
         Removed this node from its parent node
@@ -139,7 +169,7 @@ class TreeNode(QgsLayerTreeGroup):
 
     def setIcon(self, icon):
         if icon:
-            assert isinstance(icon, QIcon), str(icon)
+            assert isinstance(icon, QIcon)
         self.mIcon = icon
         self.sigIconChanged.emit()
 
@@ -214,6 +244,26 @@ class TreeNode(QgsLayerTreeGroup):
         return hash(id(self))
 
 
+
+class CheckableTreeNode(TreeNode):
+
+    sigCheckStateChanged = pyqtSignal(Qt.CheckState)
+    def __init__(self, *args, **kwds):
+        super(CheckableTreeNode, self).__init__(*args, **kwds)
+        self.mCheckState = Qt.Unchecked
+
+    def setCheckState(self, checkState):
+        if isinstance(checkState, bool):
+            checkState == Qt.Checked if checkState else Qt.Unchecked
+        assert isinstance(checkState, Qt.CheckState)
+        old = self.mCheckState
+        self.mCheckState = checkState
+        if old != self.mCheckState:
+            self.sigCheckStateChanged.emit(self.mCheckState)
+
+    def checkState(self):
+        return self.mCheckState
+
 class TreeModel(QgsLayerTreeModel):
     def __init__(self, parent=None):
         self.rootNode = TreeNode(None, '<hidden root node>')
@@ -250,14 +300,16 @@ class TreeModel(QgsLayerTreeModel):
 
             if col == 0:
                 if role == Qt.DisplayRole:
-                    return node.name()
+                    name = node.name()
+                    return name
                 if role == Qt.DecorationRole:
                     return node.icon()
                 if role == Qt.ToolTipRole:
                     return node.tooltip()
             if col == 1:
                 if role == Qt.DisplayRole:
-                    return node.value()
+                    value = node.value()
+                    return value
         else:
             if col == 0:
                 return super(TreeModel, self).data(index, role)
@@ -283,6 +335,29 @@ class TreeModel(QgsLayerTreeModel):
     def dropMimeData(self, data, action, row, column, parent):
         raise NotImplementedError()
 
+    def fetchMore(self, index):
+        pass
+
+    def canFetchMore(self, index):
+        node = self.index2node(index)
+        if isinstance(node, TreeNode):
+            from enmapbox.gui.datasourcemanager import SpeclibProfilesTreeNode
+            if isinstance(node, SpeclibProfilesTreeNode):
+                s  = ""
+            return len(node.children()) < node.fetchCount()
+        return False
+
+
+class ClassificationNode(TreeNode):
+
+    def __init__(self, parent, classificationScheme, name='Classification Scheme'):
+        super(ClassificationNode, self).__init__(parent, name)
+        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+        assert isinstance(classificationScheme, ClassificationScheme)
+        self.setName(name)
+        for i, ci in enumerate(classificationScheme):
+            assert isinstance(ci, ClassInfo)
+            TreeNode(parent, '{}'.format(i), value=ci.name(), icon=ci.icon())
 
 class CRSTreeNode(TreeNode):
     def __init__(self, parent, crs):
@@ -361,8 +436,6 @@ class TreeView(QgsLayerTreeView):
                 node.sigValueChanged.connect(self.setColumnSpan)
 
             self.setColumnSpan(node)
-        #self.resizeColumnToContents(0)
-        #self.resizeColumnToContents(1)
 
     def setColumnSpan(self, node):
         parent = node.parent()
@@ -372,7 +445,7 @@ class TreeView(QgsLayerTreeView):
             idxParent = model.node2index(parent)
             span = True
             if isinstance(node, TreeNode):
-                span = node.value() == None or len(node.value()) == 0
+                span = node.value() == None or ''.format(node.value()).strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)

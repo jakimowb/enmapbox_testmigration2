@@ -1,1 +1,7 @@
-__version__ = '0.2.0'
+__version__ = '20180116T1825'
+
+HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
+REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
+TRACKER = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
+
+DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt4', 'sklearn','pyqtgraph','matplotlib']

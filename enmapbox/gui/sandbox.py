@@ -1,4 +1,23 @@
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    sandbox.py
+    ---------------------
+    Date                 : August 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+from __future__ import absolute_import, unicode_literals
+
 
 import os
 from qgis.core import *
@@ -7,12 +26,22 @@ from enmapbox.gui.utils import *
 
 LORE_IPSUM = r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
 
-
-def writelogmessage(message, tag, level):
-    print('{}({}): {}'.format( tag, level, message ) )
-from qgis.core import QgsMessageLog
-QgsMessageLog.instance().messageReceived.connect(writelogmessage)
-
+"""
+def printLogMessage(message, tag, level):
+    if level == 1:
+        m = message.split('\n')
+        if '' in message.split('\n'):
+            m = m[0:m.index('')]
+        m = '\n'.join(m)
+        if not re.search('enmapbox', m):
+            return
+        print('{}: {}'.format(tag, m))
+    elif level == 2:
+        print('{}({}): {}'.format( tag, level, message ) )
+    s= ""
+#from qgis.core import QgsMessageLog
+#QgsMessageLog.instance().messageReceived.connect(printLogMessage)
+"""
 
 def _sandboxTemplate():
     qgsApp = initQgisEnvironment()
@@ -25,66 +54,36 @@ def _sandboxTemplate():
     qgsApp.exec_()
     qgsApp.exitQgis()
 
-def sandboxPFReport():
+def sandboxPureGui(dataSources=None, loadProcessingFramework=False, loadExampleData=False):
     qgsApp = initQgisEnvironment()
+
+
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = loadProcessingFramework
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
 
-    #create a report in Processing Framework?
-    from enmapbox.testdata import RandomForestModel
-    from enmapboxplugin.processing.Signals import Signals
-    from enmapbox.testdata import HymapBerlinB
-    #EB.createDock('MAP', initSrc=HymapBerlinB.HymapBerlinB_image)
-
-    Signals.pickleCreated.emit(RandomForestModel)
-    from enmapbox.gui.utils import DIR_REPO
-    Signals.htmlCreated.emit(jp(DIR_REPO,r'documentation/build/html/hub.gdal.html'))
+    if loadExampleData:
+        EB.openExampleData(mapWindows=2)
 
     qgsApp.exec_()
     qgsApp.exitQgis()
 
-def sandboxPureGui():
-    qgsApp = initQgisEnvironment()
-    import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    EB = EnMAPBox(None)
-    EB.run()
 
-    #load urban gradient dataset
-    #add relevant files
-    baseDir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data'
-    files = []
-    files += file_search(baseDir, '*.bsq', recursive=True)
-    files += file_search(baseDir, '*.shp', recursive=True)
-    import enmapbox.testdata
-    files += [enmapbox.testdata.RandomForestModel]
-    for file in files:
-        EB.addSource(file)
-
-    bp = r'EnMAP01_Berlin_Urban_Gradient_2009.bsq'
-    baseDir = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_01_image_products\01_image_products'
-    baseShp = r'E:\_EnMAP\Project_EnMAP-Box\SampleData\urbangradient_data\BerlinUrbGrad2009_02_additional_data\02_additional_data\land_cover'
-    path1 = jp(baseDir, 'EnMAP01_Berlin_Urban_Gradient_2009.bsq')
-    path2 = jp(baseDir, 'EnMAP02_Berlin_Urban_Gradient_2009.bsq')
-
-    EB.createDock('MAP', initSrc=path1)
-    EB.createDock('MAP', initSrc=path2)
-    #do something here
-    from qgis import utils as qgsUtils
-    qgsUtils.iface.messageBar().pushMessage('STARTED', QgsMessageBar.SUCCESS)
-    qgsApp.exec_()
-    qgsApp.exitQgis()
-
-
-def sandboxDragDrop():
+def sandboxProcessingFramework():
     qgsApp = initQgisEnvironment()
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
+    EB.loadExampleData()
+
+    from processing import Processing
+
+    # for k in sorted(Processing.algs()['enmapbox'].keys()): print(k)
+    GA = Processing.getAlgorithm('enmapbox:rasterizevectorasclassification')
+    Processing.runandload(GA, None)
+
 
     # do something here
 
@@ -92,123 +91,62 @@ def sandboxDragDrop():
     qgsApp.exitQgis()
 
 
-def sandboxGUI():
-    qgsApp = initQgisEnvironment()
-
-
-    # EB = EnMAPBox(w)
-
+def sandboxUmlaut():
+    import enmapbox.gui
+    enmapbox.gui.DEBUG = False
+    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
 
-    if False:
-        if True:
-            from enmapbox.testdata import UrbanGradient
-            EB.createDock('MAP', name='MapDock 1', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
-            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
-            EB.createDock('MAP', name='MapDock 2', initSrc=UrbanGradient.LandCov_Vec_Berlin_Urban_Gradient_2009_shp)
-            EB.createDock('CURSORLOCATIONVALUE')
-        if False: EB.createDock('MIME')
+    EB.loadExampleData()
+    EB.addSource(r'D:\Temp\landsatüddüüä22.vrt')
+    #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
+    #EB.addSources([p])
+    s = ""
 
-        if False:
-            EB.createDock('TEXT',html=LORE_IPSUM)
-            EB.createDock('TEXT', html=LORE_IPSUM)
 
-        if False:
-            # register new model
-            import enmapbox.processing
-            enmapbox.processing.registerModel(path, 'MyModel')
-            # IconProvider.test()
-            # exit()
-
-    # md1.linkWithMapDock(md2, linktype='center')
-    # EB.show()
-    # EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_Mask')
-    # EB.addSource(r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LAI')
-    # EB.addSource(
-    #   r'C:\Users\geo_beja\Repositories\enmap-box_svn\trunk\enmapProject\enmapBox\resource\testData\image\AF_LC')
-    EB.run()
-    from enmapbox.testdata import UrbanGradient
-    if False:
-        EB.addSource(UrbanGradient.LandCov_Class_Berlin_Urban_Gradient_2009_bsq)
-
-    if True:
-
-        EB.createDock('MAP', name='EnMAP 01', initSrc=UrbanGradient.EnMAP01_Berlin_Urban_Gradient_2009_bsq)
-        EB.createDock('MAP', name='HyMap 01', initSrc=UrbanGradient.HyMap01_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='LandCov Level1', initSrc=UrbanGradient.LandCov_Layer_Level1_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='LandCov Level2', initSrc=UrbanGradient.LandCov_Layer_Level2_Berlin_Urban_Gradient_2009_bsq)
-        #EB.createDock('MAP', name='Shapefile', initSrc=UrbanGradient.LandCov_Vec_polygons_Berlin_Urban_Gradient_2009_shp)
-        #EB.createDock('CURSORLOCATIONVALUE')
-
-    qgsApp.exec_()
-
-    qgsApp.exitQgis()
-
-    # qgsApp.exitQgis()
-    # app.exec_()
-    pass
-
-    # load the plugin
-    print('Done')
+#for backward compatibility
+initQgisEnvironment = initQgisApplication
 
 
 
-def initQgisEnvironment():
-    import site
+def sandboxGUI():
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EB = EnMAPBox(None)
 
-    # start a QGIS instance
-    if sys.platform == 'darwin':
-        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
+    EB.openExampleData(mapWindows=1)
+    #EB.addSource(r'R:\WS1718_FE1\Daten\Sitzung_12\MODIS Berlin\MOD13A1.A2015273.h18v03.006.2015307052831.hdf')
+    #EB.addSource(r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml')
+    #EB.addSource(r'H:\Pleiades\GFOIGroupe13Brazil_SO16018091-2-01_DS_PHR1A_201610071358040_FR1_PX_W056S07_0707_03492\TPP1600447277\VOL_PHR.XML')
+    #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
+    #EB.addSources([p])
+    s = ""
 
-        #rios?
-        from enmapbox.gui.utils import DIR_SITEPACKAGES
-        #add win32 package, at least try to
 
-        pathDarwin = jp(DIR_SITEPACKAGES, *['darwin'])
-        site.addsitedir(pathDarwin)
-        QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-        QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-        s = ""
+#for backward compatibility
+initQgisEnvironment = initQgisApplication
 
-    else:
-        # assume OSGeo4W startup
-        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    os.environ['QGIS_DEBUG'] = '1'
 
-    assert os.path.exists(PATH_QGS)
-    qgsApp = QgsApplication([], True)
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
-    import enmapbox.gui
-    enmapbox.gui.DEBUG = True
-    return qgsApp
 
+def sandboxQgisBridge():
+    fakeQGIS = QgisFake()
+    import qgis.utils
+    qgis.utils.iface = fakeQGIS
+
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    S = EnMAPBox(fakeQGIS)
+    S.run()
+
+    fakeQGIS.ui.show()
+    import enmapboxtestdata
+    fakeQGIS.addVectorLayer(enmapboxtestdata.landcover)
+    fakeQGIS.addRasterLayer(enmapboxtestdata.enmap)
+
+    S.openExampleData(1)
 
 def sandboxDialog():
-
-    if sys.platform == 'darwin':
-        PATH_QGS = r'/Applications/QGIS.app/Contents/MacOS'
-        os.environ['GDAL_DATA'] = r'/usr/local/Cellar/gdal/1.11.3_1/share'
-    else:
-        # assume OSGeo4W startup
-        PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    os.environ['QGIS_DEBUG'] = '1'
-
-
-    assert os.path.exists(PATH_QGS)
-    qgsApp = QgsApplication([], True)
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns')
-    QApplication.addLibraryPath(r'/Applications/QGIS.app/Contents/PlugIns/qgis')
-    #QT_PLUGIN_PATH = % OSGEO4W_ROOT %\apps\qgis\qtplugins;
-    # % OSGEO4W_ROOT %\apps\qt4\plugins
-
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
-
+    qgsApp = initQgisEnvironment()
     w = QDialog()
-
     w.setWindowTitle('Sandbox')
     w.setFixedSize(QSize(300,400))
     l = QHBoxLayout()
@@ -223,32 +161,12 @@ def sandboxDialog():
     qgsApp.setActiveWindow(w)
     w.show()
 
-
-
-
-
-    from enmapbox.gui.layerproperties import showLayerPropertiesDialog
-    from enmapbox.gui.main import TestData
-
-
-    lyr = QgsRasterLayer(TestData.AF_Image)
-    QgsMapLayerRegistry.instance().addMapLayer(lyr)
-    canvas.setLayers([QgsMapCanvasLayer(lyr)])
-    canvas.setExtent(lyr.extent())
-
-
-    result = showLayerPropertiesDialog(lyr, canvas, modal=False)
-    print('Results {}'.format(result))
-
-    #qgsApp.exec_()
+    qgsApp.exec_()
     qgsApp.exitQgis()
 
 
 
 def sandboxTreeNodes():
-
-    qgisApp = initQgisEnvironment()
-
     from enmapbox.gui.dockmanager import DockManager, DockPanelUI
     from enmapbox.gui.docks import DockArea
 
@@ -274,80 +192,144 @@ def sandboxTreeNodes():
         dm.createDock('MAP', initSrc=HymapBerlinA_image)
 
     ui.show()
-    qgisApp.exec_()
 
 
-def sandboxDockManager():
 
-    qgisApp = initQgisEnvironment()
 
-    from enmapbox.gui.dockmanager import DockManager, DockPanelUI
-    from enmapbox.gui.docks import DockArea
 
-    dm = DockManager()
-    ui = DockPanelUI()
-    ui.connectDockManager(dm)
-    rootNode = ui.model.rootNode
-    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
-    from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
 
-    da = DockArea()
-    dm.connectDockArea(da)
-    dm.createDock('MAP', initSrc=HymapBerlinA_image)
 
-    ui.show()
-    qgisApp.exec_()
+class QgisFake(QgisInterface):
+
+    def __init__(self, *args):
+        super(QgisFake, self).__init__(*args)
+
+        self.canvas = QgsMapCanvas()
+        self.canvas.blockSignals(False)
+        print(self.canvas)
+        self.canvas.setCrsTransformEnabled(True)
+        self.canvas.setCanvasColor(Qt.black)
+        self.canvas.extentsChanged.connect(self.testSlot)
+        self.layerTreeView = QgsLayerTreeView()
+        self.rootNode =QgsLayerTreeGroup()
+        self.treeModel = QgsLayerTreeModel(self.rootNode)
+        self.layerTreeView.setModel(self.treeModel)
+        self.bridge = QgsLayerTreeMapCanvasBridge(self.rootNode, self.canvas)
+        self.bridge.setAutoSetupOnFirstLayer(True)
+        self.ui = QMainWindow()
+        mainFrame = QFrame()
+
+        self.ui.setCentralWidget(mainFrame)
+        self.ui.setWindowTitle('Fake QGIS')
+        l = QHBoxLayout()
+        l.addWidget(self.layerTreeView)
+        l.addWidget(self.canvas)
+        mainFrame.setLayout(l)
+        self.ui.setCentralWidget(mainFrame)
+        self.lyrs = []
+        self.createActions()
+
+    def testSlot(self, *args):
+        #print('--canvas changes--')
+        s = ""
+
+    def addVectorLayer(self, path, basename=None, providerkey=None):
+        if basename is None:
+            basename = os.path.basename(path)
+        if providerkey is None:
+            bn, ext = os.path.splitext(basename)
+
+            providerkey = 'ogr'
+        l = QgsVectorLayer(path, basename, providerkey)
+        assert l.isValid()
+        QgsMapLayerRegistry.instance().addMapLayer(l, True)
+        self.rootNode.addLayer(l)
+        self.bridge.setCanvasLayers()
+        s = ""
+
+    def legendInterface(self):
+        QgsLegendInterface
+    def addRasterLayer(self, path, baseName=''):
+        l = QgsRasterLayer(path, loadDefaultStyleFlag=True)
+        self.lyrs.append(l)
+        QgsMapLayerRegistry.instance().addMapLayer(l, True)
+        self.rootNode.addLayer(l)
+        self.bridge.setCanvasLayers()
+        return
+
+        cnt = len(self.canvas.layers())
+
+        self.canvas.setLayerSet([QgsMapCanvasLayer(l)])
+        l.dataProvider()
+        if cnt == 0:
+            self.canvas.mapSettings().setDestinationCrs(l.crs())
+            self.canvas.setExtent(l.extent())
+
+            spatialExtent = SpatialExtent.fromMapLayer(l)
+            #self.canvas.blockSignals(True)
+            self.canvas.setDestinationCrs(spatialExtent.crs())
+            self.canvas.setExtent(spatialExtent)
+            #self.blockSignals(False)
+            self.canvas.refresh()
+
+        self.canvas.refresh()
+
+    def createActions(self):
+        m = self.ui.menuBar().addAction('Add Vector')
+        m = self.ui.menuBar().addAction('Add Raster')
+
+    def mapCanvas(self):
+        return self.canvas
 
 
 def sandboxDataSourceManager():
-
-    qgisApp = initQgisEnvironment()
-
     from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourcePanelUI
     from enmapbox.gui.docks import DockArea
 
     dm = DataSourceManager()
+    d = QDialog()
+    d.setWindowTitle('TestDialog')
+    d.setLayout(QVBoxLayout())
     ui = DataSourcePanelUI()
     ui.connectDataSourceManager(dm)
-    rootNode = ui.model.rootNode
-    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+    d.layout().addWidget(ui)
+    from enmapboxtestdata import enmap, landcover
     from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
+    dm.addSource(r'R:\WS1718_FE1\Daten\Sitzung_12\MODIS Berlin\MOD13A1.A2015273.h18v03.006.2015307052831.hdf')
+    dm.addSource(enmap)
+    dm.addSource(landcover)
+    d.show()
+    s = ""
 
-    dm.addSource(HymapBerlinA_image)
-    ui.show()
-    qgisApp.exec_()
 
 def howToStartEnMAPBoxInPython():
-    import os
-    # 1. initialize QGIS Environment
-    PATH_QGS = os.environ['QGIS_PREFIX_PATH']
-    assert os.path.exists(PATH_QGS)
-    qgsApp = QgsApplication([], True)
-    qgsApp.setPrefixPath(PATH_QGS, True)
-    qgsApp.initQgis()
 
     # 2. start EnMAP-Box GUI
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
 
-    qgsApp.exec_()
 
 
 if __name__ == '__main__':
-    import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
-
-
-    #run tests
-    if True:
+    import site, sys, os
+    if False:
         howToStartEnMAPBoxInPython()
         exit(0)
-    if False: sandboxTreeNodes()
-    if False: sandboxDataSourceManager()
-    if False: sandboxDockManager()
-    if True: sandboxPureGui()
-    if False: sandboxPFReport()
-    if False: sandboxDragDrop()
-    if False: sandboxGUI()
-    if False: sandboxDialog()
+    else:
+        from enmapbox.gui.utils import initQgisApplication
+        qgsApp = initQgisApplication()
+
+        if False: sandboxTreeNodes()
+        if False: sandboxDataSourceManager()
+
+        if False: sandboxPureGui(loadProcessingFramework=True)
+
+        if False: sandboxProcessingFramework()
+        if False: sandboxQgisBridge()
+        if True: sandboxGUI()
+        if False: sandboxUmlaut()
+        if False: sandboxDialog()
+
+        qgsApp.exec_()
+        qgsApp.quit()

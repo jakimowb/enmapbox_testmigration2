@@ -1,6 +1,7 @@
+#we need to add more comments here
 from enmapbox.utils.environment.SitePackageAppender import SitePackageAppender
 SitePackageAppender.appendAll()
 
 def classFactory(iface):
-    from enmapboxplugin.EnMAPBoxPlugin import EnMAPBoxPlugin
-    return EnMAPBoxPlugin(iface)
+    import enmapboxplugin
+    return enmapboxplugin.EnMAPBoxPlugin(iface)
