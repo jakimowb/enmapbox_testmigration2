@@ -3,8 +3,8 @@ Installation
 
 .. _install_enmapbox:
 
-Installing & Updating the EnMAP-Box
------------------------------------
+Installing EnMAP-Box
+--------------------
 
 The EnMAP-Box 3 is a plugin for the free and open source Geographic Information System `QGIS <https://www.qgis.org>`_ (see :ref:`install_qgis`)
 that can be downloaded `here <https://www.qgis.org/en/site/forusers/download.html>`_.
@@ -15,7 +15,10 @@ Installing or updating the EnMAP-Box itself is pretty easy:
 
     2. Extract the downloaded zip file and put the folder ``enmapboxplugin`` into your
        local QGIS Plugin folder ``<HOME>.qgis2\python\plugins``,
-       e.g. ``C:\Users\ivan_ivanovich\.qgis2\python\plugins``
+
+        * ``C:\Users\ivan_ivanovich\.qgis2\python\plugins`` (Windows)
+        * ``/home/ivan_ivanovich/.qgis2/python/plugins`` (Ubuntu)
+
 
     3. Activate the EnMAP-Box Plugin in QGIS via *Plugins >> Manage and Install Plugins...*
 
@@ -37,8 +40,8 @@ Instructions to download and install QGIS can be found on `<http://www.qgis.org/
 
 .. _install_qgis_windows:
 
-Hints for Windows Users
-.......................
+Windows
+.......
 
 
 It is possible to install QGIS without administration rights:
@@ -105,17 +108,20 @@ packages can be installed directly from the command line as well::
        osgeo4w-setup -k -q -P qgis python-pip
 
 
-Hints for macOS users
-.....................
+macOS
+.....
 
 MacOS users might consider to use the `Homebrew Package Manager <https://brew.sh>`_
 to install QGIS from the `OSGeo4Mac Project <https://github.com/OSGeo/homebrew-osgeo4mac>`_.
 
 
-Hint for Linux (Ubuntu) users
-.............................
+Linux (Ubuntu)
+..............
 
-tbd.
+A description on how to get a recent QGIS on Ubuntu can be found in `<https://gis.stackexchange.com/questions/133033/installing-latest-qgis-version-on-ubuntu/137079>`_
+
+
+
 
 .. _install_missing_packages:
 
@@ -126,7 +132,7 @@ Missing packages will be highlighted in a dialog. Copy this information into a t
 
 Now, try to install missing package using your OS-specific package manager first
 
-If a package like ``sklearn`` is not available, use `pip` <https://pypi.python.org/pypi/pip>, either from::
+If a package like ``sklearn`` is not available, use `pip <https://pypi.python.org/pypi/pip>`_, either from::
     A. inside a python shell::
 
         import pip
@@ -140,18 +146,5 @@ If a package like ``sklearn`` is not available, use `pip` <https://pypi.python.o
 
 
 Repeat this for each missing package.
-
-
-FAQ / Troubleshooting
----------------------
-
-**I get the following Error dialog: Wrong value for parameter MSYS**
-
-    Description:** the following error occurs when activating the EnMAP-Box AlgorithmProvider in windows
-
-    ![Unbenannt.PNG](https://bitbucket.org/repo/7bo7M8/images/4131973787-Unbenannt.PNG)
-
-    **Solution:** install the *msys (command line utilities)* package with the OSGeo4W package installer.
-
 
 
