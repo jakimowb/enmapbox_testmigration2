@@ -30,6 +30,8 @@ class EnMAPBoxPlugin(object):
         assert isinstance(iface, QgisInterface)
         self.iface = iface
 
+
+
         # ensure that python console is activated. this is required to redirect
         # printouts like that from debugger to stdout / stderr
         import console.console as CONSOLE
@@ -38,8 +40,15 @@ class EnMAPBoxPlugin(object):
             QTimer.singleShot(0, CONSOLE._console.activate)
 
 
+
         dir_repo = os.path.dirname(__file__)
         site.addsitedir(dir_repo)
+
+        #run a dependency check
+        from enmapbox import DEPENDENCIES, __version__
+        from enmapbox import dependencychecker
+        if not dependencychecker.checkAndShowMissingDependencies(DEPENDENCIES):
+            raise Exception('Missing packages during activation of EnMAP-Box: {}\n{}'.format(__version__, ','.join(dependencychecker.LAST_MISSED_PACKAGES)))
 
         try:
             import enmapboxgeoalgorithms.algorithms
