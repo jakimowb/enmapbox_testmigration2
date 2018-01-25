@@ -1,0 +1,7 @@
+# this file lists packages that are required to run the EnMAP-Box AND can be installed with pip
+# see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+
+
+###### Refer to other requirements files (e.g. for hub-datacube?) ######
+-r enmapbox/requirements.txt
+

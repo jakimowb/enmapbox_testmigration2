@@ -24,7 +24,7 @@ We plan to publish the EnMAP-Box in the QGIS Plugin Repository, which will repla
 
 Note:
        Before you can start the EnMAP-Box the very first time, it is likely required to install some additional python packages
-       that are not part of your QGIS. Please see :ref:install_qgis to get some plattform specific help on this.
+       that are not part of your QGIS. Please see install_qgis_ for plattform specific advice on this topic.
 
 
 .. _install_qgis:
@@ -89,20 +89,15 @@ It is possible to install QGIS without administration rights:
        start "" %OSGEO4W_ROOT%\bin\osgeo4w-setup.exe -A -R %OSGEO4W_ROOT%
 
 
-
-
-
-
 * the QGIS.exe and other binaries can be found in ``OSGEO4W\bin``
 
 
-We haven't tested this in enough in detail, but according to the `OSGeo4W CLI docs <https://trac.osgeo.org/osgeo4w/wiki/CommandLine>`_
+We haven't tested this much in detail, but according to the `OSGeo4W CLI docs <https://trac.osgeo.org/osgeo4w/wiki/CommandLine>`_
 packages can be installed directly from the command line as well::
 
        set __COMPAT_LAYER=RUNASINVOKER
        osgeo4w-setup -k -D -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
        osgeo4w-setup -k -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
-       osgeo4w-setup -k -q -P qgis python-pip
 
 
 Hints for macOS users
