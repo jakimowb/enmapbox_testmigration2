@@ -24,7 +24,7 @@ We plan to publish the EnMAP-Box in the QGIS Plugin Repository, which will repla
 
 Note:
        Before you can start the EnMAP-Box the very first time, it is likely required to install some additional python packages
-       that are not part of your QGIS. Please see install_qgis_ for plattform specific advice on this topic.
+       that are not part of your QGIS. Please read install_qgis_ for plattform specific advice on this topic.
 
 
 .. _install_qgis:
@@ -34,8 +34,37 @@ Installing QGIS
 
 Instructions to download and install QGIS can be found on `<http://www.qgis.org/en/site/forusers/download.html>`_.
 
-
 .. _install_qgis_windows:
+
+
+Package                                                   Notes
+========================================================= ============
+
+`numpy <http://www.numpy.org>`_                           :ref:``
+`scipy <https://www.scipy.org>`_
+`gdal <http://www.gdal.org>`_
+`setuptools <https://pypi.python.org/pypi/setuptools>`_
+`pip <https://pypi.python.org/pypi/pip>`_
+`scikit-learn <https://pypi.python.org/pypi/pip>`_
+`pyqtgraph <https://pypi.python.org/pypi/pip>`_
+
+.. pkh_ins_qgs
+
+1. installed with QGIS by default
+
+.. _pkg_ins_plt:
+
+1. should be installed with a plattfor speci
+
+.. _pkg_install_win:
+
+1. to be installed via the OSGeo4W package installer
+
+.. _pkg_install_pip:
+
+2. to be installed via pip, e.g. calling `python -m pip install <package>`
+
+
 
 Hints for Windows Users
 .......................
@@ -98,7 +127,8 @@ packages can be installed directly from the command line as well::
        set __COMPAT_LAYER=RUNASINVOKER
        osgeo4w-setup -k -D -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
        osgeo4w-setup -k -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
-
+       python -m pip install setuptools
+       python -m pip install sklearn
 
 Hints for macOS users
 .....................
@@ -135,6 +165,7 @@ If a package like ``sklearn`` is not available, use `pip` <https://pypi.python.o
 
 
 Repeat this for each missing package.
+
 
 
 FAQ / Troubleshooting
