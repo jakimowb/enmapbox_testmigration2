@@ -156,59 +156,71 @@ class ApplicationRegistry(QObject):
         :param appPackagePath: a path pointing to a directory <application package folder>
         :return:
         """
-        assert self.isApplicationPackage(appPackagePath)
 
-        appPkgName = os.path.basename(appPackagePath)
-        appFolder = os.path.dirname(appPackagePath)
-        pkgFile = os.path.join(appPackagePath, '__init__.py')
+        if isinstance(appPackagePath, EnMAPBoxApplication):
 
+            assert self.isApplicationPackage(appPackagePath)
 
-        if not os.path.exists(pkgFile):
-            raise Exception('Missing __init__.py in {}'.format(appPackagePath))
-
-        if not appFolder in sys.path:
-            site.addsitedir(appFolder)
+            appPkgName = os.path.basename(appPackagePath)
+            appFolder = os.path.dirname(appPackagePath)
+            pkgFile = os.path.join(appPackagePath, '__init__.py')
 
 
-        import imp
-        #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
-        appModule = __import__(appPkgName)
+            if not os.path.exists(pkgFile):
+                raise Exception('Missing __init__.py in {}'.format(appPackagePath))
+
+            if not appFolder in sys.path:
+                site.addsitedir(appFolder)
 
 
-        factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
-                   if o[0] == 'enmapboxApplicationFactory']
+            import imp
+            #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
+            appModule = __import__(appPkgName)
 
-        if len(factory) == 0:
-            raise Exception('Missing enmapboxApplicationFactory() in {}'.format(appPackagePath))
-        else:
-            factory = factory[0]
 
-        #create the app
-        apps = factory(self.enmapBox)
-        if apps is None:
-            raise Exception(
-                'No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
+            factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
+                       if o[0] == 'enmapboxApplicationFactory']
 
-        if not isinstance(apps, list):
-            apps = [apps]
+            if len(factory) == 0:
+                raise Exception('Missing enmapboxApplicationFactory() in {}'.format(appPackagePath))
+            else:
+                factory = factory[0]
 
-        for app in apps:
-            if not isinstance(app, EnMAPBoxApplication):
-                QgsMessageLog.logMessage('Not an EnMAPBoxApplication instance: {}\n{}'.format(
-                    app.__module__, '{}'.format(ex))
-                    , level=QgsMessageLog.CRITICAL)
-                continue
-            try:
-                self.addApplication(app)
-            except Exception as ex:
-                import traceback
-                msg = 'Failed to load app "{} {}"'.format(appPackagePath, '{}'.format(ex))
-                msg += '\n Traceback:\n ' + repr(traceback.format_stack())
-                #QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
+            #create the app
+            apps = factory(self.enmapBox)
+            if apps is None:
+                raise Exception(
+                    'No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
 
-                QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
-                    app.__module__, '{}'.format(ex))
+
+            if not isinstance(apps, list):
+                apps = [apps]
+
+            for app in apps:
+                if not isinstance(app, EnMAPBoxApplication):
+                    QgsMessageLog.logMessage('Not an EnMAPBoxApplication instance: {}\n{}'.format(
+                        app.__module__, '{}'.format(ex))
                         , level=QgsMessageLog.CRITICAL)
+                    continue
+                try:
+                    self.addApplication(app)
+                except Exception as ex:
+                    import traceback
+                    msg = 'Failed to load app "{} {}"'.format(appPackagePath, '{}'.format(ex))
+                    msg += '\n Traceback:\n ' + repr(traceback.format_stack())
+                    #QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
+
+                    QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
+                        app.__module__, '{}'.format(ex))
+                            , level=QgsMessageLog.CRITICAL)
+
+    def addApplications(self, apps):
+        """
+        Adds a list of EnMAP-Box applications with addApplication
+        :param apps: [list-of-EnMAPBoxApplications]
+        :return:
+        """
+        return [self.addApplication(app) for app in apps]
 
     def addApplication(self, app):
         """
@@ -369,6 +381,3 @@ class EnMAPBoxApplication(QObject):
         """
         return None
 
-if __name__ == '__main__':
-    #mini test
-    pass

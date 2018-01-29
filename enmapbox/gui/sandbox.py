@@ -123,6 +123,7 @@ def sandboxGUI():
     s = ""
 
 
+
 #for backward compatibility
 initQgisEnvironment = initQgisApplication
 
