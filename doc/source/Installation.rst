@@ -27,6 +27,155 @@ Note:
        that are not part of your QGIS. Please read install_qgis_ for plattform specific advice on this topic.
 
 
+.. _install_missing_packages:
+
+Install missing packages
+------------------------
+
+The following package need to be available in your QGIS Python to run the EnMAP-Box:
+
+=============================================================== ========================
+Package                                                         Notes
+=============================================================== ========================
+`qgis <http://www.gdal.org>`_                                   :ref:`(1) <pkg_default>`
+`PyQt4 <http://www.gdal.org>`_                                  :ref:`(1) <pkg_default>`
+`gdal <http://www.gdal.org>`_                                   :ref:`(1) <pkg_default>`
+`numpy <http://www.numpy.org>`_                                 :ref:`(1) <pkg_default>`
+`scipy <https://www.scipy.org>`_                                :ref:`(2) <pkg_default>`
+`setuptools <https://pypi.python.org/pypi/setuptools>`_         :ref:`(2) <pkg_default>`
+`pip <https://pypi.python.org/pypi/pip>`_                       :ref:`(2) <pkg_default>`
+`pyqtgraph <https://pypi.python.org/pypi/pip>`_                 :ref:`(3) <pkg_ins_pip>`
+`scikit-learn <https://pypi.python.org/pypi/pip>`_              :ref:`(3) <pkg_ins_pip>`
+`rios <http://rioshome.org>`_                                   :ref:`(4) <pkg_ins_pip_ext>`
+`spectral <http://www.spectralpython.net/installation.html>`_   :ref:`(3) <pkg_default>`
+
+=============================================================== ========================
+
+.. _pkg_default:
+
+(1) should be installed with QGIS by default
+
+.. _pkg_ins_os:
+
+(2) usually require to run a plattform specific package manager:
+
+
+.. _pkg_ins_pip:
+
+(3) can be installed with `pip <https://pypi.python.org/pypi/pip>`_
+
+.. _pkg_ins_pip_ext:
+
+(4) can be installed with `pip <https://pypi.python.org/pypi/pip>`_ but not listed in the python package index
+
+To install these required packages please follow these plattform specifc advices:
+
+Windows
+.......
+
+1. Navigate into the QGIS root folder and call the ``OSGeo4W.bat`` with administative rights to open the OSGeo4W CLI.
+
+2. Install the package requirements maintained by OSGeo4W::
+
+              set __COMPAT_LAYER=RUNASINVOKER
+
+              setup -k -q -P setuptools
+              setup -k -q -P python-numpy
+              setup -k -q -P python-scipy
+              setup -k -q -P python-pip
+              setup -k -q -P matplotlib
+
+
+3. Install the package requirements maintained by pip. Either by
+
+       a) Navigate into the ``enmapbox`` plugin folder and calling the ``requirements.txt``::
+
+              cd C:\Users\ivan_ivanowitch\.qgis2\python\plugins\enmapboxplugin
+              python -m pip install -r requirements.txt
+
+       b) or, call the single pip commands step by step (e.g. if requirements.txt) is incomplete::
+
+              python -m pip install pyqtgraph
+              python -m pip install sklearn
+              python -m pip install https://bitbucket.org/chchrsc/rios/downloads/rios-1.4.4.zip
+              python -m pip install rios
+              python -m pip install spectral
+
+
+
+Linux
+.....
+
+The following way was tested successfully on Ubuntu
+
+1.
+
+macOS
+.......
+
+
+
+Standard Installation
+^^^^^^^^^^^^^^^^^^^^^
+
+The default QGIS binaries for macOS make use of the default macOS python.
+
+1. Open your shell and call the
+
+
+
+       >>>import sys
+
+Homebrew Installation
+^^^^^^^^^^^^^^^^^^^^^
+
+1. Open your
+3. Install the package requirements maintained by pip. Either by
+
+       a) Navigate into the ``enmapbox`` plugin folder and calling the ``requirements.txt``::
+
+              cd C:\Users\ivan_ivanowitch\.qgis2\python\plugins\enmapboxplugin
+              python -m pip install -r requirements.txt
+
+       b) or, step by step, e.g. if the requirements.txt is incomplete::
+
+              python -m pip install pyqtgraph
+              python -m pip install sklearn
+              python -m pip install rios
+              python -m pip install spectral
+
+
+
+Linux
+.....
+
+
+
+
+If your QGIS misses a python package the EnMAP-Box depends on, it will show you a message like this:
+
+
+
+
+
+Now, try to install missing package using your OS-specific package manager first
+
+If a package like ``sklearn`` is not available, use `pip` <https://pypi.python.org/pypi/pip>, either from::
+    A. inside a python shell::
+
+        import pip
+        pip.main('install sklearn'.split())
+
+       this might work also from inside the QGIS Python shell
+
+    B. or your system shell by calling python::
+
+        $python -m pip install sklearn
+
+
+Repeat this for each missing package.
+
+
 .. _install_qgis:
 
 Installing QGIS
@@ -35,34 +184,6 @@ Installing QGIS
 Instructions to download and install QGIS can be found on `<http://www.qgis.org/en/site/forusers/download.html>`_.
 
 .. _install_qgis_windows:
-
-
-Package                                                   Notes
-========================================================= ============
-
-`numpy <http://www.numpy.org>`_                           :ref:``
-`scipy <https://www.scipy.org>`_
-`gdal <http://www.gdal.org>`_
-`setuptools <https://pypi.python.org/pypi/setuptools>`_
-`pip <https://pypi.python.org/pypi/pip>`_
-`scikit-learn <https://pypi.python.org/pypi/pip>`_
-`pyqtgraph <https://pypi.python.org/pypi/pip>`_
-
-.. pkh_ins_qgs
-
-1. installed with QGIS by default
-
-.. _pkg_ins_plt:
-
-1. should be installed with a plattfor speci
-
-.. _pkg_install_win:
-
-1. to be installed via the OSGeo4W package installer
-
-.. _pkg_install_pip:
-
-2. to be installed via pip, e.g. calling `python -m pip install <package>`
 
 
 
@@ -125,8 +246,8 @@ We haven't tested this much in detail, but according to the `OSGeo4W CLI docs <h
 packages can be installed directly from the command line as well::
 
        set __COMPAT_LAYER=RUNASINVOKER
-       osgeo4w-setup -k -D -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
-       osgeo4w-setup -k -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
+       setup -k -D -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
+       setup -k -q -P qgis pyqt4 setuptools python-numpy python-scipy python-test python-pip matplotlib
        python -m pip install setuptools
        python -m pip install sklearn
 
@@ -141,30 +262,6 @@ Hint for Linux (Ubuntu) users
 .............................
 
 tbd.
-
-.. _install_missing_packages:
-
-Install missing packages
-------------------------
-
-Missing packages will be highlighted in a dialog. Copy this information into a text editor that you can track missing things.
-
-Now, try to install missing package using your OS-specific package manager first
-
-If a package like ``sklearn`` is not available, use `pip` <https://pypi.python.org/pypi/pip>, either from::
-    A. inside a python shell::
-
-        import pip
-        pip.main('install sklearn'.split())
-
-       this might work also from inside the QGIS Python shell
-
-    B. or your system shell by calling python::
-
-        $python -m pip install sklearn
-
-
-Repeat this for each missing package.
 
 
 

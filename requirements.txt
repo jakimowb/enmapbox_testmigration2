@@ -1,7 +1,22 @@
 # this file lists packages that are required to run the EnMAP-Box AND can be installed with pip
 # see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
 
+###### Requirements without Version Specifiers ######
+gdal
+numpy
+pyqtgraph
+
+
+#requirements HUB Datacube
+https://bitbucket.org/chchrsc/rios/downloads/rios-1.4.4.zip
+sklearn
+spectral
+
+
+###### Requirements with Version Specifiers ######
+#   See https://www.python.org/dev/peps/pep-0440/#version-specifiers
+#
 
 ###### Refer to other requirements files (e.g. for hub-datacube?) ######
--r enmapbox/requirements.txt
-
+#-r otherfolder/other-requirements.txt
+#
