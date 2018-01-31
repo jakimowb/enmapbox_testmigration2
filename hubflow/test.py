@@ -1,16 +1,15 @@
-# import matplotlib
-# matplotlib.use('QT4Agg')
-# from matplotlib import pyplot
+import matplotlib
+matplotlib.use('QT4Agg')
+from matplotlib import pyplot
 
 from tempfile import gettempdir
 from os.path import join
-from osgeo import gdal
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
-from hubflow.types import *
 import hubflow.testdata
 import enmapboxtestdata
+from hubflow.core import *
 
 overwrite = not True
 vector = hubflow.testdata.vector()
@@ -22,6 +21,7 @@ enmapClassification = hubflow.testdata.enmapClassification(overwrite=overwrite)
 vectorClassification = hubflow.testdata.vectorClassification()
 hymapProbability = hubflow.testdata.hymapProbability(overwrite=overwrite)
 enmapProbability = hubflow.testdata.enmapProbability(overwrite=overwrite)
+enmapRegression = hubflow.testdata.enmapRegression(overwrite=overwrite)
 enmapMask = enmapClassification.asMask()
 
 enmapProbabilitySample = hubflow.testdata.enmapProbabilitySample(overwrite=overwrite)
@@ -41,21 +41,22 @@ def test_Classification():
 
 
 def test_ClassificationPerformance():
-    obj = ClassificationPerformance.fromClassification(prediction=enmapClassification, reference=enmapClassification)
+    obj = ClassificationPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
     print(obj)
     # obj.report().saveHTML(filename=join(outdir, 'report.html'))
 
 
 def test_ClassificationSample():
     print(
-    ClassificationSample.fromRasterAndClassification(raster=enmapClassification, classification=hymapClassification,
-                                                     grid=enmap, mask=vector))
+        ClassificationSample.fromRasterAndClassification(raster=enmapClassification, classification=hymapClassification,
+                                                         grid=enmap, mask=vector))
     print(ClassificationSample.fromRasterAndClassification(raster=enmapProbability, classification=hymapClassification,
                                                            grid=enmap, mask=vector))
     print(ClassificationSample.fromRasterAndClassification(raster=enmap, classification=hymapClassification, grid=enmap,
                                                            mask=vector))
     print(
-    ClassificationSample.fromRasterAndProbability(raster=enmap, probability=hymapProbability, grid=enmap, mask=vector))
+        ClassificationSample.fromRasterAndProbability(raster=enmap, probability=hymapProbability, grid=enmap,
+                                                      mask=vector))
     print(ClassificationSample.fromProbabilitySample(sample=enmapProbabilitySample))
 
     print(enmapClassificationSample.asProbabilitySample())
@@ -77,8 +78,12 @@ def test_Clusterer():
     kmeans = Clusterer(sklEstimator=KMeans())
     print(kmeans)
     kmeans.fit(sample=enmapClassificationSample)
-    print(kmeans.predict(filename=join(outdir, 'kmeansClustering.img'), image=enmap, mask=vector))
+    print(kmeans.predict(filename=join(outdir, 'kmeansClustering.img'), raster=enmap, mask=vector))
 
+def test_ClusteringPerformance():
+    clusteringPerformance = ClusteringPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
+    print(clusteringPerformance)
+    clusteringPerformance.report().saveHTML(filename=join(outdir, 'reportClusteringPerformance.html'))
 
 def test_Image():
     print(Raster.fromVector(filename=join(outdir, 'imageFromVector.img'), vector=vector, grid=hymap.grid,
@@ -95,18 +100,24 @@ def test_Image():
 
 def test_Mask():
     # print(Mask.fromVector(filename=join(outdir, 'maskFromVector.img'), vector=vector, grid=enmap))
-    print(
-    Mask.fromRaster(filename=join(outdir, 'maskFromRaster.img'), raster=enmapClassification, trueRanges=((1, 100))))
+    print(Mask.fromRaster(filename=join(outdir, 'maskFromRaster.img'), raster=enmapClassification,
+                          trueRanges=[(1, 100)]))
 
 
 def test_Probability():
-    #print(enmapProbability.asClassColorRGBRaster(filename=join(outdir, 'probabilityAsClassColorRGBImage.img')))
+    # print(enmapProbability.asClassColorRGBRaster(filename=join(outdir, 'probabilityAsClassColorRGBImage.img')))
     print(Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.img'),
                                                vectorClassification=vectorClassification, grid=enmap.grid,
                                                oversampling=3))
 
 
     # print(enmapProbability.subsetClassesByName(filename=join(outdir, 'probabilitySubsetClassesByName.img'), names=enmapProbability.classDefinition.names))
+
+
+def test_ProbabilityPerformance():
+    probabilityPerformance = ProbabilityPerformance.fromRaster(prediction=enmapProbability, reference=enmapClassification)
+    print(probabilityPerformance)
+    probabilityPerformance.report().saveHTML(filename=join(outdir, 'reportProbabilityPerformance.html'))
 
 
 def test_ProbabilitySample():
@@ -125,7 +136,7 @@ def test_Regression():
 
 
 def test_RegressionPerformance():
-    obj = RegressionPerformance.fromRegression(prediction=enmapProbability, reference=enmapProbability)
+    obj = RegressionPerformance.fromRaster(prediction=enmapProbability, reference=enmapProbability)
     print(obj)
     # obj.report().saveHTML(filename=join(outdir, 'report.html'))
 
@@ -139,17 +150,17 @@ def test_Regressor():
     rfr = Regressor(sklEstimator=RandomForestRegressor())
     print(rfr)
     rfr.fit(sample=enmapProbabilitySample)
-    print(rfr.predict(filename=join(outdir, 'rfrRegression.img'), image=enmap, mask=vector))
+    print(rfr.predict(filename=join(outdir, 'rfrRegression.img'), raster=enmap, mask=vector))
 
 
 def test_Transformer():
     pca = Transformer(sklEstimator=PCA())
     print(pca)
     pca.fit(sample=enmapUnsupervisedSample)
-    pcaTransformation = pca.transform(filename=join(outdir, 'pcaTransformation.img'), image=enmap, mask=vector)
+    pcaTransformation = pca.transform(filename=join(outdir, 'pcaTransformation.img'), raster=enmap, mask=vector)
     print(pcaTransformation)
     pcaInverseTransform = pca.inverseTransform(filename=join(outdir, 'pcaInverseTransformation.img'),
-                                               image=pcaTransformation, mask=vector)
+                                               raster=pcaTransformation, mask=vector)
     print(pcaInverseTransform)
 
 
@@ -170,13 +181,21 @@ def test_Vector():
     print(Vector.fromRandomPointsFromMask(filename=join(outdir, 'vectorFromRandomPointsFromMask.gpkg'), mask=enmapMask,
                                           n=10))
     n = [10] * enmapClassification.classDefinition.classes
-    #n[0] = 10
-    print(Vector.fromRandomPointsFromClassification(filename=join(outdir, 'vectorFromRandomPointsFromClassification.gpkg'),
-                                                    classification=enmapClassification, n=n))
+    # n[0] = 10
+    print(
+    Vector.fromRandomPointsFromClassification(filename=join(outdir, 'vectorFromRandomPointsFromClassification.gpkg'),
+                                              classification=enmapClassification, n=n))
 
 
 def test_VectorClassification():
-    print(vectorClassification.asVector())
+    pass
+
+
+def test_extractPixels():
+    c = ApplierControls()
+    c.setBlockSize(25)
+    extractPixels(inputs=[enmap, enmapProbability, enmapClassification, enmapRegression, vector, vectorClassification],
+                  masks=[enmapMask], grid=enmap.grid, controls=c)
 
 
 def run():
