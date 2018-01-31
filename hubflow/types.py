@@ -83,10 +83,6 @@ class Raster(FlowObject):
     def asMask(self, noData=None):
         return Mask(filename=self.filename, noData=noData)
 
-    def asProbability(self, classDefinition):
-        assert 0  # do we need this???
-        return Probability(filename=self.filename, classDefinition=classDefinition)
-
     def basicStatistics(self, bandIndicies=None, mask=None, **kwargs):
         applier = Applier(defaultGrid=self, **kwargs)
         applier.setFlowRaster('raster', raster=self)
@@ -117,7 +113,7 @@ class Raster(FlowObject):
         H = np.sum(np.stack(results), axis=0, dtype=np.uint64)
         return H, xedges, yedges
 
-    def applyMask(self, filename, mask, fillValue, **kwargs):
+    def applyMask(self, filename, mask, fillValue, noDataValue=None, **kwargs):
         applier = Applier(defaultGrid=self, **kwargs)
         applier.setFlowRaster('raster', raster=self)
         applier.setFlowMask('mask', mask=mask)
@@ -179,15 +175,17 @@ class _RasterScatterMatrix(ApplierOperator):
 
 
 class _RasterApplyMask(ApplierOperator):
-    def ufunc(self, raster, mask, fillValue):
+    def ufunc(self, raster, mask, fillValue, noDataValue):
         array = self.flowRasterArray('raster', raster=raster)
         marray = self.flowMaskArray('mask', mask=mask)
         tobefilled = np.logical_not(marray[0])
         array[:, tobefilled] = fillValue
-        self.outputRaster.raster(key='maskedRaster').setArray(array=array)
+        outraster = self.outputRaster.raster(key='maskedRaster')
+        outraster.setArray(array=array)
 
         metadataDict = self.inputRaster.raster(key='raster').metadataDict()
-        self.outputRaster.raster(key='maskedRaster').setMetadataDict(metadataDict)
+        outraster.setMetadataDict(metadataDict)
+        outraster.setNoDataValue(value=noDataValue)
 
 
 class Mask(Raster):
@@ -283,7 +281,8 @@ class Vector(FlowObject):
     def fromRandomPointsFromClassification(cls, filename, classification, n, grid=None, **kwargs):
         applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowClassification('classification', classification=classification)
-        applier.apply(operatorType=_VectorFromRandomPointsFromClassification, classification=classification, n=n, filename=filename)
+        applier.apply(operatorType=_VectorFromRandomPointsFromClassification, classification=classification, n=n,
+                      filename=filename)
         return Vector(filename=filename)
 
     def uniqueValues(self, attribute, spatialFilter=None):
@@ -295,6 +294,7 @@ class Vector(FlowObject):
             spatialFilterReprojected = spatialFilter.reproject(targetProjection=vector.projection())
             layer.SetSpatialFilter(spatialFilterReprojected.ogrGeometry())
         return sorted(set(feature.GetField(attribute) for feature in layer))
+
 
 class _VectorFromRandomPointsFromMask(ApplierOperator):
     def ufunc(self, mask, n, filename):
@@ -313,7 +313,7 @@ class _VectorFromRandomPointsFromMask(ApplierOperator):
         xmap, ymap = xmap[indicis], ymap[indicis]
 
         # Create the output shapefile
-        #driver = ogr.GetDriverByName('ESRI Shapefile')
+        # driver = ogr.GetDriverByName('ESRI Shapefile')
         driver = ogr.GetDriverByName('GPKG')
 
         if os.path.exists(filename):
@@ -362,7 +362,7 @@ class _VectorFromRandomPointsFromClassification(ApplierOperator):
         xmap, ymap = xmap[indicis], ymap[indicis]
 
         # Create the output shapefile
-        #driver = ogr.GetDriverByName('ESRI Shapefile')
+        # driver = ogr.GetDriverByName('ESRI Shapefile')
         driver = ogr.GetDriverByName('GPKG')
 
         if os.path.exists(filename):
@@ -382,13 +382,14 @@ class _VectorFromRandomPointsFromClassification(ApplierOperator):
         ds = None
 
 
-class VectorClassification(FlowObject):
+class VectorClassification(Vector):
     def __init__(self, filename, classDefinition, idAttribute=None, nameAttribute=None, layer=0, minOverallCoverage=0.5,
                  minWinnerCoverage=0.5, dtype=np.uint8):
+
+        Vector.__init__(self, filename=filename, layer=layer, burnAttribute=idAttribute, dtype=dtype)
+
         assert isinstance(classDefinition, ClassDefinition)
         self.classDefinition = classDefinition
-        self.filename = filename
-        self.layer = layer
         assert xor(idAttribute is None, nameAttribute is None)
         if idAttribute is not None:
             self.classAttribute = idAttribute
@@ -398,11 +399,6 @@ class VectorClassification(FlowObject):
             self.classAttributeType = 'name'
         self.minOverallCoverage = minOverallCoverage
         self.minWinnerCoverage = minWinnerCoverage
-        self.dtype = dtype
-
-    def asVector(self):
-        return Vector(filename=self.filename, layer=self.layer, initValue=0, burnAttribute=self.classAttribute,
-                      dtype=self.dtype)
 
 
 class ClassDefinition(FlowObject):
@@ -420,7 +416,7 @@ class ClassDefinition(FlowObject):
         assert classes is not None or names is not None
         if classes is None:
             classes = len(names)
-        assert classes > 0
+        #assert classes > 0
         self.classes = classes
         if names is None:
             names = ['class {}'.format(i + 1) for i in range(classes)]
@@ -635,10 +631,8 @@ class _ProbabilityAsClassColorRGBRaster(ApplierOperator):
 
 class _ProbabilityFromVectorClassification(ApplierOperator):
     def ufunc(self, vectorClassification, oversampling):
-        print(1)
         array = self.flowProbabilityArray('vectorClassification', probability=vectorClassification,
                                           oversampling=oversampling)
-        print(2)
         self.outputRaster.raster(key='probability').setArray(array=array)
         self.setFlowMetadataProbabilityDefinition(name='probability',
                                                   classDefinition=vectorClassification.classDefinition)
@@ -653,6 +647,91 @@ class _ProbabilitySubsetClasses(ApplierOperator):
         probabilitySubset = self.inputRaster.raster(key='probability').bandArray(indicies=indicies)
         self.outputRaster.raster(key='probabilitySubset').setArray(array=probabilitySubset)
         self.setFlowMetadataProbabilityDefinition(name='probabilitySubset', classDefinition=classDefinition)
+
+
+class ProbabilityPerformance(FlowObject):
+    def __init__(self, yP, yT, classDefinitionP, classDefinitionT):
+        assert isinstance(classDefinitionP, ClassDefinition)
+        assert isinstance(classDefinitionT, ClassDefinition)
+        assert classDefinitionT.classes == classDefinitionP.classes
+        assert isinstance(yP, np.ndarray)
+        assert isinstance(yT, np.ndarray)
+        assert yT.shape[1] == yP.shape[1]
+        assert len(yT) == 1
+        assert len(yP) == classDefinitionP.classes
+
+        self.classDefinitionT = classDefinitionT
+        self.classDefinitionP = classDefinitionP
+
+        self.yP = yP.T
+        self.yT = yT[0]
+        self.n = yP.shape[1]
+        self.log_loss = sklearn.metrics.log_loss(y_true=self.yT, y_pred=self.yP)
+        self.roc_curves = dict()
+        self.roc_auc_scores = dict()
+
+        for i in range(1, self.classDefinitionT.classes + 1):
+            self.roc_curves[i] = sklearn.metrics.roc_curve(y_true=self.yT, y_score=self.yP[:, i - 1], pos_label=i,
+                                                           drop_intermediate=True)
+            self.roc_auc_scores[i] = sklearn.metrics.roc_auc_score(y_true=self.yT == i, y_score=self.yP[:, i - 1])
+
+    def __repr__(self):
+        return '{cls}(yP=array{yP}, yT=array{yT}, classDefinitionP={classDefinitionP}, classDefinitionT={classDefinitionT})'.format(
+            cls=self.__class__.__name__,
+            yP=repr(list(self.yP.shape)),
+            yT=repr(list(self.yT.shape)),
+            classDefinitionP=repr(self.classDefinitionP),
+            classDefinitionT=repr(self.classDefinitionT))
+
+    @classmethod
+    def fromRaster(self, prediction, reference, **kwargs):
+        assert isinstance(prediction, Probability)
+        assert isinstance(reference, Classification)
+        yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
+                                                  **kwargs).features
+        yT = UnsupervisedSample.fromRasterAndMask(raster=reference, mask=reference.asMask(), grid=reference,
+                                                  **kwargs).features
+        return ProbabilityPerformance(yP=yP, yT=yT, classDefinitionP=prediction.classDefinition,
+                                      classDefinitionT=reference.classDefinition)
+
+    def report(self):
+        classes = self.classDefinitionT.classes
+        names = self.classDefinitionT.names
+        report = Report('Probability Performance')
+        report.append(ReportHeading('Performance Measures'))
+        colHeaders = [['', 'AUC'], ['n', 'Log loss'] + names]
+        colSpans = [[2, classes], [1] * (classes + 2)]
+        roc_auc_scores_rounded = [round(elem, 3) for elem in self.roc_auc_scores.values()]
+        data = [[str(self.n), numpy.round(self.log_loss, 2)] + roc_auc_scores_rounded]
+        report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
+
+        report.append(ReportHeading('Receiver Operating Characteristic (ROC) Curves'))
+
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(facecolor='white', figsize=(9, 6))
+        for i in range(len(self.roc_curves)):
+            rgb = [v / 255. for v in self.classDefinitionP.lookup[i]]
+            plt.plot(self.roc_curves[i + 1][0], self.roc_curves[i + 1][1]
+                     , label=names[i])  # , color=rgb) # problem: plots do not show the correct RGB colors
+        ax.set_xlabel('False Positive Rate')
+        ax.set_ylabel('True Positive Rate')
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.legend(loc="lower right")
+        fig.tight_layout()
+        report.append(ReportPlot(fig, 'ROC Curves'))
+
+        report.append(ReportHeading('Scikit-Learn Documentation'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/model_evaluation.html#roc-metrics',
+                                      'ROC User Guide'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html',
+                                      'ROC Curve'))
+        report.append(ReportHyperlink(
+            'http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score',
+            'AUC score'))
+        report.append(ReportHyperlink('http://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html',
+                                      'Log Loss Metric'))
+
+        return report
 
 
 class UnsupervisedSample(FlowObject):
@@ -685,7 +764,8 @@ class UnsupervisedSample(FlowObject):
         applier.setFlowRaster(name='raster', raster=raster)
         applier.setFlowMask('mask', mask=mask)
         applier.setFlowMask('mask2', mask=mask2)
-        results = applier.apply(operatorType=_UnsupervisedSampleFromRasterAndMask, raster=raster, mask=mask, mask2=mask2)
+        results = applier.apply(operatorType=_UnsupervisedSampleFromRasterAndMask, raster=raster, mask=mask,
+                                mask2=mask2)
         features = np.hstack(results)
         sample = UnsupervisedSample(features=features)
         applier.controls.progressBar.setText(repr(sample))
@@ -791,8 +871,9 @@ class ClassificationSample(SupervisedSample):
                                  minOverallCoverage=0.5, minWinnerCoverage=0.5, **kwargs):
         if grid is None:
             grid = raster.grid
-        probabilitySample = ProbabilitySample.fromRasterAndProbability(raster=raster, probability=probability, grid=grid,
-                                                                      mask=mask, mask2=mask2, **kwargs)
+        probabilitySample = ProbabilitySample.fromRasterAndProbability(raster=raster, probability=probability,
+                                                                       grid=grid,
+                                                                       mask=mask, mask2=mask2, **kwargs)
         classificationSample = ClassificationSample.fromProbabilitySample(sample=probabilitySample,
                                                                           minOverallCoverage=minOverallCoverage,
                                                                           minWinnerCoverage=minWinnerCoverage)
@@ -812,7 +893,7 @@ class ClassificationSample(SupervisedSample):
         overallCoverage = np.sum(fractions, axis=0, keepdims=True)
         winnerCoverage = np.max(sample.labels, axis=0, keepdims=True)
         valid = overallCoverage >= minOverallCoverage
-        valid *=  winnerCoverage >= minWinnerCoverage
+        valid *= winnerCoverage >= minWinnerCoverage
 
         features = sample.features[:, valid[0]]
         labels = labels[:, valid[0]]
@@ -883,7 +964,7 @@ class RegressionSample(SupervisedSample):
         applier.setFlowRegression(name='regression', regression=regression)
         applier.setFlowMask('mask', mask=mask)
         applier.setFlowMask('mask2', mask=mask2)
-        results = applier.apply(operatorType=_RegressionSampleFromRasterAndProbability, raster=raster,
+        results = applier.apply(operatorType=_RegressionSampleFromRasterAndRegression, raster=raster,
                                 regression=regression, mask=mask, mask2=mask2)
         features = np.hstack(result[0] for result in results)
         fractions = np.hstack(result[1] for result in results)
@@ -897,15 +978,16 @@ class RegressionSample(SupervisedSample):
                                 outputNames=sample.outputNames)
 
 
-class _RegressionSampleFromRasterAndProbability(ApplierOperator):
+class _RegressionSampleFromRasterAndRegression(ApplierOperator):
     def ufunc(self, raster, regression, mask, mask2):
         features = self.flowRasterArray(name='raster', raster=raster)
-        fractions = self.flowRegressionArray(name='regression', regression=regression)
+        labels = self.flowRegressionArray(name='regression', regression=regression)
         labeled = self.maskFromArray(array=features, noDataSource='raster')
-        labeled *= fractions != regression.noData
+        labeled *= self.maskFromArray(array=labels, noData=regression.noData)
+        #labeled *= labels != regression.noData
         labeled *= self.flowMaskArray('mask', mask=mask)
         labeled *= self.flowMaskArray('mask2', mask=mask2)
-        return features[:, labeled[0]], fractions[:, labeled[0]]
+        return features[:, labeled[0]], labels[:, labeled[0]]
 
 
 class ProbabilitySample(RegressionSample):
@@ -991,6 +1073,10 @@ class Estimator(FlowObject):
             y = None
 
         self.sklEstimator.fit(X=X, y=y)
+
+        if isinstance(self, Clusterer):
+            yTrain = self.sklEstimator.predict(X=X)
+            self.classDefinition = ClassDefinition(classes=max(yTrain)+1)
         return self
 
     def _predict(self, filename, raster, mask=None, **kwargs):
@@ -1012,7 +1098,6 @@ class Estimator(FlowObject):
         probability = Probability(filename=filename)
         return probability
 
-
     def _transform(self, filename, raster, inverse=False, mask=None, **kwargs):
         applier = Applier(defaultGrid=raster, **kwargs)
         applier.setFlowRaster('raster', raster=raster)
@@ -1029,7 +1114,12 @@ class _EstimatorPredict(ApplierOperator):
     def ufunc(self, estimator, raster, mask):
         self.features = self.flowRasterArray('raster', raster=raster)
         etype, dtype, noutputs = self.getInfos(estimator)
-        noData = estimator.sample.noData
+
+        if isinstance(estimator, (Classifier, Clusterer)):
+            noData = 0
+        else:
+            noData = estimator.sample.noData
+
         prediction = self.full(value=noData, bands=noutputs, dtype=dtype)
 
         valid = self.maskFromArray(array=self.features, noDataSource='raster')
@@ -1041,18 +1131,17 @@ class _EstimatorPredict(ApplierOperator):
 
         self.outputRaster.raster(key='prediction').setArray(array=prediction)
 
-        if etype == 'classifier':
+        if isinstance(estimator, Classifier):
             self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.sample.classDefinition)
-        if etype == 'clusterer':
-            self.setFlowMetadataClassDefinition('prediction', classDefinition=ClassDefinition(
-                classes=estimator.sklEstimator.n_clusters))
-        if etype == 'regressor':
+        elif isinstance(estimator, Clusterer):
+            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.classDefinition)
+        elif isinstance(estimator, Regressor):
             if isinstance(estimator.sample, ProbabilitySample):
                 self.setFlowMetadataProbabilityDefinition('prediction',
                                                           classDefinition=estimator.sample.classDefinition)
             else:
                 self.outputRaster.raster(key='prediction').setNoDataValue(value=noData)
-        self.setFlowMetadataBandNames('prediction', bandNames=estimator.sample.outputNames)
+            self.setFlowMetadataBandNames('prediction', bandNames=estimator.sample.outputNames)
 
     def getInfos(self, estimator):
         etype = estimator.sklEstimator._estimator_type
@@ -1144,6 +1233,9 @@ class Clusterer(Estimator):
     predict = Estimator._predict
     transform = Estimator._transform
 
+    def __init__(self, sklEstimator):
+        Estimator.__init__(self, sklEstimator=sklEstimator)
+        self.classDefinition = ClassDefinition(classes=0)
 
 class ClassificationPerformance(FlowObject):
     def __init__(self, yP, yT, classDefinitionP, classDefinitionT, classProportions=None):
@@ -1176,7 +1268,7 @@ class ClassificationPerformance(FlowObject):
             classProportions=repr(list(self.Wi)))
 
     @classmethod
-    def fromClassification(self, prediction, reference, **kwargs):
+    def fromRaster(self, prediction, reference, **kwargs):
         assert isinstance(prediction, Classification)
         assert isinstance(reference, Classification)
         yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
@@ -1396,7 +1488,7 @@ class RegressionPerformance(FlowObject):
             outputNamesP=repr(self.outputNamesP))
 
     @classmethod
-    def fromRegression(self, prediction, reference, **kwargs):
+    def fromRaster(self, prediction, reference, **kwargs):
         assert isinstance(prediction, Regression)
         assert isinstance(reference, Regression)
         yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
@@ -1514,5 +1606,60 @@ class RegressionPerformance(FlowObject):
             fig.tight_layout()
             report.append(ReportPlot(fig))
             pyplot.close()
+
+        return report
+
+
+class ClusteringPerformance(FlowObject):
+    def __init__(self, yT, yP):
+        assert isinstance(yP, np.ndarray)
+        assert isinstance(yT, np.ndarray)
+        assert yT.shape == yP.shape
+        assert len(yT) == 1 and len(yP) == 1
+        self.yP = yP.flatten()
+        self.yT = yT.flatten()
+        self.n = yT.shape[1]
+        self.adjusted_mutual_info_score = sklearn.metrics.cluster.adjusted_mutual_info_score(labels_true=self.yT,
+                                                                                             labels_pred=self.yP)
+        self.adjusted_rand_score = sklearn.metrics.cluster.adjusted_rand_score(labels_true=self.yT, labels_pred=self.yP)
+        self.completeness_score = sklearn.metrics.cluster.completeness_score(labels_true=self.yT, labels_pred=self.yP)
+
+    def __repr__(self):
+        return '{cls}(yP=array{yP}, yT=array{yT})'.format(
+            cls=self.__class__.__name__,
+            yP=repr(list(self.yP.shape)),
+            yT=repr(list(self.yT.shape)))
+
+    @staticmethod
+    def fromRaster(prediction, reference, **kwargs):
+        assert isinstance(prediction, Classification)
+        assert isinstance(reference, Classification)
+        yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
+                                                  **kwargs).features
+        yT = UnsupervisedSample.fromRasterAndMask(raster=reference, mask=reference.asMask(), grid=reference,
+                                                  **kwargs).features
+        return ClusteringPerformance(yP=yP, yT=yT)
+
+    def report(self):
+        report = Report('Clustering Performance')
+        report.append(ReportHeading('Performance Measures'))
+        report.append(ReportParagraph('n = ' + str(self.n)))
+        rowHeaders = [['Adjusted Mutual Information', 'Adjusted Rand Score', 'Completeness Score']]
+        data = numpy.transpose([[numpy.round(self.adjusted_mutual_info_score, 3),
+                                 numpy.round(self.adjusted_rand_score, 3), numpy.round(self.completeness_score, 3)]])
+        report.append(ReportTable(data, '', rowHeaders=rowHeaders))
+        report.append(ReportHeading('Scikit-Learn Documentation'))
+        report.append(
+            ReportHyperlink('http://scikit-learn.org/stable/modules/clustering.html#clustering-performance-evaluation',
+                            'Clustering Performance Evaluation Overview'))
+        report.append(ReportHyperlink(
+            'http://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html#sklearn.metrics.adjusted_mutual_info_score',
+            'Adjusted Mutual Information'))
+        report.append(ReportHyperlink(
+            'http://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html#sklearn.metrics.adjusted_rand_score',
+            'Adjusted Rand Score'))
+        report.append(ReportHyperlink(
+            'http://scikit-learn.org/stable/modules/generated/sklearn.metrics.completeness_score.html#sklearn.metrics.completeness_score',
+            'Completeness Score'))
 
         return report
