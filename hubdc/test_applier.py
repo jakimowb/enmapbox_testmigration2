@@ -23,6 +23,7 @@ def test_ApplierInputRaster():
             print(cfmask.sample(mask=cfmaskArray == 31241).shape)  # empty sample
 
             # read raster metadata
+            print(cfmask.metadataItem(key='abc', domain=''))
             print(cfmask.metadataDict())
             print(cfmask.noDataValues())
             print(cfmask.noDataValue())
@@ -34,7 +35,7 @@ def test_ApplierInputRaster():
 
     applier.controls.setProjection(projection=Projection.WGS84())
     applier.controls.setExtent(
-        extent=openRaster(filename=LT51940232010189KIS01.cfmask).spatialExtent().reproject(
+        extent=openRaster(filename=LT51940232010189KIS01.cfmask).grid().spatialExtent().reproject(
             targetProjection=Projection.WGS84()))
     applier.controls.setResolution(resolution=0.01)
     applier.apply(operatorType=Operator)

@@ -3,7 +3,6 @@ from os.path import join, exists, dirname, basename
 import operator
 from datetime import datetime as Datetime, timedelta as Timedelta
 import yaml
-import xarray as xr
 import dask.array as da
 import pandas as pd
 import numpy as np

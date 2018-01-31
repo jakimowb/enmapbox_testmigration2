@@ -1618,6 +1618,7 @@ class Vector(object):
         self._ogrLayer = ogrDataSource.GetLayer(iLayer=layerNameOrIndex)
         self._filename = self._ogrDataSource.GetDescription()
         self._layerNameOrIndex = layerNameOrIndex
+        self._reprojectionCache = dict()
 
     def __repr__(self):
 
@@ -1699,9 +1700,12 @@ class Vector(object):
         if self.projection().equal(other=grid.projection()):
             vector = self
         else:
-            vector = self.reprojectOnTheFly(projection=grid.projection())
+            if not grid.projection().wkt() in self._reprojectionCache:
+                self._reprojectionCache[grid.projection().wkt()] = self.reprojectOnTheFly(projection=grid.projection())
+            vector = self._reprojectionCache[grid.projection().wkt()]
 
         vector.ogrLayer().SetAttributeFilter(filterSQL)
+        vector.ogrLayer().SetSpatialFilter(grid.spatialExtent().geometry().ogrGeometry())
 
         if not driver.equal(other=MEMDriver()) and not exists(dirname(filename)):
             makedirs(dirname(filename))

@@ -364,11 +364,8 @@ class ApplierOutputRaster(ApplierIO):
         :param filename: destination filename for output raster
         :param driver:
         :type driver: hubdc.model.Driver
-        :param creationOptions: GDAL creation options; e.g. ``['INTERLEAVE=BSQ']`` for ENVI band interleaved,
-                                or ``['INTERLEAVE=BAND', 'TILED=YES', 'COMPRESS=LZW']`` for GTiff band interleaved, tiled and LZW compressed.
-                                For ENVI and GTiff files also see http://www.gdal.org/frmt_various.html#ENVI and http://www.gdal.org/frmt_gtiff.html.
-
-        :type creationOptions: list of str
+        :param creationOptions: e.g. for ENVI and GTiff files see http://www.gdal.org/frmt_various.html#ENVI and http://www.gdal.org/frmt_gtiff.html.
+        :type creationOptions: RasterCreationOptions
         '''
 
         ApplierIO.__init__(self, filename=filename)
@@ -501,7 +498,7 @@ class ApplierOutputRasterBand(ApplierIO):
         self.parent._writerQueue.put((Writer.WRITE_BANDARRAY, self.parent.filename(), array, self._index,
                                       self.parent.zsize(), self.parent.operator().subgrid(),
                                       self.parent.operator().grid(),
-                                      self.parent.format, self.parent.creationOptions))
+                                      self.parent.driver, self.parent.creationOptions))
         return self
 
     def _callMethod(self, method, **kwargs):
@@ -771,7 +768,7 @@ class ApplierInputRasterIndex(object):
 
     def insertRaster(self, key, raster):
         assert isinstance(raster, ApplierInputRaster)
-        extent = raster.dataset().spatialExtent().reproject(targetProjection=self.WGS84)
+        extent = raster.dataset().grid().spatialExtent().reproject(targetProjection=self.WGS84)
         self.insertFilename(key=key, filename=raster.filename(), extent=extent)
 
     def insertFilename(self, key, filename, extent):
