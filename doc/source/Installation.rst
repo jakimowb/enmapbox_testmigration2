@@ -12,22 +12,41 @@ that can be downloaded `here <https://www.qgis.org/en/site/forusers/download.htm
 
 Installing or updating the EnMAP-Box itself is simple:
 
-    1. Download the latest EnMAP-Box from `<https://bitbucket.org/hu-geomatics/enmap-box/downloads/>`_
+    #. Download the latest EnMAP-Box from `<https://bitbucket.org/hu-geomatics/enmap-box/downloads/>`_, extract the **enmapboxplugin** folder and put it into the local QGIS Plugin folder.
+       For example, let *enmapboxplugin.20180116T1825.zip* be the most recent plugin zip, than do on:
 
-    2. Extract the downloaded zip file and put the folder ``enmapboxplugin`` into your
-       local QGIS Plugin folder ``<HOME>.qgis2\python\plugins``,
-       e.g. ``C:\Users\ivan_ivanovich\.qgis2\python\plugins``
+       Windows
 
-    3. Activate the EnMAP-Box Plugin in QGIS via *Plugins >> Manage and Install Plugins...*
+            Copy the unzipped folder to ``<HOME>.qgis2\python\plugins``, e.g.
+            ``C:\Users\ivan_ivanovich\.qgis2\python\plugins\enmapboxplugin``
 
+       Linux
+
+            cd ~/.qgis2/python/plugins/
+            wget https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.20180116T1825.zip
+            rm enmapboxplugin.20180116T1825.zip
+
+       macOS (Terminal)
+
+            cd ~/.qgis2/python/plugins/
+            curl https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.20180116T1825.zip
+            rm enmapboxplugin.20180116T1825.zip
+
+    #. Restart QGIS  and activate the EnMAP-Box Plugin via *Plugins >> Manage and Install Plugins...*
+
+        .. image:: img/install_activate_plugin.png
 
 We plan to publish the EnMAP-Box in the QGIS Plugin Repository, which will replace steps 2 and 3 by "two mouse-clicks".
 
-Please note:
+.. note::
        Before you can start the EnMAP-Box the very first time, it is likely required to install additional python packages
-       which are not part of a standard QGIS installation. Read :ref:`install_missing_packages` to get help on this.
+       which are not part of a standard QGIS installation.
 
-       Some general plattform specific hints how to install QGIS are given in :ref:`install_qgis`.
+       Please read:
+
+        * :ref:`install_missing_packages` to get help on package installation.
+
+        * :ref:`install_qgis` for a general plattform specific hints how to install QGIS.
 
 
 
@@ -54,15 +73,11 @@ Package                                                         Notes     Window
 `spectral <http://www.spectralpython.net/installation.html>`_   pip
 =============================================================== ========= ============ =================
 
-*OSGeo4W* = package name to be installed using the OSGeo4W installer for QGIS on windows systems.
-
-*Linux* = package name to be installed using apt-get on Linux (tested on Ubuntu).
-
-*default* = usually already installed with QGIS
-
-*OS* = usually requires a platform-specific installation
-
-*pip* = can be installed with `pip <https://pip.pypa.io>`_ (the `preferred installer <https://packaging.python.org/guides/tool-recommendations/>`_ to install python packages).
+    * *OSGeo4W* = package name to be installed using the OSGeo4W installer for QGIS on windows systems.
+    * *Linux* = package name to be installed using apt-get on Linux (tested on Ubuntu).
+    * *default* = usually already installed with QGIS
+    * *OS* = usually requires a platform-specific installation
+    * *pip* = can be installed with `pip <https://pip.pypa.io>`_ (the `preferred installer <https://packaging.python.org/guides/tool-recommendations/>`_ to install python packages).
 
 
 
@@ -191,8 +206,8 @@ The following way was tested successfully on Ubuntu.
 
 .. _install_qgis:
 
-QGIS Installation hints
------------------------
+Install QGIS
+------------
 
 Instructions to download and install QGIS can be found on `<http://www.qgis.org/en/site/forusers/download.html>`_.
 
