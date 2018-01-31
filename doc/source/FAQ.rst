@@ -15,15 +15,9 @@ How do I...
 
     Please install the *msys (command line utilities)* package with the OSGeo4W package installer.
 
-... install QGIS on Windows without having administrative rights?
+... **install QGIS on Windows without having administrative rights**?
 
-    * Download the QGIS installer from `<https://www.qgis.org/en/site/forusers/download.html>`_, e.g. `QGIS-OSGeo4W-2.18.16-1-Setup-x86_64.exe`
+    * yes, it is possible to install and run QGIS withouht any admin rights on windows.
+      Read :ref:`install_qgis_windows` for more details on this.
 
-    * open a windows shell (`cmd.exe`) and navigate to the download folder
-
-    * call ``set __COMPAT_LAYER=RUNASINVOKER``
-
-    * now start the installer
-
-... update QGIS on Windows without having administrative rights?
-
+...
