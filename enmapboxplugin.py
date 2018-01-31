@@ -19,8 +19,12 @@
 from __future__ import absolute_import
 import os, sys, logging, site, traceback
 from qgis.gui import QgisInterface
+from qgis.core import QgsMessageLog
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QAction
+
+
+_MSGLOG_TAG = 'EnMAP-Box'
 
 
 class EnMAPBoxPlugin(object):
@@ -41,32 +45,70 @@ class EnMAPBoxPlugin(object):
 
 
 
-        dir_repo = os.path.dirname(__file__)
-        site.addsitedir(dir_repo)
 
         #run a dependency check
-        from enmapbox import DEPENDENCIES, __version__
-        from enmapbox import dependencychecker
-        if not dependencychecker.checkAndShowMissingDependencies(DEPENDENCIES):
-            raise Exception('Missing packages during activation of EnMAP-Box: {}\n{}'.format(__version__, ','.join(dependencychecker.LAST_MISSED_PACKAGES)))
+        self.initialDependencyCheck()
+
+        from enmapbox import messageLog
+        dirPlugin = os.path.dirname(__file__)
+        site.addsitedir(dirPlugin)
 
         try:
             import enmapboxgeoalgorithms.algorithms
             enmapboxgeoalgorithms.algorithms.EnMAPProvider = None
         except Exception as ex:
-            pass
+            messageLog(str(ex))
+
 
         # add the EnMAP-Box Provider
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
         from processing.core.Processing import Processing
         self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
 
-
-
         Processing.addProvider(self.enmapBoxProvider)
 
         from enmapboxgeoalgorithms.algorithms import ALGORITHMS
         self.enmapBoxProvider.appendAlgorithms(ALGORITHMS)
+
+    def initialDependencyCheck(self):
+        """
+        Runs a check for availability of package dependencies and give an readible error message
+        :return:
+        """
+
+        pluginDir = os.path.dirname(__file__)
+        missing = []
+        from enmapbox import DEPENDENCIES, messageLog
+        for package in DEPENDENCIES:
+            try:
+                __import__(package)
+
+            except Exception as ex:
+                missing.append(package)
+        if len(missing) > 0:
+
+            n = len(missing)
+
+
+
+
+
+            longText = ['Unable to import the following package(s):']
+            longText.append('<b>{}</b>'.format(', '.join(missing)))
+            longText.append('<p>Please run your local package manager(s) with root rights to install them.')
+            longText.append('More information is available under:')
+            longText.append('<a href="http://enmap-box.readthedocs.io/en/latest/Installation.html">http://enmap-box.readthedocs.io/en/latest/Installation.html</a> </p>')
+
+            longText.append('This Python:')
+            longText.append('Executable: {}'.format(sys.executable))
+            longText.append('ENVIRON:')
+            for k in sorted(os.environ.keys()):
+                longText.append('\t{} ={}'.format(k, os.environ[k]))
+
+            longText = '<br/>\n'.join(longText)
+            messageLog(longText)
+            raise Exception(longText)
+
 
     def initGui(self):
         self.toolbarActions = []

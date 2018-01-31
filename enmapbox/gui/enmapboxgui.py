@@ -367,8 +367,20 @@ class EnMAPBox(QgisInterface, QObject):
         if not self.processingAlgManager.enmapBoxProvider():
             Processing.addProvider(EnMAPBoxAlgorithmProvider())
 
-    def addApplication(self, appdir):
-        self.applicationRegistry.addApplicationPackageSavely(appdir)
+    def addApplication(self, app):
+        """
+        :param app: Can be the path of a directory which contains an EnMAP-Box Application or
+                    an instance of an EnMAPBoxApplication
+        """
+        from enmapbox.gui.applications import EnMAPBoxApplication
+        if isinstance(app, EnMAPBoxApplication):
+            self.applicationRegistry.addApplication(app)
+        elif type(app) in [str, unicode]:
+            self.applicationRegistry.addApplicationPackageSavely(app)
+        else:
+            raise Exception('argument "app" has unknown type: {}. '.format(str(app)))
+
+
     def initActions(self):
         # link action to managers
         self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
