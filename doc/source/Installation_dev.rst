@@ -128,9 +128,12 @@ If your IDE is set up correctly, you should be able to start the EnMAP-Box using
         qgsApp.quit()
 
 
+Platform specific hints
+-----------------------
 
-Hints for Windows (OSGeo4W)
----------------------------
+
+Windows (OSGeo4W)
+.................
 
 QGIS for windows is maintained by the OSGeo4W package installer. The ``qgis.exe`` is located in a folder system
 like ``<OSGeo4WRoot>/bin``. An easy way to ensure that your IDE operates under the same environment as QGIS does, is to use the following startup script in a
@@ -178,8 +181,8 @@ If you plan to develop your own GUI based on Qt, you might install the related p
 
 
 
-Hints for macOS (standard installation)
----------------------------------------
+macOS (standard installation)
+.............................
 
 The QGIS.app for macOS can be downloaded from `<http://www.kyngchaos.com/software/qgis>`_. It is installed to
 ``/Applications`` and linked against the standard macOS python.
@@ -196,8 +199,8 @@ The QGIS.app for macOS can be downloaded from `<http://www.kyngchaos.com/softwar
 
 
 
-Hints for macOS (OSGeo4Mac)
----------------------------
+macOS (OSGeo4Mac)
+.................
 
 The `Homebrew <https://brew.sh/>`_ package installer can be used to download and install QGIS as well. Please see
 `OSGeo4Mac QGIS <https://github.com/OSGeo/homebrew-osgeo4mac>`_ for details.
@@ -225,9 +228,10 @@ Add the returned directories  or its parent site-package folders to as contet ro
 
 
 
-Hints for Linux (Ubuntu)
-------------------------
+Linux (Ubuntu)
+..............
 
     * tbd.
 
     *
+

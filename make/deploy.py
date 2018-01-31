@@ -13,7 +13,8 @@
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
 *   the Free Software Foundation; either version 2 of the License, or     *
-*   (at your option) any later version.                                   *
+*   (at your option) any later version.
+                 *
 *                                                                         *
 ***************************************************************************
 """
@@ -27,8 +28,8 @@ import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
 import git
 
-CREATE_TAG = True
-CHECK_COMMITS = True
+CREATE_TAG = False
+CHECK_COMMITS = False
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
