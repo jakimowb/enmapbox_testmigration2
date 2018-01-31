@@ -89,39 +89,25 @@ class EnMAPBoxPlugin(object):
 
             n = len(missing)
 
-            #pathRequirements = os.path.join(pluginDir, 'requirements.txt')
-            #pipCmd1 = 'install -r {}'.format(pathRequirements)
-            #pipCmd2 = 'install --user -r {}'.format(pathRequirements)
-            #shortText = ['Unable to import {} package(s):\n'.format(n, ', '.join(missing))]
 
-            longText = ['Unable to import: {}'.format(', '.join(missing)),
-                        'Please run your local package manager(s) with root rights to install them.',
-                        'More information available under:\nhttp://enmap-box.readthedocs.io/en/latest/Installation.html']
-            shortText = '\n'.join(longText)
 
-            longText.append('\nThis Python:\nExecutable: {}'.format(sys.executable))
-            longText.append('PYTHONPATH :\n{}'.format('\n'.join(sorted(sys.path))))
-            env = []
+
+
+            longText = ['Unable to import the following package(s):']
+            longText.append('<b>{}</b>'.format(', '.join(missing)))
+            longText.append('<p>Please run your local package manager(s) with root rights to install them.')
+            longText.append('More information is available under:')
+            longText.append('<a href="http://enmap-box.readthedocs.io/en/latest/Installation.html">http://enmap-box.readthedocs.io/en/latest/Installation.html</a> </p>')
+
+            longText.append('This Python:')
+            longText.append('Executable: {}'.format(sys.executable))
+            longText.append('ENVIRON:')
             for k in sorted(os.environ.keys()):
-                env.append('{} ={}'.format(k, os.environ[k]))
-            longText.append('ENVIRON: \n{}'.format('\n'.join(env)))
+                longText.append('\t{} ={}'.format(k, os.environ[k]))
 
-            longText = '\n'.join(longText)
+            longText = '<br/>\n'.join(longText)
             messageLog(longText)
-
-            from PyQt4.QtGui import QMessageBox
-            mb = QMessageBox()
-            mb.setWindowTitle('Missing packages')
-            mb.setText('Unable to import {} package(s)'.format(n))
-            mb.setInformativeText(shortText)
-            mb.setDetailedText(longText)
-            mb.setMinimumWidth(250)
-            mb.setStandardButtons(QMessageBox.Ok | QMessageBox.Ignore)
-            result = mb.exec_()
-            if result == QMessageBox.Ok:
-                raise Exception(longText)
-            elif result == QMessageBox.Ignore:
-                pass
+            raise Exception(longText)
 
 
     def initGui(self):

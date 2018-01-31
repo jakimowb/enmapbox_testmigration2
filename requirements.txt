@@ -8,7 +8,7 @@ pyqtgraph
 
 
 #requirements HUB Datacube
-https://bitbucket.org/chchrsc/rios/downloads/rios-1.4.4.zip
+# https://bitbucket.org/chchrsc/rios/downloads/rios-1.4.4.zip
 sklearn
 spectral
 
