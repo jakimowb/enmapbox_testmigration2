@@ -49,7 +49,7 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
     assert bands > 0
     assert eType > 0
 
-    assert eType in LUT_GDT_SIZE.keys(), 'dataType "{}" is not a valid gdal datatype'.format(dataType)
+    assert eType in LUT_GDT_SIZE.keys(), 'dataType "{}" is not a valid gdal datatype'.format(eType)
     interleave = interleave.lower()
 
     assert interleave in ['bsq','bil','bip']
