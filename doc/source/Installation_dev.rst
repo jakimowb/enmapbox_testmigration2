@@ -167,7 +167,7 @@ batch file ``.bat`` file::
     set QT_PLUGIN_PATH=%OSGEO4W_ROOT%\apps\qgis\qtplugins;%OSGEO4W_ROOT%\apps\qt4\plugins
     set PYTHONPATH=%OSGEO4W_ROOT%\apps\qgis\python;%PYTHONPATH%
 
-    start "IDE aware of QGIS" /B %PYCHARM% %*
+    start "IDE aware of QGIS" /B %'IDE% %*
 
 
 Please note that the line ``CALL %OSGEO4W_ROOT%\bin\o4w_env.bat``` is responsible for an incremental call of other batch files which setup
