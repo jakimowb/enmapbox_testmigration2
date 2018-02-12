@@ -161,52 +161,17 @@ LINK_ON_SCALE = 'SCALE'
 LINK_ON_CENTER = 'CENTER'
 LINK_ON_CENTER_SCALE = 'CENTER_SCALE'
 
+class CanvasLinkDialog(QDialog):
+
+    def __init__(self, *args, **kwds):
+        super(CanvasLinkDialog, self).__init__(*args, **kwds)
+
+
 
 class CanvasLinkTargetWidget(QFrame):
 
-    LINK_TARGET_WIDGETS = set()
 
 
-    @staticmethod
-    def ShowMapLinkTargets(mapDockOrMapCanvas):
-        if isinstance(mapDockOrMapCanvas, MapDock):
-            mapDockOrMapCanvas = mapDockOrMapCanvas.canvas
-        assert isinstance(mapDockOrMapCanvas, QgsMapCanvas)
-
-        canvas1 = mapDockOrMapCanvas
-        assert isinstance(canvas1, QgsMapCanvas)
-        CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
-
-        for canvas_source in MapCanvas.instances():
-            if canvas_source != canvas1:
-                w = CanvasLinkTargetWidget(canvas1, canvas_source)
-                w.setAutoFillBackground(False)
-                w.show()
-                CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.add(w)
-                #canvas_source.freeze()
-            s = ""
-
-        s = ""
-
-    @staticmethod
-    def linkMaps(maplinkwidget, linktype):
-        from enmapbox.gui.mapcanvas import CanvasLink
-        CanvasLink(maplinkwidget.canvas1, maplinkwidget.canvas2, linktype)
-        CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets()
-
-    @staticmethod
-    def RemoveMapLinkTargetWidgets(processEvents=True):
-        for w in list(CanvasLinkTargetWidget.LINK_TARGET_WIDGETS):
-            CanvasLinkTargetWidget.LINK_TARGET_WIDGETS.remove(w)
-            p = w.parent()
-            w.hide()
-            del(w)
-            p.refresh()
-            p.update()
-
-        if processEvents:
-            #qApp.processEvents()
-            QCoreApplication.instance().processEvents()
 
     def __init__(self, canvas1, canvas2):
         assert isinstance(canvas1, QgsMapCanvas)
@@ -227,7 +192,7 @@ class CanvasLinkTargetWidget(QFrame):
         self.buttons = list()
         bt = QToolButton(self)
         bt.setToolTip('Link map center')
-        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, LINK_ON_CENTER))
+        bt.clicked.connect(lambda: CanvasLink.linkMaps(self, LINK_ON_CENTER))
         icon = QIcon(':/enmapbox/icons/link_center.png')
         bt.setIcon(icon)
         bt.setIconSize(QSize(16,16))
@@ -235,13 +200,13 @@ class CanvasLinkTargetWidget(QFrame):
 
         bt = QToolButton(self)
         bt.setToolTip('Link map scale ("Zoom")')
-        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, LINK_ON_SCALE))
+        bt.clicked.connect(lambda: CanvasLink.linkMaps(self, LINK_ON_SCALE))
         bt.setIcon(QIcon(':/enmapbox/icons/link_mapscale.png'))
         self.buttons.append(bt)
 
         bt = QToolButton(self)
         bt.setToolTip('Link map scale and center')
-        bt.clicked.connect(lambda: CanvasLinkTargetWidget.linkMaps(self, LINK_ON_CENTER_SCALE))
+        bt.clicked.connect(lambda: CanvasLink.linkMaps(self, LINK_ON_CENTER_SCALE))
         bt.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.png'))
         self.buttons.append(bt)
 
@@ -321,7 +286,7 @@ class CanvasLinkTargetWidget(QFrame):
 
         if ev.button() == Qt.RightButton:
             #no choice, remove Widgets
-            CanvasLinkTargetWidget.RemoveMapLinkTargetWidgets(True)
+            CanvasLink.RemoveMapLinkTargetWidgets(True)
             ev.accept()
 
 
@@ -332,10 +297,54 @@ class CanvasLink(QObject):
     GLOBAL_LINK_LOCK = False
 
     @staticmethod
+    def ShowMapLinkTargets(mapDockOrMapCanvas):
+        if isinstance(mapDockOrMapCanvas, MapDock):
+            mapDockOrMapCanvas = mapDockOrMapCanvas.canvas
+        assert isinstance(mapDockOrMapCanvas, QgsMapCanvas)
+
+        canvas1 = mapDockOrMapCanvas
+        assert isinstance(canvas1, QgsMapCanvas)
+        CanvasLink.RemoveMapLinkTargetWidgets(True)
+
+        for canvas_source in MapCanvas.instances():
+            if canvas_source != canvas1:
+                w = CanvasLinkTargetWidget(canvas1, canvas_source)
+                w.setAutoFillBackground(False)
+                w.show()
+                CanvasLink.LINK_TARGET_WIDGETS.add(w)
+                #canvas_source.freeze()
+            s = ""
+
+        s = ""
+
+    @staticmethod
+    def linkMaps(maplinkwidget, linktype):
+        from enmapbox.gui.mapcanvas import CanvasLink
+        CanvasLink(maplinkwidget.canvas1, maplinkwidget.canvas2, linktype)
+        CanvasLink.RemoveMapLinkTargetWidgets()
+
+    @staticmethod
+    def RemoveMapLinkTargetWidgets(processEvents=True):
+        for w in list(CanvasLink.LINK_TARGET_WIDGETS):
+            CanvasLink.LINK_TARGET_WIDGETS.remove(w)
+            p = w.parent()
+            w.hide()
+            del(w)
+            p.refresh()
+            p.update()
+
+        if processEvents:
+            #qApp.processEvents()
+            QCoreApplication.instance().processEvents()
+
+
+
+    @staticmethod
     def resetLinkLock():
         CanvasLink.GLOBAL_LINK_LOCK = False
 
 
+    LINK_TARGET_WIDGETS = set()
 
     def __init__(self, canvas1, canvas2, linkType):
         super(CanvasLink, self).__init__()
@@ -655,7 +664,7 @@ class MapCanvas(QgsMapCanvas):
 
         action = menu.addAction('Link with other maps')
         action.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
-        action.triggered.connect(lambda: CanvasLinkTargetWidget.ShowMapLinkTargets(self))
+        action.triggered.connect(lambda: CanvasLink.ShowMapLinkTargets(self))
         action = menu.addAction('Remove links to other maps')
         action.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         action.triggered.connect(lambda: self.removeAllCanvasLinks())
@@ -1058,8 +1067,8 @@ class MapDock(Dock):
         #                self.identifyChangedRasterResults)
         #self.toolIdentify.changedRasterResults.connect(self.identifyChangedRasterResults)
 
-        from enmapbox.gui.mapcanvas import CanvasLinkTargetWidget
-        self.label.addMapLink.clicked.connect(lambda:CanvasLinkTargetWidget.ShowMapLinkTargets(self))
+
+        self.label.addMapLink.clicked.connect(lambda:CanvasLink.ShowMapLinkTargets(self))
         self.label.removeMapLink.clicked.connect(lambda: self.canvas.removeAllCanvasLinks())
 
         if initSrc is not None:
@@ -1142,23 +1151,3 @@ class MapDock(Dock):
 
 
 
-if __name__ == '__main__':
-    import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
-
-    from enmapbox.gui.utils import initQgisApplication
-    from enmapboxtestdata import enmap
-    qgsApp = initQgisApplication()
-
-    map = MapCanvas()
-
-    mapInfo = MapCanvasInfoItem(map)
-
-    lyr = QgsRasterLayer(enmap)
-    QgsMapLayerRegistry.instance().addMapLayer(lyr)
-    map.setLayers([lyr])
-    map.setExtent(lyr.extent())
-    map.show()
-
-    qgsApp.exec_()
-    qgsApp.exitQgis()

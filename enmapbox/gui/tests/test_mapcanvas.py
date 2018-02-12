@@ -17,7 +17,7 @@ from qgis import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from enmapbox.gui.sandbox import initQgisEnvironment
-from enmapbox.testdata.UrbanGradient import EnMAP, VHR
+from enmapboxtestdata import enmap, hymap
 from enmapbox.gui.mapcanvas import *
 QGIS_APP = initQgisEnvironment()
 
@@ -58,10 +58,37 @@ class testclassData(unittest.TestCase):
 
 
 
+def exampleMapLinking():
+    import site, sys
+    #add site-packages to sys.path as done by enmapboxplugin.py
+
+    from enmapbox.gui.utils import initQgisApplication
+    from enmapboxtestdata import enmap, hymap
+    qgsApp = initQgisApplication()
+
+    map1 = MapCanvas()
+    map2 = MapCanvas()
+    mapInfo = MapCanvasInfoItem(map1)
+
+    lyr = QgsRasterLayer(enmap)
+    QgsMapLayerRegistry.instance().addMapLayer(lyr)
+    map1.setLayers([lyr])
+    map1.setExtent(lyr.extent())
+    map1.show()
+
+    lyr2 = QgsRasterLayer(hymap)
+    QgsMapLayerRegistry.instance().addMapLayer(lyr2)
+    map2.setLayers([lyr2])
+    map2.setExtent(lyr2.extent())
+    map2.show()
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
 
 if __name__ == "__main__":
-
-    unittest.main()
+    exampleMapLinking()
+    #+unittest.main()
 
 
 
