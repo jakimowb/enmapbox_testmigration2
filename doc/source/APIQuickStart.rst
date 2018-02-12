@@ -91,6 +91,49 @@ You can create a new windows with::
 
 
 
+Interact with the EnMAP-Box
+---------------------------
+
+This example shows how the `Qt Signal-Slot system <http://doc.qt.io/archives/qt-4.8/signalsandslots.html>`_ can be used to react on EnMAP-Box events::
+
+
+    class ExampleDialog(QDialog):
+        def __init__(self, parent=None):
+            super(ExampleDialog, self).__init__(parent=parent)
+
+            # self.setParent(enmapBox.ui)
+            self.btn = QPushButton('Clear')
+            self.label = QLabel('This Box will shows data sources newly added to the EnMAP-Box.')
+            self.tb = QPlainTextEdit()
+            self.tb.setLineWrapMode(QPlainTextEdit.NoWrap)
+            self.tb.setPlainText('Click "Project" > "Add example data"\n or add any other data source to the EnMAP-Box')
+            l = QVBoxLayout()
+            self.setLayout(l)
+            l.addWidget(self.label)
+            l.addWidget(self.tb)
+            l.addWidget(self.btn)
+
+            self.btn.clicked.connect(self.tb.clear)
+
+        def onSignal(self, src):
+            import datetime
+            t = datetime.datetime.now()
+            text = self.tb.toPlainText()
+            text = '{}\n{} : {}'.format(text, t.time(), src)
+            self.tb.setPlainText(text)
+
+    enmapBox = EnMAPBox.instance()
+    d = ExampleDialog(parent=enmapBox.ui)
+    d.setFixedSize(QSize(600, 300))
+
+    #connect different signals to a slot
+    enmapBox.sigDataSourceAdded.connect(d.onSignal)
+    enmapBox.sigCurrentLocationChanged.connect(d.onSignal)
+
+    d.show()
+
+
+
 
 Create EnMAP-Box Applications
 -----------------------------

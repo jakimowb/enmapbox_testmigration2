@@ -6,6 +6,7 @@
     exampleapp/api.examples.py
 
     This file shows a couple of examples how to use the EnMAP-Box API
+    These examples are used for the API Quick Start in doc/source/APIQuickStart.rst
     ---------------------
     Date                 : January 2018
     Copyright            : (C) 2018 by Benjamin Jakimow
@@ -94,13 +95,13 @@ class Example5Dialog(QDialog):
 
     def __init__(self, parent=None):
         super(Example5Dialog, self).__init__(parent=parent)
-        enmapBox = EnMAPBox.instance()
-        self.enmapBox = enmapBox
+
         #self.setParent(enmapBox.ui)
         self.btn = QPushButton('Clear')
+        self.label = QLabel('This Box will shows data sources newly added to the EnMAP-Box.')
         self.tb = QPlainTextEdit()
         self.tb.setLineWrapMode(QPlainTextEdit.NoWrap)
-        self.label = QLabel('This box shows new added data sources')
+        self.tb.setPlainText('Click "Project" > "Add example data"\n or add any other data source to the EnMAP-Box')
         l = QVBoxLayout()
         self.setLayout(l)
         l.addWidget(self.label)
@@ -109,11 +110,6 @@ class Example5Dialog(QDialog):
 
 
         self.btn.clicked.connect(self.tb.clear)
-
-
-
-        enmapBox.sigDataSourceAdded.connect(self.onSignal)
-        enmapBox.sigCurrentLocationChanged.connect(self.onSignal)
 
 
     def onSignal(self, src):
@@ -128,11 +124,45 @@ class Example5Dialog(QDialog):
 
 
 def example5_connectWithEnMAPBoxSignals():
-    enmapBox = EnMAPBox.instance()
+    """
+    This example demonstrates how the Qt Signal-Slot mechanism can be used to react on EnMAP-Box events.
+    Read http://doc.qt.io/archives/qt-4.8/signalsandslots.html for details of signals & slots.
+    """
 
-    w = Example5Dialog(parent = enmapBox.ui)
-    w.setFixedSize(QSize(600,300))
-    w.show()
+    class ExampleDialog(QDialog):
+        def __init__(self, parent=None):
+            super(ExampleDialog, self).__init__(parent=parent)
+
+            # self.setParent(enmapBox.ui)
+            self.btn = QPushButton('Clear')
+            self.label = QLabel('This Box will shows data sources newly added to the EnMAP-Box.')
+            self.tb = QPlainTextEdit()
+            self.tb.setLineWrapMode(QPlainTextEdit.NoWrap)
+            self.tb.setPlainText('Click "Project" > "Add example data"\n or add any other data source to the EnMAP-Box')
+            l = QVBoxLayout()
+            self.setLayout(l)
+            l.addWidget(self.label)
+            l.addWidget(self.tb)
+            l.addWidget(self.btn)
+
+            self.btn.clicked.connect(self.tb.clear)
+
+        def onSignal(self, src):
+            import datetime
+            t = datetime.datetime.now()
+            text = self.tb.toPlainText()
+            text = '{}\n{} : {}'.format(text, t.time(), src)
+            self.tb.setPlainText(text)
+
+    enmapBox = EnMAPBox.instance()
+    d = ExampleDialog(parent=enmapBox.ui)
+    d.setFixedSize(QSize(600, 300))
+
+    #connect different signals to a slot
+    enmapBox.sigDataSourceAdded.connect(d.onSignal)
+    enmapBox.sigCurrentLocationChanged.connect(d.onSignal)
+
+    d.show()
 
 
 
@@ -143,7 +173,7 @@ if __name__ == '__main__':
 
     #un-comment the example you like to run
 
-    if True:
+    if False:
         example1_startEnMAPBoxWithoutQGIS()
     else:
 
@@ -157,12 +187,12 @@ if __name__ == '__main__':
 
         enmapBox = EnMAPBox(None)
 
-        example5_connectWithEnMAPBoxSignals()
 
 
         #example2_connectToRunningEnMAPBox()
         #example3_DataSourceHandling()
         #example4_createWindows()
+        example5_connectWithEnMAPBoxSignals()
 
 
         # not required if the GUI Thread is performed by QGIS
