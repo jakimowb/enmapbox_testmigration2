@@ -242,8 +242,11 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
         :param title:
         :return:
         """
+
+        old = self.title()
         super(Dock, self).setTitle(title)
-        self.sigTitleChanged.emit(title)
+        if old != title:
+            self.sigTitleChanged.emit(title)
 
     def _createLabel(self, *args, **kwds):
         """
