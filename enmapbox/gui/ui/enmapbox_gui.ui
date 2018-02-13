@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>EnMAP-Box</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="resources.qrc">
+    <normaloff>:/enmapbox/icons/enmapbox.png</normaloff>:/enmapbox/icons/enmapbox.png</iconset>
+  </property>
   <property name="dockOptions">
    <set>QMainWindow::AllowNestedDocks|QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks|QMainWindow::VerticalTabs</set>
   </property>
@@ -123,6 +127,7 @@
     <addaction name="actionZoomPixelScale"/>
     <addaction name="separator"/>
     <addaction name="actionIdentify"/>
+    <addaction name="actionMapLinking"/>
     <addaction name="separator"/>
     <addaction name="actionAddMapView"/>
     <addaction name="actionAddSpeclibView"/>
@@ -451,6 +456,18 @@
   <action name="actionOpenProjectPage">
    <property name="text">
     <string>Project Webpage</string>
+   </property>
+  </action>
+  <action name="actionMapLinking">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/link_basic.png</normaloff>:/enmapbox/icons/link_basic.png</iconset>
+   </property>
+   <property name="text">
+    <string>Set map linking</string>
+   </property>
+   <property name="toolTip">
+    <string>Opens a dialog to specify the linking between different maps</string>
    </property>
   </action>
  </widget>
