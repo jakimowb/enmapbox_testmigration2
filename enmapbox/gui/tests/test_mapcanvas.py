@@ -40,7 +40,7 @@ class testclassData(unittest.TestCase):
     def test_mapCanvas(self):
 
         menu = self.mapCanvas.contextMenu()
-        lyr = QgsRasterLayer(EnMAP)
+        lyr = QgsRasterLayer(enmap)
         self.assertTrue(lyr not in QgsMapLayerRegistry.instance().mapLayers().values())
         self.mapCanvas.setLayers(lyr)
         self.assertTrue(lyr in QgsMapLayerRegistry.instance().mapLayers().values())
@@ -63,30 +63,35 @@ def exampleMapLinking():
     #add site-packages to sys.path as done by enmapboxplugin.py
 
     from enmapbox.gui.utils import initQgisApplication
-    from enmapboxtestdata import enmap, hymap
+    from enmapboxtestdata import enmap, hymap, landcover
+    from enmapbox.gui.mapcanvas import CanvasLinkDialog
     qgsApp = initQgisApplication()
+    import math
+    geoFiles = [enmap, hymap, landcover]
+    nMaps = 4
 
-    map1 = MapCanvas()
-    map2 = MapCanvas()
-    mapInfo = MapCanvasInfoItem(map1)
 
-    lyr = QgsRasterLayer(enmap)
-    QgsMapLayerRegistry.instance().addMapLayer(lyr)
-    map1.setLayers([lyr])
-    map1.setExtent(lyr.extent())
-    map1.show()
+    maps = []
+    for f in geoFiles:
+        map = MapCanvas()
+        lyr = QgsRasterLayer(f)
+        QgsMapLayerRegistry.instance().addMapLayer(lyr)
+        map.setLayers([lyr])
+        map.setExtent(lyr.extent())
+        map.show()
+        maps.append(map)
 
-    lyr2 = QgsRasterLayer(hymap)
-    QgsMapLayerRegistry.instance().addMapLayer(lyr2)
-    map2.setLayers([lyr2])
-    map2.setExtent(lyr2.extent())
-    map2.show()
+    d = CanvasLinkDialog()
+    d.addCanvas(maps)
+    d.setSourceCanvas(maps[0])
+    d.show()
 
     qgsApp.exec_()
     qgsApp.exitQgis()
 
 
 if __name__ == "__main__":
+
     exampleMapLinking()
     #+unittest.main()
 
