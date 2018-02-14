@@ -137,12 +137,13 @@ class PenDialog(QDialog):
 
 
     sigPenChange = pyqtSignal(QPen)
-    def __init__(self, *args, **kwds):
+    def __init__(self, pen=None, *args, **kwds):
 
         super(QDialog, self).__init__(*args, **kwds)
         self.setWindowTitle('Specify the pen')
         self.setLayout(QVBoxLayout())
         self.mPenFrame = PenFrame(parent=self)
+        self.setPen(pen)
         self.mButtonBox = QDialogButtonBox(parent=self)
         self.mButtonBox.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.mButtonBox.button(QDialogButtonBox.Ok).clicked.connect(lambda : self.done(QDialog.Accepted))
@@ -155,7 +156,8 @@ class PenDialog(QDialog):
         return self.mPenFrame.pen()
 
     def setPen(self, pen):
-        self.mPenFrame.setPen(pen)
+        if isinstance(pen, QPen):
+            self.mPenFrame.setPen(pen)
 
 if __name__ == '__main__':
     import site, sys
