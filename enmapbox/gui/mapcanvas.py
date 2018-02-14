@@ -34,6 +34,8 @@ LINK_ON_CENTER = 'CENTER'
 LINK_ON_CENTER_SCALE = 'CENTER_SCALE'
 UNLINK = 'UNLINK'
 
+N_MAX_GRP = 2
+
 DEBUG = False
 
 class CursorLocationMapTool(QgsMapToolEmitPoint):
@@ -250,6 +252,7 @@ class MapCanvasListModel(QAbstractListModel):
 
 class CanvasLinkDialog(QDialog):
 
+    LINK_TYPES = [LINK_ON_CENTER_SCALE, LINK_ON_SCALE, LINK_ON_CENTER, UNLINK]
     @staticmethod
     def showDialog(parent=None, canvases=None):
         """
@@ -338,6 +341,10 @@ class CanvasLinkDialog(QDialog):
     def currentSourceCanvas(self):
         return self.cbSrcCanvas.itemData(self.cbSrcCanvas.currentIndex(), Qt.UserRole)
 
+    def currentTargetCanvases(self):
+        srcCanvas = self.currentSourceCanvas()
+        return [trgCanvas for trgCanvas in self.mSrcCanvasModel.mapCanvases() if trgCanvas != srcCanvas]
+
     def setSourceCanvas(self, canvas):
 
         if not isinstance(canvas, QgsMapCanvas):
@@ -357,13 +364,37 @@ class CanvasLinkDialog(QDialog):
                 w.setParent(None)
             self.mWidgetLUT.clear()
 
-        trgCanvases = [trgCanvas for trgCanvas in self.mSrcCanvasModel.mapCanvases() if trgCanvas != srcCanvas]
+        trgCanvases = self.currentTargetCanvases()
 
 
         if not isinstance(srcCanvas, MapCanvas):
             return
 
+
+        def createButtonToAll(linkType, tooltip):
+            a = CanvasLink.linkAction(None, None, linkType)
+            a.setToolTip(tooltip)
+            a.triggered.connect(lambda: self.linkToAll(linkType))
+            btn1 = QToolButton()
+            btn1.setDefaultAction(a)
+            return btn1
+
+        if len(trgCanvases) >= N_MAX_GRP:
+
+            self.grid.addWidget(QLabel('All Canvases'), 0, 0)
+            btn1 = createButtonToAll(LINK_ON_CENTER_SCALE, 'Link all canvases on center and scale.')
+            btn2 = createButtonToAll(LINK_ON_SCALE, 'Link all canvases on scale.')
+            btn3 = createButtonToAll(LINK_ON_CENTER, 'Link all canvases on center.')
+            btn4 = createButtonToAll(UNLINK, 'Unlink all canvases.')
+            self.grid.addWidget(QLabel('All Canvases'), 0, 0)
+            btns = [btn1, btn2, btn3, btn4]
+            for i, btn in enumerate(btns):
+                self.grid.addWidget(btn, 0, i+1)
+
+
+        offset = self.grid.rowCount()
         for iRow, trgCanvas in enumerate(trgCanvases):
+            iRow += offset
             assert isinstance(trgCanvas, MapCanvas)
 
             if isinstance(trgCanvas, MapCanvas):
@@ -380,7 +411,7 @@ class CanvasLinkDialog(QDialog):
 
             self.grid.addWidget(label, iRow, 0)
             btnDict = {}
-            for iCol, linkType in enumerate([LINK_ON_CENTER_SCALE, LINK_ON_SCALE, LINK_ON_CENTER, UNLINK]):
+            for iCol, linkType in enumerate(CanvasLinkDialog.LINK_TYPES):
                 btn = QToolButton(self)
                 btn.setObjectName('btn{}{}_{}'.format(srcCanvas.name(), trgCanvas.name(), linkType).replace(' ','_'))
                 a = CanvasLink.linkAction(srcCanvas, trgCanvas, linkType)
@@ -397,6 +428,12 @@ class CanvasLinkDialog(QDialog):
                 self.grid.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum), iRow, iCol+1)
         self.grid.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding), self.grid.rowCount(), 0)
 
+        self.updateLinkSelection()
+
+    def linkToAll(self, linkType):
+        src = self.currentSourceCanvas()
+        for trg in self.currentTargetCanvases():
+            CanvasLink.linkMapCanvases(src, trg, linkType)
         self.updateLinkSelection()
 
     def updateLinkSelection(self, *args):
@@ -648,14 +685,16 @@ class CanvasLink(QObject):
             a.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         else:
             raise Exception('Unknown link type : {}'.format(linkType))
-        a.triggered.connect(lambda : CanvasLink.linkMapCanvases(canvas1, canvas2, linkType))
+
+        if isinstance(canvas1, QgsMapCanvas) and isinstance(canvas2, QgsMapCanvas):
+            a.triggered.connect(lambda : CanvasLink.linkMapCanvases(canvas1, canvas2, linkType))
         return a
 
     LINK_TARGET_WIDGETS = set()
 
     def __init__(self, canvas1, canvas2, linkType):
         super(CanvasLink, self).__init__()
-        assert linkType in CanvasLink.LINKTYPES
+        assert linkType in CanvasLink.LINKTYPES, linkType
         assert isinstance(canvas1, MapCanvas)
         assert isinstance(canvas2, MapCanvas)
         assert canvas1 != canvas2
