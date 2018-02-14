@@ -46,18 +46,18 @@ class PenFrame(QFrame):
         #self.cbJoinStyle = OptionComboBox(LUT_PENJOINSTYLES, parent=self, tooltip='Choose join style')
 
         self.cbBrushStyle = QgsBrushStyleComboBox()
-        self.cbBrushStyle.setToolTip('Select a brush style.')
+        self.cbBrushStyle.setToolTip('Select brush style.')
         self.cbPenStyle = QgsPenStyleComboBox()
-        self.cbPenStyle.setToolTip('Select a pen style.')
+        self.cbPenStyle.setToolTip('Select pen style.')
         self.cbCapStyle = QgsPenCapStyleComboBox()
-        self.cbCapStyle.setToolTip('Select a cap style.')
+        self.cbCapStyle.setToolTip('Select cap style.')
         self.cbJoinStyle = QgsPenJoinStyleComboBox()
-        self.cbJoinStyle.setToolTip('Select a join style.')
+        self.cbJoinStyle.setToolTip('Select join style.')
         self.btnColor = QgsColorButton()
-        self.btnColor.setToolTip('Select the pen color.')
+        self.btnColor.setToolTip('Select pen color.')
 
         self.sbWidth = QDoubleSpinBox()
-        self.sbWidth.setToolTip('Specify the pen width.')
+        self.sbWidth.setToolTip('Specify pen width.')
         self.sbWidth.setMinimum(0)
         self.sbWidth.setMaximum(9999.99999)
 
@@ -68,9 +68,8 @@ class PenFrame(QFrame):
         self.sbWidth.valueChanged.connect(self.onUpdate)
 
 
-        self.layout().addWidget(QLabel('Width'))
         l = QHBoxLayout()
-        for w in [self.sbWidth, self.btnColor, self.cbPenStyle]:
+        for w in [QLabel('Width'), self.sbWidth, self.btnColor, self.cbPenStyle]:
             l.addWidget(w)
         self.layout().addLayout(l)
         l = QHBoxLayout()
@@ -140,7 +139,7 @@ class PenDialog(QDialog):
     def __init__(self, pen=None, *args, **kwds):
 
         super(QDialog, self).__init__(*args, **kwds)
-        self.setWindowTitle('Specify the pen')
+        self.setWindowTitle('Pen Settings')
         self.setLayout(QVBoxLayout())
         self.mPenFrame = PenFrame(parent=self)
         self.setPen(pen)
