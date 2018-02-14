@@ -34,6 +34,7 @@ LINK_ON_CENTER = 'CENTER'
 LINK_ON_CENTER_SCALE = 'CENTER_SCALE'
 UNLINK = 'UNLINK'
 
+DEBUG = False
 
 class CursorLocationMapTool(QgsMapToolEmitPoint):
 
@@ -294,6 +295,7 @@ class CanvasLinkDialog(QDialog):
         hb.addWidget(QLabel('with...'))
         hb.addSpacerItem(QSpacerItem(0,0, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
+        self.mWidgetLUT = dict()
         self.layout().addLayout(hb)
         hline = QFrame()
         hline.setFrameShape(QFrame.HLine)
@@ -353,6 +355,7 @@ class CanvasLinkDialog(QDialog):
             w = self.grid.itemAt(i).widget()
             if w:
                 w.setParent(None)
+            self.mWidgetLUT.clear()
 
         trgCanvases = [trgCanvas for trgCanvas in self.mSrcCanvasModel.mapCanvases() if trgCanvas != srcCanvas]
 
@@ -366,6 +369,7 @@ class CanvasLinkDialog(QDialog):
             if isinstance(trgCanvas, MapCanvas):
                 label = QLabel(trgCanvas.name())
                 trgCanvas.sigNameChanged.connect(label.setText)
+
             elif isinstance(trgCanvas, QgsMapCanvas):
                 import qgis.utils
                 if isinstance(qgis.utils.iface, QgisInterface) and \
@@ -373,16 +377,53 @@ class CanvasLinkDialog(QDialog):
                     label = QLabel('QGIS Map Canvas')
 
 
+
             self.grid.addWidget(label, iRow, 0)
+            btnDict = {}
             for iCol, linkType in enumerate([LINK_ON_CENTER_SCALE, LINK_ON_SCALE, LINK_ON_CENTER, UNLINK]):
-                bt = QToolButton(self)
+                btn = QToolButton(self)
+                btn.setObjectName('btn{}{}_{}'.format(srcCanvas.name(), trgCanvas.name(), linkType).replace(' ','_'))
                 a = CanvasLink.linkAction(srcCanvas, trgCanvas, linkType)
-                bt.setDefaultAction(a)
-                self.grid.addWidget(bt, iRow, iCol+1)
+                assert isinstance(a, QAction)
+                a.setCheckable(True)
+                a.triggered.connect(self.updateLinkSelection)
+                btn.setDefaultAction(a)
+                self.grid.addWidget(btn, iRow, iCol+1)
+                btnDict[linkType] = btn
+
+            self.mWidgetLUT[trgCanvas] = btnDict
 
             if iRow == 0:
                 self.grid.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum), iRow, iCol+1)
         self.grid.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding), self.grid.rowCount(), 0)
+
+        self.updateLinkSelection()
+
+    def updateLinkSelection(self, *args):
+        srcCanvas = self.currentSourceCanvas()
+        assert isinstance(srcCanvas, MapCanvas)
+
+        targetCanvases = self.mWidgetLUT.keys()
+        for targetCanvas in targetCanvases:
+            link = CanvasLink.between(srcCanvas, targetCanvas)
+            if isinstance(link, CanvasLink):
+                linkType = link.linkType
+            else:
+                linkType = UNLINK
+
+            if linkType not in self.mWidgetLUT[targetCanvas].keys():
+                s = ""
+
+            for btnLinkType, btn in self.mWidgetLUT[targetCanvas].items():
+
+                assert isinstance(btn, QToolButton)
+                a = btn.defaultAction()
+                a.setChecked(linkType == btnLinkType)
+
+
+
+
+
 
     def onButtonPressed(self, btnList, srcCanvas, targetCanvas, linkType):
         sender = self.sender()
@@ -556,7 +597,7 @@ class CanvasLink(QObject):
     def unlinkMapCanvases(canvas1, canvas2):
         if isinstance(canvas1, MapCanvas):
             canvas1.removeCanvasLink(canvas2)
-        elif isinstance(canvas2, MapCanvas):
+        if isinstance(canvas2, MapCanvas):
             canvas2.removeCanvasLink(canvas1)
         CanvasLink.RemoveMapLinkTargetWidgets()
 
@@ -607,7 +648,7 @@ class CanvasLink(QObject):
             a.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
         else:
             raise Exception('Unknown link type : {}'.format(linkType))
-        a.triggered.connect(lambda: CanvasLink.linkMapCanvases(canvas1, canvas2, linkType))
+        a.triggered.connect(lambda : CanvasLink.linkMapCanvases(canvas1, canvas2, linkType))
         return a
 
     LINK_TARGET_WIDGETS = set()
@@ -633,6 +674,27 @@ class CanvasLink(QObject):
         """Call this to remove this think from both canvases."""
         self.canvases[0].removeCanvasLink(self)
 
+    @staticmethod
+    def existsBetween(canvas1, canvas2):
+        return CanvasLink.between(canvas1, canvas2) is not None
+
+    @staticmethod
+    def between(canvas1, canvas2):
+        if not (isinstance(canvas1, QgsMapCanvas) and isinstance(canvas2, QgsMapCanvas)):
+            return False
+        links = []
+        if isinstance(canvas1, MapCanvas):
+            links.extend([l for l in canvas1.canvasLinks if l.containsCanvas(canvas2)])
+        if isinstance(canvas2, MapCanvas):
+            links.extend([l for l in canvas2.canvasLinks if l.containsCanvas(canvas1)])
+
+        links = list(set(links))
+        l = len(links)
+        if l > 1:
+            raise Exception('More than two CanvasLinks between {} and {}'.format(canvas1, canvas2))
+        if l == 1:
+            return links[0]
+        return None
 
     @staticmethod
     def applyLinking(initialSrcCanvas):

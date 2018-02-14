@@ -65,6 +65,8 @@ def exampleMapLinking():
     from enmapbox.gui.utils import initQgisApplication
     from enmapboxtestdata import enmap, hymap, landcover
     from enmapbox.gui.mapcanvas import CanvasLinkDialog
+    import enmapbox.gui.mapcanvas
+    enmapbox.gui.mapcanvas.DEBUG = True
     qgsApp = initQgisApplication()
     import math
     geoFiles = [enmap, hymap, landcover]
