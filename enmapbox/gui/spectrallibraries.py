@@ -35,7 +35,7 @@ from enmapbox.gui.utils import loadUI, gdalDataset, SpatialPoint, PanelWidgetBas
 from enmapbox.gui.utils import geo2px, px2geo, SpatialExtent, SpatialPoint
 from enmapbox.gui.utils import MimeDataHelper
 
-
+DEFAULT_CROSSHAIR_PEN = QPen(QColor('red'))
 
 
 #Lookup table for ENVI IDL DataTypes to GDAL Data Types
@@ -1621,13 +1621,37 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
         self.plotWidget.setAntialiasing(True)
         self.plotWidget.setAcceptDrops(True)
+        self.proxy = pg.SignalProxy(self.plotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
-        self.plotWidget.dragEnterEvent = self.dragEnterEvent
-        self.plotWidget.dragMoveEvent = self.dragMoveEvent
-        pi = self.plotWidget.getPlotItem()
-        pi.setAcceptDrops(True)
+        self.mShowCrosshair = True
+        pi = self.getPlotItem()
+        menu = pi.getMenu().addMenu('Crosshair')
+        a = menu.addAction('Show/Hide')
+        a.setCheckable(True)
+        a.setChecked(self.mShowCrosshair)
+        a.toggled.connect(self.setCrosshairVisibility)
 
-        pi.dropEvent = self.dropEvent
+        a = menu.addAction('Style')
+        from enmapbox.gui.widgets.drawing import PenDialog
+        a.triggered.connect(lambda : self.setCrosshairPen(PenDialog.showDialog(pen=self.crosshairPen())))
+        self.mlabel = pg.LabelItem(justify='right')
+        self.plotWidget.addItem(self.mlabel)
+        #pi.addItem(self.mlabel)
+        self.vLine = pg.InfiniteLine(angle=90, movable=False)
+        self.hLine = pg.InfiniteLine(angle=0, movable=False)
+        self.setCrosshairPen(DEFAULT_CROSSHAIR_PEN)
+
+        pi.addItem(self.vLine, ignoreBounds=True)
+        pi.addItem(self.hLine, ignoreBounds=True)
+        #p1.addItem(vLine, ignoreBounds=True)
+        #p1.addItem(hLine, ignoreBounds=True)
+
+        #self.plotWidget.dragEnterEvent = self.dragEnterEvent
+        #self.plotWidget.dragMoveEvent = self.dragMoveEvent
+        #pi = self.plotWidget.getPlotItem()
+        #pi.setAcceptDrops(True)
+
+        #pi.dropEvent = self.dropEvent
 
         self.btnLoadFromFile.clicked.connect(lambda : self.addSpeclib(SpectralLibrary.readFromSourceDialog(self)))
         self.btnExportSpeclib.clicked.connect(self.onExportSpectra)
@@ -1649,6 +1673,21 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
             )
         )
 
+    def setCrosshairPen(self, pen):
+        if isinstance(pen, QPen):
+            self.vLine.setPen(QPen(pen))
+            self.hLine.setPen(QPen(pen))
+
+    def crosshairPen(self):
+        return QPen(self.vLine.pen)
+
+    def setCrosshairVisibility(self, b):
+        assert isinstance(b, bool)
+        self.mShowCrosshair = b
+        self.vLine.setVisible(b)
+        self.hLine.setVisible(b)
+        pi = self.getPlotItem()
+
     def setMapInteraction(self, b):
         assert isinstance(b, bool)
         if b is None or b is False:
@@ -1668,7 +1707,26 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         if event.mimeData().hasFormat(MimeDataHelper.MDF_SPECTRALLIBRARY):
             event.accept()
 
+    def mouseMoved(self, evt):
+        pos = evt[0]  ## using signal proxy turns original arguments into a tuple
 
+        plotItem = self.getPlotItem()
+        vb = plotItem.vb
+        if plotItem.sceneBoundingRect().contains(pos):
+            mousePoint = vb.mapSceneToView(pos)
+
+            self.vLine.setPos(mousePoint.x())
+            self.hLine.setPos(mousePoint.y())
+
+            info = '{:0.2f}, {:0.2f}'.format(mousePoint.x(), mousePoint.y())
+            self.tbCursorLocationValue.setText(info)
+            """
+            self.mlabel.setText(
+                    "<span style='font-size: 12pt'>{}</span>".format(info)
+            """
+        else:
+            self.tbCursorLocationValue.setText('')
+            self.mlabel.setText('')
     def dropEvent(self, event):
         assert isinstance(event, QDropEvent)
         mimeData = event.mimeData()
@@ -1715,9 +1773,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
     def onExportSpectra(self, *args):
         self.mSpeclib.exportProfiles()
 
-
     def onProfilesAdded(self, profiles):
-        # todo: remove some PDIs from plot if there are too many
         pi = self.getPlotItem()
         if True:
             to_remove = max(0, len(pi.listDataItems()) - self.m_plot_max)
@@ -1729,6 +1785,9 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
             self.mPlotXUnitModel.addUnit(p.xUnit())
             pi.addItem(self.createPDI(p))
 
+        top = len(pi.dataItems)
+        self.vLine.setZValue(top)
+        self.hLine.setZValue(top)
         self.btnRemoveAttribute.setEnabled(len(self.mSpeclib.metadataAttributes()) > 0)
 
     def addSpectralPlotItem(self, pdi):
