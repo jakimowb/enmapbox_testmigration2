@@ -291,6 +291,16 @@ class SpectralProfilePlotDataItem(pg.PlotDataItem):
     def color(self):
         return self.pen().color()
 
+    def setXUnit(self, unit):
+        if unit == 'Index':
+            self.setData(y=self.yData, x= self.mProfile.valueIndexes())
+            self.setVisible(True)
+        else:
+            isVisible = self.mProfile.xUnit() == unit
+            if isVisible:
+                self.setData(y=self.yData, x=self.mProfile.xValues())
+            self.setVisible(isVisible)
+
     def setLineWidth(self, width):
         pen = pg.mkPen(self.opts['pen'])
         assert isinstance(pen, QPen)
@@ -1538,42 +1548,6 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         pass
 
 
-class UnitComboBoxItemModel(QAbstractListModel):
-    def __init__(self, parent=None):
-        super(UnitComboBoxItemModel, self).__init__(parent)
-        self.mUnits = []
-
-    def addUnit(self, unit):
-        if unit is not None and unit not in self.mUnits:
-            self.mUnits.append(unit)
-            self.reset()
-
-    def rowCount(self, parent=None, *args, **kwargs):
-        return len(self.mUnits)
-
-    def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
-        return 1
-
-    def getUnitFromIndex(self, index):
-        if index.isValid():
-            return self.mUnits[index.row()]
-        return None
-
-    def data(self, index, role=Qt.DisplayRole):
-        if not index.isValid():
-            return None
-
-        if (index.row() >= len(self.mUnits)) or (index.row() < 0):
-            return None
-        unit = self.getUnitFromIndex(index)
-        value = None
-        if role == Qt.DisplayRole:
-            value = '{}'.format(unit)
-        return value
-
-
-
-
 
 class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
     sigLoadFromMapRequest = pyqtSignal()
@@ -1586,11 +1560,21 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         self.mColorSelectedSpectra = QColor('yellow')
 
         self.m_plot_max = 500
-        self.mPlotXUnitModel = UnitComboBoxItemModel(self)
-        self.mPlotXUnitModel.addUnit('Index')
+        from enmapbox.gui.widgets.models import OptionListModel
+        self.mPlotXUnitModel = OptionListModel()
+        self.mPlotXUnitModel.addOption('Index')
+
+        assert isinstance(self.cbXUnit, QComboBox)
 
         self.cbXUnit.setModel(self.mPlotXUnitModel)
-        self.cbXUnit.currentIndexChanged.connect(lambda: self.setPlotXUnit(self.cbXUnit.currentText()))
+
+        def setXUnit(i):
+
+            option = self.cbXUnit.model().mOptions[i]
+            self.setPlotXUnit(option.mValue)
+
+
+        self.cbXUnit.currentIndexChanged.connect(setXUnit)
         self.cbXUnit.setCurrentIndex(0)
         self.mSelectionModel = None
 
@@ -1748,23 +1732,24 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
         unit = unicode(unit)
 
         pi = self.getPlotItem()
-        if unit == 'Index':
-            for pdi in pi.dataItems:
+        for pdi in pi.dataItems[:]:
+            assert isinstance(pdi, SpectralProfilePlotDataItem)
+            pdi.setXUnit(unit)
+        self.rescale()
 
-                assert isinstance(pdi, SpectralProfilePlotDataItem)
-                p = pdi.mProfile
-                pdi.setData(y=pdi.yData, x= p.valueIndexes())
-                pdi.setVisible(True)
-        else:
-            #hide items that can not be presented in unit "unit"
-            for pdi in pi.dataItems[:]:
-                p = pdi.mProfile
-                if pdi.mProfile.xUnit() != unit:
-                    pdi.setVisible(False)
-                else:
-                    pdi.setData(y=pdi.yData, x=pdi.mProfile.xValues())
-                    pdi.setVisible(True)
-        pi.replot()
+    def rescale(self):
+        pi = self.getPlotItem()
+        if len(pi.dataItems) > 0:
+            x0 = pi.dataItems[0].xData.min()
+            x1 = pi.dataItems[0].xData.max()
+            for i in range(1, len(pi.dataItems)):
+                x0 = min(x0, pi.dataItems[i].xData.min())
+                x1 = max(x0, pi.dataItems[i].xData.max())
+            pi.setXRange(x0, x1)
+
+        #pi.replot()
+
+
     def getPlotItem(self):
         pi = self.plotWidget.getPlotItem()
         assert isinstance(pi, pg.PlotItem)
@@ -1782,7 +1767,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
                     pi.removeItem(pdi)
 
         for p in profiles:
-            self.mPlotXUnitModel.addUnit(p.xUnit())
+            self.mPlotXUnitModel.addOption(p.xUnit())
             pi.addItem(self.createPDI(p))
 
         top = len(pi.dataItems)
@@ -1826,7 +1811,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
             self.addCurrentSpectraToSpeclib()
 
         for p in self.mCurrentSpectra:
-            self.mPlotXUnitModel.addUnit(p.xUnit())
+            self.mPlotXUnitModel.addOption(p.xUnit())
             pdi = self.createPDI(p)
             pdi.setPen(fn.mkPen(QColor('green'), width=3))
             plotItem.addItem(pdi)
@@ -1945,25 +1930,15 @@ def __Test__():
     # sl = SpectralLibrary.readFrom(p)
     # sl.plot()
 
+
     spec1 = SpectralProfile()
     spec1.setValues([0.2, 0.3, 0.5, 0.7])
     spec1.setMetadata('Üä', 2323)
     spec1.setMetadata('Äü', 'üÄäasa')
 
     SLIB = SpectralLibrary()
-    sl = SpectralLibrary()
-    sl.addProfile(spec1)
-    for p in [
-        r'D:\Temp\sl1.sli',
-        u'D:\Temp\sl2.sli',
-        r'D:\Temp\sl3ä.sli',
-        u'D:\Temp\sl4ä.sli',
-    ]:
-
-        sl.exportProfiles(p)
-        sl2 = SpectralLibrary.readFrom(p)
-        SLIB.addSpeclib(sl2)
-
+    from enmapboxtestdata import speclib
+    SLIB = SpectralLibrary.readFrom(unicode(speclib))
 
     p = SpectralLibraryWidget()
     p.addSpeclib(SLIB)
