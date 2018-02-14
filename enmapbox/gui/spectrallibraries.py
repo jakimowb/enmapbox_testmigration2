@@ -1773,9 +1773,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
     def onExportSpectra(self, *args):
         self.mSpeclib.exportProfiles()
 
-
     def onProfilesAdded(self, profiles):
-        # todo: remove some PDIs from plot if there are too many
         pi = self.getPlotItem()
         if True:
             to_remove = max(0, len(pi.listDataItems()) - self.m_plot_max)
@@ -1787,6 +1785,9 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
             self.mPlotXUnitModel.addUnit(p.xUnit())
             pi.addItem(self.createPDI(p))
 
+        top = len(pi.dataItems)
+        self.vLine.setZValue(top)
+        self.hLine.setZValue(top)
         self.btnRemoveAttribute.setEnabled(len(self.mSpeclib.metadataAttributes()) > 0)
 
     def addSpectralPlotItem(self, pdi):
