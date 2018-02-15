@@ -17,7 +17,7 @@ from qgis import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from enmapbox.gui.sandbox import initQgisEnvironment
-from enmapbox.testdata.UrbanGradient import EnMAP, VHR
+from enmapboxtestdata import enmap, hymap
 from enmapbox.gui.mapcanvas import *
 QGIS_APP = initQgisEnvironment()
 
@@ -40,7 +40,7 @@ class testclassData(unittest.TestCase):
     def test_mapCanvas(self):
 
         menu = self.mapCanvas.contextMenu()
-        lyr = QgsRasterLayer(EnMAP)
+        lyr = QgsRasterLayer(enmap)
         self.assertTrue(lyr not in QgsMapLayerRegistry.instance().mapLayers().values())
         self.mapCanvas.setLayers(lyr)
         self.assertTrue(lyr in QgsMapLayerRegistry.instance().mapLayers().values())
@@ -58,10 +58,44 @@ class testclassData(unittest.TestCase):
 
 
 
+def exampleMapLinking():
+    import site, sys
+    #add site-packages to sys.path as done by enmapboxplugin.py
+
+    from enmapbox.gui.utils import initQgisApplication
+    from enmapboxtestdata import enmap, hymap, landcover
+    from enmapbox.gui.mapcanvas import CanvasLinkDialog
+    import enmapbox.gui.mapcanvas
+    enmapbox.gui.mapcanvas.DEBUG = True
+    qgsApp = initQgisApplication()
+    import math
+    geoFiles = [enmap, hymap, landcover]
+    nMaps = 4
+
+
+    maps = []
+    for f in geoFiles:
+        map = MapCanvas()
+        lyr = QgsRasterLayer(f)
+        QgsMapLayerRegistry.instance().addMapLayer(lyr)
+        map.setLayers([lyr])
+        map.setExtent(lyr.extent())
+        map.show()
+        maps.append(map)
+
+    d = CanvasLinkDialog()
+    d.addCanvas(maps)
+    d.setSourceCanvas(maps[0])
+    d.show()
+
+    qgsApp.exec_()
+    qgsApp.exitQgis()
+
 
 if __name__ == "__main__":
 
-    unittest.main()
+    exampleMapLinking()
+    #+unittest.main()
 
 
 

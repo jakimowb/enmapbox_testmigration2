@@ -43,15 +43,13 @@ class EnMAPBoxPlugin(object):
             CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
             QTimer.singleShot(0, CONSOLE._console.activate)
 
-
-
+        dirPlugin = os.path.dirname(__file__)
+        site.addsitedir(dirPlugin)
 
         #run a dependency check
         self.initialDependencyCheck()
 
         from enmapbox import messageLog
-        dirPlugin = os.path.dirname(__file__)
-        site.addsitedir(dirPlugin)
 
         try:
             import enmapboxgeoalgorithms.algorithms
@@ -76,7 +74,6 @@ class EnMAPBoxPlugin(object):
         :return:
         """
 
-        pluginDir = os.path.dirname(__file__)
         missing = []
         from enmapbox import DEPENDENCIES, messageLog
         for package in DEPENDENCIES:
@@ -149,6 +146,7 @@ class EnMAPBoxPlugin(object):
             EnMAPBox.instance().close()
 
         EnMAPBox._instance = None
+
 
 
 

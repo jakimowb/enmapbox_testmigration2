@@ -281,6 +281,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
         self.dockManager.connectDockArea(self.ui.dockArea)
         self.dockManager.sigDockAdded.connect(self.onDockAdded)
+        self.dockManager.sigDockRemoved.connect(self.onDockRemoved)
 
         splash.showMessage('Load Processing Algorithms Manager')
         self.processingAlgManager = ProcessingAlgorithmsManager(self)
@@ -400,6 +401,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.actionIdentify.triggered.connect(lambda: self.setMapTool(MapTools.CursorLocation))
         self.ui.actionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
         self.ui.actionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
+        from enmapbox.gui.mapcanvas import CanvasLinkDialog
+        self.ui.actionMapLinking.triggered.connect(lambda : CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
         from enmapbox.gui.about import AboutDialog
         self.ui.actionAbout.triggered.connect(lambda: AboutDialog(parent=self.ui).show())
         from enmapbox.gui.settings import showSettingsDialog
@@ -411,6 +414,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.actionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.TRACKER))
         self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.HOMEPAGE))
 
+    sigDockAdded = pyqtSignal(Dock)
 
     def onDockAdded(self, dock):
         assert isinstance(dock, Dock)
@@ -419,6 +423,16 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
+
+        if isinstance(dock, MapDock):
+            self.sigMapCanvasAdded.emit(dock.canvas)
+
+        self.sigDockAdded.emit(dock)
+
+    sigCanvasRemoved = pyqtSignal(MapCanvas)
+    def onDockRemoved(self,dock):
+        if isinstance(dock, MapDock):
+            self.sigCanvasRemoved.emit(dock.canvas)
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
     def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
@@ -580,7 +594,6 @@ class EnMAPBox(QgisInterface, QObject):
             SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
 
     sigDataSourceAdded = pyqtSignal(str)
-
     sigSpectralLibraryAdded = pyqtSignal(str)
     sigRasterSourceAdded = pyqtSignal(str)
     sigVectorSourceAdded = pyqtSignal(str)
@@ -594,6 +607,9 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigVectorSourceAdded.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceSpectralLibrary):
             self.sigSpectralLibraryAdded.emit(dataSource.uri())
+
+
+    sigMapCanvasAdded = pyqtSignal(MapCanvas)
 
     def saveProject(self, saveAs=False):
         proj = QgsProject.instance()
