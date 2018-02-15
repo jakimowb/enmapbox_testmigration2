@@ -34,21 +34,54 @@ from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterRaster
 from processing.core.outputs import OutputRaster
 
+
+
+from processing.core.outputs import OutputRaster
+
+class MyOutputRaster(OutputRaster):
+
+    def __init__(self, name='', description='', ext='bsq'):
+        OutputRaster.__init__(self, name, description)
+        self.ext = ext
+
+    def getFileFilter(self, alg):
+        if self.ext is None:
+            return self.tr('ENVI (*.bsq *.bil);;TIFF (*.tif);;All files(*.*)', 'OutputFile')
+        else:
+            return self.tr('%s files(*.%s)', 'OutputFile') % (self.ext, self.ext)
+
+    def getDefaultFileExtension(self, alg):
+
+        return 'bsq'
+
 class MyGeoAlgorithmus(GeoAlgorithm):
 
     def defineCharacteristics(self):
         self.name = 'TestAlgorithm'
         self.group = 'TestGroup'
-        self.addParameter(ParameterRaster('infile', 'Test Input Image'))
-        self.addOutput(OutputRaster('outfile', 'Test Output Image'))
+        #self.addParameter(ParameterRaster('infile', 'Test Input Image'))
+        self.addOutput(OutputRaster('outfile1', 'Test Output Image'))
+        self.addOutput(MyOutputRaster('outfile2', 'Test MyOutput Image'))
 
     def processAlgorithm(self, progress):
         # map processing framework parameters to that of you algorithm
         infile = self.getParameterValue('infile')
         outfile = self.getOutputValue('outfile')
-
+        outfile2 = self.getOutputValue('outfile2')
+        s  =""
         # define
         # todo:
+
+    def getCustomParametersDialog(self):
+
+
+        from PyQt4.QtGui import QDialog
+
+
+        d = QDialog()
+
+        return d
+
 
     def help(self):
         return True, '<todo: describe test>'
@@ -224,17 +257,25 @@ class TestEnMAPBox(unittest.TestCase):
     def test_addToolBar(self):
         self.fail()
 
-
 if __name__ == '__main__':
-
-
 
     from enmapbox.gui.utils import initQgisApplication
     app = initQgisApplication()
-    emb = EnMAPBox(None)
 
-    myApp = TestEnMAPBoxApp(emb)
-    emb.addApplication(myApp)
+
+    if True:
+        path = r'/Users/benjamin.jakimow/Repositories/QGIS_Plugins/enmap-box/enmapbox/gui/tests/test_xyz.bil'
+        fileFilter = 'ENVI (*.bsq, *.bil);;TIFF (*.tif);; All (*.*)'
+
+        from qgis.gui import QgsEncodingFileDialog
+        d = QgsEncodingFileDialog(None, 'Save file', path, fileFilter, None)
+        print(d.exec_())
+    else:
+
+        emb = EnMAPBox(None)
+
+        myApp = TestEnMAPBoxApp(emb)
+        emb.addApplication(myApp)
 
     app.exec_()
 

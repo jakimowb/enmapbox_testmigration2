@@ -31,10 +31,20 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import numpy as np
 from osgeo import gdal, gdal_array
-from enmapbox.gui.utils import loadUI, gdalDataset, SpatialPoint, PanelWidgetBase
+from enmapbox.gui.utils import loadUI, SpatialPoint, PanelWidgetBase
 from enmapbox.gui.utils import geo2px, px2geo, SpatialExtent, SpatialPoint
 from enmapbox.gui.utils import MimeDataHelper
 
+def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
+    """
+
+    :param pathOrDataset: path or gdal.Dataset
+    :return: gdal.Dataset
+    """
+    if not isinstance(pathOrDataset, gdal.Dataset):
+        pathOrDataset = gdal.Open(pathOrDataset, eAccess)
+    assert isinstance(pathOrDataset, gdal.Dataset)
+    return pathOrDataset
 
 
 
@@ -1514,7 +1524,6 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
-
         types.append(MimeDataHelper.MDF_DATASOURCETREEMODELDATA)
         types.append(MimeDataHelper.MDF_LAYERTREEMODELDATA)
         types.append(MimeDataHelper.MDF_URILIST)

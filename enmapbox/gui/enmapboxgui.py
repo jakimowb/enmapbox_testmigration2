@@ -269,8 +269,7 @@ class EnMAPBox(QgisInterface, QObject):
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager, installQPFExtensions, \
-            removeQPFExtensions
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager, installQPFExtensions, removeQPFExtensions
 
         self.dataSourceManager = DataSourceManager()
 
