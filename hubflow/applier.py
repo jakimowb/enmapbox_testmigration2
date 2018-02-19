@@ -6,15 +6,15 @@ import hubflow.signals
 
 ApplierControls = hubdc.applier.ApplierControls
 
-class Applier(hubdc.applier.Applier):
 
+class Applier(hubdc.applier.Applier):
     def __init__(self, defaultGrid=None, **kwargs):
         hubdc.applier.Applier.__init__(self, controls=kwargs.get('controls', None))
         self.controls.setProgressBar(kwargs.get('progressBar', None))
         grid = kwargs.get('grid', defaultGrid)
         if isinstance(grid, hubflow.types.Raster):
             grid = grid.grid
-        #assert isinstance(grid, hubdc.applier.Grid)
+        # assert isinstance(grid, hubdc.applier.Grid)
         self.controls.setGrid(grid)
         self.kwargs = kwargs
 
@@ -76,7 +76,8 @@ class Applier(hubdc.applier.Applier):
 
     def setFlowVector(self, name, vector):
         if isinstance(vector, (hubflow.types.Vector, hubflow.types.VectorClassification)):
-            self.inputVector.setVector(key=name, value=hubdc.applier.ApplierInputVector(filename=vector.filename, layerNameOrIndex=vector.layer))
+            self.inputVector.setVector(key=name, value=hubdc.applier.ApplierInputVector(filename=vector.filename,
+                                                                                        layerNameOrIndex=vector.layer))
         else:
             assert 0
 
@@ -88,8 +89,8 @@ class Applier(hubdc.applier.Applier):
         else:
             assert 0
 
-class ApplierOperator(hubdc.applier.ApplierOperator):
 
+class ApplierOperator(hubdc.applier.ApplierOperator):
     def flowRasterArray(self, name, raster, indicies=None, overlap=0):
 
         if isinstance(raster, hubflow.types.Regression):
@@ -130,10 +131,29 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         if mask is None or mask.filename is None:
             array = self.full(value=True, bands=1, dtype=np.bool, overlap=overlap)
         elif isinstance(mask, hubflow.types.Mask):
-            array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Mode, noData="none")
-            array = aggregateFunction(array != mask.noData)
+            #array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Mode, noDataValue="none")
+            #array = aggregateFunction(array != mask.noDataValue)
+
+            # get mask for each band
+            maskArrays = list()
+            if mask.index is None:
+                indices = range(mask.dataset().zsize())
+            else:
+                indices = [mask.index]
+
+            for index in indices:
+                fractionArray = 1.- self.inputRaster.raster(key=name).fractionArray(categories=[mask.noDataValue],
+                                                                                    overlap=overlap,
+                                                                                    index=index)
+                maskArray = fractionArray > mask.minOverallCoverage
+                maskArrays.append(maskArray[0])
+
+            # aggregate to single band mask
+            array = aggregateFunction(maskArrays)
+
         elif isinstance(mask, hubflow.types.Vector):
-            array = self.inputVector.vector(key=name).array(overlap=overlap, allTouched=mask.allTouched, filterSQL=mask.filterSQL, dtype=np.uint8) == 1
+            array = self.inputVector.vector(key=name).array(overlap=overlap, allTouched=mask.allTouched,
+                                                            filterSQL=mask.filterSQL, dtype=np.uint8) == 1
         elif isinstance(mask, hubflow.types.VectorClassification):
             array = self.inputVector.vector(key=name).array(overlap=overlap, dtype=np.uint8) == 1
         else:
@@ -144,10 +164,12 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
     def flowClassificationArray(self, name, classification, oversampling=1, overlap=0):
         if classification is None or classification.filename is None:
             return np.array([])
-        elif isinstance(classification, (hubflow.types.Classification, hubflow.types.VectorClassification, hubflow.types.Probability)):
-            fractionArray = self.flowProbabilityArray(name=name, probability=classification, oversampling=oversampling, overlap=overlap)
-            invalid = np.all(fractionArray==-1, axis=0, keepdims=True)
-            array = np.uint8(np.argmax(fractionArray, axis=0)[None]+1)
+        elif isinstance(classification,
+                        (hubflow.types.Classification, hubflow.types.VectorClassification, hubflow.types.Probability)):
+            fractionArray = self.flowProbabilityArray(name=name, probability=classification, oversampling=oversampling,
+                                                      overlap=overlap)
+            invalid = np.all(fractionArray == -1, axis=0, keepdims=True)
+            array = np.uint8(np.argmax(fractionArray, axis=0)[None] + 1)
             array[invalid] = 0
         else:
             assert 0
@@ -157,11 +179,13 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         if regression is None or regression.filename is None:
             array = np.array([])
         elif isinstance(regression, hubflow.types.Regression):
-            array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Average, noData=regression.noData)
-            noDataFraction = self.inputRaster.raster(key=name).fractionArray(categories=[regression.noData], overlap=overlap, index=0)
+            array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Average,
+                                                            noDataValue=regression.noDataValue)
+            noDataFraction = self.inputRaster.raster(key=name).fractionArray(categories=[regression.noDataValue],
+                                                                             overlap=overlap, index=0)
             overallCoverageArray = 1. - noDataFraction
             invalid = overallCoverageArray <= regression.minOverallCoverage
-            array[:, invalid[0]] = regression.noData
+            array[:, invalid[0]] = regression.noDataValue
         else:
             assert 0, regression
         return array
@@ -171,13 +195,18 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             array = np.array([])
         elif isinstance(probability, hubflow.types.Probability):
             array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Average)
+            invalid = self.maskFromFractionArray(fractionArray=array,
+                                                 minOverallCoverage=probability.minOverallCoverage,
+                                                 minWinnerCoverage=probability.minWinnerCoverage,
+                                                 invert=True)
+            array[:, invalid] = -1
         elif isinstance(probability, hubflow.types.Classification):
-            categories = range(1, probability.classDefinition.classes+1)
+            categories = range(1, probability.classDefinition.classes + 1)
             array = self.inputRaster.raster(key=name).fractionArray(categories=categories, overlap=overlap)
-            overallCoverageArray = np.sum(array, axis=0)
-            winnerCoverageArray = np.max(array, axis=0)
-            invalid = np.logical_or(overallCoverageArray <= probability.minOverallCoverage,
-                                       winnerCoverageArray <= probability.minWinnerCoverage)
+            invalid = self.maskFromFractionArray(fractionArray=array,
+                                                 minOverallCoverage=probability.minOverallCoverage,
+                                                 minWinnerCoverage=probability.minWinnerCoverage,
+                                                 invert=True)
             array[:, invalid] = -1
         elif isinstance(probability, hubflow.types.VectorClassification):
 
@@ -186,18 +215,20 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
 
             # get all categories for the current block
             spatialFilter = self.subgrid().spatialExtent().geometry()
-            categories = probability.uniqueValues(attribute=probability.classAttribute, spatialFilter=spatialFilter)
+            categories = probability.uniqueValues(attribute=probability.classAttribute,
+                                                             spatialFilter=spatialFilter)
 
             if len(categories) > 0:
                 fractionArray = self.inputVector.vector(key=name).fractionArray(categories=categories,
                                                                                 categoryAttribute=probability.classAttribute,
-                                                                                oversampling=oversampling, overlap=overlap)
-                overallCoverageArray = np.sum(fractionArray, axis=0)
-                winnerCoverageArray = np.max(fractionArray, axis=0)
-                valid = np.logical_and(overallCoverageArray > probability.minOverallCoverage,
-                                          winnerCoverageArray > probability.minWinnerCoverage)
+                                                                                oversampling=oversampling,
+                                                                                overlap=overlap)
+                valid = self.maskFromFractionArray(fractionArray=fractionArray,
+                                                   minOverallCoverage=probability.minOverallCoverage,
+                                                   minWinnerCoverage=probability.minWinnerCoverage)
 
-                array = self.full(value=-1, bands=probability.classDefinition.classes, dtype=np.float32, overlap=overlap)
+                array = self.full(value=-1, bands=probability.classDefinition.classes, dtype=np.float32,
+                                  overlap=overlap)
                 for category, categoryFractionArray in zip(categories, fractionArray):
                     if probability.classAttributeType == 'id':
                         id = int(category)
@@ -205,7 +236,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
                         id = int(probability.classDefinition.getLabelByName(name=category))
                     else:
                         assert 0
-                    array[id-1][valid] = categoryFractionArray[valid]
+                    array[id - 1][valid] = categoryFractionArray[valid]
             else:
                 # do nothing if there are no features for the current block
                 pass
@@ -243,21 +274,23 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
     def setFlowMetadataClassDefinition(self, name, classDefinition):
         assert isinstance(classDefinition, hubflow.types.ClassDefinition)
         raster = self.outputRaster.raster(key=name)
-        raster.setMetadataItem(key='classes', value=classDefinition.classes+1, domain='ENVI')
+        raster.setMetadataItem(key='classes', value=classDefinition.classes + 1, domain='ENVI')
         raster.setMetadataItem(key='class names', value=['unclassified'] + classDefinition.names, domain='ENVI')
         raster.setMetadataItem(key='file type', value='ENVI Classification', domain='ENVI')
 
-        lookup = [0, 0, 0] + list(np.array(classDefinition.lookup).flatten())
+        lookup = [0, 0, 0] + list(np.array([c.rgb() for c in classDefinition.colors]).flatten())
         raster.setMetadataItem(key='class lookup', value=lookup, domain='ENVI')
 
     def setFlowMetadataProbabilityDefinition(self, name, classDefinition):
         assert isinstance(classDefinition, hubflow.types.ClassDefinition)
         self.setFlowMetadataClassDefinition(name=name, classDefinition=classDefinition)
         self.setFlowMetadataBandNames(name=name, bandNames=classDefinition.names)
-        raster = self.outputRaster.raster(key=name)
-        raster.setMetadataItem(key='data ignore value', value=-1, domain='ENVI')
-        raster.setMetadataItem(key='file type', value='ENVI Standard', domain='ENVI')
-        raster.setNoDataValue(value=-1)
+        self.setFlowMetadataNoDataValue(name=name, noDataValue=-1)
+        self.outputRaster.raster(key=name).setMetadataItem(key='file type', value='ENVI Standard', domain='ENVI')
+
+    def setFlowMetadataRegressionDefinition(self, name, noDataValue, outputNames):
+        self.setFlowMetadataNoDataValue(name=name, noDataValue=noDataValue)
+        self.setFlowMetadataBandNames(name=name, bandNames=outputNames)
 
     def setFlowMetadataBandNames(self, name, bandNames):
         raster = self.outputRaster.raster(key=name)
@@ -265,22 +298,37 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         for band, bandName in zip(raster.bands(), bandNames):
             band.setDescription(value=bandName)
 
-    def maskFromBandArray(self, array, noData=None, noDataSource=None, index=None):
-        if noData is None:
-            assert noDataSource is not None
+    def setFlowMetadataNoDataValue(self, name, noDataValue):
+        raster = self.outputRaster.raster(key=name)
+        raster.setMetadataItem(key='data ignore value', value=noDataValue, domain='ENVI')
+        raster.setNoDataValue(value=noDataValue)
+
+    def maskFromBandArray(self, array, noDataValue=None, noDataValueSource=None, index=None):
+        if noDataValue is None:
+            assert noDataValueSource is not None
             assert index is not None
-            noData = self.inputRaster.raster(key=noDataSource).noDataValues()[index]
-        mask = array != noData
+            noDataValue = self.inputRaster.raster(key=noDataValueSource).noDataValues()[index]
+        mask = array != noDataValue
         return mask
 
-    def maskFromArray(self, array, noData=None, noDataSource=None, aggregateFunction=None):
+    def maskFromArray(self, array, noDataValue=None, noDataValueSource=None, aggregateFunction=None):
 
         if aggregateFunction is None:
             aggregateFunction = lambda a: np.all(a, axis=0, keepdims=True)
 
-        if noData is None:
-            assert noDataSource is not None
-            noData = self.inputRaster.raster(key=noDataSource).noDataValue(default=0)
+        if noDataValue is None:
+            assert noDataValueSource is not None
+            noDataValue = self.inputRaster.raster(key=noDataValueSource).noDataValue(default=0)
 
-        mask = aggregateFunction(array != noData)
+        mask = aggregateFunction(array != noDataValue)
         return mask
+
+    def maskFromFractionArray(self, fractionArray, minOverallCoverage, minWinnerCoverage, invert=False):
+        overallCoverageArray = np.sum(fractionArray, axis=0)
+        winnerCoverageArray = np.max(fractionArray, axis=0)
+        maskArray = np.logical_and(overallCoverageArray > minOverallCoverage,
+                                   winnerCoverageArray > minWinnerCoverage)
+        if invert:
+            return np.logical_not(maskArray)
+        else:
+            return maskArray

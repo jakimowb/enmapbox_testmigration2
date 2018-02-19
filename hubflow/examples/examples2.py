@@ -16,7 +16,7 @@ image2 = Raster(filename=enmapboxtestdata.hymap)
 vector = Vector(filename=enmapboxtestdata.landcover, dtype=numpy.uint8)
 vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, idAttribute='Level_2_ID',
                                             classDefinition=ClassDefinition(names=['Roof',  'Pavement',   'Grass',   'Tree',   'Soil',    'Other'],
-                                                                            lookup=[168,0,0, 156,156,156,  151,229,0, 35,114,0, 136,89,67, 236,214,0]),
+                                                                            colors=[168, 0, 0, 156, 156, 156, 151, 229, 0, 35, 114, 0, 136, 89, 67, 236, 214, 0]),
                                             minOverallCoverage=1., minWinnerCoverage=0.5)
 def getRMask(): return vectorClassification_rasterizeAsClassification().asMask()
 def getVMask(): return vector

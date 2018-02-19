@@ -6,7 +6,7 @@ import sklearn.metrics
 import sklearn.multioutput
 
 from hubdc.progressbar import ProgressBar
-from hubdc.model import openRaster, openVector, Grid, SpatialGeometry
+from hubdc.model import openRaster, openVector, Grid, SpatialGeometry, RasterDriver, VectorDriver
 from hubflow.applier import Applier, ApplierOperator, ApplierControls
 
 from hubflow.report import *
@@ -80,8 +80,15 @@ class Raster(FlowObject):
         applier.apply(operatorType=_RasterFromVector, vector=vector)
         return Raster(filename=filename)
 
-    def asMask(self, noData=None):
-        return Mask(filename=self.filename, noData=noData)
+    def resample(self, filename, grid, resampleAlg=gdal.GRA_NearestNeighbour, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowRaster('inraster', raster=self)
+        applier.setOutputRaster('outraster', filename=filename)
+        applier.apply(operatorType=_RasterResample, raster=self, resampleAlg=resampleAlg)
+        return Regression(filename=filename)
+
+    def asMask(self, noDataValue=None):
+        return Mask(filename=self.filename, noDataValue=noDataValue)
 
     def basicStatistics(self, bandIndicies=None, mask=None, **kwargs):
         applier = Applier(defaultGrid=self, **kwargs)
@@ -118,8 +125,23 @@ class Raster(FlowObject):
         applier.setFlowRaster('raster', raster=self)
         applier.setFlowMask('mask', mask=mask)
         applier.setOutputRaster('maskedRaster', filename=filename)
-        applier.apply(operatorType=_RasterApplyMask, raster=self, mask=mask, fillValue=fillValue)
+        applier.apply(operatorType=_RasterApplyMask, raster=self, mask=mask, fillValue=fillValue,
+                      noDataValue=noDataValue)
         return Raster(filename=filename)
+
+
+class _RasterResample(ApplierOperator):
+    def ufunc(self, raster, resampleAlg):
+        inraster = self.inputRaster.raster(key='inraster')
+        outraster = self.outputRaster.raster(key='outraster')
+
+        array = inraster.array(resampleAlg=resampleAlg)
+        metadataDict = inraster.metadataDict()
+        noDataValues = inraster.noDataValues()
+
+        outraster.setArray(array=array)
+        outraster.setMetadataDict(metadataDict=metadataDict)
+        outraster.setNoDataValues(values=noDataValues)
 
 
 class _RasterBasicStatistics(ApplierOperator):
@@ -128,7 +150,7 @@ class _RasterBasicStatistics(ApplierOperator):
         maskValid = self.flowMaskArray('mask', mask=mask)
 
         def bandBasicStatistics(index, band):
-            valid = self.maskFromBandArray(array=band, noDataSource='raster', index=index)
+            valid = self.maskFromBandArray(array=band, noDataValueSource='raster', index=index)
             valid *= maskValid
             band[np.logical_not(valid)] = np.nan
             min = np.nanmin(band)
@@ -153,8 +175,8 @@ class _RasterScatterMatrix(ApplierOperator):
         band2 = self.flowRasterArray('raster2', raster=raster2, indicies=[bandIndex2])
         strata = self.flowClassificationArray('stratification', classification=stratification)
 
-        valid = self.maskFromBandArray(array=band1, noDataSource='raster1', index=bandIndex1)
-        valid *= self.maskFromBandArray(array=band2, noDataSource='raster2', index=bandIndex2)
+        valid = self.maskFromBandArray(array=band1, noDataValueSource='raster1', index=bandIndex1)
+        valid *= self.maskFromBandArray(array=band2, noDataValueSource='raster2', index=bandIndex2)
         valid *= self.flowMaskArray('mask', mask=mask)
 
         x = band1[valid]
@@ -189,17 +211,19 @@ class _RasterApplyMask(ApplierOperator):
 
 
 class Mask(Raster):
-    def __init__(self, filename, noData=None):
+    def __init__(self, filename, noDataValue=None, minOverallCoverage=0.5, index=None):
         Raster.__init__(self, filename)
-        if noData is None:
-            noData = openRaster(filename=filename).noDataValue(default=0)
-        self.noData = noData
+        if noDataValue is None:
+            noDataValue = openRaster(filename=filename).noDataValue(default=0)
+        self.noDataValue = noDataValue
+        self.minOverallCoverage = minOverallCoverage
+        self.index = index  # use only that band to generate mask
 
     def __repr__(self):
-        return '{cls}(filename={filename}, noData={noData})'.format(
+        return '{cls}(filename={filename}, noDataValue={noDataValue})'.format(
             cls=self.__class__.__name__,
             filename=str(self.filename),
-            noData=repr(self.noData))
+            noDataValue=repr(self.noDataValue))
 
     @staticmethod
     def fromVector(filename, vector, grid, **kwargs):
@@ -216,6 +240,19 @@ class Mask(Raster):
                       trueRanges=trueRanges, falseValues=falseValues, falseRanges=falseRanges, invert=invert,
                       aggregateFunction=None)
         return Mask(filename=filename)
+
+    def resample(self, filename, grid, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowMask('inmask', mask=self)
+        applier.setOutputRaster('outmask', filename=filename)
+        applier.apply(operatorType=_MaskResample, mask=self)
+        return Mask(filename=filename, minOverallCoverage=self.minOverallCoverage)
+
+
+class _MaskResample(ApplierOperator):
+    def ufunc(self, mask):
+        array = self.flowMaskArray('inmask', mask=mask)
+        self.outputRaster.raster(key='outmask').setArray(array=array)
 
 
 class _MaskFromRaster(ApplierOperator):
@@ -312,9 +349,8 @@ class _VectorFromRandomPointsFromMask(ApplierOperator):
         indicis = np.random.choice(indicis, size=n, replace=False)
         xmap, ymap = xmap[indicis], ymap[indicis]
 
-        # Create the output shapefile
-        # driver = ogr.GetDriverByName('ESRI Shapefile')
-        driver = ogr.GetDriverByName('GPKG')
+        # Create the output vector
+        driver = VectorDriver.fromFilename(filename=filename).ogrDriver()
 
         if os.path.exists(filename):
             driver.DeleteDataSource(filename)
@@ -361,9 +397,8 @@ class _VectorFromRandomPointsFromClassification(ApplierOperator):
         indicis = np.concatenate(indicisList)
         xmap, ymap = xmap[indicis], ymap[indicis]
 
-        # Create the output shapefile
-        # driver = ogr.GetDriverByName('ESRI Shapefile')
-        driver = ogr.GetDriverByName('GPKG')
+        # Create the output vector
+        driver = VectorDriver.fromFilename(filename=filename).ogrDriver()
 
         if os.path.exists(filename):
             driver.DeleteDataSource(filename)
@@ -400,6 +435,28 @@ class VectorClassification(Vector):
         self.minOverallCoverage = minOverallCoverage
         self.minWinnerCoverage = minWinnerCoverage
 
+class Color(object):
+
+    def __init__(self, color):
+        if isinstance(color, Color):
+            color = color.color
+        self.color = color
+        self.rgb()
+
+    def __repr__(self):
+        return '{cls}(color={color})'.format(cls=self.__class__.__name__, color=repr(self.color))
+
+    def rgb(self):
+        if isinstance(self.color, str):
+
+            from PyQt4.QtGui import QColor
+            return QColor(self.color).getRgb()[:3]
+        elif isinstance(self.color, (list, tuple)):
+            assert len(self.color) == 3
+            return self.color
+        else:
+            assert 0
+
 
 class ClassDefinition(FlowObject):
     @staticmethod
@@ -408,50 +465,47 @@ class ClassDefinition(FlowObject):
         classes = ds.metadataItem(key='classes', domain='ENVI', dtype=int)
         names = ds.metadataItem(key='class names', domain='ENVI')
         lookup = ds.metadataItem(key='class lookup', domain='ENVI', dtype=int)
-        return ClassDefinition(classes=classes - 1, names=names[1:],
-                               lookup=np.array(lookup[3:]).reshape((classes - 1, 3)))
+        return ClassDefinition(classes=classes - 1, names=names[1:], colors=lookup[3:])
 
-    def __init__(self, classes=None, names=None, lookup=None):
+    def __init__(self, classes=None, names=None, colors=None):
 
         assert classes is not None or names is not None
         if classes is None:
             classes = len(names)
-        #assert classes > 0
+        # assert classes > 0
         self.classes = classes
         if names is None:
             names = ['class {}'.format(i + 1) for i in range(classes)]
-        if lookup is None:
-            lookup = [(random.randint(1, 255), random.randint(1, 255), random.randint(1, 255)) for i in range(classes)]
-        if len(lookup) == classes * 3:
-            lookup = [[lookup[i * 3 + k] for k in range(3)] for i in range(classes)]
+        if colors is None:
+            colors = [(random.randint(1, 255), random.randint(1, 255), random.randint(1, 255)) for i in range(classes)]
+        if len(colors) == classes * 3:
+            colors = [[colors[i * 3 + k] for k in range(3)] for i in range(classes)]
 
         assert len(names) == classes
-        assert len(lookup) == classes
-        for color in lookup:
-            assert len(color) == 3, color
+        assert len(colors) == classes
 
         self.names = [str(name) for name in names]
-        self.lookup = [[int(v) for v in color] for color in lookup]
+        self.colors = [Color(color) for color in colors]
 
     def __repr__(self):
-        return '{cls}(classes={classes}, names={names}, lookup={lookup})'.format(
+        return '{cls}(classes={classes}, names={names}, colors={colors})'.format(
             cls=self.__class__.__name__,
             classes=repr(self.classes),
             names=repr(self.names),
-            lookup=repr(self.lookup))
+            colors=repr(self.colors))
 
-    def equal(self, other, compareLookup=True):
+    def equal(self, other, compareColors=True):
         assert isinstance(other, ClassDefinition)
         equal = self.classes == other.classes
         equal &= all([a == b for a, b in zip(self.names, other.names)])
-        if compareLookup:
-            for color1, color2 in zip(self.lookup, other.lookup):
+        if compareColors:
+            for color1, color2 in zip(self.colors, other.colors):
                 for v1, v2 in zip(color1, color2):
                     equal &= v1 == v2
         return equal
 
     def getColor(self, label):
-        return self.lookup[label - 1]
+        return self.colors[label - 1]
 
     def getColorByName(self, name):
         return self.getColor(label=self.names.index((name)) + 1)
@@ -469,7 +523,7 @@ class Classification(Raster):
         if classDefinition is None:
             classDefinition = ClassDefinition.fromENVIMeta(filename)
         self.classDefinition = classDefinition
-        self.noData = 0
+        self.noDataValue = 0
         self.dtype = np.uint8
         self.minOverallCoverage = minOverallCoverage
         self.minWinnerCoverage = minWinnerCoverage
@@ -499,14 +553,31 @@ class Classification(Raster):
         applier.apply(operatorType=_ClassificationFromProbability, probability=probability)
         return Classification(filename=filename)
 
+    @classmethod
+    def fromRasterAndFunction(cls, filename, raster, ufunc, classDefinition, **kwargs):
+        assert isinstance(classDefinition, ClassDefinition)
+        applier = Applier(defaultGrid=raster, **kwargs)
+        applier.setFlowRaster('raster', raster=raster)
+        applier.setOutputRaster('classification', filename=filename)
+        applier.apply(operatorType=_ClassificationFromRasterAndFunction, raster=raster, ufunc=ufunc,
+                      classDefinition=classDefinition)
+        return Classification(filename=filename)
+
     def reclassify(self, filename, classDefinition, mapping, **kwargs):
         assert isinstance(classDefinition, ClassDefinition)
         assert isinstance(mapping, dict)
         applier = Applier(defaultGrid=self, **kwargs)
-        applier.setFlowRaster('inclassification', raster=self)
+        applier.setFlowClassification('inclassification', classification=self)
         applier.setOutputRaster('outclassification', filename=filename)
         applier.apply(operatorType=_ClassificationReclassify, classification=self, classDefinition=classDefinition,
                       mapping=mapping)
+        return Classification(filename=filename)
+
+    def resample(self, filename, grid, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowClassification('inclassification', classification=self)
+        applier.setOutputRaster('outclassification', filename=filename)
+        applier.apply(operatorType=_ClassificationResample, classification=self)
         return Classification(filename=filename)
 
 
@@ -522,6 +593,13 @@ class _ClassificationReclassify(ApplierOperator):
             outclassification[inclassification == inclass] = outclass
         self.outputRaster.raster(key='outclassification').setArray(array=outclassification)
         self.setFlowMetadataClassDefinition(name='outclassification', classDefinition=classDefinition)
+
+
+class _ClassificationResample(ApplierOperator):
+    def ufunc(self, classification):
+        array = self.flowClassificationArray('inclassification', classification=classification)
+        self.outputRaster.raster(key='outclassification').setArray(array=array)
+        self.setFlowMetadataClassDefinition(name='outclassification', classDefinition=classification.classDefinition)
 
 
 class _ClassificationFromVectorClassification(ApplierOperator):
@@ -540,37 +618,63 @@ class _ClassificationFromProbability(ApplierOperator):
         self.setFlowMetadataClassDefinition(name='classification', classDefinition=probability.classDefinition)
 
 
+class _ClassificationFromRasterAndFunction(ApplierOperator):
+    def ufunc(self, raster, ufunc, classDefinition):
+        array = self.flowRasterArray('raster', raster=raster)
+        metadataDict = self.inputRaster.raster(key='raster').metadataDict()
+        classificationArray = ufunc(array, metadataDict)
+        self.outputRaster.raster(key='classification').setArray(array=classificationArray)
+        self.setFlowMetadataClassDefinition(name='classification', classDefinition=classDefinition)
+
+
 class Regression(Raster):
-    def __init__(self, filename, noData=None, outputNames=None, minOverallCoverage=0.5):
+    def __init__(self, filename, noDataValue=None, outputNames=None, minOverallCoverage=0):
         Raster.__init__(self, filename)
-        if noData is None:
-            noData = openRaster(filename).noDataValue()
+        if noDataValue is None:
+            noDataValue = openRaster(filename).noDataValue()
         if outputNames is None:
             outputNames = [band.description() for band in openRaster(filename).bands()]
-        assert noData is not None
-        self.noData = noData
+        assert noDataValue is not None
+        self.noDataValue = noDataValue
         self.outputNames = outputNames
         self.minOverallCoverage = minOverallCoverage
 
     def __repr__(self):
-        return '{cls}(filename={filename}, noData={noData}, outputNames={outputNames}, minOverallCoverage={minOverallCoverage})'.format(
+        return '{cls}(filename={filename}, noDataValue={noDataValue}, outputNames={outputNames}, minOverallCoverage={minOverallCoverage})'.format(
             cls=self.__class__.__name__,
             filename=str(self.filename),
-            noData=repr(self.noData),
+            noDataValue=repr(self.noDataValue),
             outputNames=repr(self.outputNames),
             minOverallCoverage=repr(self.minOverallCoverage))
 
     def asMask(self):
-        return Raster.asMask(self, noData=self.noData)
+        return Raster.asMask(self, noDataValue=self.noDataValue)
+
+    def resample(self, filename, grid, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowProbability('inregression', probability=self)
+        applier.setOutputRaster('outregression', filename=filename)
+        applier.apply(operatorType=_RegressionResample, regression=self)
+        return Regression(filename=filename)
+
+
+class _RegressionResample(ApplierOperator):
+    def ufunc(self, regression):
+        array = self.flowRegressionArray('inregression', regression=regression)
+        self.outputRaster.raster(key='outregression').setArray(array=array)
+        self.setFlowMetadataRegressionDefinition(name='outregression', noDataValue=regression.noDataValue,
+                                                 outputNames=regression.outputNames)
 
 
 class Probability(Regression):
-    def __init__(self, filename, classDefinition=None):
+    def __init__(self, filename, classDefinition=None, minOverallCoverage=0, minWinnerCoverage=0):
         if classDefinition is None:
             classDefinition = ClassDefinition.fromENVIMeta(filename)
         assert isinstance(classDefinition, ClassDefinition)
-        Regression.__init__(self, filename=filename, noData=-1, outputNames=classDefinition.names)
+        Regression.__init__(self, filename=filename, noDataValue=-1, outputNames=classDefinition.names)
         self.classDefinition = classDefinition
+        self.minOverallCoverage = minOverallCoverage
+        self.minWinnerCoverage = minWinnerCoverage
 
     def __repr__(self):
         return '{cls}(filename={filename}, classDefinition={classDefinition})'.format(
@@ -585,7 +689,21 @@ class Probability(Regression):
         applier.setOutputRaster('probability', filename=filename)
         applier.apply(operatorType=_ProbabilityFromVectorClassification, vectorClassification=vectorClassification,
                       oversampling=oversampling)
+        return Probability(filename=filename)
 
+    @classmethod
+    def fromClassification(cls, filename, classification, grid, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowClassification('classification', classification=classification)
+        applier.setOutputRaster('probability', filename=filename)
+        applier.apply(operatorType=_ProbabilityFromClassification, classification=classification)
+        return Probability(filename=filename)
+
+    def resample(self, filename, grid, **kwargs):
+        applier = Applier(defaultGrid=grid, **kwargs)
+        applier.setFlowProbability('inprobability', probability=self)
+        applier.setOutputRaster('outprobability', filename=filename)
+        applier.apply(operatorType=_ProbabilityResample, probability=self)
         return Probability(filename=filename)
 
     def subsetClasses(self, filename, labels, **kwargs):
@@ -616,12 +734,12 @@ class Probability(Regression):
 class _ProbabilityAsClassColorRGBRaster(ApplierOperator):
     def ufunc(self, filter, probability):
         assert isinstance(probability, Probability)
-        colors = np.array(probability.classDefinition.lookup).reshape((-1, 3))
+        colors = probability.classDefinition.colors
         array = self.flowRasterArray('probability', raster=probability)
         rgb = self.full(value=0, bands=3, dtype=np.float32)
         for id, (band, color) in enumerate(zip(array, colors), start=1):
             if len(filter) > 0 and id not in filter: continue
-            rgb += band * color.reshape((3, 1, 1))
+            rgb += band * np.reshape(color, newshape=(3, 1, 1))
         np.uint8(np.clip(rgb, a_min=0, a_max=255, out=rgb))
         mask = np.any(rgb != 0, axis=0)
         np.clip(rgb, a_min=1, a_max=255, out=rgb)
@@ -638,12 +756,27 @@ class _ProbabilityFromVectorClassification(ApplierOperator):
                                                   classDefinition=vectorClassification.classDefinition)
 
 
+class _ProbabilityFromClassification(ApplierOperator):
+    def ufunc(self, classification):
+        array = self.flowProbabilityArray('classification', probability=classification)
+        self.outputRaster.raster(key='probability').setArray(array=array)
+        self.setFlowMetadataProbabilityDefinition(name='probability',
+                                                  classDefinition=classification.classDefinition)
+
+
+class _ProbabilityResample(ApplierOperator):
+    def ufunc(self, probability):
+        array = self.flowProbabilityArray('inprobability', probability=probability)
+        self.outputRaster.raster(key='outprobability').setArray(array=array)
+        self.setFlowMetadataProbabilityDefinition(name='outprobability', classDefinition=probability.classDefinition)
+
+
 class _ProbabilitySubsetClasses(ApplierOperator):
     def ufunc(self, indicies, probability):
         classes = len(indicies)
-        lookup = [probability.classDefinition.getColor(label=index + 1) for index in indicies]
+        colors = [probability.classDefinition.getColor(label=index + 1) for index in indicies]
         names = [probability.classDefinition.getName(label=index + 1) for index in indicies]
-        classDefinition = ClassDefinition(classes=classes, names=names, lookup=lookup)
+        classDefinition = ClassDefinition(classes=classes, names=names, colors=colors)
         probabilitySubset = self.inputRaster.raster(key='probability').bandArray(indicies=indicies)
         self.outputRaster.raster(key='probabilitySubset').setArray(array=probabilitySubset)
         self.setFlowMetadataProbabilityDefinition(name='probabilitySubset', classDefinition=classDefinition)
@@ -710,7 +843,7 @@ class ProbabilityPerformance(FlowObject):
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(facecolor='white', figsize=(9, 6))
         for i in range(len(self.roc_curves)):
-            rgb = [v / 255. for v in self.classDefinitionP.lookup[i]]
+            #rgb = [v / 255. for v in self.classDefinitionP.color[i]]
             plt.plot(self.roc_curves[i + 1][0], self.roc_curves[i + 1][1]
                      , label=names[i])  # , color=rgb) # problem: plots do not show the correct RGB colors
         ax.set_xlabel('False Positive Rate')
@@ -812,26 +945,28 @@ class UnsupervisedSample(FlowObject):
 class _UnsupervisedSampleFromRasterAndMask(ApplierOperator):
     def ufunc(self, raster, mask, mask2):
         features = self.flowRasterArray(name='raster', raster=raster)
-        labeled = self.maskFromArray(array=features, noDataSource='raster')
+        labeled = self.maskFromArray(array=features, noDataValueSource='raster')
         labeled *= self.flowMaskArray('mask', mask=mask)
         labeled *= self.flowMaskArray('mask2', mask=mask2)
         return features[:, labeled[0]]
 
 
 class SupervisedSample(UnsupervisedSample):
-    def __init__(self, features, labels, noData, outputNames, metadata=None):
+    def __init__(self, features, labels, noDataValue, outputNames, metadata=None, allowEmpty=False):
         UnsupervisedSample.__init__(self, features=features, metadata=metadata)
 
         assert isinstance(labels, np.ndarray) and features.ndim == 2
         assert self.features.shape[1] == labels.shape[1]
+        if not allowEmpty:
+            assert self.features.shape[1] > 0
         self.labels = labels
-        self.noData = noData
+        self.noDataValue = noDataValue
         self.outputNames = outputNames
 
 
 class ClassificationSample(SupervisedSample):
     def __init__(self, features, labels, classDefinition, metadata=None, outputName='classification'):
-        SupervisedSample.__init__(self, features, labels, noData=0, metadata=metadata, outputNames=[outputName])
+        SupervisedSample.__init__(self, features, labels, noDataValue=0, metadata=metadata, outputNames=[outputName])
         assert labels.shape[0] == 1
         assert isinstance(classDefinition, ClassDefinition)
         self.classDefinition = classDefinition
@@ -850,8 +985,8 @@ class ClassificationSample(SupervisedSample):
         sample = UnsupervisedSample.fromENVISpectralLibrary(filename=filename)
         names = sample.metadata[classificationSchemeName + 'class names'][1:]
         classes = len(names)
-        lookup = np.array(sample.metadata[classificationSchemeName + 'class lookup'][3:]).reshape((classes, 3))
-        classDefinition = ClassDefinition(classes=classes, names=names, lookup=lookup)
+        lookup = sample.metadata[classificationSchemeName + 'class lookup'][3:]
+        classDefinition = ClassDefinition(classes=classes, names=names, colors=lookup)
 
         labels = np.array(sample.metadata[classificationSchemeName + 'class spectra names'])
         for i, name in enumerate(names):
@@ -863,7 +998,8 @@ class ClassificationSample(SupervisedSample):
         UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)
         header['classes'] = self.classDefinition.classes + 1
         header['class names'] = ['Unclassified'] + self.classDefinition.names
-        header['class lookup'] = [0, 0, 0] + self.classDefinition.lookup
+        assert 0 #fix class colors
+        header['class lookup'] = [0, 0, 0] + self.classDefinition.colors
         header['class spectra names'] = np.array(self.classDefinition.names)[self.labels.ravel() - 1]
 
     @classmethod
@@ -950,11 +1086,11 @@ class ClassificationSample(SupervisedSample):
 
 class RegressionSample(SupervisedSample):
     def __repr__(self):
-        return '{cls}(features=array{features}, labels=array{labels}, noData={noData}, outputNames={outputNames})'.format(
+        return '{cls}(features=array{features}, labels=array{labels}, noDataValue={noDataValue}, outputNames={outputNames})'.format(
             cls=self.__class__.__name__,
             features=repr(list(self.features.shape)),
             labels=repr(list(self.labels.shape)),
-            noData=repr(self.noData),
+            noDataValue=repr(self.noDataValue),
             outputNames=repr(self.outputNames))
 
     @staticmethod
@@ -968,13 +1104,13 @@ class RegressionSample(SupervisedSample):
                                 regression=regression, mask=mask, mask2=mask2)
         features = np.hstack(result[0] for result in results)
         fractions = np.hstack(result[1] for result in results)
-        return RegressionSample(features=features, labels=fractions, noData=regression.noData,
+        return RegressionSample(features=features, labels=fractions, noDataValue=regression.noDataValue,
                                 outputNames=regression.outputNames)
 
     @staticmethod
     def fromProbabilitySample(sample):
         assert isinstance(sample, ProbabilitySample)
-        return RegressionSample(features=sample.features, labels=sample.labels, noData=sample.noData,
+        return RegressionSample(features=sample.features, labels=sample.labels, noDataValue=sample.noDataValue,
                                 outputNames=sample.outputNames)
 
 
@@ -982,9 +1118,8 @@ class _RegressionSampleFromRasterAndRegression(ApplierOperator):
     def ufunc(self, raster, regression, mask, mask2):
         features = self.flowRasterArray(name='raster', raster=raster)
         labels = self.flowRegressionArray(name='regression', regression=regression)
-        labeled = self.maskFromArray(array=features, noDataSource='raster')
-        labeled *= self.maskFromArray(array=labels, noData=regression.noData)
-        #labeled *= labels != regression.noData
+        labeled = self.maskFromArray(array=features, noDataValueSource='raster')
+        labeled *= self.maskFromArray(array=labels, noDataValue=regression.noDataValue)
         labeled *= self.flowMaskArray('mask', mask=mask)
         labeled *= self.flowMaskArray('mask2', mask=mask2)
         return features[:, labeled[0]], labels[:, labeled[0]]
@@ -994,7 +1129,7 @@ class ProbabilitySample(RegressionSample):
     def __init__(self, features, labels, classDefinition, metadata=None):
         assert isinstance(classDefinition, ClassDefinition)
         assert labels.shape[0] == classDefinition.classes
-        RegressionSample.__init__(self, features, labels, noData=-1, metadata=metadata,
+        RegressionSample.__init__(self, features, labels, noDataValue=-1, metadata=metadata,
                                   outputNames=classDefinition.names)
         self.classDefinition = classDefinition
 
@@ -1030,7 +1165,7 @@ class ProbabilitySample(RegressionSample):
         indicies = [label - 1 for label in labels]
         classDefinition = ClassDefinition(classes=len(indicies),
                                           names=[self.classDefinition.getName(index + 1) for index in indicies],
-                                          lookup=[self.classDefinition.getColor(index + 1) for index in indicies])
+                                          colors=[self.classDefinition.getColor(index + 1) for index in indicies])
         return ProbabilitySample(features=self.features, labels=self.labels[indicies], classDefinition=classDefinition)
 
 
@@ -1038,7 +1173,7 @@ class _ProbabilitySampleFromRasterAndProbability(ApplierOperator):
     def ufunc(self, raster, probability, mask, mask2):
         features = self.flowRasterArray(name='raster', raster=raster)
         fractions = self.flowProbabilityArray(name='probability', probability=probability)
-        labeled = self.maskFromArray(array=features, noDataSource='raster')
+        labeled = self.maskFromArray(array=features, noDataValueSource='raster')
         labeled *= np.any(fractions != -1, axis=0, keepdims=True)
         labeled *= self.flowMaskArray('mask', mask=mask)
         labeled *= self.flowMaskArray('mask2', mask=mask2)
@@ -1076,7 +1211,7 @@ class Estimator(FlowObject):
 
         if isinstance(self, Clusterer):
             yTrain = self.sklEstimator.predict(X=X)
-            self.classDefinition = ClassDefinition(classes=max(yTrain)+1)
+            self.classDefinition = ClassDefinition(classes=max(yTrain) + 1)
         return self
 
     def _predict(self, filename, raster, mask=None, **kwargs):
@@ -1116,13 +1251,13 @@ class _EstimatorPredict(ApplierOperator):
         etype, dtype, noutputs = self.getInfos(estimator)
 
         if isinstance(estimator, (Classifier, Clusterer)):
-            noData = 0
+            noDataValue = 0
         else:
-            noData = estimator.sample.noData
+            noDataValue = estimator.sample.noDataValue
 
-        prediction = self.full(value=noData, bands=noutputs, dtype=dtype)
+        prediction = self.full(value=noDataValue, bands=noutputs, dtype=dtype)
 
-        valid = self.maskFromArray(array=self.features, noDataSource='raster')
+        valid = self.maskFromArray(array=self.features, noDataValueSource='raster')
         valid *= self.flowMaskArray('mask', mask=mask)
 
         X = np.float64(self.features[:, valid[0]].T)
@@ -1140,7 +1275,7 @@ class _EstimatorPredict(ApplierOperator):
                 self.setFlowMetadataProbabilityDefinition('prediction',
                                                           classDefinition=estimator.sample.classDefinition)
             else:
-                self.outputRaster.raster(key='prediction').setNoDataValue(value=noData)
+                self.outputRaster.raster(key='prediction').setNoDataValue(value=noDataValue)
             self.setFlowMetadataBandNames('prediction', bandNames=estimator.sample.outputNames)
 
     def getInfos(self, estimator):
@@ -1163,10 +1298,10 @@ class _EstimatorPredictProbability(ApplierOperator):
         assert isinstance(estimator, Classifier)
         self.features = self.flowRasterArray('raster', raster=raster)
         noutputs = estimator.sample.classDefinition.classes
-        noData = -1
-        prediction = self.full(value=noData, bands=noutputs, dtype=np.float32)
+        noDataValue = -1
+        prediction = self.full(value=noDataValue, bands=noutputs, dtype=np.float32)
 
-        valid = self.maskFromArray(array=self.features, noDataSource='raster')
+        valid = self.maskFromArray(array=self.features, noDataValueSource='raster')
         valid *= self.flowMaskArray('mask', mask=mask)
 
         X = np.float64(self.features[:, valid[0]].T)
@@ -1184,15 +1319,15 @@ class _EstimatorTransform(ApplierOperator):
         else:
             sklTransform = estimator.sklEstimator.transform
 
-        noData = np.finfo(np.float32).min
+        noDataValue = np.finfo(np.float32).min
         features = self.flowRasterArray('raster', raster=raster)
 
         X0 = np.float64(np.atleast_2d(features[:, 0, 0]))
         _, noutputs = sklTransform(X=X0).shape
 
-        transformation = self.full(value=noData, bands=noutputs, dtype=np.float32)
+        transformation = self.full(value=noDataValue, bands=noutputs, dtype=np.float32)
 
-        valid = self.maskFromArray(array=features, noDataSource='raster')
+        valid = self.maskFromArray(array=features, noDataValueSource='raster')
         valid *= self.flowMaskArray('mask', mask=mask)
 
         X = np.float64(features[:, valid[0]].T)
@@ -1200,7 +1335,7 @@ class _EstimatorTransform(ApplierOperator):
         transformation[:, valid[0]] = np.float32(y.reshape(-1, noutputs).T)
 
         self.outputRaster.raster(key='transformation').setArray(array=transformation)
-        self.outputRaster.raster(key='transformation').setNoDataValue(value=noData)
+        self.outputRaster.raster(key='transformation').setNoDataValue(value=noDataValue)
 
 
 class Classifier(Estimator):
@@ -1236,6 +1371,7 @@ class Clusterer(Estimator):
     def __init__(self, sklEstimator):
         Estimator.__init__(self, sklEstimator=sklEstimator)
         self.classDefinition = ClassDefinition(classes=0)
+
 
 class ClassificationPerformance(FlowObject):
     def __init__(self, yP, yT, classDefinitionP, classDefinitionT, classProportions=None):

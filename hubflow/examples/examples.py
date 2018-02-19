@@ -50,7 +50,7 @@ def probabilitySample_classify():
 def unsupervisedSample_classifyByName():
     unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
-                                      lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
+                                      colors=unsupervisedSample.metadata['level 2 class lookup'][3:])
     classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 2 spectra names'],
                                                              classDefinition=classDefinition)
     classificationSample.scaleFeaturesInplace(factor=10000.)

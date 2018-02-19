@@ -20,23 +20,23 @@ enmap = lambda: Raster(filename=enmapboxtestdata.enmap)
 vector = lambda: Vector(filename=enmapboxtestdata.landcover)
 landcoverAttributes = enmapboxtestdata.landcoverAttributes
 classDefinitionL1 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level1.names,
-                                    lookup=enmapboxtestdata.landcoverClassDefinition.level1.lookup)
+                                    colors=enmapboxtestdata.landcoverClassDefinition.level1.lookup)
 classDefinitionL2 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
-                                    lookup=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
+                                    colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
 vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.landcover,
                                                     nameAttribute=enmapboxtestdata.landcoverAttributes.Level_2,
                                                     classDefinition=classDefinitionL2,
                                                     minOverallCoverage=0., minWinnerCoverage=0.)
-hymapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.img'),
+hymapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.bsq'),
                                                                                           vectorClassification=vectorClassification(),
                                                                                           grid=hymap().grid, oversampling=10, overwrite=overwrite)
-enmapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'enmaplandCover.img'),
+enmapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'enmaplandCover.bsq'),
                                                                                           vectorClassification=vectorClassification(),
                                                                                           grid=enmap().grid, oversampling=10, overwrite=overwrite)
-hymapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'hymapProbability.img'),
+hymapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'hymapProbability.bsq'),
                                                                                     vectorClassification=vectorClassification(),
                                                                                     grid=hymap().grid, oversampling=10, overwrite=overwrite)
-enmapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.img'),
+enmapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.bsq'),
                                                                                     vectorClassification=vectorClassification(),
                                                                                     grid=enmap().grid, oversampling=10, overwrite=overwrite)
 enmapRegression = lambda overwrite=overwrite: Regression(filename=enmapProbability(overwrite=overwrite).filename)

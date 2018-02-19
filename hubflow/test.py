@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 import hubflow.testdata
 import enmapboxtestdata
 from hubflow.core import *
+import hubdc.testdata
 
 overwrite = not True
 vector = hubflow.testdata.vector()
@@ -32,10 +33,26 @@ outdir = join(gettempdir(), 'hubflow_test')
 
 
 def test_Classification():
-    print(Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.img'),
+    def ufunc(array, meta):
+        carray = np.copy(array)
+        for old, new in zip([0, 1, 2, 3, 4, 255], [1, 2, 3, 4, 5, 0]):
+            carray[array == old] = new
+        return carray
+
+    import matplotlib.pyplot as plt
+    from matplotlib import colors as mcolors
+
+    classDefinition = ClassDefinition(names=['land', 'water', 'shadow','snow', 'cloud'],
+                                      colors=['orange', 'blue', 'grey', 'snow', 'white'])
+
+    print(Classification.fromRasterAndFunction(filename=join(outdir, 'ClassificationFromRasterAndFunction.bsq'),
+                                               raster=Raster(filename=hubdc.testdata.LT51940232010189KIS01.cfmask),
+                                               ufunc=ufunc, classDefinition=classDefinition))
+
+    print(Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.bsq'),
                                                   vectorClassification=vectorClassification, grid=hymap.grid,
                                                   oversampling=10, overwrite=overwrite))
-    print(hymapClassification.reclassify(filename=join(outdir, 'classificationReclassify.img'),
+    print(hymapClassification.reclassify(filename=join(outdir, 'classificationReclassify.bsq'),
                                          classDefinition=hubflow.testdata.classDefinitionL1,
                                          mapping=enmapboxtestdata.landcoverClassDefinition.level2.mappingToLevel1ByName))
 
@@ -49,7 +66,7 @@ def test_ClassificationPerformance():
 def test_ClassificationSample():
     print(
         ClassificationSample.fromRasterAndClassification(raster=enmapClassification, classification=hymapClassification,
-                                                         grid=enmap, mask=vector))
+                                                         n=10, grid=enmap, mask=vector))
     print(ClassificationSample.fromRasterAndClassification(raster=enmapProbability, classification=hymapClassification,
                                                            grid=enmap, mask=vector))
     print(ClassificationSample.fromRasterAndClassification(raster=enmap, classification=hymapClassification, grid=enmap,
@@ -70,15 +87,15 @@ def test_Classifier():
     rfc = Classifier(sklEstimator=RandomForestClassifier())
     print(rfc)
     rfc.fit(sample=enmapClassificationSample)
-    print(rfc.predict(filename=join(outdir, 'rfcClassification.img'), raster=enmap, mask=vector))
-    print(rfc.predictProbability(filename=join(outdir, 'rfcProbability.img'), raster=enmap, mask=vector))
+    print(rfc.predict(filename=join(outdir, 'rfcClassification.bsq'), raster=enmap, mask=vector))
+    print(rfc.predictProbability(filename=join(outdir, 'rfcProbability.bsq'), raster=enmap, mask=vector))
 
 
 def test_Clusterer():
     kmeans = Clusterer(sklEstimator=KMeans())
     print(kmeans)
     kmeans.fit(sample=enmapClassificationSample)
-    print(kmeans.predict(filename=join(outdir, 'kmeansClustering.img'), raster=enmap, mask=vector))
+    print(kmeans.predict(filename=join(outdir, 'kmeansClustering.bsq'), raster=enmap, mask=vector))
 
 def test_ClusteringPerformance():
     clusteringPerformance = ClusteringPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
@@ -86,7 +103,7 @@ def test_ClusteringPerformance():
     clusteringPerformance.report().saveHTML(filename=join(outdir, 'reportClusteringPerformance.html'))
 
 def test_Image():
-    print(Raster.fromVector(filename=join(outdir, 'imageFromVector.img'), vector=vector, grid=hymap.grid,
+    print(Raster.fromVector(filename=join(outdir, 'imageFromVector.bsq'), vector=vector, grid=hymap.grid,
                             overwrite=overwrite))
     print(enmap.basicStatistics(bandIndicies=None, mask=vector, grid=enmap))
 
@@ -99,19 +116,22 @@ def test_Image():
 
 
 def test_Mask():
-    # print(Mask.fromVector(filename=join(outdir, 'maskFromVector.img'), vector=vector, grid=enmap))
-    print(Mask.fromRaster(filename=join(outdir, 'maskFromRaster.img'), raster=enmapClassification,
+    print(hymapClassification.asMask().resample(filename=join(outdir, 'MaskResample.bsq'), grid=enmap))
+    print(hymapClassification)
+    return
+    print(Mask.fromVector(filename=join(outdir, 'maskFromVector.bsq'), vector=vector, grid=enmap))
+    print(Mask.fromRaster(filename=join(outdir, 'maskFromRaster.bsq'), raster=enmapClassification,
                           trueRanges=[(1, 100)]))
 
 
 def test_Probability():
-    # print(enmapProbability.asClassColorRGBRaster(filename=join(outdir, 'probabilityAsClassColorRGBImage.img')))
-    print(Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.img'),
+    # print(enmapProbability.asClassColorRGBRaster(filename=join(outdir, 'probabilityAsClassColorRGBImage.bsq')))
+    print(Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.bsq'),
                                                vectorClassification=vectorClassification, grid=enmap.grid,
                                                oversampling=3))
 
 
-    # print(enmapProbability.subsetClassesByName(filename=join(outdir, 'probabilitySubsetClassesByName.img'), names=enmapProbability.classDefinition.names))
+    # print(enmapProbability.subsetClassesByName(filename=join(outdir, 'probabilitySubsetClassesByName.bsq'), names=enmapProbability.classDefinition.names))
 
 
 def test_ProbabilityPerformance():
@@ -129,6 +149,9 @@ def test_ProbabilitySample():
     print(enmapProbabilitySample.subsetClasses(labels=[1, 3]))
     print(enmapProbabilitySample.subsetClassesByName(names=enmapProbabilitySample.classDefinition.names))
     print()
+
+def test_Raster():
+    print(enmap.applyMask(filename=join(outdir, 'RasterApplyMask.bsq'), mask=enmapMask, fillValue=42))
 
 
 def test_Regression():
@@ -150,16 +173,16 @@ def test_Regressor():
     rfr = Regressor(sklEstimator=RandomForestRegressor())
     print(rfr)
     rfr.fit(sample=enmapProbabilitySample)
-    print(rfr.predict(filename=join(outdir, 'rfrRegression.img'), raster=enmap, mask=vector))
+    print(rfr.predict(filename=join(outdir, 'rfrRegression.bsq'), raster=enmap, mask=vector))
 
 
 def test_Transformer():
     pca = Transformer(sklEstimator=PCA())
     print(pca)
     pca.fit(sample=enmapUnsupervisedSample)
-    pcaTransformation = pca.transform(filename=join(outdir, 'pcaTransformation.img'), raster=enmap, mask=vector)
+    pcaTransformation = pca.transform(filename=join(outdir, 'pcaTransformation.bsq'), raster=enmap, mask=vector)
     print(pcaTransformation)
-    pcaInverseTransform = pca.inverseTransform(filename=join(outdir, 'pcaInverseTransformation.img'),
+    pcaInverseTransform = pca.inverseTransform(filename=join(outdir, 'pcaInverseTransformation.bsq'),
                                                raster=pcaTransformation, mask=vector)
     print(pcaInverseTransform)
 
@@ -178,7 +201,7 @@ def test_Vector():
     print(vector.uniqueValues(attribute=hubflow.testdata.landcoverAttributes.Level_2_ID))
     print(vector.uniqueValues(attribute=hubflow.testdata.landcoverAttributes.Level_2))
     print(vector)
-    print(Vector.fromRandomPointsFromMask(filename=join(outdir, 'vectorFromRandomPointsFromMask.gpkg'), mask=enmapMask,
+    print(Vector.fromRandomPointsFromMask(filename=join(outdir, 'vectorFromRandomPointsFromMask.gpkg.shp'), mask=enmapMask,
                                           n=10))
     n = [10] * enmapClassification.classDefinition.classes
     # n[0] = 10
@@ -189,6 +212,13 @@ def test_Vector():
 
 def test_VectorClassification():
     pass
+
+def test_Color():
+
+    for v in [(0, 0, 255), 'black', 'blue', '#0000FF']:
+        c = Color(color=v)
+        print(c)
+        print(c.rgb())
 
 
 def test_extractPixels():
