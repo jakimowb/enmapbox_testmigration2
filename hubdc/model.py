@@ -1,5 +1,5 @@
 from os import makedirs, remove
-from os.path import dirname, exists, join, basename
+from os.path import dirname, exists, join, basename, splitext
 import datetime
 import copy
 import json
@@ -32,7 +32,7 @@ class RasterCreationOptions(object):
         return ['{}={}'.format(key, value) for key, value in self.options().items()]
 
 
-class Driver(object):
+class RasterDriver(object):
     '''Class for managing GDAL Drivers'''
 
     DEFAULT_OPTIONS = RasterCreationOptions()
@@ -50,6 +50,24 @@ class Driver(object):
     def __repr__(self):
         return '{cls}(name={name})'.format(cls=self.__class__.__name__, name=repr(self.name()))
 
+    @classmethod
+    def fromFilename(cls, filename):
+
+        ext = splitext(filename)[1][1:].lower()
+        if ext == 'bsq':
+            driver = ENVIBSQDriver()
+        elif ext == 'bil':
+            driver = ENVIBILDriver()
+        elif ext == 'bip':
+            driver = ENVIBIPDriver()
+        elif ext == 'tif':
+            driver = GTiffDriver()
+        elif ext == 'img':
+            driver = ErdasDriver()
+        else:
+            assert 0, 'Unexpected output raster file extension: {}, use bsq (ENVI BSQ), bil (ENVI BIL), bip (ENVI BIP), tif (GTiff) or img (Erdas Imagine) instead'.format(ext)
+        return driver
+
     def gdalDriver(self):
         '''Returns the GDAL driver object.'''
 
@@ -63,7 +81,7 @@ class Driver(object):
     def equal(self, other):
         '''Returns whether self is equal to the other driver.'''
 
-        assert isinstance(other, Driver)
+        assert isinstance(other, RasterDriver)
         return self.name() == other.name()
 
     def defaultOptions(self):
@@ -94,7 +112,7 @@ class Driver(object):
         assert isinstance(options, RasterCreationOptions)
 
         assert isinstance(filename, str)
-        if not self.equal(Driver('MEM')) and not exists(dirname(filename)):
+        if not self.equal(RasterDriver('MEM')) and not exists(dirname(filename)):
             makedirs(dirname(filename))
 
         gdalDataset = self.gdalDriver().Create(filename, grid.size().x(), grid.size().y(), bands, gdalType,
@@ -104,91 +122,115 @@ class Driver(object):
         return Raster(gdalDataset=gdalDataset)
 
 
-class MEMDriver(Driver):
-    '''Class for managing MEM driver.'''
+class MEMDriver(RasterDriver):
+    '''MEM driver.'''
 
     def __init__(self):
-        Driver.__init__(self, name='MEM')
-
-    def __repr__(self):
-        return '{cls}()'.format(cls=self.__class__.__name__)
+        RasterDriver.__init__(self, name='MEM')
 
 
-class ENVIDriver(Driver):
-    '''Class for managing ENVI driver.'''
+class ENVIBSQDriver(RasterDriver):
+    '''ENVI BSQ driver.'''
 
-    def __init__(self):
-        Driver.__init__(self, name='ENVI')
-
-    def __repr__(self):
-        return '{cls}()'.format(cls=self.__class__.__name__)
-
-
-class GTiffDriver(Driver):
-    '''Class for managing GTiff driver.'''
-
-    class INTERLEAVE(object):
-        BAND = 'BAND'
-        PIXEL = 'PIXEL'
-
-    class COMPRESS(object):
-        JPEG = 'JPEG'
-        LZW = 'LZW'
-        PACKBITS = 'PACKBITS'
-        DEFLATE = 'DEFLATE'
-        CCITTRLE = 'CCITTRLE'
-        CCITTFAX3 = 'CCITTFAX3'
-        CCITTFAX4 = 'CCITTFAX4'
-        LZMA = 'LZMA'
-        NONE = 'NONE'
-
-    class TILED(object):
-        YES = 'YES'
-        NO = 'NO'
-
-    class NUM_THREADS(object):
-        ALL_CPUS = 'ALL_CPUS'
-
-    class BIGTIFF(object):
-        YES = 'YES'
-        NO = 'NO'
-        IF_NEEDED = 'IF_NEEDED'
-        IF_SAFER = 'IF_SAFER'
+    DEFAULT_OPTIONS = RasterCreationOptions(options={'INTERLEAVE': 'BSQ'})
 
     def __init__(self):
-        Driver.__init__(self, name='GTiff')
+        RasterDriver.__init__(self, name='ENVI')
+
+
+class ENVIBILDriver(RasterDriver):
+    '''ENVI BIL driver.'''
+
+    DEFAULT_OPTIONS = RasterCreationOptions(options={'INTERLEAVE': 'BIL'})
+
+    def __init__(self):
+        RasterDriver.__init__(self, name='ENVI')
+
+
+class ENVIBIPDriver(RasterDriver):
+    '''ENVI BIP driver.'''
+
+    DEFAULT_OPTIONS = RasterCreationOptions(options={'INTERLEAVE': 'BIP'})
+
+    def __init__(self):
+        RasterDriver.__init__(self, name='ENVI')
+
+
+class GTiffDriver(RasterDriver):
+    '''GTiff driver.'''
+
+    DEFAULT_OPTIONS = RasterCreationOptions(options={'COMPRESS': 'LZW', 'INTERLEAVE': 'BAND',
+                                                     'TILED': 'YES', 'BLOCKXSIZE': 256, 'BLOCKYSIZE': 256})
+
+    def __init__(self):
+        RasterDriver.__init__(self, name='GTiff')
+
+
+class ErdasDriver(RasterDriver):
+    '''Erdas Imagine driver.'''
+
+    DEFAULT_OPTIONS = RasterCreationOptions(options={})
+
+    def __init__(self):
+        RasterDriver.__init__(self, name='HFA')
+
+
+class VectorDriver(object):
+    '''Class for managing OGR Drivers'''
+
+    def __init__(self, name):
+        '''
+        :param name: e.g. 'ESRI Shapefile' or 'GPKG'
+        :type name: str
+        '''
+
+        self._name = name
+        if self.ogrDriver() is None:
+            raise errors.InvalidGDALDriverError()
 
     def __repr__(self):
-        return '{cls}()'.format(cls=self.__class__.__name__)
+        return '{cls}(name={name})'.format(cls=self.__class__.__name__, name=repr(self.name()))
 
-    def creationOptions(self, interleave=INTERLEAVE.BAND, tiled=TILED.NO, blockxsize=256, blockysize=256,
-                        nbits=None, compress=COMPRESS.NONE, num_threads=None, predictor=None,
-                        sparse_ok=False, bigtiff=None):
-        '''Returns GTiff :class:`~hubdc.model.RasterCreationOptions`'''
+    @classmethod
+    def fromFilename(cls, filename):
+        ext = splitext(filename)[1][1:].lower()
+        if ext == 'shp':
+            driver = ESRIShapefileDriver()
+        elif ext == 'gpkg':
+            driver = GeoPackageDriver()
+        else:
+            assert 0, 'Unexpected output vector file extension: {}, use shp (ESRI Shapefile) or gpkg (GeoPackage) instead.'.format(ext)
+        return driver
 
-        options = dict()
-        options['INTERLEAVE'] = interleave
-        if tiled == self.TILED.YES:
-            options['TILED'] = tiled
-            options['BLOCKXSIZE'] = blockxsize
-            options['BLOCKYSIZE'] = blockysize
-        if nbits is not None:
-            assert nbits in range(1, 32)
-            options['NBITS'] = nbits
-        if compress != self.COMPRESS.NONE:
-            options['COMPRESS'] = compress
-        if num_threads is not None:
-            assert num_threads == 'ALL_CPUS' or isinstance(num_threads, int)
-            options['NUM_THREADS'] = num_threads
-        if predictor is not None:
-            assert predictor in range(1, 4)
-            options['PREDICTOR'] = predictor
-        if sparse_ok:
-            options['SPARSE_OK'] = 'TRUE'
-        if bigtiff is not None:
-            options['BIGTIFF'] = bigtiff
+    def ogrDriver(self):
+        '''Returns the OGR driver object.'''
 
-        return RasterCreationOptions(options=options)
+        return ogr.GetDriverByName(self._name)
+
+    def name(self):
+        '''Returns the driver name.'''
+
+        return self._name
+
+    def equal(self, other):
+        '''Returns whether self is equal to the other driver.'''
+
+        assert isinstance(other, VectorDriver)
+        return self.name() == other.name()
+
+
+class ESRIShapefileDriver(VectorDriver):
+    '''ESRI Shapefile driver.'''
+
+    def __init__(self):
+        VectorDriver.__init__(self, name='ESRI Shapefile')
+
+
+class GeoPackageDriver(VectorDriver):
+    '''ESRI Shapefile driver.'''
+
+    def __init__(self):
+        VectorDriver.__init__(self, name='GPKG')
 
 
 class Extent(object):
@@ -1032,7 +1074,7 @@ class Raster(object):
 
     def driver(self):
         '''Return the :class:`~hubdc.model.Driver`.'''
-        return Driver(name=self._gdalDataset.GetDriver().ShortName)
+        return RasterDriver(name=self._gdalDataset.GetDriver().ShortName)
 
     def readAsArray(self, grid=None, resampleAlg=gdal.GRA_NearestNeighbour):
         '''
@@ -1209,7 +1251,7 @@ class Raster(object):
 
         filename = self._gdalDataset.GetFileList()[0]
         driver = self.driver()
-        if driver.equal(other=ENVIDriver()):
+        if driver.equal(other=ENVIBSQDriver()):
             fileType = self.metadataItem(key='file type', domain='ENVI')
             hdrfilename = self._gdalDataset.GetFileList()[-1]
         elif driver.equal(other=GTiffDriver()) == 'GTiff':
@@ -1241,7 +1283,7 @@ class Raster(object):
         self._gdalDataset = None
 
         # read map info and coordinate system string written by GDAL
-        if driver.equal(other=ENVIDriver()):
+        if driver.equal(other=ENVIBSQDriver()):
             with open(hdrfilename, 'r') as f:
                 for line in f:
                     for key in ['map info', 'coordinate system string']:
@@ -1263,7 +1305,7 @@ class Raster(object):
         :param filename: output filename
         :type filename: str
         :param driver:
-        :type driver: hubdc.model.Driver
+        :type driver: hubdc.model.RasterDriver
         :param options:
         :type options: hubdc.model.RasterCreationOptions
         :param kwargs: passed to gdal.WarpOptions
@@ -1273,7 +1315,7 @@ class Raster(object):
         '''
 
         assert isinstance(grid, Grid)
-        assert isinstance(driver, Driver)
+        assert isinstance(driver, RasterDriver)
         if options is None:
             options = driver.defaultOptions()
         assert isinstance(options, RasterCreationOptions)
@@ -1297,7 +1339,7 @@ class Raster(object):
         :param filename:
         :type filename: str
         :param driver:
-        :type driver: hubdc.model.Driver
+        :type driver: hubdc.model.RasterDriver
         :param options:
         :type options: hubdc.model.RasterCreationOptions
         :param kwargs: passed to gdal.TranslateOptions
@@ -1311,7 +1353,7 @@ class Raster(object):
 
         assert isinstance(grid, Grid)
         assert self.grid().projection().equal(other=grid.projection())
-        assert isinstance(driver, Driver)
+        assert isinstance(driver, RasterDriver)
         if options is None:
             options = driver.defaultOptions()
         assert isinstance(options, RasterCreationOptions)
@@ -1684,7 +1726,7 @@ class Vector(object):
         :param filename: output filename
         :type filename: str
         :param driver:
-        :type driver: hubdc.model.Driver
+        :type driver: hubdc.model.RasterDriver
         :param options:
         :type options: hubdc.model.RasterCreationOptions
         :return:
@@ -1692,7 +1734,7 @@ class Vector(object):
         '''
 
         assert isinstance(grid, Grid)
-        assert isinstance(driver, Driver)
+        assert isinstance(driver, RasterDriver)
         if options is None:
             options = driver.defaultOptions()
         assert isinstance(options, RasterCreationOptions)
@@ -1840,13 +1882,13 @@ def createRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', driver=M
     :param filename: output filename
     :type filename: str
     :param driver:
-    :type driver: hubdc.model.Driver
+    :type driver: hubdc.model.RasterDriver
     :param options:
     :type options: hubdc.model.RasterCreationOptions
     :return:
     :rtype: hubdc.model.Raster
     '''
-    assert isinstance(driver, Driver)
+    assert isinstance(driver, RasterDriver)
     return driver.create(grid, bands=bands, gdalType=gdalType, filename=filename, options=options)
 
 
@@ -1862,7 +1904,7 @@ def createRasterFromArray(grid, array, filename='', driver=MEMDriver(), options=
     :param filename: output filename
     :type filename: str
     :param driver:
-    :type driver: hubdc.model.Driver
+    :type driver: hubdc.model.RasterDriver
     :param options:
     :type options: hubdc.model.RasterCreationOptions
     :return:

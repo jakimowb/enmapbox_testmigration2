@@ -5,75 +5,75 @@ import numpy as np
 from hubdc.model import createRaster, Raster, RasterBand
 
 class Writer():
-    WRITE_IMAGEARRAY, WRITE_BANDARRAY, CALL_IMAGEMETHOD, CALL_BANDMETHOD, CLOSE_DATASETS, CLOSE_WRITER = range(6)
+    WRITE_ARRAY, WRITE_BANDARRAY, CALL_RASTERMETHOD, CALL_BANDMETHOD, CLOSE_RASTERS, CLOSE_WRITER = range(6)
 
     @classmethod
-    def getDatasets(cls, outputDatasets, filename):
-        ds = outputDatasets[filename]
-        assert isinstance(ds, Raster)
-        return ds
+    def getRaster(cls, outputRaster, filename):
+        raster = outputRaster[filename]
+        assert isinstance(raster, Raster)
+        return raster
 
     @classmethod
-    def handleTask(cls, task, args, outputDatasets):
-        if task is cls.WRITE_IMAGEARRAY:
-            cls.writeImageArray(outputDatasets, *args)
+    def handleTask(cls, task, args, outputRasters):
+        if task is cls.WRITE_ARRAY:
+            cls.writeArray(outputRasters, *args)
         elif task is cls.WRITE_BANDARRAY:
-            cls.writeBandArray(outputDatasets, *args)
-        elif task is cls.CALL_IMAGEMETHOD:
-            cls.callImageMethode(outputDatasets, *args)
+            cls.writeBandArray(outputRasters, *args)
+        elif task is cls.CALL_RASTERMETHOD:
+            cls.callImageMethode(outputRasters, *args)
         elif task is cls.CALL_BANDMETHOD:
-            cls.callBandMethode(outputDatasets, *args)
-        elif task is cls.CLOSE_DATASETS:
-            cls.closeDatasets(outputDatasets, *args)
+            cls.callBandMethode(outputRasters, *args)
+        elif task is cls.CLOSE_RASTERS:
+            cls.closeRasters(outputRasters, *args)
         elif task is cls.CLOSE_WRITER:
             pass
         else:
             raise ValueError(str(task))
 
     @staticmethod
-    def createDataset(outputDatasets, filename, bands, dtype, grid, driver, creationOptions):
+    def createRaster(outputRasters, filename, bands, dtype, grid, driver, creationOptions):
         if dtype == np.bool:
             dtype = np.uint8
-        outputDatasets[filename] = createRaster(grid=grid, bands=bands,
-                                                gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
-                                                filename=filename, driver=driver, options=creationOptions)
+        outputRasters[filename] = createRaster(grid=grid, bands=bands,
+                                               gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
+                                               filename=filename, driver=driver, options=creationOptions)
 
     @staticmethod
-    def closeDatasets(outputDatasets, createEnviHeader):
-        for filename, ds in outputDatasets.items():
-            outputDataset = outputDatasets.pop(filename)
-            outputDataset.flushCache()
+    def closeRasters(outputRasters, createEnviHeader):
+        for filename, ds in outputRasters.items():
+            outputRaster = outputRasters.pop(filename)
+            outputRaster.flushCache()
             if createEnviHeader:
-                outputDataset.writeENVIHeader()
-            outputDataset.close()
+                outputRaster.writeENVIHeader()
+            outputRaster.close()
 
     @classmethod
-    def writeImageArray(cls, outputDatasets, filename, array, subgrid, maingrid, driver, creationOptions):
+    def writeArray(cls, outputRasters, filename, array, subgrid, maingrid, driver, creationOptions):
 
-        if filename not in outputDatasets:
-            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=len(array), dtype=array.dtype, grid=maingrid, driver=driver, creationOptions=creationOptions)
-        cls.getDatasets(outputDatasets, filename).writeArray(array=array, grid=subgrid)
-
-    @classmethod
-    def writeBandArray(cls, outputDatasets, filename, array, index, bands, subgrid, maingrid, driver, creationOptions):
-
-        if filename not in outputDatasets:
-            Writer.createDataset(outputDatasets=outputDatasets, filename=filename, bands=bands, dtype=array.dtype, grid=maingrid, driver=driver, creationOptions=creationOptions)
-        cls.getDatasets(outputDatasets, filename).band(index=index).writeArray(array=array, grid=subgrid)
+        if filename not in outputRasters:
+            Writer.createRaster(outputRasters=outputRasters, filename=filename, bands=len(array), dtype=array.dtype, grid=maingrid, driver=driver, creationOptions=creationOptions)
+        cls.getRaster(outputRasters, filename).writeArray(array=array, grid=subgrid)
 
     @classmethod
-    def callImageMethode(cls, outputDatasets, filename, method, kwargs):
-        getattr(*method)(cls.getDatasets(outputDatasets, filename), **kwargs)
+    def writeBandArray(cls, outputRasters, filename, array, index, bands, subgrid, maingrid, driver, creationOptions):
+
+        if filename not in outputRasters:
+            Writer.createRaster(outputRasters=outputRasters, filename=filename, bands=bands, dtype=array.dtype, grid=maingrid, driver=driver, creationOptions=creationOptions)
+        cls.getRaster(outputRasters, filename).band(index=index).writeArray(array=array, grid=subgrid)
 
     @classmethod
-    def callBandMethode(cls, outputDatasets, filename, index, method, kwargs):
-        getattr(*method)(cls.getDatasets(outputDatasets, filename).band(index=index), **kwargs)
+    def callImageMethode(cls, outputRasters, filename, method, kwargs):
+        getattr(*method)(cls.getRaster(outputRasters, filename), **kwargs)
+
+    @classmethod
+    def callBandMethode(cls, outputRasters, filename, index, method, kwargs):
+        getattr(*method)(cls.getRaster(outputRasters, filename).band(index=index), **kwargs)
 
 class WriterProcess(Process):
 
     def __init__(self):
         Process.__init__(self)
-        self.outputDatasets = dict()
+        self.outputRasters = dict()
         self.queue = Queue()
 
     def run(self):
@@ -87,7 +87,7 @@ class WriterProcess(Process):
                     continue
                 value = self.queue.get()
                 task, args = value[0], value[1:]
-                Writer.handleTask(task=task, args=args, outputDatasets=self.outputDatasets)
+                Writer.handleTask(task=task, args=args, outputRasters=self.outputRasters)
                 if task is Writer.CLOSE_WRITER:
                     break
 
@@ -100,8 +100,8 @@ class WriterProcess(Process):
 class QueueMock():
 
     def __init__(self):
-        self.outputDatasets = dict()
+        self.outputRasters = dict()
 
     def put(self, value):
         task, args = value[0], value[1:]
-        Writer.handleTask(task=task, args=args, outputDatasets=self.outputDatasets)
+        Writer.handleTask(task=task, args=args, outputRasters=self.outputRasters)

@@ -143,7 +143,6 @@ class SlicableVector(object):
         return2d = isinstance(zslice, int)
         return grid, return2d
 
-da.corrcoef
 class DaskRaster(da.Array):
     def __new__(cls, daskArray, grid=None, noDataValue=None, metadataDict=None):
         assert len(daskArray.shape) == 3
@@ -299,8 +298,8 @@ def storeDaskRasters(rasters, filenames, format='ENVI', options=()):
 @delayed
 def estimatorFit(estimator, X, y):
     zsize = len(X)
-    X = numpy.array(X).reshape(zsize, -1).T
-    y = numpy.array(y).T
+    X = np.array(X).reshape(zsize, -1).T
+    y = np.array(y).T
     if y.shape[1] == 1:
         y = y.ravel()
     #print('sample X:', X.shape)

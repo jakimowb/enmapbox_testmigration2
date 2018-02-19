@@ -21,11 +21,15 @@ class InvalidGDALDatasetError(HUBDCError):
 
 
 class InvalidGDALDriverError(HUBDCError):
-    '''gdal.Open returned None.'''
+    '''gdal.GetDriverByName returned None.'''
+
+
+class InvalidOGRDriverError(HUBDCError):
+    '''ogr.GetDriverByName returned None.'''
 
 
 class InvalidOGRDataSourceError(HUBDCError):
-    '''gdal.Open returned None.'''
+    '''ogr.Open returned None.'''
 
 
 class ApplierOperatorTypeError(HUBDCError):

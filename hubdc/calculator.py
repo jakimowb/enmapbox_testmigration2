@@ -129,7 +129,7 @@ class CalculatorOperator(ApplierOperator):
         ySize, xSize = self.subgrid.shape
         for key in self.inputRaster.flatRasterKeys():
             raster = self.inputRaster.raster(key=key)
-            array = raster.array(resampleAlg=options[key]['resampleAlg'], noData=options[key]['noData'])
+            array = raster.array(resampleAlg=options[key]['resampleAlg'], noDataValue=options[key]['noDataValue'])
             exec '{key} = array'.format(key=key)
             inputRasterByArray[id(array)] = raster
 

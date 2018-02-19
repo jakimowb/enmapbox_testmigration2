@@ -31,9 +31,12 @@ class Test(TestCase):
 
     def test_repr(self):
         print(RasterCreationOptions(options={'INTERLEAVE': 'BAND'}))
-        print(Driver(name='MEM'))
+        print(RasterDriver(name='MEM'))
         print(MEMDriver())
-        print(ENVIDriver())
+        print(ENVIBSQDriver())
+        print(ENVIBIPDriver())
+        print(ENVIBILDriver())
+        print(ErdasDriver())
         print(GTiffDriver())
         print(grid.extent())
         print(Resolution(x=30, y=30))
@@ -55,32 +58,19 @@ class Test(TestCase):
 
 class TestDriver(TestCase):
     def test_Driver(self):
-        self.assertIsInstance(obj=Driver(name='ENVI').gdalDriver(), cls=gdal.Driver)
-        self.assertRaises(excClass=errors.InvalidGDALDriverError, callableObj=Driver, name='not a valid driver name')
+        self.assertIsInstance(obj=RasterDriver(name='ENVI').gdalDriver(), cls=gdal.Driver)
+        self.assertRaises(excClass=errors.InvalidGDALDriverError, callableObj=RasterDriver,
+                          name='not a valid driver name')
 
     def test_equal(self):
-        d1 = ENVIDriver()
+        d1 = ENVIBSQDriver()
         d2 = GTiffDriver()
-        d3 = Driver('ENVI')
+        d3 = RasterDriver('ENVI')
         self.assertTrue(d1.equal(d3))
         self.assertFalse(d1.equal(d2))
 
     def test_create(self):
-        self.assertIsInstance(obj=Driver('MEM').create(grid=grid), cls=Raster)
-
-    def test_options(self):
-        self.assertDictEqual(Driver(name='MEM').defaultOptions().options(), {})
-        driver = GTiffDriver()
-        options = GTiffDriver().creationOptions(tiled=GTiffDriver.TILED.YES,
-                                                nbits=8,
-                                                compress=GTiffDriver.COMPRESS.LZW,
-                                                num_threads=GTiffDriver.NUM_THREADS.ALL_CPUS,
-                                                predictor=1,
-                                                sparse_ok=True,
-                                                bigtiff=GTiffDriver.BIGTIFF.IF_NEEDED)
-        raster = createRasterFromArray(grid=grid, array=np.zeros(shape=grid.shape(), dtype=np.uint8),
-                                       filename=join(outdir, 'image.tif'),
-                                       driver=driver, options=options)
+        self.assertIsInstance(obj=RasterDriver('MEM').create(grid=grid), cls=Raster)
 
 
 class TestRasterBand(TestCase):
@@ -176,12 +166,12 @@ class TestRaster(TestCase):
         self.assertIsInstance(obj=raster.grid(), cls=Grid)
         for band in raster.bands():
             self.assertIsInstance(obj=band, cls=RasterBand)
-        self.assertIsInstance(raster.driver(), Driver)
+        self.assertIsInstance(raster.driver(), RasterDriver)
         self.assertIsInstance(raster.readAsArray(), np.ndarray)
         self.assertIsInstance(raster.readAsArray(grid=grid), np.ndarray)
 
         raster2 = createRasterFromArray(grid=grid, array=np.ones(shape=grid.shape()))
-#        raster2 = createRasterFromArray(grid=grid, array=np.ones(shape=grid.shape()[1:]))
+        #        raster2 = createRasterFromArray(grid=grid, array=np.ones(shape=grid.shape()[1:]))
         raster2 = createRasterFromArray(grid=grid, array=[np.ones(shape=grid.shape(), dtype=np.bool)])
         raster2.setNoDataValue(value=-9999)
         raster2.noDataValue()
@@ -189,7 +179,7 @@ class TestRaster(TestCase):
         raster2.description()
         raster2.copyMetadata(other=raster)
         raster2.setMetadataItem(key='a', value=42, domain='my domain')
-        raster2.setMetadataItem(key='b', value=[1,2,3], domain='my domain')
+        raster2.setMetadataItem(key='b', value=[1, 2, 3], domain='my domain')
         raster2.metadataItem(key='a', domain='my domain')
         raster2.metadataItem(key='b', domain='my domain')
         raster2.setMetadataDict(metadataDict=raster2.metadataDict())
@@ -202,7 +192,8 @@ class TestRaster(TestCase):
         grid2 = Grid(extent=grid.spatialExtent(), resolution=Resolution(x=400, y=400))
         raster2.translate(grid=grid2)
         raster2.array()
-        grid2 = Grid(extent=grid.spatialExtent().reproject(targetProjection=Projection.UTM(zone=33)), resolution=grid.resolution())
+        grid2 = Grid(extent=grid.spatialExtent().reproject(targetProjection=Projection.UTM(zone=33)),
+                     resolution=grid.resolution())
         raster2.array(grid=grid2)
         raster2.dtype()
         raster2.flushCache()
@@ -212,14 +203,12 @@ class TestRaster(TestCase):
                                         filename=join(outdir, 'zeros.tif'), driver=GTiffDriver())
         raster2.writeENVIHeader()
         raster2 = createRasterFromArray(grid=grid, array=[np.ones(shape=grid.shape(), dtype=np.bool)],
-                                        filename=join(outdir, 'zeros.img'), driver=ENVIDriver())
+                                        filename=join(outdir, 'zeros.img'), driver=ENVIBSQDriver())
         raster2.writeENVIHeader()
-
-
 
     def test_createVRT(self):
         createVRT(filename=join(outdir, 'stack1.vrt'), rastersOrFilenames=[raster, raster])
-        createVRT(filename=join(outdir, 'stack2.vrt'), rastersOrFilenames=[LT51940232010189KIS01.cfmask]*2)
+        createVRT(filename=join(outdir, 'stack2.vrt'), rastersOrFilenames=[LT51940232010189KIS01.cfmask] * 2)
 
     def test_buildOverviews(self):
         buildOverviews(filename=join(outdir, 'stack1.vrt'), minsize=128)
@@ -227,7 +216,6 @@ class TestRaster(TestCase):
 
 class TestVector(TestCase):
     def test(self):
-
         gridSameProjection = Grid(extent=vector.spatialExtent(), resolution=Resolution(x=1, y=1))
         vector.rasterize(grid=grid)
         vector.rasterize(grid=gridSameProjection, noDataValue=-9999)
@@ -235,6 +223,7 @@ class TestVector(TestCase):
         vector.fieldCount()
         vector.fieldNames()
         vector.fieldTypeNames()
+
 
 class TestExtent(TestCase):
     def test(self):
@@ -275,7 +264,6 @@ class TestResolution(TestCase):
 
 
 class TestGrid(TestCase):
-
     def test(self):
         Grid(extent=grid.spatialExtent(), resolution=grid.resolution())
         grid.equal(other=grid)
@@ -316,3 +304,26 @@ class TestSpatialPoint(TestCase):
         self.assertIsInstance(p.reproject(sourceProjection=wgs84, targetProjection=wgs84), Point)
         self.assertIsInstance(p.geometry(), SpatialGeometry)
         self.assertFalse(p.withinExtent(extent=grid.spatialExtent()))
+
+
+def test_deriveDriverFromFileExtension():
+    for ext in ['bsq', 'bip', 'bil', 'tif', 'img']:
+        filename = join(outdir, 'file.' + ext)
+        driver = RasterDriver.fromFilename(filename=filename)
+        print(driver)
+
+    try:
+        RasterDriver.fromFilename(filename='file.xyz')
+    except AssertionError as error:
+        print(str(error))
+
+    for ext in ['shp', 'gpkg']:
+        filename = join(outdir, 'file.' + ext)
+        driver = VectorDriver.fromFilename(filename=filename)
+        print(driver)
+
+    try:
+        VectorDriver.fromFilename(filename='file.xyz')
+    except AssertionError as error:
+        print(str(error))
+

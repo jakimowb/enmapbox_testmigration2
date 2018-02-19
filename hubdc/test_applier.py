@@ -175,6 +175,18 @@ def test_ApplierOutputRaster():
     applier.controls.setGrid(grid=openRaster(LT51940242010189KIS01.cfmask).grid())
     applier.apply(operatorType=Operator)
 
+def test_deriveDriverFromFileExtension():
+
+    for ext in ['bsq', 'bip', 'bil', 'tif', 'img']:
+        filename = join(outdir, 'file.' + ext)
+        outraster = ApplierOutputRaster(filename=filename)
+        print(outraster.driver)
+
+    try:
+        ApplierOutputRaster(filename='file.xyz')
+    except AssertionError as error:
+        assert error.message == 'unexpected extension: xyz'
+
 
 class TestApplier(TestCase):
     def test_apply(self):

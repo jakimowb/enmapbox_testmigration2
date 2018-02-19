@@ -36,7 +36,7 @@ class ApplierOptions(object):
 
 
 class ApplierDefaults(object):
-    '''Defaults values for various settings used inside an applier processing chain.'''
+    '''Defauls values for various settings used inside an applier processing chain.'''
 
     autoExtent = ApplierOptions.AutoExtent.intersection
     autoResolution = ApplierOptions.AutoResolution.minimum
@@ -44,11 +44,6 @@ class ApplierDefaults(object):
     nwriter = None
     blockSize = Size(x=256, y=256)
     writeENVIHeader = True
-    driver = ENVIDriver()
-    creationOptions = dict()
-    creationOptions['ENVI'] = RasterCreationOptions(options={'INTERLEAVE': 'BSQ'})
-    creationOptions['GTiff'] = RasterCreationOptions(options={'COMPRESS': 'LZW', 'INTERLEAVE': 'BAND',
-                                                              'TILED': 'YES', 'BLOCKXSIZE': 256, 'BLOCKYSIZE': 256})
 
     class GDALEnv(object):
         cacheMax = 100 * 2 ** 20
@@ -117,7 +112,7 @@ class ApplierInputRaster(ApplierIO):
     def _freeUnpickableResources(self):
         self._dataset = None
 
-    def array(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+    def array(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
               errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
               warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
               multithread=ApplierDefaults.GDALWarp.multithread,
@@ -128,7 +123,7 @@ class ApplierInputRaster(ApplierIO):
 
         :param overlap: the number of pixels to additionally read along each spatial dimension
         :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
-        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
+        :param noDataValue: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
         :param errorThreshold: error threshold for approximation transformer (in pixels)
         :param warpMemoryLimit: size of working buffer in bytes
         :param multithread: whether to multithread computation and I/O operations
@@ -139,18 +134,18 @@ class ApplierInputRaster(ApplierIO):
             grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
         if self.operator().subgrid().projection().equal(other=self.dataset().grid().projection()):
-            datasetResampled = self.dataset().translate(grid=grid, resampleAlg=resampleAlg, noData=noData)
+            datasetResampled = self.dataset().translate(grid=grid, resampleAlg=resampleAlg, noData=noDataValue)
         else:
             datasetResampled = self.dataset().warp(grid=grid, resampleAlg=resampleAlg,
                                                    errorThreshold=errorThreshold,
                                                    warpMemoryLimit=warpMemoryLimit,
                                                    multithread=multithread,
-                                                   srcNodata=noData)
+                                                   srcNodata=noDataValue)
         array = datasetResampled.readAsArray()
         datasetResampled.close()
         return array
 
-    def bandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+    def bandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
                   errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
                   warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
                   multithread=ApplierDefaults.GDALWarp.multithread):
@@ -161,7 +156,7 @@ class ApplierInputRaster(ApplierIO):
         :param indicies: list of band indicies
         :param overlap: the number of pixels to additionally read along each spatial dimension
         :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
-        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
+        :param noDataValue: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
         :param errorThreshold: error threshold for approximation transformer (in pixels)
         :param warpMemoryLimit: size of working buffer in bytes
         :param multithread: whether to multithread computation and I/O operations
@@ -173,35 +168,34 @@ class ApplierInputRaster(ApplierIO):
             datasetResampled = self.dataset().translate(grid=grid,
                                                         bandList=bandList,
                                                         resampleAlg=resampleAlg,
-                                                        noData=noData)
+                                                        noData=noDataValue)
         else:
             selfGridReprojected = self.operator().subgrid().reproject(self.dataset().grid())
             selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1 + overlap)
 
             datasetClipped = self.dataset().translate(grid=selfGridReprojectedWithBuffer,
                                                       bandList=bandList,
-                                                      noData=noData)
+                                                      noData=noDataValue)
 
             datasetResampled = datasetClipped.warp(grid=grid,
                                                    resampleAlg=resampleAlg,
                                                    errorThreshold=errorThreshold,
                                                    warpMemoryLimit=warpMemoryLimit,
                                                    multithread=multithread,
-                                                   srcNodata=noData)
+                                                   srcNodata=noDataValue)
             datasetClipped.close()
 
         array = datasetResampled.readAsArray()
         datasetResampled.close()
         return array
 
-    def fractionArray(self, categories, overlap=0, noData=None, index=None):
+    def fractionArray(self, categories, overlap=0, index=None):
         '''
         Returns a stack of category fractions for the given ``categories`` as a 3-d numpy array of
         shape = (zsize, ysize, xsize), where zsize is the number of categories.
 
         :param categories: list of categories of interest
         :param overlap: the number of pixels to additionally read along each spatial dimension
-        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
         :param index: index to the band holding the categories
         '''
 
@@ -213,7 +207,7 @@ class ApplierInputRaster(ApplierIO):
         # create tmp dataset with binarized categories in original resolution
         gridInSourceProjection = grid.reproject(self.dataset().grid())
         tmpDataset = self.dataset().translate(grid=gridInSourceProjection,
-                                              noData=noData, bandList=[index + 1])
+                                              bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
 
         binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
@@ -225,16 +219,17 @@ class ApplierInputRaster(ApplierIO):
         array = binarizedInputRaster.array(overlap=overlap, resampleAlg=gdal.GRA_Average)
         return array
 
-    def sample(self, mask, resampleAlg=gdal.GRA_NearestNeighbour, noData=None,
+    def sample(self, mask, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
                errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
                warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
                multithread=ApplierDefaults.GDALWarp.multithread):
         '''
         Returns all pixel profiles for which ``mask`` is True as a 2-d numpy array of shape = (zsize, samples).
+        Note that pixel profiles are individually accessed, which is fast for sparse masks, but slow otherwise.
 
         :param overlap: the number of pixels to additionally read along each spatial dimension
         :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
-        :param noData: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
+        :param noDataValue: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
         :param errorThreshold: error threshold for approximation transformer (in pixels)
         :param warpMemoryLimit: size of working buffer in bytes
         :param multithread: whether to multithread computation and I/O operations
@@ -250,7 +245,7 @@ class ApplierInputRaster(ApplierIO):
         profiles = list()
         for y, x in zip(ys, xs):
             grid = self.operator().subgrid().subset(offset=Pixel(x=x, y=y), size=Size(x=1, y=1))
-            profiles.append(self.array(resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
+            profiles.append(self.array(resampleAlg=resampleAlg, noDataValue=noDataValue, errorThreshold=errorThreshold,
                                        warpMemoryLimit=warpMemoryLimit, multithread=multithread, grid=grid))
         if len(profiles) != 0:
             profiles = numpy.hstack(profiles)[:, :, 0]
@@ -363,18 +358,18 @@ class ApplierOutputRaster(ApplierIO):
         '''
         :param filename: destination filename for output raster
         :param driver:
-        :type driver: hubdc.model.Driver
+        :type driver: hubdc.model.RasterDriver
         :param creationOptions: e.g. for ENVI and GTiff files see http://www.gdal.org/frmt_various.html#ENVI and http://www.gdal.org/frmt_gtiff.html.
         :type creationOptions: RasterCreationOptions
         '''
 
         ApplierIO.__init__(self, filename=filename)
         if driver is None:
-            driver = ApplierDefaults.driver
+            driver = RasterDriver.fromFilename(filename)
         self.driver = driver
-        assert isinstance(driver, Driver)
+        assert isinstance(driver, RasterDriver)
         if creationOptions is None:
-            creationOptions = ApplierDefaults.creationOptions.get(self.driver.name(), RasterCreationOptions())
+            creationOptions = driver.defaultOptions()
         self.creationOptions = creationOptions
         assert isinstance(creationOptions, RasterCreationOptions)
         self._writerQueue = None
@@ -431,7 +426,7 @@ class ApplierOutputRaster(ApplierIO):
             array = array[:, overlap:-overlap, overlap:-overlap]
 
         self._writerQueue.put(
-            (Writer.WRITE_IMAGEARRAY, self.filename(), array, self.operator().subgrid(), self.operator().grid(),
+            (Writer.WRITE_ARRAY, self.filename(), array, self.operator().subgrid(), self.operator().grid(),
              self.driver, self.creationOptions))
 
         self.setZsize(zsize=len(array))
@@ -464,7 +459,7 @@ class ApplierOutputRaster(ApplierIO):
     def _callImageMethod(self, method, **kwargs):
         if self.operator().isFirstBlock():
             method = (Raster, method.__name__)
-            self._writerQueue.put((Writer.CALL_IMAGEMETHOD, self.filename(), method, kwargs))
+            self._writerQueue.put((Writer.CALL_RASTERMETHOD, self.filename(), method, kwargs))
 
 
 class ApplierOutputRasterBand(ApplierIO):
@@ -1048,11 +1043,11 @@ class Applier(object):
 
         if self.controls._multiwriting:
             for writer in self.writers:
-                writer.queue.put([Writer.CLOSE_DATASETS, self.controls.createEnviHeader])
+                writer.queue.put([Writer.CLOSE_RASTERS, self.controls.createEnviHeader])
                 writer.queue.put([Writer.CLOSE_WRITER, None])
                 writer.join()
         else:
-            self.queueMock.put([Writer.CLOSE_DATASETS, self.controls.createEnviHeader])
+            self.queueMock.put([Writer.CLOSE_RASTERS, self.controls.createEnviHeader])
 
 
 class _Worker(object):
