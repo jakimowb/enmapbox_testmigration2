@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use('QT4Agg')
-from matplotlib import pyplot
+#import matplotlib
+#matplotlib.use('QT4Agg')
+#from matplotlib import pyplot
 from tempfile import gettempdir
 from os.path import join, exists
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -15,34 +15,34 @@ overwrite=False
 progressBar = hubdc.progressbar.CUIProgressBar
 outdir = join(gettempdir(), 'hubflow_testdata')
 
-hymap = lambda: Image(filename=enmapboxtestdata.hymap)
-enmap = lambda: Image(filename=enmapboxtestdata.enmap)
+hymap = lambda: Raster(filename=enmapboxtestdata.hymap)
+enmap = lambda: Raster(filename=enmapboxtestdata.enmap)
 vector = lambda: Vector(filename=enmapboxtestdata.landcover)
 landcoverAttributes = enmapboxtestdata.landcoverAttributes
 classDefinitionL1 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level1.names,
-                                    lookup=enmapboxtestdata.landcoverClassDefinition.level1.lookup)
+                                    colors=enmapboxtestdata.landcoverClassDefinition.level1.lookup)
 classDefinitionL2 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
-                                    lookup=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
+                                    colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
 vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.landcover,
                                                     nameAttribute=enmapboxtestdata.landcoverAttributes.Level_2,
                                                     classDefinition=classDefinitionL2,
                                                     minOverallCoverage=0., minWinnerCoverage=0.)
-hymapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.img'),
-                                                                      vectorClassification=vectorClassification(),
-                                                                      grid=hymap().pixelGrid, oversampling=10, overwrite=overwrite)
-enmapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'enmaplandCover.img'),
-                                                                      vectorClassification=vectorClassification(),
-                                                                      grid=enmap().pixelGrid, oversampling=10, overwrite=overwrite)
-hymapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'hymapProbability.img'),
-                                                                vectorClassification=vectorClassification(),
-                                                                grid=hymap().pixelGrid, oversampling=10, overwrite=overwrite)
-enmapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.img'),
-                                                                vectorClassification=vectorClassification(),
-                                                                grid=enmap().pixelGrid, oversampling=10, overwrite=overwrite)
-
-enmapProbabilitySample = lambda overwrite=overwrite: ProbabilitySample.fromImageAndProbability(image=enmap(), probability=enmapProbability(overwrite), grid=enmap())
-enmapClassificationSample = lambda overwrite=overwrite: ClassificationSample.fromImageAndClassification(image=enmap(), classification=enmapClassification(overwrite), grid=enmap())
-enmapUnsupervisedSample = lambda overwrite=overwrite: UnsupervisedSample.fromImageAndMask(image=enmap(), mask=vector(), grid=enmap())
+hymapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.bsq'),
+                                                                                          vectorClassification=vectorClassification(),
+                                                                                          grid=hymap().grid, oversampling=10, overwrite=overwrite)
+enmapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'enmaplandCover.bsq'),
+                                                                                          vectorClassification=vectorClassification(),
+                                                                                          grid=enmap().grid, oversampling=10, overwrite=overwrite)
+hymapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'hymapProbability.bsq'),
+                                                                                    vectorClassification=vectorClassification(),
+                                                                                    grid=hymap().grid, oversampling=10, overwrite=overwrite)
+enmapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.bsq'),
+                                                                                    vectorClassification=vectorClassification(),
+                                                                                    grid=enmap().grid, oversampling=10, overwrite=overwrite)
+enmapRegression = lambda overwrite=overwrite: Regression(filename=enmapProbability(overwrite=overwrite).filename)
+enmapProbabilitySample = lambda overwrite=overwrite: ProbabilitySample.fromRasterAndProbability(raster=enmap(), probability=enmapProbability(overwrite), grid=enmap())
+enmapClassificationSample = lambda overwrite=overwrite: ClassificationSample.fromRasterAndClassification(raster=enmap(), classification=enmapClassification(overwrite), grid=enmap())
+enmapUnsupervisedSample = lambda overwrite=overwrite: UnsupervisedSample.fromRasterAndMask(raster=enmap(), mask=vector(), grid=enmap())
 
 
 #hymapMask = lambda: hymapClassification.asMask()
