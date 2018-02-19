@@ -1,53 +1,61 @@
+==========================================
 Welcome to the HUB-Datacube documentation!
 ==========================================
 
 The HUB-Datacube (HUBDC) offers a high level interface for integrating heterogeneous raster and vector datasets
 into a user-defined reference pixel grid, resulting in an analysis-ready datacube.
-The data model is build on top of
-`GDAL <http://gdal.org>`_ and
-`Numpy <http://www.numpy.org>`_, and was greatly inspired by the
-`Raster I/O Simplification (RIOS) <http://rioshome.org>`_ project.
 
-Like RIOS, HUBDC provides functionality which makes it easy to write raster processing code in Python,
-but it gives the user more flexibility and has some performance improvements.
+Please provide feedback to `Andreas Rabe`_ (andreas.rabe\@geo.hu-berlin.de),
+or open an issue on `Bitbucket`_.
+
+.. _Andreas Rabe: https://www.geographie.hu-berlin.de/de/Members/rabe_andreas
+.. _Bitbucket: https://bitbucket.org/hu-geomatics/hub-datacube/issues/new
+
+Setting up
+==========
+
+Install the latest release with pip::
+
+    pip install https://bitbucket.org/hu-geomatics/hub-datacube/get/master.tar.gz
+
+Or manually `download a release <https://bitbucket.org/hu-geomatics/hub-datacube/downloads/?tab=tags>`_
+from Bitbucket.
 
 Example
--------
+=======
 
-::
+.. image:: images/ndvi.png
 
-
-    """
-    Reads in two input files and adds them together.
-    Assumes that they have the same number of bands.
-    """
-
-    from hubdc import Applier
-
-    # Set up input and output filenames.
-    applier = Applier()
-    applier.setInput('image1', filename='file1.img')
-    applier.setInput('image2', filename='file2.img')
-    applier.setOutput('outimage', filename='outfile.img')
-
-    # Set up the operator to be applied
-    def addThem(operator):
-        outimage = operator.getArray('image1') + operator.getArray('image2')
-        operator.setArray('outimage', array=outimage)
-
-    # Apply the operator to the inputs, creating the outputs.
-    applier.apply(addThem)
-
+.. literalinclude:: examples/example.py
 
 See :doc:`ApplierExamples` for more information.
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Contents:
+   :maxdepth: 1
+   :caption: User Guides:
+   :glob:
 
-    ApplierExamples.rst
-    Downloads.rst
-    hubdc_applier.rst
+   ApplierExamples.rst
+   DataModelExamples.rst
+
+.. note::
+
+   The user guides are created from Jupiter Notebooks. For a more interactive experience and graphical outputs execute
+   these notebooks:
+
+   :download:`Data Model Usage Examples <DataModelExamples.ipynb>`
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference:
+   :glob:
+
+   hubdc_applier.rst
+   hubdc_model.rst
+   hubdc_testdata.rst
+   indices.rst
 
 
-.. codeauthor:: Andreas Rabe
+.. codeauthor:: Andreas Rabe <andreas.rabe@geo.hu-berlin.de>
+
+.. sectionauthor:: Andreas Rabe <andreas.rabe@geo.hu-berlin.de>

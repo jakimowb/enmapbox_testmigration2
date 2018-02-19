@@ -13,15 +13,15 @@ import numpy
 class Calulator(Applier):
     def applyCode(self, code, options, outputKeys, overwrite=True):
 
-        self.apply(operator=CalculatorOperator, description='Calculator', overwrite=overwrite,
+        self.apply(operatorType=CalculatorOperator, description='Calculator', overwrite=overwrite,
                    code=code, options=options)
 
         self.controls.progressBar.setProgress(0)
 
-        if len(list(self.outputRaster.getFlatRasterKeys())) > 0:
+        if len(list(self.outputRaster.flatRasterKeys())) > 0:
             self.controls.progressBar.setText('\noutputs created')
-            for key in self.outputRaster.getFlatRasterKeys():
-                value = self.outputRaster.getRaster(key=key)
+            for key in self.outputRaster.flatRasterKeys():
+                value = self.outputRaster.raster(key=key)
                 self.controls.progressBar.setText('...<b>{}</b>: {}'.format(key, value.filename))
                 try:
                     import hubflow.signals
@@ -29,7 +29,7 @@ class Calulator(Applier):
                 except:
                     pass
 
-        missingOutputs = [key for key in outputKeys if key not in self.outputRaster.getFlatRasterKeys()]
+        missingOutputs = [key for key in outputKeys if key not in self.outputRaster.flatRasterKeys()]
         if len(missingOutputs) > 0:
             self.controls.progressBar.setText('')
             self.controls.progressBar.setText('<p style="color:red;">WARNING: missing outputs <b>{}</b></p>'.format(', '.join(missingOutputs)))
@@ -51,7 +51,7 @@ def noDataValue(array):
     >>> noDataValue(image)
     -9999
     '''
-    return inputRasterByArray[id(array)].getNoDataValue()
+    return inputRasterByArray[id(array)].noDataValue()
 
 def metadata(array):
     '''metadata(array)
@@ -126,25 +126,25 @@ class CalculatorOperator(ApplierOperator):
         print = self.progressBar.setLabelText
         global inputRasterByArray, outputRasterByArray, outputNoDataValueByArray, outputMetadataByArray
 
-        ySize, xSize = self.workingGrid.shape
-        for key in self.inputRaster.getFlatRasterKeys():
-            raster = self.inputRaster.getRaster(key=key)
-            array = raster.getImageArray(resampleAlg=options[key]['resampleAlg'], noData=options[key]['noData'])
+        ySize, xSize = self.subgrid.shape
+        for key in self.inputRaster.flatRasterKeys():
+            raster = self.inputRaster.raster(key=key)
+            array = raster.array(resampleAlg=options[key]['resampleAlg'], noDataValue=options[key]['noDataValue'])
             exec '{key} = array'.format(key=key)
             inputRasterByArray[id(array)] = raster
 
-        for key in self.inputVector.getFlatVectorKeys():
-            vector = self.inputVector.getVector(key=key)
-            array = vector.getImageArray(initValue=options[key]['initValue'],
-                                         burnValue=options[key]['burnValue'],
-                                         burnAttribute=options[key]['burnAttribute'],
-                                         allTouched=options[key]['allTouched'],
-                                         filterSQL=options[key]['filterSQL'],
-                                         dtype=options[key]['dtype'])
+        for key in self.inputVector.flatVectorKeys():
+            vector = self.inputVector.vector(key=key)
+            array = vector.array(initValue=options[key]['initValue'],
+                                 burnValue=options[key]['burnValue'],
+                                 burnAttribute=options[key]['burnAttribute'],
+                                 allTouched=options[key]['allTouched'],
+                                 filterSQL=options[key]['filterSQL'],
+                                 dtype=options[key]['dtype'])
             exec '{key} = array'.format(key=key)
 
-        for key in self.outputRaster.getFlatRasterKeys():
-            raster = self.outputRaster.getRaster(key=key)
+        for key in self.outputRaster.flatRasterKeys():
+            raster = self.outputRaster.raster(key=key)
             exec '{key} = None'.format(key=key)
 
         try:
@@ -154,13 +154,13 @@ class CalculatorOperator(ApplierOperator):
             #self.progressBar.displayError(text=tb)
             raise CodeExecutionError(traceback.format_exc())
 
-        for key in self.outputRaster.getFlatRasterKeys():
-            raster = self.outputRaster.getRaster(key=key)
+        for key in self.outputRaster.flatRasterKeys():
+            raster = self.outputRaster.raster(key=key)
             array = eval(key)
             noData = outputNoDataValueByArray.get(id(array), None)
             metadata = outputMetadataByArray.get(id(array), None)
             if array is not None:
-                raster.setImageArray(array=array)
+                raster.setArray(array=array)
                 if noData is not None:
                     raster.setNoDataValue(value=noData)
                 if metadata is not None:

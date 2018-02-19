@@ -1,22 +1,23 @@
-from hubdc.applier import PixelGrid, Applier
-from hubdc.applier import ApplierOperator
+import tempfile
+import os
+from scipy.ndimage import uniform_filter
 
-def script():
+from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
+from hubdc.examples.testdata import LT51940232010189KIS01
 
-    #filename = r'H:\EuropeanDataCube\landsat\194\024\LC81940242015235LGN00\LC81940242015235LGN00_sr_band1.img'
-    filename = r'C:\Work\data\gms\landsat\194\024\LC81940242015235LGN00\LC81940242015235LGN00_cfmask.img'
+applier = Applier()
+applier.inputRaster.setRaster(key='image', value=ApplierInputRaster(filename=LT51940232010189KIS01.band3))
+applier.outputRaster.setRaster(key='outimage', value=ApplierOutputRaster(filename=os.path.join(tempfile.gettempdir(), 'smoothed.img')))
 
-    applier = Applier()
-    #applier.controls.setWindowFullSize()
-    applier.setInput('in', filename=filename)
-    applier.setOutputRaster('out', filename=r'c:\output\out.tif', format='ENVI')
-    applier.apply(operator=SimpleIO)
+class SmoothOperator(ApplierOperator):
+    def ufunc(operator):
 
-class SimpleIO(ApplierOperator):
+        # does a spatial 11x11 uniform filter.
+        # Note: for a 3x3 the overlap is 1, 5x5 overlap is 2, ..., 11x11 overlap is 5, etc
+        overlap = 5
+        array = operator.inputRaster.raster(key='image').array(overlap=overlap)
+        arraySmoothed = uniform_filter(array, size=11, mode='constant')
+        operator.outputRaster.raster(key='outimage').setArray(array=arraySmoothed, overlap=overlap)
 
-    def ufunc(self):
-        array = self.getArray('in', overlap=10)
-        self.setArray('out', array=array, overlap=10)
-
-if __name__ == '__main__':
-    script()
+applier.apply(operatorType=SmoothOperator)
+print(applier.outputRaster.raster(key='outimage').filename)

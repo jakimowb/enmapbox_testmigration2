@@ -11,7 +11,7 @@ def script():
     applier.setInput('classification', filename=r'C:\Work\source\QGISPlugIns\enmap-box\enmapbox\testdata\HymapBerlinA\HymapBerlinA_truth.img')
     applier.setOutputRaster('probability10m', filename=r'c:\output\probability10m.img')
     applier.setOutputRaster('classification10m', filename=r'c:\output\classification10m.img')
-    applier.apply(operator=SimpleIO)
+    applier.apply(operatorType=SimpleIO)
 
 class SimpleIO(ApplierOperator):
 

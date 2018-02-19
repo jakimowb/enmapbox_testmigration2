@@ -8,7 +8,7 @@ def script():
     applier.controls.setResolution(xRes=3000, yRes=3000)
     applier.setInput('LC8', filename=r'C:\Work\data\gms\LC81940242015235LGN00_sr.img')
     applier.setInputList('LC8_LE7', filenames=[r'C:\Work\data\gms\LC81940242015235LGN00_sr.img', r'C:\Work\data\gms\LE71940242015275NSG00_sr.img'])
-    applier.apply(operator=SimpleReader)
+    applier.apply(operatorType=SimpleReader)
 
 class SimpleReader(ApplierOperator):
 

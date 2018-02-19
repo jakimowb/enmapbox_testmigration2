@@ -2,6 +2,11 @@
 """
 The setup script for HUB-Datacube (HUBDC).
 
+Setting up a Python environment with conda:
+
+    conda create -n hubdc python=2  gdal dask pandas
+
+
 For using the latest release install via pip:
     pip install https://bitbucket.org/hu-geomatics/hub-datacube/get/master.tar.gz
 

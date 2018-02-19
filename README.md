@@ -2,36 +2,58 @@
 
 The HUB-Datacube package (_hubdc_) offers a high level interface for integrating heterogeneous raster datasets into a 
 user-defined reference pixel grid, resulting in an analysis-ready datacube.
-The data model is build on top of [GDAL](http://gdal.org/) and 
-was greatly inspired by the [RIOS](http://rioshome.org) project. 
 
-Like RIOS, HUBDC provides functionality which makes it easy to write raster processing code in Python,
-but it gives the user more flexibility and has some performance improvements.
+Please find the full documentation here: **http://hub-datacube.readthedocs.io**
 
 ###***Simple Example***
 
+```
+#!python
 
     """
-    Reads in two input files and adds them together.
-    Assumes that they have the same number of bands.
+    Calculate the Normalized Difference Vegetation Index (NDVI) for a Landsat 5 scene.
+    Mask the resulting image to the shape of Brandenburg (a federated state of Germany).
     """
     
-    from hubdc import Applier
+    import tempfile
+    import os
+    import numpy
+    from hubdc.applier import *
+    from hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
     
     # Set up input and output filenames.
     applier = Applier()
-    applier.setInput('image1', filename='file1.img')
-    applier.setInput('image2', filename='file2.img')
-    applier.setOutput('outimage', filename='outfile.img')
-
+    applier.inputRaster.setRaster(key='red', value=ApplierInputRaster(filename=LT51940232010189KIS01.red))
+    applier.inputRaster.setRaster(key='nir', value=ApplierInputRaster(filename=LT51940232010189KIS01.nir))
+    applier.inputVector.setVector(key='brandenburg', value=ApplierInputVector(filename=BrandenburgDistricts.shp))
+    applier.outputRaster.setRaster(key='ndvi', value=ApplierOutputRaster(filename=os.path.join(tempfile.gettempdir(), 'ndvi.img')))
+    
     # Set up the operator to be applied
-    def addThem(operator):
-        outimage = operator.getArray('image1') + operator.getArray('image2')
-        operator.setArray('outimage', array=outimage)
+    class NDVIOperator(ApplierOperator):
+        def ufunc(operator):
+    
+            # read image data
+            red = operator.inputRaster.raster(key='red').imageArray()
+            nir = operator.inputRaster.raster(key='nir').imageArray()
+            brandenburg = operator.inputVector.vector(key='brandenburg').imageArray(initValue=0, burnValue=1)
+    
+            # calculate ndvi and mask Brandenburg
+            ndvi = numpy.float32(nir-red)/(nir+red)
+            ndvi[brandenburg==0] = -1
+    
+            # write ndvi data
+            operator.outputRaster.raster(key='ndvi').setImageArray(array=ndvi)
     
     # Apply the operator to the inputs, creating the outputs.
-    applier.apply(addThem)
+    applier.apply(operatorType=NDVIOperator)
+    print(applier.outputRaster.raster(key='ndvi').filename)
+    
+    # Python prints something like:
+    # >>> c:\users\USER\appdata\local\temp\ndvi.img
+```
 
-###***Detailed Sphinx based Documentation***
 
-http://hub-datacube.readthedocs.io
+![ScreenshotEnMAP-Box3.png](doc/source/images/ndvi.png)
+
+
+
