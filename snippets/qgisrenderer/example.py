@@ -10,29 +10,43 @@ from PyQt4.Qt import *
 
 SRC_DIR = os.path.dirname(__file__)
 
-path1 = os.path.join(SRC_DIR, 'style1.txt') #XML QgsSingleBandPseudoColorRenderer
-path2 = os.path.join(SRC_DIR, 'style2.txt') #XML QgsPalettedRasterRenderer
+examples = [
+     os.path.join(SRC_DIR, 'style1.txt') #XML QgsSingleBandPseudoColorRenderer
+    ,os.path.join(SRC_DIR, 'style2.txt') #XML QgsPalettedRasterRenderer
+    ,os.path.join(SRC_DIR, 'style3.txt') #XML
+]
+
+RENDER_CLASSES = {}
+RENDER_CLASSES['rasterrenderer'] = {
+    'singlebandpseudocolor':QgsSingleBandPseudoColorRenderer,
+    'paletted':QgsPalettedRasterRenderer
+}
+RENDER_CLASSES['renderer-v2'] = {
+    'categorizedSymbol':QgsCategorizedSymbolRendererV2
+}
+
 
 
 def readRenderer(text):
     dom = QDomDocument()
     dom.setContent(text)
     root = dom.documentElement()
-    elem = root.elementsByTagName('rasterrenderer').item(0).toElement()
-    renderer = None
-    if re.search('rasterrenderer[^\n]*singlebandpseudocolor', text):
-        #renderer = QgsSingleBandPseudoColorRenderer(None, 0, None)
-        #renderer.readXML(elem)
-        renderer = QgsSingleBandPseudoColorRenderer.create(elem, None)
 
-    elif re.search('rasterrenderer[^\n]*paletted', text):
 
-        #renderer = QgsPalettedRasterRenderer(None, 1, [])
-        #renderer.readXML(elem)
-        renderer = QgsPalettedRasterRenderer.create(elem, None)
-    return renderer
+    for baseClass, renderClasses in RENDER_CLASSES.items():
+        elements = root.elementsByTagName(baseClass)
+        if elements.count() > 0:
+            elem = elements.item(0).toElement()
+            typeName = elem.attributes().namedItem('type').nodeValue()
+            if typeName in renderClasses.keys():
+                rClass = renderClasses[typeName]
+                if baseClass == 'rasterrenderer':
+                    return rClass.create(elem, None)
+                elif baseClass == 'renderer-v2':
+                    return rClass.create(elem)
+    return None
 
-for p in [path1, path2]:
+for p in examples:
     r = readRenderer(''.join(open(p).readlines()))
     print('Info {} {}'.format(r, type(r)))
     if isinstance(r, QgsSingleBandPseudoColorRenderer):
@@ -57,5 +71,9 @@ for p in [path1, path2]:
             # -> could be parsed in XML as well
             #print('{}'.format(r.colors[i].getRgb())
 
+    elif isinstance(r, QgsCategorizedSymbolRendererV2):
+        for i, cat in enumerate(r.categories()):
+            assert isinstance(cat, QgsRendererCategoryV2)
+            print(re.sub('[\n]','','{}:{}'.format(i,cat.dump())))
 
 
