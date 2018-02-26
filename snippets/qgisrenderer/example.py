@@ -16,6 +16,7 @@ examples = [
     ,os.path.join(SRC_DIR, 'style3.txt') #XML
 ]
 
+
 RENDER_CLASSES = {}
 RENDER_CLASSES['rasterrenderer'] = {
     'singlebandpseudocolor':QgsSingleBandPseudoColorRenderer,
@@ -28,6 +29,11 @@ RENDER_CLASSES['renderer-v2'] = {
 
 
 def readRenderer(text):
+    """
+    Reads a string `text` and returns the first QgsRasterRenderer or QgsFeatureRenderer (if defined).
+    :param text:
+    :return:
+    """
     dom = QDomDocument()
     dom.setContent(text)
     root = dom.documentElement()
