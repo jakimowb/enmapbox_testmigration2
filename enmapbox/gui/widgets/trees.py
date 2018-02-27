@@ -18,7 +18,7 @@
 # noinspection PyPep8Naming
 
 
-import os, pickle
+import os, pickle, copy
 
 from collections import OrderedDict
 
@@ -56,6 +56,20 @@ class TreeNode(QObject):
         if isinstance(parentNode, TreeNode):
             parentNode.appendChildNodes(self)
 
+
+    def clone(self, parent=None):
+
+        n = TreeNode(parent)
+        n.mName = self.mName
+        n.mValues = copy.copy(self.mValues[:])
+        n.mIcon = QIcon(self.mIcon)
+        n.mToolTip = self.mToolTip
+
+        for childNode in self.mChildren:
+            assert isinstance(childNode, TreeNode)
+            childNode.clone(self)
+
+
     def nodeIndex(self):
         return self.mParent.mChildren.index(self)
 
@@ -90,6 +104,8 @@ class TreeNode(QObject):
         if isinstance(listOfChildNodes, TreeNode):
             listOfChildNodes = [listOfChildNodes]
         assert isinstance(listOfChildNodes, list)
+        listOfChildNodes = [l for l in listOfChildNodes if l not in self.mChildren]
+
         l = len(listOfChildNodes)
         idxLast = index + l - 1
         self.sigWillAddChildren.emit(self, index, idxLast)
