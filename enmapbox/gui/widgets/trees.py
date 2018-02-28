@@ -67,7 +67,9 @@ class TreeNode(QObject):
 
         for childNode in self.mChildren:
             assert isinstance(childNode, TreeNode)
-            childNode.clone(self)
+            childNode.clone(parent=n)
+        return n
+
 
 
     def nodeIndex(self):

@@ -35,17 +35,27 @@ from __init__ import APP_DIR
 #path to the *.ui file that was created/edited in the QDesigner
 pathUi = os.path.join(APP_DIR, 'metadataeditor.ui')
 
+
+IMMUTABLE_MD = {}
+IMMUTABLE_MD['IMAGE']=['*'] #all metadata tag in domain 'IMAGE' are immutable
+#IMMUTABLE_MD['ENVI']=['*'] #all metadata tag in domain 'IMAGE' are immutable
+
 class MetadataItemTreeNode(TreeNode):
 
-    def __init__(self, key, value, valueType=None, allowToWrite=True):
+    def __init__(self, parentNode, key, value, valueType=None, immutable=False):
+        super(MetadataItemTreeNode, self).__init__(parentNode, name=key)
         self.mMDKey = key
         self.mMDValue0 = value
-        self.mMDValue1 = value
-        self.mAllowToWrite = allowToWrite
+        self.mMDValue1 = None
+        self.setMDValue(value)
+        self.mImmutable = immutable
 
     def setMDValue(self, value):
         self.mMDValue1 = value
+        self.setValues([self.mMDValue1])
 
+    def isImmutable(self):
+        return self.mImmutable
 
 class MetadataClassificationItemTreeNode(MetadataItemTreeNode):
     pass
@@ -71,12 +81,15 @@ class MetadataTreeModel(TreeModel):
 
         self.mRootNode0 = None
 
+        self.mColumnNames = ['Domain', 'Value']
 
+    def differences(self, rootNode=None):
+        if rootNode is None:
+            rootNode = self.mRootNode
 
-    def differences(self):
-
-        #todo: return nodes that are different to the original node
+        #todo: return only nodes whith changed metadata values
         return []
+
 
     def parseSource(self, path):
 
@@ -87,21 +100,29 @@ class MetadataTreeModel(TreeModel):
         if isinstance(ds, ogr.DataSource):
             return self.parseVectorMD(ds)
 
+        return [TreeNode(None, path, values=['unable to read metadata'])]
+
+
     def parseRasterMD(self, ds):
         assert isinstance(ds, gdal.Dataset)
         root = TreeNode(None)
 
         domains = ds.GetMetadataDomainList()
-        nDS = RasterSourceTreeNode(root, 'Dataset')
+        nDS = RasterSourceTreeNode(root, name='Dataset', values=[ds.GetFileList()[0]])
         for domain in domains:
 
-            nDomain = TreeNode(root, name=domain)
+            nDomain = TreeNode(nDS, name=domain)
             md = ds.GetMetadata(domain=domain)
+            def isImmutable(domain, key='*'):
+                if domain not in IMMUTABLE_MD:
+                    return False
+                immutableKeys = IMMUTABLE_MD[domain]
+                return '*' in immutableKeys or key in immutableKeys
+
             for k, v in md.items():
-                nItem = MetadataItemTreeNode(nDomain, k, v)
+                MetadataItemTreeNode(nDomain, k, v, immutable=isImmutable(domain, k))
 
-
-        return nDS
+        return root
 
 
     def parseVectorMD(self, ds):
@@ -116,11 +137,15 @@ class MetadataTreeModel(TreeModel):
             l = len(self.mRootNode.childNodes())
             self.mRootNode.removeChildNodes(0, l)
             clonedNodes = [c.clone() for c in self.mRootNode0.childNodes()]
-            self.mRootNode.insertChildNodes(0, clonedNodes)
+            self.mRootNode.appendChildNodes(clonedNodes)
 
 
     def source(self):
         return self.mSource
+
+    def flags(self, index):
+        flags = super(MetadataTreeModel, self).flags(index)
+
 
 
 
