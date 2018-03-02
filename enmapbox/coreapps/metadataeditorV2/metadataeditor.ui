@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Metadata Editor</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -99,14 +99,31 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QLabel" name="labelFilter">
+      <widget class="QLabel" name="labelFilter_2">
        <property name="text">
-        <string>Filter</string>
+        <string>Domain</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="tbFilter">
+      <widget class="QComboBox" name="cbDomainFilter">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>2</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelFilter">
+       <property name="text">
+        <string>Key</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="tbKeyFilter">
        <property name="frame">
         <bool>false</bool>
        </property>
@@ -119,15 +136,57 @@
        </property>
       </widget>
      </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
     </layout>
    </item>
    <item>
-    <widget class="QTreeView" name="treeView"/>
+    <widget class="QTreeView" name="treeView">
+     <property name="styleSheet">
+      <string notr="true">QTreeView {
+    alternate-background-color: #f6fafb;
+    background: #e8f4fc;
+}
+QTreeView::item:open {
+    background-color: #c5ebfb;
+    color: blue;
+}
+QTreeView::item:selected {
+    background-color: #1d3dec;
+    color: white;
+}
+/*
+QTreeView::branch {
+    background-color: white;
+}
+QTreeView::branch:open {
+    image: url(branch-open.png);
+}
+QTreeView::branch:closed:has-children {
+    image: url(branch-closed.png);
+}
+*/</string>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
-      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Close|QDialogButtonBox::Reset</set>
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Close|QDialogButtonBox::Reset|QDialogButtonBox::Save</set>
      </property>
     </widget>
    </item>

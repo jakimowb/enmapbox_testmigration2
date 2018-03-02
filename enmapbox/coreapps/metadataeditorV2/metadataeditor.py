@@ -19,52 +19,108 @@
 ***************************************************************************
 """
 
-import os, collections
+
+import os, collections, copy, re
 from qgis.gui import QgsFileWidget
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from osgeo import gdal, ogr, osr
-""""
-Use the QtDesigner to open the example.ui file.  
-The example.ui can get compiled and loaded at runtime.
-"""""
+
+import numpy as np
 from enmapbox.gui.utils import loadUIFormClass
 from enmapbox.gui.widgets.trees import TreeModel, TreeNode
+from metadataeditorV2.metadatakeys import *
 from __init__ import APP_DIR
 
 #path to the *.ui file that was created/edited in the QDesigner
 pathUi = os.path.join(APP_DIR, 'metadataeditor.ui')
 
+DEFAULT_DOMAIN = '<default>'
 
-IMMUTABLE_MD = {}
-IMMUTABLE_MD['IMAGE']=['*'] #all metadata tag in domain 'IMAGE' are immutable
-#IMMUTABLE_MD['ENVI']=['*'] #all metadata tag in domain 'IMAGE' are immutable
+ALL_IMMUTABLE = 'all_immutable'
+
+MD_KEY_PROPERTIES = {}
+MD_KEY_PROPERTIES['IMAGE_STRUCTURE']=[ALL_IMMUTABLE] #all metadata tag in domain 'IMAGE' are immutable
+#see http://www.harrisgeospatial.com/docs/enviheaderfiles.html for details
+MD_KEY_PROPERTIES['ENVI']=[
+    MDKeyDomainString('ENVI', 'bands', valueType=int, valueMin=1, isImmutable=True),
+    MDKeyDomainString('ENVI', 'samples', valueType=int, valueMin=1, isImmutable=True),
+    MDKeyDomainString('ENVI', 'lines', valueType=int, valueMin=1, isImmutable=True),
+    MDKeyDomainString('ENVI', 'interleave', options=['bsq', 'bil', 'bip'], isImmutable=True),
+    MDKeyDomainString('ENVI', 'wavelength units', options= [
+                    'Micrometers','um','Nanometers','nm','Millimeters','mm','Centimeters','cm',
+                    'Meters','m','Wavenumber','Angstroms','GHz','MHz','Index','Unknown'])
+    ]
 
 class MetadataItemTreeNode(TreeNode):
 
-    def __init__(self, parentNode, key, value, valueType=None, immutable=False):
+    def __init__(self, parentNode, key=None, value=None):
         super(MetadataItemTreeNode, self).__init__(parentNode, name=key)
+
+        assert isinstance(key, MDKeyAbstract)
+        self.setName(key.mName)
         self.mMDKey = key
         self.mMDValue0 = value
-        self.mMDValue1 = None
-        self.setMDValue(value)
-        self.mImmutable = immutable
+        self.setMetadataValue(value)
 
-    def setMDValue(self, value):
-        self.mMDValue1 = value
-        self.setValues([self.mMDValue1])
+
+    def metadataKey(self):
+        return self.metadataKey()
+
+
+    def setMetadataKey(self, key):
+        assert isinstance(key, MDKeyDomainString)
+        self.mMDKey = key
+        self.setName(key.mName)
+
+    def setMetadataValue(self, value):
+        """
+        :param value:
+        :return: None (if success) or Exception
+        """
+
+        assert isinstance(self.mMDKey, MDKeyAbstract)
+
+        if value is None:
+            self.setValues([])
+        else:
+            if isinstance(self.mMDKey, MDKeyDomainString):
+                value = self.mMDKey.mType(value)
+            self.setValues(value)
+        return None
+
+    def metadataValue(self):
+        if len(self.values()) > 0:
+            return self.values()[0]
+        else:
+            return None
+
+    def resetMetadataValue(self):
+        self.setMetadataValue(self.mMDValue0)
 
     def isImmutable(self):
-        return self.mImmutable
+        return self.mMDKey.mIsImmutable
+
+    def clone(self, *args, **kwds):
+
+        return super(MetadataItemTreeNode, self).clone(key=self.mMDKey)
+
 
 class MetadataClassificationItemTreeNode(MetadataItemTreeNode):
     pass
 
 class RasterBandTreeNode(TreeNode):
-    pass
+
+    def __init__(self, parentNode, bandIndex=None):
+        super(RasterBandTreeNode, self).__init__(parentNode)
+        self.mBandIndex = bandIndex
+        if bandIndex is not None:
+            self.setName('Band {}'.format(bandIndex+1))
+
 
 class RasterSourceTreeNode(TreeNode):
     pass
+
 class MetadataDomainTreeNode(TreeNode):
     pass
 
@@ -77,17 +133,19 @@ class MetadataTreeModel(TreeModel):
     def __init__(self, parent=None):
         super(MetadataTreeModel, self).__init__(parent)
 
+        self.cnKey = 'Domain/Key'
+        self.cnValue = 'Value'
         self.mSource = None
 
         self.mRootNode0 = None
 
-        self.mColumnNames = ['Domain', 'Value']
+        self.mColumnNames = [self.cnKey, self.cnValue]
 
     def differences(self, rootNode=None):
         if rootNode is None:
             rootNode = self.mRootNode
 
-        #todo: return only nodes whith changed metadata values
+        #todo: return only nodes with changed metadata values
         return []
 
 
@@ -102,25 +160,73 @@ class MetadataTreeModel(TreeModel):
 
         return [TreeNode(None, path, values=['unable to read metadata'])]
 
+    def parseDomainMetadata(self,parentNode, obj):
+        assert isinstance(parentNode, TreeNode)
+
+        domains = sorted(obj.GetMetadataDomainList())
+        for domain in domains:
+            if domain == '':
+                domain = DEFAULT_DOMAIN
+            nDomain = TreeNode(parentNode, name=domain)
+            md = obj.GetMetadata(domain=domain)
+            if domain not in MD_KEY_PROPERTIES.keys():
+                MD_KEY_PROPERTIES[domain] = []
+            all_immutable = ALL_IMMUTABLE in MD_KEY_PROPERTIES[domain]
+
+            def findKey(name, value):
+                for k in MD_KEY_PROPERTIES[domain]:
+                    if isinstance(k, MDKeyDomainString) and k.mName == name:
+                        return k
+                return MDKeyDomainString.fromString(domain, name, value)
+
+            for keyName, v in md.items():
+                mdKey = findKey(keyName, v)
+                if all_immutable:
+                    mdKey.mIsImmutable = True
+                    MD_KEY_PROPERTIES[domain].append(mdKey)
+                MetadataItemTreeNode(nDomain, mdKey, v)
 
     def parseRasterMD(self, ds):
+        """
+        Reads a gdal.Dataset and returns a Tree of Medatadata
+        :param ds:
+        :return:
+        """
         assert isinstance(ds, gdal.Dataset)
         root = TreeNode(None)
 
-        domains = ds.GetMetadataDomainList()
-        nDS = RasterSourceTreeNode(root, name='Dataset', values=[ds.GetFileList()[0]])
-        for domain in domains:
 
-            nDomain = TreeNode(nDS, name=domain)
-            md = ds.GetMetadata(domain=domain)
-            def isImmutable(domain, key='*'):
-                if domain not in IMMUTABLE_MD:
-                    return False
-                immutableKeys = IMMUTABLE_MD[domain]
-                return '*' in immutableKeys or key in immutableKeys
+        files = ds.GetFileList()
+        basename = os.path.basename(files[0])
+        #nDS = RasterSourceTreeNode(root, name='Dataset', values=basename)
 
-            for k, v in md.items():
-                MetadataItemTreeNode(nDomain, k, v, immutable=isImmutable(domain, k))
+        nodes = []
+
+        TreeNode(root, 'Dataset', values=basename, tooltip=files[0])
+
+        mdKeyDescription = MDKeyDescription()
+        MetadataItemTreeNode(root, key=mdKeyDescription, value=mdKeyDescription.readValue(ds))
+
+        mdKeyClassification = MDKeyClassification()
+        MetadataItemTreeNode(root, key=mdKeyClassification, value=mdKeyClassification.readValue(ds))
+
+        nFiles = TreeNode(root, 'Source Files')
+        for i, f in enumerate(files):
+            TreeNode(nFiles,name=os.path.basename(f),values=f)
+
+        nGeneral = TreeNode(root, 'Metadata (Dataset)')
+
+        self.parseDomainMetadata(nGeneral, ds)
+
+        nBands = TreeNode(root, 'Metadata (Bands)')
+        for b in range(ds.RasterCount):
+            band = ds.GetRasterBand(b+1)
+            nBand = RasterBandTreeNode(nBands, b)
+
+            assert isinstance(band, gdal.Band)
+            MetadataItemTreeNode(nBand, key=mdKeyDescription, value=mdKeyDescription.readValue(band))
+
+            self.parseDomainMetadata(nBand, band)
 
         return root
 
@@ -145,9 +251,52 @@ class MetadataTreeModel(TreeModel):
 
     def flags(self, index):
         flags = super(MetadataTreeModel, self).flags(index)
+        cName = self.idx2columnName(index)
+        node = self.idx2node(index)
+        if isinstance(node, MetadataItemTreeNode) and cName == self.cnValue:
+            if node.isImmutable() == False:
+                flags = flags | Qt.ItemIsEditable
+            else:
+                s = ""
+        return flags
 
+    def data(self, index, role):
 
+        node = self.idx2node(index)
+        cName = self.columnNames()[index.column()]
+        if not (cName == self.cnValue and isinstance(node, MetadataItemTreeNode)):
+            return super(MetadataTreeModel, self).data(index, role)
+        else:
 
+            value = node.metadataValue()
+
+            flags = self.flags(index)
+            isEditable = bool(flags & Qt.ItemIsEditable)
+
+            data = None
+            if cName == self.cnValue:
+                if role == Qt.DisplayRole:
+                    data = value
+                if role == Qt.EditRole:
+                    data = value
+                if role == Qt.FontRole:
+                    font = QFont()
+                    font.setItalic(isEditable)
+                    data = font
+
+                elif role == Qt.BackgroundRole and isEditable:
+                    data = QBrush(QColor('yellow'))
+                elif role == Qt.EditRole:
+                    s = ""
+
+            return data
+
+    def writeMetadata(self):
+
+        differences = self.differences(self)
+        for node in differences:
+            assert isinstance(node, MetadataItemTreeNode)
+            key = node.metadataKey()
 
 
 
@@ -170,11 +319,11 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
         self.mMetadataModel = MetadataTreeModel(parent=self.treeView)
         self.treeView.setModel(self.mMetadataModel)
-
+        self.treeView.header().setResizeMode(QHeaderView.ResizeToContents)
 
         self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(lambda: self.close())
         self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
-        self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.applyChanges)
+        self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveChanges)
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
     def setSource(self, uri):
@@ -183,7 +332,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
     def cancelChanges(self):
         pass
 
-    def applyChanges(self):
+    def saveChanges(self):
         pass
 
     def resetChanges(self):
