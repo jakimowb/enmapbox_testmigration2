@@ -153,6 +153,24 @@ class ClassificationScheme(QObject):
         return s
 
     @staticmethod
+    def fromRasterBand(band):
+        assert isinstance(band, gdal.Band)
+        cat = band.GetCategoryNames()
+        ct = band.GetColorTable()
+        if cat is None or len(cat) == 0:
+            return None
+        scheme = ClassificationScheme()
+        classes = []
+        for i, catName in enumerate(cat):
+            cli = ClassInfo(name=catName, label=i)
+            if ct is not None:
+                cli.setColor(QColor(*ct.GetColorEntry(i)))
+            classes.append(cli)
+        scheme.addClasses(classes)
+        return scheme
+
+
+    @staticmethod
     def fromRasterImage(path, bandIndex=None):
         ds = gdalDataset(path)
         assert ds is not None
@@ -167,23 +185,12 @@ class ClassificationScheme(QObject):
                     break
                 s = ""
             if bandIndex is None:
-                raise Exception('File without categorical class definitions {}'.format(path))
+                return None
+
 
         assert bandIndex >= 0 and bandIndex < ds.RasterCount
         band = ds.GetRasterBand(bandIndex + 1)
-        cat = band.GetCategoryNames()
-        ct = band.GetColorTable()
-        if cat is None or len(cat) == 0:
-            return None
-        scheme = ClassificationScheme()
-        classes = []
-        for i, catName in enumerate(cat):
-            cli = ClassInfo(name=catName, label=i)
-            if ct is not None:
-                cli.setColor(QColor(*ct.GetColorEntry(i)))
-            classes.append(cli)
-        scheme.addClasses(classes)
-        return scheme
+        return ClassificationScheme.fromRasterBand(band)
 
     @staticmethod
     def fromVectorFile(self, path, fieldClassName='classname', fieldClassColor='classColor'):
