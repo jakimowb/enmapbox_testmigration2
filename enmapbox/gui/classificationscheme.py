@@ -545,9 +545,9 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         rev = order == Qt.DescendingOrder
 
         if columnName == self.cLABEL:
-            self.scheme.classes.sort(key=lambda c: c.mLabel, reverse=rev)
+            self.scheme.mClasses.sort(key=lambda c: c.mLabel, reverse=rev)
         if columnName == self.cNAME:
-            self.scheme.classes.sort(key=lambda c: c.mName, reverse=rev)
+            self.scheme.mClasses.sort(key=lambda c: c.mName, reverse=rev)
 
         self.layoutChanged.emit()
 
