@@ -2,12 +2,12 @@
 
 """
 ***************************************************************************
-    exampleapp/tests.py
+
 
     Some unit tests to check exampleapp components
     ---------------------
-    Date                 : Juli 2017
-    Copyright            : (C) 2017 by Benjamin Jakimow
+    Date                 : March 2018
+    Copyright            : (C) 2018 by Benjamin Jakimow
     Email                : benjamin.jakimow@geo.hu-berlin.de
 ***************************************************************************
 *                                                                         *
@@ -19,10 +19,20 @@
 ***************************************************************************
 """
 
+import unittest
+from qgis.core import *
+from osgeo import gdal, ogr
+import numpy as np
 
-from unittest import TestCase
+from enmapboxtestdata import enmap, hymap, landcover
+from enmapbox.gui.classificationscheme import ClassificationScheme
+from metadataeditorV2.metadatakeys import *
+from metadataeditorV2.metadataeditor import *
 
-class TestExampleEnMAPBoxApp(TestCase):
+
+
+
+class TestMDMetadataKeys(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from enmapbox.gui.sandbox import initQgisEnvironment
@@ -34,55 +44,135 @@ class TestExampleEnMAPBoxApp(TestCase):
         cls.qgsApp.quit()
 
     def setUp(self):
-            pass
+        self.dsR = gdal.Open(enmap)
+        self.dsV = ogr.Open(landcover)
+
+        drv = gdal.GetDriverByName('MEM')
+        self.dsRM = drv.CreateCopy('', self.dsR)
+
+        drv = ogr.GetDriverByName('Memory')
+        self.dsVM = drv.CopyDataSource(self.dsV, '')
 
 
     def tearDown(self):
         pass
 
+    def test_oli(self):
 
-    def test_algorithms(self):
-        from exampleapp.algorithms import dummyAlgorithm
 
-        args = (1,2,3)
-        kwds = {'key1':1, 'key2':2}
-        printout = dummyAlgorithm(*args, **kwds)
-        self.assertIsInstance(printout, str)
-        self.assertTrue(len(printout) > 0)
 
-        for i, a in enumerate(args):
-            self.assertTrue('Argument {} = {}'.format(i+1,a) in printout)
-        for key, value in kwds.items():
-            self.assertTrue('Keyword {} = {}'.format(key, value) in printout)
+        for d in [self.dsR, self.dsR.GetRasterBand(1), self.dsV, self.dsV.GetLayer(0)]:
+            try:
+                oli = MDKeyAbstract.object2oli(d)
+            except Exception as ex:
+                self.fail('Failed to generate OLI from {}'.format(d))
 
-    def test_dialog(self):
+            self.assertIsInstance(oli, str)
+            self.assertTrue(regexIsOLI.match(oli))
 
-        from exampleapp.userinterfaces import ExampleGUI
-        from PyQt4.QtCore import QCoreApplication
-        from PyQt4.Qt import Qt
-        g = ExampleGUI()
-        g.show()
-        QCoreApplication.processEvents()
 
-        params = g.collectParameters()
-        self.assertIsInstance(params, dict)
+            print()
 
-        requiredKeys = ['parameter1', 'parameter2']
-        for key in requiredKeys:
-            self.assertTrue(key in params.keys())
 
-        #change a GUI element
-        g.comboBoxParameter1.setCurrentIndex(1)
+    def test_metadatakeys(self):
 
-        #ensure that changes are applied before we continue testing
-        QCoreApplication.processEvents()
+        exampleObjects = [self.dsR, self.dsR.GetRasterBand(1), self.dsV, self.dsV.GetLayer(0)]
 
-        #test how the change influenced the returning arguments
-        params = g.collectParameters()
-        self.assertTrue(params['parameter1'] == 'Value 2')
+        for o in exampleObjects:
+            try:
+                key = MDKeyDescription(o)
+                print('{} : {}'.format(key, key.value()))
+            except Exception as ex:
+                self.fail('Failed to get MDKeyDescription from {}'.format(o))
+
+        for o in exampleObjects:
+            try:
+                key = MDKeyCoordinateReferenceSystem(o)
+                print('{} : {}'.format(key, key.value()))
+            except Exception as ex:
+                self.fail('Failed to get MDKeyCoordinateReferenceSystem from {}'.format(o))
+
+        for o in [dsR, dsR.GetRasterBand(1)]:
+            try:
+                key = MDKeyClassification(o)
+                print('{} : {}'.format(key, key.value()))
+            except Exception as ex:
+                self.fail('Failed to get MDKeyClassification from {}'.format(o))
+
+        for o in exampleObjects:
+            domains = o.GetMetadataDomainList()
+            if isinstance(domains, list):
+                for domain in domains:
+                    for mdKey in o.GetMetadata(domain).keys():
+                        try:
+                            key = MDKeyDomainString(o, domain, mdKey)
+                        except Exception as ex:
+                            self.fail('Failed to get MDKeyDomainString from {} {} {}'.format(o, domain, mdKey))
+
+
+    def test_MDKeyDomainStrings(self):
+
+        # Domain String keys
+
+        md = MDKeyDomainString.fromDomain(self.dsR, 'ENVI', 'wavelength')
+
+        wl = md.value()
+        self.assertEqual(len(wl), self.dsR.RasterCount)
+
+        with self.failUnlessRaises(AssertionError):
+            md.setValue(wl[0:1])
+
+
+        # md.setValue(wl[0:1]) #should fail
+        # md.setValue(340)  # should fail
+
+        intList = list(np.ones((len(wl)), dtype=int))
+        md.setValue(intList)
+        values = md.value()
+        self.assertIsInstance(values[0], md.mType)
+
+        dates = np.arange('2005-02', '2005-03', dtype='datetime64[D]')
+        md.setListLength(len(dates))
+        md.mType = np.datetime64
+        md.setValue(dates)
+
+        values = md.value()
+        self.assertIsInstance(values[0], np.datetime64)
+        md.setValue(dates)
+
+        dates = dates.astype(str)
+
+        md.mType = str
+        md.setValue(dates)
+
+
+    def test_MDKeyClassification(self):
+        # Write a new classification scheme
+        key = MDKeyClassification(self.dsRM)
+        classScheme1 = ClassificationScheme.create(5)
+        key.setValue(classScheme1)
+        key.writeValueToSource(self.dsRM)
+        classScheme2 = ClassificationScheme.fromRasterImage(self.dsRM)
+        self.assertEqual(classScheme1, classScheme2)
+
+        key.setValue(ClassificationScheme.create(3))
+        key.writeValueToSource(self.dsRM)
+        classScheme3 = ClassificationScheme.fromRasterImage(self.dsRM)
+        self.assertEqual(len(classScheme3), 3)
+
+        # start the GUI thread
+    def test_MDKeyDescription(self):
+
+        # Write a description
+        for ds in [self.dsRM, self.dsVM, self.dsRM.GetRasterBand(1), self.dsVM.GetLayer(0)]:
+            key = MDKeyDescription(ds)
+            oldValue = key.value()
+            key.setValue('New Description')
+            key.writeValueToSource(ds)
+            key.readValueFromSource(ds)
+            self.assertEqual(key.value(), 'New Description')
 
 
 if __name__ == "__main__":
-    import unittest
     unittest.main()
 
