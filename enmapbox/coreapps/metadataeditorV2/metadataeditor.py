@@ -21,7 +21,8 @@
 
 
 import os, collections, copy, re
-from qgis.gui import QgsFileWidget
+from qgis.core import *
+from qgis.gui import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from osgeo import gdal, ogr, osr
@@ -30,6 +31,10 @@ import numpy as np
 from enmapbox.gui.utils import loadUIFormClass
 from enmapbox.gui.widgets.trees import TreeModel, TreeNode
 from metadataeditorV2.metadatakeys import *
+from enmapbox.gui.widgets.models import OptionListModel, Option, getOptionValueFromComboBox
+from enmapbox.gui.classificationscheme import *
+
+
 from __init__ import APP_DIR
 
 #path to the *.ui file that was created/edited in the QDesigner
@@ -39,94 +44,418 @@ DEFAULT_DOMAIN = '<default>'
 
 ALL_IMMUTABLE = 'all_immutable'
 
-MD_KEY_PROPERTIES = {}
-MD_KEY_PROPERTIES['IMAGE_STRUCTURE']=[ALL_IMMUTABLE] #all metadata tag in domain 'IMAGE' are immutable
-#see http://www.harrisgeospatial.com/docs/enviheaderfiles.html for details
-MD_KEY_PROPERTIES['ENVI']=[
-    MDKeyDomainString('ENVI', 'bands', valueType=int, valueMin=1, isImmutable=True),
-    MDKeyDomainString('ENVI', 'samples', valueType=int, valueMin=1, isImmutable=True),
-    MDKeyDomainString('ENVI', 'lines', valueType=int, valueMin=1, isImmutable=True),
-    MDKeyDomainString('ENVI', 'interleave', options=['bsq', 'bil', 'bip'], isImmutable=True),
-    MDKeyDomainString('ENVI', 'wavelength units', options= [
-                    'Micrometers','um','Nanometers','nm','Millimeters','mm','Centimeters','cm',
-                    'Meters','m','Wavenumber','Angstroms','GHz','MHz','Index','Unknown'])
-    ]
+MD_DOMAIN_INFO = {}
+MD_DOMAIN_INFO[''] = 'This is the default metadata domain.'
+MD_DOMAIN_INFO['IMAGE_STRUCTURE'] = 'Information of interest closely tied to the particular file format and storage mechanism.'
+MD_DOMAIN_INFO['ENVI'] = 'The ENVI Metdata domain. See see http://www.harrisgeospatial.com/docs/enviheaderfiles.html for details.'
+MD_DOMAIN_INFO['SUBDATASETS'] = 'The SUBDATASETS domain holds a list of child datasets. Normally this is used to provide pointers to a list of images stored within a single multi image file.'
+MD_DOMAIN_INFO['RPC'] = 'Metadata describing the Rational Polynomial Coefficient geometry model for the image'
+MD_DOMAIN_INFO['IMAGERY'] = 'Specific information for satellite or aerial imagery.'
+
+
 
 class MetadataItemTreeNode(TreeNode):
-
-    def __init__(self, parentNode, key=None, value=None):
-        super(MetadataItemTreeNode, self).__init__(parentNode, name=key)
-
+    def __init__(self, parentNode, key, **kwds):
         assert isinstance(key, MDKeyAbstract)
-        self.setName(key.mName)
+        if 'name' not in kwds.keys():
+            kwds['name'] = key.name()
+        if 'tooltip' not in kwds.keys():
+            kwds['tooltip'] = key.tooltip()
+        super(MetadataItemTreeNode, self).__init__(parentNode, **kwds)
+
+        if not kwds.has_key('tooltip'):
+            self.setToolTip(key.mTooltip)
+
         self.mMDKey = key
-        self.mMDValue0 = value
-        self.setMetadataValue(value)
+        self.setMetadataValue(key.value())
 
 
     def metadataKey(self):
-        return self.metadataKey()
-
-
-    def setMetadataKey(self, key):
-        assert isinstance(key, MDKeyDomainString)
-        self.mMDKey = key
-        self.setName(key.mName)
-
-    def setMetadataValue(self, value):
-        """
-        :param value:
-        :return: None (if success) or Exception
-        """
-
-        assert isinstance(self.mMDKey, MDKeyAbstract)
-
-        if value is None:
-            self.setValues([])
-        else:
-            if isinstance(self.mMDKey, MDKeyDomainString):
-                value = self.mMDKey.mType(value)
-            self.setValues(value)
-        return None
+        return self.mMDKey
 
     def metadataValue(self):
-        if len(self.values()) > 0:
-            return self.values()[0]
-        else:
-            return None
+        return self.mMDKey.value()
+
+    def setMetadataValue(self, value):
+        old = self.metadataValue()
+        if value != old:
+            self.mMDKey.setValue(value)
+            self.sigUpdated.emit(self)
 
     def resetMetadataValue(self):
-        self.setMetadataValue(self.mMDValue0)
+        self.setMetadataValue(self.mMDKey.mValue0)
+        self.sigUpdated.emit(self)
 
     def isImmutable(self):
-        return self.mMDKey.mIsImmutable
+        return self.mMDKey.isImmutable()
 
     def clone(self, *args, **kwds):
 
-        return super(MetadataItemTreeNode, self).clone(key=self.mMDKey)
+        n = super(MetadataItemTreeNode, self).clone(key=self.mMDKey)
+        if isinstance(self.mMDKey, MDKeyCoordinateReferenceSystem):
+            s = ""
+
+        return n
 
 
-class MetadataClassificationItemTreeNode(MetadataItemTreeNode):
-    pass
+class MetadataClassificationSchemeTreeNode(MetadataItemTreeNode):
 
-class RasterBandTreeNode(TreeNode):
+    def __init__(self, parentNode, dataSet, **kwds):
+        key = MDKeyClassification(dataSet)
+        super(MetadataClassificationSchemeTreeNode, self).__init__(parentNode, key, **kwds)
 
-    def __init__(self, parentNode, bandIndex=None):
-        super(RasterBandTreeNode, self).__init__(parentNode)
-        self.mBandIndex = bandIndex
-        if bandIndex is not None:
-            self.setName('Band {}'.format(bandIndex+1))
+        self.mMDKey.mValue.sigClassesAdded.connect(self.updateNodes)
+        self.mMDKey.mValue.sigClassesRemoved.connect(self.updateNodes)
+        self.mMDKey.mValue.sigClassInfoChanged.connect(self.updateNodes)
+        self.updateNodes()
+
+    def updateNodes(self, *args):
+        l = len(self.childNodes())
+        self.removeChildNodes(0, l)
+
+        classScheme = self.mMDKey.value()
+        assert isinstance(classScheme, ClassificationScheme)
+        if len(classScheme) == 0:
+            self.setValues('None')
+        else:
+            self.setValues('{} classes'.format(len(classScheme)))
+
+            for i, classInfo in enumerate(classScheme):
+                assert isinstance(classInfo, ClassInfo)
+                TreeNode(self,name='Class {}'.format(classInfo.label()), values=classInfo.name() , icon=classInfo.icon())
 
 
-class RasterSourceTreeNode(TreeNode):
-    pass
+class CoordinateReferencesSystemTreeNode(MetadataItemTreeNode):
+
+    def __init__(self, parentNode, dataSet, **kwds):
+        key = MDKeyCoordinateReferenceSystem(dataSet)
+        super(CoordinateReferencesSystemTreeNode, self).__init__(parentNode, key, **kwds)
+
+
+    def setMetadataValue(self, crs):
+        super(CoordinateReferencesSystemTreeNode, self).setMetadataValue(crs)
+        crs = self.mMDKey.value()
+        self.removeChildNodes(0, self.childCount())
+        if isinstance(crs, QgsCoordinateReferenceSystem):
+            TreeNode(self, 'Description', values=crs.description())
+            TreeNode(self, 'WKT', values=crs.toWkt())
+            TreeNode(self, 'Ellipsoid', values=crs.ellipsoidAcronym())
+
+
+class RasterBandTreeNode(MetadataItemTreeNode):
+
+    def __init__(self, parentNode, band, **kwds):
+        assert isinstance(band, gdal.Band)
+        key = MDKeyDescription(band)
+        super(RasterBandTreeNode, self).__init__(parentNode, key, **kwds)
+        if not kwds.has_key('name'):
+            self.setName('Band {}'.format(band.GetBand()))
+
+
+
+class RasterSourceTreeNode(MetadataItemTreeNode):
+
+    def __init__(self, parentNode, dataSet, **kwds):
+        assert isinstance(dataSet, gdal.Dataset)
+        key = MDKeyDescription(dataSet)
+        super(RasterSourceTreeNode, self).__init__(parentNode, key, **kwds)
+        self.mSource = dataSet.GetFileList()[0]
+
 
 class MetadataDomainTreeNode(TreeNode):
-    pass
+
+    def __init__(self, parentNode, domain, *args, **kwds ):
+        assert isinstance(domain, str)
+        nodeName = domain if domain != '' else DEFAULT_DOMAIN
+        kwds['name'] = nodeName
+        super(MetadataDomainTreeNode, self).__init__(parentNode, *args, **kwds)
+        self.mDomain = domain
+
+        if self.mToolTip is None and self.mDomain in MD_DOMAIN_INFO.keys():
+            self.setToolTip(MD_DOMAIN_INFO[self.mDomain])
+
+        self.sigAddedChildren.connect(self.update)
+        self.sigRemovedChildren.connect(self.update)
+        self.update()
+
+    def update(self):
+
+        n = self.childCount()
+        if n == 0:
+            self.setValues('not metadata items')
+        else:
+            self.setValues('{} metadata items'.format(n))
+
 
 class VectorLayerTreeNode(TreeNode):
-
     pass
+
+
+class MetadataDomainModel(OptionListModel):
+
+    def __init__(self, *args, **kwds):
+        super(MetadataDomainModel, self).__init__( *args, **kwds)
+
+
+    def addDomain(self, domainName):
+
+        if domainName == '':
+            domainName = DEFAULT_DOMAIN
+            tooltip = 'Default Metadata domain'
+        else:
+            tooltip = 'Metadata domain "{}"'.format(domainName)
+        d = Option(domainName, domainName, tooltip=tooltip)
+        self.addOption(d)
+
+
+    def domains(self):
+        return [o.value for o in self.options()]
+
+
+
+class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
+    """
+    Provides special widgets to edit Metadata treeNodes
+    """
+    def __init__(self, treeView, parent=None):
+        assert isinstance(treeView, QTreeView)
+        super(MetadataTreeViewWidgetDelegates, self).__init__(parent=parent)
+        self.mTreeView = treeView
+        self.mTreeView.doubleClicked.connect(self.onDoubleClick)
+        self.mTreeView.customContextMenuRequested.connect(self.onCustomContextMenu)
+        model = self.treeModel()
+        #model.rowsInserted.connect(self.onNodesAdded)
+
+        # self.tableView.model().rowsInserted.connect(self.onRowsInserted)
+
+    def onNodesAdded(self, idx, s,e):
+        assert isinstance(idx, QModelIndex)
+        if idx.isValid():
+            cname = self.getColumnName(idx)
+            model = self.treeModel()
+            node = model.idx2node(idx)
+
+            parentNode = self.treeModel().idx2node(idx)
+            for node in parentNode.childNodes():
+                s = self.mTreeView.openPersistentEditor(self.treeModel().node2idx(node))
+                s = ""
+
+    def treeModel(self):
+        model = self.mTreeView.model()
+        assert isinstance(model, MetadataTreeModel)
+        return model
+
+    def onDoubleClick(self, idx):
+        model = self.mTreeView.model()
+
+        return
+        classInfo = model.getClassInfoFromIndex(idx)
+        if idx.column() == model.columnNames.index(model.cCOLOR):
+
+            w1 = QColorDialog(classInfo.mColor, self.treeView)
+            w1.exec_()
+            if w1.result() == QDialog.Accepted:
+                c = w1.getColor()
+                model.setData(idx, c, role=Qt.EditRole)
+
+
+    def onCustomContextMenu(self, point):
+        assert isinstance(point, QPoint)
+
+
+        index = self.mTreeView.indexAt(point)
+        assert isinstance(index, QModelIndex)
+        cname = self.getColumnName(index)
+        model = self.treeModel()
+        node = model.idx2node(index)
+
+
+        if index.isValid():
+            m = QMenu()
+            a = m.addAction('Copy')
+
+            if isinstance(node, MetadataItemTreeNode) and node.isImmutable() == False:
+                key = node.mMDKey
+
+                a = m.addAction('Reset')
+                a.triggered.connect(node.resetMetadataValue)
+
+                #edit ClassificationSchema in a separate dialog
+                if isinstance(node, MetadataClassificationSchemeTreeNode) or \
+                    isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
+                    schemaNode = node if isinstance(node, MetadataClassificationSchemeTreeNode) \
+                                        else node.parentNode()
+
+                    a = m.addAction('Edit Classification Scheme')
+                    a.triggered.connect(lambda : self.onEditClassificationScheme(schemaNode))
+
+            m.exec_(self.mTreeView.mapToGlobal(point))
+            #m.popup(event.pos())
+
+    def onEditClassificationScheme(self, node):
+
+        assert isinstance(node, MetadataClassificationSchemeTreeNode)
+        assert isinstance(node.mMDKey, MDKeyClassification)
+
+        value = node.metadataValue()
+
+        model = self.treeModel()
+        assert isinstance(model, MetadataTreeModel)
+
+
+        scheme = ClassificationSchemeDialog.getClassificationScheme(classificationScheme=value)
+        index = model.node2idx(node)
+        model.setData(index, scheme)
+
+
+
+
+    def getColumnName(self, index):
+        assert index.isValid()
+        model = index.model()
+        assert isinstance(model, MetadataTreeModel)
+        return model.idx2columnName(index)
+    """
+    def sizeHint(self, options, index):
+        s = super(ExpressionDelegate, self).sizeHint(options, index)
+        exprString = self.tableView.model().data(index)
+        l = QLabel()
+        l.setText(exprString)
+        x = l.sizeHint().width() + 100
+        s = QSize(x, s.height())
+        return self._preferedSize
+    """
+    def createEditor(self, parent, option, index):
+
+        cname = self.getColumnName(index)
+        model = self.treeModel()
+        node = model.idx2node(index)
+
+        w = QItemDelegate().createEditor(parent, option, index)
+
+        if isinstance(node, MetadataItemTreeNode) and cname == model.cnValue:
+            key = node.metadataKey()
+            value = node.metadataValue()
+            assert isinstance(key, MDKeyAbstract)
+
+            if isinstance(key, MDKeyCoordinateReferenceSystem):
+                w = QgsProjectionSelectionWidget(parent)
+
+            elif isinstance(key, MDKeyDomainString):
+                if isinstance(key.mOptions, list) and len(key.mOptions) > 0:
+                    w = QComboBox(parent)
+                    for o in key.mOptions:
+                        w.addItem(o)
+
+                elif key.mListLength > 0 and isinstance(value, list):
+                    w = QComboBox(parent)
+                    w.setInsertPolicy(QComboBox.InsertAtCurrent)
+                    w.setEditable(True)
+                    for i, v in enumerate(value):
+                        w.addItem(str(v))
+
+                elif key.mType in [int, float] and (key.mMin is not None or key.mMax is not None):
+                    mMin = key.mMin if key.mMin is not None else -2147483648
+                    mMax = key.mMax if key.mMax is not None else 2147483647
+
+                    mMin = key.mType(mMin)
+                    mMax = key.mType(mMax)
+
+                    if isinstance(key.mType, int):
+                        w = QSpinBox(parent)
+                    elif isinstance(key.mType, float):
+                        w = QDoubleSpinBox(parent)
+
+                    w.setMinimum(mMin)
+                    w.setMaximum(mMax)
+        return w
+
+    def editorEvent(self, event, model, option, index):
+        assert isinstance(index, QModelIndex)
+        assert isinstance(option, QStyleOptionViewItem)
+        assert isinstance(event, QEvent)
+        assert isinstance(model, MetadataTreeModel)
+
+        cname = self.getColumnName(index)
+        model = self.treeModel()
+        node = model.idx2node(index)
+        if isinstance(event, QMouseEvent):
+            if event.button() == Qt.RightButton:
+
+                pass
+        return False
+
+    def setEditorData(self, editor, index):
+        cname = self.getColumnName(index)
+        model = self.treeModel()
+        node = model.idx2node(index)
+
+        if cname == model.cnValue and isinstance(node, MetadataItemTreeNode):
+            value = node.metadataValue()
+            key = node.mMDKey
+            assert isinstance(key, MDKeyAbstract)
+
+            if isinstance(editor, QLineEdit):
+                editor.setText(value)
+
+            elif isinstance(editor, QSpinBox):
+                editor.setValue(value)
+
+            elif isinstance(editor, QgsProjectionSelectionWidget):
+                editor.setCrs(value)
+
+            elif isinstance(editor, QComboBox):
+                if isinstance(value, list):
+                    editor.clear()
+                    for v in value:
+                        editor.addItem(str(v))
+                else:
+                    i = editor.findText(value)
+                    if i >= 0:
+                        editor.setCurrentIndex(i)
+
+            elif type(editor) in [QSpinBox, QDoubleSpinBox]:
+                editor.setValue(value)
+            else:
+                s = ""
+
+
+
+    def setModelData(self, w, model, index):
+        cname = self.getColumnName(index)
+        model = self.treeModel()
+        node = model.idx2node(index)
+        try:
+            if index.isValid() and isinstance(node, MetadataItemTreeNode):
+                key = node.mMDKey
+                assert isinstance(key, MDKeyAbstract)
+
+                if isinstance(w, QLineEdit):
+                    #node.setMetadataValue(w.text())
+                    model.setData(index, w.text())
+                elif isinstance(w, QgsProjectionSelectionWidget):
+                    model.setData(index, w.crs())
+                    #node.setMetadataValue(w.crs())
+                elif isinstance(w, QComboBox):
+                    if w.isEditable() and isinstance(key, MDKeyDomainString) and key.mListLength > 0:
+                        values = [w.itemData(i, role=Qt.DisplayRole)
+                                     for i in range(w.count())
+                                     ]
+                        model.setData(index, values)
+                    else:
+                        model.setData(index, w.currentText())
+                    #node.setMetadataValue(w.currentText())
+                elif type(w) in [QSpinBox, QDoubleSpinBox]:
+                    model.setData(index, w.value())
+                    #node.setMetadataValue(w.value())
+                else:
+                    s = ""
+            else:
+                s  =""
+        except AssertionError as ex:
+            QMessageBox.critical(w, 'Error', ex.message)
+        except Exception as ex:
+            QMessageBox.critical(w, 'Error', ex.message)
 
 class MetadataTreeModel(TreeModel):
 
@@ -137,16 +466,34 @@ class MetadataTreeModel(TreeModel):
         self.cnValue = 'Value'
         self.mSource = None
 
+        self.mDomains = MetadataDomainModel()
         self.mRootNode0 = None
 
         self.mColumnNames = [self.cnKey, self.cnValue]
 
+    def domainModel(self):
+        return self.mDomains
+
     def differences(self, rootNode=None):
+        """
+        Returns the MDKeys with changed values
+        :param rootNode: TreeNode, by default the models rootNode
+        :return: [list-of-changed-MDKeys]
+        """
         if rootNode is None:
             rootNode = self.mRootNode
 
-        #todo: return only nodes with changed metadata values
-        return []
+        assert isinstance(rootNode, TreeNode)
+
+        keys = []
+        if isinstance(rootNode, MetadataItemTreeNode):
+            key = rootNode.mMDKey
+            assert isinstance(key, MDKeyAbstract)
+            if key.valueHasChanged():
+                keys.append(key)
+        for childNode in rootNode.childNodes():
+            keys += self.differences(childNode)
+        return keys
 
 
     def parseSource(self, path):
@@ -160,31 +507,21 @@ class MetadataTreeModel(TreeModel):
 
         return [TreeNode(None, path, values=['unable to read metadata'])]
 
+
     def parseDomainMetadata(self,parentNode, obj):
         assert isinstance(parentNode, TreeNode)
 
         domains = sorted(obj.GetMetadataDomainList())
         for domain in domains:
-            if domain == '':
-                domain = DEFAULT_DOMAIN
-            nDomain = TreeNode(parentNode, name=domain)
+            self.mDomains.addDomain(domain)
+
+            nodeName = DEFAULT_DOMAIN if domain == '' else domain
+
+            nDomain = MetadataDomainTreeNode(parentNode, domain=domain, name=nodeName)
             md = obj.GetMetadata(domain=domain)
-            if domain not in MD_KEY_PROPERTIES.keys():
-                MD_KEY_PROPERTIES[domain] = []
-            all_immutable = ALL_IMMUTABLE in MD_KEY_PROPERTIES[domain]
-
-            def findKey(name, value):
-                for k in MD_KEY_PROPERTIES[domain]:
-                    if isinstance(k, MDKeyDomainString) and k.mName == name:
-                        return k
-                return MDKeyDomainString.fromString(domain, name, value)
-
-            for keyName, v in md.items():
-                mdKey = findKey(keyName, v)
-                if all_immutable:
-                    mdKey.mIsImmutable = True
-                    MD_KEY_PROPERTIES[domain].append(mdKey)
-                MetadataItemTreeNode(nDomain, mdKey, v)
+            for name in md.keys():
+                key = MDKeyDomainString.fromDomain(obj, domain, name)
+                MetadataItemTreeNode(nDomain, key)
 
     def parseRasterMD(self, ds):
         """
@@ -202,17 +539,20 @@ class MetadataTreeModel(TreeModel):
 
         nodes = []
 
-        TreeNode(root, 'Dataset', values=basename, tooltip=files[0])
+        nDS = RasterSourceTreeNode(root, ds,
+                                   name='Dataset',
+                                   tooltip='Raster Data Source.')
 
-        mdKeyDescription = MDKeyDescription()
-        MetadataItemTreeNode(root, key=mdKeyDescription, value=mdKeyDescription.readValue(ds))
-
-        mdKeyClassification = MDKeyClassification()
-        MetadataItemTreeNode(root, key=mdKeyClassification, value=mdKeyClassification.readValue(ds))
-
-        nFiles = TreeNode(root, 'Source Files')
+        nFiles = TreeNode(root, 'Source Files',
+                          values=len(files),
+                          tooltip='Physical files related to this Raster Data Source.')
         for i, f in enumerate(files):
-            TreeNode(nFiles,name=os.path.basename(f),values=f)
+            TreeNode(nFiles,name='{}'.format(i+1),values=os.path.basename(f))
+
+        nCRS = CoordinateReferencesSystemTreeNode(root, ds)
+
+        MetadataClassificationSchemeTreeNode(root, ds)
+
 
         nGeneral = TreeNode(root, 'Metadata (Dataset)')
 
@@ -221,11 +561,9 @@ class MetadataTreeModel(TreeModel):
         nBands = TreeNode(root, 'Metadata (Bands)')
         for b in range(ds.RasterCount):
             band = ds.GetRasterBand(b+1)
-            nBand = RasterBandTreeNode(nBands, b)
-
             assert isinstance(band, gdal.Band)
-            MetadataItemTreeNode(nBand, key=mdKeyDescription, value=mdKeyDescription.readValue(band))
 
+            nBand = RasterBandTreeNode(nBands, band)
             self.parseDomainMetadata(nBand, band)
 
         return root
@@ -236,14 +574,38 @@ class MetadataTreeModel(TreeModel):
         root = TreeNode(None)
 
     def setSource(self, path):
-        self.mRootNode0 = self.parseSource(path)
+        root = self.parseSource(path)
 
+        l = self.mRootNode.childCount()
+        self.mRootNode.removeChildNodes(0, l)
+        self.mRootNode.appendChildNodes(root.childNodes())
+
+        """
         if isinstance(self.mRootNode0, TreeNode):
             assert isinstance(self.mRootNode, TreeNode)
             l = len(self.mRootNode.childNodes())
             self.mRootNode.removeChildNodes(0, l)
             clonedNodes = [c.clone() for c in self.mRootNode0.childNodes()]
             self.mRootNode.appendChildNodes(clonedNodes)
+    
+        """
+    def setData(self, index, value, role=Qt.EditRole):
+        if not index.isValid():
+            return None
+        if not role == Qt.EditRole:
+            return None
+
+        cName = self.idx2columnName(index)
+        node = self.idx2node(index)
+
+        if not isinstance(node, MetadataItemTreeNode):
+            return False
+        else:
+            key = node.metadataKey()
+            key.setValue(value)
+            return True
+
+        return False
 
 
     def source(self):
@@ -254,11 +616,16 @@ class MetadataTreeModel(TreeModel):
         cName = self.idx2columnName(index)
         node = self.idx2node(index)
         if isinstance(node, MetadataItemTreeNode) and cName == self.cnValue:
-            if node.isImmutable() == False:
+            if node.isImmutable() == False and type(node) not in [MetadataClassificationSchemeTreeNode]:
                 flags = flags | Qt.ItemIsEditable
             else:
                 s = ""
+
+        if isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
+            s = ""
+
         return flags
+
 
     def data(self, index, role):
 
@@ -267,16 +634,29 @@ class MetadataTreeModel(TreeModel):
         if not (cName == self.cnValue and isinstance(node, MetadataItemTreeNode)):
             return super(MetadataTreeModel, self).data(index, role)
         else:
-
             value = node.metadataValue()
+            key = node.mMDKey
 
             flags = self.flags(index)
             isEditable = bool(flags & Qt.ItemIsEditable)
-
             data = None
             if cName == self.cnValue:
                 if role == Qt.DisplayRole:
-                    data = value
+                    if isinstance(key, MDKeyCoordinateReferenceSystem):
+                        if value is None:
+                            data == 'Undefined'
+                        else:
+                            try:
+                                data = value.toWkt()
+                            except Exception as e:
+                                pass
+
+                    elif isinstance(key, MDKeyClassification):
+                        data = str(node.values()[0])
+
+                    else:
+                        data = str(value)
+
                 if role == Qt.EditRole:
                     data = value
                 if role == Qt.FontRole:
@@ -287,7 +667,7 @@ class MetadataTreeModel(TreeModel):
                 elif role == Qt.BackgroundRole and isEditable:
                     data = QBrush(QColor('yellow'))
                 elif role == Qt.EditRole:
-                    s = ""
+                    data = value
 
             return data
 
@@ -318,16 +698,52 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         assert isinstance(self.treeView, QTreeView)
 
         self.mMetadataModel = MetadataTreeModel(parent=self.treeView)
+
+        self.mSourceModel = OptionListModel()
+        self.cbSource.setModel(self.mSourceModel)
+        self.cbSource.currentIndexChanged[int].connect(
+            lambda i : self.mMetadataModel.setSource(self.mSourceModel.optionValues()[i]))
+
+        self.mDomains = OptionListModel()
+        self.mDomains.insertOptions(Option(None, '<All>'))
+        self.cbDomainFilter.setModel(self.mDomains)
+        d = self.mMetadataModel.domainModel()
+
+        d.sigOptionsInserted.connect(self.mDomains.insertOptions)
+        d.sigOptionsRemoved.connect(self.mDomains.removeOptions)
+
+
         self.treeView.setModel(self.mMetadataModel)
         self.treeView.header().setResizeMode(QHeaderView.ResizeToContents)
+
+        self.delegate = MetadataTreeViewWidgetDelegates(self.treeView)
+        self.treeView.setItemDelegate(self.delegate)
 
         self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(lambda: self.close())
         self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveChanges)
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
+
+    def addSources(self, listOfSourcUris):
+        if not isinstance(listOfSourcUris, list):
+            listOfSourcUris = [listOfSourcUris]
+
+        for source in listOfSourcUris:
+            self.mSourceModel.addOption(Option(source, os.path.basename(source)))
+
     def setSource(self, uri):
-        self.mMetadataModel.setSource(uri)
+        self.addSources(uri)
+        self.selectSource(uri)
+
+
+    def selectSource(self, uri):
+        sources = self.mSourceModel.optionValues()
+        if uri not in sources:
+            self.setSource(uri)
+        else:
+            i = sources.index(uri)
+            self.cbSource.setCurrentIndex(i)
 
     def cancelChanges(self):
         pass
@@ -336,6 +752,10 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         pass
 
     def resetChanges(self):
+        """
+        Re-reads all metadata from the source
+        :return:
+        """
         self.mMetadataModel.setSource(self.mMetadataModel.source())
 
     def rejectChanged(self):

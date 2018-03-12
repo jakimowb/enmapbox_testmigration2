@@ -93,7 +93,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <property name="spacing">
-      <number>1</number>
+      <number>2</number>
      </property>
      <property name="bottomMargin">
       <number>0</number>
@@ -153,15 +153,20 @@
    </item>
    <item>
     <widget class="QTreeView" name="treeView">
+     <property name="contextMenuPolicy">
+      <enum>Qt::CustomContextMenu</enum>
+     </property>
      <property name="styleSheet">
       <string notr="true">QTreeView {
     alternate-background-color: #f6fafb;
     background: #e8f4fc;
 }
+/*
 QTreeView::item:open {
     background-color: #c5ebfb;
     color: blue;
 }
+*/
 QTreeView::item:selected {
     background-color: #1d3dec;
     color: white;

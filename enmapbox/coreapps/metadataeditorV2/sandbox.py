@@ -53,8 +53,9 @@ def sandboxShowAppGuiOnly():
     :return:
     """
     from metadataeditorV2.metadataeditor import MetadataEditorDialog
-    from enmapboxtestdata import enmap
+    from enmapboxtestdata import enmap, hymap
     ui = MetadataEditorDialog()
+    ui.addSources(hymap)
     ui.setSource(enmap)
     ui.show()
 
@@ -69,8 +70,9 @@ if __name__ == '__main__':
 
     if True:
         sandboxShowAppGuiOnly()
-    else:
+    if False:
         sandboxShowAppInEnMapBox(True)
+
 
     #start the GUI thread
     qgsApp.exec_()
