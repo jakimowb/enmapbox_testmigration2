@@ -57,6 +57,9 @@ class TreeNode(QObject):
             parentNode.appendChildNodes(self)
 
 
+    def __len__(self):
+        return len(self.mChildren)
+
     def clone(self, *args, **kwds):
         """
         Returns a clone of this TreeNode with parentNode() == None
@@ -68,6 +71,9 @@ class TreeNode(QObject):
         # clone internal attributes
         for key, value in self.__dict__.items():
             if key.startswith('m') and key not in ['mParent', 'mChildren']:
+                if isinstance(value, QObject):
+                    s = ""
+
                 n.__dict__[key] = copy.copy(value)
 
         #clone child nodes

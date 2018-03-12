@@ -638,10 +638,11 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         self.setupUi(self)
 
         self.mScheme = ClassificationScheme()
+        self.schemeModel = ClassificationSchemeTableModel(self.mScheme, self)
 
         if classificationScheme is not None:
             self.setClassificationScheme(classificationScheme)
-        self.schemeModel = ClassificationSchemeTableModel(self.mScheme, self)
+
 
         self.tableClassificationScheme.verticalHeader().setMovable(True)
         self.tableClassificationScheme.verticalHeader().setDragEnabled(True)
@@ -724,10 +725,10 @@ class ClassificationSchemeDialog(QgsDialog):
     @staticmethod
     def getClassificationScheme(*args, **kwds):
         """
-        Opens a CrosshairDialog.
+        Opens a dialog to edit a ClassificationScheme
         :param args:
         :param kwds:
-        :return: specified CrosshairStyle if accepted, else None
+        :return: None | ClassificationScheme
         """
         d = ClassificationSchemeDialog(*args, **kwds)
         d.exec_()
@@ -753,7 +754,7 @@ class ClassificationSchemeDialog(QgsDialog):
         # self.setLayout(l)
 
         if isinstance(classificationScheme, ClassificationScheme):
-            self.setClassificationSheme(classificationScheme)
+            self.setClassificationScheme(classificationScheme)
         s = ""
 
     def classificationScheme(self):
