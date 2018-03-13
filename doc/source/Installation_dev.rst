@@ -9,7 +9,7 @@ If you like to use an Integrated Development Environment (IDE) to develop and de
 or in general QGIS, we recommend that your IDE runs under the same environmental settings as your QGIS does.
 
 The following sections describe which settings are needed to run and debug the EnMAP-Box from
-inside an IDE *without* starting the heavy QGIS Application.
+inside an IDE *without* the need to start a heavy QGIS instance.
 
 We mainly tested in for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE and it worked well on `PyDev <http://www.pydev.org/>`_ too.
 
@@ -22,31 +22,26 @@ To setup your IDE for developing EnMAP-Box Applications, you need to:
 
     1. Clone the EnMAP-Box git repository and add it to your project sources
 
-    2. Set the QGIS python as your project interpreter
+    2. Set the QGIS python as python interpreter of your project (:ref:`python_interpreter`)
 
-    3. Ensure that your environmental settings are similar to that used by QGIS (:ref:`env_variables`)
+    3. Ensure that your environmental settings are similar to these of QGIS (:ref:`env_variables`)
 
-    4. Ensure that all required python packages are accessible in your QGIS python and will be found
-       by your IDE (:ref:`python_packages`):
+    4. Ensure that other python packages your application depends on are accessible in your QGIS python and
+       your IDE (:ref:`python_packages`):
 
-        * gdal, numpy
-
-        * scioy, scikit-learn
+        * gdal, numpy, scipy, scikit-learn
 
         * pyqtgraph
 
         * matplotlib
 
-        * spy
+        * spy (we try to remove this dependency)
 
-        * gdal
 
     5. Start the EnMAP-Box from your IDE (:ref:`minimal_startup`)
 
 
-
-
-.. _env_variables:
+.. _python_interpreter:
 
 Python Interpreter
 ------------------
@@ -59,6 +54,21 @@ To find out which of them is used in your QGIS, open the QGIS Python shell and c
 
 This Python should be the one used by your IDE. In PyCharm this can be done via ``Preferences > Project > Project Interpreter``.
 
+Typical locations of QGIS python interpreters are::
+
+
+========== ================================================================================================
+OS         Interpreter
+========== ================================================================================================
+Windows    C:/...OSGeo4W/bin/python
+
+macOS      /Library/Frameworks/Python.framework/Versions/3.6/bin/python3
+           /usr/bin/python
+Linux      tbd.
+========== ================================================================================================
+
+
+.. _env_variables:
 
 Environmental Variables
 -----------------------
@@ -94,6 +104,10 @@ e.g. the PyQt and PyQGIS APIs.To find out which are required by the core QIS, op
 To ensure that your IDE provides syntax support for other package, you might need to add some more source paths to your
 IDE project, for example:
 
+Windows
+~~~~~~
+
+QGIS 3
 
     * the QGIS Python site-package folder, e.g. ``<OSGeo4W>\apps\Python27\lib\site-packages``
 
@@ -104,6 +118,57 @@ IDE project, for example:
     * the QGIS user plugin folder, e.g. ``<HOME>\.qgis2\python\plugins``
 
 
+QGIS 2
+
+    * the QGIS Python site-package folder, e.g. ``<OSGeo4W>\apps\Python27\lib\site-packages``
+
+
+    * the QGIS internal python plugin folder, e.g. ``<OSGeo4W>/apps/qgis/./python/plugins``, to inspect the QGIS Processing Plugin code
+
+
+    * the QGIS user plugin folder, e.g. ``<HOME>\.qgis2\python\plugins``
+
+
+macOS
+~~~~~
+
+
+QGIS 3
+
+    * Python Interpreter ``/Library/Frameworks/Python.framework/Versions/3.6/bin/python3`` (Standard macOS Python 3)
+
+    * Content Root ``/Applications/QGIS 3.app/Contents/Resources/python`` to access PyQGIS
+
+    * Content Root ``/Library/Frameworks/GDAL.framework/Versions/2.2/Python/3.6/site-packages`` to access GDAL
+
+    * Content Root ``/Applications/QGIS 3.app/Contents/Resources/python/plugins`` to access python code of QGIS default plugins, in particular the
+      `QGIS Processing Framework <https://docs.qgis.org/2.18/en/docs/user_manual/processing/index.html>`_
+
+    * Content Root ``~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins``, if you
+      like to access python plugins installed from the
+      `QGIS Python Plugins Repository <https://plugins.qgis.org/plugins/>`_.
+
+
+
+QGIS 2
+
+    * Python Interpreter ``/usr/bin/python`` (Standard macOS python)
+
+    * Content Root ``/Applications/QGIS.app/Contents/MacOS/../Resources/python``
+
+    * Content Root ``/Library/Frameworks/GDAL.framework/Versions/2.1/Python/2.7/site-packages``to access GDAL
+
+    * Content Root ``/Applications/QGIS.app/Contents/Resources/python/plugins`` to access python code of QGIS default plugins, in particular the
+      `QGIS Processing Framework <https://docs.qgis.org/2.18/en/docs/user_manual/processing/index.html>`_
+
+    * Content Root ``~/.qgis2/python/plugins``, if you like to access python plugins installed from the
+      `QGIS Python Plugins Repository <https://plugins.qgis.org/plugins/>`_.
+
+
+Linux
+~~~~~
+
+    * tbd.
 
 
 
@@ -137,9 +202,16 @@ Windows (OSGeo4W)
 
 QGIS for windows is maintained by the OSGeo4W package installer. The ``qgis.exe`` is located in a folder system
 like ``<OSGeo4WRoot>/bin``. An easy way to ensure that your IDE operates under the same environment as QGIS does, is to use the following startup script in a
-batch file ``.bat`` file::
+batch file ``.bat`` file.
 
-    ::OSGeo4W installation
+QGIS 3::
+
+    tbd.
+
+
+QGIS 2::
+    ::OSGeo4W installation.
+    ::OSGEO4W_ROOT must be the folder on top of \bin\qgis.bat
     set OSGEO4W_ROOT=D:\\Programs\OSGeo4W
 
     ::PyCharm executable
@@ -179,59 +251,4 @@ If you plan to develop your own GUI based on Qt, you might install the related p
     * Qt4: pyqt4m qt4.devel, qt4.doc qt4-libs (Libs, includes the QDesigner)
     * pyqt4
 
-
-
-macOS (standard installation)
-.............................
-
-The QGIS.app for macOS can be downloaded from `<http://www.kyngchaos.com/software/qgis>`_. It is installed to
-``/Applications`` and linked against the standard macOS python.
-
-    * Python Interpreter ``/usr/bin/python`` (Standard macOS python)
-
-    * Content Root ``/Applications/QGIS.app/Contents/MacOS/../Resources/python``
-
-    * Content Root ``/Applications/QGIS.app/Contents/Resources/python/plugins`` to access python code of QGIS default plugins, in particular the
-      `QGIS Processing Framework <https://docs.qgis.org/2.18/en/docs/user_manual/processing/index.html>`_
-
-    * Content Root ``~/.qgis2/python/plugins``, if you like to access python plugins installed from the
-      `QGIS Python Plugins Repository <https://plugins.qgis.org/plugins/>`_.
-
-
-
-macOS (OSGeo4Mac)
-.................
-
-The `Homebrew <https://brew.sh/>`_ package installer can be used to download and install QGIS as well. Please see
-`OSGeo4Mac QGIS <https://github.com/OSGeo/homebrew-osgeo4mac>`_ for details.
-
-In this case the locations of required packages might vary. Start the OSGeo4Mac QGIS, open the Python shell and check
-the package locations as used by QGIS::
-
-    import os
-    import <package>
-    print(os.path.dirname(<package>.__file__))
-
-e.g. for scipy ::
-
-    import os
-    import scipy
-    print(os.path.dirname(scipy.__file__))
-
-Add the returned directories  or its parent site-package folders to as contet root to your IDE project e.g:
-
-    * ``/usr/local/opt/qgis2/libexec/python2.7/site-packages``
-
-    * ``/usr/local/lib/qt-4/python2.7/site-packages``
-
-    * ``/usr/local/lib/python2.7/site-packages``
-
-
-
-Linux (Ubuntu)
-..............
-
-    * tbd.
-
-    *
 
