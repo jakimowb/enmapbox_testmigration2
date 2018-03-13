@@ -132,7 +132,7 @@
      <item>
       <widget class="QCheckBox" name="cbRegex">
        <property name="text">
-        <string>Regex</string>
+        <string>.*</string>
        </property>
       </widget>
      </item>
@@ -191,7 +191,7 @@ QTreeView::branch:closed:has-children {
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Close|QDialogButtonBox::Reset|QDialogButtonBox::Save</set>
+      <set>QDialogButtonBox::Close|QDialogButtonBox::Reset|QDialogButtonBox::Save</set>
      </property>
     </widget>
    </item>
