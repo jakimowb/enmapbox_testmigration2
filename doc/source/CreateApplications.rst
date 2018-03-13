@@ -176,5 +176,9 @@ The `startGUI()` function is used to open the graphical user interface. A very s
     w.layout().addWidget(btn)
     w.show()
 
-However, larger GUI quickly become too complex to be programmed line-by-line. For this is is prefered to use the QDesginer and
-generate a *.ui file that describes the GUI.
+A GUI quickly becomes too complex to be programmed line-by-line.
+In this case it is preferred to use the QDesigner and to "draw" the GUI. The GUI definition is
+save as *.ui XML file, which that can be translated into PyQt code automatically::
+
+
+    pyqt
