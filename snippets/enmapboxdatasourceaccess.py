@@ -22,8 +22,8 @@
 from __future__ import absolute_import
 import os, collections
 from qgis import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from enmapbox.gui.utils import loadUI
 from enmapbox.gui.enmapboxgui import EnMAPBox
 

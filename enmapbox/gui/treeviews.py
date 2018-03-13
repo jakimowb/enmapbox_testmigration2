@@ -17,12 +17,12 @@
 ***************************************************************************
 """
 from __future__ import absolute_import, unicode_literals
-from PyQt4.QtXml import *
+from PyQt5.QtXml import *
 
 import enmapbox
 from qgis.core import *
-from PyQt4.QtGui import QApplication
-from PyQt4.QtCore import QMimeData
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QMimeData
 import numpy as np
 
 

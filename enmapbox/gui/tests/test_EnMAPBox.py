@@ -21,8 +21,8 @@ from __future__ import unicode_literals, absolute_import
 import unittest
 from unittest import TestCase
 from qgis import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from enmapbox.gui.sandbox import initQgisApplication
 from enmapbox.gui.utils import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -75,7 +75,7 @@ class MyGeoAlgorithmus(GeoAlgorithm):
     def getCustomParametersDialog(self):
 
 
-        from PyQt4.QtGui import QDialog
+        from PyQt5.QtGui import QDialog
 
 
         d = QDialog()

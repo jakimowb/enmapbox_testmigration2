@@ -1,7 +1,7 @@
 
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 if __name__ == '__main__':
 

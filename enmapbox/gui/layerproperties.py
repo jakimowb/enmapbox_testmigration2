@@ -26,8 +26,8 @@ from osgeo import gdal, ogr
 import numpy as np
 from qgis.gui import *
 from qgis.core import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 from enmapbox.gui.utils import loadUI, SpatialExtent
 

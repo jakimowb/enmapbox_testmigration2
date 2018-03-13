@@ -21,8 +21,8 @@ import sys, os, logging
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from enmapbox.gui.utils import PanelWidgetBase, loadUI
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *

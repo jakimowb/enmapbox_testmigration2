@@ -7,15 +7,14 @@
      (at your option) any later version.
 
 """
-from __future__ import absolute_import
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
 from qgis import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from enmapbox.gui.sandbox import initQgisEnvironment
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisEnvironment()

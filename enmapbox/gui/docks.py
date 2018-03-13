@@ -22,8 +22,8 @@ import itertools, codecs
 import os
 import uuid
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
@@ -635,7 +635,7 @@ class WebViewDock(Dock):
         super(WebViewDock,self).__init__(*args, **kwargs)
         #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
 
-        from PyQt4.QtWebKit import QWebView
+        from PyQt5.QtWebKit import QWebView
         self.webView = QWebView(self)
         self.layout.addWidget(self.webView)
 
@@ -651,7 +651,7 @@ class WebViewDock(Dock):
             url = QUrl(uri)
         self.webView.load(url)
         settings = self.webView.page().settings()
-        from PyQt4.QtWebKit import QWebSettings
+        from PyQt5.QtWebKit import QWebSettings
         settings.setAttribute(QWebSettings.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebSettings.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebSettings.LocalStorageEnabled, True)

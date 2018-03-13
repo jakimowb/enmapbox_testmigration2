@@ -20,8 +20,8 @@ from __future__ import absolute_import, unicode_literals
 import os, sys, site, collections, inspect, logging, re
 logger = logging.getLogger(__name__)
 from qgis.core import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from enmapbox.gui.utils import DIR_ENMAPBOX
 from enmapbox.gui.enmapboxgui import EnMAPBox
 

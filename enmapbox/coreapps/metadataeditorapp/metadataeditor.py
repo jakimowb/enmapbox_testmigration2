@@ -24,8 +24,8 @@ from qgis.gui import QgsFileWidget, QgsRasterFormatSaveOptionsWidget
 import os
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from pyqtgraph.Qt import QtCore, QtGui
 
 import gdal

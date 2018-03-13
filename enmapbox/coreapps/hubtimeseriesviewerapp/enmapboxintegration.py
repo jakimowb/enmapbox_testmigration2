@@ -20,7 +20,7 @@
 """
 from __future__ import absolute_import
 import os, sys
-from PyQt4.QtGui import QIcon, QMenu, QAction
+from PyQt5.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 
 

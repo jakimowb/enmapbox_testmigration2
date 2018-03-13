@@ -2,11 +2,11 @@ import os, sys, fnmatch, six, subprocess, re
 
 from qgis.core import *
 
-from PyQt4.QtSvg import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtXml import *
-from PyQt4.QtXmlPatterns import *
+from PyQt5.QtSvg import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtXml import *
 ROOT = os.path.dirname(os.path.dirname(__file__))
 from enmapbox.gui.utils import DIR_UIFILES, DIR_ICONS, DIR_REPO, file_search
 jp = os.path.join
@@ -563,15 +563,14 @@ def png2qrc(icondir, pathQrc, pngprefix='enmapbox'):
 
 
 if __name__ == '__main__':
-    from enmapbox.gui.utils import DIR_TESTDATA, DIR_UIFILES, DIR_ICONS
+    from enmapbox.gui.utils import DIR_TESTDATA, DIR_UIFILES, DIR_ICONS, initQgisApplication
 
-    qgsApp = QgsApplication([], True)
-    qgsApp.initQgis()
 
+    qgsApp = initQgisApplication()
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
 
-    if True:
+    if False:
         #convert SVG to PNG and add link them into the resource file
         svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import os
 import qgis
-from PyQt4.QtGui import QIcon, QMenu, QAction
+from PyQt5.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
 from enmapboxgeoalgorithms.algorithms import ALGORITHMS

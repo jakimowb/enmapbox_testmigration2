@@ -22,8 +22,8 @@
 import collections, sys, os
 from osgeo import gdal
 from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
-from PyQt4.QtGui import QColor
-from PyQt4.QtCore import QSize
+from PyQt5.QtGui import QColor
+from PyQt5.QtCore import QSize
 import numpy as np
 
 

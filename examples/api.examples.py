@@ -88,8 +88,8 @@ def example4_createWindows():
 
 
 #1. create your own GUI that waits for user input.
-from PyQt4.Qt import *
-from PyQt4.QtGui import *
+from PyQt5.Qt import *
+from PyQt5.QtGui import *
 
 class Example5Dialog(QDialog):
 

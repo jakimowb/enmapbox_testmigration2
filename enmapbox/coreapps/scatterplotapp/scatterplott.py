@@ -22,8 +22,8 @@ from __future__ import absolute_import, unicode_literals
 import gdal
 import ogr
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 #from enmapbox.coreapps.scatterplotapp import APP_DIR
 from pyqtgraph.Qt import QtCore, QtGui

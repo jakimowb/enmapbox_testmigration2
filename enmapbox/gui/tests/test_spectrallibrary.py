@@ -14,8 +14,8 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
 from qgis import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from enmapbox.gui.sandbox import initQgisEnvironment
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisEnvironment()

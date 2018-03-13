@@ -21,8 +21,8 @@ import six, sys, os, gc, re, collections, uuid, logging
 logger = logging.getLogger(__name__)
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from enmapbox.gui.utils import PanelWidgetBase, loadUI
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
@@ -51,7 +51,7 @@ if LOAD_PROCESSING_FRAMEWORK and canImportProcessingFramework():
     from processing.gui.ProcessingToolbox import ProcessingToolbox as UI_BASE
     _PF_AVAILABLE = True
 else:
-    from PyQt4.QtGui import QDockWidget as UI_BASE
+    from PyQt5.QtGui import QDockWidget as UI_BASE
     _PF_AVAILABLE = False
 
 

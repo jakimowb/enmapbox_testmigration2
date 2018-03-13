@@ -21,7 +21,7 @@
 """
 
 import os
-from PyQt4.QtGui import QIcon, QMenu, QAction
+from PyQt5.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 
 VERSION = '0.0.1'

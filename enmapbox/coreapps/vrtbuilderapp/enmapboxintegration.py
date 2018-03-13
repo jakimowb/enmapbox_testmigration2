@@ -21,7 +21,7 @@
 """
 # noinspection PyPep8Naming
 
-from PyQt4.QtGui import QIcon
+from PyQt5.QtGui import QIcon
 from enmapbox.gui.applications import EnMAPBoxApplication
 from vrtbuilder.widgets import VRTBuilderWidget
 from vrtbuilder import VERSION, LICENSE, PATH_ICON

@@ -20,8 +20,8 @@ from __future__ import absolute_import
 import os, sys, logging, site, traceback
 from qgis.gui import QgisInterface
 from qgis.core import QgsMessageLog
-from PyQt4.QtCore import QTimer
-from PyQt4.QtGui import QAction
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QAction
 
 
 _MSGLOG_TAG = 'EnMAP-Box'

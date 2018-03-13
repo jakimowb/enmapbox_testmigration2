@@ -22,8 +22,8 @@
 import os, collections
 from qgis.gui import QgsFileWidget, QgsRasterFormatSaveOptionsWidget
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from enmapbox.gui.utils import loadUIFormClass
 from enmapbox.gui.classificationscheme import *
 from __init__ import APP_DIR

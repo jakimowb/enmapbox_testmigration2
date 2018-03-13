@@ -22,7 +22,7 @@ import sys
 import datetime
 from qgis.gui import *
 from qgis.core import *
-from PyQt4.QtCore import *
+from PyQt5.QtCore import *
 import numpy as np
 from utils import SpatialPoint, SpatialExtent
 from osgeo import gdal, gdal_array
@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
     from sandbox import initQgisEnvironment
     qgsApp = initQgisEnvironment()
-    from PyQt4.QtGui import *
+    from PyQt5.QtGui import *
     gb = QGroupBox()
     gb.setTitle('Sandbox')
 

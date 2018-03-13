@@ -21,7 +21,7 @@
 from __future__ import absolute_import, unicode_literals
 import os
 
-from PyQt4.QtGui import QIcon
+from PyQt5.QtGui import QIcon
 from imagestatisticsapp import APP_DIR
 
 from enmapbox.gui.applications import EnMAPBoxApplication

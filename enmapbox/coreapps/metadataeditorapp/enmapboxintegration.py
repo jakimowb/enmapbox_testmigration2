@@ -21,7 +21,7 @@
 
 import os
 
-from PyQt4.QtGui import QIcon
+from PyQt5.QtGui import QIcon
 from reclassifyapp import APP_DIR
 
 from enmapbox.gui.applications import EnMAPBoxApplication

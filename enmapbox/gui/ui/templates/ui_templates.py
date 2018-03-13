@@ -3,7 +3,7 @@ import site, sys, os, inspect
 from qgis import *
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtGui import *
+from PyQt5.QtGui import *
 from PyQt.QtCore import *
 
 

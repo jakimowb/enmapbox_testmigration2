@@ -20,8 +20,9 @@ from __future__ import absolute_import, unicode_literals
 import sys, os, site
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 ENMAP_BOX_KEY = 'EnMAP-Box'
 def qtSettingsObj():
@@ -59,8 +60,7 @@ class SettingsInfo(object):
 
     def __init__(self, key, value, description, defaultValue=None, range = None):
 
-        if isinstance(key, str):
-            key = key.decode('utf-8')
+        assert isinstance(key, str)
         if range:
             assert len(range) == 2
         assert value is not None

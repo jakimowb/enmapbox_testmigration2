@@ -6,7 +6,7 @@ import os, sys, re
 from osgeo import gdal
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.Qt import *
+from PyQt5.Qt import *
 
 SRC_DIR = os.path.dirname(__file__)
 

@@ -16,13 +16,12 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
 import six, sys, os, gc, re, collections, uuid, logging, pickle
 
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from enmapbox.utils import *
 import numpy as np
 from osgeo import gdal, ogr
@@ -52,8 +51,6 @@ class DataSourceFactory(object):
             else:
                 src = src.path()
         if isinstance(src, str):
-            src = ''+src.encode('utf-8')
-        if isinstance(src, unicode):
             #identify GDAL subdataset strings
             if re.search('(HDF|SENTINEL).*:.*:.*', src):
                 src = src
@@ -81,7 +78,6 @@ class DataSourceFactory(object):
             uri = DataSourceFactory.srcToString(src.GetName())
         if isinstance(src, str):
             src = DataSourceFactory.srcToString(src)
-        if isinstance(src, unicode):
             # todo: check different providers, not only ogr
             try:
                 result = DataSourceFactory.isVectorSource(ogr.Open(src))
@@ -90,7 +86,7 @@ class DataSourceFactory(object):
             except Exception:
                 s = ""
                 pass
-        assert uri is None or isinstance(uri, unicode)
+        assert uri is None or isinstance(uri, str)
         return uri
 
     @staticmethod
@@ -146,18 +142,13 @@ class DataSourceFactory(object):
             """
 
         src = DataSourceFactory.srcToString(src)
-        if isinstance(src, unicode):
+        if isinstance(src, str):
             try:
                 uri = DataSourceFactory.isRasterSource(gdal.Open(src))
-            except RuntimeError, e:
+            except RuntimeError as ex:
                 uri = None
 
-        #if isinstance(uri, unicode):
-        #    uri = uri.encode('utf-8')
-        if isinstance(uri, str):
-            uri = u''+uri.encode('utf-8')
-        if not (uri is None or isinstance(uri, unicode)):
-            s = ""
+        if not (uri is None or isinstance(uri, str)):
             return None
         return uri
 
@@ -220,14 +211,13 @@ class DataSourceFactory(object):
         """
 
 
-        if src is None or \
-                (type(src) in [str, unicode] and (len(src) == 0)):
+        if src is None or isinstance(src, str) and len(src) == 0:
             return []
 
         if isinstance(src, DataSource):
             return [src]
 
-        if type(src) in [str, unicode, QUrl]:
+        if type(src) in [str, QUrl]:
             src = DataSourceFactory.srcToString(src)
 
 
@@ -249,7 +239,7 @@ class DataSourceFactory(object):
                 if ds.RasterCount > 0:
                     rasterUris.append(uri)
                 if len(subs) > 0:
-                    rasterUris.extend([unicode(s[0]) for s in subs])
+                    rasterUris.extend([s[0] for s in subs])
 
         uri = DataSourceFactory.isVectorSource(src)
         if uri is not None:
@@ -301,7 +291,7 @@ class DataSource(object):
         :param uri: uri of data source. must be a string
         :param name: name as it appears in the source file list
         """
-        assert isinstance(uri, unicode)
+        assert isinstance(uri, str)
         self.mUuid = uuid.uuid4()
         self.mUri = ''
         self.setUri(uri)
@@ -315,7 +305,7 @@ class DataSource(object):
         return self.mUri == dataSource.mUri
 
     def setUri(self, uri):
-        assert isinstance(uri, unicode)
+        assert isinstance(uri, str)
         self.mUri = uri
         self.updateMetadata()
 
@@ -370,7 +360,7 @@ class DataSource(object):
         :param name:
         :return: self
         """
-        assert isinstance(name, unicode)
+        assert isinstance(name, str)
         self.mName = name
         return self
 
@@ -453,7 +443,6 @@ class DataSourceSpatial(DataSourceFile):
         raise NotImplementedError()
 
 
-import hubflow.types
 class HubFlowDataSource(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
         super(HubFlowDataSource, self).__init__(uri, name, icon)
@@ -467,10 +456,14 @@ class HubFlowDataSource(DataSourceFile):
         s = ""
 
     def loadFlowObject(self):
+        import hubflow.types
+
         self.mFlowObj = hubflow.types.FlowObject.unpickle(self.mUri, raiseError=False)
         s = ""
 
     def flowObject(self):
+        import hubflow.types
+
         if not isinstance(self.mFlowObj, hubflow.types.FlowObject):
             self.loadFlowObject()
         if isinstance(self.mFlowObj, hubflow.types.FlowObject):
