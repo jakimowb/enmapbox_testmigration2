@@ -22,6 +22,18 @@ from qgis import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
+
+def getOptionValueFromComboBox(combobox):
+    assert isinstance(combobox, QComboBox)
+    m = combobox.model()
+    i = combobox.currentIndex()
+    if isinstance(combobox.model, OptionListModel):
+        option = combobox.itemData(i, role=Qt.UserRole)
+        assert isinstance(option, Option)
+        return option.mValue
+    else:
+        return combobox.currentText()
+
 class Option(object):
 
     def __init__(self, value, name, tooltip=None, icon=None):
@@ -65,6 +77,7 @@ class OptionListModel(QAbstractListModel):
         assert isinstance(options, list)
 
         options = [self.o2o(o) for o in options]
+
         options = [o for o in options if o not in self.mOptions]
 
         l = len(options)
@@ -83,6 +96,12 @@ class OptionListModel(QAbstractListModel):
         if not isinstance(value, Option):
             value = Option(value, '{}'.format(value))
         return value
+
+    def options(self):
+        return self.mOptions[:]
+
+    def optionValues(self):
+        return [o.mValue for o in self.options()]
 
     sigOptionsRemoved = pyqtSignal(list)
     def removeOptions(self, options):

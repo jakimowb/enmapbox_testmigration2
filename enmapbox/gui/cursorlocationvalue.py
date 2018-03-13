@@ -28,6 +28,8 @@ from PyQt4.QtGui import *
 
 from enmapbox.gui.utils import loadUI, SpatialExtent, SpatialPoint
 
+from enmapbox.gui.widgets.trees import *
+
 
 
 class LoadWorker(QObject):
@@ -60,8 +62,6 @@ class LoadWorker(QObject):
 
 
 
-
-from enmapbox.gui.widgets.trees import *
 
 class SourceValueSet(object):
     def __init__(self, source, crs, geoCoordinate):

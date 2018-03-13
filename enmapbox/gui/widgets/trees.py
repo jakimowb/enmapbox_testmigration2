@@ -18,7 +18,7 @@
 # noinspection PyPep8Naming
 
 
-import os, pickle
+import os, pickle, copy
 
 from collections import OrderedDict
 
@@ -37,15 +37,15 @@ class TreeNode(QObject):
     sigRemovedChildren = pyqtSignal(QObject, int, int)
     sigUpdated = pyqtSignal(QObject)
 
-    def __init__(self, parentNode, name=None, values=None):
+    def __init__(self, parentNode, name=None, values=None, tooltip=None, icon=None):
         super(TreeNode, self).__init__()
         self.mParent = parentNode
 
         self.mChildren = []
         self.mName = name
         self.mValues = []
-        self.mIcon = None
-        self.mToolTip = None
+        self.mIcon = icon
+        self.mToolTip = tooltip
 
         if name:
             self.setName(name)
@@ -55,6 +55,47 @@ class TreeNode(QObject):
 
         if isinstance(parentNode, TreeNode):
             parentNode.appendChildNodes(self)
+
+
+    def __len__(self):
+        return len(self.mChildren)
+
+    def clone(self, *args, **kwds):
+        """
+        Returns a clone of this TreeNode with parentNode() == None
+        """
+
+        n = type(self)(None, *args, **kwds)
+        assert isinstance(n, TreeNode)
+
+        # clone internal attributes
+        for key, value in self.__dict__.items():
+            if key.startswith('m') and key not in ['mParent', 'mChildren']:
+                if isinstance(value, QObject):
+                    s = ""
+
+                n.__dict__[key] = copy.copy(value)
+
+        #clone child nodes
+        clonedChilds = []
+        for childNode in self.mChildren:
+            assert isinstance(childNode, TreeNode)
+            clonedChild = childNode.clone()
+            clonedChild.setParentNode(n)
+            clonedChilds.append(clonedChild)
+        n.appendChildNodes(clonedChilds)
+
+        return n
+
+    def dump(self):
+        """
+        Returns a formate string of this node and its child nodes
+        :return:
+        """
+        info = ['{}:{}:{}'.format(str(type(self)),self.mName, str(self.mValues))]
+        for n in self.childNodes():
+            info.append('\t{}'.format(n.dump()))
+        return '\n'.join(info)
 
     def nodeIndex(self):
         return self.mParent.mChildren.index(self)
@@ -90,6 +131,8 @@ class TreeNode(QObject):
         if isinstance(listOfChildNodes, TreeNode):
             listOfChildNodes = [listOfChildNodes]
         assert isinstance(listOfChildNodes, list)
+        listOfChildNodes = [l for l in listOfChildNodes if l not in self.mChildren]
+
         l = len(listOfChildNodes)
         idxLast = index + l - 1
         self.sigWillAddChildren.emit(self, index, idxLast)
@@ -140,7 +183,6 @@ class TreeNode(QObject):
         return self.mParent
 
     def setParentNode(self, treeNode):
-        assert isinstance(treeNode, TreeNode)
         self.mParent = treeNode
 
     def setIcon(self, icon):
@@ -334,6 +376,13 @@ class TreeModel(QAbstractItemModel):
             return self.mRootNode
         else:
             return index.internalPointer()
+
+    def idx2columnName(self, index):
+        if not index.isValid():
+            return None
+        else:
+            return self.columnNames()[index.column()]
+
 
     def node2idx(self, node):
         assert isinstance(node, TreeNode)
