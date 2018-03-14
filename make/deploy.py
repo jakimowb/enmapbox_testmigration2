@@ -24,6 +24,7 @@ from __future__ import absolute_import
 from distutils.version import LooseVersion
 import os, sys, re, shutil, zipfile, datetime
 import numpy as np
+from pb_tool import pb_tool
 import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
 import git
@@ -74,7 +75,6 @@ def mkDir(d, delete=False):
 
 if __name__ == "__main__":
 
-    import pb_tool
 
     # the directory to build the "enmapboxplugin" folder
     DIR_DEPLOY = jp(DIR_REPO, 'deploy')
@@ -82,17 +82,20 @@ if __name__ == "__main__":
 
     # local pb_tool configuration file.
     pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
+    cfg = pb_tool.get_config(pathCfg)
+    cdir = os.path.dirname(pathCfg)
+    pluginname = cfg.get('plugin', 'name')
+    dirPlugin = jp(DIR_DEPLOY, pluginname)
+    os.chdir(cdir)
 
     mkDir(DIR_DEPLOY)
 
     # required to choose andy DIR_DEPLOY of choice
     # issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
-    pb_tool.get_plugin_directory = lambda: DIR_DEPLOY
-    cfg = pb_tool.get_config(config=pathCfg)
 
     if True:
         # 1. clean an existing directory = the enmapboxplugin folder
-        pb_tool.clean_deployment(ask_first=False, config=pathCfg)
+        pb_tool.clean_deployment(ask_first=False)
 
         currentBranch = REPO.active_branch.name
 
@@ -125,33 +128,12 @@ if __name__ == "__main__":
             f.flush()
             f.close()
 
-
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
-        if True:
-            import subprocess
-            import guimake
-            from enmapbox.gui.utils import DIR_UIFILES
-
-            os.chdir(DIR_REPO)
-            subprocess.call(['pb_tool', 'compile'])
-            guimake.compile_rc_files(DIR_UIFILES)
-            # replace the annoying time stamp by a version number?
-
-            from enmapbox.gui.ui import resources
-            pathRC = resources.__file__
-            lines = open(pathRC).readlines()
-            lines = re.sub('# Created: .*\n', "".format(version), ''.join(lines))
-            f = open(pathRC, 'w')
-            f.write(lines)
-            f.flush()
-            f.close()
+        pb_tool.compile_files(cfg)
 
 
 
-        else:
-            cfgParser = pb_tool.get_config(config=pathCfg)
-            pb_tool.compile_files(cfgParser)
 
         # create a tag
         if CREATE_TAG:
@@ -162,7 +144,7 @@ if __name__ == "__main__":
             REPO.create_tag('v.' + version)
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
-        pb_tool.deploy_files(pathCfg, confirm=False)
+        pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
 
         # 4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
         # we need to remove them afterwards.
@@ -184,7 +166,7 @@ if __name__ == "__main__":
     # shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
 
     # 6. copy to local QGIS user DIR
-    if True:
+    if False:
         import shutil
 
         from os.path import expanduser

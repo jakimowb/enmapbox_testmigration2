@@ -16,7 +16,6 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
 
 import os, collections
 
@@ -27,9 +26,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 from enmapbox.gui.utils import loadUI, SpatialExtent, SpatialPoint
-
-from enmapbox.gui.widgets.trees import *
-
+#from enmapbox.gui.trees import *
 
 
 class LoadWorker(QObject):
@@ -45,7 +42,6 @@ class LoadWorker(QObject):
         spatialPoint = QgsGeometry.fromWkt(thePointWkt)
         assert spatialPoint.wkbType() == QgsWKBTypes.Point
 
-
         crs = QgsCoordinateReferenceSystem(theCrsDefinition)
         assert isinstance(crs, QgsCoordinateReferenceSystem)
 
@@ -55,12 +51,10 @@ class LoadWorker(QObject):
             for uri in theUris:
                 values = CursorLocationValues.fromDataSource(spatialPoint, uri)
 
-                #values might be expressed as dict or list
+                # values might be expressed as dict or list
                 self.sigValueLoaded.emit(uri, values)
 
             self.sigLoadingFinished.emit()
-
-
 
 
 class SourceValueSet(object):
@@ -77,8 +71,8 @@ class SourceValueSet(object):
     def crs(self):
         return QgsCoordinateReferenceSystem(self.wktCrs)
 
-class RasterValueSet(SourceValueSet):
 
+class RasterValueSet(SourceValueSet):
     class BandInfo(object):
         def __init__(self, bandIndex, bandValue, bandName):
             assert bandIndex >= 0
@@ -91,13 +85,13 @@ class RasterValueSet(SourceValueSet):
             self.bandValue = bandValue
             self.bandName = bandName
 
-
     def __init__(self, source, crs, geoCoordinate, pxPosition):
         assert isinstance(pxPosition, QPoint)
         super(RasterValueSet, self).__init__(source, crs, geoCoordinate)
         self.pxPosition = pxPosition
         self.noDataValue = None
         self.bandValues = []
+
 
 class VectorValueSet(SourceValueSet):
     class FeatureInfo(object):
@@ -116,24 +110,34 @@ class VectorValueSet(SourceValueSet):
 
 
 class CursorLocationInfoModel(TreeModel):
+    ALWAYS_EXPAND = 'always'
+    NEVER_EXPAND = 'never'
+    REMAINDER = 'reminder'
 
     def __init__(self, parent=None):
         super(CursorLocationInfoModel, self).__init__(parent)
 
-        self.mColumnNames = ['Band/Field','Value','Description']
+        self.mColumnNames = ['Band/Field', 'Value', 'Description']
         self.mExpandedNodeRemainder = {}
+        self.mNodeExpansion = CursorLocationInfoModel.REMAINDER
+
+    def setNodeExpansion(self, type):
+
+        assert type in [CursorLocationInfoModel.ALWAYS_EXPAND,
+                        CursorLocationInfoModel.NEVER_EXPAND,
+                        CursorLocationInfoModel.REMAINDER]
+        self.mNodeExpansion = type
 
     def setExpandedNodeRemainder(self, node=None):
         treeView = self.mTreeView
         assert isinstance(treeView, QTreeView)
         if node is None:
             for n in self.mRootNode.childNodes():
-                self.setExpandedNodeRemainder(node = n)
+                self.setExpandedNodeRemainder(node=n)
         else:
             self.mExpandedNodeRemainder[self.weakNodeId(node)] = self.mTreeView.isExpanded(self.node2idx(node))
             for n in node.childNodes():
-                self.setExpandedNodeRemainder(node = n)
-
+                self.setExpandedNodeRemainder(node=n)
 
     def weakNodeId(self, node):
         assert isinstance(node, TreeNode)
@@ -143,8 +147,6 @@ class CursorLocationInfoModel(TreeModel):
             n += '{}:{}'.format(node.name(), n)
         return n
 
-
-
     def flags(self, index):
 
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
@@ -153,13 +155,21 @@ class CursorLocationInfoModel(TreeModel):
         if not isinstance(sourceValueSet, SourceValueSet):
             return
 
-        #get-or-create node
+        # get-or-create node
         def gocn(root, name):
             assert isinstance(root, TreeNode)
             n = TreeNode(root, name)
             weakId = self.weakNodeId(n)
-            self.mTreeView.setExpanded(self.node2idx(n),
-                self.mExpandedNodeRemainder.get(weakId, False))
+
+            expand = False
+            if self.mNodeExpansion == CursorLocationInfoModel.REMAINDER:
+                expand = self.mExpandedNodeRemainder.get(weakId, False)
+            elif self.mNodeExpansion == CursorLocationInfoModel.NEVER_EXPAND:
+                expand = False
+            elif self.mNodeExpansion == CursorLocationInfoModel.ALWAYS_EXPAND:
+                expand = True
+
+            self.mTreeView.setExpanded(self.node2idx(n), expand)
             return n
 
         bn = os.path.basename(sourceValueSet.source)
@@ -169,14 +179,14 @@ class CursorLocationInfoModel(TreeModel):
             self.setColumnSpan(root, True)
             root.setIcon(QIcon(':/enmapbox/icons/mIconRasterLayer.png'))
 
-            #add subnodes
+            # add subnodes
             n = gocn(root, 'Pixel')
             n.setValues('{},{}'.format(sourceValueSet.pxPosition.x(), sourceValueSet.pxPosition.y()))
 
             for bv in sourceValueSet.bandValues:
                 assert isinstance(bv, RasterValueSet.BandInfo)
-                n = gocn(root, 'Band {}'.format(bv.bandIndex+1))
-                n.setToolTip('Band {} {}'.format(bv.bandIndex+1, bv.bandName).strip())
+                n = gocn(root, 'Band {}'.format(bv.bandIndex + 1))
+                n.setToolTip('Band {} {}'.format(bv.bandIndex + 1, bv.bandName).strip())
                 n.setValues([bv.bandValue, bv.bandName])
 
         if isinstance(sourceValueSet, VectorValueSet):
@@ -216,24 +226,26 @@ class ComboBoxOption(object):
         self.tooltip = tooltip
         self.icon = icon
 
+
 LUT_GEOMETRY_ICONS = {}
 
 RASTERBANDS = [
     ComboBoxOption('VISIBLE', 'RGB', 'Visible bands only.'),
-    ComboBoxOption('ALL', 'All','All raster bands.'),
+    ComboBoxOption('ALL', 'All', 'All raster bands.'),
 
 ]
 
 LAYERMODES = [
     ComboBoxOption('ALL_LAYERS', 'All layers', 'Show values of all map layers.'),
     ComboBoxOption('TOP_LAYER', 'Top layer', 'Show values of the top-most map layer only.')
-    ]
+]
 
 LAYERTYPES = [
     ComboBoxOption('ALL', 'Raster and Vector', 'Show values of both, raster and vector layers.'),
     ComboBoxOption('VECTOR', 'Vector only', 'Show values of vector layers only.'),
     ComboBoxOption('RASTER', 'Raster only', 'Show values of raster layers only.')
-    ]
+]
+
 
 class ComboBoxOptionModel(QAbstractListModel):
 
@@ -251,8 +263,6 @@ class ComboBoxOptionModel(QAbstractListModel):
 
     def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
         return 1
-
-
 
     def index2option(self, index):
 
@@ -286,14 +296,13 @@ class ComboBoxOptionModel(QAbstractListModel):
 
 class CursorLocationInfoDock(QDockWidget,
                              loadUI('cursorlocationinfodock.ui')):
-
     sigLocationRequest = pyqtSignal()
     sigCursorLocationInfoAdded = pyqtSignal()
 
     def __init__(self, parent=None):
         """Constructor."""
         QWidget.__init__(self, parent)
-        #super(CursorLocationValueWidget, self).__init__(parent)
+        # super(CursorLocationValueWidget, self).__init__(parent)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
@@ -309,8 +318,6 @@ class CursorLocationInfoDock(QDockWidget,
 
         self.btnCrs.crsChanged.connect(self.setCrs)
         self.btnCrs.setCrs(QgsCoordinateReferenceSystem())
-
-
 
         self.mLocationInfoModel = CursorLocationInfoModel(parent=self.treeView)
         self.treeView.setModel(self.mLocationInfoModel)
@@ -328,14 +335,12 @@ class CursorLocationInfoDock(QDockWidget,
         self.btnActivateMapTool.setDefaultAction(self.actionRequestCursorLocation)
         self.btnReload.setDefaultAction(self.actionReload)
 
-
-        self.actionAllRasterBands.triggered.connect(lambda : self.btnRasterBands.setDefaultAction(self.actionAllRasterBands))
-        self.actionVisibleRasterBands.triggered.connect(lambda : self.btnRasterBands.setDefaultAction(self.actionVisibleRasterBands))
-
+        self.actionAllRasterBands.triggered.connect(
+            lambda: self.btnRasterBands.setDefaultAction(self.actionAllRasterBands))
+        self.actionVisibleRasterBands.triggered.connect(
+            lambda: self.btnRasterBands.setDefaultAction(self.actionVisibleRasterBands))
 
     def options(self):
-
-
 
         layerType = self.mLayerTypeModel.index2option(self.cbLayerTypes.currentIndex()).value
         layerMode = self.mLayerModeModel.index2option(self.cbLayerModes.currentIndex()).value
@@ -345,14 +350,12 @@ class CursorLocationInfoDock(QDockWidget,
 
     def loadCursorLocation(self, point, canvas):
 
-
         assert isinstance(canvas, QgsMapCanvas)
 
         crs = canvas.mapSettings().destinationCrs()
         self.setCursorLocation(crs, point)
         self.setCanvas(canvas)
         self.reloadCursorLocation()
-
 
     def reloadCursorLocation(self):
 
@@ -379,10 +382,8 @@ class CursorLocationInfoDock(QDockWidget,
         for c in self.mCanvases:
             lyrs.extend(layerFilter(c))
 
-        #convert location of interest into WGS-84 GCS
+        # convert location of interest into WGS-84 GCS
         crsWorld = QgsCoordinateReferenceSystem('EPSG:4326')
-
-
 
         info2World = QgsCoordinateTransform(crsInfo, crsWorld)
         pointWorld = info2World.transform(ptInfo)
@@ -396,13 +397,13 @@ class CursorLocationInfoDock(QDockWidget,
             lyr2World = QgsCoordinateTransform(l.crs(), crsWorld)
             world2lyr = QgsCoordinateTransform(crsWorld, l.crs())
 
-            #check in GCS WGS-84 if the point-of-interest intersects with layer
+            # check in GCS WGS-84 if the point-of-interest intersects with layer
             lyrExt = lyr2World.transformBoundingBox(l.extent())
             assert isinstance(lyrExt, QgsRectangle)
             if not lyrExt.contains(pointWorld):
                 continue
 
-            #transform relquested location into layer CRS coordinates
+            # transform relquested location into layer CRS coordinates
             pointLyr = world2lyr.transform(pointWorld)
 
             from enmapbox.gui.utils import geo2px
@@ -411,12 +412,12 @@ class CursorLocationInfoDock(QDockWidget,
                 ds = gdal.Open(l.source())
                 if ds.RasterCount == 0:
                     continue
-                    
+
                 if isinstance(renderer, QgsRasterRenderer) and isinstance(ds, gdal.Dataset):
-                    #transform geo into pixel coodinates
+                    # transform geo into pixel coodinates
                     px = geo2px(pointLyr, ds.GetGeoTransform())
                     if px.x() >= 0 and px.x() < ds.RasterXSize and \
-                       px.y() >= 0 and px.y() < ds.RasterYSize:
+                            px.y() >= 0 and px.y() < ds.RasterYSize:
 
                         v = RasterValueSet(l.source(), crsInfo, ptInfo, px)
 
@@ -435,22 +436,23 @@ class CursorLocationInfoDock(QDockWidget,
                             if i == 0:
                                 v.noDataValue = band.GetNoDataValue()
 
-                            value = band.ReadAsArray(px.x(), px.y(), 1,1)
+                            value = band.ReadAsArray(px.x(), px.y(), 1, 1)
                             if value is None:
-                                s =""
+                                s = ""
                             value = np.asscalar(value.flatten()[0])
-                            bandInfo = RasterValueSet.BandInfo(b-1, value, band.GetDescription())
+                            bandInfo = RasterValueSet.BandInfo(b - 1, value, band.GetDescription())
                             v.bandValues.append(bandInfo)
 
                         self.mLocationInfoModel.addSourceValues(v)
 
             if isinstance(l, QgsVectorLayer):
-                #searchRect = QgsRectangle(pt, pt)
+                # searchRect = QgsRectangle(pt, pt)
 
-                #searchRadius = QgsTolerance.toleranceInMapUnits(1, l, self.mCanvas.mapRenderer(), QgsTolerance.Pixels)
-                searchRadius = QgsTolerance.toleranceInMapUnits(1, l, self.mCanvases[0].mapSettings(), QgsTolerance.Pixels)
-                #searchRadius = QgsTolerance.defaultTolerance(l, self.mCanvas.mapSettings())
-                #searchRadius = QgsTolerance.toleranceInProjectUnits(1, self.mCanvas.mapRenderer(), QgsTolerance.Pixels)
+                # searchRadius = QgsTolerance.toleranceInMapUnits(1, l, self.mCanvas.mapRenderer(), QgsTolerance.Pixels)
+                searchRadius = QgsTolerance.toleranceInMapUnits(1, l, self.mCanvases[0].mapSettings(),
+                                                                QgsTolerance.Pixels)
+                # searchRadius = QgsTolerance.defaultTolerance(l, self.mCanvas.mapSettings())
+                # searchRadius = QgsTolerance.toleranceInProjectUnits(1, self.mCanvas.mapRenderer(), QgsTolerance.Pixels)
                 searchRect = QgsRectangle()
                 searchRect.setXMinimum(pointLyr.x() - searchRadius);
                 searchRect.setXMaximum(pointLyr.x() + searchRadius);
@@ -488,7 +490,6 @@ class CursorLocationInfoDock(QDockWidget,
 
         self.setCursorLocationInfo()
 
-
     def setCursorLocationInfo(self):
         # transform this point to targeted CRS
         crs, pt = self.cursorLocation()
@@ -500,7 +501,7 @@ class CursorLocationInfoDock(QDockWidget,
             self.tbX.setText('{}'.format(pt.x()))
             self.tbY.setText('{}'.format(pt.y()))
 
-    def setCanvas(self,  mapCanvas):
+    def setCanvas(self, mapCanvas):
         self.setCanvases([mapCanvas])
 
     def setCanvases(self, mapCanvases):
@@ -531,7 +532,6 @@ class CursorLocationInfoDock(QDockWidget,
             self.btnCrs.setCrs(crs)
         self.setCursorLocationInfo()
 
-
     def cursorLocation(self):
         """
         Returns the last location that was set.
@@ -540,7 +540,6 @@ class CursorLocationInfoDock(QDockWidget,
             return self.mLocationHistory[0]
         else:
             return None, None
-
 
 
 class Resulthandler(QObject):
@@ -555,6 +554,7 @@ class Resulthandler(QObject):
 R = Resulthandler()
 if __name__ == '__main__':
     from enmapbox.gui.utils import initQgisApplication
+
     qgsApp = initQgisApplication()
 
     from enmapboxtestdata import enmap, landcover
@@ -562,7 +562,7 @@ if __name__ == '__main__':
     canvas = QgsMapCanvas()
     lyr = QgsRasterLayer(enmap)
     shp = QgsVectorLayer(landcover, 'lc', 'ogr')
-    QgsMapLayerRegistry.instance().addMapLayers([lyr,shp])
+    QgsProject.instance().addMapLayers([lyr, shp])
     canvas.setLayerSet([QgsMapCanvasLayer(shp), QgsMapCanvasLayer(lyr)])
     canvas.setDestinationCrs(lyr.crs())
     canvas.setExtent(lyr.extent())

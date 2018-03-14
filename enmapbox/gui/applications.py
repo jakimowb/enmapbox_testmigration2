@@ -17,11 +17,13 @@
 ***************************************************************************
 """
 from __future__ import absolute_import, unicode_literals
-import os, sys, site, collections, inspect, logging, re
-logger = logging.getLogger(__name__)
+import os, sys, site, collections, re
+
 from qgis.core import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+
 from enmapbox.gui.utils import DIR_ENMAPBOX
 from enmapbox.gui.enmapboxgui import EnMAPBox
 

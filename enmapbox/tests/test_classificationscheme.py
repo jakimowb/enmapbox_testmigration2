@@ -1,13 +1,7 @@
 # coding=utf-8
 """Resources test.
 
-.. note:: This program is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published by
-     the Free Software Foundation; either version 2 of the License, or
-     (at your option) any later version.
-
 """
-from __future__ import absolute_import
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
@@ -17,10 +11,10 @@ from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-from enmapbox.gui.sandbox import initQgisEnvironment
 from enmapbox.gui.utils import *
 from enmapbox.gui.classificationscheme import *
-QGIS_APP = initQgisEnvironment()
+QGIS_APP = initQgisApplication()
+
 
 
 from unittest import TestCase

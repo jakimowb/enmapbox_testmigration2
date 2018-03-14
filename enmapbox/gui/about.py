@@ -22,6 +22,8 @@ import os, collections
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+
 from enmapbox.gui.utils import loadUI, jp, DIR_REPO
 
 class AboutDialog(QDialog,

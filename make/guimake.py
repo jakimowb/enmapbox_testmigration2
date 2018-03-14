@@ -187,11 +187,11 @@ def compile_rc_files(ROOT):
         #dn = os.path.dirname(f)
         pathQrc = os.path.normpath(jp(root_dir, f))
         assert os.path.exists(pathQrc), pathQrc
-        bn = os.path.basename(f)
-        dn = os.path.dirname(f)
+        bn = os.path.basename(pathQrc)
+        dn = os.path.dirname(pathQrc)
         bn = os.path.splitext(bn)[0]
         pathPy = os.path.join(dn, bn+'.py' )
-        subprocess.call(['pyrcc5', '-py3', '-o', pathPy, pathQrc])
+        subprocess.call(['pyrcc5', '-o', pathPy, pathQrc])
         s = ""
 
 
