@@ -152,6 +152,7 @@ def getDOMAttributes(elem):
     return values
 
 
+
 def compile_rc_files(ROOT):
     #find ui files
     ui_files = file_search(ROOT, '*.ui', recursive=True)
@@ -187,12 +188,12 @@ def compile_rc_files(ROOT):
         pathQrc = os.path.normpath(jp(root_dir, f))
         assert os.path.exists(pathQrc), pathQrc
         bn = os.path.basename(f)
+        dn = os.path.dirname(f)
         bn = os.path.splitext(bn)[0]
-        pathPy2 = os.path.join(DIR_UIFILES, bn+'.py' )
-        tmp = os.getcwd()
-        os.chdir(os.path.dirname(__file__))
-        subprocess.call(['pyrcc4', '-py2', '-o', pathPy2, pathQrc])
-        os.chdir(tmp)
+        pathPy = os.path.join(dn, bn+'.py' )
+        subprocess.call(['pyrcc5', '-py3', '-o', pathPy, pathQrc])
+        s = ""
+
 
 def fileNeedsUpdate(file1, file2):
     """

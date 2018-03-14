@@ -16,6 +16,7 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 from enmapbox.gui.sandbox import initQgisEnvironment
 from enmapbox.gui.utils import *
 from enmapbox.gui.classificationscheme import *

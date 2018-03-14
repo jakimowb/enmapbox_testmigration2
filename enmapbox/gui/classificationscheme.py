@@ -24,6 +24,7 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 import numpy as np
 from osgeo import gdal
 from enmapbox.gui.utils import loadUI, gdalDataset

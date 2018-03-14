@@ -4,7 +4,7 @@ HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
 TRACKER = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
 
-DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt4', 'sklearn','pyqtgraph','matplotlib','spectral']
+DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplotlib','spectral']
 
 import sys, os
 
@@ -18,3 +18,4 @@ def messageLog(msg, level=None):
     if level is None:
         level = QgsMessageLog.WARNING
     QgsMessageLog.instance().logMessage(msg, 'EnMAP-Box', level)
+

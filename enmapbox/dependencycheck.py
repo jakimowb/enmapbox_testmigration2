@@ -20,7 +20,6 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-from __future__ import unicode_literals, absolute_import
 import sys, os, collections
 
 LAST_MISSED_PACKAGES = None
@@ -77,8 +76,8 @@ def missingPackageInfo(missingPackages):
     return  info
 
 def showDialog(info):
-    from PyQt4.QtCore import QSize
-    from PyQt4.QtGui import QDialog, QTextEdit, QVBoxLayout, QLabel
+    from PyQt5.QtCore import QSize
+    from PyQt5.QtWidgets import QDialog, QTextEdit, QVBoxLayout, QLabel
     class DependencyInfoWidget(QDialog):
 
         def __init__(self, parent=None):
@@ -95,7 +94,7 @@ def showDialog(info):
         def setText(self, text):
             self.textEdit.setText(text)
 
-    from PyQt4.QtGui import QApplication
+    from PyQt5.QtGui import QApplication
 
     app = QApplication.instance()
     init = not isinstance(app, QApplication)
