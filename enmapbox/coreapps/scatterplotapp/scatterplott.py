@@ -18,7 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
+
 import gdal
 import ogr
 from enmapbox.gui.enmapboxgui import EnMAPBox

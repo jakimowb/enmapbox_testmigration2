@@ -7,7 +7,7 @@
 # be replaced with an assert.
 
 
-from __future__ import absolute_import
+
 import logging, inspect
 from difflib import SequenceMatcher
 from collections import OrderedDict

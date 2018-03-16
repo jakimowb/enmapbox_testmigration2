@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import os, re, io, tempfile
 
 from osgeo import gdal

@@ -18,7 +18,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
+
 #see http://python-future.org/unicode_literals.html for unicode issue discussion
 from future.utils import text_to_native_str
 import os, re, tempfile, pickle, copy, shutil, unicodedata,six

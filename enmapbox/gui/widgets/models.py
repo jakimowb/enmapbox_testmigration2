@@ -16,7 +16,7 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-from __future__ import unicode_literals, absolute_import
+
 
 from qgis import *
 from PyQt5.QtGui import *

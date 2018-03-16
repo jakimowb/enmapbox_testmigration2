@@ -17,7 +17,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
+
 import os, collections
 from qgis.core import *
 from PyQt5.QtGui import *

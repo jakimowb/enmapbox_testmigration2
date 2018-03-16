@@ -17,7 +17,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
+
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *

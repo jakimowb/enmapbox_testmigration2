@@ -1,6 +1,6 @@
 """ Module that defines AttributeModel
 """
-from __future__ import absolute_import
+
 
 __all__ = ['browse', 'execute', 'create_object_browser', 'logging_basic_config']
 

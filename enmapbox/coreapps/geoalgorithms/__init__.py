@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import os
 import qgis
 from PyQt5.QtGui import QIcon, QMenu, QAction

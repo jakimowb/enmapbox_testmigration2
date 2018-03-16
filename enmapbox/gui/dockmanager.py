@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
+
 import six, sys, os, gc, re, collections
 
 from qgis.core import *
