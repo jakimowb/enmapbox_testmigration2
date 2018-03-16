@@ -31,7 +31,7 @@ def sandboxWithEnMapBox(loadPF=False):
     :return:
     """
     """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
+    from enmapbox.gui.utils import initQgisApplication, sandboxPureGui
     qgsApp = initQgisEnvironment()
     sandboxPureGui(loadProcessingFramework=loadPF)
 

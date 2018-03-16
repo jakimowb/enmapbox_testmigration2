@@ -41,7 +41,7 @@ class DockTreeNode(TreeNode):
         node.setName(dockName)
         node.setExpanded(element.attribute('expanded') == '1')
         node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
-        node.readCommonXML(element)
+        node.readCommonXml(element)
         # node.readChildrenFromXml(element)
 
         # try to find the dock by its uuid in dockmanager
@@ -254,7 +254,7 @@ class MapDockTreeNode(DockTreeNode):
 
                 # set canvas on visible
                 lNode = self.layerNode.findLayer(layer.id())
-                lNode.setVisible(Qt.Checked)
+                lNode.setItemVisibilityChecked(Qt.Checked)
 
         return self
 
@@ -340,7 +340,7 @@ class MapDockTreeNode(DockTreeNode):
         node.setName(element.attribute('name'))
         node.setExpanded(element.attribute('expanded') == '1')
         node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
-        node.readCommonXML(element)
+        node.readCommonXml(element)
         # node.readChildrenFromXml(element)
 
         # try to find the dock by its uuid in dockmanager
@@ -395,7 +395,7 @@ class DockManagerTreeModel(TreeModel):
               AllowLegendChangeState     = 0x80
             """
             self.setFlag(QgsLayerTreeModel.ShowLegend, True)
-            self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, False)
+            #self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, False)
             self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
             self.setFlag(QgsLayerTreeModel.DeferredLegendInvalidation, True)
             # self.setFlag(QgsLayerTreeModel.UseEmbeddedWidget, True)
@@ -698,7 +698,7 @@ class DockManagerTreeModel(TreeModel):
         if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
 
             if role == Qt.CheckStateRole:
-                node.setVisible(value)
+                node.setItemVisibilityChecked(value)
                 mapDockNode = node.parent()
                 while mapDockNode is not None and not isinstance(mapDockNode, MapDockTreeNode):
                     mapDockNode = mapDockNode.parent()

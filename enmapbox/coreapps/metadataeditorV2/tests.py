@@ -35,7 +35,7 @@ from metadataeditorV2.metadataeditor import *
 class TestMDMetadataKeys(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from enmapbox.gui.sandbox import initQgisEnvironment
+        from enmapbox.gui.utils import initQgisApplication
         cls.qgsApp = initQgisEnvironment()
 
     @classmethod

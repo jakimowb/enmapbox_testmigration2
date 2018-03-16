@@ -21,27 +21,23 @@
 import unittest
 from unittest import TestCase
 from qgis import *
+from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.sandbox import initQgisApplication
 from enmapbox.gui.utils import *
-from enmapbox.gui.enmapboxgui import EnMAPBox
+
 
 QGIS_APP = initQgisApplication()
 
-
-from processing.core.GeoAlgorithm import GeoAlgorithm
-from processing.core.parameters import ParameterRaster
-from processing.core.outputs import OutputRaster
+from enmapbox.gui.enmapboxgui import EnMAPBox
 
 
 
-from processing.core.outputs import OutputRaster
-
-class MyOutputRaster(OutputRaster):
+class MyOutputRaster(QgsProcessingParameterDefinition):
 
     def __init__(self, name='', description='', ext='bsq'):
-        OutputRaster.__init__(self, name, description)
+        QgsProcessingParameterDefinition.__init__(self, name, description)
         self.ext = ext
 
     def getFileFilter(self, alg):
@@ -54,13 +50,13 @@ class MyOutputRaster(OutputRaster):
 
         return 'bsq'
 
-class MyGeoAlgorithmus(GeoAlgorithm):
+class MyGeoAlgorithmus(QgsProcessingAlgorithm):
 
     def defineCharacteristics(self):
         self.name = 'TestAlgorithm'
         self.group = 'TestGroup'
         #self.addParameter(ParameterRaster('infile', 'Test Input Image'))
-        self.addOutput(OutputRaster('outfile1', 'Test Output Image'))
+        self.addOutput(QgsProcessingParameterRasterLayer('outfile1', 'Test Output Image'))
         self.addOutput(MyOutputRaster('outfile2', 'Test MyOutput Image'))
 
     def processAlgorithm(self, progress):
@@ -112,22 +108,20 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
 class TestEnMAPBox(unittest.TestCase):
 
-    def setUpClass(cls):
-        cls.EMB = EnMAPBox(None)
-        cls.EMB.loadExampleData()
-        # self.QGIS_APP.exec_()
-
     def setUp(self):
+        self.EMB = EnMAPBox(None)
+        self.EMB.loadExampleData()
 
-
-        pass
 
     def tearDown(self):
         self.EMB.close()
 
 
     def test_instance(self):
-        self.fail()
+        emb = EnMAPBox.instance()
+        self.assertIsInstance(emb, EnMAPBox)
+        self.assertEqual(emb, self.EMB)
+
 
 
     def test_initQGISProcessingFramework(self):
@@ -258,26 +252,5 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
 if __name__ == '__main__':
-
-    from enmapbox.gui.utils import initQgisApplication
-    app = initQgisApplication()
-
-
-    if True:
-        path = r'/Users/benjamin.jakimow/Repositories/QGIS_Plugins/enmap-box/enmapbox/gui/tests/test_xyz.bil'
-        fileFilter = 'ENVI (*.bsq, *.bil);;TIFF (*.tif);; All (*.*)'
-
-        from qgis.gui import QgsEncodingFileDialog
-        d = QgsEncodingFileDialog(None, 'Save file', path, fileFilter, None)
-        print(d.exec_())
-    else:
-
-        emb = EnMAPBox(None)
-
-        myApp = TestEnMAPBoxApp(emb)
-        emb.addApplication(myApp)
-
-    app.exec_()
-
 
     unittest.main()

@@ -230,7 +230,7 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         nFields = lyr.fields().count()
 
         geomType = ['Point','Line','Polygon','Unknown','Null'][lyr.geometryType()]
-        wkbType = QgsWKBTypes.displayString(int(lyr.wkbType()))
+        wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
         self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
         self.nodeFeatures = TreeNode(self, 'Features',
                                    value='{}'.format(nFeat))
@@ -559,7 +559,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         if True:
             self.setFlag(QgsLayerTreeModel.ShowLegend, True) #no effect
-            self.setFlag(QgsLayerTreeModel.ShowSymbology, True) #no effect
+            #self.setFlag(QgsLayerTreeModel.ShowSymbology, True) #no effect
             # self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
             self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
             self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)

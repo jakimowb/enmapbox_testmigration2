@@ -13,7 +13,7 @@ class TestReclassify(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from enmapbox.gui.sandbox import initQgisEnvironment
+        from enmapbox.gui.utils import initQgisApplication
         from enmapbox.gui.utils import TestObjects
         from tempfile import mkdtemp
         cls.testDir = mkdtemp(prefix='TestDir')

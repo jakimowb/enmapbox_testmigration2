@@ -175,7 +175,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
         qgsApp.initQgis()
 
 
-        QgsApplication.instance().messageLog().messageReceived.connect(print)
+        #QgsApplication.instance().messageLog().messageReceived.connect(print)
 
         return qgsApp
 

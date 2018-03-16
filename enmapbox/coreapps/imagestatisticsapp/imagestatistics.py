@@ -317,7 +317,7 @@ class Win(QtGui.QDialog):
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
-    from enmapbox.gui.sandbox import initQgisEnvironment
+    from enmapbox.gui.utils import initQgisApplication
     app = initQgisEnvironment()
     #from enmapboxtestdata import enmap
     #assert os.path.isfile(enmap)

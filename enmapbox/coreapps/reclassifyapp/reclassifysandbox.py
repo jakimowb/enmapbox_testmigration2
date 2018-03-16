@@ -31,7 +31,7 @@ def sandboxWithEnMapBox(loadPF=False):
     :return:
     """
     """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
+    from enmapbox.gui.utils import initQgisApplication, sandboxPureGui
     qgsApp = initQgisEnvironment()
     sandboxPureGui(loadProcessingFramework=loadPF, loadExampleData=False)
     from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -46,7 +46,7 @@ def sandboxGuiOnly():
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
     """
-    from enmapbox.gui.sandbox import initQgisEnvironment
+    from enmapbox.gui.utils import initQgisApplication
     qgsApp = initQgisEnvironment()
     from reclassifydialog import ReclassifyDialog
     ui1 = ReclassifyDialog()

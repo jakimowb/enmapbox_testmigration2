@@ -24,7 +24,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from enmapbox.gui.utils import DIR_ENMAPBOX
+from enmapbox.gui.utils import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
 DEBUG = False #set this on True to not hide external-app errors
@@ -58,7 +58,9 @@ class ApplicationRegistry(QObject):
     def addApplicationPackageFile(self, appPkgFile):
         assert os.path.isfile(appPkgFile)
 
-        lines = open(appPkgFile).readlines()
+        f = open(appPkgFile)
+        lines = f.readlines()
+        f.close()
         lines = [l.strip() for l in lines]
         lines = [l for l in lines if len(l) > 0 and not l.startswith('#')]
         from enmapbox.gui.utils import DIR_REPO as ROOT
@@ -149,7 +151,7 @@ class ApplicationRegistry(QObject):
                 import traceback
                 msg = 'Failed to load {}\n Error:"{}"'.format(appPackagePath, '{}'.format(ex))
                 msg +='\n Traceback\n ' + repr(traceback.format_stack())
-                QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
+                messageLog(msg, level=Qgis.Critical)
 
 
     def addApplicationPackage(self, appPackagePath):
@@ -263,24 +265,22 @@ class ApplicationRegistry(QObject):
 
     def loadGeoAlgorithms(self, appWrapper):
         assert isinstance(appWrapper, ApplicationWrapper)
-        geoAlgorithms = appWrapper.app.geoAlgorithms()
+        processingAlgorithms = appWrapper.app.geoAlgorithms()
         if DEBUG:
-            print('appWrapper.app.geoAlgorithms() returned: {}'.format(geoAlgorithms))
+            print('appWrapper.app.geoAlgorithms() returned: {}'.format(processingAlgorithms))
 
-        if not isinstance(geoAlgorithms, list):
-            geoAlgorithms = [geoAlgorithms]
+        if not isinstance(processingAlgorithms, list):
+            processingAlgorithms = [processingAlgorithms]
 
-        from processing.core.GeoAlgorithm import GeoAlgorithm
-        geoAlgorithms = [g for g in geoAlgorithms if isinstance(g, GeoAlgorithm)]
+        processingAlgorithms = [g for g in processingAlgorithms if isinstance(g, QgsProcessingAlgorithm)]
 
-        if len(geoAlgorithms) > 0:
+        if len(processingAlgorithms) > 0:
             if DEBUG:
-                print('GeoAlgorithms found: {}'.format(geoAlgorithms))
-            appWrapper.geoAlgorithms.extend(geoAlgorithms)
+                print('GeoAlgorithms found: {}'.format(processingAlgorithms))
+            appWrapper.geoAlgorithms.extend(processingAlgorithms)
             provider = self.processingAlgManager.enmapBoxProvider()
-            from enmapbox.algorithmprovider import AlgorithmProvider
-            if isinstance(provider, AlgorithmProvider):
-                self.processingAlgManager.addAlgorithms(provider, geoAlgorithms)
+            if isinstance(provider, QgsProcessingProvider):
+                self.processingAlgManager.addAlgorithms(provider, processingAlgorithms)
             else:
                 if DEBUG:
                     print('Can not find EnMAPBoxAlgorithmProvider')

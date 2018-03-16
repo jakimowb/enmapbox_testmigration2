@@ -106,14 +106,15 @@ class TreeNodeProvider():
 
 
 
-class TreeNode(QgsLayerTreeGroup):
+class TreeNode(QgsLayerTree):
     sigIconChanged = pyqtSignal()
     sigValueChanged = pyqtSignal(QObject)
     sigRemoveMe = pyqtSignal()
     def __init__(self, parent, name, value=None, checked=Qt.Unchecked, tooltip=None, icon=None):
         #QObject.__init__(self)
-        super(TreeNode, self).__init__(name, checked)
+        super(TreeNode, self).__init__()
         #assert name is not None and len(str(name)) > 0
+
 
         self.mParent = parent
         self.mTooltip = None
@@ -123,7 +124,7 @@ class TreeNode(QgsLayerTreeGroup):
         self.setName(name)
         self.setValue(value)
         self.setExpanded(False)
-        self.setVisible(False)
+       # self.setVisible(False)
         self.setTooltip(tooltip)
         self.setIcon(icon)
 
@@ -200,7 +201,7 @@ class TreeNode(QgsLayerTreeGroup):
         node.setName(element.attribute('name'))
         node.setExpanded(element.attribute('expanded') == '1')
         node.setVisible(QgsLayerTreeUtils.checkStateFromXml(element.attribute("checked")))
-        node.readCommonXML(element)
+        node.readCommonXml(element)
 
 
     def writeXML(self, parentElement):
@@ -214,7 +215,7 @@ class TreeNode(QgsLayerTreeGroup):
         elem.setAttribute('checked', QgsLayerTreeUtils.checkStateToXml(Qt.Checked))
 
         #custom properties
-        self.writeCommonXML(elem)
+        self.writeCommonXml(elem)
 
         for node in self.children():
             node.writeXML(elem)
@@ -382,7 +383,7 @@ class CRSTreeNode(TreeNode):
             self.nodeDescription.setValue(crs.description())
             self.nodeAuthID.setValue(crs.authid())
             self.nodeAcronym.setValue(crs.projectionAcronym())
-            self.nodeDescription.setVisible(Qt.Checked)
+            self.nodeDescription.setItemVisibilityChecked(Qt.Checked)
             self.nodeMapUnits.setValue(QgsUnitTypes.toString(self.mCrs.mapUnits()))
         else:
             self.setValue(None)

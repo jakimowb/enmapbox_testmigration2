@@ -25,7 +25,7 @@ from enmapboxtestdata import enmap
 QGIS_APP = initQgisApplication()
 
 
-class testclassData(unittest.TestCase):
+class testClassUtils(unittest.TestCase):
     """Test rerources work."""
 
     def setUp(self):
@@ -69,7 +69,7 @@ class testclassData(unittest.TestCase):
 
         #self.assertTrue(crs.isValid())
 
-        geoCoordinate = QgsPoint(gt[0], gt[3])
+        geoCoordinate = QgsPointXY(gt[0], gt[3])
         pxCoordinate = geo2px(geoCoordinate, gt)
 
         self.assertEqual(pxCoordinate.x(), 0)
@@ -83,7 +83,7 @@ class testclassData(unittest.TestCase):
         self.assertEqual(pxCoordinate.y(), 0)
         self.assertAlmostEqual(px2geo(pxCoordinate, gt), geoCoordinate)
 
-        ext = SpatialExtent.fromLayer(ds)
+        ext = SpatialExtent.fromRasterSource(ds)
 
 
 

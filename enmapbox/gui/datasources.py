@@ -381,6 +381,8 @@ class DataSource(object):
         :return:
         """
         pass
+    def __hash__(self):
+        return hash(str(self))
 
     def __repr__(self):
         return 'DataSource: {} {}'.format(self.mName, self.mUri)

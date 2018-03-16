@@ -1,6 +1,6 @@
 import qgis
 def sandboxWithEnMapBox(loadPF=False):
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
+    from enmapbox.gui.utils import initQgisApplication, sandboxPureGui
     qgsApp = initQgisEnvironment()
     sandboxPureGui(loadProcessingFramework=loadPF)
     qgsApp.exec_()

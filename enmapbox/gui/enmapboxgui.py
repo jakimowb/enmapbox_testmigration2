@@ -21,6 +21,7 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 from qgis import utils as qgsUtils
 import warnings
 import qgis.utils
@@ -28,7 +29,6 @@ from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.settings import qtSettingsObj
-from enmapbox.gui.mapcanvas import MapCanvas, MapDock
 from enmapbox.gui.mapcanvas import *
 
 # if qgis.utils.iface is None:
@@ -252,7 +252,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         from enmapbox.gui import DEBUG
         if not DEBUG:
-            msgLog = QgsMessageLog.instance()
+            msgLog = QgsApplication.instance().messageLog()
             msgLog.messageReceived.connect(self.onLogMessage)
 
         assert isinstance(qgsUtils.iface, QgisInterface)
@@ -375,7 +375,7 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.applications import EnMAPBoxApplication
         if isinstance(app, EnMAPBoxApplication):
             self.applicationRegistry.addApplication(app)
-        elif type(app) in [str, unicode]:
+        elif type(app) in [str]:
             self.applicationRegistry.addApplicationPackageSavely(app)
         else:
             raise Exception('argument "app" has unknown type: {}. '.format(str(app)))
@@ -515,15 +515,6 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.close()
         self.deleteLater()
 
-    LUT_MESSAGELOGLEVEL = {
-        QgsMessageLog.INFO: 'INFO',
-        QgsMessageLog.CRITICAL: 'INFO',
-        QgsMessageLog.WARNING: 'WARNING'}
-    LUT_MSGLOG2MSGBAR = {QgsMessageLog.INFO: QgsMessageBar.INFO,
-                         QgsMessageLog.CRITICAL: QgsMessageBar.WARNING,
-                         QgsMessageLog.WARNING: QgsMessageBar.WARNING,
-                         }
-
     def onLogMessage(self, message, tag, level):
         m = message.split('\n')
         if '' in message.split('\n'):
@@ -534,19 +525,19 @@ class EnMAPBox(QgisInterface, QObject):
         if not DEBUG and not re.search('(enmapbox|plugins)', m):
             return
 
-        if level in [QgsMessageLog.CRITICAL, QgsMessageLog.WARNING]:
+        print('{}({}): {}'.format(tag, level, message))
+
+        if False and level in [Qgis.Critical, Qgis.Warning]:
             widget = self.ui.messageBar.createMessage(tag, message)
             button = QPushButton(widget)
             button.setText("Show")
             from enmapbox.gui.utils import showMessage
             button.pressed.connect(lambda: showMessage(message, '{}'.format(tag), level))
             widget.layout().addWidget(button)
-            self.ui.messageBar.pushWidget(widget,
-                                          EnMAPBox.LUT_MSGLOG2MSGBAR.get(level, QgsMessageBar.INFO),
-                                          SETTINGS.value('EMB_MESSAGE_TIMEOUT', 0))
+            self.ui.messageBar.pushWidget(widget,level,SETTINGS.value('EMB_MESSAGE_TIMEOUT', 0))
 
             # print on normal console
-            print(u'{}({}): {}'.format(tag, level, message))
+
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
@@ -755,15 +746,12 @@ class EnMAPBox(QgisInterface, QObject):
         """
         self.mQgisInterfaceLayerSet = dict()
         self.mQgisInterfaceMapCanvas = QgsMapCanvas()
-        self.mQgisInterfaceMapCanvas.setCrsTransformEnabled(True)
 
     ### SIGNALS from QgisInterface ####
 
     initializationCompleted = pyqtSignal()
-    layerSavedAs = pyqtSignal([QgsMapLayer, str], [QgsMapLayer, unicode])
+    layerSavedAs = pyqtSignal(QgsMapLayer, str)
     currentLayerChanged = pyqtSignal(QgsMapLayer)
-    composerRemoved = pyqtSignal(QgsComposerView)
-    composerWillBeRemoved = pyqtSignal()
 
 
     ### ACTIONS ###
@@ -1065,6 +1053,8 @@ class EnMAPBox(QgisInterface, QObject):
     def messageBar(self):
         return self.ui.messageBar
 
+    def iconSize(self, dockedToolbar=False):
+        return QSize(128,128)
     def mapCanvases(self):
         """
         Returns all MapCanvas(QgsMapCanvas) objects known to the EnMAP-Box
@@ -1082,15 +1072,14 @@ class EnMAPBox(QgisInterface, QObject):
                 uri = ds.uri()
                 if uri not in self.mQgisInterfaceLayerSet.keys():
                     lyr = ds.createUnregisteredMapLayer()
-                    QgsMapLayerRegistry.instance().addMapLayer(lyr, addToLegend=False)
+                    QgsProject.instance().addMapLayer(lyr, addToLegend=False)
                     self.mQgisInterfaceLayerSet[uri] = lyr
 
         if len(self.mQgisInterfaceLayerSet.values()) > 0:
             lyr = self.mQgisInterfaceLayerSet.values()[0]
             self.mQgisInterfaceMapCanvas.mapSettings().setDestinationCrs(lyr.crs())
             self.mQgisInterfaceMapCanvas.setExtent(lyr.extent())
-            self.mQgisInterfaceMapCanvas.setLayerSet(
-                [QgsMapCanvasLayer(l) for l in self.mQgisInterfaceLayerSet.values()])
+            self.mQgisInterfaceMapCanvas.setLayers(self.mQgisInterfaceLayerSet.values())
 
         logger.debug(
             'layers shown in (temporary) QgsInterface::mapCanvas() {}'.format(
@@ -1149,11 +1138,11 @@ class EnMAPBox(QgisInterface, QObject):
         current_layers = self.canvas.layers()
         final_layers = []
         for layer in current_layers:
-            final_layers.append(QgsMapCanvasLayer(layer))
+            final_layers.append(layer)
         for layer in layers:
-            final_layers.append(QgsMapCanvasLayer(layer))
+            final_layers.append(layer)
 
-        self.canvas.setLayerSet(final_layers)
+        self.canvas.setLayers(final_layers)
         # LOGGER.debug('Layer Count After: %s' % len(self.canvas.layers()))
 
     @pyqtSlot('QgsMapLayer')
@@ -1174,12 +1163,12 @@ class EnMAPBox(QgisInterface, QObject):
     def removeAllLayers(self):
 
         """Remove layers from the canvas before they get deleted."""
-        self.mQgisInterfaceMapCanvas.setLayerSet([])
+        self.mQgisInterfaceMapCanvas.setLayers([])
 
     def newProject(self):
         """Create new project."""
         # noinspection PyArgumentList
-        QgsMapLayerRegistry.instance().removeAllMapLayers()
+        QgsProject.instance().removeAllMapLayers()
 
     # ---------------- API Mock for QgsInterface follows -------------------
 
@@ -1227,7 +1216,7 @@ class EnMAPBox(QgisInterface, QObject):
     def activeLayer(self):
         """Get pointer to the active layer (layer selected in the legend)."""
         # noinspection PyArgumentList
-        layers = QgsMapLayerRegistry.instance().mapLayers()
+        layers = QgsProject.instance().mapLayers()
         for item in layers:
             return layers[item]
 

@@ -24,9 +24,9 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-
-from enmapbox.gui.utils import loadUI, SpatialExtent, SpatialPoint
-#from enmapbox.gui.trees import *
+from PyQt5.QtWidgets import *
+from enmapbox.gui.utils import *
+from enmapbox.gui.widgets.models import *
 
 
 class LoadWorker(QObject):

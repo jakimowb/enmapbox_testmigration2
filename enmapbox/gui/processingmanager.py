@@ -17,8 +17,8 @@
 ***************************************************************************
 """
 
-import six, sys, os, gc, re, collections, uuid, logging
-logger = logging.getLogger(__name__)
+import six, sys, os, gc, re, collections, uuid
+
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
@@ -81,7 +81,7 @@ def removeEnMAPBoxOnlyLayers():
         from processing.tools import dataobjects
         qgsLayers = dataobjects._getRasterLayers() + dataobjects._getVectorLayers()
 
-        REG = QgsMapLayerRegistry.instance()
+        REG = QgsProject.instance()
         to_remove = []
         for lyr in REG.mapLayers().values():
             if lyr not in qgsLayers and lyr.customProperty('__enmapbox__') == True:
@@ -111,7 +111,7 @@ def installQPFExtensions(force=False):
 
         #removeEnMAPBoxOnlyLayers()
 
-        REG = QgsMapLayerRegistry.instance()
+        REG = QgsProject.instance()
         for lyr in embLayers:
             assert isinstance(lyr, QgsMapLayer)
             lyr.setCustomProperty('__enmapbox__',True)
@@ -254,15 +254,12 @@ class ProcessingAlgorithmsManager(QObject):
         self.enmapBox = enmapBoxInstance
         self.commander = None
         self.toolbox = None
-        self.algList = None
+        self.processingRegistry = QgsApplication.instance().processingRegistry()
 
         if _PF_AVAILABLE:
-            from processing.core.Processing import Processing
-            from processing.core.alglist import algList
-            self.algList = algList
-            self.algList.providerRemoved.connect(self.onProviderRemoved)
-            self.algList.providerAdded.connect(self.onProviderAdded)
-            self.algList.providerUpdated.connect(self.onProviderUpdated)
+            self.processingRegistry.providerRemoved.connect(self.onProviderRemoved)
+            self.processingRegistry.providerAdded.connect(self.onProviderAdded)
+
 
             #connect EnMAP-Box processing framework specifics
 
@@ -291,23 +288,22 @@ class ProcessingAlgorithmsManager(QObject):
 
 
     def isInitialized(self):
-        return self.algList is not None
+        return self.processingRegistry is not None
 
     def onProviderRemoved(self, key):
-        logger.debug('Provider removed {}'.format(key))
+        messageLog('Provider removed {}'.format(key))
 
     def onProviderAdded(self, key):
-        logger.debug('Provider added {}'.format(key))
+        messageLog('Provider added {}'.format(key))
 
-    def onProviderUpdated(self, key):
-        logger.debug('Provider updated {}'.format(key))
+
 
     def onFileCreated(self, path):
-        logger.debug('File created from processing framework:\n{}'.format(path))
+        messageLog('File created from processing framework:\n{}'.format(path))
         self.enmapBox.dataSourceManager.addSource(path)
 
     def onHtmlCreated(self, path):
-        logger.debug('HTML report created from processing framework:\n{}'.format(path))
+        messageLog('HTML report created from processing framework:\n{}'.format(path))
         src = self.enmapBox.dataSourceManager.addSource(path)
         self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
 
@@ -317,7 +313,7 @@ class ProcessingAlgorithmsManager(QObject):
         """
         if self.isInitialized():
             from enmapbox.algorithmprovider import NAME
-            return self.algList.getProviderFromName(NAME)
+            return self.processingRegistry.providerById(NAME)
         else:
             return None
 
@@ -333,7 +329,7 @@ class ProcessingAlgorithmsManager(QObject):
         if isinstance(algorithmProvider, AlgorithmProvider):
             p = algorithmProvider
         else:
-            p = self.algList.getProviderFromName(algorithmProvider)
+            p = self.processingRegistry.getProviderFromName(algorithmProvider)
 
         if not isinstance(geoAlgorithms, list):
             geoAlgorithms = [geoAlgorithms]
@@ -345,12 +341,12 @@ class ProcessingAlgorithmsManager(QObject):
         if isinstance(p, AlgorithmProvider):
             pName = p.getName()
             #print('PROVIDER NAME {}'.format(pName))
-            pAlgs = self.algList.algs[pName]
+            pAlgs = self.processingRegistry.algs[pName]
             for ga in geoAlgorithms:
                 assert isinstance(ga, GeoAlgorithm)
                 ga.provider = p
                 pAlgs[ga.commandLineName()] = ga
-            self.algList.providerUpdated.emit(pName)
+            self.processingRegistry.providerUpdated.emit(pName)
 
     def openCommander(self):
         from processing.gui.CommanderWindow import CommanderWindow
@@ -372,7 +368,7 @@ class ProcessingAlgorithmsManager(QObject):
         dlg = ModelerDialog()
         dlg.exec_()
         if dlg.update:
-            self.algList.reloadProvider('model')
+            self.processingRegistry.reloadProvider('model')
 
     def openResults(self):
         from processing.gui.ResultsDialog import ResultsDialog
