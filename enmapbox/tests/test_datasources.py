@@ -15,36 +15,83 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.sandbox import initQgisEnvironment
+from enmapbox.gui.utils import initQgisApplication
+from enmapbox.gui.utils import initQgisApplication
 from enmapbox.gui.utils import *
-QGIS_APP = initQgisEnvironment()
+QGIS_APP = initQgisApplication()
 from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
-from hubflow.types import *
+from enmapboxtestdata import enmap, hymap, landcover, speclib
+import numpy as np
 
-class testclassData(unittest.TestCase):
+
+class standardDataSources(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        pass
+    def setUp(self):
+
+
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_rasters(self):
+        ds = DataSourceFactory.Factory(enmap)
+        self.assertIsInstance(ds, list)
+        self.assertTrue(len(ds) == 1)
+        self.assertIsInstance(ds[0], DataSourceRaster)
+
+    def test_vectors(self):
+
+        ds = DataSourceFactory.Factory(landcover)
+        self.assertIsInstance(ds, list)
+        self.assertTrue(len(ds) == 1)
+        self.assertIsInstance(ds[0], DataSourceVector)
+
+    def test_speclibs(self):
+
+        ds = DataSourceFactory.Factory(speclib)
+        self.assertIsInstance(ds, list)
+        self.assertTrue(len(ds) == 1)
+        self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
+
+class hubflowTestCases(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+    def setUp(self):
+
+
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_hubflowtypes(self):
 
         from enmapbox.gui.utils import DIR_REPO, jp, mkdir
+        from hubflow.types import ClassDefinition, Vector, VectorClassification
         dirTmp = jp(DIR_REPO, 'tmp')
         mkdir(dirTmp)
 
         from enmapboxtestdata import enmap, landcover
 
-        classes = numpy.max(Vector(filename=landcover).uniqueValues(
+        classes = np.max(Vector(filename=landcover).uniqueValues(
             attribute=''))
 
         classDefinition = ClassDefinition(classes=classes)
 
         image = Image(filename=self.getParameterValue('image'))
 
-        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover,
+        vectorClassification = VectorClassification(filename=landcover,
                                                     classDefinition=classDefinition,
                                                     idAttribute='Level_2_ID', minWinnerCoverage=0.5)
         gtClassification = vectorClassification.rasterizeAsClassification(
-            classificationFilename=join(outdir, 'gtClassification.img'), grid=image.pixelGrid,
+            classificationFilename=os.path.join(outdir, 'gtClassification.img'), grid=image.pixelGrid,
             oversampling=10, overwrite=overwrite)
 
         vectorClassification = VectorClassification(filename=landcover,
@@ -57,18 +104,10 @@ class testclassData(unittest.TestCase):
         vectorClassification.rasterizeAsClassification(classificationFilename=pathDst)
 
 
-    def setUp(self):
-
-
-        pass
-
-    def tearDown(self):
-        pass
-
-    def test_hubflowtypes(self):
+        from hubflow.types import FlowObject
         p = r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\classificationSample'
         ds = DataSourceFactory.Factory(p)
-        self.assertIsInstance(ds, HubFlowDataSource)
+        self.assertIsInstance(ds, FlowObject)
 
         s = ""
 

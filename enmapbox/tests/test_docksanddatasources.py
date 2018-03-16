@@ -16,8 +16,9 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.sandbox import initQgisEnvironment
-QGIS_APP = initQgisEnvironment()
+from PyQt5.QtWidgets import *
+from enmapbox.gui.utils import initQgisApplication
+QGIS_APP = initQgisApplication()
 
 
 class testclassData(unittest.TestCase):

@@ -1095,7 +1095,7 @@ class DataSourceManager(QObject):
         self.mSubsetSelection.clear()
         return added
 
-    @pyqtSlot(unicode)
+
     @pyqtSlot(str)
     @pyqtSlot('QString')
     def addSource(self, dsOld, name=None, icon=None):

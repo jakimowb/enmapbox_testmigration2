@@ -16,7 +16,7 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.sandbox import initQgisEnvironment
+from enmapbox.gui.utils import initQgisApplication
 from enmapboxtestdata import enmap, hymap
 from enmapbox.gui.mapcanvas import *
 QGIS_APP = initQgisEnvironment()

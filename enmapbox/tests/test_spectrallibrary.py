@@ -16,32 +16,38 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.sandbox import initQgisEnvironment
+from PyQt5.QtWidgets import *
 from enmapbox.gui.utils import *
-QGIS_APP = initQgisEnvironment()
-import unicodedata
-from enmapbox.gui.spectrallibraries import SpectralProfile, SpectralLibrary, EnviSpectralLibraryIO
+from enmapbox.gui.spectrallibraries import *
 from enmapboxtestdata import speclib, enmap
+QGIS_APP = initQgisApplication()
 
 
-def u2s(s):
-    if isinstance(s, unicode):
-        #s = s.encode(s, 'utf-8')
-        #s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
-        s = unicodedata.normalize('NFKD', s).encode('utf-8', 'ignore')
-    return str(s)
 
-
-class testclassData(unittest.TestCase):
+class TestSpecLibs(unittest.TestCase):
 
     def setUp(self):
 
-        pass
+        self.SP = None
+        self.SPECLIB = None
 
     def tearDown(self):
         pass
 
     def test_spectralProfile(self):
+
+        spec1 = SpectralProfile()
+        spec1.setValues([0,4,3,2,1],['-'], [450,500,750, 1000, 1500], 'nm')
+        #self.assertTrue(spec1.isValid())
+
+        values = [('key','value'),('key', 100),('Üä','ÜmlÄute')]
+        for md in values:
+            k, v = md
+            spec1.setMetadata(k,v)
+            v2 = spec1.metadata(k)
+            self.assertEqual(v,v2)
+
+        self.SP = spec1
 
         p = SpectralProfile()
         self.assertFalse(p.isValid())
@@ -86,6 +92,11 @@ class testclassData(unittest.TestCase):
                 v = profile.metadata(u)
                 self.assertEqual(v, u, msg='Failed to load key "{}"'.format(u))
 
+    def test_speclibWidget(self):
+        p = SpectralLibraryWidget()
+        p.addSpeclib(self.SPECLIB)
+        p.show()
+
     def test_ENVISpectralLibraryReader(self):
         self.assertTrue(EnviSpectralLibraryIO.canRead(speclib))
         tmpDir = tempfile.mkdtemp(prefix='testSpecLibs')
@@ -121,21 +132,44 @@ class testclassData(unittest.TestCase):
                 'wavelength units':'Micrometers'}.items():
             self.assertEqual(hdr.get(key), value)
 
-    def test_spectralLibrary(self):
 
-        sl = SpectralLibrary.readFrom(speclib)
-        self.assertIsInstance(sl, SpectralLibrary)
-        self.assertTrue(len(sl), 75)
+def test_spectralLibrary(self):
+    spec1 = SpectralProfile()
+    spec1.setValues([0, 4, 3, 2, 1], ['-'], [450, 500, 750, 1000, 1500], 'nm')
 
-        p0 = sl[0]
-        self.assertIsInstance(p0, SpectralProfile)
-        self.assertTrue(p0 in sl)
+    spec2 = SpectralProfile()
+    spec2.setValues([3, 2, 1, 0, 1], ['-'], [450, 500, 750, 1000, 1500], 'nm')
 
-        p1 = SpectralProfile()
-        p1.setValues([1,3,4], valuePositions=[1,2,3])
-        self.assertTrue(p1 not in sl)
+    sl = SpectralLibrary()
+    sl.addProfiles([spec1, spec2])
+    self.assertEqual(len(sl), 2)
+    self.assertEqual(sl[0], spec1)
 
-        self.assertEqual(p1, pickle.loads(pickle.dumps(p1)))
+    tempDir = tempfile.gettempdir()
+    pathESL = tempfile.mktemp(prefix='speclib.', suffix='.esl')
+    pathCSV = tempfile.mktemp(prefix='speclib.', suffix='.csv')
+    try:
+        sl.exportProfiles(pathESL)
+    except Exception as ex:
+        self.fail('Unable to write ESL. {}'.format(ex))
+
+    try:
+        sl2 = SpectralLibrary.readFrom(pathESL)
+    except Exception as ex:
+        self.fail('Unable to read ESL. {}'.format(ex))
+
+    try:
+        sl.exportProfiles(pathCSV)
+    except Exception as ex:
+        self.fail('Unable to write CSV. {}'.format(ex))
+
+    try:
+        sl2 = SpectralLibrary.readFrom(pathCSV)
+    except Exception as ex:
+        self.fail('Unable to read CSV. {}'.format(ex))
+
+    self.SPECLIB = sl
+
 
 if __name__ == "__main__":
 

@@ -125,9 +125,6 @@ def sandboxGUI():
 
 
 
-#for backward compatibility
-initQgisEnvironment = initQgisApplication
-
 
 
 def sandboxQgisBridge():

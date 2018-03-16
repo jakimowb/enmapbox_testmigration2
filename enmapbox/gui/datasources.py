@@ -16,12 +16,13 @@
 *                                                                         *
 ***************************************************************************
 """
-import six, sys, os, gc, re, collections, uuid, logging, pickle
+import sys, os, re, collections, uuid
 
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 from enmapbox.utils import *
 import numpy as np
 from osgeo import gdal, ogr
@@ -558,7 +559,7 @@ class DataSourceRaster(DataSourceSpatial):
                 for domain in sorted(domains):
                     tmp = obj.GetMetadata_Dict(domain)
                     if len(tmp) > 0:
-                        md[domain.decode('utf-8')] = tmp
+                        md[domain] = tmp
             return md
 
         self.mDatasetMetadata = fetchMetadata(ds)
@@ -596,8 +597,7 @@ class DataSourceRaster(DataSourceSpatial):
         """
         baseName = kwargs.get('baseName', self.mName)
         providerKey = kwargs.get('providerKey', 'gdal')
-        loadDefaultStyleFlag = kwargs.get('loadDefaultStyleFlag', True)
-        return QgsRasterLayer(self.mUri, baseName, providerKey, loadDefaultStyleFlag)
+        return QgsRasterLayer(self.mUri, baseName, providerKey)
 
 
 class DataSourceVector(DataSourceSpatial):
@@ -607,11 +607,11 @@ class DataSourceVector(DataSourceSpatial):
         lyr = self.createUnregisteredMapLayer()
         geomType = lyr.geometryType()
 
-        if geomType in [QGis.Point]:
+        if geomType in [QgsWkbTypes.PointGeometry]:
             self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.png')
-        elif geomType in [QGis.Line]:
+        elif geomType in [QgsWkbTypes.LineGeometry]:
             self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.png')
-        elif geomType in [QGis.Polygon]:
+        elif geomType in [QgsWkbTypes.PolygonGeometry]:
             self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.png')
 
     def createUnregisteredMapLayer(self, *args, **kwargs):
@@ -621,8 +621,7 @@ class DataSourceVector(DataSourceSpatial):
         """
         baseName = kwargs.get('baseName', self.mName)
         providerKey = kwargs.get('providerKey', 'ogr')
-        loadDefaultStyleFlag = kwargs.get('loadDefaultStyleFlag', True)
-        return QgsVectorLayer(self.mUri, baseName, providerKey, loadDefaultStyleFlag)
+        return QgsVectorLayer(self.mUri, baseName, providerKey)
 
 
 
