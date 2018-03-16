@@ -32,6 +32,9 @@ from osgeo import gdal
 import numpy as np
 import enmapbox.gui
 
+from enmapbox import messageLog
+messageLog = messageLog
+
 jp = os.path.join
 
 DIR_ENMAPBOX = os.path.dirname(enmapbox.__file__)
@@ -171,11 +174,8 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
         qgsApp.setPrefixPath(PATH_QGIS, True)
         qgsApp.initQgis()
 
-        def printQgisLog(tb, error, level):
 
-            print(tb)
-
-        QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
+        QgsApplication.instance().messageLog().messageReceived.connect(print)
 
         return qgsApp
 

@@ -17,18 +17,24 @@
 ***************************************************************************
 """
 
-import sys, os, logging
-logger = logging.getLogger(__name__)
+import sys, os
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from enmapbox.gui.utils import PanelWidgetBase, loadUI
+from PyQt5.QtWidgets import *
+from enmapbox.gui.utils import *
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
+HUBFLOW = True
+try:
+    import hubflow.types
+except Exception as ex:
+    messageLog('Unable to import hubflow API')
+    HUBFLOW = False
 
 class DataSourceGroupTreeNode(TreeNode):
 
@@ -898,7 +904,7 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 r = lyr.renderer()
                 if isinstance(r, QgsRasterRenderer):
                     ds = gdal.Open(lyr.source())
-                    if isinstance(rgb, unicode):
+                    if isinstance(rgb, str):
                         if re.search('DEFAULT', rgb):
                             rgb = defaultBands(ds)
                         else:
@@ -976,19 +982,19 @@ class DataSourceManager(QObject):
         self.mQgsLayerTreeGroup = None
         #self.qgsLayerTreeGroup()
 
-        #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
-        #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
+        #todo: react on QgsProject changes, e.g. when project is closed
+        #QgsProject.instance().layersAdded.connect(self.updateFromQgsProject)
         # noinspection PyArgumentList
-        from qgis.core import QgsMapLayerRegistry
-        QgsMapLayerRegistry.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
-        QgsMapLayerRegistry.instance().removeAll.connect(lambda : self.removeSources(self.sources()))
+        
+        QgsProject.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
+        QgsProject.instance().removeAll.connect(lambda : self.removeSources(self.sources()))
         try:
             from hubflow import signals
             signals.sigFileCreated.connect(self.addSource)
         except Exception as ex:
-            logger.exception(ex)
+            messageLog(ex)
 
-        self.updateFromQgsMapLayerRegistry()
+        self.updateFromQgsProject()
 
 
     def qgsLayerTreeGroup(self):
@@ -1040,13 +1046,13 @@ class DataSourceManager(QObject):
                            self.processing.MODEL_NAMES):
                 self.addSource(p, name=n)
 
-    def updateFromQgsMapLayerRegistry(self, mapLayers=None):
+    def updateFromQgsProject(self, mapLayers=None):
         """
-        Add data sources registered in the QgsMapLayerRegistry to the data source manager
+        Add data sources registered in the QgsProject to the data source manager
         :return: List of added new DataSources
         """
         if mapLayers is None:
-            mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
+            mapLayers = QgsProject.instance().mapLayers().values()
 
         added = [self.addSource(lyr) for lyr in mapLayers]
         return [a for a in added if isinstance(a, DataSource)]
@@ -1098,18 +1104,19 @@ class DataSourceManager(QObject):
 
     @pyqtSlot(str)
     @pyqtSlot('QString')
-    def addSource(self, dsOld, name=None, icon=None):
+    def addSource(self, newDataSource, name=None, icon=None):
         """
         Adds a new data source.
-        :param dsOld: any object
+        :param newDataSource: any object
         :param name:
         :param icon:
-        :return: a list of successfully added DataSource instances. this is required in case a container datasets
+        :return: a list of successfully added DataSource instances.
+                 Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
         """
-        dataSources = DataSourceFactory.Factory(dsOld, name=name, icon=icon)
+        newDataSources = DataSourceFactory.Factory(newDataSource, name=name, icon=icon)
 
         toAdd = []
-        for dsNew in dataSources:
+        for dsNew in newDataSources:
             assert isinstance(dsNew, DataSource)
             if not isinstance(dsNew, DataSourceFile):
                 toAdd.append(dsNew)
@@ -1173,14 +1180,14 @@ class DataSourceManager(QObject):
             self.sigDataSourceRemoved.emit(dataSource)
             return dataSource
         else:
-            logger.debug('can not remove {}'.format(dataSource))
+            messageLog('can not remove {}'.format(dataSource))
 
 
     def sourceTypes(self):
         """
-        Returns the list of source-types handled by this DataSourceManage
+        Returns the list of source-types handled by this DataSourceManager
         :return: [list-of-source-types]
         """
-        return sorted(list(set([type(ds) for ds in self.mSources])))
+        return sorted(list(set([type(ds) for ds in self.mSources])), key=lambda t:t.__name__)
 
 

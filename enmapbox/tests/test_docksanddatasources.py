@@ -17,8 +17,17 @@ from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+
+
 from enmapbox.gui.utils import initQgisApplication
 QGIS_APP = initQgisApplication()
+
+
+
+from enmapboxtestdata import *
+from enmapbox.gui.datasources import *
+from enmapbox.gui.datasourcemanager import *
+
 
 
 class testclassData(unittest.TestCase):
@@ -44,8 +53,6 @@ class testclassData(unittest.TestCase):
         self.dialog.close()
 
     def test_dataSourceManager(self):
-        from enmapboxtestdata import enmap, hymap, speclib, landcover
-        from enmapbox.gui.datasources import DataSourceRaster, DataSourceVector
 
         global signalArgs
         signalArgs = []
@@ -85,8 +92,7 @@ class testclassData(unittest.TestCase):
         self.assertIs(sources[0], signalArgs[1])
 
     def test_dockmanager(self):
-
-        src = self.dataSourceManager.addSource()
+        pass
 
 
 if __name__ == "__main__":

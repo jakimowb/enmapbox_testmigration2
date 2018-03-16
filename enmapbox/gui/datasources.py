@@ -202,7 +202,6 @@ class DataSourceFactory(object):
 
     @staticmethod
     def Factory(src, name=None, icon=None):
-        assert not isinstance(src, list)
         """
         Factory method / switch to return the best suited DataSource Instance(s) to an unknown source
         :param source: anything
@@ -211,73 +210,80 @@ class DataSourceFactory(object):
         :return: [list-of-datasources]
         """
 
+        if isinstance(src, list):
+            sources = []
+            for s in src:
+                sources.extend(DataSourceFactory.Factory(s, name=name, icon=icon))
+            return sources
+        else:
 
-        if src is None or isinstance(src, str) and len(src) == 0:
-            return []
 
-        if isinstance(src, DataSource):
-            return [src]
+            if src is None or isinstance(src, str) and len(src) == 0:
+                return []
 
-        if type(src) in [str, QUrl]:
+            if isinstance(src, DataSource):
+                return [src]
+
+            if type(src) in [str, QUrl]:
+                src = DataSourceFactory.srcToString(src)
+
+
+            from enmapbox.gui.spectrallibraries import SpectralLibraryVectorLayer, SpectralLibrary
+            if isinstance(src, SpectralLibraryVectorLayer):
+                return DataSourceFactory.Factory(src.mSpeclib)
+
+            dataSources = []
+            rasterUris = []
+            vectorUris = []
+            uri = DataSourceFactory.isRasterSource(src)
+            if uri is not None:
+
+                #check for raster containers, like HDFs
+                ds = gdal.Open(uri)
+
+                if isinstance(ds, gdal.Dataset):
+                    subs = ds.GetSubDatasets()
+                    if ds.RasterCount > 0:
+                        rasterUris.append(uri)
+                    if len(subs) > 0:
+                        rasterUris.extend([s[0] for s in subs])
+
+            uri = DataSourceFactory.isVectorSource(src)
+            if uri is not None:
+                vectorUris.append(uri)
+
+            dataSources.extend([DataSourceRaster(r, name=name, icon=icon) for r in rasterUris])
+            dataSources.extend([DataSourceVector(r, name=name, icon=icon) for r in vectorUris])
+            if len(dataSources) > 0:
+                return dataSources
+
+            uri = DataSourceFactory.isSpeclib(src)
+            if uri is not None:
+                return [DataSourceSpectralLibrary(uri, name=name, icon=icon)]
+
+            uri = DataSourceFactory.isHubFlowObj(src)
+            if uri is not None:
+                return [HubFlowDataSource(uri, name=name, icon=icon)]
+
             src = DataSourceFactory.srcToString(src)
+            if not src is None:
+                if os.path.isfile(src):
+                    ext = os.path.splitext(src)[1].lower()
+                    if ext in ['.csv', '.txt']:
+                        return [DataSourceTextFile(src, name=name, icon=icon)]
+                    if ext in ['.xml', '.html']:
+                        return [DataSourceXMLFile(src, name=name, icon=icon)]
+                    return [DataSourceFile(src, name=name, icon=icon)]
+
+                #
+                reg = QgsProject.instance()
+                ids = [l.id() for l in reg.mapLayers().values()]
+                if src in ids:
+                    mapLyr = reg.mapLayer(src)
+                    return DataSourceFactory.Factory(reg.mapLayer(src), name)
 
 
-        from enmapbox.gui.spectrallibraries import SpectralLibraryVectorLayer, SpectralLibrary
-        if isinstance(src, SpectralLibraryVectorLayer):
-            return DataSourceFactory.Factory(src.mSpeclib)
-
-        dataSources = []
-        rasterUris = []
-        vectorUris = []
-        uri = DataSourceFactory.isRasterSource(src)
-        if uri is not None:
-
-            #check for raster containers, like HDFs
-            ds = gdal.Open(uri)
-
-            if isinstance(ds, gdal.Dataset):
-                subs = ds.GetSubDatasets()
-                if ds.RasterCount > 0:
-                    rasterUris.append(uri)
-                if len(subs) > 0:
-                    rasterUris.extend([s[0] for s in subs])
-
-        uri = DataSourceFactory.isVectorSource(src)
-        if uri is not None:
-            vectorUris.append(uri)
-
-        dataSources.extend([DataSourceRaster(r, name=name, icon=icon) for r in rasterUris])
-        dataSources.extend([DataSourceVector(r, name=name, icon=icon) for r in vectorUris])
-        if len(dataSources) > 0:
-            return dataSources
-
-        uri = DataSourceFactory.isSpeclib(src)
-        if uri is not None:
-            return [DataSourceSpectralLibrary(uri, name=name, icon=icon)]
-
-        uri = DataSourceFactory.isHubFlowObj(src)
-        if uri is not None:
-            return [HubFlowDataSource(uri, name=name, icon=icon)]
-
-        src = DataSourceFactory.srcToString(src)
-        if not src is None:
-            if os.path.isfile(src):
-                ext = os.path.splitext(src)[1].lower()
-                if ext in ['.csv', '.txt']:
-                    return [DataSourceTextFile(src, name=name, icon=icon)]
-                if ext in ['.xml', '.html']:
-                    return [DataSourceXMLFile(src, name=name, icon=icon)]
-                return [DataSourceFile(src, name=name, icon=icon)]
-
-            #
-            reg = QgsMapLayerRegistry.instance()
-            ids = [l.id() for l in reg.mapLayers().values()]
-            if src in ids:
-                mapLyr = reg.mapLayer(src)
-                return DataSourceFactory.Factory(reg.mapLayer(src), name)
-
-
-        return []
+            return []
 
 
 
@@ -457,6 +463,7 @@ class HubFlowDataSource(DataSourceFile):
         s = ""
 
     def loadFlowObject(self):
+
         import hubflow.types
 
         self.mFlowObj = hubflow.types.FlowObject.unpickle(self.mUri, raiseError=False)

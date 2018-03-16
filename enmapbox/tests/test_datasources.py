@@ -58,6 +58,25 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue(len(ds) == 1)
         self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
 
+    def test_datasourcemanager(self):
+
+        dsm = DataSourceManager()
+
+        ds = DataSourceFactory.Factory(speclib)
+        dsm.addSource(ds)
+        dsm.addSource(speclib)
+
+        self.assertTrue((len(dsm) == 1))
+
+        ds = DataSourceFactory.Factory(enmap)
+        dsm.addSource(ds)
+        self.assertTrue((len(dsm) == 2))
+
+        ds = DataSourceFactory.Factory(([enmap, hymap]))
+        self.assertEqual(len(ds),2)
+        dsm.addSource(ds)
+        self.assertEqual(len(ds), 2)
+
 class hubflowTestCases(unittest.TestCase):
 
     @classmethod

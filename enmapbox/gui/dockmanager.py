@@ -784,7 +784,7 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
             # d.activateWindow()
 
 
-class DockManager(QgsLegendInterface):
+class DockManager(QObject):
     """
     Class to handle all DOCK related events
     """
