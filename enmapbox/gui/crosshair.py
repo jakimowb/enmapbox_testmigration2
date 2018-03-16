@@ -1,50 +1,34 @@
 # -*- coding: utf-8 -*-
+"""
+/***************************************************************************
+                              HUB TimeSeriesViewer
+                              -------------------
+        begin                : 2017-08-04
+        git sha              : $Format:%H$
+        copyright            : (C) 2017 by HU-Berlin
+        email                : benjamin.jakimow@geo.hu-berlin.de
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
 # noinspection PyPep8Naming
-"""
-***************************************************************************
-    crosshair.py
-    ---------------------
-    Date                 : August 2017
-    Copyright            : (C) 2017 by Benjamin Jakimow
-    Email                : benjamin.jakimow@geo.hu-berlin.de
-***************************************************************************
-*                                                                         *
-*   This program is free software; you can redistribute it and/or modify  *
-*   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
-*   (at your option) any later version.                                   *
-*                                                                         *
-***************************************************************************
-"""
 
 import os
-
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
 import numpy as np
+
 from enmapbox.gui.utils import *
-load = loadUI
-
-
-def scaledUnitString(num, infix=' ', suffix='B', div=1000):
-    """
-    Returns a human-readable file size string.
-    thanks to Fred Cirera
-    http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
-    :param num: number in bytes
-    :param suffix: 'B' for bytes by default.
-    :param div: divisor of num, 1000 by default.
-    :return: the file size string
-    """
-    for unit in ['','K','M','G','T','P','E','Z']:
-        if abs(num) < div:
-            return "{:3.1f}{}{}{}".format(num, infix, unit, suffix)
-        num /= div
-    return "{:.1f}{}{}{}".format(num, infix, unit, suffix)
 
 class CrosshairStyle(object):
     def __init__(self, **kwds):
@@ -111,36 +95,7 @@ class CrosshairStyle(object):
         assert isinstance(b, bool)
         self.mShow = b
 
-    def rendererV2(self):
-        """
-        Returns the vector layer renderer
-        :return:
-        """
-        registry = QgsSymbolLayerV2Registry.instance()
-        lineMeta = registry.symbolLayerMetadata("SimpleLine")
-        lineLayer = lineMeta.createSymbolLayer({})
-        lineLayer.setColor(self.mColor)
-        lineLayer.setPenStyle(Qt.SolidLine)
 
-        lineLayer.setWidth(self.mThickness)
-        lineLayer.setWidthUnit(2) #pixel
-        #lineLayer.setWidth(self.mThickness)
-
-        """
-        lineLayer = lineMeta.createSymbolLayer(
-            {'width': '0.26',
-             'color': self.mColor,
-             'offset': '0',
-             'penstyle': 'solid',
-             'use_custom_dash': '0'})
-        """
-
-        # Replace the default layer with our custom layer
-
-        symbol = QgsLineSymbolV2([])
-        symbol.deleteSymbolLayer(0)
-        symbol.appendSymbolLayer(lineLayer)
-        return QgsSingleSymbolRendererV2(symbol)
 
 class CrosshairMapCanvasItem(QgsMapCanvasItem):
 
@@ -187,15 +142,13 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         self.canvas.update()
         #self.updateCanvas()
 
-
-
     def paint(self, painter, QStyleOptionGraphicsItem=None, QWidget_widget=None):
         if self.mShow and self.crosshairStyle.mShow:
            #paint the crosshair
             size = self.canvas.size()
             m2p = self.canvas.mapSettings().mapToPixel()
             centerGeo = self.canvas.center()
-            centerPx = self.toCanvasCoordinates(centerGeo)
+            centerPx = self.toCanvasCoordinates(self.canvas.center())
 
             x0 = centerPx.x() * (1.0 - self.crosshairStyle.mSize)
             y0 = centerPx.y() * (1.0 - self.crosshairStyle.mSize)
@@ -225,7 +178,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
                 #md = 10**exp #marker distance = distance to crosshair center
 
 
-                pt = m2p.transform(QgsPoint(centerGeo.x()- pred, centerGeo.y()))
+                pt = m2p.transform(QgsPointXY(centerGeo.x()- pred, centerGeo.y()))
 
                 line = QLineF((pt + QgsVector(0, ml)).toQPointF(),
                               (pt - QgsVector(0, ml)).toQPointF())
@@ -242,7 +195,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
                     unitString = str(QgsUnitTypes.encodeUnit(distUnit))
 
                     if unitString == 'meters':
-
+                        from timeseriesviewer.utils import scaledUnitString
                         labelText = scaledUnitString(pred, suffix='m')
                     else:
                         labelText = '{}{}'.format(pred, unitString)
@@ -306,7 +259,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
                     def px2LayerGeo(x, y):
                         x2 = ex.xMinimum() + (x * xres)
                         y2 = ex.yMaximum() - (y * yres)
-                        return QgsPoint(x2,y2)
+                        return QgsPointXY(x2,y2)
                     lyrCoord2CanvasPx = lambda x, y, : self.toCanvasCoordinates(
                         ms.layerToMapCoordinates(lyr,
                                                  px2LayerGeo(x, y)))
@@ -369,7 +322,7 @@ def nicePredecessor(l):
             m += 0.5
         return mul * m * 10 ** exp
 
-    elif l < 1.0:
+    elif l < 1.0 and l > 0:
         exp = np.fix(np.log10(l))
         #normalize to [0.0,1.0]
         m = l / 10 ** (exp-1)
@@ -382,7 +335,7 @@ def nicePredecessor(l):
         return 0.0
 
 
-class CrosshairWidget(QWidget, load('crosshairwidget.ui')):
+class CrosshairWidget(QWidget, loadUI('crosshairwidget.ui')):
     sigCrosshairStyleChanged = pyqtSignal(CrosshairStyle)
 
     def __init__(self, title='<#>', parent=None):
@@ -393,7 +346,7 @@ class CrosshairWidget(QWidget, load('crosshairwidget.ui')):
         #self.crossHairReferenceLayer.connectCanvas(self.crossHairCanvas)
 
         self.mapCanvas.setExtent(QgsRectangle(0, 0, 1, 1))  #
-        #QgsMapLayerRegistry.instance().addMapLayer(self.crossHairReferenceLayer)
+        #QgsProject.instance().addMapLayer(self.crossHairReferenceLayer)
         #self.crossHairCanvas.setLayerSet([QgsMapCanvasLayer(self.crossHairReferenceLayer)])
 
         #crs = QgsCoordinateReferenceSystem('EPSG:25832')
@@ -457,6 +410,9 @@ class CrosshairWidget(QWidget, load('crosshairwidget.ui')):
         style.setShowDistanceMarker(self.cbShowDistanceMarker.isChecked())
         return style
 
+def getCrosshairStyle(*args, **kwds):
+    return CrosshairDialog.getCrosshairStyle(*args, **kwds)
+
 class CrosshairDialog(QgsDialog):
 
     @staticmethod
@@ -468,13 +424,13 @@ class CrosshairDialog(QgsDialog):
         :return: specified CrosshairStyle if accepted, else None
         """
         d = CrosshairDialog(*args, **kwds)
-        defStyle = d.crosshairStyle()
         d.exec_()
 
         if d.result() == QDialog.Accepted:
             return d.crosshairStyle()
         else:
-            return defStyle
+
+            return None
 
     def __init__(self, parent=None, crosshairStyle=None, mapCanvas=None, title='Specify Crosshair'):
         super(CrosshairDialog, self).__init__(parent=parent , \
@@ -482,7 +438,7 @@ class CrosshairDialog(QgsDialog):
         self.w = CrosshairWidget(parent=self)
         self.setWindowTitle(title)
         self.btOk = QPushButton('Ok')
-        self.btCancel = QPushButton('Cancel')
+        self.btCancel = QPushButton('Cance')
         buttonBar = QHBoxLayout()
         #buttonBar.addWidget(self.btCancel)
         #buttonBar.addWidget(self.btOk)
@@ -513,43 +469,12 @@ class CrosshairDialog(QgsDialog):
         for lyr in mapCanvas.layers():
             s = ""
         lyrs = mapCanvas.layers()
-        canvas.setLayerSet([QgsMapCanvasLayer(l) for l in lyrs])
+        canvas.setLayers(lyrs)
         canvas.setDestinationCrs(mapCanvas.mapSettings().destinationCrs())
         canvas.setExtent(mapCanvas.extent())
         canvas.setCenter(mapCanvas.center())
         canvas.setCanvasColor(mapCanvas.canvasColor())
-
-        canvas.refreshAllLayers()
         canvas.refresh()
+        #canvas.updateMap()
+        canvas.refreshAllLayers()
 
-if __name__ == '__main__':
-    import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
-
-    from enmapbox.gui import sandbox
-    qgsApp = sandbox.initQgisEnvironment()
-
-    if False:
-        c = QgsMapCanvas()
-        c.setExtent(QgsRectangle(0,0,1,1))
-        i = CrosshairMapCanvasItem(c)
-        i.setShow(True)
-        s = CrosshairStyle()
-        s.setShow(True)
-        i.setCrosshairStyle(s)
-        c.show()
-
-
-    #import example.Images
-    #lyr = QgsRasterLayer(example.Images.Img_2012_05_09_LE72270652012130EDC00_BOA)
-    #QgsMapLayerRegistry.instance().addMapLayer(lyr)
-    refCanvas = QgsMapCanvas()
-   #refCanvas.setLayerSet([QgsMapCanvasLayer(lyr)])
-    #refCanvas.setExtent(lyr.extent())
-    #refCanvas.setDestinationCrs(lyr.crs())
-    refCanvas.show()
-
-    style = CrosshairDialog.getCrosshairStyle(mapCanvas=refCanvas)
-
-    qgsApp.exec_()
-    qgsApp.exitQgis()

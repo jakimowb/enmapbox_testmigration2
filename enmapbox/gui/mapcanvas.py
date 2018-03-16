@@ -917,7 +917,6 @@ class MapCanvas(QgsMapCanvas):
         #assert isinstance(parentMapDock, MapDock)
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
-        self.setCrsTransformEnabled(True)
         self.mName = self._id
 
         MapCanvas._cnt += 1
@@ -1266,7 +1265,7 @@ class MapCanvas(QgsMapCanvas):
         newSet = mapLayers[:]
 
         #register not-registered layers
-        reg = QgsMapLayerRegistry.instance()
+        reg = QgsProject.instance()
         for l in newSet:
             assert isinstance(l, QgsMapLayer)
             if l not in reg.children():
@@ -1274,7 +1273,7 @@ class MapCanvas(QgsMapCanvas):
 
         #set the new layers (QGIS 2 style)
         #todo: change with QGIS 3
-        super(MapCanvas,self).setLayerSet([QgsMapCanvasLayer(l) for l in newSet])
+        super(MapCanvas,self).setLayers(newSet)
 
         if not self.mCrsExtentInitialized and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent

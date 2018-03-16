@@ -17,13 +17,13 @@ from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import initQgisApplication
-from enmapboxtestdata import enmap, hymap
+QGIS_APP = initQgisApplication()
+from enmapboxtestdata import enmap, hymap, speclib
 from enmapbox.gui.mapcanvas import *
-QGIS_APP = initQgisEnvironment()
 
 
-class testclassData(unittest.TestCase):
-    """Test rerources work."""
+
+class MapCanvasTests(unittest.TestCase):
 
     def setUp(self):
         self.w = QMainWindow()
@@ -41,9 +41,9 @@ class testclassData(unittest.TestCase):
 
         menu = self.mapCanvas.contextMenu()
         lyr = QgsRasterLayer(enmap)
-        self.assertTrue(lyr not in QgsMapLayerRegistry.instance().mapLayers().values())
+        self.assertTrue(lyr not in QgsProject.instance().mapLayers().values())
         self.mapCanvas.setLayers(lyr)
-        self.assertTrue(lyr in QgsMapLayerRegistry.instance().mapLayers().values())
+        self.assertTrue(lyr in QgsProject.instance().mapLayers().values())
         self.assertTrue(lyr in self.mapCanvas.layers())
 
         menu = self.mapCanvas.contextMenu()
@@ -53,8 +53,12 @@ class testclassData(unittest.TestCase):
 
         #trigger all context menu actions
         for action in actions:
-            print('Test QAction {}'.format(action.text()))
-            action.trigger()
+            info = action.text()
+            print('Test QAction {}'.format(info))
+            try:
+                action.trigger()
+            except Exception as ex:
+                self.fail('Failed to trigger QAction "{}\n\t{}"'.find(info, ex))
 
 
 
@@ -77,7 +81,7 @@ def exampleMapLinking():
     for f in geoFiles:
         map = MapCanvas()
         lyr = QgsRasterLayer(f)
-        QgsMapLayerRegistry.instance().addMapLayer(lyr)
+        QgsProject.instance().addMapLayer(lyr)
         map.setLayers([lyr])
         map.setExtent(lyr.extent())
         map.show()

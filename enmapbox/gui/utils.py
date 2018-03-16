@@ -635,18 +635,18 @@ def geo2pxF(geo, gt):
     :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html
     :return: pixel position as QPointF
     """
-    assert isinstance(geo, QgsPoint)
+    assert isinstance(geo, QgsPointXY)
     # see http://www.gdal.org/gdal_datamodel.html
     px = (geo.x() - gt[0]) / gt[1]  # x pixel
     py = (geo.y() - gt[3]) / gt[5]  # y pixel
-    return QPointF(px, py)
+    return QPointF(px,py)
 
 
 def geo2px(geo, gt):
     """
     Returns the pixel position related to a Geo-Coordinate as integer number.
     Floating-point coordinate are casted to integer coordinate, e.g. the pixel coordinate (0.815, 23.42) is returned as (0,23)
-    :param geo: Geo-Coordinate as QgsPoint
+    :param geo: Geo-Coordinate as QgsPointXY
     :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html
     :return: pixel position as QPpint
     """
@@ -654,14 +654,21 @@ def geo2px(geo, gt):
     return QPoint(int(px.x()), int(px.y()))
 
 
+
 def px2geo(px, gt):
-    # see http://www.gdal.org/gdal_datamodel.html
-    gx = gt[0] + px.x() * gt[1] + px.y() * gt[2]
-    gy = gt[3] + px.x() * gt[4] + px.y() * gt[5]
-    return QgsPoint(gx, gy)
+    """
+    Converts a pixel coordinate into a geo-coordinate
+    :param px:
+    :param gt:
+    :return:
+    """
+    #see http://www.gdal.org/gdal_datamodel.html
+    gx = gt[0] + px.x()*gt[1]+px.y()*gt[2]
+    gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
+    return QgsPointXY(gx,gy)
 
 
-class SpatialPoint(QgsPoint):
+class SpatialPoint(QgsPointXY):
     """
     Object to keep QgsPoint and QgsCoordinateReferenceSystem together
     """
@@ -684,6 +691,9 @@ class SpatialPoint(QgsPoint):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(SpatialPoint, self).__init__(*args)
         self.mCrs = crs
+
+    def __hash__(self):
+        return hash(str(self))
 
     def setCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
@@ -717,7 +727,7 @@ class SpatialPoint(QgsPoint):
 
     def toCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
-        pt = QgsPoint(self)
+        pt = QgsPointXY(self)
 
         if self.mCrs != crs:
             pt = saveTransform(pt, self.mCrs, crs)
@@ -744,6 +754,7 @@ class SpatialPoint(QgsPoint):
         return '{} {} {}'.format(self.x(), self.y(), self.crs().authid())
 
 
+
 def findParent(qObject, parentType, checkInstance=False):
     parent = qObject.parent()
     if checkInstance:
@@ -756,31 +767,36 @@ def findParent(qObject, parentType, checkInstance=False):
 
 
 def saveTransform(geom, crs1, crs2):
-    crs1 = QgsCoordinateReferenceSystem(crs1)
-    crs2 = QgsCoordinateReferenceSystem(crs2)
+    assert isinstance(crs1, QgsCoordinateReferenceSystem)
+    assert isinstance(crs2, QgsCoordinateReferenceSystem)
 
     result = None
     if isinstance(geom, QgsRectangle):
         if geom.isEmpty():
             return None
 
-        transform = QgsCoordinateTransform(crs1, crs2);
+
+        transform = QgsCoordinateTransform()
+        transform.setSourceCrs(crs1)
+        transform.setDestinationCrs(crs2)
         try:
             rect = transform.transformBoundingBox(geom);
             result = SpatialExtent(crs2, rect)
         except:
-            logger.debug('Can not transform from {} to {} on rectangle {}'.format( \
-                crs1.description(), crs2.description(), '{}'.format(geom)))
+            messageLog('Can not transform from {} to {} on rectangle {}'.format( \
+                crs1.description(), crs2.description(), str(geom)))
 
-    elif isinstance(geom, QgsPoint):
+    elif isinstance(geom, QgsPointXY):
 
-        transform = QgsCoordinateTransform(crs1, crs2);
+        transform = QgsCoordinateTransform();
+        transform.setSourceCrs(crs1)
+        transform.setDestinationCrs(crs2)
         try:
             pt = transform.transform(geom);
             result = SpatialPoint(crs2, pt)
         except:
-            logger.debug('Can not transform from {} to {} on QgsPoint {}'.format( \
-                crs1.description(), crs2.description(), '{}'.format(geom)))
+            messageLog('Can not transform from {} to {} on QgsPointXY {}'.format( \
+                crs1.description(), crs2.description(), str(geom)))
     return result
 
 
@@ -788,7 +804,6 @@ class SpatialExtent(QgsRectangle):
     """
     Object to keep QgsRectangle and QgsCoordinateReferenceSystem together
     """
-
     @staticmethod
     def fromMapCanvas(mapCanvas, fullExtent=False):
         assert isinstance(mapCanvas, QgsMapCanvas)
@@ -803,8 +818,9 @@ class SpatialExtent(QgsRectangle):
     @staticmethod
     def world():
         crs = QgsCoordinateReferenceSystem('EPSG:4326')
-        ext = QgsRectangle(-180, -90, 180, 90)
+        ext = QgsRectangle(-180,-90,180,90)
         return SpatialExtent(crs, ext)
+
 
     @staticmethod
     def fromRasterSource(pathSrc):
@@ -818,12 +834,16 @@ class SpatialExtent(QgsRectangle):
         yValues = []
         for x in [0, ns]:
             for y in [0, nl]:
-                px = px2geo(QPoint(x, y), gt)
+                px = px2geo(QPoint(x,y), gt)
                 xValues.append(px.x())
                 yValues.append(px.y())
 
         return SpatialExtent(crs, min(xValues), min(yValues),
-                             max(xValues), max(yValues))
+                                  max(xValues), max(yValues))
+
+
+
+
 
     @staticmethod
     def fromLayer(mapLayer):
@@ -852,6 +872,9 @@ class SpatialExtent(QgsRectangle):
         if self.mCrs != crs:
             box = saveTransform(box, self.mCrs, crs)
         return SpatialExtent(crs, box) if box else None
+
+    def spatialCenter(self):
+        return SpatialPoint(self.crs(), self.center())
 
     def combineExtentWith(self, *args):
         if args is None:
@@ -883,16 +906,17 @@ class SpatialExtent(QgsRectangle):
         s = ""
 
     def upperRightPt(self):
-        return QgsPoint(*self.upperRight())
+        return QgsPointXY(*self.upperRight())
 
     def upperLeftPt(self):
-        return QgsPoint(*self.upperLeft())
+        return QgsPointXY(*self.upperLeft())
 
     def lowerRightPt(self):
-        return QgsPoint(*self.lowerRight())
+        return QgsPointXY(*self.lowerRight())
 
     def lowerLeftPt(self):
-        return QgsPoint(*self.lowerLeft())
+        return QgsPointXY(*self.lowerLeft())
+
 
     def upperRight(self):
         return self.xMaximum(), self.yMaximum()
@@ -905,6 +929,7 @@ class SpatialExtent(QgsRectangle):
 
     def lowerLeft(self):
         return self.xMinimum(), self.yMinimum()
+
 
     def __eq__(self, other):
         return self.toString() == other.toString()
@@ -923,6 +948,10 @@ class SpatialExtent(QgsRectangle):
                                 self.xMinimum(), self.yMinimum(),
                                 self.xMaximum(), self.yMaximum()
                                 ), {}
+
+
+    def __hash__(self):
+        return hash(str(self))
 
     def __str__(self):
         return self.__repr__()
