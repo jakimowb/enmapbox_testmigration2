@@ -46,7 +46,12 @@ class AboutDialog(QDialog,
 
         import codecs
         #loadTextFile = lambda p: (open(p, 'r','UTF-8').read())
-        loadTextFile = lambda p: (codecs.open(p, 'r', 'utf-8').read())
+
+        def loadTextFile(p):
+            f = open(p, 'r', encoding='utf-8')
+            lines = f.read()
+            f.close()
+            return lines
 
         self.tbLicense.setText(loadTextFile(jp(DIR_REPO, 'LICENSE.txt')))
         self.tbContributors.setText(loadTextFile(jp(DIR_REPO, 'contributors.txt')))
