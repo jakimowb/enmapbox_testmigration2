@@ -148,46 +148,6 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         import enmapbox
         self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
-        self.isInitialized = False
-        # add & register panels
-        area = None
-
-        import enmapbox.gui.dockmanager
-        import enmapbox.gui.datasourcemanager
-
-        def addPanel(panel):
-            """
-            shortcut to add a created panel and return it
-            :param dock:
-            :return:
-            """
-            self.addDockWidget(area, panel)
-            return panel
-
-        area = Qt.LeftDockWidgetArea
-        self.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self))
-        self.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self))
-        from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
-        self.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self))
-
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
-        self.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self))
-
-        area = Qt.BottomDockWidgetArea
-        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
-
-        # add entries to menu panels
-        for dock in self.findChildren(QDockWidget):
-            self.menuPanels.addAction(dock.toggleViewAction())
-
-            # tabbify dock widgets
-
-            # self.tabifyDockWidget(self.dockPanel, self.dataSourcePanel)
-            # self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
-
-    def setIsInitialized(self):
-        self.isInitialized = True
-
     def menusWithTitle(self, title):
         return [m for m in self.findChildren(QMenu) if m.title() == title]
 
@@ -237,11 +197,8 @@ class EnMAPBox(QgisInterface, QObject):
 
         splash.showMessage('Load Interfaces')
 
-        self.iface = iface
 
-        if not isinstance(iface, QgisInterface):
-            self.iface = self
-            qgis.utils.iface = self
+
 
         # register loggers etc.
         splash.showMessage('Load UI')
@@ -249,6 +206,11 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.closeEvent = self.closeEvent
 
         self.initQgisInterface()
+        self.iface = iface
+        if not isinstance(iface, QgisInterface):
+            self.initEnMAPBoxAsIFACE()
+
+        self.initPanels()
 
         from enmapbox.gui import DEBUG
         if not DEBUG:
@@ -337,32 +299,77 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
 
+    def initPanels(self):
+        # add & register panels
+        area = None
+
+        import enmapbox.gui.dockmanager
+        import enmapbox.gui.datasourcemanager
+
+        def addPanel(panel):
+            """
+            shortcut to add a created panel and return it
+            :param dock:
+            :return:
+            """
+            self.addDockWidget(area, panel)
+            return panel
+
+        area = Qt.LeftDockWidgetArea
+        self.ui.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
+        self.ui.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self.ui))
+        from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
+        self.ui.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self.ui))
+
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
+        self.ui.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self.ui))
+
+        area = Qt.BottomDockWidgetArea
+        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
+
+        # add entries to menu panels
+        for dock in self.ui.findChildren(QDockWidget):
+            self.ui.menuPanels.addAction(dock.toggleViewAction())
+
+            # tabbify dock widgets
+
+            # self.tabifyDockWidget(self.dockPanel, self.dataSourcePanel)
+            # self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
+
+
+    def initEnMAPBoxAsIFACE(self):
+        from processing.core.Processing import Processing
+        import processing
+        self.iface = self
+        qgis.utils.iface = self
+
+        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
+
+            if processing.iface is None:
+                import processing.gui.AlgorithmDialog
+                import processing.gui.AlgorithmDialogBase
+                import processing.gui.ProcessingToolbox
+                import processing.gui.ToolboxAction
+                import processing.tools.dataobjects
+                Processing.initialize()
+                processing.iface = self.iface
+                processing.gui.AlgorithmDialog.iface = self.iface
+                processing.gui.AlgorithmDialogBase.iface = self.iface
+                processing.tools.dataobjects.iface = self.iface
+                processing.gui.ProcessingToolbox.iface = self.iface
+                # todo: set iface in a generic way
+                # import pkgutil
+                # prefix = str(processing.__name__ + '.')
+                # MODULES = dict()
+                # for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
+                #    MODULES[modname] = __import__(modname, fromlist="dummy")
+
+                s = ""
+
     def initQGISProcessingFramework(self):
 
         from processing.core.Processing import Processing
-
-
-
         import processing
-        if processing.iface is None:
-
-            import processing.gui.AlgorithmDialog
-            import processing.gui.AlgorithmDialogBase
-            import processing.tools.dataobjects
-            Processing.initialize()
-            processing.iface = self.iface
-            processing.gui.AlgorithmDialog.iface = self.iface
-            processing.gui.AlgorithmDialogBase.iface = self.iface
-            processing.tools.dataobjects.iface = self.iface
-            #todo: set iface in a generic way
-            #import pkgutil
-            #prefix = str(processing.__name__ + '.')
-            #MODULES = dict()
-            #for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
-            #    MODULES[modname] = __import__(modname, fromlist="dummy")
-
-            s = ""
-
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
         if not self.processingAlgManager.enmapBoxProvider():
             Processing.addProvider(EnMAPBoxAlgorithmProvider())
@@ -1054,7 +1061,9 @@ class EnMAPBox(QgisInterface, QObject):
         return self.ui.messageBar
 
     def iconSize(self, dockedToolbar=False):
-        return QSize(128,128)
+        #return self.ui.actionAddDataSource.icon().availableSizes()[0]
+        return QSize(16,16)
+
     def mapCanvases(self):
         """
         Returns all MapCanvas(QgsMapCanvas) objects known to the EnMAP-Box
