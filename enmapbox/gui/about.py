@@ -48,6 +48,9 @@ class AboutDialog(QDialog,
         #loadTextFile = lambda p: (open(p, 'r','UTF-8').read())
 
         def loadTextFile(p):
+            if not os.path.isfile(p):
+                return 'File not found "{}"'.format(p)
+
             f = open(p, 'r', encoding='utf-8')
             lines = f.read()
             f.close()
@@ -55,6 +58,7 @@ class AboutDialog(QDialog,
 
         self.tbLicense.setText(loadTextFile(jp(DIR_REPO, 'LICENSE.txt')))
         self.tbContributors.setText(loadTextFile(jp(DIR_REPO, 'contributors.txt')))
+        self.tbChanges.setText(loadTextFile(jp(DIR_REPO, 'CHANGES.txt')))
     def setAboutTitle(self, suffix=None):
         item = self.listWidget.currentItem()
 
