@@ -2,6 +2,10 @@
 Installation
 ============
 
+
+.. todo:: Structure by OS first (Windows, Linux, Mac)
+
+
 .. _install_enmapbox:
 
 Install or update the EnMAP-Box
@@ -15,24 +19,24 @@ Installing or updating the EnMAP-Box itself is simple:
     #. Download the latest EnMAP-Box from `<https://bitbucket.org/hu-geomatics/enmap-box/downloads/>`_, extract the **enmapboxplugin** folder and put it into the local QGIS Plugin folder.
        For example, let *enmapboxplugin.20180116T1825.zip* be the most recent plugin zip, than do on:
 
-       Windows
+       **Windows**
 
             Copy the unzipped folder to ``<HOME>.qgis2\python\plugins``, e.g.
             ``C:\Users\ivan_ivanovich\.qgis2\python\plugins\enmapboxplugin``
 
-       Linux
+       **Linux**
 
             cd ~/.qgis2/python/plugins/
             wget https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.20180116T1825.zip
             rm enmapboxplugin.20180116T1825.zip
 
-       macOS (Terminal)
+       **macOS (Terminal)**
 
             cd ~/.qgis2/python/plugins/
             curl https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.20180116T1825.zip
             rm enmapboxplugin.20180116T1825.zip
 
-    #. Restart QGIS  and activate the EnMAP-Box Plugin via *Plugins >> Manage and Install Plugins...*
+    #. Restart QGIS  and activate the EnMAP-Box Plugin via :menuselection:`Plugins --> Manage and Install Plugins...`
 
         .. image:: img/install_activate_plugin.png
 
@@ -77,7 +81,8 @@ Package                                                         Notes     Window
     * *Linux* = package name to be installed using apt-get on Linux (tested on Ubuntu).
     * *default* = usually already installed with QGIS
     * *OS* = usually requires a platform-specific installation
-    * *pip* = can be installed with `pip <https://pip.pypa.io>`_ (the `preferred installer <https://packaging.python.org/guides/tool-recommendations/>`_ to install python packages).
+    * *pip* = can be installed with `pip <https://pip.pypa.io>`_
+      (the `preferred installer <https://packaging.python.org/guides/tool-recommendations/>`_ to install python packages).
 
 
 
@@ -276,5 +281,5 @@ for installing QGIS from the `OSGeo4Mac Project <https://github.com/OSGeo/homebr
 Linux
 .....
 
-Try to install missing packages with ``apt-get install <pacakge name>`` first. If unavailable, use ``python -m pip install <package name>``
+Try to install missing packages with ``apt-get install <package name>`` first. If unavailable, use ``python -m pip install <package name>``
 
