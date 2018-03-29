@@ -276,19 +276,18 @@ class EnMAPBox(QgisInterface, QObject):
 
 
             try:
-                logger.debug('initializes an own QGIS Processing framework')
+                messageLog('initializes an own QGIS Processing framework')
                 self.initQGISProcessingFramework()
                 installQPFExtensions()
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
-
-                logger.debug('QGIS Processing framework initialized')
+                messageLog('QGIS Processing framework initialized')
 
             except Exception as ex:
                 self.ui.menuProcessing.setEnabled(False)
                 self.ui.menuProcessing.setVisible(False)
-                logger.warning('Failed to initialize QGIS Processing framework')
-                logger.warning('{}'.format(ex))
+                messageLog('Failed to initialize QGIS Processing framework')
+                messageLog('{}'.format(ex))
 
         # load EnMAP-Box applications
         self.initEnMAPBoxApplications()
@@ -372,7 +371,8 @@ class EnMAPBox(QgisInterface, QObject):
         import processing
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
         if not self.processingAlgManager.enmapBoxProvider():
-            Processing.addProvider(EnMAPBoxAlgorithmProvider())
+            QgsApplication.processingRegistry().addProvider(EnMAPBoxAlgorithmProvider())
+
 
     def addApplication(self, app):
         """
@@ -418,7 +418,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.actionSelectProfiles.triggered.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
 
         import webbrowser
-        self.ui.actionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.TRACKER))
+        self.ui.actionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.CREATE_ISSUE))
         self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.HOMEPAGE))
 
     sigDockAdded = pyqtSignal(Dock)

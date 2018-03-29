@@ -97,19 +97,20 @@ class ApplicationRegistry(QObject):
 
     def isApplicationPackage(self, appPackagePath):
         """
-        Checks if the directory "appPackage" contains an '__init__.py' which defines the funtion
+        Checks if the directory "appPackage" contains an '__init__.py' which defines the function
         enmapboxApplicationFactory
         :param appPackage: path to directory
-        :return: True, if enmapboxApplicationFactory exists in package definition.
+        :return: (True, None) if enmapboxApplicationFactory exists in package definition.
+                (False, Exception) if enmapboxApplicationFactory does not exists in package definition.
         """
 
         if not os.path.isdir(appPackagePath):
-            return False
+            return (False, Exception('not a directory: '.find(appPackagePath)))
         appPkgName = os.path.basename(appPackagePath)
         pkgFile = os.path.join(appPackagePath, '__init__.py')
         appFolder = os.path.dirname(appPackagePath)
         if not os.path.isfile(pkgFile):
-            return False
+            return (False, Exception('Could not find '+pkgFile))
 
         added = False
         if not appFolder in sys.path:
@@ -123,16 +124,17 @@ class ApplicationRegistry(QObject):
         except Exception as ex:
             if added:
                 sys.path.remove(appFolder)
-                return False
+            return (False, ex)
 
         factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                    if o[0] == 'enmapboxApplicationFactory']
         if len(factory) != 1:
             if added:
                 sys.path.remove(appFolder)
-            return False
+            return (False, Exception('Could not find enmapboxApplicationFactory in {}'.find(appModule)))
 
-        return True
+        return (True, None)
+
 
     def addApplicationPackageSavely(self, appPackagePath):
         """
@@ -143,14 +145,15 @@ class ApplicationRegistry(QObject):
             self.addApplicationPackage(appPackagePath)
         else:
             try:
-                if not self.isApplicationPackage(appPackagePath):
-                    raise Exception('Invalid EnMAP-Box Application Package: {}'.format(appPackagePath))
+                isPkg, ex = self.isApplicationPackage(appPackagePath)
+                if not isPkg:
+                    raise Exception('Invalid EnMAP-Box Application Package: {}\n{}'.format(appPackagePath), str(ex) )
                 self.addApplicationPackage(appPackagePath)
 
             except Exception as ex:
                 import traceback
                 msg = 'Failed to load {}\n Error:"{}"'.format(appPackagePath, '{}'.format(ex))
-                msg +='\n Traceback\n ' + repr(traceback.format_stack())
+                msg +='\n Traceback\n ' + ''.join(traceback.format_stack())
                 messageLog(msg, level=Qgis.Critical)
 
 
@@ -162,8 +165,8 @@ class ApplicationRegistry(QObject):
         """
 
         if isinstance(appPackagePath, EnMAPBoxApplication):
-
-            assert self.isApplicationPackage(appPackagePath)
+            isPkg, ex = self.isApplicationPackage(appPackagePath)
+            assert isPkg, str(ex)
 
             appPkgName = os.path.basename(appPackagePath)
             appFolder = os.path.dirname(appPackagePath)
@@ -381,5 +384,9 @@ class EnMAPBoxApplication(QObject):
 
         :return:
         """
+        messageLog('Deprecated method "geoAlgorithms". Use "processingAlgorithms" instead.')
         return None
 
+    def processingAlgorithms(self):
+
+        return None

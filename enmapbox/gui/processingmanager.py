@@ -244,14 +244,10 @@ class ProcessingAlgorithmsManager(QObject):
     """
     Keeps overview on QGIS Processing Framework algorithms.
     """
-
-
     def __init__(self, enmapBoxInstance):
         super(ProcessingAlgorithmsManager, self).__init__()
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        assert isinstance(enmapBoxInstance, EnMAPBox)
 
-        self.enmapBox = enmapBoxInstance
         self.commander = None
         self.toolbox = None
         self.processingRegistry = QgsApplication.instance().processingRegistry()
@@ -271,19 +267,22 @@ class ProcessingAlgorithmsManager(QObject):
             from processing.gui.ProcessingToolbox import ProcessingToolbox
             self.toolbox = ProcessingToolbox()
 
-            # 1. create new menu entry
-            menu = self.enmapBox.ui.menuProcessing
-            import processing
-            from processing.ProcessingPlugin import ProcessingPlugin
+            if isinstance(enmapBoxInstance, EnMAPBox):
+                self.enmapBox = enmapBoxInstance
+                # 1. create new menu entry
+                menu = self.enmapBox.ui.menuProcessing
+                import processing
+                from processing.ProcessingPlugin import ProcessingPlugin
 
-            def pfwIcon(name):
-                return QIcon(jp(os.path.dirname(processing.__file__), 'image', name))
+                def pfwIcon(name):
+                    return QIcon(jp(os.path.dirname(processing.__file__), 'image', name))
 
-            from processing.modeler.CreateNewModelAction import CreateNewModelAction
-            # a = menu.addAction(pfwIcon('alg.png'),'Toolbox')
-            a = menu.addAction(pfwIcon('model.png'), 'Graphical Modeler')
-            assert isinstance(a, QAction)
-            a.triggered.connect(self.openModeler)
+                from processing.modeler.CreateNewModelAction import CreateNewModelAction
+                # a = menu.addAction(pfwIcon('alg.png'),'Toolbox')
+                a = menu.addAction(pfwIcon('model.png'), 'Graphical Modeler')
+                a.setToolTip('Open Graphical Modeler')
+                assert isinstance(a, QAction)
+                a.triggered.connect(self.openModeler)
 
 
 
@@ -300,20 +299,22 @@ class ProcessingAlgorithmsManager(QObject):
 
     def onFileCreated(self, path):
         messageLog('File created from processing framework:\n{}'.format(path))
-        self.enmapBox.dataSourceManager.addSource(path)
+        if self.enmapBox:
+            self.enmapBox.dataSourceManager.addSource(path)
 
     def onHtmlCreated(self, path):
         messageLog('HTML report created from processing framework:\n{}'.format(path))
-        src = self.enmapBox.dataSourceManager.addSource(path)
-        self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
+        if self.enmapBox:
+            src = self.enmapBox.dataSourceManager.addSource(path)
+            self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
 
     def enmapBoxProvider(self):
         """
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         """
-        if self.isInitialized():
-            from enmapbox.algorithmprovider import NAME
-            return self.processingRegistry.providerById(NAME)
+        if self.isInitialized() and self.enmapBox:
+            from enmapbox.algorithmprovider import ID
+            return self.processingRegistry.providerById(ID)
         else:
             return None
 
@@ -323,10 +324,8 @@ class ProcessingAlgorithmsManager(QObject):
         :param algorithmProvider: name of instance of AlgorithmProvider
         :param geoAlgorithms: list-of-GeoAlgorithms
         """
-        from processing.core.GeoAlgorithm import GeoAlgorithm
-        from processing.core.AlgorithmProvider import AlgorithmProvider
 
-        if isinstance(algorithmProvider, AlgorithmProvider):
+        if isinstance(algorithmProvider, QgsProcessingProvider):
             p = algorithmProvider
         else:
             p = self.processingRegistry.getProviderFromName(algorithmProvider)
@@ -338,24 +337,16 @@ class ProcessingAlgorithmsManager(QObject):
         #print('PROVIDER OBJ  {}'.format(p))
         #print('GAs           {}'.format(geoAlgorithms))
 
-        if isinstance(p, AlgorithmProvider):
+        if isinstance(p, QgsProcessingProvider):
             pName = p.getName()
             #print('PROVIDER NAME {}'.format(pName))
             pAlgs = self.processingRegistry.algs[pName]
             for ga in geoAlgorithms:
-                assert isinstance(ga, GeoAlgorithm)
+                assert isinstance(ga, QgsProcessingAlgorithm)
                 ga.provider = p
                 pAlgs[ga.commandLineName()] = ga
             self.processingRegistry.providerUpdated.emit(pName)
 
-    def openCommander(self):
-        from processing.gui.CommanderWindow import CommanderWindow
-        if self.commander is None:
-            self.commander = CommanderWindow(
-                self.iface.mainWindow(),
-                self.iface.mapCanvas())
-        self.commander.prepareGui()
-        self.commander.show()
 
     def openToolbox(self):
         if self.toolbox.isVisible():
@@ -370,20 +361,31 @@ class ProcessingAlgorithmsManager(QObject):
         if dlg.update:
             self.processingRegistry.reloadProvider('model')
 
-    def openResults(self):
-        from processing.gui.ResultsDialog import ResultsDialog
-        dlg = ResultsDialog()
-        dlg.show()
-        dlg.exec_()
+
 
     def openHistory(self):
         from processing.gui.HistoryDialog import HistoryDialog
         dlg = HistoryDialog()
-        dlg.exec_()
+        dlg.show()
 
     def openConfig(self):
         from processing.gui.ConfigDialog import ConfigDialog
         dlg = ConfigDialog(self.toolbox)
-        dlg.exec_()
+        dlg.show()
 
 
+if __name__ == '__main__':
+    from enmapbox.gui.utils import *
+    app = initQgisApplication()
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+
+    p = EnMAPBoxAlgorithmProvider()
+
+    emb = EnMAPBox(None)
+    reg = QgsApplication.processingRegistry()
+    reg.addProvider(p)
+    PAM = ProcessingAlgorithmsManager(emb)
+    PAM.openConfig()
+
+    app.exec_()

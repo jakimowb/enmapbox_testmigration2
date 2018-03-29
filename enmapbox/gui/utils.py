@@ -17,9 +17,9 @@
 ***************************************************************************
 """
 
-import os, sys, importlib, tempfile, re, six, logging, fnmatch, io, pickle, zipfile
+import os, sys, importlib, tempfile, re, six, fnmatch, io, pickle, zipfile
 
-logger = logging.getLogger(__name__)
+
 
 from qgis.core import *
 from qgis.gui import *
@@ -104,8 +104,7 @@ class TestObjects():
         ds.FlushCache()
         return ds
 
-
-def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
+def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgisResourceDir=None):
     """
     Initializes the QGIS Environment
     :return: QgsApplication instance of local QGIS installation
@@ -115,22 +114,15 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
         pythonPlugins = []
     assert isinstance(pythonPlugins, list)
 
-    # pythonPlugins.append(os.path.dirname(DIR_REPO))
-    PLUGIN_DIR = os.path.dirname(DIR_REPO)
-
-    if os.path.isdir(PLUGIN_DIR):
-        pass
-        """
-        for subDir in os.listdir(PLUGIN_DIR):
-            if not subDir.startswith('.'):
-                pathMetadata = jp(  PLUGIN_DIR, *[subDir,'metadata.txt'])
-                if os.path.exists(pathMetadata):
-                    md = open(pathMetadata,'r').readlines()
-                    md = [m.strip() for m in md]
-                    md = [m.split('=') for m in md if m.startswith('qgisMinimumVersion')]
-
-                    pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
-        """
+    if isinstance(qgisResourceDir, str):
+        assert os.path.isdir(qgisResourceDir)
+        import importlib, re
+        modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
+        modules = [m[0:-3] for m in modules]
+        for m in modules:
+            mod = importlib.import_module('qgisresources.{}'.format(m))
+            if "qInitResources" in dir(mod):
+                mod.qInitResources()
 
     envVar = os.environ.get('QGIS_PLUGINPATH', None)
     if isinstance(envVar, list):
@@ -158,7 +150,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
                 PATH_QGIS = os.path.join(PATH_QGIS_APP, *['Contents', 'MacOS'])
 
                 if not 'GDAL_DATA' in os.environ.keys():
-                    os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/2.1/Resources/gdal'
+                    os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/Current/Resources/gdal'
 
                 QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
                 QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns', 'qgis']))
@@ -174,10 +166,14 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
         qgsApp.setPrefixPath(PATH_QGIS, True)
         qgsApp.initQgis()
 
+        def printQgisLog(tb, error, level):
 
-        #QgsApplication.instance().messageLog().messageReceived.connect(print)
+            print(tb)
+
+        QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
 
         return qgsApp
+
 
 
 def settings():
@@ -766,6 +762,14 @@ def findParent(qObject, parentType, checkInstance=False):
     return parent
 
 
+def createCRSTransform(src, dst):
+    assert isinstance(src, QgsCoordinateReferenceSystem)
+    assert isinstance(dst, QgsCoordinateReferenceSystem)
+    t = QgsCoordinateTransform()
+    t.setSourceCrs(src)
+    t.setDestinationCrs(dst)
+    return t
+
 def saveTransform(geom, crs1, crs2):
     assert isinstance(crs1, QgsCoordinateReferenceSystem)
     assert isinstance(crs2, QgsCoordinateReferenceSystem)
@@ -1272,6 +1276,58 @@ class MimeDataHelper():
 
         return dataSources
 
+
+
+class QgisInterfaceMockup(QgisInterface):
+
+    @staticmethod
+    def create():
+
+        iface = QgisInterfaceMockup()
+
+        import qgis.utils
+        #import processing
+        #p = processing.classFactory(iface)
+        if not isinstance(qgis.utils.iface, QgisInterface):
+
+            import processing
+            qgis.utils.iface = iface
+            processing.Processing.initialize()
+
+            import pkgutil
+            prefix = str(processing.__name__ + '.')
+            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
+                try:
+                    module = __import__(modname, fromlist="dummy")
+                    if hasattr(module, 'iface'):
+                        print(modname)
+                        module.iface = iface
+                except:
+                    pass
+
+        return iface
+
+
+    def __init__(self, *args, **kwds):
+        super(QgisInterfaceMockup, self).__init__(*args, **kwds)
+
+        self.mMapCanvas = QgsMapCanvas()
+        self.mMessageBar = QgsMessageBar()
+
+
+
+    def iconSize(self, *args, **kwargs):
+        return QSize(60,60)
+
+    def mapCanvas(self, *args, **kwargs):
+        return self.mMapCanvas
+
+    def mapCanvases(self, *args, **kwargs):
+        return [self.mMapCanvas]
+
+    def messageBar(self):
+
+        return self.mMessageBar
 
 if __name__ == '__main__':
     from enmapboxtestdata import enmap

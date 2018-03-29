@@ -33,7 +33,7 @@ HUBFLOW = True
 try:
     import hubflow.types
 except Exception as ex:
-    messageLog('Unable to import hubflow API')
+    messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
     HUBFLOW = False
 
 class DataSourceGroupTreeNode(TreeNode):

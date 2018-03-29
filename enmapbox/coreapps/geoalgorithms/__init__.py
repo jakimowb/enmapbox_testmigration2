@@ -1,7 +1,8 @@
 
 import os
 import qgis
-from PyQt5.QtGui import QIcon, QMenu, QAction
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
 from enmapboxgeoalgorithms.algorithms import ALGORITHMS
@@ -22,10 +23,3 @@ class App(EnMAPBoxApplication):
 
     def geoAlgorithms(self):
         return ALGORITHMS
-
-def sandboxWithEnMapBox(loadPF=False):
-    from enmapbox.gui.utils import initQgisApplication, sandboxPureGui
-    qgsApp = initQgisEnvironment()
-    sandboxPureGui(loadProcessingFramework=loadPF)
-    qgsApp.exec_()
-    qgsApp.quit()
