@@ -59,7 +59,7 @@ class LoadWorker(QObject):
 
 class SourceValueSet(object):
     def __init__(self, source, crs, geoCoordinate):
-        assert isinstance(geoCoordinate, QgsPoint)
+        assert isinstance(geoCoordinate, QgsPointXY)
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         self.source = source
         self.point = geoCoordinate
@@ -73,17 +73,19 @@ class SourceValueSet(object):
 
 
 class RasterValueSet(SourceValueSet):
+
     class BandInfo(object):
         def __init__(self, bandIndex, bandValue, bandName):
             assert bandIndex >= 0
             if bandValue is not None:
                 assert type(bandValue) in [float, int]
             if bandName is not None:
-                assert type(bandName) in [str, unicode]
+                assert isinstance(bandName, str)
 
             self.bandIndex = bandIndex
             self.bandValue = bandValue
             self.bandName = bandName
+
 
     def __init__(self, source, crs, geoCoordinate, pxPosition):
         assert isinstance(pxPosition, QPoint)
@@ -91,7 +93,6 @@ class RasterValueSet(SourceValueSet):
         self.pxPosition = pxPosition
         self.noDataValue = None
         self.bandValues = []
-
 
 class VectorValueSet(SourceValueSet):
     class FeatureInfo(object):
@@ -196,7 +197,7 @@ class CursorLocationInfoModel(TreeModel):
             self.setColumnSpan(root, True)
             refFeature = sourceValueSet.features[0]
             assert isinstance(refFeature, QgsFeature)
-            typeName = refFeature.geometry().geometry().wktTypeStr().lower()
+            typeName = QgsWkbTypes.displayString(refFeature.geometry().wkbType()).lower()
             if 'polygon' in typeName: path = ':/enmapbox/icons/mIconPolygonLayer.png'
             if 'line' in typeName: path = ':/enmapbox/icons/mIconLineLayer.png'
             if 'point' in typeName: path = ':/enmapbox/icons/mIconLineLayer.png'
@@ -385,7 +386,7 @@ class CursorLocationInfoDock(QDockWidget,
         # convert location of interest into WGS-84 GCS
         crsWorld = QgsCoordinateReferenceSystem('EPSG:4326')
 
-        info2World = QgsCoordinateTransform(crsInfo, crsWorld)
+        info2World = createCRSTransform(crsInfo, crsWorld)
         pointWorld = info2World.transform(ptInfo)
 
         self.mLocationInfoModel.setExpandedNodeRemainder()
@@ -394,8 +395,8 @@ class CursorLocationInfoDock(QDockWidget,
 
         for l in lyrs:
             assert isinstance(l, QgsMapLayer)
-            lyr2World = QgsCoordinateTransform(l.crs(), crsWorld)
-            world2lyr = QgsCoordinateTransform(crsWorld, l.crs())
+            lyr2World = createCRSTransform(l.crs(), crsWorld)
+            world2lyr = createCRSTransform(crsWorld, l.crs())
 
             # check in GCS WGS-84 if the point-of-interest intersects with layer
             lyrExt = lyr2World.transformBoundingBox(l.extent())
@@ -479,7 +480,7 @@ class CursorLocationInfoDock(QDockWidget,
         :param point:
         :return:
         """
-        assert isinstance(point, QgsPoint)
+        assert isinstance(point, QgsPointXY)
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         self.mLocationHistory.insert(0, (crs, point))
         if len(self.mLocationHistory) > self.mMaxPoints:
@@ -493,9 +494,9 @@ class CursorLocationInfoDock(QDockWidget,
     def setCursorLocationInfo(self):
         # transform this point to targeted CRS
         crs, pt = self.cursorLocation()
-        if isinstance(pt, QgsPoint):
+        if isinstance(pt, QgsPointXY):
             if crs != self.mCrs:
-                trans = QgsCoordinateTransform(crs, self.mCrs)
+                trans = createCRSTransform(crs, self.mCrs)
                 pt = trans.transform(pt)
 
             self.tbX.setText('{}'.format(pt.x()))
@@ -561,12 +562,13 @@ if __name__ == '__main__':
 
     canvas = QgsMapCanvas()
     lyr = QgsRasterLayer(enmap)
-    shp = QgsVectorLayer(landcover, 'lc', 'ogr')
-    QgsProject.instance().addMapLayers([lyr, shp])
-    canvas.setLayerSet([QgsMapCanvasLayer(shp), QgsMapCanvasLayer(lyr)])
+    shp = QgsVectorLayer(landcover, 'landcover')
+    QgsProject.instance().addMapLayers([lyr,shp])
+    canvas.setLayers([shp, lyr])
     canvas.setDestinationCrs(lyr.crs())
     canvas.setExtent(lyr.extent())
     canvas.show()
+
 
     d = CursorLocationInfoDock()
     d.show()
