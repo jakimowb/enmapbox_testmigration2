@@ -20,16 +20,16 @@
 import sys, os
 
 from enmapbox import __version__
-from processing.core.AlgorithmProvider import AlgorithmProvider
-from processing.core.GeoAlgorithm import GeoAlgorithm
+from qgis.core import *
 from processing.core.ProcessingConfig import ProcessingConfig, Setting
 from processing.core.Processing import Processing
 
 
-NAME = 'enmapbox'
-DESCRIPTION = "EnMAP-Box 3"
+ID = 'enmapbox'
+NAME = 'EnMAP-Box'
+LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
 
-class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
+class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
 
 
     """
@@ -39,11 +39,8 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
     def __init__(self):
         super(EnMAPBoxAlgorithmProvider, self).__init__()
         #internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
-        self._algs = []
-
-        #the list of GeoAlgorithms that will be used by the Processing Framework
-        self.algs = []
-        self.settingsName = 'ACTIVATE_' + self.getName().upper().replace(' ', '_')
+        self.mAlgorithms = []
+        self.mSettingsName = self.id().upper().replace(' ', '_')
 
     def initializeSettings(self):
         """This is the place where you should add config parameters
@@ -53,9 +50,9 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         Processing framework. By default it just adds a setting to
         activate or deactivate algorithms from the provider.
         """
-        ProcessingConfig.settingIcons[self.getDescription()] = self.getIcon()
+        ProcessingConfig.settingIcons[self.name()] = self.getIcon()
 
-        ProcessingConfig.addSetting(Setting(self.getDescription(), self.settingsName,
+        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsName,
                                             self.tr('Activate'), self.activate))
 
 
@@ -67,64 +64,146 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         Processing. Removal of config setting should be done here.
         """
 
-        ProcessingConfig.removeSetting(self.settingsName)
+        ProcessingConfig.removeSetting(self.mSettingsName)
 
     def getName(self):
-        """Returns the name to use to create the command-line name.
-           Should be a short descriptive name of the provider.
-        """
-        return NAME
+        raise DeprecationWarning('Use id() instead')
 
+    def id(self):
+        return ID
+
+    def helpid(self):
+        return 'https://bitbucket.org/hu-geomatics/enmap-box/wiki/Home'
 
     def getDescription(self):
-        """Returns the full name of the provider, as it is shown in the Processing Tool Box"""
-        return DESCRIPTION
+        raise DeprecationWarning('Use name()')
 
     def getIcon(self):
+        raise DeprecationWarning('Use icon()')
+
+    def icon(self):
         from enmapbox.gui.enmapboxgui import getIcon
         return getIcon()
 
+    def name(self):
+        return NAME
+
+    def longName(self):
+        return LONG_NAME
+
+    def defaultRasterFileExtension(self):
+        return 'bsq'
+
+    def defaultVectorFileExtension(self):
+        return 'shq'
+
+    def supportedOutputRasterLayerExtensions(self):
+        return ['tif','vrt','bil','bsq','bip']
+
+    def supportsNonFileBasedOutput(self):
+        return True
+
+    def supportsNonFileBasedOutput(self):
+        return False
+
+    def load(self):
+        """
+        Loads the provider.
+        :return:
+        """
+
+        ProcessingConfig.settingIcons[self.name()] = self.icon()
+        ProcessingConfig.addSetting(Setting(self.mSettingsName, 'ACTIVATE',
+                                            self.tr('Activates the EnMAP-Box'), True))
+        ProcessingConfig.addSetting(Setting(
+            self.mSettingsName,
+            'helppath',
+            'Location of EnMAP-Box docs', 'default'))
+        ProcessingConfig.readSettings()
+        self.refreshAlgorithms()
+        return True
+
+    def unload(self):
+        """
+        Unloads the provider.
+        """
+
+        ProcessingConfig.removeSetting(self.mSettingsName)
+        del ProcessingConfig.settingIcons[self.name()]
+        #ProcessingConfig.removeSetting(GdalUtils.GDAL_HELP_PATH)
+
+
+    def isActive(self):
+        """Return True if the provider is activated and ready to run algorithms"""
+        return True
+        #return ProcessingConfig.getSetting(self.settingsName)
+
+    def setActive(self, active):
+        ProcessingConfig.setSettingValue(self.mSettingsName, active)
+
+
     def loadAlgorithms(self):
-        self.algs = []
-        self._loadAlgorithms()
-        #ensure that all loaded GeoAlgorithms have this class instance as provider
-        for alg in self.algs:
+
+        for alg in self.mAlgorithms:
             alg.provider = self
 
-    def _loadAlgorithms(self):
-        #load other algorithms
-        self.algs.extend(self._algs[:])
+    """
+    def addAlgorithm(self, algorithm):
+        assert isinstance(algorithm, QgsProcessingAlgorithm)
 
-    def appendAlgorithms(self, geoAlgorithms):
-        """
-        Allows to add GeoAlgorithms during runtime
-        :param geoAlgorithms: list-of-GeoAlgorithms
-        """
+        # update self._algs. This will be used if QGIS PF calls _loadAlgorithms
+        if algorithm not in self.mAlgorithms:
+            algorithm.setProvider(self)
+            self.mAlgorithms.append(algorithm)
 
-        for ga in [ga for ga in geoAlgorithms if isinstance(ga, GeoAlgorithm)]:
-            assert isinstance(ga, GeoAlgorithm)
-            # update self._algs. This will be used if QGIS PF calls _loadAlgorithms
-            if ga not in self._algs:
-                ga.provider = self
-                self._algs.append(ga)
+        # update self.algs. This might be used by QGIS PF during runtime
+        if algorithm not in self.algs:
+            self.algs.append(algorithm)
 
-            # update self.algs. This might be used by QGIS PF during runtime
-            if ga not in self.algs:
-                self.algs.append(ga)
-
-        #append the GeoAlgorithms to the QGIS PF algorithm list
-        from processing.core.alglist import algList
 
         #in case the processing framework was de-activated and activated again, we need to ensure that this provider instance is
         #part of it
+        reg = QgsApplication.processingRegistry()
         if self.getName() not in algList.algs.keys():
             Processing.addProvider(self)
 
         pAlgs = algList.algs[self.getName()]
         if len(self.algs) > 0:
-            for ga in [ga for ga in self._algs \
+            for ga in [ga for ga in self.mAlgorithms \
                        if isinstance(ga, GeoAlgorithm) and ga not in pAlgs]:
                 pAlgs[ga.commandLineName()] = ga
 
             algList.providerUpdated.emit(self.getName())
+    """
 
+
+if __name__ == '__main__':
+    from enmapbox.gui.utils import *
+    app = initQgisApplication()
+
+    iface = QgisInterfaceMockup.create()
+
+
+
+
+
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+    import qgis.utils
+    p = EnMAPBoxAlgorithmProvider()
+
+    reg = QgsApplication.processingRegistry()
+    reg.addProvider(p)
+    from processing.gui.ConfigDialog import ConfigDialog
+    dlg1 = ConfigDialog()
+    dlg1.show()
+
+    #from processing.algs.exampleprovider.ExampleAlgorithm import ExampleAlgorithm
+    from processing.algs.gdal.buildvrt import buildvrt
+    p.addAlgorithm(buildvrt())
+
+    from processing.gui.ProcessingToolbox import ProcessingToolbox
+    dlg2 = ProcessingToolbox()
+    dlg2.show()
+
+    app.exec_()
