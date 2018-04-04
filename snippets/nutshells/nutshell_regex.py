@@ -1,13 +1,15 @@
 import re, os
 
 
-# regular expressions can be used to describe and extract patterns of characters / word
-
+# regular expressions can be used to describe, extract or replaces patterns of characters
 # extract all numbers from a string
 print(re.findall('[0123456789]+', 'lore 12 ipsum 32 tralala 211'))
 print(re.findall('\d+', 'lore 12 ipsum 32 tralala 211')) #the same, '\d' for digits
 
 
+
+
+#let's do some geo stuff:
 # extract all latitude values
 a_complicated_string = """[{"type":"polyline","latLngs":[{"lat":52.931796,"lng":13.0189},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.932341,"lng":13.015449},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.933029,"lng":12.972047},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.93315,"lng":12.971325},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.921248,"lng":12.903533},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.92323,"lng":12.857292},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.923098,"lng":12.854554},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.923069,"lng":12.854014},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.923026,"lng":12.853402},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.922774,"lng":12.850958},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.926853,"lng":12.819442},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.927064,"lng":12.814569},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.927102,"lng":12.812133},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.926597,"lng":12.809967},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.926583,"lng":12.808324},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.926414,"lng":12.807165},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.925776,"lng":12.805178},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.925952,"lng":12.804001},{"lat":52.746462,"lng":13.513278}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.92569,"lng":12.802545},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.925619,"lng":12.802111},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.925535,"lng":12.801109},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.9255,"lng":12.800682},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.925475,"lng":12.798277},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.923973,"lng":12.791221},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.931796,"lng":13.0189},{"lat":53.309496,"lng":13.849219},{"lat":52.932341,"lng":13.015449}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.933029,"lng":12.972047},{"lat":53.309496,"lng":13.849219},{"lat":52.93315,"lng":12.971325}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.921248,"lng":12.903533},{"lat":53.309496,"lng":13.849219},{"lat":52.92323,"lng":12.857292}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.923098,"lng":12.854554},{"lat":53.309496,"lng":13.849219},{"lat":52.923069,"lng":12.854014}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.923026,"lng":12.853402},{"lat":53.309496,"lng":13.849219},{"lat":52.922774,"lng":12.850958}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":53.309496,"lng":13.849219},{"lat":52.746462,"lng":13.513278}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.746462,"lng":13.513278},{"lat":53.310092,"lng":13.850617}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":53.310092,"lng":13.850617},{"lat":52.926853,"lng":12.819442}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.927102,"lng":12.812133},{"lat":53.310092,"lng":13.850617},{"lat":52.927064,"lng":12.814569}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.926597,"lng":12.809967},{"lat":53.310092,"lng":13.850617},{"lat":52.926583,"lng":12.808324}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.925952,"lng":12.804001},{"lat":53.310092,"lng":13.850617},{"lat":52.925776,"lng":12.805178}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.926414,"lng":12.807165},{"lat":53.310092,"lng":13.850617}],"color":"#666666"},{"type":"polyline","latLngs":[{"lat":52.746462,"lng":13.513278},{"lat":53.312821,"lng":13.854465}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":53.312821,"lng":13.854465},{"lat":52.92569,"lng":12.802545}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.925535,"lng":12.801109},{"lat":53.312821,"lng":13.854465},{"lat":52.925619,"lng":12.802111}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.925475,"lng":12.798277},{"lat":53.312821,"lng":13.854465},{"lat":52.9255,"lng":12.800682}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.923973,"lng":12.791221},{"lat":53.312821,"lng":13.854465}],"color":"#c38a4a"},{"type":"polyline","latLngs":[{"lat":52.963053,"lng":14.425574},{"lat":52.746462,"lng":13.513278},{"lat":52.962194,"lng":14.430319}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":52.960768,"lng":14.432888},{"lat":52.746462,"lng":13.513278},{"lat":52.960701,"lng":14.435442}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":52.960785,"lng":14.436454},{"lat":52.746462,"lng":13.513278},{"lat":52.960429,"lng":14.438336}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":52.746462,"lng":13.513278},{"lat":53.306483,"lng":13.860793},{"lat":52.963053,"lng":14.425574}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":52.962194,"lng":14.430319},{"lat":53.306483,"lng":13.860793}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":53.307797,"lng":13.859117},{"lat":52.746462,"lng":13.513278},{"lat":53.308603,"lng":13.858075}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":53.310482,"lng":13.857157},{"lat":52.746462,"lng":13.513278},{"lat":53.312821,"lng":13.854465}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":52.962194,"lng":14.430319},{"lat":53.307797,"lng":13.859117},{"lat":52.960768,"lng":14.432888}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":53.307797,"lng":13.859117},{"lat":52.960701,"lng":14.435442},{"lat":53.308603,"lng":13.858075}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":53.308603,"lng":13.858075},{"lat":52.960785,"lng":14.436454},{"lat":53.310482,"lng":13.857157}],"color":"#a24ac3"},{"type":"polyline","latLngs":[{"lat":53.310482,"lng":13.857157},{"lat":52.960429,"lng":14.438336},{"lat":53.312821,"lng":13.854465}],"color":"#a24ac3"}]"""
 print(re.findall('"lat":\d+.\d+',a_complicated_string ))
@@ -31,6 +33,30 @@ sentinel2_xml_subset = """<        <Product_Info>
         </Product_Info>
 """
 print(re.search('<Datatake.*>', sentinel2_xml_subset).group())
+
+
+#regular expressions are often helpful to filter files:
+#imagine you have a directory like this:
+
+files = ['file1.txt',
+         'file1.bsq',
+         'file1.bsq.xml',
+         'file1',
+         'file2.txt',
+         'file2.bsq',
+         'file2',
+         'file3.tif']
+
+#classic windows wildcards like '*' are not capable to return the file name without any extension only.
+#get the "file" but not the "file.extension"
+files_of_interest = [f for f in files if re.search('file[^.]*$', f)]
+print(files_of_interest)
+
+#Classic wildcards can not define options, like get "bsq" OR "tif" file, but neglects 'xml'"
+files_of_interest = [f for f in files if re.search('[.](bsq|tif)$', f)]
+print(files_of_interest)
+
+
 
 
 #this file stores a long list of file paths.
