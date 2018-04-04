@@ -152,8 +152,13 @@ def getDOMAttributes(elem):
     return values
 
 
+def copyQGISRessourceFile(pathQGISRepo):
+    assert os.path.isdir(pathQGISRepo)
+    dirTarget = os.path.join(DIR_REPO, *['qgisresources'])
+    os.makedirs(dirTarget, exist_ok=True)
+    compile_rc_files(pathQGISRepo, targetDir=dirTarget)
 
-def compile_rc_files(ROOT):
+def compile_rc_files(ROOT, targetDir=None):
     #find ui files
     ui_files = file_search(ROOT, '*.ui', recursive=True)
     qrcs = set()
@@ -188,11 +193,19 @@ def compile_rc_files(ROOT):
         pathQrc = os.path.normpath(jp(root_dir, f))
         assert os.path.exists(pathQrc), pathQrc
         bn = os.path.basename(pathQrc)
-        dn = os.path.dirname(pathQrc)
+
+        if isinstance(targetDir, str):
+            dn = targetDir
+        else:
+            dn = os.path.dirname(pathQrc)
+        os.makedirs(dn, exist_ok=True)
         bn = os.path.splitext(bn)[0]
         pathPy = os.path.join(dn, bn+'.py' )
-        subprocess.call(['pyrcc5', '-o', pathPy, pathQrc])
-        s = ""
+
+        try:
+            subprocess.call(['pyrcc5', '-o', pathPy, pathQrc])
+        except Exception as ex:
+            print('Failed call: pyrcc5 -o {} {}'.format(pathPy, pathQrc))
 
 
 def fileNeedsUpdate(file1, file2):
@@ -570,6 +583,10 @@ if __name__ == '__main__':
     qgsApp = initQgisApplication()
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
+
+    if True:
+        pathQGISRepo = r'C:\Users\geo_beja\Repositories\QGIS'
+        copyQGISRessourceFile(pathQGISRepo)
 
     if False:
         #convert SVG to PNG and add link them into the resource file
