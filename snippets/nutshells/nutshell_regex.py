@@ -1,12 +1,13 @@
-import re, os
-
+import re, os, datetime
 
 # regular expressions can be used to describe, extract or replaces patterns of characters
 # extract all numbers from a string
 print(re.findall('[0123456789]+', 'lore 12 ipsum 32 tralala 211'))
 print(re.findall('\d+', 'lore 12 ipsum 32 tralala 211')) #the same, '\d' for digits
 
-
+# use a regex to replace a substring
+original_string = 'Creation date: <placeholder>' #please note that <placeholder> might be something more complex
+print(re.sub('<placeholder>', datetime.date.today().strftime('%B %d, %Y'), original_string))
 
 
 #let's do some geo stuff:
@@ -72,9 +73,11 @@ f.close()
 #see https://landsat.usgs.gov/what-are-naming-conventions-landsat-scene-identifiers
 #L<sensor><satellite><WRS path><WRS row><year><day-of-year><ground station id><archive version number>
 regexLandsatID = re.compile('L[CET][4578]\d{3}\d{3}\d{4}\d{3}[A-Z]{3}\d{2}')
+#once compiled, the regex has not be compiled any more and is reusable in every iteration of a loop
 
 sceneIDs = set(regexLandsatID.findall('\n'.join(list_of_filenames)))
 print('found {} different scene IDs'.format(len(sceneIDs)))
+print(sceneIDs)
 
 #find the FMask files
 regexFMask = re.compile(regexLandsatID.pattern + '_cfmask.hdr')
