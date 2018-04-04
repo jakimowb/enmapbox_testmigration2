@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
-                              HUB TimeSeriesViewer
+                              EnMAP-Box
                               -------------------
         begin                : 2017-08-04
         git sha              : $Format:%H$
@@ -195,7 +195,6 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
                     unitString = str(QgsUnitTypes.encodeUnit(distUnit))
 
                     if unitString == 'meters':
-                        from timeseriesviewer.utils import scaledUnitString
                         labelText = scaledUnitString(pred, suffix='m')
                     else:
                         labelText = '{}{}'.format(pred, unitString)
@@ -477,4 +476,18 @@ class CrosshairDialog(QgsDialog):
         canvas.refresh()
         #canvas.updateMap()
         canvas.refreshAllLayers()
+
+
+if __name__ == "__main__":
+    from enmapboxtestdata import enmap
+    from enmapbox.gui.utils import initQgisApplication
+    app = initQgisApplication()
+    from enmapbox.gui.mapcanvas import MapCanvas
+    mapCanvas = MapCanvas()
+
+    r = CrosshairDialog.getCrosshairStyle(
+        crosshairStyle=mapCanvas.crosshairStyle(), mapCanvas=mapCanvas
+    )
+    print(r)
+    app.exec_()
 

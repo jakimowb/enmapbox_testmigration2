@@ -278,7 +278,7 @@ class EnMAPBox(QgisInterface, QObject):
             try:
                 messageLog('initializes an own QGIS Processing framework')
                 self.initQGISProcessingFramework()
-                installQPFExtensions()
+                #installQPFExtensions()
                 self.ui.menuProcessing.setEnabled(True)
                 self.ui.menuProcessing.setVisible(True)
                 messageLog('QGIS Processing framework initialized')

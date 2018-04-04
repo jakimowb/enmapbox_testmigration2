@@ -19,6 +19,8 @@
 
 from qgis.core import *
 from qgis.gui import *
+from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
+from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapMouseEvent
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -788,7 +790,7 @@ class CanvasLink(QObject):
 
                     _nextGeneration.extend([filterNextGenerationLinks(srcCanvas)])
                 nextGeneration = removeEmptyEntries(_nextGeneration)
-            logger.debug('Linking done')
+
 
     def containsCanvas(self, canvas):
         return canvas in self.canvases
@@ -910,8 +912,8 @@ class MapCanvas(QgsMapCanvas):
     _cnt = 0
 
 
-    def __init__(self, *args, **kwds):
-        super(MapCanvas, self).__init__(*args, **kwds)
+    def __init__(self, parent=None):
+        super(MapCanvas, self).__init__(parent=parent)
         #KeepRefs.__init__(self)
         #from enmapbox.gui.docks import MapDock
         #assert isinstance(parentMapDock, MapDock)
@@ -1057,19 +1059,11 @@ class MapCanvas(QgsMapCanvas):
             self.saveAsImage(path, None, fileType)
             settings.setValue('EMB_SAVE_IMG_DIR', os.path.dirname(path))
 
-    def setCrs(self, crs):
-        assert isinstance(crs, QgsCoordinateReferenceSystem)
-        if self.crs() != crs:
-            self.setDestinationCrs(crs)
-
-    def crs(self):
-        return self.mapSettings().destinationCrs()
-
 
     def setCRSfromDialog(self, *args):
         setMapCanvasCRSfromDialog(self)
 
-    def setCrosshairStyle(self,crosshairStyle):
+    def setCrosshairStyle(self, crosshairStyle):
         if crosshairStyle is None:
             self.mCrosshairItem.crosshairStyle.setShow(False)
             self.mCrosshairItem.update()
@@ -1099,14 +1093,14 @@ class MapCanvas(QgsMapCanvas):
 
     def zoomToFeatureExtent(self, spatialExtent):
         assert isinstance(spatialExtent, SpatialExtent)
-        self.setSpatialExtent(spatialExtent)
+        self.setExtent(spatialExtent)
 
     def moveCenterToPoint(self, spatialPoint):
         assert isinstance(spatialPoint, SpatialPoint)
 
 
     def setName(self, name):
-        assert type(name) in [str, unicode]
+        assert isinstance(name, str)
         old = self.mName
         self.mName = name
 
@@ -1201,15 +1195,11 @@ class MapCanvas(QgsMapCanvas):
 
         #self.sigContextMenuEvent.emit(event)
 
-    def setSpatialExtent(self, spatialExtent):
-        assert isinstance(spatialExtent, SpatialExtent)
-        if self.spatialExtent() != spatialExtent:
-            spatialExtent = spatialExtent.toCrs(self.crs())
-            if spatialExtent:
-                self.setExtent(spatialExtent)
-
-    def setExtent(self, QgsRectangle):
-        super(MapCanvas, self).setExtent(QgsRectangle)
+    def setExtent(self, rectangle):
+        if isinstance(rectangle, SpatialExtent):
+            rectangle = rectangle.toCrs(self.mapSettings().destinationCrs())
+            #rectangle = QgsRectangle(rectangle)
+        super(MapCanvas, self).setExtent(rectangle)
         self.setRenderFlag(True)
 
     def spatialExtent(self):
@@ -1271,15 +1261,14 @@ class MapCanvas(QgsMapCanvas):
             if l not in reg.children():
                 reg.addMapLayer(l, False)
 
-        #set the new layers (QGIS 2 style)
-        #todo: change with QGIS 3
         super(MapCanvas,self).setLayers(newSet)
 
         if not self.mCrsExtentInitialized and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent
             newExtent = SpatialExtent.fromLayer(newSet[0])
-            self.setSpatialExtent(newExtent)
-            self.setCrs(newExtent.crs())
+            self.setDestinationCrs(newExtent.crs())
+            self.setExtent(newExtent)
+
             self.mCrsExtentInitialized = True
         self.setRenderFlag(True)
         self.refreshAllLayers()
@@ -1408,13 +1397,7 @@ class MapDock(Dock):
 
         return appendItemsToMenu(m, self.canvas.contextMenu())
 
-    #
-    #def onCanvasContextMenuEvent(self, event):
-    #    menu = self.contextMenu()
-    #    menu.exec_(event.globalPos())
 
-    def sandboxSlot(self,crs):
-        self.canvas.setDestinationCrs(crs)
 
     def mimeData(self):
         return ['']
@@ -1472,4 +1455,32 @@ class MapDock(Dock):
 
 
 
+
+
+if __name__ == "__main__":
+    from enmapboxtestdata import enmap
+    from enmapbox.gui.utils import initQgisApplication
+    app = initQgisApplication()
+    mapCanvas = MapCanvas()
+    mapCanvas.show()
+    menu = mapCanvas.contextMenu()
+
+    lyr = QgsRasterLayer(enmap)
+    mapCanvas.setDestinationCrs(lyr.crs())
+    mapCanvas.setLayers([lyr])
+
+    menu = mapCanvas.contextMenu()
+    actions = [a for a in menu.children() if isinstance(a, QAction)]
+    len(actions) > 2
+
+    # trigger all context menu actions
+    if True:
+        for action in actions:
+            info = action.text()
+            if info != '':
+                print('Test QAction {}'.format(info))
+                action.trigger()
+
+
+    app.exec_()
 

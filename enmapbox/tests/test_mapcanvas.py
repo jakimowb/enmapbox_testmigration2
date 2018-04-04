@@ -98,8 +98,8 @@ def exampleMapLinking():
 
 if __name__ == "__main__":
 
-    exampleMapLinking()
-    #+unittest.main()
+    #exampleMapLinking()
+    unittest.main()
 
 
 

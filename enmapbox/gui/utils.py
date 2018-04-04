@@ -166,7 +166,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgi
         qgsApp.setPrefixPath(PATH_QGIS, True)
         qgsApp.initQgis()
 
-        def printQgisLog(tb, error, level):
+        def printQgisLog(*args):
 
             print(tb)
 
@@ -803,6 +803,22 @@ def saveTransform(geom, crs1, crs2):
                 crs1.description(), crs2.description(), str(geom)))
     return result
 
+def scaledUnitString(num, infix=' ', suffix='B', div=1000):
+    """
+    Returns a human-readable file size string.
+    thanks to Fred Cirera
+    http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    :param num: number in bytes
+    :param suffix: 'B' for bytes by default.
+    :param div: divisor of num, 1000 by default.
+    :return: the file size string
+    """
+    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+        if abs(num) < div:
+            return "{:3.1f}{}{}{}".format(num, infix, unit, suffix)
+        num /= div
+    return "{:.1f}{}{}{}".format(num, infix, unit, suffix)
+
 
 class SpatialExtent(QgsRectangle):
     """
@@ -844,9 +860,6 @@ class SpatialExtent(QgsRectangle):
 
         return SpatialExtent(crs, min(xValues), min(yValues),
                                   max(xValues), max(yValues))
-
-
-
 
 
     @staticmethod

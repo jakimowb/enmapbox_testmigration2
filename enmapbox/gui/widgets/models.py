@@ -583,8 +583,6 @@ class TreeView(QTreeView):
         super(TreeView, self).__init__(*args, **kwds)
 
 
-
-
 if __name__ == '__main__':
     from enmapbox.gui.utils import initQgisApplication
 
