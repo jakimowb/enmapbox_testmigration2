@@ -16,8 +16,14 @@ class CUIProgressBar(ProgressBar):
             print('100%')
         else:
             print('{}%..'.format(percentage), end='')
-        sys.stdout.flush()
+        try:
+            sys.stdout.flush()
+        except:
+            pass
 
     def setText(self, text):
         print(text)
-        sys.stdout.flush()
+        try:
+            sys.stdout.flush()
+        except:
+            pass

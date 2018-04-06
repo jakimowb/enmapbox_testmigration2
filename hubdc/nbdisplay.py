@@ -1,7 +1,7 @@
 from bokeh.plotting import figure
 from bokeh.io import output_notebook, show
 import numpy as np
-from hubdc.model import Raster
+from hubdc.core import RasterDataset
 
 def displayMultibandColor(image, indices=None, ranges=None, title=''):
 
@@ -20,7 +20,7 @@ def displayMultibandColor(image, indices=None, ranges=None, title=''):
         ysize, xsize = image[0].shape
         x_range = [0, xsize]
         y_range = [ysize, 0]
-    elif isinstance(image, Raster):
+    elif isinstance(image, RasterDataset):
         image = [image.band(index=index).readAsArray() for index in indices]
         ysize, xsize = image[0].shape
         x_range = [0, xsize]
@@ -43,7 +43,7 @@ def displaySinglebandGrey(band, index=0, range=None, title=''):
             band = band[index]
         assert band.ndim == 2
         displayMultibandColor(image=[band] * 3, ranges=range, title=title)
-    elif isinstance(band, Raster):
+    elif isinstance(band, RasterDataset):
         displayMultibandColor(image=band, indices=[index] * 3, ranges=range, title=title)
 
 
@@ -56,7 +56,7 @@ def displaySinglebandPseudocolor(band, index=0, range=None, colormap='RdYlGn', t
         if band.ndim == 3:
             band = band[index]
         assert band.ndim == 2
-    elif isinstance(band, Raster):
+    elif isinstance(band, RasterDataset):
         band = band.band(index=index).readAsArray()
 
     grey = bandToGrey(band, range=range)
@@ -107,9 +107,9 @@ def get_cmap(name=None, lut=None):
     return bokehpalette
 
 from hubdc.testdata import *
-from hubdc.model import *
-r = openRaster(LT51940232010189KIS01.nir)
-v = openVector(BrandenburgDistricts.shp)
+from hubdc.core import *
+r = openRasterDataset(LT51940232010189KIS01.nir)
+v = openVectorDataset(BrandenburgDistricts.shp)
 #band = r.readAsArray()
 #displaySinglebandGrey(band=band, dataStretch=(np.min, np.max), title='Landsat NIR')
 displaySinglebandGrey(band=r, range=(0, 50), title='Landsat NIR')

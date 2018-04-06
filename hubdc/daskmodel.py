@@ -2,7 +2,7 @@ from osgeo import gdal_array
 import numpy as np
 import dask.array as da
 from dask.delayed import delayed
-from hubdc.model import *
+from hubdc.core import *
 import multiprocessing
 
 DEFAULT_XCHUNK = 256
@@ -10,7 +10,7 @@ DEFAULT_YCHUNK = 256
 
 
 def createSlicableRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', format='MEM', options=()):
-    dataset = createRaster(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=format, options=options)
+    dataset = createRasterDataset(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=format, options=options)
     dataset.close()
     return SlicableRaster(filename=filename, grid=grid)
 
@@ -18,8 +18,8 @@ def createSlicableRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', 
 class SlicableRaster(object):
     def __init__(self, filename, grid=None, **kwargs):
 
-        raster = openRaster(filename=filename, eAccess=gdal.GA_ReadOnly)
-        assert isinstance(raster, Raster)
+        raster = openRasterDataset(filename=filename, eAccess=gdal.GA_ReadOnly)
+        assert isinstance(raster, RasterDataset)
         if grid is None:
             grid = raster.grid()
         assert isinstance(grid, Grid)
@@ -42,7 +42,7 @@ class SlicableRaster(object):
         return self._metadataDict
 
     def __getitem__(self, slices):
-        ds = openRaster(filename=self._filename, eAccess=gdal.GA_ReadOnly)
+        ds = openRasterDataset(filename=self._filename, eAccess=gdal.GA_ReadOnly)
         grid, bandIndicies = self._evaluateSlices(slices=slices)
         if len(bandIndicies) == ds.zsize():
             #array = ds.warp(grid=grid, **self._kwargs).readAsArray()
@@ -56,7 +56,7 @@ class SlicableRaster(object):
         return array
 
     def __setitem__(self, slices, array):
-        ds = openRaster(filename=self._filename, eAccess=gdal.GA_Update)
+        ds = openRasterDataset(filename=self._filename, eAccess=gdal.GA_Update)
         grid, bandIndicies = self._evaluateSlices(slices=slices)
 
         # workaround: dask sometimes passes a 4d array, when a 3d array is expected, not sure why this happens
@@ -100,7 +100,7 @@ class SlicableRaster(object):
 
 class SlicableVector(object):
     def __init__(self, filename, grid, layerNameOrIndex=0, dtype=np.float32, noDataValue=None, **kwargs):
-        vector = openVector(filename=filename, layerNameOrIndex=layerNameOrIndex, update=False)
+        vector = openVectorDataset(filename=filename, layerNameOrIndex=layerNameOrIndex, update=False)
         assert isinstance(vector, Vector)
         assert isinstance(grid, Grid)
 
@@ -123,7 +123,7 @@ class SlicableVector(object):
         return self._metadataDict
 
     def __getitem__(self, slices):
-        ds = openVector(filename=self._filename, layerNameOrIndex=self._layerNameOrIndex, update=False)
+        ds = openVectorDataset(filename=self._filename, layerNameOrIndex=self._layerNameOrIndex, update=False)
         grid, return2d = self._evaluateSlices(slices=slices)
 
         array = ds.rasterize(grid=grid, gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(self.dtype), noDataValue=self.noDataValue(),
@@ -283,7 +283,7 @@ def storeDaskRasters(rasters, filenames, format='ENVI', options=()):
         gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(raster.dtype)
         target = createSlicableRaster(grid=raster.grid(), bands=raster.shape[0], gdalType=gdalType,
                                       filename=filename, format=format, options=options)
-        ds = openRaster(filename=filename)
+        ds = openRasterDataset(filename=filename)
         ds.setNoDataValue(raster.noDataValue())
         ds.setMetadataDict(raster.metadataDict())
         targets.append(target)
@@ -291,7 +291,7 @@ def storeDaskRasters(rasters, filenames, format='ENVI', options=()):
     lock = multiprocessing.Manager().Lock()
     da.store(sources=rasters, targets=targets, lock=lock)
     for filename in filenames:
-        ds = openRaster(filename=filename)
+        ds = openRasterDataset(filename=filename)
         ds.writeENVIHeader()
         ds.close()
 
