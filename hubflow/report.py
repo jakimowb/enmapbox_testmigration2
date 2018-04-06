@@ -201,7 +201,7 @@ class ReportTable():
             if colHeaders is not None:
                 table[0].cells.insert(0, TableCell('', header=True, attribs={'colspan': len(rowHeaders), 'rowspan': len(colHeaders)}))
 
-            for rowheader, rowspan  in reversed(zip(rowHeaders, rowSpans)):
+            for rowheader, rowspan  in reversed(list(zip(rowHeaders, rowSpans))):
                 i = len(colHeaders) if colHeaders is not None else 0
                 for header, span in zip(rowheader, rowspan):
 

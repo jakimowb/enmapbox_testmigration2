@@ -1,7 +1,7 @@
-import gdal
+from osgeo import gdal
 import numpy as np
 import hubdc.applier
-import hubflow.types
+import hubflow.core
 import hubflow.signals
 
 ApplierControls = hubdc.applier.ApplierControls
@@ -12,7 +12,7 @@ class Applier(hubdc.applier.Applier):
         hubdc.applier.Applier.__init__(self, controls=kwargs.get('controls', None))
         self.controls.setProgressBar(kwargs.get('progressBar', None))
         grid = kwargs.get('grid', defaultGrid)
-        if isinstance(grid, hubflow.types.Raster):
+        if isinstance(grid, hubflow.core.Raster):
             grid = grid.grid
         # assert isinstance(grid, hubdc.applier.Grid)
         self.controls.setGrid(grid)
@@ -32,26 +32,36 @@ class Applier(hubdc.applier.Applier):
         self.outputRaster.setRaster(key=name, value=raster)
 
     def setFlowRaster(self, name, raster):
-        assert isinstance(raster, hubflow.types.Raster)
+        assert isinstance(raster, hubflow.core.Raster)
         raster = hubdc.applier.ApplierInputRaster(filename=raster.filename)
         self.inputRaster.setRaster(key=name, value=raster)
 
     def setFlowMask(self, name, mask):
         if mask is None or mask.filename is None:
             pass
-        elif isinstance(mask, (hubflow.types.Mask, hubflow.types.Raster)):
+        elif isinstance(mask, (hubflow.core.Mask, hubflow.core.Raster)):
             self.setFlowRaster(name=name, raster=mask)
-        elif isinstance(mask, (hubflow.types.Vector, hubflow.types.VectorClassification)):
+        elif isinstance(mask, (hubflow.core.Vector, hubflow.core.VectorClassification)):
             self.setFlowVector(name=name, vector=mask)
         else:
             assert 0
 
+    def setFlowMasks(self, masks):
+        name = 'mask'
+        if masks is None:
+            return
+        if isinstance(masks, hubflow.core.FlowObject):
+            masks = [masks]
+
+        for i, mask in enumerate(masks):
+            self.setFlowMask(name+str(i), mask=mask)
+
     def setFlowClassification(self, name, classification):
         if classification is None or classification.filename is None:
             pass
-        elif isinstance(classification, hubflow.types.Classification):
+        elif isinstance(classification, (hubflow.core.Classification, hubflow.core.Probability)):
             self.setFlowRaster(name=name, raster=classification)
-        elif isinstance(classification, hubflow.types.VectorClassification):
+        elif isinstance(classification, hubflow.core.VectorClassification):
             self.setFlowVector(name=name, vector=classification)
         else:
             assert 0, classification
@@ -59,7 +69,7 @@ class Applier(hubdc.applier.Applier):
     def setFlowRegression(self, name, regression):
         if regression is None or regression.filename is None:
             pass
-        elif isinstance(regression, hubflow.types.Regression):
+        elif isinstance(regression, hubflow.core.Regression):
             self.setFlowRaster(name=name, raster=regression)
         else:
             assert 0, regression
@@ -67,24 +77,24 @@ class Applier(hubdc.applier.Applier):
     def setFlowProbability(self, name, probability):
         if probability is None or probability.filename is None:
             pass
-        elif isinstance(probability, hubflow.types.Probability):
+        elif isinstance(probability, hubflow.core.Probability):
             self.setFlowRaster(name=name, raster=probability)
-        elif isinstance(probability, (hubflow.types.Classification, hubflow.types.VectorClassification)):
+        elif isinstance(probability, (hubflow.core.Classification, hubflow.core.VectorClassification)):
             self.setFlowClassification(name=name, classification=probability)
         else:
             assert 0, probability
 
     def setFlowVector(self, name, vector):
-        if isinstance(vector, (hubflow.types.Vector, hubflow.types.VectorClassification)):
+        if isinstance(vector, (hubflow.core.Vector, hubflow.core.VectorClassification)):
             self.inputVector.setVector(key=name, value=hubdc.applier.ApplierInputVector(filename=vector.filename,
                                                                                         layerNameOrIndex=vector.layer))
         else:
             assert 0
 
     def setFlowInput(self, name, input):
-        if isinstance(input, hubflow.types.Raster):
+        if isinstance(input, hubflow.core.Raster):
             self.setFlowRaster(name=name, raster=input)
-        elif isinstance(input, hubflow.types.Vector):
+        elif isinstance(input, hubflow.core.Vector):
             self.setFlowVector(name=name, vector=input)
         else:
             assert 0
@@ -93,15 +103,15 @@ class Applier(hubdc.applier.Applier):
 class ApplierOperator(hubdc.applier.ApplierOperator):
     def flowRasterArray(self, name, raster, indicies=None, overlap=0):
 
-        if isinstance(raster, hubflow.types.Regression):
+        if isinstance(raster, hubflow.core.Regression):
             array = self.flowRegressionArray(name=name, regression=raster, overlap=overlap)
-        elif isinstance(raster, hubflow.types.Classification):
+        elif isinstance(raster, hubflow.core.Classification):
             array = self.flowClassificationArray(name=name, classification=raster, overlap=overlap)
-        elif isinstance(input, hubflow.types.Probability):
+        elif isinstance(input, hubflow.core.Probability):
             array = self.flowProbabilityArray(name=name, probability=raster, overlap=overlap)
-        elif isinstance(raster, hubflow.types.Mask):
+        elif isinstance(raster, hubflow.core.Mask):
             array = self.flowMaskArray(name=name, mask=raster, overlap=overlap)
-        elif isinstance(raster, hubflow.types.Raster):
+        elif isinstance(raster, hubflow.core.Raster):
             raster = self.inputRaster.raster(key=name)
             if indicies is None:
                 array = raster.array(overlap=overlap)
@@ -112,9 +122,9 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         return array
 
     def flowVectorArray(self, name, vector, overlap=0):
-        if isinstance(input, hubflow.types.VectorClassification):
+        if isinstance(input, hubflow.core.VectorClassification):
             array = self.flowClassificationArray(name=name, classification=vector, overlap=overlap)
-        elif isinstance(vector, hubflow.types.Vector):
+        elif isinstance(vector, hubflow.core.Vector):
             array = self.inputVector.vector(key=name).array(initValue=vector.initValue, burnValue=vector.burnValue,
                                                             burnAttribute=vector.burnAttribute,
                                                             allTouched=vector.allTouched, filterSQL=vector.filterSQL,
@@ -130,7 +140,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
 
         if mask is None or mask.filename is None:
             array = self.full(value=True, bands=1, dtype=np.bool, overlap=overlap)
-        elif isinstance(mask, hubflow.types.Mask):
+        elif isinstance(mask, hubflow.core.Mask):
             #array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Mode, noDataValue="none")
             #array = aggregateFunction(array != mask.noDataValue)
 
@@ -151,23 +161,36 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             # aggregate to single band mask
             array = aggregateFunction(maskArrays)
 
-        elif isinstance(mask, hubflow.types.Vector):
+        elif isinstance(mask, hubflow.core.Vector):
             array = self.inputVector.vector(key=name).array(overlap=overlap, allTouched=mask.allTouched,
                                                             filterSQL=mask.filterSQL, dtype=np.uint8) == 1
-        elif isinstance(mask, hubflow.types.VectorClassification):
+        elif isinstance(mask, hubflow.core.VectorClassification):
             array = self.inputVector.vector(key=name).array(overlap=overlap, dtype=np.uint8) == 1
         else:
-            raise Exception('wrong mask type')
+            assert 0, repr()
 
         return array
 
-    def flowClassificationArray(self, name, classification, oversampling=1, overlap=0):
+    def flowMasksArray(self, masks, aggregateFunction=None, overlap=0):
+        name = 'mask'
+        array = self.full(value=True, bands=1, dtype=np.bool, overlap=overlap)
+        if masks is None:
+            return array
+
+        if isinstance(masks, hubflow.core.FlowObject):
+            masks = [masks]
+
+        for i, mask in enumerate(masks):
+            array *= self.flowMaskArray(name=name+str(i), mask=mask, aggregateFunction=aggregateFunction,
+                                        overlap=overlap)
+        return array
+
+    def flowClassificationArray(self, name, classification, overlap=0):
         if classification is None or classification.filename is None:
             return np.array([])
         elif isinstance(classification,
-                        (hubflow.types.Classification, hubflow.types.VectorClassification, hubflow.types.Probability)):
-            fractionArray = self.flowProbabilityArray(name=name, probability=classification, oversampling=oversampling,
-                                                      overlap=overlap)
+                        (hubflow.core.Classification, hubflow.core.VectorClassification, hubflow.core.Probability)):
+            fractionArray = self.flowProbabilityArray(name=name, probability=classification, overlap=overlap)
             invalid = np.all(fractionArray == -1, axis=0, keepdims=True)
             array = np.uint8(np.argmax(fractionArray, axis=0)[None] + 1)
             array[invalid] = 0
@@ -178,7 +201,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
     def flowRegressionArray(self, name, regression, overlap=0):
         if regression is None or regression.filename is None:
             array = np.array([])
-        elif isinstance(regression, hubflow.types.Regression):
+        elif isinstance(regression, hubflow.core.Regression):
             array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Average,
                                                             noDataValue=regression.noDataValue)
             noDataFraction = self.inputRaster.raster(key=name).fractionArray(categories=[regression.noDataValue],
@@ -190,17 +213,17 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             assert 0, regression
         return array
 
-    def flowProbabilityArray(self, name, probability, oversampling=1, overlap=0):
+    def flowProbabilityArray(self, name, probability, overlap=0):
         if probability is None or probability.filename is None:
             array = np.array([])
-        elif isinstance(probability, hubflow.types.Probability):
+        elif isinstance(probability, hubflow.core.Probability):
             array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Average)
             invalid = self.maskFromFractionArray(fractionArray=array,
                                                  minOverallCoverage=probability.minOverallCoverage,
                                                  minWinnerCoverage=probability.minWinnerCoverage,
                                                  invert=True)
             array[:, invalid] = -1
-        elif isinstance(probability, hubflow.types.Classification):
+        elif isinstance(probability, hubflow.core.Classification):
             categories = range(1, probability.classDefinition.classes + 1)
             array = self.inputRaster.raster(key=name).fractionArray(categories=categories, overlap=overlap)
             invalid = self.maskFromFractionArray(fractionArray=array,
@@ -208,7 +231,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
                                                  minWinnerCoverage=probability.minWinnerCoverage,
                                                  invert=True)
             array[:, invalid] = -1
-        elif isinstance(probability, hubflow.types.VectorClassification):
+        elif isinstance(probability, hubflow.core.VectorClassification):
 
             # initialize result array
             array = self.full(value=-1, bands=probability.classDefinition.classes, dtype=np.float32, overlap=overlap)
@@ -221,7 +244,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             if len(categories) > 0:
                 fractionArray = self.inputVector.vector(key=name).fractionArray(categories=categories,
                                                                                 categoryAttribute=probability.classAttribute,
-                                                                                oversampling=oversampling,
+                                                                                oversampling=probability.oversampling,
                                                                                 overlap=overlap)
                 valid = self.maskFromFractionArray(fractionArray=fractionArray,
                                                    minOverallCoverage=probability.minOverallCoverage,
@@ -245,48 +268,60 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         return array
 
     def flowInputArray(self, name, input, overlap=0):
-        if isinstance(input, hubflow.types.Vector):
+        if isinstance(input, hubflow.core.Vector):
             array = self.flowVectorArray(name=name, vector=input, overlap=overlap)
-        elif isinstance(input, hubflow.types.Raster):
+        elif isinstance(input, hubflow.core.Raster):
             array = self.flowRasterArray(name=name, raster=input, overlap=overlap)
         else:
             assert 0
         return array
 
     def flowInputZSize(self, name, input):
-        if isinstance(input, hubflow.types.Vector):
+        if isinstance(input, hubflow.core.Vector):
             shape = 1
-        elif isinstance(input, hubflow.types.Raster):
+        elif isinstance(input, hubflow.core.Raster):
             shape = input.dataset().zsize()
         else:
             assert 0
         return shape
 
     def flowInputDType(self, name, input):
-        if isinstance(input, hubflow.types.Vector):
+        if isinstance(input, hubflow.core.Vector):
             dtype = input.dtype
-        elif isinstance(input, hubflow.types.Raster):
+        elif isinstance(input, hubflow.core.Raster):
             dtype = input.dataset().dtype()
         else:
             assert 0
         return dtype
 
     def setFlowMetadataClassDefinition(self, name, classDefinition):
-        assert isinstance(classDefinition, hubflow.types.ClassDefinition)
+        assert isinstance(classDefinition, hubflow.core.ClassDefinition)
         raster = self.outputRaster.raster(key=name)
-        raster.setMetadataItem(key='classes', value=classDefinition.classes + 1, domain='ENVI')
-        raster.setMetadataItem(key='class names', value=['unclassified'] + classDefinition.names, domain='ENVI')
-        raster.setMetadataItem(key='file type', value='ENVI Classification', domain='ENVI')
 
-        lookup = [0, 0, 0] + list(np.array([c.rgb() for c in classDefinition.colors]).flatten())
+        names = ['unclassified'] + classDefinition.names
+        lookup = [0, 0, 0] + list(np.array([(c.red(), c.green(), c.blue()) for c in classDefinition.colors]).flatten())
+
+        # setup in ENVI domain
+        raster.setMetadataItem(key='classes', value=classDefinition.classes + 1, domain='ENVI')
+        raster.setMetadataItem(key='class names', value=names, domain='ENVI')
+        raster.setMetadataItem(key='file type', value='ENVI Classification', domain='ENVI')
         raster.setMetadataItem(key='class lookup', value=lookup, domain='ENVI')
 
+        # setuo in GDAL data model
+        colors = np.array(lookup).reshape(-1, 3)
+        colors = [tuple(color) for color in colors]
+        band = raster.band(0)
+        band.setCategoryNames(names=names)
+        band.setCategoryColors(colors=colors)
+
     def setFlowMetadataProbabilityDefinition(self, name, classDefinition):
-        assert isinstance(classDefinition, hubflow.types.ClassDefinition)
-        self.setFlowMetadataClassDefinition(name=name, classDefinition=classDefinition)
+        assert isinstance(classDefinition, hubflow.core.ClassDefinition)
+        raster = self.outputRaster.raster(key=name)
+
+        lookup = list(np.array([(c.red(), c.green(), c.blue()) for c in classDefinition.colors]).flatten())
         self.setFlowMetadataBandNames(name=name, bandNames=classDefinition.names)
+        raster.setMetadataItem(key='band lookup', value=lookup, domain='ENVI')
         self.setFlowMetadataNoDataValue(name=name, noDataValue=-1)
-        self.outputRaster.raster(key=name).setMetadataItem(key='file type', value='ENVI Standard', domain='ENVI')
 
     def setFlowMetadataRegressionDefinition(self, name, noDataValue, outputNames):
         self.setFlowMetadataNoDataValue(name=name, noDataValue=noDataValue)
@@ -318,7 +353,8 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
 
         if noDataValue is None:
             assert noDataValueSource is not None
-            noDataValue = self.inputRaster.raster(key=noDataValueSource).noDataValue(default=0)
+            raster = self.inputRaster.raster(key=noDataValueSource)
+            noDataValue = raster.noDataValue(default=0)
 
         mask = aggregateFunction(array != noDataValue)
         return mask
