@@ -1,4 +1,4 @@
-from hubdc.model import *
+from hubdc.core import *
 
 
 class UTMTilingScheme(object):

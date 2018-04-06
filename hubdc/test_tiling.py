@@ -3,7 +3,7 @@ import numpy as np
 import tempfile
 from os.path import join
 from hubdc.tiling import UTMTilingScheme
-from hubdc.model import *
+from hubdc.core import *
 from hubdc.testdata import BrandenburgDistricts
 
 class TestUTMTilingScheme(TestCase):
@@ -22,7 +22,7 @@ class TestUTMTilingScheme(TestCase):
                                                                 roi=roi).items():
                     assert isinstance(grid, Grid)
                     array = np.zeros(grid.shape())
-                    createRasterFromArray(grid=grid, array=array,
-                                          filename=join(outdir, '{}_Y{}_X{}.tif'.format(mgrs1mil, iy, ix)),
-                                          driver='GTiff',
-                                          options=['compress=lzw'])
+                    createRasterDatasetFromArray(grid=grid, array=array,
+                                                 filename=join(outdir, '{}_Y{}_X{}.tif'.format(mgrs1mil, iy, ix)),
+                                                 driver='GTiff',
+                                                 options=['compress=lzw'])

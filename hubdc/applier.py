@@ -14,8 +14,8 @@ from timeit import default_timer as now
 import numpy
 from osgeo import gdal, osr, ogr
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
-from hubdc.model import *
-import hubdc.model  # needed for sphinx
+from hubdc.core import *
+import hubdc.core  # needed for sphinx
 from hubdc.writer import Writer, WriterProcess, QueueMock
 from hubdc.progressbar import CUIProgressBar
 import hubdc.hubdcerrors as errors
@@ -88,7 +88,7 @@ class ApplierInputRaster(ApplierIO):
     def fromDataset(cls, dataset):
         '''Create an input raster from an :class:`~hubdc.model.Dataset`.'''
 
-        assert isinstance(dataset, Raster)
+        assert isinstance(dataset, RasterDataset)
         applierInputRaster = ApplierInputRaster(filename='')
         applierInputRaster._dataset = dataset
         return applierInputRaster
@@ -105,7 +105,7 @@ class ApplierInputRaster(ApplierIO):
     def dataset(self):
         '''Returns the :class:`~hubdc.model.Raster` object.'''
         if self._dataset is None:
-            self._dataset = openRaster(filename=self.filename())
+            self._dataset = openRasterDataset(filename=self.filename())
 
         return self._dataset
 
@@ -211,7 +211,7 @@ class ApplierInputRaster(ApplierIO):
         tmpArray = tmpDataset.readAsArray()
 
         binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
-        binarizedDataset = createRasterFromArray(grid=gridInSourceProjection, array=binarizedArray)
+        binarizedDataset = createRasterDatasetFromArray(grid=gridInSourceProjection, array=binarizedArray)
 
         binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
         binarizedInputRaster.setOperator(operator=self.operator())
@@ -294,7 +294,7 @@ class ApplierInputVector(ApplierIO):
     def dataset(self):
         '''Return the :class:`~hubdc.model.Vector` object.'''
         if self._dataset is None:
-            self._dataset = openVector(filename=self.filename(), layerNameOrIndex=self._layerNameOrIndex, update=False)
+            self._dataset = openVectorDataset(filename=self.filename(), layerNameOrIndex=self._layerNameOrIndex, update=False)
         return self._dataset
 
     def _rasterize(self, initValue, burnValue, burnAttribute, allTouched, filterSQL, overlap, dtype, resolution):
@@ -358,7 +358,7 @@ class ApplierOutputRaster(ApplierIO):
         '''
         :param filename: destination filename for output raster
         :param driver:
-        :type driver: hubdc.model.RasterDriver
+        :type driver: hubdc.core.RasterDriver
         :param creationOptions: e.g. for ENVI and GTiff files see http://www.gdal.org/frmt_various.html#ENVI and http://www.gdal.org/frmt_gtiff.html.
         :type creationOptions: RasterCreationOptions
         '''
@@ -436,7 +436,7 @@ class ApplierOutputRaster(ApplierIO):
     def setMetadataItem(self, key, value, domain):
         '''Set image metadata item.'''
 
-        self._callImageMethod(method=Raster.setMetadataItem, key=key, value=value, domain=domain)
+        self._callImageMethod(method=RasterDataset.setMetadataItem, key=key, value=value, domain=domain)
 
     def setMetadataDict(self, metadataDict):
         '''
@@ -454,11 +454,11 @@ class ApplierOutputRaster(ApplierIO):
     def setNoDataValue(self, value):
         """Set no data value to all bands."""
 
-        self._callImageMethod(method=Raster.setNoDataValue, value=value)
+        self._callImageMethod(method=RasterDataset.setNoDataValue, value=value)
 
     def _callImageMethod(self, method, **kwargs):
         if self.operator().isFirstBlock():
-            method = (Raster, method.__name__)
+            method = (RasterDataset, method.__name__)
             self._writerQueue.put((Writer.CALL_RASTERMETHOD, self.filename(), method, kwargs))
 
 
@@ -498,21 +498,29 @@ class ApplierOutputRasterBand(ApplierIO):
 
     def _callMethod(self, method, **kwargs):
         if self.parent.operator().isFirstBlock():
-            method = (RasterBand, method.__name__)
+            method = (RasterBandDataset, method.__name__)
             self.parent._writerQueue.put(
                 (Writer.CALL_BANDMETHOD, self.parent.filename(), self._index, method, kwargs))
 
     def setDescription(self, value):
         '''Set band description.'''
-        self._callMethod(method=RasterBand.setDescription, value=value)
+        self._callMethod(method=RasterBandDataset.setDescription, value=value)
 
     def setMetadataItem(self, key, value, domain=''):
         """Set metadata item."""
-        self._callMethod(method=RasterBand.setMetadataItem, key=key, value=value, domain=domain)
+        self._callMethod(method=RasterBandDataset.setMetadataItem, key=key, value=value, domain=domain)
 
     def setNoDataValue(self, value):
         """Set no data value."""
-        self._callMethod(method=RasterBand.setNoDataValue, value=value)
+        self._callMethod(method=RasterBandDataset.setNoDataValue, value=value)
+
+    def setCategoryNames(self, names):
+        '''Set band category names.'''
+        self._callMethod(method=RasterBandDataset.setCategoryNames, names=names)
+
+    def setCategoryColors(self, colors):
+        '''Set band category colors from list of rgba tuples.'''
+        self._callMethod(method=RasterBandDataset.setCategoryColors, colors=colors)
 
 
 class ApplierIOGroup(object):
@@ -618,10 +626,28 @@ class ApplierInputRasterGroup(ApplierIOGroup):
         :param ufunc: function of form ``ufunc(dirname, basename, extension)``; only files that pass the filter function (i.e. return True) are included
         '''
         assert isinstance(extensions, list)
-        off = len(os.path._abspath_split(folder)[2])
+
+        def abspath_split(path):
+
+            drive, path_and_file = os.path.splitdrive(path)
+            folders = []
+            while 1:
+                path, folder = os.path.split(path)
+
+                if folder != "":
+                    folders.append(folder)
+                else:
+                    break
+            return list(reversed(folders))
+
+        # off = len(os.path._abspath_split(folder)[2]) # Python 2
+        off = len(abspath_split(folder)) # Python 3
+
         group = ApplierInputRasterGroup()
         for root, dirs, files in os.walk(folder):
-            key = '/'.join(os.path._abspath_split(root)[2][off:])
+            # key = '/'.join(os.path._abspath_split(root)[2][off:]) # Python 2
+            key = '/'.join(abspath_split(root)[off:]) # Python 3
+
             if key == '':
                 subgroup = group
             else:
@@ -945,7 +971,7 @@ class Applier(object):
         self._grid = self.controls.deriveGrid(inputRasterGroup=self.inputRaster)
 
         self.controls.progressBar.setText(
-            'start {}, {}, {}'.format(description, self.grid().size(), self.grid()))
+            'start {}, {}'.format(description.lstrip('_'), self.grid().size()))
 
 
         self._runInitWriters()
@@ -959,8 +985,8 @@ class Applier(object):
         h = m / 60
 
         self.controls.progressBar.setText(
-            'done {description} in {s} sec | {m}  min | {h} hours'.format(description=description, s=int(s),
-                                                                          m=round(m, 2), h=round(h, 2)))
+            'done {description} in {s} sec | {m}  min | {h} hours'.format(description=description.lstrip('_'),
+                                                                          s=int(s), m=round(m, 2), h=round(h, 2)))
         return results
 
     def _runInitWriters(self):
@@ -1290,7 +1316,7 @@ class ApplierControls(object):
         or a :class:`~hubdc.model.Size` object.
         '''
 
-        if isinstance(blockSize, (int, long)):
+        if isinstance(blockSize, int):
             blockSize = Size(*[blockSize] * 2)
         elif isinstance(blockSize, (tuple, list)) and len(blockSize) == 2:
             blockSize = Size(*blockSize)
@@ -1398,7 +1424,7 @@ class ApplierControls(object):
         elif isinstance(extent, Extent):
             pass
         elif isinstance(extent, (tuple, list)) and len(extent) == 4 and all(
-                [isinstance(v, (int, long, float)) for v in extent]):
+                [isinstance(v, (int, float)) for v in extent]):
             extent = Extent(*extent)
         else:
             raise ValueError('not a valid extent')

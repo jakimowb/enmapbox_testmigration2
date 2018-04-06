@@ -6,7 +6,7 @@ import yaml
 import dask.array as da
 import pandas as pd
 import numpy as np
-from hubdc.model import *
+from hubdc.core import *
 from hubdc.daskmodel import DaskRaster, openDaskRaster
 
 

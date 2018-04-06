@@ -1,6 +1,6 @@
 from os.path import join, dirname
 from osgeo import osr, ogr
-from hubdc.model import Grid
+from hubdc.core import Grid
 
 def getMGRSShapefile():
     return join(dirname(__file__), 'gis', 'mgrs', 'mgrs.shp')

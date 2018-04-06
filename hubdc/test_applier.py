@@ -8,199 +8,208 @@ from hubdc.testdata import LT51940232010189KIS01, LT51940242010189KIS01, Branden
 
 outdir = join(gettempdir(), 'hubdc_test')
 
+class TestApplierInputRaster(TestCase):
 
-def test_ApplierInputRaster():
-    class Operator(ApplierOperator):
-        def ufunc(operator, *args, **kwargs):
-            overlap = 10
-            cfmask = operator.inputRaster.raster(key='cfmask')
-            cfmaskArray = cfmask.array()
-            print(cfmaskArray.shape)
-            print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
+    def test(self):
+        class Operator(ApplierOperator):
+            def ufunc(operator, *args, **kwargs):
+                overlap = 10
+                cfmask = operator.inputRaster.raster(key='cfmask')
+                cfmaskArray = cfmask.array()
+                print(cfmaskArray.shape)
+                print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
 
-            print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
-            print(cfmask.sample(mask=cfmaskArray == 1).shape)  # water sample
-            print(cfmask.sample(mask=cfmaskArray == 31241).shape)  # empty sample
+                print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
+                print(cfmask.sample(mask=cfmaskArray == 1).shape)  # water sample
+                print(cfmask.sample(mask=cfmaskArray == 31241).shape)  # empty sample
 
-            # read raster metadata
-            print(cfmask.metadataItem(key='abc', domain=''))
-            print(cfmask.metadataDict())
-            print(cfmask.noDataValues())
-            print(cfmask.noDataValue())
+                # read raster metadata
+                print(cfmask.metadataItem(key='abc', domain=''))
+                print(cfmask.metadataDict())
+                print(cfmask.noDataValues())
+                print(cfmask.noDataValue())
 
-    applier = Applier()
-    applier.inputRaster.setRaster(key='cfmask', value=ApplierInputRaster(filename=LT51940232010189KIS01.cfmask))
-    print(applier.inputRaster.raster(key='cfmask'))
-    applier.apply(operatorType=Operator)
+        applier = Applier()
+        applier.inputRaster.setRaster(key='cfmask', value=ApplierInputRaster(filename=LT51940232010189KIS01.cfmask))
+        print(applier.inputRaster.raster(key='cfmask'))
+        applier.apply(operatorType=Operator)
 
-    applier.controls.setProjection(projection=Projection.WGS84())
-    applier.controls.setExtent(
-        extent=openRaster(filename=LT51940232010189KIS01.cfmask).grid().spatialExtent().reproject(
-            targetProjection=Projection.WGS84()))
-    applier.controls.setResolution(resolution=0.01)
-    applier.apply(operatorType=Operator)
+        applier.controls.setProjection(projection=Projection.WGS84())
+        applier.controls.setExtent(
+            extent=openRasterDataset(filename=LT51940232010189KIS01.cfmask).grid().spatialExtent().reproject(
+                targetProjection=Projection.WGS84()))
+        applier.controls.setResolution(resolution=0.01)
+        applier.apply(operatorType=Operator)
 
+class TestApplierInputRasterGroup(TestCase):
+    def test(self):
+        class Operator(ApplierOperator):
+            def ufunc(operator, *args, **kwargs):
+                overlap = 10
+                cfmask = operator.inputRaster.raster(key='LT51940242010189KIS01/LT51940242010189KIS01_cfmask')
+                cfmaskArray = cfmask.array()
+                print(cfmaskArray.shape)
+                print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
+                print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
+                print(applier.inputRaster.findRaster(ufunc=lambda key, raster: key.endswith('cfmask')))
+                print(applier.inputRaster.findRaster(ufunc=lambda key, raster: False))
+                print(applier.inputRaster.findRasterKey(ufunc=lambda key, raster: key == 'LT51940242010189KIS01'))
+                print(applier.inputRaster.findRasterKey(ufunc=lambda key, raster: False))
+                print(list(applier.inputRaster.flatRasters()))
+                print(list(applier.inputRaster.flatRasterKeys()))
+                print(list(applier.inputRaster.rasters()))
+                print(list(applier.inputRaster.rasterKeys()))
+                print(list(applier.inputRaster.groups()))
+                print(list(applier.inputRaster.groupKeys()))
 
-def test_ApplierInputRasterGroup():
-    class Operator(ApplierOperator):
-        def ufunc(operator, *args, **kwargs):
-            overlap = 10
-            cfmask = operator.inputRaster.raster(key='LT51940242010189KIS01/LT51940242010189KIS01_cfmask')
-            cfmaskArray = cfmask.array()
-            print(cfmaskArray.shape)
-            print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
-            print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
-            print(applier.inputRaster.findRaster(ufunc=lambda key, raster: key.endswith('cfmask')))
-            print(applier.inputRaster.findRaster(ufunc=lambda key, raster: False))
-            print(applier.inputRaster.findRasterKey(ufunc=lambda key, raster: key == 'LT51940242010189KIS01'))
-            print(applier.inputRaster.findRasterKey(ufunc=lambda key, raster: False))
-            print(list(applier.inputRaster.flatRasters()))
-            print(list(applier.inputRaster.flatRasterKeys()))
-            print(list(applier.inputRaster.rasters()))
-            print(list(applier.inputRaster.rasterKeys()))
-            print(list(applier.inputRaster.groups()))
-            print(list(applier.inputRaster.groupKeys()))
+        applier = Applier()
 
-    applier = Applier()
+        # add scene folder
+        applier.inputRaster.setGroup(key='LT51940242010189KIS01',
+                                     value=ApplierInputRasterGroup.fromFolder(folder=LT51940242010189KIS01.root,
+                                                                              extensions=['.img']))
+        applier.inputRaster.setGroup(key='landsat/LT51940242010189KIS01',
+                                     value=ApplierInputRasterGroup.fromFolder(folder=LT51940242010189KIS01.root,
+                                                                              extensions=['.img']))
+        applier.inputRaster.setRaster(key='cfmask', value=ApplierInputRaster(filename=LT51940232010189KIS01.cfmask))
+        print(applier.inputRaster.group(key='LT51940242010189KIS01'))
+        applier.apply(operatorType=Operator)
 
-    # add scene folder
-    applier.inputRaster.setGroup(key='LT51940242010189KIS01',
-                                 value=ApplierInputRasterGroup.fromFolder(folder=LT51940242010189KIS01.root,
-                                                                          extensions=['.img']))
-    applier.inputRaster.setGroup(key='landsat/LT51940242010189KIS01',
-                                 value=ApplierInputRasterGroup.fromFolder(folder=LT51940242010189KIS01.root,
-                                                                          extensions=['.img']))
-    applier.inputRaster.setRaster(key='cfmask', value=ApplierInputRaster(filename=LT51940232010189KIS01.cfmask))
-    print(applier.inputRaster.group(key='LT51940242010189KIS01'))
-    applier.apply(operatorType=Operator)
+        # scene folder without cfmask
+        print(ApplierInputRasterGroup.fromFolder(folder=LT51940242010189KIS01.root, extensions=['.img'],
+                                                 ufunc=lambda basename, **kwarg: not basename.endswith('cfmask')))
 
-    # scene folder without cfmask
-    print(ApplierInputRasterGroup.fromFolder(folder=LT51940242010189KIS01.root, extensions=['.img'],
-                                             ufunc=lambda basename, **kwarg: not basename.endswith('cfmask')))
-
-    # archive folder
-    print(ApplierInputRasterGroup.fromFolder(folder=root, extensions=['.img']))
-
-
-def test_ApplierInputRasterIndex():
-    # create index from folder
-    index = ApplierInputRasterIndex.fromFolder(folder=root, extensions=['.img'])
-    print(index)
-    # - pickle and unpickle index
-    filename = join(outdir, 'index.pkl')
-    index.pickle(filename=filename)
-    index = ApplierInputRasterIndex.unpickle(filename=filename)
-    print(index)
-    # - get intersection that covers both scenes
-    grid = openRaster(filename=LT51940232010189KIS01.cfmask).grid()
-    index2 = index.intersection(grid=grid)
-    print(index2)
-    # - get intersection that covers only one scene
-    grid = grid.subset(offset=Pixel(x=10, y=10), size=Size(x=1, y=1))  # 1x1 pixel extent
-    index3 = index.intersection(grid=grid)
-    print(index3)
-    print(ApplierInputRasterGroup.fromIndex(index=index))
+        # archive folder
+        print(ApplierInputRasterGroup.fromFolder(folder=root, extensions=['.img']))
 
 
-def test_ApplierInputVector():
-    class Operator(ApplierOperator):
-        def ufunc(operator, *args, **kwargs):
-            overlap = 10
-            vector = operator.inputVector.vector(key='vector')
-            print(vector.operator)
-            print(vector.array().shape)
-            print(vector.fractionArray(categories=[1, 4, 7, 9], categoryAttribute='id').shape)
+class TestApplierInputRasterIndex(TestCase):
 
-    # add vector
-    applier = Applier()
-    applier.controls.setGrid(openRaster(LT51940232010189KIS01.cfmask).grid())
-    applier.inputVector.setVector(key='vector', value=ApplierInputVector(filename=BrandenburgDistricts.shp))
-    print(applier.inputVector.vector(key='vector'))
-    applier.inputVector.setVector(key='vectorFolder/vector',
-                                  value=ApplierInputVector(filename=BrandenburgDistricts.shp))
-    applier.apply(operatorType=Operator)
-
-    print(list(applier.inputVector.flatVectorKeys()))
-    print(list(applier.inputVector.flatVectors()))
-    print(list(applier.inputVector.groups()))
-    print(list(applier.inputVector.groupKeys()))
+    def test(self):
+        # create index from folder
+        index = ApplierInputRasterIndex.fromFolder(folder=root, extensions=['.img'])
+        print(index)
+        # - pickle and unpickle index
+        filename = join(outdir, 'index.pkl')
+        index.pickle(filename=filename)
+        index = ApplierInputRasterIndex.unpickle(filename=filename)
+        print(index)
+        # - get intersection that covers both scenes
+        grid = openRasterDataset(filename=LT51940232010189KIS01.cfmask).grid()
+        index2 = index.intersection(grid=grid)
+        print(index2)
+        # - get intersection that covers only one scene
+        grid = grid.subset(offset=Pixel(x=10, y=10), size=Size(x=1, y=1))  # 1x1 pixel extent
+        index3 = index.intersection(grid=grid)
+        print(index3)
+        print(ApplierInputRasterGroup.fromIndex(index=index))
 
 
-def test_ApplierOutputRaster():
-    class Operator(ApplierOperator):
-        def ufunc(operator, *args, **kwargs):
-            overlap = 10
-            array = operator.full(value=42, bands=3, overlap=overlap)
 
-            # write bands individual
-            stack = operator.outputRaster.raster(key='stack')
+class TestApplierInputVector(TestCase):
 
-            # - try writing without initialization
-            try:
-                stack.bands()
-            except errors.ApplierOutputRasterNotInitializedError:
-                pass
+    def test(self):
+        class Operator(ApplierOperator):
+            def ufunc(operator, *args, **kwargs):
+                overlap = 10
+                vector = operator.inputVector.vector(key='vector')
+                print(vector.operator)
+                print(vector.array().shape)
+                print(vector.fractionArray(categories=[1, 4, 7, 9], categoryAttribute='id').shape)
 
-            stack.setZsize(zsize=3)
-            for band, bandArray in zip(stack.bands(), array):
-                band.setArray(array=bandArray, overlap=overlap)  # 2d
-                band.setArray(array=bandArray[None], overlap=overlap)  # 3d
-                band.setArray(array=list(bandArray[None]), overlap=overlap)  # list of 2d
+        # add vector
+        applier = Applier()
+        applier.controls.setGrid(openRasterDataset(LT51940232010189KIS01.cfmask).grid())
+        applier.inputVector.setVector(key='vector', value=ApplierInputVector(filename=BrandenburgDistricts.shp))
+        print(applier.inputVector.vector(key='vector'))
+        applier.inputVector.setVector(key='vectorFolder/vector',
+                                      value=ApplierInputVector(filename=BrandenburgDistricts.shp))
+        applier.apply(operatorType=Operator)
 
-            # write stack at once
-            stack.setArray(array=array, overlap=overlap)  # 3d
-            stack.setArray(array=list(array), overlap=overlap)  # list of 2d
+        print(list(applier.inputVector.flatVectorKeys()))
+        print(list(applier.inputVector.flatVectors()))
+        print(list(applier.inputVector.groups()))
+        print(list(applier.inputVector.groupKeys()))
 
-            # set image no data and metadata
-            stack.setNoDataValue(value=0)
-            stack.setMetadataItem(key='my key', value=42, domain='ENVI')
-            stack.setMetadataDict({'ENVI': {'my key': 42}})
 
-            # set band no data and metadata
-            for band in stack.bands():
-                band.setNoDataValue(value=0)
-                band.setMetadataItem(key='my key', value=42, domain='ENVI')
-                band.setDescription(value='Hello World')
+class TestApplierOutputRaster(TestCase):
+    def test(self):
 
-            # assess key/values
-            print(list(applier.outputRaster.flatRasters()))
-            print(list(applier.outputRaster.flatRasterKeys()))
-            print(applier.outputRaster.operator)
-            print(list(stack.flatList()))
+        class Operator(ApplierOperator):
+            def ufunc(operator, *args, **kwargs):
+                overlap = 10
+                array = operator.full(value=42, bands=3, overlap=overlap)
 
-    applier = Applier()
-    applier.outputRaster.setRaster(key='stack', value=ApplierOutputRaster(filename=join(outdir, 'stack.img')))
-    applier.outputRaster.setRaster(key='folder/stack',
-                                   value=ApplierOutputRaster(filename=join(outdir, 'folder', 'stack.img')))
-    applier.controls.setGrid(grid=openRaster(LT51940242010189KIS01.cfmask).grid())
-    applier.apply(operatorType=Operator)
+                # write bands individual
+                stack = operator.outputRaster.raster(key='stack')
 
-def test_deriveDriverFromFileExtension():
+                # - try writing without initialization
+                try:
+                    stack.bands()
+                except errors.ApplierOutputRasterNotInitializedError:
+                    pass
 
-    for ext in ['bsq', 'bip', 'bil', 'tif', 'img']:
-        filename = join(outdir, 'file.' + ext)
-        outraster = ApplierOutputRaster(filename=filename)
-        print(outraster.driver)
+                stack.setZsize(zsize=3)
+                for band, bandArray in zip(stack.bands(), array):
+                    band.setArray(array=bandArray, overlap=overlap)  # 2d
+                    band.setArray(array=bandArray[None], overlap=overlap)  # 3d
+                    band.setArray(array=list(bandArray[None]), overlap=overlap)  # list of 2d
 
-    try:
-        ApplierOutputRaster(filename='file.xyz')
-    except AssertionError as error:
-        assert error.message == 'unexpected extension: xyz'
+                # write stack at once
+                stack.setArray(array=array, overlap=overlap)  # 3d
+                stack.setArray(array=list(array), overlap=overlap)  # list of 2d
+
+                # set image no data, metadata and category names/colors
+                stack.setNoDataValue(value=0)
+                stack.setMetadataItem(key='my key', value=42, domain='ENVI')
+                stack.setMetadataDict({'ENVI': {'my key': 42}})
+                stack.band(0).setCategoryNames(['a', 'b', 'c'])
+                stack.band(0).setCategoryColors([(1,1,1), (10,10,10), (100,100,100)])
+
+                # set band no data and metadata
+                for band in stack.bands():
+                    band.setNoDataValue(value=0)
+                    band.setMetadataItem(key='my key', value=42, domain='ENVI')
+                    band.setDescription(value='Hello World')
+
+                # assess key/values
+                print(list(applier.outputRaster.flatRasters()))
+                print(list(applier.outputRaster.flatRasterKeys()))
+                print(applier.outputRaster.operator)
+                print(list(stack.flatList()))
+
+        applier = Applier()
+        applier.outputRaster.setRaster(key='stack', value=ApplierOutputRaster(filename=join(outdir, 'stack.img')))
+        applier.outputRaster.setRaster(key='folder/stack',
+                                       value=ApplierOutputRaster(filename=join(outdir, 'folder', 'stack.img')))
+        applier.controls.setGrid(grid=openRasterDataset(LT51940242010189KIS01.cfmask).grid())
+        applier.apply(operatorType=Operator)
+
+        applier.inputRaster.operator()
+        applier.inputRaster._freeUnpickableResources()
 
 
 class TestApplier(TestCase):
     def test_apply(self):
         class Operator(ApplierOperator):
-            def ufunc(operator, *args, **kwargs):
-                operator.isFirstBlock()
-                operator.isLastBlock()
-                operator.isLastXBlock()
-                operator.isLastYBlock()
-                operator.grid()
-                constArray = operator.full(value=42)
+            def ufunc(self, *args, **kwargs):
+                self.isFirstBlock()
+                self.isLastBlock()
+                self.isLastXBlock()
+                self.isLastYBlock()
+                self.iblock()
+                self.nblock()
+                self.yblock()
+                self.xblock()
+                self.yblockSize()
+                self.xblockSize()
+                self.yblockOffset()
+                self.xblockOffset()
+                self.grid()
+                constArray = self.full(value=42)
 
         applier = Applier()
-        applier.controls.setGrid(grid=openRaster(LT51940232010189KIS01.cfmask).grid())
+        applier.controls.setGrid(grid=openRasterDataset(LT51940232010189KIS01.cfmask).grid())
         applier.apply(operatorType=Operator)
         applier.apply(operatorType=Operator, overwrite=False)
         applier.apply(operatorFunction=lambda operator, *args, **kwargs: None)
@@ -221,15 +230,19 @@ class TestApplierControls(TestCase):
         applier = Applier()
         applier.inputRaster.setRaster(key='', value=ApplierInputRaster(filename=LT51940232010189KIS01.cfmask))
 
-        ds = openRaster(filename=LT51940232010189KIS01.cfmask)
-        self.assertRaises(excClass=ValueError, callableObj=applier.controls.setBlockSize, blockSize='not a number')
+        ds = openRasterDataset(filename=LT51940232010189KIS01.cfmask)
+
+        with self.assertRaises(ValueError):
+            applier.controls.setBlockSize(blockSize='not a number')
+
         applier.controls.setBlockSize(255)
         applier.controls.setBlockSize((255, 255))
         applier.controls.setBlockSize(Size(x=255, y=255))
         applier.controls.setBlockFullSize()
 
-        self.assertRaises(excClass=ValueError, callableObj=applier.controls.setResolution,
-                          resolution='not a resolution')
+        with self.assertRaises(ValueError):
+            applier.controls.setResolution(resolution='not a resolution')
+
         applier.controls.setResolution(None)
         applier.controls.setResolution(30)
         applier.controls.setResolution((30, 30))

@@ -2,7 +2,7 @@ from osgeo import gdal, gdal_array
 from multiprocessing import Process, Queue
 from time import sleep
 import numpy as np
-from hubdc.model import createRaster, Raster, RasterBand
+from hubdc.core import createRasterDataset, RasterDataset, RasterBandDataset
 
 class Writer():
     WRITE_ARRAY, WRITE_BANDARRAY, CALL_RASTERMETHOD, CALL_BANDMETHOD, CLOSE_RASTERS, CLOSE_WRITER = range(6)
@@ -10,7 +10,7 @@ class Writer():
     @classmethod
     def getRaster(cls, outputRaster, filename):
         raster = outputRaster[filename]
-        assert isinstance(raster, Raster)
+        assert isinstance(raster, RasterDataset)
         return raster
 
     @classmethod
@@ -34,13 +34,13 @@ class Writer():
     def createRaster(outputRasters, filename, bands, dtype, grid, driver, creationOptions):
         if dtype == np.bool:
             dtype = np.uint8
-        outputRasters[filename] = createRaster(grid=grid, bands=bands,
-                                               gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
-                                               filename=filename, driver=driver, options=creationOptions)
+        outputRasters[filename] = createRasterDataset(grid=grid, bands=bands,
+                                                      gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),
+                                                      filename=filename, driver=driver, options=creationOptions)
 
     @staticmethod
     def closeRasters(outputRasters, createEnviHeader):
-        for filename, ds in outputRasters.items():
+        for filename, ds in list(outputRasters.items()):
             outputRaster = outputRasters.pop(filename)
             outputRaster.flushCache()
             if createEnviHeader:

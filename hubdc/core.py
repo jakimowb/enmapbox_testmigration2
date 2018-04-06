@@ -1,8 +1,7 @@
 from os import makedirs, remove
 from os.path import dirname, exists, join, basename, splitext
+from shutil import copyfile, rmtree
 import datetime
-import copy
-import json
 from random import randint
 import tempfile
 from osgeo import gdal, gdal_array, ogr, osr
@@ -65,7 +64,7 @@ class RasterDriver(object):
         elif ext == 'img':
             driver = ErdasDriver()
         else:
-            assert 0, 'Unexpected output raster file extension: {}, use bsq (ENVI BSQ), bil (ENVI BIL), bip (ENVI BIP), tif (GTiff) or img (Erdas Imagine) instead'.format(ext)
+            assert 0
         return driver
 
     def gdalDriver(self):
@@ -93,7 +92,7 @@ class RasterDriver(object):
         Creates a new raster file with extent, resolution and projection given by ``grid``.
 
         :param grid:
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         :param bands: number of raster bands
         :type bands: int
         :param gdalType: one of the ``gdal.GDT_*`` data types, or use gdal_array.NumericTypeCodeToGDALTypeCode
@@ -101,9 +100,9 @@ class RasterDriver(object):
         :param filename: output filename
         :type filename: str
         :param options:
-        :type options: hubdc.model.RasterCreationOptions
+        :type options: hubdc.core.RasterCreationOptions
         :return:
-        :rtype: hubdc.model.Raster
+        :rtype: hubdc.core.RasterDataset
         '''
 
         assert isinstance(grid, Grid)
@@ -119,7 +118,7 @@ class RasterDriver(object):
                                                options.optionsList())
         gdalDataset.SetProjection(grid.projection().wkt())
         gdalDataset.SetGeoTransform(grid.geoTransform())
-        return Raster(gdalDataset=gdalDataset)
+        return RasterDataset(gdalDataset=gdalDataset)
 
 
 class MEMDriver(RasterDriver):
@@ -199,7 +198,7 @@ class VectorDriver(object):
         elif ext == 'gpkg':
             driver = GeoPackageDriver()
         else:
-            assert 0, 'Unexpected output vector file extension: {}, use shp (ESRI Shapefile) or gpkg (GeoPackage) instead.'.format(ext)
+            assert 0
         return driver
 
     def ogrDriver(self):
@@ -217,6 +216,14 @@ class VectorDriver(object):
 
         assert isinstance(other, VectorDriver)
         return self.name() == other.name()
+
+    def prepareCreation(self, filename):
+        '''Deletes filename if it already exist and creates subfolders if needed.'''
+
+        if exists(filename):
+            self.ogrDriver().DeleteDataSource(filename)
+        if not exists(dirname(filename)):
+            makedirs(dirname(filename))
 
 
 class ESRIShapefileDriver(VectorDriver):
@@ -318,11 +325,11 @@ class Extent(object):
         Returns a new intsance which is the reprojection of self from ``sourceProjection`` into ``targetProjection``.
 
         :param sourceProjection: projection of self
-        :type sourceProjection: hubdc.model.Projection
+        :type sourceProjection: hubdc.core.Projection
         :param targetProjection: target projection
-        :type targetProjection: hubdc.model.Projection
+        :type targetProjection: hubdc.core.Projection
         :return:
-        :rtype: hubdc.model.Extent
+        :rtype: hubdc.core.Extent
         '''
         geometry = self.geometry().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
         return Extent.fromGeometry(geometry=geometry)
@@ -381,7 +388,7 @@ class SpatialExtent(Extent):
         :param ymax:
         :type ymax: float
         :param projection:
-        :type projection: hubdc.model.Projection
+        :type projection: hubdc.core.Projection
         '''
         assert isinstance(projection, Projection)
         Extent.__init__(self, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
@@ -436,9 +443,9 @@ class SpatialExtent(Extent):
         The ``sourceProjection`` is for internal use only.
 
         :param targetProjection: target projection
-        :type targetProjection: hubdc.model.Projection
+        :type targetProjection: hubdc.core.Projection
         :return:
-        :rtype: hubdc.model.SpatialExtent
+        :rtype: hubdc.core.SpatialExtent
         '''
 
         assert isinstance(targetProjection, Projection)
@@ -607,11 +614,11 @@ class Geometry(object):
         Returns a new intsance which is the reprojection of self from ``sourceProjection`` into ``targetProjection``.
 
         :param sourceProjection: projection of self
-        :type sourceProjection: hubdc.model.Projection
+        :type sourceProjection: hubdc.core.Projection
         :param targetProjection: target projection
-        :type targetProjection: hubdc.model.Projection
+        :type targetProjection: hubdc.core.Projection
         :return:
-        :rtype: hubdc.model.Geometry
+        :rtype: hubdc.core.Geometry
         '''
         transformation = osr.CoordinateTransformation(sourceProjection.osrSpatialReference(),
                                                       targetProjection.osrSpatialReference())
@@ -675,9 +682,9 @@ class SpatialGeometry(Geometry):
         The ``sourceProjection`` is for internal use only.
 
         :param targetProjection: target projection
-        :type targetProjection: hubdc.model.Projection
+        :type targetProjection: hubdc.core.Projection
         :return:
-        :rtype: hubdc.model.SpatialGeometry
+        :rtype: hubdc.core.SpatialGeometry
         '''
 
         if sourceProjection is not None:
@@ -770,9 +777,9 @@ class SpatialPoint(Point):
         The ``sourceProjection`` is for internal use only.
 
         :param targetProjection: target projection
-        :type targetProjection: hubdc.model.Projection
+        :type targetProjection: hubdc.core.Projection
         :return:
-        :rtype: hubdc.model.SpatialPoint
+        :rtype: hubdc.core.SpatialPoint
         '''
         assert isinstance(targetProjection, Projection)
         if sourceProjection is not None:
@@ -820,11 +827,11 @@ class Grid(object):
     def __init__(self, extent, resolution, projection=None):
         '''
         :param extent:
-        :type extent: hubdc.model.Extent
+        :type extent: hubdc.core.Extent
         :param resolution:
-        :type resolution: hubdc.model.Resolution
+        :type resolution: hubdc.core.Resolution
         :param projection: if ``extent`` is a :class:`~hubdc.model.SpatialExtent`, then the extents ``projection`` is used.
-        :type projection: hubdc.model.Projection
+        :type projection: hubdc.core.Projection
         '''
         if isinstance(extent, SpatialExtent):
             projection = extent.projection()
@@ -946,7 +953,7 @@ class Grid(object):
         :param down: whether to buffer downwards/south
         :type down: bool
         :return:
-        :rtype: hubdc.model.Grid
+        :rtype: hubdc.core.Grid
         '''
         assert isinstance(buffer, int)
         extent = Extent(xmin=self.extent().xmin() - buffer * self.resolution().x() if left else 0,
@@ -1029,7 +1036,7 @@ class Grid(object):
         return result
 
 
-class Raster(object):
+class RasterDataset(object):
     '''Class for managing raster files.'''
 
     def __init__(self, gdalDataset):
@@ -1064,11 +1071,11 @@ class Raster(object):
         return self._grid
 
     def band(self, index):
-        '''Return the :class:`~hubdc.model.RasterBand` given by ``index``.'''
-        return RasterBand(raster=self, index=index)
+        '''Return the :class:`~hubdc.model.RasterBandDataset` given by ``index``.'''
+        return RasterBandDataset(raster=self, index=index)
 
     def bands(self):
-        '''Returns an iterator over each :class:`~hubdc.model.RasterBand`.'''
+        '''Returns an iterator over each :class:`~hubdc.model.RasterBandDataset`.'''
         for i in range(self.zsize()):
             yield self.band(i)
 
@@ -1081,7 +1088,7 @@ class Raster(object):
         Returns raster data as 3d array.
 
         :param grid: if provided, only data inside the grid extent is returned
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         :param resampleAlg: one of the GDAL resampling algorithms (i.e. gdal.GRA_*)
         :type resampleAlg: int
         :return:
@@ -1114,10 +1121,10 @@ class Raster(object):
         :param array:
         :type array: 3d array | list of 2d arrays
         :param grid: if provided, data is written to the location given by the grid extent
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         '''
-        assert len(array) == self.zsize()
 
+        assert len(array) == self.zsize()
         for band, bandArray in zip(self.bands(), array):
             band.writeArray(bandArray, grid=grid)
 
@@ -1180,6 +1187,7 @@ class Raster(object):
         '''Returns the metadata dictionary for the given ``domain``.'''
         metadataDomain = dict()
         for key in self._gdalDataset.GetMetadata(domain):
+            key = key.replace('_', ' ')
             metadataDomain[key] = self.metadataItem(key=key, domain=domain)
         return metadataDomain
 
@@ -1200,24 +1208,31 @@ class Raster(object):
         gdalString = GDALMetadataFormatter.valueToGDALString(value)
         self._gdalDataset.SetMetadataItem(key, gdalString, domain)
 
+    def setMetadataDomain(self, metadataDomain, domain):
+        '''Set the metadata domain'''
+        assert isinstance(metadataDomain, dict)
+        for key, value in metadataDomain.items():
+            self.setMetadataItem(key=key, value=value, domain=domain)
+
     def setMetadataDict(self, metadataDict):
         '''Set the metadata dictionary'''
         assert isinstance(metadataDict, dict)
-        for domain in metadataDict:
-            for key, value in metadataDict[domain].items():
-                self.setMetadataItem(key=key, value=value, domain=domain)
+        for domain, metadataDomain in metadataDict.items():
+            self.setMetadataDomain(metadataDomain=metadataDomain, domain=domain)
+            #for key, value in metadataDict[domain].items():
+            #    self.setMetadataItem(key=key, value=value, domain=domain)
 
     def copyMetadata(self, other):
         '''Copy raster and raster band metadata from other to self.'''
 
-        assert isinstance(other, Raster)
+        assert isinstance(other, RasterDataset)
 
         for domain in other.metadataDomainList():
             self.gdalDataset().SetMetadata(other.gdalDataset().GetMetadata(domain), domain)
 
         for band, otherBand in zip(self.bands(), other.bands()):
             for domain in otherBand.metadataDomainList():
-                band.gdalBand.SetMetadata(otherBand.gdalBand().GetMetadata(domain), domain)
+                band.gdalBand().SetMetadata(otherBand.gdalBand().GetMetadata(domain), domain)
 
     def setAcquisitionTime(self, acquisitionTime):
         '''Set the acquisition time. Store it as 'acquisition time' metadata item inside the 'ENVI' domain.
@@ -1293,7 +1308,7 @@ class Raster(object):
         # create ENVI header
         with open(hdrfilename, 'w') as f:
             f.write('ENVI\n')
-            for key, value in zip(orderedEnvi.keys() + envi.keys(), orderedEnvi.values() + envi.values()):
+            for key, value in zip(list(orderedEnvi.keys()) + list(envi.keys()), list(orderedEnvi.values()) + list(envi.values())):
                 if value is not None:
                     f.write('{key} = {value}\n'.format(key=key.replace('_', ' '), value=value))
 
@@ -1301,17 +1316,17 @@ class Raster(object):
         '''Returns a new instance of self warped into the given ``grid`` (default is self.grid()).
 
         :param grid:
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         :param filename: output filename
         :type filename: str
         :param driver:
-        :type driver: hubdc.model.RasterDriver
+        :type driver: hubdc.core.RasterDriver
         :param options:
-        :type options: hubdc.model.RasterCreationOptions
+        :type options: hubdc.core.RasterCreationOptions
         :param kwargs: passed to gdal.WarpOptions
         :type kwargs:
         :return:
-        :rtype: hubdc.model.Raster
+        :rtype: hubdc.core.RasterDataset
         '''
 
         assert isinstance(grid, Grid)
@@ -1329,23 +1344,23 @@ class Raster(object):
                                        creationOptions=options.optionsList(), **kwargs)
         gdalDataset = gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=self._gdalDataset, options=warpOptions)
 
-        return Raster(gdalDataset=gdalDataset)
+        return RasterDataset(gdalDataset=gdalDataset)
 
     def translate(self, grid=None, filename='', driver=MEMDriver(), options=None, **kwargs):
         '''Returns a new instance of self translated into the given ``grid`` (default is self.grid()).
 
         :param grid:
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         :param filename:
         :type filename: str
         :param driver:
-        :type driver: hubdc.model.RasterDriver
+        :type driver: hubdc.core.RasterDriver
         :param options:
-        :type options: hubdc.model.RasterCreationOptions
+        :type options: hubdc.core.RasterCreationOptions
         :param kwargs: passed to gdal.TranslateOptions
         :type kwargs:
         :return:
-        :rtype: hubdc.model.Raster
+        :rtype: hubdc.core.RasterDataset
         '''
 
         if grid is None:
@@ -1392,7 +1407,7 @@ class Raster(object):
                                                      yRes=yRes, **kwargs)
             gdalDataset = gdal.Translate(destName=filename, srcDS=self._gdalDataset, options=translateOptions)
 
-        return Raster(gdalDataset=gdalDataset)
+        return RasterDataset(gdalDataset=gdalDataset)
 
     def array(self, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noData=None, errorThreshold=0.,
               warpMemoryLimit=100 * 2 ** 20, multithread=False):
@@ -1401,7 +1416,7 @@ class Raster(object):
         where zsize is the number of raster bands, and ysize, xsize = grid.shape().
 
         :param grid: if not specified self.grid() is used
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         :param resampleAlg: one of the GDAL resampling algorithms gdal.GRA_*
         :type resampleAlg: int
         :param noData: if not specified, no data value of self is used
@@ -1450,6 +1465,91 @@ class Raster(object):
     def dtype(self):
         '''Returns the raster data type.'''
         return self._gdalDataset.GetRasterBand(1).ReadAsArray(win_xsize=1, win_ysize=1).dtype.type
+
+    def wavelengths(self, obj=False):
+        '''
+        Returns list of band wavelengths, or None if not specified.
+        Information is taken from the ``wavelength`` metadata item of the ``ENVI`` domain.
+        '''
+
+
+        envi = self.metadataDomain('ENVI')
+        if 'wavelength' not in envi:
+            return None
+
+        values = envi['wavelength']
+        fwhms = envi.get('fwhm', [None]*self.zsize())
+        unit = envi.get('wavelength units', Wavelength.UNKNOWN)
+        assert len(values) == self.zsize()
+        assert len(fwhms) == self.zsize()
+        return [Wavelength(value=value, fwhm=fwhm, unit=unit) for value, fwhm in zip(values, fwhms)]
+
+
+
+
+    def pixel(self, pixel):
+        '''
+        Returns raster data as 1d array for the given ``pixel``,
+        where zsize is the number of raster bands.
+        '''
+        grid = self.grid().subset(offset=pixel, size=Size(x=1, y=1))
+        profile = self.readAsArray(grid=grid).flatten()
+        return profile
+
+    def plotPixel(self, pixel):
+        assert isinstance(pixel, Pixel)
+        import matplotlib.pyplot as plt
+        plt.plot(self.pixel(pixel=pixel))
+        plt.show()
+
+    def plotSinglebandGrey(self, index=0, vmin=None, vmax=None, pmin=None, pmax=None, cmap='gray', noPlot=False):
+        '''
+        cmap see https://matplotlib.org/examples/color/colormaps_reference.html
+        https://matplotlib.org/api/_as_gen/matplotlib.pyplot.imshow.html
+        '''
+        def stretch(band, vmin=None, vmax=None, pmin=None, pmax=None):
+            if pmin is not None:
+                vmin = np.percentile(band, pmin)
+            if pmax is not None:
+                vmax = np.percentile(band, pmax)
+            if vmin is None:
+                vmin = np.min(band)
+            if vmax is None:
+                vmax = np.max(band)
+
+            grey = np.float32(band-vmin)
+            grey /= vmax-vmin
+            np.clip(grey, 0, 1, grey)
+            return grey
+
+        band = self.array()[index]
+        grey = stretch(band, vmin, vmax, pmin, pmax)
+
+        if not noPlot:
+            import matplotlib.pyplot as plt
+            plt.imshow(grey, cmap=cmap)
+            plt.show()
+
+        return grey
+
+    def plotMultibandColor(self, rgbindex=(0, 1, 2), rgbvmin=(None, None, None), rgbvmax=(None, None, None),
+                           rgbpmin=(None, None, None), rgbpmax=(None, None, None), noPlot=False):
+
+        def toTupel(v):
+            if not isinstance(v, (list, tuple)):
+                v = (v, v, v)
+            return v
+
+        rgb = [self.plotSinglebandGrey(index=index, vmin=vmin, vmax=vmax, pmin=pmin, pmax=pmax, noPlot=True)
+               for index, vmin, vmax, pmin, pmax in zip(rgbindex, toTupel(rgbvmin), toTupel(rgbvmax),
+                                                       toTupel(rgbpmin), toTupel(rgbpmax))]
+
+        if not noPlot:
+            import matplotlib.pyplot as plt
+            plt.imshow(np.array(rgb).transpose((2,1,0)))
+            plt.show()
+
+        return rgb
 
 
 class GDALMetadataFormatter(object):
@@ -1500,16 +1600,16 @@ class GDALMetadataFormatter(object):
 
     @classmethod
     def _gdalStringToList(cls, gdalString, type):
-        values = [type(v) for v in gdalString[1:-1].split(',')]
+        values = [type(v.strip()) for v in gdalString[1:-1].split(',')]
         return values
 
 
-class RasterBand():
+class RasterBandDataset():
     '''Class for managing raster bands.'''
 
     def __init__(self, raster, index):
         '''Creating a new instance given a :class:`~hubdc.model.Raster` and a raster band ``index``.'''
-        assert isinstance(raster, Raster)
+        assert isinstance(raster, RasterDataset)
         if index < 0 or index > raster.zsize() - 1:
             raise IndexError()
 
@@ -1531,11 +1631,16 @@ class RasterBand():
         '''Returns the raster band index.'''
         return self._index
 
+    def gdalBand(self):
+        '''Return the gdal.Band.'''
+        return self._gdalBand
+
+
     def readAsArray(self, grid=None, resample_alg=gdal.GRA_NearestNeighbour):
         '''Returns raster band data as 2d array.
 
         :param grid: if provided, only data inside the grid extent is returned.
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         :param resampleAlg: one of the GDAL resampling algorithms (i.e. gdal.GRA_*)
         :type resampleAlg: int
         :return:
@@ -1569,7 +1674,7 @@ class RasterBand():
         :param array:
         :type array: 3d array | list of 2d arrays
         :param grid: if provided, data is written to the location given by the grid extent
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         '''
 
         assert isinstance(array, np.ndarray)
@@ -1618,7 +1723,7 @@ class RasterBand():
     def copyMetadata(self, other):
         '''Copy raster and raster band metadata from self to other '''
 
-        assert isinstance(other, RasterBand)
+        assert isinstance(other, RasterBandDataset)
 
         for domain in other.metadataDomainList():
             self._gdalBand.SetMetadata(other._gdalBand.GetMetadata(domain), domain)
@@ -1642,6 +1747,36 @@ class RasterBand():
     def description(self):
         '''Returns band description.'''
         return self._gdalBand.GetDescription()
+
+    def setCategoryNames(self, names):
+        '''Set band category names.'''
+        self._gdalBand.SetCategoryNames(names)
+
+    def categoryNames(self):
+        '''Returns band category names.'''
+        names = self._gdalBand.GetCategoryNames()
+        return names
+
+    def setCategoryColors(self, colors):
+        '''Set band category colors from list of rgba tuples.'''
+        colorTable = gdal.ColorTable()
+        #c = gdal.ColorTable(gdal.GCI_PaletteIndex)
+        for i, color in enumerate(colors):
+            assert isinstance(color, tuple)
+            if len(color)==3:
+                color = color + (255,)
+            assert len(color) == 4
+            colorTable.SetColorEntry(i, color)
+        self._gdalBand.SetColorTable(colorTable)
+
+    def categoryColors(self):
+        '''Returns band category colors as list of rgba tuples.'''
+        colorTable = self._gdalBand.GetColorTable()
+        colors = list()
+        for i in range(colorTable.GetCount()):
+            rgba = colorTable.GetColorEntry(i)
+            colors.append(rgba)
+        return colors
 
     def metadataDomainList(self):
         '''Returns the list of metadata domain names.'''
@@ -1708,7 +1843,7 @@ class Vector(object):
         '''Returns a :class:`~hubdc.model.Raster` that is the rasterization of self into the given ``grid`` as.
 
         :param grid:
-        :type grid: hubdc.model.Grid
+        :type grid: hubdc.core.Grid
         :param gdalType: one of the GDAL data types gdal.GDT_*
         :type gdalType: int
         :param initValue: value to pre-initialize the output array
@@ -1726,11 +1861,11 @@ class Vector(object):
         :param filename: output filename
         :type filename: str
         :param driver:
-        :type driver: hubdc.model.RasterDriver
+        :type driver: hubdc.core.RasterDriver
         :param options:
-        :type options: hubdc.model.RasterCreationOptions
+        :type options: hubdc.core.RasterCreationOptions
         :return:
-        :rtype: hubdc.model.Raster
+        :rtype: hubdc.core.RasterDataset
         '''
 
         assert isinstance(grid, Grid)
@@ -1752,8 +1887,6 @@ class Vector(object):
         if not driver.equal(other=MEMDriver()) and not exists(dirname(filename)):
             makedirs(dirname(filename))
 
-        # gdalDataset = driver.gdalDriver().Create(filename, grid.size().x(), grid.size().y(), 1, gdalType,
-        #                                         options.optionsList())
         raster = driver.create(grid=grid, bands=1, gdalType=gdalType, filename=filename, options=options)
         if noDataValue is not None:
             raster.setNoDataValue(noDataValue)
@@ -1823,8 +1956,44 @@ class Vector(object):
         typeNames = [self._ogrLayer.GetLayerDefn().GetFieldDefn(i).GetTypeName() for i in range(self.fieldCount())]
         return typeNames
 
+class Wavelength(object):
 
-def openRaster(filename, eAccess=gdal.GA_ReadOnly):
+    NANOMETERS = 'nanometers'
+    MICROMETERS = 'micrometers'
+    UNKNOWN = 'unknown'
+    UNITS = (NANOMETERS, MICROMETERS, UNKNOWN)
+
+    def __init__(self, value, unit=NANOMETERS, fwhm=None):
+        self._value = float(value)
+        if unit.lower() not in self.UNITS:
+            unit = self.UNKNOWN
+        self._unit = unit
+        self._fwhm = fwhm
+
+    def value(self, unit=None):
+        value = self._value
+        if unit is not None:
+            assert unit in self.UNITS, repr(unit)
+            assert unit is not self.UNKNOWN, 'can not convert to unknown unit'
+            assert self.unit() is not self.UNKNOWN, 'can not convert from unknown unit'
+            if self.unit() == self.NANOMETERS and unit == self.MICROMETERS:
+                value /= 1000.
+            elif self.unit() == self.MICROMETERS and unit == self.NANOMETERS:
+                value *= 1000.
+        return value
+
+    def unit(self):
+        return self._unit.lower()
+
+    def locate(self, wavelengths):
+        for w in wavelengths:
+            assert isinstance(w, Wavelength)
+        values = np.array([w.value(unit=self.unit()) for w in wavelengths])
+        index = np.argmin(np.abs(values-self.value()))
+        return index
+
+
+def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     '''
     Opens the raster given by ``filename``.
 
@@ -1833,18 +2002,19 @@ def openRaster(filename, eAccess=gdal.GA_ReadOnly):
     :param eAccess: access mode ``gdal.GA_ReadOnly`` or ``gdal.GA_Update``
     :type eAccess: int
     :return:
-    :rtype: hubdc.model.Raster
+    :rtype: hubdc.core.RasterDataset
     '''
 
-    if not exists(str(filename)):
-        raise errors.FileNotExistError(str(filename))
+    assert isinstance(filename, str), type(filename)
+    if not exists(filename):
+        raise errors.FileNotExistError(filename)
     gdalDataset = gdal.Open(filename, eAccess)
     if gdalDataset is None:
         raise errors.InvalidGDALDatasetError(filename)
-    return Raster(gdalDataset=gdalDataset)
+    return RasterDataset(gdalDataset=gdalDataset)
 
 
-def openVector(filename, layerNameOrIndex=0, update=False):
+def openVectorDataset(filename, layerNameOrIndex=0, update=False):
     '''
     Opens the vector layer given by ``filename`` and ``layerNameOrIndex``.
 
@@ -1855,11 +2025,12 @@ def openVector(filename, layerNameOrIndex=0, update=False):
     :param update: whether to open in update mode
     :type update: bool
     :return:
-    :rtype: hubdc.model.Vector
+    :rtype: hubdc.core.Vector
     '''
 
-    if not exists(str(filename)):
-        raise errors.FileNotExistError(str(filename))
+    assert isinstance(filename, str), type(filename)
+    if not exists(filename):
+        raise errors.FileNotExistError(filename)
     if str(layerNameOrIndex).isdigit():
         layerNameOrIndex = int(layerNameOrIndex)
     ogrDataSource = ogr.Open(filename, int(update))
@@ -1869,12 +2040,12 @@ def openVector(filename, layerNameOrIndex=0, update=False):
     return Vector(ogrDataSource=ogrDataSource, layerNameOrIndex=layerNameOrIndex)
 
 
-def createRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', driver=MEMDriver(), options=None):
+def createRasterDataset(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', driver=MEMDriver(), options=None):
     '''
     Creates a new raster file with extent, resolution and projection given by ``grid``.
 
     :param grid:
-    :type grid: hubdc.model.Grid
+    :type grid: hubdc.core.Grid
     :param bands: number of raster bands
     :type bands: int
     :param gdalType: one of the ``gdal.GDT_*`` data types, or use gdal_array.NumericTypeCodeToGDALTypeCode
@@ -1882,33 +2053,33 @@ def createRaster(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', driver=M
     :param filename: output filename
     :type filename: str
     :param driver:
-    :type driver: hubdc.model.RasterDriver
+    :type driver: hubdc.core.RasterDriver
     :param options:
-    :type options: hubdc.model.RasterCreationOptions
+    :type options: hubdc.core.RasterCreationOptions
     :return:
-    :rtype: hubdc.model.Raster
+    :rtype: hubdc.core.RasterDataset
     '''
     assert isinstance(driver, RasterDriver)
     return driver.create(grid, bands=bands, gdalType=gdalType, filename=filename, options=options)
 
 
-def createRasterFromArray(grid, array, filename='', driver=MEMDriver(), options=None):
+def createRasterDatasetFromArray(grid, array, filename='', driver=MEMDriver(), options=None):
     '''
     Creates a new raster file with content, data type and number of bands given by ``array``
     and with extent, resolution and projection given by ``grid``.
 
     :param grid:
-    :type grid: hubdc.model.Grid
+    :type grid: hubdc.core.Grid
     :param array:
     :type array: numpy.ndarray
     :param filename: output filename
     :type filename: str
     :param driver:
-    :type driver: hubdc.model.RasterDriver
+    :type driver: hubdc.core.RasterDriver
     :param options:
-    :type options: hubdc.model.RasterCreationOptions
+    :type options: hubdc.core.RasterCreationOptions
     :return:
-    :rtype: hubdc.model.Raster
+    :rtype: hubdc.core.RasterDataset
     '''
 
     if isinstance(array, np.ndarray):
@@ -1918,7 +2089,7 @@ def createRasterFromArray(grid, array, filename='', driver=MEMDriver(), options=
     elif isinstance(array, list):
         assert all([subarray.ndim == 2 for subarray in array])
     else:
-        raise TypeError
+        raise TypeError()
 
     bands = len(array)
     dtype = array[0].dtype
@@ -1926,13 +2097,13 @@ def createRasterFromArray(grid, array, filename='', driver=MEMDriver(), options=
         dtype = np.uint8
 
     gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
-    raster = createRaster(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=driver,
-                          options=options)
+    raster = createRasterDataset(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=driver,
+                                 options=options)
     raster.writeArray(array=array, grid=grid)
     return raster
 
 
-def createVRT(filename, rastersOrFilenames, **kwargs):
+def createVRTDataset(filename, rastersOrFilenames, **kwargs):
     '''
     Creates a virtual raster file (VRT) from rasters or filenames given by ``rastersOrFilenames``.
 
@@ -1943,12 +2114,12 @@ def createVRT(filename, rastersOrFilenames, **kwargs):
     :param kwargs: all additional keyword arguments are passed to gdal.BuildVRTOptions
     :type kwargs:
     :return:
-    :rtype: hubdc.model.Raster
+    :rtype: hubdc.core.RasterDataset
     '''
 
     srcDSOrSrcDSTab = list()
     for rasterOrFilename in rastersOrFilenames:
-        if isinstance(rasterOrFilename, Raster):
+        if isinstance(rasterOrFilename, RasterDataset):
             srcDSOrSrcDSTab.append(rasterOrFilename.gdalDataset())
         elif isinstance(rasterOrFilename, str):
             srcDSOrSrcDSTab.append(rasterOrFilename)
@@ -1957,7 +2128,7 @@ def createVRT(filename, rastersOrFilenames, **kwargs):
 
     options = gdal.BuildVRTOptions(**kwargs)
     gdalDataset = gdal.BuildVRT(destName=filename, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
-    return Raster(gdalDataset=gdalDataset)
+    return RasterDataset(gdalDataset=gdalDataset)
 
 
 def buildOverviews(filename, levels=None, minsize=1024, resampling='average'):
@@ -1982,7 +2153,7 @@ def buildOverviews(filename, levels=None, minsize=1024, resampling='average'):
         assert minsize is not None
         levels = []
         nextLevel = 2
-        size = float(max(openRaster(filename=filename).shape()))
+        size = float(max(openRasterDataset(filename=filename).shape()))
         while size > minsize:
             levels.append(nextLevel)
             size /= 2

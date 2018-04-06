@@ -172,7 +172,7 @@ Create a MEM raster with random noise.
 .. code:: ipython2
 
     array = np.random.randint(0, 255, size=(3, grid.size().y(), grid.size().x()), dtype=np.uint8)
-    raster = createRasterFromArray(array=array, grid=grid)
+    raster = createRasterDatasetFromArray(array=array, grid=grid)
     raster
 
 .. code:: ipython2
@@ -183,7 +183,7 @@ Store the raster as an ENVI file.
 
 .. code:: ipython2
 
-    raster = createRasterFromArray(array=array, grid=grid, filename=join(tempfile.gettempdir(), 'random.img'),
+    raster = createRasterDatasetFromArray(array=array, grid=grid, filename=join(tempfile.gettempdir(), 'random.img'),
                                   driver=ENVIDriver())
     raster.filenames()
 
@@ -196,7 +196,7 @@ Store the raster as a LZW compressed GTiff file.
 
 .. code:: ipython2
 
-    raster = createRasterFromArray(array=array, grid=grid, filename=join(tempfile.gettempdir(), 'random.tif'),
+    raster = createRasterDatasetFromArray(array=array, grid=grid, filename=join(tempfile.gettempdir(), 'random.tif'),
                                   driver=GTiffDriver(), options=options)
     raster.filenames()
 
@@ -205,7 +205,7 @@ Create empty Raster
 
 .. code:: ipython2
 
-    raster = createRaster(grid=grid, bands=3, gdalType=gdal.GDT_Float32)
+    raster = createRasterDataset(grid=grid, bands=3, gdalType=gdal.GDT_Float32)
     raster
 
 Write Raster Data
@@ -259,7 +259,7 @@ Managing Raster Metadata Items
 
     grid = Grid(extent=Extent(xmin=-180, xmax=180, ymin=-90, ymax=90), resolution=Resolution(x=1, y=1), 
                 projection=Projection.WGS84())
-    raster = createRaster(grid=grid)
+    raster = createRasterDataset(grid=grid)
     raster
 
 Set some metadata items.
@@ -315,7 +315,7 @@ Managing No Data Values
 
     grid = Grid(extent=Extent(xmin=-180, xmax=180, ymin=-90, ymax=90), resolution=Resolution(x=1, y=1), 
                 projection=Projection.WGS84())
-    raster = createRaster(grid=grid, bands=3)
+    raster = createRasterDataset(grid=grid, bands=3)
     raster
 
 Set a single no data value to all raster bands.
@@ -417,7 +417,7 @@ Open Vector Files
 
 .. code:: ipython2
 
-    brandenburg = openVector(filename=BrandenburgDistricts.shp)
+    brandenburg = openVectorDataset(filename=BrandenburgDistricts.shp)
     brandenburg
 
 Query Vector Information
@@ -531,7 +531,7 @@ Mosaic Example
     nir024 = openRaster(filename=LT51940242010189KIS01.nir)
     swir024 = openRaster(filename=LT51940242010189KIS01.swir1)
     red024 = openRaster(filename=LT51940242010189KIS01.red)
-    brandenburg = openVector(filename=BrandenburgDistricts.shp)
+    brandenburg = openVectorDataset(filename=BrandenburgDistricts.shp)
 
 .. code:: ipython2
 
