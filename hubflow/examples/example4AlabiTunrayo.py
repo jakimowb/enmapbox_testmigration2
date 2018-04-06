@@ -4,7 +4,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
-from hubflow.types import *
+from hubflow.core import *
 from hubdc.applier import ApplierControls
 
 def script():

@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.use('Qt4Agg')
 from matplotlib import pyplot
 from hubdc.applier import ApplierControls, ApplierInputOptions
-from hubflow.types import *
+from hubflow.core import *
 import enmapboxtestdata
 
 imageFilename = enmapboxtestdata.enmap

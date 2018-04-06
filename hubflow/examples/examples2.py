@@ -8,7 +8,7 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 import gdal
 from hubdc.applier import ApplierControls, ApplierInputOptions
-from hubflow.types import *
+from hubflow.core import *
 import enmapboxtestdata
 
 image = Raster(filename=enmapboxtestdata.enmap)

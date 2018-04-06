@@ -8,7 +8,7 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 import gdal
 import hubdc.progressbar
-from hubflow.types import *
+from hubflow.core import *
 import enmapboxtestdata
 
 overwrite=False
@@ -26,19 +26,20 @@ classDefinitionL2 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinit
 vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.landcover,
                                                     nameAttribute=enmapboxtestdata.landcoverAttributes.Level_2,
                                                     classDefinition=classDefinitionL2,
-                                                    minOverallCoverage=0., minWinnerCoverage=0.)
-hymapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'hymapLandCover.bsq'),
-                                                                                          vectorClassification=vectorClassification(),
-                                                                                          grid=hymap().grid, oversampling=10, overwrite=overwrite)
-enmapClassification = lambda overwrite=overwrite: Classification.fromVectorClassification(filename=join(outdir, 'enmaplandCover.bsq'),
-                                                                                          vectorClassification=vectorClassification(),
-                                                                                          grid=enmap().grid, oversampling=10, overwrite=overwrite)
-hymapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'hymapProbability.bsq'),
-                                                                                    vectorClassification=vectorClassification(),
-                                                                                    grid=hymap().grid, oversampling=10, overwrite=overwrite)
-enmapProbability = lambda overwrite=overwrite: Probability.fromVectorClassification(filename=join(outdir, 'enmapProbability.bsq'),
-                                                                                    vectorClassification=vectorClassification(),
-                                                                                    grid=enmap().grid, oversampling=10, overwrite=overwrite)
+                                                    minOverallCoverage=0., minWinnerCoverage=0.,
+                                                    oversampling=3)
+hymapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'hymapLandCover.bsq'),
+                                                                                    classification=vectorClassification(),
+                                                                                    grid=hymap().grid, overwrite=overwrite)
+enmapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'enmapLandCover.bsq'),
+                                                                                    classification=vectorClassification(),
+                                                                                    grid=enmap().grid, overwrite=overwrite)
+hymapProbability = lambda overwrite=overwrite: Probability.fromClassification(filename=join(outdir, 'hymapProbability.bsq'),
+                                                                              classification=vectorClassification(),
+                                                                              grid=hymap().grid, overwrite=overwrite)
+enmapProbability = lambda overwrite=overwrite: Probability.fromClassification(filename=join(outdir, 'enmapProbability.bsq'),
+                                                                              classification=vectorClassification(),
+                                                                              grid=enmap().grid, overwrite=overwrite)
 enmapRegression = lambda overwrite=overwrite: Regression(filename=enmapProbability(overwrite=overwrite).filename)
 enmapProbabilitySample = lambda overwrite=overwrite: ProbabilitySample.fromRasterAndProbability(raster=enmap(), probability=enmapProbability(overwrite), grid=enmap())
 enmapClassificationSample = lambda overwrite=overwrite: ClassificationSample.fromRasterAndClassification(raster=enmap(), classification=enmapClassification(overwrite), grid=enmap())
