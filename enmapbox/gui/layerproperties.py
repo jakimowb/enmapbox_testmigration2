@@ -43,6 +43,18 @@ class RasterLayerProperties(QgsOptionsDialogBase):
 """
 
 
+"""
+    RASTERRENDERER_CREATE_FUNCTIONS['multibandcolor'] = MultiBandColorRendererWidget.create
+    RASTERRENDERER_CREATE_FUNCTIONS['multibandcolor (QGIS)'] = QgsMultiBandColorRendererWidget.create
+    RASTERRENDERER_CREATE_FUNCTIONS['paletted'] = 
+    RASTERRENDERER_CREATE_FUNCTIONS['singlebandgray'] = 
+    RASTERRENDERER_CREATE_FUNCTIONS['singlebandgray (QGIS)'] = QgsSingleBandGrayRendererWidget.create
+    RASTERRENDERER_CREATE_FUNCTIONS['singlebandpseudocolor'] = SingleBandPseudoColorRendererWidget.create
+    RASTERRENDERER_CREATE_FUNCTIONS['singlebandpseudocolor (QGIS)'] = QgsSingleBandPseudoColorRendererWidget.create
+"""
+
+
+
 class RendererWidgetModifications(object):
 
 
@@ -55,7 +67,7 @@ class RendererWidgetModifications(object):
         while gridLayoutOld.count() > 0:
             w = gridLayoutOld.takeAt(0)
             w = w.widget()
-            gridLayoutOld.removeWidget(c)
+            gridLayoutOld.removeWidget(w)
             w.setVisible(False)
             setattr(self, w.objectName(), w)
         self.layout().removeItem(gridLayoutOld)
@@ -505,20 +517,29 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
 
     def initOptsStyle(self):
         # insert renderer widgets into registry
-        m = OptionListModel()
+        """
+        for key, value in RASTERRENDERER_CREATE_FUNCTIONS.items():
+            #self.m.addOption(Option(value, name=key))
+            self.mRenderTypeComboBox.addItem(key)
+        """
 
-        for key, value in RASTERRENDERER_FUNC.items():
-            m.addOption(Option(value, name=key))
-            #self.mRenderTypeComboBox.addItem(key, userData=key)
 
-        self.mRenderTypeComboBox.setModel(m)
+
+        self.mRenderTypeComboBox.setModel(RASTERRENDERER_CREATE_FUNCTIONSV2)
+
+        for func in RASTERRENDERER_CREATE_FUNCTIONSV2.optionValues():
+            extent = self.canvas.extent()
+            w = func(self.mRasterLayer, extent)
+            w.setMapCanvas(self.canvas)
+            self.mRendererStackedWidget.addWidget(w)
 
         renderer = self.mRasterLayer.renderer()
 
-        if renderer:
-            setCurrentComboBoxValue(self.mRenderTypeComboBox, renderer.type())
+        #if renderer:
+        #    self.setRendererWidget(renderer.type())
+         #   pass
 
-        self.mRenderTypeComboBox.currentIndexChanged.connect(self.on_mRenderTypeComboBox_currentIndexChanged)
+        #self.mRenderTypeComboBox.currentIndexChanged.connect(self.setRendererWidget)
 
     def initOptsTransparency(self):
 
@@ -527,13 +548,6 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
 
         s = ""
 
-    @pyqtSlot(int)
-    def on_mRenderTypeComboBox_currentIndexChanged(self, index):
-        if index < 0:
-            return None
-        rendererName = self.mRenderTypeComboBox.itemData(index).name()
-        self.setRendererWidget(rendererName)
-        s = ""
 
 
     def onCancel(self):
@@ -546,52 +560,15 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
         self.setResult(QDialog.Rejected)
 
     def apply(self):
-        if self.mRendererWidget:
-            self.mRendererWidget.doComputations()
-            #self.mRendererWidget.minMaxWidget().doComputations()
-            self.mRasterLayer.setRenderer(self.mRendererWidget.renderer())
 
+        mRendererWidget = self.mRendererStackedWidget.currentWidget()
+        mRendererWidget.doComputations()
+        #mRendererWidget.minMaxWidget().doComputations()
+        self.mRasterLayer.setRenderer(mRendererWidget.renderer())
         self.mRasterLayer.triggerRepaint()
         self.setResult(QDialog.Accepted)
 
-    def syncFromLayer(self):
 
-        if self.mRasterLayer:
-            dp = self.mRasterLayer.dataProvider()
-
-
-    def syncToLayer(self):
-        renderer = self.mRasterLayer.renderer()
-        if renderer:
-            self.setRendererWidget('{}'.format(renderer.type()))
-
-        self.sync()
-        self.mRasterLayer.triggerRepaint()
-
-    def setRendererWidget(self, rendererName):
-        oldWidget = self.mRendererWidget
-
-        if rendererName in RASTERRENDERER_FUNC.keys():
-
-            extent = self.canvas.extent()
-            w = RASTERRENDERER_FUNC[rendererName](self.mRasterLayer, extent)
-            w.setMapCanvas(self.canvas)
-            self.mRendererStackedWidget.addWidget(w)
-            self.mRendererWidget = w
-
-            if self.mRendererWidget != oldWidget:
-                self.mRendererStackedWidget.removeWidget(oldWidget)
-                del oldWidget
-
-RASTERRENDERER_FUNC = collections.OrderedDict()
-
-#RASTERRENDERER_FUNC['multibandcolor'] = MultiBandColorRendererWidget.create
-RASTERRENDERER_FUNC['multibandcolor'] = MultiBandColorRendererWidget.create
-RASTERRENDERER_FUNC['multibandcolor (QGIS)'] = QgsMultiBandColorRendererWidget.create
-RASTERRENDERER_FUNC['paletted'] = QgsPalettedRendererWidget.create
-RASTERRENDERER_FUNC['singlebandgray'] = QgsSingleBandGrayRendererWidget.create
-RASTERRENDERER_FUNC['singlebandgray (QGIS)'] = QgsSingleBandGrayRendererWidget.create
-RASTERRENDERER_FUNC['singlebandpseudocolor'] = QgsSingleBandPseudoColorRendererWidget.create
 
 
 
@@ -681,10 +658,10 @@ def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
     dialog = None
 
     if isinstance(layer, QgsRasterLayer):
-        dialog = RasterLayerProperties(layer, canvas, parent)
+        dialog = RasterLayerProperties(layer, canvas,parent=parent)
         #d.setSettings(QSettings())
     elif isinstance(layer, QgsVectorLayer):
-        dialog = VectorLayerProperties(layer, canvas, parent)
+        dialog = VectorLayerProperties(layer, canvas, parent=parent)
     else:
         assert NotImplementedError()
 
@@ -695,6 +672,16 @@ def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
 
     result = dialog.exec_()
     return result
+
+RASTERRENDERER_CREATE_FUNCTIONSV2 = OptionListModel()
+RASTERRENDERER_CREATE_FUNCTIONSV2.addOption(Option(MultiBandColorRendererWidget.create, name='multibandcolor'))
+RASTERRENDERER_CREATE_FUNCTIONSV2.addOption(Option(QgsMultiBandColorRendererWidget.create, name='multibandcolor (QGIS)'))
+RASTERRENDERER_CREATE_FUNCTIONSV2.addOption(Option(QgsPalettedRendererWidget.create, name='paletted'))
+RASTERRENDERER_CREATE_FUNCTIONSV2.addOption(Option(SingleBandGrayRendererWidget.create, name='singlegray'))
+RASTERRENDERER_CREATE_FUNCTIONSV2.addOption(Option(QgsSingleBandGrayRendererWidget.create, name='singlegray (QGIS)'))
+RASTERRENDERER_CREATE_FUNCTIONSV2.addOption(Option(SingleBandPseudoColorRendererWidget.create, name='singlebandpseudocolor'))
+RASTERRENDERER_CREATE_FUNCTIONSV2.addOption(Option(QgsSingleBandPseudoColorRendererWidget.create, name='singlebandpseudocolor (QGIS)'))
+
 
 
 if __name__ == '__main__':
@@ -716,24 +703,23 @@ if __name__ == '__main__':
     c.setExtent(l.extent())
     c.refreshAllLayers()
     #l = QgsRasterLayer(r'F:\Temp\landsat22.bsq')
-    if True:
+    if False:
         w = MultiBandColorRendererWidget.create(l, l.extent())
         w.show()
-    if True:
+    if False:
         w = SingleBandGrayRendererWidget.create(l, l.extent())
         w.show()
-    if True:
+    if False:
         w = SingleBandPseudoColorRendererWidget.create(l, l.extent())
         w.show()
-    if False:
+    if True:
         #QgsRendererV2Registry.instance().renderersList()
-
 
         #w = QgsMapLayerStyleManagerWidget(v, c, parent=None)
         #w.show()
         b = QPushButton()
         b.setText('Show Properties')
-        b.clicked.connect(lambda: showLayerPropertiesDialog(l, c))
+        b.clicked.connect(lambda: showLayerPropertiesDialog(l, c, modal=True))
         br = QPushButton()
         br.setText('Refresh')
         br.clicked.connect(lambda : c.refresh())
