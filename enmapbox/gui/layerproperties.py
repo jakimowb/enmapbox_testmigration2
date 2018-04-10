@@ -619,9 +619,8 @@ class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesd
 
     def syncToLayer(self):
 
-        if self.mLayer.rendererV2():
-            dlg = self.widgetStackRenderers.currentWidget()
-            dlg.apply()
+        if isinstance(self.mRendererDialog, QgsRendererPropertiesDialog):
+            self.mRendererDialog.apply()
 
         if self.txtSubsetSQL.toPlainText() != self.mLayer.subsetString():
             self.mLayer.setSubsetString(self.txtSubsetSQL.toPlainText())
@@ -637,22 +636,24 @@ class VectorLayerProperties(QgsOptionsDialogBase, loadUI('vectorlayerpropertiesd
             self.txtSubsetSQL.setText(qb.sql())
 
     def updateSymbologyPage(self):
+
+        while self.widgetStackRenderers.count() > 0:
+            self.widgetStackRenderers.removeWidget(self.widgetStackRenderers.widget(0))
+
         self.mRendererDialog = None
-        if self.mLayer.rendererV2():
-            self.mRendererDialog = QgsRendererV2PropertiesDialog(self.mLayer, QgsStyleV2.defaultStyle(), True, self)
+        if self.mLayer.renderer():
+            self.mRendererDialog = QgsRendererPropertiesDialog(self.mLayer, QgsStyle.defaultStyle(), True, self)
             self.mRendererDialog.setDockMode(False)
             self.mRendererDialog.setMapCanvas(self.mCanvas)
-          #  self.mRendererDialog.showPanel.connect(self.openPanel)
-            #self.mRendererDialog.layerVariablesChanged.connect(self.updateVariableEditor())
+
+            self.mRendererDialog.layout().setContentsMargins(0, 0, 0, 0)
+            self.widgetStackRenderers.addWidget(self.mRendererDialog)
+            self.widgetStackRenderers.setCurrentWidget(self.mRendererDialog)
+
             self.mOptsPage_Style.setEnabled(True)
         else:
             self.mOptsPage_Style.setEnabled(False)
 
-        if self.mRendererDialog:
-            self.mRendererDialog.layout().setMargin(0)
-            self.widgetStackRenderers.addWidget(self.mRendererDialog)
-            self.widgetStackRenderers.setCurrentWidget(self.mRendererDialog)
-            self.widgetStackRenderers.currentWidget().layout().setMargin(0)
 
 def showLayerPropertiesDialog(layer, canvas, parent=None, modal=True):
     dialog = None
@@ -696,11 +697,11 @@ if __name__ == '__main__':
     #v = QgsVectorLayer(pathV,'bn', "ogr", loadDefaultStyleFlag=True)
     v = QgsVectorLayer(pathV)
 
-    QgsProject.instance().addMapLayers([l,v])
+    QgsProject.instance().addMapLayers([v,l])
     c = QgsMapCanvas()
-    c.setLayers([l])
-    c.setDestinationCrs(l.crs())
-    c.setExtent(l.extent())
+    c.setLayers([v])
+    c.setDestinationCrs(v.crs())
+    c.setExtent(v.extent())
     c.refreshAllLayers()
     #l = QgsRasterLayer(r'F:\Temp\landsat22.bsq')
     if False:
@@ -719,7 +720,7 @@ if __name__ == '__main__':
         #w.show()
         b = QPushButton()
         b.setText('Show Properties')
-        b.clicked.connect(lambda: showLayerPropertiesDialog(l, c, modal=True))
+        b.clicked.connect(lambda: showLayerPropertiesDialog(v, c, modal=True))
         br = QPushButton()
         br.setText('Refresh')
         br.clicked.connect(lambda : c.refresh())
