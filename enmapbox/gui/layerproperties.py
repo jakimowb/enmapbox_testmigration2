@@ -133,7 +133,7 @@ class MultiBandColorRendererWidget(QgsMultiBandColorRendererWidget):
 
         self.mBtnBar = QFrame()
         self.mBtnBar.setLayout(QHBoxLayout())
-        self.initButtons()
+        self.initActionButtons()
         self.mBtnBar.layout().addStretch()
         self.mBtnBar.layout().setContentsMargins(0, 0, 0, 0)
         self.mBtnBar.layout().setSpacing(2)
@@ -185,7 +185,8 @@ class MultiBandColorRendererWidget(QgsMultiBandColorRendererWidget):
 
         self.mDefaultRenderer = layer.renderer()
 
-    def initButtons(self):
+
+    def initActionButtons(self):
 
         from enmapbox.gui.utils import parseWavelength
         wl, wlu = parseWavelength(self.rasterLayer())
@@ -197,15 +198,17 @@ class MultiBandColorRendererWidget(QgsMultiBandColorRendererWidget):
         self.actionSetCIR = QAction('nIR')
         self.actionSet453 = QAction('swIR')
 
-        self.actionSetDefault.triggered.connect(lambda : self.setBandSelection('default'))
-        self.actionSetTrueColor.triggered.connect(lambda : self.setBandSelection('R,G,B'))
-        self.actionSetCIR.triggered.connect(lambda : self.setBandSelection('nIR,R,G'))
-        self.actionSet453.triggered.connect(lambda : self.setBandSelection('nIR,swIR,R'))
+        self.actionSetDefault.triggered.connect(lambda: self.setBandSelection('default'))
+        self.actionSetTrueColor.triggered.connect(lambda: self.setBandSelection('R,G,B'))
+        self.actionSetCIR.triggered.connect(lambda: self.setBandSelection('nIR,R,G'))
+        self.actionSet453.triggered.connect(lambda: self.setBandSelection('nIR,swIR,R'))
+
 
         def addBtnAction(action):
             btn = QToolButton()
             btn.setDefaultAction(action)
             self.mBtnBar.layout().addWidget(btn)
+            self.insertAction(None, action)
             return btn
 
         self.btnDefault = addBtnAction(self.actionSetDefault)
@@ -213,7 +216,9 @@ class MultiBandColorRendererWidget(QgsMultiBandColorRendererWidget):
         self.btnCIR = addBtnAction(self.actionSetCIR)
         self.btn453 = addBtnAction(self.actionSet453)
 
-        self.mBtnBar.setEnabled(self.wavelengths is not None)
+        b = self.wavelengths is not None
+        for a in [self.actionSetCIR, self.actionSet453, self.actionSetTrueColor]:
+            a.setEnabled(b)
 
 
     def setBandSelection(self, key):
@@ -854,11 +859,12 @@ if __name__ == '__main__':
     c.setExtent(l.extent())
     c.refreshAllLayers()
 
-    if False:
-        w = MultiBandColorRendererWidgetV2.create(l, l.extent())
+    if True:
+        l = QgsRasterLayer(r'F:\Temp\landsat22.bsq')
+        w = MultiBandColorRendererWidget.create(l, l.extent())
         w.show()
-
-    #QgsApplication.instance().rendererRegistry().addRenderer()
+    elif False:
+        pass
 
     else:
         #QgsRendererV2Registry.instance().renderersList()
