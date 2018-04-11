@@ -328,22 +328,43 @@ class MapDockTreeNode(DockTreeNode):
         for node in toRemove:
             node.parent().removeChildNode(node)
 
-    def insertLayer(self, idx, layer):
+    def insertLayer(self, idx, layerSource):
         """
         Inserts a new QgsMapLayer on position idx by creating a new QgsMayTreeLayer node
         :param idx:
-        :param layer:
+        :param layerSource:
         :return:
         """
-        assert isinstance(layer, QgsMapLayer)
-        QgsProject.instance().addMapLayer(layer)
-        ll = QgsLayerTreeLayer(layer)
-        self.layerNode.insertChildNode(idx, ll)
-        return ll
+        from enmapbox.gui.datasourcemanager import DataSourceManager
+        dsm = DataSourceManager.instance()
+
+        renderer = None
+        layerTreeLayers = []
+        if isinstance(layerSource, QgsMapLayer):
+            renderer = layerSource.renderer()
+
+        if isinstance(dsm, DataSourceManager):
+
+            sources = dsm.addSource(layerSource)
+            newLayers = [s.createUnregisteredMapLayer() for s in sources if isinstance(s, DataSourceSpatial)]
+
+            for l in newLayers:
+                if renderer is not None:
+                    l.setRenderer(renderer)
+                layerTreeLayers.append(QgsLayerTreeLayer(l))
+                ""
+        elif isinstance(layerSource, QgsMapLayer):
+            layerTreeLayers.append(QgsLayerTreeLayer(layerSource))
+
+        for l in layerTreeLayers:
+            assert isinstance(l, QgsLayerTreeLayer)
+            QgsProject.instance().addMapLayer(l.layer())
+            self.layerNode.insertChildNode(idx, l)
+
 
     def writeXML(self, parentElement):
-        elem = super(MapDockTreeNode, self).writeXML(parentElement)
-        elem.setTagName('map-dock-tree-node')
+            elem = super(MapDockTreeNode, self).writeXML(parentElement)
+            elem.setTagName('map-dock-tree-node')
 
     @staticmethod
     def readXml(element):
@@ -559,11 +580,13 @@ class DockManagerTreeModel(TreeModel):
             dockNode = dockNode[0]
 
         if isinstance(dockNode, MapDockTreeNode):
+
             if mimeData.hasFormat(MDF_LAYERTREEMODELDATA):
                 doc = QDomDocument()
                 xml = fromByteArray(mimeData.data(MDF_LAYERTREEMODELDATA))
-                doc.setContent(xml)
 
+                sources = re.findall('(?<=source=")[^<>"]*(?=")', xml)
+                doc.setContent(xml)
                 root = doc.documentElement()
                 context = QgsReadWriteContext()
                 layerTree = QgsLayerTree.readXml(root,context)
@@ -574,19 +597,19 @@ class DockManagerTreeModel(TreeModel):
                     assert isinstance(layerTreeLayer, QgsLayerTreeLayer)
                     if layerTreeLayer.layerId() in regLayers.keys():
                         mapLayers.append(regLayers[layerTreeLayer.layerId()])
-                for l in mapLayers:
-                    dockNode.insertLayer(0, l)
-                return True
-            else:
-
-
-                dataSources = [ds for ds in MDH.dataSources() if isinstance(ds, DataSourceSpatial)]
-                if len(dataSources) > 0:
-                    layers = reversed([ds.createUnregisteredMapLayer() for ds in dataSources])
-                    for l in layers:
+                if len(mapLayers) > 0:
+                    for l in mapLayers:
                         dockNode.insertLayer(0, l)
                     return True
+                if len(sources) > 0:
+                    for s in sources:
+                        dockNode.insertLayer(0, s)
+                    return True
 
+            if mimeData.hasUrls():
+                for url in mimeData.urls():
+                    dockNode.insertLayer(0, url)
+                return True
 
         elif isinstance(dockNode, TextDockTreeNode):
 
@@ -600,17 +623,6 @@ class DockManagerTreeModel(TreeModel):
         if len(indexes) == 0:
             return None
 
-        """
-        nodesFinal = []
-        for idx in indexes:
-            node = self.index2node(idx)
-            if type(node) == QgsLayerTreeGroup:
-                if not isinstance(node.parent(), MapDockTreeNode):
-                    nodesFinal.append(node)
-            elif type(node) == QgsLayerTreeLayer:
-                nodesFinal.append(node)
-
-        """
         nodesFinal = self.indexes2nodes(indexes, True)
 
         mimeData = QMimeData()
@@ -634,7 +646,7 @@ class DockManagerTreeModel(TreeModel):
                 elif type(node) == QgsLayerTreeLayer:
                     node.writeXml(rootElem, context)
             doc.appendChild(rootElem)
-            mimeData.setData('application/qgis.layertreemodeldata', toByteArray(doc))
+            mimeData.setData(MDF_LAYERTREEMODELDATA, toByteArray(doc))
         return mimeData
 
     def parentNodesFromIndices(self, indices, nodeInstanceType=DockTreeNode):
