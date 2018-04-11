@@ -84,3 +84,26 @@ regexFMask = re.compile(regexLandsatID.pattern + '_cfmask.hdr')
 
 fmaskFiles = [f for f in list_of_filenames if regexFMask.search(f)]
 print('found {} FMask files'.format(len(fmaskFiles)))
+
+
+#Another real-world regex example: quick XML parsing:
+xml = """
+<layer_tree_model_data>
+ <layer-tree-layer checked="Qt::Checked" id="2014_05_15_LE72270652014135CUB00_BOA_0e065b31_6393_4acb_b0d5_145216946b3d" 
+ source="C:/Users/geo_beja/Repositories/QGIS_Plugins/hub-timeseriesviewer/example/Images/2014-05-15_LE72270652014135CUB00_BOA.tif" 
+ expanded="1" name="2014-05-15_LE72270652014135CUB00_BOA" providerKey="gdal">
+  <customproperties/>
+ </layer-tree-layer>
+ <layer-tree-layer checked="Qt::Checked" id="2014_05_07_LC82270652014127LGN00_BOA_c452fb95_ca0a_4915_9a00_b908999a1491" 
+ source="C:/Users/geo_beja/Repositories/QGIS_Plugins/hub-timeseriesviewer/example/Images/2014-05-07_LC82270652014127LGN00_BOA.tif" 
+ expanded="1" name="2014-05-07_LC82270652014127LGN00_BOA" providerKey="gdal">
+  <customproperties/>
+ </layer-tree-layer>
+</layer_tree_model_data>
+"""
+
+
+#return all paths described by a source="..." attribute
+print('source found in XML')
+for p in re.findall('(?<=source=")[^<>"]*(?=")', xml):
+    print(p)
