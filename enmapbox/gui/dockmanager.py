@@ -500,7 +500,9 @@ class DockManagerTreeModel(TreeModel):
         if node is None:
             node = self.index2legendNode(index)
             if isinstance(node, QgsLayerTreeModelLegendNode):
-                return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+                return self.legendNodeFlags(node)
+                #return super(QgsLayerTreeModel,self).flags(index)
+                return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
         #print('node: {}  {}'.format(node, type(node)))
         dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)
         if len(dockNode) == 0:
@@ -673,8 +675,12 @@ class DockManagerTreeModel(TreeModel):
             return None
 
         node = self.index2node(index)
-
+        legendNode = self.index2legendNode(index)
         column = index.column()
+
+        if isinstance(legendNode, QgsSymbolLegendNode):
+            return super(DockManagerTreeModel, self).data(index, role)
+            s = ""
 
         if not isinstance(node, TreeNode):
             if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
@@ -713,6 +719,14 @@ class DockManagerTreeModel(TreeModel):
 
     def setData(self, index, value, role=None):
         node = self.index2node(index)
+        if node is None:
+            node = self.index2legendNode(index)
+            if isinstance(node, QgsLayerTreeModelLegendNode):
+                #this does not work:
+                #result = super(QgsLayerTreeModel,self).setData(index, value, role=role)
+                result = node.setData(value, role)
+                return result
+
         parentNode = node.parent()
 
         result = False
