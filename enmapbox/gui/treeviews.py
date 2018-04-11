@@ -130,6 +130,8 @@ class TreeNode(QgsLayerTree):
 
         if parent is not None:
             parent.addChildNode(self)
+            if isinstance(parent, TreeNode):
+                self.sigValueChanged.connect(parent.sigValueChanged)
 
     def _removeSubNode(self,node):
         if node in self.children():
@@ -298,26 +300,33 @@ class TreeModel(QgsLayerTreeModel):
         node = self.index2node(index)
         col = index.column()
         if isinstance(node, TreeNode):
-
             if col == 0:
                 if role == Qt.DisplayRole:
-                    name = node.name()
-                    return name
+                    return node.name()
+
+                if role == Qt.EditRole:
+                    return node.name()
+
                 if role == Qt.DecorationRole:
                     return node.icon()
+
                 if role == Qt.ToolTipRole:
                     return node.tooltip()
+
             if col == 1:
                 if role == Qt.DisplayRole:
-                    value = node.value()
-                    return value
+                    print(node.value())
+                    return node.value()
+
+                if role == Qt.EditRole:
+                    return node.value()
+
+            return None
+
         else:
-            if col == 0:
-                return super(TreeModel, self).data(index, role)
+             return super(TreeModel, self).data(index, role)
 
 
-
-        return None
     def supportedDragActions(self):
         return Qt.IgnoreAction
 
@@ -444,12 +453,14 @@ class TreeView(QgsLayerTreeView):
             model = self.model()
             idxNode = model.node2index(node)
             idxParent = model.node2index(parent)
-            span = True
+            span = False
             if isinstance(node, TreeNode):
-                span = node.value() == None or ''.format(node.value()).strip() == ''
+                span = node.value() == None or '{}'.format(node.value()).strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)
+            #for child in node.children():
+            #    self.setColumnSpan(child)
 
 class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
 
