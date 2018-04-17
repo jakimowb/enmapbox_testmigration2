@@ -14,6 +14,8 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
 from qgis import *
+from qgis.gui import *
+from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import initQgisApplication
@@ -61,6 +63,49 @@ class MapCanvasTests(unittest.TestCase):
                 self.fail('Failed to trigger QAction "{}\n\t{}"'.find(info, ex))
 
 
+    def test_dropEvents(self):
+
+
+        def createDropEvent(mimeData):
+            assert isinstance(mimeData, QMimeData)
+            return QDropEvent(QPointF(0,0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier)
+        from enmapboxtestdata import enmap, hymap, landcover, speclib
+        allFiles = [enmap, hymap, landcover, speclib]
+        spatialFiles = [enmap, hymap, landcover]
+
+        from enmapbox.gui.mimedata import MDF_URILIST, MDF_DATASOURCETREEMODELDATA, MDF_SPECTRALLIBRARY, MDF_DOCKTREEMODELDATA
+        md = QMimeData()
+        md.setUrls([QUrl.fromLocalFile(f) for f in allFiles])
+
+        #drop URLs
+        self.mapCanvas.setLayers([])
+        self.mapCanvas.dropEvent(createDropEvent(md))
+        self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
+        for p in self.mapCanvas.layerPaths():
+            self.assertTrue(p in spatialFiles)
+
+        #drop layertree
+        md = QMimeData()
+        layers = [QgsVectorLayer(landcover), QgsRasterLayer(enmap)]
+        tree = QgsLayerTree()
+        for l in layers:
+            tree.addLayer(l)
+
+
+        #drop QGIS maplayer XML
+        doc = QDomDocument()
+        context = QgsReadWriteContext()
+        node = doc.createElement('layer-tree-group')
+        doc.appendChild(node)
+        for c in tree.children():
+            c.writeXml(node, context)
+        md.setData(MDF_LAYERTREEMODELDATA, doc.toByteArray())
+
+        self.mapCanvas.setLayers([])
+        self.mapCanvas.dropEvent(createDropEvent(md))
+        self.assertTrue(len(self.mapCanvas.layerPaths()) == 2)
+        for p in self.mapCanvas.layerPaths():
+            self.assertTrue(p in spatialFiles)
 
 def exampleMapLinking():
     import site, sys
@@ -76,7 +121,6 @@ def exampleMapLinking():
     geoFiles = [enmap, hymap, landcover]
     nMaps = 4
 
-
     maps = []
     for f in geoFiles:
         map = MapCanvas()
@@ -87,6 +131,7 @@ def exampleMapLinking():
         map.show()
         maps.append(map)
 
+    Qgs
     d = CanvasLinkDialog()
     d.addCanvas(maps)
     d.setSourceCanvas(maps[0])
