@@ -71,7 +71,7 @@ def setCurrentComboBoxValue(comboBox, value):
 
 class Option(object):
 
-    def __init__(self, value, name=None, tooltip=None, icon=None):
+    def __init__(self, value, name=None, tooltip='', icon=QIcon()):
 
         self.mValue = value
         if name is None:
@@ -80,11 +80,24 @@ class Option(object):
         self.mTooltip = tooltip
         self.mIcon = None
 
+    def value(self):
+        return self.mValue
+
+    def name(self):
+        return self.mName
+
+    def tooltip(self):
+        return self.mTooltip
+
+    def icon(self):
+        return self.mIcon
+
     def __eq__(self, other):
         if not isinstance(other, Option):
             return False
         else:
             return other.mValue == self.mValue
+
 
 
 class OptionListModel(QAbstractListModel):
@@ -194,14 +207,15 @@ class OptionListModel(QAbstractListModel):
         if (index.row() >= len(self.mOptions)) or (index.row() < 0):
             return None
         option = self.idx2option(index)
-        assert isinstance(option, Option)
+        if not isinstance(option, Option):
+            s = ""
         result = None
         if role == Qt.DisplayRole:
             result = '{}'.format(option.mName)
         elif role == Qt.ToolTipRole:
             result = '{}'.format(option.mName if option.mTooltip is None else option.mTooltip)
         elif role == Qt.DecorationRole:
-            result = '{}'.format(option.mIcon)
+            result = option.mIcon
         elif role == Qt.UserRole:
             return option
         return result

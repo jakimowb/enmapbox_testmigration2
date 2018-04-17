@@ -115,7 +115,7 @@ def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
 
-    EB.openExampleData(mapWindows=3)
+    EB.openExampleData(mapWindows=1)
     #EB.addSource(r'R:\WS1718_FE1\Daten\Sitzung_12\MODIS Berlin\MOD13A1.A2015273.h18v03.006.2015307052831.hdf')
     #EB.addSource(r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml')
     #EB.addSource(r'H:\Pleiades\GFOIGroupe13Brazil_SO16018091-2-01_DS_PHR1A_201610071358040_FR1_PX_W056S07_0707_03492\TPP1600447277\VOL_PHR.XML')
@@ -281,6 +281,44 @@ class QgisFake(QgisInterface):
         return self.canvas
 
 
+def sandboxDockManager():
+    from enmapbox.gui.dockmanager import DockManager, DockPanelUI
+    from enmapbox.gui.datasourcemanager import DataSourceManager
+    from enmapbox.gui.datasources import DataSourceSpatial
+    from enmapbox.gui.docks import DockArea
+
+    dsm = DataSourceManager()
+    dockArea = DockArea()
+    dockArea.show()
+    dm = DockManager()
+    dm.connectDockArea(dockArea)
+    dm.connectDataSourceManager(dsm)
+
+    d = QDialog()
+    d.setMinimumHeight(400)
+    d.setWindowTitle('TestDialog')
+    d.setLayout(QVBoxLayout())
+    ui = DockPanelUI()
+    ui.connectDockManager(dm)
+    d.layout().addWidget(ui)
+    from enmapboxtestdata import enmap, landcover
+    mapDock1 = dm.createDock('MAP')
+    mapDock2 = dm.createDock('MAP')
+    dsm.addSource(enmap)
+    dsm.addSource(landcover)
+
+    lyrs1 = []
+    lyrs2 = []
+    for s in dsm.sources():
+        if isinstance(s, DataSourceSpatial):
+            lyrs1.append(s.createUnregisteredMapLayer())
+            lyrs2.append(s.createUnregisteredMapLayer())
+
+    mapDock1.addLayers(lyrs1)
+    mapDock2.addLayers(lyrs2)
+    d.exec_()
+
+
 def sandboxDataSourceManager():
     from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourcePanelUI
     from enmapbox.gui.docks import DockArea
@@ -299,7 +337,6 @@ def sandboxDataSourceManager():
     dm.addSource(landcover)
     d.show()
     s = ""
-
 
 def howToStartEnMAPBoxInPython():
 
@@ -342,6 +379,7 @@ if __name__ == '__main__':
 
         if False: sandboxTreeNodes()
         if False: sandboxDataSourceManager()
+        #if True: sandboxDockManager()
 
         if False: sandboxPureGui(loadProcessingFramework=True)
 
@@ -352,4 +390,3 @@ if __name__ == '__main__':
         if False: sandboxDialog()
 
         qgsApp.exec_()
-        qgsApp.quit()

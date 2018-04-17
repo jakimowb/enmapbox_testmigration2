@@ -30,7 +30,7 @@ from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.settings import qtSettingsObj
 from enmapbox.gui.mapcanvas import *
-
+from enmapbox.gui.maptools import *
 # if qgis.utils.iface is None:
 #    qgis.utils.iface = EnMAPBoxQgisInterface()
 
@@ -47,59 +47,6 @@ class Views(object):
     EmptyView = 'EMPTY'
 
 
-class MapTools(object):
-    """
-    Static class to support handling of nQgsMapTools.
-    """
-    def __init__(self):
-        raise Exception('This class is not for any instantiation')
-    ZoomIn = 'ZOOM_IN'
-    ZoomOut = 'ZOOM_OUT'
-    ZoomFull = 'ZOOM_FULL'
-    Pan = 'PAN'
-    ZoomPixelScale = 'ZOOM_PIXEL_SCALE'
-    CursorLocation = 'CURSOR_LOCATION'
-    SpectralProfile = 'SPECTRAL_PROFILE'
-    MoveToCenter = 'MOVE_CENTER'
-
-    @staticmethod
-    def copy(mapTool):
-        assert isinstance(mapTool, QgsMapTool)
-        s = ""
-
-
-    @staticmethod
-    def create(mapToolKey, canvas, *args, **kwds):
-        assert mapToolKey in MapTools.mapToolKeys()
-
-        assert isinstance(canvas, QgsMapCanvas)
-
-        if mapToolKey == MapTools.ZoomIn:
-            return QgsMapToolZoom(canvas, False)
-        if mapToolKey == MapTools.ZoomOut:
-            return QgsMapToolZoom(canvas, True)
-        if mapToolKey == MapTools.Pan:
-            return QgsMapToolPan(canvas)
-        if mapToolKey == MapTools.ZoomPixelScale:
-            return PixelScaleExtentMapTool(canvas)
-        if mapToolKey == MapTools.ZoomFull:
-            return FullExtentMapTool(canvas)
-        if mapToolKey == MapTools.CursorLocation:
-            return CursorLocationMapTool(canvas, *args, **kwds)
-        if mapToolKey == MapTools.MoveToCenter:
-            tool = CursorLocationMapTool(canvas, *args, **kwds)
-            tool.sigLocationRequest.connect(canvas.setCenter)
-            return tool
-        if mapToolKey == MapTools.SpectralProfile:
-            return SpectralProfileMapTool(canvas, *args, **kwds)
-
-
-        raise Exception('Unknown mapToolKey {}'.format(mapToolKey))
-
-
-    @staticmethod
-    def mapToolKeys():
-        return [MapTools.__dict__[k] for k in MapTools.__dict__.keys() if not k.startswith('_')]
 
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
@@ -174,8 +121,8 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
 
 class EnMAPBox(QgisInterface, QObject):
-    _instance = None
 
+    _instance = None
     @staticmethod
     def instance():
         return EnMAPBox._instance
@@ -337,6 +284,9 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     def initEnMAPBoxAsIFACE(self):
+        """
+        Sets the EnMAP-Box as global iface, so that the EnMAPBox instance serves as QGIS instance
+        """
         from processing.core.Processing import Processing
         import processing
         self.iface = self
@@ -344,26 +294,21 @@ class EnMAPBox(QgisInterface, QObject):
 
         if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
 
-            if processing.iface is None:
-                import processing.gui.AlgorithmDialog
-                import processing.gui.AlgorithmDialogBase
-                import processing.gui.ProcessingToolbox
-                import processing.gui.ToolboxAction
-                import processing.tools.dataobjects
-                Processing.initialize()
-                processing.iface = self.iface
-                processing.gui.AlgorithmDialog.iface = self.iface
-                processing.gui.AlgorithmDialogBase.iface = self.iface
-                processing.tools.dataobjects.iface = self.iface
-                processing.gui.ProcessingToolbox.iface = self.iface
-                # todo: set iface in a generic way
-                # import pkgutil
-                # prefix = str(processing.__name__ + '.')
-                # MODULES = dict()
-                # for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
-                #    MODULES[modname] = __import__(modname, fromlist="dummy")
+            import processing
+            qgis.utils.iface = self.iface
+            processing.Processing.initialize()
 
-                s = ""
+            import pkgutil
+            prefix = str(processing.__name__ + '.')
+            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
+                try:
+                    module = __import__(modname, fromlist="dummy")
+                    if hasattr(module, 'iface'):
+                        #print(modname)
+                        module.iface = self.iface
+                except:
+                    pass
+            s = ""
 
     def initQGISProcessingFramework(self):
 
@@ -532,7 +477,7 @@ class EnMAPBox(QgisInterface, QObject):
         if not DEBUG and not re.search('(enmapbox|plugins)', m):
             return
 
-        print('{}({}): {}'.format(tag, level, message))
+        #print('{}({}): {}'.format(tag, level, message))
 
         if False and level in [Qgis.Critical, Qgis.Warning]:
             widget = self.ui.messageBar.createMessage(tag, message)
@@ -737,7 +682,7 @@ class EnMAPBox(QgisInterface, QObject):
     sigClosed = pyqtSignal()
 
     def close(self):
-        print('CLOSE ENMAPBOX')
+        #print('CLOSE ENMAPBOX')
         enmapbox.gui.processingmanager.removeQPFExtensions()
         self.ui.close()
 
@@ -1073,8 +1018,12 @@ class EnMAPBox(QgisInterface, QObject):
         return [d.canvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
 
     def mapCanvas(self):
+        """
+        Returns a virtual QgsMapCanvas that contains all QgsMapLayers visible in the EnMAP-Box DataSource Manager
+        :return: QgsMapCanvas
+        """
         assert isinstance(self.mQgisInterfaceMapCanvas, QgsMapCanvas)
-        self.mQgisInterfaceMapCanvas.setLayerSet([])
+        self.mQgisInterfaceMapCanvas.setLayers([])
 
         for ds in self.dataSourceManager.mSources:
             if isinstance(ds, DataSourceSpatial):
@@ -1085,14 +1034,11 @@ class EnMAPBox(QgisInterface, QObject):
                     self.mQgisInterfaceLayerSet[uri] = lyr
 
         if len(self.mQgisInterfaceLayerSet.values()) > 0:
-            lyr = self.mQgisInterfaceLayerSet.values()[0]
+            lyr = list(self.mQgisInterfaceLayerSet.values())[0]
             self.mQgisInterfaceMapCanvas.mapSettings().setDestinationCrs(lyr.crs())
             self.mQgisInterfaceMapCanvas.setExtent(lyr.extent())
             self.mQgisInterfaceMapCanvas.setLayers(self.mQgisInterfaceLayerSet.values())
 
-        logger.debug(
-            'layers shown in (temporary) QgsInterface::mapCanvas() {}'.format(
-                len(self.mQgisInterfaceMapCanvas.layers())))
         return self.mQgisInterfaceMapCanvas
 
     def firstRightStandardMenu(self):
@@ -1171,7 +1117,7 @@ class EnMAPBox(QgisInterface, QObject):
     @pyqtSlot()
     def removeAllLayers(self):
 
-        """Remove layers from the canvas before they get deleted."""
+        """Remove layers from the virtual QgsMapCanvas before they get deleted."""
         self.mQgisInterfaceMapCanvas.setLayers([])
 
     def newProject(self):

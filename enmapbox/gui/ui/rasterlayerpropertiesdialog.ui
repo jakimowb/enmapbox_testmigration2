@@ -46,7 +46,16 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -141,7 +150,16 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -153,11 +171,20 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="mOptsGeneral">
           <layout class="QVBoxLayout" name="verticalLayout_14">
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -184,11 +211,67 @@
                   <string notr="true">rastergeneral</string>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_11">
-                  <property name="margin">
+                  <property name="leftMargin">
+                   <number>2</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>2</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>2</number>
+                  </property>
+                  <property name="bottomMargin">
                    <number>2</number>
                   </property>
                   <item>
                    <layout class="QGridLayout" name="_4">
+                    <item row="2" column="1">
+                     <widget class="QLineEdit" name="tb_columns">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
+                      <property name="readOnly">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="lblLayerSource">
+                      <property name="text">
+                       <string>Source</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="4">
+                     <widget class="QLabel" name="lblRows_2">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Bands</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1" colspan="5">
+                     <widget class="QLineEdit" name="tb_layername">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
+                     </widget>
+                    </item>
                     <item row="2" column="2">
                      <widget class="QLabel" name="lblRows">
                       <property name="sizePolicy">
@@ -209,35 +292,43 @@
                         <pointsize>10</pointsize>
                        </font>
                       </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
                      </widget>
                     </item>
-                    <item row="2" column="1">
-                     <widget class="QLineEdit" name="tb_columns">
+                    <item row="1" column="1" colspan="5">
+                     <widget class="QLineEdit" name="tb_layersource">
                       <property name="font">
                        <font>
                         <pointsize>10</pointsize>
                        </font>
                       </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
                      </widget>
                     </item>
-                    <item row="2" column="6">
-                     <spacer name="horizontalSpacer_5">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
+                    <item row="2" column="5">
+                     <widget class="QLineEdit" name="tb_bands">
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
                       </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>0</width>
-                        <height>20</height>
-                       </size>
+                      <property name="frame">
+                       <bool>false</bool>
                       </property>
-                     </spacer>
+                      <property name="readOnly">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
                     </item>
                     <item row="2" column="0">
                      <widget class="QLabel" name="lblColumns">
@@ -252,13 +343,6 @@
                       </property>
                      </widget>
                     </item>
-                    <item row="1" column="0">
-                     <widget class="QLabel" name="lblLayerSource">
-                      <property name="text">
-                       <string>Source</string>
-                      </property>
-                     </widget>
-                    </item>
                     <item row="0" column="0">
                      <widget class="QLabel" name="lblDisplayName">
                       <property name="text">
@@ -266,53 +350,7 @@
                       </property>
                      </widget>
                     </item>
-                    <item row="1" column="1" colspan="5">
-                     <widget class="QLineEdit" name="tb_layersource">
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="readOnly">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="1" colspan="5">
-                     <widget class="QLineEdit" name="tb_layername">
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                     </widget>
-                    </item>
                     <item row="3" column="0">
-                     <widget class="QLabel" name="lblColumns_2">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="text">
-                       <string>Pixel size</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="3" column="1">
-                     <widget class="QLineEdit" name="tb_pixelsize">
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="readOnly">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="3" column="2">
                      <widget class="QLabel" name="lblNoData">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -325,20 +363,23 @@
                       </property>
                      </widget>
                     </item>
-                    <item row="3" column="3">
+                    <item row="3" column="1">
                      <widget class="QLineEdit" name="tb_nodata">
                       <property name="font">
                        <font>
                         <pointsize>10</pointsize>
                        </font>
                       </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
                      </widget>
                     </item>
-                    <item row="2" column="4">
-                     <widget class="QLabel" name="lblRows_2">
+                    <item row="3" column="2">
+                     <widget class="QLabel" name="lblColumns_2">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                         <horstretch>0</horstretch>
@@ -346,16 +387,19 @@
                        </sizepolicy>
                       </property>
                       <property name="text">
-                       <string>Bands</string>
+                       <string>Pixel size</string>
                       </property>
                      </widget>
                     </item>
-                    <item row="2" column="5">
-                     <widget class="QLineEdit" name="tb_bands">
+                    <item row="3" column="3" colspan="3">
+                     <widget class="QLineEdit" name="tb_pixelsize">
                       <property name="font">
                        <font>
                         <pointsize>10</pointsize>
                        </font>
+                      </property>
+                      <property name="frame">
+                       <bool>false</bool>
                       </property>
                       <property name="readOnly">
                        <bool>true</bool>
@@ -392,6 +436,9 @@
                         <pointsize>10</pointsize>
                        </font>
                       </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -409,6 +456,9 @@
                        <font>
                         <pointsize>10</pointsize>
                        </font>
+                      </property>
+                      <property name="frame">
+                       <bool>false</bool>
                       </property>
                       <property name="readOnly">
                        <bool>true</bool>
@@ -441,6 +491,9 @@
                       <property name="toolTip">
                        <string>Upper-right coordinate</string>
                       </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -461,6 +514,9 @@
                       </property>
                       <property name="toolTip">
                        <string>Lower-right coordinate</string>
+                      </property>
+                      <property name="frame">
+                       <bool>false</bool>
                       </property>
                       <property name="readOnly">
                        <bool>true</bool>
@@ -495,6 +551,9 @@
                         <pointsize>10</pointsize>
                        </font>
                       </property>
+                      <property name="frame">
+                       <bool>false</bool>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -513,6 +572,9 @@
                        <font>
                         <pointsize>10</pointsize>
                        </font>
+                      </property>
+                      <property name="frame">
+                       <bool>false</bool>
                       </property>
                       <property name="readOnly">
                        <bool>true</bool>
@@ -544,6 +606,9 @@
                        <font>
                         <pointsize>10</pointsize>
                        </font>
+                      </property>
+                      <property name="frame">
+                       <bool>false</bool>
                       </property>
                       <property name="readOnly">
                        <bool>true</bool>
@@ -595,7 +660,16 @@
          </widget>
          <widget class="QWidget" name="mOptsStyle">
           <layout class="QVBoxLayout" name="verticalLayout_4">
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -611,8 +685,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>447</width>
-                <height>292</height>
+                <width>527</width>
+                <height>433</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -1097,7 +1171,16 @@
            <property name="spacing">
             <number>0</number>
            </property>
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -1495,7 +1578,16 @@
          </widget>
          <widget class="QWidget" name="mOptsMetadata">
           <layout class="QVBoxLayout" name="verticalLayout_6">
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -1595,7 +1687,16 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
        <number>0</number>
       </property>
       <item>
@@ -1625,7 +1726,7 @@
   </customwidget>
   <customwidget>
    <class>QgsColorButton</class>
-   <extends>QPushButton</extends>
+   <extends>QToolButton</extends>
    <header>qgscolorbutton.h</header>
    <container>1</container>
   </customwidget>
@@ -1656,8 +1757,24 @@
      <y>325</y>
     </hint>
     <hint type="destinationlabel">
-     <x>794</x>
-     <y>14</y>
+     <x>690</x>
+     <y>23</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>mRenderTypeComboBox</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>mRendererStackedWidget</receiver>
+   <slot>setCurrentIndex(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>280</x>
+     <y>59</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>101</y>
     </hint>
    </hints>
   </connection>
