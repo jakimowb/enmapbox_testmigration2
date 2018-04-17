@@ -30,7 +30,7 @@ import numpy as np
 from enmapbox.gui.utils import *
 from enmapbox.gui.utils import KeepRefs
 from enmapbox.gui.crosshair import CrosshairMapCanvasItem, CrosshairStyle
-
+from enmapbox.gui.mimedata import *
 
 LINK_ON_SCALE = 'SCALE'
 LINK_ON_CENTER = 'CENTER'
@@ -41,132 +41,9 @@ N_MAX_GRP = 2
 
 DEBUG = False
 
-class CursorLocationMapTool(QgsMapToolEmitPoint):
-
-    sigLocationRequest = pyqtSignal([SpatialPoint],[SpatialPoint, QgsMapCanvas])
-
-    def __init__(self, canvas, showCrosshair=True, purpose=None):
-        self.mShowCrosshair = showCrosshair
-        self.mCanvas = canvas
-        self.mPurpose = purpose
-        QgsMapToolEmitPoint.__init__(self, self.mCanvas)
-
-        self.mMarker = QgsVertexMarker(self.mCanvas)
-        self.mRubberband = QgsRubberBand(self.mCanvas, QGis.Polygon)
-
-        color = QColor('red')
-
-        self.mRubberband.setLineStyle(Qt.SolidLine)
-        self.mRubberband.setColor(color)
-        self.mRubberband.setWidth(2)
-
-        self.mMarker.setColor(color)
-        self.mMarker.setPenWidth(3)
-        self.mMarker.setIconSize(5)
-        self.mMarker.setIconType(QgsVertexMarker.ICON_CROSS)  # or ICON_CROSS, ICON_X
-
-    def canvasPressEvent(self, e):
-        geoPoint = self.toMapCoordinates(e.pos())
-        self.mMarker.setCenter(geoPoint)
-
-    def setStyle(self, color=None, brushStyle=None, fillColor=None, lineStyle=None):
-        if color:
-            self.mRubberband.setColor(color)
-        if brushStyle:
-            self.mRubberband.setBrushStyle(brushStyle)
-        if fillColor:
-            self.mRubberband.setFillColor(fillColor)
-        if lineStyle:
-            self.mRubberband.setLineStyle(lineStyle)
-
-    def canvasReleaseEvent(self, e):
 
 
-        pixelPoint = e.pixelPoint()
 
-        crs = self.mCanvas.mapSettings().destinationCrs()
-        self.mMarker.hide()
-        geoPoint = self.toMapCoordinates(pixelPoint)
-        if self.mShowCrosshair:
-            #show a temporary crosshair
-            ext = SpatialExtent.fromMapCanvas(self.mCanvas)
-            cen = geoPoint
-            geom = QgsGeometry()
-            geom.addPart([QgsPoint(ext.upperLeftPt().x(),cen.y()), QgsPoint(ext.lowerRightPt().x(), cen.y())],
-                          QGis.Line)
-            geom.addPart([QgsPoint(cen.x(), ext.upperLeftPt().y()), QgsPoint(cen.x(), ext.lowerRightPt().y())],
-                          QGis.Line)
-            self.mRubberband.addGeometry(geom, None)
-            self.mRubberband.show()
-            #remove crosshair after 0.25 sec
-            QTimer.singleShot(250, self.hideRubberband)
-
-        pt = SpatialPoint(crs, geoPoint)
-        self.sigLocationRequest[SpatialPoint].emit(pt)
-        self.sigLocationRequest[SpatialPoint, QgsMapCanvas].emit(pt, self.canvas())
-
-    def hideRubberband(self):
-        self.mRubberband.reset()
-
-
-class SpectralProfileMapTool(CursorLocationMapTool):
-
-    def __init__(self, *args, **kwds):
-        super(SpectralProfileMapTool, self).__init__(*args, **kwds)
-
-
-class FullExtentMapTool(QgsMapTool):
-    def __init__(self, canvas):
-        super(FullExtentMapTool, self).__init__(canvas)
-        self.canvas = canvas
-
-    def canvasReleaseEvent(self, mouseEvent):
-        self.canvas.zoomToFullExtent()
-
-    def flags(self):
-        return QgsMapTool.Transient
-
-
-class PixelScaleExtentMapTool(QgsMapTool):
-    def __init__(self, canvas):
-        super(PixelScaleExtentMapTool, self).__init__(canvas)
-        self.canvas = canvas
-
-    def flags(self):
-        return QgsMapTool.Transient
-
-
-    def canvasReleaseEvent(self, mouseEvent):
-        layers = self.canvas.layers()
-
-        unitsPxX = []
-        unitsPxY = []
-        for lyr in self.canvas.layers():
-            if isinstance(lyr, QgsRasterLayer):
-                unitsPxX.append(lyr.rasterUnitsPerPixelX())
-                unitsPxY.append(lyr.rasterUnitsPerPixelY())
-
-        if len(unitsPxX) > 0:
-            unitsPxX = np.asarray(unitsPxX)
-            unitsPxY = np.asarray(unitsPxY)
-            if True:
-                # zoom to largest pixel size
-                i = np.nanargmax(unitsPxX)
-            else:
-                # zoom to smallest pixel size
-                i = np.nanargmin(unitsPxX)
-            unitsPxX = unitsPxX[i]
-            unitsPxY = unitsPxY[i]
-            f = 0.2
-            width = f * self.canvas.size().width() * unitsPxX #width in map units
-            height = f * self.canvas.size().height() * unitsPxY #height in map units
-
-
-            center = SpatialPoint.fromMapCanvasCenter(self.canvas)
-            extent = SpatialExtent(center.crs(), 0, 0, width, height)
-            extent.setCenter(center, center.crs())
-            self.canvas.setExtent(extent)
-        s = ""
 
 class MapCanvasListModel(QAbstractListModel):
     def __init__(self, parent=None, mapCanvases=None):
@@ -1144,19 +1021,17 @@ class MapCanvas(QgsMapCanvas):
 
     #forward to MapDock
     def dragEnterEvent(self, event):
-        ME = MimeDataHelper(event.mimeData())
+        mimeData = event.mimeData()
+        assert isinstance(mimeData, QMimeData)
+
+
+
         # check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
-        if ME.hasPythonObjects():
-            objects = ME.pythonObjects()
-            for o in objects:
-                from enmapbox.gui.spectrallibraries import SpectralLibrary
-                if isinstance(o, SpectralLibrary):
-                    event.setDropAction(Qt.CopyAction)
-                    event.accept()
-                    return
 
-        if ME.hasMapLayers() or ME.hasUrls() or ME.hasDataSources():
+        if MDF_DATASOURCETREEMODELDATA in mimeData.formats() or \
+            MDF_URILIST in mimeData.formats() or \
+            MDF_LAYERTREEMODELDATA in mimeData.formats():
             event.setDropAction(Qt.CopyAction)  # copy but do not remove
             event.accept()
         else:
@@ -1164,27 +1039,19 @@ class MapCanvas(QgsMapCanvas):
 
 
     def dropEvent(self, event):
-        ME = MimeDataHelper(event.mimeData())
-        newLayers = []
-        if ME.hasPythonObjects():
-            from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralLibraryVectorLayer
-            for obj in ME.pythonObjects(typeFilter=SpectralLibrary):
-                slLyr = SpectralLibraryVectorLayer(obj)
-                newLayers.append(slLyr)
-                event.setDropAction(Qt.CopyAction)
+        """
 
-        elif ME.hasMapLayers():
-            newLayers = ME.mapLayers()
+        :param event: QDropEvent
+        """
 
-        elif ME.hasDataSources():
-            from enmapbox.gui.datasources import DataSourceSpatial
-            from enmapbox.gui.enmapboxgui import EnMAPBox
-            dataSources = [d for d in ME.dataSources() if isinstance(d, DataSourceSpatial)]
-            dataSources = EnMAPBox.instance().dataSourceManager.addSources(dataSources)
-            newLayers = [d.createUnregisteredMapLayer() for d in dataSources]
+        mimeData = event.mimeData()
+        assert isinstance(mimeData, QMimeData)
 
-        if len(newLayers) > 0:
-            self.setLayers(newLayers + self.layers())
+        #add map layers
+        mapLayers = toLayerList(mimeData)
+
+        if len(mapLayers) > 0:
+            self.setLayers(mapLayers + self.layers())
             event.accept()
             event.acceptProposedAction()
 
@@ -1458,29 +1325,18 @@ class MapDock(Dock):
 
 
 if __name__ == "__main__":
-    from enmapboxtestdata import enmap
+    from enmapboxtestdata import enmap, hymap, landcover
     from enmapbox.gui.utils import initQgisApplication
     app = initQgisApplication()
-    mapCanvas = MapCanvas()
-    mapCanvas.show()
-    menu = mapCanvas.contextMenu()
 
     lyr = QgsRasterLayer(enmap)
-    mapCanvas.setDestinationCrs(lyr.crs())
-    mapCanvas.setLayers([lyr])
-
-    menu = mapCanvas.contextMenu()
-    actions = [a for a in menu.children() if isinstance(a, QAction)]
-    len(actions) > 2
-
-    # trigger all context menu actions
-    if True:
-        for action in actions:
-            info = action.text()
-            if info != '':
-                print('Test QAction {}'.format(info))
-                action.trigger()
-
-
+    lyr2 = QgsVectorLayer(landcover)
+    from enmapbox.gui.docks import DockArea
+    da = DockArea()
+    mapDock = MapDock()
+    da.addDock(mapDock)
+    da.show()
+    mapDock.addLayers([lyr])
+    mapDock.addLayers([lyr2])
     app.exec_()
 

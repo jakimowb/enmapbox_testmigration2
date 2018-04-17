@@ -548,7 +548,9 @@ class MimeDataTextEdit(QTextEdit):
                 self.insertPlainText(mimeData.text())
             else:
                 append('### (raw data as string) ###')
-                self.insertPlainText(str(mimeData.data(format)))
+                data = mimeData.data(format)
+                if isinstance(data, QByteArray):
+                    self.insertPlainText(str(mimeData.data(format)))
             append('\n')
 
     def dragEnterEvent(self, event):

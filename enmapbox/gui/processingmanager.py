@@ -357,9 +357,7 @@ class ProcessingAlgorithmsManager(QObject):
     def openModeler(self):
         from processing.modeler.ModelerDialog import ModelerDialog
         dlg = ModelerDialog()
-        dlg.exec_()
-        if dlg.update:
-            self.processingRegistry.reloadProvider('model')
+        dlg.show()
 
 
 

@@ -56,6 +56,8 @@ def toLayerList(mimeData):
             assert isinstance(treeLayer, QgsLayerTreeLayer)
 
             mapLayer = treeLayer.layer()
+            if isinstance(mapLayer, QgsMapLayer):
+                s = ""
             if not isinstance(mapLayer, QgsMapLayer):
                 id = treeLayer.layerId()
                 if id in registeredLayers.keys():

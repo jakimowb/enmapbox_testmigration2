@@ -315,7 +315,7 @@ class TreeModel(QgsLayerTreeModel):
 
             if col == 1:
                 if role == Qt.DisplayRole:
-                    print(node.value())
+                    #print(node.value())
                     return node.value()
 
                 if role == Qt.EditRole:

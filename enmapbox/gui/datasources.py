@@ -606,6 +606,7 @@ class DataSourceRaster(DataSourceSpatial):
         """
         baseName = kwargs.get('baseName', self.mName)
         providerKey = kwargs.get('providerKey', 'gdal')
+        #return QgsRasterLayer(self.mUri)
         return QgsRasterLayer(self.mUri, baseName, providerKey)
 
 

@@ -28,6 +28,7 @@ from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
+from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, MDF_URILIST, MDF_SPECTRALLIBRARY
 
 HUBFLOW = True
 try:
@@ -582,9 +583,10 @@ class DataSourceManagerTreeModel(TreeModel):
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
-        types.append(MimeDataHelper.MDF_DATASOURCETREEMODELDATA)
-        types.append(MimeDataHelper.MDF_LAYERTREEMODELDATA)
-        types.append(MimeDataHelper.MDF_URILIST)
+
+        types.append(MDF_DATASOURCETREEMODELDATA)
+        types.append(MDF_LAYERTREEMODELDATA)
+        types.append(MDF_URILIST)
         return types
 
     def dropMimeData(self, data, action, row, column, parent):
@@ -633,7 +635,7 @@ class DataSourceManagerTreeModel(TreeModel):
         mimeData = QMimeData()
         # define application/enmapbox.datasourcetreemodeldata
         exportedNodes = []
-        pythonObjects = []
+
         #collect nodes to be exported as mimeData
         for node in nodesFinal:
             #avoid doubling
@@ -648,7 +650,9 @@ class DataSourceManagerTreeModel(TreeModel):
 
         doc = QDomDocument()
         uriList = list()
-        rootElem = doc.createElement("datasource_tree_model_data");
+
+        #MDF_DATASOURCETREEMODELDATA
+        rootElem = doc.createElement(MDF_DATASOURCETREEMODELDATA);
         for node in exportedNodes:
             node.writeXML(rootElem)
             uri = node.dataSource.uri()
@@ -660,7 +664,7 @@ class DataSourceManagerTreeModel(TreeModel):
         #set application/enmapbox.datasourcetreemodeldata
         doc.appendChild(rootElem)
         txt = doc.toString()
-        mimeData.setData("application/enmapbox.datasourcetreemodeldata", QByteArray(txt.encode('utf-8')))
+        mimeData.setData(MDF_DATASOURCETREEMODELDATA, QByteArray(txt.encode('utf-8')))
 
         specLibNodes = [n for n in exportedNodes if isinstance(n, SpeclibDataSourceTreeNode)]
         if len(specLibNodes) > 0:
@@ -671,11 +675,7 @@ class DataSourceManagerTreeModel(TreeModel):
                 sl.addSpeclib(slib)
 
             if len(sl) > 0:
-                mimeData.setData(MimeDataHelper.MDF_SPECTRALLIBRARY, sl.asPickleDump())
-                pythonObjects.append(sl)
-
-        if len(pythonObjects) > 0:
-            MimeDataHelper.setObjectReferences(mimeData, pythonObjects)
+                mimeData.setData(MDF_SPECTRALLIBRARY, sl.asPickleDump())
 
         # set text/uri-list
         if len(uriList) > 0:
@@ -963,6 +963,11 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
         pass
 
 class DataSourceManager(QObject):
+    _instance = None
+
+    @staticmethod
+    def instance():
+        return DataSourceManager._instance
 
     """
     Keeps overview on different data sources handled by EnMAP-Box.
@@ -976,7 +981,8 @@ class DataSourceManager(QObject):
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
-
+        assert DataSourceManager.instance() is None
+        DataSourceManager._instance = self
         self.mSources = list()
         self.mSubsetSelection = {}
         self.mQgsLayerTreeGroup = None

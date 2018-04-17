@@ -502,55 +502,59 @@ class DockManagerTreeModel(TreeModel):
             if isinstance(node, QgsLayerTreeModelLegendNode):
                 return self.legendNodeFlags(node)
                 #return super(QgsLayerTreeModel,self).flags(index)
-                return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-        #print('node: {}  {}'.format(node, type(node)))
-        dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)
-        if len(dockNode) == 0:
-            return Qt.NoItemFlags
-        elif len(dockNode) > 1:
-            print('DEBUG: Multiple docknodes selected')
-            return Qt.NoItemFlags
+                #return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+            else:
+                return Qt.NoItemFlags
         else:
-            dockNode = dockNode[0]
-
-        if node is None:
-            return Qt.NoItemFlags
-
-
-        column = index.column()
-        isL1 = node.parent() == self.rootNode
-        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
-        # normal tree nodes
+            #print('node: {}  {}'.format(node, type(node)))
+            dockNode = self.parentNodesFromIndices(index, nodeInstanceType=DockTreeNode)
+            if len(dockNode) == 0:
+                return Qt.NoItemFlags
+            elif len(dockNode) > 1:
+                #print('DEBUG: Multiple docknodes selected')
+                return Qt.NoItemFlags
+            else:
+                dockNode = dockNode[0]
 
 
-        if isinstance(node, TreeNode):
-            if column == 0:
-                if isinstance(node, DockTreeNode):
-                    flags |= Qt.ItemIsUserCheckable | \
-                             Qt.ItemIsEditable | \
-                             Qt.ItemIsDropEnabled
-                    if isL1:
-                        flags |= Qt.ItemIsDropEnabled
+            column = index.column()
+            isL1 = node.parent() == self.rootNode
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+            # normal tree nodes
 
 
-                if node.name() == 'Layers':
-                    flags |= Qt.ItemIsUserCheckable
+            if isinstance(node, TreeNode):
+                if column == 0:
 
-                if isinstance(node, CheckableTreeNode):
-                    flags |= Qt.ItemIsUserCheckable
+                    if isinstance(node, DockTreeNode):
+                        flags |= Qt.ItemIsUserCheckable | \
+                                 Qt.ItemIsEditable | \
+                                 Qt.ItemIsDropEnabled
 
-                    # mapCanvas Layer Tree Nodes
-        elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-            if column == 0:
-                flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
+                        if isL1:
+                            flags |= Qt.ItemIsDropEnabled
 
-            if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
-                flags |= Qt.ItemIsDragEnabled
-        elif not isinstance(node, QgsLayerTree):
-            s = ""
 
-        return flags
+                    if node.name() == 'Layers':
+                        flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable
+
+                    if isinstance(node, CheckableTreeNode):
+                        flags |= Qt.ItemIsUserCheckable
+
+                if column == 1:
+                    pass
+                        # mapCanvas Layer Tree Nodes
+            elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
+                if column == 0:
+                    flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
+
+                if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
+                    flags |= Qt.ItemIsDragEnabled
+            elif not isinstance(node, QgsLayerTree):
+                s = ""
+
+            return flags
 
     def mimeTypes(self):
         # specifies the mime types handled by this model
@@ -583,34 +587,11 @@ class DockManagerTreeModel(TreeModel):
 
         if isinstance(dockNode, MapDockTreeNode):
 
-            if mimeData.hasFormat(MDF_LAYERTREEMODELDATA):
-                doc = QDomDocument()
-                xml = fromByteArray(mimeData.data(MDF_LAYERTREEMODELDATA))
 
-                sources = re.findall('(?<=source=")[^<>"]*(?=")', xml)
-                doc.setContent(xml)
-                root = doc.documentElement()
-                context = QgsReadWriteContext()
-                layerTree = QgsLayerTree.readXml(root,context)
-                mapLayers = []
-
-                regLayers = QgsProject.instance().mapLayers()
-                for layerTreeLayer in layerTree.findLayers():
-                    assert isinstance(layerTreeLayer, QgsLayerTreeLayer)
-                    if layerTreeLayer.layerId() in regLayers.keys():
-                        mapLayers.append(regLayers[layerTreeLayer.layerId()])
-                if len(mapLayers) > 0:
-                    for l in mapLayers:
-                        dockNode.insertLayer(0, l)
-                    return True
-                if len(sources) > 0:
-                    for s in sources:
-                        dockNode.insertLayer(0, s)
-                    return True
-
-            if mimeData.hasUrls():
-                for url in mimeData.urls():
-                    dockNode.insertLayer(0, url)
+            mapLayers = toLayerList(mimeData)
+            if len(mapLayers) > 0:
+                for l in mapLayers:
+                    dockNode.insertLayer(0, l)
                 return True
 
         elif isinstance(dockNode, TextDockTreeNode):
@@ -620,8 +601,9 @@ class DockManagerTreeModel(TreeModel):
         return False
 
     def mimeData(self, indexes):
+
         indexes = sorted(indexes)
-        self.mimeIndexes = indexes
+
         if len(indexes) == 0:
             return None
 
@@ -630,12 +612,13 @@ class DockManagerTreeModel(TreeModel):
         mimeData = QMimeData()
 
         doc = QDomDocument()
+
         rootElem = doc.createElement("dock_tree_model_data")
         context = QgsReadWriteContext()
         for node in nodesFinal:
             node.writeXml(rootElem, context)
         doc.appendChild(rootElem)
-        mimeData.setData("application/enmapbox.docktreemodeldata", toByteArray(doc))
+        mimeData.setData(MDF_DOCKTREEMODELDATA, toByteArray(doc))
 
         mapNodes = [n for n in nodesFinal if type(n) in [QgsLayerTreeLayer, QgsLayerTreeGroup]]
         if len(mapNodes) > 0:
@@ -671,6 +654,7 @@ class DockManagerTreeModel(TreeModel):
         return list(results)
 
     def data(self, index, role):
+
         if not index.isValid():
             return None
 
@@ -678,23 +662,21 @@ class DockManagerTreeModel(TreeModel):
         legendNode = self.index2legendNode(index)
         column = index.column()
 
-        if isinstance(legendNode, QgsSymbolLegendNode):
+        if isinstance(legendNode, QgsLayerTreeModelLegendNode):
+            #print(('LEGEND', node, column, role))
             return super(DockManagerTreeModel, self).data(index, role)
-            s = ""
 
-        if not isinstance(node, TreeNode):
-            if type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-                if column == 1:
-                    if role in [Qt.DisplayRole, Qt.EditRole]:
-                        return node.name()
-                    else:
-                        return super(DockManagerTreeModel, self).data(index, role)
-                else:
-                    return super(DockManagerTreeModel, self).data(index, role)
-            else:
-                return super(DockManagerTreeModel, self).data(index, role)
+        elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup, QgsLayerTree]:
+            #print(('QGSNODE', node, column, role))
+            if column == 1:
+                if role in [Qt.DisplayRole, Qt.EditRole]:
+                    return node.name()
 
-        else:
+            return super(DockManagerTreeModel, self).data(index, role)
+        elif isinstance(node, TreeNode):
+
+            #print(('NODE', node, column, role))
+
 
             if column == 0:
 
@@ -711,20 +693,28 @@ class DockManagerTreeModel(TreeModel):
                     if isinstance(node, CheckableTreeNode):
                         return node.checkState()
             else:
-                if role == Qt.DisplayRole:
-                    return node.value()
+                #if role == Qt.DisplayRole and isinstance(node, TreeNode):
+                #    return node.value()
+                return super(DockManagerTreeModel, self).data(index, role)
+
+
 
         return None
         # return super(DockManagerTreeModel, self).data(index, role)
 
     def setData(self, index, value, role=None):
+
         node = self.index2node(index)
         if node is None:
             node = self.index2legendNode(index)
             if isinstance(node, QgsLayerTreeModelLegendNode):
                 #this does not work:
                 #result = super(QgsLayerTreeModel,self).setData(index, value, role=role)
+                if role == Qt.CheckStateRole and not self.testFlag(QgsLayerTreeModel.AllowLegendChangeState):
+                    return False
                 result = node.setData(value, role)
+                if result:
+                    self.dataChanged.emit(index, index)
                 return result
 
         parentNode = node.parent()
