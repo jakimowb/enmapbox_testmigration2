@@ -596,6 +596,7 @@ class DockManagerTreeModel(TreeModel):
             parentLayerGroup = parentLayerGroup[0]
 
             mapLayers = toLayerList(mimeData)
+            QgsProject.instance().addMapLayers(mapLayers)
             i = parentIndex.row()
             if len(mapLayers) > 0:
                 for l in mapLayers:
@@ -677,6 +678,10 @@ class DockManagerTreeModel(TreeModel):
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup, QgsLayerTree]:
             #print(('QGSNODE', node, column, role))
+
+            if isinstance(node, QgsLayerTree) and column > 0:
+                return None
+
             if column == 1:
                 if role in [Qt.DisplayRole, Qt.EditRole]:
                     return node.name()
