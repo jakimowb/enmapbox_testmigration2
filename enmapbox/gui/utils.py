@@ -88,7 +88,7 @@ class TestObjects():
 
         ds = drv.Create('', ns, nl, bands=nb, eType=gdal.GDT_Byte)
 
-        step = np.ceil(float(nl) / len(scheme))
+        step = int(np.ceil(float(nl) / len(scheme)))
 
         assert isinstance(ds, gdal.Dataset)
         for b in range(1, nb + 1):

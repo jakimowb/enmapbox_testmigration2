@@ -80,7 +80,7 @@ class ClassInfo(QObject):
             name = 'Unclassified' if label == 0 else 'Class {}'.format(label)
 
         if color is None:
-            color = DEFAULT_UNCLASSIFIEDCOLOR if label == 0 else COLOR_CYCLE.next()
+            color = DEFAULT_UNCLASSIFIEDCOLOR if label == 0 else COLOR_CYCLE.__next__()
 
         self.mName = name
         self.mLabel = label
@@ -198,6 +198,7 @@ class ClassificationScheme(QObject):
         raise NotImplementedError('ClassificationScheme.fromVectorFile(...)')
 
     sigClassesRemoved = pyqtSignal(list)
+    sigClassRemoved = pyqtSignal(ClassInfo, int)
     sigClassesAdded = pyqtSignal(list)
 
     def __init__(self):
@@ -302,7 +303,10 @@ class ClassificationScheme(QObject):
     def removeClasses(self, classes):
         for c in classes:
             assert c in self.mClasses
+            i = self.mClasses.index(c)
+
             self.mClasses.remove(c)
+            self.sigClassesRemoved.emit(c, i)
         self.sigClassesRemoved.emit(classes[:])
 
     def removeClass(self, c):
@@ -316,7 +320,7 @@ class ClassificationScheme(QObject):
                 color = QColor('black')
                 name = 'Unclassified'
             else:
-                color = COLOR_CYCLE.next()
+                color = COLOR_CYCLE.__next__()
                 name = 'Class {}'.format(l)
             c = ClassInfo(label=l, name=name, color=color)
             classes.append(c)
@@ -388,14 +392,30 @@ class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
         super(ClassificationSchemeComboBoxItemModel, self).__init__(parent)
         assert isinstance(scheme, ClassificationScheme)
         self.mScheme = scheme
-        self.mScheme.sigClassesAdded.connect(self.reset)
-        self.mScheme.sigClassesRemoved.connect(self.reset)
+
+        self.mScheme.sigClassesAdded.connect(self.onClassesInserted)
+        self.mScheme.sigClassesRemoved.connect(self.onClassRemoved)
         self.mScheme.sigClassInfoChanged.connect(self.onClassInfoChanged)
 
     def onClassInfoChanged(self, classInfo):
         i = self.mScheme.index(classInfo)
         idx = self.createIndex(i, 0)
         self.dataChanged.emit(idx, idx)
+
+    def onClassesInserted(self, classes, index=None):
+        classes = [c for c in classes if c in self.mScheme]
+
+        for c in classes:
+            i = self.mScheme.index(c)
+            self.beginInsertRows(QModelIndex(), i, i)
+            self.endInsertRows()
+
+    def onClassRemoved(self, classInfo, index):
+        assert isinstance(classInfo, ClassInfo)
+        assert isinstance(index, int)
+        self.beginRemoveRows(QModelIndex(), index, index)
+        self.endInsertRows()
+
 
     def rowCount(self, parent=None, *args, **kwargs):
         return len(self.mScheme)
@@ -645,10 +665,10 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
             self.setClassificationScheme(classificationScheme)
 
 
-        self.tableClassificationScheme.verticalHeader().setMovable(True)
+        #self.tableClassificationScheme.verticalHeader().setMovable(True)
         self.tableClassificationScheme.verticalHeader().setDragEnabled(True)
         self.tableClassificationScheme.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
-        self.tableClassificationScheme.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        #self.tableClassificationScheme.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.tableClassificationScheme.setModel(self.schemeModel)
         self.tableClassificationScheme.doubleClicked.connect(self.onTableDoubleClick)
         self.tableClassificationScheme.resizeColumnsToContents()
