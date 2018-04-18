@@ -33,10 +33,8 @@ CREATE_TAG = False
 CHECK_COMMITS = False
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
-timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1])
-timestamp = timestamp.replace('-', '')
-version = timestamp
-
+timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
+buildID = '{}.{}'.format(enmapbox.__version__, timestamp)
 
 
 def rm(p):
@@ -114,19 +112,12 @@ if __name__ == "__main__":
 
             #update version number in metadata
             lines = open(pathMetadata).readlines()
-            lines = re.sub('version=.*\n', 'version={}\n'.format(version), ''.join(lines))
+            lines = re.sub('version=.*\n', 'version={}\n'.format(enmapbox.__version__), ''.join(lines))
             f = open(pathMetadata, 'w')
             f.write(lines)
             f.flush()
             f.close()
 
-            pathPkgInit = jp(DIR_REPO, *['enmapbox', '__init__.py'])
-            lines = open(pathPkgInit).readlines()
-            lines = re.sub('__version__ = .*\n', "__version__ = '{}'\n".format(version), ''.join(lines))
-            f = open(pathPkgInit, 'w')
-            f.write(lines)
-            f.flush()
-            f.close()
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
@@ -136,12 +127,12 @@ if __name__ == "__main__":
 
 
         # create a tag
-        if CREATE_TAG:
+        if False and CREATE_TAG:
             index = REPO.index
-            index.add([pathPkgInit, pathMetadata])
-            index.commit('updated metadata for version: "{}"'.format(version))
+            index.add([pathMetadata])
+            index.commit('updated metadata for version: "{}"'.format(buildID))
 
-            REPO.create_tag('v.' + version)
+            REPO.create_tag('v.' + enmapbox.__version__)
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
@@ -159,7 +150,7 @@ if __name__ == "__main__":
     from enmapbox.gui.utils import zipdir
 
     pluginname = cfg.get('plugin', 'name')
-    pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname, timestamp))
+    pathZip = jp(DIR_DEPLOY, '{}.{}.QGIS3.zip'.format(pluginname, buildID))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
     zipdir(dirPlugin, pathZip)
     # os.chdir(dirPlugin)
