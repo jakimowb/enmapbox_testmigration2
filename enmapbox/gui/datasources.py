@@ -23,6 +23,7 @@ from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtXml import *
 from enmapbox.utils import *
 import numpy as np
 from osgeo import gdal, ogr
@@ -380,7 +381,15 @@ class DataSource(object):
         :param element:
         :return:
         """
-        pass
+        assert isinstance(element, QDomElement)
+        doc = element.ownerDocument()
+        node = doc.createElement('enmpabox_datasource')
+        element.appendChild(node)
+        node.setAttribute('type', self.__class__.__name__)
+        node.setAttribute('name', str(self.name()))
+        node.setAttribute('uuid', str(self.uuid()))
+        node.setAttribute('source', str(self.uri()))
+
     def __hash__(self):
         return hash(str(self))
 
