@@ -13,7 +13,7 @@ MDF_DATASOURCETREEMODELDATA = 'application/enmapbox.datasourcetreemodeldata'
 MDF_DATASOURCETREEMODELDATA_XML = 'data_source_tree_model_data'
 
 MDF_LAYERTREEMODELDATA = 'application/qgis.layertreemodeldata'
-MDF_LAYERTREEMODELDATA_XML = 'layer-tree-group'
+MDF_LAYERTREEMODELDATA_XML = 'layer_tree_model_data'
 
 MDF_PYTHON_OBJECTS = 'application/enmapbox/objectreference'
 MDF_SPECTRALPROFILE = 'application/enmapbox/spectralprofile'
@@ -123,10 +123,11 @@ def toLayerList(mimeData):
         doc = QDomDocument()
         doc.setContent(mimeData.data(MDF_LAYERTREEMODELDATA))
         xml = doc.toString()
-        node = doc.firstChildElement('layer-tree-group')
+        node = doc.firstChildElement(MDF_LAYERTREEMODELDATA_XML)
         context = QgsReadWriteContext()
-        context.setPathResolver(QgsProject.instance().pathResolver())
+        #context.setPathResolver(QgsProject.instance().pathResolver())
         layerTree = QgsLayerTree.readXml(node, context)
+        lt = QgsLayerTreeGroup.readXml(node, context)
         #layerTree.resolveReferences(QgsProject.instance(), True)
         registeredLayers = QgsProject.instance().mapLayers()
 
@@ -158,6 +159,9 @@ def toLayerList(mimeData):
                         mapLayer = QgsVectorLayer(attributes['source'])
                     else:
                         s = ""
+
+                    if isinstance(mapLayer, QgsMapLayer):
+                        mapLayer.setName(attributes['name'])
 
             if isinstance(mapLayer, QgsMapLayer):
                 newMapLayers.append(mapLayer)
