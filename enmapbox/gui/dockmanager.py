@@ -330,7 +330,7 @@ class MapDockTreeNode(DockTreeNode):
 
     def insertLayer(self, idx, layerSource):
         """
-        Inserts a new QgsMapLayer on position idx by creating a new QgsMayTreeLayer node
+        Inserts a new QgsMapLayer od DataSourceSpatial on position idx by creating a new QgsMayTreeLayer node
         :param idx:
         :param layerSource:
         :return:
@@ -338,28 +338,33 @@ class MapDockTreeNode(DockTreeNode):
         from enmapbox.gui.datasourcemanager import DataSourceManager
         dsm = DataSourceManager.instance()
 
-        renderer = None
-        layerTreeLayers = []
+        mapLayers = []
         if isinstance(layerSource, QgsMapLayer):
-            renderer = layerSource.renderer()
+            mapLayers.append(layerSource)
+        else:
+            s = ""
 
         if isinstance(dsm, DataSourceManager):
+            dsm.addSources(mapLayers)
 
-            sources = dsm.addSource(layerSource)
-            newLayers = [s.createUnregisteredMapLayer() for s in sources if isinstance(s, DataSourceSpatial)]
 
-            for l in newLayers:
-                if renderer is not None:
-                    l.setRenderer(renderer)
-                layerTreeLayers.append(QgsLayerTreeLayer(l))
-                ""
-        elif isinstance(layerSource, QgsMapLayer):
-            layerTreeLayers.append(QgsLayerTreeLayer(layerSource))
+        #    newLayers = [s.createUnregisteredMapLayer() for s in sources if isinstance(s, DataSourceSpatial)]
 
-        for l in layerTreeLayers:
-            assert isinstance(l, QgsLayerTreeLayer)
-            QgsProject.instance().addMapLayer(l.layer())
+        #    for l in newLayers:
+        #        if renderer is not None:
+        #            l.setRenderer(renderer)
+        #        layerTreeLayers.append(QgsLayerTreeLayer(l))
+        #        ""
+        #elif isinstance(layerSource, QgsMapLayer):
+        #    layerTreeLayers.append(QgsLayerTreeLayer(layerSource))
+
+        layerTreeLayers = []
+        for mapLayer in mapLayers:
+            assert isinstance(mapLayer, QgsMapLayer)
+            QgsProject.instance().addMapLayer(mapLayer)
+            l = QgsLayerTreeLayer(mapLayer)
             self.layerNode.insertChildNode(idx, l)
+
 
 
     def writeXML(self, parentElement):
@@ -558,12 +563,11 @@ class DockManagerTreeModel(TreeModel):
 
     def mimeTypes(self):
         # specifies the mime types handled by this model
-        types = [MimeDataHelper.MDF_DOCKTREEMODELDATA,
-                 MimeDataHelper.MDF_LAYERTREEMODELDATA,
-                 MimeDataHelper.MDF_TEXT_HTML,
-                 MimeDataHelper.MDF_TEXT_PLAIN,
-                 MimeDataHelper.MDF_URILIST,
-                 MimeDataHelper.MDF_PYTHON_OBJECTS]
+        types = [MDF_DOCKTREEMODELDATA,
+                 MDF_LAYERTREEMODELDATA,
+                 MDF_TEXT_HTML,
+                 MDF_TEXT_PLAIN,
+                 MDF_URILIST]
         return types
 
     def dropMimeData(self, mimeData, action, row, column, parentIndex):
@@ -587,11 +591,16 @@ class DockManagerTreeModel(TreeModel):
 
         if isinstance(dockNode, MapDockTreeNode):
 
+            parentLayerGroup = self.parentNodesFromIndices(parentIndex, nodeInstanceType=QgsLayerTreeGroup)
+            assert len(parentLayerGroup) == 1
+            parentLayerGroup = parentLayerGroup[0]
 
             mapLayers = toLayerList(mimeData)
+            i = parentIndex.row()
             if len(mapLayers) > 0:
                 for l in mapLayers:
-                    dockNode.insertLayer(0, l)
+                    parentLayerGroup.insertLayer(i, l)
+                    i += 1
                 return True
 
         elif isinstance(dockNode, TextDockTreeNode):
@@ -618,7 +627,7 @@ class DockManagerTreeModel(TreeModel):
         for node in nodesFinal:
             node.writeXml(rootElem, context)
         doc.appendChild(rootElem)
-        mimeData.setData(MDF_DOCKTREEMODELDATA, toByteArray(doc))
+        mimeData.setData(MDF_DOCKTREEMODELDATA, textToByteArray(doc))
 
         mapNodes = [n for n in nodesFinal if type(n) in [QgsLayerTreeLayer, QgsLayerTreeGroup]]
         if len(mapNodes) > 0:
@@ -631,7 +640,7 @@ class DockManagerTreeModel(TreeModel):
                 elif type(node) == QgsLayerTreeLayer:
                     node.writeXml(rootElem, context)
             doc.appendChild(rootElem)
-            mimeData.setData(MDF_LAYERTREEMODELDATA, toByteArray(doc))
+            mimeData.setData(MDF_LAYERTREEMODELDATA, textToByteArray(doc))
         return mimeData
 
     def parentNodesFromIndices(self, indices, nodeInstanceType=DockTreeNode):
@@ -871,9 +880,10 @@ class DockManager(QObject):
 
         if isinstance(event, QDragEnterEvent):
             # check mime types we can handle
-            MH = MimeDataHelper(event.mimeData())
-
-            if MH.hasMapLayers() or MH.hasDataSources():
+            mimeData = event.mimeData()
+            assert isinstance(mimeData, QMimeData)
+            if MDF_LAYERTREEMODELDATA in mimeData.formats() or \
+                MDF_DATASOURCETREEMODELDATA in mimeData.formats():
                 event.setDropAction(Qt.CopyAction)
                 event.accept()
             return
@@ -887,16 +897,17 @@ class DockManager(QObject):
             return
 
         elif isinstance(event, QDropEvent):
-            MH = MimeDataHelper(event.mimeData())
+            mimeData = event.mimeData()
+            assert isinstance(mimeData, QMimeData)
 
             layers = []
             textfiles = []
             speclibs = []
 
-            if MH.hasMapLayers():
-                layers = MH.mapLayers()
-            elif MH.hasDataSources():
-                for ds in MH.dataSources():
+            if MDF_LAYERTREEMODELDATA in mimeData.formats():
+                layers = toLayerList(mimeData)
+            elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
+                for ds in toDataSourceList(mimeData):
                     if isinstance(ds, DataSourceSpatial):
                         layers.append(ds.createUnregisteredMapLayer())
                     elif isinstance(ds, DataSourceTextFile):
@@ -917,7 +928,7 @@ class DockManager(QObject):
             if len(speclibs) > 0:
                 NEW_DOCK = self.createDock('SPECLIB')
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
-                from spectrallibraries import SpectralLibrary
+                from enmapbox.gui.spectrallibraries import SpectralLibrary
                 for speclib in speclibs:
                     NEW_DOCK.speclibWidget.addSpeclib(SpectralLibrary.readFrom(speclib.uri()))
 
