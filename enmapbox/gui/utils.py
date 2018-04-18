@@ -306,7 +306,8 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
         baseDir = os.path.dirname(pathUi)
         tmpDirs = []
         for qrcPath in qrcPathes:
-            d = os.path.dirname(os.path.join(baseDir, os.path.dirname(qrcPath)))
+            d = os.path.abspath(os.path.join(baseDir, qrcPath))
+            d = os.path.dirname(d)
             if d not in sys.path:
                 tmpDirs.append(d)
         sys.path.extend(tmpDirs)
