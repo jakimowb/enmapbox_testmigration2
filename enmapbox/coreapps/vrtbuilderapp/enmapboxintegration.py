@@ -25,7 +25,8 @@ from PyQt5.QtGui import QIcon
 from enmapbox.gui.applications import EnMAPBoxApplication
 from vrtbuilder.widgets import VRTBuilderWidget
 from vrtbuilder import VERSION, LICENSE, PATH_ICON
-
+import vrtbuilder.ui.resources
+vrtbuilder.ui.resources.qInitResources()
 
 class VRTBuilderApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
@@ -34,6 +35,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
         self.version = 'Version {}'.format(VERSION)
         self.licence = LICENSE
         self.mapTools = []
+
 
     def icon(self):
         return QIcon(PATH_ICON)
