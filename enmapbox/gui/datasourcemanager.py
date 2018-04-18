@@ -1003,15 +1003,24 @@ class DataSourceManager(QObject):
         self.updateFromQgsProject()
 
 
-    def qgsLayerTreeGroup(self):
-        return None
-        if not isinstance(self.mQgsLayerTreeGroup,QgsLayerTreeGroup):
-            self.mQgsLayerTreeGroup = QgsLayerTreeGroup('EnMAPBox Sources', False)
-            QgsProject.instance().layerTreeRoot().addChildNode(self.mQgsLayerTreeGroup)
-        return self.mQgsLayerTreeGroup
-
     def __len__(self):
         return len(self.mSources)
+
+    def findSourceFromUUID(self, uuID):
+        if isinstance(uuID, str):
+            uuID = uuid.uuid4(uuID)
+
+        assert isinstance(uuID, uuid.UUID)
+        """
+        Finds the DataSource with uuid
+        :param uuid: UUID4
+        :return: None or DataSource
+        """
+        for source in self.mSources:
+            assert isinstance(source, DataSource)
+            if source.uuid() == uuID:
+                return source
+        return None
 
     def sources(self, sourceTypes=None):
         """
