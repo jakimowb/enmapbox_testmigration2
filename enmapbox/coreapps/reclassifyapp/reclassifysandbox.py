@@ -47,8 +47,8 @@ def sandboxGuiOnly():
     :return:
     """
     from enmapbox.gui.utils import initQgisApplication
-    qgsApp = initQgisEnvironment()
-    from reclassifydialog import ReclassifyDialog
+    qgsApp = initQgisApplication()
+    from reclassifyapp.reclassifydialog import ReclassifyDialog
     ui1 = ReclassifyDialog()
 
     def onSignal(*args):

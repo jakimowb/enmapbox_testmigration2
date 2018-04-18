@@ -26,7 +26,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import loadUIFormClass
 from enmapbox.gui.classificationscheme import *
-from __init__ import APP_DIR
+from reclassifyapp import APP_DIR
 loadUi = lambda name: loadUIFormClass(os.path.join(APP_DIR, name))
 
 
@@ -66,7 +66,7 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
 
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
-        self.tableWidget.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        #self.tableWidget.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.mapLayerComboBox.currentIndexChanged.connect(self.refreshTransformationTable)
 
 

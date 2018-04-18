@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.svm import SVR, LinearSVR
 from sklearn.kernel_ridge import KernelRidge
 
-from hubflow.types import *
+from hubflow.core import *
 
 import enmapboxtestdata
 
@@ -28,7 +28,7 @@ def synthMixRegressionWorkflow():
 
     # - label spectra
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
-                                      lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
+                                      colors=unsupervisedSample.metadata['level 2 class lookup'][3:])
 
     classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 2 class spectra names'],
                                                              classDefinition=classDefinition)
@@ -44,7 +44,7 @@ def synthMixRegressionWorkflow():
     probabilitySample.pickle(filename=join(outdir, 'train.pkl'))
 
     # fit model and predict fraction image
-    image = Image(filename=enmapboxtestdata.enmap)
+    image = Raster(filename=enmapboxtestdata.enmap)
 
     useSVRInstaedOfRFR = False
     if useSVRInstaedOfRFR:
@@ -62,16 +62,16 @@ def synthMixRegressionWorkflow():
     regressor.fit(sample=probabilitySample)
     regressor.pickle(filename=join(outdir, 'regressor.pkl'))
     fractions = regressor.predict(predictionFilename=join(outdir, 'fractions.img'), image=image, overwrite=overwrite)
-    fractions.asProbability(classDefinition=classDefinition).asClassColorRGBImage(imageFilename=join(outdir, 'fractionsRGB.img'), overwrite=overwrite)
+    fractions.asProbability(classDefinition=classDefinition).asClassColorRGBRaster(imageFilename=join(outdir, 'fractionsRGB.img'), overwrite=overwrite)
 
     # create testing data
     vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, classDefinition=classDefinition, idAttribute='Level_2_ID',
                                                 minOverallCoverage=1., minWinnerCoverage=0.5)
 
     # - rasterize ground truth classification into probabilities
-    gtFractions = vectorClassification.rasterizeAsProbability(probabilityFilename=join(outdir, 'gtFractions.img'), grid=image.pixelGrid,
+    gtFractions = vectorClassification.rasterizeAsProbability(probabilityFilename=join(outdir, 'gtFractions.img'), grid=image.grid,
                                                               oversampling=10, overwrite=overwrite)
-    gtFractions.asClassColorRGBImage(imageFilename=join(outdir, 'gtFractionsRGB.img'), overwrite=overwrite)
+    gtFractions.asClassColorRGBRaster(imageFilename=join(outdir, 'gtFractionsRGB.img'), overwrite=overwrite)
 
     # accuracy assessment
     fractions.assessRegressionPerformance(regression=gtFractions).report().saveHTML(filename=join(outdir, 'report.html'), open=True)
@@ -85,15 +85,15 @@ def classificationWorkflow():
           '\nOutput directory: {}'.format(outdir))
 
     # create training data
-    image = Image(filename=enmapboxtestdata.enmap)
+    image = Raster(filename=enmapboxtestdata.enmap)
 
     # - rasterize land cover into classification image
     speclib = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     classDefinition = ClassDefinition(names=speclib.metadata['level 2 class names'][1:],
-                                      lookup=speclib.metadata['level 2 class lookup'][3:])
+                                      colors=speclib.metadata['level 2 class lookup'][3:])
     vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, classDefinition=classDefinition,
                                                 idAttribute='Level_2_ID', minWinnerCoverage=0.5)
-    gtClassification = vectorClassification.rasterizeAsClassification(classificationFilename=join(outdir, 'gtClassification.img'), grid=image.pixelGrid,
+    gtClassification = vectorClassification.rasterizeAsClassification(classificationFilename=join(outdir, 'gtClassification.img'), grid=image.grid,
                                                                       oversampling=10, overwrite=overwrite)
 
     # - sample from image
@@ -117,7 +117,7 @@ def debug_synthMixRegressionWorkflow():
     print('\n### SyntMixRegression Workflow ###'
           '\nOutput directory: {}'.format(outdir))
 
-    image = Image(filename=enmapboxtestdata.enmap)
+    image = Raster(filename=enmapboxtestdata.enmap)
     #image = Image(filename=r'F:\newdata\hymap_specsubset.bsq')  # hymap_specsubset_scaled.bsq
     #image = Image(filename=r'F:\newdata\enmap_subset_noSchleife.bsq')  # hymap_specsubset_scaled.bsq
 
@@ -128,7 +128,7 @@ def debug_synthMixRegressionWorkflow():
 
     # - label spectra
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 1 class names'][1:],
-                                      lookup=unsupervisedSample.metadata['level 1 class lookup'][3:])
+                                      colors=unsupervisedSample.metadata['level 1 class lookup'][3:])
 
     classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 1 class spectra names'],
                                                              classDefinition=classDefinition)
@@ -153,7 +153,7 @@ def debug_synthMixRegressionWorkflow():
                                                 minOverallCoverage=1.)
 
     # - rasterize ground truth classification into probabilities
-    gtFractions = vectorClassification.rasterizeAsProbability(probabilityFilename=join(outdir, 'gtFractions.img'), grid=image.pixelGrid,
+    gtFractions = vectorClassification.rasterizeAsProbability(probabilityFilename=join(outdir, 'gtFractions.img'), grid=image.grid,
                                                               minOverallCoverage=0.8, oversampling=10, overwrite=overwrite)
     #gtFractions = gtFractions.subsetClassesByName(filename=join(outdir, 'fractions1Class.img'), names=['Tree'])
     gtFractionsSample = image.sampleByRegression(regression=gtFractions)
@@ -191,7 +191,7 @@ def debug_synthMixRegressionWorkflow():
         regressor.fit(sample=gtFractionsSample)
 
     fractions = regressor.predict(predictionFilename=join(outdir, 'fractions.img'), image=image, overwrite=overwrite)
-    fractions.asProbability(classDefinition=classDefinition).asClassColorRGBImage(imageFilename=join(outdir, 'fractionsRGB.img'), overwrite=overwrite)
+    fractions.asProbability(classDefinition=classDefinition).asClassColorRGBRaster(imageFilename=join(outdir, 'fractionsRGB.img'), overwrite=overwrite)
 
 
     # accuracy assessment
@@ -204,7 +204,7 @@ def hymapRegressionWorkflow():
     print('\nOutput directory: {}'.format(outdir))
 
     # create training data
-    image = Image(join(datadir, 'Hymap_Berlin-B_Image'))
+    image = Raster(join(datadir, 'Hymap_Berlin-B_Image'))
     train = Regression(join(datadir, 'Hymap_Berlin-B_Regression-Training-Sample'))
     test = Regression(join(datadir, 'Hymap_Berlin-B_Regression-Validation-Sample'))
     trainSample = image.sampleByRegression(regression=train)

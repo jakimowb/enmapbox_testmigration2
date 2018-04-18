@@ -4,6 +4,8 @@ deploy/
 build/
 tmp/
 doc/build/
+qgisresources
+qgisresources/
 # Untrack compiled files
 *.pyc 
 *.pyd

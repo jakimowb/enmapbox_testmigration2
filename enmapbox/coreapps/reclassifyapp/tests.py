@@ -7,7 +7,7 @@ from unittest import TestCase
 from reclassifyapp.reclassify import *
 from enmapbox.gui.classificationscheme import ClassificationScheme
 
-
+from enmapbox.gui.utils import initQgisApplication
 
 class TestReclassify(TestCase):
 
@@ -26,7 +26,7 @@ class TestReclassify(TestCase):
         drv.CreateCopy(cls.pathClassA, cls.classA)
         #drv.CreateCopy(cls.pathClassB, cls.classB)
 
-        cls.qgsApp = initQgisEnvironment()
+        cls.qgsApp = initQgisApplication()
 
     @classmethod
     def tearDownClass(cls):
@@ -61,7 +61,7 @@ class TestReclassify(TestCase):
         ui1 = ReclassifyDialog()
         ui1.show()
 
-        from enmapbox.testdata.UrbanGradient import EnMAP
+
         ui1.addSrcRaster(self.pathClassA)
         ui1.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
         from enmapbox.gui.classificationscheme import ClassificationScheme

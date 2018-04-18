@@ -3,7 +3,7 @@ import numpy, numpy.random
 #from osgeo import gdal
 #from tempfile import gettempdir
 #from os.path import join, exists, basename, dirname
-from hubdc.applier import ApplierOperator, ApplierInputRasterArchive
+from hubdc.applier import ApplierOperator, ApplierInputRasterIndex
 from hubdc.tsapplier import TSApplier, TSApplierOutputRaster, TSApplierTilingScheme, TSApplierTile, TSApplierRegionOfInterest
 
 #outdir = join(gettempdir(), 'hubdc_test')
@@ -19,7 +19,7 @@ def test():
     #applier.controls.setNumWriter(nwriter=1)
     #applier.controls.setResolution(3000,3000)
     filter = lambda filename: os.path.basename(filename).startswith('LC8')
-    applier.setInputRasterArchive(key='landsat', value=ApplierInputRasterArchive(folder=r'C:\Work\data\gms\landsat', extensions=['img'], filter=filter))
+    applier.setInputRasterArchive(key='landsat', value=ApplierInputRasterIndex(folder=r'C:\Work\data\gms\landsat', extensions=['img'], filter=filter))
     #applier.outputRaster.setOutput(key='rgb', value=TSApplierOutputRaster(filename=r'c:\output\ts\rgb_{tilename}.img'))
     #applier.outputRaster.setOutput(key='counts', value=TSApplierOutputRaster(filename=r'c:\output\ts\counts_{tilename}.img'))
     applier.apply(operator=Operator)
@@ -33,22 +33,22 @@ class Operator(ApplierOperator):
         arrays['g'] = list()
         arrays['b'] = list()
 
-        landsat = self.inputRaster.getGroup(key='landsat')
-        for path in landsat.getGroups():
-            for row in path.getGroups():
-                for sceneID in row.getGroupKeys():
-                    scene = row.getGroup(sceneID)
+        landsat = self.inputRaster.group(key='landsat')
+        for path in landsat.groups():
+            for row in path.groups():
+                for sceneID in row.groupKeys():
+                    scene = row.group(sceneID)
                     if sceneID.startswith('LC8'):
                         rgbBandNumbers = [5, 6, 4]
                     else:
                         rgbBandNumbers = [4, 5, 3]
 
-                    cfmask = scene.getRaster(key='{sceneID}_cfmask'.format(sceneID=sceneID))
-                    cfmaskArray = cfmask.getImageArray()
+                    cfmask = scene.raster(key='{sceneID}_cfmask'.format(sceneID=sceneID))
+                    cfmaskArray = cfmask.array()
                     invalid = cfmaskArray > 1
                     for key, i in zip(['r','g','b'], rgbBandNumbers):
-                        raster = scene.getRaster(key='{sceneID}_sr_band{i}'.format(sceneID=sceneID, i=i))
-                        array = numpy.float32(raster.getImageArray())
+                        raster = scene.raster(key='{sceneID}_sr_band{i}'.format(sceneID=sceneID, i=i))
+                        array = numpy.float32(raster.array())
                         array[invalid] = numpy.nan
                         arrays[key].append(array)
                     arrays['counts'].append(invalid==False)

@@ -2,7 +2,7 @@ import os
 
 def parseFolder(package):
     estimators = dict()
-    exec 'import ' + package
+    exec('import ' + package)
     dir = eval('os.path.dirname({package}.__file__)'.format(package=package))
     for basename in os.listdir(dir):
         if basename.startswith('_'): continue
@@ -20,15 +20,21 @@ def parseRegressors():
 def parseClassifiers():
     return parseFolder(package='enmapboxgeoalgorithms.estimators.classifiers')
 
+def parseClusterers():
+    return parseFolder(package='enmapboxgeoalgorithms.estimators.clusterers')
+
+def parseTransformers():
+    return parseFolder(package='enmapboxgeoalgorithms.estimators.transformers')
+
 if __name__ == '__main__':
     from tempfile import gettempdir
     import hymaptestdata
-    from hubflow.types import *
-    aImage = Image(hymaptestdata.aImage)
+    from hubflow.core import *
+    aImage = Raster(hymaptestdata.aImage)
     aTrain = Classification(hymaptestdata.aTrain)
     aSample = aImage.sampleByClassification(classification=aTrain).argmaxProbability()
 
-    bImage = Image(hymaptestdata.bImage)
+    bImage = Raster(hymaptestdata.bImage)
     bTrain = Regression(hymaptestdata.bTrain)
     bSample = bImage.sampleByRegression(regression=bTrain)
 
@@ -42,7 +48,7 @@ if __name__ == '__main__':
             print(name)
             #print(code)
             try:
-                exec code
+                exec(code)
                 sklEstimator = eval('estimator')
             except:
                 print('can not evaluate '+name)

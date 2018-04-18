@@ -20,13 +20,14 @@
 import os, sys, site, collections, re
 
 from qgis.core import *
+from qgis.core import Qgis
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.gui.utils import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
-
+from enmapbox import messageLog
 DEBUG = False #set this on True to not hide external-app errors
 
 class ApplicationWrapper(QObject):
@@ -87,8 +88,9 @@ class ApplicationRegistry(QObject):
         if not appPkgRootFolder in sys.path:
             sys.path.append(appPkgRootFolder)
 
-        for d, appPackages, _ in os.walk(appPkgRootFolder):
-            appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
+        for d, subs, _ in os.walk(appPkgRootFolder):
+            appPackages = [os.path.abspath(os.path.join(d,p)) for p in subs]
+            s = ""
             break
 
         for appPackage in appPackages:
@@ -163,8 +165,8 @@ class ApplicationRegistry(QObject):
         :param appPackagePath: a path pointing to a directory <application package folder>
         :return:
         """
-
-        if isinstance(appPackagePath, EnMAPBoxApplication):
+        assert isinstance(appPackagePath, str)
+        if isinstance(appPackagePath, str):
             isPkg, ex = self.isApplicationPackage(appPackagePath)
             assert isPkg, str(ex)
 
@@ -205,9 +207,7 @@ class ApplicationRegistry(QObject):
 
             for app in apps:
                 if not isinstance(app, EnMAPBoxApplication):
-                    QgsMessageLog.logMessage('Not an EnMAPBoxApplication instance: {}\n{}'.format(
-                        app.__module__, '{}'.format(ex))
-                        , level=QgsMessageLog.CRITICAL)
+                    messageLog('Not an EnMAPBoxApplication instance: {}\n{}'.format(app.__module__, '{}'.format(ex)), level=Qgis.Critical)
                     continue
                 try:
                     self.addApplication(app)
@@ -217,9 +217,7 @@ class ApplicationRegistry(QObject):
                     msg += '\n Traceback:\n ' + repr(traceback.format_stack())
                     #QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
 
-                    QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
-                        app.__module__, '{}'.format(ex))
-                            , level=QgsMessageLog.CRITICAL)
+                    messageLog('Failed to load {}\n{}'.format(app.__module__, '{}'.format(ex)) , level=Qgis.Critical)
 
     def addApplications(self, apps):
         """
@@ -244,7 +242,7 @@ class ApplicationRegistry(QObject):
         EnMAPBoxApplication.checkRequirements(app)
 
         if appWrapper.appId in self.appList.keys():
-            QgsMessageLog.logMessage('EnMAPBoxApplication {} already loaded.'.format(appWrapper.appId))
+            messageLog('EnMAPBoxApplication {} already loaded.'.format(appWrapper.appId))
             return False
 
         self.appList[appWrapper.appId] = appWrapper

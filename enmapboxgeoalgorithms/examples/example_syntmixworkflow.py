@@ -8,7 +8,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.preprocessing import StandardScaler
-from hubflow.types import *
+from hubflow.core import *
 
 import enmapboxtestdata
 
@@ -27,7 +27,7 @@ def synthMixRegressionWorkflow():
 
     # - label spectra
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
-                                      lookup=unsupervisedSample.metadata['level 2 class lookup'][3:])
+                                      colors=unsupervisedSample.metadata['level 2 class lookup'][3:])
 
     classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 2 class spectra names'],
                                                              classDefinition=classDefinition)
@@ -36,7 +36,7 @@ def synthMixRegressionWorkflow():
     probabilitySample = classificationSample.synthMix(mixingComplexities={2:0.5, 3:0.3, 4:0.2}, classLikelihoods='proportional', n=1000)
 
     # fit model and predict fraction image
-    image = Image(filename=enmapboxtestdata.enmap)
+    image = Raster(filename=enmapboxtestdata.enmap)
 
     useRF = True
     if useRF:
@@ -55,7 +55,7 @@ def synthMixRegressionWorkflow():
     regressor.fit(sample=probabilitySample)
     regressor.pickle(filename=join(wd, 'regressor.pkl'))
     fractions = regressor.predict(predictionFilename=join(wd, 'fractions.img'), image=image, overwrite=overwrite)
-    fractions.asProbability(classDefinition=classDefinition).asClassColorRGBImage(imageFilename=join(wd, 'fractionsRGB.img'), overwrite=overwrite)
+    fractions.asProbability(classDefinition=classDefinition).asClassColorRGBRaster(imageFilename=join(wd, 'fractionsRGB.img'), overwrite=overwrite)
 
 if __name__ == '__main__':
     synthMixRegressionWorkflow()

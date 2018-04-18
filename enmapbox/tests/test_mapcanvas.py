@@ -85,27 +85,21 @@ class MapCanvasTests(unittest.TestCase):
             self.assertTrue(p in spatialFiles)
 
         #drop layertree
-        md = QMimeData()
+
         layers = [QgsVectorLayer(landcover), QgsRasterLayer(enmap)]
-        tree = QgsLayerTree()
-        for l in layers:
-            tree.addLayer(l)
-
-
-        #drop QGIS maplayer XML
-        doc = QDomDocument()
-        context = QgsReadWriteContext()
-        node = doc.createElement('layer-tree-group')
-        doc.appendChild(node)
-        for c in tree.children():
-            c.writeXml(node, context)
-        md.setData(MDF_LAYERTREEMODELDATA, doc.toByteArray())
+        md = fromLayerList(layers)
 
         self.mapCanvas.setLayers([])
         self.mapCanvas.dropEvent(createDropEvent(md))
         self.assertTrue(len(self.mapCanvas.layerPaths()) == 2)
         for p in self.mapCanvas.layerPaths():
             self.assertTrue(p in spatialFiles)
+
+
+        #drop registered layers
+        layers = [QgsVectorLayer(landcover), QgsRasterLayer(enmap)]
+        QgsProject.instance().addMapLayers(layers)
+
 
 def exampleMapLinking():
     import site, sys
@@ -131,7 +125,6 @@ def exampleMapLinking():
         map.show()
         maps.append(map)
 
-    Qgs
     d = CanvasLinkDialog()
     d.addCanvas(maps)
     d.setSourceCanvas(maps[0])

@@ -13,7 +13,7 @@ def script():
     applier.setOutputRaster('cfmask1000m', filename=r'c:\output\cfmask1000m.img')
     applier.setOutputRaster('cfmaskFractions1000m', filename=r'c:\output\cfmaskFractions1000m.img')
 
-    applier.apply(operator=SimpleIO)
+    applier.apply(operatorType=SimpleIO)
 
 class SimpleIO(ApplierOperator):
 
