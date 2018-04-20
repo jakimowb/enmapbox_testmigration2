@@ -137,6 +137,7 @@ class OptionListModel(QAbstractListModel):
                 self.mOptions.insert(i, o)
                 i += 1
             self.endInsertRows()
+
             self.sigOptionsInserted.emit(options)
 
 
@@ -217,7 +218,7 @@ class OptionListModel(QAbstractListModel):
         elif role == Qt.DecorationRole:
             result = option.mIcon
         elif role == Qt.UserRole:
-            return option
+            result =  option
         return result
 
 

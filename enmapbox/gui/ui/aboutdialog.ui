@@ -32,11 +32,11 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>About HUB TimeSeriesViewer</string>
+   <string>About EnMAP-Box</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>:/timeseriesviewer/icons/icon.png</normaloff>:/timeseriesviewer/icons/icon.png</iconset>
+   <iconset resource="resources.qrc">
+    <normaloff>:/enmapbox/icons/enmapbox.png</normaloff>:/enmapbox/icons/enmapbox.png</iconset>
   </property>
   <property name="sizeGripEnabled">
    <bool>false</bool>
@@ -178,7 +178,7 @@
           <enum>QFrame::NoFrame</enum>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="pageAbout">
           <property name="sizePolicy">

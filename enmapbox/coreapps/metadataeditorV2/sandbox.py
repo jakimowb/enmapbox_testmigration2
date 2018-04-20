@@ -56,7 +56,7 @@ def sandboxShowAppGuiOnly():
     from enmapboxtestdata import enmap, hymap
     ui = MetadataEditorDialog()
     ui.addSources(hymap)
-    ui.setSource(enmap)
+   # ui.setSource(enmap)
     ui.show()
 
 if __name__ == '__main__':

@@ -109,6 +109,135 @@ class TestObjects():
         ds.FlushCache()
         return ds
 
+    @staticmethod
+    def qgisInterfaceMockup():
+
+        return QgisMockup()
+
+class QgisMockup(QgisInterface):
+
+    @staticmethod
+    def create():
+
+        iface = QgisMockup()
+
+        import qgis.utils
+        # import processing
+        # p = processing.classFactory(iface)
+        if not isinstance(qgis.utils.iface, QgisInterface):
+
+            import processing
+            qgis.utils.iface = iface
+            processing.Processing.initialize()
+
+            import pkgutil
+            prefix = str(processing.__name__ + '.')
+            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
+                try:
+                    module = __import__(modname, fromlist="dummy")
+                    if hasattr(module, 'iface'):
+                        print(modname)
+                        module.iface = iface
+                except:
+                    pass
+
+        return iface
+
+    def __init__(self, *args):
+        # QgisInterface.__init__(self)
+        super(QgisMockup, self).__init__()
+
+        self.canvas = QgsMapCanvas()
+        self.canvas.blockSignals(False)
+        self.canvas.setCanvasColor(Qt.black)
+        self.canvas.extentsChanged.connect(self.testSlot)
+        self.layerTreeView = QgsLayerTreeView()
+        self.rootNode = QgsLayerTree()
+        self.treeModel = QgsLayerTreeModel(self.rootNode)
+        self.layerTreeView.setModel(self.treeModel)
+        self.bridge = QgsLayerTreeMapCanvasBridge(self.rootNode, self.canvas)
+        self.bridge.setAutoSetupOnFirstLayer(True)
+        self.ui = QMainWindow()
+        mainFrame = QFrame()
+
+        self.ui.setCentralWidget(mainFrame)
+        self.ui.setWindowTitle('QGIS Mockup')
+        l = QHBoxLayout()
+        l.addWidget(self.layerTreeView)
+        l.addWidget(self.canvas)
+        mainFrame.setLayout(l)
+        self.ui.setCentralWidget(mainFrame)
+        self.lyrs = []
+        self.createActions()
+
+    def iconSize(self, dockedToolbar=False):
+        return QSize(30,30)
+
+    def testSlot(self, *args):
+        # print('--canvas changes--')
+        s = ""
+
+    def mainWindow(self):
+        return self.ui
+
+
+    def addToolBarIcon(self, action):
+        assert isinstance(action, QAction)
+
+    def removeToolBarIcon(self, action):
+        assert isinstance(action, QAction)
+
+
+    def addVectorLayer(self, path, basename=None, providerkey=None):
+        if basename is None:
+            basename = os.path.basename(path)
+        if providerkey is None:
+            bn, ext = os.path.splitext(basename)
+
+            providerkey = 'ogr'
+        l = QgsVectorLayer(path, basename, providerkey)
+        assert l.isValid()
+        QgsProject.instance().addMapLayer(l, True)
+        self.rootNode.addLayer(l)
+        self.bridge.setCanvasLayers()
+        s = ""
+
+    def legendInterface(self):
+        return None
+
+    def addRasterLayer(self, path, baseName=''):
+        l = QgsRasterLayer(path, os.path.basename(path))
+        self.lyrs.append(l)
+        QgsProject.instance().addMapLayer(l, True)
+        self.rootNode.addLayer(l)
+        self.bridge.setCanvasLayers()
+        return
+
+        cnt = len(self.canvas.layers())
+
+        self.canvas.setLayerSet([QgsMapCanvasLayer(l)])
+        l.dataProvider()
+        if cnt == 0:
+            self.canvas.mapSettings().setDestinationCrs(l.crs())
+            self.canvas.setExtent(l.extent())
+
+            spatialExtent = SpatialExtent.fromMapLayer(l)
+            # self.canvas.blockSignals(True)
+            self.canvas.setDestinationCrs(spatialExtent.crs())
+            self.canvas.setExtent(spatialExtent)
+            # self.blockSignals(False)
+            self.canvas.refresh()
+
+        self.canvas.refresh()
+
+    def createActions(self):
+        m = self.ui.menuBar().addAction('Add Vector')
+        m = self.ui.menuBar().addAction('Add Raster')
+
+    def mapCanvas(self):
+        return self.canvas
+
+
 def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgisResourceDir=None):
     """
     Initializes the QGIS Environment
@@ -1059,58 +1188,6 @@ class EnMAPBoxMimeData(QMimeData):
     def hasEnMAPBoxData(self):
         return self.mData != None
 
-
-
-class QgisInterfaceMockup(QgisInterface):
-
-    @staticmethod
-    def create():
-
-        iface = QgisInterfaceMockup()
-
-        import qgis.utils
-        #import processing
-        #p = processing.classFactory(iface)
-        if not isinstance(qgis.utils.iface, QgisInterface):
-
-            import processing
-            qgis.utils.iface = iface
-            processing.Processing.initialize()
-
-            import pkgutil
-            prefix = str(processing.__name__ + '.')
-            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
-                try:
-                    module = __import__(modname, fromlist="dummy")
-                    if hasattr(module, 'iface'):
-                        print(modname)
-                        module.iface = iface
-                except:
-                    pass
-
-        return iface
-
-
-    def __init__(self, *args, **kwds):
-        super(QgisInterfaceMockup, self).__init__(*args, **kwds)
-
-        self.mMapCanvas = QgsMapCanvas()
-        self.mMessageBar = QgsMessageBar()
-
-
-
-    def iconSize(self, *args, **kwargs):
-        return QSize(60,60)
-
-    def mapCanvas(self, *args, **kwargs):
-        return self.mMapCanvas
-
-    def mapCanvases(self, *args, **kwargs):
-        return [self.mMapCanvas]
-
-    def messageBar(self):
-
-        return self.mMessageBar
 
 if __name__ == '__main__':
     from enmapboxtestdata import enmap

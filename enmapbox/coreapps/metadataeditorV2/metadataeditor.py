@@ -31,11 +31,11 @@ import numpy as np
 from enmapbox.gui.utils import loadUIFormClass
 from enmapbox.gui.widgets.trees import TreeModel, TreeNode
 from metadataeditorV2.metadatakeys import *
-from enmapbox.gui.widgets.models import OptionListModel, Option, getOptionValueFromComboBox
+from enmapbox.gui.widgets.models import OptionListModel, Option, currentComboBoxValue
 from enmapbox.gui.classificationscheme import *
 
 
-from __init__ import APP_DIR
+from metadataeditorV2 import APP_DIR
 
 #path to the *.ui file that was created/edited in the QDesigner
 pathUi = os.path.join(APP_DIR, 'metadataeditor.ui')
@@ -63,7 +63,7 @@ class MetadataItemTreeNode(TreeNode):
             kwds['tooltip'] = key.tooltip()
         super(MetadataItemTreeNode, self).__init__(parentNode, **kwds)
 
-        if not kwds.has_key('tooltip'):
+        if kwds.get('tooltip') is None:
             self.setToolTip(key.mTooltip)
 
         self.mMDKey = key
@@ -788,8 +788,15 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
         self.mSourceModel = OptionListModel()
         self.cbSource.setModel(self.mSourceModel)
-        self.cbSource.currentIndexChanged[int].connect(
-            lambda i : self.mMetadataModel.setSource(self.mSourceModel.optionValues()[i]))
+
+
+        def onSourceChanged(idx):
+            path = self.mSourceModel.optionValues()[idx]
+            self.mMetadataModel.setSource(path)
+            s = ""
+
+        self.cbSource.currentIndexChanged[int].connect(onSourceChanged)
+        #    lambda i : self.mMetadataModel.setSource(self.mSourceModel.optionValues()[i]))
 
         self.mDomains = OptionListModel()
         self.mDomains.insertOptions(Option(None, '<All>'))
@@ -802,7 +809,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
         #self.treeView.setModel(self.mMetadataModel)
         self.treeView.setModel(self.mMetadataFilterModel)
-        self.treeView.header().setResizeMode(QHeaderView.ResizeToContents)
+        #self.treeView.header().setResizeMode(QHeaderView.ResizeToContents)
 
         self.delegate = MetadataTreeViewWidgetDelegates(self.treeView)
         self.treeView.setItemDelegate(self.delegate)
@@ -813,12 +820,13 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
 
-    def addSources(self, listOfSourcUris):
-        if not isinstance(listOfSourcUris, list):
-            listOfSourcUris = [listOfSourcUris]
+    def addSources(self, listOfSourceUris):
+        if not isinstance(listOfSourceUris, list):
+            listOfSourceUris = [listOfSourceUris]
 
-        for source in listOfSourcUris:
-            self.mSourceModel.addOption(Option(source, os.path.basename(source)))
+        options = [Option(source, os.path.basename(source)) for source in listOfSourceUris]
+        self.mSourceModel.addOptions(options)
+        s = ""
 
 
 

@@ -80,7 +80,8 @@ RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   prefixLocal=r'enmapboxgeoalgorithms',
-                  prefixRemote=r'enmapboxgeoalgorithms')
+                  prefixRemote=r'enmapboxgeoalgorithms',
+                  remoteBranch='develop')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',

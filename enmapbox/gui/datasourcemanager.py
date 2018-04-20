@@ -963,11 +963,15 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
         pass
 
 class DataSourceManager(QObject):
-    _instance = None
 
+    _testInstance = None
     @staticmethod
     def instance():
-        return DataSourceManager._instance
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            return EnMAPBox.instance().dataSourceManager
+        else:
+            return DataSourceManager._testInstance
 
     """
     Keeps overview on different data sources handled by EnMAP-Box.
@@ -981,8 +985,7 @@ class DataSourceManager(QObject):
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
-        assert DataSourceManager.instance() is None
-        DataSourceManager._instance = self
+        DataSourceManager._testInstance = self
         self.mSources = list()
         self.mSubsetSelection = {}
         self.mQgsLayerTreeGroup = None
