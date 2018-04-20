@@ -6,7 +6,8 @@ import numpy as np
 from unittest import TestCase
 from reclassifyapp.reclassify import *
 from enmapbox.gui.classificationscheme import ClassificationScheme
-
+from enmapbox.gui.utils import *
+APP = initQgisApplication()
 from enmapbox.gui.utils import initQgisApplication
 
 class TestReclassify(TestCase):
@@ -21,7 +22,7 @@ class TestReclassify(TestCase):
         cls.classB = TestObjects.inMemoryClassification(3)
 
         cls.pathClassA = os.path.join(cls.testDir, 'classificationA.bsq')
-        #cls.pathClassB = os.path.join(cls.testDir, 'classificationB.bsq')
+        cls.pathClassTemp = os.path.join(cls.testDir, 'classificationTemp.bsq')
         drv = gdal.GetDriverByName('ENVI')
         drv.CreateCopy(cls.pathClassA, cls.classA)
         #drv.CreateCopy(cls.pathClassB, cls.classB)
@@ -43,6 +44,24 @@ class TestReclassify(TestCase):
     def tearDown(self):
         pass
 
+    def test_hubflow_reclassify(self):
+        pathSrc = self.pathClassA
+        pathDst = self.pathClassTemp
+
+        import hubflow.core
+        classification = hubflow.core.Classification(pathSrc)
+        # do not add the unclassified class
+        newNames = ['No Class', 'Class B']
+        newDef = hubflow.core.ClassDefinition(names=newNames)
+
+        classification.reclassify(filename=pathDst,
+                                  classDefinition=newDef,
+                                  mapping={0:0,1:1,2:1})
+        ds = gdal.Open(pathDst)
+        band = ds.GetRasterBand(1)
+        classNames = band.GetCategoryNames()
+        self.assertEqual(newNames, classNames)
+
     def test_reclassify(self):
         csDst = ClassificationScheme.create(2)
         csDst[1].setName('Test Class')
@@ -55,6 +74,8 @@ class TestReclassify(TestCase):
         csDst2 = ClassificationScheme.fromRasterImage(dsDst)
         self.assertIsInstance(csDst2, ClassificationScheme)
         self.assertEqual(csDst,csDst2 )
+
+
 
     def test_dialog(self):
         from reclassifyapp.reclassifydialog import ReclassifyDialog

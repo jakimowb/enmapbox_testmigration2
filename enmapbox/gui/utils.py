@@ -78,7 +78,7 @@ def mkdir(path):
 
 class TestObjects():
     @staticmethod
-    def inMemoryClassification(n=3, nl=10, ns=20, nb=1):
+    def inMemoryClassification(n=3, nl=10, ns=20, nb=1, crs='EPSG:32632'):
         from enmapbox.gui.classificationscheme import ClassificationScheme
         scheme = ClassificationScheme()
         scheme.createClasses(n)
@@ -86,7 +86,12 @@ class TestObjects():
         drv = gdal.GetDriverByName('MEM')
         assert isinstance(drv, gdal.Driver)
 
+
         ds = drv.Create('', ns, nl, bands=nb, eType=gdal.GDT_Byte)
+
+        if isinstance(crs, str):
+            c = QgsCoordinateReferenceSystem(crs)
+            ds.SetProjection(c.toWkt())
 
         step = int(np.ceil(float(nl) / len(scheme)))
 

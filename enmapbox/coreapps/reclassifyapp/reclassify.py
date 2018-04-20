@@ -60,14 +60,16 @@ def reclassify(pathSrc, pathDst, dstClassScheme, labelLookup,
     assert isinstance(labelLookup, dict)
 
 
-    import hubflow.types
-    classification = hubflow.types.Classification(pathSrc)
+    import hubflow.core
+    classification = hubflow.core.Classification(pathSrc)
     names = dstClassScheme.classNames()
-    lookup = dstClassScheme.classColorArray()[:,0:3].flatten()
-    newDef = hubflow.types.ClassDefinition(names=names[1:], lookup=lookup[3:])
-    result = classification.reclassify(filename=pathDst,
+    colors = dstClassScheme.classColors()
+    #do not add the unclassified class
+    newDef = hubflow.core.ClassDefinition(names=names, colors=colors)
+    classification.reclassify(filename=pathDst,
                           classDefinition=newDef,
                           mapping=labelLookup)
+    return gdal.Open(pathDst)
 
 
 
