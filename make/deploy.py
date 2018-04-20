@@ -88,6 +88,17 @@ if __name__ == "__main__":
 
     mkDir(DIR_DEPLOY)
 
+
+    if True: #update metadata
+        pathMetadata = jp(DIR_REPO, 'metadata.txt')
+        # update version number in metadata
+        lines = open(pathMetadata).readlines()
+        lines = re.sub('version=.*\n', 'version={}\n'.format(buildID), ''.join(lines))
+        f = open(pathMetadata, 'w')
+        f.write(lines)
+        f.flush()
+        f.close()
+
     # required to choose andy DIR_DEPLOY of choice
     # issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
 
@@ -108,15 +119,6 @@ if __name__ == "__main__":
                 # This should not be done automatically, as each commit should contain a proper commit message
                 raise Exception('Please commit all changes first.')
 
-            pathMetadata = jp(DIR_REPO, 'metadata.txt')
-
-            #update version number in metadata
-            lines = open(pathMetadata).readlines()
-            lines = re.sub('version=.*\n', 'version={}\n'.format(enmapbox.__version__), ''.join(lines))
-            f = open(pathMetadata, 'w')
-            f.write(lines)
-            f.flush()
-            f.close()
 
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file

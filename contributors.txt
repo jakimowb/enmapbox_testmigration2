@@ -10,6 +10,7 @@ Sebastian van der Linden <sebastian.linden@geo.hu-berlin.de>
 Akpona Okujeni <akpona.okujeni@geo.hu-berlin.de>
 Sam Cooper <sam.cooper@geo.hu-berlin.de>
 Stefan Ernst <stefan.ernst@geo.hu-berlin.de>
+Fabian Thiel <fabian.thiel@hu-berlin.de>
 
 ## Ludwig-Maximilians-Universität München
 

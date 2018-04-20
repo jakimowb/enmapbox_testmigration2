@@ -16,15 +16,11 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import
-import os, sys, logging, site, traceback
+import os, sys, site
+from qgis.core import QgsApplication, QgsProcessingProvider, QgsProcessingAlgorithm, Qgis
 from qgis.gui import QgisInterface
-from qgis.core import QgsMessageLog
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QAction
-
-
-_MSGLOG_TAG = 'EnMAP-Box'
+from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtWidgets import QAction
 
 
 class EnMAPBoxPlugin(object):
@@ -38,6 +34,7 @@ class EnMAPBoxPlugin(object):
 
         # ensure that python console is activated. this is required to redirect
         # printouts like that from debugger to stdout / stderr
+        #DO WE STILL NEED THIS?
         import console.console as CONSOLE
         if CONSOLE._console is None:
             CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
@@ -45,28 +42,51 @@ class EnMAPBoxPlugin(object):
 
         dirPlugin = os.path.dirname(__file__)
         site.addsitedir(dirPlugin)
+        from enmapbox.gui import DIR_SITEPACKAGES
+        site.addsitedir(DIR_SITEPACKAGES)
 
         #run a dependency check
         self.initialDependencyCheck()
 
         from enmapbox import messageLog
 
-        try:
-            import enmapboxgeoalgorithms.algorithms
-            enmapboxgeoalgorithms.algorithms.EnMAPProvider = None
-        except Exception as ex:
-            messageLog(str(ex))
-
 
         # add the EnMAP-Box Provider
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-        from processing.core.Processing import Processing
         self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
+        assert isinstance(self.enmapBoxProvider, QgsProcessingProvider)
+        QgsApplication.instance().processingRegistry().addProvider(self.enmapBoxProvider)
+        assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
 
-        Processing.addProvider(self.enmapBoxProvider)
+        # load EnMAPBox QgsProcessingAlgorithms
+        try:
+            failed = []
+            failed_ex = []
+            import enmapboxgeoalgorithms.algorithms
+            for alg in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
+                try:
+                    self.enmapBoxProvider.addAlgorithm(alg, _emitUpdated=False)
+                except Exception as ex2:
+                    try:
+                        self.enmapBoxProvider.addAlgorithm(alg.__class__(), _emitUpdated=False)
+                    except Exception as ex3:
+                        failed.append(str(alg.__class__.__name__))
+                        failed_ex.append(ex2)
 
-        from enmapboxgeoalgorithms.algorithms import ALGORITHMS
-        self.enmapBoxProvider.appendAlgorithms(ALGORITHMS)
+            self.enmapBoxProvider.emitUpdated()
+            if len(failed) > 0:
+                info = ['Failed to load {} EnMAPBoxGeoAlgorithm(s).\n{}'.format(len(failed), ', '.join(failed))]
+                info.append(str(failed_ex[0]))
+                messageLog('\n'.join(info), Qgis.Critical)
+
+        except Exception as ex1:
+            info = ['Failed to load EnMAPBoxGeoAlgorithms.\n{}'.format(str(ex1))]
+            info.append('PYTHONPATH:')
+            for p in sorted(sys.path):
+                info.append(p)
+
+            messageLog('\n'.join(info), Qgis.Critical)
+
 
     def initialDependencyCheck(self):
         """
@@ -84,23 +104,17 @@ class EnMAPBoxPlugin(object):
                 missing.append(package)
         if len(missing) > 0:
 
-            n = len(missing)
-
-
-
-
-
-            longText = ['Unable to import the following package(s):']
+            longText = ['Unable to import the following python package(s):']
             longText.append('<b>{}</b>'.format(', '.join(missing)))
-            longText.append('<p>Please run your local package manager(s) with root rights to install them.')
-            longText.append('More information is available under:')
+            longText.append('<p>Please install missing packages using the local package manager like pip3 and root access.')
+            longText.append('More information available under:')
             longText.append('<a href="http://enmap-box.readthedocs.io/en/latest/Installation.html">http://enmap-box.readthedocs.io/en/latest/Installation.html</a> </p>')
 
-            longText.append('This Python:')
-            longText.append('Executable: {}'.format(sys.executable))
-            longText.append('ENVIRON:')
-            for k in sorted(os.environ.keys()):
-                longText.append('\t{} ={}'.format(k, os.environ[k]))
+            #longText.append('This Python:')
+            #longText.append('Executable: {}'.format(sys.executable))
+            #longText.append('ENVIRON:')
+            #for k in sorted(os.environ.keys()):
+            #    longText.append('\t{} ={}'.format(k, os.environ[k]))
 
             longText = '<br/>\n'.join(longText)
             messageLog(longText)
@@ -139,12 +153,9 @@ class EnMAPBoxPlugin(object):
         for action in self.toolbarActions:
             self.iface.removeToolBarIcon(action)
 
-        from processing.core.Processing import Processing
-        Processing.removeProvider(self.enmapBoxProvider)
-
+        QgsApplication.instance().processingRegistry().removeProvider(self.enmapBoxProvider)
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             EnMAPBox.instance().close()
-
         EnMAPBox._instance = None
 
 

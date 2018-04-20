@@ -40,7 +40,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         super(EnMAPBoxAlgorithmProvider, self).__init__()
         #internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
         self.mAlgorithms = []
-        self.mSettingsName = self.id().upper().replace(' ', '_')
+        self.mSettingsPrefix = self.id().upper().replace(' ', '_')
 
     def initializeSettings(self):
         """This is the place where you should add config parameters
@@ -50,21 +50,17 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         Processing framework. By default it just adds a setting to
         activate or deactivate algorithms from the provider.
         """
-        ProcessingConfig.settingIcons[self.name()] = self.getIcon()
 
-        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsName,
-                                            self.tr('Activate'), self.activate))
+        ProcessingConfig.setGroupIcon(self.name(), self.getIcon())
+        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_ACTIVATE',
+                                            self.tr('Activates the EnMAP-Box'), True))
+        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_HELPPATH', 'Location of EnMAP-Box docs', 'default'))
+        ProcessingConfig.readSettings()
 
 
-    def unload(self):
-        """Do here anything that you want to be done when the provider
-        is removed from the list of available ones.
-
-        This method is called when you remove the provider from
-        Processing. Removal of config setting should be done here.
-        """
-
-        ProcessingConfig.removeSetting(self.mSettingsName)
+    def emitUpdated(self):
+        import processing.core.ProcessingConfig
+        processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
 
     def getName(self):
         raise DeprecationWarning('Use id() instead')
@@ -112,24 +108,19 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         :return:
         """
 
-        ProcessingConfig.settingIcons[self.name()] = self.icon()
-        ProcessingConfig.addSetting(Setting(self.mSettingsName, 'ACTIVATE',
-                                            self.tr('Activates the EnMAP-Box'), True))
-        ProcessingConfig.addSetting(Setting(
-            self.mSettingsName,
-            'helppath',
-            'Location of EnMAP-Box docs', 'default'))
-        ProcessingConfig.readSettings()
         self.refreshAlgorithms()
         return True
 
     def unload(self):
         """
-        Unloads the provider.
+        This method is called when you remove the provider from
+        Processing. Removal of config setting should be done here.
         """
 
-        ProcessingConfig.removeSetting(self.mSettingsName)
-        del ProcessingConfig.settingIcons[self.name()]
+        for key in list(ProcessingConfig.settings.keys()):
+            if key.startswith(self.mSettingsPrefix):
+                ProcessingConfig.removeSetting(key)
+        #del ProcessingConfig.settingIcons[self.name()]
         #ProcessingConfig.removeSetting(GdalUtils.GDAL_HELP_PATH)
 
 
@@ -139,8 +130,18 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         #return ProcessingConfig.getSetting(self.settingsName)
 
     def setActive(self, active):
-        ProcessingConfig.setSettingValue(self.mSettingsName, active)
+        ProcessingConfig.setSettingValue(self.mSettingsPrefix, active)
 
+
+    def addAlgorithm(self, algorithm, _emitUpdated=True):
+        super(EnMAPBoxAlgorithmProvider,self).addAlgorithm(algorithm)
+        if _emitUpdated:
+            self.emitUpdated()
+
+    def addAlgorithms(self, algorithmns):
+        assert isinstance(algorithmns, list)
+        for a in algorithmns:
+            self.addAlgorithm(a, _emitUpdated = a == algorithmns[-1])
 
     def loadAlgorithms(self):
 
@@ -181,7 +182,7 @@ if __name__ == '__main__':
     from enmapbox.gui.utils import *
     app = initQgisApplication()
 
-    iface = QgisInterfaceMockup.create()
+    iface = QgisMockup.create()
 
 
 
@@ -199,11 +200,23 @@ if __name__ == '__main__':
     dlg1.show()
 
     #from processing.algs.exampleprovider.ExampleAlgorithm import ExampleAlgorithm
-    from processing.algs.gdal.buildvrt import buildvrt
-    p.addAlgorithm(buildvrt())
+
+
 
     from processing.gui.ProcessingToolbox import ProcessingToolbox
     dlg2 = ProcessingToolbox()
     dlg2.show()
 
+    reg = QgsApplication.processingRegistry()
+    p2 = reg.providerById('enmapbox')
+    assert p1 == p2
+
+    from processing.algs.gdal.buildvrt import buildvrt
+    p2.addAlgorithm(buildvrt())
+
+    import processing.core.ProcessingConfig
+    processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
+
+    #reg.removeProvider(p)
+    #reg.addProvider(p)
     app.exec_()

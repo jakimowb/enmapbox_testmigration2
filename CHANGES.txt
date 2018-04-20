@@ -1,7 +1,12 @@
 
-Version 0.1.3
-    EnMAP-Box is now based on QGIS 3 with Python 3 and GDAL 2.2
+
+
+
+Version 3.1
+    EnMAP-Box is now based on QGIS 3, Qt 5.9,Python 3 and GDAL 2.2
+    QGISP lugin Installation from ZIP File
+    readthedocs documentation
 
 previous versions:
-    versioning scheme following build dates
+    version scheme following build dates
 
