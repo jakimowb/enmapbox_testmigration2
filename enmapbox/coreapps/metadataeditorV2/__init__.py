@@ -96,7 +96,7 @@ def enmapboxApplicationFactory(enmapBox):
 
     # returns a list of EnMAP-Box Applications. Usually only one is returned,
     # but you might provide as many as you like.
-    return [ExampleEnMAPBoxApp(enmapBox)]
+    return [MetaDataEditorApp(enmapBox)]
 
 
 
