@@ -72,6 +72,7 @@ class RendererWidgetModifications(object):
             setattr(self, w.objectName(), w)
         self.layout().removeItem(gridLayoutOld)
         self.layout().insertItem(0, self.gridLayout)
+        self.gridLayout.setSpacing(2)
         self.layout().addStretch()
 
     def connectSliderWithBandComboBox(self, slider, combobox):
@@ -234,6 +235,7 @@ class SingleBandGrayRendererWidget(QgsSingleBandGrayRendererWidget, RendererWidg
 
         self.gridLayout.addWidget(self.mContrastEnhancementLabel, 4, 0)
         self.gridLayout.addWidget(self.mContrastEnhancementComboBox, 4, 1, 1 ,4)
+        self.gridLayout.setSpacing(2)
 
         self.setLayoutItemVisibility(self.gridLayout, True)
 
@@ -318,8 +320,14 @@ class SingleBandPseudoColorRendererWidget(QgsSingleBandPseudoColorRendererWidget
         grid.addWidget(self.mMinLineEdit, 2, 1)
         grid.addWidget(self.mMaxLabel, 2, 2)
         grid.addWidget(self.mMaxLineEdit, 2, 3)
-
+        #grid.setContentsMargins(2, 2, 2, 2, )
+        grid.setColumnStretch(0, 0)
+        grid.setColumnStretch(1, 2)
+        grid.setColumnStretch(2, 0)
+        grid.setColumnStretch(3, 2)
+        grid.setSpacing(2)
         self.gridLayout.addItem(grid, 0,1,2,4)
+        self.gridLayout.setSpacing(2)
         self.setLayoutItemVisibility(grid, True)
 
 
@@ -704,16 +712,16 @@ if __name__ == '__main__':
     c.setExtent(v.extent())
     c.refreshAllLayers()
     #l = QgsRasterLayer(r'F:\Temp\landsat22.bsq')
-    if False:
+    if True:
         w = MultiBandColorRendererWidget.create(l, l.extent())
         w.show()
-    if False:
+    if True:
         w = SingleBandGrayRendererWidget.create(l, l.extent())
         w.show()
-    if False:
+    if True:
         w = SingleBandPseudoColorRendererWidget.create(l, l.extent())
         w.show()
-    if True:
+    if False:
         #QgsRendererV2Registry.instance().renderersList()
 
         #w = QgsMapLayerStyleManagerWidget(v, c, parent=None)
