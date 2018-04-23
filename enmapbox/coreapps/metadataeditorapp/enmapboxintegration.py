@@ -2,9 +2,10 @@
 
 """
 ***************************************************************************
-    metadataeditor/enmapboxintegration.py
+    exampleapp/enmapboxintegration.py
 
-    Integratation of metadata editor into EnMAP-Box.
+    This module defines the interactions between an application and
+    the EnMAPBox.
     ---------------------
     Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -20,48 +21,77 @@
 """
 
 import os
-
-from PyQt5.QtGui import QIcon
-from reclassifyapp import APP_DIR
-
+from PyQt5.QtGui import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
+from exampleapp import APP_DIR
 
+class ExampleEnMAPBoxApp(EnMAPBoxApplication):
+    """
+    This Class derived from an EnMAPBoxApplication.
 
-class MetadataEditorApp(EnMAPBoxApplication):
-
+    """
     def __init__(self, enmapBox, parent=None):
-        super(MetadataEditorApp, self).__init__(enmapBox, parent=parent)
-        self.name = 'Metadata Editor'
-        self.version = 'Version 0.1'
-        self.licence = 'GPL-3'
+        super(ExampleEnMAPBoxApp, self).__init__(enmapBox, parent=parent)
+
+        #specify the name of this app
+        self.name = 'My EnMAPBox App'
+
+        #specify a version string
+        from exampleapp import VERSION
+        self.version = VERSION
+
+        #specify a licence under which you distribute this application
+        self.licence = 'BSD-3'
 
     def icon(self):
+        """
+        This function returns a QIcon of your Application
+        :return:
+        """
         pathIcon = os.path.join(APP_DIR, 'icon.png')
         return QIcon(pathIcon)
 
     def menu(self, appMenu):
         """
-        Specify menu, submenus and actions
+        Returns a QMenu that will be added to the parent `appMenu`
+        :param appMenu:
+        :return: QMenu
+        """
+        assert isinstance(appMenu, QMenu)
+        """
+        Specify menu, submenus and actions that become accessible from the EnMAP-Box GUI
         :return: the QMenu or QAction to be added to the "Applications" menu.
         """
-        return None  # disable metadata editor
-        appMenu = self.enmapbox.menu('Tools')
 
-        #add a QAction that starts your GUI
-        a = appMenu.addAction('Metadata Editor')
-        a = appMenu.addAction('Metadata Editor Dummy')
-        #assert isinstance(a, QAction)
-        a.setIcon(self.icon())
+        # this way you can add your QMenu/QAction to an other menu entry, e.g. 'Tools'
+        # appMenu = self.enmapbox.menu('Tools')
+
+        menu = appMenu.addMenu('Example App')
+        menu.setIcon(self.icon())
+
+        #add a QAction that starts a process of your application.
+        #In this case it will open your GUI.
+        a = menu.addAction('Show ExampleApp GUI')
         a.triggered.connect(self.startGUI)
 
+        appMenu.addMenu(menu)
 
-        return a
+        return menu
 
+    def geoAlgorithms(self):
+        """
+        This function returns the QGIS Processing Framework GeoAlgorithms specified by your application
+        :return: [list-of-GeoAlgorithms]
+        """
+        #return [] #remove this line to load geoAlgorithms
+        from algorithms import MyEnMAPBoxAppGeoAlgorithm
+        return [MyEnMAPBoxAppGeoAlgorithm()]
 
     def startGUI(self, *args):
-        from metadataeditorapp.metadataeditor import Win
-        ui = Win(self.enmapbox.ui)
+        from exampleapp.userinterfaces import ExampleGUI
+        ui = ExampleGUI(self.enmapbox.ui)
         ui.show()
-        #uiDialog = QDialog(self.enmapbox.ui)
-        #uiDialog.setWindowTitle('Dummy')
-        #uiDialog.show()
+
+
+
+

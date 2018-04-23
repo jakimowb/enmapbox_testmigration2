@@ -52,7 +52,7 @@ def sandboxShowAppGuiOnly():
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
     """
-    from metadataeditorV2.metadataeditor import MetadataEditorDialog
+    from metadataeditorapp.metadataeditor import MetadataEditorDialog
     from enmapboxtestdata import enmap, hymap
     ui = MetadataEditorDialog()
     ui.addSources(hymap)

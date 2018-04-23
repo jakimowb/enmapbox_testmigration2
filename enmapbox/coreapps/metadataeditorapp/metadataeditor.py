@@ -2,11 +2,11 @@
 
 """
 ***************************************************************************
-    metadataeditorapp/metadataeditor.py
+    exampleapp/userinterfaces.py
 
-    Package definition.
+    Some exemplary (graphical) user interfaces, making use of the Qt framework.
     ---------------------
-    Date                 : August 2017
+    Date                 : Juli 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
     Email                : benjamin.jakimow@geo.hu-berlin.de
 ***************************************************************************
@@ -19,511 +19,855 @@
 ***************************************************************************
 """
 
-from qgis.gui import QgsFileWidget, QgsRasterFormatSaveOptionsWidget
 
-import os
-
-from enmapbox.gui.enmapboxgui import EnMAPBox
+import os, collections, copy, re
+from qgis.core import *
+from qgis.gui import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from pyqtgraph.Qt import QtCore, QtGui
+from osgeo import gdal, ogr, osr
 
-import gdal
-import collections
+import numpy as np
+from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.widgets.trees import TreeModel, TreeNode
+from metadataeditorapp.metadatakeys import *
+from enmapbox.gui.widgets.models import OptionListModel, Option, currentComboBoxValue
+from enmapbox.gui.classificationscheme import *
 
-app = QtGui.QApplication([])
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.parametertree import Parameter, ParameterTree, ParameterItem, registerParameterType
 
-#from objbrowser import browse
+from metadataeditorapp import APP_DIR
 
-import time
+#path to the *.ui file that was created/edited in the QDesigner
+pathUi = os.path.join(APP_DIR, 'metadataeditor.ui')
 
-class NoDataValue(pTypes.GroupParameter):
-    def __init__(self, name, **opts):
-        opts['name'] = name
-        opts['type'] = 'str'
-        opts['value'] = 0
-        pTypes.GroupParameter.__init__(self, **opts)
+DEFAULT_DOMAIN = '<default>'
 
-        self.addChild({'name': 'Image NoData Value', 'type': opts['type'], 'value': opts['value'], 'siPrefix': True})
-        self.a = self.param('Image NoData Value')
+ALL_IMMUTABLE = 'all_immutable'
 
-    def getParameter(self):
-        return self.a
+MD_DOMAIN_INFO = {}
+MD_DOMAIN_INFO[''] = 'This is the default metadata domain.'
+MD_DOMAIN_INFO['IMAGE_STRUCTURE'] = 'Information of interest closely tied to the particular file format and storage mechanism.'
+MD_DOMAIN_INFO['ENVI'] = 'The ENVI Metdata domain. See see http://www.harrisgeospatial.com/docs/enviheaderfiles.html for details.'
+MD_DOMAIN_INFO['SUBDATASETS'] = 'The SUBDATASETS domain holds a list of child datasets. Normally this is used to provide pointers to a list of images stored within a single multi image file.'
+MD_DOMAIN_INFO['RPC'] = 'Metadata describing the Rational Polynomial Coefficient geometry model for the image'
+MD_DOMAIN_INFO['IMAGERY'] = 'Specific information for satellite or aerial imagery.'
 
-    def getName(self):
-        return self.opts['name']
 
-    def hasChildren(self):
-        return True
 
-    def getChildren(self):
-        return [{'name': 'Image NoData Value', 'type': self.opts['type'], 'value': self.opts['value'], 'siPrefix': True}]
+class MetadataItemTreeNode(TreeNode):
+    def __init__(self, parentNode, key, **kwds):
+        assert isinstance(key, MDKeyAbstract)
+        if 'name' not in kwds.keys():
+            kwds['name'] = key.name()
+        if 'tooltip' not in kwds.keys():
+            kwds['tooltip'] = key.tooltip()
+        super(MetadataItemTreeNode, self).__init__(parentNode, **kwds)
 
-class DefaultBands(pTypes.GroupParameter):
-    def __init__(self, name, dataset, rastercount, **opts):
-        opts['name'] = name
-        #opts['type'] = 'int'
-        #opts['value'] = 0
-        pTypes.GroupParameter.__init__(self, **opts)
+        if kwds.get('tooltip') is None:
+            self.setToolTip(key.mTooltip)
 
-        self.rcount = rastercount
+        self.mMDKey = key
+        self.setMetadataValue(key.value())
 
-        self.addChildren([
-            {'name': 'Red', 'type': 'int', 'value': dataset[0], 'limits': (0, self.rcount)},
-            {'name': 'Green', 'type': 'int', 'value': dataset[1], 'limits': (0, self.rcount)},
-            {'name': 'Blue', 'type': 'int', 'value': dataset[2], 'limits': (0, self.rcount)},
-            {'name': 'Alpha', 'type': 'int', 'value': dataset[3], 'limits': (0, self.rcount)},
-        ])
+    def updateNode(self):
+        """
+        Calling this routine refreshes the information shown by the TreeNode
+        and, if necessary, its sub-nodes.
+        """
+        self.setValues(str(self.mMDKey.value()))
 
-        self.redParam = self.param('Red')
-        self.greenParam = self.param('Green')
-        self.blueParam = self.param('Blue')
-        self.alphaParam = self.param('Alpha')
+    def metadataKey(self):
+        """
+        Returns the MDKey connected with this TreeNode
+        :return:
+        """
+        return self.mMDKey
 
-    def getRedParameter(self):
-        return self.redParam
+    def metadataValue(self):
+        return self.mMDKey.value()
 
-    def getGreenParameter(self):
-        return self.greenParam
+    def setMetadataValue(self, value):
+        """
+        Sets the MDKEy value to `value` and updates the TreeNode information.
+        :param value:
+        :return:
+        """
+        old = self.metadataValue()
+        if value != old:
+            self.mMDKey.setValue(value)
+            #self.sigUpdated.emit(self)
+            self.updateNode()
 
-    def getBlueParameter(self):
-        return self.blueParam
+    def resetMetadataValue(self):
+        self.setMetadataValue(self.mMDKey.mValue0)
+        self.sigUpdated.emit(self)
 
-    def getAlphaParameter(self):
-        return self.alphaParam
+    def isImmutable(self):
+        return self.mMDKey.isImmutable()
 
-    def getName(self):
-        return self.opts['name']
+    def clone(self, *args, **kwds):
 
-    def getLength(self):
-        return 4
+        n = super(MetadataItemTreeNode, self).clone(key=self.mMDKey)
+        if isinstance(self.mMDKey, MDKeyCoordinateReferenceSystem):
+            s = ""
 
-    def getContent(self):
-        return ([{'name': 'Red', 'type': 'int', 'value': self.redParam.value(), 'limits': (0, self.rcount)},
-            {'name': 'Green', 'type': 'int', 'value':  self.greenParam.value(), 'limits': (0, self.rcount)},
-            {'name': 'Blue', 'type': 'int', 'value':  self.blueParam.value(), 'limits': (0, self.rcount)},
-            {'name': 'Alpha', 'type': 'int', 'value':  self.alphaParam.value(), 'limits': (0, self.rcount)}])
+        return n
 
-class Bands(pTypes.GroupParameter):
-    def __init__(self, name, dataset, ind, **opts):
 
-        self.bandNbr = str(ind)
+class MetadataClassificationSchemeTreeNode(MetadataItemTreeNode):
 
-        self.c = [
-            dict(name = 'Band Number', type = 'str', value = self.bandNbr, readonly = True),
-            dict(name = 'Band Name', type = 'str', value = dataset.GetDescription(), readonly = True),
-            dict(name = 'Wavelength', type = 'str', value = dataset.GetMetadataItem('wavelength'), readonly = True),
-            dict(name = 'Wavelength Unit', type = 'str', value = dataset.GetMetadataItem('wavelength_units'), readonly = True),
-            dict(name = 'Band NoData Value', type = 'str', value = dataset.GetNoDataValue(), readonly = False),
-        ]
+    def __init__(self, parentNode, dataSet, **kwds):
+        key = MDKeyClassification(dataSet)
+        super(MetadataClassificationSchemeTreeNode, self).__init__(parentNode, key, **kwds)
 
-        opts['name'] = name
-        opts['type'] = 'group'
-        opts['children'] = self.c
+        self.mMDKey.mValue.sigClassesAdded.connect(self.updateNode)
+        self.mMDKey.mValue.sigClassesRemoved.connect(self.updateNode)
+        self.mMDKey.mValue.sigClassInfoChanged.connect(self.updateNode)
+        self.updateNode()
 
-        pTypes.GroupParameter.__init__(self, **opts)
+    def updateNode(self, *args):
+        l = len(self.childNodes())
+        self.removeChildNodes(0, l)
 
-        self.a = self.param('Band NoData Value')
+        classScheme = self.mMDKey.value()
+        assert isinstance(classScheme, ClassificationScheme)
+        if len(classScheme) == 0:
+            self.setValues('None')
+        else:
+            self.setValues('{} classes'.format(len(classScheme)))
 
-    def getParameter(self):
-        return self.a
+            for i, classInfo in enumerate(classScheme):
+                assert isinstance(classInfo, ClassInfo)
+                TreeNode(self,name='Class {}'.format(classInfo.label()), values=classInfo.name() , icon=classInfo.icon())
 
-    def getName(self):
-        return self.opts['name']
 
-    def getLength(self):
-        return 5
+class CoordinateReferencesSystemTreeNode(MetadataItemTreeNode):
 
-    def getContent(self):
-        return ([
-            dict(name = 'Band Number', type = 'str', value = self.bandNbr, readonly = True),
-            dict(name = 'Band Name', type = 'str', value = self.c[1]['value'], readonly = True),
-            dict(name = 'Wavelength', type = 'str', value = self.c[2]['value'], readonly = True),
-            dict(name = 'Wavelength Unit', type = 'str', value = self.c[3]['value'], readonly = True),
-            dict(name = 'Band NoData Value', type = 'str', value = self.a.value(), readonly = False),
-        ])
+    def __init__(self, parentNode, dataSet, **kwds):
+        key = MDKeyCoordinateReferenceSystem(dataSet)
+        super(CoordinateReferencesSystemTreeNode, self).__init__(parentNode, key, **kwds)
+        self.updateNode()
 
-## This is the list of free metadata domains
-class FreeMetadataDomains(pTypes.GroupParameter):
-    def __init__(self, name, dataset, **opts):
-        opts['name'] = name
-        opts['type'] = 'group'
-        opts['addText'] = "Add Domain"
-        opts['renamable'] = True
-        opts['removable'] = True
-        pTypes.GroupParameter.__init__(self, **opts)
 
-        if dataset != None:
-            a = dataset.GetMetadataDomainList()
-            for index in range(0, len(a) - 1):
-                theseChildren = dataset.GetMetadata(domain=a[index])
-                orderedChildren = collections.OrderedDict(sorted(theseChildren.items()))
+    def updateNode(self):
+        """
+        Calling this routine will refresh the information shown by the TreeNode
+        and, if necessary, its sub-nodes.
+        """
 
-                data = FreeMetadata(name=a[index], dataset=orderedChildren)
+        self.removeChildNodes(0, self.childCount())
+        crs = self.mMDKey.value()
+        if isinstance(crs, QgsCoordinateReferenceSystem):
+            self.setValues(str(crs.description()))
+            TreeNode(self, 'Description', values=crs.description())
+            TreeNode(self, 'WKT', values=crs.toWkt())
+            TreeNode(self, 'Ellipsoid', values=crs.ellipsoidAcronym())
+        else:
+            self.setValues('None')
 
-                self.addChild(data)
+class RasterBandTreeNode(MetadataItemTreeNode):
 
-    def addNew(self):
-        self.addChild(FreeMetadata(name="New Domain %d" % (len(self.childs) + 1), dataset = None))
+    def __init__(self, parentNode, band, **kwds):
+        assert isinstance(band, gdal.Band)
+        key = MDKeyDescription(band)
+        super(RasterBandTreeNode, self).__init__(parentNode, key, **kwds)
+        if not kwds.get('name'):
+            self.setName('Band {}'.format(band.GetBand()))
 
-    def getName(self):
-        return self.opts['name']
 
-    def getChildren(self):
-        return self.children()
 
-    def getLength(self):
-        #print("getLength")
-        #print(len(self.children()))
-        return len(self.children())
+class RasterSourceTreeNode(MetadataItemTreeNode):
 
-## This is a list of metadata within a domain
-class FreeMetadata(pTypes.GroupParameter):
-    def __init__(self, name, dataset, **opts):
-        opts['name'] = name
-        opts['type'] = 'group'
-        opts['addText'] = "Add Parameter"
-        pTypes.GroupParameter.__init__(self, **opts)
+    def __init__(self, parentNode, dataSet, **kwds):
+        assert isinstance(dataSet, gdal.Dataset)
+        key = MDKeyDescription(dataSet)
+        super(RasterSourceTreeNode, self).__init__(parentNode, key, **kwds)
+        self.mSource = dataSet.GetFileList()[0]
 
-        if dataset != None:
-            for jndex in range(0, len(dataset)):
-                self.addChild({'name': str(dataset.keys()[jndex]), 'type': 'str',
-                         'value': dataset.values()[jndex], 'readonly': False, 'renamable': True,
-                         'removable': True})
 
-    def addNew(self):
-        self.addChild(dict(name = 'New Parameter %d' % (len(self.childs) + 1), type='str', value='', removable=True,
-                            renamable=True))
+class MetadataDomainTreeNode(TreeNode):
 
-    def getName(self):
-        return self.opts['name']
+    def __init__(self, parentNode, domain, *args, **kwds ):
+        assert isinstance(domain, str)
+        nodeName = domain if domain != '' else DEFAULT_DOMAIN
+        kwds['name'] = nodeName
+        super(MetadataDomainTreeNode, self).__init__(parentNode, *args, **kwds)
+        self.mDomain = domain
 
-    def getChildren(self):
-        return self.children()
+        if self.mToolTip is None and self.mDomain in MD_DOMAIN_INFO.keys():
+            self.setToolTip(MD_DOMAIN_INFO[self.mDomain])
 
-    def getLength(self):
-        #print("getLength")
-        #print(len(self.children()))
-        return len(self.children())
+        self.sigAddedChildren.connect(self.update)
+        self.sigRemovedChildren.connect(self.update)
+        self.update()
 
-    def getContent(self):
-        return self.children()
+    def update(self):
 
-class Win(QtGui.QDialog):
+        n = self.childCount()
+        if n == 0:
+            self.setValues('not metadata items')
+        else:
+            self.setValues('{} metadata items'.format(n))
 
-    inDS = None
 
-    params = []
 
-    bandNoDataValues = []
-    nodataValue = None
+class MetadataDomainModel(OptionListModel):
 
-    ndv = None
-    bandc2 = []
+    def __init__(self, *args, **kwds):
+        super(MetadataDomainModel, self).__init__( *args, **kwds)
 
-    generalChildren = []
-    crsChildren = []
-    otherChildren = []
 
-    redBand = None
-    greenBand = None
-    blueBand = None
-    alphaBand = None
+    def addDomain(self, domainName):
 
-    readOnly = False
+        if domainName == '':
+            domainName = DEFAULT_DOMAIN
+            tooltip = 'Default Metadata domain'
+        else:
+            tooltip = 'Metadata domain "{}"'.format(domainName)
+        d = Option(domainName, domainName, tooltip=tooltip)
+        self.addOption(d)
 
-    t = ParameterTree()
+
+    def domains(self):
+        return [o.value for o in self.options()]
+
+
+
+class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
+    """
+    Provides special widgets to edit Metadata treeNodes
+    """
+    def __init__(self, treeView, parent=None):
+        assert isinstance(treeView, QTreeView)
+        super(MetadataTreeViewWidgetDelegates, self).__init__(parent=parent)
+        self.mTreeView = treeView
+        self.mTreeView.doubleClicked.connect(self.onDoubleClick)
+        self.mTreeView.customContextMenuRequested.connect(self.onCustomContextMenu)
+
+    def treeModel(self):
+        model = self.mTreeView.model()
+        #assert isinstance(model, MetadataTreeModel)
+        return model
+
+
+    def onDoubleClick(self, idx):
+        indexM, node, modelM = self.inm(idx)
+        if isinstance(node, MetadataClassificationSchemeTreeNode):
+            self.onEditClassificationScheme(node)
+        return
+
+
+
+        classInfo = modelM.getClassInfoFromIndex(indexM)
+        if idx.column() == modelM.columnNames.index(model.cCOLOR):
+
+            w1 = QColorDialog(classInfo.mColor, self.treeView)
+            w1.exec_()
+            if w1.result() == QDialog.Accepted:
+                c = w1.getColor()
+                modelM.setData(indexM, c, role=Qt.EditRole)
+
+
+    def onCustomContextMenu(self, point):
+        assert isinstance(point, QPoint)
+
+
+        index = self.mTreeView.indexAt(point)
+        assert isinstance(index, QModelIndex)
+        cname = self.getColumnName(index)
+        index, node, model = self.inm(index)
+
+        if index.isValid():
+            m = QMenu()
+            a = m.addAction('Copy')
+
+            if isinstance(node, MetadataItemTreeNode) and node.isImmutable() == False:
+                key = node.mMDKey
+
+                a = m.addAction('Reset')
+                a.triggered.connect(node.resetMetadataValue)
+
+                #edit ClassificationSchema in a separate dialog
+                if isinstance(node, MetadataClassificationSchemeTreeNode) or \
+                    isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
+                    schemaNode = node if isinstance(node, MetadataClassificationSchemeTreeNode) \
+                                        else node.parentNode()
+
+                    a = m.addAction('Edit Classification Scheme')
+                    a.triggered.connect(lambda : self.onEditClassificationScheme(schemaNode))
+
+            m.exec_(self.mTreeView.mapToGlobal(point))
+            #m.popup(event.pos())
+
+    def onEditClassificationScheme(self, node):
+
+        assert isinstance(node, MetadataClassificationSchemeTreeNode)
+        assert isinstance(node.mMDKey, MDKeyClassification)
+
+        value = node.metadataValue()
+
+        model = self.treeModel().sourceModel()
+        #assert isinstance(model, MetadataTreeModel)
+
+
+        scheme = ClassificationSchemeDialog.getClassificationScheme(classificationScheme=value)
+        index = model.node2idx(node)
+        model.setData(index, scheme)
+
+
+    def inm(self, index):
+        """
+        Returns the Index, Node, and TreeModel referece by index. Accounts for QAbstractProxyModels
+        :param index: QModelIndex
+        :return: QModelIndex, TreeNode, TreeModel
+        """
+        model = self.treeModel()
+        if isinstance(model, QAbstractProxyModel):
+            indexM = model.mapToSource(index)
+            modelM = model.sourceModel()
+            return indexM, modelM.idx2node(indexM), modelM
+
+        else:
+            return index, model.idx2node(index), model
+
+    def getColumnName(self, index):
+        assert index.isValid()
+        index, node, model = self.inm(index)
+        return model.idx2columnName(index)
+    """
+    def sizeHint(self, options, index):
+        s = super(ExpressionDelegate, self).sizeHint(options, index)
+        exprString = self.tableView.model().data(index)
+        l = QLabel()
+        l.setText(exprString)
+        x = l.sizeHint().width() + 100
+        s = QSize(x, s.height())
+        return self._preferedSize
+    """
+    def createEditor(self, parent, option, index):
+
+        cname = self.getColumnName(index)
+        indexM, node, modelM = self.inm(index)
+
+        w = QItemDelegate().createEditor(parent, option, index)
+
+        if isinstance(node, MetadataItemTreeNode) and cname == modelM.cnValue:
+            key = node.metadataKey()
+            value = node.metadataValue()
+            assert isinstance(key, MDKeyAbstract)
+
+            if isinstance(key, MDKeyCoordinateReferenceSystem):
+                w = QgsProjectionSelectionWidget(parent)
+
+            elif isinstance(key, MDKeyDomainString):
+                if isinstance(key.mOptions, list) and len(key.mOptions) > 0:
+                    w = QComboBox(parent)
+                    for o in key.mOptions:
+                        w.addItem(o)
+
+                elif isinstance(key.mListLength, int ) and key.mListLength > 0 and isinstance(value, list):
+                    w = QComboBox(parent)
+                    w.setInsertPolicy(QComboBox.InsertAtCurrent)
+                    w.setEditable(True)
+                    for i, v in enumerate(value):
+                        w.addItem(str(v))
+
+                elif key.mType in [int, float] and (key.mMin is not None or key.mMax is not None):
+                    mMin = key.mMin if key.mMin is not None else -2147483648
+                    mMax = key.mMax if key.mMax is not None else 2147483647
+
+                    mMin = key.mType(mMin)
+                    mMax = key.mType(mMax)
+
+                    if isinstance(key.mType, int):
+                        w = QSpinBox(parent)
+                    elif isinstance(key.mType, float):
+                        w = QDoubleSpinBox(parent)
+
+                    w.setMinimum(mMin)
+                    w.setMaximum(mMax)
+        return w
+
+    def editorEvent(self, event, model, option, index):
+        assert isinstance(index, QModelIndex)
+        assert isinstance(option, QStyleOptionViewItem)
+        assert isinstance(event, QEvent)
+#        assert isinstance(model, MetadataTreeModel)
+        indexM, node, modelM = self.inm(index)
+        cname = self.getColumnName(index)
+
+
+        if isinstance(event, QMouseEvent):
+            if event.button() == Qt.RightButton:
+
+                pass
+        return False
+
+    def setEditorData(self, editor, index):
+        cname = self.getColumnName(index)
+        indexM, node, modelM = self.inm(index)
+
+        if cname == modelM.cnValue and isinstance(node, MetadataItemTreeNode):
+            value = node.metadataValue()
+            key = node.mMDKey
+            assert isinstance(key, MDKeyAbstract)
+
+            if isinstance(editor, QLineEdit):
+                editor.setText(value)
+
+            elif isinstance(editor, QSpinBox):
+                editor.setValue(value)
+
+            elif isinstance(editor, QgsProjectionSelectionWidget):
+                editor.setCrs(value)
+
+            elif isinstance(editor, QComboBox):
+                if isinstance(value, list):
+                    editor.clear()
+                    for v in value:
+                        editor.addItem(str(v))
+                else:
+                    i = editor.findText(value)
+                    if i >= 0:
+                        editor.setCurrentIndex(i)
+
+            elif type(editor) in [QSpinBox, QDoubleSpinBox]:
+                editor.setValue(value)
+            else:
+                s = ""
+
+
+
+    def setModelData(self, w, model, index):
+        cname = self.getColumnName(index)
+        indexM, node, modelM = self.inm(index)
+
+        try:
+            if index.isValid() and isinstance(node, MetadataItemTreeNode):
+                key = node.mMDKey
+                assert isinstance(key, MDKeyAbstract)
+
+                if isinstance(w, QLineEdit):
+                    #node.setMetadataValue(w.text())
+                    modelM.setData(indexM, w.text())
+                elif isinstance(w, QgsProjectionSelectionWidget):
+                    modelM.setData(indexM, w.crs())
+                    #node.setMetadataValue(w.crs())
+                elif isinstance(w, QComboBox):
+                    if w.isEditable() and isinstance(key, MDKeyDomainString) and key.mListLength > 0:
+                        values = [w.itemData(i, role=Qt.DisplayRole)
+                                     for i in range(w.count())
+                                     ]
+                        modelM.setData(indexM, values)
+                    else:
+                        modelM.setData(indexM, w.currentText())
+                    #node.setMetadataValue(w.currentText())
+                elif type(w) in [QSpinBox, QDoubleSpinBox]:
+                    modelM.setData(indexM, w.value())
+                    #node.setMetadataValue(w.value())
+                else:
+                    s = ""
+            else:
+                s  =""
+        except AssertionError as ex:
+            QMessageBox.critical(w, 'Error', ex.message)
+        except Exception as ex:
+            QMessageBox.critical(w, 'Error', ex.message)
+
+
+class MetadataFilterModel(QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        super(MetadataFilterModel, self).__init__(parent)
+
+    def mimeTypes(self):
+        return self.sourceModel().mimeTypes()
+
+    def dropMimeData(self, mimeData, action, row, col, parentIndex):
+        return self.sourceModel().dropMimeData(mimeData, action, row, col, parentIndex)
+
+    def supportedDropActions(self):
+        return self.sourceModel().supportedDropActions()
+
+    def filterAcceptsRow(self, sourceRow, sourceParent):
+        node = self.sourceModel().idx2node(sourceParent).childNodes()[sourceRow]
+
+        #if type(node) not in [SourceRasterFileNode, SourceRasterBandNode]:
+        #    return True
+
+        s0 = self.sourceModel().index(sourceRow, 0, sourceParent).data()
+        s1 = self.sourceModel().index(sourceRow, 1, sourceParent).data()
+
+        reg = self.filterRegExp()
+        if reg.isEmpty():
+            return True
+
+        #if isinstance(node, SourceRasterFileNode):
+        if isinstance(node, MetadataItemTreeNode):
+            pattern = reg.pattern().replace(':', '')
+            reg.setPattern(pattern)
+
+        return reg.indexIn(s0) >= 0 or reg.indexIn(s1) >= 0
+
+    def filterAcceptsColumn(self, sourceColumn, sourceParent):
+        node = self.sourceModel().idx2node(sourceParent)
+        #if not isinstance(node, SourceRasterBandNode):
+        if not isinstance(node, TreeNode):
+            return True
+        else:
+            return sourceColumn in [0, 1]
+
+
+
+class MetadataSelectionModel(QItemSelectionModel):
+    def __init__(self, model, parent=None):
+        assert isinstance(model, MetadataTreeModel)
+        super(MetadataSelectionModel, self).__init__(model, parent)
+
+        self.mModel = model
+        self.selectionChanged.connect(self.onTreeSelectionChanged)
+
+
+    def onTreeSelectionChanged(self, selected, deselected):
+        sourceFiles = self.selectedSourceFiles()
+        features = set([self.mLyr.path2feature(path) for path in sourceFiles])
+        self.setMapHighlights(features)
+
+    def selectedSourceFileNodes(self):
+        indexes = self.selectedIndexes()
+        selectedFileNodes = self.mModel.idx2node(indexes)
+        return [n for n in selectedFileNodes if isinstance(n, VRTRasterInputSourceBandNode)]
+
+    def selectedSourceFiles(self):
+        return set(n.sourceBand().mPath for n in self.selectedSourceFileNodes())
+
+
+
+class MetadataTreeModel(TreeModel):
 
     def __init__(self, parent=None):
-        super(Win, self).__init__(parent=parent)
+        super(MetadataTreeModel, self).__init__(parent)
 
-        self.setLayout(QtGui.QGridLayout())
-        layout = self.layout()
+        self.cnKey = 'Domain/Key'
+        self.cnValue = 'Value'
+        self.mSource = None
 
-        # select input file name via QFileDialog in case the file is not open in the enmap box yet
-        self.inputFile = QComboBox()
-        self.inputFile.currentIndexChanged.connect(lambda: self.comboIndexChanged())
+        self.mDomains = MetadataDomainModel()
+        self.mRootNode0 = None
 
-        self.selectInputFile = QPushButton('...')
-        self.selectInputFile.clicked.connect(lambda: self.fileFound(self.inputFile))
+        self.mColumnNames = [self.cnKey, self.cnValue]
 
-        savebtn = QPushButton("Save Changes")
-        savebtn.clicked.connect(self.saveMetadata)
-        self.treev = QTreeView()
+    def domainModel(self):
+        return self.mDomains
 
-        # select input file name via QFileDialog in case the file is not open in the enmap box yet
-        closebtn = QPushButton("Discard/Close ERROR")
-        closebtn.clicked.connect(self.close)
+    def differences(self, rootNode=None):
+        """
+        Returns the MDKeys with changed values
+        :param rootNode: TreeNode, by default the models rootNode
+        :return: [list-of-changed-MDKeys]
+        """
+        if rootNode is None:
+            rootNode = self.mRootNode
 
-        layout.addWidget(QtGui.QLabel("Select file and view/edit related metadata."), 0, 0, 1, 8)
-        layout.addWidget(self.inputFile, 1, 0, 1, 6)
-        layout.addWidget(self.selectInputFile, 1, 6, 1, 2)
-        layout.addWidget(self.t, 2, 0, 1, 8)
-        #layout.addWidget(self.treev, 3,0,1,8)
-        layout.addWidget(savebtn, 4, 0, 1, 4)
-        layout.addWidget(closebtn, 4, 4, 1, 4)
+        assert isinstance(rootNode, TreeNode)
 
-        self.resize(600,600)
+        keys = []
+        if isinstance(rootNode, MetadataItemTreeNode):
+            key = rootNode.mMDKey
+            assert isinstance(key, MDKeyAbstract)
+            if key.valueHasChanged():
+                keys.append(key)
+        for childNode in rootNode.childNodes():
+            keys += self.differences(childNode)
+        return keys
 
-        enmapBox = EnMAPBox.instance()
 
-        if isinstance(enmapBox, EnMAPBox):
-            for src in sorted(enmapBox.dataSources('RASTER')):
-                self.addSrcRaster(src)
+    def parseSource(self, path):
 
-    def addSrcRaster(self, src):
-        addedItems = [self.inputFile.itemData(i, role=Qt.UserRole) for
-            i in range(self.inputFile.count())]
-        if src not in addedItems: #hasClassification(src) and src not in addedItems:
-            bn = os.path.basename(src)
-            self.inputFile.addItem(src) #(bn, src)
-        self.validatePath(src)
-
-    def fileFound(self, inputFile):
-        self.inputFile.addItem(QFileDialog.getOpenFileName(self, 'Input image', directory = "/Workspaces/QGIS-Plugins/enmap-box/enmapboxtestdata"))
-        counter = self.inputFile.count()
-        self.inputFile.setCurrentIndex(counter - 1)
-
-    def comboIndexChanged(self):
-        from gdal import GA_Update, GA_ReadOnly
-        if self.validatePath(str(self.inputFile.currentText())):
-            self.inDS = None
-            self.inDS = gdal.Open(str(self.inputFile.currentText()))
-            self.readOnly = False
-            if self.inDS is None:
-                self.inDS = gdal.Open(str(self.inputFile.currentText()), GA_ReadOnly)
-                self.readOnly = True
-            params = self.setMetadataTree()
-            self.populateMetadata(params)
-
-    def ndvChanged(self, i, data):
         try:
-            float(data)
-            for index in range(0, len(self.bandc2)):
-                self.bandc2[index].getParameter().setValue(self.ndv.getParameter().value())
+            ds = gdal.Open(path)
+            if isinstance(ds, gdal.Dataset):
+                return self.parseRasterMD(ds)
+        except Exception as ex:
+            pass
 
-        except ValueError:
-            True
+        try:
+            ds = ogr.Open(path)
+            if isinstance(ds, ogr.DataSource):
+                return self.parseVectorMD(ds)
+        except Exception as ex:
+            pass
+        return [TreeNode(None, path, values=['unable to read metadata'])]
 
-    def bandNdvChanged(self, i, data):
-        #print(self.ndv.getParameter().value())
-        if data != self.ndv.getParameter().value():
-            self.ndv.getParameter().setValue(str('is defined per band. type here to set nodata value for all bands.'))
 
-    def defaultRedChanged(self, i, data):
-        self.redBand = data
+    def parseDomainMetadata(self,parentNode, obj):
+        assert isinstance(parentNode, TreeNode)
 
-    def defaultGreenChanged(self, i, data):
-        self.greenBand = data
+        domains = sorted(obj.GetMetadataDomainList())
+        for domain in domains:
+            self.mDomains.addDomain(domain)
 
-    def defaultBlueChanged(self, i, data):
-        self.blueBand = data
+            nodeName = DEFAULT_DOMAIN if domain == '' else domain
 
-    def defaultAlphaChanged(self, i, data):
-        self.alphaBand = data
+            nDomain = MetadataDomainTreeNode(parentNode, domain=domain, name=nodeName)
+            md = obj.GetMetadata(domain=domain)
+            for name in md.keys():
+                key = MDKeyDomainString.fromDomain(obj, domain, name)
+                MetadataItemTreeNode(nDomain, key)
 
-    def setMetadataTree(self):
-        from osgeo import osr
+    def parseRasterMD(self, ds):
+        """
+        Reads a gdal.Dataset and returns a Tree of Medatadata
+        :param ds:
+        :return:
+        """
+        assert isinstance(ds, gdal.Dataset)
+        root = TreeNode(None)
 
-        start = time.time()
 
-        ####Initialise parameter collection
-        self.params = [
-            {'name': 'General', 'type': 'group', 'children': []},
-            {'name': 'Image NoData Value', 'type': 'group', 'children': []},
-            {'name': 'Coordinate Reference System', 'type': 'group', 'children': []},
-            {'name': 'Bands', 'type': 'group', 'children': []},
-            {'name': 'Free Metadata by Domain (right click to rename and remove)', 'type': 'group', 'children': []}
-        ]
+        files = ds.GetFileList()
+        basename = os.path.basename(files[0])
+        #nDS = RasterSourceTreeNode(root, name='Dataset', values=basename)
 
-        # Set projection related metadata
-        prj = self.inDS.GetProjection()
-        srs = osr.SpatialReference(wkt=prj)
+        nodes = []
 
-        if (srs.GetAuthorityName('projcs') and srs.GetAuthorityCode('projcs')):
-            id = srs.GetAuthorityName('projcs') + srs.GetAuthorityCode('projcs')
+        nDS = RasterSourceTreeNode(root, ds,
+                                   name='Dataset',
+                                   tooltip='Raster Data Source.')
+
+        nFiles = TreeNode(root, 'Source Files',
+                          values=len(files),
+                          tooltip='Physical files related to this Raster Data Source.')
+        for i, f in enumerate(files):
+            TreeNode(nFiles,name='{}'.format(i+1),values=os.path.basename(f))
+
+        nCRS = CoordinateReferencesSystemTreeNode(root, ds)
+
+        MetadataClassificationSchemeTreeNode(root, ds)
+
+
+        nGeneral = TreeNode(root, 'Metadata (Dataset)')
+
+        self.parseDomainMetadata(nGeneral, ds)
+
+        nBands = TreeNode(root, 'Metadata (Bands)')
+        for b in range(ds.RasterCount):
+            band = ds.GetRasterBand(b+1)
+            assert isinstance(band, gdal.Band)
+
+            nBand = RasterBandTreeNode(nBands, band)
+            self.parseDomainMetadata(nBand, band)
+
+        return root
+
+
+    def parseVectorMD(self, ds):
+        assert isinstance(ds, ogr.DataSource)
+        root = TreeNode(None)
+
+    def setSource(self, path):
+        root = self.parseSource(path)
+        self.mSource = path
+        l = self.mRootNode.childCount()
+        self.mRootNode.removeChildNodes(0, l)
+        if isinstance(root, TreeNode):
+            self.mRootNode.appendChildNodes(root.childNodes())
+
+        """
+        if isinstance(self.mRootNode0, TreeNode):
+            assert isinstance(self.mRootNode, TreeNode)
+            l = len(self.mRootNode.childNodes())
+            self.mRootNode.removeChildNodes(0, l)
+            clonedNodes = [c.clone() for c in self.mRootNode0.childNodes()]
+            self.mRootNode.appendChildNodes(clonedNodes)
+    
+        """
+    def setData(self, index, value, role=Qt.EditRole):
+        if not index.isValid():
+            return None
+        if not role == Qt.EditRole:
+            return None
+
+        cName = self.idx2columnName(index)
+        node = self.idx2node(index)
+
+        if not isinstance(node, MetadataItemTreeNode):
+            return False
         else:
-            id = ''
+            node.setMetadataValue(value)
+            #key = node.metadataKey()
+            #key.setValue(value)
+            return True
 
-        xmin = self.inDS.GetGeoTransform()[0] - self.inDS.GetGeoTransform()[2]
-        ymin = self.inDS.GetGeoTransform()[3] - self.inDS.GetGeoTransform()[4]
-        xmax = xmin + self.inDS.RasterXSize * self.inDS.GetGeoTransform()[1]
-        ymax = ymin + self.inDS.RasterXSize * self.inDS.GetGeoTransform()[5]
-        boundingBox = [xmin, ymin, xmax, ymax]
+        return False
 
-        self.crsChildren = [
-            {'name': 'Name', 'type': 'str', 'value': srs.GetAttrValue('projcs'), 'readonly': True},
-            {'name': 'AuthID', 'type': 'str', 'value': id, 'readonly': True},
-            {'name': 'Datum', 'type': 'str', 'value': srs.GetAttrValue('datum'), 'readonly': True},
-            {'name': 'Spheroid', 'type': 'str', 'value': srs.GetAttrValue('spheroid'), 'readonly': True},
-            {'name': 'Map Units', 'type': 'str', 'value': srs.GetAttrValue('unit'), 'readonly': True},
-            {'name': 'Bounding Box', 'type': 'str', 'value': str(boundingBox), 'readonly': True},
-        ]
 
-        # Set free metadata section
-        domains = FreeMetadataDomains(name='Free Metadata by Domain (right click to rename and remove)', dataset = self.inDS)
+    def source(self):
+        return self.mSource
 
-        # Set NodataValues
-        self.ndv = NoDataValue(name='NoData Value')
-        self.ndv.getParameter().sigValueChanged.connect(lambda param, data: self.ndvChanged(0, data))
-
-        self.nodataValue = self.inDS.GetRasterBand(1).GetNoDataValue()
-        self.ndv.getParameter().setValue(str(self.nodataValue))
-
-        # Set individual band information
-        self.bandc2 = []
-
-        self.redBand = 0
-        self.greenBand = 0
-        self.blueBand = 0
-        self.alphaBand = 0
-
-        for index in range(1, self.inDS.RasterCount):
-            band = self.inDS.GetRasterBand(index)
-
-            self.currentBand = Bands(name=('Band ' + str(index)), dataset=band, ind = index)
-            self.currentBand.getParameter().sigValueChanged.connect(lambda param, data: self.bandNdvChanged(index, data))
-            self.bandc2.append(self.currentBand)
-
-            if band.GetNoDataValue() != self.nodataValue:
-                self.nodataValue = str('is defined per band. type here to set nodata value for all bands.')
-                self.ndv.getParameter().setValue(str('is defined per band. type here to set nodata value for all bands.'))
-                break
-
-            if int(band.GetRasterColorInterpretation()) == 3:
-                self.redBand = index
-            elif band.GetRasterColorInterpretation() == 4:
-                self.greenBand = index
-            elif band.GetRasterColorInterpretation() == 5:
-                self.blueBand = index
-            elif band.GetRasterColorInterpretation() == 6:
-                self.alphaBand = index
-
-        ## Set general metadata
-        if(self.readOnly):
-            defaultBands = DefaultBands(name='Default Bands (read-only due to file compression mode)',
-                                        dataset=[self.redBand, self.greenBand, self.blueBand, self.alphaBand],
-                                        rastercount=self.inDS.RasterCount)
-        else:
-            defaultBands = DefaultBands(name='Default Bands',
-                                        dataset=[self.redBand, self.greenBand, self.blueBand, self.alphaBand],
-                                        rastercount=self.inDS.RasterCount)
-
-        defaultBands.getRedParameter().sigValueChanged.connect(lambda param, data: self.defaultRedChanged(index, data))
-        defaultBands.getGreenParameter().sigValueChanged.connect(lambda param, data: self.defaultGreenChanged(index, data))
-        defaultBands.getBlueParameter().sigValueChanged.connect(lambda param, data: self.defaultBlueChanged(index, data))
-        defaultBands.getAlphaParameter().sigValueChanged.connect(lambda param, data: self.defaultAlphaChanged(index, data))
-
-        self.generalChildren = [
-            {'name': 'File Path', 'type': 'str', 'value': self.inputFile.currentText(), 'readonly': True},
-            {'name': 'File Type', 'type': 'str', 'value': self.inDS.GetDriver().ShortName, 'readonly': True},
-            {'name': 'Data Type', 'type': 'str', 'value': gdal.GetDataTypeName(self.inDS.GetRasterBand(1).DataType), 'readonly': True},
-            {'name': 'Samples', 'type': 'int', 'value': self.inDS.RasterXSize, 'readonly': True},
-            {'name': 'Lines', 'type': 'int', 'value': self.inDS.RasterYSize, 'readonly': True},
-            {'name': 'Number of Bands', 'type': 'int', 'value': self.inDS.RasterCount, 'readonly': True},
-            {'name': 'Pixel Size', 'type': 'str',
-                                     'value': str(self.inDS.GetGeoTransform()[1]) + ' x ' + str(
-                                         -1 * self.inDS.GetGeoTransform()[5]),
-                                     'readonly': True},
-            defaultBands,
-            {'name': 'Description', 'type': 'str', 'value': self.inDS.GetDescription(), 'readonly': self.readOnly},
-            ]
-
-        # Fill parameter tree
-        self.params[0].update({'children': self.generalChildren})
-        self.params[1] = self.ndv
-        self.params[2].update({'children': self.crsChildren})
-        self.params[3].update({'children': self.bandc2})
-        self.params[4] = domains
-
-        end = time.time()
-        #print("setup time")
-        #print(end-start)
-
-        return self.params
-
-    def populateMetadata(self, params):
-
-        self.p = Parameter.create(name='params', type='group', children=params)
-
-        from attributemodel import DEFAULT_ATTR_COLS
-        from treemodel import TreeModel, TreeProxyModel
-
-        self._attr_cols = DEFAULT_ATTR_COLS
-        self.tmGeneral = TreeModel(params, attr_cols=self._attr_cols)
-
-        self.proxyModel = TreeProxyModel(
-            show_callable_attributes=False,
-            show_special_attributes=False)
-
-        self.proxyModel.setSourceModel(self.tmGeneral)
-        # self._proxy_tree_model.setSortRole(RegistryTableModel.SORT_ROLE)
-        self.proxyModel.setDynamicSortFilter(True)
-         #self._proxy_tree_model.setSortCaseSensitivity(Qt.CaseInsensitive)
-
-        self.treev.setModel(self.proxyModel)
-
-        self.p = Parameter.create(name='params', type='group', children=params)
-
-        self.t.setParameters(self.p, showTop=False)
-
-    def validatePath(self, dataset, *args, **kwds):
-        sender = self.sender()
-        hexRed = QColor(Qt.red).name()
-        hexGreen = QColor(Qt.green).name()
-
-        result = True
-        if sender == self.inputFile:
-            path = self.inputFile.currentText()
-            from osgeo import gdal
-            ds = gdal.Open(str(path))
-
-            if ds is None:
-                style = 'QComboBox {{ background-color: {} }}'.format(hexRed)
-                self.inputFile.setStyleSheet(style)
-                result = False
+    def flags(self, index):
+        flags = super(MetadataTreeModel, self).flags(index)
+        cName = self.idx2columnName(index)
+        node = self.idx2node(index)
+        if isinstance(node, MetadataItemTreeNode) and cName == self.cnValue:
+            if node.isImmutable() == False \
+                and type(node) not in [MetadataClassificationSchemeTreeNode]:
+                flags = flags | Qt.ItemIsEditable
             else:
-                style = 'QComboBox {{ }}'.format(hexGreen)
-                self.inputFile.setStyleSheet(style)
+                s = ""
 
-            return result
+        if isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
+            s = ""
 
-    def saveMetadata(self):
-        # Set NoData Values
-        for index in range(1, self.inDS.RasterCount):
-            try:
-                self.inDS.GetRasterBand(index).SetNoDataValue(float(self.bandc2[index - 1].getParameter().value()))
-            except:
-                self.inDS.GetRasterBand(index).DeleteNoDataValue()
+        return flags
 
-        # Set default bands
-        if self.redBand != 0:
-            self.inDS.GetRasterBand(self.redBand).SetRasterColorInterpretation(int(3))
-        if self.greenBand != 0:
-            self.inDS.GetRasterBand(self.greenBand).SetRasterColorInterpretation(4)
-        if self.blueBand != 0:
-            self.inDS.GetRasterBand(self.blueBand).SetRasterColorInterpretation(5)
-        if self.alphaBand != 0:
-            self.inDS.GetRasterBand(self.alphaBand).SetRasterColorInterpretation(6)
 
-        # Save free metadata
-        for domain in range(0, len(self.params[4].children())):
-            d = self.params[4].children()[domain].name()
-            for datum in range(0, len(self.params[4].children()[domain].children())):
-                n = self.params[4].children()[domain].children()[datum].name()
-                v = self.params[4].children()[domain].children()[datum].value()
-                #print("setMeta " + str(n) + " " + str(v) + " " + str(d))
-                self.inDS.SetMetadataItem(str(n), str(v), str(d))
-                #self.inDS.SetMetadataItem(str(n), None, str(d))
+    def data(self, index, role):
 
-## Start Qt event loop unless running in interactive mode or using pyside.
-if __name__ == '__main__':
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        app = QtGui.QApplication.instance()
-        w = Win()
-        w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowMaximizeButtonHint)
-        w.show()
-        app.exec_()
+        node = self.idx2node(index)
+        cName = self.columnNames()[index.column()]
+        if not (cName == self.cnValue and isinstance(node, MetadataItemTreeNode)):
+            return super(MetadataTreeModel, self).data(index, role)
+        else:
+            value = node.metadataValue()
+            key = node.mMDKey
+
+            flags = self.flags(index)
+            isEditable = bool(flags & Qt.ItemIsEditable) \
+                         or type(node) in [MetadataClassificationSchemeTreeNode]
+            data = None
+            if cName == self.cnValue:
+                if role == Qt.DisplayRole:
+                    if isinstance(key, MDKeyCoordinateReferenceSystem):
+                        if value is None:
+                            data == 'Undefined'
+                        else:
+                            try:
+                                data = value.description()
+                            except Exception as e:
+                                pass
+
+                    elif isinstance(key, MDKeyClassification):
+                        data = str(node.values()[0])
+
+                    else:
+                        data = str(value)
+
+                if role == Qt.EditRole:
+                    data = value
+                if role == Qt.FontRole:
+                    font = QFont()
+                    font.setItalic(isEditable)
+                    data = font
+
+                elif role == Qt.BackgroundRole and isEditable:
+                    data = QBrush(QColor('yellow'))
+                elif role == Qt.EditRole:
+                    data = value
+
+            return data
+
+    def writeMetadata(self):
+
+        differences = self.differences(self)
+        for node in differences:
+            assert isinstance(node, MetadataItemTreeNode)
+            key = node.metadataKey()
+
+
+
+class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
+    """Constructor."""
+    def __init__(self, parent=None):
+        super(MetadataEditorDialog, self).__init__(parent)
+        # Set up the user interface from Designer.
+        # After setupUI you can access any designer object by doing
+        # self.<objectname>, and you can use autoconnect slots - see
+        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
+        # #widgets-and-dialogs-with-auto-connect
+
+        # Important!!!!!!!!! this will initiate all the QWidgets etc. specified in the *.ui file
+        self.setupUi(self)
+
+        # Connect widgets, add logic that can not be expressed in the QDesigner and needs to be "hard-coded"
+
+        assert isinstance(self.treeView, QTreeView)
+
+        self.mMetadataModel = MetadataTreeModel(parent=self.treeView)
+        self.mMetadataFilterModel = MetadataFilterModel()
+        self.mMetadataFilterModel.setSourceModel(self.mMetadataModel)
+
+        self.mSourceModel = OptionListModel()
+        self.cbSource.setModel(self.mSourceModel)
+
+
+        def onSourceChanged(idx):
+            path = self.mSourceModel.optionValues()[idx]
+            self.mMetadataModel.setSource(path)
+            s = ""
+
+        self.cbSource.currentIndexChanged[int].connect(onSourceChanged)
+        #    lambda i : self.mMetadataModel.setSource(self.mSourceModel.optionValues()[i]))
+
+        self.mDomains = OptionListModel()
+        self.mDomains.insertOptions(Option(None, '<All>'))
+        self.cbDomainFilter.setModel(self.mDomains)
+        d = self.mMetadataModel.domainModel()
+
+        d.sigOptionsInserted.connect(self.mDomains.insertOptions)
+        d.sigOptionsRemoved.connect(self.mDomains.removeOptions)
+
+
+        #self.treeView.setModel(self.mMetadataModel)
+        self.treeView.setModel(self.mMetadataFilterModel)
+        #self.treeView.header().setResizeMode(QHeaderView.ResizeToContents)
+
+        self.delegate = MetadataTreeViewWidgetDelegates(self.treeView)
+        self.treeView.setItemDelegate(self.delegate)
+
+        self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(lambda: self.close())
+        #self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+        self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveChanges)
+        self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
+
+
+    def addSources(self, listOfSourceUris):
+        if not isinstance(listOfSourceUris, list):
+            listOfSourceUris = [listOfSourceUris]
+
+        options = [Option(source, os.path.basename(source)) for source in listOfSourceUris]
+        self.mSourceModel.addOptions(options)
+
+
+
+
+    def setSource(self, uri):
+        self.addSources(uri)
+
+        sources = self.mSourceModel.optionValues()
+        if uri not in sources:
+            self.setSource(uri)
+        else:
+            i = sources.index(uri)
+            self.cbSource.setCurrentIndex(i)
+
+    def cancelChanges(self):
+        pass
+
+    def saveChanges(self):
+        pass
+
+    def resetChanges(self):
+        """
+        Re-reads all metadata from the source
+        :return:
+        """
+        self.mMetadataModel.setSource(self.mMetadataModel.source())
+
+    def rejectChanged(self):
+        pass
+
+
+
+
+
+

@@ -17,7 +17,7 @@ from objbrowser.qtpy import QtCore, QtGui, QtWidgets
 from objbrowser.qtpy.QtCore import Qt
 from objbrowser.utils import cut_off_str
 
-from metadataeditorapp.treeitem import TreeItem
+from depr_metadataeditorapp.treeitem import TreeItem
 
 logger = logging.getLogger(__name__)
 

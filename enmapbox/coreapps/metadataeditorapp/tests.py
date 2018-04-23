@@ -26,8 +26,8 @@ import numpy as np
 
 from enmapboxtestdata import enmap, hymap, landcover
 from enmapbox.gui.classificationscheme import ClassificationScheme
-from metadataeditorV2.metadatakeys import *
-from metadataeditorV2.metadataeditor import *
+from metadataeditorapp.metadatakeys import *
+from metadataeditorapp.metadataeditor import *
 
 
 
