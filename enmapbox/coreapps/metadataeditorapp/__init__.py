@@ -2,12 +2,12 @@
 
 """
 ***************************************************************************
-    exampleapp/__init__.py
+    metadataeditorapp/__init__.py
 
-    Exemplary EnMAP-Box Application.
+    EnMAP-Box Metadata Editor
     ---------------------
-    Date                 : Juli 2017
-    Copyright            : (C) 2017 by Benjamin Jakimow
+    Date                 : April 2018
+    Copyright            : (C) 2018 by Benjamin Jakimow
     Email                : benjamin.jakimow@geo.hu-berlin.de
 ***************************************************************************
 *                                                                         *
@@ -26,7 +26,7 @@ from qgis.PyQt.QtGui import *
 
 APP_DIR = os.path.dirname(__file__)
 APP_NAME = 'Metdata Editor'
-VERSION = '0.8.15'
+VERSION = '0.1'
 LICENSE = 'GPL-3'
 
 from enmapbox.gui.applications import EnMAPBoxApplication
