@@ -132,7 +132,7 @@ class ClassInfo(QObject):
             return False
         return other.mName == self.mName and \
                other.mLabel == self.mLabel and \
-               other.mColor == self.mColor
+               other.mColor.getRgb() == self.mColor.getRgb()
 
     def __repr__(self):
         return 'ClassInfo' + self.__str__()
