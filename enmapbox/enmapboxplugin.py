@@ -60,33 +60,16 @@ class EnMAPBoxPlugin(object):
 
         # load EnMAPBox QgsProcessingAlgorithms
         try:
-            failed = []
-            failed_ex = []
             import enmapboxgeoalgorithms.algorithms
             for alg in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
-                try:
-                    self.enmapBoxProvider.addAlgorithm(alg, _emitUpdated=False)
-                except Exception as ex2:
-                    try:
-                        self.enmapBoxProvider.addAlgorithm(alg.__class__(), _emitUpdated=False)
-                    except Exception as ex3:
-                        failed.append(str(alg.__class__.__name__))
-                        failed_ex.append(ex2)
-
-            self.enmapBoxProvider.emitUpdated()
-            if len(failed) > 0:
-                info = ['Failed to load {} EnMAPBoxGeoAlgorithm(s).\n{}'.format(len(failed), ', '.join(failed))]
-                info.append(str(failed_ex[0]))
-                messageLog('\n'.join(info), Qgis.Critical)
-
-        except Exception as ex1:
-            info = ['Failed to load EnMAPBoxGeoAlgorithms.\n{}'.format(str(ex1))]
+                self.enmapBoxProvider.addAlgorithm(alg.createInstance())
+        except Exception as ex:
+            info = ['Failed to load EnMAPBoxGeoAlgorithms.\n{}'.format(str(ex))]
             info.append('PYTHONPATH:')
             for p in sorted(sys.path):
                 info.append(p)
 
             messageLog('\n'.join(info), Qgis.Critical)
-
 
     def initialDependencyCheck(self):
         """

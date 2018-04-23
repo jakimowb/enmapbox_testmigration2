@@ -76,6 +76,34 @@ def mkdir(path):
         os.mkdir(path)
 
 
+
+NEXT_COLOR_HUE_DELTA_CON = 10
+NEXT_COLOR_HUE_DELTA_CAT = 100
+def nextColor(color, mode='cat'):
+    """
+    Reuturns another color
+    :param color:
+    :param mode:
+    :return:
+    """
+    assert mode in ['cat','con']
+    assert isinstance(color, QColor)
+    hue, sat, value, alpha = color.getHsl()
+    if mode == 'cat':
+        hue += NEXT_COLOR_HUE_DELTA_CAT
+    elif mode == 'con':
+        hue += NEXT_COLOR_HUE_DELTA_CON
+    if sat == 0:
+        sat = 255
+        value = 128
+        alpha = 255
+        s = ""
+    while hue > 360:
+        hue -= 360
+
+    return QColor.fromHsl(hue, sat, value, alpha)
+
+
 class TestObjects():
     @staticmethod
     def inMemoryClassification(n=3, nl=10, ns=20, nb=1, crs='EPSG:32632'):
@@ -370,9 +398,12 @@ def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
     :return: gdal.Dataset
     """
     if not isinstance(pathOrDataset, gdal.Dataset):
-        pathOrDataset = gdal.Open(pathOrDataset, eAccess)
-    assert isinstance(pathOrDataset, gdal.Dataset)
-    return pathOrDataset
+        ds = gdal.Open(pathOrDataset, eAccess)
+        assert isinstance(pathOrDataset, gdal.Dataset), 'Can not read {} as gdal.Dataset'.format(pathOrDataset)
+    else:
+        assert isinstance(pathOrDataset, gdal.Dataset)
+        ds = pathOrDataset
+    return ds
 
 
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))

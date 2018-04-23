@@ -106,6 +106,7 @@ def getIcon():
     return QIcon(':/enmapbox/icons/enmapbox.png')
 
 
+
 class EnMAPBoxSplashScreen(QSplashScreen):
     def __init__(self, parent=None):
         pm = QPixmap(':/enmapbox/splashscreen.png')
@@ -267,6 +268,7 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
         self.ui.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self.ui))
 
+        area = Qt.RightDockWidgetArea
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
         self.ui.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self.ui))
 
@@ -610,7 +612,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
                             see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
-        :return: [list-of-datasource-URIs]
+        :return: [list-of-datasource-URIs (str)]
         """
         return self.dataSourceManager.getUriList(sourceType)
 

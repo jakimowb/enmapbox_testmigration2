@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import *
 
 from enmapbox.gui.utils import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
+from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 from enmapbox import messageLog
 DEBUG = False #set this on True to not hide external-app errors
 
@@ -276,12 +277,13 @@ class ApplicationRegistry(QObject):
         processingAlgorithms = [g for g in processingAlgorithms if isinstance(g, QgsProcessingAlgorithm)]
 
         if len(processingAlgorithms) > 0:
+            processingAlgorithms = [alg.createInstance() for alg in processingAlgorithms]
             if DEBUG:
-                print('GeoAlgorithms found: {}'.format(processingAlgorithms))
+                print('QgsProcessingAlgorithms found: {}'.format(processingAlgorithms))
             appWrapper.geoAlgorithms.extend(processingAlgorithms)
             provider = self.processingAlgManager.enmapBoxProvider()
-            if isinstance(provider, QgsProcessingProvider):
-                self.processingAlgManager.addAlgorithms(provider, processingAlgorithms)
+            if isinstance(provider, EnMAPBoxAlgorithmProvider):
+                provider.addAlgorithms(processingAlgorithms)
             else:
                 if DEBUG:
                     print('Can not find EnMAPBoxAlgorithmProvider')

@@ -318,35 +318,6 @@ class ProcessingAlgorithmsManager(QObject):
         else:
             return None
 
-    def addAlgorithms(self, algorithmProvider, geoAlgorithms):
-        """
-        Adds a list of GeoAlgorithms to a AlgorithmProvider
-        :param algorithmProvider: name of instance of AlgorithmProvider
-        :param geoAlgorithms: list-of-GeoAlgorithms
-        """
-
-        if isinstance(algorithmProvider, QgsProcessingProvider):
-            p = algorithmProvider
-        else:
-            p = self.processingRegistry.getProviderFromName(algorithmProvider)
-
-        if not isinstance(geoAlgorithms, list):
-            geoAlgorithms = [geoAlgorithms]
-
-        #print('PROVIDER      {}'.format(algorithmProvider))
-        #print('PROVIDER OBJ  {}'.format(p))
-        #print('GAs           {}'.format(geoAlgorithms))
-
-        if isinstance(p, QgsProcessingProvider):
-            pName = p.getName()
-            #print('PROVIDER NAME {}'.format(pName))
-            pAlgs = self.processingRegistry.algs[pName]
-            for ga in geoAlgorithms:
-                assert isinstance(ga, QgsProcessingAlgorithm)
-                ga.provider = p
-                pAlgs[ga.commandLineName()] = ga
-            self.processingRegistry.providerUpdated.emit(pName)
-
 
     def openToolbox(self):
         if self.toolbox.isVisible():
