@@ -170,7 +170,7 @@ class DataSourceFactory(object):
     @staticmethod
     def isHubFlowObj(src):
         """
-        Returns the source uri if it can be handled as known raster data source.
+        Returns the source uri if it can be handled as known data source.
         :param src: any type
         :return: uri (str) | None
         """

@@ -91,39 +91,39 @@ class hubflowTestCases(unittest.TestCase):
         pass
 
     def test_hubflowtypes(self):
+        """
+        Tests to load serialized hubflow objects
+        """
 
         from enmapbox.gui.utils import DIR_REPO, jp, mkdir
+        from enmapbox.gui.datasources import HubFlowDataSource
         from hubflow.core import ClassDefinition, Vector, VectorClassification
+
+
         dirTmp = jp(DIR_REPO, 'tmp')
         mkdir(dirTmp)
 
-        from enmapboxtestdata import enmap, landcover
-        from hubflow.testdata import Classification
-        classes = np.max(Vector(filename=landcover).uniqueValues(attribute='Level_1_ID'))
+        from hubflow.testdata import outdir
+        print(outdir)
 
-        classDefinition = ClassDefinition(classes=classes)
+        for name in dir(hubflow.testdata):
+            obj1 = getattr(hubflow.testdata, name)
 
-        #image = Image(filename=self.getParameterValue('image'))
-
-        vectorClassification = VectorClassification(filename=landcover,
-                                                    classDefinition=classDefinition,
-                                                    idAttribute='Level_2_ID', minWinnerCoverage=0.5)
-        #gtClassification = vectorClassification.rasterizeAsClassification(classificationFilename=os.path.join(dirTmp, 'gtClassification.img'))
-
-        pathDst = jp(dirTmp, 'classification.img')
-        vectorClassification.pickle(pathDst)
-        #vectorClassification.rasterizeAsClassification(classificationFilename=pathDst)
-
-
-        from hubflow.core import FlowObject
-        from enmapbox.gui.datasources import HubFlowDataSource
-        p = r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\classificationSample'
-        ds = DataSourceFactory.Factory(pathDst)
-        self.assertTrue(len(ds)==1)
-        self.assertIsInstance(ds[0], HubFlowDataSource)
+            if isinstance(obj1, hubflow.core.FlowObject):
+                self.assertIsInstance(obj1, hubflow.core.FlowObject)
+                pathTmp = jp(dirTmp, 'test.{}.pkl', name)
+                obj1.pickle(pathTmp)
+                ds = DataSourceFactory.Factory(pathTmp)
+                self.assertTrue(len(ds) == 1), 'Failed to open {}'.format(obj1)
+                self.assertIsInstance(ds[0], HubFlowDataSource)
+                obj3 = hubflow.core.FlowObject.unpickle(pathTmp)
+                obj2 = ds[0].flowObject()
+                self.assertIsInstance(obj2, hubflow.core.FlowObject)
+                self.assertIsInstance(obj3, hubflow.core.FlowObject)
+                #self.assertEqual(obj1, obj2)
+                #self.assertEqual(obj1, obj3)
 
 
-        s = ""
 
 if __name__ == "__main__":
 
