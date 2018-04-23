@@ -981,7 +981,7 @@ class DataSourceManager(QObject):
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-    SOURCE_TYPES = ['ALL','ANY', 'RASTER', 'VECTOR', 'MODEL']
+    SOURCE_TYPES = ['ALL','ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL']
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
@@ -1079,7 +1079,7 @@ class DataSourceManager(QObject):
     def getUriList(self, sourcetype='All'):
         """
         Returns URIs of registered data sources
-        :param sourcetype: uri filter: 'ALL' (default),'RASTER''VECTOR' or 'MODEL' to return only uri's related to these sources
+        :param sourcetype: uri filter: 'ALL' (default),'RASTER', 'VECTOR', 'SPATIAL' (raster+vector) or 'MODEL' to return only uri's related to these sources
         :return: uri as string (str), e.g. a file path
         """
         sourcetype = sourcetype.upper()
@@ -1093,6 +1093,8 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
         elif sourcetype == 'RASTER':
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
+        elif sourcetype == 'SPATIAL':
+            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceSpatial)]
         elif sourcetype == 'MODEL':
             return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
         else:
