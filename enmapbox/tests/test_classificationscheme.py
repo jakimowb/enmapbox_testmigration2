@@ -41,19 +41,26 @@ class TestReclassify(TestCase):
 
 
     def testClassificationScheme(self):
-        cs = ClassificationScheme.createClasses(3)
+        cs = ClassificationScheme.create(3)
 
         self.assertIsInstance(cs, ClassificationScheme)
         self.assertEqual(cs[0].color(), DEFAULT_UNCLASSIFIEDCOLOR)
-        self.assertEqual(cs[1].color(), DEFAULT_CLASSCOLORS[0])
-        self.assertEqual(cs[2].color(), DEFAULT_CLASSCOLORS[1])
         c = ClassInfo(label=1, name='New Class', color=QColor('red'))
         cs.addClass(c)
         self.assertEqual(cs[3], c)
         cs.resetLabels()
         self.assertEqual(cs[3].label(), 3)
 
+    def test_dialog(self):
+        w = ClassificationSchemeWidget()
+        w.btnAddClasses.click()
+        w.btnAddClasses.click()
 
+
+
+
+
+        s = ""
 
 if __name__ == "__main__":
 

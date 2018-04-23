@@ -27,16 +27,12 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import numpy as np
 from osgeo import gdal
-from enmapbox.gui.utils import loadUI, gdalDataset
+from enmapbox.gui.utils import loadUI, gdalDataset, nextColor
+
 from itertools import cycle
 
 DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
-DEFAULT_CLASSCOLORS = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00',
-                       '#cab2d6', '#6a3d9a', '#ffff99']
-DEFAULT_CLASSCOLORS = [QColor(c) for c in DEFAULT_CLASSCOLORS]
-
-COLOR_CYCLE = cycle(DEFAULT_CLASSCOLORS)
-
+DEFAULT_FIRST_COLOR = QColor('#a6cee3')
 
 def hasClassification(pathOrDataset):
     """
@@ -80,7 +76,11 @@ class ClassInfo(QObject):
             name = 'Unclassified' if label == 0 else 'Class {}'.format(label)
 
         if color is None:
-            color = DEFAULT_UNCLASSIFIEDCOLOR if label == 0 else COLOR_CYCLE.__next__()
+            if label == 0:
+                color = DEFAULT_UNCLASSIFIEDCOLOR
+            else:
+                color = DEFAULT_FIRST_COLOR
+
 
         self.mName = name
         self.mLabel = label
@@ -199,6 +199,7 @@ class ClassificationScheme(QObject):
 
     sigClassesRemoved = pyqtSignal(list)
     sigClassRemoved = pyqtSignal(ClassInfo, int)
+    sigClassAdded = pyqtSignal(ClassInfo, int)
     sigClassesAdded = pyqtSignal(list)
 
     def __init__(self):
@@ -304,27 +305,28 @@ class ClassificationScheme(QObject):
         for c in classes:
             assert c in self.mClasses
             i = self.mClasses.index(c)
-
             self.mClasses.remove(c)
-            self.sigClassesRemoved.emit(c, i)
+            self.sigClassRemoved.emit(c, i)
         self.sigClassesRemoved.emit(classes[:])
 
     def removeClass(self, c):
         self.removeClasses([c])
 
     def createClasses(self, n):
-        classes = []
         for i in range(n):
-            l = len(self) + len(classes)
+            l = len(self)
             if l == 0:
                 color = QColor('black')
                 name = 'Unclassified'
             else:
-                color = COLOR_CYCLE.__next__()
+                if l == 1:
+                    color = DEFAULT_FIRST_COLOR
+                else:
+                    color = nextColor(self[-1].color())
                 name = 'Class {}'.format(l)
             c = ClassInfo(label=l, name=name, color=color)
-            classes.append(c)
-        self.addClasses(classes)
+            self.addClass(c)
+
 
     def addClasses(self, classes, index=None):
         if len(classes) > 0:
@@ -338,7 +340,7 @@ class ClassificationScheme(QObject):
                 c.sigSettingsChanged.connect(self.onClassInfoSettingChanged)
                 addedClasses.append(c)
                 self.mClasses.insert(j, c)
-
+                self.sigClassAdded.emit(c,j)
             self.sigClassesAdded.emit(addedClasses)
 
     sigClassInfoChanged = pyqtSignal(ClassInfo)
@@ -460,22 +462,28 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
 
         self.mSchema0 = scheme.clone()
         self.scheme = scheme
+        self.scheme.sigClassRemoved.connect(self.onClassRemoved)
+        self.scheme.sigClassAdded.connect(self.onClassAdded)
+
+    def onClassRemoved(self, classInfo, index):
+        assert isinstance(classInfo, ClassInfo)
+        assert classInfo not in self.scheme
+        assert isinstance(index, int)
+        self.beginRemoveRows(QModelIndex(), index, index)
+        self.endRemoveRows()
+
+    def onClassAdded(self, classInfo, index):
+        assert isinstance(classInfo, ClassInfo)
+        assert isinstance(index, int)
+        self.beginInsertRows(QModelIndex(), index, index)
+        self.endInsertRows()
 
     def removeClasses(self, classes):
-        assert isinstance(classes, list)
-        rowIndices = sorted([self.getIndexFromClassInfo(c) for c in classes], key=lambda i: i.row(), reverse=True)
-        for idx in rowIndices:
-            self.beginRemoveRows(idx.parent(), idx.row(), idx.row())
-            self.endRemoveRows()
         self.scheme.removeClasses(classes)
 
+
     def insertClasses(self, classes, i=None):
-        assert isinstance(classes, list)
-        if i is None:
-            i = len(self.scheme)
-        self.beginInsertRows(QModelIndex(), i, i + len(classes) - 1)
         self.scheme.addClasses(classes, index=i)
-        self.endInsertRows()
 
     def insertClass(self, c, i=None):
         assert isinstance(c, ClassInfo)
@@ -699,17 +707,10 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
 
     def createClasses(self, n):
         classes = []
-        for i in range(n):
-            l = len(self.mScheme)
-            if l == 0:
-                color = QColor('black')
-                name = 'Unclassified'
-            else:
-                color = COLOR_CYCLE.next()
-                name = 'Class {}'.format(l)
-            c = ClassInfo(label=l, name=name, color=color)
-            classes.append(c)
-        self.schemeModel.insertClasses(classes)
+        #s = ClassificationScheme()
+        #s.createClasses(n)
+        self.mScheme.createClasses(n)
+        #self.schemeModel.insertClasses(s[:])
 
     def removeSelectedClasses(self):
         model = self.tableClassificationScheme.model()
@@ -722,12 +723,16 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         settings = qtSettingsObj()
         settingsKey = 'DEF_DIR_ClassificationSchemeWidget.loadClasses'
         defDir = settings.value(settingsKey, None)
-        path = QFileDialog.getOpenFileName(self, 'Select Raster File', directory=defDir)
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Raster File', directory=defDir)
         if os.path.exists(path):
             settings.setValue(settingsKey, os.path.dirname(path))
-            scheme = ClassificationScheme.fromRasterImage(path)
-            if scheme is not None:
-                self.appendClassificationScheme(scheme)
+            try:
+                scheme = ClassificationScheme.fromRasterImage(path)
+                if scheme is not None:
+                    self.appendClassificationScheme(scheme)
+            except Exception as ex:
+                QMessageBox.critical(self, "Unable to load class info", str(ex))
+
 
     def appendClassificationScheme(self, classificationScheme):
         assert isinstance(classificationScheme, ClassificationScheme)
@@ -787,5 +792,12 @@ class ClassificationSchemeDialog(QgsDialog):
 
 
 if __name__ == '__main__':
+
+    from enmapbox.gui.utils import initQgisApplication
+
+    app = initQgisApplication()
+    scheme = ClassificationSchemeDialog.getClassificationScheme()
     ci = ClassificationScheme.create(4)
     print(ci.classColorArray())
+
+    app.exec_()
