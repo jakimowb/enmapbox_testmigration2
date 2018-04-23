@@ -32,7 +32,7 @@ from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODE
 
 HUBFLOW = True
 try:
-    import hubflow.types
+    import hubflow.core
 except Exception as ex:
     messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
     HUBFLOW = False
@@ -420,7 +420,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             else:
                 objects.add(id(obj))
 
-            if isinstance(obj, hubflow.types.ClassDefinition):
+            if isinstance(obj, hubflow.core.ClassDefinition):
                 from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
                 csi = ClassificationScheme()
                 colors = np.asarray(obj.lookup).reshape((obj.classes,3))
@@ -448,7 +448,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             elif isinstance(obj, list) or isinstance(obj, set):
                 for i, item in enumerate(obj):
                     node = TreeNode(parent, str(i))
-                    if isinstance(item, hubflow.types.FlowObject) or \
+                    if isinstance(item, hubflow.core.FlowObject) or \
                        isinstance(item, dict) or \
                        isinstance(item, list):
                         fetchInternals(node, item, objects)
@@ -457,14 +457,14 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                         node.setValue(text.replace('\n',' '))
                     if i > 100:
                         break
-            elif isinstance(obj, hubflow.types.FlowObject):
+            elif isinstance(obj, hubflow.core.FlowObject):
                 parent.setName(obj.__class__.__name__)
                 fetchInternals(parent, obj.__dict__, objects)
             else:
                 parent.setValue(str(obj))
 
 
-        if isinstance(self.flowObject, hubflow.types.FlowObject):
+        if isinstance(self.flowObject, hubflow.core.FlowObject):
 
             self.setValue(self.flowObject.__class__.__name__)
             #todo: type specific icon

@@ -177,9 +177,9 @@ class DataSourceFactory(object):
 
         src = DataSourceFactory.srcToString(src)
         if not src is None and os.path.exists(src):
-            import hubflow.types
-            obj = hubflow.types.FlowObject.unpickle(src, raiseError=False)
-            if isinstance(obj, hubflow.types.FlowObject):
+            import hubflow.core
+            obj = hubflow.core.FlowObject.unpickle(src, raiseError=False)
+            if isinstance(obj, hubflow.core.FlowObject):
                 return src
         return None
 
@@ -464,7 +464,6 @@ class DataSourceSpatial(DataSourceFile):
 class HubFlowDataSource(DataSourceFile):
     def __init__(self, uri, name=None, icon=None):
         super(HubFlowDataSource, self).__init__(uri, name, icon)
-        from hubflow.types import FlowObject
 
         if not isinstance(icon, QIcon):
             self.mIcon = QIcon(':/enmapbox/icons/alg.png')
@@ -474,18 +473,15 @@ class HubFlowDataSource(DataSourceFile):
         s = ""
 
     def loadFlowObject(self):
+        import hubflow.core
+        self.mFlowObj = hubflow.core.FlowObject.unpickle(self.mUri, raiseError=False)
 
-        import hubflow.types
-
-        self.mFlowObj = hubflow.types.FlowObject.unpickle(self.mUri, raiseError=False)
-        s = ""
 
     def flowObject(self):
-        import hubflow.types
-
-        if not isinstance(self.mFlowObj, hubflow.types.FlowObject):
+        import hubflow.core
+        if not isinstance(self.mFlowObj, hubflow.core.FlowObject):
             self.loadFlowObject()
-        if isinstance(self.mFlowObj, hubflow.types.FlowObject):
+        if isinstance(self.mFlowObj, hubflow.core.FlowObject):
             return self.mFlowObj
         else:
             return None
