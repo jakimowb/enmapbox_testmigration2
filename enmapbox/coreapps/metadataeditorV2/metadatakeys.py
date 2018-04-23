@@ -182,7 +182,10 @@ class MDKeyAbstract(object):
         :param value: the value to set
         """
         if not self.mValue0Initialized:
-            self.mValue0 = copy.copy(value)
+            if isinstance(value, QgsCoordinateReferenceSystem):
+                self.mValue0 = value
+            else:
+                self.mValue0 = copy.copy(value)
             self.mValue0Initialized = True
 
         if not self.mIsImmutable:
@@ -395,7 +398,7 @@ class MDKeyDomainString(MDKeyAbstract):
                     raise Exception('Value(s) need(s) to be of type {0} or convertible to {0}'.format(self.mType))
             return value
 
-        if self.mListLength > 0:
+        if isinstance(self.mListLength, int) and self.mListLength > 0:
             if isinstance(value, np.ndarray):
                 value = list(value)
 
@@ -472,7 +475,7 @@ class MDKeyDomainString(MDKeyAbstract):
 class MDKeyCoordinateReferenceSystem(MDKeyAbstract):
     def __init__(self, obj, **kwds):
         super(MDKeyCoordinateReferenceSystem, self).__init__(obj, 'CRS', **kwds)
-        if not kwds.has_key('tooltip'):
+        if not kwds.get('tooltip'):
             self.mTooltip = 'Coordinate Reference System.'
 
     def readValueFromSource(self, obj):

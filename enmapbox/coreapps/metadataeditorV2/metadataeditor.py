@@ -171,7 +171,7 @@ class RasterBandTreeNode(MetadataItemTreeNode):
         assert isinstance(band, gdal.Band)
         key = MDKeyDescription(band)
         super(RasterBandTreeNode, self).__init__(parentNode, key, **kwds)
-        if not kwds.has_key('name'):
+        if not kwds.get('name'):
             self.setName('Band {}'.format(band.GetBand()))
 
 
@@ -275,9 +275,7 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
         index = self.mTreeView.indexAt(point)
         assert isinstance(index, QModelIndex)
         cname = self.getColumnName(index)
-        model = self.treeModel()
-        node = model.idx2node(index)
-
+        index, node, model = self.inm(index)
 
         if index.isValid():
             m = QMenu()
@@ -308,8 +306,8 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
         value = node.metadataValue()
 
-        model = self.treeModel()
-        assert isinstance(model, MetadataTreeModel)
+        model = self.treeModel().sourceModel()
+        #assert isinstance(model, MetadataTreeModel)
 
 
         scheme = ClassificationSchemeDialog.getClassificationScheme(classificationScheme=value)
@@ -318,6 +316,11 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
 
     def inm(self, index):
+        """
+        Returns the Index, Node, and TreeModel referece by index. Accounts for QAbstractProxyModels
+        :param index: QModelIndex
+        :return: QModelIndex, TreeNode, TreeModel
+        """
         model = self.treeModel()
         if isinstance(model, QAbstractProxyModel):
             indexM = model.mapToSource(index)
@@ -362,7 +365,7 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
                     for o in key.mOptions:
                         w.addItem(o)
 
-                elif key.mListLength > 0 and isinstance(value, list):
+                elif isinstance(key.mListLength, int ) and key.mListLength > 0 and isinstance(value, list):
                     w = QComboBox(parent)
                     w.setInsertPolicy(QComboBox.InsertAtCurrent)
                     w.setEditable(True)
@@ -437,7 +440,7 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
     def setModelData(self, w, model, index):
         cname = self.getColumnName(index)
-        indexN, node, modelM = self.inm(index)
+        indexM, node, modelM = self.inm(index)
 
         try:
             if index.isValid() and isinstance(node, MetadataItemTreeNode):
@@ -446,21 +449,21 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
                 if isinstance(w, QLineEdit):
                     #node.setMetadataValue(w.text())
-                    model.setData(indexM, w.text())
+                    modelM.setData(indexM, w.text())
                 elif isinstance(w, QgsProjectionSelectionWidget):
-                    model.setData(indexM, w.crs())
+                    modelM.setData(indexM, w.crs())
                     #node.setMetadataValue(w.crs())
                 elif isinstance(w, QComboBox):
                     if w.isEditable() and isinstance(key, MDKeyDomainString) and key.mListLength > 0:
                         values = [w.itemData(i, role=Qt.DisplayRole)
                                      for i in range(w.count())
                                      ]
-                        model.setData(indexM, values)
+                        modelM.setData(indexM, values)
                     else:
-                        model.setData(indexM, w.currentText())
+                        modelM.setData(indexM, w.currentText())
                     #node.setMetadataValue(w.currentText())
                 elif type(w) in [QSpinBox, QDoubleSpinBox]:
-                    model.setData(indexM, w.value())
+                    modelM.setData(indexM, w.value())
                     #node.setMetadataValue(w.value())
                 else:
                     s = ""
@@ -580,13 +583,19 @@ class MetadataTreeModel(TreeModel):
 
     def parseSource(self, path):
 
-        ds = gdal.Open(path)
-        if isinstance(ds, gdal.Dataset):
-            return self.parseRasterMD(ds)
-        ds = ogr.Open(path)
-        if isinstance(ds, ogr.DataSource):
-            return self.parseVectorMD(ds)
+        try:
+            ds = gdal.Open(path)
+            if isinstance(ds, gdal.Dataset):
+                return self.parseRasterMD(ds)
+        except Exception as ex:
+            pass
 
+        try:
+            ds = ogr.Open(path)
+            if isinstance(ds, ogr.DataSource):
+                return self.parseVectorMD(ds)
+        except Exception as ex:
+            pass
         return [TreeNode(None, path, values=['unable to read metadata'])]
 
 
@@ -660,7 +669,8 @@ class MetadataTreeModel(TreeModel):
         self.mSource = path
         l = self.mRootNode.childCount()
         self.mRootNode.removeChildNodes(0, l)
-        self.mRootNode.appendChildNodes(root.childNodes())
+        if isinstance(root, TreeNode):
+            self.mRootNode.appendChildNodes(root.childNodes())
 
         """
         if isinstance(self.mRootNode0, TreeNode):
@@ -826,7 +836,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
         options = [Option(source, os.path.basename(source)) for source in listOfSourceUris]
         self.mSourceModel.addOptions(options)
-        s = ""
+
 
 
 
@@ -855,6 +865,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
     def rejectChanged(self):
         pass
+
 
 
 

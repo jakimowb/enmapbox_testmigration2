@@ -68,9 +68,9 @@ if __name__ == '__main__':
     #see https://qgis.org/api/classQgsApplication.html for details
     qgsApp = initQgisApplication()
 
-    if True:
-        sandboxShowAppGuiOnly()
     if False:
+        sandboxShowAppGuiOnly()
+    if True:
         sandboxShowAppInEnMapBox(True)
 
 
