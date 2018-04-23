@@ -93,49 +93,41 @@ class hubflowTestCases(unittest.TestCase):
     def test_hubflowtypes(self):
 
         from enmapbox.gui.utils import DIR_REPO, jp, mkdir
-        from hubflow.types import ClassDefinition, Vector, VectorClassification
+        from hubflow.core import ClassDefinition, Vector, VectorClassification
         dirTmp = jp(DIR_REPO, 'tmp')
         mkdir(dirTmp)
 
         from enmapboxtestdata import enmap, landcover
-
-        classes = np.max(Vector(filename=landcover).uniqueValues(
-            attribute=''))
+        from hubflow.testdata import Classification
+        classes = np.max(Vector(filename=landcover).uniqueValues(attribute='Level_1_ID'))
 
         classDefinition = ClassDefinition(classes=classes)
 
-        image = Image(filename=self.getParameterValue('image'))
+        #image = Image(filename=self.getParameterValue('image'))
 
         vectorClassification = VectorClassification(filename=landcover,
                                                     classDefinition=classDefinition,
                                                     idAttribute='Level_2_ID', minWinnerCoverage=0.5)
-        gtClassification = vectorClassification.rasterizeAsClassification(
-            classificationFilename=os.path.join(outdir, 'gtClassification.img'), grid=image.pixelGrid,
-            oversampling=10, overwrite=overwrite)
+        #gtClassification = vectorClassification.rasterizeAsClassification(classificationFilename=os.path.join(dirTmp, 'gtClassification.img'))
 
-        vectorClassification = VectorClassification(filename=landcover,
-                                                    #idAttribute=,
-                                                    #minOverallCoverage=self.getParameterValue('minOverallCoverage'),
-                                                    #minWinnerCoverage=self.getParameterValue('minWinnerCoverage'),
-                                                    #classDefinition=classDefinition
-                                                    )
         pathDst = jp(dirTmp, 'classification.img')
-        vectorClassification.rasterizeAsClassification(classificationFilename=pathDst)
+        vectorClassification.pickle(pathDst)
+        #vectorClassification.rasterizeAsClassification(classificationFilename=pathDst)
 
 
-        from hubflow.types import FlowObject
+        from hubflow.core import FlowObject
+        from enmapbox.gui.datasources import HubFlowDataSource
         p = r'D:\Repositories\QGIS_Plugins\enmap-box\tmp\classificationSample'
-        ds = DataSourceFactory.Factory(p)
-        self.assertIsInstance(ds, FlowObject)
+        ds = DataSourceFactory.Factory(pathDst)
+        self.assertTrue(len(ds)==1)
+        self.assertIsInstance(ds[0], HubFlowDataSource)
+
 
         s = ""
 
 if __name__ == "__main__":
 
-    t = testclassData()
-    t.test_hubflowtypes()
-
-    #unittest.main()
+    unittest.main()
 
 
 
