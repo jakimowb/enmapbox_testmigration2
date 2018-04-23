@@ -6,6 +6,7 @@ def enmapboxApplicationFactory(enmapBox):
     :return: EnMAPBoxApplication | [list-of-EnMAPBoxApplications]
     """
 
+
     from minimumexample.exampleapp import ExampleEnMAPBoxApp
 
     # returns a list of EnMAP-Box Applications. Usually only one is returned,

@@ -21,23 +21,26 @@
 """
 
 import os
-from PyQt5.QtGui import QIcon, QMenu, QAction
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMenu, QAction, QWidget, QHBoxLayout, QLabel, QPushButton
 from enmapbox.gui.applications import EnMAPBoxApplication
+from qgis.core import QgsProcessingAlgorithm, QgsProcessingFeedback, QgsProcessingContext, QgsProcessingParameterRasterLayer, QgsProcessingParameterRasterDestination, QgsProcessingParameterNumber
 
 VERSION = '0.0.1'
 LICENSE = 'GNU GPL-3'
 APP_DIR = os.path.dirname(__file__)
 
+APP_NAME = 'My First EnMAPBox App'
+
 class ExampleEnMAPBoxApp(EnMAPBoxApplication):
     """
-    This Class derived from an EnMAPBoxApplication.
-
+    This Class inherits from an EnMAPBoxApplication
     """
     def __init__(self, enmapBox, parent=None):
         super(ExampleEnMAPBoxApp, self).__init__(enmapBox, parent=parent)
 
         #specify the name of this app
-        self.name = 'My First EnMAPBox App'
+        self.name = APP_NAME
 
         #specify a version string
 
@@ -74,8 +77,8 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         #add a QAction that starts a process of your application.
         #In this case it will open your GUI.
         a = menu.addAction('Show ExampleApp GUI')
+        assert isinstance(a, QAction)
         a.triggered.connect(self.startGUI)
-
         appMenu.addMenu(menu)
 
         return menu
@@ -85,22 +88,101 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         This function returns the QGIS Processing Framework GeoAlgorithms specified by your application
         :return: [list-of-GeoAlgorithms]
         """
-        #return [] #remove this line to load geoAlgorithms
-        from algorithms import MyEnMAPBoxAppGeoAlgorithm
-        return [MyEnMAPBoxAppGeoAlgorithm()]
+
+        return [ExampleGeoAlgorithm()]
 
     def startGUI(self, *args):
+        """
+        Opens a GUI
+        :param args:
+        :return:
+        """
 
-        w = QWidget()
-        w.setTitle(self.name)
-        l = QVBoxLayout()
-        l.addWidget(QLabel('Hello World'))
-        btn = QPushButton('Click me')
-        btn.clicked.connect(lambda : print('Hello World'))
-        w.setLayout(Q)
+        w = ExampleAppGUI()
         w.show()
 
 
+class ExampleAppGUI(QWidget):
+    """
+    A minimal graphical user interface
+    """
+    def __init__(self, parent=None):
+        super(ExampleAppGUI, self).__init__(parent)
+        self.setWindowTitle(APP_NAME)
+        self.setWindowIcon(QIcon(os.path.join(APP_DIR, 'icon.png')))
+        self.setMinimumWidth(400)
+        l = QHBoxLayout()
+        l.addWidget(QLabel('Hello World'))
+        self.btn = QPushButton('Click me')
+
+        #clicking the button will print "Hello World" to the python CLI
+        self.btn.clicked.connect(lambda: print('Hello World'))
+        l.addWidget(self.btn)
+        self.setLayout(l)
 
 
 
+class ExampleGeoAlgorithm(QgsProcessingAlgorithm):
+
+    def __init__(self):
+
+        super(ExampleGeoAlgorithm, self).__init__()
+        s = ""
+
+    def createInstance(self):
+        return ExampleGeoAlgorithm()
+
+    def name(self):
+        return 'exmaplealg'
+
+    def displayName(self):
+        return 'Example Algorithm'
+
+    def groupId(self):
+
+        return 'exampleapp'
+
+    def group(self):
+        return APP_NAME
+
+    def initAlgorithm(self, configuration=None):
+        self.addParameter(QgsProcessingParameterRasterLayer('pathInput', 'The Input Dataset'))
+        self.addParameter(QgsProcessingParameterNumber('value','The value', QgsProcessingParameterNumber.Double, 1, False, 0.00, 999999.99))
+        self.addParameter(QgsProcessingParameterRasterDestination('pathOutput', 'The Output Dataset'))
+
+    def processAlgorithm(self, parameters, context, feedback):
+
+        assert isinstance(parameters, dict)
+        assert isinstance(context, QgsProcessingContext)
+        assert isinstance(feedback, QgsProcessingFeedback)
+
+        outputs = {}
+        return outputs
+
+
+
+if __name__ == '__main__':
+
+
+    from enmapbox.gui.utils import initQgisApplication
+
+    #this will initialize the QApplication/QgsApplication which runs in the background
+    #see https://qgis.org/api/classQgsApplication.html for details
+    qgsApp = initQgisApplication()
+
+
+    if True: #test GUI without EnMAP-Box
+        w = ExampleAppGUI()
+        w.show()
+
+    else:
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+
+        EB = EnMAPBox(None)
+        EB.run()
+        EB.openExampleData(mapWindows=2)
+        app = ExampleEnMAPBoxApp(EB)
+        EB.addApplication(app)
+
+    #start the GUI thread
+    qgsApp.exec_()
