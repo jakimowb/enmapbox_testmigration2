@@ -313,7 +313,10 @@ class SingleBandPseudoColorRendererWidget(QgsSingleBandPseudoColorRendererWidget
         self.fixBandNames(self.mBandComboBox)
         self.connectSliderWithBandComboBox(self.mBandSlider, self.mBandComboBox)
 
+        self.mBtnBar = QFrame()
+        self.initActionButtons()
         grid = QGridLayout()
+        grid.addWidget(self.mBtnBar,0,0,1,4, Qt.AlignLeft)
         grid.addWidget(self.mBandSlider, 1,0, 1,2)
         grid.addWidget(self.mBandComboBox, 1,2, 1,2)
         grid.addWidget(self.mMinLabel, 2, 0)
@@ -329,6 +332,53 @@ class SingleBandPseudoColorRendererWidget(QgsSingleBandPseudoColorRendererWidget
         self.gridLayout.addItem(grid, 0,1,2,4)
         self.gridLayout.setSpacing(2)
         self.setLayoutItemVisibility(grid, True)
+
+
+    def initActionButtons(self):
+            from enmapbox.gui.utils import parseWavelength
+            wl, wlu = parseWavelength(self.rasterLayer())
+            self.wavelengths = wl
+            self.wavelengthUnit = wlu
+
+            self.mBtnBar.setLayout(QHBoxLayout())
+            self.mBtnBar.layout().addStretch()
+            self.mBtnBar.layout().setContentsMargins(0, 0, 0, 0)
+            self.mBtnBar.layout().setSpacing(2)
+
+            self.actionSetDefault = QAction('Default')
+            self.actionSetRed = QAction('R')
+            self.actionSetGreen = QAction('G')
+            self.actionSetBlue = QAction('B')
+            self.actionSetNIR = QAction('nIR')
+            self.actionSetSWIR = QAction('swIR')
+
+            self.actionSetDefault.triggered.connect(lambda: self.setBandSelection('default'))
+            self.actionSetRed.triggered.connect(lambda: self.setBandSelection('R'))
+            self.actionSetGreen.triggered.connect(lambda: self.setBandSelection('G'))
+            self.actionSetBlue.triggered.connect(lambda: self.setBandSelection('B'))
+            self.actionSetNIR.triggered.connect(lambda: self.setBandSelection('nIR'))
+            self.actionSetSWIR.triggered.connect(lambda: self.setBandSelection('swIR'))
+
+
+            def addBtnAction(action):
+                btn = QToolButton()
+                btn.setDefaultAction(action)
+                self.mBtnBar.layout().addWidget(btn)
+                self.insertAction(None, action)
+                return btn
+
+            self.btnDefault = addBtnAction(self.actionSetDefault)
+            self.btnRed = addBtnAction(self.actionSetRed)
+            self.btnGreen = addBtnAction(self.actionSetGreen)
+            self.btnBlue = addBtnAction(self.actionSetRed)
+            self.btnNIR = addBtnAction(self.actionSetNIR)
+            self.btnSWIR = addBtnAction(self.actionSetSWIR)
+
+            b = self.wavelengths is not None
+            for a in [self.actionSetRed, self.actionSetGreen, self.actionSetBlue, self.actionSetNIR, self.actionSetSWIR]:
+                a.setEnabled(b)
+
+
 
 
 class MultiBandColorRendererWidget(QgsMultiBandColorRendererWidget, RendererWidgetModifications):
