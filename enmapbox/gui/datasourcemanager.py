@@ -351,8 +351,8 @@ class SpeclibProfilesTreeNode(TreeNode):
         from enmapbox.gui.spectrallibraries import SpectralLibrary
         assert isinstance(speclib, SpectralLibrary)
         self.mSpeclib = speclib
-        speclib.sigProfilesAdded.connect(self.update)
-        speclib.sigProfilesRemoved.connect(self.update)
+        speclib.sigProfilesAdded[list].connect(self.update)
+        speclib.sigProfilesRemoved[list].connect(self.update)
         self.update()
         assert isinstance(self.mSpeclib, SpectralLibrary)
 

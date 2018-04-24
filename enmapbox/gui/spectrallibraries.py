@@ -1294,7 +1294,7 @@ class SpectralLibrary(QObject):
             return False
 
         for p1, p2 in zip(self.__iter__(), other.__iter__()):
-            if p1 != p2:
+            if not p1.isEqual(p2):
                 return False
         return True
 
@@ -1466,9 +1466,24 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
         else:
             return self.createIndex(self.mProfileWrappers.index(w), 0, profile)
 
-
+    def profiles2indices(self, profiles):
+        """
+        Returns a list of model-indices related to a list of profiles
+        :param profiles: [list-of-SpectraProfiles]
+        :return: [list-of-QModelIndices]
+        """
+        for p in profiles:
+            assert isinstance(p, SpectralProfile)
+        indices = [self.profile2idx(p) for p in profiles]
+        indices = [i for i in indices if isinstance(i, QModelIndex)]
+        return  indices
 
     def idx2profileWrapper(self, index):
+        """
+        Returns the profile-wrapper related to a model index
+        :param index: QModelIndex
+        :return: ProfileWrapper
+        """
         assert isinstance(index, QModelIndex)
         if not index.isValid():
             return None
@@ -1477,15 +1492,18 @@ class SpectralLibraryTableViewModel(QAbstractTableModel):
 
 
     def indices2profiles(self, indices):
-        profiles = []
-        for idx in indices:
-            p = list(self.mProfileWrappers.keys())[idx.row()]
-            if p not in profiles:
-                profiles.append(p)
+        """
+        Returns a list of SpectralProfiles related to a list of QModelIndices
+        :param indices: [list-of-QModelIndeices]
+        :return: [list-of-SpectraProfiles]
+        """
+        profiles = [self.idx2profile(idx) for idx in indices]
+        profiles = [p for p in profiles if isinstance(p, SpectralProfile)]
         return profiles
 
 
     def idx2profile(self, index):
+
         assert isinstance(index, QModelIndex)
         if not index.isValid():
             return None
@@ -1716,6 +1734,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
 
         self.plotWidget.dragEnterEvent = self.dragEnterEvent
         self.plotWidget.dragMoveEvent = self.dragMoveEvent
+        self.plotWidget.dropEvent = self.dropEvent
         pi = self.plotWidget.getPlotItem()
         pi.setAcceptDrops(True)
 
