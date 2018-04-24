@@ -34,6 +34,19 @@ class TestSpecLibs(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_speclibSerialization(self):
+        sl = SpectralLibrary.readFrom(speclib)
+
+        self.assertIsInstance(sl, SpectralLibrary)
+        ba = sl.asPickleDump()
+        self.assertIsInstance(ba, bytes)
+        sl2 = SpectralLibrary.readFromPickleDump(ba)
+        self.assertIsInstance(sl2, SpectralLibrary)
+        self.assertEqual(sl, sl2)
+
+
+
+
     def test_spectralProfile(self):
 
         spec1 = SpectralProfile()
@@ -87,50 +100,126 @@ class TestSpecLibs(unittest.TestCase):
             profile = sl2[0]
             self.assertIsInstance(profile, SpectralProfile)
             for u in umlaute:
-                u = u2s(u)
-
                 v = profile.metadata(u)
                 self.assertEqual(v, u, msg='Failed to load key "{}"'.format(u))
 
-    def test_speclibWidget(self):
+
+    def test_speclibTableViewModel(self):
+
+        from enmapboxtestdata import speclib
+        sl = SpectralLibrary.readFrom(speclib)
+        self.assertIsInstance(sl, SpectralLibrary)
+
+        m = SpectralLibraryTableViewModel(speclib=sl)
+        m.insertProfiles(sl[:])
+        m.insertProfiles(sl)
+
+
+        l = len(sl)
+        self.assertEqual(l, m.rowCount())
+        p0 = sl[0]
+        p1 = sl[-1]
+
+        self.assertIsInstance(p0, SpectralProfile)
+        self.assertIsInstance(p1, SpectralProfile)
+
+        idx0 = m.profile2idx(p0)
+        self.assertIsInstance(idx0, QModelIndex)
+        self.assertEqual(m.idx2profile(idx0), p0)
+        self.assertTrue(idx0.row() == 0)
+
+        mw = m.idx2profileWrapper(idx0)
+        self.assertIsInstance(mw, SpectralLibraryTableViewModel.ProfileWrapper)
+        self.assertEqual(mw.profile, p0)
+        self.assertEqual(m.idx2profileWrapper(idx0), mw)
+
+
+
+        idx1 = m.profile2idx(p1)
+        self.assertIsInstance(idx1, QModelIndex)
+        self.assertTrue(idx1.row() == m.rowCount()-1)
+        self.assertEqual(m.idx2profile(idx1), p1)
+
+        mw = m.idx2profileWrapper(idx1)
+        self.assertIsInstance(mw, SpectralLibraryTableViewModel.ProfileWrapper)
+        self.assertEqual(mw.profile, p1)
+        self.assertEqual(m.idx2profileWrapper(idx1), mw)
+
+
+        profiles = m.indices2profiles([idx0, idx1])
+        self.assertTrue(len(profiles) == 2)
+        self.assertTrue(p0 in profiles)
+        self.assertTrue(p1 in profiles)
+        
+
+        sl.removeProfiles(p1)
+
+        self.assertEqual(m.rowCount(), l-1)
+        self.assertEqual(len(sl), l-1)
+        self.assertTrue(p1 not in sl)
+        self.assertEqual(m.profile2idx(p1), None)
+
+
+        tv =  SpectralLibraryTableView()
+        m = SpectralLibraryTableViewModel()
+        tv.setModel(m)
+        import enmapbox.gui.mimedata as mimedata
+        md = QMimeData()
+        sl = SpectralLibrary.readFrom(speclib)
+        md.setData(mimedata.MDF_SPECTRALLIBRARY, sl.asPickleDump())
+        e = QDropEvent(QPointF(0, 0), Qt.MoveAction, md, Qt.LeftButton, Qt.NoModifier)
+        tv.dropEvent(e)
+
+        self.assertEqual(sl, m.mSpecLib)
+        self.assertTrue(id(sl) != id(m.mSpecLib))
+
+
+
+
+def test_speclibWidget(self):
         p = SpectralLibraryWidget()
         p.addSpeclib(self.SPECLIB)
         p.show()
 
-    def test_ENVISpectralLibraryReader(self):
-        self.assertTrue(EnviSpectralLibraryIO.canRead(speclib))
-        tmpDir = tempfile.mkdtemp(prefix='testSpecLibs')
-        pathTestVRT = os.path.join(tmpDir, 'esl.vrt')
-        sl = EnviSpectralLibraryIO.readFrom(speclib)
-        s0 = sl[0]
-        self.assertIsInstance(sl, SpectralLibrary)
-        self.assertIsInstance(s0, SpectralProfile)
 
-        nSpectra = len(sl)
-        nBands = len(s0)
 
-        dsVRT = EnviSpectralLibraryIO.esl2vrt(speclib, pathVrt=pathTestVRT)
-        self.assertIsInstance(dsVRT, gdal.Dataset)
-        self.assertEqual(dsVRT.RasterCount, 1)
-        self.assertEqual(dsVRT.RasterXSize, nBands)
-        self.assertEqual(dsVRT.RasterYSize, nSpectra)
-        #self.assertEqual(dsVRT.GetRasterBand(1).DataType, gdal.GDT_Float32)
 
-        #todo: test ESLs with bip and pil interleave?
-        hdr = EnviSpectralLibraryIO.readENVIHeader(speclib, typeConversion=True)
 
-        for key, value in {
-                'samples':nBands,
-                'lines':nSpectra,
-                'bands':1,
-                'header offset':0,
-                'file type':'ENVI Spectral Library',
-               # 'data type':4,
-                'interleave':'bsq',
-                'sensor type':'Unknown',
-                'byte order':0,
-                'wavelength units':'Micrometers'}.items():
-            self.assertEqual(hdr.get(key), value)
+
+def test_ENVISpectralLibraryReader(self):
+    self.assertTrue(EnviSpectralLibraryIO.canRead(speclib))
+    tmpDir = tempfile.mkdtemp(prefix='testSpecLibs')
+    pathTestVRT = os.path.join(tmpDir, 'esl.vrt')
+    sl = EnviSpectralLibraryIO.readFrom(speclib)
+    s0 = sl[0]
+    self.assertIsInstance(sl, SpectralLibrary)
+    self.assertIsInstance(s0, SpectralProfile)
+
+    nSpectra = len(sl)
+    nBands = len(s0)
+
+    dsVRT = EnviSpectralLibraryIO.esl2vrt(speclib, pathVrt=pathTestVRT)
+    self.assertIsInstance(dsVRT, gdal.Dataset)
+    self.assertEqual(dsVRT.RasterCount, 1)
+    self.assertEqual(dsVRT.RasterXSize, nBands)
+    self.assertEqual(dsVRT.RasterYSize, nSpectra)
+    #self.assertEqual(dsVRT.GetRasterBand(1).DataType, gdal.GDT_Float32)
+
+    #todo: test ESLs with bip and pil interleave?
+    hdr = EnviSpectralLibraryIO.readENVIHeader(speclib, typeConversion=True)
+
+    for key, value in {
+            'samples':nBands,
+            'lines':nSpectra,
+            'bands':1,
+            'header offset':0,
+            'file type':'ENVI Spectral Library',
+           # 'data type':4,
+            'interleave':'bsq',
+            'sensor type':'Unknown',
+            'byte order':0,
+            'wavelength units':'Micrometers'}.items():
+        self.assertEqual(hdr.get(key), value)
 
 
 def test_spectralLibrary(self):
@@ -174,6 +263,6 @@ def test_spectralLibrary(self):
 if __name__ == "__main__":
 
     unittest.main()
-
+    QGIS_APP.exec_()
 
 
