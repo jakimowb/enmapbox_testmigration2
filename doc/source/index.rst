@@ -13,6 +13,7 @@ EnMAP-Box 3 Documentation
     Installation.rst
     Installation_dev.rst
     APIQuickStart.rst
+    CreateApplications.rst
     FAQ.rst
 
 ..    Development.md
