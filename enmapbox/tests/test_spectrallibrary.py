@@ -87,15 +87,75 @@ class TestSpecLibs(unittest.TestCase):
             profile = sl2[0]
             self.assertIsInstance(profile, SpectralProfile)
             for u in umlaute:
-                u = u2s(u)
-
                 v = profile.metadata(u)
                 self.assertEqual(v, u, msg='Failed to load key "{}"'.format(u))
+
+
+    def test_speclibTableViewModel(self):
+
+        from enmapboxtestdata import speclib
+        sl = SpectralLibrary.readFrom(speclib)
+        self.assertIsInstance(sl, SpectralLibrary)
+
+        m = SpectralLibraryTableViewModel(speclib=sl)
+        m.insertProfiles(sl[:])
+        m.insertProfiles(sl)
+
+
+        l = len(sl)
+        self.assertEqual(l, m.rowCount())
+        p0 = sl[0]
+        p1 = sl[-1]
+
+        self.assertIsInstance(p0, SpectralProfile)
+        self.assertIsInstance(p1, SpectralProfile)
+
+        idx = m.profile2idx(p0)
+        self.assertIsInstance(idx, QModelIndex)
+        self.assertEqual(m.idx2profile(idx), p0)
+        self.assertTrue(idx.row() == 0)
+
+        mw = m.idx2profileWrapper(idx)
+        self.assertIsInstance(mw, SpectralLibraryTableViewModel.ProfileWrapper)
+        self.assertEqual(mw.profile, p0)
+        self.assertEqual(m.idx2profileWrapper(idx), mw)
+
+
+
+        idx = m.profile2idx(p1)
+        self.assertIsInstance(idx, QModelIndex)
+        self.assertTrue(idx.row() == m.rowCount()-1)
+        self.assertEqual(m.idx2profile(idx), p1)
+
+        mw = m.idx2profileWrapper(idx)
+        self.assertIsInstance(mw, SpectralLibraryTableViewModel.ProfileWrapper)
+        self.assertEqual(mw.profile, p1)
+        self.assertEqual(m.idx2profileWrapper(idx), mw)
+
+
+        sl.removeProfiles(p1)
+
+        self.assertEqual(m.rowCount(), l-1)
+        self.assertEqual(len(sl), l-1)
+        self.assertTrue(p1 not in sl)
+        self.assertEqual(m.profile2idx(p1), None)
+
+
+        tv = QTableView()
+        tv.setModel(m)
+        tv.show()
+
+
+        s = ""
 
     def test_speclibWidget(self):
         p = SpectralLibraryWidget()
         p.addSpeclib(self.SPECLIB)
         p.show()
+
+
+
+
 
     def test_ENVISpectralLibraryReader(self):
         self.assertTrue(EnviSpectralLibraryIO.canRead(speclib))
@@ -174,6 +234,6 @@ def test_spectralLibrary(self):
 if __name__ == "__main__":
 
     unittest.main()
-
+    QGIS_APP.exec_()
 
 
