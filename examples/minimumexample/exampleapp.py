@@ -21,8 +21,8 @@
 """
 
 import os
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMenu, QAction, QWidget, QHBoxLayout, QLabel, QPushButton
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QMenu, QAction, QWidget, QHBoxLayout, QLabel, QPushButton
 from enmapbox.gui.applications import EnMAPBoxApplication
 from qgis.core import *
 
@@ -157,8 +157,18 @@ class ExampleGeoAlgorithm(QgsProcessingAlgorithm):
         assert isinstance(context, QgsProcessingContext)
         assert isinstance(feedback, QgsProcessingFeedback)
 
+        printDictionary(parameters)
         outputs = {}
         return outputs
+
+def printDictionary(parameters):
+    """
+    An algorithm that just prints the provided parameter dictionary
+    """
+    print('Parameters:')
+    for key, parameter in parameters.items():
+        print('{} = {}'.format(key, parameter))
+
 
 class ExampleAlgorithmWithManyWidgets(QgsProcessingAlgorithm):
 

@@ -16,7 +16,7 @@ Developer Guide
 EnMAP-Box Applications are normal python programs that can be called
 
 * directly from EnMAP-Box GUI, e.g. via special tool buttons or context menues, or
-* the QGIS Processing Framework as a GeoAlgorithm of the EnMAPBoxAlgorithmProvider
+* the QGIS Processing Framework as a QgsProcessingAlgorithm of the EnMAPBoxAlgorithmProvider
 
 EnMAP-Box applications can interact with a running EnMAP-Box instance via the EnMAP-Box API, and, for example,
 open new raster images in an EnMAP-Box map canvas or read the list of data sources.
@@ -32,24 +32,34 @@ Initialize a new EnMAP-Box Application
 An EnMAP-Box Application derives from the `EnMAPBoxApplication` class and sets the class variables
 `name` and `version`. The variable `license` defaults to `GNU GPL-3`` but might be change to the needs of your application::
 
+    from qgis.PyQt.QtGui import QIcon
+    from qgis.PyQt.QtWidgets import QMenu, QAction, QWidget, QHBoxLayout, QLabel, QPushButton
+    from enmapbox.gui.applications import EnMAPBoxApplication
+    from qgis.core import *
+
+
+    VERSION = '0.0.1'
+    LICENSE = 'GNU GPL-3'
+    APP_DIR = os.path.dirname(__file__)
+
+    APP_NAME = 'My First EnMAPBox App'
+
     class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         """
-        This class implements an EnMAPBoxApplication Interface.
-
+        This Class inherits from an EnMAPBoxApplication
         """
         def __init__(self, enmapBox, parent=None):
-
-            #First, call the constructor of the EnMAPBoxApplication superclass
             super(ExampleEnMAPBoxApp, self).__init__(enmapBox, parent=parent)
 
             #specify the name of this app
-            self.name = 'My EnMAPBox App'
+            self.name = APP_NAME
 
             #specify a version string
-            self.version = '0.8.15'
+
+            self.version = VERSION
 
             #specify a licence under which you distribute this application
-            self.licence = 'BSD-3'
+            self.licence = LICENSE
 
 
 Define an Application Menu
@@ -58,6 +68,7 @@ Define an Application Menu
 To become accessible via a menu of the EnMAP-Box, the application needs to implement the `menu()` function that
 returns a QAction or QMenu with multiple QActions. By default, the returned `QAction` or `QMenu` is added to the EnMAP-Box
 "Application" menu where a user can click on to start the Application or to run different parts of your application
+
 
 The connection between a single QAction and other parts of your code is realized using the Qt Signal-Slot concept, as in
 this minimum example that you can run in a single python script::
@@ -101,62 +112,78 @@ The `ExampleEnMAPBoxApp` uses this mechanism to define an application menu::
         # this way you can add your QMenu/QAction to an other menu entry, e.g. 'Tools'
         # appMenu = self.enmapbox.menu('Tools')
 
-        menu = appMenu.addMenu('Example App')
+        menu = appMenu.addMenu('My Example App')
         menu.setIcon(self.icon())
 
         #add a QAction that starts a process of your application.
         #In this case it will open your GUI.
         a = menu.addAction('Show ExampleApp GUI')
+        assert isinstance(a, QAction)
         a.triggered.connect(self.startGUI)
-
         appMenu.addMenu(menu)
 
         return menu
 
 
-Define GeoAlgorithms for the EnMAPBoxAlgorithm Provider
-=======================================================
+Define QgsProcessingAlgorithms for the EnMAPBoxAlgorithm Provider
+=================================================================
 
-Your Application might provide a multiple `GeoAlgorithms` for the QGIS Processing, which allow your algorithms to be used, for example,
-within the QGIS Processing Toolbox. To add these GeoAlgorithms to the EnMAP-Box GeoAlgorithmProvider your `EnMAPBoxApplication`
-might implement the `geoAlgorithms()` function which returns a list of Geoalgorithms.
+Your Application might provide ojne or more ``QgsProcessingAlgorithms`` for the QGIS Processing Framework. This, for example, allow to use your algorithms
+within the QGIS Processing Toolbox. To add these QgsProcessingAlgorithms to the EnMAP-Box Algorithm Provider, your ``EnMAPBoxApplication``
+might implement the `geoAlgorithms()`.
 
-For the sake of simplicity, let's have an function that just prints its input arguments::
+For the sake of simplicity, let's have an function that just prints a dictionary of input arguments::
 
-    def myAlgorithm(infile, outfile):
+    def printDictionary(parameters):
         """
-        An algorithm that just prints the file paths
+        An algorithm that just prints the provided parameter dictionary
         """
-        print('Infile: {}'.format(infile)
-        print('Outfile: {}'.format(outfile)
-
-The QGIS GeoAlgorithm to call it might look like this::
-
-    from processing.core.GeoAlgorithm import GeoAlgorithm
-    from processing.core.parameters import ParameterRaster
-    from processing.core.outputs import OutputRaster
-    class MyGeoAlgorithm(GeoAlgorithm):
-
-        def defineCharacteristics(self):
-            self.name = 'Example Algorithm'
-            self.group = My EnMAPBox App
-            self.addParameter(ParameterRaster('infile', 'Example Input Image'))
-            self.addOutput(OutputRaster('outfile', 'Example Output Image'))
-
-        def processAlgorithm(self, progress):
-
-            #map processing framework parameters to that of you algorithm
-            infile = self.getParameterValue('infile')
-            outfile = self.getOutputValue('outfile')
-
-            #run your algorithm
-            myAlgorithm(infile, outfile)
+        print('Parameters:')
+        for key, parameter in parameters.items():
+            print('{} = {}'.format(key, parameter))
 
 
-        def help(self):
-            return True, 'Shows how to implement an GeoAlgorithm'
+A ``QgsProcessingAlgorithm`` to call it might look like this::
 
-To add `MyGeoAlgorithm` to the EnMAPBoxGeoAlgorithmProvider, just define the `geoAlgorithms()` like this::
+    class ExampleGeoAlgorithm(QgsProcessingAlgorithm):
+
+        def __init__(self):
+
+            super(ExampleGeoAlgorithm, self).__init__()
+            s = ""
+
+        def createInstance(self):
+            return ExampleGeoAlgorithm()
+
+        def name(self):
+            return 'exmaplealg'
+
+        def displayName(self):
+            return 'Example Algorithm'
+
+        def groupId(self):
+
+            return 'exampleapp'
+
+        def group(self):
+            return APP_NAME
+
+        def initAlgorithm(self, configuration=None):
+            self.addParameter(QgsProcessingParameterRasterLayer('pathInput', 'The Input Dataset'))
+            self.addParameter(QgsProcessingParameterNumber('value','The value', QgsProcessingParameterNumber.Double, 1, False, 0.00, 999999.99))
+            self.addParameter(QgsProcessingParameterRasterDestination('pathOutput', 'The Output Dataset'))
+
+        def processAlgorithm(self, parameters, context, feedback):
+
+            assert isinstance(parameters, dict)
+            assert isinstance(context, QgsProcessingContext)
+            assert isinstance(feedback, QgsProcessingFeedback)
+
+            myAlgorithm(parameters)
+            outputs = {}
+            return outputs
+
+To add `ExampleGeoAlgorithm` to the EnMAPBoxGeoAlgorithmProvider, just define the `geoAlgorithms()` like this::
 
     def geoAlgorithms(self):
         """
@@ -164,7 +191,15 @@ To add `MyGeoAlgorithm` to the EnMAPBoxGeoAlgorithmProvider, just define the `ge
         :return: [list-of-GeoAlgorithms]
         """
 
-        return [MyGeoAlgorithm()]
+        return [ExampleGeoAlgorithm()]
+
+
+Calling the ExampleGeoAlgorithm from the QGIS Processing Toolbox should create a printout on the IDE / QGIS python console like this::
+
+    Parameters:
+    pathInput = <qgis._core.QgsRasterLayer object at 0x0000018AA3C47A68>
+    pathOutput = <QgsProcessingOutputLayerDefinition {'sink':C:/Users/ivan_ivanowitch/AppData/Local/Temp/processing_cb76d9820fc64087aa8264f0f8505334/642d8e0abb764557881346399dda9c68/pathOutput.bsq, 'createOptions': {'fileEncoding': 'System'}}>
+    value = 1.0
 
 
 
@@ -172,7 +207,6 @@ Create a Graphical User Interface
 =================================
 
 The `startGUI()` function is used to open the graphical user interface. A very simple GUI could look like this::
-
 
     def onButtonClicked():
         print('Button was pressed')
@@ -186,13 +220,10 @@ The `startGUI()` function is used to open the graphical user interface. A very s
     w.layout().addWidget(btn)
     w.show()
 
-A GUI quickly becomes too complex to be programmed line-by-line.
-In this case it is preferred to use the QDesigner and to "draw" the GUI. The GUI definition is
-save as *.ui XML file, which that can be translated into PyQt code automatically::
 
 
-    pyqt
-
+A GUI quickly becomes too complex to be programmed line-by-line. In this case it is preferred to use the QDesigner and to "draw" the GUI.
+The GUI definition is saved in an *.ui XML file, which that can be translated into PyQt code automatically.
 
 
 
