@@ -1,5 +1,8 @@
-Installation for Developers
-===========================
+Installation (Developer)
+========================
+
+.. todo:: Structure by OS first (Windows, Linux, Mac)
+
 
 Background
 ----------
@@ -11,7 +14,7 @@ or in general QGIS, we recommend that your IDE runs under the same environmental
 The following sections describe which settings are needed to run and debug the EnMAP-Box from
 inside an IDE *without* the need to start a heavy QGIS instance.
 
-We mainly tested in for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE and it worked well on `PyDev <http://www.pydev.org/>`_ too.
+We mainly tested in for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE and it worked well on `PyDev <http://www.pydev.org/>`_, too.
 
 Overview
 --------

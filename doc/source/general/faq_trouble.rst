@@ -1,4 +1,20 @@
-.. _faq:
+=====================
+FAQ & Troubleshooting
+=====================
+
+Bug report & feedback
+=====================
+
+.. note:: Your feedback is more than welcome! In case you encounter any problems with the EnMap-Box or have
+          suggestions of any kind for improving it (or this documentation), please let us know!
+
+.. attention:: **It's best to report issues (bugs, suggestions etc.)
+               via our** `Bitbucket Repository <https://bitbucket.org/hu-geomatics/enmap-box/issues/new>`_.
+
+
+|
+|
+|
 
 EnMAP-Box FAQ
 =============
