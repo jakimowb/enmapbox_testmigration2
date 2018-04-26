@@ -325,9 +325,9 @@ if __name__ == '__main__':
         'set pythonpath=',
         'echo change dir',
         'cd {}'.format(os.path.dirname(AI.activateScript())),
-        'call activate.bat',
-        'echo %PATH%'
-        'call python.exe {}'.format(pathPythonScript)
+        'call activate.bat ',
+        'call python -c "import sys;print(\'\\n\'.join(sys.path))"'
+        #'call python.exe {}'.format(pathPythonScript)
 
     ]
     pathStartScript = os.path.normpath(os.path.join(APP_DIR, *['conda_code','runconda.bat']))
@@ -340,36 +340,16 @@ if __name__ == '__main__':
     from subprocess import run, PIPE, Popen
 
     import subprocess
-    args = [pathStartScript]
-    args = ' && '.join(startScripts)
-    #args = 'cd {} && activate && python {}'.format(os.path.dirname(AI.activateScript()), pathPythonScript)
-    #print(args)
-    #sp = subprocess.run('{}'.format(pathStartScript), stderr=PIPE, stdout=PIPE, shell=False, check=True)
+    r = subprocess.check_output(pathStartScript, shell=True)
+    print(r.decode('ascii'))
+
 
     p.readyReadStandardError.connect(lambda p=p: readStdErr(p))
     p.readyReadStandardOutput.connect(lambda p=p: readStdOut(p))
     p.started.connect(lambda : print('started'))
     p.finished.connect(lambda : print('finished'))
-    #p.start(pathStartScript)
+    p.start(pathStartScript)
     assert p.startDetached(pathStartScript)
-
-    env = p.processEnvironment()
-
-    s = ""
-    #rep = p.startDetached(pathStartScript)
-    #print(rep)
-    #p.write(textToByteArray(AI.activateScript()))
-   # while p.waitForStarted():
-  #      s = ""
-    #p.start('cmd.exe', [pathStartScript])
-    #b = p.startDetached('cmd.exe', ['/k', AI.activateScript(), '/k', 'python'])
-
-
-    #env = p.p
-    #rocessEnvironment()
-
-
-   # p.start('')
 
 
     if True: #test GUI without EnMAP-Box
