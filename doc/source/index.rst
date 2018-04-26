@@ -34,7 +34,7 @@ step-by-step tutorials which exemplify the software's capabilities.
     :maxdepth: 2
     :caption: User Section
 
-    usr_section/Installation.rst
+    usr_section/usr_installation.rst
     usr_section/usr_gettingstarted.rst
     usr_section/usr_guide.rst
     usr_section/usr_manual.rst
@@ -44,7 +44,7 @@ step-by-step tutorials which exemplify the software's capabilities.
     :maxdepth: 2
     :caption: Developer Section
 
-    dev_section/Installation_dev.rst
+    dev_section/dev_installation.rst
     dev_section/dev_gettingstarted.rst
     dev_section/dev_guide.rst
     dev_section/api_reference.rst

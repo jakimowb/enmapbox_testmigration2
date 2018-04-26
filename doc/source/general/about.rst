@@ -3,7 +3,7 @@ About
 =====
 
 
-.. image:: img/logo-enmap-box-thumb.jpg
+.. image:: ../img/logo-enmap-box-thumb.jpg
     :height: 350px
     :width: 350px
     :align: center
