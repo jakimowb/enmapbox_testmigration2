@@ -7,7 +7,7 @@ CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
 DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplotlib']
 
 import sys, os
-from qgis.core import *
+from qgis.core import Qgis, QgsApplication
 
 def messageLog(msg, level=Qgis.Info):
     """
