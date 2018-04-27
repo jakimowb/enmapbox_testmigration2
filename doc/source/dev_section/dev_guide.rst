@@ -222,8 +222,8 @@ The `startGUI()` function is used to open the graphical user interface. A very s
 
 
 
-A GUI quickly becomes too complex to be programmed line-by-line. In this case it is preferred to use the QDesigner and to "draw" the GUI.
-The GUI definition is saved in an *.ui XML file, which that can be translated into PyQt code automatically.
+A GUI quickly becomes too complex to be programmed line-by-line. In this case it is preferred to use the QDesigner and to *draw* the GUI.
+The GUI definition is saved in an ``*.ui`` XML file, which that can be translated into PyQt code automatically.
 
 
 

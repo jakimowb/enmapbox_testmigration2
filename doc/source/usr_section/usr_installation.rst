@@ -2,6 +2,7 @@
 Installation
 ============
 
+
 .. |icon| image:: ../img/icon.png
    :width: 30px
    :height: 30px
@@ -12,17 +13,23 @@ Installation
 .. note:: * The EnMAP-Box plugin requires QGIS Version 3.0 or higher
           * You can get QGIS `here <https://www.qgis.org/en/site/forusers/download.html>`_
 
-.. important:: :ref:`Additional python packages <Package requirements>` are needed and some of them are not delivered with the standard QGIS python environment,
+.. important:: :ref:`Additional python packages <install-python-packages>` are needed and some of them are not delivered with the standard QGIS python environment,
                hence they have to be installed. Follow platform-specific advices below.
 
+
+Install or update EnMAP-Box
+---------------------------
+
 1. Download the latest EnMAP-Box from `<https://bitbucket.org/hu-geomatics/enmap-box/downloads/>`_.
-2. Start QGIS 3 and open Plugins > Manage and Install Plugins > Install from ZIP.
+2. Start QGIS 3 and open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
 3. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and start *Install plugin*.
 4. Start the EnMAP-Box via the |icon| icon. In case of missing requirements you should see an error message like
 
     |missing_package_warning|
 
-    In that case please read the next section to install missing packages.
+    In that case please read the next section to install missing packages, here ``pyqtgraph`` and ``sklearn``.
+
+.. _install-python-packages:
 
 Install package requirements
 ----------------------------
@@ -56,7 +63,10 @@ Windows
 #. Close QGIS, if it has been opened.
 
 #. Start the OSGeo4W Shell with admin rights.
-   Either open the windows start Menu > QGIS 3.0 > OSGe4W Shell or navigate into the QGIS root folder and call ``C:\Program Files\QGIS 3.0\OSgeo4W.bat``. Don't forget to use the context menu option "Start as Administrator".
+
+   Either open the *Start Menu > QGIS 3.0 > OSGe4W Shell* or navigate into the QGIS root folder and call ``C:\Program Files\QGIS 3.0\OSgeo4W.bat``.
+
+   In both cases, don't forget to use "Start as Administrator" from the context menu.
 
 #. Activate the Python 3 Environment calling:
 
@@ -65,7 +75,13 @@ Windows
         call py3_env.bat
 
 
-#. To install packages like ``setup-tools``, ``scipy`` or ``matplotlib``, call ``setup`` and start the OSGeo4W installer. Then
+#. To install packages like *setup-tools*, *scipy* or *matplotlib*, call
+
+    .. code-block:: batch
+
+        setup
+
+    and start the OSGeo4W installer. Then
 
     * Advanced Installation
 
@@ -77,7 +93,7 @@ Windows
 
     * direct connection
 
-    * Downloadsite: ``http://download.osgeo.ogr``
+    * Select downloadsite ``http://download.osgeo.ogr``
 
 
     Now use the textbox to filter, select and finally install the following packages:
@@ -90,7 +106,7 @@ Windows
                   python-scipy
                   matplotlib
 
-#. To install other packages, like ``pyqtgraph`` and ``sklearn`` use ``pip``
+#. To install other packages like *pyqtgraph* and *sklearn* use ``pip``
 
     .. code-block:: batch
 
@@ -122,9 +138,9 @@ Mac
         python3 -m pip install sklearn
         python3 -m pip install pyqtgraph
 
-    Alternatively use the ``pip -r option:
+    Alternatively use`
 
     .. code-block:: bash
 
-        python3 -m pip install ~/Downloads/enmapboxplugin.3.X.YYYYTMMDDHHMM.QGIS3\enmapboxplugin\requirements.txt``
+        python3 -m pip install -r ~/Downloads/enmapboxplugin.3.X.YYYYTMMDDHHMM.QGIS3\enmapboxplugin\requirements.txt``
 

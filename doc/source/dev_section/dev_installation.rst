@@ -1,6 +1,6 @@
 
-Installation
-############
+Installation (Dev)
+##################
 
 .. todo:: Structure by OS first (Windows, Linux, Mac)
 
@@ -22,20 +22,21 @@ To setup your IDE for developing EnMAP-Box Applications, you need to:
 
     1. Clone the EnMAP-Box git repository and add it to your project sources
 
-    2. Set the QGIS python as python interpreter of your project (:ref:`python_interpreter`)
+    2. Start your IDE using the same environmental settings as QGIS
 
-    3. Ensure that your environmental settings are similar to these of QGIS (:ref:`env_variables`)
+    3. Set the QGIS python as python interpreter of your project
 
-    4. Ensure that other python packages your application depends on are accessible in your QGIS python and
-       your IDE (:ref:`python_packages`):
+    4. Ensure that all python packages your application depends on are accessible in your QGIS python and
+       your IDE (:ref:`install-python-packages`):
 
         * gdal, numpy, scipy, scikit-learn
 
-        * pyqtgraph
+        * pyqtgraph, matplotlib
 
-        * matplotlib
 
-    5. Start the EnMAP-Box from your IDE (:ref:`minimal_startup`)
+        * sphinx and the sphinx-rtd-theme fro documentation
+
+    5. Start the EnMAP-Box from your IDE (:ref:`dev_start_enmapbox_from_ide`)
 
 
 Windows
@@ -44,9 +45,11 @@ Windows
 
 QGIS for Windows is based on an OSGeo4W installation that uses a set of cascading batch (``*.bat``) files to setup the QGIS environment. We use a similar approach to start the IDE.
 
-1. First, locate the root folder of your QGIS 3 installation or OSGeo4W installation, respectively, e.g. ``C:\Program Files\QGIS 3.0\``.
+1. First, locate the root folder of your QGIS3/OSGeo4W installation, e.g. ``C:\Program Files\QGIS 3.0\`` or ``C:\Program Files\OSGeo4W\``
 
-2. Create a ``start_IDE_with_QGIS.bat`` to start your IDE in the same QGIS environment::
+2. Create a ``start_IDE_with_QGIS.bat`` to start your IDE in the same QGIS environment:
+
+.. code-block:: bat
 
     ::STARTUP Script to start a IDE like PyCharm under the same environment as QGIS
     ::OSGeo4W or QQGIS installation folder
@@ -88,14 +91,21 @@ QGIS for Windows is based on an OSGeo4W installation that uses a set of cascadin
     ::start "Start Qt Assistant" /B assistant
     ::start "Start QGIS" /B "%OSGEO4W_ROOT%\bin\qgis-bin.exe" %*
 
+    ::uncomment the following lines to open the OSGeo4W Shell
+    ::@echo on
+    ::@if [%1]==[] (echo run o-help for a list of available commands & cmd.exe /k) else (cmd /c "%*")
 
 Note the lines to extend ``PATH`` by locations of local Git executables. This might be required to enable your IDE to access the git and git-lfs executables.
+
+.. code-block:: bat
 
     set PATH=%PATH%;C:\Users\geo_beja\AppData\Local\Programs\Git\bin
     set PATH=%PATH%;C:\Users\geo_beja\AppData\Local\Programs\Git LFS
 
 
-You can start Qt development tools with::
+You can start Qt development tools with:
+
+.. code-block:: bat
 
     start "Start Qt Designer" /B designer
     start "Start Qt Assistant" /B assistant
@@ -103,7 +113,10 @@ You can start Qt development tools with::
 
 
 3. Call ``start_IDE_with_QGIS.bat`` to start your IDE and create a new project.
-Open the project settings and select the ``C:\Program Files\QGIS 3.0\bin\python3.exe``as project interpreter.
+
+   Open the project settings and select the ``C:\Program Files\QGIS 3.0\bin\python3.exe`` as project interpreter.
+
+
 
 
 4. Finally add the following locations to your project:
@@ -122,20 +135,23 @@ Path                                                Notes
 macOS
 =====
 
-tbd.
+.. todo:: macOS descriptions
 
 
 Linux
 =====
 
-tbd.
+.. todo:: Linux descriptions
 
+
+.. _dev_start_enmapbox_from_ide:
 
 Start the EnMAP-Box
 ===================
 
-If everything is set up correctly, you should be able to start the EnMAP-Box using this Python script::
+If everything is set up correctly, you should be able to start the EnMAP-Box using this Python script:
 
+.. code-block:: python
 
     if __name__ == '__main__':
 
