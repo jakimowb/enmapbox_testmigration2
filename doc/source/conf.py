@@ -20,7 +20,7 @@ import os
 import sys
 import mock
 
-MOCK_MODULES = ['qgis','gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate']
+MOCK_MODULES = ['qgis','qgis.core','qgis.gui','gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
