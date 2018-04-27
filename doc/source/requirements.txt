@@ -1,0 +1,4 @@
+# this file lists packages that are required to run the EnMAP-Box AND can be installed with pip
+# see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+
+###### Requirements without Version Specifiers ######
