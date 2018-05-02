@@ -47,6 +47,8 @@ class MissingApplierProjectionError(HUBDCError):
 class MissingApplierExtentError(HUBDCError):
     '''Applier extent was not explicitely set and could not be derived from raster inputs.'''
 
+class MissingApplierResolutionError(HUBDCError):
+    '''Applier resolution was not explicitely set and could not be derived from raster inputs.'''
 
 class UnknownApplierAutoExtentOption(HUBDCError):
     '''See :class:`~hubdc.applier.Options.AutoExtent` for valid options.'''

@@ -64,7 +64,7 @@ class RasterDriver(object):
         elif ext == 'img':
             driver = ErdasDriver()
         else:
-            assert 0
+            driver = ENVIBSQDriver()
         return driver
 
     def gdalDriver(self):
@@ -1049,6 +1049,12 @@ class RasterDataset(object):
                         xmax=geotransform[0] + self._gdalDataset.RasterXSize * resolution.x(),
                         ymin=geotransform[3] - self._gdalDataset.RasterYSize * resolution.y(),
                         ymax=geotransform[3])
+
+        if self._gdalDataset.GetProjection() == '':
+            self._gdalDataset.SetProjection(Projection.WGS84().wkt())
+            self._gdalDataset.FlushCache()
+            self._gdalDataset=None
+            return
         projection = Projection(wkt=self._gdalDataset.GetProjection())
         self._grid = Grid(extent=extent, resolution=resolution, projection=projection)
 
@@ -1402,10 +1408,15 @@ class RasterDataset(object):
             gdalDataset = gdal.Translate(destName='', srcDS=tmpGdalDataset, options=translateOptions)
 
         else:
+
             translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options.optionsList(),
-                                                     projWin=[ul.x(), ul.y(), lr.x(), lr.y()], xRes=xRes,
-                                                     yRes=yRes, **kwargs)
+                                                     projWin=[ul.x(), ul.y(), lr.x(), lr.y()],
+                                                     #projWin=[ul.x(), min(ul.y(), lr.y()),
+                                                     #         lr.x(), max(ul.y(), lr.y())],
+
+                                                     xRes=xRes, yRes=yRes, **kwargs)
             gdalDataset = gdal.Translate(destName=filename, srcDS=self._gdalDataset, options=translateOptions)
+
 
         return RasterDataset(gdalDataset=gdalDataset)
 
@@ -2009,8 +2020,21 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     if not exists(filename):
         raise errors.FileNotExistError(filename)
     gdalDataset = gdal.Open(filename, eAccess)
+
     if gdalDataset is None:
         raise errors.InvalidGDALDatasetError(filename)
+
+    if gdalDataset.GetProjection() == '':
+        import warnings
+        warnings.warn('missing SRS for GDAL dataset {}; WGS84 is used'.format(filename), UserWarning)
+
+        # create vrt with WGS84 projection
+        filenameVRT = filename + '.wgs84.vrt'
+        gdalDataset = gdal.Translate(filenameVRT, filename, format='VRT', outputSRS=Projection.WGS84().wkt())
+        gdalDataset.SetGeoTransform((0.0, 1.0, 0.0, 0.0, 0.0, -1.0))
+        gdalDataset = None
+        return openRasterDataset(filename=filenameVRT)
+
     return RasterDataset(gdalDataset=gdalDataset)
 
 

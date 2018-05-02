@@ -687,7 +687,7 @@ class ApplierInputRasterGroup(ApplierIOGroup):
         '''Returns the :class:`~hubdc.applier.ApplierInputRaster` named ``key``.'''
 
         value = ApplierIOGroup._item(self, key=key)
-        assert isinstance(value, ApplierInputRaster)
+        assert isinstance(value, ApplierInputRaster), value
         return value
 
     def flatRasters(self):
@@ -1559,6 +1559,10 @@ class ApplierControls(object):
         '''Derives the resolution from the given :class:`~hubdc.model.Grid`.'''
 
         if self.resolution is None:
+
+            if len(grids) == 0:
+                raise errors.MissingApplierResolutionError()
+
 
             if self.autoResolution == ApplierOptions.AutoResolution.minimum:
                 f = numpy.min
