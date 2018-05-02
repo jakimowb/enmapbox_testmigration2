@@ -32,9 +32,17 @@ class Applier(hubdc.applier.Applier):
         self.outputRaster.setRaster(key=name, value=raster)
 
     def setFlowRaster(self, name, raster):
-        assert isinstance(raster, hubflow.core.Raster)
-        raster = hubdc.applier.ApplierInputRaster(filename=raster.filename)
-        self.inputRaster.setRaster(key=name, value=raster)
+        if isinstance(raster, hubflow.core.Raster):
+            self.inputRaster.setRaster(key=name,
+                                       value=hubdc.applier.ApplierInputRaster(filename=raster.filename))
+        elif isinstance(raster, hubflow.core.RasterStack):
+            rasterStack = raster
+            group = hubdc.applier.ApplierInputRasterGroup()
+            self.inputRaster.setGroup(key=name, value=group)
+            for i, raster in enumerate(rasterStack.rasters()):
+                group.setRaster(key=str(i), value=hubdc.applier.ApplierInputRaster(filename=raster.filename))
+        else:
+            assert 0
 
     def setFlowMask(self, name, mask):
         if mask is None or mask.filename is None:
@@ -117,6 +125,14 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
                 array = raster.array(overlap=overlap)
             else:
                 array = raster.bandArray(indicies=indicies, overlap=overlap)
+        elif isinstance(raster, hubflow.core.RasterStack):
+            rasterStack = raster
+            assert indicies is None # todo
+            array = list()
+            for i, raster in enumerate(rasterStack.rasters()):
+                raster = self.inputRaster.raster(key=name+'/'+str(i))
+                array.append(raster.array(overlap=overlap))
+            array = np.concatenate(array, axis=0)
         else:
             assert 0
         return array
@@ -339,24 +355,47 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         raster.setNoDataValue(value=noDataValue)
 
     def maskFromBandArray(self, array, noDataValue=None, noDataValueSource=None, index=None):
+        assert array.ndim == 3
+        assert len(array) == 1
         if noDataValue is None:
             assert noDataValueSource is not None
             assert index is not None
             noDataValue = self.inputRaster.raster(key=noDataValueSource).noDataValues()[index]
-        mask = array != noDataValue
+
+        if noDataValue is not None:
+            mask = array != noDataValue
+        else:
+            mask = np.full_like(array, fill_value=np.True_, dtype=np.bool)
         return mask
 
-    def maskFromArray(self, array, noDataValue=None, noDataValueSource=None, aggregateFunction=None):
+    def maskFromArray(self, array, noDataValue=None, defaultNoDataValue=None, noDataValueSource=None, aggregateFunction=None):
 
         if aggregateFunction is None:
             aggregateFunction = lambda a: np.all(a, axis=0, keepdims=True)
 
         if noDataValue is None:
             assert noDataValueSource is not None
-            raster = self.inputRaster.raster(key=noDataValueSource)
-            noDataValue = raster.noDataValue(default=0)
+            try: # in case of a normal raster
+                raster = self.inputRaster.raster(key=noDataValueSource)
+                noDataValue = raster.noDataValue(default=0)
+            except: # in case of a raster stack
+                group = self.inputRaster.group(key=noDataValueSource)
+                keys = sorted([int(key) for key in group.rasterKeys()])
+                noDataValue = list()
+                for key in keys:
+                    raster = group.raster(key=str(key))
+                    noDataValue = noDataValue + raster.noDataValues(default=defaultNoDataValue)
 
-        mask = aggregateFunction(array != noDataValue)
+
+        mask = np.full_like(array, fill_value=np.True_, dtype=np.bool)
+        if not isinstance(noDataValue, (list, tuple)):
+            noDataValue = [noDataValue] * len(array)
+
+        for i, band in enumerate(array):
+            if noDataValue is not None:
+                mask[i] = band != noDataValue
+
+        mask = aggregateFunction(mask)
         return mask
 
     def maskFromFractionArray(self, fractionArray, minOverallCoverage, minWinnerCoverage, invert=False):

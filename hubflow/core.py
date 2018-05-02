@@ -98,19 +98,25 @@ class Raster(FlowObject):
     def asMask(self, noDataValue=None):
         return Mask(filename=self.filename, noDataValue=noDataValue)
 
-    def basicStatistics(self, bandIndicies=None, mask=None, **kwargs):
+    def basicStatistics(self, bandIndicies=None, mask=None,
+                        calcPercentiles=False, calcHistogram=False, calcMean=False, calcStd=False,
+                        **kwargs):
         applier = Applier(defaultGrid=self, **kwargs)
+        applier.controls.setBlockFullSize()
         applier.setFlowRaster('raster', raster=self)
         applier.setFlowMask('mask', mask=mask)
-        results = applier.apply(operatorType=_RasterBasicStatistics, raster=self, bandIndicies=bandIndicies, mask=mask)
+        return applier.apply(operatorType=_RasterStatistics, raster=self, bandIndicies=bandIndicies, mask=mask,
+                             calcPercentiles=calcPercentiles, calcHistogram=calcHistogram, calcMean=calcMean,
+                             calcStd=calcStd)
 
-        results = np.array(results, dtype=np.float64)
-        min = np.nanmin(results[:, :, 0], axis=0)
-        max = np.nanmax(results[:, :, 1], axis=0)
-        sum = np.nansum(results[:, :, 2], axis=0)
-        n = np.sum(results[:, :, 3], axis=0)
-        mean = sum / n
-        return min, max, mean, n
+
+    def histogram(self, basicStatistics, bandIndicies=None, mask=None, **kwargs):
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.controls.setBlockFullSize()
+        applier.setFlowRaster('raster', raster=self)
+        applier.setFlowMask('mask', mask=mask)
+        return applier.apply(operatorType=_RasterHistogram, raster=self, basicStatistics=basicStatistics,
+                             bandIndicies=bandIndicies, mask=mask)
 
     def scatterMatrix(self, raster2, bandIndex1, bandIndex2, range1, range2, bins=256, mask=None, stratification=None,
                       **kwargs):
@@ -151,7 +157,7 @@ class _RasterResample(ApplierOperator):
         outraster.setNoDataValues(values=noDataValues)
 
 
-class _RasterBasicStatistics(ApplierOperator):
+class BACKUP_RasterBasicStatistics(ApplierOperator):
     def ufunc(self, raster, bandIndicies, mask):
         array = self.flowRasterArray('raster', raster=raster, indicies=bandIndicies).astype(dtype=np.float64)
         maskValid = self.flowMaskArray('mask', mask=mask)
@@ -164,9 +170,82 @@ class _RasterBasicStatistics(ApplierOperator):
             max = np.nanmax(band)
             sum = np.nansum(band)
             n = np.sum(valid)
-            return min, max, sum, n
+            mean = sum/n
+            std = np.nanstd(band)
+            return {'min': min, 'max': max, 'mean': mean, 'std': std, 'n': n}
 
         return [bandBasicStatistics(index=i, band=band[None]) for i, band in enumerate(array)]
+
+    @staticmethod
+    def aggregate(blockResults, grid, *args, **kwargs):
+        return blockResults[0]
+
+class _RasterStatistics(ApplierOperator):
+    def ufunc(self, raster, bandIndicies, mask, calcPercentiles, calcHistogram, calcMean, calcStd):
+
+        maskValid = self.flowMaskArray('mask', mask=mask)
+
+        if bandIndicies is None:
+            bandIndicies = range(self.inputRaster.raster('raster').dataset().zsize())
+
+        result = list()
+        for index in bandIndicies:
+            band = self.flowRasterArray('raster', raster=raster, indicies=[index]).astype(dtype=np.float64)
+            valid = self.maskFromBandArray(array=band, noDataValueSource='raster', index=index)
+            valid *= maskValid
+            values = band[valid] # may still contain NaN
+            bandResult = {'index': index}
+            bandResult['nvalid'] = np.sum(valid)
+            bandResult['ninvalid'] = np.product(band.shape) - bandResult['nvalid']
+
+            if calcPercentiles:
+                qs = [0, 5, 25, 50, 75, 95, 100]
+                ps = np.nanpercentile(values, q=qs)
+                bandResult['percentiles'] = list(zip(qs, ps))
+                bandResult['min'] = ps[qs.index(0)]
+                bandResult['max'] = ps[qs.index(100)]
+                bandResult['median'] = ps[qs.index(50)]
+            else:
+                bandResult['min'] = np.nanmin(band)
+                bandResult['max'] = np.nanmax(band)
+
+            if calcStd:
+                bandResult['std'] = np.nanstd(band)
+
+            if calcMean:
+                bandResult['mean'] = np.nanmean(band)
+
+            result.append(bandResult)
+        return result
+
+    @staticmethod
+    def aggregate(blockResults, grid, *args, **kwargs):
+        return blockResults[0]
+
+
+
+class _RasterHistogram(ApplierOperator):
+    def ufunc(self, raster, basicStatistics, bandIndicies, mask):
+
+        array = self.flowRasterArray('raster', raster=raster, indicies=bandIndicies).astype(dtype=np.float64)
+        maskValid = self.flowMaskArray('mask', mask=mask)
+
+        assert len(basicStatistics) == len(array)
+
+        def bandHistogram(index, range, band):
+            valid = self.maskFromBandArray(array=band, noDataValueSource='raster', index=index)
+            valid *= maskValid
+            values = band[valid]
+            hist, bin_edges = np.histogram(values, bins=256, range=range)
+            return {'hist': hist, 'bin_edges': bin_edges}
+
+        return [bandHistogram(index=i,
+                              range=(basicStatistics[i]['min'], basicStatistics[i]['max']),
+                              band=band[None]) for i, band in enumerate(array)]
+
+    @staticmethod
+    def aggregate(blockResults, grid, *args, **kwargs):
+        return blockResults[0]
 
 
 class _RasterFromVector(ApplierOperator):
@@ -216,6 +295,19 @@ class _RasterApplyMask(ApplierOperator):
         metadataDict = self.inputRaster.raster(key='raster').metadataDict()
         outraster.setMetadataDict(metadataDict)
         outraster.setNoDataValue(value=noDataValue)
+
+
+class RasterStack(FlowObject):
+    def __init__(self, rasters):
+        self._rasters = rasters
+
+    def raster(self, i):
+        assert isinstance(self._rasters[i], Raster)
+        return self._rasters[i]
+
+    def rasters(self):
+        for i in range(len(self._rasters)):
+            yield self.raster(i)
 
 
 class Mask(Raster):
@@ -295,7 +387,7 @@ class _MaskFromRaster(ApplierOperator):
 
 class Vector(FlowObject):
     def __init__(self, filename, layer=0, initValue=0, burnValue=1, burnAttribute=None, allTouched=False,
-                 filterSQL=None, dtype=np.float32, oversampling=None):
+                 filterSQL=None, dtype=np.float32, oversampling=1):
         self.filename = filename
         self.layer = layer
         self.initValue = initValue
@@ -430,7 +522,7 @@ class _VectorFromRandomPointsFromClassification(ApplierOperator):
 
 class VectorClassification(Vector):
     def __init__(self, filename, classDefinition, idAttribute=None, nameAttribute=None, layer=0, minOverallCoverage=0.5,
-                 minWinnerCoverage=0.5, dtype=np.uint8, oversampling=None):
+                 minWinnerCoverage=0.5, dtype=np.uint8, oversampling=1):
 
         Vector.__init__(self, filename=filename, layer=layer, burnAttribute=idAttribute, dtype=dtype,
                         oversampling=oversampling)
@@ -1064,22 +1156,23 @@ class ClassificationSample(SupervisedSample):
         header['class spectra names'] = np.array(self.classDefinition.names)[self.labels.ravel() - 1]
 
     @classmethod
-    def fromRasterAndProbability(cls, raster, probability, grid=None, masks=None,
+    def fromRasterAndProbability(cls, raster, probability, grid=None, masks=None, maskRaster=True,
                                  minOverallCoverage=0.5, minWinnerCoverage=0.5, **kwargs):
         if grid is None:
             grid = raster.grid
 
         probabilitySample = ProbabilitySample.fromRasterAndProbability(raster=raster, probability=probability,
-                                                                       grid=grid, masks=masks, **kwargs)
+                                                                       grid=grid, masks=masks, maskRaster=maskRaster,
+                                                                       **kwargs)
         classificationSample = ClassificationSample.fromProbabilitySample(sample=probabilitySample,
                                                                           minOverallCoverage=minOverallCoverage,
                                                                           minWinnerCoverage=minWinnerCoverage)
         return classificationSample
 
     @classmethod
-    def fromRasterAndClassification(cls, raster, classification, grid=None, masks=None, **kwargs):
+    def fromRasterAndClassification(cls, raster, classification, grid=None, masks=None, maskRaster=True, **kwargs):
         return cls.fromRasterAndProbability(raster=raster, probability=classification, grid=grid,
-                                            masks=masks, **kwargs)
+                                            masks=masks, maskRaster=maskRaster, **kwargs)
 
     @classmethod
     def fromProbabilitySample(cls, sample, minOverallCoverage=0.5, minWinnerCoverage=0.5):
@@ -1206,13 +1299,13 @@ class ProbabilitySample(RegressionSample):
         return cls.fromRasterAndProbability(raster=raster, probability=classification, mask=mask, mask2=mask2, **kwargs)
 
     @staticmethod
-    def fromRasterAndProbability(raster, probability, grid, masks=None, **kwargs):
+    def fromRasterAndProbability(raster, probability, grid, masks=None, maskRaster=True, **kwargs):
         applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowRaster(name='raster', raster=raster)
         applier.setFlowProbability(name='probability', probability=probability)
         applier.setFlowMasks(masks=masks)
         results = applier.apply(operatorType=_ProbabilitySampleFromRasterAndProbability, raster=raster,
-                                probability=probability, masks=masks)
+                                probability=probability, masks=masks, maskRaster=maskRaster)
         features = np.hstack(result[0] for result in results)
         fractions = np.hstack(result[1] for result in results)
         return ProbabilitySample(features=features, labels=fractions, classDefinition=probability.classDefinition)
@@ -1237,10 +1330,13 @@ class ProbabilitySample(RegressionSample):
 
 
 class _ProbabilitySampleFromRasterAndProbability(ApplierOperator):
-    def ufunc(self, raster, probability, masks):
+    def ufunc(self, raster, probability, masks, maskRaster):
         features = self.flowRasterArray(name='raster', raster=raster)
         fractions = self.flowProbabilityArray(name='probability', probability=probability)
-        labeled = self.maskFromArray(array=features, noDataValueSource='raster')
+        if maskRaster:
+            labeled = self.maskFromArray(array=features, noDataValueSource='raster')
+        else:
+            labeled = self.full(value=np.True_)
         labeled *= np.any(fractions != -1, axis=0, keepdims=True)
         labeled *= self.flowMasksArray(masks=masks)
         return features[:, labeled[0]], fractions[:, labeled[0]]
@@ -1281,7 +1377,15 @@ class Estimator(FlowObject):
         return self
 
     def _predict(self, filename, raster, mask=None, **kwargs):
-        applier = Applier(defaultGrid=raster, **kwargs)
+
+        if isinstance(raster, Raster):
+            grid = raster.grid
+        elif isinstance(raster, RasterStack):
+            grid = raster.raster(0).grid
+        else:
+            assert 0
+
+        applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowRaster('raster', raster=raster)
         applier.setFlowMask('mask', mask=mask)
         applier.setOutputRaster('prediction', filename=filename)

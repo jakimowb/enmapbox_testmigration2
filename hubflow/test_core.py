@@ -183,7 +183,13 @@ class Test(TestCase):
         print()
 
     def test_Raster(self):
-        raster =Raster.fromSample(filename=join(outdir, 'RasterFromSample.bsq'), sample=enmapClassificationSample)
+        bandIndicies = None#[0, 1]
+        basicStatistics = hymap.basicStatistics(bandIndicies=bandIndicies)
+
+        return
+        histograms = hymap.histogram(bandIndicies=bandIndicies, basicStatistics=basicStatistics)
+        return
+        raster = Raster.fromSample(filename=join(outdir, 'RasterFromSample.bsq'), sample=enmapClassificationSample)
         print(enmap.applyMask(filename=join(outdir, 'RasterApplyMask.bsq'), mask=enmapMask, fillValue=42))
 
     def test_Regression(self):
