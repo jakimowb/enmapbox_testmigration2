@@ -1,4 +1,5 @@
 import os
+from enmapboxgeoalgorithms.provider import Help
 
 def parseFolder(package):
     estimators = dict()
@@ -7,11 +8,29 @@ def parseFolder(package):
     for basename in os.listdir(dir):
         if basename.startswith('_'): continue
         if basename.endswith('.pyc'): continue
+        if os.path.splitext(basename)[0].endswith('Help'): continue
+
         name = basename.replace('.py', '')
-        with open(os.path.join(dir, basename)) as f:
-            lines = f.readlines()
-            lines = ''.join(lines)
-        estimators[name] = lines
+
+        # get code snipped
+        with open(os.path.join(dir, name+'.py')) as f:
+            code = f.readlines()
+            code = ''.join(code)
+
+        # get help
+        helpFile = os.path.join(dir, name+'Help.py')
+        namespace = dict()
+        if os.path.exists(helpFile):
+            with open(helpFile) as f:
+                codeHelp = f.readlines()
+                codeHelp = ''.join(codeHelp)
+            exec(codeHelp, None, namespace)
+
+
+        helpAlg = namespace.get('helpAlg', Help('undocumented'))
+        helpCode = namespace.get('helpCode', Help('undocumented'))
+
+        estimators[name] = code, helpAlg, helpCode
     return estimators
 
 def parseRegressors():

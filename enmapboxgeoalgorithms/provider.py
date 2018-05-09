@@ -9,7 +9,6 @@ from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 TESTALGORITHMS = list()
 ALGORITHMS = list()
 
-
 class EnMAPProvider(QgsProcessingProvider):
     def loadAlgorithms(self):
         #for a in TESTALGORITHMS: self.addAlgorithm(a)
@@ -28,6 +27,39 @@ class EnMAPProvider(QgsProcessingProvider):
     def supportsNonFileBasedOutput(self):
         return False
 
+class Link():
+    def __init__(self, url, name):
+        self.url = url
+        self.name = name
+
+class Help(object):
+    def __init__(self, text='undocumented', links=()):
+        for link in links:
+            assert isinstance(link, Link)
+        self.text = text
+        self.links = links
+
+    def html(self):
+        htmlLinks = [r'<a href="{url}">{name}</a>'.format(url=link.url, name=link.name) for link in self.links]
+        htmlText = self.text.format(*htmlLinks)
+        htmlText = htmlText.replace('\n', '<br>')
+        return htmlText
+
+    def rst(self):
+        rstLinks = [r'`{name} <{url}>`_'.format(url=link.url, name=link.name) for link in self.links]
+        rstText = self.text.format(*rstLinks)
+        rstText = rstText.replace('\n', '\n\n')
+        return rstText
+
+    def tooltip(self):
+        links = [link.name for link in self.links]
+        tooltip = self.text.format(*links)
+        return tooltip
+
+#help = Help('abc {} def {} dsa', (Link('www.google.de', 'Google'), Link('www.google.de', 'Google')))
+#print(help.html())
+#print(help.tooltip())
+#exit()
 
 class EnMAPAlgorithm(QgisAlgorithm):
     GROUP_ACCURACY_ASSESSMENT = 'Accuracy Assessment'
@@ -100,13 +132,18 @@ class EnMAPAlgorithm(QgisAlgorithm):
     def addParameter_(self, parameterDefinition, help=None):
         self.addParameter(parameterDefinition=parameterDefinition)
         if help is None:
-            help = 'undocumented parameter'
-        parameterDefinition._helpString = help
-        parameterDefinition.toolTip = lambda : 'Hello Tooltip'
+            help = Help('undocumented parameter')
+        if isinstance(help, str):
+            help = Help(help)
+        assert isinstance(help, Help)
+        parameterDefinition._help = help
+        parameterDefinition.toolTip = lambda : help.tooltip()
 
     P_RASTER = 'raster'
 
     def addParameterRaster(self, name=P_RASTER, description='Raster', defaultValue=None, optional=False, help=None):
+        if help is None:
+            help = 'Specify input raster.'
         self.addParameter_(QgsProcessingParameterRasterLayer(name=name, description=description,
                                                              defaultValue=defaultValue, optional=optional),
                            help=help)
@@ -126,6 +163,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def addParameterClassification(self, name=P_CLASSIFICATION, description='Classification', optional=False,
                                    help=None):
+
         self.addParameterRaster(name=name, description=description, optional=optional, help=help)
 
     def getParameterClassification(self, name=P_CLASSIFICATION, minOverallCoverage=None, minWinnerCoverage=None):
@@ -154,6 +192,12 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_MASK = 'mask'
 
     def addParameterMask(self, name=P_MASK, description='Mask', help=None):
+        if help is None:
+            help = 'Specified vector or raster is interpreted as a boolean mask.\n' \
+                   'In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.\n' \
+                   'In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.' \
+                   'Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.'
+
         self.addParameterMap(name=name, description=description, optional=True, help=help)
 
     def getParameterMask(self, name=P_MASK):
@@ -165,6 +209,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_VECTOR = 'vector'
 
     def addParameterVector(self, name=P_VECTOR, description='Vector', defaultValue=None, optional=False, help=None):
+        if help is None:
+            help = 'Specify input vector.'
         self.addParameter_(QgsProcessingParameterVectorLayer(name=name, description=description,
                                                              defaultValue=defaultValue, optional=optional),
                            help=help)
@@ -209,7 +255,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
         self.addParameterVector(name=name, description=description, defaultValue=defaultValue, optional=optional)
         self.addParameterField(name=self.P_CLASSIDFIELD, description='Class id attribute',
                                parentLayerParameterName=name,
-                               type=QgsProcessingParameterField.Numeric)
+                               type=QgsProcessingParameterField.Numeric,
+                               help='Vector field specifying the class ids.')
         self.addParameterClassDefinition()
         self.addParameterMinCoverages(defaultValues=minCoveragesDefaultValues)
         self.addParameterOversampling()
@@ -229,7 +276,9 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                  descriptions=('Minimal overall coverage', 'Minimal winner class coverage'),
                                  defaultValues=(None, None)):
 
-        helps = [None, None]
+        helps = ['Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.',
+                 'Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.']
+
         for name, description, defaultValue, help in zip(names, descriptions, defaultValues, helps):
             if defaultValue is None:
                 defaultValue = 0.5
@@ -245,7 +294,13 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_OVERSAMPLING = 'oversampling'
 
     def addParameterOversampling(self, name=P_OVERSAMPLING, description='Oversampling factor'):
-        self.addParameterInteger(name=name, description=description, minValue=1, maxValue=10, defaultValue=1, help=None)
+        help = 'Defines the degree of detail by which the class information given by the vector is rasterized. ' \
+               'An oversampling factor of 1 (default) simply rasterizes the vector on the target pixel grid.' \
+               'An oversampling factor of 2 will rasterize the vector on a target pixel grid with resolution twice as fine.' \
+               'An oversampling factor of 3 will rasterize the vector on a target pixel grid with resolution three times as fine, ... and so on.\n' \
+               'Mind that larger values are always better (more accurate), but depending on the inputs, this process can be quite computationally intensive, when a higher factor than 1 is used.'
+        self.addParameterInteger(name=name, description=description, minValue=1, maxValue=10, defaultValue=1,
+                                 help=help)
 
     def getParameterOversampling(self, name=P_OVERSAMPLING):
         return self.getParameterInteger(name=name)
@@ -255,6 +310,9 @@ class EnMAPAlgorithm(QgisAlgorithm):
     def addParameterField(self, name=P_FIELD, description='Field', defaultValue=None,
                           parentLayerParameterName=P_VECTOR, type=QgsProcessingParameterField.Any,
                           allowMultiple=False, optional=False, help=None):
+        if help is None:
+            help = 'Specify field of vector layer for which unique values should be derived.'
+
         self.addParameter_(QgsProcessingParameterField(name=name, description=description, defaultValue=defaultValue,
                                                        parentLayerParameterName=parentLayerParameterName,
                                                        type=type, allowMultiple=allowMultiple, optional=optional),
@@ -334,7 +392,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_NO_DATA_VALUE = 'noDataValue'
 
     def addParameterNoDataValue(self, name=P_NO_DATA_VALUE, description='No Data Value', optional=False):
-        self.addParameterString(name=name, description=description, optional=optional, help=None)
+        self.addParameterString(name=name, description=description, optional=optional,
+                                help='Specify output no data value.')
 
     def getParameterNoDataValue(self, name=P_NO_DATA_VALUE):
         string = self.getParameterString(name=name)
@@ -391,7 +450,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def addParameterDataType(self, name=P_DATA_TYPE, description='Data Type', defaultValue=7):
         self.addParameterEnum(name=name, description=description, options=self.DATA_TYPE_NAMES,
-                              defaultValue=defaultValue, help=None)
+                              defaultValue=defaultValue,
+                              help='Specify output datatype.')
 
     def getParameterDataType(self, name=P_DATA_TYPE):
         selection = self.getParameterEnum(name=name)
@@ -415,8 +475,13 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def addParameterEnviSpeclib(self, name=P_ENVI_SPECLIB, description='ENVI Spectral Library', optional=False,
                                 help=None):
+
+        if help is None:
+            help = 'Select path to an ENVI (e.g. .sli or .esl).'
         self.addParameterFile(name=name, description=description, optional=optional,
-                              help=help)  # extension='esl *.sli' two extensions seam not to work
+                              # extension='esl *.sli' two extensions seam not to work
+                              help=help)
+
 
     def getParameterEnviSpeclib(self, name=P_ENVI_SPECLIB):
         return self.getParameterOutputFile(name=name)
@@ -424,15 +489,19 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_UNSUPERVISED_SAMPLE = 'unsupervisedSample'
 
     def addParameterUnsupervisedSample(self, name=P_UNSUPERVISED_SAMPLE, description='Sample'):
-        self.addParameterFlowObject(name=name, description=description)
+        help = 'Specify path to sample file (.pkl).'
+        self.addParameterFlowObject(name=name, description=description, help=help)
 
     def getParameterUnsupervisedSample(self, name=P_UNSUPERVISED_SAMPLE):
         return self.getParameterFlowObject(name=name, cls=UnsupervisedSample)
 
     P_CLASSIFICATION_SAMPLE = 'classificationSample'
 
-    def addParameterClassificationSample(self, name=P_CLASSIFICATION_SAMPLE, description='ClassificationSample'):
-        self.addParameterFlowObject(name=name, description=description)
+    def addParameterClassificationSample(self, name=P_CLASSIFICATION_SAMPLE, description='ClassificationSample',
+                                         help=None):
+        if help is None:
+            help = 'Specify path to sample file (.pkl).'
+        self.addParameterFlowObject(name=name, description=description, help=help)
 
     def getParameterClassificationSample(self, name=P_CLASSIFICATION_SAMPLE):
         return self.getParameterFlowObject(name=name, cls=ClassificationSample)
@@ -440,7 +509,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_REGRESSION_SAMPLE = 'regressionSample'
 
     def addParameterRegressionSample(self, name=P_REGRESSION_SAMPLE, description='RegressionSample'):
-        self.addParameterFlowObject(name=name, description=description)
+        help = 'Specify path to sample file (.pkl).'
+        self.addParameterFlowObject(name=name, description=description, help=help)
 
     def getParameterRegressionSample(self, name=P_REGRESSION_SAMPLE):
         return self.getParameterFlowObject(name=name, cls=RegressionSample)
@@ -449,9 +519,10 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def addParameterClassDefinition(self, name=P_CLASS_DEFINITION, description='Class Definition', defaultValue=None):
 
-        help = '\n'.join(
-            ["e.g. ClassDefinition(names=['Urban', 'Forest', 'Water'], colors=['red', '#00FF00', (0, 0, 255)])",
-             'For supported named colors see https://www.w3.org/TR/SVG/types.html#ColorKeywords'])
+        help = Help(text = 'Enter a class definition, e.g.:\n' \
+                           "ClassDefinition(names=['Urban', 'Forest', 'Water'], colors=['red', '#00FF00', (0, 0, 255)])\n" \
+                           'For supported named colors see the {}.',
+                    links=[Link(url='https://www.w3.org/TR/SVG/types.html#ColorKeywords', name='W3C recognized color keyword names')])
 
         self.addParameterString(name=name, description=description, defaultValue=defaultValue,
                                 multiLine=True, optional=True, help=help)
@@ -485,7 +556,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def addParameterNumberOfPoints(self, name=P_NUMBER_OF_POINTS, description='Number of Points',
                                          defaultValue=100, optional=False):
-        help = None
+        help = 'Number of points to sample from mask.'
+
         self.addParameterString(name=name, description=description, defaultValue=str(defaultValue), optional=optional,
                                 help=help)
 
@@ -507,30 +579,55 @@ class EnMAPAlgorithm(QgisAlgorithm):
     def addParameterNumberOfPointsPerClass(self, name=P_NUMBER_OF_POINTS_PER_CLASS,
                                            description='Number of Points per Class',
                                            defaultValue=100, optional=False):
-        help = None
+
+        help = 'Has to be a number or a list of numbers. When a single integer number is given (e.g. 100), equalised random sample will be ' \
+               'taken, i.e. in this case 100 samples per class. For taking a disproportional random sample, where the amount of samples should differ ' \
+               'between classes, provide a list of numbers. This list has to have as many arguments as classes in the classification and has to ' \
+               "be ordered according to the classes (e.g. '[100, 70, 90]' in the case of three classes, 100 samples will be taken from the first class, " \
+               '70 from the second, etc.). For a proportional stratified random sampling provide a float value between 0 and 1 ' \
+               '(e.g. 0.3 for randomly drawing 30% of pixels in each class).'
+
         self.addParameterString(name=name, description=description, defaultValue=str(defaultValue), optional=optional,
                                 help=help)
 
-    def getParameterNumberOfPointsPerClass(self, name=P_NUMBER_OF_POINTS_PER_CLASS, classDefinition=None):
-        assert isinstance(classDefinition, ClassDefinition)
+    def getParameterNumberOfPointsPerClass(self, name=P_NUMBER_OF_POINTS_PER_CLASS, classification=None):
+        assert isinstance(classification, Classification)
+        classDefinition = classification.classDefinition
         string = self.getParameterString(name)
-        parameterDefinition = self.parameterDefinition(name)
         if string == '':
             n = None
         else:
             n = eval(string)
-            if isinstance(n, int):
+
+            # turn scalars into list, e.g. [10,10,10] or [0.1, 0.1, 0.1]
+            if isinstance(n, (int, float)):
                 n = [n] * classDefinition.classes
+
+            # check if list if correct
             if not isinstance(n, list) or len(n) != classDefinition.classes:
                 raise EnMAPAlgorithmParameterValueError('Unexpected value (Number of Points per Class): "{}"'.format(
                     string))
+
+            # turn all values into absolute numbers
+            histo = None
+            for i in range(classDefinition.classes):
+                if isinstance(n[i], float):
+                    if histo is None:
+                        histo = classification.statistics(calcHistogram=True,
+                                                          histogramBins=[classDefinition.classes+1],
+                                                          histogramRanges=[[0, classDefinition.classes+1]],
+                                                          progressBar=self._progressBar)
+                    n[i] = int(round(n[i] * histo['hist'][i+1], 0))
+
         return n
 
     P_OUTPUT_RASTER = 'outRaster'
 
-    def addParameterOutputRaster(self, name=P_OUTPUT_RASTER, description='Raster', help=None):
+    def addParameterOutputRaster(self, name=P_OUTPUT_RASTER, description='Output Raster', help=None):
         parameter = QgsProcessingParameterRasterDestination(name=name, description=description)
 #        parameter.defaultFileExtension = lambda : 'bsq'
+        if help is None:
+            help = 'Specify output path for raster.'
         self.addParameter_(parameter, help=help)
 
     def getParameterOutputRaster(self, name=P_OUTPUT_RASTER):
@@ -538,7 +635,9 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     P_OUTPUT_VECTOR = 'outVector'
 
-    def addParameterOutputVector(self, name=P_OUTPUT_VECTOR, description='Vector', help=None):
+    def addParameterOutputVector(self, name=P_OUTPUT_VECTOR, description='Output Vector', help=None):
+        if help is None:
+            help = 'Specify output path for the vector.'
         self.addParameter_(QgsProcessingParameterVectorDestination(name=name, description=description),
                            help=help)
 
@@ -548,7 +647,9 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     P_OUTPUT_MASK = 'outMask'
 
-    def addParameterOutputMask(self, name=P_OUTPUT_MASK, description='Mask', help=None):
+    def addParameterOutputMask(self, name=P_OUTPUT_MASK, description='Output Mask', help=None):
+        if help is None:
+            help = 'Specify output path for mask raster.'
         self.addParameterOutputRaster(name=name, description=description, help=help)
 
     def getParameterOutputMask(self, name=P_OUTPUT_MASK):
@@ -556,17 +657,33 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     P_OUTPUT_CLASSIFICATION = 'outClassification'
 
-    def addParameterOutputClassification(self, name=P_OUTPUT_CLASSIFICATION, description='Classification',
+    def addParameterOutputClassification(self, name=P_OUTPUT_CLASSIFICATION, description='Output Classification',
                                          help=None):
+        if help is None:
+            help = 'Specify output path for classification raster.'
         self.addParameterOutputRaster(name=name, description=description, help=help)
 
     def getParameterOutputClassification(self, name=P_OUTPUT_CLASSIFICATION):
         return self.getParameterOutputFile(name=name)
 
+    P_OUTPUT_REGRESSION = 'outRegression'
+
+    def addParameterOutputRegression(self, name=P_OUTPUT_REGRESSION, description='Output Regression',
+                                     help=None):
+        if help is None:
+            help = 'Specify output path for regression raster.'
+        self.addParameterOutputRaster(name=name, description=description, help=help)
+
+    def getParameterOutputRegression(self, name=P_OUTPUT_REGRESSION):
+        return self.getParameterOutputFile(name=name)
+
+
     P_OUTPUT_PROBABILITY = 'outProbability'
 
-    def addParameterOutputProbability(self, name=P_OUTPUT_PROBABILITY, description='ClassProbability',
+    def addParameterOutputProbability(self, name=P_OUTPUT_PROBABILITY, description='Output ClassProbability',
                                       help=None):
+        if help is None:
+            help = 'Specify output path for class probability raster.'
         self.addParameterOutputRaster(name=name, description=description, help=help)
 
     def getParameterOutputProbability(self, name=P_OUTPUT_PROBABILITY):
@@ -575,6 +692,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_OUTPUT_REPORT = 'outReport'
 
     def addParameterOutputReport(self, name=P_OUTPUT_REPORT, description='HTML Report', help=None):
+        if help is None:
+            help = 'Specify output path for HTML report file (.html).'
         self.addParameter_(QgsProcessingParameterFileDestination(name=name, description=description,
                                                                  fileFilter='HTML files (*.html)'), help)
         self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
@@ -611,59 +730,70 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     P_ESTIMATOR = 'estimator'
 
-    def addParameterEstimator(self, name=P_ESTIMATOR, description='Estimator'):
-        self.addParameterFlowObject(name=name, description=description)
+    def addParameterEstimator(self, name=P_ESTIMATOR, description='Estimator', help=None):
+        self.addParameterFlowObject(name=name, description=description, help=help)
 
     def getParameterEstimator(self, name=P_ESTIMATOR, cls=Estimator):
         return self.getParameterFlowObject(name=name, cls=cls)
 
     P_CLASSIFIER = 'classifier'
 
-    def addParameterClassifier(self, name=P_CLASSIFIER, description='Classifier'):
-        self.addParameterEstimator(name=name, description=description)
+    def addParameterClassifier(self, name=P_CLASSIFIER, description='Classifier', help=None):
+        if help is None:
+            help = 'Select path to a classifier file (.pkl).'
+        self.addParameterEstimator(name=name, description=description, help=help)
 
     def getParameterClassifier(self, name=P_CLASSIFIER, cls=Classifier):
         return self.getParameterEstimator(name=name, cls=cls)
 
     P_REGRESSOR = 'regressor'
 
-    def addParameterRegressor(self, name=P_REGRESSOR, description='Regressor'):
-        self.addParameterEstimator(name=name, description=description)
+    def addParameterRegressor(self, name=P_REGRESSOR, description='Regressor', help=None):
+        if help is None:
+            help = 'Select path to a regressor file (.pkl).'
+        self.addParameterEstimator(name=name, description=description, help=help)
 
     def getParameterRegressor(self, name=P_REGRESSOR, cls=Regressor):
         return self.getParameterEstimator(name=name, cls=cls)
 
     P_CLUSTERER = 'clusterer'
 
-    def addParameterClusterer(self, name=P_CLUSTERER, description='Clusterer'):
-        self.addParameterEstimator(name=name, description=description)
+    def addParameterClusterer(self, name=P_CLUSTERER, description='Clusterer', help=None):
+        if help is None:
+            help = 'Select path to a clusterer file (.pkl).'
+        self.addParameterEstimator(name=name, description=description, help=help)
 
     def getParameterClusterer(self, name=P_CLUSTERER, cls=Clusterer):
         return self.getParameterEstimator(name=name, cls=cls)
 
     P_TRANSFORMER = 'transformer'
 
-    def addParameterTransformer(self, name=P_TRANSFORMER, description='Transformer'):
-        self.addParameterEstimator(name=name, description=description)
+    def addParameterTransformer(self, name=P_TRANSFORMER, description='Transformer', help=None):
+        if help is None:
+            help = 'Select path to a transformer file (.pkl).'
+        self.addParameterEstimator(name=name, description=description, help=help)
 
     def getParameterTransformer(self, name=P_TRANSFORMER, cls=Transformer):
         return self.getParameterEstimator(name=name, cls=cls)
 
     P_PROBABILITY_SAMPLE = 'probabilitySample'
 
-    def addParameterProbabilitySample(self, name=P_PROBABILITY_SAMPLE, description='ProbabilitySample'):
-        self.addParameterFlowObject(name=name, description=description)
+    def addParameterProbabilitySample(self, name=P_PROBABILITY_SAMPLE, description='ClassProbabilitySample'):
+        help = 'Specify path to sample file (.pkl).'
+        self.addParameterFlowObject(name=name, description=description, help=help)
 
     def getParameterProbabilitySample(self, name=P_PROBABILITY_SAMPLE):
         return self.getParameterFlowObject(name=name, cls=ProbabilitySample)
 
     P_OUTPUT_FILE = 'outFile'
 
-    def addParameterOutputFile(self, name=P_OUTPUT_FILE, description='File', fileFilter=None,
+    def addParameterOutputFile(self, name=P_OUTPUT_FILE, description='Output File', fileFilter=None,
                                defaultValue=None, optional=False, help=None):
         self.addParameter_(QgsProcessingParameterFileDestination(name=name, description=description,
                                                                  fileFilter=fileFilter, defaultValue=defaultValue,
                                                                  optional=optional), help=help)
+        if help is None:
+            help = 'Specify output path for file.'
         self.addOutput(QgsProcessingOutputFile(name=name, description=description))
 
     def getParameterOutputFile(self, name):
@@ -680,8 +810,10 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     P_OUTPUT_FLOW_OBJECT = 'outFlowObject'
 
-    def addParameterOutputFlowObject(self, name=P_OUTPUT_FLOW_OBJECT, description='FlowObject'):
-        self.addParameterOutputFile(name=name, description=description, fileFilter='Pickle files (*.pkl)')
+    def addParameterOutputFlowObject(self, name=P_OUTPUT_FLOW_OBJECT, description='Output FlowObject', help=None):
+        if help is None:
+            help = 'Specify output path for flow object pickle file.'
+        self.addParameterOutputFile(name=name, description=description, fileFilter='Pickle files (*.pkl)', help=help)
 
     def getParameterOutputFlowObject(self, name=P_OUTPUT_FLOW_OBJECT):
         filename = self.getParameterOutputFile(name=name)
@@ -693,40 +825,78 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     P_OUTPUT_ESTIMATOR = 'outEstimator'
 
-    def addParameterOutputEstimator(self, name=P_OUTPUT_ESTIMATOR):
-        self.addParameterOutputFlowObject(name=name, description='Estimator')
+    def addParameterOutputEstimator(self, name=P_OUTPUT_ESTIMATOR, description='Output Estimator', help=None):
+        self.addParameterOutputFlowObject(name=name, description=description, help=help)
 
     def getParameterOutputEstimator(self, name=P_OUTPUT_ESTIMATOR):
         return self.getParameterOutputFlowObject(name=name)
 
+    P_OUTPUT_CLASSIFIER = 'outClassifier'
+
+    def addParameterOutputClassifier(self, name=P_OUTPUT_CLASSIFIER, description='Output Classifier', help=None):
+        if help is None:
+            help = "Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassProbability'."
+
+        self.addParameterOutputEstimator(name=name, description=description, help=help)
+
+    P_OUTPUT_CLUSTERER = 'outClusterer'
+
+    def addParameterOutputClusterer(self, name=P_OUTPUT_CLUSTERER, description='Output Clusterer', help=None):
+        if help is None:
+            help = "Specifiy output path for the clusterer (.pkl). This file can be used for applying the clusterer to an image using 'Clustering -> Predict Clustering'."
+        self.addParameterOutputEstimator(name=name, description=description, help=help)
+
+    P_OUTPUT_REGRESSOR = 'outRegressor'
+
+    def addParameterOutputRegressor(self, name=P_OUTPUT_CLUSTERER, description='Output Regressor', help=None):
+        if help is None:
+            help = "Specifiy output path for the regressor (.pkl). This file can be used for applying the regressor to an image using 'Regression -> Predict Regression'."
+        self.addParameterOutputEstimator(name=name, description=description, help=help)
+
+    P_OUTPUT_TRANSFORMER = 'outTransformer'
+
+    def addParameterOutputTransformer(self, name=P_OUTPUT_CLUSTERER, description='Output Transformer', help=None):
+        if help is None:
+            help = "Specifiy output path for the transformer (.pkl). This file can be used for applying the transformer to an image using 'Transformation -> Transform Raster' and 'Transformation -> InverseTransform Raster'."
+        self.addParameterOutputEstimator(name=name, description=description, help=help)
+
     P_OUTPUT_CLASSIFICATION_SAMPLE = 'outClassificationSample'
 
-    def addParameterOutputClassificationSample(self, name=P_OUTPUT_CLASSIFICATION_SAMPLE):
-        self.addParameterOutputFlowObject(name=name, description='ClassificationSample')
+    def addParameterOutputClassificationSample(self, name=P_OUTPUT_CLASSIFICATION_SAMPLE, help=None):
+        if help is None:
+            help = 'Specify output path for sample (.pkl).'
+        self.addParameterOutputFlowObject(name=name, description='Output ClassificationSample', help=help)
 
     def getParameterOutputClassificationSample(self, name=P_OUTPUT_CLASSIFICATION_SAMPLE):
         return self.getParameterOutputFlowObject(name=name)
 
     P_OUTPUT_PROBABILITY_SAMPLE = 'outProbabilitySample'
 
-    def addParameterOutputProbabilitySample(self, name=P_OUTPUT_PROBABILITY_SAMPLE):
-        self.addParameterOutputFlowObject(name=name, description='ProbabilitySample')
+    def addParameterOutputProbabilitySample(self, name=P_OUTPUT_PROBABILITY_SAMPLE, help=None):
+        if help is None:
+            help = 'Specify output path for sample (.pkl).'
+        self.addParameterOutputFlowObject(name=name, description='Output ClassProbabilitySample', help=help)
 
     def getParameterOutputProbabilitySample(self, name=P_OUTPUT_PROBABILITY_SAMPLE):
         return self.getParameterOutputFlowObject(name=name)
 
     P_OUTPUT_REGRESSION_SAMPLE = 'outRegressionSample'
 
-    def addParameterOutputRegressionSample(self, name=P_OUTPUT_REGRESSION_SAMPLE):
-        self.addParameterOutputFlowObject(name=name, description='RegressionSample')
+    def addParameterOutputRegressionSample(self, name=P_OUTPUT_REGRESSION_SAMPLE, help=None):
+        if help is None:
+            help = 'Specify output path for sample (.pkl).'
+        self.addParameterOutputFlowObject(name=name, description='Output RegressionSample', help=help)
 
     def getParameterOutputRegressionSample(self, name=P_OUTPUT_REGRESSION_SAMPLE):
         return self.getParameterOutputFlowObject(name=name)
 
     P_OUTPUT_UNSUPERVISED_SAMPLE = 'outUnsupervisedSample'
 
-    def addParameterOutputUnsupervisedSample(self, name=P_OUTPUT_UNSUPERVISED_SAMPLE, description='Sample'):
-        self.addParameterOutputFlowObject(name=name, description=description)
+    def addParameterOutputUnsupervisedSample(self, name=P_OUTPUT_UNSUPERVISED_SAMPLE, description='Output Sample',
+                                             help=None):
+        if help is None:
+            help = 'Specify output path for sample (.pkl).'
+        self.addParameterOutputFlowObject(name=name, description=description, help=help)
 
     def getParameterOutputUnsupervisedSample(self, name=P_OUTPUT_UNSUPERVISED_SAMPLE):
         return self.getParameterOutputFlowObject(name=name)
@@ -735,15 +905,21 @@ class EnMAPAlgorithm(QgisAlgorithm):
         return False
 
     def description(self):
-        return 'undocumented algorithm'
+        return Help('undocumented algorithm')
 
     def shortHelpString(self):
 
-        text = '<p>' + self.description() + '</p>'
+        if isinstance(self.description(), str):
+            text = '<p>' + self.description() + '</p>'
+        elif isinstance(self.description(), Help):
+            text = '<p>' + self.description().html() + '</p>'
+        else:
+            assert 0
+
         for pd in self.parameterDefinitions():
             assert isinstance(pd, QgsProcessingParameterDefinition)
             text += '<h3>' + pd.description() + '</h3>'
-            text += '<p>' + pd._helpString.replace('\n', '<br>') + '</p>'
+            text += '<p>' + pd._help.html() + '</p>'
 
         return text
 

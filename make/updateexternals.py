@@ -33,9 +33,12 @@ class RemoteInfo(object):
     @staticmethod
     def create(*args, **kwds):
         info = RemoteInfo(*args, **kwds)
-        REMOTEINFOS[info.key] = info
+        if not info.key in REMOTEINFOS.keys():
+            REMOTEINFOS[info.key] = []
+        REMOTEINFOS[info.key].append(info)
 
-    def __init__(self, uri, key=None, prefixLocal=None, prefixRemote=None, remoteBranch='master', excluded=[]):
+    def __init__(self, uri, key=None, prefixLocal=None, prefixRemote=None, remoteBranch='master', excluded=[],
+                 postupdatehook=None):
         """
         Describes how a remote repository is connected to this repository
         :param uri: uri of remote repository. Needs to end with  '.git'
@@ -56,6 +59,7 @@ class RemoteInfo(object):
         self.prefixRemote = prefixRemote
         self.remoteBranch = remoteBranch
         self.excluded = excluded
+        self.postupdatehook = None
 
     def remotePath(self):
         if self.prefixRemote is None or len(self.prefixRemote) == 0:
@@ -70,23 +74,27 @@ RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
                   prefixLocal=r'enmapboxtestdata',
-                  prefixRemote=r'enmapboxtestdata',
-                  )
+                  prefixRemote=r'enmapboxtestdata')
 
 RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
                   prefixLocal=r'site-packages/vrtbuilder',
-                  prefixRemote=r'vrtbuilder',
-                  )
+                  prefixRemote=r'vrtbuilder')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   prefixLocal=r'enmapboxgeoalgorithms',
                   prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='develop')
 
+RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
+                  prefixLocal=r'doc/source/geoalgorithms',
+                  prefixRemote=r'doc/source',
+                  excluded=['conf.py','index.rst'],
+                  remoteBranch='develop')
+
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',
                   prefixRemote=r'hubdc',
-                  excluded=['gis'])
+                  excluded=['gis','testdata'])
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixLocal=r'site-packages/hubflow',
@@ -102,31 +110,32 @@ RemoteInfo.create(r'https://github.com/dask/dask.git',
 
 def updateRemote(remoteInfo):
     if isinstance(remoteInfo, str):
-        remoteInfo = REMOTEINFOS[remoteInfo]
+        remoteInfos = REMOTEINFOS[remoteInfo]
 
     # see https://stackoverflow.com/questions/23937436/add-subdirectory-of-remote-repo-with-git-subtree
     # see https://blisqu.wordpress.com/2012/09/08/merge-subdirectory-from-another-git-repository/
-    assert isinstance(remoteInfo, RemoteInfo)
-    remote = REPO.remote(remoteInfo.key)
+    for remoteInfo in remoteInfos:
+        assert isinstance(remoteInfo, RemoteInfo)
+        remote = REPO.remote(remoteInfo.key)
 
-    remote.fetch(remoteInfo.remotePath())
-    files = REPO.git.execute(
-        ['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
-    if len(files) > 0:
-        info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal, r=True, f=True)])
+        remote.fetch(remoteInfo.remotePath())
+        files = REPO.git.execute(
+            ['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
+        if len(files) > 0:
+            info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal, r=True, f=True)])
+            print(info)
+
+        info = ''.join([i for i in REPO.git.read_tree(prefix=remoteInfo.prefixLocal, u='{key}/{path}'.format(
+            key=remoteInfo.key, path=remoteInfo.remotePath()
+        ))])
         print(info)
 
-    info = ''.join([i for i in REPO.git.read_tree(prefix=remoteInfo.prefixLocal, u='{key}/{path}'.format(
-        key=remoteInfo.key, path=remoteInfo.remotePath()
-    ))])
-    print(info)
+        # remove excluded files
+        for e in remoteInfo.excluded:
+            info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal + '/' + e, r=True, f=True)])
+            print(info)
 
-    # remove excluded files
-    for e in remoteInfo.excluded:
-        info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal + '/' + e, r=True, f=True)])
-        print(info)
-
-    print('Update {} done'.format(remoteInfo.key))
+        print('Update {} done'.format(remoteInfo.key))
 
 
 def addRemote(remoteInfo):
@@ -154,11 +163,14 @@ if __name__ == "__main__":
     for rn in REMOTEINFOS.keys():
         if rn not in existingRemoteNames:
             print('Need to add {}'.format(rn))
-            addRemote(REMOTEINFOS[rn])
+            for info in REMOTEINFOS[rn]:
+                addRemote(info)
 
     # update remotes
-    to_update = ['hub-datacube', 'hub-workflow', #'enmap-box-testdata',
-                 'enmap-box-geoalgorithmsprovider']  # enmap-box-geoalgorithmsprovider
+    to_update = [#'hub-datacube', 'hub-workflow', #'enmap-box-testdata',
+                 'enmap-box-geoalgorithmsprovider',
+                # 'enmapboxgeoalgorithmsdoc'
+                ]  # enmap-box-geoalgorithmsprovider
 
     #to_update = ['virtual-raster-builder']
     #to_update = ['dask']

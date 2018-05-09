@@ -545,6 +545,9 @@ def printMenu():
 
 
 if __name__ == '__main__':
+    generateRST()
+
+    exit()
     test_TestParameters()
     test_ClassDefinitionFromRaster()
     test_Classification()
@@ -569,7 +572,7 @@ if __name__ == '__main__':
     test_VectorUniqueValues()
 
     #test_help()
-    #generateRST()
+    generateRST()
 
 # printMenu()
 print('done!!!')

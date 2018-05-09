@@ -2,8 +2,9 @@ import sys
 from qgis.core import *
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, TESTALGORITHMS, \
-    ALGORITHMS
+    ALGORITHMS, Help, Link
 from enmapboxgeoalgorithms.estimators import parseClassifiers, parseClusterers, parseRegressors, parseTransformers
+
 
 class TestRaster(EnMAPAlgorithm):
     P_RASTER2 = 'raster2'
@@ -67,6 +68,7 @@ class TestVectorClassification(EnMAPAlgorithm):
         self._progressBar.setText(repr(vectorClassification))
         return {}
 
+
 TESTALGORITHMS.append(TestVectorClassification())
 
 
@@ -82,6 +84,7 @@ class TestClassDefinition(EnMAPAlgorithm):
         classDefinition = self.getParameterClassDefinition()
         self._progressBar.setText(repr(classDefinition))
         return {}
+
 
 TESTALGORITHMS.append(TestClassDefinition())
 
@@ -121,6 +124,7 @@ class TestString(EnMAPAlgorithm):
         self._progressBar.setText(string2)
         return {}
 
+
 TESTALGORITHMS.append(TestString())
 
 
@@ -139,6 +143,7 @@ class TestNumber(EnMAPAlgorithm):
         self._progressBar.setText(number1)
         self._progressBar.setText(number2)
         return {}
+
 
 TESTALGORITHMS.append(TestNumber())
 
@@ -181,11 +186,14 @@ class ClassDefinitionFromRaster(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassDefinition from Raster'
 
+    def description(self):
+        return "Creates a Class Definition string from a classification input raster for the usage in other EnMAP-Box algorithms (e.g. 'Classification from Vector'). See Log window for result."
+
     def group(self):
         return self.GROUP_AUXILLIARY
 
     def defineCharacteristics(self):
-        self.addParameterRaster()
+        self.addParameterRaster(help='Specify raster with defined class definition, e.g. classification or class probability raster')
 
     def processAlgorithm_(self):
 
@@ -207,7 +215,10 @@ ALGORITHMS.append(ClassDefinitionFromRaster())
 
 class ClassificationFromProbability(EnMAPAlgorithm):
     def displayName(self):
-        return 'Classification from Probability'
+        return 'Classification from ClassProbability'
+
+    def description(self):
+        return 'Creates classification from class probability. Winner class is equal to the class with maximum class probability.'
 
     def group(self):
         return self.GROUP_CREATE_RASTER
@@ -233,6 +244,9 @@ class ClassificationFromVectorClassification(EnMAPAlgorithm):
 
     def displayName(self): return 'Classification from Vector'
 
+    def description(self):
+        return 'Creates a classification from a vector field with class ids.'
+
     def defineCharacteristics(self):
         self.addParameterGrid()
         self.addParameterVectorClassification()
@@ -257,9 +271,14 @@ class ClassificationPerformanceFromRaster(EnMAPAlgorithm):
 
     def displayName(self): return 'Classification Performance'
 
+    def description(self):
+        return 'Assesses the performance of a classification.'
+
     def defineCharacteristics(self):
-        self.addParameterClassification(self.P_PREDICTION, 'Prediction')
-        self.addParameterClassification(self.P_REFERENCE, 'Reference')
+        self.addParameterClassification(self.P_PREDICTION, 'Prediction',
+                                        help='Specify classification raster be evaluated')
+        self.addParameterClassification(self.P_REFERENCE, 'Reference',
+                                        help='Specify reference classification raster (i.e. ground truth).')
         self.addParameterOutputReport()
 
     def processAlgorithm_(self):
@@ -271,6 +290,7 @@ class ClassificationPerformanceFromRaster(EnMAPAlgorithm):
         performance.report().saveHTML(filename=filename, open=True)
         return {self.P_OUTPUT_REPORT: filename}
 
+
 ALGORITHMS.append(ClassificationPerformanceFromRaster())
 
 
@@ -278,14 +298,24 @@ class ClassificationSampleFromENVISpectralLibrary(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassificationSample from ENVI Spectral Library'
 
+    def description(self):
+        return 'Derive ClassificationSample from ENVI Spectral Library.'
+
     def group(self):
         return self.GROUP_CREATE_SAMPLE
 
     P_CLASSDEFINITIONPREFIX = 'classDefinitionPrefix'
 
     def defineCharacteristics(self):
+        import enmapboxtestdata
         self.addParameterEnviSpeclib()
-        self.addParameterString(self.P_CLASSDEFINITIONPREFIX, 'ClassDefinition prefix')
+        self.addParameterString(self.P_CLASSDEFINITIONPREFIX, 'ClassDefinition prefix', optional=True,
+                                help=Help("Class definition prefixes allow the selection of a specific class definition "
+                                          "(i.e. 'class names' and 'class lookup') and class mapping (i.e. 'class spectra names') "
+                                          "stored in the spectral library .hdr file).\n"
+                                          "For example, inside the {}, the prefixes 'level 1' and 'level 2' are defined.",
+                                          links=[Link(url='file:///'+enmapboxtestdata.speclib.replace('.sli', '.hdr'),
+                                                      name='EnMAP-Box testdata spectral library')]))
         self.addParameterOutputClassificationSample()
 
     def processAlgorithm_(self):
@@ -315,7 +345,11 @@ ALGORITHMS.append(ClassificationSampleFromENVISpectralLibrary())
 class ClassificationSampleFromProbabilitySample(EnMAPAlgorithm):
     def group(self): return self.GROUP_CREATE_SAMPLE
 
-    def displayName(self): return 'ClassificationSample from ClassProbabilitySample'
+    def displayName(self):
+        return 'ClassificationSample from ClassProbabilitySample'
+
+    def description(self):
+        return 'Derive ClassificationSample from ClassProbabilitySample. Winner class is selected by the maximum probability decision.'
 
     def defineCharacteristics(self):
         self.addParameterProbabilitySample()
@@ -338,7 +372,11 @@ ALGORITHMS.append(ClassificationSampleFromProbabilitySample())
 class ClassificationSampleFromRasterAndProbability(EnMAPAlgorithm):
     def group(self): return self.GROUP_CREATE_SAMPLE
 
-    def displayName(self): return 'ClassificationSample from Raster and Probability'
+    def displayName(self):
+        return 'ClassificationSample from Raster and ClassProbability'
+
+    def description(self):
+        return 'Derives classification sample from raster and class probability raster.'
 
     def defineCharacteristics(self):
         self.addParameterRaster()
@@ -370,6 +408,9 @@ class ClassificationSampleFromRasterAndVectorClassification(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassificationSample from Raster and Vector'
 
+    def description(self):
+        return 'Derives classification sample from raster and vector.'
+
     def group(self):
         return self.GROUP_CREATE_SAMPLE
 
@@ -377,7 +418,6 @@ class ClassificationSampleFromRasterAndVectorClassification(EnMAPAlgorithm):
         self.addParameterRaster()
         self.addParameterVectorClassification()
         self.addParameterMask()
-        #self.addParameterNumberOfPointsPerClass(optional=True)
         self.addParameterOutputClassificationSample()
 
     def processAlgorithm_(self):
@@ -397,7 +437,11 @@ ALGORITHMS.append(ClassificationSampleFromRasterAndVectorClassification())
 
 
 class ClassificationSampleSynthMix(EnMAPAlgorithm):
-    def displayName(self): return 'ClassProbabilitySample from synthetically mixed ClassificationSample'
+    def displayName(self):
+        return 'ClassProbabilitySample from synthetically mixed ClassificationSample'
+
+    def description(self):
+        return 'Derives a class probability sample by synthetically mixing (pure) spectra from a ClassificationSample.'
 
     def group(self): return self.GROUP_CREATE_SAMPLE
 
@@ -409,11 +453,17 @@ class ClassificationSampleSynthMix(EnMAPAlgorithm):
 
     def defineCharacteristics(self):
         self.addParameterClassificationSample()
-        self.addParameterInteger(self.P_N, 'n', defaultValue=1000)
-        self.addParameterFloat(self.P_COMPLEXITY2LIKELIHOOD, 'Likelihood for mixing complexity 2', defaultValue=1.0)
-        self.addParameterFloat(self.P_COMPLEXITY3LIKELIHOOD, 'Likelihood for mixing complexity 3', defaultValue=0.0)
+        self.addParameterInteger(self.P_N, 'n', defaultValue=1000,
+                                 help='Total number of samples to be generated.')
+        self.addParameterFloat(self.P_COMPLEXITY2LIKELIHOOD, 'Likelihood for mixing complexity 2', defaultValue=1.0,
+                               help='Specifies the probability of mixing spectra from 2 classes.')
+        self.addParameterFloat(self.P_COMPLEXITY3LIKELIHOOD, 'Likelihood for mixing complexity 3', defaultValue=0.0,
+                               help='Specifies the probability of mixing spectra from 3 classes.')
         self.addParameterEnum(self.P_CLASSLIKELIHOODS, 'Class likelihoods', options=self.ENUM_CLASSLIKELIHOODS,
-                              defaultValue=0)
+                              defaultValue=0,
+                              help='Specifies the likelihoods for drawing spectra from individual classes.\n'
+                                   "In case of 'equalized', all classes have the same likelihhod to be drawn from.\n"
+                                   "In case of 'proportional', class likelihoods scale with their sizes.")
         self.addParameterOutputProbabilitySample()
 
     def processAlgorithm_(self):
@@ -433,9 +483,14 @@ ALGORITHMS.append(ClassificationSampleSynthMix())
 
 
 class ClassificationSampleFromRasterAndClassification(EnMAPAlgorithm):
-    def displayName(self): return 'ClassificationSample from Raster and Classification'
+    def displayName(self):
+        return 'ClassificationSample from Raster and Classification'
 
-    def group(self): return 'Create Sample'
+    def description(self):
+        return 'Derives a classification sample from raster (defines the grid) and classification.'
+
+    def group(self):
+        return 'Create Sample'
 
     def defineCharacteristics(self):
         self.addParameterRaster()
@@ -461,13 +516,18 @@ ALGORITHMS.append(ClassificationSampleFromRasterAndClassification())
 
 
 class EstimatorFit(EnMAPAlgorithm):
-    def __init__(self, name, code):
+    def __init__(self, name, code, helpAlg, helpCode):
         self._name = name
         self._code = code
+        self._helpAlg = helpAlg
+        self._helpCode = helpCode
         super().__init__()
 
+    def description(self):
+        return self._helpAlg
+
     def createInstance(self):
-        return type(self)(name=self._name, code=self._code)
+        return type(self)(name=self._name, code=self._code, helpAlg=self._helpAlg, helpCode=self._helpCode)
 
     def displayName(self):
         return 'Fit ' + self._name
@@ -478,7 +538,7 @@ class EstimatorFit(EnMAPAlgorithm):
     P_CODE = 'code'
 
     def addParameterCode(self):
-        self.addParameterString(self.P_CODE, 'Code', defaultValue=self._code, multiLine=True)
+        self.addParameterString(self.P_CODE, 'Code', defaultValue=self._code, multiLine=True, help=self._helpCode)
 
     def sklEstimator(self):
         namespace = dict()
@@ -509,7 +569,7 @@ class ClassifierFit(EstimatorFit):
     def defineCharacteristics(self):
         self.addParameterClassificationSample()
         self.addParameterCode()
-        self.addParameterOutputEstimator()
+        self.addParameterOutputClassifier()
 
     def sample(self):
         return self.getParameterClassificationSample()
@@ -518,8 +578,8 @@ class ClassifierFit(EstimatorFit):
         return Classifier(sklEstimator=sklEstimator)
 
 
-for name, code in parseClassifiers().items():
-    ALGORITHMS.append(ClassifierFit(name=name, code=code))
+for name, (code, helpAlg, helpCode) in parseClassifiers().items():
+    ALGORITHMS.append(ClassifierFit(name=name, code=code, helpAlg=helpAlg, helpCode=helpCode))
 
 
 class ClustererFit(EstimatorFit):
@@ -529,7 +589,7 @@ class ClustererFit(EstimatorFit):
     def defineCharacteristics(self):
         self.addParameterUnsupervisedSample()
         self.addParameterCode()
-        self.addParameterOutputEstimator()
+        self.addParameterOutputClusterer()
 
     def sample(self):
         return self.getParameterUnsupervisedSample()
@@ -538,45 +598,34 @@ class ClustererFit(EstimatorFit):
         return Clusterer(sklEstimator=sklEstimator)
 
 
-for name, code in parseClusterers().items():
-    ALGORITHMS.append(ClustererFit(name=name, code=code))
+for name, (code, helpAlg, helpCode) in parseClusterers().items():
+    ALGORITHMS.append(ClustererFit(name=name, code=code, helpAlg=helpAlg, helpCode=helpCode))
 
 
-class EstimatorPredict(EnMAPAlgorithm):
-    def defineCharacteristics(self):
-        self.addParameterRaster()
-        self.addParameterMask()
-        self.addEstimator()
-        self.addParameterOutputRaster(description='Prediction')
+class ClassifierPredict(EnMAPAlgorithm):
 
-    def processAlgorithm_(self):
-        estimator = self.getEstimator()
-        raster = self.getParameterRaster()
-        mask = self.getParameterMask()
-        filename = self.getParameterOutputRaster()
-        estimator.predict(filename=filename, raster=raster, mask=mask, progressBar=self._progressBar)
-        return {self.P_OUTPUT_RASTER: filename}
-
-    def addEstimator(self):
-        assert 0
-
-    def getEstimator(self):
-        assert 0
-
-
-class ClassifierPredict(EstimatorPredict):
     def displayName(self):
         return 'Predict Classification'
 
     def group(self):
         return self.GROUP_CLASSIFICATION
 
-    def addEstimator(self):
+    def description(self):
+        return 'Applies a classifier to a raster.'
+
+    def defineCharacteristics(self):
+        self.addParameterRaster(help='Select raster file which should be classified.')
+        self.addParameterMask()
         self.addParameterClassifier()
+        self.addParameterOutputClassification()
 
-    def getEstimator(self):
-        return self.getParameterClassifier()
-
+    def processAlgorithm_(self):
+        estimator = self.getParameterClassifier()
+        raster = self.getParameterRaster()
+        mask = self.getParameterMask()
+        filename = self.getParameterOutputClassification()
+        estimator.predict(filename=filename, raster=raster, mask=mask, progressBar=self._progressBar)
+        return {self.P_OUTPUT_RASTER: filename}
 
 ALGORITHMS.append(ClassifierPredict())
 
@@ -584,6 +633,9 @@ ALGORITHMS.append(ClassifierPredict())
 class ClassifierPredictProbability(EnMAPAlgorithm):
     def displayName(self):
         return 'Predict ClassProbability'
+
+    def description(self):
+        return 'Applies a classifier to a raster.'
 
     def group(self):
         return self.GROUP_CLASSIFICATION
@@ -602,22 +654,32 @@ class ClassifierPredictProbability(EnMAPAlgorithm):
         estimator.predictProbability(filename=filename, raster=raster, mask=mask, progressBar=self._progressBar)
         return {self.P_OUTPUT_RASTER: filename}
 
-
 ALGORITHMS.append(ClassifierPredictProbability())
 
 
-class ClustererPredict(EstimatorPredict):
+class ClustererPredict(EnMAPAlgorithm):
     def displayName(self):
         return 'Predict Clustering'
+
+    def description(self):
+        return 'Applies a clusterer to a raster.'
 
     def group(self):
         return self.GROUP_CLUSTERING
 
-    def addEstimator(self):
+    def defineCharacteristics(self):
+        self.addParameterRaster(help='Select raster file which should be clustered.')
+        self.addParameterMask()
         self.addParameterClusterer()
+        self.addParameterOutputClassification(description='Clustering')
 
-    def getEstimator(self):
-        return self.getParameterClusterer()
+    def processAlgorithm_(self):
+        estimator = self.getParameterClusterer()
+        raster = self.getParameterRaster()
+        mask = self.getParameterMask()
+        filename = self.getParameterOutputClassification()
+        estimator.predict(filename=filename, raster=raster, mask=mask, progressBar=self._progressBar)
+        return {self.P_OUTPUT_RASTER: filename}
 
 
 ALGORITHMS.append(ClustererPredict())
@@ -627,6 +689,8 @@ class ClusteringPerformanceFromRaster(EnMAPAlgorithm):
     def displayName(self):
         return 'Clustering Performance'
 
+    def description(self):
+        return 'Assesses the performance of a clusterer.'
     def group(self):
         return self.GROUP_ACCURACY_ASSESSMENT
 
@@ -634,8 +698,10 @@ class ClusteringPerformanceFromRaster(EnMAPAlgorithm):
     P_REFERENCE = 'reference'
 
     def defineCharacteristics(self):
-        self.addParameterClassification(self.P_PREDICTION, 'Prediction')
-        self.addParameterClassification(self.P_REFERENCE, 'Reference')
+        self.addParameterClassification(self.P_PREDICTION, 'Prediction',
+                                        help='Specify clustering raster to be evaluated.')
+        self.addParameterClassification(self.P_REFERENCE, 'Reference',
+                                        help='Specify reference clustering raster (i.e. ground truth).')
         self.addParameterOutputReport()
 
     def processAlgorithm_(self):
@@ -655,12 +721,17 @@ class CreateAdditionalTestdata(EnMAPAlgorithm):
     def displayName(self):
         return 'Create additional Testdata'
 
+    def description(self):
+        return 'Based on the testdata additional datasets will be created using existing EnMAP-Box algorithms with predefined settings.'
+
     def group(self):
         return self.GROUP_AUXILLIARY
 
     def defineCharacteristics(self):
-        self.addParameterOutputClassification(description='LandCover L2 Classification')
-        self.addParameterOutputProbability(description='LandCover L2 ClassProbability')
+        self.addParameterOutputClassification(description='LandCover L2 Classification',
+                                              help='Specify output path for LandCover L2 Classification.')
+        self.addParameterOutputProbability(description='LandCover L2 ClassProbability',
+                                           help='Specify output path for LandCover L2 ClassProbability.')
         self.addParameterOutputUnsupervisedSample()
         self.addParameterOutputClassificationSample()
         self.addParameterOutputProbabilitySample()
@@ -705,6 +776,9 @@ class MaskBuildFromRaster(EnMAPAlgorithm):
     def displayName(self):
         return 'Build Mask from Raster'
 
+    def description(self):
+        return 'Builds a mask from a raster based on user defined values and value ranges.'
+
     def group(self):
         return self.GROUP_MASKING
 
@@ -746,7 +820,10 @@ class OpenTestdata_Toolbox(EnMAPAlgorithm):
         return self.GROUP_AUXILLIARY
 
     def displayName(self):
-        return 'Open Testdata'
+        return OpenTestdata_Modeler().displayName()
+
+    def description(self):
+        return OpenTestdata_Modeler().description()
 
     def defineCharacteristics(self):
         pass
@@ -757,11 +834,13 @@ class OpenTestdata_Toolbox(EnMAPAlgorithm):
 
         qgis.utils.iface.addRasterLayer(enmapboxtestdata.enmap, basename(enmapboxtestdata.enmap), 'gdal')
         qgis.utils.iface.addRasterLayer(enmapboxtestdata.hymap, basename(enmapboxtestdata.hymap), 'gdal')
-        qgis.utils.iface.addVectorLayer(enmapboxtestdata.landcover, None, 'ogr') # QGIS 3 bug when setting the name, e.g. basename(enmapboxtestdata.landcover)
+        qgis.utils.iface.addVectorLayer(enmapboxtestdata.landcover, None,
+                                        'ogr')  # QGIS 3 bug when setting the name, e.g. basename(enmapboxtestdata.landcover)
         return {}
 
     def flags(self):
         return self.FlagHideFromModeler
+
 
 ALGORITHMS.append(OpenTestdata_Toolbox())
 
@@ -773,15 +852,27 @@ class OpenTestdata_Modeler(EnMAPAlgorithm):
     def displayName(self):
         return 'Open Testdata'
 
+    def description(self):
+        return 'Opens testdata into current QGIS project (LandCov_BerlinUrbanGradient.shp, HighResolution_BerlinUrbanGradient.bsq, EnMAP_BerlinUrbanGradient.bsq, SpecLib_BerlinUrbanGradient.sli).'
+
     def name(self):
         return 'OpenTestdataForModel'
 
     def defineCharacteristics(self):
-        # self.doc = 'Open EnMAP-Box Testdata'
-        self.addParameterOutputRaster('enmap', 'EnMAP (30m; 177 bands)')
-        self.addParameterOutputRaster('hymap', 'HyMap (3.6m; Blue, Green, Red, NIR bands)')
-        self.addParameterOutputVector('landcover', 'LandCover Layer')
-        self.addParameterOutputFile('speclib', 'ENVI Spectral Library')
+        self.addParameterOutputRaster('enmap', 'EnMAP (30m; 177 bands)',
+                                      help='File name: EnMAP_BerlinUrbanGradient.bsq\n'
+                                           'Simulated EnMAP data (based on 3.6m HyMap imagery) acquired in August 2009 over south eastern part of Berlin covering an area of 4.32 km^2 (2.4 x 1.8 km). It has a spectral resolution of 177 bands and a spatial resolution of 30m.')
+        self.addParameterOutputRaster('hymap', 'HyMap (3.6m; Blue, Green, Red, NIR bands)',
+                                      help='File name: HighResolution_BerlinUrbanGradient.bsq\n'
+                                           'HyMap image acquired in August 2009 over south eastern part of Berlin covering an area of 4.32 km^2 (2.4 x 1.8 km). This dataset was reduced to 4 bands (0.483, 0.558, 0.646 and 0.804 micrometers). The spatial resolution is 3.6m.')
+        self.addParameterOutputVector('landcover', 'LandCover Layer',
+                                      help='File name: LandCov_BerlinUrbanGradient.shp\n'
+                                           'Polygon shapefile containing land cover information on two classification levels. Derived from very high resolution aerial imagery and cadastral datasets.\n'
+                                           'Level 1 classes: Impervious; Other; Vegetation; Soil\n'
+                                           'Level 2 classes: Roof; Low vegetation; Other; Pavement; Tree; Soil')
+        self.addParameterOutputFile('speclib', 'ENVI Spectral Library',
+                                    help='File name: SpecLib_BerlinUrbanGradient.sli\n'
+                                         'Spectral library with 75 spectra (material level, level 2 and level 3 class information)')
 
     def processAlgorithm_(self):
         import enmapboxtestdata
@@ -797,10 +888,14 @@ class OpenTestdata_Modeler(EnMAPAlgorithm):
 ALGORITHMS.append(OpenTestdata_Modeler())
 
 
-
 class ProbabilityAsClassColorRGB(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbability as RGB Raster'
+
+    def description(self):
+        return 'Creates a RGB representation from given class probabilities. ' \
+               'The RGB color of a specific pixel is the weighted mean value of the original class colors, ' \
+               'where the weights are given by the corresponding class propability.\n' \
 
     def group(self):
         return self.GROUP_POSTPROCESSING
@@ -815,12 +910,16 @@ class ProbabilityAsClassColorRGB(EnMAPAlgorithm):
         probability.asClassColorRGBRaster(filename=filename, progressBar=self._progressBar)
         return {self.P_OUTPUT_RASTER: filename}
 
+
 ALGORITHMS.append(ProbabilityAsClassColorRGB())
 
 
 class ProbabilityFromClassification(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbability from Classification'
+
+    def description(self):
+        return 'Derive (binarized) class probabilities from a classification.'
 
     def group(self):
         return self.GROUP_CREATE_RASTER
@@ -842,6 +941,9 @@ ALGORITHMS.append(ProbabilityFromClassification())
 class ProbabilityFromVectorClassification(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbability from Vector'
+
+    def description(self):
+        return 'Derives class probability raster from a vector file with sufficient class information.'
 
     def group(self):
         return self.GROUP_CREATE_RASTER
@@ -868,6 +970,9 @@ class ProbabilityPerformanceFromRaster(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbability Performance'
 
+    def description(self):
+        return 'Assesses the performance of class probabilities in terms of AUC and ROC curves.'
+
     def group(self):
         return self.GROUP_ACCURACY_ASSESSMENT
 
@@ -875,8 +980,10 @@ class ProbabilityPerformanceFromRaster(EnMAPAlgorithm):
     P_REFERENCE = 'reference'
 
     def defineCharacteristics(self):
-        self.addParameterRaster(self.P_PREDICTION, 'Prediction (Probabiliy)')
-        self.addParameterRaster(self.P_REFERENCE, 'Reference (Classification)')
+        self.addParameterRaster(self.P_PREDICTION, 'Prediction',
+                                help='Specify class probability raster to be evaluated.')
+        self.addParameterRaster(self.P_REFERENCE, 'Reference',
+                                help='Specify reference classification raster (i.e. ground truth).')
         self.addParameterOutputReport()
 
     def processAlgorithm_(self):
@@ -895,6 +1002,9 @@ ALGORITHMS.append(ProbabilityPerformanceFromRaster())
 class ProbabilitySampleFromClassificationSample(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbabilitySample from ClassificationSample'
+
+    def description(self):
+        return 'Derives a class probability sample from a classification sample.'
 
     def group(self):
         return self.GROUP_CREATE_SAMPLE
@@ -917,6 +1027,9 @@ ALGORITHMS.append(ProbabilitySampleFromClassificationSample())
 class ProbabilitySampleFromRasterAndClassification(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbabilitySample from Raster and Classification'
+
+    def description(self):
+        return 'Derives a class probability sample from raster and classification.'
 
     def group(self):
         return self.GROUP_CREATE_SAMPLE
@@ -946,6 +1059,9 @@ class ProbabilitySampleFromRasterAndProbability(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbabilitySample from Raster and ClassProbability'
 
+    def description(self):
+        return 'Derives class probability sample from raster and class probability.'
+
     def group(self):
         return self.GROUP_CREATE_SAMPLE
 
@@ -974,6 +1090,9 @@ class ProbabilitySampleFromRasterAndVector(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassProbabilitySample from Raster and Vector'
 
+    def description(self):
+        return 'Derives class probability sample from raster and vector.'
+
     def group(self):
         return self.GROUP_CREATE_SAMPLE
 
@@ -1000,7 +1119,10 @@ ALGORITHMS.append(ProbabilitySampleFromRasterAndVector())
 
 class RasterApplyMask(EnMAPAlgorithm):
     def displayName(self):
-        return 'Apply Mask to Raster'
+        return 'Apply Mask to Raster. Pixels that are masked out are set to the raster no data value.'
+
+    def description(self):
+        return ''
 
     def group(self):
         return self.GROUP_MASKING
@@ -1024,6 +1146,11 @@ class RasterFromVector(EnMAPAlgorithm):
     def displayName(self):
         return 'Raster from Vector'
 
+    def description(self):
+        return Help(text='Converts vector to raster (using {}).',
+                    links=[Link(url='http://gdal.org/python/osgeo.gdal-module.html#RasterizeOptions',
+                                name='gdal rasterize')])
+
     def group(self):
         return self.GROUP_CREATE_RASTER
 
@@ -1036,12 +1163,18 @@ class RasterFromVector(EnMAPAlgorithm):
     def defineCharacteristics(self):
         self.addParameterGrid()
         self.addParameterVector()
-        self.addParameterFloat(self.P_INIT_VALUE, 'Init Value', defaultValue=0)
-        self.addParameterFloat(self.P_BURN_VALUE, 'Burn Value', defaultValue=1)
+        self.addParameterFloat(self.P_INIT_VALUE, 'Init Value', defaultValue=0,
+                               help='Pre-initialization value for the output raster before burning. Note that this value is not marked as the nodata value in the output raster.')
+        self.addParameterFloat(self.P_BURN_VALUE, 'Burn Value', defaultValue=1,
+                               help='Fixed value to burn into each pixel, which is covered by a feature (point, line or polygon).')
         self.addParameterField(self.P_BURN_ATTRIBUTE, 'Burn Attribute', type=QgsProcessingParameterField.Numeric,
-                               parentLayerParameterName=self.P_VECTOR, optional=True)
-        self.addParameterBoolean(self.P_ALL_TOUCHED, 'All touched', defaultValue=False)
-        self.addParameterString(self.P_FILTER_SQL, 'Filter SQL', defaultValue='', optional=True)
+                               parentLayerParameterName=self.P_VECTOR, optional=True,
+                               help='Specify numeric vector field to use as burn values.')
+        self.addParameterBoolean(self.P_ALL_TOUCHED, 'All touched', defaultValue=False,
+                                 help='Enables the ALL_TOUCHED rasterization option so that all pixels touched by lines or polygons will be updated, not just those on the line render path, or whose center point is within the polygon.')
+        self.addParameterString(self.P_FILTER_SQL, 'Filter SQL', defaultValue='', optional=True,
+                                help='Create SQL based feature selection, so that only selected features will be used for burning.\n'
+                                     "Example: Level_2 = 'Roof' will only burn geometries where the Level_2 attribute value is equal to 'Roof', others will be ignored. This allows you to subset the vector dataset on-the-fly.")
         self.addParameterDataType()
         self.addParameterNoDataValue(optional=True)
         self.addParameterOutputRaster()
@@ -1071,6 +1204,9 @@ class RegressionPerformanceFromRaster(EnMAPAlgorithm):
     def displayName(self):
         return 'Regression Performance'
 
+    def description(self):
+        return 'Assesses the performance of a regression.'
+
     def group(self):
         return 'Accuracy Assessment'
 
@@ -1078,8 +1214,10 @@ class RegressionPerformanceFromRaster(EnMAPAlgorithm):
     P_REFERENCE = 'reference'
 
     def defineCharacteristics(self):
-        self.addParameterRegression(self.P_PREDICTION, 'Prediction')
-        self.addParameterRegression(self.P_REFERENCE, 'Reference')
+        self.addParameterRegression(self.P_PREDICTION, 'Prediction',
+                                    help='Specify regression raster to be evaluated.')
+        self.addParameterRegression(self.P_REFERENCE, 'Reference',
+                                    help='Specify reference regression raster (i.e. ground truth).')
         self.addParameterOutputReport()
 
     def processAlgorithm_(self):
@@ -1098,6 +1236,9 @@ ALGORITHMS.append(RegressionPerformanceFromRaster())
 class RegressionSampleFromRasterAndRegression(EnMAPAlgorithm):
     def displayName(self):
         return 'RegressionSample from Raster and Regression'
+
+    def description(self):
+        return 'Derives Regression sample from raster and regression.'
 
     def group(self):
         return 'Create Sample'
@@ -1130,7 +1271,7 @@ class RegressorFit(EstimatorFit):
     def defineCharacteristics(self):
         self.addParameterRegressionSample()
         self.addParameterCode()
-        self.addParameterOutputEstimator()
+        self.addParameterOutputRegressor()
 
     def sample(self):
         return self.getParameterRegressionSample()
@@ -1139,22 +1280,33 @@ class RegressorFit(EstimatorFit):
         return Regressor(sklEstimator=sklEstimator)
 
 
-for name, code in parseRegressors().items():
-    ALGORITHMS.append(RegressorFit(name=name, code=code))
+for name, (code, helpAlg, helpCode) in parseRegressors().items():
+    ALGORITHMS.append(RegressorFit(name=name, code=code, helpAlg=helpAlg, helpCode=helpCode))
 
 
-class RegressorPredict(EstimatorPredict):
+class RegressorPredict(EnMAPAlgorithm):
     def displayName(self):
         return 'Predict Regression'
 
     def group(self):
         return self.GROUP_REGRESSION
 
-    def addEstimator(self):
-        self.addParameterRegressor()
+    def description(self):
+        return 'Applies a regressor to an raster.'
 
-    def getEstimator(self):
-        return self.getParameterRegressor()
+    def defineCharacteristics(self):
+        self.addParameterRaster(help='Select raster file which should be regressed.')
+        self.addParameterMask()
+        self.addParameterRegressor()
+        self.addParameterOutputRegression()
+
+    def processAlgorithm_(self):
+        estimator = self.getParameterRegressor()
+        raster = self.getParameterRaster()
+        mask = self.getParameterMask()
+        filename = self.getParameterOutputRegression()
+        estimator.predict(filename=filename, raster=raster, mask=mask, progressBar=self._progressBar)
+        return {self.P_OUTPUT_RASTER: filename}
 
 
 ALGORITHMS.append(RegressorPredict())
@@ -1167,7 +1319,7 @@ class TransformerFit(EstimatorFit):
     def defineCharacteristics(self):
         self.addParameterUnsupervisedSample()
         self.addParameterCode()
-        self.addParameterOutputEstimator()
+        self.addParameterOutputTransformer()
 
     def sample(self):
         return self.getParameterUnsupervisedSample()
@@ -1176,8 +1328,8 @@ class TransformerFit(EstimatorFit):
         return Transformer(sklEstimator=sklEstimator)
 
 
-for name, code in parseTransformers().items():
-    ALGORITHMS.append(TransformerFit(name=name, code=code))
+for name, (code, helpAlg, helpCode) in parseTransformers().items():
+    ALGORITHMS.append(TransformerFit(name=name, code=code, helpAlg=helpAlg, helpCode=helpCode))
 
 
 class TransformerTransform(EnMAPAlgorithm):
@@ -1187,8 +1339,11 @@ class TransformerTransform(EnMAPAlgorithm):
     def group(self):
         return self.GROUP_TRANSFORMATION
 
+    def description(self):
+        return 'Applies a transformer to an raster.'
+
     def defineCharacteristics(self):
-        self.addParameterRaster()
+        self.addParameterRaster(help='Select raster file which should be regressed.')
         self.addParameterMask()
         self.addParameterTransformer()
         self.addParameterOutputRaster(description='Transformation')
@@ -1208,6 +1363,10 @@ ALGORITHMS.append(TransformerTransform())
 class TransformerInverseTransform(EnMAPAlgorithm):
     def displayName(self):
         return 'InverseTransform Raster'
+
+    def description(self):
+        return "Performs an inverse transformation on an previously transformed raster (i.e. output of 'Transformation -> Transform Raster'). " \
+               "Works only for transformers that have an 'inverse_transform(X)' method. See scikit-learn documentations."
 
     def group(self):
         return self.GROUP_TRANSFORMATION
@@ -1234,6 +1393,9 @@ class UnsupervisedSampleFromENVISpectralLibrary(EnMAPAlgorithm):
     def displayName(self):
         return 'UnsupervisedSample from ENVI Spectral Library'
 
+    def description(self):
+        return 'Derives unsupervised sample from ENVI spectral library.'
+
     def group(self):
         return self.GROUP_CREATE_SAMPLE
 
@@ -1253,7 +1415,10 @@ ALGORITHMS.append(UnsupervisedSampleFromENVISpectralLibrary())
 
 class UnsupervisedSampleFromRasterAndMask(EnMAPAlgorithm):
     def displayName(self):
-        return 'UnsupervisedSample from Raster and Mask'
+        return 'UnsupervisedSample from raster and mask'
+
+    def description(self):
+        return 'Derives unsupervised sample from raster and mask.'
 
     def group(self):
         return self.GROUP_CREATE_SAMPLE
@@ -1280,6 +1445,12 @@ class UnsupervisedSampleScaleFeatures(EnMAPAlgorithm):
     def displayName(self):
         return 'Scale Sample Features'
 
+    def description(self):
+        return 'Scales the features of a sample by a user defined factor (can be used for matching datasets).\n'\
+               'Use case: A sample from a spectral library should be used for classifying a raster. The spectral library sample has ' \
+               'float surface reflectance values between 0 and 1 and the raster integer surface reflectances between 0 and 1000. In order ' \
+               'to match the datasets, you can rescale the sample by a factor of 1000.'
+
     def group(self):
         return self.GROUP_AUXILLIARY
 
@@ -1287,8 +1458,9 @@ class UnsupervisedSampleScaleFeatures(EnMAPAlgorithm):
 
     def defineCharacteristics(self):
         self.addParameterUnsupervisedSample()
-        self.addParameterFloat(self.P_SCALE_FACTOR, 'Scale factor', defaultValue=1.)
-        self.addParameterOutputUnsupervisedSample(description='Scaled Sample')
+        self.addParameterFloat(self.P_SCALE_FACTOR, 'Scale factor', defaultValue=1.,
+                               help='Scale factor that is applied to all features.')
+        self.addParameterOutputUnsupervisedSample()
 
     def processAlgorithm_(self):
         sample = self.getParameterUnsupervisedSample()
@@ -1305,6 +1477,9 @@ class VectorFromRandomPointsFromClassification(EnMAPAlgorithm):
     def displayName(self):
         return 'Random Points from Classification'
 
+    def description(self):
+        return 'Randomly samples a user defined amount of points/pixels from a classification raster and returns them as a vector dataset.'
+
     def group(self):
         return self.GROUP_RANDOM
 
@@ -1315,7 +1490,7 @@ class VectorFromRandomPointsFromClassification(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         classification = self.getParameterClassification()
-        n = self.getParameterNumberOfPointsPerClass(classDefinition=classification.classDefinition)
+        n = self.getParameterNumberOfPointsPerClass(classification=classification)
         filename = self.getParameterOutputVector()
         Vector.fromRandomPointsFromClassification(filename=filename, classification=classification, n=n,
                                                   progressBar=self._progressBar)
@@ -1328,6 +1503,9 @@ ALGORITHMS.append(VectorFromRandomPointsFromClassification())
 class VectorFromRandomPointsFromMask(EnMAPAlgorithm):
     def displayName(self):
         return 'Random Points from Mask'
+
+    def description(self):
+        return 'Randomly draws defined number of points from Mask and returns them as vector dataset.'
 
     def group(self):
         return self.GROUP_RANDOM
@@ -1354,6 +1532,9 @@ class VectorUniqueValues(EnMAPAlgorithm):
     def displayName(self):
         return 'Unique Values from Vector Attribute '
 
+    def description(self):
+        return 'This algorithm returns unique values from vector attributes as a list, which is also usable as Class Definition in other algorithms. The output will be shown in the log window and can the copied from there accordingly.'
+
     def group(self):
         return self.GROUP_AUXILLIARY
 
@@ -1370,6 +1551,7 @@ class VectorUniqueValues(EnMAPAlgorithm):
 
 ALGORITHMS.append(VectorUniqueValues())
 
+
 def generateRST():
     global ALGORITHMS
 
@@ -1380,7 +1562,7 @@ def generateRST():
             groups[alg.group()] = dict()
         groups[alg.group()][alg.displayName()] = alg
 
-    text =  '=============\n'
+    text = '=============\n'
     text += 'GeoAlgotithms\n'
     text += '=============\n\n'
 
@@ -1397,13 +1579,22 @@ def generateRST():
             text += alg.displayName() + '\n'
             text += '-' * len(alg.displayName()) + '\n\n'
 
-            text += alg.description() + '\n\n'
+            if isinstance(alg.description(), str):
+                text += alg.description() + '\n\n'
+            if isinstance(alg.description(), Help):
+                text += alg.description().rst() + '\n\n'
 
             for pd in alg.parameterDefinitions():
                 assert isinstance(pd, QgsProcessingParameterDefinition)
                 text += pd.description() + '\n'
                 text += '~' * len(pd.description()) + '\n\n'
-                text += pd._helpString + '\n\n'
+                if isinstance(pd._help, str):
+                    text += pd._help + '\n\n'
+                if isinstance(pd._help, Help):
+                    text += pd._help.rst() + '\n\n'
+
+            text += '<hr />'
+        text += '<hr />'
 
     filename = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'doc', 'source', 'ga.rst')
     with open(filename, mode='w') as f:
