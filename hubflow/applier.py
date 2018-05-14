@@ -9,12 +9,15 @@ ApplierControls = hubdc.applier.ApplierControls
 
 class Applier(hubdc.applier.Applier):
     def __init__(self, defaultGrid=None, **kwargs):
-        hubdc.applier.Applier.__init__(self, controls=kwargs.get('controls', None))
-        self.controls.setProgressBar(kwargs.get('progressBar', None))
+        controls = kwargs.get('controls', None)
+        hubdc.applier.Applier.__init__(self, controls=controls)
+
         grid = kwargs.get('grid', defaultGrid)
         if isinstance(grid, hubflow.core.Raster):
             grid = grid.grid
-        # assert isinstance(grid, hubdc.applier.Grid)
+        progressBar = kwargs.get('progressBar', None)
+
+        self.controls.setProgressBar(progressBar)
         self.controls.setGrid(grid)
         self.kwargs = kwargs
 
@@ -168,7 +171,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
                 indices = [mask.index]
 
             for index in indices:
-                fractionArray = 1.- self.inputRaster.raster(key=name).fractionArray(categories=[mask.noDataValue],
+                fractionArray = 1.- self.inputRaster.raster(key=name).fractionArray(categories=mask.noDataValues,
                                                                                     overlap=overlap,
                                                                                     index=index)
                 maskArray = fractionArray > mask.minOverallCoverage
@@ -218,13 +221,17 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         if regression is None or regression.filename is None:
             array = np.array([])
         elif isinstance(regression, hubflow.core.Regression):
-            array = self.inputRaster.raster(key=name).array(overlap=overlap, resampleAlg=gdal.GRA_Average,
-                                                            noDataValue=regression.noDataValue)
-            noDataFraction = self.inputRaster.raster(key=name).fractionArray(categories=[regression.noDataValue],
-                                                                             overlap=overlap, index=0)
-            overallCoverageArray = 1. - noDataFraction
-            invalid = overallCoverageArray <= regression.minOverallCoverage
-            array[:, invalid[0]] = regression.noDataValue
+            raster = self.inputRaster.raster(key=name)
+            array = raster.array(overlap=overlap, resampleAlg=gdal.GRA_Average,
+                                                            noDataValue=regression.noDataValues)
+
+            invalid = self.full(value=np.False_, dtype=np.bool)
+            for i, noDataValue in enumerate(regression.noDataValues):
+                overallCoverageArray = 1. - raster.fractionArray(categories=[noDataValue], overlap=overlap, index=0)
+                invalid += overallCoverageArray <= regression.minOverallCoverage
+
+            for i, noDataValue in enumerate(regression.noDataValues):
+                array[i, invalid[0]] = noDataValue
         else:
             assert 0, regression
         return array
@@ -272,7 +279,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
                     if probability.classAttributeType == 'id':
                         id = int(category)
                     elif probability.classAttributeType == 'name':
-                        id = int(probability.classDefinition.getLabelByName(name=category))
+                        id = int(probability.classDefinition.labelByName(name=category))
                     else:
                         assert 0
                     array[id - 1][valid] = categoryFractionArray[valid]
@@ -323,7 +330,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         raster.setMetadataItem(key='file type', value='ENVI Classification', domain='ENVI')
         raster.setMetadataItem(key='class lookup', value=lookup, domain='ENVI')
 
-        # setuo in GDAL data model
+        # setup in GDAL data model
         colors = np.array(lookup).reshape(-1, 3)
         colors = [tuple(color) for color in colors]
         band = raster.band(0)
@@ -368,32 +375,33 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             mask = np.full_like(array, fill_value=np.True_, dtype=np.bool)
         return mask
 
-    def maskFromArray(self, array, noDataValue=None, defaultNoDataValue=None, noDataValueSource=None, aggregateFunction=None):
+    def maskFromArray(self, array, noDataValues=None, defaultNoDataValue=None, noDataValueSource=None, aggregateFunction=None):
+
+        assert array.ndim == 3
 
         if aggregateFunction is None:
             aggregateFunction = lambda a: np.all(a, axis=0, keepdims=True)
 
-        if noDataValue is None:
+        if noDataValues is None:
             assert noDataValueSource is not None
             try: # in case of a normal raster
                 raster = self.inputRaster.raster(key=noDataValueSource)
-                noDataValue = raster.noDataValue(default=0)
+                noDataValues = raster.noDataValues(default=0)
             except: # in case of a raster stack
                 group = self.inputRaster.group(key=noDataValueSource)
                 keys = sorted([int(key) for key in group.rasterKeys()])
-                noDataValue = list()
+                noDataValues = list()
                 for key in keys:
                     raster = group.raster(key=str(key))
-                    noDataValue = noDataValue + raster.noDataValues(default=defaultNoDataValue)
+                    noDataValues = noDataValues + raster.noDataValues(default=defaultNoDataValue)
 
+        assert len(array) == len(noDataValues)
 
         mask = np.full_like(array, fill_value=np.True_, dtype=np.bool)
-        if not isinstance(noDataValue, (list, tuple)):
-            noDataValue = [noDataValue] * len(array)
 
         for i, band in enumerate(array):
-            if noDataValue is not None:
-                mask[i] = band != noDataValue
+            if noDataValues[i] is not None:
+                mask[i] = band != noDataValues[i]
 
         mask = aggregateFunction(mask)
         return mask

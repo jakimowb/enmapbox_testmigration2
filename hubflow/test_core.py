@@ -82,14 +82,21 @@ class Test(TestCase):
     def test_ClassificationPerformance(self):
         obj = ClassificationPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
         print(obj)
-        # obj.report().saveHTML(filename=join(outdir, 'report.html'))
+        obj.report().saveHTML(filename=join(outdir, 'report.html'), open=False)
 
 
     def test_ClassificationSample(self):
 
         classificationSample = ClassificationSample.fromENVISpectralLibrary(enmapboxtestdata.speclib,
                                                                             classificationSchemeName='level 2 ')
+
         print(classificationSample)
+
+        classificationSample.saveAsENVISpectralLibrary(filename=join(outdir, 'speclibClassification.sli'),
+                                                       prefix='level 42')
+        classificationSample2 = ClassificationSample.fromENVISpectralLibrary(filename=join(outdir, 'speclibClassification.sli'),
+                                                                             classificationSchemeName='level 42')
+
         print(classificationSample.synthMix(mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='equalized', n=10))
 
         print(
@@ -111,6 +118,11 @@ class Test(TestCase):
         print(ClassDefinition.fromGDALMeta(raster=enmapClassification))
         print(ClassDefinition(colors=['orange', 'blue', 'grey', 'snow', 'white']))
         print(ClassDefinition(classes=3))
+        classDefinition1 = ClassDefinition(classes=3)
+        classDefinition2 = ClassDefinition(classes=3)
+        self.assertTrue(classDefinition1.equal(classDefinition2, compareColors=False))
+        self.assertFalse(classDefinition1.equal(classDefinition2, compareColors=True))
+        classDefinition1.color(label=1)
 
     def test_Classifier(self):
         rfc = Classifier(sklEstimator=RandomForestClassifier())
@@ -128,19 +140,40 @@ class Test(TestCase):
     def test_ClusteringPerformance(self):
         clusteringPerformance = ClusteringPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
         print(clusteringPerformance)
-        clusteringPerformance.report().saveHTML(filename=join(outdir, 'reportClusteringPerformance.html'))
+        clusteringPerformance.report().saveHTML(filename=join(outdir, 'reportClusteringPerformance.html'), open=False)
 
-    def test_Image(self):
-        print(Raster.fromVector(filename=join(outdir, 'imageFromVector.bsq'), vector=vector, grid=hymap.grid,
+    def test_FlowObject(self):
+        obj = FlowObject()
+        obj.pickle(filename=join(outdir, 'FlowObject.pkl'))
+        obj2 = FlowObject.unpickle(join(outdir, 'FlowObject.pkl'))
+
+    def test_Raster(self):
+
+        print(Raster.fromVector(filename=join(outdir, 'rasterFromVector.bsq'), vector=vectorClassification, grid=hymap.grid,
                                 overwrite=overwrite))
-        print(enmap.basicStatistics(bandIndicies=None, mask=vector, grid=enmap))
+        print(enmap.statistics(bandIndicies=None, mask=vector, grid=enmap))
 
-        i1, i2 = 0, 1
-        (min1, min2), (max1, max2), (mean1, mean2), (n1, n2) = enmap.basicStatistics(bandIndicies=[i1, i2], mask=vector)
-        H, xedges, yedges = enmap.scatterMatrix(raster2=enmap, bandIndex1=i1, bandIndex2=i2, range1=[min1, max1],
-                                                range2=[min2, max2], bins=10,
-                                                mask=vector, stratification=hymapClassification)
+        bandIndicies = 0, 1
+
+        statistics = enmap.statistics(bandIndicies=bandIndicies, calcPercentiles=True, calcHistogram=True, calcMean=True,
+                               calcStd=True, mask=enmapMask)
+        statistics = enmap.statistics(mask=vector)
+
+        H, xedges, yedges = enmap.scatterMatrix(raster2=enmap, bandIndex1=bandIndicies[0], bandIndex2=bandIndicies[1],
+                                                range1=(statistics[0]['min'], statistics[0]['max']),
+                                                range2=(statistics[1]['min'], statistics[1]['max']),
+                                                bins=10, mask=vector)
         print(H)
+
+        raster = Raster.fromSample(filename=join(outdir, 'RasterFromSample.bsq'), sample=enmapClassificationSample)
+        print(enmap.applyMask(filename=join(outdir, 'RasterApplyMask.bsq'), mask=enmapMask, fillValue=42))
+
+
+    def test_RasterStack(self):
+        rasterStack = RasterStack(rasters=[enmap, hymap])
+        for raster in rasterStack.rasters():
+            print(raster)
+        print(rasterStack)
 
 
     def test_Mask(self):
@@ -149,7 +182,8 @@ class Test(TestCase):
 
         print(Mask.fromVector(filename=join(outdir, 'maskFromVector.bsq'), vector=vector, grid=enmap))
         print(Mask.fromRaster(filename=join(outdir, 'maskFromRaster.bsq'), raster=enmapClassification,
-                              trueRanges=[(1, 100)]))
+                              trueRanges=[(1, 100)], trueValues=[1,2,3],
+                              falseRanges=[(-9999, 0)], falseValues=[-9999]))
 
 
     def test_Probability(self):
@@ -167,10 +201,17 @@ class Test(TestCase):
     def test_ProbabilityPerformance(self):
         probabilityPerformance = ProbabilityPerformance.fromRaster(prediction=enmapProbability, reference=enmapClassification)
         print(probabilityPerformance)
-        probabilityPerformance.report().saveHTML(filename=join(outdir, 'reportProbabilityPerformance.html'))
+        probabilityPerformance.report().saveHTML(filename=join(outdir, 'reportProbabilityPerformance.html'), open=False)
 
 
     def test_ProbabilitySample(self):
+
+        # export to and import from ENVI Speclib
+        probabilitySample = ProbabilitySample.fromRasterAndProbability(raster=enmap, probability=enmapProbability,
+                                                                       grid=enmap)
+        probabilitySample.saveAsENVISpectralLibrary(filename=join(outdir, 'speclibProbability.sli'))
+        probabilitySample2 = ProbabilitySample.fromENVISpectralLibrary(filename=join(outdir, 'speclibProbability.sli'))
+        print(join(outdir, 'speclibProbability.sli'))
 
         print(ProbabilitySample.fromClassificationSample(sample=enmapClassificationSample))
         print(ProbabilitySample.fromRasterAndProbability(raster=enmap, probability=hymapProbability, grid=enmap,
@@ -180,17 +221,9 @@ class Test(TestCase):
         print(ProbabilitySample.fromRasterAndClassification(raster=enmap, classification=hymapClassification, grid=enmap))
         print(enmapProbabilitySample.subsetClasses(labels=[1, 3]))
         print(enmapProbabilitySample.subsetClassesByName(names=enmapProbabilitySample.classDefinition.names))
-        print()
 
-    def test_Raster(self):
-        bandIndicies = None#[0, 1]
-        basicStatistics = hymap.basicStatistics(bandIndicies=bandIndicies)
+        print(enmapProbabilitySample.saveLabelsAsRaster(filename=join(outdir, 'ProbabilitySample_SaveLabelsAsRaster.bsq')))
 
-        return
-        histograms = hymap.histogram(bandIndicies=bandIndicies, basicStatistics=basicStatistics)
-        return
-        raster = Raster.fromSample(filename=join(outdir, 'RasterFromSample.bsq'), sample=enmapClassificationSample)
-        print(enmap.applyMask(filename=join(outdir, 'RasterApplyMask.bsq'), mask=enmapMask, fillValue=42))
 
     def test_Regression(self):
         print(enmapProbability.asMask())
@@ -198,13 +231,26 @@ class Test(TestCase):
 
     def test_RegressionPerformance(self):
         obj = RegressionPerformance.fromRaster(prediction=enmapProbability, reference=enmapProbability)
-        print(obj)
-        # obj.report().saveHTML(filename=join(outdir, 'report.html'))
+        obj.report().saveHTML(filename=join(outdir, 'RegressionPerformance.html'), open=False)
 
 
     def test_RegressionSample(self):
-        print(RegressionSample.fromRasterAndRegression(raster=enmap, regression=hymapProbability, grid=enmap, mask=vector))
+
+        regressionSample = RegressionSample.fromRasterAndRegression(raster=enmap, regression=hymapProbability, grid=enmap, mask=vector)
+        print(regressionSample)
+
+        # export to and import from ENVI Speclib
+        regressionSample.saveAsENVISpectralLibrary(filename=join(outdir, 'speclibRegression.sli'))
+        targetNames = ['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other']
+        noDataValues = [-1] * len(targetNames)
+        regressionSample2 = RegressionSample.fromENVISpectralLibrary(filename=join(outdir, 'speclibRegression.sli'),
+                                                                     outputNames=targetNames, noDataValues=noDataValues)
+        regressionSample3 = RegressionSample.fromENVISpectralLibrary(filename=join(outdir, 'speclibRegression.sli'))
+        print(join(outdir, 'speclibRegression.sli'))
+
         print(RegressionSample.fromProbabilitySample(sample=enmapProbabilitySample))
+
+        print(regressionSample.saveLabelsAsRaster(filename=join(outdir, 'RegressionSample_SaveLabelsAsRaster.bsq')))
 
 
     def test_Regressor(self):
@@ -230,11 +276,13 @@ class Test(TestCase):
         unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
         print(unsupervisedSample)
         unsupervisedSample.saveAsENVISpectralLibrary(filename=join(outdir, 'speclib.sli'))
-        print(join(outdir, 'speclib.sli'))
+        unsupervisedSample2 = unsupervisedSample.fromENVISpectralLibrary(filename=join(outdir, 'speclib.sli'))
         unsupervisedSample.scaleFeaturesInplace(factor=10000)
         print(unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 2 class spectra names'],
                                                 classDefinition=hubflow.testdata.classDefinitionL2))
         print(UnsupervisedSample.fromRasterAndMask(raster=enmap, mask=vector, grid=enmap))
+
+        print(unsupervisedSample.saveFeaturesAsRaster(filename=join(outdir, 'UnsupervisedSample_SaveFeaturesAsRaster.bsq')))
 
 
     def test_Vector(self):
@@ -251,7 +299,15 @@ class Test(TestCase):
 
 
     def test_VectorClassification(self):
-        pass
+        classDefinition = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
+                                          colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
+        print(VectorClassification(filename=enmapboxtestdata.landcover,
+                                   classDefinition=classDefinition,
+                                   idAttribute=enmapboxtestdata.landcoverAttributes.Level_2_ID))
+        print(VectorClassification(filename=enmapboxtestdata.landcover,
+                                   classDefinition=classDefinition,
+                                   nameAttribute=enmapboxtestdata.landcoverAttributes.Level_2))
+
 
     def test_extractPixels(self):
         c = ApplierControls()
