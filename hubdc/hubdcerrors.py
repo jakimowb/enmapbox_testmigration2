@@ -1,3 +1,7 @@
+class ObjectParserError(Exception):
+    def __init__(self, obj, type):
+        Exception.__init__(self, 'cannot be parsed as {} object: {}'.format(type, obj))
+
 class HUBDCError(Exception):
     pass
 

@@ -210,7 +210,12 @@ class ApplierInputRaster(ApplierIO):
                                               bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
 
-        binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
+        binarizedArray = list()
+        for category in categories:
+            if category is None:
+                binarizedArray.append(np.full_like(tmpArray[0], fill_value=0.))
+            else:
+                binarizedArray.append(numpy.float32(tmpArray[0] == category))
         binarizedDataset = createRasterDatasetFromArray(grid=gridInSourceProjection, array=binarizedArray)
 
         binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
@@ -1241,10 +1246,17 @@ class ApplierOperator(object):
 
     def full(self, value, bands=1, dtype=None, overlap=0):
         '''Returns a 3-d numpy array of shape = (zsize, ysize+2*overlap, xsize+2*overlap) filled with constant ``value``.'''
-
-        return numpy.full(
-            shape=(bands, self.subgrid().size().y() + 2 * overlap, self.subgrid().size().x() + 2 * overlap),
-            fill_value=value, dtype=dtype)
+        if isinstance(value, list):
+            array = [numpy.full(shape=(self.subgrid().size().y() + 2 * overlap,
+                                       self.subgrid().size().x() + 2 * overlap),
+                                fill_value=v, dtype=dtype) for v in value]
+            array = np.array(array)
+        else:
+            array = numpy.full(shape=(bands,
+                                      self.subgrid().size().y() + 2 * overlap,
+                                      self.subgrid().size().x() + 2 * overlap),
+                               fill_value=value, dtype=dtype)
+        return array
 
     def _apply(self, workingGrid, iblock, nblock, yblock, xblock, nyblock, nxblock):
         self._iblock = iblock

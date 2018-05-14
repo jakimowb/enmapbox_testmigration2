@@ -812,6 +812,16 @@ class Size(object):
     def __repr__(self):
         return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
 
+    @staticmethod
+    def parse(obj):
+        if isinstance(obj, Size):
+            size = obj
+        elif isinstance(obj, (tuple, list)):
+            size = Size(*obj)
+        else:
+            raise errors.ObjectParserError(obj=obj, type=Size)
+        return size
+
     def x(self):
         '''Returns the x size.'''
         return self._x
@@ -1035,7 +1045,6 @@ class Grid(object):
             iy += 1
         return result
 
-
 class RasterDataset(object):
     '''Class for managing raster files.'''
 
@@ -1050,11 +1059,11 @@ class RasterDataset(object):
                         ymin=geotransform[3] - self._gdalDataset.RasterYSize * resolution.y(),
                         ymax=geotransform[3])
 
-        if self._gdalDataset.GetProjection() == '':
-            self._gdalDataset.SetProjection(Projection.WGS84().wkt())
-            self._gdalDataset.FlushCache()
-            self._gdalDataset=None
-            return
+#        if self._gdalDataset.GetProjection() == '':
+#            self._gdalDataset.SetProjection(Projection.WGS84().wkt())
+#            self._gdalDataset.FlushCache()
+#            self._gdalDataset=None
+#            return
         projection = Projection(wkt=self._gdalDataset.GetProjection())
         self._grid = Grid(extent=extent, resolution=resolution, projection=projection)
 
@@ -2030,12 +2039,15 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
 
         # create vrt with WGS84 projection
         filenameVRT = filename + '.wgs84.vrt'
-        gdalDataset = gdal.Translate(filenameVRT, filename, format='VRT', outputSRS=Projection.WGS84().wkt())
-        gdalDataset.SetGeoTransform((0.0, 1.0, 0.0, 0.0, 0.0, -1.0))
-        gdalDataset = None
-        return openRasterDataset(filename=filenameVRT)
+        gdalDataset2 = gdal.Translate(filenameVRT, filename, format='VRT', outputSRS=Projection.WGS84().wkt())
+        gdalDataset2.SetGeoTransform((0.0, 1.0, 0.0, 0.0, 0.0, -1.0))
+        rasterDataset = RasterDataset(gdalDataset=gdalDataset2)
+        rasterDataset.copyMetadata(other=RasterDataset(gdalDataset=gdalDataset))
+        rasterDataset.flushCache()
+    else:
+        rasterDataset = RasterDataset(gdalDataset=gdalDataset)
 
-    return RasterDataset(gdalDataset=gdalDataset)
+    return rasterDataset
 
 
 def openVectorDataset(filename, layerNameOrIndex=0, update=False):
@@ -2087,15 +2099,15 @@ def createRasterDataset(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', d
     return driver.create(grid, bands=bands, gdalType=gdalType, filename=filename, options=options)
 
 
-def createRasterDatasetFromArray(grid, array, filename='', driver=MEMDriver(), options=None):
+def createRasterDatasetFromArray(array, grid=None, filename='', driver=MEMDriver(), options=None):
     '''
     Creates a new raster file with content, data type and number of bands given by ``array``
     and with extent, resolution and projection given by ``grid``.
 
-    :param grid:
-    :type grid: hubdc.core.Grid
     :param array:
     :type array: numpy.ndarray
+    :param grid:
+    :type grid: hubdc.core.Grid
     :param filename: output filename
     :type filename: str
     :param driver:
@@ -2105,6 +2117,9 @@ def createRasterDatasetFromArray(grid, array, filename='', driver=MEMDriver(), o
     :return:
     :rtype: hubdc.core.RasterDataset
     '''
+
+    if grid is None:
+        grid = PseudoGrid.fromArray(array)
 
     if isinstance(array, np.ndarray):
         if array.ndim == 2:
@@ -2154,6 +2169,17 @@ def createVRTDataset(filename, rastersOrFilenames, **kwargs):
     gdalDataset = gdal.BuildVRT(destName=filename, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
     return RasterDataset(gdalDataset=gdalDataset)
 
+class PseudoGrid(Grid):
+    def __init__(self, size):
+        size = Size.parse(size)
+        Grid.__init__(self, extent=Extent(xmin=0, xmax=size.x(), ymin=0, ymax=size.y()),
+                      resolution=Resolution(x=1, y=1), projection=Projection.WGS84())
+
+    @staticmethod
+    def fromArray(array):
+        isinstance(array, np.ndarray)
+        size = Size(x=array.shape[-1], y=array.shape[-2])
+        return PseudoGrid(size=size)
 
 def buildOverviews(filename, levels=None, minsize=1024, resampling='average'):
     '''
