@@ -64,7 +64,7 @@ Windows
 
 #. Start the OSGeo4W Shell with admin rights.
 
-   Either open the *Start Menu > QGIS 3.0 > OSGe4W Shell* or navigate into the QGIS root folder and call ``C:\Program Files\QGIS 3.0\OSgeo4W.bat``.
+   Either open the *Start Menu > QGIS 3.0 > OSGeo4W Shell* or navigate into the QGIS root folder and call ``C:\Program Files\QGIS 3.0\OSgeo4W.bat``.
 
    In both cases, don't forget to use "Start as Administrator" from the context menu.
 

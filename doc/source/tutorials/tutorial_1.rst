@@ -2,7 +2,7 @@
 TUT-1: Fractional Landcover Mapping
 ===================================
 
-...............tbd................
+.. todo:: Dummy section. Actual content will follow!
 
 0. Summary
 ==========

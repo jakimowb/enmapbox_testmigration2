@@ -47,27 +47,6 @@ imageMath Calculator
 
 
 
-Processing Algorithms
-#####################
-
-
-Accuracy Assessment
-===================
-
-Classification Performance
---------------------------
-
-Regression Performance
-----------------------
-
-Auxilliary
-==========
-
-Open Testdata (full dataset)
-----------------------------
-
-Open Testdata (small dataset)
------------------------------
-
+.. include:: ../geoalgorithms/ga.rst
 
 
