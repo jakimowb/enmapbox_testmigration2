@@ -1,4 +1,6 @@
 
+.. _usr_installation:
+
 Installation
 ============
 
