@@ -2,17 +2,25 @@
 Getting Started
 ###############
 
+.. admonition:: Info
+
+    This section is aimed at users with no previous EnMAP-Box experience. You will get a brief introduction into the
+    main functionalities, i.e. you will
+        * Load some testdata
+        * Get to know the GUI (especially using multiple map views)
+        * View and extract spectral profiles from a hyperspectral image
+        * Use a Processing Algorithm
+
 
 Launching the EnMAP-Box
 #######################
 
-Once you successfully :ref:`installed <usr_installation>` the EnMAP-Box, you can access the plugin via the |enmapicon|
+Once you successfully :ref:`installed <usr_installation>` the EnMAP-Box, you can access the plugin via the |enmapicon| icon
 in the QGIS Toolbar. Furthermore, the EnMAP-Box :ref:`Processing Algorithms` should also appear in the QGIS Processing Toolbox.
 
 .. figure:: ../img/ebx_firstopen.png
 
     The Graphical User Interface (GUI) of the EnMAP-Box on first open
-
 
 .. |enmapicon| image:: ../../../enmapbox/gui/ui/icons/enmapbox.svg
     :width: 30px
@@ -39,7 +47,7 @@ Loading Testdata
 
     * Now, in the ``Data Views`` window, expand the Map #1 list, so that you can see the individual layers. Select
       *HighResolution_BerlinUrbanGradient.bsq* and *LandCov_BerlinUrbanGradient.shp* (hold :guilabel:`Strg` and click on layers)
-      and drag them into Map #2.
+      and drag them into Map #2 (you can drag them directly into the map views or the respective menu item under ``Data Views``).
     * In the next step we link both map views, so that zoom and center are synchronized between both. First, click the |linkbasic|
       button in the Map #1 window. Now three options become selectable in Map #2: Select |linkscalecenter|, which will link both,
       zoomlevel and map center.
@@ -88,21 +96,21 @@ Up to now we mainly had a glimpse at the GUI of the EnMAP-Box. Let's take a look
 
 * In the Processing Toolbox panel, go to :menuselection:`EnMAP-Box --> Create Raster --> Classification from Vector` and double-click
   on the algorithm (alternatively you might directly type "Classification from Vector" into the search bar to find the algorithm).
-
+* Mind the help sidebar on the right of the window, where the algorithm and each of its parameters are described.
 * In the algorithm window, set the following parameters:
 
     * ``PixelGrid``: EnMAP_BerlinUrbanGradient.bsq
     * ``Vector``: LandCov_BerlinUrbanGradient.shp
     * ``Class id attribute``: Level_2_ID
-    * Class Definition:
+    * ``Class Definition``:
 
       .. code-block:: batch
 
           ClassDefinition(classes=6, names=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other'], colors=['#e60000', '#9c9c9c', '#98e600', '#267300', '#a87000', '#f5f57a'])
 
-    * ``Minimal overall coverage``: 0.8
-    * ``Minimal winner class coverage``: 0.8
-    * Leave all other parameters at their default value
+    * ``Minimal overall coverage``: 0.9
+    * ``Minimal winner class coverage``: 0.7
+    * ``Oversampling factor``: 2
     * Click **Run in Background**
 
 * Under ``Data Sources`` you should now find the layer *outClassification.bsq*
@@ -112,6 +120,12 @@ Up to now we mainly had a glimpse at the GUI of the EnMAP-Box. Let's take a look
     * You might want to activate/deactivate the top layer in the ``Data Views`` panel, in order
       to switch back and forth between both layers.
     * Are all pixels that were covered by the vector layer assigned a class? Or are some labeled as *unclassified*?
-    * Go back to the algorithm and have a look at the help window on the right, especially at the parameters *Minimal overall coverage*
-      and *Minimal winner class coverage*, and see if you find out why not all pixels are included, given the settings we used.
+    * You might want to have a look at the help window again, especially at the parameters *Minimal overall coverage*
+      and *Minimal winner class coverage*, and see if you find out why no♂t all pixels are included, given the settings we used.
 
+
+|
+
+.. admonition:: Feel comfortable with the EnMAP-Box interface now...?
+
+    ... then have a look at our :ref:`User Guide <usr_guide>` section, and dive deeper into the matter!

@@ -116,7 +116,7 @@ Windows
         python3 -m pip install sklearn
 
 
-    Alternatively you unzip the EnMAP-Box plugin zip and call:
+    *Alternatively* you unzip the EnMAP-Box plugin zip and call:
 
     .. code-block:: batch
 

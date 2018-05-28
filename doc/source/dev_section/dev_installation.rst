@@ -2,8 +2,6 @@
 Installation (Dev)
 ##################
 
-.. todo:: Structure by OS first (Windows, Linux, Mac)
-
 
 Background
 ==========
