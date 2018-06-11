@@ -64,10 +64,10 @@ Raster
 **Supported output filetypes:**
 
 * .tif
-* .vrt
-* .bil
-* .bsq
-* .bip
+* ...
+* ...
+* ...
+* ...
 
 Mask
 ====
@@ -99,7 +99,6 @@ Sample
 Fit
 ===
 
-... PICKLE File
 
 
 |

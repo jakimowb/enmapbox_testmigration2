@@ -121,7 +121,7 @@ Up to now we mainly had a glimpse at the GUI of the EnMAP-Box. Let's take a look
       to switch back and forth between both layers.
     * Are all pixels that were covered by the vector layer assigned a class? Or are some labeled as *unclassified*?
     * You might want to have a look at the help window again, especially at the parameters *Minimal overall coverage*
-      and *Minimal winner class coverage*, and see if you find out why no♂t all pixels are included, given the settings we used.
+      and *Minimal winner class coverage*, and see if you find out why not all pixels are included, given the settings we used.
 
 
 |

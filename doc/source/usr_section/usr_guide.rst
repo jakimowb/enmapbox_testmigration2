@@ -21,7 +21,7 @@ Image Regression
 Graphical Modeller
 ==================
 
-+ run as script from console.....
+.. run as script from console.....
 
 Spectral Library Import
 =======================
