@@ -1,0 +1,364 @@
+# -*- coding: utf-8 -*-
+
+import numpy as np
+import time
+import gdal
+from gdalconst import *
+from osgeo import gdal
+import struct
+import os
+from lmuvegetationapps.Sensor_Info import get_wl
+
+class RTM_Inversion:
+
+    def __init__(self):
+        self.error = None
+        self.ctype = 0
+        self.nbfits = 0
+        self.noisetype = 0
+        self.noiselevel = 0
+        self.nodat = [0]*3 # 0: input image, 1: geometry image, 2: output image
+        self.exclude_bands, self.exclude_bands_model = (None, None)
+        self.wl_sensor = None
+        self.fwhm_sensor = None
+        self.wl_compare = None
+        self.n_wl = None
+        self.offset = 0
+        self.image = None
+        self.image_out = None
+        self.npara = None
+        self.conversion_factor = None
+
+        self.nrows, self.ncols, self.nbands = (None, None, None)
+        self.geometry_matrix = None
+        self.whichLUT = None
+        self.LUT_base = None
+        self.exclude_pixels = None
+        self.whichpara = None
+
+        # LUT:
+        self.ntotal = None
+        self.ns = None
+        self.tts_LUT, self.tto_LUT, self.psi_LUT, self.nangles_LUT = (None, None, None, None)
+
+        self.para_dict = {0: 'N', 1: 'cab', 2: 'cw', 3: 'cm', 4: 'LAI', 5: 'typeLIDF', 6: 'LIDF', 7: 'hspot',
+                          8: 'psoil', 9: 'car', 10: 'anth', 11: 'cbrown', 12: 'tts', 13: 'tto', 14: 'psi', }
+        self.para_names = [self.para_dict[i] for i in range(len(self.para_dict))]
+        self.max_npara = len(self.para_dict)
+
+    def read_image(self, image, nodat, dtype=np.float16, exclude_bands=[]):
+
+        dataset = gdal.Open(image)
+        nbands = dataset.RasterCount
+        nrows = dataset.RasterYSize
+        ncols = dataset.RasterXSize
+
+        in_matrix = np.zeros((nrows, ncols, nbands-len(exclude_bands)))
+        skip = 0
+
+        for band_no in range(nbands):
+            if band_no in exclude_bands:
+                skip += 1
+                continue
+            band = dataset.GetRasterBand(band_no+1)
+            scancol = band.ReadRaster(0,0, ncols, nrows, ncols, nrows, GDT_Float32)
+            in_matrix[:, :, band_no-skip] = np.reshape(np.asarray(struct.unpack('f' * nrows * ncols, scancol),
+                                                             dtype=dtype), (nrows, ncols))
+        return nrows, ncols, nbands, in_matrix
+
+    def get_geometry(self, geo_fixed, geo_image=None):
+
+        #0: Generate geometry matrix
+        self.geometry_matrix = np.empty(shape=(self.nrows, self.ncols, 3))
+        self.geometry_matrix.fill(self.nodat[2])
+
+        #1: import geometry-file from read_image or
+
+        if geo_image:
+            geometry_raw = self.read_image(geo_image, nodat=self.nodat[1])
+            if not geometry_raw[0] == self.nrows or not geometry_raw[1] == self.ncols:
+                raise ValueError("Geometry image and Sensor image do not match")
+            self.geometry_matrix = geometry_raw[3]
+
+        if geo_fixed:
+            if not any(geo_fixed[i] is None for i in range(len(geo_fixed))):
+                try:
+                    for angle in range(3):
+                        self.geometry_matrix[:,:,angle] = geo_fixed[angle]
+                except: raise ValueError("Problem with reading fixed angles")
+
+        self.whichLUT = np.zeros(shape=(self.nrows, self.ncols),dtype=np.int16)
+
+        if self.geo_mode == "sort":
+            for row in range(self.nrows):
+                for col in range(self.ncols):
+                    angles = []
+                    angles.append(np.argmin(abs(self.geometry_matrix[row,col,0] - self.tts_LUT))) # tts
+                    angles.append(np.argmin(abs(self.geometry_matrix[row,col,1] - self.tto_LUT))) # tto
+                    angles.append(np.argmin(abs(self.geometry_matrix[row,col,2] - self.psi_LUT))) # psi
+                    self.whichLUT[row,col] = angles[2]*self.nangles_LUT[1]*self.nangles_LUT[0] + angles[1]*self.nangles_LUT[0] + angles[0]
+        else:
+            self.whichLUT[:,:] = 0 # take first available (there should be no more than 1 anyway)
+            self.geometry_matrix[:,:,:] = 911 # a value that is unlikely to be chosen for no data. In case of geo_mode != 'sort', the matrix is unused
+
+    def add_noise(self, Ref_list, type, sigma):
+        n_entries = len(Ref_list)
+        sigma_c = (sigma/100) * self.conversion_factor  # sigma converted
+
+        if type == 0: # no noise
+            return Ref_list
+
+        elif type == 1:  # additive noise
+            # Ref_noisy = [Ref_list[i] + np.random.normal(loc=0.0, scale=sigma_c) for i in range(n_entries)]
+            Ref_noisy = np.random.normal(loc=0.0, scale=sigma_c, size=n_entries) + Ref_list
+
+        elif type == 2:  # multiplicative noise
+            # Ref_noisy = [Ref_list[i] * (1 + np.random.normal(loc=0.0, scale=sigma / 100)) for i in range(n_entries)]
+            Ref_noisy = (1 + np.random.normal(loc=0.0, scale=sigma/100, size=n_entries)) * Ref_list
+
+        elif type == 3:  # inverse multiplicative noise
+            # Ref_noisy = [1 - ((1 - Ref_list[i]) * (1 + np.random.normal(loc=0.0, scale=sigma / 100))) for i in
+            #              range(n_entries)]
+            Ref_noisy = 1 - (1 - Ref_list) * (1 + np.random.normal(loc=0.0, scale=sigma/100))
+
+        # Ref_noisy = [Ref_noisy[i] if Ref_noisy[i] > 0.0 else 0.1 for i in range(n_entries)]
+
+        Ref_noisy[Ref_noisy<0] = 0
+        return Ref_noisy
+
+    def visualize(self):
+        #1: get wl and array with reflectances
+        #2: 1dim array: plot single; 2dim: plot multiple
+        pass
+
+    def cost_fun(self, image_Ref, model_Ref, type):
+
+        if type == 1: # RMSE
+            delta = np.linalg.norm(model_Ref - image_Ref) / np.sqrt(self.n_wl)  # Numpy-Solution für RMSE (fast)
+        elif type == 2: # MAE
+            delta = sum(abs(image_Ref - model_Ref))
+        elif type == 3: # mNSE
+            delta = 1.0 - ((sum(abs(image_Ref - model_Ref))) /
+                           (sum(abs(image_Ref - (np.mean(image_Ref))))))
+        else:
+            exit("wrong cost function type. Expected 1, 2 or 3; got %i instead" %type)
+
+        return delta
+
+    def inversion_setup(self, image, image_out, LUT_path, ctype, nbfits, nbfits_type, noisetype, noiselevel,
+                        exclude_bands, out_mode, geo_image=None, geo_fixed=[None]*3, sensor=2,
+                        nodat=[None]*3, mask_image=None):
+
+        self.ctype = ctype
+        self.nbfits = nbfits
+        self.nbfits_type = nbfits_type
+        self.noisetype = noisetype
+        self.noiselevel = noiselevel
+        self.exclude_bands = exclude_bands
+
+        self.nodat = nodat
+        self.out_mode = out_mode
+
+
+        self.image_out = image_out
+        self.sensor_setup(sensor=sensor)
+        self.nrows, self.ncols, self.nbands, self.image = self.read_image(image=image, nodat=nodat[1], dtype=np.float16,
+                                                                          exclude_bands=self.exclude_bands)
+        if mask_image is None:
+            self.exclude_pixels = []
+        else:
+            self.masking(img=mask_image)
+            if self.exclude_pixels is None: # Error within self.masking -> self.exclude_pixels is still None
+                return self.error
+
+        self.get_meta(LUT_path)
+        self.npara = len(self.whichpara)
+        self.get_geometry(geo_image=geo_image, geo_fixed=geo_fixed)  # generate list of LUT-names for each pixel
+
+        self.out_matrix = np.empty(shape=(self.nrows, self.ncols, len(self.whichpara)))
+
+    def masking(self, img):
+        mask = self.read_image(img, nodat=-999)
+        if not self.nrows == mask[0] or not self.ncols == mask[1]:
+            self.error = "Input Image and Mask Image must have same dimensions! Input Image has [%ir, %ic], " \
+                         "Mask Image has [%ir, %ic]" % (self.nrows, self.ncols, mask[0], mask[1])
+            return
+        self.exclude_pixels = np.squeeze(mask[3], axis=2) # turns [r,c,1] (1 band) into [r,c]
+
+    def sensor_setup(self, sensor):
+        self.wl_sensor, self.fwhm_sensor = get_wl(sensor=sensor)
+
+        if sensor == 1: # ASD
+            self.offset = 400 - self.wl_sensor[0]  # 400nm as first wavelength in the PROSAIL model family
+            # self.exclude_bands = range(0, self.offset) + range(1009, 1129) + range(1371, 1650) # 350-400nm, 1359-1479nm, 1721-200nm
+            self.exclude_bands_model = range(self.max_npara) + [((i - self.offset)) + self.max_npara for i in self.exclude_bands[self.offset:]]
+        elif sensor == 2: # EnMAP
+            # self.exclude_bands = range(78, 88) + range(128, 138) + range(161, 189) # Überlappung VNIR, Water1, Water2
+            self.exclude_bands_model = range(self.max_npara) + [i + self.max_npara for i in self.exclude_bands]
+        elif sensor == 3: # Sentinel-2
+            # self.exclude_bands = [10]
+            self.exclude_bands_model = range(self.max_npara) + [i + self.max_npara for i in self.exclude_bands]
+
+        self.wl_compare = [self.wl_sensor[i] for i in range(len(self.wl_sensor)) if i not in self.exclude_bands]
+        self.n_wl = len(self.wl_compare)
+
+    def get_meta(self, file):
+
+        with open(file, 'r') as metafile:
+            metacontent = metafile.readlines()
+            metacontent = [line.rstrip('\n') for line in metacontent]
+
+        self.LUT_base = os.path.dirname(file) + "/" + metacontent[0].split("=")[1]
+        self.ntotal = int(metacontent[1].split("=")[1])
+        self.ns = int(metacontent[2].split("=")[1])
+        self.lop = metacontent[3].split("=")[1]
+        self.canopy_arch = metacontent[4].split("=")[1]
+        self.geo_mode = metacontent[5].split("=")[1]
+        self.geo_ensembles = int(metacontent[6].split("=")[1])
+        self.splits = int(metacontent[7].split("=")[1])
+        self.max_file_length = int(metacontent[8].split("=")[1])
+        temp = metacontent[9].split("=")[1].split(";")
+        if not "NA" in temp:
+            self.tts_LUT = [float(angle) for angle in temp[:-1]]
+        else:
+            self.tts_LUT = []
+        temp = metacontent[10].split("=")[1].split(";")
+        if not "NA" in temp:
+            self.tto_LUT = [float(angle) for angle in temp[:-1]]
+        else:
+            self.tto_LUT = []
+        temp = metacontent[11].split("=")[1].split(";")
+        if not "NA" in temp:
+            self.psi_LUT = [float(angle) for angle in temp[:-1]]
+        else:
+            self.psi_LUT = []
+        self.conversion_factor = int(metacontent[12].split("=")[1])
+
+
+        self.nangles_LUT = [len(self.tts_LUT), len(self.tto_LUT), len(self.psi_LUT)]
+        if self.nbfits_type == "rel":
+            self.nbfits = int(self.ns * (self.nbfits/100.0))
+
+        self.whichpara = []
+        if self.lop == "prospect4":
+            self.whichpara.append([0,1,2,3])
+        elif self.lop == "prospect5":
+            self.whichpara.append([0, 1, 2, 3, 9])
+        elif self.lop == "prospect5B":
+            self.whichpara.append([0, 1, 2, 3, 9, 11])
+        elif self.lop == "prospectD":
+            self.whichpara.append([0, 1, 2, 3, 9, 10, 11])
+        if self.canopy_arch == "sail":
+            self.whichpara.append([4,5,6,7,8,12,13,14])
+        self.whichpara = [item for sublist in self.whichpara for item in sublist] # flatten list back
+
+    def run_inversion(self, prg_widget=None, QGis_app=None):
+
+        pix_total = self.nrows * self.ncols
+        nbands_valid = len(self.image[0,0,:])
+
+        for r in range(self.nrows):
+            for c in range(self.ncols):
+
+                pix_current = r*self.ncols + c + 1
+
+                # Check if process shall be aborted
+                if prg_widget.gui.lblCancel.text() == "-1":
+                    prg_widget.gui.lblCancel.setText("")
+                    prg_widget.gui.cmdCancel.setDisabled(False)
+                    raise ValueError("Inversion canceled")
+
+                # Check if Pixel shall be excluded
+                if len(self.exclude_pixels) > 0 and self.exclude_pixels[r,c] < 1:
+                    self.out_matrix[r,c,:] = self.nodat[2]
+                    continue
+
+                # Check if Pixel is NoData or Geometry is not available
+                if all(self.image[r,c,j] == self.nodat[0] for j in range(nbands_valid)) or \
+                        any(self.geometry_matrix[r,c,i] == self.nodat[0] for i in range(3)):
+                    self.out_matrix[r,c,:] = self.nodat[2]
+                    # print "skipping: ", r, c
+                    continue
+
+                estimates = np.zeros(self.ns)
+                lut = np.hstack(np.load(self.LUT_base + "_" + str(self.whichLUT[r,c])+ "_" + str(split) + ".npy")
+                                for split in range(self.splits)) # load all splits of the current geo_ensembles
+                LUT_params = lut[self.whichpara,:] # extract parameters
+                lut = np.delete(lut, self.exclude_bands_model, axis=0) # delete exclude_bands_model - members
+
+                for run in range(self.ns):
+                    if np.sum(lut[:,run]) < 1: continue
+                    estimates[run] = self.cost_fun(self.image[r,c,:],
+                                                   self.add_noise(Ref_list=lut[:,run], type=self.noisetype, sigma=self.noiselevel),
+                                                   type=self.ctype)
+
+                L1_subset = np.argpartition(estimates, self.nbfits)[0:self.nbfits] # get n best performing LUT-entries
+                L1_subset = L1_subset[np.argsort(estimates[L1_subset])]
+                result = np.median([LUT_params[:,i] for i in L1_subset], axis=0)
+
+                self.out_matrix[r,c,:] = result
+                if prg_widget:
+                    prg_widget.gui.lblCaption_r.setText('Inverting pixel #%i of %i' % (pix_current, pix_total))
+                    prg_widget.gui.prgBar.setValue(pix_current*100 // pix_total)
+                    QGis_app.processEvents()
+
+
+    def write_image(self):
+        driver = gdal.GetDriverByName('ENVI')
+
+        if self.out_mode == "single":
+            destination = driver.Create(self.image_out, self.ncols, self.nrows, self.npara, gdal.GDT_Float32)
+            for i in range(self.npara):
+                band = destination.GetRasterBand(i+1)
+                band.SetDescription(self.para_names[self.whichpara[i]])
+                band.WriteArray(self.out_matrix[:,:,i])
+            destination.SetMetadataItem('data ignore value', str(self.nodat[2]), 'ENVI')
+
+        elif self.out_mode == "individual":
+            for i in range(self.npara):
+                out = os.path.splitext(self.image_out)[0] + "_" + self.para_names[self.whichpara[i]] + '.' + os.path.splitext(self.image_out)[1]
+                destination = driver.Create(out, self.ncols, self.nrows, 1, gdal.GDT_Float32)
+                band = destination.GetRasterBand(1)
+                band.SetDescription(self.para_names[self.whichpara[i]])
+                band.WriteArray(self.out_matrix[:,:,i])
+                destination.SetMetadataItem('data ignore value',str(self.nodat[2]),'ENVI')
+        
+def example():
+    ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
+    ResultsOut = "D:/ECST_III/Processor/VegProc/results.bsq"
+    GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
+    LUT_dir = "D:/ECST_III/Processor/VegProc/results2/"
+    LUT_name = "Martin_LUT4"
+    
+    # global Inversion input:
+    costfun_type = 1
+    nbest_fits = 5.0
+    noisetype = 2
+    noiselevel = 5.0 # percent
+    sensor = 1 # ASD
+    nodat_Geo = -999
+    nodat_Image = -999
+    nodat_Out = -999
+    inversion_range = None
+    
+    # Fixed Geometry
+    tts = None
+    tto = None
+    psi = None
+    geometry_fixed = [tts, tto, psi]
+    
+    rtm = RTM_Inversion()
+    rtm.inversion_setup(image=ImageIn, image_out=ResultsOut, LUT_dir=LUT_dir, LUT_name=LUT_name, ctype=costfun_type,
+                     nbfits=nbest_fits, noisetype=noisetype, noiselevel=noiselevel, inversion_range=inversion_range,
+                     geo_image=GeometryIn, geo_fixed=geometry_fixed, sensor=sensor, exclude_pixels=None,
+                     nodat=[nodat_Geo, nodat_Image, nodat_Out], which_para=range(15))
+    
+    rtm.run_inversion()
+    rtm.write_image()
+
+
+if __name__ == '__main__':
+    # print(example_single() / 1000.0)
+    # plt.plot(range(len(example_single())), example_single() / 1000.0)
+    # plt.show()
+    example()
