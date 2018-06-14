@@ -47,6 +47,7 @@ Package                                                         Notes     Window
 `matplotlib <https://matplotlib.org/>`_                         OS        pip          pip               pip
 `pyqtgraph <https://pypi.python.org/pypi/pip>`_                 pip       pip          pip               pip
 `scikit-learn <https://pypi.python.org/pypi/pip>`_              pip       pip          pip               pip
+`astropy <http://docs.astropy.org>`_                            pip       pip          pip               pip
 =============================================================== ========= ============ ================= =================
 
 
@@ -114,6 +115,7 @@ Windows
 
         python3 -m pip install pyqtgraph
         python3 -m pip install sklearn
+        python3 -m pip install astropy
 
 
     *Alternatively* you unzip the EnMAP-Box plugin zip and call:
@@ -139,6 +141,7 @@ Mac
         python3 -m pip install matplotlib
         python3 -m pip install sklearn
         python3 -m pip install pyqtgraph
+        python3 -m pip install astropy
 
     Alternatively use`
 
