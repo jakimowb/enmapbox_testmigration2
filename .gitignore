@@ -1,2 +1,4 @@
 *.pyc
 enmapboxtestdata.egg-info/
+enmapboxtestdata/EnMAP_BerlinUrbanGradient.bsq.aux.xml
+enmapboxtestdata/HighResolution_BerlinUrbanGradient.bsq.aux.xml
