@@ -11,7 +11,7 @@ import hubdc.progressbar
 from hubflow.core import *
 import enmapboxtestdata
 
-overwrite=False
+overwrite = not True
 progressBar = hubdc.progressbar.CUIProgressBar
 outdir = join(gettempdir(), 'hubflow_testdata')
 
@@ -24,34 +24,37 @@ classDefinitionL1 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinit
 classDefinitionL2 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
                                     colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
 vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.landcover,
-                                                    nameAttribute=enmapboxtestdata.landcoverAttributes.Level_2,
+                                                    classAttribute=enmapboxtestdata.landcoverAttributes.Level_2_ID,
                                                     classDefinition=classDefinitionL2,
-                                                    minOverallCoverage=0., minWinnerCoverage=0.,
+                                                    minOverallCoverage=0., minDominantCoverage=0.,
                                                     oversampling=3)
 hymapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'hymapLandCover.bsq'),
                                                                                     classification=vectorClassification(),
-                                                                                    grid=hymap().grid, overwrite=overwrite)
+                                                                                    grid=hymap().grid(), overwrite=overwrite)
+
 enmapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'enmapLandCover.bsq'),
                                                                                     classification=vectorClassification(),
-                                                                                    grid=enmap().grid, overwrite=overwrite)
-hymapProbability = lambda overwrite=overwrite: Probability.fromClassification(filename=join(outdir, 'hymapProbability.bsq'),
-                                                                              classification=vectorClassification(),
-                                                                              grid=hymap().grid, overwrite=overwrite)
-enmapProbability = lambda overwrite=overwrite: Probability.fromClassification(filename=join(outdir, 'enmapProbability.bsq'),
-                                                                              classification=vectorClassification(),
-                                                                              grid=enmap().grid, overwrite=overwrite)
-enmapRegression = lambda overwrite=overwrite: Regression(filename=enmapProbability(overwrite=overwrite).filename)
-enmapProbabilitySample = lambda overwrite=overwrite: ProbabilitySample.fromRasterAndProbability(raster=enmap(), probability=enmapProbability(overwrite), grid=enmap())
-enmapClassificationSample = lambda overwrite=overwrite: ClassificationSample.fromRasterAndClassification(raster=enmap(), classification=enmapClassification(overwrite), grid=enmap())
-enmapUnsupervisedSample = lambda overwrite=overwrite: UnsupervisedSample.fromRasterAndMask(raster=enmap(), mask=vector(), grid=enmap())
+                                                                                    grid=enmap().grid(), overwrite=overwrite)
+hymapFraction = lambda overwrite=overwrite: Fraction.fromClassification(filename=join(outdir, 'hymapFraction.bsq'),
+                                                                        classification=vectorClassification(),
+                                                                        grid=hymap().grid(), overwrite=overwrite)
+enmapFraction = lambda overwrite=overwrite: Fraction.fromClassification(filename=join(outdir, 'enmapFraction.bsq'),
+                                                                        classification=vectorClassification(),
+                                                                        grid=enmap().grid(), overwrite=overwrite)
+hymapRegression = lambda overwrite=overwrite: Regression(filename=hymapFraction(overwrite=overwrite).filename())
+enmapRegression = lambda overwrite=overwrite: Regression(filename=enmapFraction(overwrite=overwrite).filename())
 
+enmapSample = lambda:Sample(raster=enmap(), mask=vector())
+enmapClassificationSample = lambda: ClassificationSample(raster=enmap(), classification=enmapClassification(overwrite))
+enmapFractionSample = lambda: FractionSample(raster=enmap(), fraction=enmapFraction(overwrite))
+enmapRegressionSample = lambda: RegressionSample(raster=enmap(), regression=enmapRegression())
 
 #hymapMask = lambda: hymapClassification.asMask()
 #enmapMask = lambda: enmapClassification.asMask()
 #unsupervisedSample = lambda: UnsupervisedSample.fromImageAndMask(image=enmap, mask=enmapMask)
 #classificationSample = lambda: ClassificationSample.fromImageAndClassification(image=enmap, classification=hymapClassification)
-#regressionSample = lambda: RegressionSample.fromImageAndRegression(image=enmap, regression=enmapProbability)
-#probabilitySample = lambda: ProbabilitySample.fromImageAndProbability(image=enmap, probability=enmapProbability)
+#regressionSample = lambda: RegressionSample.fromImageAndRegression(image=enmap, regression=enmapFraction)
+#fractionSample = lambda: FractionSample.fromImageAndFraction(image=enmap, fraction=enmapFraction)
 #classifier = lambda: Classifier(sklEstimator=RandomForestClassifier()).fit(sample=classificationSample)
 #regressor = lambda: Regressor(sklEstimator=RandomForestRegressor()).fit(sample=regressionSample)
 
