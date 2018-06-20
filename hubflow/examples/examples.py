@@ -43,12 +43,12 @@ def image_sampleByClassification():
     probabilitySample.pickle(filename=probabilitySampleFilename)
 
 def probabilitySample_classify():
-    probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
+    probabilitySample = FractionSample.unpickle(filename=probabilitySampleFilename)
     classificationSample = probabilitySample.argmaxProbability(minOverallCoverage=0.75, minWinnerCoverage=0.5)
     classificationSample.pickle(filename=classificationSampleFilename)
 
 def unsupervisedSample_classifyByName():
-    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+    unsupervisedSample = Sample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
                                       colors=unsupervisedSample.metadata['level 2 class lookup'][3:])
     classificationSample = unsupervisedSample.classifyByName(names=unsupervisedSample.metadata['level 2 spectra names'],
@@ -64,7 +64,7 @@ def classificationSample_synthMix():
     probabilitySample.pickle(filename=probabilitySampleFilename)
 
 def unsupervisedSample_saveAsSpectralLibrary():
-    probabilitySample = UnsupervisedSample.fromENVISpectralLibrary(filename=speclibFilename)
+    probabilitySample = Sample.fromENVISpectralLibrary(filename=speclibFilename)
     probabilitySample.browse()
     #probabilitySample.saveAsENVISpectralLibrary(filename=speclib2Filename)
 
@@ -74,12 +74,12 @@ def classificationSample_saveAsSpectralLibrary():
     ClassificationSample.fromENVISpectralLibrary(filename=speclib2Filename)
 
 def probabilitySample_saveAsSpectralLibrary():
-    probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
+    probabilitySample = FractionSample.unpickle(filename=probabilitySampleFilename)
     probabilitySample.saveAsENVISpectralLibrary(filename=speclib2Filename)
-    ProbabilitySample.fromENVISpectralLibrary(filename=speclib2Filename)
+    FractionSample.fromENVISpectralLibrary(filename=speclib2Filename)
 
 def probabilitySample_subsetClassesByNames():
-    probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
+    probabilitySample = FractionSample.unpickle(filename=probabilitySampleFilename)
     probabilitySample = probabilitySample.subsetClassesByName(names=['Roof', 'Tree'])
     probabilitySample.pickle(filename=probabilitySampleFilename)
 
@@ -124,7 +124,7 @@ def regressor_predict():
 
 def transformer_fit():
     from sklearn.decomposition import PCA
-    unsupervisdedSample = UnsupervisedSample.unpickle(filename=classificationSampleFilename)
+    unsupervisdedSample = Sample.unpickle(filename=classificationSampleFilename)
     transformer = Transformer(sklEstimator=PCA(n_components=3))
     transformer.fit(sample=unsupervisdedSample)
     transformer.pickle(filename=transformerFilename)
@@ -200,7 +200,7 @@ def baggingRegressor_fit():
 
 def clusterer_fit():
     from sklearn.cluster import KMeans
-    unsupervisedSample = UnsupervisedSample.unpickle(filename=classificationSampleFilename)
+    unsupervisedSample = Sample.unpickle(filename=classificationSampleFilename)
     clusterer = Clusterer(sklEstimator=KMeans())
     clusterer.fit(sample=unsupervisedSample)
     clusterer.pickle(filename=clustererFilename)
@@ -224,7 +224,7 @@ def browse():
     regression = Regression(filename=regressionFilename)
 
     classificationSample = ClassificationSample.unpickle(filename=classificationSampleFilename)
-    probabilitySample = ProbabilitySample.unpickle(filename=probabilitySampleFilename)
+    probabilitySample = FractionSample.unpickle(filename=probabilitySampleFilename)
     regressionSample = RegressionSample.unpickle(filename=probabilitySampleFilename)
 
     classifier = Classifier.unpickle(filename=classifierFilename)
