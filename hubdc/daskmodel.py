@@ -101,7 +101,7 @@ class SlicableRaster(object):
 class SlicableVector(object):
     def __init__(self, filename, grid, layerNameOrIndex=0, dtype=np.float32, noDataValue=None, **kwargs):
         vector = openVectorDataset(filename=filename, layerNameOrIndex=layerNameOrIndex, update=False)
-        assert isinstance(vector, Vector)
+        assert isinstance(vector, VectorDataset)
         assert isinstance(grid, Grid)
 
         self._filename = filename
