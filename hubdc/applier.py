@@ -64,7 +64,8 @@ class ApplierIO(object):
 
     def __init__(self, filename):
         self._operator = None
-        self._filename = str(filename)
+        assert isinstance(filename, str)
+        self._filename = filename
 
     def setOperator(self, operator):
         '''Pass a handle on the operator object.'''
@@ -205,7 +206,7 @@ class ApplierInputRaster(ApplierIO):
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
         # create tmp dataset with binarized categories in original resolution
-        gridInSourceProjection = grid.reproject(self.dataset().grid())
+        gridInSourceProjection = grid.reproject(other=self.dataset().grid()).pixelBuffer(buffer=1)
         tmpDataset = self.dataset().translate(grid=gridInSourceProjection,
                                               bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
@@ -460,6 +461,11 @@ class ApplierOutputRaster(ApplierIO):
         """Set no data value to all bands."""
 
         self._callImageMethod(method=RasterDataset.setNoDataValue, value=value)
+
+    def setNoDataValues(self, values):
+        """Set no data values."""
+
+        self._callImageMethod(method=RasterDataset.setNoDataValues, values=values)
 
     def _callImageMethod(self, method, **kwargs):
         if self.operator().isFirstBlock():

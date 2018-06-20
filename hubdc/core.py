@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from os import makedirs, remove
 from os.path import dirname, exists, join, basename, splitext
 from shutil import copyfile, rmtree
@@ -8,6 +9,7 @@ from osgeo import gdal, gdal_array, ogr, osr
 import numpy as np
 import hubdc.hubdcerrors as errors
 
+gdal.UseExceptions()
 
 class RasterCreationOptions(object):
     '''Class for managing raster creation options.'''
@@ -53,7 +55,7 @@ class RasterDriver(object):
     def fromFilename(cls, filename):
 
         ext = splitext(filename)[1][1:].lower()
-        if ext == 'bsq':
+        if ext in ['bsq', 'sli', 'esl']:
             driver = ENVIBSQDriver()
         elif ext == 'bil':
             driver = ENVIBILDriver()
@@ -111,7 +113,9 @@ class RasterDriver(object):
         assert isinstance(options, RasterCreationOptions)
 
         assert isinstance(filename, str)
-        if not self.equal(RasterDriver('MEM')) and not exists(dirname(filename)):
+        if (not self.equal(RasterDriver('MEM'))
+            and not filename.startswith('/vsimem/')
+            and not exists(dirname(filename))):
             makedirs(dirname(filename))
 
         gdalDataset = self.gdalDriver().Create(filename, grid.size().x(), grid.size().y(), bands, gdalType,
@@ -127,6 +131,11 @@ class MEMDriver(RasterDriver):
     def __init__(self):
         RasterDriver.__init__(self, name='MEM')
 
+class VRTDriver(RasterDriver):
+    '''VRT driver.'''
+
+    def __init__(self):
+        RasterDriver.__init__(self, name='VRT')
 
 class ENVIBSQDriver(RasterDriver):
     '''ENVI BSQ driver.'''
@@ -158,7 +167,7 @@ class ENVIBIPDriver(RasterDriver):
 class GTiffDriver(RasterDriver):
     '''GTiff driver.'''
 
-    DEFAULT_OPTIONS = RasterCreationOptions(options={'COMPRESS': 'LZW', 'INTERLEAVE': 'BAND',
+    DEFAULT_OPTIONS = RasterCreationOptions(options={'COMPRESS': 'None', 'INTERLEAVE': 'BAND',
                                                      'TILED': 'YES', 'BLOCKXSIZE': 256, 'BLOCKYSIZE': 256})
 
     def __init__(self):
@@ -293,6 +302,14 @@ class Extent(object):
     def ymax(self):
         '''Returns the ymax.'''
         return self._ymax
+
+    def equal(self, other):
+        assert isinstance(other, Extent)
+        equal = self.xmin() == other.xmin()
+        equal &= self.xmax() == other.xmax()
+        equal &= self.ymin() == other.ymin()
+        equal &= self.ymax() == other.ymax()
+        return equal
 
     def geometry(self):
         '''Returns self as a :class:`~hubdc.model.Geometry`.'''
@@ -589,6 +606,55 @@ class Pixel(object):
         return self._y
 
 
+class Column(object):
+    '''Class for managing image column location.'''
+
+    def __init__(self, x, z):
+        '''
+        :param x:
+        :type x: int
+        :param z:
+        :type z: int
+        '''
+        self._x = int(x)
+        self._z = int(z)
+
+    def __repr__(self):
+        return '{cls}(x={x}, z={z})'.format(cls=self.__class__.__name__, x=repr(self.x()), z=repr(self.z()))
+
+    def x(self):
+        '''Returns column x coordinate.'''
+        return self._x
+
+    def z(self):
+        '''Returns column z coordinate.'''
+        return self._z
+
+
+class Row(object):
+    '''Class for managing image row location.'''
+
+    def __init__(self, y, z):
+        '''
+        :param y:
+        :type y: int
+        :param z:
+        :type z: int
+        '''
+        self._y = int(y)
+        self._z = int(z)
+
+    def __repr__(self):
+        return '{cls}(y={y}, z={z})'.format(cls=self.__class__.__name__, y=repr(self.y()), z=repr(self.z()))
+
+    def y(self):
+        '''Returns row y coordinate.'''
+        return self._y
+
+    def z(self):
+        '''Returns row z coordinate.'''
+        return self._z
+
 class Geometry(object):
     '''Class for managing geometries.'''
 
@@ -663,7 +729,7 @@ class SpatialGeometry(Geometry):
     def fromVector(vector):
         '''Create by given :class:`~hubdc.model.Vector`.'''
 
-        assert isinstance(vector, Vector)
+        assert isinstance(vector, VectorDataset)
         layer = vector.ogrLayer()
         ogrGeometry = ogr.Geometry(ogr.wkbMultiPolygon)
         for feature in layer:
@@ -932,9 +998,10 @@ class Grid(object):
     def equal(self, other):
         '''Returns whether self is equal to other.'''
         assert isinstance(other, Grid)
-        return (self.projection().equal(other=other.projection()) and
-                self.extent().upperLeft() == other.extent().upperLeft() and
-                self.size().shape() == other.size().shape())
+        equal = self.projection().equal(other=other.projection())
+        equal &= self.extent().equal(other=other.extent())
+        equal &= self.resolution().equal(other=other.resolution())
+        return equal
 
     def reproject(self, other):
         '''
@@ -1052,6 +1119,10 @@ class RasterDataset(object):
         '''Create an instance by a given gdal.Dataset.'''
         assert isinstance(gdalDataset, gdal.Dataset)
         self._gdalDataset = gdalDataset
+
+        projection = Projection(wkt=self._gdalDataset.GetProjection())
+        if projection == '':
+            assert 0
         geotransform = self._gdalDataset.GetGeoTransform()
         resolution = Resolution(x=geotransform[1], y=abs(geotransform[5]))
         extent = Extent(xmin=geotransform[0],
@@ -1059,12 +1130,6 @@ class RasterDataset(object):
                         ymin=geotransform[3] - self._gdalDataset.RasterYSize * resolution.y(),
                         ymax=geotransform[3])
 
-#        if self._gdalDataset.GetProjection() == '':
-#            self._gdalDataset.SetProjection(Projection.WGS84().wkt())
-#            self._gdalDataset.FlushCache()
-#            self._gdalDataset=None
-#            return
-        projection = Projection(wkt=self._gdalDataset.GetProjection())
         self._grid = Grid(extent=extent, resolution=resolution, projection=projection)
 
     def __repr__(self):
@@ -1079,7 +1144,12 @@ class RasterDataset(object):
         return self._gdalDataset.GetFileList()
 
     def filename(self):
-        return self.filenames()[0]
+        filenames = self.filenames()
+        if filenames is None:
+            filename = None
+        else:
+            filename = filenames[0]
+        return filename
 
     def grid(self):
         '''Return the :class:`~hubdc.model.Grid`.'''
@@ -1146,6 +1216,7 @@ class RasterDataset(object):
     def flushCache(self):
         '''Flush the cache.'''
         self._gdalDataset.FlushCache()
+        return self
 
     def close(self):
         '''Close the gdal.Dataset.'''
@@ -1156,13 +1227,15 @@ class RasterDataset(object):
         for i, band in enumerate(self.bands()):
             band.setNoDataValue(values[i])
 
-    def noDataValues(self, default=None):
+    def noDataValues(self, default=None, required=False):
         '''Returns band no data values. For bands without a no data value, ``default`` is returned.'''
-        return [band.noDataValue(default=default) for band in self.bands()]
+        return [band.noDataValue(default=default, required=required) for band in self.bands()]
 
     def setNoDataValue(self, value):
         '''Set a single no data value to all bands.'''
         self.setNoDataValues(values=[value] * self.zsize())
+        if self.driver().equal(other=RasterDriver(name='ENVI')):
+            self.setMetadataItem(key='data ignore value', value=value)
 
     def noDataValue(self, default=None):
         '''
@@ -1190,13 +1263,15 @@ class RasterDataset(object):
         domains = self._gdalDataset.GetMetadataDomainList()
         return domains if domains is not None else []
 
-    def metadataItem(self, key, domain='', dtype=str):
+    def metadataItem(self, key, domain='', dtype=str, required=False):
         '''Returns the value (casted to a specific ``dtype``) of a metadata item.'''
         key = key.replace(' ', '_')
         gdalString = self._gdalDataset.GetMetadataItem(key, domain)
         if gdalString is None:
+            if required:
+                raise Exception('missing metadata item: key={}, domain={}'.format(key, domain))
             return None
-        return GDALMetadataFormatter.gdalStringToValue(gdalString, dtype=dtype)
+        return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
 
     def metadataDomain(self, domain=''):
         '''Returns the metadata dictionary for the given ``domain``.'''
@@ -1217,10 +1292,10 @@ class RasterDataset(object):
         '''Set a metadata item. ``value`` can be a string, a number or a list of strings or numbers.'''
         if value is None:
             return
-        key = key.replace(' ', '_')
+        key = key.replace(' ', '_').strip()
         if domain.upper() == 'ENVI' and key.lower() == 'file_compression':
             return
-        gdalString = GDALMetadataFormatter.valueToGDALString(value)
+        gdalString = MetadataFormatter.valueToString(value)
         self._gdalDataset.SetMetadataItem(key, gdalString, domain)
 
     def setMetadataDomain(self, metadataDomain, domain):
@@ -1283,49 +1358,28 @@ class RasterDataset(object):
         driver = self.driver()
         if driver.equal(other=ENVIBSQDriver()):
             fileType = self.metadataItem(key='file type', domain='ENVI')
-            hdrfilename = self._gdalDataset.GetFileList()[-1]
-        elif driver.equal(other=GTiffDriver()) == 'GTiff':
+            filenameHeader = self._gdalDataset.GetFileList()[-1]
+        elif driver.equal(other=GTiffDriver()):
             fileType = 'TIFF'
-            hdrfilename = filename + '.hdr'
+            filenameHeader = filename + '.hdr'
         else:
             return
 
-        envi = self.gdalDataset().GetMetadata('ENVI')
-
-        envi['file type'] = fileType
-        envi['samples'] = self._gdalDataset.RasterXSize
-        envi['lines'] = self._gdalDataset.RasterYSize
-        envi['bands'] = self._gdalDataset.RasterCount
-
-        keys = ['description', 'samples', 'lines', 'bands', 'header_offset', 'file_type', 'data_type',
-                'interleave', 'data_ignore_value',
-                'sensor_type', 'byte_order', 'map_info', 'projection_info', 'coordinate_system_string',
-                'acquisition_time',
-                'wavelength_units', 'wavelength', 'band_names']
-
-        from collections import OrderedDict
-        orderedEnvi = OrderedDict()
-        for key_ in keys:
-            key = key_.replace('_', ' ')
-            orderedEnvi[key_] = envi.pop(key_, envi.pop(key, None))
-
-        # close dataset
+        metadata = self.gdalDataset().GetMetadata('ENVI')
+        metadata['file type'] = fileType
+        metadata['samples'] = self._gdalDataset.RasterXSize
+        metadata['lines'] = self._gdalDataset.RasterYSize
+        metadata['bands'] = self._gdalDataset.RasterCount
         self._gdalDataset = None
 
-        # read map info and coordinate system string written by GDAL
+        # copy map info and coordinate system string written by GDAL
         if driver.equal(other=ENVIBSQDriver()):
-            with open(hdrfilename, 'r') as f:
-                for line in f:
-                    for key in ['map info', 'coordinate system string']:
-                        if line.startswith(key):
-                            orderedEnvi[key] = line.split('=')[-1].strip()
+            metadataOnDisk = ENVI.readHeader(filenameHeader=filenameHeader)
+            for key in ['map info', 'coordinate system string']:
+                metadata[key] = metadataOnDisk[key]
 
         # create ENVI header
-        with open(hdrfilename, 'w') as f:
-            f.write('ENVI\n')
-            for key, value in zip(list(orderedEnvi.keys()) + list(envi.keys()), list(orderedEnvi.values()) + list(envi.values())):
-                if value is not None:
-                    f.write('{key} = {value}\n'.format(key=key.replace('_', ' '), value=value))
+        ENVI.writeHeader(filenameHeader=filenameHeader, metadata=metadata)
 
     def warp(self, grid, filename='', driver=MEMDriver(), options=None, **kwargs):
         '''Returns a new instance of self warped into the given ``grid`` (default is self.grid()).
@@ -1486,41 +1540,68 @@ class RasterDataset(object):
         '''Returns the raster data type.'''
         return self._gdalDataset.GetRasterBand(1).ReadAsArray(win_xsize=1, win_ysize=1).dtype.type
 
-    def wavelengths(self, obj=False):
+    def xprofile(self, row):
         '''
-        Returns list of band wavelengths, or None if not specified.
-        Information is taken from the ``wavelength`` metadata item of the ``ENVI`` domain.
+        Returns raster data as 1d array for the given ``row``.
         '''
+        assert isinstance(row, Row)
+        return self.band(index=row.z()).xprofile(y=row.y())
 
-
-        envi = self.metadataDomain('ENVI')
-        if 'wavelength' not in envi:
-            return None
-
-        values = envi['wavelength']
-        fwhms = envi.get('fwhm', [None]*self.zsize())
-        unit = envi.get('wavelength units', Wavelength.UNKNOWN)
-        assert len(values) == self.zsize()
-        assert len(fwhms) == self.zsize()
-        return [Wavelength(value=value, fwhm=fwhm, unit=unit) for value, fwhm in zip(values, fwhms)]
-
-
-
-
-    def pixel(self, pixel):
+    def yprofile(self, column):
         '''
-        Returns raster data as 1d array for the given ``pixel``,
-        where zsize is the number of raster bands.
+        Returns raster data as 1d array for the given ``column``.
+        '''
+        assert isinstance(column, Column)
+        return self.band(index=column.z()).yprofile(x=column.x())
+
+    def zprofile(self, pixel):
+        '''
+        Returns raster data as 1d array for the given ``pixel``.
         '''
         grid = self.grid().subset(offset=pixel, size=Size(x=1, y=1))
         profile = self.readAsArray(grid=grid).flatten()
         return profile
 
-    def plotPixel(self, pixel):
+    def plotZProfile(self, pixel, plotWidget=None, spectral=False, xscale=1., yscale=1., **kwargs):
+        import pyqtgraph as pg
         assert isinstance(pixel, Pixel)
-        import matplotlib.pyplot as plt
-        plt.plot(self.pixel(pixel=pixel))
-        plt.show()
+
+        if plotWidget is None:
+            plotWidget = pg.plot()
+
+        if spectral:
+            X = np.array(self.metadataItem(key='wavelength', domain='ENVI', required=True), dtype=np.float) * xscale
+        else:
+            X = None
+        Y = self.zprofile(pixel=pixel) * yscale
+
+        plotWidget.plot(x=X, y=Y, **kwargs)
+        return plotWidget
+
+    def plotXProfile(self, row, plotWidget=None, yscale=1., **kwargs):
+        import pyqtgraph as pg
+        assert isinstance(row, Row)
+
+        if plotWidget is None:
+            plotWidget = pg.plot()
+
+        Y = self.xprofile(row=row) * yscale
+
+        plotWidget.plot(y=Y, **kwargs)
+        return plotWidget
+
+    def plotYProfile(self, column, plotWidget=None, yscale=1., **kwargs):
+        import pyqtgraph as pg
+        assert isinstance(column, Column)
+
+        if plotWidget is None:
+            plotWidget = pg.plot()
+
+        Y = self.yprofile(column=column) * yscale
+
+        plotWidget.plot(y=Y, **kwargs)
+        return plotWidget
+
 
     def plotSinglebandGrey(self, index=0, vmin=None, vmax=None, pmin=None, pmax=None, cmap='gray', noPlot=False):
         '''
@@ -1572,55 +1653,40 @@ class RasterDataset(object):
         return rgb
 
 
-class GDALMetadataFormatter(object):
+class MetadataFormatter(object):
     '''Class for managing GDAL metadata value formatting.'''
 
     @classmethod
-    def valueToGDALString(cls, value):
-        '''Returns a string representation of value.
-
-        :param value:
-        :type value: number | str | list(number) | list(str)
-        :return:
-        :rtype:
-
-
-        todo: add examples
-
-        '''
+    def valueToString(cls, value):
+        '''Returns a string representation of value.'''
 
         if isinstance(value, (list, tuple)):
-            return cls._listToGDALString(value)
+            return cls._listToString(value)
         else:
             return str(value)
 
     @classmethod
-    def gdalStringToValue(cls, gdalString, dtype):
+    def stringToValue(cls, string, dtype):
         '''
-        Returns a representation of ``gdalString`` as value of given ``dtype``.
-        If ``gdalString`` represents a list of values in curly brackets (e.g. ``{1, 2, 3}``),
+        Returns a representation of ``string`` as value of given ``dtype``.
+        If ``string`` represents a list of values in curly brackets (e.g. ``{1, 2, 3}``),
         a list of values is returned.
-
-        :param gdalString:
-        :type gdalString: str
-        :param dtype:
-        :type dtype: int | float | str | ...
         '''
 
-        gdalString.strip()
-        if gdalString.startswith('{') and gdalString.endswith('}'):
-            value = cls._gdalStringToList(gdalString, dtype)
+        string.strip()
+        if string.startswith('{') and string.endswith('}'):
+            value = cls._stringToList(string, dtype)
         else:
-            value = dtype(gdalString)
+            value = dtype(string)
         return value
 
     @classmethod
-    def _listToGDALString(cls, values):
-        return '{' + ','.join([str(v) for v in values]) + '}'
+    def _listToString(cls, values):
+        return '{' + ', '.join([str(v) for v in values]) + '}'
 
     @classmethod
-    def _gdalStringToList(cls, gdalString, type):
-        values = [type(v.strip()) for v in gdalString[1:-1].split(',')]
+    def _stringToList(cls, string, type):
+        values = [type(v.strip()) for v in string[1:-1].split(',')]
         return values
 
 
@@ -1644,7 +1710,8 @@ class RasterBandDataset():
             index=repr(self.index()))
 
     def raster(self):
-        '''Returns the :class:`~hubdc.model.Raster`.'''
+        '''Returns the :class:`~hubdc.core.RasterDataset`.'''
+        assert isinstance(self._raster, RasterDataset)
         return self._raster
 
     def index(self):
@@ -1730,7 +1797,7 @@ class RasterBandDataset():
         if value is None:
             return
         key = key.replace(' ', '_')
-        gdalString = GDALMetadataFormatter.valueToGDALString(value)
+        gdalString = MetadataFormatter.valueToString(value)
         self._gdalBand.SetMetadataItem(key, gdalString, domain)
 
     def metadataItem(self, key, domain='', dtype=str):
@@ -1738,7 +1805,7 @@ class RasterBandDataset():
         gdalString = self._gdalBand.GetMetadataItem(key, domain)
         if gdalString is None:
             return None
-        return GDALMetadataFormatter.gdalStringToValue(gdalString, dtype=dtype)
+        return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
 
     def copyMetadata(self, other):
         '''Copy raster and raster band metadata from self to other '''
@@ -1753,11 +1820,13 @@ class RasterBandDataset():
         if value is not None:
             self._gdalBand.SetNoDataValue(float(value))
 
-    def noDataValue(self, default=None):
+    def noDataValue(self, default=None, required=False):
         '''Returns band no data value, or ``default`` if no data value is unfefined.'''
         noDataValue = self._gdalBand.GetNoDataValue()
         if noDataValue is None:
             noDataValue = default
+        if noDataValue is None and required:
+            raise Exception('required no data value is missing')
         return noDataValue
 
     def setDescription(self, value):
@@ -1803,8 +1872,23 @@ class RasterBandDataset():
         domains = self._gdalBand.GetMetadataDomainList()
         return domains if domains is not None else []
 
+    def xprofile(self, y):
+        '''
+        Returns raster data as 1d array for the given row ``y``.
+        '''
+        grid = self.raster().grid().subset(offset=Pixel(x=0, y=y), size=Size(x=self.raster().xsize(), y=1))
+        profile = self.readAsArray(grid=grid).flatten()
+        return profile
 
-class Vector(object):
+    def yprofile(self, x):
+        '''
+        Returns raster data as 1d array for the given column ``x``.
+        '''
+        grid = self.raster().grid().subset(offset=Pixel(x=x, y=0), size=Size(x=1, y=self.raster().ysize()))
+        profile = self.readAsArray(grid=grid).flatten()
+        return profile
+
+class VectorDataset(object):
     '''Class for managing layers from vector files.'''
 
     def __init__(self, ogrDataSource, layerNameOrIndex=0):
@@ -1949,7 +2033,7 @@ class Vector(object):
         # open VRT vector file
         ogrDataSource = ogr.Open(vrtFilename)
         assert ogrDataSource is not None
-        vector = Vector(ogrDataSource=ogrDataSource, layerNameOrIndex=0)
+        vector = VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=0)
 
         # delete the VRT file
         remove(vrtFilename)
@@ -1976,42 +2060,9 @@ class Vector(object):
         typeNames = [self._ogrLayer.GetLayerDefn().GetFieldDefn(i).GetTypeName() for i in range(self.fieldCount())]
         return typeNames
 
-class Wavelength(object):
-
-    NANOMETERS = 'nanometers'
-    MICROMETERS = 'micrometers'
-    UNKNOWN = 'unknown'
-    UNITS = (NANOMETERS, MICROMETERS, UNKNOWN)
-
-    def __init__(self, value, unit=NANOMETERS, fwhm=None):
-        self._value = float(value)
-        if unit.lower() not in self.UNITS:
-            unit = self.UNKNOWN
-        self._unit = unit
-        self._fwhm = fwhm
-
-    def value(self, unit=None):
-        value = self._value
-        if unit is not None:
-            assert unit in self.UNITS, repr(unit)
-            assert unit is not self.UNKNOWN, 'can not convert to unknown unit'
-            assert self.unit() is not self.UNKNOWN, 'can not convert from unknown unit'
-            if self.unit() == self.NANOMETERS and unit == self.MICROMETERS:
-                value /= 1000.
-            elif self.unit() == self.MICROMETERS and unit == self.NANOMETERS:
-                value *= 1000.
-        return value
-
-    def unit(self):
-        return self._unit.lower()
-
-    def locate(self, wavelengths):
-        for w in wavelengths:
-            assert isinstance(w, Wavelength)
-        values = np.array([w.value(unit=self.unit()) for w in wavelengths])
-        index = np.argmin(np.abs(values-self.value()))
-        return index
-
+    def zsize(self):
+        '''Returns number of layers (i.e. 1).'''
+        return 1
 
 def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     '''
@@ -2026,7 +2077,7 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     '''
 
     assert isinstance(filename, str), type(filename)
-    if not exists(filename):
+    if not filename.startswith('/vsimem/') and not exists(filename):
         raise errors.FileNotExistError(filename)
     gdalDataset = gdal.Open(filename, eAccess)
 
@@ -2061,7 +2112,7 @@ def openVectorDataset(filename, layerNameOrIndex=0, update=False):
     :param update: whether to open in update mode
     :type update: bool
     :return:
-    :rtype: hubdc.core.Vector
+    :rtype: hubdc.core.VectorDataset
     '''
 
     assert isinstance(filename, str), type(filename)
@@ -2073,7 +2124,7 @@ def openVectorDataset(filename, layerNameOrIndex=0, update=False):
     if ogrDataSource is None:
         raise errors.InvalidOGRDataSourceError(filename)
 
-    return Vector(ogrDataSource=ogrDataSource, layerNameOrIndex=layerNameOrIndex)
+    return VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=layerNameOrIndex)
 
 
 def createRasterDataset(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', driver=MEMDriver(), options=None):
@@ -2172,14 +2223,100 @@ def createVRTDataset(filename, rastersOrFilenames, **kwargs):
 class PseudoGrid(Grid):
     def __init__(self, size):
         size = Size.parse(size)
-        Grid.__init__(self, extent=Extent(xmin=0, xmax=size.x(), ymin=0, ymax=size.y()),
-                      resolution=Resolution(x=1, y=1), projection=Projection.WGS84())
+        res = 1 / 3600. # 1 second of arc
+        Grid.__init__(self, extent=Extent(xmin=0, xmax=size.x() * res, ymin=0, ymax=size.y() * res),
+                      resolution=Resolution(x=res, y=res), # 1 second of arc
+                      projection=Projection.WGS84())
 
     @staticmethod
     def fromArray(array):
         isinstance(array, np.ndarray)
         size = Size(x=array.shape[-1], y=array.shape[-2])
         return PseudoGrid(size=size)
+
+class ENVI():
+
+    SPATIAL_KEYS = ['lines', 'samples', 'map info', 'projection info', 'coordinate system string']
+
+    @staticmethod
+    def numpyType(enviType):
+        typeMap = {1: np.uint8, 2: np.int16, 3: np.int32, 4: np.float32, 5: np.float64, 6: np.complex64,
+                   9: np.complex128, 12: np.uint16, 13: np.uint32, 14: np.int64, 15: np.uint64}
+        return typeMap[enviType]
+
+    @classmethod
+    def gdalType(cls, enviType):
+        numpyType = cls.numpyType(enviType=enviType)
+        return gdal_array.NumericTypeCodeToGDALTypeCode(numpyType)
+
+    @staticmethod
+    def typeSize(enviType):
+        typeMap = {1: 8, 2: 16, 3: 32, 4: 32, 5: 64, 6: 64, 9: 128, 12: 16, 13: 32, 14: 64, 15: 64}
+        bits = typeMap[enviType]
+        bytes = bits/8
+        return bytes
+
+
+    @staticmethod
+    def findHeader(filenameBinary):
+        for filename in [filenameBinary + '.hdr', splitext(filenameBinary)[0] + '.hdr']:
+            if exists(filename):
+                return filename
+        return None
+
+    @staticmethod
+    def readHeader(filenameHeader):
+        text = list()
+        with open(filenameHeader, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line == 'ENVI' or line == '':
+                    newline = line
+                else:
+                    key, *value = line.split('=')
+                    value = '='.join(value).strip()
+                    if (value[0] != '{') or (value[0] == '{' and value[-1] == '}'): # item in single line
+                        newline = line
+                    else: # item on multiple lines
+                        newline = line
+                        while True:
+                            newline += f.readline()
+                            if newline.strip()[-1] == '}':
+                                break
+                text.append(newline)
+
+        result = OrderedDict()
+        for line in text:
+            if line == 'ENVI' or line == '':
+                continue
+            else:
+                key, *value = line.split('=')
+                value = '='.join(value).replace('\n', ' ').strip()
+                result[key.strip()] = value
+
+        return result
+
+    @staticmethod
+    def writeHeader(filenameHeader, metadata):
+
+        metadata = metadata.copy()
+        keys = ['description', 'samples', 'lines', 'bands', 'header_offset', 'file_type', 'data_type',
+                'interleave', 'data_ignore_value',
+                'sensor_type', 'byte_order', 'map_info', 'projection_info', 'coordinate_system_string',
+                'acquisition_time',
+                'wavelength_units', 'wavelength', 'fwhm', 'band_names']
+
+        def writeItem(key, value):
+            if value is not None:
+                value = MetadataFormatter.valueToString(value=value)
+                f.write('{key} = {value}\n'.format(key=key.replace('_', ' '), value=value))
+
+        with open(filenameHeader, 'w') as f:
+            f.write('ENVI\n')
+            for key in keys + list(metadata.keys()):
+                if key not in metadata:
+                    key = key.replace('_', ' ')
+                writeItem(key=key, value=metadata.pop(key, None))
 
 def buildOverviews(filename, levels=None, minsize=1024, resampling='average'):
     '''
