@@ -28,7 +28,7 @@ class Test(TestCase):
             openRasterDataset(filename=LT51940232010189KIS01.root)
 
     def test_OpenLayer(self):
-        self.assertIsInstance(obj=openVectorDataset(filename=BrandenburgDistricts.shp), cls=Vector)
+        self.assertIsInstance(obj=openVectorDataset(filename=BrandenburgDistricts.shp), cls=VectorDataset)
         with self.assertRaises(errors.FileNotExistError):
             openRasterDataset(filename='not a valid file')
         with self.assertRaises(errors.InvalidOGRDataSourceError):

@@ -7,13 +7,16 @@ from PyQt5.QtGui import QColor
 
 from hubdc.progressbar import ProgressBar
 from hubdc.core import *
+from hubdc.applier import ApplierOutputRaster
 from hubflow.applier import Applier, ApplierOperator, ApplierControls
 
 from hubflow.report import *
 from hubflow import signals
 
+
 class FlowObjectPickleFileError(Exception):
     pass
+
 
 class FlowObjectTypeError(Exception):
     pass
@@ -21,6 +24,7 @@ class FlowObjectTypeError(Exception):
 
 class FlowObject(object):
     def pickle(self, filename, progressBar=None):
+        self._initPickle()
         if not exists(dirname(filename)):
             makedirs(dirname(filename))
         with open(filename, 'wb') as f:
@@ -53,20 +57,181 @@ class FlowObject(object):
                 return None
         return obj
 
+    def _initPickle(self):
+        pass
+
+
+class MapCollection(FlowObject):
+    def __init__(self, maps):
+        self._maps = maps
+
+    def __repr__(self):
+        return '{cls}(maps={maps})'.format(cls=self.__class__.__name__, maps=repr(self.maps()))
+
+    def _initPickle(self):
+        for map in self.maps():
+            map._initPickle()
+
+    def maps(self):
+        return self._maps
+
+    def extractAsArray(self, masks, grid=None, onTheFlyResampling=False, **kwargs):
+        if grid is None:
+            grid = self.maps()[0].grid()
+        assert isinstance(grid, Grid)
+        equalGrids = True
+        for map in self.maps() + masks:
+            if isinstance(map, Raster):
+                equalGrids &= map.grid().equal(other=grid)
+
+        if equalGrids:
+
+            def getRasterDataset(map):
+                if isinstance(map, Raster):
+                    rasterDataset = map.dataset()
+                elif isinstance(map, Vector):
+                    gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(map.dtype())
+                    rasterDataset = map.dataset().rasterize(grid=grid,
+                                                            gdalType=gdalType,
+                                                            initValue=map.initValue(),
+                                                            burnValue=map.burnValue(),
+                                                            burnAttribute=map.burnAttribute(),
+                                                            allTouched=map.allTouched(),
+                                                            filterSQL=map.filterSQL(),
+                                                            noDataValue=map.noDataValue())
+                elif map is None:
+                    rasterDataset = None
+                else:
+                    assert 0, repr(map)
+                return rasterDataset
+
+            # calculate overall mask
+            marray = np.full(shape=grid.shape(), fill_value=np.True_)
+            for map in masks:
+                rasterDataset = getRasterDataset(map=map)
+                if rasterDataset is None:
+                    continue
+                for band in rasterDataset.bands():
+                    marray *= band.readAsArray() != band.noDataValue(default=0)
+
+            nothingToExtract = not marray.any()
+
+            # extract values for all masked pixels
+            arrays = list()
+            for map in self.maps():
+                zsize = map.dataset().zsize()
+                if nothingToExtract:
+                    zsize = map.dataset().zsize()
+                    profiles = np.empty(shape=(zsize, 0), dtype=np.uint8)
+                else:
+                    array = getRasterDataset(map=map).readAsArray()
+                    profiles = array[:, marray]
+
+                arrays.append(profiles)
+
+        else:
+            assert onTheFlyResampling is True
+            arrays = extractPixels(inputs=self.maps(), masks=masks, grid=grid, **kwargs)
+        return arrays
+
+    def extractAsRaster(self, filenames, grid, masks, onTheFlyResampling=False, **kwargs):
+        assert isinstance(filenames, list)
+        assert len(filenames) == len(self.maps())
+        arrays = self.extractAsArray(grid=grid, masks=masks, onTheFlyResampling=onTheFlyResampling, **kwargs)
+        rasters = list()
+
+        for filename, array, map in zip(filenames, arrays, self.maps()):
+            # from single line 3d array ...
+            array = np.atleast_3d(array)
+
+            # ... to multiple line 3d array (to avoid very long lines)
+            from math import ceil
+            bands = array.shape[0]
+            lines = min(3600, array.shape[1])
+            samples = ceil(array.shape[1] / float(lines))
+            print(map)
+            array2 = np.full(shape=(bands, lines*samples, 1), fill_value=map.noDataValue(default=np.nan),
+                             dtype=map.dtype())
+            array2[:, :array.shape[1]] = array[:]
+            array2 = np.reshape(array2, (bands, lines, samples))
+
+            rasterDataset = createRasterDatasetFromArray(array=array2,
+                                                         filename=filename,
+                                                         driver=RasterDriver.fromFilename(filename=filename))
+
+            if isinstance(map, (Classification, VectorClassification)):
+                MetadataEditor.setClassDefinition(rasterDataset=rasterDataset,
+                                                  classDefinition=map.classDefinition())
+            elif isinstance(map, Fraction):
+                MetadataEditor.setFractionDefinition(rasterDataset=rasterDataset,
+                                                     classDefinition=map.classDefinition())
+            elif isinstance(map, Regression):
+                MetadataEditor.setRegressionDefinition(rasterDataset=rasterDataset,
+                                                       noDataValues=map.noDataValues(),
+                                                       outputNames=map.outputNames())
+            elif isinstance(map, Vector):
+                pass
+            elif isinstance(map, Raster):
+                bandCharacteristics = MetadataEditor.bandCharacteristics(rasterDataset=rasterDataset)
+                MetadataEditor.setBandCharacteristics(rasterDataset=rasterDataset, **bandCharacteristics)
+            else:
+                assert 0, repr(map)
+
+            rasterDataset.flushCache()
+            if isinstance(map, Raster):
+                raster = type(map).fromRasterDataset(rasterDataset=rasterDataset)
+            else:
+                raster = Raster.fromRasterDataset(rasterDataset=rasterDataset)
+            rasters.append(raster)
+        return rasters
+
+class ConvolutionKernel(FlowObject):
+    pass
 
 class Raster(FlowObject):
     def __init__(self, filename):
-        self.filename = filename
+        self._filename = filename
+        self._rasterDataset = None
 
     def __repr__(self):
-        return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename))
+        return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename()))
+
+#    def __setstate__(self, state):
+#        self.__init__(**state)
+
+#    def __getstate__(self):
+#        state = {'filename': self.filename()}
+#        return state
+
+    def _initPickle(self):
+        self._rasterDataset = None
+
+
+    def filename(self):
+        return self._filename
 
     def dataset(self):
-        return openRasterDataset(self.filename)
+        if self._rasterDataset is None:
+            self._rasterDataset = openRasterDataset(self.filename())
+        assert isinstance(self._rasterDataset, RasterDataset)
+        return self._rasterDataset
 
-    @property
+    def noDataValue(self, default=None):
+        return self.dataset().noDataValue(default=default)
+
+    def dtype(self):
+        return self.dataset().dtype()
+
     def grid(self):
         return self.dataset().grid()
+
+    @classmethod
+    def fromRasterDataset(cls, rasterDataset, **kwargs):
+        assert isinstance(rasterDataset, RasterDataset)
+        filename = rasterDataset.filename()
+        raster = cls(rasterDataset.filename(), **kwargs)
+        raster._rasterDataset = rasterDataset
+        return raster
 
     @classmethod
     def fromVector(cls, filename, vector, grid, noDataValue=None, **kwargs):
@@ -76,16 +241,34 @@ class Raster(FlowObject):
         applier.apply(operatorType=_RasterFromVector, vector=vector, noDataValue=noDataValue)
         return Raster(filename=filename)
 
-    @classmethod
-    def fromSample(cls, filename, sample, noDataValue=None):
-        assert isinstance(sample, UnsupervisedSample)
-        array = sample.features.reshape((sample.nbands, sample.nsamples, 1))
-        grid = Grid(extent=Extent(xmin=0, xmax=1, ymin=0, ymax=sample.nsamples),
-                    resolution=Resolution(x=1, y=1),
-                    projection=Projection.WGS84())
-        rasterDataset = createRasterDatasetFromArray(grid=grid, array=array, filename=filename, driver=ENVIBSQDriver())
-        rasterDataset.setNoDataValue(value=noDataValue)
-        rasterDataset.close()
+    @staticmethod
+    def fromENVISpectralLibrary(filename, library):
+        assert isinstance(library, ENVISpectralLibrary)
+        rasterDataset = library.raster().dataset().translate(filename=filename,
+                                                             driver=RasterDriver.fromFilename(filename=filename))
+        rasterDataset.copyMetadata(other=library.raster().dataset())
+        return Raster.fromRasterDataset(rasterDataset=rasterDataset)
+
+    def uniqueValues(self, index):
+        values = np.unique(self.dataset().band(index=index).readAsArray())
+        return values
+
+    def convolve(self, filename, kernel, **kwargs):
+        from astropy.convolution import Kernel
+        assert isinstance(kernel, Kernel)
+        assert kernel.dimension <= 3
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.setFlowRaster('inraster', raster=self)
+        applier.setOutputRaster('outraster', filename=filename)
+        applier.apply(operatorType=_RasterConvolve, raster=self, kernel=kernel)
+        return Raster(filename=filename)
+
+    def applySpatial(self, filename, function, **kwargs):
+        applier = Applier(defaultGrid=self, **kwargs)
+        applier.controls.setBlockFullSize()
+        applier.setFlowRaster('inraster', raster=self)
+        applier.setOutputRaster('outraster', filename=filename)
+        applier.apply(operatorType=_RasterApplySpatial, raster=self, function=function)
         return Raster(filename=filename)
 
     def resample(self, filename, grid, resampleAlg=gdal.GRA_NearestNeighbour, **kwargs):
@@ -93,24 +276,23 @@ class Raster(FlowObject):
         applier.setFlowRaster('inraster', raster=self)
         applier.setOutputRaster('outraster', filename=filename)
         applier.apply(operatorType=_RasterResample, raster=self, resampleAlg=resampleAlg)
-        return Regression(filename=filename)
+        return Raster(filename=filename)
 
-    def asMask(self, noDataValue=None):
-        return Mask(filename=self.filename, noDataValue=noDataValue)
+    def asMask(self, noDataValues=None, minOverallCoverage=0.5, index=None):
+        return Mask(filename=self.filename(), noDataValues=noDataValues, minOverallCoverage=minOverallCoverage,
+                    index=index)
 
-    def basicStatistics(self, bandIndicies=None, mask=None, **kwargs):
+    def statistics(self, bandIndicies=None, mask=None,
+                   calcPercentiles=False, calcHistogram=False, calcMean=False, calcStd=False,
+                   histogramRanges=None, histogramBins=None,
+                   **kwargs):
         applier = Applier(defaultGrid=self, **kwargs)
+        applier.controls.setBlockFullSize()
         applier.setFlowRaster('raster', raster=self)
         applier.setFlowMask('mask', mask=mask)
-        results = applier.apply(operatorType=_RasterBasicStatistics, raster=self, bandIndicies=bandIndicies, mask=mask)
-
-        results = np.array(results, dtype=np.float64)
-        min = np.nanmin(results[:, :, 0], axis=0)
-        max = np.nanmax(results[:, :, 1], axis=0)
-        sum = np.nansum(results[:, :, 2], axis=0)
-        n = np.sum(results[:, :, 3], axis=0)
-        mean = sum / n
-        return min, max, mean, n
+        return applier.apply(operatorType=_RasterStatistics, raster=self, bandIndicies=bandIndicies, mask=mask,
+                             calcPercentiles=calcPercentiles, calcMean=calcMean, calcStd=calcStd,
+                             calcHistogram=calcHistogram, histogramRanges=histogramRanges, histogramBins=histogramBins)
 
     def scatterMatrix(self, raster2, bandIndex1, bandIndex2, range1, range2, bins=256, mask=None, stratification=None,
                       **kwargs):
@@ -136,6 +318,34 @@ class Raster(FlowObject):
         applier.apply(operatorType=_RasterApplyMask, raster=self, mask=mask)
         return Raster(filename=filename)
 
+    #    def metadataDict(self):
+    #        return self.dataset().metadataDict()
+
+    def metadataWavelength(self):
+        wavelength = self.dataset().metadataItem(key='wavelength', domain='ENVI', dtype=float, required=True)
+        unit = self.dataset().metadataItem(key='wavelength units', domain='ENVI', required=True)
+        assert unit.lower() in ['nanometers', 'micrometers']
+        wavelength = [float(v) for v in wavelength]
+        if unit.lower() == 'micrometers':
+            wavelength = [v * 1000 for v in wavelength]
+        return wavelength
+
+    def metadataFWHM(self, required=False):
+        fwhm = self.dataset().metadataItem(key='fwhm', domain='ENVI', dtype=float, required=required)
+        if fwhm is None:
+            fwhm = [None] * self.dataset().zsize()
+        else:
+            unit = self.dataset().metadataItem(key='wavelength units', domain='ENVI', required=True)
+            assert unit.lower() in ['nanometers', 'micrometers']
+            fwhm = [float(v) for v in fwhm]
+            if unit.lower() == 'micrometers':
+                fwhm = [v * 1000 for v in fwhm]
+
+        return fwhm
+
+    def sensorDefinition(self):
+        return SensorDefinition.fromFWHM(centers=self.metadataWavelength(), fwhms=self.metadataFWHM())
+
 
 class _RasterResample(ApplierOperator):
     def ufunc(self, raster, resampleAlg):
@@ -151,36 +361,117 @@ class _RasterResample(ApplierOperator):
         outraster.setNoDataValues(values=noDataValues)
 
 
-class _RasterBasicStatistics(ApplierOperator):
-    def ufunc(self, raster, bandIndicies, mask):
-        array = self.flowRasterArray('raster', raster=raster, indicies=bandIndicies).astype(dtype=np.float64)
+class _RasterConvolve(ApplierOperator):
+    def ufunc(self, raster, kernel):
+        from astropy.convolution import convolve, CustomKernel
+
+        if kernel.dimension == 3:
+            pass
+        elif kernel.dimension == 2:
+            kernel = CustomKernel(array=kernel.array[None])
+        elif kernel.dimension == 1:
+            kernel = CustomKernel(array=kernel.array.reshape(-1, 1, 1))
+
+        inraster = self.inputRaster.raster(key='inraster')
+        outraster = self.outputRaster.raster(key='outraster')
+        zsize, ysize, xsize = kernel.shape
+        overlap = int((max(ysize, xsize)+1)/2.)
+        array = np.float32(inraster.array(overlap=overlap))
+        noDataValues = self.inputRaster.raster(key='inraster').noDataValues()
+        for band, noDataValue in zip(array, noDataValues):
+            if noDataValue is not None:
+                band[band==noDataValue] = np.nan
+        outarray = convolve(array=array, kernel=kernel,
+                            fill_value=np.nan, nan_treatment='fill',
+                            normalize_kernel=False)
+        outraster.setArray(array=outarray, overlap=overlap)
+        #outraster.setMetadataDict(metadataDict=inraster.metadataDict())
+        outraster.setNoDataValue(value=np.nan)
+
+
+class _RasterApplySpatial(ApplierOperator):
+    def ufunc(self, raster, function):
+
+        inraster = self.inputRaster.raster(key='inraster')
+        outraster = self.outputRaster.raster(key='outraster')
+        outraster.setZsize(zsize=inraster.dataset().zsize())
+        for index in range(inraster.dataset().zsize()):
+            array = inraster.bandArray(indicies=[index])[0]
+            outarray = function(array)
+            outraster.band(index=index).setArray(array=outarray)
+
+
+class _RasterStatistics(ApplierOperator):
+    def ufunc(self, raster, bandIndicies, mask, calcPercentiles, calcHistogram, calcMean, calcStd,
+              histogramRanges, histogramBins):
+
         maskValid = self.flowMaskArray('mask', mask=mask)
 
-        def bandBasicStatistics(index, band):
+        if bandIndicies is None:
+            bandIndicies = range(self.inputRaster.raster('raster').dataset().zsize())
+
+        result = list()
+        for i, index in enumerate(bandIndicies):
+            self.progressBar.setPercentage((float(i) + 1) / len(bandIndicies) * 100)
+            band = self.flowRasterArray('raster', raster=raster, indices=[index]).astype(dtype=np.float64)
             valid = self.maskFromBandArray(array=band, noDataValueSource='raster', index=index)
             valid *= maskValid
-            band[np.logical_not(valid)] = np.nan
-            min = np.nanmin(band)
-            max = np.nanmax(band)
-            sum = np.nansum(band)
-            n = np.sum(valid)
-            return min, max, sum, n
+            values = band[valid]  # may still contain NaN
+            bandResult = {'index': index}
+            bandResult['nvalid'] = np.sum(valid)
+            bandResult['ninvalid'] = np.product(band.shape) - bandResult['nvalid']
 
-        return [bandBasicStatistics(index=i, band=band[None]) for i, band in enumerate(array)]
+            if calcPercentiles:
+                qs = [0, 5, 25, 50, 75, 95, 100]
+                ps = np.nanpercentile(values, q=qs)
+                bandResult['percentiles'] = list(zip(qs, ps))
+                bandResult['min'] = ps[qs.index(0)]
+                bandResult['max'] = ps[qs.index(100)]
+                bandResult['median'] = ps[qs.index(50)]
+            else:
+                bandResult['min'] = np.nanmin(values)
+                bandResult['max'] = np.nanmax(values)
 
+            if calcStd:
+                bandResult['std'] = np.nanstd(values)
+
+            if calcMean:
+                bandResult['mean'] = np.nanmean(values)
+
+            if calcHistogram:
+                if histogramRanges is None:
+                    range_ = [bandResult['min'], bandResult['max']]
+                else:
+                    assert len(histogramRanges) == len(bandIndicies)
+                    range_ = histogramRanges[index]
+                if histogramBins is None:
+                    bins = 256
+                else:
+                    assert len(histogramBins) == len(bandIndicies)
+                    bins = histogramBins[index]
+
+                hist, bin_edges = np.histogram(values, bins=bins, range=range_)
+                bandResult['histo'] = {'hist': hist, 'bin_edges': bin_edges}
+
+            result.append(bandResult)
+        return result
+
+    @staticmethod
+    def aggregate(blockResults, grid, *args, **kwargs):
+        return blockResults[0]
 
 class _RasterFromVector(ApplierOperator):
     def ufunc(self, vector, noDataValue):
         array = self.flowVectorArray('vector', vector=vector)
         self.outputRaster.raster(key='raster').setArray(array=array)
-        self.setFlowMetadataNoDataValue('raster', noDataValue=noDataValue)
+        self.setFlowMetadataNoDataValues('raster', noDataValues=[noDataValue])
 
 
 class _RasterScatterMatrix(ApplierOperator):
     def ufunc(self, raster1, raster2, bandIndex1, bandIndex2, bins, mask, stratification):
 
-        band1 = self.flowRasterArray('raster1', raster=raster1, indicies=[bandIndex1])
-        band2 = self.flowRasterArray('raster2', raster=raster2, indicies=[bandIndex2])
+        band1 = self.flowRasterArray('raster1', raster=raster1, indices=[bandIndex1])
+        band2 = self.flowRasterArray('raster2', raster=raster2, indices=[bandIndex2])
         strata = self.flowClassificationArray('stratification', classification=stratification)
 
         valid = self.maskFromBandArray(array=band1, noDataValueSource='raster1', index=bandIndex1)
@@ -195,7 +486,7 @@ class _RasterScatterMatrix(ApplierOperator):
         else:
             s = strata[valid]
             HList = list()
-            for i in range(1, stratification.classDefinition.classes + 1):
+            for i in range(1, stratification.classDefinition().classes() + 1):
                 v = s == i
                 Hi = np.histogram2d(x=x[v], y=y[v], bins=bins)[0]
                 HList.append(np.array(Hi))
@@ -218,37 +509,452 @@ class _RasterApplyMask(ApplierOperator):
         outraster.setNoDataValue(value=noDataValue)
 
 
-class Mask(Raster):
-    def __init__(self, filename, noDataValue=None, minOverallCoverage=None, index=None):
-        Raster.__init__(self, filename)
-        if noDataValue is None:
-            noDataValue = openRasterDataset(filename=filename).noDataValue(default=0)
-        if minOverallCoverage is None:
-            minOverallCoverage = 0.5
-        self.noDataValue = noDataValue
-        self.minOverallCoverage = minOverallCoverage
-        self.index = index  # use only that band to generate the mask, otherwise reduce over all bands
+class WavebandDefinition():
+    def __init__(self, center, fwhm=None, wavelengths=None, responses=None, name=None):
+        if wavelengths is not None:
+            wavelengths = np.array(wavelengths, dtype=np.float32)
+        if responses is not None:
+            responses = np.array(responses, dtype=np.float32)
+
+        self._center = float(center)
+        if fwhm is not None:
+            fwhm = float(fwhm)
+        self._fwhm = fwhm
+        self._wavelengths = wavelengths
+        self._responses = responses
+        self._name = name
 
     def __repr__(self):
-        return '{cls}(filename={filename}, noDataValue={noDataValue})'.format(
+        return '{cls}(center={center}, wavelengths={wavelengths}, responses={responses})'.format(
             cls=self.__class__.__name__,
-            filename=str(self.filename),
-            noDataValue=repr(self.noDataValue))
+            center=str(self._center),
+            wavelengths='array[{}]'.format(len(self._wavelengths)),
+            responses='array[{}]'.format(len(self._responses)))
+
+    @staticmethod
+    def fromFWHM(center, fwhm, sigmaLimits=3):
+        center = float(center)
+        if fwhm is not None:
+            fwhm = float(fwhm)
+            sigma = fwhm / 2.3548
+            wavelengths = np.array(range(int(center - sigmaLimits * sigma), int(center + sigmaLimits * sigma)))
+            responses = np.exp(-(wavelengths - center) ** 2 / (2 * sigma ** 2))
+        else:
+            wavelengths = None
+            responses = None
+        return WavebandDefinition(center=center, fwhm=fwhm, wavelengths=wavelengths, responses=responses)
+
+    def center(self):
+        return self._center
+
+    def fwhm(self):
+        return self._fwhm
+
+    def wavelengths(self):
+        assert isinstance(self._wavelengths, np.ndarray)
+        return self._wavelengths
+
+    def responses(self):
+        assert isinstance(self._responses, np.ndarray)
+        return self._responses
+
+    def name(self):
+        return self._name
+
+    def resamplingWeights(self, sensor):
+        assert isinstance(sensor, SensorDefinition)
+        centers = sensor.wavebandCenters()
+        weights = list()
+        for center in centers:
+            if center > self._wavelengths[-1] or center < self._wavelengths[0]:
+                weight = 0.
+            else:
+                weight = self._responses[np.abs(np.subtract(self._wavelengths, center)).argmin()]
+            weights.append(weight)
+        return weights
+
+    def plot(self, plotWidget=None, yscale=1., **kwargs):
+        import pyqtgraph as pg
+        if plotWidget is None:
+            plotWidget = pg.plot(title='Response Curve')
+        plotWidget.plot(x=self.wavelengths(), y=self.responses() * yscale, **kwargs)
+        return plotWidget
+
+
+class SensorDefinition():
+    RESAMPLE_RESPONSE = 'response'
+    RESAMPLE_LINEAR = 'linear'
+    RESAMPLE_OPTIONS = [RESAMPLE_LINEAR, RESAMPLE_RESPONSE]
+
+    def __init__(self, wavebandDefinitions):
+        self._wavebandDefinitions = wavebandDefinitions
+
+    def __repr__(self):
+        return '{cls}(wavebandDefinitions={wavebandDefinitions})'.format(
+            cls=self.__class__.__name__,
+            wavebandDefinitions=str(self._wavebandDefinitions))
+
+    @classmethod
+    def fromENVISpectralLibrary(cls, library):
+        assert isinstance(library, ENVISpectralLibrary)
+
+        names = library.raster().dataset().metadataItem(key='spectra names', domain='ENVI')
+        wavelengths = np.float32(library.raster().metadataWavelength())
+
+        isResponseFunction = True
+        for i in range(len(wavelengths) - 1):
+            if (wavelengths[i + 1] - wavelengths[i]) != 1:
+                isResponseFunction = False
+                break
+
+        if isResponseFunction:
+            responsess = library.raster().dataset().readAsArray().T[0]  # sample.features.T
+            sensor = cls.fromResponseFunctions(centers=None, names=names, wavelengths=wavelengths,
+                                               responsess=responsess)
+        else:
+            fwhm = library.raster().metadataFWHM(required=True)
+            sensor = cls.fromFWHM(centers=wavelengths, fwhms=fwhm)
+
+        return sensor
+
+    @staticmethod
+    def fromResponseFunctions(centers, names, wavelengths, responsess):
+        if names is None:
+            names = [None] * len(responsess)
+        if centers is None:
+            centers = [None] * len(responsess)
+
+        assert len(centers) == len(names)
+        assert isinstance(wavelengths, np.ndarray) and wavelengths.ndim == 1
+        assert isinstance(responsess, np.ndarray) and responsess.ndim == 2
+        assert wavelengths.shape[0] == responsess.shape[1]
+
+        wavebandDefinitions = list()
+        for responses, name, center in zip(responsess, names, centers):
+            if center is None:
+                center = wavelengths[responses > 0.01][[0, -1]].mean()
+            valid = responses > 0.01
+            wavebandDefinitions.append(WavebandDefinition(center=center,
+                                                          fwhm=None,
+                                                          wavelengths=wavelengths[valid],
+                                                          responses=responses[valid],
+                                                          name=name))
+
+        return SensorDefinition(wavebandDefinitions=wavebandDefinitions)
+
+    @staticmethod
+    def fromFWHM(centers, fwhms):
+        assert len(centers) == len(fwhms)
+        wavebandDefinitions = [WavebandDefinition.fromFWHM(center=center, fwhm=fwhm)
+                               for center, fwhm in zip(centers, fwhms)]
+        return SensorDefinition(wavebandDefinitions=wavebandDefinitions)
+
+    @staticmethod
+    def fromRaster(raster):
+        assert isinstance(raster, Raster)
+        return raster.sensorDefinition()
+
+    def wavebandDefinition(self, index):
+        wavebandDefinition = self._wavebandDefinitions[index]
+        assert isinstance(wavebandDefinition, WavebandDefinition)
+        return wavebandDefinition
+
+    def wavebandDefinitions(self):
+        for index in range(self.wavebandCount()):
+            yield self.wavebandDefinition(index=index)
+
+    def wavebandCount(self):
+        return len(self._wavebandDefinitions)
+
+    def plot(self, plotWidget=None, yscale=1., **kwargs):
+        import pyqtgraph as pg
+        if plotWidget is None:
+            plotWidget = pg.plot()
+
+        for wavebandDefinition in self.wavebandDefinitions():
+            wavebandDefinition.plot(plotWidget=plotWidget, yscale=yscale, **kwargs)
+
+        return plotWidget
+
+    def wavebandCenters(self):
+        return [wavebandDefinition.center() for wavebandDefinition in self.wavebandDefinitions()]
+
+    def wavebandFwhms(self):
+        return [wavebandDefinition.fwhm() for wavebandDefinition in self.wavebandDefinitions()]
+
+    def wavebandResponses(self):
+        return [wavebandDefinition.responses() for wavebandDefinition in self.wavebandDefinitions()]
+
+    def wavebandWavelengths(self):
+        return [wavebandDefinition.wavelengths() for wavebandDefinition in self.wavebandDefinitions()]
+
+    def resampleRaster(self, filename, raster, minResponse=None, resampleAlg=None, **kwargs):
+        assert isinstance(raster, Raster)
+        if resampleAlg is None:
+            resampleAlg = self.RESAMPLE_LINEAR
+        assert resampleAlg in self.RESAMPLE_OPTIONS
+        sourceSensor = raster.sensorDefinition()
+        applier = Applier(defaultGrid=raster, **kwargs)
+        applier.setFlowRaster('raster', raster=raster)
+        applier.setOutputRaster('outraster', filename=filename)
+        applier.apply(operatorType=_SensorDefinitionResampleRaster, raster=raster,
+                      targetSensor=self, sourceSensor=sourceSensor, minResponse=minResponse, resampleAlg=resampleAlg)
+        return Raster(filename=filename)
+
+    def resampleProfiles(self, array, wavelength, wavelengthUnits):
+        array = np.array(array)
+        samples, bands = array.shape
+        assert len(wavelength) == bands
+
+        rasterDataset = createRasterDatasetFromArray(array=np.atleast_3d(array.T),
+                                                     filename='/vsimem/SensorDefinitionResampleOutProfiles.bsq',
+                                                     driver=ENVIBSQDriver())
+        MetadataEditor.setBandCharacteristics(rasterDataset=rasterDataset,
+                                              wavelength=wavelength,
+                                              wavelengthUnits=wavelengthUnits)
+        rasterDataset.flushCache()
+        raster = Raster.fromRasterDataset(rasterDataset=rasterDataset)
+        outraster = self.resampleRaster(filename='/vsimem/SensorDefinitionResampleOutProfiles.bsq',
+                                        raster=raster, controls=ApplierControls().setWriteENVIHeader(False))
+        outarray = outraster.dataset().readAsArray().T[0]
+        return outarray
+
+class _SensorDefinitionResampleRaster(ApplierOperator):
+    def ufunc(self, raster, targetSensor, sourceSensor, minResponse, resampleAlg):
+        assert isinstance(targetSensor, SensorDefinition)
+        assert isinstance(sourceSensor, SensorDefinition)
+        self.targetSensor = targetSensor
+        self.sourceSensor = sourceSensor
+        self.raster = raster
+
+        if minResponse is None:
+            minResponse = 0
+        self.minResponse = minResponse
+
+        self.marray = self.flowMaskArray(name='raster', mask=raster.asMask(index=0))
+
+        # resample
+        if resampleAlg == SensorDefinition.RESAMPLE_LINEAR:
+            outarray = self.resampleWithLinearInterpolation()
+        elif resampleAlg == SensorDefinition.RESAMPLE_RESPONSE:
+            outarray = self.resampleWithResponseFunction()
+
+        # mask
+        if raster.dataset().noDataValue() is not None:
+            outarray[:, np.logical_not(self.marray[0])] = raster.dataset().noDataValue()
+
+        # write and set metadata
+        outraster = self.outputRaster.raster(key='outraster')
+        outraster.setArray(array=outarray)
+        self.setFlowMetadataSensorDefinition(name='outraster', sensor=targetSensor)
+        outraster.setNoDataValue(value=raster.dataset().noDataValue())
+
+    def resampleWithResponseFunction(self):
+        outarray = self.full(value=0, bands=self.targetSensor.wavebandCount(), dtype=np.float32)
+        for outindex, wavebandDefinition in enumerate(self.targetSensor.wavebandDefinitions()):
+            assert isinstance(wavebandDefinition, WavebandDefinition)
+            weights = wavebandDefinition.resamplingWeights(sensor=self.sourceSensor)
+            weightsSum = 0.
+
+            for inindex, weight in enumerate(weights):
+                if weight > self.minResponse:
+                    weightsSum += weight
+                    invalues = self.flowRasterArray(name='raster',
+                                                   raster=self.raster,
+                                                   indices=[inindex])[self.marray]
+                    outarray[outindex][self.marray[0]] += weight * invalues
+            if weightsSum == 0:  # if no source bands are inside the responsive region of the target band
+                import warnings
+                warnings.warn(Warning(
+                    'target waveband ({}, from {} nm to {} nm) is outside the responsive region'.format(
+                        wavebandDefinition.name(), wavebandDefinition.wavelengths()[0],
+                        wavebandDefinition.wavelengths()[-1])))
+                outarray[outindex] = np.nan
+            else:
+                outarray[outindex][self.marray[0]] /= weightsSum
+
+        return outarray
+
+
+    def resampleWithLinearInterpolation(self):
+        outarray = self.full(value=0, bands=self.targetSensor.wavebandCount(), dtype=np.float32)
+        incenters = self.sourceSensor.wavebandCenters()
+        outcenters = self.targetSensor.wavebandCenters()
+
+        for outindex, outcenter in enumerate(outcenters):
+            if outcenter <= incenters[0]:
+                indexA = indexB = 0
+                wA = wB = 0.5
+            elif outcenter >= incenters[-1]:
+                indexA = indexB = -1
+                wA = wB = 0.5
+            else:
+                for inindex, incenter in enumerate(incenters):
+                    if incenter > outcenter:
+                        indexA = inindex - 1
+                        indexB = inindex
+                        distanceA = np.abs(incenters[indexA]-outcenter)
+                        distanceB = np.abs(incenters[indexB]-outcenter)
+                        wA = 1. - distanceA / (distanceA + distanceB)
+                        wB = 1. - wA
+                        break
+
+            inarrayA, inarrayB = self.flowRasterArray(name='raster', raster=self.raster, indices=[indexA, indexB])
+            outarray[outindex][self.marray[0]] = inarrayA[self.marray[0]] * wA + inarrayB[self.marray[0]] * wB
+        return outarray
+
+
+class ENVISpectralLibrary(FlowObject):
+    def __init__(self, filename):
+        self._filename = filename
+
+    def __repr__(self):
+        return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename()))
+
+    def filename(self):
+        return self._filename
+
+    def raster(self, transpose=True):
+        filename = r'/vsimem/{filename}{transpose}.vrt'.format(filename=self.filename(),
+                                                               transpose='.transposed' if transpose else '')
+        try:
+            raster = Raster(filename=filename)
+            raster.dataset()  # try opening
+        except (RuntimeError, errors.InvalidGDALDatasetError):
+            metadata = ENVI.readHeader(filenameHeader=ENVI.findHeader(filenameBinary=self.filename()))
+            gdalType = ENVI.gdalType(enviType=int(metadata['data type']))
+            bytes = ENVI.typeSize(enviType=int(metadata['data type']))
+            byteOrder = ['LSB', 'MSB'][int(metadata['byte order'])]
+
+            profiles = int(metadata['lines'])
+            bands = int(metadata['samples'])
+            options = 'subclass=VRTRawRasterBand\n' \
+                      'SourceFilename={SourceFilename}\n' \
+                      'ByteOrder={ByteOrder}\n'
+
+            if transpose:
+                rasterDataset = RasterDriver(name='VRT').create(grid=PseudoGrid(size=Size(x=1, y=profiles)),
+                                                                bands=0, gdalType=gdalType, filename=filename)
+
+                options += 'ImageOffset={ImageOffset}\n' \
+                           'PixelOffset={PixelOffset}\n' \
+                           'LineOffset={LineOffset}'
+
+                for band in range(bands):
+                    rasterDataset.gdalDataset().AddBand(datatype=gdalType,
+                                                        options=options.format(SourceFilename=self.filename(),
+                                                                               ByteOrder=byteOrder,
+                                                                               ImageOffset=band * bytes,
+                                                                               PixelOffset=bands * bytes,
+                                                                               LineOffset=bands * bytes).split('\n'))
+
+            else:
+                rasterDataset = RasterDriver(name='VRT').create(grid=PseudoGrid(size=Size(x=bands, y=profiles)),
+                                                                bands=0, gdalType=gdalType, filename=filename)
+
+                rasterDataset.gdalDataset().AddBand(datatype=gdalType,
+                                                    options=options.format(SourceFilename=self.filename(),
+                                                                           ByteOrder=byteOrder).split('\n'))
+
+            for key in ['file compression', 'band names']:
+                metadata.pop(key=key, default=None)
+
+            rasterDataset.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
+
+            rasterDataset.flushCache()
+            rasterDataset.close()
+            raster = Raster(filename=filename)
+
+        return raster
+
+    @staticmethod
+    def fromRaster(filename, raster):
+        assert isinstance(raster, Raster)
+        bands = raster.dataset().zsize()
+        array = raster.dataset().readAsArray().reshape(bands, -1).T[None]
+        rasterDataset = createRasterDatasetFromArray(array=array, grid=PseudoGrid.fromArray(array=array),
+                                                     filename=filename, driver=ENVIBSQDriver())
+        metadata = raster.dataset().metadataDomain(domain='ENVI')
+        for key in ['file compression']:
+            metadata.pop(key, None)
+        rasterDataset.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
+        rasterDataset.band(0).setDescription('Spectral Library')
+        rasterDataset.flushCache()
+        rasterDataset.close()
+
+        # fix header
+
+        # - delete PAM header
+        try:
+            remove(filename + '.aux.xml')
+        except:
+            pass
+
+        # - rewrite ENVI header
+        filenameHeader = ENVI.findHeader(filenameBinary=filename)
+        metadata = ENVI.readHeader(filenameHeader=filenameHeader)
+        metadata['file type'] = 'ENVI Spectral Library'
+        for key in ['file compression', 'coordinate system string', 'map info', 'projection_info', 'x start',
+                    'y start']:
+            metadata.pop(key, None)
+        ENVI.writeHeader(filenameHeader=filenameHeader, metadata=metadata)
+        return ENVISpectralLibrary(filename=filename)
+
+
+class RasterStack(FlowObject):
+    def __init__(self, rasters):
+        self._rasters = rasters
+
+    def __repr__(self):
+        return '{cls}(rasters={rasters})'.format(
+            cls=self.__class__.__name__,
+            rasters=repr(list(self.rasters())))
+
+    def raster(self, i):
+        assert isinstance(self._rasters[i], Raster)
+        return self._rasters[i]
+
+    def rasters(self):
+        for i in range(len(self._rasters)):
+            yield self.raster(i)
+
+
+class Mask(Raster):
+    def __init__(self, filename, noDataValues=None, minOverallCoverage=0.5, index=None):
+        Raster.__init__(self, filename)
+        if noDataValues is None:
+            noDataValues = self.dataset().noDataValues(default=0)
+        self._noDataValues = noDataValues
+        self._minOverallCoverage = float(minOverallCoverage)
+        self.index = index  # use only that band to generate the mask, otherwise reduce over all bands, reduce function is np.all
+
+    def __repr__(self):
+        return '{cls}(filename={filename}, noDataValues={noDataValues})'.format(
+            cls=self.__class__.__name__,
+            filename=str(self.filename()),
+            noDataValues=repr(self.noDataValues()))
+
+    def noDataValues(self):
+        assert isinstance(self._noDataValues, list)
+        return self._noDataValues
+
+    def minOverallCoverage(self):
+        return self._minOverallCoverage
 
     @staticmethod
     def fromVector(filename, vector, grid, **kwargs):
         return Raster.fromVector(filename=filename, vector=vector, grid=grid).asMask()
 
     @staticmethod
-    def fromRaster(filename, raster, initValue=False, trueValues=(), trueRanges=(), falseValues=(), falseRanges=(),
+    def fromRaster(filename, raster, initValue=False, true=(), false=(),
                    invert=False, aggregateFunction=None, **kwargs):
         assert isinstance(raster, Raster)
         applier = Applier(defaultGrid=raster, **kwargs)
         applier.setFlowRaster('raster', raster=raster)
         applier.setOutputRaster('mask', filename=filename)
-        applier.apply(operatorType=_MaskFromRaster, raster=raster, initValue=initValue, trueValues=trueValues,
-                      trueRanges=trueRanges, falseValues=falseValues, falseRanges=falseRanges, invert=invert,
-                      aggregateFunction=None)
+        applier.apply(operatorType=_MaskFromRaster, raster=raster, initValue=initValue,
+                      true=true, false=false, invert=invert,
+                      aggregateFunction=aggregateFunction)
         return Mask(filename=filename)
 
     def resample(self, filename, grid, **kwargs):
@@ -256,7 +962,7 @@ class Mask(Raster):
         applier.setFlowMask('inmask', mask=self)
         applier.setOutputRaster('outmask', filename=filename)
         applier.apply(operatorType=_MaskResample, mask=self)
-        return Mask(filename=filename, minOverallCoverage=self.minOverallCoverage)
+        return Mask(filename=filename, minOverallCoverage=self.minOverallCoverage())
 
 
 class _MaskResample(ApplierOperator):
@@ -266,22 +972,24 @@ class _MaskResample(ApplierOperator):
 
 
 class _MaskFromRaster(ApplierOperator):
-    def ufunc(self, raster, initValue, trueValues, trueRanges, falseValues, falseRanges, invert,
+    def ufunc(self, raster, initValue, true, false, invert,
               aggregateFunction=None):
         array = self.flowRasterArray('raster', raster=raster)
         marray = np.full_like(array, fill_value=initValue, dtype=np.bool)
 
-        for v in trueValues:
-            marray[array == v] = True
+        for value in true:
+            if isinstance(value, (int, float)):
+                marray[array == value] = True
+            elif isinstance(value, range):
+                assert value.step == 1
+                marray[(array >= value.start) * (array <= value.stop)] = True
 
-        for vmin, vmax in trueRanges:
-            marray[(array >= vmin) * (array <= vmax)] = True
-
-        for v in falseValues:
-            marray[array == v] = False
-
-        for vmin, vmax in falseRanges:
-            marray[(array >= vmin) * (array <= vmax)] = False
+        for value in false:
+            if isinstance(value, (int, float)):
+                marray[array == value] = False
+            elif isinstance(value, range):
+                assert value.step == 1
+                marray[(array >= value.start) * (array <= value.stop)] = False
 
         if invert:
             marray = np.logical_not(marray)
@@ -295,28 +1003,72 @@ class _MaskFromRaster(ApplierOperator):
 
 class Vector(FlowObject):
     def __init__(self, filename, layer=0, initValue=0, burnValue=1, burnAttribute=None, allTouched=False,
-                 filterSQL=None, dtype=np.float32, oversampling=None):
-        self.filename = filename
-        self.layer = layer
-        self.initValue = initValue
-        self.burnValue = burnValue
-        self.burnAttribute = burnAttribute
-        self.allTouched = allTouched
-        self.filterSQL = filterSQL
-        self.dtype = dtype
-        self.oversampling = oversampling
+                 filterSQL=None, dtype=np.float32, noDataValue=None, oversampling=1):
+        self._filename = filename
+        self._layer = layer
+        self._initValue = initValue
+        self._burnValue = burnValue
+        self._burnAttribute = burnAttribute
+        self._allTouched = allTouched
+        self._filterSQL = filterSQL
+        self._dtype = dtype
+        self._oversampling = oversampling
+        self._noDataValue = noDataValue
+        self._vectorDataset = None
+
+    def filename(self):
+        return self._filename
+
+    def layer(self):
+        return self._layer
+
+    def initValue(self):
+        return self._initValue
+
+    def burnValue(self):
+        return self._burnValue
+
+    def burnAttribute(self):
+        return self._burnAttribute
+
+    def allTouched(self):
+        return self._allTouched
+
+    def filterSQL(self):
+        return self._filterSQL
+
+    def dtype(self):
+        return self._dtype
+
+    def noDataValue(self, default=None):
+        if self._noDataValue is None:
+            return default
+        return self._noDataValue
+
+    def oversampling(self):
+        return self._oversampling
+
+    def dataset(self):
+        if self._vectorDataset is None:
+            self._vectorDataset = openVectorDataset(self.filename(), layerNameOrIndex=self.layer())
+        assert isinstance(self._vectorDataset, VectorDataset)
+        return self._vectorDataset
 
     def __repr__(self):
         return '{cls}(filename={filename}, layer={layer}, initValue={initValue}, burnValue={burnValue}, burnAttribute={burnAttribute}, allTouched={allTouched}, filterSQL={filterSQL}, dtype={dtype})'.format(
             cls=self.__class__.__name__,
-            filename=str(self.filename),
-            layer=repr(self.layer),
-            initValue=repr(self.initValue),
-            burnValue=repr(self.burnValue),
-            burnAttribute=repr(self.burnAttribute),
-            allTouched=repr(self.allTouched),
-            filterSQL=repr(self.filterSQL),
-            dtype=repr(self.dtype))
+            filename=str(self.filename()),
+            layer=repr(self.layer()),
+            initValue=repr(self.initValue()),
+            burnValue=repr(self.burnValue()),
+            burnAttribute=repr(self.burnAttribute()),
+            allTouched=repr(self.allTouched()),
+            filterSQL=repr(self.filterSQL()),
+            dtype=repr(self.dtype()))
+
+    def _initPickle(self):
+        self._vectorDataset = None
+
 
     @classmethod
     def fromRandomPointsFromMask(cls, filename, mask, n, grid=None, **kwargs):
@@ -334,9 +1086,9 @@ class Vector(FlowObject):
         return Vector(filename=filename)
 
     def uniqueValues(self, attribute, spatialFilter=None):
-        vector = openVectorDataset(filename=self.filename, layerNameOrIndex=self.layer)
+        vector = openVectorDataset(filename=self.filename(), layerNameOrIndex=self.layer())
         layer = vector.ogrLayer()
-        layer.SetAttributeFilter(self.filterSQL)
+        layer.SetAttributeFilter(self.filterSQL())
         values = OrderedDict()
         if spatialFilter is not None:
             assert isinstance(spatialFilter, SpatialGeometry)
@@ -393,7 +1145,7 @@ class _VectorFromRandomPointsFromClassification(ApplierOperator):
     @staticmethod
     def aggregate(blockResults, grid, classification, n, filename):
         assert isinstance(grid, Grid)
-        assert len(n) == classification.classDefinition.classes, 'n must be a list with length of number of classes'
+        assert len(n) == classification.classDefinition().classes(), 'n must be a list with length of number of classes'
         xmap = np.concatenate([result[0] for result in blockResults])
         ymap = np.concatenate([result[1] for result in blockResults])
         id = np.concatenate([result[2] for result in blockResults])
@@ -429,73 +1181,44 @@ class _VectorFromRandomPointsFromClassification(ApplierOperator):
 
 
 class VectorClassification(Vector):
-    def __init__(self, filename, classDefinition, idAttribute=None, nameAttribute=None, layer=0, minOverallCoverage=0.5,
-                 minWinnerCoverage=0.5, dtype=np.uint8, oversampling=None):
-
-        Vector.__init__(self, filename=filename, layer=layer, burnAttribute=idAttribute, dtype=dtype,
+    def __init__(self, filename, classDefinition, classAttribute, layer=0, minOverallCoverage=0.5,
+                 minDominantCoverage=0.5, dtype=np.uint8, oversampling=1):
+        Vector.__init__(self, filename=filename, layer=layer, burnAttribute=classAttribute, dtype=dtype,
                         oversampling=oversampling)
 
         assert isinstance(classDefinition, ClassDefinition)
-        self.classDefinition = classDefinition
-        assert xor(idAttribute is None, nameAttribute is None)
-        self.idAttribute = idAttribute
-        self.nameAttribute = nameAttribute
-        if idAttribute is not None:
-            self.classAttribute = idAttribute
-            self.classAttributeType = 'id'
-        if nameAttribute is not None:
-            self.classAttribute = nameAttribute
-            self.classAttributeType = 'name'
-        self.minOverallCoverage = minOverallCoverage
-        self.minWinnerCoverage = minWinnerCoverage
+        self._classDefinition = classDefinition
+        self._minOverallCoverage = float(minOverallCoverage)
+        self._minDominantCoverage = float(minDominantCoverage)
 
     def __repr__(self):
-        return '{}(filename={}, classDefinition={}, idAttribute={}, nameAttribute={}, layer={}' \
-               ', minOverallCoverage={}, minWinnerCoverage={}, dtype={}, oversampling={})'.format(
+        return '{}(filename={}, classDefinition={}, classAttribute={}, layer={}' \
+               ', minOverallCoverage={}, minDominantCoverage={}, dtype={}, oversampling={})'.format(
             self.__class__.__name__,
-            str(self.filename),
-            repr(self.classDefinition),
-            repr(self.idAttribute),
-            repr(self.nameAttribute),
-            repr(self.layer),
-            repr(self.minOverallCoverage),
-            repr(self.minWinnerCoverage),
-            repr(self.dtype),
-            repr(self.oversampling))
+            str(self.filename()),
+            repr(self.classDefinition()),
+            repr(self.classAttribute()),
+            repr(self.layer()),
+            repr(self.minOverallCoverage()),
+            repr(self.minDominantCoverage()),
+            repr(self.dtype()),
+            repr(self.oversampling()))
+
+    def classDefinition(self):
+        assert isinstance(self._classDefinition, ClassDefinition)
+        return self._classDefinition
+
+    def classAttribute(self):
+        return self.burnAttribute()
+
+    def minOverallCoverage(self):
+        return self._minOverallCoverage
+
+    def minDominantCoverage(self):
+        return self._minDominantCoverage
 
 
 class ClassDefinition(FlowObject):
-
-    @staticmethod
-    def fromENVIClassification(raster):
-        assert isinstance(raster, Raster)
-        ds = raster.dataset()
-        classes = ds.metadataItem(key='classes', domain='ENVI', dtype=int)
-        names = ds.metadataItem(key='class names', domain='ENVI')
-        lookup = ds.metadataItem(key='class lookup', domain='ENVI', dtype=int)
-        return ClassDefinition(classes=classes - 1, names=names[1:], colors=lookup[3:])
-
-    @staticmethod
-    def fromENVIProbability(raster):
-        assert isinstance(raster, Raster)
-        ds = raster.dataset()
-        names = ds.metadataItem(key='band names', domain='ENVI')
-        lookup = ds.metadataItem(key='band lookup', domain='ENVI', dtype=int)
-        return ClassDefinition(names=names, colors=lookup)
-
-    @staticmethod
-    def fromGDALMeta(raster, index=0, skipZeroClass=True):
-        assert isinstance(raster, Raster)
-        ds = raster.dataset()
-        names = ds.gdalDataset().GetRasterBand(index+1).GetCategoryNames()
-        classes = len(names)
-        colors = [ds.gdalDataset().GetRasterBand(index+1).GetColorTable().GetColorEntry(i)[:3] for i in range(classes)]
-        if skipZeroClass:
-            classes = classes-1
-            names = names[1:]
-            colors = colors[1:]
-        return ClassDefinition(classes=classes, names=names, colors=colors)
-
     def __init__(self, classes=None, names=None, colors=None):
 
         if classes is not None:
@@ -507,73 +1230,144 @@ class ClassDefinition(FlowObject):
         else:
             assert 0
 
-        self.classes = classes
         if names is None:
             names = ['class {}'.format(i + 1) for i in range(classes)]
-        if colors is None: # create random colors
+        if colors is None:  # create random colors
             colors = [random.randint(1, 255) for i in range(classes * 3)]
-        if len(colors) == classes * 3: # format as tripels
+        if len(colors) == classes * 3:  # format as tripels
             colors = [colors[i * 3: i * 3 + 3] for i in range(classes)]
 
         assert len(names) == classes
         assert len(colors) == classes
 
-        self.names = [str(name) for name in names]
-        self.colors = [QColor(*c) if isinstance(c, (list, tuple)) else QColor(c) for c in colors]
-
+        self._classes = int(classes)
+        self._names = [str(name) for name in names]
+        self._colors = [QColor(*c) if isinstance(c, (list, tuple)) else QColor(c) for c in colors]
 
     def __repr__(self):
         return '{cls}(classes={classes}, names={names}, colors={colors})'.format(
             cls=self.__class__.__name__,
-            classes=repr(self.classes),
-            names=repr(self.names),
-            colors=repr([str(c.name()) for c in self.colors]))
+            classes=repr(self.classes()),
+            names=repr(self.names()),
+            colors=repr([str(c.name()) for c in self.colors()]))
+
+    def classes(self):
+        return self._classes
+
+    def names(self):
+        assert isinstance(self._names, list)
+        return self._names
+
+    def colors(self):
+        assert isinstance(self._colors, list)
+        return self._colors
+
+    @staticmethod
+    def fromENVIClassification(raster):
+        assert isinstance(raster, Raster)
+        ds = raster.dataset()
+        classes = ds.metadataItem(key='classes', domain='ENVI', dtype=int, required=True)
+        names = ds.metadataItem(key='class names', domain='ENVI', required=True)
+        lookup = ds.metadataItem(key='class lookup', domain='ENVI', dtype=int, required=True)
+        return ClassDefinition(classes=classes - 1, names=names[1:], colors=lookup[3:])
+
+    @staticmethod
+    def fromENVIFraction(raster):
+        assert isinstance(raster, Raster)
+        ds = raster.dataset()
+        names = ds.metadataItem(key='band names', domain='ENVI')
+        lookup = ds.metadataItem(key='band lookup', domain='ENVI', dtype=int)
+        return ClassDefinition(names=names, colors=lookup)
+
+    @staticmethod
+    def fromGDALMeta(raster, index=0, skipZeroClass=True):
+        assert isinstance(raster, Raster)
+        ds = raster.dataset()
+        names = ds.gdalDataset().GetRasterBand(index + 1).GetCategoryNames()
+        classes = len(names)
+        colors = [ds.gdalDataset().GetRasterBand(index + 1).GetColorTable().GetColorEntry(i)[:3] for i in
+                  range(classes)]
+        if skipZeroClass:
+            classes = classes - 1
+            names = names[1:]
+            colors = colors[1:]
+        return ClassDefinition(classes=classes, names=names, colors=colors)
+
+    def dtype(self):
+        for dtype in [np.uint8, np.uint16, np.uint32, np.uint64]:
+            if self.classes() == dtype(self.classes()):
+                return dtype
 
     def equal(self, other, compareColors=True):
         assert isinstance(other, ClassDefinition)
-        equal = self.classes == other.classes
-        equal &= all([a == b for a, b in zip(self.names, other.names)])
+        equal = self.classes() == other.classes()
+        equal &= all([a == b for a, b in zip(self.names(), other.names())])
         if compareColors:
-            for color1, color2 in zip(self.colors, other.colors):
-                for v1, v2 in zip(color1, color2):
-                    equal &= v1 == v2
+            for color1, color2 in zip(self.colors(), other.colors()):
+                equal &= color1.red() == color2.red()
+                equal &= color1.green() == color2.green()
+                equal &= color1.blue() == color2.blue()
+
         return equal
 
-    def getColor(self, label):
-        return self.colors[label - 1]
+    def color(self, label):
+        return self.colors()[label - 1]
 
-    def getColorByName(self, name):
-        return self.getColor(label=self.names.index((name)) + 1)
+    def colorByName(self, name):
+        return self.color(label=self.names().index((name)) + 1)
 
-    def getName(self, label):
-        return self.names[label - 1]
+    def name(self, label):
+        return self.names()[label - 1]
 
-    def getLabelByName(self, name):
-        return self.names.index(name) + 1
+    def labelByName(self, name):
+        return self.names().index(name) + 1
+
+    def colorsFlatRGB(self):
+        values = list()
+        for color in self.colors():
+            values.append(color.red())
+            values.append(color.green())
+            values.append(color.blue())
+        return values
 
 
 class Classification(Raster):
-    def __init__(self, filename, classDefinition=None, minOverallCoverage=None, minWinnerCoverage=None):
+    def __init__(self, filename, classDefinition=None, minOverallCoverage=0.5, minDominantCoverage=0.5):
         Raster.__init__(self, filename)
-        if classDefinition is None:
-            classDefinition = ClassDefinition.fromENVIClassification(raster=self)
-        if minOverallCoverage is None:
-            minOverallCoverage = 0.5
-        if minWinnerCoverage is None:
-            minWinnerCoverage = 0.5
-        self.classDefinition = classDefinition
-        self.noDataValue = 0
-        self.dtype = np.uint8
-        self.minOverallCoverage = minOverallCoverage
-        self.minWinnerCoverage = minWinnerCoverage
+        self._classDefinition = classDefinition
+        self._minOverallCoverage = minOverallCoverage
+        self._minDominantCoverage = minDominantCoverage
 
     def __repr__(self):
-        return '{cls}(filename={filename}, classDefinition={classDefinition}, minOverallCoverage={minOverallCoverage}, minWinnerCoverage={minWinnerCoverage})'.format(
+        return '{cls}(filename={filename}, classDefinition={classDefinition}, minOverallCoverage={minOverallCoverage}, minDominantCoverage={minDominantCoverage})'.format(
             cls=self.__class__.__name__,
-            filename=str(self.filename),
-            classDefinition=repr(self.classDefinition),
-            minOverallCoverage=repr(self.minOverallCoverage),
-            minWinnerCoverage=repr(self.minWinnerCoverage))
+            filename=str(self.filename()),
+            classDefinition=repr(self.classDefinition()),
+            minOverallCoverage=repr(self.minOverallCoverage()),
+            minDominantCoverage=repr(self.minDominantCoverage()))
+
+    def classDefinition(self):
+        if self._classDefinition is None:
+            self._classDefinition = ClassDefinition.fromENVIClassification(raster=self)
+        assert isinstance(self._classDefinition, ClassDefinition)
+        return self._classDefinition
+
+    def minOverallCoverage(self):
+        assert isinstance(self._minOverallCoverage, float)
+        return self._minOverallCoverage
+
+    def minDominantCoverage(self):
+        assert isinstance(self._minDominantCoverage, float)
+        return self._minDominantCoverage
+
+    def noDataValues(self):
+        return [0]
+
+    def dtype(self):
+        return self.classDefinition().dtype()
+
+    def asMask(self, minOverallCoverage=1):
+        return Raster.asMask(self, minOverallCoverage=minOverallCoverage)
 
     @classmethod
     def fromClassification(cls, filename, classification, grid=None, masks=None, **kwargs):
@@ -593,6 +1387,52 @@ class Classification(Raster):
         applier.apply(operatorType=_ClassificationFromRasterAndFunction, raster=raster, ufunc=ufunc,
                       classDefinition=classDefinition)
         return Classification(filename=filename)
+
+    @classmethod
+    def fromRasterMetadata(cls, filename, raster, classificationSchemeName=''):
+        assert isinstance(raster, Raster)
+
+        names = raster.dataset().metadataItem(key='{} class names'.format(classificationSchemeName),
+                                              domain='ENVI', required=True)[1:]
+        classes = len(names)
+        lookup = raster.dataset().metadataItem(key='{} class lookup'.format(classificationSchemeName),
+                                               domain='ENVI', dtype=int, required=True)[3:]
+
+        lookup = [int(v) for v in lookup]
+        classDefinition = ClassDefinition(classes=classes, names=names, colors=lookup)
+        labels = np.array(raster.dataset().metadataItem(key='{} class spectra names'.format(classificationSchemeName),
+                                                        domain='ENVI', required=True))
+        array = np.zeros(shape=len(labels))
+        for i, name in enumerate(names):
+            array[labels == name] = str(i + 1)
+
+        bands, lines, samples = raster.dataset().shape()
+        array = array.reshape(1, lines, samples).astype(dtype=classDefinition.dtype())
+
+        rasterDataset = createRasterDatasetFromArray(array=array, filename=filename,
+                                                     driver=RasterDriver.fromFilename(filename=filename))
+        MetadataEditor.setClassDefinition(rasterDataset=rasterDataset, classDefinition=classDefinition)
+        rasterDataset.setNoDataValues(values=[0])
+        rasterDataset.flushCache().close()
+        return Classification(filename=filename)
+
+    def toRasterMetadata(self, raster, classificationSchemeName=''):
+        assert isinstance(raster, Raster)
+        assert self.grid().equal(other=raster.grid())
+
+        labels = self.dataset().readAsArray()
+
+        classSpectraNames = list(np.array(['Unclassified'] + self.classDefinition().names())[labels.ravel()])
+        classLookup = [0, 0, 0] + self.classDefinition().colorsFlatRGB()
+
+        raster.dataset().setMetadataItem(key=classificationSchemeName + ' class spectra names',
+                                         value=list(labels[0]), domain='ENVI')
+        raster.dataset().setMetadataItem(key=classificationSchemeName + ' class names',
+                                         value=['Unclassified'] + self.classDefinition().names(), domain='ENVI')
+        raster.dataset().setMetadataItem(key=classificationSchemeName + ' class lookup',
+                                         value=classLookup, domain='ENVI')
+        raster.dataset().setMetadataItem(key=classificationSchemeName + ' class spectra names',
+                                         value=classSpectraNames, domain='ENVI')
 
     def reclassify(self, filename, classDefinition, mapping, **kwargs):
         assert isinstance(classDefinition, ClassDefinition)
@@ -617,10 +1457,10 @@ class _ClassificationReclassify(ApplierOperator):
         inclassification = self.flowClassificationArray('inclassification', classification=classification)
         outclassification = self.full(value=0, bands=1, dtype=np.uint8)
         for inclass, outclass in mapping.items():
-            if inclass in classification.classDefinition.names:
-                inclass = classification.classDefinition.names.index(inclass) + 1
-            if outclass in classDefinition.names:
-                outclass = classDefinition.names.index(outclass) + 1
+            if inclass in classification.classDefinition().names():
+                inclass = classification.classDefinition().names().index(inclass) + 1
+            if outclass in classDefinition.names():
+                outclass = classDefinition.names().index(outclass) + 1
             outclassification[inclassification == inclass] = outclass
         self.outputRaster.raster(key='outclassification').setArray(array=outclassification)
         self.setFlowMetadataClassDefinition(name='outclassification', classDefinition=classDefinition)
@@ -630,16 +1470,16 @@ class _ClassificationResample(ApplierOperator):
     def ufunc(self, classification):
         array = self.flowClassificationArray('inclassification', classification=classification)
         self.outputRaster.raster(key='outclassification').setArray(array=array)
-        self.setFlowMetadataClassDefinition(name='outclassification', classDefinition=classification.classDefinition)
+        self.setFlowMetadataClassDefinition(name='outclassification', classDefinition=classification.classDefinition())
 
 
 class _ClassificationFromClassification(ApplierOperator):
     def ufunc(self, classification, masks):
         array = self.flowClassificationArray('classification', classification=classification)
         marray = self.flowMasksArray(masks=masks)
-        array[marray==0] = 0
+        array[marray == 0] = 0
         self.outputRaster.raster(key='classification').setArray(array=array)
-        self.setFlowMetadataClassDefinition(name='classification', classDefinition=classification.classDefinition)
+        self.setFlowMetadataClassDefinition(name='classification', classDefinition=classification.classDefinition())
 
 
 class _ClassificationFromRasterAndFunction(ApplierOperator):
@@ -652,31 +1492,77 @@ class _ClassificationFromRasterAndFunction(ApplierOperator):
 
 
 class Regression(Raster):
-    def __init__(self, filename, noDataValue=None, outputNames=None, minOverallCoverage=0):
+    def __init__(self, filename, noDataValues=None, outputNames=None, minOverallCoverage=0.5):
         Raster.__init__(self, filename)
-        if noDataValue is None:
-            noDataValue = openRasterDataset(filename).noDataValue()
-        if outputNames is None:
-            outputNames = [band.description() for band in openRasterDataset(filename).bands()]
-        assert noDataValue is not None
-        self.noDataValue = noDataValue
-        self.outputNames = outputNames
-        self.minOverallCoverage = minOverallCoverage
+        self._noDataValues = noDataValues
+        self._outputNames = outputNames
+        self._minOverallCoverage = float(minOverallCoverage)
 
     def __repr__(self):
-        return '{cls}(filename={filename}, noDataValue={noDataValue}, outputNames={outputNames}, minOverallCoverage={minOverallCoverage})'.format(
+        return '{cls}(filename={filename}, noDataValues={noDataValues}, outputNames={outputNames}, minOverallCoverage={minOverallCoverage})'.format(
             cls=self.__class__.__name__,
-            filename=str(self.filename),
-            noDataValue=repr(self.noDataValue),
-            outputNames=repr(self.outputNames),
-            minOverallCoverage=repr(self.minOverallCoverage))
+            filename=str(self.filename()),
+            noDataValues=repr(self.noDataValues()),
+            outputNames=repr(self.outputNames()),
+            minOverallCoverage=repr(self.minOverallCoverage()))
 
-    def asMask(self):
-        return Raster.asMask(self, noDataValue=self.noDataValue)
+    def noDataValues(self):
+        if self._noDataValues is None:
+            self._noDataValues = self.dataset().noDataValues(required=True)
+        assert isinstance(self._noDataValues, list)
+        return self._noDataValues
+
+    def outputNames(self):
+        if self._outputNames is None:
+            self._outputNames = [band.description() for band in self.dataset().bands()]
+        assert isinstance(self._outputNames, list)
+        return self._outputNames
+
+    def minOverallCoverage(self):
+        assert isinstance(self._minOverallCoverage, float)
+        return self._minOverallCoverage
+
+    @staticmethod
+    def fromRasterMetadata(filename, raster, outputNames, noDataValues=None):
+        assert isinstance(raster, Raster)
+        assert isinstance(outputNames, list)
+
+        metadata = raster.dataset().metadataDomain(domain='ENVI')
+
+        if noDataValues is None:
+            noDataValues = [float(metadata['{} no data value'.format(outName)]) for outName in outputNames]
+        assert isinstance(noDataValues, list)
+
+        array = np.atleast_3d([np.array(metadata[outName], dtype=np.float32) for outName in outputNames])
+
+        rasterDataset = createRasterDatasetFromArray(array=array,
+                                                     filename=filename,
+                                                     driver=RasterDriver.fromFilename(filename=filename))
+
+        MetadataEditor.setRegressionDefinition(rasterDataset=rasterDataset, noDataValues=noDataValues,
+                                               outputNames=outputNames)
+        rasterDataset.flushCache().close()
+        return Regression(filename=filename)
+
+    def toRasterMetadata(self, raster):
+        assert isinstance(raster, Raster)
+
+        labels = self.dataset().readAsArray()
+        outputNames = self.outputNames()
+        noDataValues = self.noDataValues()
+        for i, (outname, values, noDataValue) in enumerate(zip(outputNames, labels, noDataValues)):
+            raster.dataset().setMetadataItem(key=outname, value=list(values.ravel()), domain='ENVI')
+            raster.dataset().setMetadataItem(key=outname + ' no data value', value=noDataValue, domain='ENVI')
+
+
+    def asMask(self, minOverallCoverage=None):
+        if minOverallCoverage is None:
+            minOverallCoverage = self.minOverallCoverage()
+        return Raster.asMask(self, noDataValues=self.noDataValues(), minOverallCoverage=minOverallCoverage)
 
     def resample(self, filename, grid, **kwargs):
         applier = Applier(defaultGrid=grid, **kwargs)
-        applier.setFlowProbability('inregression', probability=self)
+        applier.setFlowRegression('inregression', regression=self)
         applier.setOutputRaster('outregression', filename=filename)
         applier.apply(operatorType=_RegressionResample, regression=self)
         return Regression(filename=filename)
@@ -686,56 +1572,77 @@ class _RegressionResample(ApplierOperator):
     def ufunc(self, regression):
         array = self.flowRegressionArray('inregression', regression=regression)
         self.outputRaster.raster(key='outregression').setArray(array=array)
-        self.setFlowMetadataRegressionDefinition(name='outregression', noDataValue=regression.noDataValue,
-                                                 outputNames=regression.outputNames)
+        self.setFlowMetadataRegressionDefinition(name='outregression', noDataValues=regression.noDataValues(),
+                                                 outputNames=regression.outputNames())
 
 
-class Probability(Regression):
-    def __init__(self, filename, classDefinition=None, minOverallCoverage=None, minWinnerCoverage=None):
+class Fraction(Regression):
+    def __init__(self, filename, classDefinition=None, minOverallCoverage=0.5, minDominantCoverage=0.5):
         Raster.__init__(self, filename=filename)
         if classDefinition is None:
-            classDefinition = ClassDefinition.fromENVIProbability(raster=self)
-        assert isinstance(classDefinition, ClassDefinition)
-        if minOverallCoverage is None:
-            minOverallCoverage = 0.
-        if minWinnerCoverage is None:
-            minWinnerCoverage = 0.
-        Regression.__init__(self, filename=filename, noDataValue=-1, outputNames=classDefinition.names)
-        self.classDefinition = classDefinition
-        self.minOverallCoverage = minOverallCoverage
-        self.minWinnerCoverage = minWinnerCoverage
+            classDefinition = ClassDefinition.fromENVIFraction(raster=self)
+        self._classDefinition = classDefinition
+        Regression.__init__(self, filename=filename, noDataValues=self.noDataValues(),
+                            outputNames=classDefinition.names())
+        self._minOverallCoverage = minOverallCoverage
+        self._minDominantCoverage = minDominantCoverage
+
+    def classDefinition(self):
+        assert isinstance(self._classDefinition, ClassDefinition)
+        return self._classDefinition
+
+    def minOverallCoverage(self):
+        return self._minOverallCoverage
+
+    def minDominantCoverage(self):
+        return self._minDominantCoverage
+
+    def noDataValues(self):
+        return [-1.] * self.classDefinition().classes()
 
     def __repr__(self):
         return '{cls}(filename={filename}, classDefinition={classDefinition})'.format(
             cls=self.__class__.__name__,
-            filename=str(self.filename),
-            classDefinition=repr(self.classDefinition))
+            filename=str(self.filename()),
+            classDefinition=repr(self.classDefinition()))
 
     @classmethod
     def fromClassification(cls, filename, classification, grid=None, **kwargs):
         applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowClassification('classification', classification=classification)
-        applier.setOutputRaster('probability', filename=filename)
-        applier.apply(operatorType=_ProbabilityFromClassification, classification=classification)
-        return Probability(filename=filename)
+        applier.setOutputRaster('fraction', filename=filename)
+        applier.apply(operatorType=_FractionFromClassification, classification=classification)
+        return Fraction(filename=filename)
+
+    def toRasterMetadata(self, raster):
+        assert isinstance(raster, Raster)
+
+        labels = self.dataset().readAsArray()
+        outputNames = self.outputNames()
+        noDataValues = self.noDataValues()
+        colors = self.classDefinition().colors()
+        for i, (outname, values, noDataValue, color) in enumerate(zip(outputNames, labels, noDataValues, colors)):
+            raster.dataset().setMetadataItem(key=outname, value=list(values.ravel()), domain='ENVI')
+            raster.dataset().setMetadataItem(key=outname + ' no data value', value=noDataValue, domain='ENVI')
+            raster.dataset().setMetadataItem(key=outname + ' color', value=[color.red(), color.green(), color.blue()], domain='ENVI')
 
     def resample(self, filename, grid, **kwargs):
         applier = Applier(defaultGrid=grid, **kwargs)
-        applier.setFlowProbability('inprobability', probability=self)
-        applier.setOutputRaster('outprobability', filename=filename)
-        applier.apply(operatorType=_ProbabilityResample, probability=self)
-        return Probability(filename=filename)
+        applier.setFlowFraction('infraction', fraction=self)
+        applier.setOutputRaster('outfraction', filename=filename)
+        applier.apply(operatorType=_FractionResample, fraction=self)
+        return Fraction(filename=filename)
 
     def subsetClasses(self, filename, labels, **kwargs):
         indicies = [label - 1 for label in labels]
         applier = Applier(defaultGrid=self, **kwargs)
-        applier.setFlowRaster('probability', raster=self)
-        applier.setOutputRaster('probabilitySubset', filename=filename)
-        applier.apply(operatorType=_ProbabilitySubsetClasses, indicies=indicies, probability=self)
-        return Probability(filename=filename)
+        applier.setFlowRaster('fraction', raster=self)
+        applier.setOutputRaster('fractionSubset', filename=filename)
+        applier.apply(operatorType=_FractionSubsetClasses, indicies=indicies, fraction=self)
+        return Fraction(filename=filename)
 
     def subsetClassesByName(self, filename, names, **kwargs):
-        labels = [self.classDefinition.names.index(name) + 1 for name in names]
+        labels = [self.classDefinition().names().index(name) + 1 for name in names]
         return self.subsetClasses(filename=filename, labels=labels, **kwargs)
 
     def asClassColorRGBRaster(self, filename, filterById=None, filterByName=None, **kwargs):
@@ -743,19 +1650,19 @@ class Probability(Regression):
         if filterById is not None:
             filter.extend(filterById)
         if filterByName is not None:
-            filter.extend([self.classDefinition.names.index[name] for name in filterByName])
+            filter.extend([self.classDefinition().names().index[name] for name in filterByName])
         applier = Applier(defaultGrid=self, **kwargs)
-        applier.setFlowRaster('probability', raster=self)
+        applier.setFlowRaster('fraction', raster=self)
         applier.setOutputRaster('raster', filename=filename)
-        applier.apply(operatorType=_ProbabilityAsClassColorRGBRaster, probability=self, filter=filter)
+        applier.apply(operatorType=_FractionAsClassColorRGBRaster, fraction=self, filter=filter)
         return Raster(filename=filename)
 
 
-class _ProbabilityAsClassColorRGBRaster(ApplierOperator):
-    def ufunc(self, filter, probability):
-        assert isinstance(probability, Probability)
-        colors = probability.classDefinition.colors
-        array = self.flowRasterArray('probability', raster=probability)
+class _FractionAsClassColorRGBRaster(ApplierOperator):
+    def ufunc(self, filter, fraction):
+        assert isinstance(fraction, Fraction)
+        colors = fraction.classDefinition().colors()
+        array = self.flowRasterArray('fraction', raster=fraction)
         rgb = self.full(value=0, bands=3, dtype=np.float32)
         for id, (band, color) in enumerate(zip(array, colors), start=1):
             if len(filter) > 0 and id not in filter: continue
@@ -768,42 +1675,42 @@ class _ProbabilityAsClassColorRGBRaster(ApplierOperator):
         self.outputRaster.raster(key='raster').setArray(array=np.uint8(rgb))
 
 
-class _ProbabilityFromClassification(ApplierOperator):
+class _FractionFromClassification(ApplierOperator):
     def ufunc(self, classification):
-        array = self.flowProbabilityArray('classification', probability=classification)
-        self.outputRaster.raster(key='probability').setArray(array=array)
-        self.setFlowMetadataProbabilityDefinition(name='probability',
-                                                  classDefinition=classification.classDefinition)
+        array = self.flowFractionArray('classification', fraction=classification)
+        self.outputRaster.raster(key='fraction').setArray(array=array)
+        self.setFlowMetadataFractionDefinition(name='fraction',
+                                               classDefinition=classification.classDefinition())
 
 
-class _ProbabilityResample(ApplierOperator):
-    def ufunc(self, probability):
-        array = self.flowProbabilityArray('inprobability', probability=probability)
-        self.outputRaster.raster(key='outprobability').setArray(array=array)
-        self.setFlowMetadataProbabilityDefinition(name='outprobability', classDefinition=probability.classDefinition)
+class _FractionResample(ApplierOperator):
+    def ufunc(self, fraction):
+        array = self.flowFractionArray('infraction', fraction=fraction)
+        self.outputRaster.raster(key='outfraction').setArray(array=array)
+        self.setFlowMetadataFractionDefinition(name='outfraction', classDefinition=fraction.classDefinition())
 
 
-class _ProbabilitySubsetClasses(ApplierOperator):
-    def ufunc(self, indicies, probability):
+class _FractionSubsetClasses(ApplierOperator):
+    def ufunc(self, indicies, fraction):
         classes = len(indicies)
-        colors = [probability.classDefinition.getColor(label=index + 1) for index in indicies]
-        names = [probability.classDefinition.getName(label=index + 1) for index in indicies]
+        colors = [fraction.classDefinition().color(label=index + 1) for index in indicies]
+        names = [fraction.classDefinition().name(label=index + 1) for index in indicies]
         classDefinition = ClassDefinition(classes=classes, names=names, colors=colors)
-        probabilitySubset = self.inputRaster.raster(key='probability').bandArray(indicies=indicies)
-        self.outputRaster.raster(key='probabilitySubset').setArray(array=probabilitySubset)
-        self.setFlowMetadataProbabilityDefinition(name='probabilitySubset', classDefinition=classDefinition)
+        fractionSubset = self.inputRaster.raster(key='fraction').bandArray(indicies=indicies)
+        self.outputRaster.raster(key='fractionSubset').setArray(array=fractionSubset)
+        self.setFlowMetadataFractionDefinition(name='fractionSubset', classDefinition=classDefinition)
 
 
-class ProbabilityPerformance(FlowObject):
+class FractionPerformance(FlowObject):
     def __init__(self, yP, yT, classDefinitionP, classDefinitionT):
         assert isinstance(classDefinitionP, ClassDefinition)
         assert isinstance(classDefinitionT, ClassDefinition)
-        assert classDefinitionT.classes == classDefinitionP.classes
+        assert classDefinitionT.classes() == classDefinitionP.classes()
         assert isinstance(yP, np.ndarray)
         assert isinstance(yT, np.ndarray)
         assert yT.shape[1] == yP.shape[1]
         assert len(yT) == 1
-        assert len(yP) == classDefinitionP.classes
+        assert len(yP) == classDefinitionP.classes()
 
         self.classDefinitionT = classDefinitionT
         self.classDefinitionP = classDefinitionP
@@ -815,7 +1722,7 @@ class ProbabilityPerformance(FlowObject):
         self.roc_curves = dict()
         self.roc_auc_scores = dict()
 
-        for i in range(1, self.classDefinitionT.classes + 1):
+        for i in range(1, self.classDefinitionT.classes() + 1):
             self.roc_curves[i] = sklearn.metrics.roc_curve(y_true=self.yT, y_score=self.yP[:, i - 1], pos_label=i,
                                                            drop_intermediate=True)
             self.roc_auc_scores[i] = sklearn.metrics.roc_auc_score(y_true=self.yT == i, y_score=self.yP[:, i - 1])
@@ -829,20 +1736,19 @@ class ProbabilityPerformance(FlowObject):
             classDefinitionT=repr(self.classDefinitionT))
 
     @classmethod
-    def fromRaster(self, prediction, reference, **kwargs):
-        assert isinstance(prediction, Probability)
+    def fromRaster(self, prediction, reference, mask=None, **kwargs):
+        assert isinstance(prediction, Fraction)
         assert isinstance(reference, Classification)
-        yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features
-        yT = UnsupervisedSample.fromRasterAndMask(raster=reference, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features
-        return ProbabilityPerformance(yP=yP, yT=yT, classDefinitionP=prediction.classDefinition,
-                                      classDefinitionT=reference.classDefinition)
+
+        yP, yT = MapCollection(maps=[prediction, reference]).extractAsArray(masks=[prediction, reference, mask])
+
+        return FractionPerformance(yP=yP, yT=yT, classDefinitionP=prediction.classDefinition(),
+                                   classDefinitionT=reference.classDefinition())
 
     def report(self):
-        classes = self.classDefinitionT.classes
-        names = self.classDefinitionT.names
-        report = Report('Probability Performance')
+        classes = self.classDefinitionT.classes()
+        names = self.classDefinitionT.names()
+        report = Report('Fraction Performance')
         report.append(ReportHeading('Performance Measures'))
         colHeaders = [['', 'AUC'], ['n', 'Log loss'] + names]
         colSpans = [[2, classes], [1] * (classes + 2)]
@@ -855,7 +1761,7 @@ class ProbabilityPerformance(FlowObject):
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(facecolor='white', figsize=(9, 6))
         for i in range(len(self.roc_curves)):
-            #rgb = [v / 255. for v in self.classDefinitionP.color[i]]
+            # rgb = [v / 255. for v in self.classDefinitionP.color[i]]
             plt.plot(self.roc_curves[i + 1][0], self.roc_curves[i + 1][1]
                      , label=names[i])  # , color=rgb) # problem: plots do not show the correct RGB colors
         ax.set_xlabel('False Positive Rate')
@@ -879,245 +1785,115 @@ class ProbabilityPerformance(FlowObject):
         return report
 
 
-class UnsupervisedSample(FlowObject):
-    def __init__(self, features, metadata=None):
-        assert isinstance(features, np.ndarray) and features.ndim == 2
-        if metadata is None:
-            metadata = dict()
-        self.features = features
-        self.metadata = metadata
-        self.nbands, self.nsamples = self.features.shape
-
-    def __repr__(self):
-        return '{cls}(features=array{features}, metadata={metadata})'.format(
-            cls=self.__class__.__name__,
-            features=repr(list(self.features.shape)),
-            metadata=repr(self.metadata))
-
-    @staticmethod
-    def fromENVISpectralLibrary(filename):
-        # GDAL does not open ENVI Speclib files. Need to workaround.
-
-        for header in [filename + '.hdr', splitext(filename)[0] + '.hdr']:
-            # find header file
-            if exists(header):
-                # copy speclib to tmp folder
-                folder = join(tempfile.gettempdir(), 'fromENVISpectralLibrary', str(random.randint(0, 1e10)))
-                if not exists(folder):
-                    makedirs(folder)
-
-                filenameCopy = copyfile(filename, join(folder, basename(filename)))
-
-                # set change file type, so GDAL will accept it as a raster
-                with open(header, 'r') as f:
-                    text = f.readlines()
-                i = None
-                for i, line in enumerate(text):
-                    if line.strip().lower().startswith('file type'):
-                        break
-                text[i] = 'file type = ENVI Standard\n'
-                with open(join(folder, basename(header)), 'w') as f:
-                    f.writelines(text)
-
-                # read data and metadata
-                raster = openRasterDataset(filename=filenameCopy)
-                metadata = raster.metadataDomain(domain='ENVI')
-                metadata = {k.replace('_',' '): v for k, v in metadata.items()}
-                metadata['file type'] = 'ENVI Spectral Library'
-                features = raster.readAsArray()[0].T
-                sample = UnsupervisedSample(features=features, metadata=metadata)
-                raster.close()
-                rmtree(folder)
-                return sample
-        raise Exception('header file not found')
-
-    @staticmethod
-    def fromRasterAndMask(raster, mask=None, mask2=None, grid=None, **kwargs):
-        applier = Applier(defaultGrid=grid, **kwargs)
-        applier.setFlowRaster(name='raster', raster=raster)
-        applier.setFlowMask('mask', mask=mask)
-        applier.setFlowMask('mask2', mask=mask2)
-        results = applier.apply(operatorType=_UnsupervisedSampleFromRasterAndMask, raster=raster, mask=mask,
-                                mask2=mask2)
-        features = np.hstack(results)
-        sample = UnsupervisedSample(features=features)
-        applier.controls.progressBar.setText(repr(sample))
-        return sample
-
-    @staticmethod
-    def fromSample(sample):
-        return UnsupervisedSample(features=sample.features, metadata=sample.metadata)
-
-    def saveAsENVISpectralLibrary(self, filename):
-        metadata = self.metadata.copy()
-        if 'spectra names' not in metadata:
-            metadata['spectra names'] = ['profile ' + str(i + 1) for i in range(self.features.shape[1])]
-        if 'wavelength' not in metadata:
-            metadata['wavelength'] = range(self.features.shape[0])
-            metadata['wavelength units'] = 'indices'
-
-        # save as ENVI Standard
-        array = self.features.T
-        bands = 1
-        ysize, xsize = array.shape
-        gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(array.dtype)
-        driver = ENVIBSQDriver()
-        options = driver.defaultOptions().optionsList()
-        gdalDataset = driver.gdalDriver().Create(filename, xsize, ysize, bands, gdalType, options)
-        rasterDS = RasterDataset(gdalDataset=gdalDataset)
-        rasterDS.band(0)._gdalBand.WriteArray(array)
-        rasterDS.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
-        filenames = rasterDS.filenames()
-        rasterDS.flushCache() # important to flush cache!
-        rasterDS.close()
-
-        # delete xml file and set file type to ENVI Speclib
-        for file in filenames:
-            if file.endswith('.xml'):
-                try: remove(file)
-                except: pass
-
-            if file.endswith('.hdr'):
-
-                with open(file, 'r') as f:
-                    text = f.readlines()
-                i = None
-                for i, line in enumerate(text):
-                    if line.strip().lower().startswith('file type'):
-                        break
-                text[i] = 'file type = ENVI Spectral Library\n'
-                with open(file, 'w') as f:
-                    f.writelines(text)
-
-    def scaleFeaturesInplace(self, factor):
-        self.features = self.features * factor
-
-    def classifyByName(self, names, classDefinition):
-        assert len(names) == self.nsamples
-        assert isinstance(classDefinition, ClassDefinition)
-        assert set(names).issubset(set(classDefinition.names))
-        labels = [classDefinition.names.index(name) + 1 for name in names]
-        labels = np.atleast_2d(np.array(labels, dtype=np.uint8))
-        return ClassificationSample(features=self.features, labels=labels, metadata=self.metadata,
-                                    classDefinition=classDefinition)
-
-
-class _UnsupervisedSampleFromRasterAndMask(ApplierOperator):
-    def ufunc(self, raster, mask, mask2):
-        features = self.flowRasterArray(name='raster', raster=raster)
-        labeled = self.maskFromArray(array=features, noDataValueSource='raster')
-        labeled *= self.flowMaskArray('mask', mask=mask)
-        labeled *= self.flowMaskArray('mask2', mask=mask2)
-        return features[:, labeled[0]]
-
-
-class SupervisedSample(UnsupervisedSample):
-    def __init__(self, features, labels, noDataValue, outputNames, metadata=None, allowEmpty=False):
-        UnsupervisedSample.__init__(self, features=features, metadata=metadata)
-
-        assert isinstance(labels, np.ndarray) and features.ndim == 2
-        assert self.features.shape[1] == labels.shape[1]
-        if not allowEmpty:
-            assert self.features.shape[1] > 0
-        self.labels = labels
-        self.noDataValue = noDataValue
-        self.outputNames = outputNames
-
-
-class ClassificationSample(SupervisedSample):
-    def __init__(self, features, labels, classDefinition, metadata=None, outputName='classification'):
-        SupervisedSample.__init__(self, features, labels, noDataValue=0, metadata=metadata, outputNames=[outputName])
-        assert labels.shape[0] == 1
-        assert isinstance(classDefinition, ClassDefinition)
-        self.classDefinition = classDefinition
-        self.histogram = \
-            np.histogram(labels, bins=self.classDefinition.classes, range=[1, self.classDefinition.classes + 1])[0]
-
-    def __repr__(self):
-        return '{cls}(features=array{features}, labels=array{labels}, classDefinition={classDefinition})'.format(
-            cls=self.__class__.__name__,
-            features=repr(list(self.features.shape)),
-            labels=repr(list(self.labels.shape)),
-            classDefinition=repr(self.classDefinition))
-
-    @staticmethod
-    def fromENVISpectralLibrary(filename, classificationSchemeName=''):
-        sample = UnsupervisedSample.fromENVISpectralLibrary(filename=filename)
-        names = sample.metadata[classificationSchemeName + 'class names'][1:]
-        classes = len(names)
-        lookup = sample.metadata[classificationSchemeName + 'class lookup'][3:]
-        lookup = [int(v) for v in lookup]
-        classDefinition = ClassDefinition(classes=classes, names=names, colors=lookup)
-
-        labels = np.array(sample.metadata[classificationSchemeName + 'class spectra names'])
-        for i, name in enumerate(names):
-            labels[labels == name] = str(i + 1)
-        labels = np.atleast_2d(np.uint8(labels))
-        return ClassificationSample(features=sample.features, labels=labels, classDefinition=classDefinition)
-
-    def _saveAsENVISpectralLibraryUpdateHeader(self, header):
-        UnsupervisedSample._saveAsENVISpectralLibraryUpdateHeader(self, header=header)
-        header['classes'] = self.classDefinition.classes + 1
-        header['class names'] = ['Unclassified'] + self.classDefinition.names
-        assert 0 #fix class colors
-        header['class lookup'] = [0, 0, 0] + self.classDefinition.colors
-        header['class spectra names'] = np.array(self.classDefinition.names)[self.labels.ravel() - 1]
-
-    @classmethod
-    def fromRasterAndProbability(cls, raster, probability, grid=None, masks=None,
-                                 minOverallCoverage=0.5, minWinnerCoverage=0.5, **kwargs):
+class Sample(MapCollection):
+    def __init__(self, raster, mask=None, grid=None):
+        assert isinstance(raster, Raster)
         if grid is None:
-            grid = raster.grid
+            grid = raster.dataset().grid()
+        assert isinstance(grid, Grid), repr(grid)
+        MapCollection.__init__(self, maps=[raster])
+        self._mask = mask
+        self._grid = grid
 
-        probabilitySample = ProbabilitySample.fromRasterAndProbability(raster=raster, probability=probability,
-                                                                       grid=grid, masks=masks, **kwargs)
-        classificationSample = ClassificationSample.fromProbabilitySample(sample=probabilitySample,
-                                                                          minOverallCoverage=minOverallCoverage,
-                                                                          minWinnerCoverage=minWinnerCoverage)
-        return classificationSample
+    def __repr__(self):
+        return '{cls}(raster={raster}, mask={mask}, grid={grid})'.format(
+            cls=self.__class__.__name__,
+            raster=repr(self.raster()),
+            mask=repr(self.mask()),
+            grid=repr(self.grid()))
 
-    @classmethod
-    def fromRasterAndClassification(cls, raster, classification, grid=None, masks=None, **kwargs):
-        return cls.fromRasterAndProbability(raster=raster, probability=classification, grid=grid,
-                                            masks=masks, **kwargs)
+    def _initPickle(self):
+        MapCollection._initPickle(self)
+        if self._mask is not None:
+            self._mask._initPickle()
 
-    @classmethod
-    def fromProbabilitySample(cls, sample, minOverallCoverage=0.5, minWinnerCoverage=0.5):
-        assert isinstance(sample, ProbabilitySample)
-        fractions = sample.labels
+    def raster(self):
+        raster = self.maps()[0]
+        assert isinstance(raster, Raster)
+        return raster
 
-        labels = np.argmax(sample.labels, axis=0)[None] + 1
-        overallCoverage = np.sum(fractions, axis=0, keepdims=True)
-        winnerCoverage = np.max(sample.labels, axis=0, keepdims=True)
-        valid = overallCoverage >= minOverallCoverage
-        valid *= winnerCoverage >= minWinnerCoverage
+    def mask(self):
+        return self._mask
 
-        features = sample.features[:, valid[0]]
-        labels = labels[:, valid[0]]
-        return ClassificationSample(features=features, labels=labels, classDefinition=sample.classDefinition)
+    def masks(self):
+        return [self.raster(), self.mask()]
 
-    def asProbabilitySample(self):
-        probabilityArray = np.zeros(shape=(self.classDefinition.classes, self.nsamples), dtype=np.float32)
-        for index in range(self.classDefinition.classes):
-            probabilityArray[index][self.labels[0] == index + 1] = 1.
-        return ProbabilitySample(features=self.features, labels=probabilityArray, classDefinition=self.classDefinition,
-                                 metadata=self.metadata)
+    def grid(self):
+        assert isinstance(self._grid, Grid)
+        return self._grid
 
-    def synthMix(self, mixingComplexities, classLikelihoods=None, n=10):
+    ''''@staticmethod
+    def _fromSample(filenameRaster, sample, **kwargs):
+        assert isinstance(sample, Sample)
+        features = np.atleast_3d(sample.extractFeatures(**kwargs))
+        rasterDataset = createRasterDatasetFromArray(array=features, filename=filenameRaster,
+                                                     driver=RasterDriver.fromFilename(filename=filenameRaster))
+        metadata = sample.raster().dataset().metadataDomain(domain='ENVI')
+        for key in ENVI.SPATIAL_KEYS:
+            metadata.pop(key, None)
 
+        rasterDataset.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
+        rasterDataset.flushCache().close()
+        return Sample(raster=Raster(filename=filenameRaster))'''
+
+    def extractAsArray(self, grid=None, masks=None, onTheFlyResampling=False, **kwargs):
+        if grid is None:
+            grid = self.grid()
+        if masks is None:
+            masks = self.masks()
+        return MapCollection.extractAsArray(self, grid=grid, masks=masks, onTheFlyResampling=onTheFlyResampling, **kwargs)
+
+    def extractAsRaster(self, filenames, grid=None, masks=None, onTheFlyResampling=False, **kwargs):
+        if grid is None:
+            grid = self.grid()
+        if masks is None:
+            masks = self.masks()
+        return MapCollection.extractAsRaster(self, filenames=filenames, grid=grid, masks=masks,
+                                             onTheFlyResampling=onTheFlyResampling, **kwargs)
+
+class ClassificationSample(Sample):
+    def __init__(self, raster, classification, mask=None, grid=None):
+        Sample.__init__(self, raster=raster, mask=mask, grid=grid)
+        assert isinstance(classification, Classification)
+        self.maps().append(classification)
+        #self._classification = classification
+
+    def __repr__(self):
+        return '{cls}(raster={raster}, classification={classification}, mask={mask}, grid={grid}'.format(
+            cls=self.__class__.__name__,
+            raster=repr(self.raster()),
+            classification=repr(self.classification()),
+            mask=repr(self.mask()),
+            grid=repr(self.grid()))
+
+    def masks(self):
+        return Sample.masks(self) + [self.classification()]
+
+    def classification(self):
+        classification = self.maps()[1]
+        assert isinstance(classification, Classification)
+        return classification
+
+
+    def synthMix(self, filenameFeatures, filenameFractions, mixingComplexities, classLikelihoods=None, n=10, **kwargs):
+
+        classDefinition = self.classification().classDefinition()
         if classLikelihoods is None:
             classLikelihoods = 'proportional'
         if classLikelihoods is 'proportional':
-            classLikelihoods = {i + 1: float(count) / sum(self.histogram) for i, count in enumerate(self.histogram)}
+            statistics = self.classification().statistics(calcHistogram=True,
+                                                          histogramBins=[classDefinition.classes()],
+                                                          histogramRanges=[(1, classDefinition.classes() + 1)])
+            histogram = statistics[0]['histo']['hist']
+            classLikelihoods = {i + 1: float(count) / sum(histogram) for i, count in enumerate(histogram)}
         elif classLikelihoods is 'equalized':
-            classLikelihoods = {i + 1: 1. / self.classDefinition.classes for i in range(self.classDefinition.classes)}
+            classLikelihoods = {i + 1: 1. / classDefinition().classes() for i in range(classDefinition().classes())}
 
         assert isinstance(mixingComplexities, dict)
         assert isinstance(classLikelihoods, dict)
 
-        features = self.features
-        labels = self.labels
-        classes = self.classDefinition.classes
+        features, labels = self.extractAsArray(**kwargs)
+        classes = self.classification().classDefinition().classes()
 
         # cache label indices and setup 0%/100% fractions from class labels
         indices = dict()
@@ -1141,147 +1917,174 @@ class ClassificationSample(SupervisedSample):
             mixtures.append(np.sum(drawnFeatures * randomWeights, axis=1))
             fractions.append(np.sum(drawnFractions * randomWeights, axis=1))
 
-        mixtures, fractions = np.array(mixtures).T, np.array(fractions).T
-        return ProbabilitySample(features=mixtures, labels=fractions, classDefinition=self.classDefinition)
+        mixtures = np.atleast_3d(np.transpose(mixtures))
+        fractions = np.atleast_3d(np.transpose(fractions))
+
+        featuresDataset = createRasterDatasetFromArray(array=mixtures, filename=filenameFeatures,
+                                                       driver=RasterDriver.fromFilename(filename=filenameFeatures))
+        featuresDataset.flushCache().close()
+        fractionsDataset = createRasterDatasetFromArray(array=fractions, filename=filenameFractions,
+                                                        driver=RasterDriver.fromFilename(filename=filenameFractions))
+        MetadataEditor.setFractionDefinition(rasterDataset=fractionsDataset, classDefinition=classDefinition)
+        fractionsDataset.flushCache().close()
+
+        return FractionSample(raster=Raster(filename=filenameFeatures),
+                              fraction=Fraction(filename=filenameFractions))
 
 
-class RegressionSample(SupervisedSample):
-    def __repr__(self):
-        return '{cls}(features=array{features}, labels=array{labels}, noDataValue={noDataValue}, outputNames={outputNames})'.format(
-            cls=self.__class__.__name__,
-            features=repr(list(self.features.shape)),
-            labels=repr(list(self.labels.shape)),
-            noDataValue=repr(self.noDataValue),
-            outputNames=repr(self.outputNames))
-
-    @staticmethod
-    def fromRasterAndRegression(raster, regression, grid, mask=None, mask2=None, **kwargs):
-        applier = Applier(defaultGrid=grid, **kwargs)
-        applier.setFlowRaster(name='raster', raster=raster)
-        applier.setFlowRegression(name='regression', regression=regression)
-        applier.setFlowMask('mask', mask=mask)
-        applier.setFlowMask('mask2', mask=mask2)
-        results = applier.apply(operatorType=_RegressionSampleFromRasterAndRegression, raster=raster,
-                                regression=regression, mask=mask, mask2=mask2)
-        features = np.hstack(result[0] for result in results)
-        fractions = np.hstack(result[1] for result in results)
-        return RegressionSample(features=features, labels=fractions, noDataValue=regression.noDataValue,
-                                outputNames=regression.outputNames)
-
-    @staticmethod
-    def fromProbabilitySample(sample):
-        assert isinstance(sample, ProbabilitySample)
-        return RegressionSample(features=sample.features, labels=sample.labels, noDataValue=sample.noDataValue,
-                                outputNames=sample.outputNames)
-
-
-class _RegressionSampleFromRasterAndRegression(ApplierOperator):
-    def ufunc(self, raster, regression, mask, mask2):
-        features = self.flowRasterArray(name='raster', raster=raster)
-        labels = self.flowRegressionArray(name='regression', regression=regression)
-        labeled = self.maskFromArray(array=features, noDataValueSource='raster')
-        labeled *= self.maskFromArray(array=labels, noDataValue=regression.noDataValue)
-        labeled *= self.flowMaskArray('mask', mask=mask)
-        labeled *= self.flowMaskArray('mask2', mask=mask2)
-        return features[:, labeled[0]], labels[:, labeled[0]]
-
-
-class ProbabilitySample(RegressionSample):
-    def __init__(self, features, labels, classDefinition, metadata=None):
-        assert isinstance(classDefinition, ClassDefinition)
-        assert labels.shape[0] == classDefinition.classes
-        RegressionSample.__init__(self, features, labels, noDataValue=-1, metadata=metadata,
-                                  outputNames=classDefinition.names)
-        self.classDefinition = classDefinition
+class RegressionSample(Sample):
+    def __init__(self, raster, regression, mask=None, grid=None):
+        Sample.__init__(self, raster=raster, mask=mask, grid=grid)
+        assert isinstance(regression, Regression)
+        self.maps().append(regression)
+        self._regression = regression
 
     def __repr__(self):
-        return '{cls}(features=array{features}, labels=array{labels}, classDefinition={classDefinition})'.format(
+        return '{cls}(raster={raster}, regression={regression}, mask={mask}, grid={grid}'.format(
             cls=self.__class__.__name__,
-            features=repr(list(self.features.shape)),
-            labels=repr(list(self.labels.shape)),
-            classDefinition=repr(self.classDefinition))
+            raster=repr(self.raster()),
+            regression=repr(self.regression()),
+            mask=repr(self.mask()),
+            grid=repr(self.grid()))
 
-    @classmethod
-    def fromRasterAndClassification(cls, raster, classification, mask=None, mask2=None, **kwargs):
-        return cls.fromRasterAndProbability(raster=raster, probability=classification, mask=mask, mask2=mask2, **kwargs)
+    def masks(self):
+        return Sample.masks(self) + [self.regression()]
+
+    def regression(self):
+        assert isinstance(self._regression, Regression)
+        return self._regression
+
+    '''def extractFeatures(self, grid=None, mask=None, **kwargs):
+        features, labels = self.extractFeaturesAndLabels(grid=grid, mask=mask, **kwargs)
+        return features
+
+    def extractFeaturesAndLabels(self, grid=None, mask=None, **kwargs):
+
+        extracted = (grid is None and
+                     self.raster().dataset().xsize() == 1 and
+                     self.regression().dataset().xsize() == 1 and
+                     self.raster().dataset().ysize() == self.regression().dataset().ysize())
+
+        if extracted:
+            assert mask is None # todo consider mask
+            features = self.raster().dataset().readAsArray().reshape(self.raster().dataset().zsize(), -1)
+            labels = self.regression().dataset().readAsArray().reshape(self.regression().dataset().zsize(), -1)
+        else:
+            if grid is None:
+                grid = self.grid()
+            features, labels = extractPixels(inputs=[self.raster(), self.regression()],
+                                             masks=[self.raster().asMask(), self.regression().asMask(), self.mask(), mask],
+                                             grid=grid, **kwargs)
+        return features, labels
 
     @staticmethod
-    def fromRasterAndProbability(raster, probability, grid, masks=None, **kwargs):
-        applier = Applier(defaultGrid=grid, **kwargs)
-        applier.setFlowRaster(name='raster', raster=raster)
-        applier.setFlowProbability(name='probability', probability=probability)
-        applier.setFlowMasks(masks=masks)
-        results = applier.apply(operatorType=_ProbabilitySampleFromRasterAndProbability, raster=raster,
-                                probability=probability, masks=masks)
-        features = np.hstack(result[0] for result in results)
-        fractions = np.hstack(result[1] for result in results)
-        return ProbabilitySample(features=features, labels=fractions, classDefinition=probability.classDefinition)
+    def fromSample(filenameRaster, filenameRegression, sample):
+        assert isinstance(sample, FractionSample)
+        features, labels = sample.extractFeaturesAndLabels()
+        features = np.atleast_3d(features)
+        labels = np.atleast_3d(labels)
 
-    @classmethod
-    def fromClassificationSample(cls, sample):
-        assert isinstance(sample, ClassificationSample)
-        labels = np.float32(np.concatenate([sample.labels == id+1 for id in range(sample.classDefinition.classes)]))
-        features = sample.features
-        return ProbabilitySample(features=features, labels=labels, classDefinition=sample.classDefinition)
+        # craete raster
+        rasterDataset = createRasterDatasetFromArray(array=features, filename=filenameRaster,
+                                                     driver=RasterDriver.fromFilename(filename=filenameRaster))
+        metadata = sample.raster().dataset().metadataDomain(domain='ENVI')
+        for key in ENVI.SPATIAL_KEYS:
+            metadata.pop(key, None)
+        rasterDataset.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
+        rasterDataset.flushCache().close()
+        raster = Raster(filename=filenameRaster)
 
-    def subsetClassesByName(self, names):
-        labels = [self.classDefinition.getLabelByName(name) for name in names]
-        return self.subsetClasses(labels=labels)
+        # create fraction
+        rasterDataset = createRasterDatasetFromArray(array=labels, filename=filenameRegression,
+                                                     driver=RasterDriver.fromFilename(filename=filenameRegression))
+        metadata = sample.fraction().dataset().metadataDomain(domain='ENVI')
+        for key in ENVI.SPATIAL_KEYS:
+            metadata.pop(key, None)
+        rasterDataset.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
+        MetadataEditor.setRegressionDefinition(rasterDataset=rasterDataset,
+                                               noDataValues=sample.fraction().noDataValues(),
+                                               outputNames=sample.fraction().outputNames())
+        rasterDataset.flushCache().close()
+        regression = Regression(filename=filenameRegression)
 
-    def subsetClasses(self, labels):
-        indicies = [label - 1 for label in labels]
-        classDefinition = ClassDefinition(classes=len(indicies),
-                                          names=[self.classDefinition.getName(index + 1) for index in indicies],
-                                          colors=[self.classDefinition.getColor(index + 1) for index in indicies])
-        return ProbabilitySample(features=self.features, labels=self.labels[indicies], classDefinition=classDefinition)
+        return RegressionSample(raster=raster, regression=regression)'''
 
 
-class _ProbabilitySampleFromRasterAndProbability(ApplierOperator):
-    def ufunc(self, raster, probability, masks):
-        features = self.flowRasterArray(name='raster', raster=raster)
-        fractions = self.flowProbabilityArray(name='probability', probability=probability)
-        labeled = self.maskFromArray(array=features, noDataValueSource='raster')
-        labeled *= np.any(fractions != -1, axis=0, keepdims=True)
-        labeled *= self.flowMasksArray(masks=masks)
-        return features[:, labeled[0]], fractions[:, labeled[0]]
+
+class FractionSample(RegressionSample):
+    def __init__(self, raster, fraction, mask=None, grid=None):
+        assert isinstance(fraction, Fraction)
+        RegressionSample.__init__(self, raster=raster, regression=fraction, mask=mask, grid=grid)
+
+    def __repr__(self):
+        return '{cls}(raster={raster}, fraction={fraction}, mask={mask}, grid={grid})'.format(
+            cls=self.__class__.__name__,
+            raster=repr(self.raster()),
+            fraction=repr(self.fraction()),
+            mask=repr(self.mask()),
+            grid=repr(self.grid()))
+
+    def fraction(self):
+        return self.regression()
 
 
 class Estimator(FlowObject):
-    SAMPLE_TYPE = SupervisedSample
+    SAMPLE_TYPE = Sample
     PREDICT_TYPE = Raster
 
     def __init__(self, sklEstimator):
-        self.sklEstimator = sklEstimator
-        self.sample = None
+        self._sklEstimator = sklEstimator
+        self._sample = None
 
     def __repr__(self):
         return '{cls}(sklEstimator={sklEstimator})'.format(cls=self.__class__.__name__,
-                                                           sklEstimator=repr(self.sklEstimator))
+                                                           sklEstimator=repr(self.sklEstimator()))
+
+    def _initPickle(self):
+        if isinstance(self._sample, Sample):
+            self._sample._initPickle()
+
+    def sklEstimator(self):
+        return self._sklEstimator
+
+    def sample(self):
+        assert isinstance(self._sample, Sample)
+        return self._sample
 
     def _fit(self, sample):
         assert isinstance(sample, self.SAMPLE_TYPE)
-        self.sample = sample
+        self._sample = sample
 
-        X = np.float64(sample.features.T)
-
-        if hasattr(sample, 'labels'):
-            if sample.labels.shape[0] == 1 and not isinstance(self.sklEstimator,
-                                                              sklearn.multioutput.MultiOutputEstimator):
-                y = sample.labels.ravel()
+        if isinstance(sample, (ClassificationSample, RegressionSample, FractionSample)):
+            features, labels = sample.extractAsArray()
+            X = np.float64(features.T)
+            if labels.shape[0] == 1 and not isinstance(self.sklEstimator(), sklearn.multioutput.MultiOutputEstimator):
+                y = labels.ravel()
             else:
-                y = sample.labels.T
-        else:
+                y = labels.T
+        elif isinstance(sample, Sample):
+            features, = sample.extractAsArray()
+            X = np.float64(features.T)
             y = None
-
-        self.sklEstimator.fit(X=X, y=y)
+        else:
+            assert 0
+        self.sklEstimator().fit(X=X, y=y)
 
         if isinstance(self, Clusterer):
-            yTrain = self.sklEstimator.predict(X=X)
-            self.classDefinition = ClassDefinition(classes=max(yTrain) + 1)
+            yTrain = self.sklEstimator().predict(X=X)
+            self._classDefinition = ClassDefinition(classes=max(yTrain) + 1)
         return self
 
     def _predict(self, filename, raster, mask=None, **kwargs):
-        applier = Applier(defaultGrid=raster, **kwargs)
+
+        if isinstance(raster, Raster):
+            grid = raster.grid()
+        elif isinstance(raster, RasterStack):
+            grid = raster.raster(0).grid()
+        else:
+            assert 0
+
+        applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowRaster('raster', raster=raster)
         applier.setFlowMask('mask', mask=mask)
         applier.setOutputRaster('prediction', filename=filename)
@@ -1295,10 +2098,10 @@ class Estimator(FlowObject):
         applier.setFlowRaster('raster', raster=raster)
         applier.setFlowMask('mask', mask=mask)
         applier.setFlowMask('mask2', mask=mask2)
-        applier.setOutputRaster('probability', filename=filename)
+        applier.setOutputRaster('fraction', filename=filename)
         applier.apply(operatorType=_EstimatorPredictProbability, raster=raster, estimator=self, mask=mask, mask2=mask2)
-        probability = Probability(filename=filename)
-        return probability
+        fraction = Fraction(filename=filename)
+        return fraction
 
     def _transform(self, filename, raster, inverse=False, mask=None, mask2=None, **kwargs):
         applier = Applier(defaultGrid=raster, **kwargs)
@@ -1320,43 +2123,44 @@ class _EstimatorPredict(ApplierOperator):
         etype, dtype, noutputs = self.getInfos(estimator)
 
         if isinstance(estimator, (Classifier, Clusterer)):
-            noDataValue = 0
+            noDataValues = [0]
+        elif isinstance(estimator, Regressor):
+            noDataValues = estimator.sample().regression().noDataValues()
         else:
-            noDataValue = estimator.sample.noDataValue
+            assert 0
 
-        prediction = self.full(value=noDataValue, bands=noutputs, dtype=dtype)
+        prediction = self.full(value=noDataValues, bands=noutputs, dtype=dtype)
 
         valid = self.maskFromArray(array=self.features, noDataValueSource='raster')
-
-        assert valid[0, 0, 1] == True
         valid *= self.flowMaskArray('mask', mask=mask)
 
         X = np.float64(self.features[:, valid[0]].T)
-        y = estimator.sklEstimator.predict(X=X)
+        y = estimator.sklEstimator().predict(X=X)
         prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
 
         self.outputRaster.raster(key='prediction').setArray(array=prediction)
 
         if isinstance(estimator, Classifier):
-            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.sample.classDefinition)
+            self.setFlowMetadataClassDefinition('prediction',
+                                                classDefinition=estimator.sample().classification().classDefinition())
         elif isinstance(estimator, Clusterer):
-            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.classDefinition)
+            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator._classDefinition)
         elif isinstance(estimator, Regressor):
-            if isinstance(estimator.sample, ProbabilitySample):
-                self.setFlowMetadataProbabilityDefinition('prediction',
-                                                          classDefinition=estimator.sample.classDefinition)
+            if isinstance(estimator.sample(), FractionSample):
+                self.setFlowMetadataFractionDefinition('prediction',
+                                                       classDefinition=estimator.sample().fraction().classDefinition())
             else:
-                self.outputRaster.raster(key='prediction').setNoDataValue(value=noDataValue)
-            self.setFlowMetadataBandNames('prediction', bandNames=estimator.sample.outputNames)
+                self.outputRaster.raster(key='prediction').setNoDataValues(values=noDataValues)
+            self.setFlowMetadataBandNames('prediction', bandNames=estimator.sample().regression().outputNames())
 
     def getInfos(self, estimator):
-        etype = estimator.sklEstimator._estimator_type
+        etype = estimator.sklEstimator()._estimator_type
         if etype in ['classifier', 'clusterer']:
             noutputs = 1
             dtype = np.uint8
         elif etype == 'regressor':
             X0 = np.float64(np.atleast_2d(self.features[:, 0, 0]))
-            y0 = estimator.sklEstimator.predict(X=X0)
+            y0 = estimator.sklEstimator().predict(X=X0)
             noutputs = max(y0.shape)
             dtype = np.float32
         else:
@@ -1368,7 +2172,7 @@ class _EstimatorPredictProbability(ApplierOperator):
     def ufunc(self, estimator, raster, mask, mask2):
         assert isinstance(estimator, Classifier)
         self.features = self.flowRasterArray('raster', raster=raster)
-        noutputs = estimator.sample.classDefinition.classes
+        noutputs = estimator.sample().classification().classDefinition().classes()
         noDataValue = -1
         prediction = self.full(value=noDataValue, bands=noutputs, dtype=np.float32)
 
@@ -1377,19 +2181,20 @@ class _EstimatorPredictProbability(ApplierOperator):
         valid *= self.flowMaskArray('mask2', mask=mask2)
 
         X = np.float64(self.features[:, valid[0]].T)
-        y = estimator.sklEstimator.predict_proba(X=X)
+        y = estimator.sklEstimator().predict_proba(X=X)
         prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
 
-        self.outputRaster.raster(key='probability').setArray(array=prediction)
-        self.setFlowMetadataProbabilityDefinition('probability', classDefinition=estimator.sample.classDefinition)
+        self.outputRaster.raster(key='fraction').setArray(array=prediction)
+        self.setFlowMetadataFractionDefinition('fraction',
+                                               classDefinition=estimator.sample().classification().classDefinition())
 
 
 class _EstimatorTransform(ApplierOperator):
     def ufunc(self, estimator, raster, mask, mask2, inverse):
         if inverse:
-            sklTransform = estimator.sklEstimator.inverse_transform
+            sklTransform = estimator.sklEstimator().inverse_transform
         else:
-            sklTransform = estimator.sklEstimator.transform
+            sklTransform = estimator.sklEstimator().transform
 
         noDataValue = np.finfo(np.float32).min
         features = self.flowRasterArray('raster', raster=raster)
@@ -1427,7 +2232,7 @@ class Regressor(Estimator):
 
 
 class Transformer(Estimator):
-    SAMPLE_TYPE = UnsupervisedSample
+    SAMPLE_TYPE = Sample
     PREDICT_TYPE = Raster
     fit = Estimator._fit
     transform = Estimator._transform
@@ -1435,7 +2240,7 @@ class Transformer(Estimator):
 
 
 class Clusterer(Estimator):
-    SAMPLE_TYPE = UnsupervisedSample
+    SAMPLE_TYPE = Sample
     PREDICT_TYPE = Classification
     fit = Estimator._fit
     predict = Estimator._predict
@@ -1447,24 +2252,24 @@ class Clusterer(Estimator):
 
 
 class ClassificationPerformance(FlowObject):
-    def __init__(self, yP, yT, classDefinitionP, classDefinitionT, classProportions=None):
+    def __init__(self, yP, yT, classDefinitionP, classDefinitionT, classProportions=None, N=0):
         assert isinstance(yP, np.ndarray) and yP.ndim == 1
         assert isinstance(yT, np.ndarray) and yT.shape == yP.shape
         assert isinstance(classDefinitionP, ClassDefinition)
         assert isinstance(classDefinitionT, ClassDefinition)
-        assert classDefinitionT.classes == classDefinitionP.classes
+        assert classDefinitionT.classes() == classDefinitionP.classes()
 
         self.classDefinitionT = classDefinitionT
         self.classDefinitionP = classDefinitionP
+        self.N = N
 
         import sklearn.metrics
         self.yP = yP
         self.yT = yT
         self.mij = np.int64(
-            sklearn.metrics.confusion_matrix(yT, yP, labels=range(1, classDefinitionT.classes + 1)).T)
+            sklearn.metrics.confusion_matrix(yT, yP, labels=range(1, classDefinitionT.classes() + 1)).T)
         self.m = np.int64(yP.size)
         self.Wi = classProportions
-        self.adjusted = False
         self._assessPerformance()
 
     def __repr__(self):
@@ -1476,16 +2281,26 @@ class ClassificationPerformance(FlowObject):
             classDefinitionT=repr(self.classDefinitionT),
             classProportions=repr(list(self.Wi)))
 
-    @classmethod
-    def fromRaster(self, prediction, reference, **kwargs):
+    @staticmethod
+    def fromRaster(prediction, reference, mask=None, **kwargs):
         assert isinstance(prediction, Classification)
         assert isinstance(reference, Classification)
-        yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features[0]
-        yT = UnsupervisedSample.fromRasterAndMask(raster=reference, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features[0]
-        return ClassificationPerformance(yP=yP, yT=yT, classDefinitionP=prediction.classDefinition,
-                                         classDefinitionT=reference.classDefinition)
+        stratification = prediction
+        classes = stratification.classDefinition().classes()
+        statistics = stratification.statistics(calcHistogram=True,
+                                               histogramBins=[classes],
+                                               histogramRanges=[(1, classes + 1)], **kwargs)
+        histogram = statistics[0]['histo']['hist']
+        classProportions = [float(count) / sum(histogram) for i, count in enumerate(histogram)]
+        N = sum(histogram)
+
+        yP, yT = MapCollection(maps=[prediction, reference]).extractAsArray(masks=[prediction, reference, mask])
+
+        return ClassificationPerformance(yP=yP[0], yT=yT[0],
+                                         classDefinitionP=prediction.classDefinition(),
+                                         classDefinitionT=reference.classDefinition(),
+                                         classProportions=classProportions,
+                                         N=N)
 
     def _assessPerformance(self):
 
@@ -1504,8 +2319,8 @@ class ClassificationPerformance(FlowObject):
         # pij is the proportion of area estimate
         # pij = Wi*mij/mi_
         self.pij = np.zeros_like(self.mij, dtype=np.float64)
-        for i in range(self.classDefinitionT.classes):
-            for j in range(self.classDefinitionT.classes):
+        for i in range(self.classDefinitionT.classes()):
+            for j in range(self.classDefinitionT.classes()):
                 self.pij[i, j] = self.Wi[i] * self.mij[i, j] / self.mi_[i]
 
         self.pi_ = np.sum(self.pij, axis=0, dtype=np.float64)
@@ -1527,15 +2342,15 @@ class ClassificationPerformance(FlowObject):
         # calculate squared standard errors (SSE)
 
         self.OverallAccuracySSE = 0.
-        for i in range(self.classDefinitionT.classes): self.OverallAccuracySSE += self.pij[i, i] * (
+        for i in range(self.classDefinitionT.classes()): self.OverallAccuracySSE += self.pij[i, i] * (
             self.Wi[i] - self.pij[i, i]) / (self.Wi[i] * self.m)
 
         a1 = self.mii.sum() / self.m
         a2 = (self.mi_ * self.m_j).sum() / self.m ** 2
         a3 = (self.mii * (self.mi_ + self.m_j)).sum() / self.m ** 2
         a4 = 0.
-        for i in range(self.classDefinitionT.classes):
-            for j in range(self.classDefinitionT.classes):
+        for i in range(self.classDefinitionT.classes()):
+            for j in range(self.classDefinitionT.classes()):
                 a4 += self.mij[i, j] * (self.mi_[j] + self.m_j[i]) ** 2
         a4 /= self.m ** 3
         b1 = a1 * (1 - a1) / (1 - a2) ** 2
@@ -1543,18 +2358,18 @@ class ClassificationPerformance(FlowObject):
         b3 = (1 - a1) ** 2 * (a4 - 4 * a2 ** 2) / (1 - a2) ** 4
         self.KappaAccuracySSE = (b1 + b2 + b3) / self.m
 
-        self.ProducerAccuracySSE = np.zeros(self.classDefinitionT.classes, dtype=np.float64)
-        for i in range(self.classDefinitionT.classes):
+        self.ProducerAccuracySSE = np.zeros(self.classDefinitionT.classes(), dtype=np.float64)
+        for i in range(self.classDefinitionT.classes()):
             sum = 0.
-            for j in range(self.classDefinitionT.classes):
+            for j in range(self.classDefinitionT.classes()):
                 if i == j: continue
                 sum += self.pij[i, j] * (self.Wi[j] - self.pij[i, j]) / (self.Wi[j] * self.m)
                 self.ProducerAccuracySSE[i] = self.pij[i, i] * self.p_j[i] ** (-4) * (
                     self.pij[i, i] * sum + (self.Wi[i] - self.pij[i, i]) * (self.p_j[i] - self.pij[i, i]) ** 2 / (
                         self.Wi[i] * self.m))
 
-        self.UserAccuracySSE = np.zeros(self.classDefinitionT.classes, dtype=np.float64)
-        for i in range(self.classDefinitionT.classes):
+        self.UserAccuracySSE = np.zeros(self.classDefinitionT.classes(), dtype=np.float64)
+        for i in range(self.classDefinitionT.classes()):
             self.UserAccuracySSE[i] = self.pij[i, i] * (self.Wi[i] - self.pij[i, i]) / (self.Wi[i] ** 2 * self.m)
 
         self.F1AccuracySSE = self._fix(
@@ -1565,9 +2380,9 @@ class ClassificationPerformance(FlowObject):
                 self.m - self.mi_ - self.m_j + self.mii))
 
         self.ClassProportion = self.m_j / self.m
-        self.ClassProportionSSE = np.zeros(self.classDefinitionT.classes, dtype=np.float64)
-        for j in range(self.classDefinitionT.classes):
-            for i in range(self.classDefinitionT.classes):
+        self.ClassProportionSSE = np.zeros(self.classDefinitionT.classes(), dtype=np.float64)
+        for j in range(self.classDefinitionT.classes()):
+            for i in range(self.classDefinitionT.classes()):
                 self.ClassProportionSSE[j] += self.Wi[i] ** 2 * (
                     (self.mij[i, j] / self.mi_[i]) * (1 - self.mij[i, j] / self.mi_[i])) / (self.mi_[i] - 1)
 
@@ -1592,39 +2407,30 @@ class ClassificationPerformance(FlowObject):
 
         report = Report('Classification Performance')
 
-        # if self.adjusted:
-        #    report.append(ReportHeading('Stratification'))
-
-        #    colHeaders = [['DN','Stratum', 'Stratum Size', 'Stratum Sample Size', 'Adjustment Weight']]
-        #    colSpans = [[1,1,1,1,1]]
-        #    data = np.transpose([np.array(range(0, self.strataClasses))+1, self.strataClassNames, self.strataSizes, self.strataSampleSizes, np.round(self.strataWeights,2) ])
-        #    report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
-
         report.append(ReportHeading('Class Overview'))
         colHeaders = None
         rowSpans = [[1, 2], [1, 1, 1]]
-        colSpans = [[1, 1, 1, 1, 1]]
         rowHeaders = [['', 'Class Names'], ['Class ID', 'Reference', 'Prediction']]
-        data = [np.hstack((range(1, self.classDefinitionT.classes + 1))), self.classDefinitionT.names,
-                self.classDefinitionP.names]
-        report.append(
-            ReportTable(data, '', colHeaders=colHeaders, rowHeaders=rowHeaders, colSpans=colSpans, rowSpans=rowSpans))
+        data = [np.hstack((range(1, self.classDefinitionT.classes() + 1))), self.classDefinitionT.names(),
+                self.classDefinitionP.names()]
+
+        report.append(ReportTable(data, '', colHeaders=colHeaders, rowHeaders=rowHeaders,
+                                  colSpans=None, rowSpans=rowSpans))
 
         # Confusion Matrix Table
         report.append(ReportHeading('Confusion Matrix'))
-        rowSpans = None
         classNumbers = []
-        for i in range(self.classDefinitionT.classes): classNumbers.append('(' + str(i + 1) + ')')
+        for i in range(self.classDefinitionT.classes()): classNumbers.append('(' + str(i + 1) + ')')
         colHeaders = [['Reference Class'], classNumbers + ['Sum']]
-        colSpans = [[self.classDefinitionT.classes], np.ones(self.classDefinitionT.classes + 1, dtype=int)]
+        colSpans = [[self.classDefinitionT.classes()], np.ones(self.classDefinitionT.classes() + 1, dtype=int)]
         classNamesColumn = []
-        for i in range(self.classDefinitionT.classes): classNamesColumn.append(
-            '(' + str(i + 1) + ') ' + self.classDefinitionT.names[i])
+        for i in range(self.classDefinitionT.classes()): classNamesColumn.append(
+            '(' + str(i + 1) + ') ' + self.classDefinitionT.names()[i])
         rowHeaders = [classNamesColumn + ['Sum']]
         data = np.vstack(((np.hstack((self.mij, self.m_j[:, None]))), np.hstack((self.mi_, self.m)))).astype(
             int)
 
-        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
+        report.append(ReportTable(data, '', colHeaders=colHeaders, rowHeaders=rowHeaders, colSpans=colSpans))
 
         # Accuracies Table
         report.append(ReportHeading('Accuracies'))
@@ -1656,21 +2462,44 @@ class ClassificationPerformance(FlowObject):
             , np.round(self._confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[0] * 100, 2)
             , np.round(self._confidenceIntervall(self.F1Accuracy, self.F1AccuracySSE, 0.05)[1] * 100, 2)]
         data = [list(x) for x in zip(*data)]
-        report.append(ReportTable(data, '', colHeaders, rowHeaders, colSpans, rowSpans))
+        report.append(ReportTable(data, '', colHeaders=colHeaders, rowHeaders=rowHeaders, colSpans=colSpans))
 
         # Proportion Matrix Table
         report.append(ReportHeading('Proportion Matrix'))
         colHeaders = [['Reference Class'], classNumbers + ['Sum']]
-        colSpans = [[self.classDefinitionT.classes], np.ones(self.classDefinitionT.classes + 1, dtype=int)]
+        colSpans = [[self.classDefinitionT.classes()], np.ones(self.classDefinitionT.classes() + 1, dtype=int)]
         rowHeaders = [classNamesColumn + ['Sum']]
         data = np.vstack(
-            ((np.hstack((self.pij * 100, self.p_j[:, None] * 100))), np.hstack((self.pi_ * 100, 100))))
-        report.append(ReportTable(np.round(data, 2), '', colHeaders, rowHeaders, colSpans, rowSpans))
+            ((np.hstack((self.pij, self.p_j[:, None]))), np.hstack((self.pi_, 1))))
+        report.append(ReportTable(np.round(data, 4), '', colHeaders=colHeaders, rowHeaders=rowHeaders,
+                                  colSpans=colSpans))
+
+        # Class-wise Area Estimates
+        report.append(ReportHeading('Class-wise Proportion and Area Estimates'))
+        colSpans = [[1, 3, 3], [1, 1, 2, 1, 2]]
+        colHeaders = [['', 'Proportion', 'Area [px]'],
+                      ['Map class', 'Estimate', '95 % Interval', 'Estimate', '95 % Interval']]
+        data = [classNamesColumn,
+                np.round(self.ClassProportion, 4),
+                np.round(self._confidenceIntervall(self.ClassProportion, self.ClassProportionSSE, 0.05)[0], 4),
+                np.round(self._confidenceIntervall(self.ClassProportion, self.ClassProportionSSE, 0.05)[1], 4),
+                np.round(self.ClassProportion * self.N, 1),
+                np.round(self._confidenceIntervall(self.ClassProportion, self.ClassProportionSSE, 0.05)[0] * self.N, 1),
+                np.round(self._confidenceIntervall(self.ClassProportion, self.ClassProportionSSE, 0.05)[1] * self.N, 1)]
+        data = [list(x) for x in zip(*data)]
+        report.append(ReportTable(data, '', colHeaders=colHeaders, colSpans=colSpans))
+
         return report
 
 
 class RegressionPerformance(FlowObject):
     def __init__(self, yT, yP, outputNamesT, outputNamesP):
+        assert isinstance(yT, np.ndarray)
+        assert isinstance(yP, np.ndarray)
+        assert yT.ndim == 2
+        assert yP.ndim == 2
+        assert yT.shape == yP.shape
+
         self.yP = yP
         self.yT = yT
         self.outputNamesT = outputNamesT
@@ -1697,15 +2526,14 @@ class RegressionPerformance(FlowObject):
             outputNamesP=repr(self.outputNamesP))
 
     @classmethod
-    def fromRaster(self, prediction, reference, **kwargs):
+    def fromRaster(self, prediction, reference, mask=None, **kwargs):
         assert isinstance(prediction, Regression)
         assert isinstance(reference, Regression)
-        yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features
-        yT = UnsupervisedSample.fromRasterAndMask(raster=reference, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features
-        return RegressionPerformance(yP=yP, yT=yT, outputNamesP=prediction.outputNames,
-                                     outputNamesT=reference.outputNames)
+
+        yP, yT = MapCollection(maps=[prediction, reference]).extractAsArray(masks=[prediction, reference, mask])
+
+        return RegressionPerformance(yP=yP, yT=yT, outputNamesP=prediction.outputNames(),
+                                     outputNamesT=reference.outputNames())
 
     def report(self):
         import matplotlib
@@ -1840,13 +2668,12 @@ class ClusteringPerformance(FlowObject):
             yT=repr(list(self.yT.shape)))
 
     @staticmethod
-    def fromRaster(prediction, reference, **kwargs):
+    def fromRaster(prediction, reference, grid, mask=None, **kwargs):
         assert isinstance(prediction, Classification)
         assert isinstance(reference, Classification)
-        yP = UnsupervisedSample.fromRasterAndMask(raster=prediction, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features
-        yT = UnsupervisedSample.fromRasterAndMask(raster=reference, mask=reference.asMask(), grid=reference,
-                                                  **kwargs).features
+        yP, yT = extractPixels(inputs=[prediction, reference],
+                               masks=[prediction, reference, mask],
+                               grid=grid)
         return ClusteringPerformance(yP=yP, yT=yT)
 
     def report(self):
@@ -1873,16 +2700,16 @@ class ClusteringPerformance(FlowObject):
 
         return report
 
-class StringParser():
 
+class StringParser():
     class Range():
         def __init__(self, start, end):
             self.start = int(start)
             self.end = int(end)
-            self.step = np.sign(end-start)
+            self.step = np.sign(end - start)
 
         def range(self):
-            return range(self.start, self.end+self.step, self.step)
+            return range(self.start, self.end + self.step, self.step)
 
     def eval(self, text):
         if text.startswith('\eval'):
@@ -1893,7 +2720,7 @@ class StringParser():
     def range(self, text):
         # try resolve range syntax, e.g. 2-4 as [2,4] or -4--2 as [-4, -2]
         i = text.index('-', 1)
-        return self.Range(start=int(text[:i]), end=int(text[i+1:]))
+        return self.Range(start=int(text[:i]), end=int(text[i + 1:]))
 
     def value(self, text):
 
@@ -1942,11 +2769,11 @@ class StringParser():
                         result.append(value)
         return result
 
-def extractPixels(inputs, masks, grid, **kwargs):
 
+def extractPixels(inputs, masks, grid, **kwargs):
     applier = Applier(defaultGrid=grid, **kwargs)
     for i, input in enumerate(inputs):
-        name = 'input'+str(i)
+        name = 'input' + str(i)
         applier.setFlowInput(name=name, input=input)
 
     for i, mask in enumerate(masks):
@@ -1956,8 +2783,8 @@ def extractPixels(inputs, masks, grid, **kwargs):
     results = applier.apply(operatorType=_ExtractPixels, inputs=inputs, masks=masks)
     return results
 
-class _ExtractPixels(ApplierOperator):
 
+class _ExtractPixels(ApplierOperator):
     def ufunc(self, inputs, masks):
 
         # calculate overall mask
@@ -1982,6 +2809,7 @@ class _ExtractPixels(ApplierOperator):
             else:
                 array = self.flowInputArray(name=name, input=input)
                 profiles = array[:, marray[0]]
+
             result.append(profiles)
         return result
 
@@ -1993,3 +2821,80 @@ class _ExtractPixels(ApplierOperator):
             profiles = np.concatenate(profilesList, axis=1)
             result.append(profiles)
         return result
+
+
+class MetadataEditor(object):
+
+    @staticmethod
+    def setClassDefinition(rasterDataset, classDefinition):
+        assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
+        assert isinstance(classDefinition, ClassDefinition)
+
+        names = ['unclassified'] + classDefinition.names()
+        lookup = [0, 0, 0] + list(
+            np.array([(c.red(), c.green(), c.blue()) for c in classDefinition.colors()]).flatten())
+
+        rasterDataset.setNoDataValue(value=0)
+
+        # setup in ENVI domain
+        rasterDataset.setMetadataItem(key='classes', value=classDefinition.classes() + 1, domain='ENVI')
+        rasterDataset.setMetadataItem(key='class names', value=names, domain='ENVI')
+        rasterDataset.setMetadataItem(key='file type', value='ENVI Classification', domain='ENVI')
+        rasterDataset.setMetadataItem(key='class lookup', value=lookup, domain='ENVI')
+
+        # setup in GDAL data model
+        colors = np.array(lookup).reshape(-1, 3)
+        colors = [tuple(color) for color in colors]
+        band = rasterDataset.band(0)
+        band.setCategoryNames(names=names)
+        band.setCategoryColors(colors=colors)
+        band.setDescription('Classification')
+
+    @classmethod
+    def setFractionDefinition(cls, rasterDataset, classDefinition):
+        assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
+        assert isinstance(classDefinition, ClassDefinition)
+
+        lookup = classDefinition.colorsFlatRGB()
+        rasterDataset.setMetadataItem(key='band lookup', value=lookup, domain='ENVI')
+        cls.setBandNames(rasterDataset=rasterDataset, bandNames=classDefinition.names())
+        rasterDataset.setNoDataValue(value=-1)
+
+    @classmethod
+    def setRegressionDefinition(cls, rasterDataset, noDataValues, outputNames):
+        assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
+        rasterDataset.setNoDataValues(values=noDataValues)
+        cls.setBandNames(rasterDataset=rasterDataset, bandNames=outputNames)
+
+    @classmethod
+    def setBandNames(cls, rasterDataset, bandNames):
+        assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
+        assert len(bandNames) == rasterDataset.zsize()
+        rasterDataset.setMetadataItem(key='band names', value=bandNames, domain='ENVI')
+        for band, bandName in zip(rasterDataset.bands(), bandNames):
+            band.setDescription(value=bandName)
+
+    @classmethod
+    def setBandCharacteristics(cls, rasterDataset, bandNames=None, wavelength=None, fwhm=None, wavelengthUnits=None):
+        assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
+        if bandNames is not None:
+            cls.setBandNames(rasterDataset=rasterDataset, bandNames=bandNames)
+        if wavelength is not None:
+            rasterDataset.setMetadataItem(key='wavelength', value=wavelength, domain='ENVI')
+        if fwhm is not None:
+            rasterDataset.setMetadataItem(key='fwhm', value=fwhm, domain='ENVI')
+        if wavelengthUnits is not None:
+            rasterDataset.setMetadataItem(key='wavelength units', value=wavelengthUnits, domain='ENVI')
+
+    @classmethod
+    def bandNames(cls, rasterDataset):
+        assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
+        return [band.description() for band in rasterDataset.bands()]
+
+    @classmethod
+    def bandCharacteristics(cls, rasterDataset):
+        assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
+        return {'bandNames': cls.bandNames(rasterDataset=rasterDataset),
+                'wavelength': rasterDataset.metadataItem(key='wavelength', domain='ENVI'),
+                'fwhm': rasterDataset.metadataItem(key='fwhm', domain='ENVI'),
+                'wavelengthUnits': rasterDataset.metadataItem(key='wavelength units', domain='ENVI')}

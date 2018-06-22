@@ -64,7 +64,8 @@ class ApplierIO(object):
 
     def __init__(self, filename):
         self._operator = None
-        self._filename = str(filename)
+        assert isinstance(filename, str)
+        self._filename = filename
 
     def setOperator(self, operator):
         '''Pass a handle on the operator object.'''
@@ -205,12 +206,17 @@ class ApplierInputRaster(ApplierIO):
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
         # create tmp dataset with binarized categories in original resolution
-        gridInSourceProjection = grid.reproject(self.dataset().grid())
+        gridInSourceProjection = grid.reproject(other=self.dataset().grid()).pixelBuffer(buffer=1)
         tmpDataset = self.dataset().translate(grid=gridInSourceProjection,
                                               bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
 
-        binarizedArray = [numpy.float32(tmpArray[0] == category) for category in categories]
+        binarizedArray = list()
+        for category in categories:
+            if category is None:
+                binarizedArray.append(np.full_like(tmpArray[0], fill_value=0.))
+            else:
+                binarizedArray.append(numpy.float32(tmpArray[0] == category))
         binarizedDataset = createRasterDatasetFromArray(grid=gridInSourceProjection, array=binarizedArray)
 
         binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
@@ -456,6 +462,11 @@ class ApplierOutputRaster(ApplierIO):
 
         self._callImageMethod(method=RasterDataset.setNoDataValue, value=value)
 
+    def setNoDataValues(self, values):
+        """Set no data values."""
+
+        self._callImageMethod(method=RasterDataset.setNoDataValues, values=values)
+
     def _callImageMethod(self, method, **kwargs):
         if self.operator().isFirstBlock():
             method = (RasterDataset, method.__name__)
@@ -687,7 +698,7 @@ class ApplierInputRasterGroup(ApplierIOGroup):
         '''Returns the :class:`~hubdc.applier.ApplierInputRaster` named ``key``.'''
 
         value = ApplierIOGroup._item(self, key=key)
-        assert isinstance(value, ApplierInputRaster)
+        assert isinstance(value, ApplierInputRaster), value
         return value
 
     def flatRasters(self):
@@ -1241,10 +1252,17 @@ class ApplierOperator(object):
 
     def full(self, value, bands=1, dtype=None, overlap=0):
         '''Returns a 3-d numpy array of shape = (zsize, ysize+2*overlap, xsize+2*overlap) filled with constant ``value``.'''
-
-        return numpy.full(
-            shape=(bands, self.subgrid().size().y() + 2 * overlap, self.subgrid().size().x() + 2 * overlap),
-            fill_value=value, dtype=dtype)
+        if isinstance(value, list):
+            array = [numpy.full(shape=(self.subgrid().size().y() + 2 * overlap,
+                                       self.subgrid().size().x() + 2 * overlap),
+                                fill_value=v, dtype=dtype) for v in value]
+            array = np.array(array)
+        else:
+            array = numpy.full(shape=(bands,
+                                      self.subgrid().size().y() + 2 * overlap,
+                                      self.subgrid().size().x() + 2 * overlap),
+                               fill_value=value, dtype=dtype)
+        return array
 
     def _apply(self, workingGrid, iblock, nblock, yblock, xblock, nyblock, nxblock):
         self._iblock = iblock
@@ -1559,6 +1577,10 @@ class ApplierControls(object):
         '''Derives the resolution from the given :class:`~hubdc.model.Grid`.'''
 
         if self.resolution is None:
+
+            if len(grids) == 0:
+                raise errors.MissingApplierResolutionError()
+
 
             if self.autoResolution == ApplierOptions.AutoResolution.minimum:
                 f = numpy.min
