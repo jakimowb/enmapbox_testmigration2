@@ -159,8 +159,8 @@ class DataSourceFactory(object):
         uri = None
         src = DataSourceFactory.srcToString(src)
         if not src is None and os.path.exists(src):
-            from enmapbox.gui.spectrallibraries import SpectralLibraryIO
-            for cls in SpectralLibraryIO.__subclasses__():
+            from enmapbox.gui.spectrallibraries import AbstractSpectralLibraryIO
+            for cls in AbstractSpectralLibraryIO.__subclasses__():
                 if cls.canRead(src):
                     uri = src
                     break
@@ -229,8 +229,8 @@ class DataSourceFactory(object):
                 src = DataSourceFactory.srcToString(src)
 
 
-            from enmapbox.gui.spectrallibraries import SpectralLibraryVectorLayer, SpectralLibrary
-            if isinstance(src, SpectralLibraryVectorLayer):
+            from enmapbox.gui.spectrallibraries import SpectralLibrary
+            if isinstance(src, SpectralLibrary):
                 return DataSourceFactory.Factory(src.mSpeclib)
 
             dataSources = []

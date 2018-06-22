@@ -551,7 +551,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionShowCreditsQgis">
    <property name="icon">
     <iconset>
-     <normaloff>:/timeseriesviewer/icons/qgis-icon.png</normaloff>:/timeseriesviewer/icons/qgis-icon.png</iconset>
+     <normaloff>:/enmapbox/icons/qgis-icon.png</normaloff>:/enmapbox/icons/qgis-icon.png</iconset>
    </property>
    <property name="text">
     <string>showCreditsQgis</string>

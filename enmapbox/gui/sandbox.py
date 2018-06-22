@@ -373,7 +373,6 @@ if __name__ == '__main__':
         f.flush()
         f.close()
 
-
         from enmapbox.gui.utils import initQgisApplication
         qgsApp = initQgisApplication()
 

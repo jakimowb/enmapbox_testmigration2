@@ -14,8 +14,8 @@
    <string>EnMAP-Box</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
-    <normaloff>:/enmapbox/icons/enmapbox.png</normaloff>:/enmapbox/icons/enmapbox.png</iconset>
+   <iconset>
+    <normaloff>:/enmapbox/icons/enmapbox.svg</normaloff>:/enmapbox/icons/enmapbox.svg</iconset>
   </property>
   <property name="dockOptions">
    <set>QMainWindow::AllowNestedDocks|QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks|QMainWindow::VerticalTabs</set>
@@ -215,7 +215,7 @@
   <action name="actionAddMapView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_mapdock.png</normaloff>:/enmapbox/icons/viewlist_mapdock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_mapdock.svg</normaloff>:/enmapbox/icons/viewlist_mapdock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Map Window</string>
@@ -227,7 +227,7 @@
   <action name="actionAddTextView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_textview.png</normaloff>:/enmapbox/icons/viewlist_textview.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_textview.svg</normaloff>:/enmapbox/icons/viewlist_textview.svg</iconset>
    </property>
    <property name="text">
     <string>Add Text Window</string>
@@ -239,7 +239,7 @@
   <action name="actionAddSpeclibView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_spectrumdock.svg</normaloff>:/enmapbox/icons/viewlist_spectrumdock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Spectral Library Window</string>
@@ -251,7 +251,7 @@
   <action name="actionZoomIn">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomIn.png</normaloff>:/enmapbox/icons/mActionZoomIn.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomIn.svg</normaloff>:/enmapbox/icons/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom In</string>
@@ -260,7 +260,7 @@
   <action name="actionZoomOut">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomOut.png</normaloff>:/enmapbox/icons/mActionZoomOut.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomOut.svg</normaloff>:/enmapbox/icons/mActionZoomOut.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom Out</string>
@@ -269,7 +269,7 @@
   <action name="actionPan">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionPan.png</normaloff>:/enmapbox/icons/mActionPan.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionPan.svg</normaloff>:/enmapbox/icons/mActionPan.svg</iconset>
    </property>
    <property name="text">
     <string>Pan Map</string>
@@ -278,8 +278,8 @@
   <action name="actionIdentify">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>
-     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/mActionIdentify.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionIdentify.svg</normaloff>
+     <normalon>:/enmapbox/png/icons/mActionIdentify.svg</normalon>:/enmapbox/icons/mActionIdentify.svg</iconset>
    </property>
    <property name="text">
     <string>Identify Pixels and Features</string>
@@ -291,7 +291,7 @@
   <action name="actionAddDataSource">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/add_datasource.png</normaloff>:/enmapbox/icons/add_datasource.png</iconset>
+     <normaloff>:/enmapbox/icons/add_datasource.svg</normaloff>:/enmapbox/icons/add_datasource.svg</iconset>
    </property>
    <property name="text">
     <string>Add Data Source</string>
@@ -303,7 +303,7 @@
   <action name="actionZoomFullExtent">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomFullExtent.svg</normaloff>:/enmapbox/icons/mActionZoomFullExtent.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom Full</string>
@@ -315,7 +315,7 @@
   <action name="actionAddMimeView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_dock.svg</normaloff>:/enmapbox/icons/viewlist_dock.svg</iconset>
    </property>
    <property name="text">
     <string>Add MimeData Viewer (experimental)</string>
@@ -324,7 +324,7 @@
   <action name="actionZoomPixelScale">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomActual.png</normaloff>:/enmapbox/icons/mActionZoomActual.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomActual.svg</normaloff>:/enmapbox/icons/mActionZoomActual.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom 1:1</string>
@@ -336,7 +336,7 @@
   <action name="actionAbout">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/metadata.png</normaloff>:/enmapbox/icons/metadata.png</iconset>
+     <normaloff>:/enmapbox/icons/metadata.svg</normaloff>:/enmapbox/icons/metadata.svg</iconset>
    </property>
    <property name="text">
     <string>About</string>
@@ -344,8 +344,8 @@
   </action>
   <action name="actionIdentifyMapLayers">
    <property name="icon">
-    <iconset>
-     <normaloff>:/timeseriesviewer/icons/mActionIdentify.png</normaloff>:/timeseriesviewer/icons/mActionIdentify.png</iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/enmapbox/icons/mActionIdentify.svg</normaloff>:/enmapbox/icons/mActionIdentify.svg</iconset>
    </property>
    <property name="text">
     <string>Identify</string>
@@ -357,7 +357,7 @@
   <action name="actionProjectSettings">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/system.png</normaloff>:/enmapbox/icons/system.png</iconset>
+     <normaloff>:/enmapbox/icons/system.svg</normaloff>:/enmapbox/icons/system.svg</iconset>
    </property>
    <property name="text">
     <string>Project Settings</string>
@@ -368,8 +368,8 @@
   </action>
   <action name="actionExit">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileExit.png</normaloff>:/enmapbox/icons/mActionFileExit.png</iconset>
+    <iconset>
+     <normaloff>:/enmapbox/icons/mActionFileExit.svg</normaloff>:/enmapbox/icons/mActionFileExit.svg</iconset>
    </property>
    <property name="text">
     <string>Exit EnMAP-Box</string>
@@ -406,7 +406,7 @@
   <action name="actionSaveProject">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileSave.png</normaloff>:/enmapbox/icons/mActionFileSave.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionFileSave.svg</normaloff>:/enmapbox/icons/mActionFileSave.svg</iconset>
    </property>
    <property name="text">
     <string>Save Project</string>
@@ -415,7 +415,7 @@
   <action name="actionAddWebView">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
+     <normaloff>:/enmapbox/icons/viewlist_dock.svg</normaloff>:/enmapbox/icons/viewlist_dock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Web View</string>
@@ -427,7 +427,7 @@
   <action name="actionMoveCenter">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomPoint.png</normaloff>:/enmapbox/icons/mActionZoomPoint.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionZoomPoint.svg</normaloff>:/enmapbox/icons/mActionZoomPoint.svg</iconset>
    </property>
    <property name="text">
     <string>Move to Point</string>
@@ -441,8 +441,8 @@
   <action name="actionSelectProfiles">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>
-     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/pickrasterspectrum.png</iconset>
+     <normaloff>:/enmapbox/icons/pickrasterspectrum.svg</normaloff>
+     <normalon>:/enmapbox/png/icons/mActionIdentify.svg</normalon>:/enmapbox/icons/pickrasterspectrum.svg</iconset>
    </property>
    <property name="text">
     <string>Select pixel profiles</string>
@@ -454,7 +454,7 @@
   <action name="actionSaveProjectAs">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileSaveAs.png</normaloff>:/enmapbox/icons/mActionFileSaveAs.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</iconset>
    </property>
    <property name="text">
     <string>Save Projects as</string>
@@ -479,7 +479,7 @@
   <action name="actionMapLinking">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/link_basic.png</normaloff>:/enmapbox/icons/link_basic.png</iconset>
+     <normaloff>:/enmapbox/icons/link_basic.svg</normaloff>:/enmapbox/icons/link_basic.svg</iconset>
    </property>
    <property name="text">
     <string>Set map linking</string>
