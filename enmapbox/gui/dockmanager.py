@@ -70,7 +70,7 @@ class DockTreeNode(TreeNode):
         self.dock = dock
         super(DockTreeNode, self).__init__(parent, '<dockname not available>')
 
-        self.mIcon = QIcon(':/enmapbox/icons/viewlist_dock.png')
+        self.mIcon = QIcon(':/enmapbox/icons/viewlist_dock.svg')
         if isinstance(dock, Dock):
             self.connectDock(dock)
 
@@ -139,7 +139,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
     def __init__(self, parent, canvas):
         assert isinstance(canvas, MapCanvas)
         super(CanvasLinkTreeNodeGroup, self).__init__(parent, 'Spatial Links',
-                                                      icon=QIcon(":/enmapbox/icons/link_basic.png"))
+                                                      icon=QIcon(":/enmapbox/icons/link_basic.svg"))
 
         self.canvas = canvas
         self.canvas.sigCanvasLinkAdded.connect(self.addCanvasLink)
@@ -173,7 +173,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
         super(SpeclibDockTreeNode, self).__init__(parent, dock)
-        self.setIcon(QIcon(':/enmapbox/icons/viewlist_spectrumdock.png'))
+        self.setIcon(QIcon(':/enmapbox/icons/viewlist_spectrumdock.svg'))
 
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
@@ -187,8 +187,8 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.showMapSpectra.sigCheckStateChanged.connect(
             lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
         self.profilesNode = TreeNode(self, 'Profiles', value=0)
-        self.speclibWidget.mSpeclib.sigProfilesAdded.connect(self.updateNodes)
-        self.speclibWidget.mSpeclib.sigProfilesRemoved.connect(self.updateNodes)
+        self.speclibWidget.mSpeclib.committedFeaturesAdded.connect(self.updateNodes)
+        self.speclibWidget.mSpeclib.committedFeaturesRemoved.connect(self.updateNodes)
 
     def updateNodes(self):
         from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
@@ -206,7 +206,7 @@ class MapDockTreeNode(DockTreeNode):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
         # KeepRefs.__init__(self)
-        self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.png'))
+        self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.svg'))
         self.addedChildren.connect(lambda: self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
 

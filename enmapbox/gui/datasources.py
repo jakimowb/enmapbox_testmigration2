@@ -466,7 +466,7 @@ class HubFlowDataSource(DataSourceFile):
         super(HubFlowDataSource, self).__init__(uri, name, icon)
 
         if not isinstance(icon, QIcon):
-            self.mIcon = QIcon(':/enmapbox/icons/alg.png')
+            self.mIcon = QIcon(':/enmapbox/icons/alg.svg')
 
 
         self.loadFlowObject()
@@ -595,13 +595,13 @@ class DataSourceRaster(DataSourceSpatial):
 
 
         if hasClassInfo is True:
-            icon = QIcon(':/enmapbox/icons/filelist_classification.png')
+            icon = QIcon(':/enmapbox/icons/filelist_classification.svg')
         elif self.dataType in [gdal.GDT_Byte] and ds.RasterCount == 1:
-            icon = QIcon(':/enmapbox/icons/filelist_mask.png')
+            icon = QIcon(':/enmapbox/icons/filelist_mask.svg')
         elif ds.RasterCount == 1:
-            icon = QIcon(':/enmapbox/icons/filelist_regression.png')
+            icon = QIcon(':/enmapbox/icons/filelist_regression.svg')
         else:
-            icon = QIcon(':/enmapbox/icons/filelist_image.png')
+            icon = QIcon(':/enmapbox/icons/filelist_image.svg')
         self.setIcon(icon)
 
     def createUnregisteredMapLayer(self, *args, **kwargs):
@@ -623,11 +623,11 @@ class DataSourceVector(DataSourceSpatial):
         geomType = lyr.geometryType()
 
         if geomType in [QgsWkbTypes.PointGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.png')
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.svg')
         elif geomType in [QgsWkbTypes.LineGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.png')
+            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.svg')
         elif geomType in [QgsWkbTypes.PolygonGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.png')
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.svg')
 
     def createUnregisteredMapLayer(self, *args, **kwargs):
         """

@@ -374,7 +374,7 @@ class CRSTreeNode(TreeNode):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(CRSTreeNode, self).__init__(parent, crs.description())
         self.setName('CRS')
-        self.setIcon(QIcon(':/enmapbox/icons/crs.png'))
+        self.setIcon(QIcon(':/enmapbox/icons/crs.svg'))
         self.setTooltip('Coordinate Reference System')
         self.mCrs = None
         self.nodeDescription = TreeNode(self, 'Name', tooltip='Description')

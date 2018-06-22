@@ -58,7 +58,7 @@
         </property>
         <property name="icon">
          <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionFileSave.png</normaloff>:/enmapbox/icons/mActionFileSave.png</iconset>
+          <normaloff>:/enmapbox/icons/mActionFileSave.png</normaloff>:/enmapbox/icons/mActionFileSave.svg</iconset>
         </property>
         <property name="shortcut">
          <string>Ctrl+S</string>
@@ -78,7 +78,7 @@
         </property>
         <property name="icon">
          <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionFileSaveAs.png</normaloff>:/enmapbox/icons/mActionFileSaveAs.png</iconset>
+          <normaloff>:/enmapbox/icons/mActionFileSaveAs.png</normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>

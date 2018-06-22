@@ -161,7 +161,7 @@ class CanvasLinkDialog(QDialog):
     def __init__(self, *args, **kwds):
         super(CanvasLinkDialog, self).__init__(*args, **kwds)
 
-        self.setWindowIcon(QIcon(':/enmapbox/icons/enmapbox.png'))
+        self.setWindowIcon(QIcon(':/enmapbox/icons/enmapbox.svg'))
         self.setWindowTitle('Map Linking')
         self.setLayout(QVBoxLayout())
 
@@ -549,20 +549,20 @@ class CanvasLink(QObject):
 
         if linkType == LINK_ON_CENTER:
             a = QAction('Link map center', None)
-            a.setIcon(QIcon(':/enmapbox/icons/link_center.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_center.svg'))
             a.setToolTip('Link map center')
         elif linkType == LINK_ON_SCALE:
             a = QAction('Link map scale ("Zoom")', None)
-            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale.svg'))
             a.setToolTip('Link to scale between both maps')
         elif linkType == LINK_ON_CENTER_SCALE:
             a = QAction('Link map scale and center', None)
             a.setToolTip('Link map scale and center')
-            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.svg'))
         elif linkType == UNLINK:
             a = QAction('Unlink', None)
             a.setToolTip('Removes an existing link between both canvases')
-            a.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
         else:
             raise Exception('Unknown link type : {}'.format(linkType))
 
@@ -684,13 +684,13 @@ class CanvasLink(QObject):
     def icon(self):
 
         if self.linkType == LINK_ON_SCALE:
-            src = ":/enmapbox/icons/link_mapscale.png"
+            src = ":/enmapbox/icons/link_mapscale.svg"
         elif self.linkType == LINK_ON_CENTER:
-            src = ":/enmapbox/icons/link_center.png"
+            src = ":/enmapbox/icons/link_center.svg"
         elif self.linkType == LINK_ON_CENTER_SCALE:
-            src = ":/enmapbox/icons/link_mapscale_center.png"
+            src = ":/enmapbox/icons/link_mapscale_center.svg"
         elif self.linkType == UNLINK:
-            src = ":/enmapbox/icons/link_upenh.png"
+            src = ":/enmapbox/icons/link_upenh.svg"
         else:
             raise NotImplementedError('unknown link type: {}'.format(self.linkType))
 
@@ -841,10 +841,10 @@ class MapCanvas(QgsMapCanvas):
         menu = QMenu()
 
         action = menu.addAction('Link with other maps')
-        action.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
         action.triggered.connect(lambda: CanvasLink.ShowMapLinkTargets(self))
         action = menu.addAction('Remove links to other maps')
-        action.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
         action.triggered.connect(lambda: self.removeAllCanvasLinks())
 
         menu.addSeparator()
@@ -867,11 +867,11 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
 
         action = menu.addAction('Zoom Full')
-        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomFullExtent.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomFullExtent.svg'))
         action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
 
         action = menu.addAction('Zoom Native Resolution')
-        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.svg'))
         action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
 
         menu.addSeparator()
@@ -889,12 +889,12 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
 
         action = menu.addAction('Refresh')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
         action.triggered.connect(lambda: self.refresh())
 
 
         action = menu.addAction('Refresh all layers')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
         action.triggered.connect(lambda: self.refreshAllLayers())
 
 
@@ -1160,12 +1160,12 @@ class MapDockLabel(DockLabel):
 
         self.addMapLink = QToolButton(self)
         self.addMapLink.setToolTip('Link with other map(s)')
-        self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
+        self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
         self.buttons.append(self.addMapLink)
 
         self.removeMapLink = QToolButton(self)
         self.removeMapLink.setToolTip('Remove links to this map')
-        self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
+        self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
         self.buttons.append(self.removeMapLink)
 
 

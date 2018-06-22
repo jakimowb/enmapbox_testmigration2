@@ -103,7 +103,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
 
 def getIcon():
-    return QIcon(':/enmapbox/icons/enmapbox.png')
+    return QIcon(':/enmapbox/icons/enmapbox.svg')
 
 
 

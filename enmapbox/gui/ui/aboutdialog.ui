@@ -36,7 +36,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="resources.qrc">
-    <normaloff>:/enmapbox/icons/enmapbox.png</normaloff>:/enmapbox/icons/enmapbox.png</iconset>
+    <normaloff>:/enmapbox/icons/enmapbox.svg</normaloff>:/enmapbox/icons/enmapbox.svg</iconset>
   </property>
   <property name="sizeGripEnabled">
    <bool>false</bool>
@@ -214,7 +214,7 @@
                 <enum>Qt::PlainText</enum>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/enmapbox.png</pixmap>
+                <pixmap resource="resources.qrc">:/enmapbox/icons/enmapbox.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>false</bool>
@@ -342,7 +342,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_gfz.png</pixmap>
+                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_gfz.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -376,7 +376,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_dlr.png</pixmap>
+                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_dlr.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -401,7 +401,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_hu-berlin.png</pixmap>
+                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_hu-berlin.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -551,7 +551,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionShowCreditsQgis">
    <property name="icon">
     <iconset>
-     <normaloff>:/enmapbox/icons/qgis-icon.png</normaloff>:/enmapbox/icons/qgis-icon.png</iconset>
+     <normaloff>:/enmapbox/icons/qgis-icon.png</normaloff>:/enmapbox/icons/qgis-icon.svg</iconset>
    </property>
    <property name="text">
     <string>showCreditsQgis</string>
