@@ -7,10 +7,35 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtXml import *
+from xml.etree import ElementTree
 ROOT = os.path.dirname(os.path.dirname(__file__))
 from enmapbox.gui.utils import DIR_UIFILES, DIR_ICONS, DIR_REPO, file_search
 jp = os.path.join
 import gdal, ogr, osr
+
+
+def migrateBJexternals():
+    from enmapbox.gui.utils import DIR_UIFILES
+
+    for uifile in file_search(DIR_UIFILES, '*.ui'):
+        f = open(uifile, 'r', encoding='utf-8')
+        xml = f.read()
+        f.close()
+
+        if re.search(':/timeseriesviewer/', xml, re.I):
+            s = ""
+            newXML = re.sub(':/timeseriesviewer/', ':/enmapbox/', xml)
+
+            assert re.search(':/timeseriesviewer/', newXML) is None
+
+            f = open(uifile, 'w', encoding='utf-8')
+            f.write(newXML)
+            f.flush()
+            f.close()
+
+    s = ""
+
+
 
 
 def rasterize_vector_labels(pathRef, pathDst, pathShp, label_field, band_ref=1, label_layer=0):
@@ -584,7 +609,7 @@ if __name__ == '__main__':
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
 
-    if True:
+    if False:
         pathQGISRepo = r'C:\Users\geo_beja\Repositories\QGIS'
         copyQGISRessourceFile(pathQGISRepo)
 
@@ -592,8 +617,9 @@ if __name__ == '__main__':
         #convert SVG to PNG and add link them into the resource file
         svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)
-
-    if True: compile_rc_files(DIR_UIFILES)
+    if True:
+        migrateBJexternals()
+        compile_rc_files(DIR_UIFILES)
 
     print('Done')
 

@@ -76,6 +76,11 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
                   prefixLocal=r'enmapboxtestdata',
                   prefixRemote=r'enmapboxtestdata')
 
+RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetation-apps.git',
+                  prefixLocal=r'enmapbox/apps/lmuvegetationapps',
+                  prefixRemote=r'lmuvegetationapps')
+
+
 RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
                   prefixLocal=r'site-packages/vrtbuilder',
                   prefixRemote=r'vrtbuilder')
@@ -100,6 +105,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixLocal=r'site-packages/hubflow',
                   prefixRemote=r'hubflow')
 
+"""
 RemoteInfo.create(r'https://github.com/titusjan/objbrowser.git',
                   prefixLocal=r'site-packages/objbrowser',
                   prefixRemote=r'objbrowser')
@@ -107,6 +113,9 @@ RemoteInfo.create(r'https://github.com/titusjan/objbrowser.git',
 RemoteInfo.create(r'https://github.com/dask/dask.git',
                   prefixLocal='site-packages/dask',
                   excluded=['docs','.github','continuous_integration'])
+
+"""
+
 
 def updateRemote(remoteInfo):
     if isinstance(remoteInfo, str):
@@ -122,8 +131,12 @@ def updateRemote(remoteInfo):
         files = REPO.git.execute(
             ['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
         if len(files) > 0:
-            info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal, r=True, f=True)])
-            print(info)
+
+            p = os.path.join(DIR_REPO, remoteInfo.prefixLocal)
+            if os.path.exists(p):
+                info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal, r=True, f=True)])
+                print(info)
+
 
         info = ''.join([i for i in REPO.git.read_tree(prefix=remoteInfo.prefixLocal, u='{key}/{path}'.format(
             key=remoteInfo.key, path=remoteInfo.remotePath()
@@ -167,12 +180,13 @@ if __name__ == "__main__":
                 addRemote(info)
 
     # update remotes
-    to_update = [#'hub-datacube', 'hub-workflow', #'enmap-box-testdata',
-                 'enmap-box-geoalgorithmsprovider',
+    to_update = ['hub-datacube', 'hub-workflow', #'enmap-box-testdata',
+                 #'enmap-box-geoalgorithmsprovider',
+                #'enmap-box-lmu-vegetation-apps'
                 # 'enmapboxgeoalgorithmsdoc'
                 ]  # enmap-box-geoalgorithmsprovider
 
-    #to_update = ['virtual-raster-builder']
+    to_update = ['virtual-raster-builder']
     #to_update = ['dask']
 
     for p in to_update:
