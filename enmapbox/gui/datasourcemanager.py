@@ -17,8 +17,9 @@
 ***************************************************************************
 """
 
-import sys, os
+import sys, os, inspect
 from qgis.core import *
+from qgis.core import QgsVectorLayer, QgsMapLayer, QgsRasterLayer
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
