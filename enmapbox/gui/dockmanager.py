@@ -984,10 +984,8 @@ class DockManager(QObject):
             return True
         return False
 
-    def createDock(self, dockType, *args, **kwds):
-
+    def createDock(self, dockType, *args, **kwds)->Dock:
         n = len(self.mDocks) + 1
-
         is_new_dock = True
         if dockType == 'MAP':
             kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
@@ -1013,10 +1011,11 @@ class DockManager(QObject):
         dockArea = kwds.get('dockArea', self.currentDockArea())
         assert isinstance(dockArea, DockArea), \
             'DockManager not connected to any DockArea yet. \nAdd DockAreas with connectDockArea(self, dockArea)'
+        dockArea.addDock(dock, *args, **kwds)
         if dock not in self.mDocks:
             dock.sigClosed.connect(self.removeDock)
             self.mDocks.append(dock)
-            dockArea.addDock(dock, *args, **kwds)
+
             self.sigDockAdded.emit(dock)
 
         return dock

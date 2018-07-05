@@ -462,6 +462,12 @@ class TestInit(unittest.TestCase):
         p = SpectralLibraryWidget()
         p.show()
 
+        self.assertIsInstance(p.speclib(), SpectralLibrary)
+        fieldNames = p.speclib().fieldNames()
+        self.assertIsInstance(fieldNames, list)
+
+        self.assertIsInstance(p.mModel, SpectralLibraryTableModel)
+        self.assertTrue(p.mModel.headerData(0, Qt.Horizontal) == fieldNames[0])
         cs = [speclib[0], speclib[3], speclib[-1]]
         p.setAddCurrentSpectraToSpeclibMode(False)
         p.setCurrentSpectra(cs)
@@ -484,7 +490,7 @@ class TestInit(unittest.TestCase):
         model = SpectralLibraryTableModel(speclib=speclib)
         w = SpectralLibraryPlotWidget()
         w.setModel(model)
-
+        w.show()
         self.assertIsInstance(w, SpectralLibraryPlotWidget)
 
         pdis = [i for i in w.plotItem.items if isinstance(i, SpectralProfilePlotDataItem)]
@@ -502,7 +508,7 @@ class TestInit(unittest.TestCase):
         for pdi in pdis:
             self.assertFalse(pdi.mProfile.id() == fid)
 
-
+        qapp.exec_()
 
 
 if __name__ == '__main__':

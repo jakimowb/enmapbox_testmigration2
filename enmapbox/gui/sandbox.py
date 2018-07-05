@@ -115,12 +115,21 @@ def sandboxGUI():
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
 
-    EB.openExampleData(mapWindows=1)
+    #EB.openExampleData(mapWindows=1)
     #EB.addSource(r'R:\WS1718_FE1\Daten\Sitzung_12\MODIS Berlin\MOD13A1.A2015273.h18v03.006.2015307052831.hdf')
     #EB.addSource(r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml')
     #EB.addSource(r'H:\Pleiades\GFOIGroupe13Brazil_SO16018091-2-01_DS_PHR1A_201610071358040_FR1_PX_W056S07_0707_03492\TPP1600447277\VOL_PHR.XML')
     #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
     #EB.addSources([p])
+    s = ""
+    dock = EB.createDock('SPECLIB')
+    dock.float()
+    dock.resize(QSize(300, 400))
+
+    from enmapbox.gui.spectrallibraries import SpectralLibraryPanel, SpectralLibraryWidget
+    p  =SpectralLibraryPanel()
+    p = SpectralLibraryWidget()
+    p.show()
     s = ""
 
 

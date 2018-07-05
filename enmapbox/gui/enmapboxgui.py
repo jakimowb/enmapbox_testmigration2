@@ -59,7 +59,6 @@ class CentralFrame(QFrame):
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event):
-        logger.debug('CentralFrame dragEnterEvent')
         pass
         # self.sigDragEnterEvent.emit(event)
 
@@ -72,7 +71,6 @@ class CentralFrame(QFrame):
         # self.sigDragLeaveEvent(event)
 
     def dropEvent(self, event):
-        logger.debug('CentralFrame dropEvent')
         pass
         # self.sigDropEvent.emit(event)
 
@@ -616,7 +614,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.dataSourceManager.getUriList(sourceType)
 
-    def createDock(self, *args, **kwds):
+    def createDock(self, *args, **kwds)->Dock:
         return self.dockManager.createDock(*args, **kwds)
 
     def removeDock(self, *args, **kwds):
