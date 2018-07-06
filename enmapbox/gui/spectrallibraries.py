@@ -43,6 +43,10 @@ from enmapbox.gui.widgets.models import *
 from enmapbox.gui.plotstyling import PlotStyle, PlotStyleDialog, MARKERSYMBOLS2QGIS_SYMBOLS
 import enmapbox.gui.mimedata as mimedata
 
+MIMEDATA_SPECLIB = 'application/hub-spectrallibrary'
+MIMEDATA_XQT_WINDOWS_CSV = 'application/x-qt-windows-mime;value="Csv"'
+MIMEDATA_TEXT = 'text/html'
+
 FILTERS = 'ENVI Spectral Library + CSV (*.esl *.sli);;CSV Table (*.csv);;ESRI Shapefile (*.shp)'
 
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
@@ -221,6 +225,34 @@ def value2str(value, sep=' '):
     return value
 
 
+class AbstractSpectralLibraryIO(object):
+    """
+    Abstract Class to define I/O operations for spectral libraries
+    Overwrite the canRead and read From routines.
+    """
+    @staticmethod
+    def canRead(path):
+        """
+        Returns true if it can reath the source definded by path
+        :param path: source uri
+        :return: True, if source is readibly
+        """
+        return False
+
+    @staticmethod
+    def readFrom(path):
+        """
+        Returns the SpectralLibrary read from "path"
+        :param path: source of SpectralLibrary
+        :return: SpectralLibrary
+        """
+        return None
+
+    @staticmethod
+    def write(speclib, path):
+        """Writes the SpectralLibrary to path and returns a list of written files that can be used to open the Speclibs with readFrom"""
+        assert isinstance(speclib, SpectralLibrary)
+        return []
 
 class SpectralLibrary(QgsVectorLayer):
 
@@ -278,13 +310,15 @@ class SpectralLibrary(QgsVectorLayer):
         return sl
 
     @staticmethod
-    def readFrom(uri):
+    def readFrom(uri)->AbstractSpectralLibraryIO:
         """
         Reads a Spectral Library from the source specified in "uri" (path, url, ...)
         :param uri: path or uri of the source from which to read SpectralProfiles and return them in a SpectralLibrary
         :return: SpectralLibrary
         """
-        for cls in AbstractSpectralLibraryIO.__subclasses__():
+        readers = AbstractSpectralLibraryIO.__subclasses__()
+        readers = [r for r in readers if not r is ClipboardIO] + [ClipboardIO]
+        for cls in readers:
             if cls.canRead(uri):
                 return cls.readFrom(uri)
         return None
@@ -793,6 +827,7 @@ class SpectralLibraryTableView(QgsAttributeTableView):
         return self.model().layer()
 
 
+
     def onCopy2Clipboard(self, fids, mode):
         assert isinstance(fids, list)
         assert mode in ClipboardIO.WritingModes().modes()
@@ -903,7 +938,7 @@ class SpectralLibraryTableView(QgsAttributeTableView):
             index = self.indexAt(event.pos())
 
         if mimeData.hasFormat(mimedata.MDF_SPECTRALLIBRARY):
-            self.model().dropMimeData(mimeData, event.dropAction(), index.row(), index.column(), index.parent())
+            self.model().dropMimeData(mimeData, event.dropAction(), index.row(), index.column(), QModelIndex())
             event.accept()
 
 
@@ -1040,25 +1075,19 @@ class SpectralProfile(QgsFeature):
     crs = QgsCoordinateReferenceSystem('EPSG:4326')
 
     @staticmethod
-    def fromMapCanvas(mapCanvas, position):
+    def fromMapCanvas(mapCanvas, position)->list:
         """
         Returns a list of Spectral Profiles the raster layers in QgsMapCanvas mapCanvas.
         :param mapCanvas:
         :param position:
         """
         assert isinstance(mapCanvas, QgsMapCanvas)
-
-        from enmapbox.gui.mapcanvas import MapCanvas
-        if isinstance(mapCanvas, MapCanvas):
-            sources = mapCanvas.layerModel().rasterLayerInfos()
-            sources = [s.mSrc for s in sources]
-        else:
-            layers = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
-            sources = [l.source() for l in layers]
+        layers = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
+        sources = [l.source() for l in layers]
         return SpectralProfile.fromRasterSources(sources, position)
 
     @staticmethod
-    def fromRasterSources(sources, position):
+    def fromRasterSources(sources, position)->list:
         """
         Returns a list of Spectral Profiles
         :param sources: list-of-raster-sources, e.g. file paths, gdal.Datasets, QgsRasterLayers
@@ -1067,7 +1096,6 @@ class SpectralProfile(QgsFeature):
         """
         profiles = [SpectralProfile.fromRasterSource(s, position) for s in sources]
         return [p for p in profiles if isinstance(p, SpectralProfile)]
-
 
     @staticmethod
     def fromRasterSource(source, position):
@@ -1402,38 +1430,8 @@ class SpectralProfile(QgsFeature):
 
 
 
-class AbstractSpectralLibraryIO(object):
-    """
-    Abstract Class to define I/O operations for spectral libraries
-    Overwrite the canRead and read From routines.
-    """
-    @staticmethod
-    def canRead(path):
-        """
-        Returns true if it can reath the source definded by path
-        :param path: source uri
-        :return: True, if source is readibly
-        """
-        return False
 
-    @staticmethod
-    def readFrom(path):
-        """
-        Returns the SpectralLibrary read from "path"
-        :param path: source of SpectralLibrary
-        :return: SpectralLibrary
-        """
-        return None
 
-    @staticmethod
-    def write(speclib, path):
-        """Writes the SpectralLibrary to path and returns a list of written files that can be used to open the Speclibs with readFrom"""
-        assert isinstance(speclib, SpectralLibrary)
-        return []
-
-MIMEDATA_SPECLIB = 'application/hub-spectrallibrary'
-MIMEDATA_XQT_WINDOWS_CSV = 'application/x-qt-windows-mime;value="Csv"'
-MIMEDATA_TEXT = 'text/html'
 
 
 def saveEdits(layer, leaveEditable=True, triggerRepaint=True):
@@ -1625,7 +1623,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
     """
     STD_NAMES = ['WKT']+[n for n in createStandardFields().names() if not n.startswith(HIDDEN_ATTRIBUTE_PREFIX)]
     REGEX_HEADERLINE = re.compile('^'+'\\t'.join(STD_NAMES)+'\\t.*')
-    REGEX_BANDVALUE_COLUMN = re.compile('^b(?P<band>\d+)[ _]*(?P<xvalue>-?\d+\.?\d*)?[ _]*(?P<xunit>\D+)?')
+    REGEX_BANDVALUE_COLUMN = re.compile(r'^b(?P<band>\d+)[ _]*(?P<xvalue>-?\d+\.?\d*)?[ _]*(?P<xunit>\D+)?')
 
     @staticmethod
     def canRead(path=None):
@@ -1634,13 +1632,12 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
 
         found = False
         try:
-            f = open(path, 'r', encoding='utf-8')
-            for line in f:
-                if CSVSpectralLibraryIO.REGEX_HEADERLINE.search(line):
-                    found = True
-                    break
-            f.close()
-        except Exception:
+            with open(path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if CSVSpectralLibraryIO.REGEX_HEADERLINE.search(line):
+                        found = True
+                        break
+        except Exception as ex:
             return False
         return found
 
@@ -2352,6 +2349,9 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
     def columnNames(self)->list:
         return self.speclib().fieldNames()
 
+    def columnName(self, index:QModelIndex)->str:
+        return self.columnNames()[index.column()]
+
     def feature(self, index)->QgsFeature:
 
         id = self.rowToId(index.row())
@@ -2402,7 +2402,7 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
         return Qt.CopyAction | Qt.MoveAction
 
 
-    def setData(self, index, value, role=None):
+    def setData(self, index, value, role=None)->bool:
         """
         Sets the Speclib data
         use column 0 and Qt.CheckStateRole to PlotStyle visibility
@@ -2419,13 +2419,14 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
         result = False
         speclib = self.layer()
         assert isinstance(speclib, SpectralLibrary)
+
+
         if value == None:
             value = QVariant()
+
+        cname = self.columnName(index)
+        profile = self.spectralProfile(index)
         if index.column() == 0 and role in [Qt.CheckStateRole, Qt.UserRole]:
-            profile = self.spectralProfile(index)
-
-
-
 
             if role == Qt.CheckStateRole:
                 style = profile.style()
@@ -2446,11 +2447,25 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
             #result = super().setData(self.index(index.row(), self.mcnStyle), value, role=Qt.EditRole)
             #if not b:
             #    self.layer().commitChanges()
+        #return result
+        else:
+            b = speclib.isEditable()
+            id = self.rowToId(index.row())
+            iField = speclib.fields().indexFromName(cname)
+            #speclib.startEditing()
+            #oldValue = speclib.getFeature(id).attribute(iField)
+            #if value != oldValue:
+            profile.setAttribute(iField, value)
+           # result = speclib.updateFeature(profile)
+            #result = speclib.changeAttributeValue(id, iField, value)
+            s = ""
+            #speclib.editBuffer().changeAttributeValue(id, iField, value)
+
+            #result = super(SpectralLibraryTableModel, self).setData(index, value, role=role)
+            #saveEdits(speclib, leaveEditable=b)
+
         if result:
             self.dataChanged.emit(index, index, [role])
-        else:
-            result = super().setData(index, value, role=role)
-
 
         return result
 
@@ -2468,7 +2483,7 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
 
             dump = mimeData.data(mimedata.MDF_SPECTRALLIBRARY)
             speclib = SpectralLibrary.readFromPickleDump(dump)
-            self.mSpecLib.addSpeclib(speclib)
+            self.mSpeclib.addSpeclib(speclib)
             return True
         return False
 
@@ -2498,11 +2513,14 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
     def flags(self, index):
 
         if index.isValid():
-            columnName = self.columnNames()[index.column()]
+            columnName = self.columnName(index)
             if columnName.startswith(HIDDEN_ATTRIBUTE_PREFIX):
                 return Qt.NoItemFlags
             else:
                 flags = super(SpectralLibraryTableModel, self).flags(index) | Qt.ItemIsSelectable
+
+                if self.layer().isEditable():
+                    flags = flags | Qt.ItemIsEditable
                 if index.column() == 0:
                     flags = flags | Qt.ItemIsUserCheckable
                 return flags
@@ -2895,8 +2913,7 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
     def setMapInteraction(self, b : bool):
 
         if b == False:
-            self.setCurrentSpectra(None)
-
+            self.setCurrentSpectra([])
         self.mMapInteraction = b
         self.actionSelectProfilesFromMap.setVisible(b)
         self.actionSaveCurrentProfiles.setVisible(b)
@@ -2967,6 +2984,11 @@ class SpectralLibraryWidget(QFrame, loadUI('spectrallibrarywidget.ui')):
     def setCurrentSpectra(self, listOfSpectra:list):
         if listOfSpectra is None:
             listOfSpectra = []
+
+
+        for i in range(len(listOfSpectra)):
+            if type(listOfSpectra[i]) == QgsFeature:
+                listOfSpectra[i] = SpectralProfile.fromSpecLibFeature(listOfSpectra[i])
 
 
         for p in listOfSpectra:

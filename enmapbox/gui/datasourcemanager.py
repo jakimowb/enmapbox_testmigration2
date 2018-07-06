@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 
-import sys, os
+import sys, os, inspect
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
@@ -1006,10 +1006,10 @@ class DataSourceManager(QObject):
         self.updateFromQgsProject()
 
 
-    def __len__(self):
+    def __len__(self)->int:
         return len(self.mSources)
 
-    def findSourceFromUUID(self, uuID):
+    def findSourceFromUUID(self, uuID)->DataSource:
         if isinstance(uuID, str):
             uuID = uuid.uuid4(uuID)
 
@@ -1025,7 +1025,7 @@ class DataSourceManager(QObject):
                 return source
         return None
 
-    def sources(self, sourceTypes=None):
+    def sources(self, sourceTypes=None)->list:
         """
         Returns the managed DataSources
         :param sourceTypes: the sourceType(s) to return
@@ -1076,7 +1076,7 @@ class DataSourceManager(QObject):
         return [a for a in added if isinstance(a, DataSource)]
 
 
-    def getUriList(self, sourcetype='All'):
+    def getUriList(self, sourcetype='ALL')->list:
         """
         Returns URIs of registered data sources
         :param sourcetype: uri filter: 'ALL' (default),'RASTER', 'VECTOR', 'SPATIAL' (raster+vector) or 'MODEL' to return only uri's related to these sources
@@ -1087,7 +1087,7 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
 
         assert sourcetype in DataSourceManager.SOURCE_TYPES
-        if sourcetype == ['ALL','ANY']:
+        if sourcetype in ['ALL','ANY']:
             return [ds.uri() for ds in self.mSources]
         elif sourcetype == 'VECTOR':
             return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
@@ -1099,6 +1099,7 @@ class DataSourceManager(QObject):
             return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
         else:
             return []
+
 
     def onMapLayerRegistryLayersAdded(self, lyrs):
         #remove layers that should not be added automatically
@@ -1112,8 +1113,7 @@ class DataSourceManager(QObject):
         self.addSources(lyrsToAdd)
 
 
-
-    def addSources(self, sources):
+    def addSources(self, sources)->list:
         added = []
         for s in sources:
             added.extend(self.addSource(s))
@@ -1177,16 +1177,16 @@ class DataSourceManager(QObject):
         return self.removeSources(list(self.mSources))
 
 
-    def removeSources(self, dataSourceList):
+    def removeSources(self, dataSourceList:list=None)->list:
         """
         Removes a list of data sources.
         :param dataSourceList: [list-of-datasources]
         :return: self
         """
+        if dataSourceList is None:
+            dataSourceList = self.sources()
         removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
         return [r for r in removed if isinstance(r, DataSource)]
-
-
 
     def removeSource(self, dataSource):
         """

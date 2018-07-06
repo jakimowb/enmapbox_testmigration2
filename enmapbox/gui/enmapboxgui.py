@@ -128,7 +128,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
 
-    def __init__(self, iface):
+    def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None
         # necessary to make the resource file available
         from enmapbox.gui.ui import resources
@@ -382,9 +382,18 @@ class EnMAPBox(QgisInterface, QObject):
         self.sigDockAdded.emit(dock)
 
     sigCanvasRemoved = pyqtSignal(MapCanvas)
-    def onDockRemoved(self,dock):
+    def onDockRemoved(self, dock):
         if isinstance(dock, MapDock):
             self.sigCanvasRemoved.emit(dock.canvas)
+
+
+    def setCurrentMapSpectraLoading(self, mode:str):
+        """
+        Sets the way how SpectralProfiles will be loaded from a map position
+        :param mode: str 'TOP' for first raster layer spectrum only, 'ALL' for all raster layers
+        """
+        assert mode in ['TOP','ALL']
+        self.mCurrentMapSpectraLoading = mode
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
     def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
@@ -541,8 +550,8 @@ class EnMAPBox(QgisInterface, QObject):
     sigRasterSourceAdded = pyqtSignal(str)
     sigVectorSourceAdded = pyqtSignal(str)
 
-    def onDataSourceAdded(self, dataSource):
-        assert isinstance(dataSource, DataSource)
+    def onDataSourceAdded(self, dataSource:DataSource):
+
         self.sigDataSourceAdded.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceRaster):
             self.sigRasterSourceAdded.emit(dataSource.uri())
@@ -591,21 +600,21 @@ class EnMAPBox(QgisInterface, QObject):
 
     sigCurrentSpectraChanged = pyqtSignal(list)
 
-    def setCurrentSpectra(self, spectra):
-        assert isinstance(spectra, list)
+    def setCurrentSpectra(self, spectra:list):
+
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
-
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 
-    def currentSpectra(self):
+    def currentSpectra(self)->list:
         """
         Returns the spectra currently selected using the profile tool.
+
         :return: [list-of-spectra]
         """
         return self.mCurrentSpectra[:]
 
-    def dataSources(self, sourceType='ALL'):
+    def dataSources(self, sourceType='ALL')->list:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
@@ -636,12 +645,12 @@ class EnMAPBox(QgisInterface, QObject):
         Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
         :param source:
         :param name:
-        :return: [list-of-datasources]
+        :return: [list-of-dataSources]
         """
         return self.dataSourceManager.addSource(source, name=name)
 
 
-    def removeSources(self, dataSourceList):
+    def removeSources(self, dataSourceList:list=None):
         self.dataSourceManager.removeSources(dataSourceList)
 
     def removeSource(self, source):

@@ -31,8 +31,10 @@ from enmapbox.gui.utils import *
 QGIS_APP = initQgisApplication()
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
-
-
+from enmapboxtestdata import enmap, hymap, speclib
+from enmapbox.gui.docks import *
+from enmapbox.gui.mapcanvas import *
+from enmapbox.gui.spectrallibraries import *
 
 class MyOutputRaster(QgsProcessingParameterDefinition):
 
@@ -106,11 +108,13 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
         print('Dummy Slot called.')
 
 
+
+
 class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
         self.EMB = EnMAPBox(None)
-        self.EMB.loadExampleData()
+
 
 
     def tearDown(self):
@@ -121,8 +125,6 @@ class TestEnMAPBox(unittest.TestCase):
         emb = EnMAPBox.instance()
         self.assertIsInstance(emb, EnMAPBox)
         self.assertEqual(emb, self.EMB)
-
-
 
     def test_initQGISProcessingFramework(self):
         self.fail()
@@ -189,10 +191,10 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_addSources(self):
-        self.fail()
-
-    def test_addSource(self):
-        self.fail()
+        self.EMB.removeSources(self.EMB.dataSources())
+        self.assertTrue(len(self.EMB.dataSources()) == 0)
+        self.EMB.addSource(enmap)
+        self.assertTrue(len(self.EMB.dataSources()) == 1)
 
     def test_removeSources(self):
         self.fail()
@@ -216,7 +218,10 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_loadExampleData(self):
-        self.fail()
+        self.EMB.loadExampleData()
+        self.assertTrue(len(self.EMB.dataSources()) > 0)
+        self.EMB.removeSources()
+        self.assertTrue(len(self.EMB.dataSources()) == 0)
 
     def test_openMessageLog(self):
         self.fail()
@@ -250,6 +255,67 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_addToolBar(self):
         self.fail()
+
+
+class TestEnMAPBoxWorkflows(unittest.TestCase):
+
+    def test_speclibDocks(self):
+        EMB = EnMAPBox()
+        EMB.loadExampleData()
+        mapDock = EMB.createDock('MAP')
+        self.assertIsInstance(mapDock, MapDock)
+        sources = EMB.dataSources('RASTER')
+
+        self.assertIsInstance(sources, list)
+        self.assertTrue(len(sources) > 0 )
+        layers = [QgsRasterLayer(p) for p in sources]
+        self.assertTrue(len(layers) > 0)
+        mapDock.setLayers(layers)
+
+        speclibDock = EMB.createDock('SPECLIB')
+        self.assertIsInstance(speclibDock, SpectralLibraryDock)
+        slw = speclibDock.speclibWidget
+        self.assertIsInstance(slw, SpectralLibraryWidget)
+        self.assertTrue(len(slw.speclib()) == 0)
+        center = SpatialPoint.fromMapCanvasCenter(mapDock.canvas)
+
+
+        profiles = SpectralProfile.fromMapCanvas(mapDock.canvas, center)
+        for p in profiles:
+            self.assertIsInstance(p, SpectralProfile)
+
+        EMB.setCurrentMapSpectraLoading('ALL')
+        EMB.loadCurrentMapSpectra(center, mapDock.canvas)
+        self.assertEqual(profiles, EMB.currentSpectra())
+        for s in EMB.currentSpectra():
+            self.assertIsInstance(s, SpectralProfile)
+
+        EMB.setCurrentMapSpectraLoading('TOP')
+        EMB.loadCurrentMapSpectra(center, mapDock.canvas)
+        self.assertEqual(profiles[0:1], EMB.currentSpectra())
+
+        slw.setAddCurrentSpectraToSpeclibMode(True)
+        n = len(slw.speclib())
+        slw.setCurrentSpectra(profiles)
+        self.assertTrue(len(slw.speclib()) == n+len(profiles))
+        self.assertTrue(len(slw.currentSpectra()) == 0)
+        EMB.setCurrentSpectra(profiles)
+        self.assertTrue(len(slw.speclib()) == n + len(profiles)*2)
+
+
+        slw.setAddCurrentSpectraToSpeclibMode(False)
+
+        n = len(slw.speclib())
+        EMB.setCurrentSpectra(profiles)
+
+        self.assertTrue(len(slw.currentSpectra()) == len(profiles))
+        self.assertTrue(len(slw.speclib()) == n)
+
+        EMB.setCurrentSpectra([])
+        self.assertTrue(len(slw.currentSpectra()) == 0)
+        self.assertTrue(len(slw.speclib()) == n)
+
+        s = ""
 
 if __name__ == '__main__':
 

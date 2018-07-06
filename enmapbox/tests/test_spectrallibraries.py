@@ -450,6 +450,21 @@ class TestInit(unittest.TestCase):
         v = SpectralLibraryTableView()
         v.show()
 
+        sl2 = self.createSpeclib()
+        dmodel = SpectralLibraryTableModel(speclib=sl2)
+
+        fmodel = SpectralLibraryTableFilterModel(dmodel)
+        v.setModel(fmodel)
+
+        mimeData = QMimeData()
+        mimeData.setData(MIMEDATA_SPECLIB, pickle.dumps(sl2))
+
+        # self.model().dropMimeData(mimeData, event.dropAction(), index.row(), index.column(), index.parent())
+        self.assertTrue(dmodel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex()))
+        self.assertTrue(fmodel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex()))
+
+        s = ""
+
     def test_speclibWidget(self):
 
         speclib = self.createSpeclib()
@@ -509,6 +524,24 @@ class TestInit(unittest.TestCase):
             self.assertFalse(pdi.mProfile.id() == fid)
 
         qapp.exec_()
+
+    def test_editing(self):
+
+        slib = self.createSpeclib()
+        self.assertTrue(len(slib) > 0)
+        slw = SpectralLibraryWidget()
+        slw.speclib().addSpeclib(slib)
+        slw.show()
+        slw.actionToggleEditing.setChecked(True)
+        idx = slw.mModel.createIndex(0,slw.speclib().fieldNames().index('name'))
+        f = slw.mModel.feature(idx)
+        self.assertIsInstance(f, QgsFeature)
+
+        p = slw.mModel.spectralProfile(idx)
+        self.assertIsInstance(p, SpectralProfile)
+        #self.assertTrue(slw.mModel.setData(idx, 'mynewname', role=Qt.EditRole))
+        qapp.exec_()
+
 
 
 if __name__ == '__main__':

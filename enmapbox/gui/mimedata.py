@@ -16,8 +16,8 @@ MDF_LAYERTREEMODELDATA = 'application/qgis.layertreemodeldata'
 MDF_LAYERTREEMODELDATA_XML = 'layer_tree_model_data'
 
 MDF_PYTHON_OBJECTS = 'application/enmapbox/objectreference'
-MDF_SPECTRALPROFILE = 'application/enmapbox/spectralprofile'
-MDF_SPECTRALLIBRARY = 'application/enmapbox/spectrallibrary'
+MDF_SPECTRALLIBRARY = 'application/hub-spectrallibrary'
+
 MDF_URILIST = 'text/uri-list'
 MDF_TEXT_HTML = 'text/html'
 MDF_TEXT_PLAIN = 'text/plain'

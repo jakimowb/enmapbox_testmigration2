@@ -72,6 +72,10 @@ class standardDataSources(unittest.TestCase):
         dsm.addSource(ds)
         self.assertTrue((len(dsm) == 2))
 
+        uris = dsm.getUriList()
+        self.assertTrue(len(dsm) == len(uris))
+
+
         ds = DataSourceFactory.Factory(([enmap, hymap]))
         self.assertEqual(len(ds),2)
         dsm.addSource(ds)
