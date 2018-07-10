@@ -301,7 +301,7 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
 
         self.nodePxSize = TreeNode(self.nodeSize, 'Pixel',
                                    tooltip='Spatial size of single pixel',
-                                   value='{} {} x {} {}'.format(dataSource.pxSizeX, mu, dataSource.pxSizeY, mu))
+                                   value='{} {} x {} {}'.format(dataSource.mPxSize, mu, dataSource.pxSizeY, mu))
 
         self.nodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples,
                                                  dataSource.nLines,

@@ -32,24 +32,37 @@ class standardDataSources(unittest.TestCase):
         pass
     def setUp(self):
 
-
+        self.wmsUri = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
+        self.wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
         pass
 
     def tearDown(self):
         pass
 
     def test_rasters(self):
-        ds = DataSourceFactory.Factory(enmap)
-        self.assertIsInstance(ds, list)
-        self.assertTrue(len(ds) == 1)
-        self.assertIsInstance(ds[0], DataSourceRaster)
+
+        self.assertTrue(DataSourceFactory.isRasterSource(enmap))
+        self.assertTrue(rasterProvider(self.wmsUri) == 'wms')
+        self.assertTrue(DataSourceFactory.isRasterSource(self.wmsUri))
+
+        for uri in [enmap, self.wmsUri]:
+            ds = DataSourceFactory.Factory(uri)
+            self.assertIsInstance(ds, list)
+            self.assertTrue(len(ds) == 1)
+            self.assertIsInstance(ds[0], DataSourceRaster)
+
 
     def test_vectors(self):
+        self.assertTrue(None == rasterProvider(self.wfsUri))
+        self.assertTrue(vectorProvider(self.wfsUri) == 'WFS')
+        self.assertTrue(DataSourceFactory.isVectorSource(self.wfsUri))
+        self.assertTrue(DataSourceFactory.isVectorSource(landcover))
 
-        ds = DataSourceFactory.Factory(landcover)
-        self.assertIsInstance(ds, list)
-        self.assertTrue(len(ds) == 1)
-        self.assertIsInstance(ds[0], DataSourceVector)
+        for uri in [self.wfsUri, landcover]:
+            ds = DataSourceFactory.Factory(uri)
+            self.assertIsInstance(ds, list)
+            self.assertTrue(len(ds) == 1)
+            self.assertIsInstance(ds[0], DataSourceVector)
 
     def test_speclibs(self):
 
@@ -62,24 +75,15 @@ class standardDataSources(unittest.TestCase):
 
         dsm = DataSourceManager()
 
-        ds = DataSourceFactory.Factory(speclib)
-        dsm.addSource(ds)
-        dsm.addSource(speclib)
+        uris = [enmap, landcover, speclib, self.wfsUri, self.wmsUri]
+        dsm.addSources(uris)
 
-        self.assertTrue((len(dsm) == 1))
+        self.assertTrue((len(dsm) == len(uris)))
+        dsm.addSources(uris)
+        self.assertTrue((len(dsm) == len(uris)), msg='Redundant sources')
 
-        ds = DataSourceFactory.Factory(enmap)
-        dsm.addSource(ds)
-        self.assertTrue((len(dsm) == 2))
+        self.assertListEqual(uris, dsm.getUriList())
 
-        uris = dsm.getUriList()
-        self.assertTrue(len(dsm) == len(uris))
-
-
-        ds = DataSourceFactory.Factory(([enmap, hymap]))
-        self.assertEqual(len(ds),2)
-        dsm.addSource(ds)
-        self.assertEqual(len(ds), 2)
 
 class hubflowTestCases(unittest.TestCase):
 
