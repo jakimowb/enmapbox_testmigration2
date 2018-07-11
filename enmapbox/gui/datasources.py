@@ -25,6 +25,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtXml import *
 from enmapbox.gui.utils import *
+from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
 import numpy as np
 from osgeo import gdal, ogr
 
@@ -37,7 +38,12 @@ def rasterProvider(uri:str) -> str:
     """
     #'DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']
 
+    if uri in [None, type(None)]:
+        return None
+
+
     providers = []
+
     if os.path.isfile(uri) or uri.startswith('/vsimem'):
         providers.append('gdal')
     if re.search('url=', uri):
@@ -58,7 +64,8 @@ def vectorProvider(uri:str) -> str:
     :return: str, Provider key, e.g. "ogr"
     """
     #'DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']
-
+    if uri in [None, type(None)]:
+        return None
 
     providers = ['ogr', 'WFS', 'spatialite', 'gpx', 'delimitedtext']
 
@@ -263,6 +270,10 @@ class DataSourceFactory(object):
             elif type(src) in [str, QUrl]:
                 src = DataSourceFactory.srcToString(src)
 
+
+            if src in [None, type(None)]:
+                return []
+
             # is it a Raster?
             uri = DataSourceFactory.isRasterSource(src)
             if uri:
@@ -278,23 +289,22 @@ class DataSourceFactory(object):
                         rasterUris.extend([s[0] for s in subs])
                 else:
                     rasterUris.append(src)
-                return [DataSourceRaster(r, name=name, icon=icon, providerKey=pkey) for r in rasterUris]
+                return [DataSourceRaster(r, name=name, icon=icon, providerKey=pkey) for r in rasterUris if isinstance(r, str)]
 
             # is it a Vector?
             uri = DataSourceFactory.isVectorSource(src)
-            if uri is not None:
-                vectorUris = []
-                vectorUris.append(uri)
-                return [DataSourceVector(r, name=name, icon=icon) for r in vectorUris]
+            if uri:
+                pkey = vectorProvider(uri)
+                return [DataSourceVector(uri, name=name, icon=icon, providerKey=pkey)]
 
             # is it a Speclib?
             uri = DataSourceFactory.isSpeclib(src)
-            if uri is not None:
+            if uri:
                 return [DataSourceSpectralLibrary(uri, name=name, icon=icon)]
 
             #is it a hub flow object?
             uri = DataSourceFactory.isHubFlowObj(src)
-            if uri is not None:
+            if uri:
                 return [HubFlowDataSource(uri, name=name, icon=icon)]
 
             #other file formats
@@ -457,7 +467,8 @@ class DataSource(object):
         return hash(str(self))
 
     def __repr__(self):
-        return 'DataSource: {} {}'.format(self.mName, self.mUri)
+
+        return '{}: {} {}'.format(self.__class__.__name__, self.mName, self.mUri)
 
 class DataSourceFile(DataSource):
     """
@@ -489,10 +500,27 @@ class DataSourceSpatial(DataSource):
     Abstract class to describe spatial data from local files but also web sources
     """
     def __init__(self, uri, name=None, icon=None, providerKey:str=None):
-        super(DataSourceSpatial, self).__init__(uri, name, icon)
 
-        self.mProvider = None
-        self.spatialExtent = None
+        super(DataSourceSpatial, self).__init__(uri, name, icon)
+        assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
+
+        self.mProvider = providerKey
+
+
+    def provider(self)->str:
+        """
+        Returns the provider name
+        :return: str
+        """
+        self.mProvider
+
+    def spatialExtent(self)->SpatialExtent:
+        """
+        Returns the SpatialExtent of this data source.
+        :return: SpatailExtent
+        """
+        return SpatialExtent.fromLayer(self.createUnregisteredMapLayer())
+
 
     def createUnregisteredMapLayer(self, *args, **kwds)->QgsMapLayer:
         """
@@ -540,23 +568,24 @@ class DataSourceSpectralLibrary(DataSourceFile):
         super(DataSourceSpectralLibrary, self).__init__(uri, name, icon)
 
         self.mSpeclib = None
-        self.nProfiles = None
+        self.nProfiles = 0
         self.profileNames = []
         self.updateMetadata()
 
     def updateMetadata(self, *args, **kwds):
-        from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
         assert isinstance(self.mSpeclib, SpectralLibrary)
         self.mSpeclib.setName(os.path.basename(self.mUri))
         self.setName(self.mSpeclib.name())
-        #self.nProfiles = len(slib)
-        #self.profileNames = []
-        #for p in slib:
-        #    assert isinstance(p, SpectralProfile)
-        #    self.profileNames.append(p.name())
 
+        self.nProfiles = len(self.mSpeclib)
+        self.profileNames = []
+        for p in self.mSpeclib:
+            assert isinstance(p, SpectralProfile)
+            self.profileNames.append(p.name())
 
+    def spectralLibrary(self)->SpectralLibrary:
+        return self.mSpeclib
 class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None):
@@ -569,6 +598,8 @@ class DataSourceRaster(DataSourceSpatial):
         self.mProvider=providerKey
         self.mDatasetMetadata = collections.OrderedDict()
         self.mBandMetadata = []
+        self.mSpatialExtent = None
+        self.mBandNames = []
         self.updateMetadata()
 
 
@@ -589,7 +620,8 @@ class DataSourceRaster(DataSourceSpatial):
         #Fallback
         return super(DataSourceRaster, self).modificationTime()
 
-
+    def spatialExtent(self)->SpatialExtent:
+        return self.mSpatialExtent
 
     def updateMetadata(self, icon=None, name=None):
         super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
@@ -598,9 +630,11 @@ class DataSourceRaster(DataSourceSpatial):
 
         assert lyr.isValid()
 
+
         #these attributes are to be set
-        self.spatialExtent = SpatialExtent.fromLayer(lyr)
+        self.mSpatialExtent = SpatialExtent.fromLayer(lyr)
         self.mBandMetadata.clear()
+        self.mBandNames.clear()
         self.mDatasetMetadata.clear()
         self.nBands = self.nSamples = self.nLines = -1
         self.mDataType = None
@@ -638,6 +672,12 @@ class DataSourceRaster(DataSourceSpatial):
             from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b+1)
+                assert isinstance(band, gdal.Band)
+                bandName = band.GetDescription()
+                if len(bandName) == 0:
+                    bandName = 'Band {}'.format(b+1)
+                self.mBandNames.append(bandName)
+
                 cs = ClassificationScheme.fromRasterImage(ds, b)
                 md = fetchMetadata(band)
                 if isinstance(cs, ClassificationScheme):
@@ -661,6 +701,11 @@ class DataSourceRaster(DataSourceSpatial):
             #according to qgis.h the Qgis.DataType value is a "modified and extended copy of GDALDataType".
             self.mDataType = int(lyr.dataProvider().dataType(1))
 
+            for b in range(self.nBands):
+                bandMeta = {}
+                self.mBandMetadata.append(bandMeta)
+                self.mBandNames.append(lyr.bandName(b+1))
+
         #update the datassource icon
         if hasClassInfo is True:
             icon = QIcon(':/enmapbox/icons/filelist_classification.svg')
@@ -683,16 +728,15 @@ class DataSourceRaster(DataSourceSpatial):
 class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None, providerKey:str=None):
         super(DataSourceVector, self).__init__(uri, name, icon, providerKey)
+        self.mGeomType = None
+        self.updateMetadata()
 
-        lyr = self.createUnregisteredMapLayer()
-        geomType = lyr.geometryType()
-
-        if geomType in [QgsWkbTypes.PointGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.svg')
-        elif geomType in [QgsWkbTypes.LineGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.svg')
-        elif geomType in [QgsWkbTypes.PolygonGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.svg')
+    def geometryType(self)->QgsWkbTypes:
+        """
+        Returns the QgsWkbTypes.GeometryType
+        :return: QgsWkbTypes.GeometryType
+        """
+        return self.mGeomType
 
     def createUnregisteredMapLayer(self)->QgsVectorLayer:
         """
@@ -706,7 +750,15 @@ class DataSourceVector(DataSourceSpatial):
         super(DataSourceVector, self).updateMetadata(*args, **kwds)
         lyr = self.createUnregisteredMapLayer()
 
-        s = ""
+        self.mSpatialExtent = SpatialExtent.fromLayer(lyr)
+        self.mGeomType = lyr.geometryType()
+
+        if self.mGeomType in [QgsWkbTypes.PointGeometry]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.svg')
+        elif self.mGeomType in [QgsWkbTypes.LineGeometry]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.svg')
+        elif self.mGeomType in [QgsWkbTypes.PolygonGeometry]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.svg')
 
 
 class DataSourceListModel(QAbstractListModel):
@@ -824,3 +876,4 @@ class DataSourceListModel(QAbstractListModel):
             return flags
 
         return None
+

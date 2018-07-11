@@ -25,17 +25,262 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from enmapbox.gui.utils import *
 from osgeo import gdal, ogr
-from enmapbox.gui.treeviews import *
+from enmapbox.gui.treeviews import TreeNode, CRSTreeNode, TreeView, TreeModel, CheckableTreeNode, TreeViewMenuProvider, ClassificationNode
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, MDF_URILIST, MDF_SPECTRALLIBRARY
+from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
+
 try:
     import hubflow.core
+
 except Exception as ex:
     messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
     HUBFLOW = False
+
+
+class DataSourceManager(QObject):
+    _testInstance = None
+
+    @staticmethod
+    def instance():
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            return EnMAPBox.instance().dataSourceManager
+        else:
+            return DataSourceManager._testInstance
+
+    """
+    Keeps overview on different data sources handled by EnMAP-Box.
+    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well.
+    """
+
+    sigDataSourceAdded = pyqtSignal(DataSource)
+    sigDataSourceRemoved = pyqtSignal(DataSource)
+
+    SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL']
+
+    def __init__(self):
+        super(DataSourceManager, self).__init__()
+        DataSourceManager._testInstance = self
+        self.mSources = list()
+        self.mSubsetSelection = {}
+        self.mQgsLayerTreeGroup = None
+        # self.qgsLayerTreeGroup()
+
+        # todo: react on QgsProject changes, e.g. when project is closed
+        # QgsProject.instance().layersAdded.connect(self.updateFromQgsProject)
+        # noinspection PyArgumentList
+
+        QgsProject.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
+        QgsProject.instance().removeAll.connect(lambda: self.removeSources(self.sources()))
+        try:
+            from hubflow import signals
+            signals.sigFileCreated.connect(self.addSource)
+        except Exception as ex:
+            messageLog(ex)
+
+        self.updateFromQgsProject()
+
+    def __len__(self) -> int:
+        return len(self.mSources)
+
+    def findSourceFromUUID(self, uuID) -> DataSource:
+        if isinstance(uuID, str):
+            uuID = uuid.uuid4(uuID)
+
+        assert isinstance(uuID, uuid.UUID)
+        """
+        Finds the DataSource with uuid
+        :param uuid: UUID4
+        :return: None or DataSource
+        """
+        for source in self.mSources:
+            assert isinstance(source, DataSource)
+            if source.uuid() == uuID:
+                return source
+        return None
+
+    def sources(self, sourceTypes=None) -> list:
+        """
+        Returns the managed DataSources
+        :param sourceTypes: the sourceType(s) to return
+            a) str like 'VECTOR' (see DataSourceManage.SOURCE_TYPES)
+            b) class type derived from DataSource
+            c) a list of a or b to filter multpiple source types
+        :return:
+        """
+        results = self.mSources[:]
+
+        if sourceTypes:
+            if not isinstance(sourceTypes, list):
+                sourceTypes = [sourceTypes]
+            filterTypes = []
+            for sourceType in sourceTypes:
+                if sourceType in self.SOURCE_TYPES:
+                    if sourceType == 'VECTOR':
+                        sourceType = DataSourceVector
+                    elif sourceType == 'RASTER':
+                        sourceType = DataSourceRaster
+                    elif sourceType == 'MODEL':
+                        sourceType = HubFlowDataSource
+                    else:
+                        sourceType = None
+                if isinstance(sourceType, type(DataSource)):
+                    filterTypes.append(sourceType)
+            results = [r for r in results if type(r) in filterTypes]
+        return results
+
+    def updateFromProcessingFramework(self):
+        if self.processing:
+            # import logging
+            # logging.debug('Todo: Fix processing implementation')
+            return
+            for p, n in zip(self.processing.MODEL_URIS,
+                            self.processing.MODEL_NAMES):
+                self.addSource(p, name=n)
+
+    def updateFromQgsProject(self, mapLayers=None):
+        """
+        Add data sources registered in the QgsProject to the data source manager
+        :return: List of added new DataSources
+        """
+        if mapLayers is None:
+            mapLayers = QgsProject.instance().mapLayers().values()
+
+        added = [self.addSource(lyr) for lyr in mapLayers]
+        return [a for a in added if isinstance(a, DataSource)]
+
+    def getUriList(self, sourcetype='ALL') -> list:
+        """
+        Returns URIs of registered data sources
+        :param sourcetype: uri filter: 'ALL' (default),'RASTER', 'VECTOR', 'SPATIAL' (raster+vector) or 'MODEL' to return only uri's related to these sources
+        :return: uri as string (str), e.g. a file path
+        """
+        sourcetype = sourcetype.upper()
+        if isinstance(sourcetype, type):
+            return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
+
+        assert sourcetype in DataSourceManager.SOURCE_TYPES
+        if sourcetype in ['ALL', 'ANY']:
+            return [ds.uri() for ds in self.mSources]
+        elif sourcetype == 'VECTOR':
+            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
+        elif sourcetype == 'RASTER':
+            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
+        elif sourcetype == 'SPATIAL':
+            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceSpatial)]
+        elif sourcetype == 'MODEL':
+            return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
+        else:
+            return []
+
+    def onMapLayerRegistryLayersAdded(self, lyrs):
+        # remove layers that should not be added automatically
+        lyrsToAdd = []
+        for lyr in lyrs:
+            if isinstance(lyr, QgsVectorLayer):
+                if lyr.dataProvider().dataSourceUri().startswith('memory?'):
+                    continue
+            lyrsToAdd.append(lyr)
+
+        self.addSources(lyrsToAdd)
+
+    def addSources(self, sources) -> list:
+        added = []
+        for s in sources:
+            added.extend(self.addSource(s))
+        added = [a for a in added if isinstance(a, DataSource)]
+        self.mSubsetSelection.clear()
+        return added
+
+    @pyqtSlot(str)
+    @pyqtSlot('QString')
+    def addSource(self, newDataSource, name=None, icon=None):
+        """
+        Adds a new data source.
+        :param newDataSource: any object
+        :param name:
+        :param icon:
+        :return: a list of successfully added DataSource instances.
+                 Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
+        """
+        newDataSources = DataSourceFactory.Factory(newDataSource, name=name, icon=icon)
+
+        toAdd = []
+        for dsNew in newDataSources:
+            assert isinstance(dsNew, DataSource)
+            if not isinstance(dsNew, DataSourceFile):
+                toAdd.append(dsNew)
+
+            else:
+
+                sameSources = [d for d in self.mSources if dsNew.isSameSource(d)]
+                if len(sameSources) == 0:
+                    toAdd.append(dsNew)
+                else:
+                    older = []
+                    newer = []
+                    for d in sameSources:
+                        if dsNew.isNewVersionOf(d):
+                            older.append(dsNew)
+                        else:
+                            newer.append(d)
+                    # do not add this source in case there alread exists a newer one
+                    if len(newer) == 0:
+                        self.removeSources(older)
+                        toAdd.append(dsNew)
+                    else:
+                        toAdd.extend(newer)  # us ethe reference of the existing one
+
+        for ds in toAdd:
+            if ds not in self.mSources:
+                self.mSources.append(ds)
+                self.sigDataSourceAdded.emit(ds)
+
+        return toAdd
+
+    def clear(self):
+        """
+        Removes all data source from DataSourceManager
+        :return: [list-of-removed-DataSources]
+        """
+        return self.removeSources(list(self.mSources))
+
+    def removeSources(self, dataSourceList: list = None) -> list:
+        """
+        Removes a list of data sources.
+        :param dataSourceList: [list-of-datasources]
+        :return: self
+        """
+        if dataSourceList is None:
+            dataSourceList = self.sources()
+        removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
+        return [r for r in removed if isinstance(r, DataSource)]
+
+    def removeSource(self, dataSource):
+        """
+        Removes the datasource from the DataSourceManager
+        :param dataSource: the DataSource to be removed
+        :return: the removed DataSource. None if dataSource was not in the DataSourceManager
+        """
+        assert isinstance(dataSource, DataSource)
+        if dataSource in self.mSources:
+            self.mSources.remove(dataSource)
+            self.sigDataSourceRemoved.emit(dataSource)
+            return dataSource
+        else:
+            messageLog('can not remove {}'.format(dataSource))
+
+    def sourceTypes(self):
+        """
+        Returns the list of source-types handled by this DataSourceManager
+        :return: [list-of-source-types]
+        """
+        return sorted(list(set([type(ds) for ds in self.mSources])), key=lambda t: t.__name__)
+
 
 class DataSourceGroupTreeNode(TreeNode):
 
@@ -101,7 +346,7 @@ class DataSourceSizesTreeNode(TreeNode):
 
         n = TreeNode(self, 'File', value=fileSize, icon=dataSource.icon())
         if isinstance(dataSource, DataSourceSpatial):
-            ext = dataSource.spatialExtent
+            ext = dataSource.mSpatialExtent
             mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
 
             n = TreeNode(self, 'Spatial Extent')
@@ -197,7 +442,7 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpatial)
         super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
-        ext = dataSource.spatialExtent
+        ext = dataSource.mSpatialExtent
         mu = QgsUnitTypes.toString(ext.crs().mapUnits())
         assert isinstance(ext, SpatialExtent)
         assert self.nodeCRS is None
@@ -222,11 +467,11 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         self.nodeFeatures = None
         self.nodeFields = None
 
-    def connectDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSourceVector)
+    def connectDataSource(self, dataSource:DataSourceVector):
         super(VectorDataSourceTreeNode, self).connectDataSource(dataSource)
 
         lyr = self.dataSource.createUnregisteredMapLayer()
+        assert lyr.isValid()
         nFeat = lyr.featureCount()
         nFields = lyr.fields().count()
 
@@ -289,7 +534,7 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
 
         self.setIcon(dataSource.icon())
-        mu = QgsUnitTypes.toString(dataSource.spatialExtent.crs().mapUnits())
+        mu = QgsUnitTypes.toString(dataSource.spatialExtent().crs().mapUnits())
 
 
         self.nodeExtXpx = TreeNode(self.nodeSize, 'Samples',
@@ -299,9 +544,10 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
                                    tooltip='Data Source Height in Pixel',
                                    value='{} px'.format(dataSource.nLines))
 
+        pxSize = dataSource.mPxSize
         self.nodePxSize = TreeNode(self.nodeSize, 'Pixel',
                                    tooltip='Spatial size of single pixel',
-                                   value='{} {} x {} {}'.format(dataSource.mPxSize, mu, dataSource.pxSizeY, mu))
+                                   value='{}x{}{}'.format(pxSize.width(), mu, pxSize.height()))
 
         self.nodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples,
                                                  dataSource.nLines,
@@ -312,22 +558,10 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
                                   value='{}'.format(dataSource.nBands))
 
 
-        ds = gdal.Open(dataSource.uri())
+        for b, bandName in enumerate(dataSource.mBandNames):
+            bandNode = RasterBandTreeNode(dataSource, b, self.nodeBands, bandName, value=bandName)
 
 
-
-        for b in range(ds.RasterCount):
-            band = ds.GetRasterBand(b+1)
-            assert isinstance(band, gdal.Band)
-
-            name = band.GetDescription()
-
-            if len(name) == 0:
-                name = ''
-            bandNode = RasterBandTreeNode(dataSource, b, self.nodeBands, 'Band {}'.format(b+1), value=name)
-
-
-        ds = None
 
 
 
@@ -373,8 +607,6 @@ class SpeclibProfilesTreeNode(TreeNode):
             for p in self.mSpeclib:
                 TreeNode(self, p.name())
 
-
-
 class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(SpeclibDataSourceTreeNode, self).__init__(*args, **kwds)
@@ -397,7 +629,6 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
         #                            value='{}'.format(len(self.dataSource.mSpeclib)))
         #for name in dataSource.profileNames:
         #    TreeNode(self.profiles, name)
-
 
 class HubFlowObjectTreeNode(DataSourceTreeNode):
 
@@ -514,8 +745,6 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         return m
 
 
-
-
 class DataSourceTreeView(TreeView):
 
     def __init__(self, *args, **kwds):
@@ -574,6 +803,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         for ds in self.dataSourceManager.mSources:
             self.addDataSource(ds)
+        s = ""
 
     def columnCount(self, index):
         return 2
@@ -626,7 +856,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         return result
 
-    def mimeData(self, indexes):
+    def mimeData(self, indexes:list)->QMimeData:
         indexes = sorted(indexes)
         if len(indexes) == 0:
             return None
@@ -671,6 +901,8 @@ class DataSourceManagerTreeModel(TreeModel):
             from enmapbox.gui.spectrallibraries import SpectralLibrary
             sl = SpectralLibrary()
             for node in specLibNodes:
+                assert isinstance(node, SpeclibDataSourceTreeNode)
+
                 slib = SpectralLibrary.readFrom(node.dataSource.uri())
                 sl.addSpeclib(slib)
 
@@ -709,9 +941,13 @@ class DataSourceManagerTreeModel(TreeModel):
 
 
 
-    def addDataSource(self, dataSource):
+    def addDataSource(self, dataSource:DataSource):
+        """
+        Adds a DataSource and creates an TreeNode for
+        :param dataSource: DataSource
+        """
         assert isinstance(dataSource, DataSource)
-        dataSourceNode = TreeNodeProvider.CreateNodeFromDataSource(dataSource, None)
+        dataSourceNode = CreateNodeFromDataSource(dataSource, None)
         sourceGroup = self.getSourceGroup(dataSource)
         sourceGroup.addChildNode(dataSourceNode)
         dataSourceNode.setExpanded(True)
@@ -962,252 +1198,29 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
         pass
 
-class DataSourceManager(QObject):
 
-    _testInstance = None
-    @staticmethod
-    def instance():
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        if isinstance(EnMAPBox.instance(), EnMAPBox):
-            return EnMAPBox.instance().dataSourceManager
-        else:
-            return DataSourceManager._testInstance
-
+def CreateNodeFromDataSource(dataSource:DataSource, parent=None)->DataSourceTreeNode:
     """
-    Keeps overview on different data sources handled by EnMAP-Box.
-    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well.
+    Generates a DataSourceTreeNode
+    :param dataSource:
+    :param parent:
+    :return:
     """
-
-    sigDataSourceAdded = pyqtSignal(DataSource)
-    sigDataSourceRemoved = pyqtSignal(DataSource)
-
-    SOURCE_TYPES = ['ALL','ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL']
-
-    def __init__(self):
-        super(DataSourceManager, self).__init__()
-        DataSourceManager._testInstance = self
-        self.mSources = list()
-        self.mSubsetSelection = {}
-        self.mQgsLayerTreeGroup = None
-        #self.qgsLayerTreeGroup()
-
-        #todo: react on QgsProject changes, e.g. when project is closed
-        #QgsProject.instance().layersAdded.connect(self.updateFromQgsProject)
-        # noinspection PyArgumentList
-        
-        QgsProject.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
-        QgsProject.instance().removeAll.connect(lambda : self.removeSources(self.sources()))
-        try:
-            from hubflow import signals
-            signals.sigFileCreated.connect(self.addSource)
-        except Exception as ex:
-            messageLog(ex)
-
-        self.updateFromQgsProject()
-
-
-    def __len__(self)->int:
-        return len(self.mSources)
-
-    def findSourceFromUUID(self, uuID)->DataSource:
-        if isinstance(uuID, str):
-            uuID = uuid.uuid4(uuID)
-
-        assert isinstance(uuID, uuid.UUID)
-        """
-        Finds the DataSource with uuid
-        :param uuid: UUID4
-        :return: None or DataSource
-        """
-        for source in self.mSources:
-            assert isinstance(source, DataSource)
-            if source.uuid() == uuID:
-                return source
+    if not isinstance(dataSource, DataSource):
         return None
 
-    def sources(self, sourceTypes=None)->list:
-        """
-        Returns the managed DataSources
-        :param sourceTypes: the sourceType(s) to return
-            a) str like 'VECTOR' (see DataSourceManage.SOURCE_TYPES)
-            b) class type derived from DataSource
-            c) a list of a or b to filter multpiple source types
-        :return:
-        """
-        results = self.mSources[:]
+    #hint: take care of class inheritance order
+    if isinstance(dataSource, HubFlowDataSource):
+        node = HubFlowObjectTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceRaster):
+        node = RasterDataSourceTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceVector):
+        node = VectorDataSourceTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceSpectralLibrary):
+        node = SpeclibDataSourceTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceFile):
+        node = FileDataSourceTreeNode(parent, dataSource)
+    else:
+        node = DataSourceTreeNode(parent, dataSource)
 
-        if sourceTypes:
-            if not isinstance(sourceTypes, list):
-                sourceTypes = [sourceTypes]
-            filterTypes = []
-            for sourceType in sourceTypes:
-                if sourceType in self.SOURCE_TYPES:
-                    if sourceType == 'VECTOR':
-                        sourceType = DataSourceVector
-                    elif sourceType == 'RASTER':
-                        sourceType = DataSourceRaster
-                    elif sourceType == 'MODEL':
-                        sourceType = HubFlowDataSource
-                    else:
-                        sourceType = None
-                if isinstance(sourceType, type(DataSource)):
-                    filterTypes.append(sourceType)
-            results = [r for r in results if type(r) in filterTypes]
-        return results
-
-    def updateFromProcessingFramework(self):
-        if self.processing:
-            #import logging
-            #logging.debug('Todo: Fix processing implementation')
-            return
-            for p,n in zip(self.processing.MODEL_URIS,
-                           self.processing.MODEL_NAMES):
-                self.addSource(p, name=n)
-
-    def updateFromQgsProject(self, mapLayers=None):
-        """
-        Add data sources registered in the QgsProject to the data source manager
-        :return: List of added new DataSources
-        """
-        if mapLayers is None:
-            mapLayers = QgsProject.instance().mapLayers().values()
-
-        added = [self.addSource(lyr) for lyr in mapLayers]
-        return [a for a in added if isinstance(a, DataSource)]
-
-
-    def getUriList(self, sourcetype='ALL')->list:
-        """
-        Returns URIs of registered data sources
-        :param sourcetype: uri filter: 'ALL' (default),'RASTER', 'VECTOR', 'SPATIAL' (raster+vector) or 'MODEL' to return only uri's related to these sources
-        :return: uri as string (str), e.g. a file path
-        """
-        sourcetype = sourcetype.upper()
-        if isinstance(sourcetype, type):
-            return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
-
-        assert sourcetype in DataSourceManager.SOURCE_TYPES
-        if sourcetype in ['ALL','ANY']:
-            return [ds.uri() for ds in self.mSources]
-        elif sourcetype == 'VECTOR':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
-        elif sourcetype == 'RASTER':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
-        elif sourcetype == 'SPATIAL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceSpatial)]
-        elif sourcetype == 'MODEL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
-        else:
-            return []
-
-
-    def onMapLayerRegistryLayersAdded(self, lyrs):
-        #remove layers that should not be added automatically
-        lyrsToAdd = []
-        for lyr in lyrs:
-            if isinstance(lyr, QgsVectorLayer):
-                if lyr.dataProvider().dataSourceUri().startswith('memory?'):
-                    continue
-            lyrsToAdd.append(lyr)
-
-        self.addSources(lyrsToAdd)
-
-
-    def addSources(self, sources)->list:
-        added = []
-        for s in sources:
-            added.extend(self.addSource(s))
-        added = [a for a in added if isinstance(a, DataSource)]
-        self.mSubsetSelection.clear()
-        return added
-
-
-    @pyqtSlot(str)
-    @pyqtSlot('QString')
-    def addSource(self, newDataSource, name=None, icon=None):
-        """
-        Adds a new data source.
-        :param newDataSource: any object
-        :param name:
-        :param icon:
-        :return: a list of successfully added DataSource instances.
-                 Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
-        """
-        newDataSources = DataSourceFactory.Factory(newDataSource, name=name, icon=icon)
-
-        toAdd = []
-        for dsNew in newDataSources:
-            assert isinstance(dsNew, DataSource)
-            if not isinstance(dsNew, DataSourceFile):
-                toAdd.append(dsNew)
-
-            else:
-
-                sameSources = [d for d in self.mSources if dsNew.isSameSource(d) ]
-                if len(sameSources) == 0:
-                    toAdd.append(dsNew)
-                else:
-                    older = []
-                    newer = []
-                    for d in sameSources:
-                        if dsNew.isNewVersionOf(d):
-                            older.append(dsNew)
-                        else:
-                            newer.append(d)
-                    #do not add this source in case there alread exists a newer one
-                    if len(newer) == 0:
-                        self.removeSources(older)
-                        toAdd.append(dsNew)
-                    else:
-                        toAdd.extend(newer) #us ethe reference of the existing one
-
-
-        for ds in toAdd:
-            if ds not in self.mSources:
-                self.mSources.append(ds)
-                self.sigDataSourceAdded.emit(ds)
-
-        return toAdd
-
-    def clear(self):
-        """
-        Removes all data source from DataSourceManager
-        :return: [list-of-removed-DataSources]
-        """
-        return self.removeSources(list(self.mSources))
-
-
-    def removeSources(self, dataSourceList:list=None)->list:
-        """
-        Removes a list of data sources.
-        :param dataSourceList: [list-of-datasources]
-        :return: self
-        """
-        if dataSourceList is None:
-            dataSourceList = self.sources()
-        removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
-        return [r for r in removed if isinstance(r, DataSource)]
-
-    def removeSource(self, dataSource):
-        """
-        Removes the datasource from the DataSourceManager
-        :param dataSource: the DataSource to be removed
-        :return: the removed DataSource. None if dataSource was not in the DataSourceManager
-        """
-        assert isinstance(dataSource, DataSource)
-        if dataSource in self.mSources:
-            self.mSources.remove(dataSource)
-            self.sigDataSourceRemoved.emit(dataSource)
-            return dataSource
-        else:
-            messageLog('can not remove {}'.format(dataSource))
-
-
-    def sourceTypes(self):
-        """
-        Returns the list of source-types handled by this DataSourceManager
-        :return: [list-of-source-types]
-        """
-        return sorted(list(set([type(ds) for ds in self.mSources])), key=lambda t:t.__name__)
-
-
+    return node

@@ -40,7 +40,10 @@ class standardDataSources(unittest.TestCase):
         pass
 
     def test_rasters(self):
+        for uri in [None, type(None), landcover, self.wfsUri]:
+            self.assertTrue(rasterProvider(uri) == None)
 
+        self.assertTrue(None == rasterProvider(self.wfsUri))
         self.assertTrue(DataSourceFactory.isRasterSource(enmap))
         self.assertTrue(rasterProvider(self.wmsUri) == 'wms')
         self.assertTrue(DataSourceFactory.isRasterSource(self.wmsUri))
@@ -49,33 +52,47 @@ class standardDataSources(unittest.TestCase):
             ds = DataSourceFactory.Factory(uri)
             self.assertIsInstance(ds, list)
             self.assertTrue(len(ds) == 1)
-            self.assertIsInstance(ds[0], DataSourceRaster)
+            for source in ds:
+                self.assertIsInstance(source, DataSourceRaster)
+                self.assertIsInstance(source.spatialExtent(), SpatialExtent)
+                self.assertIsInstance(source.mProvider, str)
 
+    def createTestSources(self)->list:
+        return [self.wfsUri, self.wmsUri, enmap, landcover, speclib]
 
     def test_vectors(self):
-        self.assertTrue(None == rasterProvider(self.wfsUri))
+        for uri in [None, type(None), self.wmsUri, enmap]:
+            self.assertTrue(vectorProvider(uri) == None)
+
         self.assertTrue(vectorProvider(self.wfsUri) == 'WFS')
         self.assertTrue(DataSourceFactory.isVectorSource(self.wfsUri))
         self.assertTrue(DataSourceFactory.isVectorSource(landcover))
 
         for uri in [self.wfsUri, landcover]:
-            ds = DataSourceFactory.Factory(uri)
-            self.assertIsInstance(ds, list)
-            self.assertTrue(len(ds) == 1)
-            self.assertIsInstance(ds[0], DataSourceVector)
+            sources = DataSourceFactory.Factory(uri)
+            self.assertIsInstance(sources, list)
+            self.assertTrue(len(sources) == 1)
+            for source in sources:
+                self.assertIsInstance(source, DataSourceVector)
+                self.assertIsInstance(source.spatialExtent(), SpatialExtent)
+                self.assertIsInstance(source.mProvider, str)
 
     def test_speclibs(self):
 
         ds = DataSourceFactory.Factory(speclib)
         self.assertIsInstance(ds, list)
         self.assertTrue(len(ds) == 1)
-        self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
+        ds = ds[0]
+        self.assertIsInstance(ds, DataSourceSpectralLibrary)
+
+
+
 
     def test_datasourcemanager(self):
 
         dsm = DataSourceManager()
 
-        uris = [enmap, landcover, speclib, self.wfsUri, self.wmsUri]
+        uris = [speclib, enmap, landcover, self.wfsUri, self.wmsUri]
         dsm.addSources(uris)
 
         self.assertTrue((len(dsm) == len(uris)))
@@ -83,6 +100,114 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue((len(dsm) == len(uris)), msg='Redundant sources')
 
         self.assertListEqual(uris, dsm.getUriList())
+
+    def test_datasourcmanagertreemodel(self):
+        dsm = DataSourceManager()
+        TM = DataSourceManagerTreeModel(None, dsm)
+
+        uriList = self.createTestSources()
+        for uri in uriList:
+            print('Test "{}"'.format(uri))
+            ds = DataSourceFactory.Factory(uri)[0]
+            print(ds)
+            dsm.addSource(uri)
+
+        self.assertEqual(len(dsm), len(uriList))
+        self.assertEqual(TM.rowCount(), 3)
+
+    def test_enmapbox(self):
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EB = EnMAPBox()
+        uriList = self.createTestSources()
+        for uri in uriList:
+            print('Test "{}"'.format(uri))
+            ds = EB.addSource(uri)
+        qApp.exec_()
+
+
+
+class standardDataSourceTreeNodes(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+    def setUp(self):
+
+        self.wmsUri = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
+        self.wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
+        pass
+
+    def tearDown(self):
+        pass
+
+    def createTestSources(self)->list:
+        return [speclib, self.wfsUri, self.wmsUri, enmap, landcover]
+
+    def test_sourceNodes(self):
+
+        for uri in self.createTestSources():
+            self.assertIsInstance(uri, str)
+            dsl = DataSourceFactory.Factory(uri)
+
+            for dataSource in dsl:
+                self.assertIsInstance(dataSource, DataSource)
+
+                node = CreateNodeFromDataSource(dataSource)
+                self.assertIsInstance(node, DataSourceTreeNode)
+
+    def test_datasourceTreeManagerModel(self):
+
+        dsm = DataSourceManager()
+        M = DataSourceManagerTreeModel(None, dsm)
+
+        self.assertEqual(M.rowCount(), 0)
+
+        #add 2 rasters
+        dsm.addSource(enmapbox)
+        dsm.addSource(hymap)
+        self.assertEqual(M.rowCount(), 1)
+
+        #add
+        dsm.addSource(landcover)
+        self.assertEqual(M.rowCount(), 2)
+
+        dsm.addSource(speclib)
+        self.assertEqual(M.rowCount(), 3)
+
+        for i, childNode in enumerate(M.rootNode.children()):
+            self.assertIsInstance(childNode, DataSourceGroupTreeNode)
+            for j, dNode in enumerate(childNode.children()):
+                self.assertIsInstance(dNode, DataSourceTreeNode)
+                s =""
+
+            s = ""
+
+        grpNode = M.index2node(M.createIndex(0,0))
+        self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
+        self.assertEqual(len(grpNode.children()), 2)
+        for i, childNode in enumerate(grpNode.children()):
+            self.assertIsInstance(childNode, RasterDataSourceTreeNode)
+
+        #add 1 shapefile
+
+        self.assertEqual(M.rowCount(), 2)
+        grpNode = M.index2node(M.createIndex(1, 0))
+        self.assertEqual(len(grpNode.children()), 1)
+        for i, childNode in enumerate(grpNode.children()):
+            self.assertIsInstance(childNode, VectorDataSourceTreeNode)
+
+
+        #add 1 speclib
+        dsm.addSource(speclib)
+        self.assertEqual(M.rowCount(), 3)
+        grpNode = M.index2node(M.createIndex(2, 0))
+        self.assertEqual(len(grpNode.children()), 1)
+        for i, childNode in enumerate(grpNode.children()):
+            self.assertIsInstance(childNode, SpeclibDataSourceTreeNode)
+
+
+
 
 
 class hubflowTestCases(unittest.TestCase):

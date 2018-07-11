@@ -213,7 +213,13 @@ def createStandardFields():
     return fields
 
 
-def value2str(value, sep=' '):
+def value2str(value, sep:str=' ')->str:
+    """
+    Converst a value into a string
+    :param value:
+    :param sep: str separator for listed values
+    :return:
+    """
     if isinstance(value, list):
         value = sep.join([value2str(v, sep=sep) for v in value])
     elif isinstance(value, np.ndarray):
@@ -344,14 +350,19 @@ class SpectralLibrary(QgsVectorLayer):
         assert self.commitChanges()
         self.initConditionalStyles()
 
-    def optionalFields(self):
+    def optionalFields(self)->list:
         """
         Returns a list of optional fields.
+        :return: [list-of-QgsFields]
         """
         standardFields = createStandardFields()
         return [f for f in self.fields() if f not in standardFields]
 
-    def optionalFieldNames(self):
+    def optionalFieldNames(self)->list:
+        """
+
+        :return:
+        """
         return [f.name() for f in self.optionalFields()]
 
     def initConditionalStyles(self):
@@ -568,7 +579,9 @@ class SpectralLibrary(QgsVectorLayer):
 
 
     def __len__(self):
-        return self.featureCount()
+        cnt = self.featureCount()
+        #can be -1 if the number of features is unknown
+        return max(cnt, 0)
 
     def __iter__(self):
         r = QgsFeatureRequest()
@@ -941,10 +954,6 @@ class SpectralLibraryTableView(QgsAttributeTableView):
             self.model().dropMimeData(mimeData, event.dropAction(), index.row(), index.column(), QModelIndex())
             event.accept()
 
-
-
-
-
     def dragEnterEvent(self, event):
         assert isinstance(event, QDragEnterEvent)
         if event.mimeData().hasFormat(mimedata.MDF_SPECTRALLIBRARY):
@@ -955,10 +964,6 @@ class SpectralLibraryTableView(QgsAttributeTableView):
         if event.mimeData().hasFormat(mimedata.MDF_SPECTRALLIBRARY):
             event.accept()
         s = ""
-
-
-    def mimeTypes(self):
-        pass
 
 """
 class SpectralProfileMapTool(QgsMapToolEmitPoint):
@@ -2452,13 +2457,11 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
             b = speclib.isEditable()
             id = self.rowToId(index.row())
             iField = speclib.fields().indexFromName(cname)
-            #speclib.startEditing()
-            #oldValue = speclib.getFeature(id).attribute(iField)
-            #if value != oldValue:
-            profile.setAttribute(iField, value)
-           # result = speclib.updateFeature(profile)
-            #result = speclib.changeAttributeValue(id, iField, value)
-            s = ""
+            speclib.startEditing()
+            oldValue = speclib.getFeature(id).attribute(iField)
+            if value != oldValue:
+                result = speclib.changeAttributeValue(id, iField, value)
+
             #speclib.editBuffer().changeAttributeValue(id, iField, value)
 
             #result = super(SpectralLibraryTableModel, self).setData(index, value, role=role)

@@ -463,7 +463,14 @@ class TestInit(unittest.TestCase):
         self.assertTrue(dmodel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex()))
         self.assertTrue(fmodel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex()))
 
-        s = ""
+        TV = SpectralLibraryTableView()
+        TV.setModel(fmodel)
+        p = SpectralProfile()
+        p.setName('TEST')
+        p.setXValues([1,2,3,4,5,6])
+        p.setYValues([1, 2, 3, 4, 5, 6])
+        sl2.addProfiles([p])
+        self.assertTrue(len(sl2) == 1)
 
     def test_speclibWidget(self):
 
@@ -539,7 +546,8 @@ class TestInit(unittest.TestCase):
 
         p = slw.mModel.spectralProfile(idx)
         self.assertIsInstance(p, SpectralProfile)
-        #self.assertTrue(slw.mModel.setData(idx, 'mynewname', role=Qt.EditRole))
+        slw.mModel.setData(idx, 'mynewname', role=Qt.EditRole)
+        #self.assertTrue()
         qapp.exec_()
 
 
