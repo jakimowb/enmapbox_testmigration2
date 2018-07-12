@@ -175,36 +175,46 @@ class standardDataSourceTreeNodes(unittest.TestCase):
         dsm.addSource(speclib)
         self.assertEqual(M.rowCount(), 3)
 
-        for i, childNode in enumerate(M.rootNode.children()):
-            self.assertIsInstance(childNode, DataSourceGroupTreeNode)
-            for j, dNode in enumerate(childNode.children()):
+        rootIndex = M.node2index(M.rootGroup())
+        for i, grpNode in enumerate(M.rootNode.children()):
+            self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
+            grpIndex = M.node2index(grpNode)
+            self.assertIsInstance(grpIndex, QModelIndex)
+            self.assertTrue(grpIndex.isValid())
+            self.assertEqual(grpIndex.row(), i)
+            for j, dNode in enumerate(grpNode.children()):
                 self.assertIsInstance(dNode, DataSourceTreeNode)
-                s =""
+                nodeIndex = M.node2index(dNode)
+                self.assertIsInstance(nodeIndex, QModelIndex)
+                self.assertTrue(nodeIndex.isValid())
+                self.assertEqual(nodeIndex.row(), j)
 
-            s = ""
+                #get mime data
+                mimeData = M.mimeData([nodeIndex])
+                self.assertIsInstance(mimeData, QMimeData)
 
-        grpNode = M.index2node(M.createIndex(0,0))
-        self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
-        self.assertEqual(len(grpNode.children()), 2)
-        for i, childNode in enumerate(grpNode.children()):
-            self.assertIsInstance(childNode, RasterDataSourceTreeNode)
+                formats = mimeData.formats()
+                self.assertIsInstance(dNode.dataSource, DataSource)
+                self.assertIn(MDF_DATASOURCETREEMODELDATA, formats)
+                if isinstance(dNode, RasterDataSourceTreeNode):
+                    self.assertIsInstance(dNode.dataSource, DataSourceRaster)
 
-        #add 1 shapefile
+                if isinstance(dNode, VectorDataSourceTreeNode):
+                    self.assertIsInstance(dNode.dataSource, DataSourceVector)
 
-        self.assertEqual(M.rowCount(), 2)
-        grpNode = M.index2node(M.createIndex(1, 0))
-        self.assertEqual(len(grpNode.children()), 1)
-        for i, childNode in enumerate(grpNode.children()):
-            self.assertIsInstance(childNode, VectorDataSourceTreeNode)
+                if isinstance(dNode, SpeclibDataSourceTreeNode):
+                    self.assertIsInstance(dNode.dataSource, DataSourceSpectralLibrary)
+
+                    from enmapbox.gui.spectrallibraries import SpectralLibraryWidget, SpectralLibraryPlotWidget, SpectralLibraryTableView
 
 
-        #add 1 speclib
-        dsm.addSource(speclib)
-        self.assertEqual(M.rowCount(), 3)
-        grpNode = M.index2node(M.createIndex(2, 0))
-        self.assertEqual(len(grpNode.children()), 1)
-        for i, childNode in enumerate(grpNode.children()):
-            self.assertIsInstance(childNode, SpeclibDataSourceTreeNode)
+                    w = SpectralLibraryWidget()
+                    w.show()
+                    dropEvent = QDropEvent(QPointF(0,0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier, QEvent.Drop)
+                    w.plotWidget.dropEvent(dropEvent)
+                    self.assertEqual(len(w.speclib()), len(dNode.dataSource.spectralLibrary()))
+
+        s = ""
 
 
 
@@ -244,7 +254,7 @@ class hubflowTestCases(unittest.TestCase):
 
             if isinstance(obj1, hubflow.core.FlowObject):
                 self.assertIsInstance(obj1, hubflow.core.FlowObject)
-                pathTmp = jp(dirTmp, 'test.{}.pkl', name)
+                pathTmp = jp(dirTmp, 'test.{}.pkl'.format(name))
                 obj1.pickle(pathTmp)
                 ds = DataSourceFactory.Factory(pathTmp)
                 self.assertTrue(len(ds) == 1), 'Failed to open {}'.format(obj1)
