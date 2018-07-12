@@ -1,5 +1,5 @@
-GeoAlgotithms
-#############
+Processing Algorithms
+#####################
 
 Accuracy Assessment
 ===================
@@ -26,6 +26,7 @@ Specify output path for HTML report file (.html).
 
 ....
 
+
 Clustering Performance
 ----------------------
 
@@ -47,6 +48,7 @@ HTML Report
 Specify output path for HTML report file (.html).
 
 ....
+
 
 ClassProbability Performance
 ----------------------------
