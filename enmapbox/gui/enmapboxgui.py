@@ -456,10 +456,14 @@ class EnMAPBox(QgisInterface, QObject):
     def initEnMAPBoxApplications(self):
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
-        COREAPPS = jp(DIR_ENMAPBOX, *['coreapps'])
+        appDirs = []
 
-        APPS = jp(DIR_ENMAPBOX, *['apps'])
-        appDirs = [COREAPPS, APPS]
+        COREAPPS = jp(DIR_ENMAPBOX, *['coreapps'])
+        appDirs.append(COREAPPS)
+
+        if enmapbox.gui.LOAD_EXTERNAL_APPS:
+            appDirs.append(jp(DIR_ENMAPBOX, *['apps']))
+
         from enmapbox.gui.settings import qtSettingsObj
         settings = qtSettingsObj()
         for appDir in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):

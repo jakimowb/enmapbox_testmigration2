@@ -17,7 +17,6 @@
 ***************************************************************************
 """
 
-from __future__ import absolute_import
 import os, sys, re, shutil, zipfile, datetime
 import numpy as np
 import enmapbox
@@ -126,7 +125,7 @@ def updateRemote(remoteInfo):
     for remoteInfo in remoteInfos:
         assert isinstance(remoteInfo, RemoteInfo)
         remote = REPO.remote(remoteInfo.key)
-
+        print('Fetch {}...'.format(remoteInfo.remotePath()))
         remote.fetch(remoteInfo.remotePath())
         files = REPO.git.execute(
             ['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
@@ -180,13 +179,15 @@ if __name__ == "__main__":
                 addRemote(info)
 
     # update remotes
-    to_update = ['hub-datacube', 'hub-workflow', #'enmap-box-testdata',
-                 #'enmap-box-geoalgorithmsprovider',
-                #'enmap-box-lmu-vegetation-apps'
+    to_update = [#'hub-datacube',
+                 #'hub-workflow', #'enmap-box-testdata',
+                # 'enmap-box-geoalgorithmsprovider',
+                 'enmap-box-lmu-vegetation-apps',
+                # 'virtual-raster-builder',
                 # 'enmapboxgeoalgorithmsdoc'
-                ]  # enmap-box-geoalgorithmsprovider
+                ]
 
-    to_update = ['virtual-raster-builder']
+   # to_update = []
     #to_update = ['dask']
 
     for p in to_update:

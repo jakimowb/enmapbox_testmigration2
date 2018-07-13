@@ -157,10 +157,11 @@ class ApplicationRegistry(QObject):
                 import traceback
                 msg = 'Failed to load {}\n Error:"{}"'.format(appPackagePath, '{}'.format(ex))
                 msg +='\n Traceback\n ' + ''.join(traceback.format_stack())
-                messageLog(msg, level=Qgis.Critical)
+                print(msg)
+                #messageLog(msg, level=Qgis.Critical)
 
 
-    def addApplicationPackage(self, appPackagePath):
+    def addApplicationPackage(self, appPackagePath:str):
         """
         Loads an EnMAP-Box application package and adds all its applications
         :param appPackagePath: a path pointing to a directory <application package folder>
@@ -175,7 +176,7 @@ class ApplicationRegistry(QObject):
             appFolder = os.path.dirname(appPackagePath)
             pkgFile = os.path.join(appPackagePath, '__init__.py')
 
-
+            print('import EnMAPBoxApplication package"{}"'.format(appPkgName))
             if not os.path.exists(pkgFile):
                 raise Exception('Missing __init__.py in {}'.format(appPackagePath))
 
@@ -183,7 +184,8 @@ class ApplicationRegistry(QObject):
                 site.addsitedir(appFolder)
 
 
-            import imp
+            import importlib
+
             #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
             appModule = __import__(appPkgName)
 
@@ -378,15 +380,15 @@ class EnMAPBoxApplication(QObject):
         """
         return None
 
-    def geoAlgorithms(self):
+    def geoAlgorithms(self)->list:
         """
         Returns a list of GeoAlgorithms()
 
         :return:
         """
         messageLog('Deprecated method "geoAlgorithms". Use "processingAlgorithms" instead.')
-        return None
+        return []
 
-    def processingAlgorithms(self):
+    def processingAlgorithms(self)->list:
 
-        return None
+        return []

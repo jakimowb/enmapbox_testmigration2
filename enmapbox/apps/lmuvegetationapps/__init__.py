@@ -30,6 +30,6 @@ def enmapboxApplicationFactory(enmapBox):
     :return: [list-of-EnMAPBoxApplications]
     """
 
-    from the_lmu_app.enmapboxintegration import LMU_EnMAPBoxApp
+    from lmuvegetationapps.enmapboxintegration import LMU_EnMAPBoxApp
     #returns a list of EnMAPBoxApplications
     return [LMU_EnMAPBoxApp(enmapBox)]
