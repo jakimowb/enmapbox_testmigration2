@@ -21,7 +21,7 @@
 """
 # noinspection PyPep8Naming
 import sys, os, collections
-
+from qgis.PyQt.Qt import QApplication
 LAST_MISSED_PACKAGES = None
 LAST_MISSED_INFO = ''
 
@@ -94,7 +94,7 @@ def showDialog(info):
         def setText(self, text):
             self.textEdit.setText(text)
 
-    from PyQt5.QtGui import QApplication
+
 
     app = QApplication.instance()
     init = not isinstance(app, QApplication)
