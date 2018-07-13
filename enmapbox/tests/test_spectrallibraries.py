@@ -217,6 +217,9 @@ class TestInit(unittest.TestCase):
         sp2.setYValues([3, 2, 1, 0, 1])
         sp2.setXValues([450, 500, 750, 1000, 1500])
 
+
+
+
         sl1 = SpectralLibrary()
 
         self.assertEqual(sl1.name(), 'SpectralLibrary')
@@ -227,8 +230,33 @@ class TestInit(unittest.TestCase):
         self.assertEqual(len(sl1),2)
         t = sl1[0:1]
 
+        refs = list(SpectralLibrary.instances())
+        self.assertTrue(len(refs) == 1)
+        self.assertEqual(refs[0], sl1)
 
 
+        for format in [MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_SPECLIB_LINK]:
+            print('Test MimeData I/O "{}"'.format(format))
+            mimeData = sl1.mimeData(format)
+            self.assertIsInstance(mimeData, QMimeData)
+            slRetrievd = SpectralLibrary.readFromMimeData(mimeData)
+            self.assertIsInstance(slRetrievd, SpectralLibrary)
+
+            n = len(slRetrievd)
+            self.assertEqual(n, len(sl1))
+            for p, pr in zip(sl1.profiles(), slRetrievd.profiles()):
+                self.assertIsInstance(p, SpectralProfile)
+                self.assertIsInstance(pr, SpectralProfile)
+                self.assertEqual(p.fieldNames(),pr.fieldNames())
+                self.assertEqual(p.yValues(), pr.yValues())
+
+                self.assertEqual(p.xValues(), pr.xValues())
+                self.assertEqual(p.xUnit(), pr.xUnit())
+                self.assertEqual(p.name(), pr.name())
+                self.assertEqual(p, pr)
+
+
+            self.assertEqual(sl1, slRetrievd)
 
 
         self.assertIsInstance(sl1[0], SpectralProfile)
@@ -358,14 +386,6 @@ class TestInit(unittest.TestCase):
 
         n = 0
         for path in writtenFiles:
-            f = open(path, encoding='utf-8')
-            text = f.read()
-            lines = [l.strip() for l in text.splitlines()]
-            lines = [l for l in lines if len(l) > 0 and not l.startswith('WKT')]
-            nProfiles = len(lines)
-
-            f.close()
-
             self.assertTrue(CSVSpectralLibraryIO.canRead(path))
             sl_read1 = CSVSpectralLibraryIO.readFrom(path)
             sl_read2 = SpectralLibrary.readFrom(path)
@@ -450,14 +470,14 @@ class TestInit(unittest.TestCase):
         v = SpectralLibraryTableView()
         v.show()
 
-        sl2 = self.createSpeclib()
-        dmodel = SpectralLibraryTableModel(speclib=sl2)
+        slib = self.createSpeclib()
+        dmodel = SpectralLibraryTableModel(speclib=slib)
 
         fmodel = SpectralLibraryTableFilterModel(dmodel)
         v.setModel(fmodel)
 
         mimeData = QMimeData()
-        mimeData.setData(MIMEDATA_SPECLIB, pickle.dumps(sl2))
+        mimeData.setData(MIMEDATA_SPECLIB, pickle.dumps(slib))
 
         # self.model().dropMimeData(mimeData, event.dropAction(), index.row(), index.column(), index.parent())
         self.assertTrue(dmodel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex()))
@@ -467,10 +487,41 @@ class TestInit(unittest.TestCase):
         TV.setModel(fmodel)
         p = SpectralProfile()
         p.setName('TEST')
+        n = len(TV.spectralLibrary())
         p.setXValues([1,2,3,4,5,6])
         p.setYValues([1, 2, 3, 4, 5, 6])
-        sl2.addProfiles([p])
-        self.assertTrue(len(sl2) == 1)
+        slib.addProfiles([p])
+        self.assertTrue(len(slib) == n+1)
+
+
+        TV.dropEvent(TestObjects.createDropEvent(mimeData))
+
+        self.assertTrue(len(slib) > n+1)
+
+
+
+        TV.selectAll()
+        fids = [f.id() for f in TV.spectralLibrary().getFeatures()]
+        self.assertTrue(len(TV.selectedIndexes()) == len(slib))
+
+        TV.setCheckState(fids, Qt.Checked)
+
+        def countVisibles(slib:SpectralLibrary):
+            n = 0
+            for p in slib.profiles():
+                style = p.style()
+                assert isinstance(style, PlotStyle)
+                if style.isVisible():
+                    n += 1
+            return n
+
+
+        n = countVisibles(slib)
+        self.assertTrue(n > 0 and n == len(slib))
+
+
+        s = ""
+
 
     def test_speclibWidget(self):
 

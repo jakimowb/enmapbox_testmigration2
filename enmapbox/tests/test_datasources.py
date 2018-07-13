@@ -58,7 +58,18 @@ class standardDataSources(unittest.TestCase):
                 self.assertIsInstance(source.mProvider, str)
 
     def createTestSources(self)->list:
-        return [self.wfsUri, self.wmsUri, enmap, landcover, speclib]
+        return [speclib, self.wfsUri, self.wmsUri, enmap, landcover]
+
+    def createTestSourceLayers(self)->list:
+        return [QgsRasterLayer(self.wmsUri, '', 'wms'), QgsVectorLayer(self.wfsUri, '', 'WFS'),
+                QgsRasterLayer(enmap), QgsVectorLayer(landcover), SpectralLibrary.readFrom(speclib)
+                ]
+
+    def test_testSources(self):
+
+        for l in self.createTestSourceLayers():
+            self.assertIsInstance(l, QgsMapLayer)
+            self.assertTrue(l.isValid())
 
     def test_vectors(self):
         for uri in [None, type(None), self.wmsUri, enmap]:
@@ -89,19 +100,52 @@ class standardDataSources(unittest.TestCase):
 
 
     def test_datasourcemanager(self):
-
+        reg = QgsProject.instance()
+        reg.removeAllMapLayers()
         dsm = DataSourceManager()
-
         uris = [speclib, enmap, landcover, self.wfsUri, self.wmsUri]
         dsm.addSources(uris)
 
         self.assertTrue((len(dsm) == len(uris)))
         dsm.addSources(uris)
-        self.assertTrue((len(dsm) == len(uris)), msg='Redundant sources')
+        self.assertTrue((len(dsm) == len(uris)), msg='Redundant sources are not allowed')
 
         self.assertListEqual(uris, dsm.getUriList())
 
+
+        self.assertTrue(len(reg.mapLayers()) == 0)
+        lyrs = self.createTestSourceLayers()
+        dsm = DataSourceManager()
+        for i, l in enumerate(lyrs):
+            print('Add {}...'.format(l.source()))
+            ds = dsm.addSource(l)
+            self.assertTrue(len(ds) == 1)
+            self.assertIsInstance(ds[0], DataSource)
+            self.assertTrue(len(dsm) == i+1)
+        dsm.addSources(lyrs)
+        self.assertTrue(len(dsm) == len(lyrs))
+
+        dsm = DataSourceManager()
+        dsm.onMapLayerRegistryLayersAdded(lyrs)
+        self.assertTrue(len(reg.mapLayers()) == 0)
+        self.assertTrue(len(dsm) == len(lyrs), msg='There needs to be one DataSource per added MapLayer')
+
+
+        dsm.onMapLayerRegistryLayersAdded(lyrs)
+        self.assertTrue(len(dsm) == len(lyrs), msg='DataSourceManager contains one DataSource object per source only')
+
+        dsm = DataSourceManager()
+        reg.addMapLayers(lyrs)
+        self.assertTrue((len(dsm) == len(lyrs)), msg='Layers added to the QgsMapLayerRegistry need to appear in the DataSourceManager')
+
+
+
+
+
+
     def test_datasourcmanagertreemodel(self):
+        reg = QgsProject.instance()
+        reg.removeAllMapLayers()
         dsm = DataSourceManager()
         TM = DataSourceManagerTreeModel(None, dsm)
 
@@ -115,6 +159,16 @@ class standardDataSources(unittest.TestCase):
         self.assertEqual(len(dsm), len(uriList))
         self.assertEqual(TM.rowCount(), 3)
 
+        for grpNode in TM.rootGroup().children():
+            self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
+            for dsNode in grpNode.children():
+                self.assertIsInstance(dsNode, DataSourceTreeNode)
+
+
+            s =""
+
+
+
     def test_enmapbox(self):
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -123,7 +177,7 @@ class standardDataSources(unittest.TestCase):
         for uri in uriList:
             print('Test "{}"'.format(uri))
             ds = EB.addSource(uri)
-        qApp.exec_()
+        #qApp.exec_()
 
 
 
@@ -142,7 +196,31 @@ class standardDataSourceTreeNodes(unittest.TestCase):
         pass
 
     def createTestSources(self)->list:
+
         return [speclib, self.wfsUri, self.wmsUri, enmap, landcover]
+
+
+    def test_testSources(self):
+
+        reg = QgsProject.instance()
+
+        raster = QgsRasterLayer(enmap)
+        self.assertIsInstance(raster, QgsRasterLayer)
+        reg.addMapLayer(raster, False)
+
+
+        sl = SpectralLibrary.readFrom(speclib)
+        self.assertIsInstance(sl, SpectralLibrary)
+        reg.addMapLayer(sl, False)
+
+
+        wfs = QgsVectorLayer(self.wfsUri, '', 'WFS')
+        self.assertIsInstance(wfs, QgsVectorLayer)
+        reg.addMapLayer(wfs, False)
+
+        wms = QgsRasterLayer(self.wmsUri, '', 'wms')
+        self.assertIsInstance(wms, QgsRasterLayer)
+        reg.addMapLayer(wms, False)
 
     def test_sourceNodes(self):
 
@@ -156,7 +234,31 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                 node = CreateNodeFromDataSource(dataSource)
                 self.assertIsInstance(node, DataSourceTreeNode)
 
+
+    def test_registryresponse(self):
+
+        from enmapbox.gui.mapcanvas import MapCanvas
+        mapCanvas = MapCanvas()
+        reg = QgsProject.instance()
+        reg.removeAllMapLayers()
+
+        for p in self.createTestSources():
+            print(p)
+            ds = DataSourceFactory.Factory(p)
+            if isinstance(ds, DataSourceSpatial):
+                lyr = ds.createUnregisteredMapLayer()
+                mapCanvas.setLayers(lyr)
+
+                self.assertTrue(len(mapCanvas.layers()) == 1)
+
+                self.assertTrue(len(reg.mapLayers()) == 1)
+                reg.removeAllMapLayers()
+                self.assertTrue(len(mapCanvas.layers()) == 0)
+
     def test_datasourceTreeManagerModel(self):
+
+
+
 
         dsm = DataSourceManager()
         M = DataSourceManagerTreeModel(None, dsm)
@@ -164,8 +266,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
         self.assertEqual(M.rowCount(), 0)
 
         #add 2 rasters
-        dsm.addSource(enmapbox)
-        dsm.addSource(hymap)
+        dsm.addSources([enmapbox, hymap])
         self.assertEqual(M.rowCount(), 1)
 
         #add
@@ -174,6 +275,9 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
         dsm.addSource(speclib)
         self.assertEqual(M.rowCount(), 3)
+
+        from enmapbox.gui.mapcanvas import MapCanvas
+
 
         rootIndex = M.node2index(M.rootGroup())
         for i, grpNode in enumerate(M.rootNode.children()):
@@ -189,31 +293,55 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                 self.assertTrue(nodeIndex.isValid())
                 self.assertEqual(nodeIndex.row(), j)
 
+                mapCanvas = MapCanvas()
                 #get mime data
                 mimeData = M.mimeData([nodeIndex])
                 self.assertIsInstance(mimeData, QMimeData)
 
+
+                from enmapbox.gui.mimedata import extractMapLayers
+                l = extractMapLayers(mimeData)
+                self.assertIsInstance(l, list)
+                self.assertTrue(len(l) == 1)
+                self.assertIsInstance(l[0], QgsMapLayer)
+
+
+                def createDropEvent(mimeData:QMimeData)->QDropEvent:
+                    return QDropEvent(QPointF(0, 0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier, QEvent.Drop)
+
                 formats = mimeData.formats()
                 self.assertIsInstance(dNode.dataSource, DataSource)
                 self.assertIn(MDF_DATASOURCETREEMODELDATA, formats)
+
                 if isinstance(dNode, RasterDataSourceTreeNode):
                     self.assertIsInstance(dNode.dataSource, DataSourceRaster)
+                    mapCanvas.dropEvent(createDropEvent(mimeData))
+                    self.assertTrue(len(mapCanvas.layers()) == 1)
 
                 if isinstance(dNode, VectorDataSourceTreeNode):
                     self.assertIsInstance(dNode.dataSource, DataSourceVector)
+                    mapCanvas.dropEvent(createDropEvent(mimeData))
+                    self.assertTrue(len(mapCanvas.layers()) == 1)
 
                 if isinstance(dNode, SpeclibDataSourceTreeNode):
                     self.assertIsInstance(dNode.dataSource, DataSourceSpectralLibrary)
 
-                    from enmapbox.gui.spectrallibraries import SpectralLibraryWidget, SpectralLibraryPlotWidget, SpectralLibraryTableView
+                    # drop speclib to mapcanvas
+                    mapCanvas.dropEvent(createDropEvent(mimeData))
+                    self.assertTrue(len(mapCanvas.layers()) == 1)
 
-
+                    # drop speclib to spectral library widgets
+                    from enmapbox.gui.spectrallibraries import SpectralLibraryWidget, SpectralLibraryPlotWidget, SpectralLibraryTableView, MIMEDATA_SPECLIB_LINK
+                    self.assertTrue(MIMEDATA_SPECLIB_LINK in mimeData.formats())
                     w = SpectralLibraryWidget()
                     w.show()
-                    dropEvent = QDropEvent(QPointF(0,0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier, QEvent.Drop)
-                    w.plotWidget.dropEvent(dropEvent)
+                    w.plotWidget.dropEvent(createDropEvent(mimeData))
                     self.assertEqual(len(w.speclib()), len(dNode.dataSource.spectralLibrary()))
 
+
+
+                if isinstance(dNode, HubFlowObjectTreeNode):
+                    pass
         s = ""
 
 

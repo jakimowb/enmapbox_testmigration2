@@ -180,13 +180,21 @@ class DataSourceFactory(object):
         :return: (uri, None) if True
         """
         uri = None
-        src = DataSourceFactory.srcToString(src)
-        if not src is None and os.path.exists(src):
-            from enmapbox.gui.spectrallibraries import AbstractSpectralLibraryIO
-            for cls in AbstractSpectralLibraryIO.__subclasses__():
-                if cls.canRead(src):
-                    uri = src
-                    break
+        if isinstance(src, SpectralLibrary):
+            uri = src.source()
+        else:
+            if not isinstance(src, str):
+                src = DataSourceFactory.srcToString(src)
+
+            if isinstance(src, str):
+                if os.path.exists(src):
+                    from enmapbox.gui.spectrallibraries import AbstractSpectralLibraryIO
+                    for cls in AbstractSpectralLibraryIO.__subclasses__():
+                        if cls.canRead(src):
+                            uri = src
+                            break
+                else:
+                    s = ""
         return uri, None
 
 
@@ -254,92 +262,47 @@ class DataSourceFactory(object):
             if src in [None, type(None)]:
                 return []
 
-
-            # is it a Raster?
-            def checkForRaster(src)->list:
-                uri, pkey = DataSourceFactory.isRasterSource(src)
-                if uri:
-                    rasterUris = []
-                    if pkey == 'gdal':
-                        # check for raster containers, like HDFs, and handle them separately
-                        ds = gdal.Open(src)
-                        subs = ds.GetSubDatasets()
-                        if ds.RasterCount > 0:
-                            rasterUris.append(uri)
-                        if len(subs) > 0:
-                            rasterUris.extend([s[0] for s in subs])
-                    else:
-                        rasterUris.append(src)
-                    return [DataSourceRaster(r, name=name, icon=icon, providerKey=pkey) for r in rasterUris if isinstance(r, str)]
-                return []
-
-            # is it a Vector?
-            def checkForVector(src)->list:
-                uri, pkey = DataSourceFactory.isVectorSource(src)
-                if uri:
-                    return [DataSourceVector(uri, name=name, icon=icon, providerKey=pkey)]
-                return []
-            def checkForSpeclib(src)->list:
-                # is it a Speclib?
-                uri, pkey = DataSourceFactory.isSpeclib(src)
-                if uri:
-                    return [DataSourceSpectralLibrary(uri, name=name, icon=icon)]
-                return []
-
-            def checkForHubFlow(src)->list:
-                #is it a hub flow object?
-                uri, pkey = DataSourceFactory.isHubFlowObj(src)
-                if uri:
-                    return [HubFlowDataSource(uri, name=name, icon=icon)]
-                return []
-            # other file formats
-            def checkOtherFiles(src)->list:
-                src = DataSourceFactory.srcToString(src)
-                if not src is None:
-                    if os.path.isfile(src):
-                        ext = os.path.splitext(src)[1].lower()
-                        if ext in ['.csv', '.txt']:
-                            return [DataSourceTextFile(src, name=name, icon=icon)]
-                        if ext in ['.xml', '.html']:
-                            return [DataSourceXMLFile(src, name=name, icon=icon)]
-                        return [DataSourceFile(src, name=name, icon=icon)]
-                return []
+            DataSource.instances()
 
             #run checks on input sources
             if isinstance(src, SpectralLibrary):
-                sourceTestFunctions = [checkForSpeclib]
+                sourceTestFunctions = [DataSourceFactory.checkForSpeclib]
             elif isinstance(src, gdal.Dataset) or isinstance(src, QgsRasterLayer):
-                sourceTestFunctions = [checkForRaster]
+                sourceTestFunctions = [DataSourceFactory.checkForRaster]
             elif isinstance(src, ogr.DataSource) or isinstance(src, QgsVectorLayer):
-                sourceTestFunctions = [checkForVector, checkForSpeclib]
+                sourceTestFunctions = [DataSourceFactory.checkForVector, DataSourceFactory.checkForSpeclib]
             elif type(src).__name__ in ['module']:
                 return []
             else: #run all tests
-                sourceTestFunctions = [checkForRaster, checkForVector, checkForSpeclib, checkForHubFlow, checkOtherFiles]
+                sourceTestFunctions = [DataSourceFactory.checkForRaster,
+                                       DataSourceFactory.checkForVector,
+                                       DataSourceFactory.checkForSpeclib,
+                                       DataSourceFactory.checkForHubFlow,
+                                       DataSourceFactory.checkOtherFiles]
 
                 #re-order by most-likely none-raster source type according to source uri
                 if isinstance(src, str):
 
 
 
-                    if re.search('\.(sli|esl)$', src): #probably a spectral library
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(checkForSpeclib)))
-                    elif re.search('\.(shp|gpkg|kml)$', src): #probably a vector file
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(checkForVector)))
+                    if re.search(r'\.(sli|esl)$', src): #probably a spectral library
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForSpeclib)))
+                    elif re.search(r'\.(shp|gpkg|kml)$', src): #probably a vector file
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
 
-                    elif re.search('\.(txt|csv)$', src): #probably normal text file
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(checkOtherFiles)))
-                    elif re.search('\.pkl$', src):
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(checkForHubFlow)))
-                    elif re.search('url=https?.*wfs', src, re.IGNORECASE):
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(checkForVector)))
+                    elif re.search(r'\.(txt|csv)$', src): #probably normal text file
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkOtherFiles)))
+                    elif re.search(r'\.pkl$', src):
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForHubFlow)))
+                    elif re.search(r'url=https?.*wfs', src, re.IGNORECASE):
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
 
                     #files where we are sure we can not load them
-                    elif os.path.isfile(src) and re.search('\.(py)$', src):
+                    elif os.path.isfile(src) and re.search(r'\.(py)$', src):
                         return []
                         s = ""
             for sourceTestFunction in sourceTestFunctions:
-                sources = sourceTestFunction(src)
+                sources = sourceTestFunction(src, name=name, icon=icon)
                 if len(sources) > 0:
                     return sources
 
@@ -347,12 +310,122 @@ class DataSourceFactory(object):
             return []
 
 
+    @staticmethod
+    def checkForRaster(src, **kwds) -> list:
+        """
+        Returns one ore more DataSourceRaster found in src
+        :param src: any object
+        :param kwds: DataSourceRaster-keywords
+        :return: [list-of-DataSourceRaster]
+        """
+        uri, pkey = DataSourceFactory.isRasterSource(src)
+        if uri:
+            rasterUris = []
+            if pkey == 'gdal':
+                # check for raster containers, like HDFs, and handle them separately
+                ds = gdal.Open(uri)
+                subs = ds.GetSubDatasets()
+                if ds.RasterCount > 0:
+                    rasterUris.append(uri)
+                if len(subs) > 0:
+                    rasterUris.extend([s[0] for s in subs])
+            else:
+                rasterUris.append(uri)
+            return [DataSourceRaster(r, providerKey=pkey, **kwds) for r in rasterUris if
+                    isinstance(r, str)]
+        return []
+
+    @staticmethod
+    def checkForVector(src, **kwds) -> list:
+        """
+        Returns one or more DataSourceVector that can be found in src
+        :param src: any
+        :param kwds: DataSourceVector keywords
+        :return: [list-of-DataSourceVector]
+        """
+        uri, pkey = DataSourceFactory.isVectorSource(src)
+        if uri:
+            return [DataSourceVector(uri, providerKey=pkey, **kwds)]
+        return []
+
+    @staticmethod
+    def checkForSpeclib(src, **kwds) -> list:
+        """
+        Returns a DataSourceSpectralLibrary from src, if possible
+        :param src: any type
+        :param kwds: DataSourceSpectralLibrary keywords
+        :return: [list-of-DataSourceSpectralLibrary]
+        """
+        uri, pkey = DataSourceFactory.isSpeclib(src)
+        if uri:
+            return [DataSourceSpectralLibrary(uri, **kwds)]
+        return []
+
+    @staticmethod
+    def checkForHubFlow(src, **kwds) -> list:
+        """
+        if possible, returns a HubFlowDataSource from src
+        :param self:
+        :param src:
+        :param kwds:
+        :return: HubFlowDataSource
+        """
+        uri, pkey = DataSourceFactory.isHubFlowObj(src)
+        if uri:
+            return [HubFlowDataSource(uri, **kwds)]
+        return []
+
+    @staticmethod
+    def checkOtherFiles(src, **kwds) -> list:
+        """
+        Returns a DataSourceFile instance from src
+        :param self:
+        :param src:
+        :param kwds:
+        :return:
+        """
+        src = DataSourceFactory.srcToString(src)
+        if not src is None:
+            if os.path.isfile(src):
+                ext = os.path.splitext(src)[1].lower()
+                if ext in ['.csv', '.txt']:
+                    return [DataSourceTextFile(src, **kwds)]
+                if ext in ['.xml', '.html']:
+                    return [DataSourceXMLFile(src, **kwds)]
+                return [DataSourceFile(src, **kwds)]
+        return []
+
 
 class DataSource(object):
-    """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
-
+    """Base class to describe file/stream/IO sources"""
 
     sigMetadataChanged = pyqtSignal()
+
+    __refs__ = []
+    @classmethod
+    def instances(cls):
+        """
+        Returns all DataSource instances
+        :return: [list-of-DataSources]
+        """
+        #1. clean list of instances
+        DataSource.__refs__ = [r for r in DataSource.__refs__ if r() is not None]
+        for r in DataSource.__refs__:
+            if r is not None:
+                yield r()
+
+    @classmethod
+    def fromUUID(self, uuid:uuid.UUID):
+        """
+        Returns the DataSource with given uuid
+        :param uuid: UUID
+        :return:
+        """
+        for ds in DataSource.instances():
+            assert isinstance(ds, DataSource)
+            if ds.uuid() == uuid:
+                return ds
+        return None
 
     def __init__(self, uri, name=None, icon=None):
         """
@@ -366,7 +439,7 @@ class DataSource(object):
         self.mName = ''
         self.setUri(uri)
         self.mMetadata = {}
-
+        self.__refs__.append(weakref.ref(self))
 
     def isSameSource(self, dataSource)->bool:
         assert isinstance(dataSource, DataSource)
@@ -551,7 +624,7 @@ class DataSourceSpatial(DataSource):
     def createUnregisteredMapLayer(self, *args, **kwds)->QgsMapLayer:
         """
         creates and returns a QgsMapLayer from self.src
-        the QgsMapLayer should be not registered in the QgsMapLayerRegistry
+        the QgsMapLayer should not be registered in the QgsMapLayerRegistry
         to be implemented by inherited classes
         :return:
         """
@@ -560,6 +633,7 @@ class DataSourceSpatial(DataSource):
 
     def modificationTime(self)->QDateTime:
         s = ""
+        return QDateTime()
 
 
 class HubFlowDataSource(DataSourceFile):
@@ -588,15 +662,19 @@ class HubFlowDataSource(DataSourceFile):
             return None
 
 
-class DataSourceSpectralLibrary(DataSourceFile):
+class DataSourceSpectralLibrary(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None):
-        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon)
+        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='memory')
 
         self.mSpeclib = None
         self.nProfiles = 0
         self.profileNames = []
         self.updateMetadata()
+
+    def createUnregisteredMapLayer(self, *args, **kwds)->QgsVectorLayer:
+        #return QgsVectorLayer(self.mSpeclib.source(), self.mSpeclib.name(), 'memory')
+        return self.spectralLibrary()
 
     def updateMetadata(self, *args, **kwds):
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)

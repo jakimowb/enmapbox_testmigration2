@@ -11,7 +11,7 @@ from xml.etree import ElementTree
 ROOT = os.path.dirname(os.path.dirname(__file__))
 from enmapbox.gui.utils import DIR_UIFILES, DIR_ICONS, DIR_REPO, file_search
 jp = os.path.join
-import gdal, ogr, osr
+from osgeo import gdal, ogr, osr
 
 
 def migrateBJexternals():

@@ -33,6 +33,7 @@ from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
 
+HIDDEN_DATASOURCE = '__HIDDEN__DATASOURCE'
 try:
     import hubflow.core
 
@@ -66,7 +67,7 @@ class DataSourceManager(QObject):
         super(DataSourceManager, self).__init__()
         DataSourceManager._testInstance = self
         self.mSources = list()
-        self.mSubsetSelection = {}
+
         self.mQgsLayerTreeGroup = None
         # self.qgsLayerTreeGroup()
 
@@ -177,15 +178,25 @@ class DataSourceManager(QObject):
         else:
             return []
 
-    def onMapLayerRegistryLayersAdded(self, lyrs):
-        # remove layers that should not be added automatically
+    def onMapLayerRegistryLayersAdded(self, lyrs:list):
+        """
+        Response to added layers in the QGIS layer registry
+        :param lyrs: [list-of-added-QgsMapLayer]
+        """
         lyrsToAdd = []
+        for l in lyrs:
+            assert isinstance(l, QgsMapLayer)
+
+        #todo: do we need to filter something here?
+
+        """
         for lyr in lyrs:
             if isinstance(lyr, QgsVectorLayer):
                 if lyr.dataProvider().dataSourceUri().startswith('memory?'):
                     continue
             lyrsToAdd.append(lyr)
-
+        """
+        lyrsToAdd = lyrs
         self.addSources(lyrsToAdd)
 
     def addSources(self, sources) -> list:
@@ -193,7 +204,7 @@ class DataSourceManager(QObject):
         for s in sources:
             added.extend(self.addSource(s))
         added = [a for a in added if isinstance(a, DataSource)]
-        self.mSubsetSelection.clear()
+
         return added
 
     @pyqtSlot(str)
@@ -228,7 +239,7 @@ class DataSourceManager(QObject):
                             older.append(dsNew)
                         else:
                             newer.append(d)
-                    # do not add this source in case there alread exists a newer one
+                    # do not add this source in case there is a newer one
                     if len(newer) == 0:
                         self.removeSources(older)
                         toAdd.append(dsNew)
@@ -878,40 +889,25 @@ class DataSourceManagerTreeModel(TreeModel):
                 for n in node.children():
                     exportedNodes.append(n)
 
-        doc = QDomDocument()
         uriList = list()
+        uuidList =list()
+        dataSourceRefs = []
+        speclib = list()
 
-        #MDF_DATASOURCETREEMODELDATA
-        rootElem = doc.createElement(MDF_DATASOURCETREEMODELDATA);
         for node in exportedNodes:
-            node.writeXML(rootElem)
-            uri = node.dataSource.uri()
-            if os.path.isfile(uri):
-                uriList.append(QUrl.fromLocalFile(uri))
-            else:
-                uriList.append(QUrl(uri))
+            dataSource = node.dataSource
+            assert isinstance(dataSource, DataSource)
+            uriList.append(dataSource.uri())
+            uuidList.append(dataSource.uuid())
 
-        #set application/enmapbox.datasourcetreemodeldata
-        doc.appendChild(rootElem)
-        txt = doc.toString()
-        mimeData.setData(MDF_DATASOURCETREEMODELDATA, QByteArray(txt.encode('utf-8')))
+            if isinstance(dataSource, DataSourceSpectralLibrary):
+                mimeDataSpeclib = dataSource.spectralLibrary().mimeData()
+                for f in mimeDataSpeclib.formats():
+                    if f not in mimeData.formats():
+                        mimeData.setData(f, mimeDataSpeclib.data(f))
 
-        specLibNodes = [n for n in exportedNodes if isinstance(n, SpeclibDataSourceTreeNode)]
-        if len(specLibNodes) > 0:
-            from enmapbox.gui.spectrallibraries import SpectralLibrary
-            sl = SpectralLibrary()
-            for node in specLibNodes:
-                assert isinstance(node, SpeclibDataSourceTreeNode)
+        mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
 
-                slib = SpectralLibrary.readFrom(node.dataSource.uri())
-                sl.addSpeclib(slib)
-
-            if len(sl) > 0:
-                mimeData.setData(MDF_SPECTRALLIBRARY, sl.asPickleDump())
-
-        # set text/uri-list
-        if len(uriList) > 0:
-            mimeData.setUrls(uriList)
         return mimeData
 
 

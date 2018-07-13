@@ -70,16 +70,6 @@ class MyGeoAlgorithmus(QgsProcessingAlgorithm):
         # define
         # todo:
 
-    def getCustomParametersDialog(self):
-
-
-        from PyQt5.QtGui import QDialog
-
-
-        d = QDialog()
-
-        return d
-
 
     def help(self):
         return True, '<todo: describe test>'
@@ -113,25 +103,24 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
-        self.EMB = EnMAPBox(None)
-
-
+        self.EB = EnMAPBox(None)
 
     def tearDown(self):
-        self.EMB.close()
+        self.EB.close()
+        del self.EB
 
 
     def test_instance(self):
         emb = EnMAPBox.instance()
         self.assertIsInstance(emb, EnMAPBox)
-        self.assertEqual(emb, self.EMB)
+        self.assertEqual(emb, self.EB)
 
     def test_initQGISProcessingFramework(self):
         self.fail()
 
     def test_addApplication(self):
-        myApp = TestEnMAPBoxApp(self.EMB)
-        self.EMB.addApplication(myApp)
+        myApp = TestEnMAPBoxApp(self.EB)
+        self.EB.addApplication(myApp)
 
     def test_loadCurrentMapSpectra(self):
         self.fail()
@@ -182,7 +171,11 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_createDock(self):
-        self.fail()
+        from enmapbox.gui.dockmanager import LUT_DOCKTYPES
+        for d in ['MAP','TEXT','SPECLIB', 'MIME']:
+            dock = self.EB.createDock(d)
+            self.assertIsInstance(dock, Dock)
+            self.assertIsInstance(dock, LUT_DOCKTYPES[d])
 
     def test_removeDock(self):
         self.fail()
@@ -191,10 +184,10 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_addSources(self):
-        self.EMB.removeSources(self.EMB.dataSources())
-        self.assertTrue(len(self.EMB.dataSources()) == 0)
-        self.EMB.addSource(enmap)
-        self.assertTrue(len(self.EMB.dataSources()) == 1)
+        self.EB.removeSources(self.EB.dataSources())
+        self.assertTrue(len(self.EB.dataSources()) == 0)
+        self.EB.addSource(enmap)
+        self.assertTrue(len(self.EB.dataSources()) == 1)
 
     def test_removeSources(self):
         self.fail()
@@ -218,10 +211,10 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_loadExampleData(self):
-        self.EMB.loadExampleData()
-        self.assertTrue(len(self.EMB.dataSources()) > 0)
-        self.EMB.removeSources()
-        self.assertTrue(len(self.EMB.dataSources()) == 0)
+        self.EB.loadExampleData()
+        self.assertTrue(len(self.EB.dataSources()) > 0)
+        self.EB.removeSources()
+        self.assertTrue(len(self.EB.dataSources()) == 0)
 
     def test_openMessageLog(self):
         self.fail()

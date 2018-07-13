@@ -377,14 +377,14 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):
-            self.sigMapCanvasAdded.emit(dock.canvas)
+            self.sigMapCanvasAdded.emit(dock.mapCanvas())
 
         self.sigDockAdded.emit(dock)
 
     sigCanvasRemoved = pyqtSignal(MapCanvas)
     def onDockRemoved(self, dock):
         if isinstance(dock, MapDock):
-            self.sigCanvasRemoved.emit(dock.canvas)
+            self.sigCanvasRemoved.emit(dock.mapCanvas())
 
 
     def setCurrentMapSpectraLoading(self, mode:str):
@@ -524,9 +524,14 @@ class EnMAPBox(QgisInterface, QObject):
 
         for n in range(mapWindows):
             dock = self.createDock('MAP')
-            lyrs = [src.createUnregisteredMapLayer()
-                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']) if src in added]
+            assert isinstance(dock, MapDock)
+            lyrs = []
+            for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
+                lyr = src.createUnregisteredMapLayer()
+                lyrs.append(lyr)
+
             dock.addLayers(lyrs)
+            s =""
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
@@ -624,6 +629,12 @@ class EnMAPBox(QgisInterface, QObject):
         return self.dataSourceManager.getUriList(sourceType)
 
     def createDock(self, *args, **kwds)->Dock:
+        """
+        Create and returns a new Dock
+        :param args:
+        :param kwds:
+        :return:
+        """
         return self.dockManager.createDock(*args, **kwds)
 
     def removeDock(self, *args, **kwds):
@@ -1024,7 +1035,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-MapCanvases]
         """
         from enmapbox.gui.mapcanvas import MapDock
-        return [d.canvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
+        return [d.mCanvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
 
     def mapCanvas(self):
         """
@@ -1039,7 +1050,7 @@ class EnMAPBox(QgisInterface, QObject):
                 uri = ds.uri()
                 if uri not in self.mQgisInterfaceLayerSet.keys():
                     lyr = ds.createUnregisteredMapLayer()
-                    QgsProject.instance().addMapLayer(lyr, addToLegend=False)
+                    QgsProject.instance().addMapLayer(lyr, False)
                     self.mQgisInterfaceLayerSet[uri] = lyr
 
         if len(self.mQgisInterfaceLayerSet.values()) > 0:
@@ -1076,7 +1087,7 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def openMessageLog(self):
-        logger.debug('TODO: implement openMessageLog')
+
         pass
 
     ###

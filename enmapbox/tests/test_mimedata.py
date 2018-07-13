@@ -85,7 +85,7 @@ class MimeDataTests(unittest.TestCase):
         self.assertIsInstance(md, QMimeData)
         self.assertTrue(mimedata.MDF_LAYERTREEMODELDATA in md.formats())
 
-        layers = mimedata.toLayerList(md)
+        layers = mimedata.extractMapLayers(md)
         for lyr in layers:
             self.assertIsInstance(lyr, QgsMapLayer)
             self.assertTrue(lyr)

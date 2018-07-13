@@ -1,5 +1,5 @@
 
-
+import pickle, uuid
 from qgis.core import *
 from PyQt5.QtCore import *
 from PyQt5.QtXml import *
@@ -23,7 +23,7 @@ MDF_TEXT_HTML = 'text/html'
 MDF_TEXT_PLAIN = 'text/plain'
 
 
-def attributesd2dict(attributes):
+def attributesd2dict(attributes:QDomNamedNodeMap)->str:
     d = {}
     assert isinstance(attributes, QDomNamedNodeMap)
     for i in range(attributes.count()):
@@ -110,13 +110,12 @@ def fromLayerList(mapLayers):
 
 
 
-def toLayerList(mimeData):
+def extractMapLayers(mimeData:QMimeData)->list:
     """
-    Extracts a layer-tree-group from a QMimeData
+    Extracts available QgsMapLayer from QMimeData
     :param mimeData: QMimeData
-    :return: QgsLayerTree
+    :return: [list-of-QgsMapLayers]
     """
-    supported = [MDF_LAYERTREEMODELDATA, MDF_DATASOURCETREEMODELDATA]
     assert isinstance(mimeData, QMimeData)
     newMapLayers = []
     if MDF_LAYERTREEMODELDATA in mimeData.formats():
@@ -165,6 +164,17 @@ def toLayerList(mimeData):
 
             if isinstance(mapLayer, QgsMapLayer):
                 newMapLayers.append(mapLayer)
+        s = ""
+    elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
+        dsUUIDs = pickle.loads(mimeData.data(MDF_DATASOURCETREEMODELDATA))
+
+        from enmapbox.gui.datasources import DataSource, DataSourceSpatial
+        for uuid4 in dsUUIDs:
+            assert isinstance(uuid4, uuid.UUID)
+            ds = DataSource.fromUUID(uuid4)
+            if isinstance(ds, DataSourceSpatial):
+                newMapLayers.append(ds.createUnregisteredMapLayer())
+
     elif MDF_URILIST in mimeData.formats():
         from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial
         for url in mimeData.urls():

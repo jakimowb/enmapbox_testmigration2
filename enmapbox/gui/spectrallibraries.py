@@ -21,6 +21,7 @@
 
 #see http://python-future.org/str_literals.html for str issue discussion
 import os, re, tempfile, pickle, copy, shutil, locale, uuid, csv, io
+import weakref
 from collections import OrderedDict
 from qgis.core import *
 from qgis.gui import *
@@ -44,23 +45,34 @@ from enmapbox.gui.plotstyling import PlotStyle, PlotStyleDialog, MARKERSYMBOLS2Q
 import enmapbox.gui.mimedata as mimedata
 
 MIMEDATA_SPECLIB = 'application/hub-spectrallibrary'
+MIMEDATA_SPECLIB_LINK = 'application/hub-spectrallibrary-link'
 MIMEDATA_XQT_WINDOWS_CSV = 'application/x-qt-windows-mime;value="Csv"'
-MIMEDATA_TEXT = 'text/html'
+MIMEDATA_TEXT = 'text/plain'
+
+
+def containsSpeclib(mimeData:QMimeData)->bool:
+    for f in [MIMEDATA_SPECLIB, MIMEDATA_SPECLIB_LINK]:
+        if f in mimeData.formats():
+            return True
+
+    return False
 
 FILTERS = 'ENVI Spectral Library + CSV (*.esl *.sli);;CSV Table (*.csv);;ESRI Shapefile (*.shp)'
 
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 HIDDEN_ATTRIBUTE_PREFIX = '__serialized__'
 CURRENT_SPECTRUM_STYLE = PlotStyle()
+CURRENT_SPECTRUM_STYLE.markerSymbol = None
 CURRENT_SPECTRUM_STYLE.linePen.setStyle(Qt.SolidLine)
 CURRENT_SPECTRUM_STYLE.linePen.setColor(Qt.green)
 
 
 DEFAULT_SPECTRUM_STYLE = PlotStyle()
+DEFAULT_SPECTRUM_STYLE.markerSymbol = None
 DEFAULT_SPECTRUM_STYLE.linePen.setStyle(Qt.SolidLine)
 DEFAULT_SPECTRUM_STYLE.linePen.setColor(Qt.white)
 
-EMPTY_VALUES = [None, NULL, QVariant()]
+EMPTY_VALUES = [None, NULL, QVariant(), '']
 
 #CURRENT_SPECTRUM_STYLE.linePen
 #pdi.setPen(fn.mkPen(QColor('green'), width=3))
@@ -261,6 +273,26 @@ class AbstractSpectralLibraryIO(object):
         return []
 
 class SpectralLibrary(QgsVectorLayer):
+    _instances = []
+    @staticmethod
+    def readFromMimeData(mimeData:QMimeData):
+        if MIMEDATA_SPECLIB_LINK in mimeData.formats():
+            #extract from link
+            id = pickle.loads(mimeData.data(MIMEDATA_SPECLIB_LINK))
+            for sl in SpectralLibrary.instances():
+                assert isinstance(sl, SpectralLibrary)
+                if sl.id() == id:
+                    return sl
+            pass
+        elif MIMEDATA_SPECLIB in mimeData.formats():
+            #unpickle
+            return SpectralLibrary.readFromPickleDump(mimeData.data(MIMEDATA_SPECLIB))
+        elif MIMEDATA_TEXT in mimeData.formats():
+
+            return CSVSpectralLibraryIO.fromString(mimeData.text())
+
+
+        return None
 
     @staticmethod
     def readFromPickleDump(data):
@@ -330,13 +362,27 @@ class SpectralLibrary(QgsVectorLayer):
         return None
 
 
+
     sigNameChanged = pyqtSignal(str)
 
+    __refs__ = []
+    @classmethod
+    def instances(cls)->list:
+        #clean refs
+        SpectralLibrary.__refs__ = [r for r in SpectralLibrary.__refs__ if r() is not None]
+        for r in SpectralLibrary.__refs__:
+            if r is not None:
+                yield r()
+
     def __init__(self, name='SpectralLibrary', fields=None):
+
+
         crs = SpectralProfile.crs
         uri = 'Point?crs={}'.format(crs.authid())
         lyrOptions = QgsVectorLayer.LayerOptions(loadDefaultStyle=False, readExtentFromXml=False)
         super(SpectralLibrary, self).__init__(uri, name, 'memory', lyrOptions)
+
+        self.__refs__.append(weakref.ref(self))
 
         if fields is not None:
             defaultFields = fields
@@ -349,6 +395,30 @@ class SpectralLibrary(QgsVectorLayer):
         assert self.dataProvider().addAttributes(defaultFields)
         assert self.commitChanges()
         self.initConditionalStyles()
+
+    def mimeData(self, formats:list=None)->QMimeData:
+        """
+        Wraps this Speclib into a QMimeData object
+        :return: QMimeData
+        """
+        if isinstance(formats, str):
+            formats = [formats]
+        elif formats is None:
+            formats = [MIMEDATA_SPECLIB_LINK]
+
+        mimeData = QMimeData()
+
+        for format in formats:
+            assert format in [MIMEDATA_SPECLIB_LINK, MIMEDATA_SPECLIB, MIMEDATA_TEXT]
+            if format == MIMEDATA_SPECLIB_LINK:
+                mimeData.setData(MIMEDATA_SPECLIB_LINK, pickle.dumps(self.id()))
+            elif format == MIMEDATA_SPECLIB:
+                mimeData.setData(MIMEDATA_SPECLIB, pickle.dumps(self))
+            elif format == MIMEDATA_TEXT:
+                txt = CSVSpectralLibraryIO.asString(self)
+                mimeData.setText(txt)
+
+        return mimeData
 
     def optionalFields(self)->list:
         """
@@ -458,6 +528,8 @@ class SpectralLibrary(QgsVectorLayer):
                 fids = [fids]
             if not isinstance(fids, list):
                 fids = list(fids)
+            for fid in fids:
+                assert isinstance(fid, int)
             featureRequest.setFilterFids(fids)
         # features = [f for f in self.features() if f.id() in fids]
         return list(self.getFeatures(featureRequest))
@@ -774,6 +846,7 @@ class SpectralLibraryTableFilterModel(QgsAttributeTableFilterModel):
 
 class SpectralLibraryTableView(QgsAttributeTableView):
 
+
     def __init__(self, parent=None):
         super(SpectralLibraryTableView, self).__init__(parent)
 
@@ -787,6 +860,7 @@ class SpectralLibraryTableView(QgsAttributeTableView):
 
         self.mSelectionManager = None
 
+
     def setModel(self, filterModel:SpectralLibraryTableFilterModel):
 
         super(SpectralLibraryTableView, self).setModel(filterModel)
@@ -796,6 +870,13 @@ class SpectralLibraryTableView(QgsAttributeTableView):
         self.setFeatureSelectionManager(self.mSelectionManager)
         #self.selectionModel().selectionChanged.connect(self.onSelectionChanged)
 
+    def selectAll(self):
+        self.mSelectionManager.selectAll()
+
+    def selectedIndexes(self)->list:
+        return self.fidsToIndices(self.spectralLibrary().selectedFeatureIds())
+        indices = self.fidsToIndices(self.spectralLibrary().selectedFeatureIds())
+        return sorted(indexes, key=lambda i : i.row())
 
     #def contextMenuEvent(self, event):
     def onWillShowContextMenu(self, menu, index):
@@ -836,7 +917,7 @@ class SpectralLibraryTableView(QgsAttributeTableView):
         for a in self.actions():
             menu.addAction(a)
 
-    def spectralLibrary(self):
+    def spectralLibrary(self)->SpectralLibrary:
         return self.model().layer()
 
 
@@ -913,7 +994,7 @@ class SpectralLibraryTableView(QgsAttributeTableView):
 
 
 
-    def setCheckState(self, fids, checkState):
+    def setCheckState(self, fids:list, checkState:Qt.CheckState):
 
         speclib = self.spectralLibrary()
         speclib.startEditing()
@@ -946,24 +1027,23 @@ class SpectralLibraryTableView(QgsAttributeTableView):
         mimeData = event.mimeData()
 
         if self.model().rowCount() == 0:
-            index = self.model().createIndex(0,0)
+            index = self.model().createIndex(0, 0)
         else:
             index = self.indexAt(event.pos())
-
-        if mimeData.hasFormat(mimedata.MDF_SPECTRALLIBRARY):
-            self.model().dropMimeData(mimeData, event.dropAction(), index.row(), index.column(), QModelIndex())
+        if self.model().dropMimeData(mimeData, event.dropAction(), index.row(), index.column(), QModelIndex()):
             event.accept()
 
     def dragEnterEvent(self, event):
         assert isinstance(event, QDragEnterEvent)
-        if event.mimeData().hasFormat(mimedata.MDF_SPECTRALLIBRARY):
+
+        if containsSpeclib(event.mimeData()):
             event.accept()
+
 
     def dragMoveEvent(self, event):
         assert isinstance(event, QDragMoveEvent)
-        if event.mimeData().hasFormat(mimedata.MDF_SPECTRALLIBRARY):
+        if containsSpeclib(event.mimeData()):
             event.accept()
-        s = ""
 
 """
 class SpectralProfileMapTool(QgsMapToolEmitPoint):
@@ -1628,7 +1708,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
     """
     STD_NAMES = ['WKT']+[n for n in createStandardFields().names() if not n.startswith(HIDDEN_ATTRIBUTE_PREFIX)]
     REGEX_HEADERLINE = re.compile('^'+'\\t'.join(STD_NAMES)+'\\t.*')
-    REGEX_BANDVALUE_COLUMN = re.compile(r'^b(?P<band>\d+)[ _]*(?P<xvalue>-?\d+\.?\d*)?[ _]*(?P<xunit>\D+)?')
+    REGEX_BANDVALUE_COLUMN = re.compile(r'^(?P<bandprefix>\D+)?(?P<band>\d+)[ _]*(?P<xvalue>-?\d+\.?\d*)?[ _]*(?P<xunit>\D+)?', re.IGNORECASE)
 
     @staticmethod
     def canRead(path=None):
@@ -1706,14 +1786,15 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                 nProfiles += 1
 
             #find missing fields, detect data type for and them to the SpectralLibrary
-            knownFields = SLIB.fieldNames()
+
             bandValueColumnNames = sorted([n for n in R.fieldnames
                                        if CSVSpectralLibraryIO.REGEX_BANDVALUE_COLUMN.match(n)])
-
+            specialHandlingColumns = bandValueColumnNames + ['WKT']
             addGeometry = 'WKT' in R.fieldnames
             addYValues = False
             xUnit = None
             xValues = []
+
             if len(bandValueColumnNames) > 0:
                 addYValues = True
                 for n in bandValueColumnNames:
@@ -1738,7 +1819,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
             #find data type of missing fields
             for n in R.fieldnames:
                 assert isinstance(n, str)
-                if n in knownFields:
+                if n in specialHandlingColumns:
                     continue
 
                 #find a none-empty string which describes a
@@ -1757,7 +1838,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                     s = ""
 
                 #convert values to int, float or str
-                columnVectors[n] = toType(t, values)
+                columnVectors[n] = toType(t, values, empty2None=True)
                 missingQgsFields.append(qgsField)
 
             #add missing fields
@@ -1766,6 +1847,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
 
 
             #create a feature for each row
+            yValueType = None
             for i in range(nProfiles):
                 p = SpectralProfile(fields=SLIB.fields())
                 if addGeometry:
@@ -1774,10 +1856,20 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
 
                 if addYValues:
                     yvalues = [columnVectors[n][i] for n in bandValueColumnNames]
+                    if yValueType is None and len(yvalues) > 0:
+                        yValueType = findTypeFromString(yvalues[0])
+
+                    yvalues = toType(yValueType, yvalues, True)
+
                     p.setYValues(yvalues)
                     p.setXUnit(xUnit)
                     if xValues:
                         p.setXValues(xValues)
+
+                #add other attributes
+                for n in [n for n in p.fieldNames() if n in list(columnVectors.keys())]:
+
+                    p.setAttribute(n, columnVectors[n][i])
 
                 SLIB.addFeature(p)
 
@@ -1801,12 +1893,21 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
             profiles = item[1]
             attributeNames = attributeNames[:]
 
+            valueNames = []
+            for b, xvalue in enumerate(xvalues):
 
-            if xunit == 'index':
-                valueNames = ['b{}'.format(b + 1) for b in range(len(xvalues))]
-            else:
-                valueNames = ['b{}_{}{}'.format(b + 1, xvalue, xunit) for b, xvalue in enumerate(xvalues)]
+                name = 'b{}'.format(b+1)
 
+                suffix = ''
+                if xunit != 'index':
+                    suffix+=str(xvalue)
+                    suffix += xunit
+                elif xvalue != b:
+                    suffix += str(xvalue)
+
+                if len(suffix)>0:
+                    name += '_'+suffix
+                valueNames.append(name)
 
             fieldnames = []
             if not skipGeometry:
@@ -2482,12 +2583,11 @@ class SpectralLibraryTableModel(QgsAttributeTableModel):
         assert isinstance(mimeData, QMimeData)
         assert isinstance(parent, QModelIndex)
 
-        if mimeData.hasFormat(mimedata.MDF_SPECTRALLIBRARY):
-
-            dump = mimeData.data(mimedata.MDF_SPECTRALLIBRARY)
-            speclib = SpectralLibrary.readFromPickleDump(dump)
+        speclib = SpectralLibrary.readFromMimeData(mimeData)
+        if isinstance(speclib, SpectralLibrary):
             self.mSpeclib.addSpeclib(speclib)
             return True
+
         return False
 
     def mimeData(self, indexes):
@@ -2685,22 +2785,21 @@ class SpectralLibraryPlotWidget(PlotWidget):
 
     def dragEnterEvent(self, event):
         assert isinstance(event, QDragEnterEvent)
-        if event.mimeData().hasFormat(MIMEDATA_SPECLIB):
+        if containsSpeclib(event.mimeData()):
             event.accept()
 
     def dragMoveEvent(self, event):
         assert isinstance(event, QDragMoveEvent)
-        if event.mimeData().hasFormat(MIMEDATA_SPECLIB):
+        if containsSpeclib(event.mimeData()):
             event.accept()
-
 
     def dropEvent(self, event):
         assert isinstance(event, QDropEvent)
         mimeData = event.mimeData()
 
-        if mimeData.hasFormat(MIMEDATA_SPECLIB):
-            speclib = pickle.loads(mimeData.data(MIMEDATA_SPECLIB))
-            self.mSpeclib.addSpeclib(speclib)
+        speclib = SpectralLibrary.readFromMimeData(mimeData)
+        if isinstance(speclib, SpectralLibrary):
+            self.speclib().addSpeclib(speclib)
             event.accept()
 
 
@@ -3072,17 +3171,22 @@ class SpectralLibraryFeatureSelectionManager(QgsIFeatureSelectionManager):
 
             self.selectionChanged.emit(selected, ids, True)
 
-    def select(self, ids):
+    def select(self, ids:list):
         self.mLayer.select(ids)
+
+    def selectAll(self):
+
+        self.mLayer.selectAll()
+
 
     def selectFeatures(self, selection, command):
 
         super(SpectralLibraryFeatureSelectionManager, self).selectF
         s = ""
-    def selectedFeatureCount(self):
+    def selectedFeatureCount(self)->int:
         return self.mLayer.selectedFeatureCount()
 
-    def selectedFeatureIds(self):
+    def selectedFeatureIds(self)->list:
         return self.mLayer.selectedFeatureIds()
 
     def setSelectedFeatures(self, ids):

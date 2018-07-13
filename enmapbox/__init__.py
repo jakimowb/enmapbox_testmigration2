@@ -9,6 +9,8 @@ DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplot
 import sys, os
 from qgis.core import Qgis, QgsApplication
 
+
+
 def messageLog(msg, level=Qgis.Info):
     """
     Writes a log message to the QGIS EnMAP-Box Log
@@ -20,3 +22,8 @@ def messageLog(msg, level=Qgis.Info):
         msg = str(msg)
     QgsApplication.instance().messageLog().logMessage(msg, 'EnMAP-Box', level)
 
+
+
+
+from enmapbox.gui.enmapboxgui import EnMAPBox
+EnMAPBox = EnMAPBox

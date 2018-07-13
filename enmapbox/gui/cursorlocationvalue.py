@@ -525,26 +525,3 @@ class Resulthandler(QObject):
 
 
 R = Resulthandler()
-if __name__ == '__main__':
-    from enmapbox.gui.utils import initQgisApplication
-
-    qgsApp = initQgisApplication()
-
-    from enmapboxtestdata import enmap, landcover
-
-    canvas = QgsMapCanvas()
-    lyr = QgsRasterLayer(enmap)
-    shp = QgsVectorLayer(landcover, 'landcover')
-    QgsProject.instance().addMapLayers([lyr,shp])
-    canvas.setLayers([shp, lyr])
-    canvas.setDestinationCrs(lyr.crs())
-    canvas.setExtent(lyr.extent())
-    canvas.show()
-
-
-    d = CursorLocationInfoDock()
-    d.show()
-    d.loadCursorLocation(lyr.extent().center(), canvas)
-    pass
-
-    qgsApp.exec_()

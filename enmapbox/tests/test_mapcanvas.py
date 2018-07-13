@@ -65,10 +65,6 @@ class MapCanvasTests(unittest.TestCase):
 
     def test_dropEvents(self):
 
-
-        def createDropEvent(mimeData):
-            assert isinstance(mimeData, QMimeData)
-            return QDropEvent(QPointF(0,0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier)
         from enmapboxtestdata import enmap, hymap, landcover, speclib
         allFiles = [enmap, hymap, landcover, speclib]
         spatialFiles = [enmap, hymap, landcover]

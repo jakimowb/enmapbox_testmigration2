@@ -112,12 +112,14 @@ initQgisEnvironment = initQgisApplication
 
 
 def sandboxGUI():
-    from enmapbox.gui.enmapboxgui import EnMAPBox
+    #from enmapbox.gui.enmapboxgui import EnMAPBox
+    from enmapbox import EnMAPBox
     EB = EnMAPBox(None)
     EB.ui.resize(QSize(600,500))
     EB.openExampleData(mapWindows=1)
     if True:
         dock = EB.createDock('SPECLIB')
+        s = ""
         #dock.float()
         #dock.resize(QSize(300, 400))
 
