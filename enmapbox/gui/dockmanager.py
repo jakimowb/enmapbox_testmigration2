@@ -37,6 +37,8 @@ LUT_DOCKTYPES = {'MAP':MapDock,
                  'WEBVIEW':WebViewDock,
                  'SPECLIB':SpectralLibraryDock}
 
+for cls in list(LUT_DOCKTYPES.values()):
+    LUT_DOCKTYPES[cls] = cls
 
 class DockTreeNode(TreeNode):
     @staticmethod
@@ -495,7 +497,7 @@ class DockManagerTreeModel(TreeModel):
         :param dock:
         :return:
         """
-        return CreateNodeFromDock(dock, self.rootNode)
+        return createDockTreeNode(dock, self.rootNode)
 
     def removeDock(self, dock):
         rootNode = self.rootNode
@@ -966,16 +968,18 @@ class DockManager(QObject):
     def __iter__(self):
         return iter(self.mDocks)
 
-    def docks(self, dockType=None):
+    def docks(self, dockType=None)->list:
         """
         Returns the managed docks.
         :param dockType: type of Dock to be returned. Default = None to return all Docks
         :return: [list-of-Docks controlled by this DockManager]
         """
+        if isinstance(dockType, str):
+            dockType = LUT_DOCKTYPES[dockType]
         if dockType is None:
             return self.mDocks[:]
         else:
-            return [d for d in self.mDocks if type(d) is dockType]
+            return [d for d in self.mDocks if isinstance(d, dockType)]
 
     def getDockWithUUID(self, uuid_):
         if isinstance(uuid_, str):
@@ -1001,31 +1005,32 @@ class DockManager(QObject):
     def createDock(self, dockType, *args, **kwds)->Dock:
         """
         Creates and returns a new Dock
-        :param dockType: str, can be 'MAP'
+        :param dockType: str or Dock class, e.g. 'MAP' or MapDock
         :param args:
         :param kwds:
         :return:
         """
         assert dockType in LUT_DOCKTYPES.keys(), 'dockType must be from [{}]'.format(','.join(['"{}"'.format(k) for k in LUT_DOCKTYPES.keys()]))
-
+        cls = LUT_DOCKTYPES[dockType]
         n = len(self.mDocks) + 1
-        is_new_dock = True
-        if dockType == 'MAP':
+
+        dock = None
+        if cls == MapDock:
             kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
             dock = MapDock(*args, **kwds)
-        elif dockType == 'TEXT':
+        elif cls == TextDock:
             kwds['name'] = kwds.get('name', 'Text #{}'.format(n))
             dock = TextDock(*args, **kwds)
 
-        elif dockType == 'MIME':
+        elif cls == MimeDataDock:
             kwds['name'] = kwds.get('name', 'MimeData #{}'.format(n))
             dock = MimeDataDock(*args, **kwds)
 
-        elif dockType == 'WEBVIEW':
+        elif cls == WebViewDock:
             kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
             dock = WebViewDock(*args, **kwds)
 
-        elif dockType == 'SPECLIB':
+        elif cls == SpectralLibraryDock:
             kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclibWidget.setMapInteraction(True)
@@ -1091,7 +1096,7 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
 
 
 
-def CreateNodeFromDock(dock:Dock, parent=None)->DockTreeNode:
+def createDockTreeNode(dock:Dock, parent=None)->DockTreeNode:
     if isinstance(dock, Dock):
         dockType = type(dock)
         if dockType is MapDock:

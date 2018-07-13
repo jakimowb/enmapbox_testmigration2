@@ -208,7 +208,20 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_mapCanvas(self):
-        self.fail()
+        self.assertTrue(self.EB.mapCanvas() is None)
+        self.assertIsInstance(self.EB.mapCanvas(virtual=True), MapCanvas)
+        canvases = self.EB.mapCanvases()
+        self.assertIsInstance(canvases, list)
+        self.assertTrue(len(canvases) == 0)
+
+        self.EB.loadExampleData()
+        self.assertTrue(len(self.EB.mapCanvases()) == 1)
+
+        self.EB.createDock('MAP')
+        self.assertTrue(len(self.EB.mapCanvases()) == 2)
+        for c in self.EB.mapCanvases():
+            self.assertIsInstance(c, MapCanvas)
+
 
     def test_loadExampleData(self):
         self.EB.loadExampleData()

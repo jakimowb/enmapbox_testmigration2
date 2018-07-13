@@ -717,7 +717,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return:
         """
         self.mQgisInterfaceLayerSet = dict()
-        self.mQgisInterfaceMapCanvas = QgsMapCanvas()
+        self.mQgisInterfaceMapCanvas = MapCanvas()
 
     ### SIGNALS from QgisInterface ####
 
@@ -1037,38 +1037,42 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.mapcanvas import MapDock
         return [d.mCanvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
 
-    def mapCanvas(self):
+    def mapCanvas(self, virtual=False)->MapCanvas:
         """
         Returns a virtual QgsMapCanvas that contains all QgsMapLayers visible in the EnMAP-Box DataSource Manager
         :return: QgsMapCanvas
         """
-        assert isinstance(self.mQgisInterfaceMapCanvas, QgsMapCanvas)
-        self.mQgisInterfaceMapCanvas.setLayers([])
 
-        for ds in self.dataSourceManager.mSources:
-            if isinstance(ds, DataSourceSpatial):
-                uri = ds.uri()
-                if uri not in self.mQgisInterfaceLayerSet.keys():
-                    lyr = ds.createUnregisteredMapLayer()
-                    QgsProject.instance().addMapLayer(lyr, False)
-                    self.mQgisInterfaceLayerSet[uri] = lyr
 
-        if len(self.mQgisInterfaceLayerSet.values()) > 0:
-            lyr = list(self.mQgisInterfaceLayerSet.values())[0]
-            self.mQgisInterfaceMapCanvas.mapSettings().setDestinationCrs(lyr.crs())
-            self.mQgisInterfaceMapCanvas.setExtent(lyr.extent())
-            self.mQgisInterfaceMapCanvas.setLayers(self.mQgisInterfaceLayerSet.values())
+        if virtual:
+            assert isinstance(self.mQgisInterfaceMapCanvas, QgsMapCanvas)
+            self.mQgisInterfaceMapCanvas.setLayers([])
 
-        return self.mQgisInterfaceMapCanvas
+            layers = []
+            for ds in self.dataSourceManager.sources():
+                if isinstance(ds, DataSourceSpatial):
+                    layers.append(ds.createUnregisteredMapLayer())
+            self.mQgisInterfaceMapCanvas.setLayers(layers)
+            if len(layers) > 0:
+                self.mQgisInterfaceMapCanvas.mapSettings().setDestinationCrs(layers[0].crs())
+                self.mQgisInterfaceMapCanvas.setExtent(layers[0].extent())
 
-    def firstRightStandardMenu(self):
+            return self.mQgisInterfaceMapCanvas
+        mapDocks = self.dockManager.docks(dockType='MAP')
+        if len(mapDocks) > 0:
+            return mapDocks[0].mapCanvas()
+        else:
+            return None
+
+
+    def firstRightStandardMenu(self)->QMenu:
         return self.ui.menuApplications
 
     def registerMainWindowAction(self, action, defaultShortcut):
         self.ui.addAction(action)
 
     def vectorMenu(self):
-        s = ""
+        return QMenu()
 
     def addDockWidget(self, area, dockwidget):
         self.ui.addDockWidget(area, dockwidget)
