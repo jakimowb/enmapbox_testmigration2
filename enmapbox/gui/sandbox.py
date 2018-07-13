@@ -112,16 +112,22 @@ initQgisEnvironment = initQgisApplication
 
 
 def sandboxGUI():
-    from enmapbox.gui.enmapboxgui import EnMAPBox
+    #from enmapbox.gui.enmapboxgui import EnMAPBox
+    from enmapbox import EnMAPBox
     EB = EnMAPBox(None)
-
+    EB.ui.resize(QSize(600,500))
     EB.openExampleData(mapWindows=1)
-    #EB.addSource(r'R:\WS1718_FE1\Daten\Sitzung_12\MODIS Berlin\MOD13A1.A2015273.h18v03.006.2015307052831.hdf')
-    #EB.addSource(r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml')
-    #EB.addSource(r'H:\Pleiades\GFOIGroupe13Brazil_SO16018091-2-01_DS_PHR1A_201610071358040_FR1_PX_W056S07_0707_03492\TPP1600447277\VOL_PHR.XML')
-    #p = r'H:\Sentinel2\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\S2A_MSIL1C_20170315T101021_N0204_R022_T33UUV_20170315T101214.SAFE\MTD_MSIL1C.xml'
-    #EB.addSources([p])
-    s = ""
+    if True:
+        dock = EB.createDock('SPECLIB')
+        s = ""
+        #dock.float()
+        #dock.resize(QSize(300, 400))
+
+        #from enmapbox.gui.spectrallibraries import SpectralLibraryPanel, SpectralLibraryWidget
+        #p  =SpectralLibraryPanel()
+        #p = SpectralLibraryWidget()
+        #p.show()
+
 
 
 
@@ -173,7 +179,7 @@ def sandboxTreeNodes():
     ui = DockPanelUI()
     ui.connectDockManager(dm)
     rootNode = ui.model.rootNode
-    from enmapbox.testdata.HymapBerlinA import HymapBerlinA_image
+
     from enmapbox.gui.treeviews import TreeNode, CRSTreeNode
 
     if True:
@@ -241,17 +247,17 @@ class QgisFake(QgisInterface):
             providerkey = 'ogr'
         l = QgsVectorLayer(path, basename, providerkey)
         assert l.isValid()
-        QgsMapLayerRegistry.instance().addMapLayer(l, True)
+        QgsProject.instance().addMapLayer(l, True)
         self.rootNode.addLayer(l)
         self.bridge.setCanvasLayers()
         s = ""
 
     def legendInterface(self):
-        QgsLegendInterface
+        pass
     def addRasterLayer(self, path, baseName=''):
         l = QgsRasterLayer(path, loadDefaultStyleFlag=True)
         self.lyrs.append(l)
-        QgsMapLayerRegistry.instance().addMapLayer(l, True)
+        QgsProject.instance().addMapLayer(l, True)
         self.rootNode.addLayer(l)
         self.bridge.setCanvasLayers()
         return
@@ -372,7 +378,6 @@ if __name__ == '__main__':
         f.write('\n'.join(files))
         f.flush()
         f.close()
-
 
         from enmapbox.gui.utils import initQgisApplication
         qgsApp = initQgisApplication()

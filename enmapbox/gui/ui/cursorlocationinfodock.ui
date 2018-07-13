@@ -12,7 +12,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="resources.qrc">
-    <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.png</iconset>
+    <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.svg</iconset>
   </property>
   <property name="windowTitle">
    <string>Cursor Location Values</string>
@@ -40,7 +40,7 @@
         </property>
         <property name="icon">
          <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.png</iconset>
+          <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.svg</iconset>
         </property>
        </widget>
       </item>
@@ -54,7 +54,7 @@
         </property>
         <property name="icon">
          <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionRefresh.png</normaloff>:/enmapbox/icons/mActionRefresh.png</iconset>
+          <normaloff>:/enmapbox/icons/mActionRefresh.png</normaloff>:/enmapbox/icons/mActionRefresh.svg</iconset>
         </property>
        </widget>
       </item>
@@ -205,7 +205,7 @@
   <action name="actionRequestCursorLocation">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>:/enmapbox/icons/mActionIdentify.svg</iconset>
    </property>
    <property name="text">
     <string>Select Cursor Location</string>
@@ -214,7 +214,7 @@
   <action name="actionReload">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionRefresh.png</normaloff>:/enmapbox/icons/mActionRefresh.png</iconset>
+     <normaloff>:/enmapbox/icons/mActionRefresh.png</normaloff>:/enmapbox/icons/mActionRefresh.svg</iconset>
    </property>
    <property name="text">
     <string>Reload</string>

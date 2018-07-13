@@ -341,15 +341,7 @@ class CrosshairWidget(QWidget, loadUI('crosshairwidget.ui')):
         super(CrosshairWidget, self).__init__(parent)
         self.setupUi(self)
 
-        #self.crossHairReferenceLayer = CrosshairLayer()
-        #self.crossHairReferenceLayer.connectCanvas(self.crossHairCanvas)
-
         self.mapCanvas.setExtent(QgsRectangle(0, 0, 1, 1))  #
-        #QgsProject.instance().addMapLayer(self.crossHairReferenceLayer)
-        #self.crossHairCanvas.setLayerSet([QgsMapCanvasLayer(self.crossHairReferenceLayer)])
-
-        #crs = QgsCoordinateReferenceSystem('EPSG:25832')
-        #self.crossHairCanvas.mapSettings().setDestinationCrs(crs)
 
         self.mapCanvasItem = CrosshairMapCanvasItem(self.mapCanvas)
 

@@ -59,7 +59,6 @@ class CentralFrame(QFrame):
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event):
-        logger.debug('CentralFrame dragEnterEvent')
         pass
         # self.sigDragEnterEvent.emit(event)
 
@@ -72,7 +71,6 @@ class CentralFrame(QFrame):
         # self.sigDragLeaveEvent(event)
 
     def dropEvent(self, event):
-        logger.debug('CentralFrame dropEvent')
         pass
         # self.sigDropEvent.emit(event)
 
@@ -103,7 +101,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
 
 def getIcon():
-    return QIcon(':/enmapbox/icons/enmapbox.png')
+    return QIcon(':/enmapbox/icons/enmapbox.svg')
 
 
 
@@ -130,7 +128,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
 
-    def __init__(self, iface):
+    def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None
         # necessary to make the resource file available
         from enmapbox.gui.ui import resources
@@ -379,14 +377,23 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):
-            self.sigMapCanvasAdded.emit(dock.canvas)
+            self.sigMapCanvasAdded.emit(dock.mapCanvas())
 
         self.sigDockAdded.emit(dock)
 
     sigCanvasRemoved = pyqtSignal(MapCanvas)
-    def onDockRemoved(self,dock):
+    def onDockRemoved(self, dock):
         if isinstance(dock, MapDock):
-            self.sigCanvasRemoved.emit(dock.canvas)
+            self.sigCanvasRemoved.emit(dock.mapCanvas())
+
+
+    def setCurrentMapSpectraLoading(self, mode:str):
+        """
+        Sets the way how SpectralProfiles will be loaded from a map position
+        :param mode: str 'TOP' for first raster layer spectrum only, 'ALL' for all raster layers
+        """
+        assert mode in ['TOP','ALL']
+        self.mCurrentMapSpectraLoading = mode
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
     def loadCurrentMapSpectra(self, spatialPoint, mapCanvas):
@@ -517,9 +524,14 @@ class EnMAPBox(QgisInterface, QObject):
 
         for n in range(mapWindows):
             dock = self.createDock('MAP')
-            lyrs = [src.createUnregisteredMapLayer()
-                    for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']) if src in added]
+            assert isinstance(dock, MapDock)
+            lyrs = []
+            for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
+                lyr = src.createUnregisteredMapLayer()
+                lyrs.append(lyr)
+
             dock.addLayers(lyrs)
+            s =""
 
     def onAddDataSource(self):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
@@ -543,8 +555,8 @@ class EnMAPBox(QgisInterface, QObject):
     sigRasterSourceAdded = pyqtSignal(str)
     sigVectorSourceAdded = pyqtSignal(str)
 
-    def onDataSourceAdded(self, dataSource):
-        assert isinstance(dataSource, DataSource)
+    def onDataSourceAdded(self, dataSource:DataSource):
+
         self.sigDataSourceAdded.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceRaster):
             self.sigRasterSourceAdded.emit(dataSource.uri())
@@ -593,21 +605,21 @@ class EnMAPBox(QgisInterface, QObject):
 
     sigCurrentSpectraChanged = pyqtSignal(list)
 
-    def setCurrentSpectra(self, spectra):
-        assert isinstance(spectra, list)
+    def setCurrentSpectra(self, spectra:list):
+
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
-
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 
-    def currentSpectra(self):
+    def currentSpectra(self)->list:
         """
         Returns the spectra currently selected using the profile tool.
+
         :return: [list-of-spectra]
         """
         return self.mCurrentSpectra[:]
 
-    def dataSources(self, sourceType='ALL'):
+    def dataSources(self, sourceType='ALL')->list:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
@@ -616,7 +628,13 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.dataSourceManager.getUriList(sourceType)
 
-    def createDock(self, *args, **kwds):
+    def createDock(self, *args, **kwds)->Dock:
+        """
+        Create and returns a new Dock
+        :param args:
+        :param kwds:
+        :return:
+        """
         return self.dockManager.createDock(*args, **kwds)
 
     def removeDock(self, *args, **kwds):
@@ -638,12 +656,12 @@ class EnMAPBox(QgisInterface, QObject):
         Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
         :param source:
         :param name:
-        :return: [list-of-datasources]
+        :return: [list-of-dataSources]
         """
         return self.dataSourceManager.addSource(source, name=name)
 
 
-    def removeSources(self, dataSourceList):
+    def removeSources(self, dataSourceList:list=None):
         self.dataSourceManager.removeSources(dataSourceList)
 
     def removeSource(self, source):
@@ -699,7 +717,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return:
         """
         self.mQgisInterfaceLayerSet = dict()
-        self.mQgisInterfaceMapCanvas = QgsMapCanvas()
+        self.mQgisInterfaceMapCanvas = MapCanvas()
 
     ### SIGNALS from QgisInterface ####
 
@@ -1017,40 +1035,44 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-MapCanvases]
         """
         from enmapbox.gui.mapcanvas import MapDock
-        return [d.canvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
+        return [d.mCanvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
 
-    def mapCanvas(self):
+    def mapCanvas(self, virtual=False)->MapCanvas:
         """
         Returns a virtual QgsMapCanvas that contains all QgsMapLayers visible in the EnMAP-Box DataSource Manager
         :return: QgsMapCanvas
         """
-        assert isinstance(self.mQgisInterfaceMapCanvas, QgsMapCanvas)
-        self.mQgisInterfaceMapCanvas.setLayers([])
 
-        for ds in self.dataSourceManager.mSources:
-            if isinstance(ds, DataSourceSpatial):
-                uri = ds.uri()
-                if uri not in self.mQgisInterfaceLayerSet.keys():
-                    lyr = ds.createUnregisteredMapLayer()
-                    QgsProject.instance().addMapLayer(lyr, addToLegend=False)
-                    self.mQgisInterfaceLayerSet[uri] = lyr
 
-        if len(self.mQgisInterfaceLayerSet.values()) > 0:
-            lyr = list(self.mQgisInterfaceLayerSet.values())[0]
-            self.mQgisInterfaceMapCanvas.mapSettings().setDestinationCrs(lyr.crs())
-            self.mQgisInterfaceMapCanvas.setExtent(lyr.extent())
-            self.mQgisInterfaceMapCanvas.setLayers(self.mQgisInterfaceLayerSet.values())
+        if virtual:
+            assert isinstance(self.mQgisInterfaceMapCanvas, QgsMapCanvas)
+            self.mQgisInterfaceMapCanvas.setLayers([])
 
-        return self.mQgisInterfaceMapCanvas
+            layers = []
+            for ds in self.dataSourceManager.sources():
+                if isinstance(ds, DataSourceSpatial):
+                    layers.append(ds.createUnregisteredMapLayer())
+            self.mQgisInterfaceMapCanvas.setLayers(layers)
+            if len(layers) > 0:
+                self.mQgisInterfaceMapCanvas.mapSettings().setDestinationCrs(layers[0].crs())
+                self.mQgisInterfaceMapCanvas.setExtent(layers[0].extent())
 
-    def firstRightStandardMenu(self):
+            return self.mQgisInterfaceMapCanvas
+        mapDocks = self.dockManager.docks(dockType='MAP')
+        if len(mapDocks) > 0:
+            return mapDocks[0].mapCanvas()
+        else:
+            return None
+
+
+    def firstRightStandardMenu(self)->QMenu:
         return self.ui.menuApplications
 
     def registerMainWindowAction(self, action, defaultShortcut):
         self.ui.addAction(action)
 
     def vectorMenu(self):
-        s = ""
+        return QMenu()
 
     def addDockWidget(self, area, dockwidget):
         self.ui.addDockWidget(area, dockwidget)
@@ -1069,7 +1091,7 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def openMessageLog(self):
-        logger.debug('TODO: implement openMessageLog')
+
         pass
 
     ###

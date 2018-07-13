@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 
-import os, sys, site, collections, re
+import os, sys, site, collections, re, inspect
 
 from qgis.core import *
 from qgis.core import Qgis

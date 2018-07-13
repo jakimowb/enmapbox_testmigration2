@@ -29,81 +29,10 @@ import numpy as np
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.mapcanvas import MapDock
-class TreeNodeProvider():
 
-    @staticmethod
-    def CreateNodeFromInstance(o, parent):
-        node = None
-        if isinstance(o, DataSource):
-            node = TreeNodeProvider.CreateNodeFromDataSource(o, parent)
-        elif isinstance(o, Dock):
-            node = TreeNodeProvider.CreateNodeFromDock(o, parent)
-        elif isinstance(o, QMimeData):
-            s = ""
-        return node
-
-    @staticmethod
-    def CreateNodeFromDataSource(dataSource, parent):
-
-        from enmapbox.gui.datasourcemanager import DataSource, HubFlowObjectTreeNode, \
-        FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode, \
-        SpeclibDataSourceTreeNode
-        assert isinstance(dataSource, DataSource)
-
-        #hint: take care of class inheritance order
-        if isinstance(dataSource, HubFlowDataSource):
-            node = HubFlowObjectTreeNode(parent, dataSource)
-        elif isinstance(dataSource, DataSourceRaster):
-            node = RasterDataSourceTreeNode(parent, dataSource)
-        elif isinstance(dataSource, DataSourceVector):
-            node = VectorDataSourceTreeNode(parent, dataSource)
-        elif isinstance(dataSource, DataSourceSpectralLibrary):
-            node = SpeclibDataSourceTreeNode(parent, dataSource)
-        elif isinstance(dataSource, DataSourceFile):
-            node = FileDataSourceTreeNode(parent, dataSource)
-        else:
-            node = DataSourceTreeNode(parent, dataSource)
-
-        return node
-
-
-    @staticmethod
-    def CreateNodeFromDock(dock, parent):
-        assert isinstance(dock, Dock)
-        dockType = type(dock)
-        from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode, SpeclibDockTreeNode
-        if dockType is MapDock:
-            return MapDockTreeNode(parent, dock)
-        elif dockType in [TextDock]:
-            return TextDockTreeNode(parent, dock)
-        elif dockType is CursorLocationValueDock:
-            return DockTreeNode(parent, dock)
-        elif dockType is SpectralLibraryDock:
-            return SpeclibDockTreeNode(parent, dock)
-        else:
-            return DockTreeNode(parent, dock)
-
-
-    @staticmethod
-    def CreateNodeFromXml(elem):
-        tagName = elem.tagName()
-        node = None
-        attributes = getDOMAttributes(elem)
-        tagMap = [('tree-node', TreeNode),
-                  ('dock-tree-node', DockTreeNode),
-                  ('map-dock-tree-node', MapDockTreeNode),
-                  ('test-dock-tree-node', TextDockTreeNode),
-                  ('layer-tree-group', QgsLayerTreeGroup),
-                  ('layer-tree-layer', QgsLayerTreeLayer),
-                  ('datasource-tree-node', DataSourceTreeNode),
-                  ('datasource-tree-group', DataSourceGroupTreeNode)
-                  ]
-        for xmlTag, nodeClass in tagMap:
-            if xmlTag == tagName:
-                node = nodeClass.readXml(elem)
-                break
-        return node
-
+#from enmapbox.gui.datasourcemanager import HubFlowObjectTreeNode, \
+#    FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode, \
+#    SpeclibDataSourceTreeNode
 
 
 class TreeNode(QgsLayerTree):
@@ -121,6 +50,8 @@ class TreeNode(QgsLayerTree):
         self.mValue = None
         self.mIcon = None
 
+        self.mXmlTag = 'tree-node'
+
         self.setName(name)
         self.setValue(value)
         self.setExpanded(False)
@@ -132,6 +63,9 @@ class TreeNode(QgsLayerTree):
             parent.addChildNode(self)
             if isinstance(parent, TreeNode):
                 self.sigValueChanged.connect(parent.sigValueChanged)
+
+    def xmlTag(self)->str:
+        return self.mXmlTag
 
     def _removeSubNode(self,node):
         if node in self.children():
@@ -225,11 +159,25 @@ class TreeNode(QgsLayerTree):
 
         #return elem
 
+
     def readChildrenFromXml(self, element):
         nodes = []
         childElem = element.firstChildElement()
         while(not childElem.isNull()):
-            node = TreeNodeProvider.CreateNodeFromXml(childElem)
+            elem = childElem
+            tagName = elem.tagName()
+            node = None
+            attributes = getDOMAttributes(elem)
+            # from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode
+            # from enmapbox.gui.datasourcemanager import DataSourceGroupTreeNode, DataSourceTreeNode
+
+            if tagName == 'tree-node':
+                node = TreeNode.readXml(elem)
+            else:
+                for nodeClass in TreeNode.__subclasses__():
+                    if True:
+                        node = nodeClass.readXml(elem)
+                        break
 
             if node:
                 nodes.append(node)
@@ -374,7 +322,7 @@ class CRSTreeNode(TreeNode):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(CRSTreeNode, self).__init__(parent, crs.description())
         self.setName('CRS')
-        self.setIcon(QIcon(':/enmapbox/icons/crs.png'))
+        self.setIcon(QIcon(':/enmapbox/icons/crs.svg'))
         self.setTooltip('Coordinate Reference System')
         self.mCrs = None
         self.nodeDescription = TreeNode(self, 'Name', tooltip='Description')
@@ -491,5 +439,9 @@ class TreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
             return self.currentNode().contextMenu()
         else:
             return QMenu()
+
+
+
+
 
 

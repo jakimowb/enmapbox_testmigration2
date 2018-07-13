@@ -20,11 +20,12 @@
 """
 # noinspection PyPep8Naming
 
-from __future__ import absolute_import
-from distutils.version import LooseVersion
 import os, sys, re, shutil, zipfile, datetime
+import qgis.utils
+from qgis.PyQt.QtCore import *
 import numpy as np
 from pb_tool import pb_tool
+
 import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
 import git
@@ -88,11 +89,12 @@ if __name__ == "__main__":
 
     mkDir(DIR_DEPLOY)
 
-
     if True: #update metadata
         pathMetadata = jp(DIR_REPO, 'metadata.txt')
         # update version number in metadata
-        lines = open(pathMetadata).readlines()
+        f = open(pathMetadata)
+        lines = f.readlines()
+        f.close()
         lines = re.sub('version=.*\n', 'version={}\n'.format(buildID), ''.join(lines))
         f = open(pathMetadata, 'w')
         f.write(lines)
@@ -125,17 +127,6 @@ if __name__ == "__main__":
         # I don't know how to call this from pure python
         pb_tool.compile_files(cfg)
 
-
-
-
-        # create a tag
-        if False and CREATE_TAG:
-            index = REPO.index
-            index.add([pathMetadata])
-            index.commit('updated metadata for version: "{}"'.format(buildID))
-
-            REPO.create_tag('v.' + enmapbox.__version__)
-
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
 
@@ -144,6 +135,9 @@ if __name__ == "__main__":
         # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
         print('Remove files...')
 
+        if True:
+            #delete help folder
+            shutil.rmtree(os.path.join(dirPlugin, *['help']), ignore_errors=True)
         for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
             os.remove(f)
 
@@ -158,18 +152,13 @@ if __name__ == "__main__":
     # os.chdir(dirPlugin)
     # shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
 
-    # 6. copy to local QGIS user DIR
-    if False:
-        import shutil
+    # 6. install the zip file into the local QGIS instance. You will need to restart QGIS!
+    if True:
 
-        from os.path import expanduser
+        print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:')
+        print('from pyplugin_installer.installer import pluginInstaller')
+        print('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
+        print('#### (This might take a while)\n')
 
-        pathQGIS = os.path.join(expanduser("~"), *['.qgis2', 'python', 'plugins'])
-
-        assert os.path.isdir(pathQGIS)
-        pathDst = os.path.join(pathQGIS, os.path.basename(dirPlugin))
-        rm(pathDst)
-        shutil.copytree(dirPlugin, pathDst)
-        s = ""
 
     print('Finished')

@@ -1,0 +1,13 @@
+WKT	name	px_x	px_y	x_unit	y_unit	source	b1	b2	b3	b4	b5
+	No Geometry			index			0.2	0.3	0.2	0.5	0.7
+											
+WKT	name	px_x	px_y	x_unit	y_unit	source	b1_250.0nm	b2_251.0nm	b3_253.0nm	b4_254.0nm	b5_256.0nm
+				nm			0.2	0.3	0.2	0.5	0.7
+											
+WKT	name	px_x	px_y	x_unit	y_unit	source	b1_0.25um	b2_0.251um	b3_0.253um	b4_0.254um	b5_0.256um
+				um			0.22	0.333	0.222	0.555	0.777
+											
+WKT	name	px_x	px_y	x_unit	y_unit	source	b1_0.4843Micrometers	b2_0.5584Micrometers	b3_0.6465Micrometers	b4_0.8046Micrometers
+Point (13.29671827190145805 52.4919073663043747)	Position A	247	330	Micrometers		C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapboxtestdata\HighResolution_BerlinUrbanGradient.bsq	322	290	249	367
+Point (13.29753501885982203 52.49272833406296002)	Position B	263	305	Micrometers		C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapboxtestdata\HighResolution_BerlinUrbanGradient.bsq	684	727	697	831
+										

@@ -161,7 +161,7 @@ class CanvasLinkDialog(QDialog):
     def __init__(self, *args, **kwds):
         super(CanvasLinkDialog, self).__init__(*args, **kwds)
 
-        self.setWindowIcon(QIcon(':/enmapbox/icons/enmapbox.png'))
+        self.setWindowIcon(QIcon(':/enmapbox/icons/enmapbox.svg'))
         self.setWindowTitle('Map Linking')
         self.setLayout(QVBoxLayout())
 
@@ -482,7 +482,7 @@ class CanvasLink(QObject):
     @staticmethod
     def ShowMapLinkTargets(mapDockOrMapCanvas):
         if isinstance(mapDockOrMapCanvas, MapDock):
-            mapDockOrMapCanvas = mapDockOrMapCanvas.canvas
+            mapDockOrMapCanvas = mapDockOrMapCanvas.mCanvas
         assert isinstance(mapDockOrMapCanvas, QgsMapCanvas)
 
         canvas1 = mapDockOrMapCanvas
@@ -549,20 +549,20 @@ class CanvasLink(QObject):
 
         if linkType == LINK_ON_CENTER:
             a = QAction('Link map center', None)
-            a.setIcon(QIcon(':/enmapbox/icons/link_center.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_center.svg'))
             a.setToolTip('Link map center')
         elif linkType == LINK_ON_SCALE:
             a = QAction('Link map scale ("Zoom")', None)
-            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale.svg'))
             a.setToolTip('Link to scale between both maps')
         elif linkType == LINK_ON_CENTER_SCALE:
             a = QAction('Link map scale and center', None)
             a.setToolTip('Link map scale and center')
-            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.svg'))
         elif linkType == UNLINK:
             a = QAction('Unlink', None)
             a.setToolTip('Removes an existing link between both canvases')
-            a.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
+            a.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
         else:
             raise Exception('Unknown link type : {}'.format(linkType))
 
@@ -684,13 +684,13 @@ class CanvasLink(QObject):
     def icon(self):
 
         if self.linkType == LINK_ON_SCALE:
-            src = ":/enmapbox/icons/link_mapscale.png"
+            src = ":/enmapbox/icons/link_mapscale.svg"
         elif self.linkType == LINK_ON_CENTER:
-            src = ":/enmapbox/icons/link_center.png"
+            src = ":/enmapbox/icons/link_center.svg"
         elif self.linkType == LINK_ON_CENTER_SCALE:
-            src = ":/enmapbox/icons/link_mapscale_center.png"
+            src = ":/enmapbox/icons/link_mapscale_center.svg"
         elif self.linkType == UNLINK:
-            src = ":/enmapbox/icons/link_upenh.png"
+            src = ":/enmapbox/icons/link_upenh.svg"
         else:
             raise NotImplementedError('unknown link type: {}'.format(self.linkType))
 
@@ -841,10 +841,10 @@ class MapCanvas(QgsMapCanvas):
         menu = QMenu()
 
         action = menu.addAction('Link with other maps')
-        action.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
         action.triggered.connect(lambda: CanvasLink.ShowMapLinkTargets(self))
         action = menu.addAction('Remove links to other maps')
-        action.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
         action.triggered.connect(lambda: self.removeAllCanvasLinks())
 
         menu.addSeparator()
@@ -867,11 +867,11 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
 
         action = menu.addAction('Zoom Full')
-        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomFullExtent.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomFullExtent.svg'))
         action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
 
         action = menu.addAction('Zoom Native Resolution')
-        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.png'))
+        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.svg'))
         action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
 
         menu.addSeparator()
@@ -889,12 +889,12 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
 
         action = menu.addAction('Refresh')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
         action.triggered.connect(lambda: self.refresh())
 
 
         action = menu.addAction('Refresh all layers')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.png"))
+        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
         action.triggered.connect(lambda: self.refreshAllLayers())
 
 
@@ -1038,7 +1038,7 @@ class MapCanvas(QgsMapCanvas):
             event.ignore()
 
 
-    def dropEvent(self, event):
+    def dropEvent(self, event:QDropEvent):
         """
 
         :param event: QDropEvent
@@ -1048,7 +1048,7 @@ class MapCanvas(QgsMapCanvas):
         assert isinstance(mimeData, QMimeData)
 
         #add map layers
-        mapLayers = toLayerList(mimeData)
+        mapLayers = extractMapLayers(mimeData)
 
         if len(mapLayers) > 0:
             self.setLayers(mapLayers + self.layers())
@@ -1117,16 +1117,15 @@ class MapCanvas(QgsMapCanvas):
         """
         if not isinstance(mapLayers, list):
             mapLayers = [mapLayers]
+        for l in mapLayers:
+            assert isinstance(l, QgsMapLayer)
 
         lastSet = self.layers()
         newSet = mapLayers[:]
 
         #register not-registered layers
         reg = QgsProject.instance()
-        for l in newSet:
-            assert isinstance(l, QgsMapLayer)
-            if l not in reg.children():
-                reg.addMapLayer(l, False)
+        reg.addMapLayers(newSet)
 
         super(MapCanvas,self).setLayers(newSet)
 
@@ -1160,12 +1159,12 @@ class MapDockLabel(DockLabel):
 
         self.addMapLink = QToolButton(self)
         self.addMapLink.setToolTip('Link with other map(s)')
-        self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.png'))
+        self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
         self.buttons.append(self.addMapLink)
 
         self.removeMapLink = QToolButton(self)
         self.removeMapLink.setToolTip('Remove links to this map')
-        self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.png'))
+        self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
         self.buttons.append(self.removeMapLink)
 
 
@@ -1204,30 +1203,30 @@ class MapDock(Dock):
     def __init__(self, *args, **kwds):
         initSrc = kwds.pop('initSrc', None)
         super(MapDock, self).__init__(*args, **kwds)
-        self.basename = self.title()
+        self.mBaseName = self.title()
 
         #self.actionLinkExtent = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Link to map extent', self)
         #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
         #self.label.buttons.append(self.actionLinkCenter.getButton())
 
-        self.canvas = MapCanvas(self)
-        self.canvas.setName(self.title())
-        self.canvas.sigNameChanged.connect(self.setTitle)
-        self.sigTitleChanged.connect(self.canvas.setName)
+        self.mCanvas = MapCanvas(self)
+        self.mCanvas.setName(self.title())
+        self.mCanvas.sigNameChanged.connect(self.setTitle)
+        self.sigTitleChanged.connect(self.mCanvas.setName)
         #self.label.setText(self.basename)
         #self.canvas.setScaleLocked(True)
         #self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenuEvent)
         #self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
-        self.canvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
-        self.canvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
-        self.canvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
+        self.mCanvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
+        self.mCanvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
+        self.mCanvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
 
         settings = QSettings()
-        assert isinstance(self.canvas, QgsMapCanvas)
-        self.canvas.setCanvasColor(Qt.black)
-        self.canvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
+        assert isinstance(self.mCanvas, QgsMapCanvas)
+        self.mCanvas.setCanvasColor(Qt.black)
+        self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
         #self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
-        self.layout.addWidget(self.canvas)
+        self.layout.addWidget(self.mCanvas)
 
         """
         The problem still exists in QGis 2.0.1-3 available through OSGeo4W distribution. New style connection always return the same error:
@@ -1246,30 +1245,25 @@ class MapDock(Dock):
 
 
         self.label.addMapLink.clicked.connect(lambda:CanvasLink.ShowMapLinkTargets(self))
-        self.label.removeMapLink.clicked.connect(lambda: self.canvas.removeAllCanvasLinks())
+        self.label.removeMapLink.clicked.connect(lambda: self.mCanvas.removeAllCanvasLinks())
 
         if initSrc is not None:
             from enmapbox.gui.datasources import DataSourceFactory
             dataSources = DataSourceFactory.Factory(initSrc)
             lyrs = [ds.createUnregisteredMapLayer() for ds in dataSources]
             if len(lyrs) > 0:
-                self.canvas.setLayers(lyrs)
+                self.mCanvas.setLayers(lyrs)
 
     def cursorLocationValueRequest(self,*args):
         self.sigCursorLocationRequest.emit(*args)
 
-    def contextMenu(self):
+    def contextMenu(self)->QMenu:
         m = super(MapDock, self).contextMenu()
         from enmapbox.gui.utils import appendItemsToMenu
 
-        return appendItemsToMenu(m, self.canvas.contextMenu())
+        return appendItemsToMenu(m, self.mCanvas.contextMenu())
 
-
-
-    def mimeData(self):
-        return ['']
-
-    def _createLabel(self, *args, **kwds):
+    def _createLabel(self, *args, **kwds)->MapDockLabel:
         return MapDockLabel(self, *args, **kwds)
 
     def mousePressEvent(self, event):
@@ -1280,7 +1274,7 @@ class MapDock(Dock):
 
     def linkWithMapDock(self, mapDock, linkType):
         assert isinstance(mapDock, MapDock)
-        self.linkWithCanvas(mapDock.canvas, linkType)
+        self.linkWithCanvas(mapDock.mCanvas, linkType)
 
 
     def linkWithCanvas(self, canvas, linkType):
@@ -1289,12 +1283,12 @@ class MapDock(Dock):
 
 
 
-    def layers(self):
-        return self.canvas.layers()
+    def layers(self)->list:
+        return self.mCanvas.layers()
 
     def setLayers(self, mapLayers):
         assert isinstance(mapLayers, list)
-        self.canvas.setLayers(mapLayers)
+        self.mCanvas.setLayers(mapLayers)
 
 
     def addLayers(self, mapLayers):
@@ -1302,22 +1296,24 @@ class MapDock(Dock):
             mapLayers = [mapLayers]
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-        self.setLayers(mapLayers + self.canvas.layers())
+        self.setLayers(mapLayers + self.mCanvas.layers())
 
     def removeLayersByURI(self, uri):
         to_remove = []
         uri = os.path.abspath(uri)
 
-        for lyr in self.canvas.layers():
+        for lyr in self.mCanvas.layers():
             lyrUri = os.path.abspath(lyr.dataProvider().dataSourceUri())
             if uri == lyrUri:
                 to_remove.append(lyr)
 
         self.removeLayers(to_remove)
 
+    def mapCanvas(self)->MapCanvas:
+        return self.mCanvas
 
     def removeLayers(self, mapLayers):
-        newSet = [l for l in self.canvas.layers() if l not in mapLayers]
+        newSet = [l for l in self.mCanvas.layers() if l not in mapLayers]
         self.setLayers(newSet)
 
 

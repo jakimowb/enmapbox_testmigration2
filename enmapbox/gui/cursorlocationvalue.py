@@ -150,7 +150,7 @@ class CursorLocationInfoModel(TreeModel):
         if isinstance(sourceValueSet, RasterValueSet):
             root = gocn(self.mRootNode, name=bn)
             self.setColumnSpan(root, True)
-            root.setIcon(QIcon(':/enmapbox/icons/mIconRasterLayer.png'))
+            root.setIcon(QIcon(':/enmapbox/icons/mIconRasterLayer.svg'))
 
             # add subnodes
             n = gocn(root, 'Pixel')
@@ -170,9 +170,9 @@ class CursorLocationInfoModel(TreeModel):
             refFeature = sourceValueSet.features[0]
             assert isinstance(refFeature, QgsFeature)
             typeName = QgsWkbTypes.displayString(refFeature.geometry().wkbType()).lower()
-            if 'polygon' in typeName: path = ':/enmapbox/icons/mIconPolygonLayer.png'
-            if 'line' in typeName: path = ':/enmapbox/icons/mIconLineLayer.png'
-            if 'point' in typeName: path = ':/enmapbox/icons/mIconLineLayer.png'
+            if 'polygon' in typeName: path = ':/enmapbox/icons/mIconPolygonLayer.svg'
+            if 'line' in typeName: path = ':/enmapbox/icons/mIconLineLayer.svg'
+            if 'point' in typeName: path = ':/enmapbox/icons/mIconLineLayer.svg'
             root.setIcon(QIcon(path))
 
             for field in refFeature.fields():
@@ -525,26 +525,3 @@ class Resulthandler(QObject):
 
 
 R = Resulthandler()
-if __name__ == '__main__':
-    from enmapbox.gui.utils import initQgisApplication
-
-    qgsApp = initQgisApplication()
-
-    from enmapboxtestdata import enmap, landcover
-
-    canvas = QgsMapCanvas()
-    lyr = QgsRasterLayer(enmap)
-    shp = QgsVectorLayer(landcover, 'landcover')
-    QgsProject.instance().addMapLayers([lyr,shp])
-    canvas.setLayers([shp, lyr])
-    canvas.setDestinationCrs(lyr.crs())
-    canvas.setExtent(lyr.extent())
-    canvas.show()
-
-
-    d = CursorLocationInfoDock()
-    d.show()
-    d.loadCursorLocation(lyr.extent().center(), canvas)
-    pass
-
-    qgsApp.exec_()

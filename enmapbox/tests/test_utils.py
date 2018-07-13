@@ -40,6 +40,14 @@ class testClassUtils(unittest.TestCase):
     def tearDown(self):
         self.w.close()
 
+    def test_QgisMockup(self):
+
+        from enmapbox.gui.utils import QgisMockup
+
+        m = QgisMockup.create()
+        self.assertIsInstance(m, QgisInterface)
+        self.assertIsInstance(m.mapCanvas(), QgsMapCanvas)
+        self.assertIsInstance(m.messageBar(), QgsMessageBar)
 
     def test_spatialObjects(self):
         from enmapbox.gui.utils import SpatialPoint, SpatialExtent

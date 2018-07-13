@@ -38,7 +38,7 @@
        </property>
        <property name="icon">
         <iconset resource="resources.qrc">
-         <normaloff>:/enmapbox/icons/class.png</normaloff>:/enmapbox/icons/class.png</iconset>
+         <normaloff>:/enmapbox/icons/class.png</normaloff>:/enmapbox/icons/class.svg</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -55,7 +55,7 @@
        </property>
        <property name="icon">
         <iconset resource="resources.qrc">
-         <normaloff>:/enmapbox/icons/add_class.png</normaloff>:/enmapbox/icons/add_class.png</iconset>
+         <normaloff>:/enmapbox/icons/add_class.png</normaloff>:/enmapbox/icons/add_class.svg</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -72,7 +72,7 @@
        </property>
        <property name="icon">
         <iconset resource="resources.qrc">
-         <normaloff>:/enmapbox/icons/remove_class.png</normaloff>:/enmapbox/icons/remove_class.png</iconset>
+         <normaloff>:/enmapbox/icons/remove_class.png</normaloff>:/enmapbox/icons/remove_class.svg</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>

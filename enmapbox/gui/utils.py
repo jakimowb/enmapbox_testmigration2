@@ -42,8 +42,14 @@ DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
 DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
-
 DIR_TESTDATA = os.path.join(DIR_ENMAPBOX, 'enmapboxtestdata')
+
+
+#for python development only
+DIR_QGISRESOURCES = jp(DIR_REPO, 'qgisresources')
+if not os.path.isdir(DIR_QGISRESOURCES):
+    DIR_QGISRESOURCES = None
+
 
 REPLACE_TMP = True  # required for loading *.ui files directly
 
@@ -142,10 +148,86 @@ class TestObjects():
 
         return QgisMockup()
 
+    @staticmethod
+    def createDropEvent(mimeData:QMimeData):
+        """Creates a QDropEvent conaining the provided QMimeData"""
+        return QDropEvent(QPointF(0, 0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier)
+
+
+class QgsPluginManagerMockup(QgsPluginManagerInterface):
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+    def addPluginMetadata(self, *args, **kwargs):
+        super().addPluginMetadata(*args, **kwargs)
+
+    def addToRepositoryList(self, *args, **kwargs):
+        super().addToRepositoryList(*args, **kwargs)
+
+    def childEvent(self, *args, **kwargs):
+        super().childEvent(*args, **kwargs)
+
+    def clearPythonPluginMetadata(self, *args, **kwargs):
+        #super().clearPythonPluginMetadata(*args, **kwargs)
+        pass
+
+    def clearRepositoryList(self, *args, **kwargs):
+        super().clearRepositoryList(*args, **kwargs)
+
+    def connectNotify(self, *args, **kwargs):
+        super().connectNotify(*args, **kwargs)
+
+    def customEvent(self, *args, **kwargs):
+        super().customEvent(*args, **kwargs)
+
+    def disconnectNotify(self, *args, **kwargs):
+        super().disconnectNotify(*args, **kwargs)
+
+    def isSignalConnected(self, *args, **kwargs):
+        return super().isSignalConnected(*args, **kwargs)
+
+    def pluginMetadata(self, *args, **kwargs):
+        super().pluginMetadata(*args, **kwargs)
+
+    def pushMessage(self, *args, **kwargs):
+        super().pushMessage(*args, **kwargs)
+
+    def receivers(self, *args, **kwargs):
+        return super().receivers(*args, **kwargs)
+
+    def reloadModel(self, *args, **kwargs):
+        super().reloadModel(*args, **kwargs)
+
+    def sender(self, *args, **kwargs):
+        return super().sender(*args, **kwargs)
+
+    def senderSignalIndex(self, *args, **kwargs):
+        return super().senderSignalIndex(*args, **kwargs)
+
+    def showPluginManager(self, *args, **kwargs):
+        super().showPluginManager(*args, **kwargs)
+
+    def timerEvent(self, *args, **kwargs):
+        super().timerEvent(*args, **kwargs)
+
+
 class QgisMockup(QgisInterface):
+    """
+    A "fake" QGIS Desktop instance that should provide all the inferfaces a plugin developer might need (and nothing more)
+    """
+
+    def pluginManagerInterface(self)->QgsPluginManagerInterface:
+        return self.mPluginManager
 
     @staticmethod
-    def create():
+    def create()->QgisInterface:
+        """
+        Create the QgisMockup and sets the global variables
+        :return: QgisInterface
+        """
 
         iface = QgisMockup()
 
@@ -168,32 +250,48 @@ class QgisMockup(QgisInterface):
                         module.iface = iface
                 except:
                     pass
-
+        #set 'home_plugin_path', which is required from the QGIS Plugin manager
+        assert qgis.utils.iface == iface
+        qgis.utils.home_plugin_path = os.path.join(QgsApplication.instance().qgisSettingsDirPath(), *['python', 'plugins'])
         return iface
 
     def __init__(self, *args):
         # QgisInterface.__init__(self)
         super(QgisMockup, self).__init__()
 
-        self.canvas = QgsMapCanvas()
-        self.canvas.blockSignals(False)
-        self.canvas.setCanvasColor(Qt.black)
-        self.canvas.extentsChanged.connect(self.testSlot)
-        self.layerTreeView = QgsLayerTreeView()
-        self.rootNode = QgsLayerTree()
-        self.treeModel = QgsLayerTreeModel(self.rootNode)
-        self.layerTreeView.setModel(self.treeModel)
-        self.bridge = QgsLayerTreeMapCanvasBridge(self.rootNode, self.canvas)
-        self.bridge.setAutoSetupOnFirstLayer(True)
+        self.mCanvas = QgsMapCanvas()
+        self.mCanvas.blockSignals(False)
+        self.mCanvas.setCanvasColor(Qt.black)
+        self.mCanvas.extentsChanged.connect(self.testSlot)
+        self.mLayerTreeView = QgsLayerTreeView()
+        self.mRootNode = QgsLayerTree()
+        self.mLayerTreeModel = QgsLayerTreeModel(self.mRootNode)
+        self.mLayerTreeView.setModel(self.mLayerTreeModel)
+        self.mLayerTreeMapCanvasBridge = QgsLayerTreeMapCanvasBridge(self.mRootNode, self.mCanvas)
+        self.mLayerTreeMapCanvasBridge.setAutoSetupOnFirstLayer(True)
+
+        import pyplugin_installer.installer
+        PI = pyplugin_installer.instance()
+        self.mPluginManager = QgsPluginManagerMockup()
+
         self.ui = QMainWindow()
+
+
+
+        self.mMessageBar = QgsMessageBar()
         mainFrame = QFrame()
 
         self.ui.setCentralWidget(mainFrame)
         self.ui.setWindowTitle('QGIS Mockup')
+
+
         l = QHBoxLayout()
-        l.addWidget(self.layerTreeView)
-        l.addWidget(self.canvas)
-        mainFrame.setLayout(l)
+        l.addWidget(self.mLayerTreeView)
+        l.addWidget(self.mCanvas)
+        v = QVBoxLayout()
+        v.addWidget(self.mMessageBar)
+        v.addLayout(l)
+        mainFrame.setLayout(v)
         self.ui.setCentralWidget(mainFrame)
         self.lyrs = []
         self.createActions()
@@ -226,8 +324,8 @@ class QgisMockup(QgisInterface):
         l = QgsVectorLayer(path, basename, providerkey)
         assert l.isValid()
         QgsProject.instance().addMapLayer(l, True)
-        self.rootNode.addLayer(l)
-        self.bridge.setCanvasLayers()
+        self.mRootNode.addLayer(l)
+        self.mLayerTreeMapCanvasBridge.setCanvasLayers()
         s = ""
 
     def legendInterface(self):
@@ -237,8 +335,8 @@ class QgisMockup(QgisInterface):
         l = QgsRasterLayer(path, os.path.basename(path))
         self.lyrs.append(l)
         QgsProject.instance().addMapLayer(l, True)
-        self.rootNode.addLayer(l)
-        self.bridge.setCanvasLayers()
+        self.mRootNode.addLayer(l)
+        self.mLayerTreeMapCanvasBridge.setCanvasLayers()
         return
 
         cnt = len(self.canvas.layers())
@@ -263,7 +361,88 @@ class QgisMockup(QgisInterface):
         m = self.ui.menuBar().addAction('Add Raster')
 
     def mapCanvas(self):
-        return self.canvas
+        return self.mCanvas
+
+    def mapNavToolToolBar(self):
+        super().mapNavToolToolBar()
+
+    def messageBar(self, *args, **kwargs):
+        return self.mMessageBar
+
+    def rasterMenu(self):
+        super().rasterMenu()
+
+    def vectorMenu(self):
+        super().vectorMenu()
+
+    def viewMenu(self):
+        super().viewMenu()
+
+    def windowMenu(self):
+        super().windowMenu()
+
+    def zoomFull(self, *args, **kwargs):
+        super().zoomFull(*args, **kwargs)
+
+
+def createQgsField(name : str, exampleValue, comment:str=None):
+    """
+    Create a QgsField using a Python-datatype exampleValue
+    :param name: field name
+    :param exampleValue: value, can be any type
+    :param comment: (optional) field comment.
+    :return: QgsField
+    """
+    t = type(exampleValue)
+    if t in [str]:
+        return QgsField(name, QVariant.String, 'varchar', comment=comment)
+    elif t in [bool]:
+        return QgsField(name, QVariant.Bool, 'int', len=1, comment=comment)
+    elif t in [int, np.int32, np.int64]:
+        return QgsField(name, QVariant.Int, 'int', comment=comment)
+    elif t in [float, np.double, np.float, np.float64]:
+        return QgsField(name, QVariant.Double, 'double', comment=comment)
+    elif isinstance(exampleValue, np.ndarray):
+        return QgsField(name, QVariant.String, 'varchar', comment=comment)
+    elif isinstance(exampleValue, list):
+        assert len(exampleValue)> 0, 'need at least one value in provided list'
+        v = exampleValue[0]
+        prototype = createQgsField(name, v)
+        subType = prototype.type()
+        typeName = prototype.typeName()
+        return QgsField(name, QVariant.List, typeName, comment=comment, subType=subType)
+    else:
+        raise NotImplemented()
+
+
+def setQgsFieldValue(feature:QgsFeature, field, value):
+    """
+    Wrties the Python value v into a QgsFeature field, taking care of required conversions
+    :param feature: QgsFeature
+    :param field: QgsField | field name (str) | field index (int)
+    :param value: any python value
+    """
+
+    if isinstance(field, int):
+        field = feature.fields().at(field)
+    elif isinstance(field, str):
+        field = feature.fields().at(feature.fieldNameIndex(field))
+    assert isinstance(field, QgsField)
+
+    if value is None:
+        value = QVariant.NULL
+    if field.type() == QVariant.String:
+        value = str(value)
+    elif field.type() in [QVariant.Int, QVariant.Bool]:
+        value = int(value)
+    elif field.type() in [QVariant.Double]:
+        value = float(value)
+    else:
+        raise NotImplementedError()
+
+   # i = feature.fieldNameIndex(field.name())
+    feature.setAttribute(field.name(), value)
+
 
 
 def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgisResourceDir=None):
@@ -398,12 +577,9 @@ def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
     :return: gdal.Dataset
     """
     if not isinstance(pathOrDataset, gdal.Dataset):
-        ds = gdal.Open(pathOrDataset, eAccess)
-        assert isinstance(pathOrDataset, gdal.Dataset), 'Can not read {} as gdal.Dataset'.format(pathOrDataset)
-    else:
-        assert isinstance(pathOrDataset, gdal.Dataset)
-        ds = pathOrDataset
-    return ds
+        pathOrDataset = gdal.Open(pathOrDataset, eAccess)
+    assert isinstance(pathOrDataset, gdal.Dataset), 'Can not read {} as gdal.Dataset'.format(pathOrDataset)
+    return pathOrDataset
 
 
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
@@ -640,7 +816,7 @@ def defaultBands(dataset):
 
         db = dataset.GetMetadataItem(str('default_bands'), str('ENVI'))
         if db != None:
-            db = [int(n) for n in re.findall('\d+')]
+            db = [int(n) for n in re.findall(r'\d+')]
             return db
         db = [0, 0, 0]
         cis = [gdal.GCI_RedBand, gdal.GCI_GreenBand, gdal.GCI_BlueBand]
@@ -721,10 +897,10 @@ def parseWavelength(dataset):
 
             for key, values in mdDict.items():
                 key = key.lower()
-                if re.search('wavelength$', key, re.I):
-                    tmp = re.findall('\d*\.\d+|\d+', values)  # find floats
+                if re.search(r'wavelength$', key, re.I):
+                    tmp = re.findall(r'\d*\.\d+|\d+', values)  # find floats
                     if len(tmp) != dataset.RasterCount:
-                        tmp = re.findall('\d+', values)  # find integers
+                        tmp = re.findall(r'\d+', values)  # find integers
                     if len(tmp) == dataset.RasterCount:
                         wl = np.asarray([float(w) for w in tmp])
 
@@ -1150,28 +1326,28 @@ class IconProvider:
     """
     Provides icons
     """
-    EnMAP_Logo = ':/enmapbox/png/icons/enmapbox.png'
-    Map_Link_Remove = ':/enmapbox/png/icons/link_open.png'
-    Map_Link = ':/enmapbox/png/icons/link_basic.png'
-    Map_Link_Center = ':/enmapbox/png/icons/link_center.png'
-    Map_Link_Extent = ':/enmapbox/png/icons/link_mapextent.png'
-    Map_Link_Scale = ':/enmapbox/png/icons/link_mapscale.png'
-    Map_Link_Scale_Center = ':/enmapbox/png/icons/link_mapscale_center.png'
-    Map_Zoom_In = ':/enmapbox/png/icons/mActionZoomOut.png'
-    Map_Zoom_Out = ':/enmapbox/png/icons/mActionZoomIn.png'
-    Map_Pan = ':/enmapbox/png/icons/mActionPan.png'
-    Map_Touch = ':/enmapbox/png/icons/mActionTouch.png'
-    File_RasterMask = ':/enmapbox/png/icons/filelist_mask.png'
-    File_RasterRegression = ':/enmapbox/png/icons/filelist_regression.png'
-    File_RasterClassification = ':/enmapbox/png/icons/filelist_classification.png'
-    File_Raster = ':/enmapbox/png/icons/filelist_image.png'
-    File_Vector_Point = ':/enmapbox/png/icons/mIconPointLayer.png'
-    File_Vector_Line = ':/enmapbox/png/icons/mIconLineLayer.png'
-    File_Vector_Polygon = ':/enmapbox/png/icons/mIconPolygonLayer.png'
+    EnMAP_Logo = ':/enmapbox/icons/enmapbox.svg'
+    Map_Link_Remove = ':/enmapbox/icons/link_open.svg'
+    Map_Link = ':/enmapbox/icons/link_basic.svg'
+    Map_Link_Center = ':/enmapbox/icons/link_center.svg'
+    Map_Link_Extent = ':/enmapbox/icons/link_mapextent.svg'
+    Map_Link_Scale = ':/enmapbox/icons/link_mapscale.svg'
+    Map_Link_Scale_Center = ':/enmapbox/icons/link_mapscale_center.svg'
+    Map_Zoom_In = ':/enmapbox/icons/mActionZoomOut.svg'
+    Map_Zoom_Out = ':/enmapbox/icons/mActionZoomIn.svg'
+    Map_Pan = ':/enmapbox/icons/mActionPan.svg'
+    Map_Touch = ':/enmapbox/icons/mActionTouch.svg'
+    File_RasterMask = ':/enmapbox/icons/filelist_mask.svg'
+    File_RasterRegression = ':/enmapbox/icons/filelist_regression.svg'
+    File_RasterClassification = ':/enmapbox/icons/filelist_classification.svg'
+    File_Raster = ':/enmapbox/icons/filelist_image.svg'
+    File_Vector_Point = ':/enmapbox/icons/mIconPointLayer.svg'
+    File_Vector_Line = ':/enmapbox/icons/mIconLineLayer.svg'
+    File_Vector_Polygon = ':/enmapbox/icons/mIconPolygonLayer.svg'
 
-    Dock = ':/enmapbox/png/icons/viewlist_dock.png'
-    MapDock = ':/enmapbox/png/icons/viewlist_mapdock.png'
-    SpectralDock = ':/enmapbox/png/icons/viewlist_spectrumdock.png'
+    Dock = ':/enmapbox/icons/viewlist_dock.svg'
+    MapDock = ':/enmapbox/icons/viewlist_mapdock.svg'
+    SpectralDock = ':/enmapbox/icons/viewlist_spectrumdock.svg'
 
     @staticmethod
     def resourceIconsPaths():

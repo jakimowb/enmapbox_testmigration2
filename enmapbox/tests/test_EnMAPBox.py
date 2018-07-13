@@ -31,8 +31,10 @@ from enmapbox.gui.utils import *
 QGIS_APP = initQgisApplication()
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
-
-
+from enmapboxtestdata import enmap, hymap, speclib
+from enmapbox.gui.docks import *
+from enmapbox.gui.mapcanvas import *
+from enmapbox.gui.spectrallibraries import *
 
 class MyOutputRaster(QgsProcessingParameterDefinition):
 
@@ -68,16 +70,6 @@ class MyGeoAlgorithmus(QgsProcessingAlgorithm):
         # define
         # todo:
 
-    def getCustomParametersDialog(self):
-
-
-        from PyQt5.QtGui import QDialog
-
-
-        d = QDialog()
-
-        return d
-
 
     def help(self):
         return True, '<todo: describe test>'
@@ -106,30 +98,29 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
         print('Dummy Slot called.')
 
 
+
+
 class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
-        self.EMB = EnMAPBox(None)
-        self.EMB.loadExampleData()
-
+        self.EB = EnMAPBox(None)
 
     def tearDown(self):
-        self.EMB.close()
+        self.EB.close()
+        del self.EB
 
 
     def test_instance(self):
         emb = EnMAPBox.instance()
         self.assertIsInstance(emb, EnMAPBox)
-        self.assertEqual(emb, self.EMB)
-
-
+        self.assertEqual(emb, self.EB)
 
     def test_initQGISProcessingFramework(self):
         self.fail()
 
     def test_addApplication(self):
-        myApp = TestEnMAPBoxApp(self.EMB)
-        self.EMB.addApplication(myApp)
+        myApp = TestEnMAPBoxApp(self.EB)
+        self.EB.addApplication(myApp)
 
     def test_loadCurrentMapSpectra(self):
         self.fail()
@@ -180,7 +171,11 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_createDock(self):
-        self.fail()
+        from enmapbox.gui.dockmanager import LUT_DOCKTYPES
+        for d in ['MAP','TEXT','SPECLIB', 'MIME']:
+            dock = self.EB.createDock(d)
+            self.assertIsInstance(dock, Dock)
+            self.assertIsInstance(dock, LUT_DOCKTYPES[d])
 
     def test_removeDock(self):
         self.fail()
@@ -189,10 +184,10 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_addSources(self):
-        self.fail()
-
-    def test_addSource(self):
-        self.fail()
+        self.EB.removeSources(self.EB.dataSources())
+        self.assertTrue(len(self.EB.dataSources()) == 0)
+        self.EB.addSource(enmap)
+        self.assertTrue(len(self.EB.dataSources()) == 1)
 
     def test_removeSources(self):
         self.fail()
@@ -213,10 +208,26 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_mapCanvas(self):
-        self.fail()
+        self.assertTrue(self.EB.mapCanvas() is None)
+        self.assertIsInstance(self.EB.mapCanvas(virtual=True), MapCanvas)
+        canvases = self.EB.mapCanvases()
+        self.assertIsInstance(canvases, list)
+        self.assertTrue(len(canvases) == 0)
+
+        self.EB.loadExampleData()
+        self.assertTrue(len(self.EB.mapCanvases()) == 1)
+
+        self.EB.createDock('MAP')
+        self.assertTrue(len(self.EB.mapCanvases()) == 2)
+        for c in self.EB.mapCanvases():
+            self.assertIsInstance(c, MapCanvas)
+
 
     def test_loadExampleData(self):
-        self.fail()
+        self.EB.loadExampleData()
+        self.assertTrue(len(self.EB.dataSources()) > 0)
+        self.EB.removeSources()
+        self.assertTrue(len(self.EB.dataSources()) == 0)
 
     def test_openMessageLog(self):
         self.fail()
@@ -250,6 +261,67 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_addToolBar(self):
         self.fail()
+
+
+class TestEnMAPBoxWorkflows(unittest.TestCase):
+
+    def test_speclibDocks(self):
+        EMB = EnMAPBox()
+        EMB.loadExampleData()
+        mapDock = EMB.createDock('MAP')
+        self.assertIsInstance(mapDock, MapDock)
+        sources = EMB.dataSources('RASTER')
+
+        self.assertIsInstance(sources, list)
+        self.assertTrue(len(sources) > 0 )
+        layers = [QgsRasterLayer(p) for p in sources]
+        self.assertTrue(len(layers) > 0)
+        mapDock.setLayers(layers)
+
+        speclibDock = EMB.createDock('SPECLIB')
+        self.assertIsInstance(speclibDock, SpectralLibraryDock)
+        slw = speclibDock.speclibWidget
+        self.assertIsInstance(slw, SpectralLibraryWidget)
+        self.assertTrue(len(slw.speclib()) == 0)
+        center = SpatialPoint.fromMapCanvasCenter(mapDock.canvas)
+
+
+        profiles = SpectralProfile.fromMapCanvas(mapDock.canvas, center)
+        for p in profiles:
+            self.assertIsInstance(p, SpectralProfile)
+
+        EMB.setCurrentMapSpectraLoading('ALL')
+        EMB.loadCurrentMapSpectra(center, mapDock.canvas)
+        self.assertEqual(profiles, EMB.currentSpectra())
+        for s in EMB.currentSpectra():
+            self.assertIsInstance(s, SpectralProfile)
+
+        EMB.setCurrentMapSpectraLoading('TOP')
+        EMB.loadCurrentMapSpectra(center, mapDock.canvas)
+        self.assertEqual(profiles[0:1], EMB.currentSpectra())
+
+        slw.setAddCurrentSpectraToSpeclibMode(True)
+        n = len(slw.speclib())
+        slw.setCurrentSpectra(profiles)
+        self.assertTrue(len(slw.speclib()) == n+len(profiles))
+        self.assertTrue(len(slw.currentSpectra()) == 0)
+        EMB.setCurrentSpectra(profiles)
+        self.assertTrue(len(slw.speclib()) == n + len(profiles)*2)
+
+
+        slw.setAddCurrentSpectraToSpeclibMode(False)
+
+        n = len(slw.speclib())
+        EMB.setCurrentSpectra(profiles)
+
+        self.assertTrue(len(slw.currentSpectra()) == len(profiles))
+        self.assertTrue(len(slw.speclib()) == n)
+
+        EMB.setCurrentSpectra([])
+        self.assertTrue(len(slw.currentSpectra()) == 0)
+        self.assertTrue(len(slw.speclib()) == n)
+
+        s = ""
 
 if __name__ == '__main__':
 

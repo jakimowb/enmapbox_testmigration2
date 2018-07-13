@@ -24,10 +24,62 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtXml import *
-from enmapbox.utils import *
+from enmapbox.gui.utils import *
+from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
 import numpy as np
 from osgeo import gdal, ogr
 
+
+def rasterProvider(uri:str) -> str:
+    """
+    Return the raster provider key with which the uri can be opened as QgsRasterLayer
+    :param uri: str
+    :return: str, Provider key, e.g. "gdal"
+    """
+    #'DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']
+
+    if uri in [None, type(None)]:
+        return None
+
+
+    providers = []
+
+    if os.path.isfile(uri) or uri.startswith('/vsimem'):
+        providers.append('gdal')
+    if re.search('url=', uri):
+        providers.append('wms')
+        providers.append('wcs')
+
+    for p in providers:
+        lyr = QgsRasterLayer(uri, '', p)
+        if lyr.isValid():
+            return lyr.providerType()
+    return None
+
+
+def vectorProvider(uri:str) -> str:
+    """
+    Returns the vector data provider keys whith which the uri can be opened as QgsVectorLayer
+    :param uri: str
+    :return: str, Provider key, e.g. "ogr"
+    """
+    #'DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']
+    if uri in [None, type(None)]:
+        return None
+
+    providers = ['ogr', 'WFS', 'spatialite', 'gpx', 'delimitedtext']
+
+    #change order of providers assuming a faster match
+    if not os.path.isfile(uri):
+        providers.append(providers.pop(0))
+    if re.search('url=', uri):
+        providers.insert(0,providers.pop(providers.index('WFS')))
+
+    for p in providers:
+        lyr = QgsVectorLayer(uri, '', p)
+        if lyr.isValid():
+            return lyr.providerType()
+    return None
 
 def openPlatformDefault(uri):
     if os.path.isfile(uri):
@@ -46,7 +98,12 @@ class DataSourceFactory(object):
     SUBDATASETPREFERENCES = {}
 
     @staticmethod
-    def srcToString(src):
+    def srcToString(src)->str:
+        """
+        Extracts the source uri that can be used to open a new QgsMapLayer
+        :param src: QUrl | str
+        :return: str
+        """
         if isinstance(src, QUrl):
             if src.isLocalFile():
                 src = src.toLocalFile()
@@ -56,43 +113,39 @@ class DataSourceFactory(object):
             #identify GDAL subdataset strings
             if re.search('(HDF|SENTINEL).*:.*:.*', src):
                 src = src
-            else:
+            elif os.path.isfile(src):
                 src = os.path.abspath(src)
+            else:
+                pass
         else:
             src = None
         return src
 
     @staticmethod
-    def isVectorSource(src):
+    def isVectorSource(src)->(str,str):
         """
-        Returns the source uri if it can be handled as known vector data source.
+        Tests if 'src' is a vector data source. If True, returns the uri and provider key
         :param src: any type
-        :return: uri (str) | None
+        :return: uri and provider key (str, str)
         """
-        uri = None
         if isinstance(src, QgsVectorLayer) and src.isValid():
-            uri = DataSourceFactory.isVectorSource(src.dataProvider())
+            return DataSourceFactory.isVectorSource(src.dataProvider())
         if isinstance(src, QgsVectorDataProvider):
-            uri = DataSourceFactory.srcToString(src.dataSourceUri()).split('|')[0]
+            return DataSourceFactory.srcToString(src.dataSourceUri()).split('|')[0], src.name()
         if isinstance(src, QgsLayerTreeLayer):
-            uri = DataSourceFactory.isVectorSource(src.layer())
+            return DataSourceFactory.isVectorSource(src.layer())
         if isinstance(src, ogr.DataSource):
-            uri = DataSourceFactory.srcToString(src.GetName())
+            return DataSourceFactory.isVectorSource(src.GetName()), 'ogr'
         if isinstance(src, str):
             src = DataSourceFactory.srcToString(src)
-            # todo: check different providers, not only ogr
-            try:
-                result = DataSourceFactory.isVectorSource(ogr.Open(src))
-                if result is not None:
-                    uri = DataSourceFactory.srcToString(result)
-            except Exception:
-                s = ""
-                pass
-        assert uri is None or isinstance(uri, str)
-        return uri
+            provider = vectorProvider(src)
+            if isinstance(provider, str):
+                return src, provider
+
+        return None, None
 
     @staticmethod
-    def isRasterSource(src):
+    def isRasterSource(src)->(str,str):
         """
         Returns the source uri string if it can be handled as known raster data source.
         :param src: any type
@@ -100,79 +153,57 @@ class DataSourceFactory(object):
         """
 
         gdal.UseExceptions()
-        uri = None
         if isinstance(src, QgsRasterLayer) and src.isValid():
-            uri = DataSourceFactory.isRasterSource(src.dataProvider())
+            return DataSourceFactory.isRasterSource(src.dataProvider())
         if isinstance(src, QgsRasterDataProvider):
-            uri = src.dataSourceUri()
+            return DataSourceFactory.isRasterSource(src.dataSourceUri())
         if isinstance(src, QgsLayerTreeLayer):
-            uri = DataSourceFactory.isRasterSource(src.layer())
+            return DataSourceFactory.isRasterSource(src.layer())
         if isinstance(src, gdal.Dataset):
             if 'DERIVED_SUBDATASETS' in src.GetMetadataDomainList():
-                uri = src.GetDescription()
+                return DataSourceFactory.isRasterSource(src.GetDescription())
             else:
-                uri = src.GetFileList()[0]
-            """
-            subDataSets = src.GetSubDatasets()
-
-            if len(subDataSets) == 0:
-                uri = src.GetFileList()[0]
-            else:
-                #this is a container format (S2 Driver, HDF)
-
-                #1. describe the container type
-                import collections
-                subdatasets = collections.OrderedDict()
-                for s in subDataSets:
-                    subsetPath, description = s
-                    itemKey = subsetPath.replace(src.GetFileList()[0], '')
-                    subdatasets[itemKey] = subsetPath
-                containerType = '{}::{}'.format(src.GetDriver().ShortName,
-                                             ':'.join(subdatasets.keys()))
-
-                #known key? than use this sub-dataset
-                if containerType in DataSourceFactory.SUBDATASETPREFERENCES.keys():
-                    itemKey = DataSourceFactory.SUBDATASETPREFERENCES[containerType]
-                    uri = subdatasets[itemKey]
-
-                else:
-                    #ask how to handle subdatasets
-                    itemKey, accepted = QInputDialog.getItem(None,"Select a subdataset",'Please select a subdataset',
-                                                             subdatasets.keys(), editable=False)
-                    if accepted:
-                        uri = subdatasets[itemKey]
-            """
-
-        src = DataSourceFactory.srcToString(src)
+                return DataSourceFactory.isRasterSource(src.GetFileList()[0])
         if isinstance(src, str):
-            try:
-                uri = DataSourceFactory.isRasterSource(gdal.Open(src))
-            except RuntimeError as ex:
-                uri = None
+            src = DataSourceFactory.srcToString(src)
+            provider = rasterProvider(src)
+            if isinstance(provider, str):
+                return src, provider
 
-        if not (uri is None or isinstance(uri, str)):
-            return None
-        return uri
+        return None, None
+
 
     @staticmethod
-    def isSpeclib(src):
+    def isSpeclib(src)->(str, str):
+        """
+        :param src: path or object that might be a SpectralLibrary
+        :return: (uri, None) if True
+        """
         uri = None
-        src = DataSourceFactory.srcToString(src)
-        if not src is None and os.path.exists(src):
-            from enmapbox.gui.spectrallibraries import SpectralLibraryIO
-            for cls in SpectralLibraryIO.__subclasses__():
-                if cls.canRead(src):
-                    uri = src
-                    break
-        return uri
+        if isinstance(src, SpectralLibrary):
+            uri = src.source()
+        else:
+            if not isinstance(src, str):
+                src = DataSourceFactory.srcToString(src)
+
+            if isinstance(src, str):
+                if os.path.exists(src):
+                    from enmapbox.gui.spectrallibraries import AbstractSpectralLibraryIO
+                    for cls in AbstractSpectralLibraryIO.__subclasses__():
+                        if cls.canRead(src):
+                            uri = src
+                            break
+                else:
+                    s = ""
+        return uri, None
 
 
     @staticmethod
-    def isHubFlowObj(src):
+    def isHubFlowObj(src)->(str, None):
         """
         Returns the source uri if it can be handled as known data source.
         :param src: any type
-        :return: uri (str) | None
+        :return: uri (str, None) | None
         """
 
         src = DataSourceFactory.srcToString(src)
@@ -180,8 +211,8 @@ class DataSourceFactory(object):
             import hubflow.core
             obj = hubflow.core.FlowObject.unpickle(src, raiseError=False)
             if isinstance(obj, hubflow.core.FlowObject):
-                return src
-        return None
+                return src, None
+        return None, None
 
     @staticmethod
     def fromXML(domElement):
@@ -202,13 +233,13 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def Factory(src, name=None, icon=None):
+    def Factory(src, name=None, icon=None)->list:
         """
-        Factory method / switch to return the best suited DataSource Instance(s) to an unknown source
+        Returns the best suited DataSource Instance(s) to an unknown source
         :param source: anything
         :param name: name, optional
         :param icon: QIcon, optional
-        :return: [list-of-datasources]
+        :return: [list-of-DataSources]
         """
 
         if isinstance(src, list):
@@ -218,81 +249,183 @@ class DataSourceFactory(object):
             return sources
         else:
 
-
             if src is None or isinstance(src, str) and len(src) == 0:
                 return []
 
-            if isinstance(src, DataSource):
+            elif isinstance(src, DataSource):
                 return [src]
 
-            if type(src) in [str, QUrl]:
+            elif type(src) in [str, QUrl]:
                 src = DataSourceFactory.srcToString(src)
 
 
-            from enmapbox.gui.spectrallibraries import SpectralLibraryVectorLayer, SpectralLibrary
-            if isinstance(src, SpectralLibraryVectorLayer):
-                return DataSourceFactory.Factory(src.mSpeclib)
+            if src in [None, type(None)]:
+                return []
 
-            dataSources = []
-            rasterUris = []
-            vectorUris = []
-            uri = DataSourceFactory.isRasterSource(src)
-            if uri is not None:
+            DataSource.instances()
 
-                #check for raster containers, like HDFs
-                ds = gdal.Open(uri)
+            #run checks on input sources
+            if isinstance(src, SpectralLibrary):
+                sourceTestFunctions = [DataSourceFactory.checkForSpeclib]
+            elif isinstance(src, gdal.Dataset) or isinstance(src, QgsRasterLayer):
+                sourceTestFunctions = [DataSourceFactory.checkForRaster]
+            elif isinstance(src, ogr.DataSource) or isinstance(src, QgsVectorLayer):
+                sourceTestFunctions = [DataSourceFactory.checkForVector, DataSourceFactory.checkForSpeclib]
+            elif type(src).__name__ in ['module']:
+                return []
+            else: #run all tests
+                sourceTestFunctions = [DataSourceFactory.checkForRaster,
+                                       DataSourceFactory.checkForVector,
+                                       DataSourceFactory.checkForSpeclib,
+                                       DataSourceFactory.checkForHubFlow,
+                                       DataSourceFactory.checkOtherFiles]
 
-                if isinstance(ds, gdal.Dataset):
-                    subs = ds.GetSubDatasets()
-                    if ds.RasterCount > 0:
-                        rasterUris.append(uri)
-                    if len(subs) > 0:
-                        rasterUris.extend([s[0] for s in subs])
+                #re-order by most-likely none-raster source type according to source uri
+                if isinstance(src, str):
 
-            uri = DataSourceFactory.isVectorSource(src)
-            if uri is not None:
-                vectorUris.append(uri)
 
-            dataSources.extend([DataSourceRaster(r, name=name, icon=icon) for r in rasterUris])
-            dataSources.extend([DataSourceVector(r, name=name, icon=icon) for r in vectorUris])
-            if len(dataSources) > 0:
-                return dataSources
 
-            uri = DataSourceFactory.isSpeclib(src)
-            if uri is not None:
-                return [DataSourceSpectralLibrary(uri, name=name, icon=icon)]
+                    if re.search(r'\.(sli|esl)$', src): #probably a spectral library
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForSpeclib)))
+                    elif re.search(r'\.(shp|gpkg|kml)$', src): #probably a vector file
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
 
-            uri = DataSourceFactory.isHubFlowObj(src)
-            if uri is not None:
-                return [HubFlowDataSource(uri, name=name, icon=icon)]
+                    elif re.search(r'\.(txt|csv)$', src): #probably normal text file
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkOtherFiles)))
+                    elif re.search(r'\.pkl$', src):
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForHubFlow)))
+                    elif re.search(r'url=https?.*wfs', src, re.IGNORECASE):
+                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
 
-            src = DataSourceFactory.srcToString(src)
-            if not src is None:
-                if os.path.isfile(src):
-                    ext = os.path.splitext(src)[1].lower()
-                    if ext in ['.csv', '.txt']:
-                        return [DataSourceTextFile(src, name=name, icon=icon)]
-                    if ext in ['.xml', '.html']:
-                        return [DataSourceXMLFile(src, name=name, icon=icon)]
-                    return [DataSourceFile(src, name=name, icon=icon)]
-
-                #
-                reg = QgsProject.instance()
-                ids = [l.id() for l in reg.mapLayers().values()]
-                if src in ids:
-                    mapLyr = reg.mapLayer(src)
-                    return DataSourceFactory.Factory(reg.mapLayer(src), name)
+                    #files where we are sure we can not load them
+                    elif os.path.isfile(src) and re.search(r'\.(py)$', src):
+                        return []
+                        s = ""
+            for sourceTestFunction in sourceTestFunctions:
+                sources = sourceTestFunction(src, name=name, icon=icon)
+                if len(sources) > 0:
+                    return sources
 
 
             return []
 
 
+    @staticmethod
+    def checkForRaster(src, **kwds) -> list:
+        """
+        Returns one ore more DataSourceRaster found in src
+        :param src: any object
+        :param kwds: DataSourceRaster-keywords
+        :return: [list-of-DataSourceRaster]
+        """
+        uri, pkey = DataSourceFactory.isRasterSource(src)
+        if uri:
+            rasterUris = []
+            if pkey == 'gdal':
+                # check for raster containers, like HDFs, and handle them separately
+                ds = gdal.Open(uri)
+                subs = ds.GetSubDatasets()
+                if ds.RasterCount > 0:
+                    rasterUris.append(uri)
+                if len(subs) > 0:
+                    rasterUris.extend([s[0] for s in subs])
+            else:
+                rasterUris.append(uri)
+            return [DataSourceRaster(r, providerKey=pkey, **kwds) for r in rasterUris if
+                    isinstance(r, str)]
+        return []
+
+    @staticmethod
+    def checkForVector(src, **kwds) -> list:
+        """
+        Returns one or more DataSourceVector that can be found in src
+        :param src: any
+        :param kwds: DataSourceVector keywords
+        :return: [list-of-DataSourceVector]
+        """
+        uri, pkey = DataSourceFactory.isVectorSource(src)
+        if uri:
+            return [DataSourceVector(uri, providerKey=pkey, **kwds)]
+        return []
+
+    @staticmethod
+    def checkForSpeclib(src, **kwds) -> list:
+        """
+        Returns a DataSourceSpectralLibrary from src, if possible
+        :param src: any type
+        :param kwds: DataSourceSpectralLibrary keywords
+        :return: [list-of-DataSourceSpectralLibrary]
+        """
+        uri, pkey = DataSourceFactory.isSpeclib(src)
+        if uri:
+            return [DataSourceSpectralLibrary(uri, **kwds)]
+        return []
+
+    @staticmethod
+    def checkForHubFlow(src, **kwds) -> list:
+        """
+        if possible, returns a HubFlowDataSource from src
+        :param self:
+        :param src:
+        :param kwds:
+        :return: HubFlowDataSource
+        """
+        uri, pkey = DataSourceFactory.isHubFlowObj(src)
+        if uri:
+            return [HubFlowDataSource(uri, **kwds)]
+        return []
+
+    @staticmethod
+    def checkOtherFiles(src, **kwds) -> list:
+        """
+        Returns a DataSourceFile instance from src
+        :param self:
+        :param src:
+        :param kwds:
+        :return:
+        """
+        src = DataSourceFactory.srcToString(src)
+        if not src is None:
+            if os.path.isfile(src):
+                ext = os.path.splitext(src)[1].lower()
+                if ext in ['.csv', '.txt']:
+                    return [DataSourceTextFile(src, **kwds)]
+                if ext in ['.xml', '.html']:
+                    return [DataSourceXMLFile(src, **kwds)]
+                return [DataSourceFile(src, **kwds)]
+        return []
+
 
 class DataSource(object):
-    """Base class to describe file/stream/IO sources as used in EnMAP-GUI context"""
-
+    """Base class to describe file/stream/IO sources"""
 
     sigMetadataChanged = pyqtSignal()
+
+    __refs__ = []
+    @classmethod
+    def instances(cls):
+        """
+        Returns all DataSource instances
+        :return: [list-of-DataSources]
+        """
+        #1. clean list of instances
+        DataSource.__refs__ = [r for r in DataSource.__refs__ if r() is not None]
+        for r in DataSource.__refs__:
+            if r is not None:
+                yield r()
+
+    @classmethod
+    def fromUUID(self, uuid:uuid.UUID):
+        """
+        Returns the DataSource with given uuid
+        :param uuid: UUID
+        :return:
+        """
+        for ds in DataSource.instances():
+            assert isinstance(ds, DataSource)
+            if ds.uuid() == uuid:
+                return ds
+        return None
 
     def __init__(self, uri, name=None, icon=None):
         """
@@ -302,24 +435,51 @@ class DataSource(object):
         assert isinstance(uri, str)
         self.mUuid = uuid.uuid4()
         self.mUri = ''
-        self.setUri(uri)
         self.mIcon = None
         self.mName = ''
+        self.setUri(uri)
+        self.mMetadata = {}
+        self.__refs__.append(weakref.ref(self))
 
-        self.updateMetadata(name=name, icon=icon)
-
-    def isSameSource(self, dataSource):
+    def isSameSource(self, dataSource)->bool:
         assert isinstance(dataSource, DataSource)
         return self.mUri == dataSource.mUri
 
-    def setUri(self, uri):
+    def setUri(self, uri:str):
+        """
+        Sets the unified ressource identifier (uri) of this data source
+        """
         assert isinstance(uri, str)
         self.mUri = uri
-        self.updateMetadata()
+
+    def modificationTime(self)->QDateTime:
+        """
+        Optimally returns the last time the data of the data source has been changed.
+        :return: QDateTime
+        """
+
+        if os.path.isfile(self.mUri):
+            return QFileInfo(self.mUri).lastModified()
+        else:
+            return QDateTime(0,0,0,0,0,0)
+
+
+    def isNewVersionOf(self, dataSource)->bool:
+        """
+        Checks of if THIS data source is a newer version of 'dataSource'
+        :param dataSource: DataSource
+        :return: True | False
+        """
+        if type(dataSource) != type(self):
+            return False
+        assert isinstance(dataSource, DataSourceFile)
+        if self.mUri != dataSource.mUri:
+            return False
+        return self.modificationTime() > dataSource.modificationTime()
 
     def updateMetadata(self, icon=None, name=None):
         """
-
+        Updates metadata from the file source.
         """
         if icon is None:
             provider = QFileIconProvider()
@@ -343,14 +503,18 @@ class DataSource(object):
         """
         return self.mUuid
 
-    def uri(self):
+    def uri(self)->str:
         """Returns the URI string that describes the data source"""
         return self.mUri
 
     def setIcon(self, icon):
+        """
+        Sets the DataSource Icon
+        :param icon: valid constructor argument to QIcon(), i.e. QPixmap, QIconm str, QIconEngine
+        """
         self.mIcon = icon
 
-    def icon(self):
+    def icon(self)->QIcon:
         """
         Returns the icon associated with the data source
         :return: QIcon
@@ -358,6 +522,11 @@ class DataSource(object):
         return QIcon(self.mIcon)
 
     def setIcon(self, icon):
+        """
+        Sets the DataSource Icon
+        :param icon:
+        :return:
+        """
         assert isinstance(icon, QIcon)
         self.mIcon = icon
         return self
@@ -372,7 +541,10 @@ class DataSource(object):
         self.mName = name
         return self
 
-    def name(self):
+    def name(self)->str:
+        """
+        :return: name of DataSource
+        """
         return self.mName
 
     def writeXml(self, element):
@@ -394,31 +566,21 @@ class DataSource(object):
         return hash(str(self))
 
     def __repr__(self):
-        return 'DataSource: {} {}'.format(self.mName, self.mUri)
+
+        return '{}: {} {}'.format(self.__class__.__name__, self.mName, self.mUri)
 
 class DataSourceFile(DataSource):
-
-    def __init__(self, uri, name=None, icon=None):
+    """
+    Description of local files
+    """
+    def __init__(self, uri:str, name:str=None, icon=None):
+        assert os.path.isfile(uri)
         super(DataSourceFile, self).__init__(uri, name, icon)
-        self.mModificationTime = -1
-        self.setModificationTime()
-
-    def setModificationTime(self):
-        self.mLastModified = QFileInfo(self.mUri).lastModified()
-
-    def isNewVersionOf(self, dataSource):
-        if type(dataSource) != type(self):
-            return False
-        assert isinstance(dataSource, DataSourceFile)
-        if self.mUri != dataSource.mUri:
-            return False
-        return self.mModificationTime > dataSource.mModificationTime
-
 
 
 class DataSourceTextFile(DataSourceFile):
     """
-    Class to handle editable text files
+    Class to handle editable local text files
     """
     def __init__(self, uri, name=None, icon=None):
         super(DataSourceTextFile, self).__init__(uri, name, icon)
@@ -432,33 +594,46 @@ class DataSourceXMLFile(DataSourceTextFile):
         super(DataSourceXMLFile, self).__init__(uri, name, icon)
 
 
-
-
-class DataSourceSpatial(DataSourceFile):
+class DataSourceSpatial(DataSource):
     """
-    Abstract class to be implemented by inherited DataSource that support spatial data
+    Abstract class to describe spatial data from local files but also web sources
     """
-    def __init__(self, uri, name=None, icon=None ):
+    def __init__(self, uri, name=None, icon=None, providerKey:str=None):
+
         super(DataSourceSpatial, self).__init__(uri, name, icon)
+        assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
 
-        lyr = self.createUnregisteredMapLayer()
-
-        from enmapbox.gui.utils import SpatialExtent
-        self.spatialExtent = SpatialExtent.fromLayer(lyr)
-
-        assert isinstance(lyr, QgsMapLayer)
-        #assert lyr.isValid()
+        self.mProvider = providerKey
 
 
+    def provider(self)->str:
+        """
+        Returns the provider name
+        :return: str
+        """
+        self.mProvider
 
-    def createUnregisteredMapLayer(self, *args, **kwds):
+    def spatialExtent(self)->SpatialExtent:
+        """
+        Returns the SpatialExtent of this data source.
+        :return: SpatailExtent
+        """
+        return SpatialExtent.fromLayer(self.createUnregisteredMapLayer())
+
+
+    def createUnregisteredMapLayer(self, *args, **kwds)->QgsMapLayer:
         """
         creates and returns a QgsMapLayer from self.src
-        the QgsMapLayer should be not registered in the QgsMapLayerRegistry
+        the QgsMapLayer should not be registered in the QgsMapLayerRegistry
         to be implemented by inherited classes
         :return:
         """
         raise NotImplementedError()
+
+
+    def modificationTime(self)->QDateTime:
+        s = ""
+        return QDateTime()
 
 
 class HubFlowDataSource(DataSourceFile):
@@ -466,7 +641,7 @@ class HubFlowDataSource(DataSourceFile):
         super(HubFlowDataSource, self).__init__(uri, name, icon)
 
         if not isinstance(icon, QIcon):
-            self.mIcon = QIcon(':/enmapbox/icons/alg.png')
+            self.mIcon = QIcon(':/enmapbox/icons/alg.svg')
 
 
         self.loadFlowObject()
@@ -487,158 +662,207 @@ class HubFlowDataSource(DataSourceFile):
             return None
 
 
-class DataSourceSpectralLibrary(DataSourceFile):
+class DataSourceSpectralLibrary(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None):
-        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon)
+        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='memory')
 
         self.mSpeclib = None
-        self.nProfiles = None
+        self.nProfiles = 0
         self.profileNames = []
         self.updateMetadata()
 
+    def createUnregisteredMapLayer(self, *args, **kwds)->QgsVectorLayer:
+        #return QgsVectorLayer(self.mSpeclib.source(), self.mSpeclib.name(), 'memory')
+        return self.spectralLibrary()
+
     def updateMetadata(self, *args, **kwds):
-        from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
         assert isinstance(self.mSpeclib, SpectralLibrary)
         self.mSpeclib.setName(os.path.basename(self.mUri))
         self.setName(self.mSpeclib.name())
-        #self.nProfiles = len(slib)
-        #self.profileNames = []
-        #for p in slib:
-        #    assert isinstance(p, SpectralProfile)
-        #    self.profileNames.append(p.name())
 
+        self.nProfiles = len(self.mSpeclib)
+        self.profileNames = []
+        for p in self.mSpeclib:
+            assert isinstance(p, SpectralProfile)
+            self.profileNames.append(p.name())
 
+    def spectralLibrary(self)->SpectralLibrary:
+        return self.mSpeclib
 class DataSourceRaster(DataSourceSpatial):
 
-    def __init__(self, uri, name=None, icon=None ):
-        super(DataSourceRaster, self).__init__(uri, name, icon)
+    def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None):
+        super(DataSourceRaster, self).__init__(uri, name, icon, providerKey)
         self.nSamples = -1
         self.nBands = -1
         self.nLines = -1
-        self.dataType = -1
-        self.pxSizeX = -1
-        self.pxSizeY = -1
+        self.mDataType = -1
+        self.mPxSize = QSizeF()
+        self.mProvider=providerKey
         self.mDatasetMetadata = collections.OrderedDict()
         self.mBandMetadata = []
+        self.mSpatialExtent = None
+        self.mBandNames = []
         self.updateMetadata()
-        s = ""
-
-    def isNewVersionOf(self, dataSource):
-        if type(dataSource) != type(self):
-            return False
-        assert isinstance(dataSource, DataSourceRaster)
-        if self.mUri != dataSource.mUri:
-            return False
-        return self.mModificationTime > dataSource.mModificationTime
 
 
-    def setModificationTime(self, dataSet = None):
-        if not isinstance(dataSet, gdal.Dataset):
+    def modificationTime(self)->QDateTime:
+
+
+        if self.mProvider == 'gdal':
             dataSet = gdal.Open(self.mUri)
-        times = []
-        try:
-            for path in dataSet.GetFileList():
-                try:
-                    if os.path.exists(path):
-                        times.append(QFileInfo(path).lastModified())
-                except Exception as ex:
-                    times.append(QDateTime(0,0,0, 0, 0, 0))
-        except Exception as ex:
-            times.append(QDateTime(0, 0, 0, 0, 0, 0))
-        self.mModificationTime = max(times)
+            times = []
+            if isinstance(dataSet, gdal.Dataset):
+                    for path in dataSet.GetFileList():
+                        if os.path.exists(path):
+                            times.append(QFileInfo(path).lastModified())
+
+            if len(times) > 0:
+                return max(times)
+
+        #Fallback
+        return super(DataSourceRaster, self).modificationTime()
+
+    def spatialExtent(self)->SpatialExtent:
+        return self.mSpatialExtent
 
     def updateMetadata(self, icon=None, name=None):
         super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
 
-        ds = gdal.Open(self.mUri)
-        assert isinstance(ds, gdal.Dataset)
-        self.nSamples, self.nLines = ds.RasterXSize, ds.RasterYSize
-        self.nBands = ds.RasterCount
-        gt = ds.GetGeoTransform()
-        self.setModificationTime(ds)
+        lyr = self.createUnregisteredMapLayer()
 
-        from enmapbox.gui.utils import px2geo
-        v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)
-        self.pxSize = QSizeF(abs(v.x()), abs(v.y()))
+        assert lyr.isValid()
 
 
-        def fetchMetadata(obj):
-            assert type(obj) in [gdal.Dataset, gdal.Band]
+        #these attributes are to be set
+        self.mSpatialExtent = SpatialExtent.fromLayer(lyr)
+        self.mBandMetadata.clear()
+        self.mBandNames.clear()
+        self.mDatasetMetadata.clear()
+        self.nBands = self.nSamples = self.nLines = -1
+        self.mDataType = None
 
-            md = collections.OrderedDict()
-            domains = obj.GetMetadataDomainList()
-            if isinstance(domains , list):
-                for domain in sorted(domains):
-                    tmp = obj.GetMetadata_Dict(domain)
-                    if len(tmp) > 0:
-                        md[domain] = tmp
-            return md
-
-        self.mDatasetMetadata = fetchMetadata(ds)
-        self.mBandMetadata = []
         hasClassInfo = False
-        from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
-        for b in range(ds.RasterCount):
-            band = ds.GetRasterBand(b+1)
-            cs = ClassificationScheme.fromRasterImage(ds, b)
-            md = fetchMetadata(band)
-            if isinstance(cs, ClassificationScheme):
-                hasClassInfo = True
-                md['__ClassificationScheme__'] = cs
 
-            self.mBandMetadata.append(md)
+        if self.mProvider == 'gdal':
+            ds = gdal.Open(self.mUri)
+            assert isinstance(ds, gdal.Dataset)
+            self.nSamples, self.nLines = ds.RasterXSize, ds.RasterYSize
+            self.nBands = ds.RasterCount
 
-            if b == 0:
-                self.dataType = band.DataType
+            gt = ds.GetGeoTransform()
+
+            from enmapbox.gui.utils import px2geo
+            v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)
+            self.mPxSize = QSizeF(abs(v.x()), abs(v.y()))
 
 
-        if hasClassInfo is True:
-            icon = QIcon(':/enmapbox/icons/filelist_classification.png')
-        elif self.dataType in [gdal.GDT_Byte] and ds.RasterCount == 1:
-            icon = QIcon(':/enmapbox/icons/filelist_mask.png')
-        elif ds.RasterCount == 1:
-            icon = QIcon(':/enmapbox/icons/filelist_regression.png')
+            def fetchMetadata(obj):
+                assert type(obj) in [gdal.Dataset, gdal.Band]
+
+                md = collections.OrderedDict()
+                domains = obj.GetMetadataDomainList()
+                if isinstance(domains , list):
+                    for domain in sorted(domains):
+                        tmp = obj.GetMetadata_Dict(domain)
+                        if len(tmp) > 0:
+                            md[domain] = tmp
+                return md
+
+            self.mDatasetMetadata = fetchMetadata(ds)
+
+
+            from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
+            for b in range(ds.RasterCount):
+                band = ds.GetRasterBand(b+1)
+                assert isinstance(band, gdal.Band)
+                bandName = band.GetDescription()
+                if len(bandName) == 0:
+                    bandName = 'Band {}'.format(b+1)
+                self.mBandNames.append(bandName)
+
+                cs = ClassificationScheme.fromRasterImage(ds, b)
+                md = fetchMetadata(band)
+                if isinstance(cs, ClassificationScheme):
+                    hasClassInfo = True
+                    md['__ClassificationScheme__'] = cs
+
+                self.mBandMetadata.append(md)
+
+                if b == 0:
+                    self.mDataType = band.DataType
+
         else:
-            icon = QIcon(':/enmapbox/icons/filelist_image.png')
+            #Fallback
+            lyr = self.createUnregisteredMapLayer()
+            self.mPxSize = QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY())
+            self.nBands = lyr.bandCount()
+            self.nSamples = lyr.width()
+            self.nLines = lyr.height()
+            self.mDatasetMetadata['Description'] = lyr.dataProvider().description()
+            self.mDatasetMetadata['Source'] = lyr.dataProvider().dataSourceUri()
+            #according to qgis.h the Qgis.DataType value is a "modified and extended copy of GDALDataType".
+            self.mDataType = int(lyr.dataProvider().dataType(1))
+
+            for b in range(self.nBands):
+                bandMeta = {}
+                self.mBandMetadata.append(bandMeta)
+                self.mBandNames.append(lyr.bandName(b+1))
+
+        #update the datassource icon
+        if hasClassInfo is True:
+            icon = QIcon(':/enmapbox/icons/filelist_classification.svg')
+        elif self.mDataType in [gdal.GDT_Byte] and ds.RasterCount == 1:
+            icon = QIcon(':/enmapbox/icons/filelist_mask.svg')
+        elif self.nBands == 1:
+            icon = QIcon(':/enmapbox/icons/filelist_regression.svg')
+        else:
+            icon = QIcon(':/enmapbox/icons/filelist_image.svg')
         self.setIcon(icon)
 
-    def createUnregisteredMapLayer(self, *args, **kwargs):
+    def createUnregisteredMapLayer(self)->QgsRasterLayer:
         """
-        creates and returns a QgsRasterLayer from self.src
-        :return:
+        Creates a QgsRasterLayer from self.mUri and self.mProvider
+        :return: QgsRasterLayer
         """
-        baseName = kwargs.get('baseName', self.mName)
-        providerKey = kwargs.get('providerKey', 'gdal')
-        #return QgsRasterLayer(self.mUri)
-        return QgsRasterLayer(self.mUri, baseName, providerKey)
+        return QgsRasterLayer(self.mUri, self.mName, self.mProvider)
 
 
 class DataSourceVector(DataSourceSpatial):
-    def __init__(self, uri,  name=None, icon=None ):
-        super(DataSourceVector, self).__init__(uri, name, icon)
+    def __init__(self, uri,  name=None, icon=None, providerKey:str=None):
+        super(DataSourceVector, self).__init__(uri, name, icon, providerKey)
+        self.mGeomType = None
+        self.updateMetadata()
 
-        lyr = self.createUnregisteredMapLayer()
-        geomType = lyr.geometryType()
+    def geometryType(self)->QgsWkbTypes:
+        """
+        Returns the QgsWkbTypes.GeometryType
+        :return: QgsWkbTypes.GeometryType
+        """
+        return self.mGeomType
 
-        if geomType in [QgsWkbTypes.PointGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.png')
-        elif geomType in [QgsWkbTypes.LineGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.png')
-        elif geomType in [QgsWkbTypes.PolygonGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.png')
-
-    def createUnregisteredMapLayer(self, *args, **kwargs):
+    def createUnregisteredMapLayer(self)->QgsVectorLayer:
         """
         creates and returns a QgsVectorLayer from self.src
         :return:
         """
-        baseName = kwargs.get('baseName', self.mName)
-        providerKey = kwargs.get('providerKey', 'ogr')
-        return QgsVectorLayer(self.mUri, baseName, providerKey)
+        return QgsVectorLayer(self.mUri, self.mName, self.mProvider)
 
 
+    def updateMetadata(self, *args, **kwds):
+        super(DataSourceVector, self).updateMetadata(*args, **kwds)
+        lyr = self.createUnregisteredMapLayer()
+
+        self.mSpatialExtent = SpatialExtent.fromLayer(lyr)
+        self.mGeomType = lyr.geometryType()
+
+        if self.mGeomType in [QgsWkbTypes.PointGeometry]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.svg')
+        elif self.mGeomType in [QgsWkbTypes.LineGeometry]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.svg')
+        elif self.mGeomType in [QgsWkbTypes.PolygonGeometry]:
+            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.svg')
 
 
 class DataSourceListModel(QAbstractListModel):
@@ -756,3 +980,4 @@ class DataSourceListModel(QAbstractListModel):
             return flags
 
         return None
+

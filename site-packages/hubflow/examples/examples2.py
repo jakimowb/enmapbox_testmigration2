@@ -23,10 +23,10 @@ def getVMask(): return vector
 def getClassification(): return vectorClassification_rasterizeAsClassification()
 def getProbability(): return vectorClassification_rasterizeAsProbability()
 def getRegression(): return getProbability().asRegression()
-def getUnsupervisedSample(): return UnsupervisedSample.fromRasterAndMask(raster=image, mask=getRMask())
+def getUnsupervisedSample(): return Sample.fromRasterAndMask(raster=image, mask=getRMask())
 def getClassificationSample(): return ClassificationSample.fromRasterAndClassification(raster=image, classification=getClassification())
 def getRegressionSample(): return RegressionSample.fromRasterAndRegression(raster=image, regression=getRegression())
-def getProbabilitySample(): return ProbabilitySample.fromRasterAndProbability(raster=image, probability=getProbability())
+def getProbabilitySample(): return FractionSample.fromRasterAndProbability(raster=image, probability=getProbability())
 def getClassifier(): return Classifier(sklEstimator=RandomForestClassifier()).fit(sample=getClassificationSample())
 def getRegressor(): return Regressor(sklEstimator=RandomForestRegressor()).fit(sample=getRegressionSample())
 

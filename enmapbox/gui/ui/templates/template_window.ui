@@ -75,7 +75,7 @@
            </property>
            <property name="icon">
             <iconset resource="../resources.qrc">
-             <normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</iconset>
+             <normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/icons/viewlist_spectrumdock.svg</iconset>
            </property>
           </item>
           <item>

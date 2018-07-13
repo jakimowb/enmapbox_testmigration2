@@ -1,4 +1,4 @@
-__version__ = '3.1'
+__version__ = '3.2'
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -8,6 +8,8 @@ DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplot
 
 import sys, os
 from qgis.core import Qgis, QgsApplication
+
+
 
 def messageLog(msg, level=Qgis.Info):
     """
@@ -20,3 +22,8 @@ def messageLog(msg, level=Qgis.Info):
         msg = str(msg)
     QgsApplication.instance().messageLog().logMessage(msg, 'EnMAP-Box', level)
 
+
+
+
+from enmapbox.gui.enmapboxgui import EnMAPBox
+EnMAPBox = EnMAPBox

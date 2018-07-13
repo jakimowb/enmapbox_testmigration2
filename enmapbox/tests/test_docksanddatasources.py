@@ -92,7 +92,11 @@ class testclassData(unittest.TestCase):
         self.assertIs(sources[0], signalArgs[1])
 
     def test_dockmanager(self):
-        pass
+
+
+        self.assertTrue(len(self.dockManager) == 0)
+        dock = self.dockManager.createDock('MAP')
+        self.assertIsInstance(dock, MapDock)
 
 
 if __name__ == "__main__":
