@@ -42,6 +42,7 @@ To setup your IDE for developing EnMAP-Box Applications, you need to:
 Windows
 =======
 
+The following description is based on http://spatialgalaxy.net/2018/02/13/quick-guide-to-getting-started-with-pyqgis3-on-windows/
 
 QGIS for Windows is based on an OSGeo4W installation that uses a set of cascading batch (``*.bat``) files to setup the QGIS environment. We use a similar approach to start the IDE.
 
