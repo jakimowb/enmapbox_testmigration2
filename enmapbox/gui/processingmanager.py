@@ -308,7 +308,7 @@ class ProcessingAlgorithmsManager(QObject):
             src = self.enmapBox.dataSourceManager.addSource(path)
             self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
 
-    def enmapBoxProvider(self):
+    def enmapBoxProvider(self)->QgsProcessingProvider:
         """
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         """

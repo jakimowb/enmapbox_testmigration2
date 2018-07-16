@@ -31,17 +31,97 @@ from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 from enmapbox import messageLog
 DEBUG = False #set this on True to not hide external-app errors
 
+
+
+class EnMAPBoxApplication(QObject):
+    """
+        s = ""
+    Base class to describe components of an EnMAPBoxApplication
+    and to provide interfaces the main EnMAP-Box
+    """
+
+    @staticmethod
+    def checkRequirements(enmapBoxApp)->(bool,str):
+
+        infos = []
+        if not isinstance(enmapBoxApp, EnMAPBoxApplication):
+            infos.append('Not an EnMAPBoxApplication "{}"'.format(str(enmapBoxApp)))
+        else:
+            if not isinstance(enmapBoxApp.name, str) or len(enmapBoxApp.name.strip()) == 0:
+                infos.append('Application name is undefined')
+            if not isinstance(enmapBoxApp.version, str) or len(enmapBoxApp.version.strip()) == 0:
+                infos.append('Application version is undefined')
+            if not isinstance(enmapBoxApp.licence, str) or len(enmapBoxApp.licence.strip()) == 0:
+                infos.append('Application licence is undefined')
+        return len(infos) == 0, infos
+    """
+        call self.sigFileCreated.emit("filepath.txt") to let the EnMAP-Box know that you created "filepath.txt".
+    """
+    sigFileCreated = pyqtSignal(str)
+
+
+    def __init__(self, enmapBox, parent=None):
+        super(EnMAPBoxApplication, self).__init__(parent)
+        self.enmapbox = enmapBox
+        self.qgis = enmapBox.iface
+
+        #required attributes. Must be different to None
+        self.name = None
+        self.version = None
+        self.licence = 'GNU GPL-3'
+
+        #optional attributes, can be None
+        self.projectWebsite = None
+        self.description = None
+
+    def removeApplication(self):
+        """
+        Overwrite to remove components of your application when this app is disabled.
+
+        :return:
+        """
+        return None
+
+    def icon(self):
+        """
+        Overwrite to return a QIcon
+        http://doc.qt.io/qt-5/qicon.html
+        :return:
+        """
+        return None
+
+    def menu(self, appMenu):
+        """
+        :param appMenu: the EnMAP-Box' Application QMenu
+        :return: None (default), the QMenu or QAction that is added to the QMenu "appMenu".
+        """
+        return None
+
+    def geoAlgorithms(self)->list:
+        """
+        Returns a list of GeoAlgorithms()
+
+        :return:
+        """
+        messageLog('Deprecated method "geoAlgorithms". Use "processingAlgorithms" instead.')
+        return []
+
+    def processingAlgorithms(self)->list:
+
+        return []
+
+
 class ApplicationWrapper(QObject):
     """
-    Stores information on an initialized EnMAPBoxApplication
+    Stores information about an initialized EnMAPBoxApplication
     """
-    def __init__(self, app, parent=None):
+    def __init__(self, app:EnMAPBoxApplication, parent=None):
         super(ApplicationWrapper, self).__init__(parent)
         assert isinstance(app, EnMAPBoxApplication)
         self.app = app
-        self.appId = '{}'.format(app.__class__)
+        self.appId = '{}.{}'.format(app.__class__,app.name)
         self.menuItems = []
-        self.geoAlgorithms = []
+        self.processingAlgorithms = []
 
 
 class ApplicationRegistry(QObject):
@@ -53,9 +133,34 @@ class ApplicationRegistry(QObject):
         self.appPackageRootFolders = []
         assert isinstance(enmapBox, EnMAPBox)
 
-        self.enmapBox = enmapBox
-        self.processingAlgManager = self.enmapBox.processingAlgManager
-        self.appList = collections.OrderedDict()
+        self.mEnMAPBox = enmapBox
+        self.mProcessingAlgManager = self.mEnMAPBox.processingAlgManager
+        self.mAppInfos = collections.OrderedDict()
+
+
+    def __len__(self):
+        return len(self.mAppInfos)
+
+    def __iter__(self):
+        return iter(self.mAppInfos.values())
+
+    def applications(self)->list:
+        """
+        Returns the EnMAPBoxApplications
+        :return: [list-of-EnMAPBoxApplications]
+        """
+        return [w.app for w in self.applicationWrapper()]
+
+    def applicationWrapper(self, nameOrApp=None)->list:
+        """
+        Returns the EnMAPBoxApplicationWrappers.
+        :param nameOrApp: str | EnMAPBoxApplication to return the ApplicationWrapper for
+        :return: [list-of-EnMAPBoxApplicationWrappers]
+        """
+        wrappers = [w for w in self.mAppInfos.values()]
+        if nameOrApp is not None:
+            wrappers = [w for w in wrappers if isinstance(w, ApplicationWrapper) and nameOrApp in [w.appId, w.app.name, w.app]]
+        return wrappers
 
     def addApplicationPackageFile(self, appPkgFile):
         assert os.path.isfile(appPkgFile)
@@ -74,8 +179,6 @@ class ApplicationRegistry(QObject):
                 sys.path.append(appDir)
 
             self.addApplicationPackageSavely(appPath)
-
-
 
     def addApplicationPackageRootFolder(self, appPkgRootFolder):
         """
@@ -98,7 +201,7 @@ class ApplicationRegistry(QObject):
            self.addApplicationPackageSavely(appPackage)
         return self
 
-    def isApplicationPackage(self, appPackagePath):
+    def isApplicationPackage(self, appPackagePath)->bool:
         """
         Checks if the directory "appPackage" contains an '__init__.py' which defines the function
         enmapboxApplicationFactory
@@ -155,8 +258,8 @@ class ApplicationRegistry(QObject):
 
             except Exception as ex:
                 import traceback
-                msg = 'Failed to load {}\n Error:"{}"'.format(appPackagePath, '{}'.format(ex))
-                msg +='\n Traceback\n ' + ''.join(traceback.format_stack())
+                msg = 'Failed to load {}\n\tError:"{}"'.format(appPackagePath, '{}'.format(ex))
+                msg +='\n\tTraceback:\n' + ''.join(traceback.format_stack())
                 print(msg)
                 #messageLog(msg, level=Qgis.Critical)
 
@@ -199,7 +302,7 @@ class ApplicationRegistry(QObject):
                 factory = factory[0]
 
             #create the app
-            apps = factory(self.enmapBox)
+            apps = factory(self.mEnMAPBox)
             if apps is None:
                 raise Exception(
                     'No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
@@ -222,7 +325,7 @@ class ApplicationRegistry(QObject):
 
                     messageLog('Failed to load {}\n{}'.format(app.__module__, '{}'.format(ex)) , level=Qgis.Critical)
 
-    def addApplications(self, apps):
+    def addApplications(self, apps)->list:
         """
         Adds a list of EnMAP-Box applications with addApplication
         :param apps: [list-of-EnMAPBoxApplications]
@@ -230,7 +333,7 @@ class ApplicationRegistry(QObject):
         """
         return [self.addApplication(app) for app in apps]
 
-    def addApplication(self, app):
+    def addApplication(self, app:EnMAPBoxApplication)->bool:
         """
         Adds a single EnMAP-Box application, i.a. a class that implemented the EnMAPBoxApplication Interface
         :param app:
@@ -242,13 +345,15 @@ class ApplicationRegistry(QObject):
         appWrapper = ApplicationWrapper(app)
         if DEBUG:
             print('Check requirements...')
-        EnMAPBoxApplication.checkRequirements(app)
-
-        if appWrapper.appId in self.appList.keys():
-            messageLog('EnMAPBoxApplication {} already loaded.'.format(appWrapper.appId))
+        isOk, errorMessages = EnMAPBoxApplication.checkRequirements(app)
+        if not isOk:
+            messageLog('Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
             return False
+        if appWrapper.appId in self.mAppInfos.keys():
+            messageLog('EnMAPBoxApplication {} already loaded. Reload'.format(appWrapper.appId))
+            self.removeApplication(appWrapper.appId)
 
-        self.appList[appWrapper.appId] = appWrapper
+        self.mAppInfos[appWrapper.appId] = appWrapper
 
         #load GUI integration
         if DEBUG:
@@ -257,19 +362,19 @@ class ApplicationRegistry(QObject):
         self.loadMenuItems(appWrapper)
 
         #load QGIS Processing Framework Integration
-        if self.processingAlgManager.isInitialized():
+        if self.mProcessingAlgManager.isInitialized():
             if DEBUG:
                 print('Load GeoAlgorithms...')
-            self.loadGeoAlgorithms(appWrapper)
+            self.loadProcessingAlgorithms(appWrapper)
 
         if DEBUG:
             print('Loading done.')
 
         return True
 
-    def loadGeoAlgorithms(self, appWrapper):
+    def loadProcessingAlgorithms(self, appWrapper):
         assert isinstance(appWrapper, ApplicationWrapper)
-        processingAlgorithms = appWrapper.app.geoAlgorithms()
+        processingAlgorithms = appWrapper.app.processingAlgorithms()
         if DEBUG:
             print('appWrapper.app.geoAlgorithms() returned: {}'.format(processingAlgorithms))
 
@@ -282,8 +387,8 @@ class ApplicationRegistry(QObject):
             processingAlgorithms = [alg.createInstance() for alg in processingAlgorithms]
             if DEBUG:
                 print('QgsProcessingAlgorithms found: {}'.format(processingAlgorithms))
-            appWrapper.geoAlgorithms.extend(processingAlgorithms)
-            provider = self.processingAlgManager.enmapBoxProvider()
+            appWrapper.processingAlgorithms.extend(processingAlgorithms)
+            provider = self.mProcessingAlgManager.enmapBoxProvider()
             if isinstance(provider, EnMAPBoxAlgorithmProvider):
                 provider.addAlgorithms(processingAlgorithms)
             else:
@@ -291,11 +396,17 @@ class ApplicationRegistry(QObject):
                     print('Can not find EnMAPBoxAlgorithmProvider')
 
 
-    def loadMenuItems(self, appWrapper, parentMenuName = 'Applications'):
+    def loadMenuItems(self, appWrapper:ApplicationWrapper, parentMenuName = 'Applications'):
+        """
+        Adds an EnMAPBoxApplication QMenu to its parent QMenu
+        :param appWrapper:
+        :param parentMenuName:
+        :return:
+        """
         assert isinstance(appWrapper, ApplicationWrapper)
         app = appWrapper.app
         assert isinstance(app, EnMAPBoxApplication)
-        parentMenu = self.enmapBox.menu(parentMenuName)
+        parentMenu = self.mEnMAPBox.menu(parentMenuName)
         items = app.menu(parentMenu)
 
         if items is not None:
@@ -305,90 +416,44 @@ class ApplicationRegistry(QObject):
 
 
 
-    def reloadApplication(self, appId):
-        assert appId in self.appList.keys()
+    def reloadApplication(self, appId:str):
+        """
+        Reloads an EnMAP-Box Application
+        :param appId: str
+        """
+        assert appId in self.mAppInfos.keys()
         self.removeApplication(appId)
         self.addApplication(appId)
 
     def removeApplication(self, appId):
-        appWrapper = self.appList[appId]
+        """
+        Removes the EnMAPBoxApplication
+        :param appId: str
+        """
+        if isinstance(appId, EnMAPBoxApplication):
+            appId = ApplicationWrapper(appId).appId
+
+        appWrapper = self.mAppInfos.pop(appId)
         assert isinstance(appWrapper, ApplicationWrapper)
 
         #remove menu item
         for item in appWrapper.menuItems:
-            item.parent().removeChildren(item)
+
+            parent = item.parent()
+            if isinstance(parent, QMenu):
+                if isinstance(item, QMenu):
+                    parent.removeAction(item.menuAction())
+                else:
+                    s = ""
 
         #todo: remove geo-algorithms
-        self.processingAlgManager.removeAlgorithms(appWrapper.geoAlgorithms)
+        PAM = self.mProcessingAlgManager
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
+        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        assert isinstance(PAM, ProcessingAlgorithmsManager)
 
-
-
-class EnMAPBoxApplication(QObject):
-    """
+        provider = PAM.enmapBoxProvider()
+        assert isinstance(provider, EnMAPBoxAlgorithmProvider)
+        provider.removeAlgorithms(appWrapper.processingAlgorithms)
         s = ""
-    Base class to describe components of an EnMAPBoxApplication
-    and to provide interfaces the main EnMAP-Box
-    """
 
-    @staticmethod
-    def checkRequirements(enmapBoxApp):
-        assert enmapBoxApp.name
-        assert enmapBoxApp.version
-        assert enmapBoxApp.licence
-
-    """
-        call self.sigFileCreated.emit("filepath.txt") to let the EnMAP-Box know that you created "filepath.txt".
-    """
-    sigFileCreated = pyqtSignal(str)
-
-
-
-    def __init__(self, enmapBox, parent=None):
-        super(EnMAPBoxApplication, self).__init__(parent)
-        self.enmapbox = enmapBox
-        self.qgis = enmapBox.iface
-
-        #required attributes. Must be different to None
-        self.name = None
-        self.version = None
-        self.licence = 'GNU GPL-3'
-
-        #optional attributes, can be None
-        self.projectWebsite = None
-        self.description = None
-
-    def removeApplication(self):
-        """
-        Overwrite to remove components of your application when this app is disabled.
-
-        :return:
-        """
-        return None
-
-    def icon(self):
-        """
-        Overwrite to return a QIcon
-        http://doc.qt.io/qt-5/qicon.html
-        :return:
-        """
-        return None
-
-    def menu(self, appMenu):
-        """
-        :param appMenu: the EnMAP-Box' Application QMenu
-        :return: None (default), the QMenu or QAction that is added to the QMenu "appMenu".
-        """
-        return None
-
-    def geoAlgorithms(self)->list:
-        """
-        Returns a list of GeoAlgorithms()
-
-        :return:
-        """
-        messageLog('Deprecated method "geoAlgorithms". Use "processingAlgorithms" instead.')
-        return []
-
-    def processingAlgorithms(self)->list:
-
-        return []

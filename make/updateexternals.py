@@ -67,53 +67,46 @@ class RemoteInfo(object):
             return self.remoteBranch + ':' + self.prefixRemote
 
 
-# specifiy remote branches
+# specify remote branches
 RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
                   prefixLocal=r'site-packages/pyqtgraph')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
                   prefixLocal=r'enmapboxtestdata',
-                  prefixRemote=r'enmapboxtestdata')
+                  prefixRemote=r'enmapboxtestdata',
+                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetation-apps.git',
                   prefixLocal=r'enmapbox/apps/lmuvegetationapps',
-                  prefixRemote=r'lmuvegetationapps')
-
+                  prefixRemote=r'lmuvegetationapps',
+                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
                   prefixLocal=r'site-packages/vrtbuilder',
-                  prefixRemote=r'vrtbuilder')
+                  prefixRemote=r'vrtbuilder',
+                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   prefixLocal=r'enmapboxgeoalgorithms',
                   prefixRemote=r'enmapboxgeoalgorithms',
-                  remoteBranch='develop')
+                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   prefixLocal=r'doc/source/geoalgorithms',
                   prefixRemote=r'doc/source',
                   excluded=['conf.py','index.rst'],
-                  remoteBranch='develop')
+                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',
                   prefixRemote=r'hubdc',
-                  excluded=['gis','testdata'])
+                  excluded=['gis','testdata'],
+                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixLocal=r'site-packages/hubflow',
-                  prefixRemote=r'hubflow')
-
-"""
-RemoteInfo.create(r'https://github.com/titusjan/objbrowser.git',
-                  prefixLocal=r'site-packages/objbrowser',
-                  prefixRemote=r'objbrowser')
-
-RemoteInfo.create(r'https://github.com/dask/dask.git',
-                  prefixLocal='site-packages/dask',
-                  excluded=['docs','.github','continuous_integration'])
-
-"""
+                  prefixRemote=r'hubflow',
+                  remoteBranch='master')
 
 
 def updateRemote(remoteInfo):
@@ -180,15 +173,13 @@ if __name__ == "__main__":
 
     # update remotes
     to_update = [#'hub-datacube',
-                 #'hub-workflow', #'enmap-box-testdata',
-                # 'enmap-box-geoalgorithmsprovider',
-                 'enmap-box-lmu-vegetation-apps',
-                # 'virtual-raster-builder',
-                # 'enmapboxgeoalgorithmsdoc'
+                 # 'hub-workflow',
+                 # 'enmap-box-testdata',
+                 # 'enmap-box-geoalgorithmsprovider',
+                #'enmap-box-lmu-vegetation-apps',
+                 'virtual-raster-builder',
+                 # 'enmapboxgeoalgorithmsdoc'
                 ]
-
-   # to_update = []
-    #to_update = ['dask']
 
     for p in to_update:
         updateRemote(p)

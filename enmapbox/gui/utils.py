@@ -154,6 +154,81 @@ class TestObjects():
         return QDropEvent(QPointF(0, 0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier)
 
 
+    @staticmethod
+    def processingAlgorithm():
+
+        from qgis.core import QgsProcessingAlgorithm
+
+        class TestProcessingAlgorithm(QgsProcessingAlgorithm):
+
+            def __init__(self):
+                super(TestProcessingAlgorithm, self).__init__()
+                s = ""
+
+            def createInstance(self):
+                return TestProcessingAlgorithm()
+
+            def name(self):
+                return 'exmaplealg'
+
+            def displayName(self):
+                return 'Example Algorithm'
+
+            def groupId(self):
+                return 'exampleapp'
+
+            def group(self):
+                return 'TEST APPS'
+
+            def initAlgorithm(self, configuration=None):
+                self.addParameter(QgsProcessingParameterRasterLayer('pathInput', 'The Input Dataset'))
+                self.addParameter(
+                    QgsProcessingParameterNumber('value', 'The value', QgsProcessingParameterNumber.Double, 1, False,
+                                                 0.00, 999999.99))
+                self.addParameter(QgsProcessingParameterRasterDestination('pathOutput', 'The Output Dataset'))
+
+            def processAlgorithm(self, parameters, context, feedback):
+                assert isinstance(parameters, dict)
+                assert isinstance(context, QgsProcessingContext)
+                assert isinstance(feedback, QgsProcessingFeedback)
+
+
+                outputs = {}
+                return outputs
+
+        return TestProcessingAlgorithm()
+
+
+
+    @staticmethod
+    def enmapBoxApplication():
+
+        from enmapbox.gui.applications import EnMAPBoxApplication
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+
+        class TestApp(EnMAPBoxApplication):
+            def __init__(self, enmapbox):
+                super(TestApp, self).__init__(enmapbox)
+
+                self.name = 'TestApp'
+                self.licence = 'GPL-3'
+                self.version = '-12345'
+
+            def menu(self, appMenu:QMenu)->QMenu:
+                menu = appMenu.addMenu('Test Menu')
+                action = menu.addAction('Test Action')
+                action.triggered.connect(self.onAction)
+                return menu
+
+            def onAction(self):
+                print('TestApp action called')
+
+            def processingAlgorithms(self):
+                return [TestObjects.processingAlgorithm()]
+
+        return TestApp(enmapbox)
+
 class QgsPluginManagerMockup(QgsPluginManagerInterface):
 
 
