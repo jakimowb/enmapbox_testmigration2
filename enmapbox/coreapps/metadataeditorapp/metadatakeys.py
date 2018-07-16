@@ -37,7 +37,7 @@ def getKwds(valueType=None, valueMin=None, valueMax=None,
 
 
 
-regexIsOLI = re.compile('(gdal\.(Dataset|Band_[1-9]\d*))|ogr\.(DataSource|Layer_\d+)')
+regexIsOLI = re.compile(r'(gdal\.(Dataset|Band_[1-9]\d*))|ogr\.(DataSource|Layer_\d+)')
 
 class MDKeyAbstract(object):
 

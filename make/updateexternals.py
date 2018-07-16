@@ -172,12 +172,12 @@ if __name__ == "__main__":
                 addRemote(info)
 
     # update remotes
-    to_update = [#'hub-datacube',
+    to_update = ['hub-datacube',
                  # 'hub-workflow',
                  # 'enmap-box-testdata',
                  # 'enmap-box-geoalgorithmsprovider',
                 #'enmap-box-lmu-vegetation-apps',
-                 'virtual-raster-builder',
+                 #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
                 ]
 

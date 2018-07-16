@@ -115,7 +115,10 @@ def sandboxGUI():
     #from enmapbox.gui.enmapboxgui import EnMAPBox
     from enmapbox import EnMAPBox
     EB = EnMAPBox(None)
-    EB.ui.resize(QSize(600,500))
+    desktop = QApplication.desktop()
+    fullsize = desktop.screenGeometry()
+    scale = 0.9
+    EB.ui.resize(QSize(int(fullsize.width()*scale),int(fullsize.height()*scale)))
     EB.openExampleData(mapWindows=1)
     if True:
         dock = EB.createDock('SPECLIB')

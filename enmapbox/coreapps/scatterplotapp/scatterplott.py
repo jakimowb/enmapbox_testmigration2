@@ -32,7 +32,7 @@ import pyqtgraph
 from pyqtgraph.colormap import ColorMap
 from pyqtgraph.widgets.ColorMapWidget import ColorMapParameter
 from pyqtgraph.widgets.GradientWidget import GradientWidget
-from hubflow.types import *
+from hubflow.core import *
 
 class Win(QtGui.QDialog):
 

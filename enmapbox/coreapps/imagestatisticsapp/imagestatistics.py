@@ -21,30 +21,18 @@
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from osgeo import gdal
-import ogr
-import unicodedata
+from PyQt5.QtWidgets import *
+from osgeo import gdal, ogr
 import pyqtgraph
-#from imagestatisticsapp import APP_DIR
+import numpy
 
-from hubflow.types import *
+from hubflow.core import *
 from pyqtgraph.Qt import QtCore, QtGui
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
 #BJ: es gibt immer nur eine QApplication. Zur Laufzeit ist das die von QGiS.
 #  Daher sollte das nie eine Modul-Variable sein
 #app = QtGui.QApplication([])
-
-def u2s(s):
-    if isinstance(s, unicode):
-        try:
-            s = str(s)
-        except:
-            try:
-                s = s.encode('utf-8')
-            except:
-                s = unicodedata.normalize('NFKD', s).encode('utf-8', 'ignore')
-    return s
 
 
 class Win(QtGui.QDialog):
@@ -226,7 +214,7 @@ class Win(QtGui.QDialog):
 
     def computeStats(self):
 
-        image = Image(filename=u2s(self.inDS.GetFileList()[0]))
+        image = Image(filename=self.inDS.GetFileList()[0])
 
         pathMask = self.inputMask.currentText()
         if os.path.isfile(pathMask) and gdal.Open(pathMask):

@@ -43,7 +43,10 @@ class test_applications(unittest.TestCase):
         enmapbox.gui.LOAD_EXTERNAL_APPS = False
 
     def tearDown(self):
-        pass
+        eb = EnMAPBox.instance()
+        if isinstance(eb, EnMAPBox):
+            eb.close()
+            EnMAPBox.instance()
 
 
 
@@ -68,7 +71,7 @@ class test_applications(unittest.TestCase):
         self.assertTrue(len(errors) == 0)
         self.assertIsInstance(testApp.processingAlgorithms(), list)
         self.assertTrue(len(testApp.processingAlgorithms()) > 0)
-        self.assertIsInstance(testApp.menu(QMenu), QMenu)
+        self.assertIsInstance(testApp.menu(QMenu()), QMenu)
 
 
     def test_applicationRegistry(self):
@@ -119,29 +122,23 @@ class test_applications(unittest.TestCase):
 
         EB = EnMAPBox()
 
-        self.assertIsInstance(EB, EnMAPBox)
+        titles = [m.title() for m in EB.ui.menuBar().children() if isinstance(m, QMenu)]
+        print('Menu titles: {}'.format(','.join(titles)))
+
 
         # calls all QMenu actions
-        def triggerActions(menuItem):
+        def triggerActions(menuItem, prefix=''):
             if isinstance(menuItem, QAction):
-                print('Trigger QAction "{}" {}'.format(menuItem.text(), menuItem.toolTip()))
+                print('Trigger QAction {}"{}" {}'.format(prefix, menuItem.text(), menuItem.toolTip()))
                 menuItem.trigger()
             elif isinstance(menuItem, QMenu):
                 for a in menuItem.actions():
-                    triggerActions(a)
+                    triggerActions(a, prefix='"{}"->'.format(menuItem.title()))
 
-
-        for w in EB.applicationRegistry.applicationWrapper():
-            self.assertIsInstance(w, ApplicationWrapper)
-
-            print('Test QActions from {}...'.format(w.appId))
-            #simply call each single QAction
-
-
-            for menuItem in w.menuItems:
-                triggerActions(menuItem)
-
-
+        #test core apps / tools
+        for title in ['Tools', 'Applications']:
+            print('## TEST QMenu "{}"'.format(title))
+            triggerActions(EB.menu(title))
 
 
 

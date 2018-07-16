@@ -673,7 +673,12 @@ class EnMAPBox(QgisInterface, QObject):
     def removeSource(self, source):
         self.dataSourceManager.removeSource(source)
 
-    def menu(self, title):
+    def menu(self, title)->QMenu:
+        """
+        Returns the QMenu with name "title"
+        :param title: str
+        :return: QMenu
+        """
         for menu in self.ui.menuBar().findChildren(QMenu):
             if menu.title() == title:
                 return menu
@@ -711,6 +716,7 @@ class EnMAPBox(QgisInterface, QObject):
         #print('CLOSE ENMAPBOX')
         enmapbox.gui.processingmanager.removeQPFExtensions()
         self.ui.close()
+        EnMAPBox._instance = None
 
 
     """
