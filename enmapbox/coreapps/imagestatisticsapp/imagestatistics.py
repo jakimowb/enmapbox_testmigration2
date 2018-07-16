@@ -214,7 +214,7 @@ class Win(QtGui.QDialog):
 
     def computeStats(self):
 
-        image = Image(filename=self.inDS.GetFileList()[0])
+        image = Raster(filename=self.inDS.GetFileList()[0])
 
         pathMask = self.inputMask.currentText()
         if os.path.isfile(pathMask) and gdal.Open(pathMask):
@@ -226,10 +226,10 @@ class Win(QtGui.QDialog):
 
         # band table
         bandIndices = []
-        for index in range(0, len(self.selectionTable.selectedIndexes()) / self.selectionTable.columnCount()): # /5, since 1 index = 1 cell. we want nbr of rows, not cells
-            bandIndices.append(self.selectionTable.selectionModel().selectedRows()[index].row())
-            bandInd = self.selectionTable.selectionModel().selectedRows()[index].row()
-
+        
+        #for index in range(0, len(self.selectionTable.selectedIndexes()) / self.selectionTable.columnCount()): # /5, since 1 index = 1 cell. we want nbr of rows, not cells
+        for idx in self.selectionTable.selectionModel().selectedRows():
+            bandInd = idx.row()
             # adapt resolution dynamically so that the selection contains 100x100 samples
             if self.approximateStats.isChecked():
                 xRes = (self.inDS.RasterXSize/self.approximateGrid) * self.inDS.GetGeoTransform()[1]
