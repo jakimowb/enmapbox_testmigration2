@@ -24,6 +24,9 @@ def messageLog(msg, level=Qgis.Info):
 
 
 
-
+#provide important classes in Top-Level Namespace
 from enmapbox.gui.enmapboxgui import EnMAPBox
 EnMAPBox = EnMAPBox
+
+from enmapbox.gui.applications import EnMAPBoxApplication
+EnMAPBoxApplication = EnMAPBoxApplication

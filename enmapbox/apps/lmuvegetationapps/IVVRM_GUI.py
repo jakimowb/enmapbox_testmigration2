@@ -11,6 +11,7 @@ from qgis.gui import *
 import pyqtgraph as pg
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
 import lmuvegetationapps.call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication

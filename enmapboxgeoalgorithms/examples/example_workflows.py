@@ -24,7 +24,7 @@ def synthMixRegressionWorkflow():
 
     # create training data
     # - import ENVI speclib
-    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+    unsupervisedSample = Sample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
 
     # - label spectra
     classDefinition = ClassDefinition(names=unsupervisedSample.metadata['level 2 class names'][1:],
@@ -88,7 +88,7 @@ def classificationWorkflow():
     image = Raster(filename=enmapboxtestdata.enmap)
 
     # - rasterize land cover into classification image
-    speclib = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+    speclib = Sample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     classDefinition = ClassDefinition(names=speclib.metadata['level 2 class names'][1:],
                                       colors=speclib.metadata['level 2 class lookup'][3:])
     vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, classDefinition=classDefinition,
@@ -123,7 +123,7 @@ def debug_synthMixRegressionWorkflow():
 
     # create training data
     # - import ENVI speclib
-    unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+    unsupervisedSample = Sample.fromENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     #unsupervisedSample = UnsupervisedSample.fromENVISpectralLibrary(filename=r'F:\newdata\lib_subset.sli')
 
     # - label spectra
@@ -140,9 +140,9 @@ def debug_synthMixRegressionWorkflow():
     # - generate synthetic mixtures
     probabilitySamplePure = classificationSample.asProbabilitySample()
     probabilitySampleMixed = classificationSample.synthMix(mixingComplexities={2:0.7, 3:0.3}, classLikelihoods='proportional', n=1000)
-    probabilitySample = ProbabilitySample(features=numpy.hstack((probabilitySamplePure.features, probabilitySampleMixed.features)),
-                                          labels=numpy.hstack((probabilitySamplePure.labels, probabilitySampleMixed.labels)),
-                                          classDefinition=probabilitySamplePure.classDefinition)
+    probabilitySample = FractionSample(features=numpy.hstack((probabilitySamplePure.features, probabilitySampleMixed.features)),
+                                       labels=numpy.hstack((probabilitySamplePure.labels, probabilitySampleMixed.labels)),
+                                       classDefinition=probabilitySamplePure.classDefinition)
     probabilitySample = probabilitySampleMixed
 
     # - subset output classes to be modeled

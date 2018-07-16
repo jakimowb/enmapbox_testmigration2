@@ -95,31 +95,8 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         m = MainUiFunc()
         m.show()
 
-    def geoAlgorithms(self):
-        return [LMU_GeoAlgorithm()]
 
 ### Interfaces to use algorithms in algorithms.py within
 ### QGIS Processing Framework
-
-from qgis.core import QgsProcessingAlgorithm
-
-class LMU_GeoAlgorithm(QgsProcessingAlgorithm):
-
-        def defineCharacteristics(self):
-            self.name = 'Dummy Algorithm'
-            self.group = 'LMU Apps'
-
-            self.addParameter(ParameterRaster('infile', 'Input Image'))
-            self.addOutput(OutputRaster('outfile', 'Output Image'))
-
-        def processAlgorithm(self, progress):
-            from .algorithms import dummyAlgorithm
-            #map processing framework parameters to that of you algorithm
-            infile = self.getParameterValue('infile')
-            outfile = self.getOutputValue('outfile')
-            raise NotImplementedError()
-
-        def help(self):
-            return True, 'Calculates the NDVI using GDAL'
 
 

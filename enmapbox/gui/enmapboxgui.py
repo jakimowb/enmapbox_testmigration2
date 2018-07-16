@@ -287,8 +287,6 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Sets the EnMAP-Box as global iface, so that the EnMAPBox instance serves as QGIS instance
         """
-        from processing.core.Processing import Processing
-        import processing
         self.iface = self
         qgis.utils.iface = self
 
@@ -458,11 +456,14 @@ class EnMAPBox(QgisInterface, QObject):
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
         appDirs = []
 
-        COREAPPS = jp(DIR_ENMAPBOX, *['coreapps'])
-        appDirs.append(COREAPPS)
+        INTERNAL_APPS = jp(DIR_ENMAPBOX, *['coreapps'])
+        EXTERNAL_APPS = jp(DIR_ENMAPBOX, *['apps'])
+
+        if enmapbox.gui.LOAD_INTERNAL_APPS:
+            appDirs.append(INTERNAL_APPS)
 
         if enmapbox.gui.LOAD_EXTERNAL_APPS:
-            appDirs.append(jp(DIR_ENMAPBOX, *['apps']))
+            appDirs.append(EXTERNAL_APPS)
 
         from enmapbox.gui.settings import qtSettingsObj
         settings = qtSettingsObj()
@@ -472,8 +473,9 @@ class EnMAPBox(QgisInterface, QObject):
         for appDir in appDirs:
             self.applicationRegistry.addApplicationPackageRootFolder(appDir)
 
-        pathAppDefs = jp(COREAPPS, 'others.txt')
-        self.applicationRegistry.addApplicationPackageFile(pathAppDefs)
+        if enmapbox.gui.LOAD_INTERNAL_APPS:
+            pathAppDefs = jp(INTERNAL_APPS, 'others.txt')
+            self.applicationRegistry.addApplicationPackageFile(pathAppDefs)
         s = ""
 
     def exit(self):

@@ -37,6 +37,7 @@ HUBFLOW = True
 HIDDEN_DATASOURCE = '__HIDDEN__DATASOURCE'
 try:
     import hubflow.core
+    s = ""
 
 except Exception as ex:
     messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)

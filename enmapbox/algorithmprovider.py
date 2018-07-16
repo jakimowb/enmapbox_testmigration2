@@ -143,6 +143,27 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         for a in algorithmns:
             self.addAlgorithm(a, _emitUpdated = a == algorithmns[-1])
 
+    def removeAlgorithm(self, algorithm:QgsProcessingAlgorithm):
+        """
+        Removes a single QgsProcessingAlgorithms
+        :param algorithm: QgsProcessingAlgorithm
+        """
+        self.removeAlgorithms([algorithm])
+
+    def removeAlgorithms(self, algorithms:list):
+        """
+        Removes a list of QgsProcessingAlgorithms
+        :param algorithms: [list-of-QgsProcessingAlgorithms]
+        """
+        if isinstance(algorithms, QgsProcessingAlgorithm):
+            algorithms = [algorithms]
+
+        for a in algorithms:
+            if a in self.mAlgorithms:
+                self.mAlgorithms.remove(a)
+        self.refreshAlgorithms()
+
+
     def loadAlgorithms(self):
 
         for alg in self.mAlgorithms:

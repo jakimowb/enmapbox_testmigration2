@@ -54,23 +54,16 @@ def runalg(alg, io, info=None):
 import hubflow.test_core
 import enmapboxtestdata
 
-enmap = hubflow.test_core.enmap.filename
-enmapClassification = hubflow.test_core.enmapClassification.filename
-enmapProbability = hubflow.test_core.enmapProbability.filename
-enmapMask = hubflow.test_core.enmapMask.filename
-vector = hubflow.test_core.vector.filename
+enmap = hubflow.test_core.enmap.filename()
+hymap = hubflow.test_core.hymap.filename()
+enmapClassification = hubflow.test_core.enmapClassification.filename()
+enmapFraction = hubflow.test_core.enmapFraction.filename()
+enmapMask = hubflow.test_core.enmapMask.filename()
+vector = hubflow.test_core.vector.filename()
 
-enmapUnsupervisedSample = join(outdir, 'enmapUnsupervisedSample.pkl')
-hubflow.test_core.enmapUnsupervisedSample.pickle(filename=enmapUnsupervisedSample)
+#enmapSample = join(outdir, 'enmapSample.pkl')
+#enmapClassificationSample = hubflow.test_core.enmapClassificationSample
 
-enmapClassificationSample = join(outdir, 'enmapClassificationSample.pkl')
-hubflow.test_core.enmapClassificationSample.pickle(filename=enmapClassificationSample)
-
-enmapRegressionSample = join(outdir, 'enmapRegressionSample.pkl')
-hubflow.test_core.enmapProbabilitySample.pickle(filename=enmapRegressionSample)
-
-enmapProbabilitySample = join(outdir, 'enmapProbabilitySample.pkl')
-hubflow.test_core.enmapProbabilitySample.pickle(filename=enmapProbabilitySample)
 
 
 def test_ClassDefinitionFromRaster():
@@ -80,12 +73,12 @@ def test_ClassDefinitionFromRaster():
 
 
 def test_Classification():
-    alg = ClassificationFromProbability()
-    io = {alg.P_PROBABILITY: enmapProbability,
-          alg.P_MINOVERALLCOVERAGE: 0.5,
-          alg.P_MINWINNERCOVERAGE: 0.5,
-          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ClassificationFromProbability.bsq')}
-          #alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ClassificationFromProbability.img')}
+
+    alg = ClassificationFromFraction()
+    io = {alg.P_FRACTION: enmapFraction,
+          alg.P_MIN_OVERALL_COVERAGE: 0.5,
+          alg.P_MIN_DOMINANT_COVERAGE: 0.5,
+          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ClassificationFromFraction.bsq')}
 
     runalg(alg=alg, io=io)
 
@@ -94,8 +87,8 @@ def test_Classification():
           alg.P_VECTOR: vector,
           alg.P_CLASSIDFIELD: enmapboxtestdata.landcoverAttributes.Level_2_ID,
           alg.P_CLASS_DEFINITION: '',
-          alg.P_MINOVERALLCOVERAGE: 0.5,
-          alg.P_MINWINNERCOVERAGE: 0.5,
+          alg.P_MIN_OVERALL_COVERAGE: 0.5,
+          alg.P_MIN_DOMINANT_COVERAGE: 0.5,
           alg.P_OVERSAMPLING: 1,
           alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ClassificationFromVectorClassification.bsq')}
     runalg(alg=alg, io=io)
@@ -109,66 +102,6 @@ def test_ClassificationPerformance():
     runalg(ClassificationPerformanceFromRaster(), io)
 
 
-def test_ClassificationSample():
-    alg = ClassificationSampleFromRasterAndVectorClassification()
-    filename = join(outdir, 'ClassificationSampleFromRasterAndVectorClassification.pkl')
-    io = {alg.P_RASTER: enmap,
-          alg.P_VECTOR: enmapboxtestdata.landcover,
-          alg.P_CLASSIDFIELD: enmapboxtestdata.landcoverAttributes.Level_2_ID,
-          alg.P_MINOVERALLCOVERAGE: 0.5,
-          alg.P_MINWINNERCOVERAGE: 0.5,
-          alg.P_OVERSAMPLING: 1,
-          alg.P_CLASS_DEFINITION: '',
-          alg.P_MASK: enmapMask,
-          alg.P_OUTPUT_CLASSIFICATION_SAMPLE: filename}
-    runalg(alg=alg, io=io)
-    return
-    alg = ClassificationSampleFromProbabilitySample()
-    filename = join(outdir, 'ClassificationSampleFromProbabilitySample.pkl')
-    io = {alg.P_PROBABILITY_SAMPLE: enmapProbabilitySample,
-          alg.P_OUTPUT_CLASSIFICATION_SAMPLE: filename,
-          alg.P_MINOVERALLCOVERAGE: 0.5,
-          alg.P_MINWINNERCOVERAGE: 0.5}
-    runalg(alg=alg, io=io)
-
-    alg = ClassificationSampleFromRasterAndProbability()
-    filename = join(outdir, 'ClassificationSampleFromRasterAndProbability.pkl')
-    io = {alg.P_RASTER: enmap,
-          alg.P_PROBABILITY: enmapProbability,
-          alg.P_MASK: enmapMask,
-          alg.P_MINOVERALLCOVERAGE: 0.5,
-          alg.P_MINWINNERCOVERAGE: 0.5,
-          alg.P_OUTPUT_CLASSIFICATION_SAMPLE: filename}
-    runalg(alg=alg, io=io)
-
-    alg = ClassificationSampleFromENVISpectralLibrary()
-    filename = join(outdir, 'ClassificationSampleFromENVISpectralLibrary.pkl')
-    io = {alg.P_ENVI_SPECLIB: enmapboxtestdata.speclib,
-          alg.P_CLASSDEFINITIONPREFIX: 'level 2',
-          alg.P_OUTPUT_CLASSIFICATION_SAMPLE: filename}
-    runalg(alg=alg, io=io)
-
-    alg = ClassificationSampleSynthMix()
-    filename = join(outdir, 'ClassificationSampleSynthMix.pkl')
-    io = {alg.P_CLASSIFICATION_SAMPLE: enmapClassificationSample,
-          alg.P_N: 100,
-          alg.P_COMPLEXITY2LIKELIHOOD: 1.0,
-          alg.P_COMPLEXITY3LIKELIHOOD: 0.0,
-          alg.P_CLASSLIKELIHOODS: 0,
-          alg.P_OUTPUT_PROBABILITY_SAMPLE: filename}
-    runalg(alg=alg, io=io)
-
-    alg = ClassificationSampleFromRasterAndClassification()
-    filename = join(outdir, 'ClassificationSampleFromRasterAndClassification.pkl')
-    io = {alg.P_RASTER: enmap,
-          alg.P_CLASSIFICATION: enmapClassification,
-          alg.P_MASK: enmapMask,
-          alg.P_MINOVERALLCOVERAGE: 0.5,
-          alg.P_MINWINNERCOVERAGE: 0.5,
-          alg.P_OUTPUT_CLASSIFICATION_SAMPLE: filename}
-    runalg(alg=alg, io=io)
-
-
 def test_Classifier():
     for algFit in ALGORITHMS:
 
@@ -180,7 +113,9 @@ def test_Classifier():
 
         # fit
         filenameEstimator = join(outdir, 'Classifier{}.pkl'.format(algFit.displayName().replace(' ', '')))
-        io = {algFit.P_CLASSIFICATION_SAMPLE: enmapClassificationSample,
+        io = {algFit.P_RASTER: enmap,
+              algFit.P_CLASSIFICATION: enmapClassification,
+              algFit.P_MASK: vector,
               algFit.P_CODE: algFit.code(),
               algFit.P_OUTPUT_ESTIMATOR: filenameEstimator}
         runalg(alg=algFit, io=io, info=algFit.displayName())
@@ -191,19 +126,19 @@ def test_Classifier():
         io = {algPredict.P_RASTER: enmap,
               algPredict.P_MASK: enmapMask,
               algPredict.P_CLASSIFIER: filenameEstimator,
-              algPredict.P_OUTPUT_RASTER: filename}
+              algPredict.P_OUTPUT_CLASSIFICATION: filename}
         runalg(alg=algPredict, io=io)
 
         # predict probability
         if not algFit.displayName().endswith('RandomForestClassifier'):
             continue
 
-        algPredictProba = ClassifierPredictProbability()
-        filename = join(outdir, 'ClassifierPredictProbability{}.bsq'.format(algFit.displayName().split()[1]))
+        algPredictProba = ClassifierPredictFraction()
+        filename = join(outdir, 'ClassifierPredictFraction{}.bsq'.format(algFit.displayName().split()[1]))
         io = {algPredictProba.P_RASTER: enmap,
               algPredictProba.P_MASK: enmapMask,
               algPredictProba.P_CLASSIFIER: filenameEstimator,
-              algPredictProba.P_OUTPUT_RASTER: filename}
+              algPredictProba.P_OUTPUT_FRACTION: filename}
         runalg(alg=algPredictProba, io=io)
 
 
@@ -217,7 +152,8 @@ def test_Clusterer():
             continue
 
         filenameEstimator = join(outdir, 'Clusterer{}.pkl'.format(algFit.displayName().replace(' ', '')))
-        io = {algFit.P_UNSUPERVISED_SAMPLE: enmapProbabilitySample,
+        io = {algFit.P_RASTER: enmap,
+              algFit.P_MASK: enmapMask,
               algFit.P_CODE: algFit.code(),
               algFit.P_OUTPUT_ESTIMATOR: filenameEstimator}
         runalg(alg=algFit, io=io, info=algFit.displayName())
@@ -228,7 +164,7 @@ def test_Clusterer():
         io = {alg.P_RASTER: enmap,
               alg.P_MASK: enmapMask,
               alg.P_CLUSTERER: filenameEstimator,
-              alg.P_OUTPUT_RASTER: filename}
+              alg.P_OUTPUT_CLASSIFICATION: filename}
         runalg(alg=alg, io=io)
 
 
@@ -242,90 +178,131 @@ def test_ClusteringPerformance():
 
 def test_CreateAdditionalTestdata():
     alg = CreateAdditionalTestdata()
-    io = {alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataClassification.bsq'),
-          alg.P_OUTPUT_PROBABILITY: join(outdir, 'CreateAdditionalTestdataProbability.bsq'),
-          alg.P_OUTPUT_UNSUPERVISED_SAMPLE: join(outdir, 'CreateAdditionalTestdataSample.pkl'),
-          alg.P_OUTPUT_CLASSIFICATION_SAMPLE: join(outdir, 'CreateAdditionalTestdataClassificationSample.pkl'),
-          alg.P_OUTPUT_REGRESSION_SAMPLE: join(outdir, 'CreateAdditionalTestdataRegressionSample.pkl'),
-          alg.P_OUTPUT_PROBABILITY_SAMPLE: join(outdir, 'CreateAdditionalTestdataProbabilitySample.pkl')}
+    io = {alg.P_BOOLEAN_ENMAP: True,
+          alg.P_BOOLEAN_HYMAP: True,
+          alg.P_BOOLEAN_LIBRARY: True,
+          alg.P_OUTPUT_ENMAP_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataEnmapClassification.bsq'),
+          alg.P_OUTPUT_ENMAP_FRACTION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
+          alg.P_OUTPUT_HYMAP_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataHymapClassification.bsq'),
+          alg.P_OUTPUT_HYMAP_FRACTION: join(outdir, 'CreateAdditionalTestdataHymapFraction.bsq'),
+          alg.P_OUTPUT_LIBRARY: join(outdir, 'CreateAdditionalTestdataLibrary.bsq')}
+
     runalg(alg=alg, io=io)
+
+def test_ImportLibrary():
+    alg = ImportLibrary()
+    io = {alg.P_LIBRARY: join(outdir, 'CreateAdditionalTestdataLibrary.bsq'),
+          alg.P_IMPORT_PROFILES: True,
+          alg.P_CLASSIFICATION_SCHEME_NAME: 'level 2',
+          alg.P_REGRESSION_OUTPUT_NAMES: ', '.join(hubflow.test_core.enmapFraction.outputNames()),
+          alg.P_FRACTION_OUTPUT_NAMES: ', '.join(hubflow.test_core.enmapFraction.outputNames()),
+          alg.P_OUTPUT_RASTER: join(outdir, 'OpenLibraryRaster.bsq'),
+          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'OpenLibraryClassification.bsq'),
+          alg.P_OUTPUT_REGRESSION: join(outdir, 'OpenLibraryRegression.bsq'),
+          alg.P_OUTPUT_FRACTION: join(outdir, 'OpenLibraryFraction.bsq')}
+    runalg(alg=alg, io=io)
+
 
 def test_Mask():
     alg = MaskBuildFromRaster()
     io = {alg.P_RASTER: enmap,
-          alg.P_TRUEVALUES: '[]',
-          alg.P_TRUERANGES: '[]',
-          alg.P_FALSEVALUES: '[]',
-          alg.P_FALSERANGES: '[]',
+          alg.P_TRUE: '[]',
+          alg.P_FALSE: '[]',
           alg.P_OUTPUT_MASK: join(outdir, 'MaskBuildFromRaster.bsq')}
     runalg(alg=alg, io=io)
 
 
-def test_Probability():
-    alg = ProbabilityFromClassification()
+def test_ExtractSamples():
+    alg = ExtractSamples()
+    io = {alg.P_RASTER: enmap,
+          alg.P_MASK: enmapMask,
+          alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq')}
+    runalg(alg=alg, io=io)
+
+
+    alg = ExtractClassificationSamples()
+    io = {alg.P_RASTER: enmap,
+          alg.P_MASK: enmapMask,
+          alg.P_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataEnmapClassification.bsq'),
+          alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
+          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ExtractSamplesClassification.bsq')}
+    runalg(alg=alg, io=io)
+
+    alg = ExtractRegressionSamples()
+    io = {alg.P_RASTER: enmap,
+          alg.P_MASK: enmapMask,
+          alg.P_REGRESSION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
+          alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
+          alg.P_OUTPUT_REGRESSION: join(outdir, 'ExtractSamplesRegression.bsq')}
+    runalg(alg=alg, io=io)
+
+    alg = ExtractFractionSamples()
+    io = {alg.P_RASTER: enmap,
+          alg.P_MASK: enmapMask,
+          alg.P_FRACTION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
+          alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
+          alg.P_OUTPUT_FRACTION: join(outdir, 'ExtractSamplesFractions.bsq')}
+    runalg(alg=alg, io=io)
+
+
+def test_Fraction():
+    alg = FractionFromClassification()
     io = {alg.P_CLASSIFICATION: enmapClassification,
-          alg.P_OUTPUT_PROBABILITY: join(outdir, 'ProbabilityFromClassification.bsq')}
+          alg.P_OUTPUT_FRACTION: join(outdir, 'FractionFromClassification.bsq')}
     runalg(alg=alg, io=io)
 
-    alg = ProbabilityAsClassColorRGB()
-    io = {alg.P_PROBABILITY: enmapProbability,
-          alg.P_OUTPUT_RASTER: join(outdir, 'ProbabilityAsClassColorRGB.bsq')}
+    alg = FractionAsClassColorRGB()
+    io = {alg.P_FRACTION: enmapFraction,
+          alg.P_OUTPUT_RASTER: join(outdir, 'FractionAsClassColorRGB.bsq')}
     runalg(alg=alg, io=io)
 
-    alg = ProbabilityFromVectorClassification()
+    alg = FractionFromVectorClassification()
     io = {alg.P_GRID: enmap,
           alg.P_VECTOR: vector,
           alg.P_CLASSIDFIELD: enmapboxtestdata.landcoverAttributes.Level_2_ID,
           alg.P_CLASS_DEFINITION: '',
-          alg.P_MINOVERALLCOVERAGE: 0.,
-          alg.P_MINWINNERCOVERAGE: 0.,
+          alg.P_MIN_OVERALL_COVERAGE: 0.,
+          alg.P_MIN_DOMINANT_COVERAGE: 0.,
           alg.P_OVERSAMPLING: 10,
-          alg.P_OUTPUT_PROBABILITY: join(outdir, 'ProbabilityFromVectorClassification.bsq')}
+          alg.P_OUTPUT_FRACTION: join(outdir, 'FractionFromVectorClassification.bsq')}
     runalg(alg=alg, io=io)
 
 
-def test_ProbabilityPerformance():
-    alg = ProbabilityPerformanceFromRaster()
-    io = {alg.P_PREDICTION: enmapProbability,
+def test_FractionPerformance():
+    alg = FractionPerformanceFromRaster()
+    io = {alg.P_PREDICTION: enmapFraction,
           alg.P_REFERENCE: enmapClassification,
-          alg.P_OUTPUT_REPORT: join(outdir, 'ProbabilityPerformanceFromRaster.html')}
-    runalg(alg=alg, io=io)
-
-
-def test_ProbabilitySample():
-    alg = ProbabilitySampleFromRasterAndVector()
-    io = {alg.P_RASTER: enmap,
-          alg.P_VECTOR: enmapboxtestdata.landcover,
-          alg.P_CLASSIDFIELD: enmapboxtestdata.landcoverAttributes.Level_2_ID,
-          alg.P_CLASS_DEFINITION: '',
-          alg.P_MINOVERALLCOVERAGE: 0.,
-          alg.P_MINWINNERCOVERAGE: 0.,
-          alg.P_OVERSAMPLING: 10,
-          alg.P_MASK: enmapMask,
-          alg.P_OUTPUT_PROBABILITY_SAMPLE: join(outdir, 'ProbabilitySampleFromRasterAndVector.pkl')}
-    runalg(alg=alg, io=io)
-
-    alg = ProbabilitySampleFromClassificationSample()
-    io = {alg.P_CLASSIFICATION_SAMPLE: enmapProbabilitySample,#enmapClassificationSample,
-          alg.P_OUTPUT_PROBABILITY_SAMPLE: join(outdir, 'ProbabilitySampleFromClassificationSample.pkl')}
-    runalg(alg=alg, io=io)
-    return
-    alg = ProbabilitySampleFromRasterAndClassification()
-    io = {alg.P_RASTER: enmap,
-          alg.P_CLASSIFICATION: enmapClassification,
-          alg.P_MASK: enmapMask,
-          alg.P_OUTPUT_PROBABILITY_SAMPLE: join(outdir, 'ProbabilitySampleFromRasterAndClassification.pkl')}
-    runalg(alg=alg, io=io)
-
-    alg = ProbabilitySampleFromRasterAndProbability()
-    io = {alg.P_RASTER: enmap,
-          alg.P_PROBABILITY: enmapProbability,
-          alg.P_MASK: enmapMask,
-          alg.P_OUTPUT_PROBABILITY_SAMPLE: join(outdir, 'ProbabilitySampleFromRasterAndProbability.pkl')}
+          alg.P_OUTPUT_REPORT: join(outdir, 'FractionPerformanceFromRaster.html')}
     runalg(alg=alg, io=io)
 
 
 def test_Raster():
+
+    for alg in ALGORITHMS:
+        if isinstance(alg, RasterApplySpatial):
+            io = {alg.P_RASTER: enmap,
+                  alg.P_CODE: alg.code(),
+                  alg.P_OUTPUT_RASTER: join(outdir, 'RasterApplySpatial'+alg.name())}
+            runalg(alg=alg, io=io)
+            break
+
+    for alg in ALGORITHMS:
+        if isinstance(alg, RasterConvolve):
+            io = {alg.P_RASTER: enmap,
+                  alg.P_CODE: alg.code(),
+                  alg.P_OUTPUT_RASTER: join(outdir, 'RasterConvolve'+alg.name())}
+            runalg(alg=alg, io=io)
+            break
+
+    alg = RasterViewMetadata()
+    io = {alg.P_RASTER: enmap}
+    runalg(alg=alg, io=io)
+
+    alg = RasterUniqueValues()
+    io = {alg.P_RASTER: enmapClassification,
+          alg.P_BAND: 1}
+    runalg(alg=alg, io=io)
+
     alg = RasterApplyMask()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
@@ -348,18 +325,9 @@ def test_Raster():
 
 def test_RegressionPerformance():
     alg = RegressionPerformanceFromRaster()
-    io = {alg.P_PREDICTION: enmapProbability,
-          alg.P_REFERENCE: enmapProbability,
+    io = {alg.P_PREDICTION: enmapFraction,
+          alg.P_REFERENCE: enmapFraction,
           alg.P_OUTPUT_REPORT: join(outdir, 'RegressionPerformanceFromRaster.html')}
-    runalg(alg=alg, io=io)
-
-
-def test_RegressionSample():
-    alg = RegressionSampleFromRasterAndRegression()
-    io = {alg.P_RASTER: enmap,
-          alg.P_REGRESSION: enmapProbability,
-          alg.P_MASK: enmapMask,
-          alg.P_OUTPUT_REGRESSION_SAMPLE: join(outdir, 'RegressionSampleFromRasterAndRegression.pkl')}
     runalg(alg=alg, io=io)
 
 
@@ -374,7 +342,9 @@ def test_Regressor():
 
         # fit
         filenameEstimator = join(outdir, 'Regressor{}.pkl'.format(algFit.displayName().replace(' ', '')))
-        io = {algFit.P_REGRESSION_SAMPLE: enmapRegressionSample,
+        io = {algFit.P_RASTER: enmap,
+              algFit.P_REGRESSION: enmapFraction,
+              algFit.P_MASK: enmapMask,
               algFit.P_CODE: algFit.code(),
               algFit.P_OUTPUT_ESTIMATOR: filenameEstimator}
         runalg(alg=algFit, io=io, info=algFit.displayName())
@@ -385,62 +355,63 @@ def test_Regressor():
         io = {algPredict.P_RASTER: enmap,
               algPredict.P_MASK: enmapMask,
               algPredict.P_REGRESSOR: filenameEstimator,
-              algPredict.P_OUTPUT_RASTER: filename}
+              algPredict.P_OUTPUT_REGRESSION: filename}
         runalg(alg=algPredict, io=io)
 
+def test_Resampling():
 
-def test_TestParameters():
-    alg = TestVectorClassification()
-    io = {alg.P_VECTOR: vector,
-          # alg.P_CLASS_DEFINITION: "ClassDefinition(names=['Urban', 'Forest', 'Water'], colors=['red', '#00FF00', (0, 0, 255)])",
-          alg.P_CLASS_DEFINITION: '',
-          alg.P_MINOVERALLCOVERAGE: 0.5,
-          alg.P_MINWINNERCOVERAGE: 0.5,
-          alg.P_OVERSAMPLING: 1,
-          alg.P_CLASSIDFIELD: enmapboxtestdata.landcoverAttributes.Level_2_ID}
+
+    alg = SpatialResamplingRaster()
+    io = {alg.P_GRID: enmap,
+          alg.P_RASTER: hymap,
+          alg.P_GDAL_RESAMPLING_ALG: 0,
+          alg.P_OUTPUT_RASTER: join(outdir, 'SpatialResamplingRaster.bsq')}
     runalg(alg=alg, io=io)
 
-    alg = TestNumber()
-    io = {alg.P_INTEGER: 1,
-          alg.P_FLOAT: 0.5}
+    alg = SpatialResamplingMask()
+    io = {alg.P_GRID: hymap,
+          alg.P_MASK: enmapMask,
+          alg.P_MIN_OVERALL_COVERAGE: 0.5,
+          alg.P_OUTPUT_MASK: join(outdir, 'SpatialResamplingMask.bsq')}
     runalg(alg=alg, io=io)
 
-    alg = TestClassDefinition()
-    io = {
-        alg.P_CLASS_DEFINITION: "ClassDefinition(names=['Urban', 'Forest', 'Water'], colors=['red', '#00FF00', (0, 0, 255)])"}
+    alg = SpatialResamplingClassification()
+    io = {alg.P_GRID: hymap,
+          alg.P_CLASSIFICATION: enmapClassification,
+          alg.P_MIN_OVERALL_COVERAGE: 0.5,
+          alg.P_MIN_DOMINANT_COVERAGE: 0.5,
+          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'SpatialResamplingClassification.bsq')}
     runalg(alg=alg, io=io)
 
-    alg = TestString()
-    io = {alg.P_STRING: 'Hello',
-          alg.P_STRING2: None}
+    alg = SpatialResamplingRegression()
+    io = {alg.P_GRID: hymap,
+          alg.P_REGRESSION: enmapFraction,
+          alg.P_MIN_OVERALL_COVERAGE: 0.5,
+          alg.P_OUTPUT_REGRESSION: join(outdir, 'SpatialResamplingRegression.bsq')}
     runalg(alg=alg, io=io)
 
-    alg = TestField()
-    io = {'vector': vector, 'field': enmapboxtestdata.landcoverAttributes.Level_2_ID}
-    runalg(alg=alg, io=io)
-
-    alg = TestOutputRaster()
-    io = {alg.P_OUTPUT_RASTER: join(outdir, 'TestOutputRaster.bsq')}
-    runalg(alg=alg, io=io)
-
-    alg = TestRaster()
-    io = {alg.P_RASTER: join(outdir, enmap),
-          alg.P_RASTER2: None,
-          alg.P_RASTER3: join(outdir, enmap)}
-    runalg(alg=alg, io=io)
-
-    alg = TestOutputReport()
-    io = {alg.P_OUTPUT_REPORT: join(outdir, 'TestOutputReport.html')}
-    runalg(alg=alg, io=io)
-
-    alg = TestVector()
-    io = {alg.P_VECTOR: join(outdir, vector),
-          alg.P_VECTOR2: None,
-          alg.P_VECTOR3: join(outdir, vector)}
+    alg = SpatialResamplingFraction()
+    io = {alg.P_GRID: hymap,
+          alg.P_FRACTION: enmapFraction,
+          alg.P_MIN_OVERALL_COVERAGE: 0.5,
+          alg.P_MIN_DOMINANT_COVERAGE: 0.5,
+          alg.P_OUTPUT_FRACTION: join(outdir, 'SpatialResamplingFraction.bsq')}
     runalg(alg=alg, io=io)
 
 
-def test_Transformers():
+def test_SensorDefinitionResampleRaster():
+
+    alg = SensorDefinitionResampleRaster()
+    io = {alg.P_RASTER: enmap,
+          alg.P_OPTION1: 0,
+          alg.P_OPTION2: hymap,
+          alg.P_OPTION3: None,
+          alg.P_ENUM: 0,
+          alg.P_OUTPUT_RASTER: join(outdir, 'SensorDefinitionResampleRasterOption2.bsq')}
+    runalg(alg=alg, io=io)
+
+
+def test_Transformer():
     for algFit in ALGORITHMS:
 
         if not isinstance(algFit, TransformerFit):
@@ -451,7 +422,8 @@ def test_Transformers():
 
         # fit
         filenameEstimator = join(outdir, 'Transformer{}.pkl'.format(algFit.displayName().replace(' ', '')))
-        io = {algFit.P_UNSUPERVISED_SAMPLE: enmapRegressionSample,
+        io = {algFit.P_RASTER: enmap,
+              algFit.P_MASK: enmapMask,
               algFit.P_CODE: algFit.code(),
               algFit.P_OUTPUT_ESTIMATOR: filenameEstimator}
         runalg(alg=algFit, io=io, info=algFit.displayName())
@@ -481,25 +453,6 @@ def test_Transformers():
         runalg(alg=algInverse, io=io)
 
 
-def test_UnsupervisedSample():
-    alg = UnsupervisedSampleFromRasterAndMask()
-    io = {alg.P_RASTER: enmap,
-          alg.P_MASK: enmapMask,
-          alg.P_OUTPUT_UNSUPERVISED_SAMPLE: join(outdir, 'UnsupervisedSampleFromRasterAndMask.pkl')}
-    runalg(alg=alg, io=io)
-
-    alg = UnsupervisedSampleFromENVISpectralLibrary()
-    io = {alg.P_ENVI_SPECLIB: enmapboxtestdata.speclib,
-          alg.P_OUTPUT_UNSUPERVISED_SAMPLE: join(outdir, 'UnsupervisedSampleFromENVISpectralLibrary.pkl')}
-    runalg(alg=alg, io=io)
-
-    alg = UnsupervisedSampleScaleFeatures()
-    io = {alg.P_UNSUPERVISED_SAMPLE: enmapUnsupervisedSample,
-          alg.P_SCALE_FACTOR: 1.,
-          alg.P_OUTPUT_UNSUPERVISED_SAMPLE: join(outdir, 'UnsupervisedSampleScaleFeatures.pkl')}
-    runalg(alg=alg, io=io)
-
-
 def test_VectorFromRandomPointsFromMask():
     alg = VectorFromRandomPointsFromMask()
     io = {alg.P_MASK: enmapMask,
@@ -522,10 +475,21 @@ def test_VectorUniqueValues():
           alg.P_FIELD: enmapboxtestdata.landcoverAttributes.Level_2}
     runalg(alg=alg, io=io)
 
-def test_help():
-    alg = VectorUniqueValues()
-    alg.defineCharacteristics()
-    print(alg.shortHelpString())
+def test_SynthMix():
+
+    alg = SynthMix()
+    filenameRaster = join(outdir, 'SynthMixRaster.bsq')
+    filenameFraction = join(outdir, 'SynthMixFraction.bsq')
+    io = {alg.P_RASTER: enmap,
+          alg.P_CLASSIFICATION: enmapClassification,
+          alg.P_MASK: enmapMask,
+          alg.P_N: 100,
+          alg.P_COMPLEXITY2LIKELIHOOD: 1.0,
+          alg.P_COMPLEXITY3LIKELIHOOD: 0.0,
+          alg.P_CLASSLIKELIHOODS: 0,
+          alg.P_OUTPUT_RASTER: filenameRaster,
+          alg.P_OUTPUT_FRACTION: filenameFraction}
+    runalg(alg=alg, io=io)
 
 
 def printMenu():
@@ -545,33 +509,31 @@ def printMenu():
 
 
 if __name__ == '__main__':
-    generateRST()
+    #test_Raster()
+    #exit(0)
 
-    exit()
-    test_TestParameters()
     test_ClassDefinitionFromRaster()
     test_Classification()
     test_ClassificationPerformance()
-    test_ClassificationSample()
     test_Classifier()
     test_Clusterer()
     test_ClusteringPerformance()
     test_CreateAdditionalTestdata()
+    test_ExtractSamples()
+    test_Fraction()
+    test_FractionPerformance()
     test_Mask()
-    test_Probability()
-    test_ProbabilityPerformance()
-    test_ProbabilitySample()
     test_Raster()
     test_RegressionPerformance()
-    test_RegressionSample()
     test_Regressor()
-    test_Transformers()
-    test_UnsupervisedSample()
+    test_Resampling()
+    test_SensorDefinitionResampleRaster()
+    test_Transformer()
     test_VectorFromRandomPointsFromMask()
     test_VectorFromRandomPointsFromClassification()
     test_VectorUniqueValues()
-
-    #test_help()
+    test_ImportLibrary()
+    test_SynthMix()
     generateRST()
 
 # printMenu()
