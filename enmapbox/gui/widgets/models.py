@@ -108,6 +108,8 @@ class OptionListModel(QAbstractListModel):
 
         self.insertOptions(options)
 
+    def __len__(self):
+        return len(self.mOptions)
 
     def addOption(self, option):
         self.insertOptions([option])
@@ -146,14 +148,24 @@ class OptionListModel(QAbstractListModel):
             value = Option(value, '{}'.format(value))
         return value
 
-    def options(self):
+    def options(self)->list:
+        """
+        :return: [list-of-Options]
+        """
         return self.mOptions[:]
 
-    def optionValues(self):
+    def optionValues(self)->list:
+        """
+        :return: [list-str-of-Option-Values]
+        """
         return [o.mValue for o in self.options()]
 
     sigOptionsRemoved = pyqtSignal(list)
     def removeOptions(self, options):
+        """
+        Removes a list of options from this Options list.
+        :param options: [list-of-Options]
+        """
         options = [self.o2o(o) for o in options]
         options = [o for o in options if o in self.mOptions]
         removed = []
@@ -168,7 +180,10 @@ class OptionListModel(QAbstractListModel):
         if len(removed) > 0:
             self.sigOptionsRemoved.emit(removed)
 
-    def rowCount(self, parent=None, *args, **kwargs):
+    def clear(self):
+        self.removeOptions(self.mOptions)
+
+    def rowCount(self, parent=None, *args, **kwargs)->int:
         return len(self.mOptions)
 
     def columnCount(self, QModelIndex_parent=None, *args, **kwargs):

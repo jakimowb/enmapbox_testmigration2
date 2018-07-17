@@ -18,6 +18,7 @@
 import re, typing, copy
 from osgeo import gdal, ogr
 from qgis.core import *
+from qgis.PyQt.QtCore import QDate
 from enmapbox.gui.classificationscheme import ClassificationScheme
 import numpy as np
 IMMUTABLE_DOMAINS = ['IMAGE_STRUCTURE','SUBDATASETS']
@@ -228,12 +229,12 @@ class MDKeyAbstract(object):
 
 class MDKeyDomainString(MDKeyAbstract):
     """
-    A MDKey provides a between a gdal.MajorObject or ogr.MajorObject and a TreeNode.
+    A MDKey provides a link between a gdal.MajorObject or ogr.MajorObject and a TreeNode.
     It does not story any state variables.
     """
 
     @staticmethod
-    def fromDomain(obj, domain, name):
+    def fromDomain(obj, domain:str, name:str):
         assert isinstance(domain, str)
         assert isinstance(name, str)
 
@@ -249,7 +250,21 @@ class MDKeyDomainString(MDKeyAbstract):
             raise NotImplementedError()
 
     @staticmethod
-    def fromRasterDomain(obj, domain, name):
+    def fromVectorDomain(obj, domain:str, name:str):
+
+        # OGR Default Domain
+        if domain == '':
+            #see http://www.gdal.org/drv_shapefile.html
+            if name == 'DBF_DATE_LAST_UPDATE':
+                return MDKeyDomainString(obj, domain, name, valueType=np.datetime64)
+            else:
+                return  MDKeyDomainString(obj, domain, name)
+        else:
+            raise NotImplementedError()
+
+
+    @staticmethod
+    def fromRasterDomain(obj, domain:str, name:str):
 
         # GDAL Default Domain
         if domain == '':
@@ -443,6 +458,10 @@ class MDKeyDomainString(MDKeyAbstract):
                     parts2 = parts
 
                 self.setValue(parts2)
+            elif self.mType == QDate:
+                self.setValue(QDate.fromString(valueString, 'yyyy-MM-dd'))
+            elif self.mType == np.datetime64:
+                self.setValue(np.datetime64(valueString))
             else:
                 self.setValue(self.mType(valueString))
         else:
