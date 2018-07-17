@@ -12,6 +12,7 @@ import enmapboxtestdata
 from hubflow.core import *
 import hubdc.testdata
 
+CUIProgressBar.SILENT = False
 overwrite = not True
 vector = hubflow.testdata.vector()
 hymap = hubflow.testdata.hymap()
@@ -63,22 +64,30 @@ class Test(TestCase):
 
 
     def test_WavebandDefinition(self):
+
+        SensorDefinition
+
         wavebandDefinition = WavebandDefinition.fromFWHM(center=600, fwhm=10)
         print(wavebandDefinition)
         wavebandDefinition.plot()
 
     def test_SensorDefinition(self):
 
+        print(SensorDefinition.predefinedSensorNames())
+        print(SensorDefinition.fromPredefined(name='sentinel2'))
+
         # a) response function from ENVI Speclib
 
         sentinel2ResponseFunction = ENVISpectralLibrary(filename=r'C:\Program Files\Exelis\ENVI53\classic\filt_func\sentinel2.sli')
-        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction)
+        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction,
+                                                                   isResponseFunction=True)
         print(sentinel2Sensor)
         #sentinel2Sensor.plot()
 
         # b) wl+fwhm from ENVI Speclib
         from enmapboxtestdata import speclib
-        enmapSensor = SensorDefinition.fromENVISpectralLibrary(library=ENVISpectralLibrary(filename=speclib))
+        enmapSensor = SensorDefinition.fromENVISpectralLibrary(library=ENVISpectralLibrary(filename=speclib),
+                                                               isResponseFunction=False)
         print(enmapSensor)
         #enmapSensor.plot()
 
@@ -115,14 +124,18 @@ class Test(TestCase):
     def test_SensorDefinitionResampleArray(self):
 
         sentinel2ResponseFunction = ENVISpectralLibrary(filename=r'C:\Program Files\Exelis\ENVI53\classic\filt_func\sentinel2.sli')
-        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction)
+        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction,
+                                                                   isResponseFunction=True)
 
         profiles = [enmap.dataset().zprofile(pixel=Pixel(10,10)),
                     enmap.dataset().zprofile(pixel=Pixel(20, 20)),
                     enmap.dataset().zprofile(pixel=Pixel(30, 30))]
         wavelength = enmap.metadataWavelength()
 
+        import time
+        t0 = time.time()
         outprofiles = sentinel2Sensor.resampleProfiles(array=profiles, wavelength=wavelength, wavelengthUnits='nanometers')
+        print(time.time()-t0)
         print(outprofiles)
 
     def test_StringParser(self):
@@ -267,16 +280,29 @@ class Test(TestCase):
             obj.pickle(filename=join(outdir, 'FlowObject.pkl'))
             obj2 = FlowObject.unpickle(join(outdir, 'FlowObject.pkl'))
 
-
     def test_Raster(self):
 
+        # from array
+        print(Raster.fromArray(array=[[[1, 2, 3]]]))
+        raster = Raster.fromArray(array=[[[1, 2, 3]]])
+        print(raster.statistics(silent=True))
+        return
+
+        # apply mask
+        enmapMaskInv = Mask(filename=enmapMask.filename(), invert=not True)
+        enmapMaskInv = VectorMask(filename=vectorClassification.filename(), invert=True)
+
+        print(enmapClassification.applyMask(filename=join(outdir, 'ClassificationApplyMask.bsq'), mask=enmapMaskInv))
+        cl = Classification(filename=join(outdir, 'ClassificationApplyMask.bsq'))
+        cl.dataset().plotCategoryBand()
+
         # apply spatial function
-        from scipy.ndimage.morphology import grey_opening
-        function = lambda array: grey_opening(array, size=(3,3))
+        from scipy.ndimage.filters import median_filter
+        function = lambda array: median_filter(input=array, size=(3,3))
         print(enmap.applySpatial(join(outdir, 'RasterApplySpatial.bsq'), function=function))
 
         # convolution
-        from astropy.convolution import Gaussian2DKernel, Gaussian1DKernel, Kernel1D
+        from astropy.convolution import Gaussian2DKernel, Kernel1D
         # 2d
         kernel = Gaussian2DKernel(x_stddev=1)
         print(enmapRegression.convolve(filename=join(outdir, 'RasterConvolveSpatial.bsq'), kernel=kernel))
@@ -322,8 +348,6 @@ class Test(TestCase):
                                                 range2=(statistics[1]['min'], statistics[1]['max']),
                                                 bins=10, mask=vector)
         print(H)
-
-        print(enmap.applyMask(filename=join(outdir, 'RasterApplyMask.bsq'), mask=enmapMask, fillValue=42))
 
 
     def test_RasterStack(self):
@@ -417,9 +441,13 @@ class Test(TestCase):
         print(enmapRegression.filename())
         print(enmapRegression)
         print(hymapRegression)
-        obj = RegressionPerformance.fromRaster(prediction=enmapRegression, reference=enmapRegression)
+
+        mask = Vector.fromRandomPointsFromMask(filename=join(outdir, 'random.shp'), mask=enmapMask, n=10)
+        maskInverted = Vector(filename=mask.filename(), initValue=mask.burnValue(), burnValue=mask.initValue())
+
+        obj = RegressionPerformance.fromRaster(prediction=enmapRegression, reference=enmapRegression, mask=mask)
         print(obj)
-        obj.report().saveHTML(filename=join(outdir, 'RegressionPerformance.html'), open=openHTML)
+        obj.report().saveHTML(filename=join(outdir, 'RegressionPerformance.html'), open=not openHTML)
 
     def test_RegressionSample(self):
 
@@ -474,6 +502,9 @@ class Test(TestCase):
         Vector.fromRandomPointsFromClassification(filename=join(outdir, 'vectorFromRandomPointsFromClassification.gpkg'),
                                                   classification=enmapClassification, n=n))
 
+    def test_VectorMask(self):
+        print(VectorMask(filename=vector.filename(), invert=False))
+
     def test_VectorClassification(self):
         classDefinition = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
                                           colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
@@ -494,4 +525,5 @@ if __name__ == '__main__':
 #    test_Mask()
 
     #run()
+
 

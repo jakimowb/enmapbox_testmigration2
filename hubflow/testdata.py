@@ -6,7 +6,7 @@ from os.path import join, exists
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-import gdal
+from osgeo import gdal
 import hubdc.progressbar
 from hubflow.core import *
 import enmapboxtestdata

@@ -17,9 +17,10 @@ import os
 import sys
 import mock
 
-MOCK_MODULES = ['numpy', 'osgeo', 'osgeo.gdal_array', 'osgeo.gdal', 'rios','rios.pixelgrid',
-                'hubdc', 'hubdc.applier', 'hubdc.model']
+MOCK_MODULES = ['numpy', 'scipy', 'scipy.sparse', 'osgeo', 'osgeo.gdal_array', 'osgeo.gdal',
+                'hubdc', 'hubdc.applier', 'hubdc.core']
 
+MOCK_MODULES = []
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
@@ -40,8 +41,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.viewcode']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.doctest']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
