@@ -146,15 +146,15 @@ class ApplierInputRaster(ApplierIO):
         datasetResampled.close()
         return array
 
-    def bandArray(self, indicies, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
+    def bandArray(self, indices, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
                   errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
                   warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
                   multithread=ApplierDefaults.GDALWarp.multithread):
         '''
         Returns a band subset of the image data as 3-d numpy array of shape = (zsize, ysize, xsize),
-        where zsize is the number of indicies.
+        where zsize is the number of indices.
 
-        :param indicies: list of band indicies
+        :param indices: list of band indices
         :param overlap: the number of pixels to additionally read along each spatial dimension
         :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
         :param noDataValue: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
@@ -163,7 +163,8 @@ class ApplierInputRaster(ApplierIO):
         :param multithread: whether to multithread computation and I/O operations
         '''
 
-        bandList = [i + 1 for i in indicies]
+        bandList = [i + 1 for i in indices]
+
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
         if self.operator().subgrid().projection().equal(self.dataset().grid().projection()):
             datasetResampled = self.dataset().translate(grid=grid,
@@ -274,6 +275,14 @@ class ApplierInputRaster(ApplierIO):
     def noDataValues(self, default=None):
         """Return band no data values."""
         return self.dataset().noDataValues(default=default)
+
+    def categoryColors(self, index=0):
+        """Return category colors for band given by ``index``."""
+        return self.dataset().band(index=index).categoryColors()
+
+    def categoryNames(self, index=0):
+        """Return category names for band given by ``index``."""
+        return self.dataset().band(index=index).categoryNames()
 
 
 class ApplierInputVector(ApplierIO):
@@ -466,6 +475,16 @@ class ApplierOutputRaster(ApplierIO):
         """Set no data values."""
 
         self._callImageMethod(method=RasterDataset.setNoDataValues, values=values)
+
+    def setCategoryColors(self, colors):
+        """Set category colors."""
+
+        self.band(index=0)._callMethod(method=RasterBandDataset.setCategoryColors, colors=colors)
+
+    def setCategoryNames(self, names):
+        """Set category names."""
+
+        self.band(index=0)._callMethod(method=RasterBandDataset.setCategoryNames, names=names)
 
     def _callImageMethod(self, method, **kwargs):
         if self.operator().isFirstBlock():
@@ -898,7 +917,7 @@ class ApplierOutputRasterGroup(ApplierIOGroup):
 
 class Applier(object):
     '''
-    This class is the main point of entry in this module. For detailed usage examples see :doc:`ApplierExamples`.
+    This class is the main point of entry in this module.
 
     Attributes and properties are:
         * **inputRaster**          :class:`~hubdc.applier.ApplierInputRasterGroup` object containing all input rasters
@@ -942,12 +961,6 @@ class Applier(object):
 
             applier.apply(operator=MyOperator)
 
-        or::
-
-            def my_ufunc(operator):
-                # process the data
-
-            applier.apply(operator=my_ufunc)
 
         For detailed usage examples see :doc:`ApplierExamples`.
 
@@ -1303,7 +1316,7 @@ class ApplierControls(object):
         self.setBlockSize()
         self.setNumThreads()
         self.setNumWriter()
-        self.setWriteENVIHeader()
+        self.setWriteENVIHeader(createEnviHeader=False)
         self.setAutoExtent()
         self.setAutoResolution()
         self.setResolution()
