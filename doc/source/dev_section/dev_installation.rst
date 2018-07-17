@@ -19,7 +19,6 @@ We mainly tested in for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE 
 
 To setup your IDE for developing EnMAP-Box Applications, you need to:
 
-
     1. Clone the EnMAP-Box git repository and add it to your project sources
 
     2. Start your IDE using the same environmental settings as QGIS

@@ -1,5 +1,0 @@
-# list here the resource file IDs of svg files that need to be transformed into png
-# for reasons of poor Qt support for color gradients
-
-:/enmapbox/icons/enmapbox.svg
-
