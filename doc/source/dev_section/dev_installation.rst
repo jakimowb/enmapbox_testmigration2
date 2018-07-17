@@ -167,3 +167,22 @@ If everything is set up correctly, you should be able to start the EnMAP-Box usi
         qgsApp.quit()
 
 
+Build the EnMAP-Box Plugin for QGIS
+===================================
+
+
+The `make` folder contains some helper scripts required to build (parts) of the EnMAP-Box Plugin:
+
+make/deploy.py - create the EnMAP-Box Plugin ZIP file
+make/guimake.py - routines to handle PyQt5 issues, e.g. to create the Qt resource files
+make/iconselect.py - a widget to show Qt internal QIcons and to copy its resource path to the clipboard
+make/updateexternals.py - update parts of the EnMAP-Box code which are hosted in external repositories
+
+
+If you like to build and install the EnMAP-Box Plugin from repository code you need to
+run the `build()` function in `deploy.py`.
+
+
+
+
+

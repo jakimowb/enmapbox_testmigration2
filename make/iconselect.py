@@ -1,13 +1,13 @@
 import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-#from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import *
 
 
 class AvailableIcons(QWidget):
     def __init__(self, parent=None):
         super(AvailableIcons, self).__init__()
-
+        self.setWindowTitle('Icons')
         icons = [
             'SP_ArrowBack',
             'SP_ArrowDown',
@@ -81,9 +81,9 @@ class AvailableIcons(QWidget):
             'SP_VistaShield'
         ]
 
-        colSize = 35
+        colSize = 20
 
-        layout = QGridLayout()
+        gridLayout = QGridLayout()
 
         count = 0
 
@@ -92,30 +92,40 @@ class AvailableIcons(QWidget):
             btn.setIcon(self.style().standardIcon(getattr(QStyle, name)))
             btn.clicked.connect(self.onClicked)
             btn.setToolTip(name)
-            layout.addWidget(btn, count / colSize, count % colSize)
+            gridLayout.addWidget(btn, count / colSize, count % colSize)
             count += 1
 
         i = QDirIterator(":", QDirIterator.Subdirectories)
         while i.hasNext():
             path = i.next()
-            btn = QPushButton()
-            btn.clicked.connect(self.onClicked)
-            btn.setToolTip(path)
-            btn.setIcon(QIcon(path))
-            layout.addWidget(btn, count / colSize, count % colSize)
-            count += 1
+            icon  = QIcon(path)
+            if not icon.isNull():
+                btn = QPushButton()
+                btn.clicked.connect(self.onClicked)
+                btn.setToolTip(path)
+                btn.setIcon(icon)
+                gridLayout.addWidget(btn, count / colSize, count % colSize)
+                count += 1
 
-        self.setLayout(layout)
+        l = QVBoxLayout()
+        l.addLayout(gridLayout)
+        self.tbUri = QLineEdit()
+        self.iconLabel = QLabel()
+        self.iconLabel.setMinimumSize(126,126)
+        l.addWidget(self.tbUri)
+       # l.addWidget(self.iconLabel)
+        self.setLayout(l)
 
     def onClicked(self, *args):
 
         btn = self.sender()
         if isinstance(btn, QPushButton):
-            QApplication.clipboard().setText(btn.toolTip())
+            uri = btn.toolTip()
+            QApplication.clipboard().setText(uri)
+            self.tbUri.setText(uri)
+            icon = QIcon(uri)
+            self.iconLabel.setPixmap(icon.pixmap(self.iconLabel.size()))
 
-from PyQt5.QtCore import *
-i = QDirIterator(":/timeseriesviewer", QDirIterator.Subdirectories)
-while i.hasNext(): print(i.next())
 
 def run():
     app = QApplication(sys.argv)

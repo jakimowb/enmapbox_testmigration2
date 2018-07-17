@@ -30,8 +30,9 @@ import enmapbox
 from enmapbox.gui.utils import DIR_REPO, jp, file_search
 import git
 
-CREATE_TAG = False
+
 CHECK_COMMITS = False
+
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
@@ -72,9 +73,7 @@ def mkDir(d, delete=False):
         os.makedirs(d)
 
 
-if __name__ == "__main__":
-
-
+def build():
     # the directory to build the "enmapboxplugin" folder
     DIR_DEPLOY = jp(DIR_REPO, 'deploy')
     # DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
@@ -89,7 +88,7 @@ if __name__ == "__main__":
 
     mkDir(DIR_DEPLOY)
 
-    if True: #update metadata
+    if True:  # update metadata
         pathMetadata = jp(DIR_REPO, 'metadata.txt')
         # update version number in metadata
         f = open(pathMetadata)
@@ -113,15 +112,13 @@ if __name__ == "__main__":
         if currentBranch not in ["develop", "master"]:
             print('Skipped automatic version update because current branch is not "develop" or "master". ')
         else:
-            #2. set the version to all relevant files
-            #r = REPO.git.execute(['git','diff', '--exit-code']).split()
+            # 2. set the version to all relevant files
+            # r = REPO.git.execute(['git','diff', '--exit-code']).split()
             diffs = [r for r in REPO.index.diff(None) if 'deploy.py' not in str(r)]
             if CHECK_COMMITS and len(diffs) > 0:
                 # there are diffs. we need to commit them first.
                 # This should not be done automatically, as each commit should contain a proper commit message
                 raise Exception('Please commit all changes first.')
-
-
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
@@ -136,7 +133,7 @@ if __name__ == "__main__":
         print('Remove files...')
 
         if True:
-            #delete help folder
+            # delete help folder
             shutil.rmtree(os.path.join(dirPlugin, *['help']), ignore_errors=True)
         for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
             os.remove(f)
@@ -146,7 +143,7 @@ if __name__ == "__main__":
     from enmapbox.gui.utils import zipdir
 
     pluginname = cfg.get('plugin', 'name')
-    pathZip = jp(DIR_DEPLOY, '{}.{}.QGIS3.zip'.format(pluginname, buildID))
+    pathZip = jp(DIR_DEPLOY, '{}.{}.QGIS3.snapshot.zip'.format(pluginname, buildID))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
     zipdir(dirPlugin, pathZip)
     # os.chdir(dirPlugin)
@@ -154,11 +151,14 @@ if __name__ == "__main__":
 
     # 6. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
-
-        print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:')
+        print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
         print('from pyplugin_installer.installer import pluginInstaller')
         print('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
-        print('#### (This might take a while)\n')
-
+        print('\n#### (This might take a while)\n')
 
     print('Finished')
+
+
+if __name__ == "__main__":
+
+    build()
