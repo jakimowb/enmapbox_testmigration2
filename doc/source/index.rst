@@ -16,7 +16,7 @@ Setting up
 
 Install the latest release with pip::
 
-    pip install https://bitbucket.org/hu-geomatics/hub-datacube/get/master.tar.gz
+    python -m pip install https://bitbucket.org/hu-geomatics/hub-datacube/get/master.tar.gz
 
 Or manually `download a release <https://bitbucket.org/hu-geomatics/hub-datacube/downloads/?tab=tags>`_
 from Bitbucket.

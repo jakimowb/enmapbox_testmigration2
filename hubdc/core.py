@@ -1113,7 +1113,7 @@ class Grid(object):
         return result
 
 class RasterDataset(object):
-    '''Class for managing raster files.'''
+    '''Class for managing raster datasets files.'''
 
     def __init__(self, gdalDataset):
         '''Create an instance by a given gdal.Dataset.'''
@@ -1236,6 +1236,7 @@ class RasterDataset(object):
         self.setNoDataValues(values=[value] * self.zsize())
         if self.driver().equal(other=RasterDriver(name='ENVI')):
             self.setMetadataItem(key='data ignore value', value=value)
+        self.flushCache()
 
     def noDataValue(self, default=None):
         '''
@@ -1348,11 +1349,11 @@ class RasterDataset(object):
                                             minute=int(minute), second=int(second))
         return acquisitionTime
 
-    def writeENVIHeader(self):
-        '''
+    '''def writeENVIHeader(self): # this won't work for files written to /vsimem/
+        
         Creates an ENVI header file containing all metadata of the 'ENVI' metadata domain.
         This ensures the correct interpretation of all metadata items by the ENVI software.
-        Currently only ENVI and GTiff formats are supported.'''
+        Currently only ENVI and GTiff formats are supported.
 
         filename = self._gdalDataset.GetFileList()[0]
         driver = self.driver()
@@ -1379,7 +1380,7 @@ class RasterDataset(object):
                 metadata[key] = metadataOnDisk[key]
 
         # create ENVI header
-        ENVI.writeHeader(filenameHeader=filenameHeader, metadata=metadata)
+        ENVI.writeHeader(filenameHeader=filenameHeader, metadata=metadata)'''
 
     def warp(self, grid, filename='', driver=MEMDriver(), options=None, **kwargs):
         '''Returns a new instance of self warped into the given ``grid`` (default is self.grid()).
@@ -1652,6 +1653,12 @@ class RasterDataset(object):
 
         return rgb
 
+    def plotCategoryBand(self, index=0):
+
+        from matplotlib.colors import LinearSegmentedColormap
+        colors = np.array(self.band(index=index).categoryColors())[1:,0:3] / 255.
+        cmap = LinearSegmentedColormap.from_list(name='', colors=colors, N=len(colors))
+        self.plotSinglebandGrey(cmap=cmap, vmin=1, vmax=len(colors))
 
 class MetadataFormatter(object):
     '''Class for managing GDAL metadata value formatting.'''
@@ -1691,7 +1698,7 @@ class MetadataFormatter(object):
 
 
 class RasterBandDataset():
-    '''Class for managing raster bands.'''
+    '''Class for managing raster band datasets.'''
 
     def __init__(self, raster, index):
         '''Creating a new instance given a :class:`~hubdc.model.Raster` and a raster band ``index``.'''
@@ -1839,7 +1846,8 @@ class RasterBandDataset():
 
     def setCategoryNames(self, names):
         '''Set band category names.'''
-        self._gdalBand.SetCategoryNames(names)
+        if names is not None:
+            self._gdalBand.SetCategoryNames(names)
 
     def categoryNames(self):
         '''Returns band category names.'''
@@ -1848,23 +1856,26 @@ class RasterBandDataset():
 
     def setCategoryColors(self, colors):
         '''Set band category colors from list of rgba tuples.'''
-        colorTable = gdal.ColorTable()
-        #c = gdal.ColorTable(gdal.GCI_PaletteIndex)
-        for i, color in enumerate(colors):
-            assert isinstance(color, tuple)
-            if len(color)==3:
-                color = color + (255,)
-            assert len(color) == 4
-            colorTable.SetColorEntry(i, color)
-        self._gdalBand.SetColorTable(colorTable)
+        if colors is not None:
+            colorTable = gdal.ColorTable()
+            for i, color in enumerate(colors):
+                assert isinstance(color, tuple)
+                if len(color)==3:
+                    color = color + (255,)
+                assert len(color) == 4
+                colorTable.SetColorEntry(i, color)
+            self._gdalBand.SetColorTable(colorTable)
 
     def categoryColors(self):
         '''Returns band category colors as list of rgba tuples.'''
         colorTable = self._gdalBand.GetColorTable()
-        colors = list()
-        for i in range(colorTable.GetCount()):
-            rgba = colorTable.GetColorEntry(i)
-            colors.append(rgba)
+        if colorTable is not None:
+            colors = list()
+            for i in range(colorTable.GetCount()):
+                rgba = colorTable.GetColorEntry(i)
+                colors.append(rgba)
+        else:
+            colors = None
         return colors
 
     def metadataDomainList(self):
@@ -1889,7 +1900,7 @@ class RasterBandDataset():
         return profile
 
 class VectorDataset(object):
-    '''Class for managing layers from vector files.'''
+    '''Class for managing vector layer datasets.'''
 
     def __init__(self, ogrDataSource, layerNameOrIndex=0):
         '''Creates new instance from given ogr.DataSource and layer name or index given by ``nameOrIndex``.'''
@@ -2187,10 +2198,11 @@ def createRasterDatasetFromArray(array, grid=None, filename='', driver=MEMDriver
         dtype = np.uint8
 
     gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
-    raster = createRasterDataset(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=driver,
+    rasterDataset = createRasterDataset(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=driver,
                                  options=options)
-    raster.writeArray(array=array, grid=grid)
-    return raster
+    rasterDataset.writeArray(array=array, grid=grid)
+    rasterDataset.flushCache()
+    return rasterDataset
 
 
 def createVRTDataset(filename, rastersOrFilenames, **kwargs):
