@@ -11,13 +11,15 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest
+import unittest, shutil, sys, os
+from collections import namedtuple
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import initQgisApplication
 from enmapbox.gui.utils import initQgisApplication
 from enmapbox.gui.utils import *
+
 QGIS_APP = initQgisApplication()
 
 from enmapbox import EnMAPBox
@@ -26,8 +28,9 @@ from enmapbox.gui.applications import *
 from enmapboxtestdata import enmap, hymap, landcover, speclib
 import numpy as np
 
-from enmapbox.gui.utils import TestObjects
+from enmapbox.gui.utils import TestObjects, DIR_REPO
 
+DIR_TMP = os.path.join(DIR_REPO, *['test', 'tmp_enmapboxApplicationTests'])
 
 
 class test_applications(unittest.TestCase):
@@ -49,6 +52,61 @@ class test_applications(unittest.TestCase):
             EnMAPBox.instance()
 
 
+    def createTestData(self)->(str, str, str):
+        """
+        :return: (path folder, filelist_abs, filelist_rel)
+        """
+
+        TESTDATA = namedtuple('TestData', ['validAppDirs','invalidAppDirs','appDirs', 'pathListingAbs','pathListingRel'])
+
+
+        if os.path.isdir(DIR_TMP):
+            shutil.rmtree(DIR_TMP)
+        os.makedirs(DIR_TMP, exist_ok=True)
+
+        TESTDATA.invalidAppDirs = []
+        TESTDATA.validAppDirs = []
+
+        #1. valid app 1
+        pAppDir = os.path.join(DIR_REPO, *['examples','minimumexample'])
+
+        TESTDATA.validAppDirs.append(pAppDir)
+
+
+        #2. no app 1: empty directory
+        pAppDir = os.path.join(DIR_TMP, 'NoApp1')
+        os.makedirs(pAppDir)
+        TESTDATA.invalidAppDirs.append(pAppDir)
+
+        #3. no app 2: __init__ without factory
+
+        pAppDir = os.path.join(DIR_TMP, 'NoApp2')
+        os.makedirs(pAppDir)
+        pAppInit = os.path.join(pAppDir, '__init__.py')
+        f = open(pAppInit, 'w')
+        f.write('import sys')
+        f.flush()
+        f.close()
+        TESTDATA.invalidAppDirs.append(pAppDir)
+
+        TESTDATA.pathListingAbs = os.path.join(DIR_TMP, 'application_abs.txt')
+        f = open(TESTDATA.pathListingAbs, 'w')
+        for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
+            f.write(p+'\n')
+        f.flush()
+        f.close()
+
+        TESTDATA.pathListingRel = os.path.join(DIR_TMP, 'application_rel.txt')
+        f = open(TESTDATA.pathListingRel, 'w')
+        for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
+            f.write(os.path.relpath(p, DIR_TMP)+'\n')
+        f.flush()
+        f.close()
+
+
+
+
+        return TESTDATA
 
 
     def test_application(self):
@@ -75,7 +133,12 @@ class test_applications(unittest.TestCase):
 
 
     def test_applicationRegistry(self):
-        EB = EnMAPBox() 
+        TESTDATA = self.createTestData()
+
+        enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.gui.LOAD_INTERNAL_APPS = False
+        enmapbox.gui.LOAD_EXTERNAL_APPS = False
+        EB = EnMAPBox()
         
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
         reg = ApplicationRegistry(EB)
@@ -104,13 +167,63 @@ class test_applications(unittest.TestCase):
         self.assertTrue(len(reg.applications()) == 1, msg='Unable to remove application')
 
 
-    def test_coreapps(self):
+        #load a folder
+        reg = ApplicationRegistry(EB)
+        for d in TESTDATA.validAppDirs:
+            self.assertTrue(reg.addApplicationFolder(d))
+        self.assertEqual(len(reg), len(TESTDATA.validAppDirs))
 
-        #test without EnMAPBox
-        from metadataeditorapp import MetaDataEditorApp
-        enmapbox = EnMAPBox()
-        app = MetaDataEditorApp(enmapbox)
-        self.assertIsInstance(app, EnMAPBoxApplication)
+        reg = ApplicationRegistry(EB)
+        for d in TESTDATA.invalidAppDirs:
+            self.assertFalse(reg.addApplicationFolder(d))
+        self.assertEqual(len(reg), 0)
+
+        reg = ApplicationRegistry(EB)
+        reg.addApplicationListing(TESTDATA.pathListingAbs)
+        self.assertEqual(len(reg), len(TESTDATA.validAppDirs))
+
+
+        reg = ApplicationRegistry(EB)
+        reg.addApplicationListing(TESTDATA.pathListingRel)
+        self.assertEqual(len(reg), len(TESTDATA.validAppDirs))
+
+        reg = ApplicationRegistry(EB)
+        reg.addApplicationListing(TESTDATA.pathListingAbs)
+        reg.addApplicationListing(TESTDATA.pathListingRel)
+        self.assertEqual(len(reg), len(TESTDATA.validAppDirs))
+
+        reg = ApplicationRegistry(EB)
+        rootFolder = os.path.dirname(TESTDATA.validAppDirs[0])
+        reg.addApplicationFolder(rootFolder, isRootFolder=True)
+        self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(rootFolder))
+
+    def test_apps(self):
+
+        from enmapbox.gui.utils import DIR_ENMAPBOX
+
+        pathCoreApps = os.path.join(DIR_ENMAPBOX, 'coreapps')
+        pathExternalApps = os.path.join(DIR_ENMAPBOX, 'apps')
+        self.assertTrue(os.path.isdir(pathCoreApps))
+
+        enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.gui.LOAD_INTERNAL_APPS = False
+        enmapbox.gui.LOAD_EXTERNAL_APPS = False
+        EB = EnMAPBox()
+        reg = ApplicationRegistry(EB)
+
+        for root in [pathExternalApps, pathCoreApps]:
+            for r, dirs, files in os.walk(root):
+                break
+            for d in dirs:
+                p = os.path.join(r, d)
+                n1 = len(reg)
+                print('Load APP(s) from {}...'.format(p))
+                reg.addApplicationFolder(p)
+                n2 = len(reg)
+
+                self.assertTrue(n2 > n1,  msg='Unable to add APP(s) "{}" from {}'.format(d, p))
+
+
 
 
 

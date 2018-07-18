@@ -282,25 +282,22 @@ class DataSourceFactory(object):
 
                 #re-order by most-likely none-raster source type according to source uri
                 if isinstance(src, str):
-
-
-
-                    if re.search(r'\.(sli|esl)$', src): #probably a spectral library
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForSpeclib)))
-                    elif re.search(r'\.(shp|gpkg|kml)$', src): #probably a vector file
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
-
-                    elif re.search(r'\.(txt|csv)$', src): #probably normal text file
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkOtherFiles)))
-                    elif re.search(r'\.pkl$', src):
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForHubFlow)))
-                    elif re.search(r'url=https?.*wfs', src, re.IGNORECASE):
-                        sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
-
+                    guess = guessDataProvider(src)
+                    if isinstance(guess, str):
+                        if guess == 'enmapbox_speclib':
+                            sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForSpeclib)))
+                        elif guess == 'ogr':
+                            sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
+                        elif guess == 'enmapbox_textfile':
+                            sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkOtherFiles)))
+                        elif guess == 'enmapbox_pkl':
+                            sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForHubFlow)))
+                        elif guess == 'WFS':
+                            sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
                     #files where we are sure we can not load them
                     elif os.path.isfile(src) and re.search(r'\.(py)$', src):
                         return []
-                        s = ""
+
             for sourceTestFunction in sourceTestFunctions:
                 sources = sourceTestFunction(src, name=name, icon=icon)
                 if len(sources) > 0:

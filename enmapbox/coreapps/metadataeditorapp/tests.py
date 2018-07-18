@@ -29,8 +29,9 @@ from enmapbox.gui.classificationscheme import ClassificationScheme
 from metadataeditorapp.metadatakeys import *
 from metadataeditorapp.metadataeditor import *
 
+from enmapbox.gui.utils import *
 
-
+QGSAPP = initQgisApplication()
 
 class TestMDMetadataKeys(unittest.TestCase):
     @classmethod
@@ -53,6 +54,25 @@ class TestMDMetadataKeys(unittest.TestCase):
         drv = ogr.GetDriverByName('Memory')
         self.dsVM = drv.CopyDataSource(self.dsV, '')
 
+    def createSupportedSources(self)->list:
+
+        from enmapboxtestdata import enmap, landcover
+
+        sources = []
+
+        p1 = '/vsimem/tmp.enmap'
+        to = gdal.TranslateOptions(format='ENVI')
+        gdal.Translate(p1, enmap, options=to)
+        sources.append(QgsRasterLayer(p1))
+
+        sources.append(QgsVectorLayer(landcover))
+        return sources
+
+    def createNotSupportedSources(self)->list:
+
+        sources = []
+        sources.append(__file__)
+        return sources
 
     def tearDown(self):
         pass
@@ -201,7 +221,47 @@ class TestMDMetadataKeys(unittest.TestCase):
             key.readValueFromSource(ds)
             self.assertEqual(key.value(), 'New Description')
 
+    def test_metadataTreeModel(self):
+
+        from enmapboxtestdata import landcover
+
+        m = MetadataTreeModel()
+
+        ds = ogr.Open(landcover)
+        self.assertIsInstance(ds, ogr.DataSource)
+
+        node = m.parseVectorMD(ds)
+        self.assertIsInstance(node, TreeNode)
+
+
+
+    def test_sourceDomains(self):
+        d = MetadataEditorDialog()
+        d.show()
+        sources = self.createSupportedSources()
+        for uri in sources:
+            d.mSourceModel.clear()
+            self.assertTrue(len(d.mSourceModel) == 0)
+            d.addSources([uri])
+            self.assertTrue(len(d.mSourceModel) == 1)
+
+
+
+    def test_MetadataTreeViewWidgetDelegates(self):
+
+        tv = QTreeView()
+        d = MetadataTreeViewWidgetDelegates(tv)
+
+    def test_MDDialog(self):
+
+        d = MetadataEditorDialog()
+        d.show()
+        sources = self.createSupportedSources()
+        d.addSources(sources)
+        d.addSources(self.createNotSupportedSources())
+        self.assertTrue(len(d.mSourceModel) == len(sources))
 
 if __name__ == "__main__":
+
     unittest.main()
 

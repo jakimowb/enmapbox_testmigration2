@@ -17,7 +17,16 @@
    <property name="spacing">
     <number>2</number>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>2</number>
+   </property>
+   <property name="topMargin">
+    <number>2</number>
+   </property>
+   <property name="rightMargin">
+    <number>2</number>
+   </property>
+   <property name="bottomMargin">
     <number>2</number>
    </property>
    <item>
@@ -38,7 +47,7 @@
        </property>
        <property name="icon">
         <iconset resource="resources.qrc">
-         <normaloff>:/enmapbox/icons/class.png</normaloff>:/enmapbox/icons/class.svg</iconset>
+         <normaloff>:/enmapbox/icons/mActionAdd.svg</normaloff>:/enmapbox/icons/mActionAdd.svg</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -55,7 +64,7 @@
        </property>
        <property name="icon">
         <iconset resource="resources.qrc">
-         <normaloff>:/enmapbox/icons/add_class.png</normaloff>:/enmapbox/icons/add_class.svg</iconset>
+         <normaloff>:/enmapbox/icons/copyright_label.svg</normaloff>:/enmapbox/icons/copyright_label.svg</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -72,7 +81,7 @@
        </property>
        <property name="icon">
         <iconset resource="resources.qrc">
-         <normaloff>:/enmapbox/icons/remove_class.png</normaloff>:/enmapbox/icons/remove_class.svg</iconset>
+         <normaloff>:/enmapbox/icons/remove_class.svg</normaloff>:/enmapbox/icons/remove_class.svg</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>

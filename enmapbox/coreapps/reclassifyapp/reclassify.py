@@ -52,7 +52,7 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     band.SetColorTable(ct)
 
 
-def reclassify(pathSrc, pathDst, dstClassScheme, labelLookup,
+def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
                drvDst = None,
                bandIndices=0, tileSize=None, co=None):
     assert os.path.isfile(pathSrc)

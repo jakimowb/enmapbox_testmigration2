@@ -790,14 +790,3 @@ class ClassificationSchemeDialog(QgsDialog):
         assert isinstance(classificationScheme, ClassificationScheme)
         self.w.setClassificationScheme(classificationScheme)
 
-
-if __name__ == '__main__':
-
-    from enmapbox.gui.utils import initQgisApplication
-
-    app = initQgisApplication()
-    scheme = ClassificationSchemeDialog.getClassificationScheme()
-    ci = ClassificationScheme.create(4)
-    print(ci.classColorArray())
-
-    app.exec_()

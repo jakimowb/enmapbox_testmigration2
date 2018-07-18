@@ -3,3 +3,4 @@
 
 #HUB-DataCube Calculator app
 site-packages/hubdc/calculator/hubdccalculatorapp
+site-packages/enmapboxapplications

@@ -454,29 +454,35 @@ class EnMAPBox(QgisInterface, QObject):
     def initEnMAPBoxApplications(self):
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
-        appDirs = []
 
         INTERNAL_APPS = jp(DIR_ENMAPBOX, *['coreapps'])
         EXTERNAL_APPS = jp(DIR_ENMAPBOX, *['apps'])
 
+        listingBasename = 'enmapboxapplications.txt'
+
         if enmapbox.gui.LOAD_INTERNAL_APPS:
-            appDirs.append(INTERNAL_APPS)
+            self.applicationRegistry.addApplicationFolder(INTERNAL_APPS, isRootFolder=True)
+        p = os.path.join(INTERNAL_APPS, listingBasename)
+        if os.path.isfile(p):
+            self.applicationRegistry.addApplicationListing(p)
 
         if enmapbox.gui.LOAD_EXTERNAL_APPS:
-            appDirs.append(EXTERNAL_APPS)
+            self.applicationRegistry.addApplicationFolder(EXTERNAL_APPS, isRootFolder=True)
+        p = os.path.join(INTERNAL_APPS, listingBasename)
+        if os.path.isfile(p):
+            self.applicationRegistry.addApplicationListing(p)
 
+        #find root folders
         from enmapbox.gui.settings import qtSettingsObj
         settings = qtSettingsObj()
         for appDir in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
             if os.path.isdir(appDir):
-                appDirs.append(appDir)
-        for appDir in appDirs:
-            self.applicationRegistry.addApplicationPackageRootFolder(appDir)
+                self.applicationRegistry.addApplicationFolder(appDir, isRootFolder=True)
+            p = os.path.join(INTERNAL_APPS, listingBasename)
+            if os.path.isfile(p):
+                self.applicationRegistry.addApplicationListing(p)
 
-        if enmapbox.gui.LOAD_INTERNAL_APPS:
-            pathAppDefs = jp(INTERNAL_APPS, 'others.txt')
-            self.applicationRegistry.addApplicationPackageFile(pathAppDefs)
-        s = ""
+
 
     def exit(self):
         self.ui.close()

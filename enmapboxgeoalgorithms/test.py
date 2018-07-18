@@ -216,6 +216,7 @@ def test_ExtractSamples():
     alg = ExtractSamples()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
+          alg.P_INVERT_MASK: False,
           alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq')}
     runalg(alg=alg, io=io)
 
@@ -223,6 +224,7 @@ def test_ExtractSamples():
     alg = ExtractClassificationSamples()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
+          alg.P_INVERT_MASK: False,
           alg.P_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataEnmapClassification.bsq'),
           alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
           alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ExtractSamplesClassification.bsq')}
@@ -231,6 +233,7 @@ def test_ExtractSamples():
     alg = ExtractRegressionSamples()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
+          alg.P_INVERT_MASK: False,
           alg.P_REGRESSION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
           alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
           alg.P_OUTPUT_REGRESSION: join(outdir, 'ExtractSamplesRegression.bsq')}
@@ -239,6 +242,7 @@ def test_ExtractSamples():
     alg = ExtractFractionSamples()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
+          alg.P_INVERT_MASK: False,
           alg.P_FRACTION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
           alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
           alg.P_OUTPUT_FRACTION: join(outdir, 'ExtractSamplesFractions.bsq')}
@@ -306,6 +310,7 @@ def test_Raster():
     alg = RasterApplyMask()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
+          alg.P_INVERT_MASK: False,
           alg.P_OUTPUT_RASTER: join(outdir, 'RasterApplyMask.bsq')}
     runalg(alg=alg, io=io)
 
@@ -327,6 +332,8 @@ def test_RegressionPerformance():
     alg = RegressionPerformanceFromRaster()
     io = {alg.P_PREDICTION: enmapFraction,
           alg.P_REFERENCE: enmapFraction,
+          alg.P_MASK: enmapMask,
+          alg.P_INVERT_MASK: False,
           alg.P_OUTPUT_REPORT: join(outdir, 'RegressionPerformanceFromRaster.html')}
     runalg(alg=alg, io=io)
 
@@ -403,11 +410,11 @@ def test_SensorDefinitionResampleRaster():
 
     alg = SensorDefinitionResampleRaster()
     io = {alg.P_RASTER: enmap,
-          alg.P_OPTION1: 0,
+          alg.P_OPTION1: 1,
           alg.P_OPTION2: hymap,
           alg.P_OPTION3: None,
           alg.P_ENUM: 0,
-          alg.P_OUTPUT_RASTER: join(outdir, 'SensorDefinitionResampleRasterOption2.bsq')}
+          alg.P_OUTPUT_RASTER: join(outdir, 'SensorDefinitionResampleRasterOption1.bsq')}
     runalg(alg=alg, io=io)
 
 
@@ -456,6 +463,7 @@ def test_Transformer():
 def test_VectorFromRandomPointsFromMask():
     alg = VectorFromRandomPointsFromMask()
     io = {alg.P_MASK: enmapMask,
+          alg.P_INVERT_MASK: False,
           alg.P_NUMBER_OF_POINTS: 100,
           alg.P_OUTPUT_VECTOR: join(outdir, 'VectorFromRandomPointsFromMask.gpkg')}
     runalg(alg=alg, io=io)
@@ -509,9 +517,8 @@ def printMenu():
 
 
 if __name__ == '__main__':
-    #test_Raster()
-    #exit(0)
-
+    generateRST()
+    exit(0)
     test_ClassDefinitionFromRaster()
     test_Classification()
     test_ClassificationPerformance()
@@ -534,7 +541,7 @@ if __name__ == '__main__':
     test_VectorUniqueValues()
     test_ImportLibrary()
     test_SynthMix()
-    generateRST()
+    #generateRST()
 
 # printMenu()
 print('done!!!')
