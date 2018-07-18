@@ -1,6 +1,6 @@
-==========================
-Core module (hubflow.core)
-==========================
+============
+hubflow.core
+============
 
 .. automodule:: hubflow.core
     :members:

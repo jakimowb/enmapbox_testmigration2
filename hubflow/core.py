@@ -1,9 +1,8 @@
 import random, pickle
 from collections import OrderedDict, namedtuple
-import sklearn.metrics
-import sklearn.multioutput
+from osgeo import gdal
+import numpy as np
 from PyQt5.QtGui import QColor
-
 from hubdc.progressbar import ProgressBar, SilentProgressBar, CUIProgressBar
 from hubdc.core import *
 import hubdc.applier
@@ -850,21 +849,24 @@ class Raster(Map):
                    percentiles=list(), histogramRanges=None, histogramBins=None,
                    **kwargs):
         '''
-        Return a list of BandStatistic named tuples::
+        Return a list of BandStatistic named tuples:
 
-            key          | value/description
-            -------------|------------------
-            index        | band index
-            nvalid       | number of valid pixel (not equal to noDataValue and not masked)
-            ninvalid     | number of invalid pixel (equal to noDataValue or masked)
-            min          | smallest value
-            max          | largest value
-            percentiles* | list of (rank, value) tuples for given percentiles
-            std*         | standard deviation
-            mean*        | mean
-            histo*       | Histogram(hist, bin_edges) tuple with histogram counts (hist) and bin edges (bin_edges)
+        ============   ====================================================================
+        key            value/description
+        ============   ====================================================================
+        index          band index
+        nvalid         number of valid pixel (not equal to noDataValue and not masked)
+        ninvalid       number of invalid pixel (equal to noDataValue or masked)
+        min            smallest value
+        max            largest value
+        percentiles+   list of (rank, value) tuples for given percentiles
+        std+           standard deviation
+        mean+          mean
+        histo+         Histogram(hist, bin_edges) tuple with histogram counts and bin edges
+        ============   ====================================================================
 
-            * set corresponding calc* keyword to True
+        +set corresponding calcPercentiles/Histogram/Mean/Std keyword to True
+
 
         :param bandIndices: calculate statistics only for given ``bandIndices``
         :type bandIndices: Union[None, None, None]
@@ -945,7 +947,7 @@ class Raster(Map):
         >>> # create two single band raster
         >>> raster1 = Raster.fromArray(array=[[[1, 2, 3]]], filename='/vsimem/raster1.bsq')
         >>> raster2 = Raster.fromArray(array=[[[10, 20, 30]]], filename='/vsimem/raster2.bsq')
-        >>> # calculate the scatter matrix between both raster bands
+        >>> # calculate scatter matrix between both raster bands
         >>> scatterMatrix = raster1.scatterMatrix(raster2=raster2, bandIndex1=0, bandIndex2=0, range1=[1, 4], range2=[10, 40], bins=3)
         >>> scatterMatrix.H
         array([[1, 0, 0],
@@ -1018,7 +1020,7 @@ class Raster(Map):
         return fwhm
 
     def sensorDefinition(self):
-        '''Return :class:`~SenserDefinition` created from center wavelength and FWHM.'''
+        '''Return :class:`~hubflow.core.SenserDefinition` created from center wavelength and FWHM.'''
         return SensorDefinition.fromFWHM(centers=self.metadataWavelength(), fwhms=self.metadataFWHM())
 
 
@@ -1325,8 +1327,11 @@ class SensorDefinition(FlowObject):
 
     @staticmethod
     def fromPredefined(name):
-        '''Create an instance for a predefined sensor (e.g. ``name='sentinel2'``).
-        See ::meth:`~SensorDefinition.predefinedSensorNames` for a full list of predifined sensors.'''
+        '''
+        Create an instance for a predefined sensor (e.g. ``name='sentinel2'``).
+        See :meth:`~SensorDefinition.predefinedSensorNames` for a full list of predifined sensors.
+        Sensor response filter functions (.sli files) are stored here `hubflow/sensors`.
+        '''
 
         import hubflow.sensors
         assert isinstance(name, str)
@@ -1482,8 +1487,24 @@ class SensorDefinition(FlowObject):
         '''Return list of response function wavelengths.'''
         return [wavebandDefinition.wavelengths() for wavebandDefinition in self.wavebandDefinitions()]
 
-    def resampleRaster(self, filename, raster, minResponse=None, resampleAlg=None, **kwargs):
+    def resampleRaster(self, filename, raster, minResponse=None, resampleAlg=RESAMPLE_LINEAR, **kwargs):
+        '''
+        Resample the given spectral ``raster``.
 
+        :param filename: output path
+        :type filename: str
+        :param raster: spectral raster
+        :type raster: hubflow.core.Raster
+        :param minResponse: limits the wavelength region of the response filter function to wavelength with responses higher than ``minResponse``;
+                            higher values speed up computation; 0.5 corresponds to the full width at half maximum region;
+                            values greater 0.5 may lead to very inaccurate results
+        :type minResponse: float
+        :param resampleAlg: available resampling algorithms are linear interpolation between neighbouring wavelength
+                            and response function filtering
+        :type resampleAlg: enum(SensorDefinition.RESAMPLE_LINEAR, SensorDefinition.RESAMPLE_RESPONSE)
+        :param kwargs: passed to hubflow.core.Applier
+        :rtype: Union[hubflow.core.Raster, None]
+        '''
         assert isinstance(raster, Raster)
         if resampleAlg is None:
             resampleAlg = self.RESAMPLE_LINEAR
@@ -1496,8 +1517,26 @@ class SensorDefinition(FlowObject):
                       targetSensor=self, sourceSensor=sourceSensor, minResponse=minResponse, resampleAlg=resampleAlg)
         return Raster(filename=filename)
 
-    def resampleProfiles(self, array, wavelength, wavelengthUnits):
+    def resampleProfiles(self, array, wavelength, wavelengthUnits, minResponse=None, resampleAlg=None, **kwargs):
+        '''
+        Resample a list of profiles given as a 2d ``array`` of size (profiles, bands).
+
+        Implementation: the ``array``, together with the ``wavelength`` and ``wavelengthUnits`` metadata,
+        is turned into a spectral raster, which is resampled using :class:~hubflow.core.SensorDefinition.resampleRaster``.
+
+        :param array: list of profiles or 2d array of size (profiles, bands)
+        :type array: Union[list, numpy.ndarray]
+        :param wavelength: list of center wavelength of size (bands, )
+        :type wavelength: List[float]
+        :param wavelengthUnits: wavelength unit 'nanometers' | 'micrometers'
+        :type wavelengthUnits: str
+        :param minResponse: passed to :class:~hubflow.core.SensorDefinition.resampleRaster``
+        :param resampleAlg: passed to :class:~hubflow.core.SensorDefinition.resampleRaster``
+        :param kwargs: passed to :class:~hubflow.core.SensorDefinition.resampleRaster``
+        :rtype: numpy.ndarray
+        '''
         array = np.array(array)
+        assert array.ndim == 2
         samples, bands = array.shape
         assert len(wavelength) == bands
 
@@ -1510,7 +1549,7 @@ class SensorDefinition(FlowObject):
         rasterDataset.flushCache()
         raster = Raster.fromRasterDataset(rasterDataset=rasterDataset)
         outraster = self.resampleRaster(filename='/vsimem/SensorDefinitionResampleOutProfiles.bsq',
-                                        raster=raster, controls=ApplierControls().setWriteENVIHeader(False))
+                                        raster=raster, minResponse=minResponse, resampleAlg=resampleAlg, **kwargs)
         outarray = outraster.dataset().readAsArray().T[0]
         return outarray
 
@@ -1523,7 +1562,7 @@ class _SensorDefinitionResampleRaster(ApplierOperator):
         self.raster = raster
 
         if minResponse is None:
-            minResponse = 0
+            minResponse = 0.001
         self.minResponse = minResponse
 
         self.marray = self.flowMaskArray(name='raster', mask=raster.asMask(index=0))
@@ -1600,16 +1639,33 @@ class _SensorDefinitionResampleRaster(ApplierOperator):
 
 
 class ENVISpectralLibrary(FlowObject):
+    '''Class for managing ENVI Spectral Library files.'''
+
     def __init__(self, filename):
+        '''Create an instance for given ``filename``.'''
         self._filename = filename
 
     def __repr__(self):
         return '{cls}(filename={filename})'.format(cls=self.__class__.__name__, filename=str(self.filename()))
 
     def filename(self):
+        '''Return the filename.'''
         return self._filename
 
     def raster(self, transpose=True):
+        '''
+        Return a :class:`~hubflow.core.Raster` pointing to the library's binary file.
+
+        If ``transpose=False`` the binary raster is a single band, where profiles are arranged along the y axis and wavebands along the x axis.
+        If ``transpose=True`` profiles are still arranged along the y axis, but wavebands are transpose into the z axis,
+        which matches the natural order of spectral raster files, and enables the direct application of various
+        raster processing algorithms to library profiles.
+
+        :param transpose: whether or not to transpose the profiles from [1, profiles, bands] to [bands, profiles, 1] order.
+        :type transpose: bool
+        :rtype: hubflow.core.Raster
+        '''
+
         filename = r'/vsimem/{filename}{transpose}.vrt'.format(filename=self.filename(),
                                                                transpose='.transposed' if transpose else '')
         try:
@@ -2521,6 +2577,7 @@ class _FractionSubsetClasses(ApplierOperator):
 
 class FractionPerformance(FlowObject):
     def __init__(self, yP, yT, classDefinitionP, classDefinitionT):
+        import sklearn.metrics
         assert isinstance(classDefinitionP, ClassDefinition)
         assert isinstance(classDefinitionT, ClassDefinition)
         assert classDefinitionT.classes() == classDefinitionP.classes()
@@ -2870,6 +2927,7 @@ class Estimator(FlowObject):
         return self._sample
 
     def _fit(self, sample):
+        import sklearn.multioutput
         assert isinstance(sample, self.SAMPLE_TYPE)
         self._sample = sample
 
@@ -3312,6 +3370,8 @@ class ClassificationPerformance(FlowObject):
 
 class RegressionPerformance(FlowObject):
     def __init__(self, yT, yP, outputNamesT, outputNamesP):
+        import sklearn.metrics
+
         assert isinstance(yT, np.ndarray)
         assert isinstance(yP, np.ndarray)
         assert yT.ndim == 2
@@ -3467,6 +3527,7 @@ class RegressionPerformance(FlowObject):
 
 class ClusteringPerformance(FlowObject):
     def __init__(self, yT, yP):
+        import sklearn.metrics
         assert isinstance(yP, np.ndarray)
         assert isinstance(yT, np.ndarray)
         assert yT.shape == yP.shape
