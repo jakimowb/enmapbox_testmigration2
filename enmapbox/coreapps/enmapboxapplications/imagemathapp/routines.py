@@ -1,40 +1,6 @@
-from __future__ import print_function
+import numpy
 from numpy import *
 import numpy.random as random
-import traceback
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster
-
-InputRaster = ApplierInputRaster
-InputVector = ApplierInputVector
-OutputRaster = ApplierOutputRaster
-
-import numpy
-
-class Calulator(Applier):
-    def applyCode(self, code, options, outputKeys, overwrite=True):
-
-        self.apply(operatorType=CalculatorOperator, description='Calculator', overwrite=overwrite,
-                   code=code, options=options)
-
-        self.controls.progressBar.setProgress(0)
-
-        if len(list(self.outputRaster.flatRasterKeys())) > 0:
-            self.controls.progressBar.setText('\noutputs created')
-            for key in self.outputRaster.flatRasterKeys():
-                value = self.outputRaster.raster(key=key)
-                self.controls.progressBar.setText('...<b>{}</b>: {}'.format(key, value.filename))
-                try:
-                    import hubflow.signals
-                    hubflow.signals.sigFileCreated.emit(value.filename)
-                except:
-                    pass
-
-        missingOutputs = [key for key in outputKeys if key not in self.outputRaster.flatRasterKeys()]
-        if len(missingOutputs) > 0:
-            self.controls.progressBar.setText('')
-            self.controls.progressBar.setText('<p style="color:red;">WARNING: missing outputs <b>{}</b></p>'.format(', '.join(missingOutputs)))
-
-
 
 inputRasterByArray = dict()
 outputRasterByArray = dict()
@@ -80,7 +46,7 @@ def metadata(array):
          'data_ignore_value': '-99'}}
     '''
 
-    return inputRasterByArray[id(array)].getMetadataDict()
+    return inputRasterByArray[id(array)].metadataDict()
 
 def setNoDataValue(array, noDataValue):
     '''setNoDataValue(array, noDataValue)
@@ -117,71 +83,3 @@ def setMetadata(array, metadata):
 
     outputMetadataByArray[id(array)] = metadata
 
-class CodeExecutionError(Exception):
-    pass
-
-class CalculatorOperator(ApplierOperator):
-
-    def ufunc(self, code, options, overlap=0):
-        print = self.progressBar.setLabelText
-        global inputRasterByArray, outputRasterByArray, outputNoDataValueByArray, outputMetadataByArray
-
-        ySize, xSize = self.subgrid.shape
-        for key in self.inputRaster.flatRasterKeys():
-            raster = self.inputRaster.raster(key=key)
-            array = raster.array(resampleAlg=options[key]['resampleAlg'], noDataValue=options[key]['noDataValue'])
-            exec '{key} = array'.format(key=key)
-            inputRasterByArray[id(array)] = raster
-
-        for key in self.inputVector.flatVectorKeys():
-            vector = self.inputVector.vector(key=key)
-            array = vector.array(initValue=options[key]['initValue'],
-                                 burnValue=options[key]['burnValue'],
-                                 burnAttribute=options[key]['burnAttribute'],
-                                 allTouched=options[key]['allTouched'],
-                                 filterSQL=options[key]['filterSQL'],
-                                 dtype=options[key]['dtype'])
-            exec '{key} = array'.format(key=key)
-
-        for key in self.outputRaster.flatRasterKeys():
-            raster = self.outputRaster.raster(key=key)
-            exec '{key} = None'.format(key=key)
-
-        try:
-            exec code
-        except:
-            #tb = traceback.format_exc()
-            #self.progressBar.displayError(text=tb)
-            raise CodeExecutionError(traceback.format_exc())
-
-        for key in self.outputRaster.flatRasterKeys():
-            raster = self.outputRaster.raster(key=key)
-            array = eval(key)
-            noData = outputNoDataValueByArray.get(id(array), None)
-            metadata = outputMetadataByArray.get(id(array), None)
-            if array is not None:
-                raster.setArray(array=array)
-                if noData is not None:
-                    raster.setNoDataValue(value=noData)
-                if metadata is not None:
-                    if 'ENVI' in metadata and 'file_compression' in metadata['ENVI']: metadata['ENVI']['file_compression'] = None
-                    raster.setMetadataDict(metadataDict=metadata)
-
-def test():
-    import enmapboxtestdata
-    calculator = Calulator()
-    calculator.inputRaster.setRaster(key='enmap', value=InputRaster(filename=enmapboxtestdata.enmap))
-    calculator.inputVector.setVector(key='landCover', value=InputVector(filename=enmapboxtestdata.landcover))
-    calculator.outputRaster.setRaster(key='result', value=OutputRaster(filename=r'c:\outputs\calcResult.img'))
-    code = \
-'''
-result = enmap
-result[landCover==0] = enmapNoData
-resultNoData = enmapNoData
-resultMeta = enmapMeta
-'''
-
-    calculator.applyCode(code=code)
-
-if __name__ == '__main__':
-    test()

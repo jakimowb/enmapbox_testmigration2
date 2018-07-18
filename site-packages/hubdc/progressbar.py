@@ -9,8 +9,10 @@ class SilentProgressBar(ProgressBar):
     pass
 
 class CUIProgressBar(ProgressBar):
-
+    SILENT = True
     def setPercentage(self, percentage):
+        if self.SILENT:
+            return
         percentage = int(percentage)
         if percentage == 100:
             print('100%')
@@ -22,6 +24,9 @@ class CUIProgressBar(ProgressBar):
             pass
 
     def setText(self, text):
+        if self.SILENT:
+            return
+
         print(text)
         try:
             sys.stdout.flush()

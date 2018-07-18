@@ -217,26 +217,61 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     P_MASK = 'mask'
 
-    def addParameterMask(self, name=P_MASK, description='Mask', optional=True, help=None):
+    def addParameterMask(self, name=P_MASK, description='Mask', optional=True, allowRaster=True, allowVector=True,
+                         help=None):
         if help is None:
             help = 'Specified vector or raster is interpreted as a boolean mask.\n' \
                    'In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.\n' \
                    'In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.' \
                    'Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.'
 
-        self.addParameterMap(name=name, description=description, optional=optional, help=help)
+        if allowRaster and allowVector:
+            self.addParameterMap(name=name, description=description, optional=optional, help=help)
+        elif allowRaster:
+            self.addParameterRaster(name=name, description=description, optional=optional, help=help)
+        elif allowVector:
+            self.addParameterVector(name=name, description=description, optional=optional, help=help)
+        else:
+            assert 0
 
     def getParameterMask(self, name=P_MASK, minOverallCoverage=0.5):
         mask = self.getParameterMap(name=name)
         if isinstance(mask, Raster):
             mask = Mask(filename=mask.filename(), minOverallCoverage=minOverallCoverage)
+        elif isinstance(mask, Vector):
+            mask = VectorMask(filename=mask.filename())
         return mask
+
+    P_INVERT_MASK = 'invertMask'
+
+    def addParameterInvertableMask(self, name=P_MASK, description='Mask', optional=True,
+                                   allowRaster=True, allowVector=True, help=None):
+        self.addParameterMask(name=name, description=description, optional=optional,
+                              allowRaster=allowRaster, allowVector=allowVector, help=help)
+        self.addParameterBoolean(name=self.P_INVERT_MASK, description='Invert Mask',
+                                 help='Whether or not to invert the selected mask.')
+
+    def getParameterInvertableMask(self, name=P_MASK, minOverallCoverage=0.5):
+        mask = self.getParameterMask(name=name, minOverallCoverage=minOverallCoverage)
+        if self.getParameterBoolean(name=self.P_INVERT_MASK):
+
+            if isinstance(mask, Mask):
+                mask = Mask(filename=mask.filename(), noDataValues=mask.noDataValues(),
+                            minOverallCoverage=mask.minOverallCoverage(), index=mask.index(), invert=not mask.invert())
+            elif isinstance(mask, VectorMask):
+                mask = VectorMask(filename=mask.filename(), layer=mask.layer(), invert=True)
+            else:
+                assert 0
+        return mask
+
 
     P_VECTOR = 'vector'
 
-    def addParameterVector(self, name=P_VECTOR, description='Vector', defaultValue=None, optional=False, help=None):
+    def addParameterVector(self, name=P_VECTOR, description='Vector', defaultValue=None, optional=False,
+                           help=None):
         if help is None:
             help = 'Specify input vector.'
+
         self.addParameter_(QgsProcessingParameterVectorLayer(name=name, description=description,
                                                              defaultValue=defaultValue, optional=optional),
                            help=help)
@@ -726,7 +761,9 @@ class EnMAPAlgorithm(QgisAlgorithm):
             help = 'Specify output path for HTML report file (.html).'
         self.addParameter_(QgsProcessingParameterFileDestination(name=name, description=description,
                                                                  fileFilter='HTML files (*.html)'), help)
-        self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
+        #self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
+
+#        self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
 
     def getParameterOutputReport(self, name=P_OUTPUT_REPORT):
         self._progressBar.setText(str(self._parameters))
@@ -815,7 +852,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                                                  optional=optional), help=help)
         if help is None:
             help = 'Specify output path for file.'
-        self.addOutput(QgsProcessingOutputFile(name=name, description=description))
+        #self.addOutput(QgsProcessingOutputFile(name=name, description=description))
 
     def getParameterOutputFile(self, name):
         assert name in self._parameters

@@ -414,9 +414,12 @@ class CreateAdditionalTestdata(EnMAPAlgorithm):
     P_OUTPUT_LIBRARY = 'outLibrary'
 
     def defineCharacteristics(self):
-        self.addParameterBoolean(name=self.P_BOOLEAN_ENMAP, description='Create 30 m maps', defaultValue=True)
-        self.addParameterBoolean(name=self.P_BOOLEAN_HYMAP, description='Create 3.6 m maps', defaultValue=True)
-        self.addParameterBoolean(name=self.P_BOOLEAN_LIBRARY, description='Create labeled Library', defaultValue=False)
+        self.addParameterBoolean(name=self.P_BOOLEAN_ENMAP, description='Create 30 m maps', defaultValue=True,
+                                 help='Whether or not to create 30 m classification and fraction/regression maps.')
+        self.addParameterBoolean(name=self.P_BOOLEAN_HYMAP, description='Create 3.6 m maps', defaultValue=True,
+                                 help='Whether or not to create 3.6 m classification and fraction/regression maps.')
+        self.addParameterBoolean(name=self.P_BOOLEAN_LIBRARY, description='Create labeled Library', defaultValue=False,
+                                 help='Whether or not to create spectral library with classification and fraction/regression labels at 30 m scale.')
 
         self.addParameterOutputClassification(name=self.P_OUTPUT_ENMAP_CLASSIFICATION,
                                               description='LandCover Classification for 6 classes at 30 m')
@@ -427,7 +430,8 @@ class CreateAdditionalTestdata(EnMAPAlgorithm):
         self.addParameterOutputFraction(self.P_OUTPUT_HYMAP_FRACTION,
                                         description='LandCover Fraction for 6 classes at 3.6 m')
         self.addParameterOutputFile(name=self.P_OUTPUT_LIBRARY,
-                                    description='Library with 30 m profiles and classification/fraction labels')
+                                    description='Library with 30 m profiles and classification/fraction labels',
+                                    help='Specify output path for ENVI Spectral Library file.')
 
     def processAlgorithm_(self):
         import enmapboxtestdata
@@ -820,13 +824,13 @@ class RasterApplyMask(EnMAPAlgorithm):
 
     def defineCharacteristics(self):
         self.addParameterRaster()
-        self.addParameterMask()
+        self.addParameterInvertableMask(optional=False)
         self.addParameterOutputRaster(description='Masked Raster')
 
     def processAlgorithm_(self):
         raster = self.getParameterRaster()
         filename = self.getParameterOutputRaster()
-        raster.applyMask(filename=filename, mask=self.getParameterMask(), progressBar=self._progressBar)
+        raster.applyMask(filename=filename, mask=self.getParameterInvertableMask(), progressBar=self._progressBar)
         return {self.P_OUTPUT_RASTER: filename}
 
 
@@ -1064,14 +1068,16 @@ class RegressionPerformanceFromRaster(EnMAPAlgorithm):
                                     help='Specify regression raster to be evaluated.')
         self.addParameterRegression(self.P_REFERENCE, 'Reference',
                                     help='Specify reference regression raster (i.e. ground truth).')
+        self.addParameterInvertableMask()
         self.addParameterOutputReport()
 
     def processAlgorithm_(self):
         prediction = self.getParameterRegression(self.P_PREDICTION)
         reference = self.getParameterRegression(self.P_REFERENCE)
+        mask = self.getParameterInvertableMask()
         if not prediction.grid().equal(reference.grid()):
             raise EnMAPAlgorithmParameterValueError('prediction and reference grid must match')
-        performance = RegressionPerformance.fromRaster(prediction=prediction, reference=reference,
+        performance = RegressionPerformance.fromRaster(prediction=prediction, reference=reference, mask=mask,
                                                        grid=prediction.grid(),
                                                        progressBar=self._progressBar)
 
@@ -1283,10 +1289,7 @@ class SensorDefinitionResampleRaster(EnMAPAlgorithm):
     def description(self):
         return 'Spectrally resample a raster.'
 
-    SENSOR_NAMES = ['select sensor', 'Landsat 8', 'Sentinel-2']
-    SENSOR_RESPONSES = [None,
-                        r'C:\Program Files\Exelis\ENVI53\classic\filt_func\landsat8_oli.sli',
-                        r'C:\Program Files\Exelis\ENVI53\classic\filt_func\sentinel2.sli']
+    SENSOR_NAMES = ['select sensor'] + SensorDefinition.predefinedSensorNames()
     P_OPTION1 = 'option1'
     P_OPTION2 = 'option2'
     P_OPTION3 = 'option3'
@@ -1317,9 +1320,10 @@ class SensorDefinitionResampleRaster(EnMAPAlgorithm):
         self._progressBar.setText(repr(option2))
         self._progressBar.setText(repr(option3))
 
-        if self.SENSOR_RESPONSES[option1] is not None:
-            library = ENVISpectralLibrary(filename=self.SENSOR_RESPONSES[option1])
-            sensor = SensorDefinition.fromENVISpectralLibrary(library=library)
+        if option1 != 0:
+            sensor = SensorDefinition.fromPredefined(name=self.SENSOR_NAMES[option1])
+#            library = ENVISpectralLibrary(filename=self.SENSOR_RESPONSES[option1])
+#            sensor = SensorDefinition.fromENVISpectralLibrary(library=library)
         elif isinstance(option2, Raster):
             sensor = SensorDefinition.fromRaster(raster=option2)
         elif isinstance(option3, ENVISpectralLibrary):
@@ -1457,15 +1461,14 @@ class VectorFromRandomPointsFromMask(EnMAPAlgorithm):
     P_N = 'n'
 
     def defineCharacteristics(self):
-        self.addParameterMask()
-
+        self.addParameterInvertableMask(allowVector=False, optional=False)
         self.addParameterNumberOfPoints(defaultValue=100)
         self.addParameterOutputVector()
 
     def processAlgorithm_(self):
         filename = self.getParameterOutputVector()
         Vector.fromRandomPointsFromMask(filename=filename,
-                                        mask=self.getParameterMask(), n=self.getParameterNumberOfPoints(),
+                                        mask=self.getParameterInvertableMask(), n=self.getParameterNumberOfPoints(),
                                         progressBar=self._progressBar)
         return {self.P_OUTPUT_VECTOR: filename}
 
@@ -1508,11 +1511,12 @@ class ExtractSamples(EnMAPAlgorithm):
 
     def defineCharacteristics(self):
         self.addParameterRaster()
-        self.addParameterMask(optional=True)
+        self.addParameterInvertableMask()
+        self.addParameterOutputRaster()
 
     def processAlgorithm_(self):
         sample = Sample(raster=self.getParameterRaster(),
-                        mask=self.getParameterMask())
+                        mask=self.getParameterInvertableMask())
         outraster, = sample.extractAsRaster(filenames=[self.getParameterOutputRaster()], progressBar=self._progressBar)
         return {self.P_OUTPUT_RASTER: outraster.filename()}
 
@@ -1532,12 +1536,14 @@ class ExtractClassificationSamples(EnMAPAlgorithm):
     def defineCharacteristics(self):
         self.addParameterRaster()
         self.addParameterClassification()
-        self.addParameterMask(optional=True)
+        self.addParameterInvertableMask()
+        self.addParameterOutputRaster()
+        self.addParameterOutputClassification()
 
     def processAlgorithm_(self):
         sample = ClassificationSample(raster=self.getParameterRaster(),
                                       classification=self.getParameterClassification(),
-                                      mask=self.getParameterMask())
+                                      mask=self.getParameterInvertableMask())
         outraster, outclassification = sample.extractAsRaster(filenames=[self.getParameterOutputRaster(),
                                                                          self.getParameterOutputClassification()],
                                                               progressBar=self._progressBar)
@@ -1560,12 +1566,14 @@ class ExtractRegressionSamples(EnMAPAlgorithm):
     def defineCharacteristics(self):
         self.addParameterRaster()
         self.addParameterRegression()
-        self.addParameterMask(optional=True)
+        self.addParameterInvertableMask()
+        self.addParameterOutputRaster()
+        self.addParameterOutputRegression()
 
     def processAlgorithm_(self):
         sample = RegressionSample(raster=self.getParameterRaster(),
                                   regression=self.getParameterRegression(),
-                                  mask=self.getParameterMask())
+                                  mask=self.getParameterInvertableMask())
         outraster, outregression = sample.extractAsRaster(filenames=[self.getParameterOutputRaster(),
                                                                      self.getParameterOutputRegression()],
                                                           progressBar=self._progressBar)
@@ -1587,17 +1595,19 @@ class ExtractFractionSamples(EnMAPAlgorithm):
     def defineCharacteristics(self):
         self.addParameterRaster()
         self.addParameterFraction()
-        self.addParameterMask(optional=True)
+        self.addParameterInvertableMask()
+        self.addParameterOutputRaster()
+        self.addParameterOutputFraction()
 
     def processAlgorithm_(self):
         sample = FractionSample(raster=self.getParameterRaster(),
                                 fraction=self.getParameterFraction(),
-                                mask=self.getParameterMask())
+                                mask=self.getParameterInvertableMask())
         outraster, outfraction = sample.extractAsRaster(filenames=[self.getParameterOutputRaster(),
                                                                    self.getParameterOutputFraction()],
                                                         progressBar=self._progressBar)
         return {self.P_OUTPUT_RASTER: outraster.filename(),
-                self.P_OUTPUT_REGRESSION: outfraction.filename()}
+                self.P_OUTPUT_FRACTION: outfraction.filename()}
 
 ALGORITHMS.append(ExtractFractionSamples())
 
@@ -1648,3 +1658,4 @@ def generateRST():
     with open(filename, mode='w') as f:
         f.write(text)
     print('created GeoAlgoritms RST file: ', filename)
+
