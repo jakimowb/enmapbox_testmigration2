@@ -295,9 +295,9 @@ class ApplicationRegistry(QObject):
 
                 for app in apps:
                     if not isinstance(app, EnMAPBoxApplication):
-                        print('Not an EnMAPBoxApplication instance: {}'.format(app.__module__), file=sys.stderr)
+                        raise Exception('Not an EnMAPBoxApplication instance: {}'.format(app.__module__))
                     else:
-                        self.addApplication(app)
+                        result = self.addApplication(app)
                         foundValidApps = True
 
                 if foundValidApps:
@@ -337,8 +337,8 @@ class ApplicationRegistry(QObject):
             print('Check requirements...')
         isOk, errorMessages = EnMAPBoxApplication.checkRequirements(app)
         if not isOk:
-            messageLog('Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
-            return False
+            raise Exception('Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
+
         if appWrapper.appId in self.mAppWrapper.keys():
             messageLog('EnMAPBoxApplication {} already loaded. Reload'.format(appWrapper.appId))
             self.removeApplication(appWrapper.appId)

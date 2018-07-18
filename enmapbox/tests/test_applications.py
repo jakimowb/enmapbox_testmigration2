@@ -197,13 +197,33 @@ class test_applications(unittest.TestCase):
         reg.addApplicationFolder(rootFolder, isRootFolder=True)
         self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(rootFolder))
 
-    def test_coreapps(self):
+    def test_apps(self):
 
-        #test without EnMAPBox
-        from metadataeditorapp import MetaDataEditorApp
-        enmapbox = EnMAPBox()
-        app = MetaDataEditorApp(enmapbox)
-        self.assertIsInstance(app, EnMAPBoxApplication)
+        from enmapbox.gui.utils import DIR_ENMAPBOX
+
+        pathCoreApps = os.path.join(DIR_ENMAPBOX, 'coreapps')
+        pathExternalApps = os.path.join(DIR_ENMAPBOX, 'apps')
+        self.assertTrue(os.path.isdir(pathCoreApps))
+
+        enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.gui.LOAD_INTERNAL_APPS = False
+        enmapbox.gui.LOAD_EXTERNAL_APPS = False
+        EB = EnMAPBox()
+        reg = ApplicationRegistry(EB)
+
+        for root in [pathExternalApps, pathCoreApps]:
+            for r, dirs, files in os.walk(root):
+                break
+            for d in dirs:
+                p = os.path.join(r, d)
+                n1 = len(reg)
+                print('Load APP(s) from {}...'.format(p))
+                reg.addApplicationFolder(p)
+                n2 = len(reg)
+
+                self.assertTrue(n2 > n1,  msg='Unable to add APP(s) "{}" from {}'.format(d, p))
+
+
 
 
 
