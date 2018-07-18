@@ -19,3 +19,4 @@ qgisresources/
 /enmapbox/gui/ui/tmp.ui
 doc/build
 /.gitignore
+/test/
