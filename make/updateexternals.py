@@ -87,15 +87,23 @@ RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
                   remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-                  prefixLocal=r'enmapboxgeoalgorithms',
-                  prefixRemote=r'enmapboxgeoalgorithms',
+                  key='enmapboxapplications',
+                  prefixLocal=r'enmapbox/coreapps/enmapboxapplications',
+                  prefixRemote=r'enmapboxapplications',
                   remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-                  prefixLocal=r'doc/source/geoalgorithms',
-                  prefixRemote=r'doc/source',
-                  excluded=['conf.py','index.rst'],
+                  key='enmapboxgeoalgorithms',
+                  prefixLocal='enmapboxgeoalgorithms',
+                  prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='master')
+
+
+#RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
+#                  prefixLocal=r'doc/source/geoalgorithms',
+#                  prefixRemote=r'doc/source',
+#                  excluded=['conf.py','index.rst'],
+#                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',
@@ -173,9 +181,10 @@ if __name__ == "__main__":
 
     # update remotes
     to_update = ['hub-datacube',
-                 # 'hub-workflow',
+                'hub-workflow',
                  # 'enmap-box-testdata',
-                 # 'enmap-box-geoalgorithmsprovider',
+                'enmapboxapplications',
+                'enmapboxgeoalgorithms'
                 #'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'

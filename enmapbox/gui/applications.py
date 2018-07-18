@@ -307,8 +307,12 @@ class ApplicationRegistry(QObject):
                 return foundValidApps
 
             except Exception as ex:
-                self.mAppInitializationMessages[basename] = str(ex)
-                print(ex, file=sys.stderr)
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                tbLines = traceback.format_tb(exc_traceback)
+                tbLines = ''.join(tbLines)
+                info = '{}\nTraceback:\n{}'.format(ex, tbLines)
+                self.mAppInitializationMessages[basename] = info
+                print(info, file=sys.stderr)
                 return False
 
     def addApplications(self, apps)->list:
