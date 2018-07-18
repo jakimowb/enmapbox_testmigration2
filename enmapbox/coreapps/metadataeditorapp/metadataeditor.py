@@ -20,7 +20,7 @@
 """
 
 
-import os, collections, copy, re
+import os, collections, copy, re, sys
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtGui import *
@@ -28,7 +28,7 @@ from PyQt5.QtCore import *
 from osgeo import gdal, ogr, osr
 
 import numpy as np
-from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass, guessDataProvider
 from enmapbox.gui.widgets.trees import TreeModel, TreeNode
 from metadataeditorapp.metadatakeys import *
 from enmapbox.gui.widgets.models import OptionListModel, Option, currentComboBoxValue
@@ -287,7 +287,7 @@ class MetadataTreeModel(TreeModel):
         return keys
 
     def parseSource(self, path: str):
-        print('PARSE {}'.format(path))
+        #print('PARSE {}'.format(path))
         # clear metadata domains
         self.mDomains.clear()
 
@@ -887,7 +887,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
         self.mDomains = OptionListModel()
         self.mDomains.insertOptions(Option(None, '<All>'))
-        self.cbDomainFilter.setModel(self.mDomains)
+        #self.cbDomainFilter.setModel(self.mDomains)
         d = self.mMetadataModel.domainModel()
 
         d.sigOptionsInserted.connect(self.mDomains.insertOptions)
@@ -907,7 +907,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
     def onDataChanged(self, *args):
-        print('check diffs')
+        #print('check diffs')
         differences = self.mMetadataModel.differences()
         if len(differences) > 0:
             self.buttonBox.button(QDialogButtonBox.Reset).setEnabled(True)
@@ -927,20 +927,25 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         gdal.DontUseExceptions()
         ogr.DontUseExceptions()
         for src in listOfSourceUris:
-            if isinstance(src, str) and ( \
-                isinstance(gdal.Open(src), gdal.Dataset) or \
-                isinstance(ogr.Open(src), ogr.DataSource)):
+            if isinstance(src, str):
+                guess = guessDataProvider(src)
+                if guess in ['ogr','gdal']:
                     uriList.append(src)
             elif isinstance(src, QgsVectorLayer) and src.providerType() == 'ogr':
                 uriList.append(src.source())
+
             elif isinstance(src, QgsRasterLayer) and src.providerType() == 'gdal':
                 uriList.append(src.source())
+
             elif isinstance(src, gdal.Dataset) and len(src.GetSubDatasets()) == 0:
                 uriList.append(src.GetFileList()[0])
+
             elif isinstance(src, ogr.DataSource):
+                raise NotImplementedError()
                 uriList.append(ogr)
+
             else:
-                print('Datasource not supported for medata data editing: {}'.format(src))
+                print('Datasource not supported for medata editing: {}'.format(src), file=sys.stderr)
         if b1:
             gdal.UseExceptions()
         if b2:

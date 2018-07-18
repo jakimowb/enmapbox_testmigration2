@@ -71,7 +71,9 @@ class MetaDataEditorApp(EnMAPBoxApplication):
         appMenu = self.enmapbox.menu('Tools')
 
         a = appMenu.addAction(APP_NAME)
+
         assert isinstance(a, QAction)
+
         a.triggered.connect(self.startGUI)
 
         return None

@@ -3,6 +3,7 @@ import os, re, io, tempfile
 
 from osgeo import gdal
 import numpy as np
+import unittest
 from unittest import TestCase
 from reclassifyapp.reclassify import *
 from enmapbox.gui.classificationscheme import ClassificationScheme
@@ -70,7 +71,7 @@ class TestReclassify(TestCase):
         csSrc = ClassificationScheme.fromRasterImage(dsSrc)
         LUT = {0:0, 1:1, 2:1}
 
-        dsDst = reclassify(dsSrc, '', LUT, drvDst='MEM', dstClassScheme=csDst)
+        dsDst = reclassify(dsSrc, '', csDst, LUT, drvDst='MEM')
         csDst2 = ClassificationScheme.fromRasterImage(dsDst)
         self.assertIsInstance(csDst2, ClassificationScheme)
         self.assertEqual(csDst,csDst2 )
@@ -103,3 +104,6 @@ class TestReclassify(TestCase):
         self.assertEqual(cs, cs2)
         self.assertEqual(cs, cs3)
 
+if __name__ == "__main__":
+
+    unittest.main()

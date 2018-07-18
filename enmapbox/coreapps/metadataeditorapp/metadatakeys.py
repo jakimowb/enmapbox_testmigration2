@@ -556,7 +556,7 @@ class MDKeyClassification(MDKeyAbstract):
 
     def __init__(self, obj):
         super(MDKeyClassification, self).__init__(obj, 'Classification')
-        print(self.mValue)
+
 
     def setValue(self, value):
         assert value is None or isinstance(value, ClassificationScheme)

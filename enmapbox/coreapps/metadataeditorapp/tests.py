@@ -260,7 +260,7 @@ class TestMDMetadataKeys(unittest.TestCase):
         d.addSources(sources)
         d.addSources(self.createNotSupportedSources())
         self.assertTrue(len(d.mSourceModel) == len(sources))
-        QGSAPP.exec_()
+
 if __name__ == "__main__":
 
     unittest.main()
