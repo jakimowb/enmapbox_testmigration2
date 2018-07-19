@@ -264,6 +264,7 @@ class ApplicationRegistry(QObject):
 
 
                 appPkgName = os.path.basename(appPackagePath)
+                appPkgRoot = os.path.dirname(appPackagePath)
                 pkgFile = os.path.join(appPackagePath, '__init__.py')
 
 
@@ -272,8 +273,8 @@ class ApplicationRegistry(QObject):
                 if not os.path.isfile(pkgFile):
                     raise Exception('File does not exist: "{}"'.format(pkgFile))
 
-                if not appPackagePath in sys.path:
-                    site.addsitedir(appPackagePath)
+                if not appPkgRoot in sys.path:
+                    site.addsitedir(appPkgRoot)
 
                 appModule = __import__(appPkgName)
 

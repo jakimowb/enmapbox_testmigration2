@@ -93,9 +93,6 @@ def enmapboxApplicationFactory(enmapBox):
     :param enmapBox: the EnMAP-Box instance.
     :return: EnMAPBoxApplication | [list-of-EnMAPBoxApplications]
     """
-
-    from exampleapp.enmapboxintegration import ExampleEnMAPBoxApp
-
     # returns a list of EnMAP-Box Applications. Usually only one is returned,
     # but you might provide as many as you like.
     return [MetaDataEditorApp(enmapBox)]
