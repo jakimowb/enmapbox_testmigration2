@@ -36,9 +36,23 @@ class testClassUtils(unittest.TestCase):
         self.w.show()
         self.menuBar = self.w.menuBar()
         self.menuA = self.menuBar.addMenu('Menu A')
+        self.wmsUri = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
+        self.wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
 
     def tearDown(self):
         self.w.close()
+
+
+    def test_loadformClass(self):
+        #from enmapbox import EnMAPBox
+        #EB = EnMAPBox()
+        #import qgisresources.images
+        #qgisresources.images.qInitResources()
+        pathUi = r'C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\coreapps\enmapboxapplications\imagemathapp\ui\main.ui'
+        self.assertTrue(os.path.isfile(pathUi))
+        t = loadUIFormClass(pathUi)
+
+        s = ""
 
     def test_QgisMockup(self):
 
@@ -67,6 +81,16 @@ class testClassUtils(unittest.TestCase):
         self.assertIsInstance(ds1, gdal.Dataset)
         ds2 = gdalDataset(ds1)
         self.assertEqual(ds1, ds2)
+
+
+    def test_bandNames(self):
+
+        validSources = [QgsRasterLayer(self.wmsUri,'', 'wms'),enmap, QgsRasterLayer(enmap), gdal.Open(enmap)]
+
+        for src in validSources:
+            names = displayBandNames(src, leadingBandNumber=True)
+            self.assertIsInstance(names, list, msg='Unable to derive band names from {}'.format(src))
+            self.assertTrue(len(names) > 0)
 
 
     def test_coordinateTransformations(self):
