@@ -686,7 +686,7 @@ FORM_CLASSES = dict()
 
 
 
-def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
+def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQGISRessourceFileReferences=True):
     """
     Loads Qt UI files (*.ui) while taking care on QgsCustomWidgets.
     Uses PyQt4.uic.loadUiType (see http://pyqt.sourceforge.net/Docs/PyQt4/designer.html#the-uic-module)
@@ -708,8 +708,37 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
         #to mess up the *.ui xml
 
         f = open(pathUi, 'r')
-        txt = ''.join(f.readlines())
+        txt = f.read()
         f.close()
+
+        dirUi = os.path.dirname(pathUi)
+
+        locations = []
+
+        for m in re.findall(r'(<include location="(.*\.qrc)"/>)', txt):
+            locations.append(m)
+
+        removed = []
+        for t in locations:
+            line, path = t
+            if not os.path.isabs(path):
+                p = os.path.join(dirUi, path)
+            else:
+                p = path
+
+            if not os.path.isfile(p):
+                removed.append(t)
+                txt = txt.replace(line, '')
+
+        if len(removed) > 0:
+            print('None-existing resource file(s) in: {}'.format(pathUi), file=sys.stderr)
+            for t in removed:
+                line, path = t
+                print('\t{}'.format(line), file=sys.stderr)
+
+        #:/images/themes/default/console/iconRestoreTabsConsole.svg
+        #resource="../../../../../QGIS-master/images/images.qrc"
+        # <include location="../../../../../QGIS-master/images/images.qrc"/>
         doc.setContent(txt)
 
         # Replace *.h file references in <customwidget> with <class>Qgs...</class>, e.g.
@@ -724,13 +753,25 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
                 cHeader = child.firstChildElement('header').firstChild()
                 cHeader.setNodeValue('qgis.gui')
 
+
         #collect resource file locations
-        elem = doc.elementsByTagName('include')
-        qrcPathes = []
-        for child in [elem.item(i) for i in range(elem.count())]:
-            path = child.attributes().item(0).nodeValue()
-            if path.endswith('.qrc'):
-                qrcPathes.append(path)
+        elems = doc.elementsByTagName('include')
+        qrcPaths = []
+        for i in range(elems.count()):
+            node = elems.item(i).toElement()
+            lpath = node.attribute('location')
+            if len(lpath) > 0 and lpath.endswith('.qrc'):
+                p = lpath
+                if not os.path.isabs(lpath):
+                    p = os.path.join(dirUi, lpath)
+                else:
+                    p = lpath
+                qrcPaths.append(p)
+        #for child in [elem.item(i) for i in range(elem.count())]:
+        #    path = child.attributes().item(0).nodeValue()
+        #    if path.endswith('.qrc'):
+        #        qrcPathes.append(path)
+
 
 
 
@@ -743,7 +784,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
         #make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)
         tmpDirs = []
-        for qrcPath in qrcPathes:
+        for qrcPath in qrcPaths:
             d = os.path.abspath(os.path.join(baseDir, qrcPath))
             d = os.path.dirname(d)
             if d not in sys.path:
@@ -895,6 +936,59 @@ def convertMetricUnit(value, u1, u2):
     e2 = METRIC_EXPONENTS[u2]
 
     return value * 10 ** (e1 - e2)
+
+
+def displayBandNames(rasterSource, bands=None, leadingBandNumber=True):
+    """
+    Returns a list of readable band names from a raster source.
+    Will use "Band 1"  ff no band name is defined.
+    :param rasterSource: QgsRasterLayer | gdal.DataSource | str
+    :param bands:
+    :return:
+    """
+
+    if isinstance(rasterSource, str):
+        return displayBandNames(QgsRasterLayer(rasterSource), bands=bands, leadingBandNumber=leadingBandNumber)
+    if isinstance(rasterSource, QgsRasterLayer):
+        if not rasterSource.isValid():
+            return None
+        else:
+            return displayBandNames(rasterSource.dataProvider(), bands=bands, leadingBandNumber=leadingBandNumber)
+    if isinstance(rasterSource, gdal.Dataset):
+        #use gdal.Band.GetDescription() for band name
+        results = []
+        if bands is None:
+            bands = range(1, rasterSource.RasterCount + 1)
+        for band in bands:
+            b = rasterSource.GetRasterBand(band)
+            name = b.GetDescription()
+            if len(name) == 0:
+                name = 'Band {}'.format(band)
+            if leadingBandNumber:
+                name = '{}:{}'.format(band, name)
+            results.append(name)
+        return results
+    if isinstance(rasterSource, QgsRasterDataProvider):
+        if rasterSource.name() == 'gdal':
+            ds = gdal.Open(rasterSource.dataSourceUri())
+            return displayBandNames(ds, bands=bands, leadingBandNumber=leadingBandNumber)
+        else:
+            #in case of WMS and other data providers use QgsRasterRendererWidget::displayBandName
+            results = []
+            if bands is None:
+                bands = range(1, rasterSource.bandCount() + 1)
+            for band in bands:
+                name = rasterSource.generateBandName(band)
+                colorInterp ='{}'.format(rasterSource.colorInterpretationName(band))
+                if colorInterp != 'Undefined':
+                    name += '({})'.format(colorInterp)
+                if leadingBandNumber:
+                    name = '{}:{}'.format(band, name)
+                results.append(name)
+
+            return results
+
+    return None
 
 
 def defaultBands(dataset):

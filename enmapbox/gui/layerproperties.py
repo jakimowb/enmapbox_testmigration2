@@ -169,39 +169,6 @@ class RendererWidgetModifications(object):
             raise NotImplementedError()
 
 
-def displayBandNames(provider_or_dataset, bands=None):
-    results = None
-    if isinstance(provider_or_dataset, QgsRasterLayer):
-        return displayBandNames(provider_or_dataset.dataProvider())
-    elif isinstance(provider_or_dataset, QgsRasterDataProvider):
-        if provider_or_dataset.name() == 'gdal':
-            ds = gdal.Open(provider_or_dataset.dataSourceUri())
-            results = displayBandNames(ds, bands=bands)
-        else:
-            # same as in QgsRasterRendererWidget::displayBandName
-            results = []
-            if bands is None:
-                bands = range(1, provider_or_dataset.bandCount() + 1)
-            for band in bands:
-                result = provider_or_dataset.generateBandName(band)
-                colorInterp ='{}'.format(provider_or_dataset.colorInterpretationName(band))
-                if colorInterp != 'Undefined':
-                    result += '({})'.format(colorInterp)
-                results.append(result)
-
-    elif isinstance(provider_or_dataset, gdal.Dataset):
-        results = []
-        if bands is None:
-            bands = range(1, provider_or_dataset.RasterCount+1)
-        for band in bands:
-            b = provider_or_dataset.GetRasterBand(band)
-            descr = b.GetDescription()
-            if len(descr) == 0:
-                descr = 'Band {}'.format(band)
-            results.append(descr)
-
-    return results
-
 class SingleBandGrayRendererWidget(QgsSingleBandGrayRendererWidget, RendererWidgetModifications):
     @staticmethod
     def create(layer, extent):
