@@ -71,7 +71,7 @@ The EnMAP-Box requires the following python packages in order to run:
 * `setuptools <https://pypi.python.org/pypi/setuptools>`_
 * `matplotlib <https://matplotlib.org/>`_
 * `pyqtgraph <https://pypi.python.org/pypi/pip>`_
-* `scikit-learn <https://pypi.python.org/pypi/pip>`_
+* `scikit-learn <http://scikit-learn.org/stable/index.html>`_
 * `astropy <http://docs.astropy.org>`_
 
 Most of them do not come with the default QGIS installation. Follow the platform-specific installation instructions
@@ -201,11 +201,13 @@ Install or update the EnMAP-Box
 
 1. Download the latest EnMAP-Box from |download_link2|.
 2. Start QGIS 3 and open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
-3. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and start *Install plugin*. This may take a few
-   moments.
+3. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and start *Install plugin*.
 
    .. image:: ../img/installfromzip.png
-   |
+
+   .. caution::
+      This may take a few moments!
+
 
 4. Start the EnMAP-Box via the |icon| icon.
 
