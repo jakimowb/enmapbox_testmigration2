@@ -88,6 +88,10 @@ def build():
 
     mkDir(DIR_DEPLOY)
 
+    if os.path.isdir(dirPlugin):
+        print('Remove old build folder...')
+        shutil.rmtree(dirPlugin, ignore_errors=True)
+
     if True:  # update metadata
         pathMetadata = jp(DIR_REPO, 'metadata.txt')
         # update version number in metadata

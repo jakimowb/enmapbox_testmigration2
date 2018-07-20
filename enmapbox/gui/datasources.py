@@ -690,7 +690,9 @@ class DataSourceSpectralLibrary(DataSourceSpatial):
 class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None):
+
         super(DataSourceRaster, self).__init__(uri, name, icon, providerKey)
+
         self.nSamples = -1
         self.nBands = -1
         self.nLines = -1
@@ -703,6 +705,8 @@ class DataSourceRaster(DataSourceSpatial):
         self.mBandNames = []
         self.updateMetadata()
 
+        if name is None and providerKey == 'wms':
+            self.setName('WMS:'+self.name())
 
     def modificationTime(self)->QDateTime:
 
@@ -831,6 +835,9 @@ class DataSourceVector(DataSourceSpatial):
         super(DataSourceVector, self).__init__(uri, name, icon, providerKey)
         self.mGeomType = None
         self.updateMetadata()
+
+        if name is None and providerKey == 'WFS':
+            self.setName('WFS:'+self.name())
 
     def geometryType(self)->QgsWkbTypes:
         """
