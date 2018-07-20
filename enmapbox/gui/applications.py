@@ -268,7 +268,7 @@ class ApplicationRegistry(QObject):
                 pkgFile = os.path.join(appPackagePath, '__init__.py')
 
 
-                print('import EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
+                print('Load EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
 
                 if not os.path.isfile(pkgFile):
                     raise Exception('File does not exist: "{}"'.format(pkgFile))
