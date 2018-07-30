@@ -1096,7 +1096,7 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
 
         # layers to hide?
         for layer in treeNodeLayers:
-            if layer not in canvasLayers:
+            if isinstance(layer, QgsMapLayer) and layer not in canvasLayers:
                 lnode = self.rootGroup().findLayer(layer.id())
                 if isinstance(lnode, QgsLayerTreeLayer):
                     lnode.setItemVisibilityChecked(Qt.Unchecked)
