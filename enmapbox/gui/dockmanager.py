@@ -233,8 +233,8 @@ class MapDockTreeNode(DockTreeNode):
         canvas = self.dock.mapCanvas()
         assert isinstance(canvas, MapCanvas)
         self.mTreeCanvasBridge = MapCanvasBridge(self.layerNode, canvas)
-
-
+        #self.mTreeCanvasBridge = QgsLayerTreeMapCanvasBridge(self.layerNode, canvas)
+        #canvas.sigLayersAdded.connect(self.)
         # self.layerNode = TreeNode(self, 'Layers')
 
         self.crsNode = CRSTreeNode(self, canvas.mapSettings().destinationCrs())
@@ -1073,7 +1073,7 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
         super(MapCanvasBridge, self).__init__(root, canvas)
 
         self.mapCanvas().layersChanged.connect(self.setLayerTreeLayers)
-        s = ""
+
 
     def setLayerTreeLayers(self):
 
@@ -1093,6 +1093,13 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
             # set canvas on visible
             lNode = self.rootGroup().findLayer(layer.id())
             lNode.setItemVisibilityChecked(Qt.Checked)
+
+        # layers to hide?
+        for layer in treeNodeLayers:
+            if layer not in canvasLayers:
+                lnode = self.rootGroup().findLayer(layer.id())
+                if isinstance(lnode, QgsLayerTreeLayer):
+                    lnode.setItemVisibilityChecked(Qt.Unchecked)
 
 
 
