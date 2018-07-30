@@ -113,6 +113,8 @@ class EnMAPBoxPlugin(object):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         self.enmapBox = None
         action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)
+        self.iface.addPluginToRasterMenu('EnMAP-Box', action)
+
         action.triggered.connect(self.run)
         self.toolbarActions.append(action)
         for action in self.toolbarActions:
