@@ -203,7 +203,7 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
 
     def contextMenu(self):
         """
-        implement this to return a QMenu with context menue properties for this dock.
+        implement this to return a QMenu with context menu properties for this dock.
         :return: None or QMenu
         """
 
@@ -216,6 +216,8 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
             a = menu.addAction('Show Dock')
             a.triggered.connect(lambda : self.setVisible(False))
 
+        a = menu.addAction('Close Dock')
+        a.triggered.connect(lambda : self.close())
         return menu
 
     sigVisibilityChanged = pyqtSignal(bool)
