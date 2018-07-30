@@ -43,7 +43,6 @@ except Exception as ex:
     messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
     HUBFLOW = False
 
-
 class DataSourceManager(QObject):
     _testInstance = None
 
