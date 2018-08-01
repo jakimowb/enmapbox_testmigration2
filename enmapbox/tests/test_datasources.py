@@ -65,6 +65,53 @@ class standardDataSources(unittest.TestCase):
                 QgsRasterLayer(enmap), QgsVectorLayer(landcover), SpectralLibrary.readFrom(speclib)
                 ]
 
+
+    def test_hubflowsources(self):
+
+        from hubflow.testdata import enmapClassification, classDefinitionL1, vector, enmap
+        from hubflow.core import FlowObject
+        hubFlowObjects = [vector(), enmap(), enmapClassification(), classDefinitionL1]
+        #hubFlowObjects = [vector()]
+        #hubFlowObjects = [enmapClassification()]
+        for obj in hubFlowObjects:
+            isObj, o = DataSourceFactory.isHubFlowObj(obj)
+            self.assertTrue(isObj)
+            self.assertIsInstance(o, FlowObject)
+
+            ds = DataSourceFactory.Factory(obj)
+            self.assertIsInstance(ds, list)
+            self.assertIsInstance(ds[0], HubFlowDataSource)
+
+        for o in hubFlowObjects:
+            node = HubFlowObjectTreeNode(None, None)
+            self.assertIsInstance(node, DataSourceTreeNode)
+            ds = DataSourceFactory.Factory(o)[0]
+            assert isinstance(ds, HubFlowDataSource)
+
+            n = node.fetchInternals(ds.flowObject())
+            self.assertIsInstance(n, TreeNode)
+            self.assertTrue(len(n.children()) > 0)
+            node.connectDataSource(ds)
+            self.assertIsInstance(node.children(), list)
+            self.assertTrue(len(node.children()) > 0)
+            s = ""
+
+        DSM = DataSourceManager()
+        TM = DataSourceManagerTreeModel(None, DSM)
+
+        TV = QTreeView()
+        TV.header().setResizeMode(QHeaderView.ResizeToContents)
+        TV.setModel(TM)
+        TV.show()
+        TV.resize(QSize(400,250))
+
+        DSM.addSources(hubFlowObjects)
+        self.assertTrue(len(DSM) == len(hubFlowObjects))
+
+        QGIS_APP.exec_()
+
+
+
     def test_testSources(self):
 
         for l in self.createTestSourceLayers():

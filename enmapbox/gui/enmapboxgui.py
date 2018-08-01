@@ -362,7 +362,8 @@ class EnMAPBox(QgisInterface, QObject):
 
         import webbrowser
         self.ui.actionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.CREATE_ISSUE))
-        self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.HOMEPAGE))
+        self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
+        self.ui.actionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
 
     sigDockAdded = pyqtSignal(Dock)
 

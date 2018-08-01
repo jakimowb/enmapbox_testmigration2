@@ -26,7 +26,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from enmapbox.gui.utils import *
 from osgeo import gdal, ogr
-from enmapbox.gui.treeviews import TreeNode, CRSTreeNode, TreeView, TreeModel, CheckableTreeNode, TreeViewMenuProvider, ClassificationNode
+from enmapbox.gui.treeviews import TreeNode, CRSTreeNode, TreeView, TreeModel, CheckableTreeNode, TreeViewMenuProvider, ClassificationNode, ColorTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, MDF_URILIST, MDF_SPECTRALLIBRARY
@@ -42,7 +42,6 @@ try:
 except Exception as ex:
     messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
     HUBFLOW = False
-
 
 class DataSourceManager(QObject):
     _testInstance = None
@@ -376,7 +375,7 @@ class DataSourceSizesTreeNode(TreeNode):
 
 class DataSourceTreeNode(TreeNode, KeepRefs):
 
-    def __init__(self, parent, dataSource):
+    def __init__(self, parent:TreeNode, dataSource:DataSource):
 
         self.dataSource = None
         self.nodeSize = None
@@ -400,9 +399,10 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         uri = self.dataSource.uri()
         if os.path.isfile(uri):
             self.mSrcSize = os.path.getsize(self.dataSource.uri())
+            self.nodeSize = TreeNode(self, 'File size', value=fileSizeString(self.mSrcSize))
         else:
             self.mSrcSize = -1
-        self.nodeSize = TreeNode(self, 'Size', value=fileSizeString(self.mSrcSize))
+
 
     def disconnectDataSource(self):
         self.dataSource = None
@@ -490,7 +490,7 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
 
         geomType = ['Point','Line','Polygon','Unknown','Null'][lyr.geometryType()]
         wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
-        self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
+        #self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
         self.nodeFeatures = TreeNode(self, 'Features',
                                    value='{}'.format(nFeat))
         TreeNode(self.nodeFeatures, 'Geometry Type', value=geomType)
@@ -653,69 +653,119 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         super(HubFlowObjectTreeNode, self).connectDataSource(processingTypeDataSource)
         assert isinstance(self.dataSource, HubFlowDataSource)
 
-        self.flowObject = self.dataSource.flowObject()
 
-        objects = set()
+        if isinstance(self.dataSource.flowObject(), hubflow.core.FlowObject):
 
-        def fetchInternals(parent, obj, objects):
-            assert isinstance(parent, TreeNode)
-            if id(obj) in objects:
-                return
-            else:
-                objects.add(id(obj))
+            moduleName = self.dataSource.flowObject().__class__.__module__
+            className = self.dataSource.flowObject().__class__.__name__
+            #self.setValue('{}.{}'.format(moduleName, className))
+            self.setName(className)
+            self.setTooltip('{}.{}'.format(moduleName, className))
+            self.fetchInternals(self.dataSource.flowObject(), parentTreeNode=self)
 
+    @staticmethod
+    def fetchInternals(obj:object, parentTreeNode:TreeNode=None, fetchedObjectIds:set=None)->TreeNode:
+        """
+        Represents a python object as TreeNode structure.
+        :param obj: any type of python object
+                    lists, sets and dictionaries will be shown as subtree
+                    basic builtin objects (float, int, str, numpy.arrays) are show as str(obj) value
+        :param parentTreeNode: the parent Node. Need to have a name
+        :param fetchedObjectIds: reminder of already used objects. necessary to avoid circular references
+        :return: TreeNode
+        """
+        if parentTreeNode is None:
+            parentTreeNode = TreeNode(None, None)
+        assert isinstance(parentTreeNode, TreeNode)
+
+        if fetchedObjectIds is None:
+            fetchedObjectIds = set()
+
+        assert isinstance(fetchedObjectIds, set)
+        if id(obj) in fetchedObjectIds:
+            # do not return any node for objects already described.
+            # this is necessary to avoid circular references
+            pName = parentTreeNode.name()
+            parentTreeNode.setValue(str(obj))
+            return parentTreeNode
+
+
+        fetchedObjectIds.add(id(obj))
+
+        fetch = HubFlowObjectTreeNode.fetchInternals
+
+
+        if isinstance(obj, hubflow.core.FlowObject):
+            # for all FlowObjects
+            moduleName = obj.__class__.__module__
+            className = obj.__class__.__name__
+
+            parentTreeNode.setValue('{}.{}'.format(moduleName, className))
+            #ClassDefinitions
             if isinstance(obj, hubflow.core.ClassDefinition):
                 from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
                 csi = ClassificationScheme()
-                colors = np.asarray(obj.lookup).reshape((obj.classes,3))
-                for label in range(obj.classes):
-                    ci = ClassInfo(label=label, name=obj.names[label], color=QColor(*colors[label,:]))
+
+                for label in range(obj.classes()):
+                    ci = ClassInfo(label=label, name=obj.name(label+1), color=QColor(obj.color(label+1)))
                     csi.addClass(ci)
-                ClassificationNode(parent, csi, name='ClassDefinition')
+                ClassificationNode(parentTreeNode, csi, name='Classes')
 
-            elif isinstance(obj, dict):
-                for k, i in obj.items():
-                    name = str(k)
-                    if name.startswith('_'):
-                        continue
-                    node = TreeNode(parent, name)
-                    if isinstance(i, list) or \
-                        isinstance(i, set):
-                        node.setValue(str(len(i)))
-                        fetchInternals(node, i, objects)
-                    elif isinstance(i, np.ndarray):
-                        text = '{} {} {}...'.format(i.shape, i.dtype, re.split('[\n]', str(i))[0])
-                        node.setValue(text)
-                    else:
-                        fetchInternals(node, i, objects)
+            fetch(obj.__dict__, parentTreeNode=parentTreeNode, fetchedObjectIds=fetchedObjectIds)
 
-            elif isinstance(obj, list) or isinstance(obj, set):
-                for i, item in enumerate(obj):
-                    node = TreeNode(parent, str(i))
-                    if isinstance(item, hubflow.core.FlowObject) or \
-                       isinstance(item, dict) or \
-                       isinstance(item, list):
-                        fetchInternals(node, item, objects)
-                    else:
-                        text = str(item)
-                        node.setValue(text.replace('\n',' '))
-                    if i > 100:
-                        break
-            elif isinstance(obj, hubflow.core.FlowObject):
-                parent.setName(obj.__class__.__name__)
-                fetchInternals(parent, obj.__dict__, objects)
+
+        elif isinstance(obj, dict):
+            """
+            Show dictionary
+            """
+            s = ""
+            for key in sorted(obj.keys()):
+                value = obj[key]
+                name = str(key)
+                if name.startswith('__'):
+                    continue
+
+
+                if re.search('_(vector|raster).*', name):
+                    s = ""
+                node = TreeNode(parentTreeNode, name)
+                fetch(value, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
+
+        elif isinstance(obj, np.ndarray):
+            text = '{} {} {}...'.format(obj.shape, obj.dtype, re.split('[\n]', str(obj))[0])
+            parentTreeNode.setValue(text)
+
+        elif isinstance(obj, list) or isinstance(obj, set):
+            """Show enumerations"""
+
+            for i, item in enumerate(obj):
+                node = TreeNode(parentTreeNode, str(i+1))
+                fetch(item, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
+                if i > 100:
+                    node = TreeNode(parentTreeNode, '...')
+                    break
+        elif isinstance(obj, QColor):
+            ColorTreeNode(parentTreeNode, obj)
+
+        elif isinstance(obj, object):
+            #a __class__
+            moduleName = obj.__class__.__module__
+            className = obj.__class__.__name__
+            if moduleName == 'builtins':
+                parentTreeNode.setValue(str(obj))
+
+            elif getattr(obj, '__dict__', None):
+                parentTreeNode.setValue('{}.{}'.format(moduleName, className))
+                fetch(obj.__dict__, parentTreeNode)
             else:
-                parent.setValue(str(obj))
+                s =""
 
 
-        if isinstance(self.flowObject, hubflow.core.FlowObject):
+        else:
+            #show the object's 'natural' printout as node value
+            parentTreeNode.setValue(str(obj))
 
-            self.setValue(self.flowObject.__class__.__name__)
-            #todo: type specific icon
-
-            fetchInternals(self, self.flowObject.__dict__, objects)
-
-
+        return parentTreeNode
 
 
     def __addInfo(self, obj):
@@ -795,7 +845,7 @@ LUT_DATASOURCTYPES[DataSource] = ('Other sources',QIcon(':/trolltech/styles/comm
 
 class DataSourceManagerTreeModel(TreeModel):
 
-    def __init__(self, parent, dataSourceManager):
+    def __init__(self, parent, dataSourceManager:DataSourceManager):
 
         super(DataSourceManagerTreeModel, self).__init__(parent)
         assert isinstance(dataSourceManager, DataSourceManager)

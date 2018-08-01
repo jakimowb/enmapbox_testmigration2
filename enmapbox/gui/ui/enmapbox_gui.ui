@@ -14,7 +14,7 @@
    <string>EnMAP-Box</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="resources.qrc">
     <normaloff>:/enmapbox/icons/enmapbox.svg</normaloff>:/enmapbox/icons/enmapbox.svg</iconset>
   </property>
   <property name="dockOptions">
@@ -112,6 +112,7 @@
      <string>Help</string>
     </property>
     <addaction name="actionAbout"/>
+    <addaction name="actionOpenOnlineDocumentation"/>
     <addaction name="actionOpenIssueReportPage"/>
     <addaction name="actionOpenProjectPage"/>
    </widget>
@@ -465,7 +466,7 @@
   </action>
   <action name="actionOpenIssueReportPage">
    <property name="text">
-    <string>Report Issue</string>
+    <string>Report Issues</string>
    </property>
    <property name="toolTip">
     <string>Report an issue to the EnMAP-Box project (feature requests, bugs, ...)</string>
@@ -473,7 +474,7 @@
   </action>
   <action name="actionOpenProjectPage">
    <property name="text">
-    <string>Project Webpage</string>
+    <string>Project Repository</string>
    </property>
   </action>
   <action name="actionMapLinking">
@@ -486,6 +487,11 @@
    </property>
    <property name="toolTip">
     <string>Opens a dialog to specify the linking between different maps</string>
+   </property>
+  </action>
+  <action name="actionOpenOnlineDocumentation">
+   <property name="text">
+    <string>Online Documentation</string>
    </property>
   </action>
  </widget>

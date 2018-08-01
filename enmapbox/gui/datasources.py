@@ -199,20 +199,22 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def isHubFlowObj(src)->(str, None):
+    def isHubFlowObj(src)->(bool, object):
         """
-        Returns the source uri if it can be handled as known data source.
+        Returns the source uri if it can be handled as known hubflow data source.
         :param src: any type
-        :return: uri (str, None) | None
+        :return: uri, 'hubflow' | None, None
         """
+        import hubflow.core
+        if isinstance(src, hubflow.core.FlowObject):
+            return True, src
 
         src = DataSourceFactory.srcToString(src)
         if not src is None and os.path.exists(src):
-            import hubflow.core
             obj = hubflow.core.FlowObject.unpickle(src, raiseError=False)
             if isinstance(obj, hubflow.core.FlowObject):
-                return src, None
-        return None, None
+               return True, obj
+        return False, None
 
     @staticmethod
     def fromXML(domElement):
@@ -367,9 +369,9 @@ class DataSourceFactory(object):
         :param kwds:
         :return: HubFlowDataSource
         """
-        uri, pkey = DataSourceFactory.isHubFlowObj(src)
-        if uri:
-            return [HubFlowDataSource(uri, **kwds)]
+        isHubFlow, obj = DataSourceFactory.isHubFlowObj(src)
+        if isHubFlow:
+            return [HubFlowDataSource(obj, **kwds)]
         return []
 
     @staticmethod
@@ -633,30 +635,36 @@ class DataSourceSpatial(DataSource):
         return QDateTime()
 
 
-class HubFlowDataSource(DataSourceFile):
-    def __init__(self, uri, name=None, icon=None):
-        super(HubFlowDataSource, self).__init__(uri, name, icon)
+class HubFlowDataSource(DataSource):
+
+    @staticmethod
+    def createID(obj)->str:
+        import hubflow.core
+        assert isinstance(obj, hubflow.core.FlowObject)
+        attr = getattr(obj, 'filename', None)
+        uri = attr() if callable(attr) else ''
+
+        return 'hubflow:{}:{}:{}'.format(obj.__class__.__name__, id(obj), uri)
+
+    def __init__(self, obj, name=None, icon=None):
+        import hubflow.core
+
+
+
+        id = HubFlowDataSource.createID(obj)
+        super(HubFlowDataSource, self).__init__(id, name, icon)
 
         if not isinstance(icon, QIcon):
             self.mIcon = QIcon(':/enmapbox/icons/alg.svg')
 
+        self.mFlowObj = obj
 
-        self.loadFlowObject()
         s = ""
 
-    def loadFlowObject(self):
-        import hubflow.core
-        self.mFlowObj = hubflow.core.FlowObject.unpickle(self.mUri, raiseError=False)
-
-
     def flowObject(self):
-        import hubflow.core
-        if not isinstance(self.mFlowObj, hubflow.core.FlowObject):
-            self.loadFlowObject()
-        if isinstance(self.mFlowObj, hubflow.core.FlowObject):
-            return self.mFlowObj
-        else:
-            return None
+        return self.mFlowObj
+
+
 
 
 class DataSourceSpectralLibrary(DataSourceSpatial):

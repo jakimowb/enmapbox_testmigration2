@@ -27,10 +27,6 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtXml import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-#from PyQt5.QtCore import *
-#from PyQt5.QtGui import *
-#from PyQt5.QtXml import *
-#from PyQt5.QtXmlPatterns import *
 #import six
 #import xml.etree
 

@@ -115,6 +115,13 @@ def sandboxGUI():
     #from enmapbox.gui.enmapboxgui import EnMAPBox
     from enmapbox import EnMAPBox
     EB = EnMAPBox(None)
+
+    if True:
+        import enmapboxgeoalgorithms.algorithms
+        provider = EB.processingAlgManager.enmapBoxProvider()
+        for alg in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
+            provider.addAlgorithm(alg.createInstance())
+
     desktop = QApplication.desktop()
     fullsize = desktop.screenGeometry()
     scale = 0.9
