@@ -64,6 +64,12 @@ class TreeNode(QgsLayerTree):
             if isinstance(parent, TreeNode):
                 self.sigValueChanged.connect(parent.sigValueChanged)
 
+    def dump(self, *args, **kwargs)->str:
+
+        d = super(TreeNode, self).dump()
+        d += '{}:"{}":"{}"\n'.format(self.__class__.__name__, self.name(), self.value())
+        return d
+
     def xmlTag(self)->str:
         return self.mXmlTag
 
@@ -120,7 +126,6 @@ class TreeNode(QgsLayerTree):
         :return:
         """
         return QMenu()
-
 
     @staticmethod
     def readXml(element):
@@ -195,9 +200,23 @@ class TreeNode(QgsLayerTree):
         return hash(id(self))
 
 
+class ColorTreeNode(TreeNode):
+
+    def __init__(self, parentNode, color:QColor):
+        assert isinstance(color, QColor)
+
+
+        pm = QPixmap(QSize(20, 20))
+        pm.fill(color)
+        icon = QIcon(pm)
+        name = color.name()
+        value = color.getRgbF()
+        super(ColorTreeNode, self).__init__(parentNode, name=name, value=value, icon=icon)
+
 
 class CheckableTreeNode(TreeNode):
-
+    def __init__(self, *args, **kwds):
+        super(CheckableTreeNode, self).__init__(*args, **kwds)
     sigCheckStateChanged = pyqtSignal(Qt.CheckState)
     def __init__(self, *args, **kwds):
         super(CheckableTreeNode, self).__init__(*args, **kwds)
