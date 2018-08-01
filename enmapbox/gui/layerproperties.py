@@ -26,11 +26,11 @@ from osgeo import gdal, ogr
 import numpy as np
 from qgis.gui import *
 from qgis.core import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 
-from enmapbox.gui.utils import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength
+from enmapbox.gui.utils import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames
 from enmapbox.gui.widgets.models import *
 """
 class RasterLayerProperties(QgsOptionsDialogBase):
