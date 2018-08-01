@@ -1,24 +1,17 @@
-from hubdc import HUBDC_VERSION
-from hubflow import HUBFLOW_VERSION
-from hubdc.applier import ApplierControls
-from hubflow.types import *
-from enmapboxtestdata import enmap
-import numpy
-image = Image(enmap)
+#see https://bitbucket.org/hu-geomatics/enmap-box/issues/134/valueerror-found-array-with-0-sample-s
 
-controls = ApplierControls().setReferenceGridByImage(image.filename)
-controls.setNumThreads(None)
+pathClassifier = r'O:\Student_Data\Dierkes\5. Semester\Kretastudie\Bachelor arbeit\Classification\Classification_brandnew\classifier.pkl'
+pathImage = r'O:\Student_Data\Dierkes\5. Semester\Kretastudie\Bachelor arbeit\Classification\Classification_brandnew\phenology_2016_testBJ.vrt'
+pathDst = r'F:\Temp\Henrike\class.tif'
 
-print('hubdc   : ' + HUBDC_VERSION)
-print('hubflow : ' + HUBFLOW_VERSION)
-print('numpy   : ' +numpy.version.version)
 
-i1 = 10
-i2 = 20
-(min1, min2), (max1, max2), (n1, n2) = image.basicStatistics(bandIndicies=[i1, i2])
-m, xedges, yedges = image.scatterMatrix(image2=image, bandIndex=i1, bandIndex2=i2,
-                                        range=[float(min1), float(max1)], \
-                                        range2=[float(min2), float(max2)], bins=10,
-                                        controls=controls)
+import pickle
+import hubflow.core
+from hubflow.core import FlowObject, Classifier, Estimator, Raster, ApplierOutputRaster, Applier
 
-s = ""
+f = open(pathClassifier, 'rb')
+classifier = pickle.load(file=f)
+f.close()
+assert isinstance(classifier, Classifier)
+blockSize=hubflow.core.Size(1024,1024)
+classifier.predict(filename=pathDst, raster=Raster(filename=pathImage), blockSize=blockSize)
