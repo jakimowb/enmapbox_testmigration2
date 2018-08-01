@@ -1132,6 +1132,24 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+
+def qgisAppQgisInterface()->QgisInterface:
+    """
+    Returns the QgisInterface of the QgisApp in case everything was started from within the QGIS Main Application
+    :return: QgisInterface | None in case the qgis.utils.iface points to another QgisInterface (e.g. the EnMAP-Box itself)
+    """
+    try:
+        import qgis.utils
+        if not isinstance(qgis.utils.iface, QgisInterface):
+            return None
+        mainWindow = qgis.utils.iface.mainWindow()
+        if not isinstance(mainWindow, QMainWindow) or mainWindow.objectName() != 'QgisApp':
+            return None
+        return qgis.utils.iface
+    except:
+        return None
+
+
 def getDOMAttributes(elem):
     assert isinstance(elem, QDomElement)
     values = dict()

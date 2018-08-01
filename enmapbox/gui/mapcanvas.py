@@ -21,9 +21,9 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
 from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapMouseEvent
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 
 import numpy as np
 
@@ -847,6 +847,25 @@ class MapCanvas(QgsMapCanvas):
         action.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
         action.triggered.connect(lambda: self.removeAllCanvasLinks())
 
+        qgisApp = qgisAppQgisInterface()
+        b = isinstance(qgisApp, QgisInterface)
+        menu.addSeparator()
+        action = menu.addAction('Use QGIS map center')
+        action.triggered.connect(lambda : self.setCenter(SpatialPoint.fromMapCanvasCenter(qgisApp.mapCanvas())))
+        action.setEnabled(b)
+
+        action = menu.addAction('Set QGIS map center')
+        action.triggered.connect(lambda: qgisApp.mapCanvas().setCenter(self.spatialCenter().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
+        action.setEnabled(b)
+
+        action = menu.addAction('Use QGIS map extent')
+        action.triggered.connect(lambda: self.setExtent(SpatialExtent.fromMapCanvas(qgisApp.mapCanvas())))
+        action.setEnabled(b)
+
+        action = menu.addAction('Set QGIS map extent')
+        action.triggered.connect(lambda: qgisApp.mapCanvas().setExtent(self.spatialExtent().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
+        action.setEnabled(b)
+
         menu.addSeparator()
 
         if self.crosshairIsVisible():
@@ -1063,24 +1082,39 @@ class MapCanvas(QgsMapCanvas):
         #self.sigContextMenuEvent.emit(event)
 
     def setExtent(self, rectangle):
+        """
+        Sets the map extent
+        :param rectangle: QgsRectangle or SpatialExtent (CRS differences will be considered)
+        """
         if isinstance(rectangle, SpatialExtent):
             rectangle = rectangle.toCrs(self.mapSettings().destinationCrs())
             #rectangle = QgsRectangle(rectangle)
         super(MapCanvas, self).setExtent(rectangle)
         self.setRenderFlag(True)
 
-    def spatialExtent(self):
+    def spatialExtent(self)->SpatialExtent:
+        """
+        Returns the map extent as SpatialExtent (extent + CRS)
+        :return: SpatialExtent
+        """
         return SpatialExtent.fromMapCanvas(self)
+
+    def spatialCenter(self)->SpatialPoint:
+        """
+        Returns the map center as SpatialPoint (QgsPointXY + CRS)
+        :return: SpatialPoint
+        """
+        return SpatialPoint.fromMapCanvasCenter(self)
 
     def setLayerSet(self, *arg, **kwds):
         raise Exception('Deprecated: Not supported any more (QGIS 3)')
 
 
-    def createCanvasLink(self, otherCanvas, linkType):
+    def createCanvasLink(self, otherCanvas:QgsMapCanvas, linkType):
         assert isinstance(otherCanvas, MapCanvas)
         return self.addCanvasLink(CanvasLink(self, otherCanvas, linkType))
 
-    def addCanvasLink(self, canvasLink):
+    def addCanvasLink(self, canvasLink:CanvasLink):
         assert isinstance(canvasLink, CanvasLink)
         toRemove = [cLink for cLink in self.canvasLinks if cLink.isSameCanvasPair(canvasLink)]
         for cLink in toRemove:
