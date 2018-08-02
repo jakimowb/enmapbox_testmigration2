@@ -118,6 +118,13 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
         QApplication.processEvents()
 
+class EnMAPBoxQGISBridge(object):
+
+    def __init__(self, enmapBox, qgisIface):
+        assert isinstance(enmapbox, EnMAPBox)
+        assert isinstance(qgisIface, QgisInterface)
+
+
 
 class EnMAPBox(QgisInterface, QObject):
 
@@ -127,7 +134,6 @@ class EnMAPBox(QgisInterface, QObject):
         return EnMAPBox._instance
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
-
     def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None
         # necessary to make the resource file available
@@ -143,9 +149,6 @@ class EnMAPBox(QgisInterface, QObject):
 
         splash.showMessage('Load Interfaces')
 
-
-
-
         # register loggers etc.
         splash.showMessage('Load UI')
         self.ui = EnMAPBoxUI()
@@ -153,10 +156,12 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.initQgisInterface()
         self.iface = iface
+        self.mMapLayerStore = QgsMapLayerStore()
         if not isinstance(iface, QgisInterface):
             self.initEnMAPBoxAsIFACE()
-
         self.initPanels()
+
+
 
         from enmapbox.gui import DEBUG
         if not DEBUG:
@@ -173,13 +178,31 @@ class EnMAPBox(QgisInterface, QObject):
         self.mMapTools = []
         self.mMapToolBlock = False
 
-        # define managers (the center of all actions and all evil)
+        # define managers
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager, installQPFExtensions, removeQPFExtensions
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
 
         self.dataSourceManager = DataSourceManager()
+
+        if qgisAppQgisInterface():
+            #interactions between EnMAP-Box and QGIS layer stores
+
+            #register spatial data sources at least once in QGIS
+            def onSpatialDataSourceAdded(dataSource:DataSource):
+                #todo: compare with existing QGIS layer sources and avoid redundancy
+                if isinstance(dataSource, DataSourceSpatial):
+                    lyr = dataSource.createUnregisteredMapLayer()
+                    QgsProject.instance().addMapLayer(lyr, False)
+
+            def onQgisAppLayersAdded(layers):
+
+                #todo: should be add QGIS sources automatically?
+                s = ""
+
+            self.dataSourceManager.sigDataSourceAdded.connect(onSpatialDataSourceAdded)
+            QgsProject.instance().layersAdded.connect(onQgisAppLayersAdded)
 
         self.dockManager = DockManager()
         self.dockManager.connectDataSourceManager(self.dataSourceManager)
@@ -243,6 +266,13 @@ class EnMAPBox(QgisInterface, QObject):
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
+
+    def mapLayerStore(self)->QgsMapLayerStore:
+        """
+        Returns the EnMAP-Box internal QgsMapLayerStore
+        :return: QgsMapLayerStore
+        """
+        return self.mMapLayerStore
 
     def initPanels(self):
         # add & register panels
@@ -333,7 +363,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def initActions(self):
         # link action to managers
-        self.ui.actionAddDataSource.triggered.connect(self.onAddDataSource)
+        self.ui.actionAddDataSource.triggered.connect(lambda : self.dataSourceManager.addDataSourceByDialog())
         self.ui.actionAddMapView.triggered.connect(lambda: self.dockManager.createDock('MAP'))
         self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
         self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
@@ -546,22 +576,6 @@ class EnMAPBox(QgisInterface, QObject):
             dock.addLayers(lyrs)
             s =""
 
-    def onAddDataSource(self):
-        lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
-
-        if lastDataSourceDir is None:
-            lastDataSourceDir = DIR_TESTDATA
-
-        if not os.path.exists(lastDataSourceDir):
-            lastDataSourceDir = None
-
-        uris = QFileDialog.getOpenFileNames(self.ui, "Open a data source(s)", lastDataSourceDir)
-
-        for uri in uris:
-            self.addSource(uri)
-
-        if len(uris) > 0:
-            SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
 
     sigDataSourceAdded = pyqtSignal(str)
     sigSpectralLibraryAdded = pyqtSignal(str)

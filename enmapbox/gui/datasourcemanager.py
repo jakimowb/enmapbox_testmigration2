@@ -76,8 +76,6 @@ class DataSourceManager(QObject):
         # QgsProject.instance().layersAdded.connect(self.updateFromQgsProject)
         # noinspection PyArgumentList
 
-        QgsProject.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
-        QgsProject.instance().removeAll.connect(lambda: self.removeSources(self.sources()))
         try:
             from hubflow import signals
             signals.sigFileCreated.connect(self.addSource)
@@ -253,6 +251,51 @@ class DataSourceManager(QObject):
                 self.sigDataSourceAdded.emit(ds)
 
         return toAdd
+
+    def addDataSourceByDialog(self):
+        """
+        Shows a fileOpen dialog to select new data sources
+        :return:
+        """
+
+        from enmapbox.gui.settings import qtSettingsObj
+        SETTINGS = qtSettingsObj()
+        lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
+
+        if lastDataSourceDir is None:
+            lastDataSourceDir = DIR_TESTDATA
+
+        if not os.path.exists(lastDataSourceDir):
+            lastDataSourceDir = None
+
+        uris = QFileDialog.getOpenFileNames(self.ui, "Open a data source(s)", lastDataSourceDir)
+        self.addSources(uris)
+
+        if len(uris) > 0:
+            SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
+
+    def importSourcesFromQGISRegistry(self):
+        """
+        Adds datasources known to QGIS which do not exist here
+        """
+        p = QgsProject.instance()
+        assert isinstance(p, QgsProject)
+        layers = list(p.mapLayers().values())
+
+        self.addSources(layers)
+
+    def exportSourcesToQGISRegistry(self, showLayers:bool=False):
+        """
+        Adds spatial datasources to QGIIS
+        :param showLayers: False, set on True to show added layers in QGIS Layer Tree
+        """
+        lyrs = []
+        for s in self.sources():
+            if isinstance(s, DataSourceSpatial):
+                lyrs.append(s.createUnregisteredMapLayer())
+
+        QgsProject.instance().addMapLayers(lyrs, showLayers)
+
 
     def clear(self):
         """
@@ -824,6 +867,40 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
 
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
+        #init actions
+
+
+        self.actionAddDataSource.triggered.connect(lambda : self.dataSourceManager.addDataSourceByDialog())
+        self.actionRemoveDataSource.triggered.connect(lambda: self.dataSourceManager.removeSources(self.selectedDataSources()))
+        self.actionRemoveDataSource.setEnabled(False) #will be enabled with selection of node
+        def onSync():
+            self.dataSourceManager.importSourcesFromQGISRegistry()
+            self.dataSourceManager.exportSourcesToQGISRegistry(True)
+        self.actionSyncWithQGIS.triggered.connect(onSync)
+
+        hasQGIS = qgisAppQgisInterface() is not None
+        self.actionSyncWithQGIS.setEnabled(hasQGIS)
+
+
+        self.btnAddSource.setDefaultAction(self.actionAddDataSource)
+        self.btnSync.setDefaultAction(self.actionSyncWithQGIS)
+        self.btnRemoveSource.setDefaultAction(self.actionRemoveDataSource)
+        self.btnCollapse.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, False))
+        self.btnExpand.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, True))
+        #self.onSelectionChanged(None, None)
+
+    def expandSelectedNodes(self, treeView, expand):
+        assert isinstance(treeView, QTreeView)
+
+        treeView.selectAll()
+        indices = treeView.selectedIndexes()
+        if len(indices) == 0:
+            treeView.selectAll()
+            indices += treeView.selectedIndexes()
+            treeView.clearSelection()
+        for idx in indices:
+            treeView.setExpanded(idx, expand)
+
     def connectDataSourceManager(self, dataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
         self.dataSourceManager = dataSourceManager
@@ -833,6 +910,23 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
         self.dataSourceTreeView.setDragEnabled(True)
         self.dataSourceTreeView.setAcceptDrops(True)
 
+        self.dataSourceTreeView.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+
+    def onSelectionChanged(self, selected, deselected):
+
+        s = self.selectedDataSources()
+        self.actionRemoveDataSource.setEnabled(len(s) > 0)
+
+
+    def selectedDataSources(self)->list:
+        """
+        :return: [list-of-selected-DataSources]
+        """
+        sources = []
+        for n in self.dataSourceTreeView.selectedNodes():
+            if isinstance(n, DataSourceTreeNode):
+                sources.append(n.dataSource)
+        return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
 LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/icons/mIconRasterLayer.svg'))
@@ -960,6 +1054,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
 
+        mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
         return mimeData
 
 
@@ -998,7 +1093,7 @@ class DataSourceManagerTreeModel(TreeModel):
         dataSourceNode = CreateNodeFromDataSource(dataSource, None)
         sourceGroup = self.getSourceGroup(dataSource)
         sourceGroup.addChildNode(dataSourceNode)
-        dataSourceNode.setExpanded(True)
+        dataSourceNode.setExpanded(False)
         s = ""
 
     def removeDataSource(self, dataSource):
