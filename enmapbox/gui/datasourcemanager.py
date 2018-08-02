@@ -291,33 +291,36 @@ class DataSourceManager(QObject):
         """
         knownLayers = list(QgsProject.instance().mapLayers().values())
         knownSources = [l.source() for l in knownLayers]
-        knownVisibleSources = []
+
+        def getVisibleSource()->list:
+            knownVisibleSources = []
+            iface = qgisAppQgisInterface()
+            if isinstance(iface, QgisInterface):
+                for ln in iface.layerTreeView().model().rootGroup().findLayers():
+                    assert isinstance(ln, QgsLayerTreeLayer)
+                    l = ln.layer()
+                    assert isinstance(l, QgsMapLayer)
+                    knownVisibleSources.append(l.source())
+            return knownVisibleSources
+        knownVisibleSources = getVisibleSource()
 
         iface = qgisAppQgisInterface()
-        if isinstance(iface, QgisInterface):
-            for ln in iface.layerTreeView().model().rootGroup().findLayers():
-                assert isinstance(ln, QgsLayerTreeLayer)
-                l = ln.layer()
-                assert isinstance(l, QgsMapLayer)
-                knownVisibleSources.append(l.source())
-
         for s in self.sources():
             if isinstance(s, DataSourceSpatial) and s.uri() not in knownSources:
                 l = s.createUnregisteredMapLayer()
                 if l.source() not in knownSources:
                     #source unknown to QGIS -> add to QGIS layer registry
                     QgsProject.instance().addMapLayer(l, showLayers)
-                else:
-                    #is known to QGIS
+                    knownLayers.append(l)
+                    knownSources.append(l.source())
+                    if showLayers:
+                        knownVisibleSources.append(l.source())
 
-                    if l.source() not in knownVisibleSources:
-                        #source known to QGIS but not visible -> make visible
-                        print('known, invisible: {}'.format(l.source()))
-                        if isinstance(iface, QgisInterface):
-                            qgsLayer = knownLayers[knownSources.index(l.source())]
-                            iface.layerTreeView().model().rootGroup().addLayer(qgsLayer)
-                    else:
-                        print('known, visible: {}'.format(l.source()))
+                if showLayers and l.source() not in knownVisibleSources:
+                    if isinstance(iface, QgisInterface):
+                        qgsLayer = knownLayers[knownSources.index(l.source())]
+                        iface.layerTreeView().model().rootGroup().addLayer(qgsLayer)
+
     def clear(self):
         """
         Removes all data source from DataSourceManager
@@ -915,7 +918,7 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
         self.actionRemoveDataSource.setEnabled(False) #will be enabled with selection of node
         def onSync():
             self.dataSourceManager.importSourcesFromQGISRegistry()
-            self.dataSourceManager.exportSourcesToQGISRegistry(True)
+            self.dataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
         self.actionSyncWithQGIS.triggered.connect(onSync)
 
         hasQGIS = qgisAppQgisInterface() is not None

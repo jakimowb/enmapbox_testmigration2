@@ -179,7 +179,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.dataSourceManager = DataSourceManager()
 
         if qgisAppQgisInterface():
-            self.dataSourceManager.sigDataSourceAdded.connect(self.dataSourceManager.exportSourcesToQGISRegistry(False))
+            self.dataSourceManager.sigDataSourceAdded.connect(lambda: self.dataSourceManager.exportSourcesToQGISRegistry(False))
 
 
         self.dockManager = DockManager()
