@@ -118,14 +118,6 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
         QApplication.processEvents()
 
-class EnMAPBoxQGISBridge(object):
-
-    def __init__(self, enmapBox, qgisIface):
-        assert isinstance(enmapbox, EnMAPBox)
-        assert isinstance(qgisIface, QgisInterface)
-
-
-
 class EnMAPBox(QgisInterface, QObject):
 
     _instance = None
@@ -187,22 +179,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.dataSourceManager = DataSourceManager()
 
         if qgisAppQgisInterface():
-            #interactions between EnMAP-Box and QGIS layer stores
+            self.dataSourceManager.sigDataSourceAdded.connect(self.dataSourceManager.exportSourcesToQGISRegistry(False))
 
-            #register spatial data sources at least once in QGIS
-            def onSpatialDataSourceAdded(dataSource:DataSource):
-                #todo: compare with existing QGIS layer sources and avoid redundancy
-                if isinstance(dataSource, DataSourceSpatial):
-                    lyr = dataSource.createUnregisteredMapLayer()
-                    QgsProject.instance().addMapLayer(lyr, False)
-
-            def onQgisAppLayersAdded(layers):
-
-                #todo: should be add QGIS sources automatically?
-                s = ""
-
-            self.dataSourceManager.sigDataSourceAdded.connect(onSpatialDataSourceAdded)
-            QgsProject.instance().layersAdded.connect(onQgisAppLayersAdded)
 
         self.dockManager = DockManager()
         self.dockManager.connectDataSourceManager(self.dataSourceManager)
@@ -725,7 +703,6 @@ class EnMAPBox(QgisInterface, QObject):
 
             # de-refere the EnMAP-Box Singleton
             EnMAPBox._instance = None
-            enmapbox.gui.processingmanager.removeQPFExtensions()
             self.sigClosed.emit()
             event.accept()
         else:
@@ -734,8 +711,6 @@ class EnMAPBox(QgisInterface, QObject):
     sigClosed = pyqtSignal()
 
     def close(self):
-        #print('CLOSE ENMAPBOX')
-        enmapbox.gui.processingmanager.removeQPFExtensions()
         self.ui.close()
         EnMAPBox._instance = None
 

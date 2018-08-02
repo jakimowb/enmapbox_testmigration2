@@ -1162,7 +1162,7 @@ class MapCanvas(QgsMapCanvas):
         #reg.addMapLayers(newSet)
         from enmapbox import EnMAPBox
 
-        #register map layers (requried to draw them on mapcanvas)
+        #register map layers (required for drawing on a MapCanvas)
         store = EnMAPBox.instance().mapLayerStore()
         store.addMapLayers(newSet)
 

@@ -268,7 +268,7 @@ class DataSourceManager(QObject):
         if not os.path.exists(lastDataSourceDir):
             lastDataSourceDir = None
 
-        uris = QFileDialog.getOpenFileNames(self.ui, "Open a data source(s)", lastDataSourceDir)
+        uris = QFileDialog.getOpenFileNames(None, "Open a data source(s)", lastDataSourceDir)
         self.addSources(uris)
 
         if len(uris) > 0:
@@ -289,14 +289,35 @@ class DataSourceManager(QObject):
         Adds spatial datasources to QGIIS
         :param showLayers: False, set on True to show added layers in QGIS Layer Tree
         """
-        lyrs = []
+        knownLayers = list(QgsProject.instance().mapLayers().values())
+        knownSources = [l.source() for l in knownLayers]
+        knownVisibleSources = []
+
+        iface = qgisAppQgisInterface()
+        if isinstance(iface, QgisInterface):
+            for ln in iface.layerTreeView().model().rootGroup().findLayers():
+                assert isinstance(ln, QgsLayerTreeLayer)
+                l = ln.layer()
+                assert isinstance(l, QgsMapLayer)
+                knownVisibleSources.append(l.source())
+
         for s in self.sources():
-            if isinstance(s, DataSourceSpatial):
-                lyrs.append(s.createUnregisteredMapLayer())
+            if isinstance(s, DataSourceSpatial) and s.uri() not in knownSources:
+                l = s.createUnregisteredMapLayer()
+                if l.source() not in knownSources:
+                    #source unknown to QGIS -> add to QGIS layer registry
+                    QgsProject.instance().addMapLayer(l, showLayers)
+                else:
+                    #is known to QGIS
 
-        QgsProject.instance().addMapLayers(lyrs, showLayers)
-
-
+                    if l.source() not in knownVisibleSources:
+                        #source known to QGIS but not visible -> make visible
+                        print('known, invisible: {}'.format(l.source()))
+                        if isinstance(iface, QgisInterface):
+                            qgsLayer = knownLayers[knownSources.index(l.source())]
+                            iface.layerTreeView().model().rootGroup().addLayer(qgsLayer)
+                    else:
+                        print('known, visible: {}'.format(l.source()))
     def clear(self):
         """
         Removes all data source from DataSourceManager
@@ -718,8 +739,10 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         :return: TreeNode
         """
         if parentTreeNode is None:
-            parentTreeNode = TreeNode(None, None)
+            parentTreeNode = TreeNode(None, '\t')
         assert isinstance(parentTreeNode, TreeNode)
+
+        pName = parentTreeNode.name()
 
         if fetchedObjectIds is None:
             fetchedObjectIds = set()
@@ -728,13 +751,15 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         if id(obj) in fetchedObjectIds:
             # do not return any node for objects already described.
             # this is necessary to avoid circular references
-            pName = parentTreeNode.name()
+
             parentTreeNode.setValue(str(obj))
             return parentTreeNode
 
 
         fetchedObjectIds.add(id(obj))
 
+        if 'feature_importances_' in pName:
+            s = ""
         fetch = HubFlowObjectTreeNode.fetchInternals
 
 
@@ -775,8 +800,12 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                 fetch(value, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
 
         elif isinstance(obj, np.ndarray):
-            text = '{} {} {}...'.format(obj.shape, obj.dtype, re.split('[\n]', str(obj))[0])
-            parentTreeNode.setValue(text)
+
+            if obj.ndim == 1:
+                fetch(list(obj), parentTreeNode=parentTreeNode, fetchedObjectIds=fetchedObjectIds)
+            else:
+                parentTreeNode.setValue(str(obj))
+
 
         elif isinstance(obj, list) or isinstance(obj, set):
             """Show enumerations"""
@@ -790,17 +819,28 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         elif isinstance(obj, QColor):
             ColorTreeNode(parentTreeNode, obj)
 
+        elif not hasattr(obj, '__dict__'):
+            parentTreeNode.setValue(str(obj))
+
         elif isinstance(obj, object):
             #a __class__
             moduleName = obj.__class__.__module__
             className = obj.__class__.__name__
-            if moduleName == 'builtins':
-                parentTreeNode.setValue(str(obj))
 
-            elif getattr(obj, '__dict__', None):
-                parentTreeNode.setValue('{}.{}'.format(moduleName, className))
-                fetch(obj.__dict__, parentTreeNode)
-            else:
+            attributes = []
+            for a in obj.__dict__.keys():
+                if a.startswith('__'):
+                    continue
+                if moduleName.startswith('hubflow') or not a.startswith('_'):
+                    attributes.append(a)
+
+            for t in inspect.getmembers(obj, lambda o: isinstance(o, np.ndarray)):
+                if t[0] not in attributes:
+                    attributes.append(t[0])
+
+            for name in sorted(attributes):
+                node = TreeNode(parentTreeNode, name)
+                fetch(getattr(obj, name, None), parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
                 s =""
 
 
