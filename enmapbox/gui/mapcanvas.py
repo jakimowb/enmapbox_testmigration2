@@ -1158,8 +1158,13 @@ class MapCanvas(QgsMapCanvas):
         newSet = mapLayers[:]
 
         #register not-registered layers
-        reg = QgsProject.instance()
-        reg.addMapLayers(newSet)
+        #reg = QgsProject.instance()
+        #reg.addMapLayers(newSet)
+        from enmapbox import EnMAPBox
+
+        #register map layers (required for drawing on a MapCanvas)
+        store = EnMAPBox.instance().mapLayerStore()
+        store.addMapLayers(newSet)
 
         super(MapCanvas,self).setLayers(newSet)
 

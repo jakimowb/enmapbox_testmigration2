@@ -722,7 +722,9 @@ if __name__ == '__main__':
     #v = QgsVectorLayer(pathV,'bn', "ogr", loadDefaultStyleFlag=True)
     v = QgsVectorLayer(pathV)
 
-    QgsProject.instance().addMapLayers([v,l])
+    #QgsProject.instance().addMapLayers([v,l])
+    from enmapbox import EnMAPBox
+    EnMAPBox.instance().addMapLayers([v,l])
     c = QgsMapCanvas()
     c.setLayers([v])
     c.setDestinationCrs(v.crs())

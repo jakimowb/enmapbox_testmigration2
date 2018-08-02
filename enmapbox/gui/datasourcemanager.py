@@ -76,8 +76,6 @@ class DataSourceManager(QObject):
         # QgsProject.instance().layersAdded.connect(self.updateFromQgsProject)
         # noinspection PyArgumentList
 
-        QgsProject.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
-        QgsProject.instance().removeAll.connect(lambda: self.removeSources(self.sources()))
         try:
             from hubflow import signals
             signals.sigFileCreated.connect(self.addSource)
@@ -253,6 +251,75 @@ class DataSourceManager(QObject):
                 self.sigDataSourceAdded.emit(ds)
 
         return toAdd
+
+    def addDataSourceByDialog(self):
+        """
+        Shows a fileOpen dialog to select new data sources
+        :return:
+        """
+
+        from enmapbox.gui.settings import qtSettingsObj
+        SETTINGS = qtSettingsObj()
+        lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
+
+        if lastDataSourceDir is None:
+            lastDataSourceDir = DIR_TESTDATA
+
+        if not os.path.exists(lastDataSourceDir):
+            lastDataSourceDir = None
+
+        uris = QFileDialog.getOpenFileNames(None, "Open a data source(s)", lastDataSourceDir)
+        self.addSources(uris)
+
+        if len(uris) > 0:
+            SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
+
+    def importSourcesFromQGISRegistry(self):
+        """
+        Adds datasources known to QGIS which do not exist here
+        """
+        p = QgsProject.instance()
+        assert isinstance(p, QgsProject)
+        layers = list(p.mapLayers().values())
+
+        self.addSources(layers)
+
+    def exportSourcesToQGISRegistry(self, showLayers:bool=False):
+        """
+        Adds spatial datasources to QGIIS
+        :param showLayers: False, set on True to show added layers in QGIS Layer Tree
+        """
+        knownLayers = list(QgsProject.instance().mapLayers().values())
+        knownSources = [l.source() for l in knownLayers]
+
+        def getVisibleSource()->list:
+            knownVisibleSources = []
+            iface = qgisAppQgisInterface()
+            if isinstance(iface, QgisInterface):
+                for ln in iface.layerTreeView().model().rootGroup().findLayers():
+                    assert isinstance(ln, QgsLayerTreeLayer)
+                    l = ln.layer()
+                    assert isinstance(l, QgsMapLayer)
+                    knownVisibleSources.append(l.source())
+            return knownVisibleSources
+        knownVisibleSources = getVisibleSource()
+
+        iface = qgisAppQgisInterface()
+        for s in self.sources():
+            if isinstance(s, DataSourceSpatial) and s.uri() not in knownSources:
+                l = s.createUnregisteredMapLayer()
+                if l.source() not in knownSources:
+                    #source unknown to QGIS -> add to QGIS layer registry
+                    QgsProject.instance().addMapLayer(l, showLayers)
+                    knownLayers.append(l)
+                    knownSources.append(l.source())
+                    if showLayers:
+                        knownVisibleSources.append(l.source())
+
+                if showLayers and l.source() not in knownVisibleSources:
+                    if isinstance(iface, QgisInterface):
+                        qgsLayer = knownLayers[knownSources.index(l.source())]
+                        iface.layerTreeView().model().rootGroup().addLayer(qgsLayer)
 
     def clear(self):
         """
@@ -675,8 +742,10 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         :return: TreeNode
         """
         if parentTreeNode is None:
-            parentTreeNode = TreeNode(None, None)
+            parentTreeNode = TreeNode(None, '\t')
         assert isinstance(parentTreeNode, TreeNode)
+
+        pName = parentTreeNode.name()
 
         if fetchedObjectIds is None:
             fetchedObjectIds = set()
@@ -685,13 +754,15 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         if id(obj) in fetchedObjectIds:
             # do not return any node for objects already described.
             # this is necessary to avoid circular references
-            pName = parentTreeNode.name()
+
             parentTreeNode.setValue(str(obj))
             return parentTreeNode
 
 
         fetchedObjectIds.add(id(obj))
 
+        if 'feature_importances_' in pName:
+            s = ""
         fetch = HubFlowObjectTreeNode.fetchInternals
 
 
@@ -732,8 +803,12 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                 fetch(value, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
 
         elif isinstance(obj, np.ndarray):
-            text = '{} {} {}...'.format(obj.shape, obj.dtype, re.split('[\n]', str(obj))[0])
-            parentTreeNode.setValue(text)
+
+            if obj.ndim == 1:
+                fetch(list(obj), parentTreeNode=parentTreeNode, fetchedObjectIds=fetchedObjectIds)
+            else:
+                parentTreeNode.setValue(str(obj))
+
 
         elif isinstance(obj, list) or isinstance(obj, set):
             """Show enumerations"""
@@ -747,17 +822,28 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         elif isinstance(obj, QColor):
             ColorTreeNode(parentTreeNode, obj)
 
+        elif not hasattr(obj, '__dict__'):
+            parentTreeNode.setValue(str(obj))
+
         elif isinstance(obj, object):
             #a __class__
             moduleName = obj.__class__.__module__
             className = obj.__class__.__name__
-            if moduleName == 'builtins':
-                parentTreeNode.setValue(str(obj))
 
-            elif getattr(obj, '__dict__', None):
-                parentTreeNode.setValue('{}.{}'.format(moduleName, className))
-                fetch(obj.__dict__, parentTreeNode)
-            else:
+            attributes = []
+            for a in obj.__dict__.keys():
+                if a.startswith('__'):
+                    continue
+                if moduleName.startswith('hubflow') or not a.startswith('_'):
+                    attributes.append(a)
+
+            for t in inspect.getmembers(obj, lambda o: isinstance(o, np.ndarray)):
+                if t[0] not in attributes:
+                    attributes.append(t[0])
+
+            for name in sorted(attributes):
+                node = TreeNode(parentTreeNode, name)
+                fetch(getattr(obj, name, None), parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
                 s =""
 
 
@@ -824,6 +910,40 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
 
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
+        #init actions
+
+
+        self.actionAddDataSource.triggered.connect(lambda : self.dataSourceManager.addDataSourceByDialog())
+        self.actionRemoveDataSource.triggered.connect(lambda: self.dataSourceManager.removeSources(self.selectedDataSources()))
+        self.actionRemoveDataSource.setEnabled(False) #will be enabled with selection of node
+        def onSync():
+            self.dataSourceManager.importSourcesFromQGISRegistry()
+            self.dataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
+        self.actionSyncWithQGIS.triggered.connect(onSync)
+
+        hasQGIS = qgisAppQgisInterface() is not None
+        self.actionSyncWithQGIS.setEnabled(hasQGIS)
+
+
+        self.btnAddSource.setDefaultAction(self.actionAddDataSource)
+        self.btnSync.setDefaultAction(self.actionSyncWithQGIS)
+        self.btnRemoveSource.setDefaultAction(self.actionRemoveDataSource)
+        self.btnCollapse.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, False))
+        self.btnExpand.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, True))
+        #self.onSelectionChanged(None, None)
+
+    def expandSelectedNodes(self, treeView, expand):
+        assert isinstance(treeView, QTreeView)
+
+        treeView.selectAll()
+        indices = treeView.selectedIndexes()
+        if len(indices) == 0:
+            treeView.selectAll()
+            indices += treeView.selectedIndexes()
+            treeView.clearSelection()
+        for idx in indices:
+            treeView.setExpanded(idx, expand)
+
     def connectDataSourceManager(self, dataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
         self.dataSourceManager = dataSourceManager
@@ -833,6 +953,23 @@ class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
         self.dataSourceTreeView.setDragEnabled(True)
         self.dataSourceTreeView.setAcceptDrops(True)
 
+        self.dataSourceTreeView.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+
+    def onSelectionChanged(self, selected, deselected):
+
+        s = self.selectedDataSources()
+        self.actionRemoveDataSource.setEnabled(len(s) > 0)
+
+
+    def selectedDataSources(self)->list:
+        """
+        :return: [list-of-selected-DataSources]
+        """
+        sources = []
+        for n in self.dataSourceTreeView.selectedNodes():
+            if isinstance(n, DataSourceTreeNode):
+                sources.append(n.dataSource)
+        return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
 LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/icons/mIconRasterLayer.svg'))
@@ -960,6 +1097,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
 
+        mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
         return mimeData
 
 
@@ -998,7 +1136,7 @@ class DataSourceManagerTreeModel(TreeModel):
         dataSourceNode = CreateNodeFromDataSource(dataSource, None)
         sourceGroup = self.getSourceGroup(dataSource)
         sourceGroup.addChildNode(dataSourceNode)
-        dataSourceNode.setExpanded(True)
+        dataSourceNode.setExpanded(False)
         s = ""
 
     def removeDataSource(self, dataSource):

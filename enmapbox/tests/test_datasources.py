@@ -73,6 +73,10 @@ class standardDataSources(unittest.TestCase):
         hubFlowObjects = [vector(), enmap(), enmapClassification(), classDefinitionL1]
         #hubFlowObjects = [vector()]
         #hubFlowObjects = [enmapClassification()]
+
+
+
+
         for obj in hubFlowObjects:
             isObj, o = DataSourceFactory.isHubFlowObj(obj)
             self.assertTrue(isObj)
@@ -110,7 +114,28 @@ class standardDataSources(unittest.TestCase):
 
         QGIS_APP.exec_()
 
+    def test_classifier(self):
 
+        import pickle
+        pathClassifier = r'O:\Student_Data\Dierkes\5. Semester\Kretastudie\Bachelor arbeit\Classification\Classification_brandnew\classification_2016\classifier.pkl'
+        f = open(pathClassifier, 'rb')
+        classifier = pickle.load(file=f)
+        f.close()
+
+        HubFlowObjectTreeNode.fetchInternals(classifier._sklEstimator, None)
+
+        DSM = DataSourceManager()
+        TM = DataSourceManagerTreeModel(None, DSM)
+
+        TV = QTreeView()
+        TV.header().setResizeMode(QHeaderView.ResizeToContents)
+        TV.setModel(TM)
+        TV.show()
+        TV.resize(QSize(400,250))
+
+        DSM.addSource(classifier)
+        self.assertTrue(1 > 0)
+        QGIS_APP.exec_()
 
     def test_testSources(self):
 
@@ -173,20 +198,22 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue(len(dsm) == len(lyrs))
 
         dsm = DataSourceManager()
-        dsm.onMapLayerRegistryLayersAdded(lyrs)
-        self.assertTrue(len(reg.mapLayers()) == 0)
-        self.assertTrue(len(dsm) == len(lyrs), msg='There needs to be one DataSource per added MapLayer')
-
-
-        dsm.onMapLayerRegistryLayersAdded(lyrs)
-        self.assertTrue(len(dsm) == len(lyrs), msg='DataSourceManager contains one DataSource object per source only')
-
-        dsm = DataSourceManager()
         reg.addMapLayers(lyrs)
-        self.assertTrue((len(dsm) == len(lyrs)), msg='Layers added to the QgsMapLayerRegistry need to appear in the DataSourceManager')
+        self.assertTrue((len(dsm) == 0))
 
+        dsm.importSourcesFromQGISRegistry()
+        l = len(dsm)
+        self.assertTrue((l == len(reg.mapLayers())))
 
-
+        reg.removeAllMapLayers()
+        self.assertTrue(len(reg.mapLayers()) == 0)
+        self.assertTrue((len(dsm) == l))
+        dsm.exportSourcesToQGISRegistry()
+        self.assertTrue((len(dsm) == l))
+        self.assertTrue(len(reg.mapLayers()) == l)
+        dsm.exportSourcesToQGISRegistry()
+        self.assertTrue((len(dsm) == l))
+        self.assertTrue(len(reg.mapLayers()) == l, msg='Do not export source uri if they are already known to QGIS')
 
 
 

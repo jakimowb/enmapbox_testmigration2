@@ -1,5 +1,8 @@
 <RCC>
   <qresource prefix="enmapbox">
+    <file>icons/mActionCollapseTree.svg</file>
+    <file>icons/mActionExpandTree.svg</file>
+    <file>icons/mActionRemove.svg</file>
     <file>icons/profile2speclib_auto.svg</file>
     <file>icons/ActionIdentifyTimeSeries.svg</file>
     <file>icons/IconTimeSeries.svg</file>
