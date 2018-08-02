@@ -316,6 +316,7 @@ class DataSourceManager(QObject):
                     if showLayers:
                         knownVisibleSources.append(l.source())
 
+
                 if showLayers and l.source() not in knownVisibleSources:
                     if isinstance(iface, QgisInterface):
                         qgsLayer = knownLayers[knownSources.index(l.source())]
