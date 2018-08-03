@@ -284,43 +284,37 @@ class DataSourceManager(QObject):
 
         self.addSources(layers)
 
+
+
     def exportSourcesToQGISRegistry(self, showLayers:bool=False):
         """
-        Adds spatial datasources to QGIIS
+        Adds spatial datasources to QGIS
         :param showLayers: False, set on True to show added layers in QGIS Layer Tree
         """
-        knownLayers = list(QgsProject.instance().mapLayers().values())
-        knownSources = [l.source() for l in knownLayers]
 
-        def getVisibleSource()->list:
-            knownVisibleSources = []
-            iface = qgisAppQgisInterface()
-            if isinstance(iface, QgisInterface):
-                for ln in iface.layerTreeView().model().rootGroup().findLayers():
-                    assert isinstance(ln, QgsLayerTreeLayer)
-                    l = ln.layer()
-                    assert isinstance(l, QgsMapLayer)
-                    knownVisibleSources.append(l.source())
-            return knownVisibleSources
-        knownVisibleSources = getVisibleSource()
 
+        allLayers = list(QgsProject.instance().mapLayers().values())
+        visbileLayers = qgisLayerTreeLayers()
+
+        allSources = [l.source() for l in allLayers]
+        visibleSources = [l.source() for l in visbileLayers]
         iface = qgisAppQgisInterface()
-        for s in self.sources():
-            if isinstance(s, DataSourceSpatial) and s.uri() not in knownSources:
-                l = s.createUnregisteredMapLayer()
-                if l.source() not in knownSources:
-                    #source unknown to QGIS -> add to QGIS layer registry
+
+        for dataSource in self.sources():
+            if isinstance(dataSource, DataSourceSpatial):
+                l = dataSource.createUnregisteredMapLayer()
+                if not l.isValid():
+                    print('INVALID LAYER FROM DATASOURCE: {} {}'.format(l, l.source()), file=sys.stderr)
+                    continue
+                if l.source() not in allSources:
                     QgsProject.instance().addMapLayer(l, showLayers)
-                    knownLayers.append(l)
-                    knownSources.append(l.source())
-                    if showLayers:
-                        knownVisibleSources.append(l.source())
+                else:
+                    if iface and showLayers and l.source() not in visibleSources:
+                        i = allSources.index(l.source())
+                        knownLayer = allLayers[i]
+                        assert isinstance(knownLayer, QgsMapLayer)
+                        iface.layerTreeView().model().rootGroup().addLayer(knownLayer)
 
-
-                if showLayers and l.source() not in knownVisibleSources:
-                    if isinstance(iface, QgisInterface):
-                        qgsLayer = knownLayers[knownSources.index(l.source())]
-                        iface.layerTreeView().model().rootGroup().addLayer(qgsLayer)
 
     def clear(self):
         """

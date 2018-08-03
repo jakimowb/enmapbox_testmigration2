@@ -289,6 +289,17 @@ class QgsPluginManagerMockup(QgsPluginManagerInterface):
         super().timerEvent(*args, **kwargs)
 
 
+def qgisLayerTreeLayers() -> list:
+    """
+    Returns the layers shown in the QGIS LayerTree
+    :return: [list-of-QgsMapLayers]
+    """
+    iface = qgisAppQgisInterface()
+    if isinstance(iface, QgisInterface):
+        return [ln.layer() for  ln in iface.layerTreeView().model().rootGroup().findLayers()]
+    else:
+        return []
+
 class QgisMockup(QgisInterface):
     """
     A "fake" QGIS Desktop instance that should provide all the inferfaces a plugin developer might need (and nothing more)
