@@ -21,6 +21,7 @@ enmap = hubflow.testdata.enmap()
 hymapClassification = hubflow.testdata.hymapClassification(overwrite=overwrite)
 enmapClassification = hubflow.testdata.enmapClassification(overwrite=overwrite)
 vectorClassification = hubflow.testdata.vectorClassification()
+vectorMask = hubflow.testdata.vectorMask()
 hymapFraction = hubflow.testdata.hymapFraction(overwrite=overwrite)
 enmapFraction = hubflow.testdata.enmapFraction(overwrite=overwrite)
 hymapRegression = hubflow.testdata.hymapRegression(overwrite=overwrite)
@@ -28,10 +29,28 @@ enmapRegression = hubflow.testdata.enmapRegression(overwrite=overwrite)
 enmapMask = enmapClassification.asMask()
 speclib = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
 
+maps = [enmap, enmapClassification, enmapRegression, enmapFraction, enmapMask,
+        vector, vectorClassification, vectorMask]
+
 enmapSample = hubflow.testdata.enmapSample()
 enmapClassificationSample = hubflow.testdata.enmapClassificationSample()
 enmapRegressionSample = hubflow.testdata.enmapRegressionSample()
 enmapFractionSample = hubflow.testdata.enmapFractionSample()
+
+samples = [enmapSample, enmapClassificationSample, enmapRegressionSample, enmapFractionSample]
+
+objects = maps + samples + [MapCollection([enmap, enmapMask]),
+                            enmap.sensorDefinition().wavebandDefinition(index=0),
+                            enmap.sensorDefinition(),
+                            speclib,
+                            RasterStack([enmap, enmapMask]),
+                            enmapClassification.classDefinition(),
+                            Classifier(sklEstimator=RandomForestClassifier()),
+                            ClassificationPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification),
+                            FractionPerformance.fromRaster(prediction=enmapFraction, reference=enmapClassification),
+                            RegressionPerformance.fromRaster(prediction=enmapRegression, reference=enmapRegression),
+                            ClusteringPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
+                            ]
 
 outdir = join(gettempdir(), 'hubflow_test')
 openHTML = False
@@ -159,6 +178,9 @@ class Test(TestCase):
 
     def test_Classification(self):
 
+        raster = Raster.fromArray(array=[[[0, 1, 2]]], filename='/vsimem/raster.bsq')
+        print(Classification(filename=raster.filename()))
+
         raster = enmapClassificationSample.raster()
         classification = enmapClassificationSample.classification()
         classification.toRasterMetadata(raster=raster, classificationSchemeName='level 42')
@@ -205,8 +227,7 @@ class Test(TestCase):
 
         print(enmapClassification)
         print(hymapClassification)
-        obj = ClassificationPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification,
-                                                   stratification=None)#enmapClassification)
+        obj = ClassificationPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
         print(obj)
         obj.report().saveHTML(filename=join(outdir, 'report.html'), open=openHTML)
 
@@ -263,8 +284,7 @@ class Test(TestCase):
 
     def test_ClusteringPerformance(self):
         clusteringPerformance = ClusteringPerformance.fromRaster(prediction=enmapClassification,
-                                                                 reference=enmapClassification,
-                                                                 grid=enmapClassification.grid())
+                                                                 reference=enmapClassification)
         print(clusteringPerformance)
         clusteringPerformance.report().saveHTML(filename=join(outdir, 'reportClusteringPerformance.html'), open=openHTML)
 
@@ -283,10 +303,16 @@ class Test(TestCase):
     def test_Raster(self):
 
         # from array
-        print(Raster.fromArray(array=[[[1, 2, 3]]]))
-        raster = Raster.fromArray(array=[[[1, 2, 3]]])
-        print(raster.statistics(silent=True))
-        return
+        raster = Raster.fromArray(array=[[[-1, 1, 2, np.inf, np.nan]]], filename='/vsimem/raster.bsq')
+        raster.dataset().setNoDataValue(-1)
+        statistics = raster.statistics(calcMean=1, calcStd=1, calcPercentiles=True, percentiles=[0,50,100],
+                                       calcHistogram=True, histogramRanges=[(1,3)], histogramBins=[2])
+        print(statistics)
+        assert statistics[0].min == 1
+        assert statistics[0].max == 2
+        assert statistics[0].nvalid == 2
+        assert statistics[0].ninvalid == 3
+        print(raster)
 
         # apply mask
         enmapMaskInv = Mask(filename=enmapMask.filename(), invert=not True)
@@ -294,7 +320,7 @@ class Test(TestCase):
 
         print(enmapClassification.applyMask(filename=join(outdir, 'ClassificationApplyMask.bsq'), mask=enmapMaskInv))
         cl = Classification(filename=join(outdir, 'ClassificationApplyMask.bsq'))
-        cl.dataset().plotCategoryBand()
+        #cl.dataset().plotCategoryBand()
 
         # apply spatial function
         from scipy.ndimage.filters import median_filter
@@ -337,15 +363,15 @@ class Test(TestCase):
         statistics = enmap.statistics(mask=vector)
 
         H, xedges, yedges = enmap.scatterMatrix(raster2=enmap, bandIndex1=bandIndicies[0], bandIndex2=bandIndicies[1],
-                                                range1=(statistics[0]['min'], statistics[0]['max']),
-                                                range2=(statistics[1]['min'], statistics[1]['max']),
+                                                range1=(statistics[0].min, statistics[0].max),
+                                                range2=(statistics[1].min, statistics[1].max),
                                                 bins=10, mask=vector)
         print(H)
 
         H, xedges, yedges = enmap.scatterMatrix(raster2=enmap, bandIndex1=bandIndicies[0], bandIndex2=bandIndicies[1],
                                                 stratification=enmapClassification,
-                                                range1=(statistics[0]['min'], statistics[0]['max']),
-                                                range2=(statistics[1]['min'], statistics[1]['max']),
+                                                range1=(statistics[0].min, statistics[0].max),
+                                                range2=(statistics[1].min, statistics[1].max),
                                                 bins=10, mask=vector)
         print(H)
 
@@ -406,8 +432,7 @@ class Test(TestCase):
 
 
     def test_FractionPerformance(self):
-        fractionPerformance = FractionPerformance.fromRaster(prediction=enmapFraction, reference=enmapClassification,
-                                                             grid=enmapFraction)
+        fractionPerformance = FractionPerformance.fromRaster(prediction=enmapFraction, reference=enmapClassification)
         print(fractionPerformance)
         fractionPerformance.report().saveHTML(filename=join(outdir, 'reportFractionPerformance.html'), open=openHTML)
 
@@ -517,6 +542,47 @@ class Test(TestCase):
         c.setBlockSize(25)
         extractPixels(inputs=[enmap, enmapFraction, enmapClassification, enmapRegression, vector, vectorClassification],
                       masks=[enmapMask], grid=enmap.grid(), controls=c)
+
+    def test_applierMultiprocessing(self):
+
+        c = ApplierControls()
+        c.setBlockSize(25)
+        c.setNumThreads(2)
+
+        rfc = Classifier(sklEstimator=RandomForestClassifier())
+        print(rfc)
+        rfc.fit(sample=enmapClassificationSample)
+        print(rfc.predict(filename=join(outdir, 'rfcClassification.bsq'), raster=enmap, mask=vector, controls=c))
+
+    def test_pickle(self):
+
+        def printDataset(obj):
+            if isinstance(obj, Raster): print(obj._rasterDataset)
+            elif isinstance(obj, Vector): print(obj._vectorDataset)
+            else: pass
+
+        for obj in objects:
+            print(type(obj))
+            if isinstance(obj, Map): obj.dataset()
+            filename = join(outdir, 'pickle.pkl')
+            printDataset(obj)
+            obj.pickle(filename=filename)
+            obj2 = obj.unpickle(filename=filename)
+            printDataset(obj2)
+            print(obj2)
+
+    def test_repr(self):
+        for obj in objects:
+            print(type(obj))
+            print(obj)
+
+    def test_debug(self):
+
+        obj = Classifier(sklEstimator=RandomForestClassifier())
+        filename = join(outdir, 'pickle.pkl')
+        obj.pickle(filename=filename)
+        obj2 =obj.unpickle(filename=filename)
+        a=1
 
 
 if __name__ == '__main__':
