@@ -10,7 +10,14 @@ DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 import sys, os
 from qgis.core import Qgis, QgsApplication
 
+# mockup to make QGIS resources available for uic.loadUiType
 
+import sys
+if not 'images' in list(sys.modules.keys()):
+
+    import enmapbox.images
+
+    sys.modules['images'] = enmapbox.images
 
 def messageLog(msg, level=Qgis.Info):
     """
