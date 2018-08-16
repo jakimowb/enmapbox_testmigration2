@@ -49,9 +49,11 @@ class testClassUtils(unittest.TestCase):
         #import qgisresources.images
         #qgisresources.images.qInitResources()
         pathUi = r'C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\coreapps\enmapboxapplications\imagemathapp\ui\main.ui'
-        self.assertTrue(os.path.isfile(pathUi))
-        t = loadUIFormClass(pathUi)
 
+        pathChangedUI = os.path.join(os.path.dirname(__file__), 'modified.ui')
+        self.assertTrue(os.path.isfile(pathUi))
+        t = loadUIFormClass(pathUi, _modifiedui=pathChangedUI)
+        self.assertTrue(os.path.isfile(pathChangedUI))
         s = ""
 
     def test_QgisMockup(self):

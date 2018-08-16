@@ -697,7 +697,7 @@ FORM_CLASSES = dict()
 
 
 
-def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQGISRessourceFileReferences=True):
+def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQGISRessourceFileReferences=True, _modifiedui=None):
     """
     Loads Qt UI files (*.ui) while taking care on QgsCustomWidgets.
     Uses PyQt4.uic.loadUiType (see http://pyqt.sourceforge.net/Docs/PyQt4/designer.html#the-uic-module)
@@ -738,15 +738,16 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
                 p = path
 
             if not os.path.isfile(p):
+                txt = txt.replace('<iconset resource="{}">'.format(path), '')
+                txt = txt.replace('<include location="{}">'.format(path), '')
                 removed.append(t)
-                txt = txt.replace(line, '')
 
         if len(removed) > 0:
             print('None-existing resource file(s) in: {}'.format(pathUi), file=sys.stderr)
             for t in removed:
                 line, path = t
                 print('\t{}'.format(line), file=sys.stderr)
-
+            print(txt)
         #:/images/themes/default/console/iconRestoreTabsConsole.svg
         #resource="../../../../../QGIS-master/images/images.qrc"
         # <include location="../../../../../QGIS-master/images/images.qrc"/>
@@ -787,9 +788,17 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
 
 
         buffer = io.StringIO()  # buffer to store modified XML
+
+        if isinstance(_modifiedui, str):
+            f = open(_modifiedui, 'w', encoding='utf-8')
+            f.write(doc.toString())
+            f.flush()
+            f.close()
+
         buffer.write(doc.toString())
         buffer.flush()
         buffer.seek(0)
+
 
 
         #make resource file directories available to the python path (sys.path)
