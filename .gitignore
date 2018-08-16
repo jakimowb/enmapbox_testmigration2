@@ -4,6 +4,7 @@ deploy/
 build/
 tmp/
 doc/build/
+enmapboxtestdata/
 qgisresources
 qgisresources/
 # Untrack compiled files
