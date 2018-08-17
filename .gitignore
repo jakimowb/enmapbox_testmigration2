@@ -4,8 +4,11 @@ deploy/
 build/
 tmp/
 doc/build/
+enmapboxtestdata/
 qgisresources
 qgisresources/
+
+enmapbox/gui/ui/resources.py
 # Untrack compiled files
 *.pyc 
 *.pyd

@@ -71,10 +71,11 @@ class RemoteInfo(object):
 RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
                   prefixLocal=r'site-packages/pyqtgraph')
 
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
-                  prefixLocal=r'enmapboxtestdata',
-                  prefixRemote=r'enmapboxtestdata',
-                  remoteBranch='master')
+#not required any more
+#RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
+#                  prefixLocal=r'enmapboxtestdata',
+#                  prefixRemote=r'enmapboxtestdata',
+#                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetation-apps.git',
                   prefixLocal=r'enmapbox/apps/lmuvegetationapps',
@@ -180,11 +181,11 @@ if __name__ == "__main__":
                 addRemote(info)
 
     # update remotes
-    to_update = [#'hub-datacube',
+    to_update = ['hub-datacube',
                 'hub-workflow',
                  #'enmap-box-testdata',
                  'enmapboxapplications',
-                 #'enmapboxgeoalgorithms'
+                 'enmapboxgeoalgorithms'
                  #'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'

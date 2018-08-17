@@ -20,8 +20,12 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections
-from qgis.PyQt.Qt import QApplication
+import sys, os, collections, shutil, time
+from qgis.PyQt.Qt import QApplication, QUrl
+from qgis.gui import *
+from qgis.core import *
+from qgis.PyQt.QtWidgets import QMessageBox
+
 LAST_MISSED_PACKAGES = None
 LAST_MISSED_INFO = ''
 
@@ -111,12 +115,78 @@ def showDialog(info):
 
 
 
-def main():
+def missingTestdata()->bool:
+    """
+    Returns (True, message:str) if testdata can not be loaded,
+     (False, None) else
+    :return: (bool, str)
+    """
+    try:
+        import enmapboxtestdata
+        assert os.path.isfile(enmapboxtestdata.enmap)
+        assert os.path.isfile(enmapboxtestdata.hymap)
+        assert os.path.isfile(enmapboxtestdata.landcover)
+        assert os.path.isfile(enmapboxtestdata.speclib)
+        return False
+    except Exception as ex:
+        print(ex, file=sys.stderr)
+        return True
 
-    required = ['numpy','dash', 'sklearn', 'matplotlib', 'pyqtgraph']
-    result = checkAndShowMissingDependencies(required)
-    print(result)
+def installTestdata():
+    """
+    Downloads and installs the EnMAP-Box Example Data
+    """
+    if not missingTestdata():
+        return
 
-if __name__ == '__main__':
-    main()
+    from enmapbox import URL_TESTDATA
+    from pyplugin_installer.unzip import unzip
+    from enmapbox.gui.utils import DIR_TESTDATA
+    btn = QMessageBox.question(None, 'Testdata is missing', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
+    if btn != QMessageBox.Yes:
+        print('Canceled')
+        return
+
+    pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxtestdata.zip')
+    url = QUrl(URL_TESTDATA)
+    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download {}'.format(os.path.basename(URL_TESTDATA)))
+    from enmapbox.gui.utils import qgisAppQgisInterface
+    qgisMainApp = qgisAppQgisInterface()
+
+    def onCanceled():
+        print('Download canceled')
+        return
+
+    def onCompleted():
+        print('Download completed')
+        print('Unzip {}...'.format(pathLocalZip))
+        unzip(pathLocalZip, DIR_TESTDATA)
+        tmp = os.path.join(DIR_TESTDATA, 'enmapboxtestdata')
+        if os.path.isdir(tmp):
+            files = os.listdir(tmp)
+            for f in files:
+                shutil.move(os.path.join(tmp,f), DIR_TESTDATA)
+        print('Remove {}...'.format(pathLocalZip))
+        os.remove(pathLocalZip)
+        print('Testdata installed.')
+
+    def onDownloadError(messages):
+        raise Exception('\n'.join(messages))
+
+    def onDownLoadExited():
+        pass
+
+    def onDownloadProgress(received, total):
+        if not qgisMainApp and total > 0:
+            print('\r{:0.2f} %'.format(100.*received/total), end=' ', flush=True)
+            time.sleep(0.1)
+
+    dialog.downloadCanceled.connect(onCanceled)
+    dialog.downloadCompleted.connect(onCompleted)
+    dialog.downloadError.connect(onDownloadError)
+    dialog.downloadExited.connect(onDownLoadExited)
+    dialog.downloadProgress.connect(onDownloadProgress)
+
+    dialog.open()
+    dialog.exec_()
 
