@@ -48,6 +48,9 @@ class Views(object):
 
 
 
+
+
+
 class CentralFrame(QFrame):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
     sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
@@ -125,6 +128,11 @@ class EnMAPBox(QgisInterface, QObject):
     def instance():
         return EnMAPBox._instance
 
+    sigDataSourceAdded = pyqtSignal(str)
+    sigSpectralLibraryAdded = pyqtSignal(str)
+    sigRasterSourceAdded = pyqtSignal(str)
+    sigVectorSourceAdded = pyqtSignal(str)
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None
@@ -185,7 +193,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.dockManager = DockManager()
         self.dockManager.connectDataSourceManager(self.dataSourceManager)
 
-        # self.enmapBox = enmapbox
+        # self.enmapBox = enmapboxl
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
         self.dockManager.connectDockArea(self.ui.dockArea)
@@ -536,29 +544,35 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     def openExampleData(self, mapWindows=0):
-        import enmapboxtestdata
-        from enmapbox.gui.utils import file_search
-        dir = os.path.dirname(enmapboxtestdata.__file__)
-        files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
+        """
+        Opens the example data
+        :param mapWindows: number of new MapDocks to be opened
+        """
+        from enmapbox.dependencycheck import missingTestdata, installTestdata
+        if missingTestdata():
+            installTestdata()
 
-        added = self.addSources(files)
+        if not missingTestdata():
 
-        for n in range(mapWindows):
-            dock = self.createDock('MAP')
-            assert isinstance(dock, MapDock)
-            lyrs = []
-            for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
-                lyr = src.createUnregisteredMapLayer()
-                lyrs.append(lyr)
+            import enmapboxtestdata
+            from enmapbox.gui.utils import file_search
+            dir = os.path.dirname(enmapboxtestdata.__file__)
+            files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
 
-            dock.addLayers(lyrs)
-            s =""
+            added = self.addSources(files)
+
+            for n in range(mapWindows):
+                dock = self.createDock('MAP')
+                assert isinstance(dock, MapDock)
+                lyrs = []
+                for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
+                    lyr = src.createUnregisteredMapLayer()
+                    lyrs.append(lyr)
+
+                dock.addLayers(lyrs)
+                s =""
 
 
-    sigDataSourceAdded = pyqtSignal(str)
-    sigSpectralLibraryAdded = pyqtSignal(str)
-    sigRasterSourceAdded = pyqtSignal(str)
-    sigVectorSourceAdded = pyqtSignal(str)
 
     def onDataSourceAdded(self, dataSource:DataSource):
 

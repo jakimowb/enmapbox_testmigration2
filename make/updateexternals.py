@@ -185,7 +185,7 @@ if __name__ == "__main__":
                 'hub-workflow',
                  #'enmap-box-testdata',
                  'enmapboxapplications',
-                 #'enmapboxgeoalgorithms'
+                 'enmapboxgeoalgorithms'
                  #'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'

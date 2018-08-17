@@ -6,6 +6,7 @@ ISSUE_TRACKER = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
 CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
 DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplotlib']
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
+URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxtestdata.zip'
 
 import sys, os
 from qgis.core import Qgis, QgsApplication
