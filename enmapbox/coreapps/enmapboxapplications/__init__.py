@@ -72,9 +72,8 @@ if __name__ == '__main__':
 
     qgsApp = initQgisApplication()
 
-    import qgisresources.images
-    qgisresources.images.qInitResources()
-
+    #import qgisresources.images
+    #qgisresources.images.qInitResources()
 
     if not True:
 

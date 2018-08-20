@@ -130,12 +130,12 @@ class ImageStatisticsApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.
 
         if self.uiLinePlots().isChecked():
             currentColor = pg.intColor(i * 20 + i, 100) #, alpha=120)
-            plot = self.uiPlot().plot(x=stat['histo']['bin_edges'], y=stat['histo']['hist'],
+            plot = self.uiPlot().plot(x=stat.histo.bin_edges, y=stat.histo.hist,
                                stepMode=True, brush=currentColor)
             plot.setPen(color=currentColor, width=1)
         else:
             currentColor = pg.intColor(i * 20 + i, 100)#, alpha=120)
-            plot = self.uiPlot().plot(x=stat['histo']['bin_edges'], y=stat['histo']['hist'],
+            plot = self.uiPlot().plot(x=stat.histo.bin_edges, y=stat.histo.hist,
                                stepMode=True, fillLevel=0, brush=currentColor)
             plot.setPen(color=currentColor, width=1)
 
@@ -188,13 +188,13 @@ class TableModel(QAbstractTableModel):
     they are an integral part of the model
     """
 
-    KEYS = [None, None, 'nvalid', 'min', 'max', 'mean']
+    KEYS = [None, None, 'nvalid', 'ninvalid', 'min', 'max', 'mean']
 
     def __init__(self, parent, *args):
         QAbstractTableModel.__init__(self, parent, *args)
         self.statistics = []
         self.bandNames = []
-        self.header = ['Description', 'Band', 'N', 'Min', 'Max', 'Mean']
+        self.header = ['Description', 'Band', 'N Valid', 'N Invalid', 'Min', 'Max', 'Mean']
 
     def setDataList(self, statistics, bandNames):
         self.statistics = statistics
@@ -221,7 +221,7 @@ class TableModel(QAbstractTableModel):
                 value = index.row()+1
             else:
                 key = self.KEYS[index.column()]
-                value = str(self.statistics[index.row()][key])
+                value = str(getattr(self.statistics[index.row()],key))
                 #print(key, value)
         except:
             traceback.print_exc()
@@ -230,12 +230,12 @@ class TableModel(QAbstractTableModel):
             return value
         elif role == QtCore.Qt.DisplayRole:
             return value
-        elif role == QtCore.Qt.CheckStateRole:
-            if index.column() == 0:
-                if self.statistics[index.row()][index.column()].isChecked():
-                    return QtCore.Qt.Checked
-                else:
-                    return QtCore.Qt.Unchecked
+        #elif role == QtCore.Qt.CheckStateRole:
+        #    if index.column() == 0:
+        #        if self.statistics[index.row()][index.column()].isChecked():
+        #            return QtCore.Qt.Checked
+        #        else:
+        #            return QtCore.Qt.Unchecked
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
