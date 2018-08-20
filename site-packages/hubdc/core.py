@@ -513,6 +513,19 @@ class Resolution(object):
     def __repr__(self):
         return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
 
+    @staticmethod
+    def parse(obj):
+        if isinstance(obj, Resolution):
+            resolution = obj
+        elif isinstance(obj, (float, int)):
+            resolution = Resolution(x=obj, y=obj)
+        elif isinstance(obj (list, tuple)):
+            assert len(obj) == 2
+            resolution = Resolution(x=obj[0], y=obj[1])
+        else:
+            assert 0
+        return resolution
+
     def x(self):
         '''Returns x resolution.'''
         return self._x
@@ -790,6 +803,18 @@ class Point(object):
     def __repr__(self):
         return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
 
+    @staticmethod
+    def parse(obj):
+        if isinstance(obj, Point):
+            point = obj
+        elif isinstance(obj, (list, tuple)):
+            assert len(obj) == 2
+            point = Point(x=obj[0], y=obj[1])
+        else:
+            assert 0
+
+        return point
+
     def x(self):
         '''Returns map x coordinate.'''
         return self._x
@@ -912,6 +937,7 @@ class Grid(object):
         if isinstance(extent, SpatialExtent):
             projection = extent.projection()
         assert isinstance(extent, Extent)
+        resolution = Resolution.parse(resolution)
         assert isinstance(resolution, Resolution)
         assert isinstance(projection, Projection)
         self._resolution = resolution
@@ -1141,9 +1167,11 @@ class RasterDataset(object):
         return self._gdalDataset
 
     def filenames(self):
+        '''Return gdal dataset file list`` '''
         return self._gdalDataset.GetFileList()
 
     def filename(self):
+        '''Return filename.'''
         filenames = self.filenames()
         if filenames is None:
             filename = None
@@ -1237,6 +1265,7 @@ class RasterDataset(object):
         if self.driver().equal(other=RasterDriver(name='ENVI')):
             self.setMetadataItem(key='data ignore value', value=value)
         self.flushCache()
+        return self
 
     def noDataValue(self, default=None):
         '''
@@ -1919,6 +1948,27 @@ class VectorDataset(object):
             ogrDataSource=repr(self.ogrDataSource()),
             layerNameOrIndex=repr(self.layerNameOrIndex()))
 
+    @staticmethod
+    def fromPoints(filename, points, projection):
+
+        assert isinstance(projection, Projection)
+        ogrDriver = VectorDriver.fromFilename(filename=filename).ogrDriver()
+        ogrDataSource = ogrDriver.CreateDataSource(filename)
+        ogrLayer = ogrDataSource.CreateLayer('points', projection.osrSpatialReference(), ogr.wkbPoint)
+
+        for p in points:
+            p = Point.parse(p)
+            point = ogr.Geometry(ogr.wkbPoint)
+            point.AddPoint(p.x(), p.y())
+            ogrFeature = ogr.Feature(ogrLayer.GetLayerDefn())
+            ogrFeature.SetGeometry(point)
+            ogrLayer.CreateFeature(ogrFeature)
+            ogrFeature = None
+            point = None
+        ogrDataSource = None
+        return openVectorDataset(filename=filename)
+
+
     def filename(self):
         '''Returns the filename.'''
         return self._filename
@@ -2179,6 +2229,9 @@ def createRasterDatasetFromArray(array, grid=None, filename='', driver=MEMDriver
     :return:
     :rtype: hubdc.core.RasterDataset
     '''
+
+    if isinstance(array, list):
+        array = np.array(array)
 
     if grid is None:
         grid = PseudoGrid.fromArray(array)

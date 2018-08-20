@@ -1018,7 +1018,8 @@ class Applier(object):
         self.queues = list()
         self.queueMock = QueueMock()
         if self.controls._multiwriting:
-            for w in range(max(1, self.controls.nwriter)):
+
+            for w in range(self.controls.nwriter if self.controls.nwriter is not None else 1):
                 w = WriterProcess()
                 w.start()
                 self.writers.append(w)

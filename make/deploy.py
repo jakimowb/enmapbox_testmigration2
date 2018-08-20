@@ -158,7 +158,10 @@ def build():
         print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
         print('from pyplugin_installer.installer import pluginInstaller')
         print('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
-        print('\n#### (This might take a while)\n')
+        print('#### Close (and restart manually)')
+        print('iface.mainWindow().close()')
+
+
 
     print('Finished')
 
