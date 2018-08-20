@@ -148,7 +148,7 @@ def build():
     from enmapbox.gui.utils import zipdir
 
     pluginname = cfg.get('plugin', 'name')
-    pathZip = jp(DIR_DEPLOY, '{}.{}.QGIS3.snapshot.zip'.format(pluginname, buildID))
+    pathZip = jp(DIR_DEPLOY, '{}.{}.snapshot.zip'.format(pluginname, buildID))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
     zipdir(dirPlugin, pathZip)
     # os.chdir(dirPlugin)
@@ -159,9 +159,10 @@ def build():
         print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
         print('from pyplugin_installer.installer import pluginInstaller')
         print('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
-        print('#### Close (and restart manually)')
-        print('iface.mainWindow().close()')
-
+        print('#### Close (and restart manually)\n')
+        #print('iface.mainWindow().close()\n')
+        print('QProcess.startDetached(QgsApplication.arguments()[0], [])')
+        print('QgsApplication.quit()\n')
 
 
     print('Finished')
@@ -170,3 +171,4 @@ def build():
 if __name__ == "__main__":
 
     build()
+

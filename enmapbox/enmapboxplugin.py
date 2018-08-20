@@ -40,34 +40,40 @@ class EnMAPBoxPlugin(object):
 
         #run a dependency check
         self.initialDependencyCheck()
-        from enmapbox import messageLog
+
 
 
         # add the EnMAP-Box Provider
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        self.initEnMAPBoxProcessingProvider()
 
-        enmapBoxProvider = QgsApplication.instance().processingRegistry().providerById('enmapbox')
-        if not isinstance(enmapBoxProvider, EnMAPBoxAlgorithmProvider):
+    def initEnMAPBoxProcessingProvider(self):
+        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        from enmapbox import messageLog
+        self.enmapBoxProvider = QgsApplication.instance().processingRegistry().providerById('enmapbox')
+        if not isinstance(self.enmapBoxProvider, EnMAPBoxAlgorithmProvider):
             self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
             QgsApplication.instance().processingRegistry().addProvider(self.enmapBoxProvider)
-            # load EnMAPBox QgsProcessingAlgorithms
             try:
-
                 import enmapboxgeoalgorithms.algorithms
-                self.enmapBoxProvider.addAlgorithms(enmapboxgeoalgorithms.algorithms)
+                to_add = []
+                for alg in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
+                    assert isinstance(alg, QgsProcessingAlgorithm)
+                    if not alg in self.enmapBoxProvider.mAlgorithms:
+                        to_add.append(alg)
+                print('Added {} QgsProcessingAlgorithm(s) to EnMAPBoxAlgorithmProvider'.format(len(to_add)))
+                self.enmapBoxProvider.addAlgorithms(to_add)
+                self.enmapBoxProvider.refreshAlgorithms()
             except Exception as ex:
-                info = ['Failed to load EnMAPBoxGeoAlgorithms.\n{}'.format(str(ex))]
+                info = ['Failed to load QgsProcessingAlgorithms.\n{}'.format(str(ex))]
                 info.append('PYTHONPATH:')
+
                 for p in sorted(sys.path):
                     info.append(p)
 
                 messageLog('\n'.join(info), Qgis.Critical)
-        else:
-            self.enmapBoxProvider = enmapBoxProvider
+                #raise Exception('\n'.join(info))
+
         assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
-
-
-
 
     def initialDependencyCheck(self):
         """
