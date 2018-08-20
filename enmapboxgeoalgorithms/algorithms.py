@@ -10,6 +10,52 @@ from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
 
 
+class ApplierDefaultsSetup(EnMAPAlgorithm):
+    def displayName(self):
+        return 'HUB Datacube Applier Settings'
+
+    def description(self):
+        return 'Various settings used inside an applier processing chain.'
+
+    def group(self):
+        return self.GROUP_OPTIONS
+
+    P_X_BLOCK_SIZE = 'xblocksize'
+    P_Y_BLOCK_SIZE = 'yblocksize'
+    P_NWORKER = 'nworker'
+
+    def defineCharacteristics(self):
+        from hubdc.applier import ApplierDefaults
+        self.addParameterInteger(name=self.P_X_BLOCK_SIZE, description='Tiled-Processing Block X Size',
+                                 defaultValue=ApplierDefaults.blockSize.x(), minValue=1,
+                                 help='Specify block x size for tile-based processing.')
+
+        self.addParameterInteger(name=self.P_Y_BLOCK_SIZE, description='Tiled-Processing Block Y Size',
+                                 defaultValue=ApplierDefaults.blockSize.y(), minValue=1,
+                                 help='Specify block y size for tile-based processing.')
+
+        nworker = 1 if ApplierDefaults.nworker is None else ApplierDefaults.nworker
+        self.addParameterInteger(name=self.P_NWORKER, description='Number of Multiprocessing Worker',
+                                 defaultValue=nworker, minValue=1,
+                                 help='Specify number of multiprocessing worker.')
+
+    def processAlgorithm_(self):
+        from hubdc.applier import ApplierDefaults
+        ApplierDefaults.blockSize = Size(x=self.getParameterInteger(name=self.P_X_BLOCK_SIZE),
+                                         y=self.getParameterInteger(name=self.P_Y_BLOCK_SIZE))
+        ApplierDefaults.nworker = self.getParameterInteger(name=self.P_NWORKER)
+        return {}
+
+    def postProcess(self, context, feedback):
+        from hubdc.applier import ApplierDefaults
+        ApplierDefaults.blockSize = Size(x=self.getParameterInteger(name=self.P_X_BLOCK_SIZE),
+                                         y=self.getParameterInteger(name=self.P_Y_BLOCK_SIZE))
+        ApplierDefaults.nworker = self.getParameterInteger(name=self.P_NWORKER)
+        return {}
+
+
+ALGORITHMS.append(ApplierDefaultsSetup())
+
 class ClassDefinitionFromRaster(EnMAPAlgorithm):
     def displayName(self):
         return 'ClassDefinition from Raster'
@@ -802,7 +848,6 @@ class FractionPerformanceFromRaster(EnMAPAlgorithm):
         if not prediction.grid().equal(reference.grid()):
             raise EnMAPAlgorithmParameterValueError('prediction and reference grid must match')
         performance = FractionPerformance.fromRaster(prediction=prediction, reference=reference,
-                                                     grid=prediction.grid(),
                                                      progressBar=self._progressBar)
         filename = self.getParameterOutputReport()
         performance.report().saveHTML(filename=filename, open=True)
