@@ -8,15 +8,14 @@ DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplot
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxtestdata.zip'
 
-import sys, os
+
+
 from qgis.core import Qgis, QgsApplication
 
 # mockup to make QGIS resources available for uic.loadUiType
 import sys
 if not 'images' in list(sys.modules.keys()):
-
     import enmapbox.images
-
     sys.modules['images'] = enmapbox.images
 
 def messageLog(msg, level=Qgis.Info):
@@ -33,8 +32,11 @@ def messageLog(msg, level=Qgis.Info):
 
 
 #provide important classes in Top-Level Namespace
+
 from enmapbox.gui.enmapboxgui import EnMAPBox
 EnMAPBox = EnMAPBox
 
 from enmapbox.gui.applications import EnMAPBoxApplication
 EnMAPBoxApplication = EnMAPBoxApplication
+
+

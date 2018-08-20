@@ -60,6 +60,15 @@ class RemoteInfo(object):
         self.excluded = excluded
         self.postupdatehook = None
 
+    def __repr__(self):
+        infos = ['RemoteInfo: "{}"'.format(os.path.basename(self.uri))]
+
+        for attribute, value in self.__dict__.items():
+            if not attribute.startswith('_'):
+                infos.append('\t{}:{}'.format(attribute, value))
+
+        return '\n'.join(infos)
+
     def remotePath(self):
         if self.prefixRemote is None or len(self.prefixRemote) == 0:
             return self.remoteBranch
@@ -91,13 +100,13 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
                   key='enmapboxapplications',
                   prefixLocal=r'enmapbox/coreapps/enmapboxapplications',
                   prefixRemote=r'enmapboxapplications',
-                  remoteBranch='master')
+                  remoteBranch='develop')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   key='enmapboxgeoalgorithms',
                   prefixLocal='enmapboxgeoalgorithms',
                   prefixRemote=r'enmapboxgeoalgorithms',
-                  remoteBranch='master')
+                  remoteBranch='develop')
 
 
 #RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
@@ -110,12 +119,12 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',
                   prefixRemote=r'hubdc',
                   excluded=['gis','testdata'],
-                  remoteBranch='master')
+                  remoteBranch='develop')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixLocal=r'site-packages/hubflow',
                   prefixRemote=r'hubflow',
-                  remoteBranch='master')
+                  remoteBranch='develop')
 
 
 def updateRemote(remoteInfo):
@@ -125,6 +134,7 @@ def updateRemote(remoteInfo):
     # see https://stackoverflow.com/questions/23937436/add-subdirectory-of-remote-repo-with-git-subtree
     # see https://blisqu.wordpress.com/2012/09/08/merge-subdirectory-from-another-git-repository/
     for remoteInfo in remoteInfos:
+        print('Update {}'.format(remoteInfo))
         assert isinstance(remoteInfo, RemoteInfo)
         remote = REPO.remote(remoteInfo.key)
         print('Fetch {}...'.format(remoteInfo.remotePath()))

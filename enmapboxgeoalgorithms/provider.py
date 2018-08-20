@@ -70,6 +70,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     GROUP_CLASSIFICATION = 'Classification'
     GROUP_CLUSTERING = 'Clustering'
     GROUP_MASKING = 'Masking'
+    GROUP_OPTIONS = 'Options'
     GROUP_POSTPROCESSING = 'Post-Processing'
     GROUP_RESAMPLING = 'Resampling'
     GROUP_RANDOM = 'Random'
