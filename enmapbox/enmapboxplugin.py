@@ -52,6 +52,7 @@ class EnMAPBoxPlugin(object):
             QgsApplication.instance().processingRegistry().addProvider(self.enmapBoxProvider)
             # load EnMAPBox QgsProcessingAlgorithms
             try:
+
                 import enmapboxgeoalgorithms.algorithms
                 self.enmapBoxProvider.addAlgorithms(enmapboxgeoalgorithms.algorithms)
             except Exception as ex:
