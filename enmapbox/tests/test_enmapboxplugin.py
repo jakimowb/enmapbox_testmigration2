@@ -55,6 +55,25 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         #self.plugin.unload()
         s = ""
 
+    def test_loadAlgorithmProvider(self):
+
+        #test algos
+
+        import enmapboxgeoalgorithms.algorithms
+        for algorithm in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
+            self.assertIsInstance(algorithm, QgsProcessingAlgorithm)
+            algo2 = algorithm.create()
+            self.assertIsInstance(algo2, QgsProcessingAlgorithm)
+
+        from enmapbox.enmapboxplugin import EnMAPBoxPlugin
+
+
+
+        self.plugin = EnMAPBoxPlugin(self.iface)
+        self.assertIsInstance(self.plugin, EnMAPBoxPlugin)
+        self.plugin.initEnMAPBoxProcessingProvider()
+
+
     def test_unloadplugin(self):
         pass
 

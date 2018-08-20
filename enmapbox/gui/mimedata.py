@@ -128,7 +128,12 @@ def extractMapLayers(mimeData:QMimeData)->list:
         layerTree = QgsLayerTree.readXml(node, context)
         lt = QgsLayerTreeGroup.readXml(node, context)
         #layerTree.resolveReferences(QgsProject.instance(), True)
-        registeredLayers = QgsProject.instance().mapLayers()
+        registeredQGISLayers = QgsProject.instance().mapLayers()
+        from enmapbox import EnMAPBox
+        registeredEnMAPBoxLayers = {}
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            store = EnMAPBox.instance().mapLayerStore()
+            registeredEnMAPBoxLayers.update(store.mapLayers())
 
 
         attributesLUT= {}
@@ -143,18 +148,22 @@ def extractMapLayers(mimeData:QMimeData)->list:
             assert isinstance(treeLayer, QgsLayerTreeLayer)
 
             mapLayer = treeLayer.layer()
-            if isinstance(mapLayer, QgsMapLayer):
-                s = ""
+
             if not isinstance(mapLayer, QgsMapLayer):
                 id = treeLayer.layerId()
-                if id in registeredLayers.keys():
-                    mapLayer = registeredLayers[id]
+
+                if id in registeredEnMAPBoxLayers.keys():
+                    mapLayer = registeredEnMAPBoxLayers[id]
+
+                elif id in registeredQGISLayers.keys():
+                    mapLayer = registeredQGISLayers[id]
+
                 elif id in attributesLUT.keys():
                     attributes = attributesLUT[id]
-
-                    if attributes['providerKey'] == 'gdal':
+                    providerKey = attributes.get('providerKey')
+                    if providerKey == 'gdal':
                         mapLayer = QgsRasterLayer(attributes['source'])
-                    elif attributes['providerKey'] == 'ogr':
+                    elif providerKey == 'ogr':
                         mapLayer = QgsVectorLayer(attributes['source'])
                     else:
                         s = ""

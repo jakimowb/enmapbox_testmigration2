@@ -396,11 +396,11 @@ if __name__ == '__main__':
         if False: sandboxDataSourceManager()
         #if True: sandboxDockManager()
 
-        if False: sandboxPureGui(loadProcessingFramework=True)
+        if True: sandboxPureGui(loadProcessingFramework=False)
 
         if False: sandboxProcessingFramework()
         if False: sandboxQgisBridge()
-        if True: sandboxGUI()
+        if False: sandboxGUI()
         if False: sandboxUmlaut()
         if False: sandboxDialog()
 

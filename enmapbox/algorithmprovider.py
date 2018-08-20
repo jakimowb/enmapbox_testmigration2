@@ -130,6 +130,17 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         self.refreshAlgorithms()
         return True
 
+    def containsAlgorithm(self, algorithm:QgsProcessingAlgorithm)->bool:
+        """
+        Returns True if an algorithm with same name is already added.
+        :param algorithm:
+        :return:
+        """
+        for a in self.algorithms():
+            if a.name() == algorithm.name():
+                return True
+        return False
+
     def unload(self):
         """
         This method is called when you remove the provider from
@@ -157,6 +168,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         :param _emitUpdated: bool, True by default. set on False to not call .emitUpdated() automatically
         :return:
         """
+        self.mAlgorithms.append(algorithm)
         super(EnMAPBoxAlgorithmProvider,self).addAlgorithm(algorithm)
         if _emitUpdated:
             self.emitUpdated()
@@ -167,7 +179,10 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         """
         assert isinstance(algorithmns, list)
         for a in algorithmns:
-            self.addAlgorithm(a, _emitUpdated = a == algorithmns[-1])
+            self.addAlgorithm(a.create(), _emitUpdated = False)
+        if len(algorithmns) > 0:
+            self.emitUpdated()
+        #self.refreshAlgorithms()
 
     def removeAlgorithm(self, algorithm:QgsProcessingAlgorithm):
         """
@@ -187,8 +202,14 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         for a in algorithms:
             if a in self.mAlgorithms:
                 self.mAlgorithms.remove(a)
-        self.refreshAlgorithms()
+        #self.refreshAlgorithms()
 
+    def refreshAlgorithms(self, *args, **kwargs):
+
+        copies = [a.create() for a in self.algorithms()]
+        self.removeAlgorithms(self.algorithms())
+        super(EnMAPBoxAlgorithmProvider,self).refreshAlgorithms()
+        self.addAlgorithms(copies)
 
     def loadAlgorithms(self):
         """
@@ -196,4 +217,5 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         """
         for alg in self.mAlgorithms:
             alg.provider = self
+        self.addAlgorithms(self.mAlgorithms)
 
