@@ -35,8 +35,9 @@ CHECK_COMMITS = False
 
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
+currentBranch = REPO.active_branch.name
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
-buildID = '{}.{}'.format(enmapbox.__version__, timestamp)
+buildID = '{}.{}.{}'.format(enmapbox.__version__, timestamp, re.sub(r'[\\/]','_', currentBranch))
 
 
 def rm(p):
@@ -111,7 +112,7 @@ def build():
         # 1. clean an existing directory = the enmapboxplugin folder
         pb_tool.clean_deployment(ask_first=False)
 
-        currentBranch = REPO.active_branch.name
+
 
         if currentBranch not in ["develop", "master"]:
             print('Skipped automatic version update because current branch is not "develop" or "master". ')
