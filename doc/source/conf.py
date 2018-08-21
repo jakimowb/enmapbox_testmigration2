@@ -34,7 +34,7 @@ autodoc_mock_imports = [
                 'processing', 'processing.core.ProcessingConfig'
 ]
 autodoc_warningiserror = False
-import PyQt5, PyQt5.Qt, PyQt5.QtWidgets, PyQt5.QtGui, PyQt5.QtCore
+#import PyQt5, PyQt5.Qt, PyQt5.QtWidgets, PyQt5.QtGui, PyQt5.QtCore
 #sys.modules['qgis.PyQt'] = PyQt5
 #sys.modules['qgis.PyQt.Qt'] = PyQt5.Qt
 #sys.modules['qgis.PyQt.QCore'] = PyQt5.QtCore
