@@ -2,6 +2,9 @@
 # see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
 
 ###### Requirements to build documentation with sphinx ######
-sphinx>=1.7.2
+sphinx>=1.7.7
 sphinx_rtd_theme>=0.3.0
 PyQt5
+mock>=2.0.0
+numpy>=1.14.5
+scikit-learn>=0.19.2

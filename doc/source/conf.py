@@ -19,18 +19,22 @@
 import os
 import sys
 import mock
-MOCK_MODULES = ['qgis','qgis.core','qgis.gui','qgis.PyQt','qgis.PyQt.Qt','qgis.PyQt.QtCore','qgis.PyQt.QtGui','qgis.PyQt.QtWidgets',
+
+MOCK_MODULES = [#'qgis','qgis.core','qgis.gui',
+                #'qgis.PyQt','qgis.PyQt.Qt','qgis.PyQt.QtCore','qgis.PyQt.QtGui','qgis.PyQt.QtWidgets',
                 'processing','processing.core','processing.core.ProcessingConfig']
 
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
+
 autodoc_mock_imports = [
                 'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
                 'qgis',
-                'processing'
+                'processing', 'processing.core.ProcessingConfig'
 ]
 autodoc_warningiserror = False
+import PyQt5, PyQt5.Qt, PyQt5.QtWidgets, PyQt5.QtGui, PyQt5.QtCore
 #sys.modules['qgis.PyQt'] = PyQt5
 #sys.modules['qgis.PyQt.Qt'] = PyQt5.Qt
 #sys.modules['qgis.PyQt.QCore'] = PyQt5.QtCore
@@ -227,9 +231,13 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 # adding this because in pycookbook a lot of text is referencing classes, which cannot be found by sphinx
 # eg: Map canvas is implemented as :class:`QgsMapCanvas` ...
 # I hope somebody will create the real references for these so they can be removed here...
+nitpicky = True
 nitpick_ignore = [('py:class', 'QAction'),
                   ('py:class', 'QDomElement'),
                   ('py:class', 'QFileInfo'),
+
+                  ('py:class', 'QSettings'),
+
                   ('py:class', 'QGraphicsScene'),
                   ('py:class', 'QgsAccessControlFilter'),
                   ('py:class', 'QgsCategorizedSymbolRendererV2'),
