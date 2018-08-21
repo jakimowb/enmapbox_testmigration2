@@ -19,10 +19,17 @@
 import os
 import sys
 import mock
-MOCK_MODULES = [#'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
-                'processing', 'processing.core','processing.core.ProcessingConfig']
+MOCK_MODULES = ['processing','processing.core','processing.core.ProcessingConfig']
+
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
+
+autodoc_mock_imports = [
+                'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
+                'qgis',
+                'processing'
+]
+autodoc_warningiserror = False
 #sys.modules['qgis.PyQt'] = PyQt5
 #sys.modules['qgis.PyQt.Qt'] = PyQt5.Qt
 #sys.modules['qgis.PyQt.QCore'] = PyQt5.QtCore
@@ -408,9 +415,7 @@ nitpick_ignore = [('py:class', 'QAction'),
                   ('py:const', 'PostgisCrsId'),
                   ('py:const', 'True'),
 
-                  ('py:mod', 'qgis.core'),
-                  ('py:mod', 'qgis.gui'),
-                  ('py:mod', 'qgis.utils'),
+                  ('py:mod', 'qgis'),
                   ('py:mod', 'numpy'),
                   ('py:mod', 'processing'),
                   ('py:mod', 'pyqtgraph'),
