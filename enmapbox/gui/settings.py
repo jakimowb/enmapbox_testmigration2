@@ -20,9 +20,9 @@
 import sys, os, site
 from qgis.core import *
 from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 
 ENMAP_BOX_KEY = 'EnMAP-Box'
 def qtSettingsObj():
@@ -81,8 +81,9 @@ class SettingsInfo(object):
             settings = qtSettingsObj()
 
         settings.setValue(self.mKey, self.mValue)
-    def saveToProject(self, project=QgsProject.instance()):
-
+    def saveToProject(self, project=None):
+        if project is None:
+            project = QgsProject.instance()
         assert isinstance(project, QgsProject)
 
 
