@@ -831,6 +831,34 @@ def typecheck(variable, type_):
         assert isinstance(variable, type_)
 
 
+
+# thanks to https://gis.stackexchange.com/questions/75533/how-to-apply-band-settings-using-gdal-python-bindings
+def read_vsimem(fn):
+    """
+    Reads VSIMEM path as string
+    :param fn: vsimem path (str)
+    :return: result of gdal.VSIFReadL(1, vsileng, vsifile)
+    """
+    vsifile = gdal.VSIFOpenL(fn,'r')
+    gdal.VSIFSeekL(vsifile, 0, 2)
+    vsileng = gdal.VSIFTellL(vsifile)
+    gdal.VSIFSeekL(vsifile, 0, 0)
+    return gdal.VSIFReadL(1, vsileng, vsifile)
+
+def write_vsimem(fn:str,data:str):
+    """
+    Writes data to vsimem path
+    :param fn: vsimem path (str)
+    :param data: string to write
+    :return: result of gdal.VSIFCloseL(vsifile)
+    """
+    '''Write GDAL vsimem files'''
+    vsifile = gdal.VSIFOpenL(fn,'w')
+    size = len(data)
+    gdal.VSIFWriteL(data, 1, size, vsifile)
+    return gdal.VSIFCloseL(vsifile)
+
+
 from collections import defaultdict
 import weakref
 

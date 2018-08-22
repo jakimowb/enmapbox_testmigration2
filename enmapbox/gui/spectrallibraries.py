@@ -916,14 +916,11 @@ class SpectralLibraryTableView(QgsAttributeTableView):
             a = menu.addAction('Uncheck')
             a.triggered.connect(lambda: self.setCheckState(featureIDs, Qt.Unchecked))
 
-
         for a in self.actions():
             menu.addAction(a)
 
     def spectralLibrary(self)->SpectralLibrary:
         return self.model().layer()
-
-
 
     def onCopy2Clipboard(self, fids, mode):
         assert isinstance(fids, list)
@@ -933,8 +930,6 @@ class SpectralLibraryTableView(QgsAttributeTableView):
         assert isinstance(speclib, SpectralLibrary)
         speclib = speclib.speclibFromFeatureIDs(fids)
         ClipboardIO.write(speclib, mode=mode)
-
-        s = ""
 
     def onSaveToFile(self, fids):
         speclib = self.spectralLibrary()

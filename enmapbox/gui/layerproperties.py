@@ -29,9 +29,11 @@ from qgis.core import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtXml import QDomDocument
 
-from enmapbox.gui.utils import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames
+from enmapbox.gui.utils import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames, write_vsimem
 from enmapbox.gui.widgets.models import *
+import enmapbox.gui.mimedata
 """
 class RasterLayerProperties(QgsOptionsDialogBase):
     def __init__(self, lyr, canvas, parent, fl=Qt.Widget):
@@ -53,6 +55,149 @@ class RasterLayerProperties(QgsOptionsDialogBase):
     RASTERRENDERER_CREATE_FUNCTIONS['singlebandpseudocolor (QGIS)'] = QgsSingleBandPseudoColorRendererWidget.create
 """
 
+RENDER_CLASSES = {}
+RENDER_CLASSES['rasterrenderer'] = {
+    'singlebandpseudocolor':QgsSingleBandPseudoColorRenderer,
+    'singlebandgray': QgsSingleBandGrayRenderer,
+    'paletted':QgsPalettedRasterRenderer,
+    'multibandcolor': QgsMultiBandColorRenderer,
+    'hillshade': QgsHillshadeRenderer
+}
+RENDER_CLASSES['renderer-v2'] = {
+    'categorizedSymbol':QgsCategorizedSymbolRenderer,
+    'singleSymbol':QgsSingleSymbolRenderer
+}
+DUMMY_RASTERINTERFACE = QgsSingleBandGrayRenderer(None, 0)
+
+def rendererFromXml(xml):
+    """
+    Reads a string `text` and returns the first QgsRasterRenderer or QgsFeatureRenderer (if defined).
+    :param xml: QMimeData | QDomDocument
+    :return:
+    """
+
+    if isinstance(xml, QMimeData):
+        md = enmapbox.gui.mimedata
+        for format in [md.MDF_QGIS_LAYER_STYLE, md.MDF_TEXT_PLAIN]:
+        #for format in ['application/qgis.style', 'text/plain']:
+            if format in xml.formats():
+                dom  = QDomDocument()
+                dom.setContent(xml.data(format))
+                return rendererFromXml(dom)
+        return None
+
+    elif isinstance(xml, str):
+        dom = QDomDocument()
+        dom.setContent(xml)
+        return rendererFromXml(dom)
+
+    assert isinstance(xml, QDomDocument)
+    root = xml.documentElement()
+    for baseClass, renderClasses in RENDER_CLASSES.items():
+        elements = root.elementsByTagName(baseClass)
+        if elements.count() > 0:
+            elem = elements.item(0).toElement()
+            typeName = elem.attributes().namedItem('type').nodeValue()
+            if typeName in renderClasses.keys():
+                rClass = renderClasses[typeName]
+                if baseClass == 'rasterrenderer':
+
+                    return rClass.create(elem, DUMMY_RASTERINTERFACE)
+                elif baseClass == 'renderer-v2':
+                    context = QgsReadWriteContext()
+                    return rClass.load(elem, context)
+            else:
+                print(typeName)
+                s =""
+    return None
+
+
+
+def rendererToXml(layerOrRenderer, geomType:QgsWkbTypes=None):
+    """
+    Returns a renderer XML representation
+    :param layerOrRenderer: QgsRasterRender | QgsFeatureRenderer
+    :return: QDomDocument
+    """
+    doc = QDomDocument()
+    err = ''
+    if isinstance(layerOrRenderer, QgsRasterLayer):
+        return rendererToXml(layerOrRenderer.renderer())
+    elif isinstance(layerOrRenderer, QgsVectorLayer):
+        geomType = layerOrRenderer.geometryType()
+        return rendererToXml(layerOrRenderer.renderer(), geomType=geomType)
+    elif isinstance(layerOrRenderer, QgsRasterRenderer):
+        #create a dummy raster layer
+        import uuid
+        xml = """<VRTDataset rasterXSize="1" rasterYSize="1">
+                  <GeoTransform>  0.0000000000000000e+00,  1.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00, -1.0000000000000000e+00</GeoTransform>
+                  <VRTRasterBand dataType="Float32" band="1">
+                    <Metadata>
+                      <MDI key="STATISTICS_MAXIMUM">0</MDI>
+                      <MDI key="STATISTICS_MEAN">0</MDI>
+                      <MDI key="STATISTICS_MINIMUM">0</MDI>
+                      <MDI key="STATISTICS_STDDEV">0</MDI>
+                    </Metadata>
+                    <Description>Band 1</Description>
+                    <Histograms>
+                      <HistItem>
+                        <HistMin>0</HistMin>
+                        <HistMax>0</HistMax>
+                        <BucketCount>1</BucketCount>
+                        <IncludeOutOfRange>0</IncludeOutOfRange>
+                        <Approximate>0</Approximate>
+                        <HistCounts>0</HistCounts>
+                      </HistItem>
+                    </Histograms>
+                  </VRTRasterBand>
+                </VRTDataset>
+                """
+        path = '/vsimem/{}.vrt'.format(uuid.uuid4())
+        drv = gdal.GetDriverByName('VRT')
+        assert isinstance(drv, gdal.Driver)
+        write_vsimem(path, xml)
+        lyr = QgsRasterLayer(path)
+        assert lyr.isValid()
+        lyr.setRenderer(layerOrRenderer.clone())
+        lyr.exportNamedStyle(doc, err)
+        #remove dummy raster layer
+        lyr = None
+        drv.Delete(path)
+
+    elif isinstance(layerOrRenderer, QgsFeatureRenderer) and geomType is not None:
+        #todo: distinguish vector type from requested renderer
+        typeName = QgsWkbTypes.geometryDisplayString(geomType)
+        lyr = QgsVectorLayer('{}?crs=epsg:4326&field=id:integer'.format(typeName), 'dummy', 'memory')
+        lyr.setRenderer(layerOrRenderer.clone())
+        lyr.exportNamedStyle(doc, err)
+        lyr = None
+    else:
+        raise NotImplementedError()
+
+
+    return doc
+
+def pasteStyleToClipboard(layer: QgsMapLayer):
+
+    xml = rendererToXml(layer)
+    if isinstance(xml, QDomDocument):
+        md = QMimeData()
+        # ['application/qgis.style', 'text/plain']
+
+        md.setData('application/qgis.style', xml.toByteArray())
+        md.setData('text/plain', xml.toByteArray())
+        QApplication.clipboard().setMimeData(md)
+
+def pasteStyleFromClipboard(layer:QgsMapLayer):
+    mimeData = QApplication.clipboard().mimeData()
+    renderer = rendererFromXml(mimeData)
+    if isinstance(renderer, QgsRasterRenderer) and isinstance(layer, QgsRasterLayer):
+        layer.setRenderer(renderer)
+        layer.triggerRepaint()
+
+    elif isinstance(renderer, QgsFeatureRenderer) and isinstance(layer, QgsVectorLayer):
+        layer.setRenderer(renderer)
+        layer.triggerRepaint()
 
 
 class RendererWidgetModifications(object):

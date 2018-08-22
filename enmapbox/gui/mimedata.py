@@ -22,6 +22,7 @@ MDF_URILIST = 'text/uri-list'
 MDF_TEXT_HTML = 'text/html'
 MDF_TEXT_PLAIN = 'text/plain'
 
+MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
 
 def attributesd2dict(attributes:QDomNamedNodeMap)->str:
     d = {}
