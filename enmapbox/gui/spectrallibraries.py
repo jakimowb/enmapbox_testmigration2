@@ -879,7 +879,7 @@ class SpectralLibraryTableView(QgsAttributeTableView):
         return sorted(indexes, key=lambda i : i.row())
 
     #def contextMenuEvent(self, event):
-    def onWillShowContextMenu(self, menu, index):
+    def onWillShowContextMenu(self, menu:QMenu, index:QModelIndex):
         assert isinstance(menu, QMenu)
         assert isinstance(index, QModelIndex)
 
@@ -887,9 +887,9 @@ class SpectralLibraryTableView(QgsAttributeTableView):
 
         if len(featureIDs) == 0 and index.isValid():
             if isinstance(self.model(), QgsAttributeTableFilterModel):
-                index = self.model().mapToSource(index)
-                if index.isValid():
-                    featureIDs.append(self.model().sourceModel().feature(index).id())
+                idx = self.model().mapToSource(index)
+                if idx.isValid():
+                    featureIDs.append(self.model().sourceModel().feature(idx).id())
             elif isinstance(self.model(), QgsAttributeTableFilterModel):
                 featureIDs.append(self.model().feature(index).id())
 
@@ -904,16 +904,19 @@ class SpectralLibraryTableView(QgsAttributeTableView):
             a = m.addAction("Values + Attributes")
             a.triggered.connect(lambda b, ids=featureIDs, mode=ClipboardIO.WritingModes.ALL: self.onCopy2Clipboard(ids, mode))
 
-        a = menu.addAction('Save as...')
-        a.triggered.connect(lambda b, ids=featureIDs : self.onSaveToFile(ids))
-        menu.addSeparator()
-        a = menu.addAction('Set Style')
-        a.triggered.connect(lambda b, ids=featureIDs : self.onSetStyle(ids))
-        a = menu.addAction('Check')
-        a.triggered.connect(lambda : self.setCheckState(featureIDs, Qt.Checked))
-        a = menu.addAction('Uncheck')
-        a.triggered.connect(lambda: self.setCheckState(featureIDs, Qt.Unchecked))
-        menu.addSeparator()
+            a = menu.addAction('Save as...')
+            a.triggered.connect(lambda b, ids=featureIDs: self.onSaveToFile(ids))
+
+        if index.column() == 0:
+            menu.addSeparator()
+            a = menu.addAction('Set Style')
+            a.triggered.connect(lambda b, ids=featureIDs : self.onSetStyle(ids))
+            a = menu.addAction('Check')
+            a.triggered.connect(lambda : self.setCheckState(featureIDs, Qt.Checked))
+            a = menu.addAction('Uncheck')
+            a.triggered.connect(lambda: self.setCheckState(featureIDs, Qt.Unchecked))
+
+
         for a in self.actions():
             menu.addAction(a)
 
