@@ -1,4 +1,6 @@
 # .readthedocs.yml
+name: enmapbox
+type: sphinx
 
 build:
   image: latest
@@ -12,4 +14,4 @@ formats: []
 # - epub
 # - pdf
 
-requirements_file:  /doc/source/requirements.txt
+requirements_file:  doc/source/requirements.txt
