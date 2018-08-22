@@ -401,28 +401,28 @@ EMB_APPLICATION_PATH  string                list of directories (separated by ';
 Further links and sources
 =========================
 
-https://docs.python.org/devguide
+* https://docs.python.org/devguide
 
 Git for Beginners
 -----------------
 
-http://rogerdudler.github.io/git-guide/
-http://rogerdudler.github.io/git-guide/files/git_cheat_sheet.pdf
+* http://rogerdudler.github.io/git-guide/
+* http://rogerdudler.github.io/git-guide/files/git_cheat_sheet.pdf
 
 
 PyQGIS
 ------
 
-https://www.qgis.org/api/
-https://webgeodatavore.github.io/pyqgis-samples/
-http://plugins.qgis.org/planet/
-https://www.qgis.org/en/site/getinvolved/development/qgisdevelopersguide.html
+* https://www.qgis.org/api/
+* https://webgeodatavore.github.io/pyqgis-samples/
+* http://plugins.qgis.org/planet/
+* https://www.qgis.org/en/site/getinvolved/development/qgisdevelopersguide.html
 
 
 Python Code Documentation
 -------------------------
 
-http://www.sphinx-doc.org/en/stable/tutorial.html
-https://docs.python.org/devguide/documenting.html
-http://docutils.sourceforge.net/rst.html
-
+* http://www.sphinx-doc.org/en/stable/tutorial.html
+* https://docs.python.org/devguide/documenting.html
+* http://docutils.sourceforge.net/rst.html
+* https://sphinx-rtd-theme.readthedocs.io/en/latest/index.html

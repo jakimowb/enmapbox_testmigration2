@@ -5,11 +5,16 @@ FAQ & Troubleshooting
 Bug report & feedback
 =====================
 
+.. |link_bitbucket| raw:: html
+
+   <a href="https://bitbucket.org/hu-geomatics/enmap-box/issues/new" target="_blank">Bitbucket Repository</a>
+
+
 .. note:: Your feedback is more than welcome! In case you encounter any problems with the EnMap-Box or have
           suggestions of any kind for improving it (or this documentation), please let us know!
 
 .. attention:: **It's best to report issues (bugs, suggestions etc.)
-               via our** `Bitbucket Repository <https://bitbucket.org/hu-geomatics/enmap-box/issues/new>`_.
+               via our** |link_bitbucket|.
 
 
 |
@@ -34,11 +39,20 @@ How do I...
 How can I solve the following error...
 --------------------------------------
 
+... **Error loading the plugin**
+
+    In case of missing requirements you should see an error message like this
+
+    .. image:: ../img/missing_package_warning.png
+
+    In that case please make sure you :ref:`installed all missing packages <install-python-packages>`,
+    in this example ``pyqtgraph`` and ``sklearn`` are missing.
+
+
 ... **Wrong value for parameter MSYS**
 
-    This error sometimes occurs when activating the EnMAP-Box AlgorithmProvider in Windows.
-
-    Please install the *msys (command line utilities)* package with the OSGeo4W package installer.
+    This error sometimes occurs when activating the EnMAP-Box AlgorithmProvider in Windows. Please install
+    the *msys (command line utilities)* package with the OSGeo4W package installer.
 
 ... **This plugin is broken: 'module' object has not attribute 'GRIORA_NearestNeighbor'**
 

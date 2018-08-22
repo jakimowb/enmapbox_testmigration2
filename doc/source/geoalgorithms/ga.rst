@@ -1,5 +1,5 @@
-GeoAlgorithms
-#############
+Processing Algorithms
+#####################
 
 Accuracy Assessment
 ===================
@@ -26,6 +26,7 @@ Specify output path for HTML report file (.html).
 
 ....
 
+
 Clustering Performance
 ----------------------
 
@@ -48,15 +49,16 @@ Specify output path for HTML report file (.html).
 
 ....
 
-Fraction Performance
---------------------
 
-Assesses the performance of class fractions in terms of AUC and ROC curves.
+ClassProbability Performance
+----------------------------
+
+Assesses the performance of class probabilities in terms of AUC and ROC curves.
 
 Prediction
 ~~~~~~~~~~
 
-Specify class fraction raster to be evaluated.
+Specify class probability raster to be evaluated.
 
 Reference
 ~~~~~~~~~
@@ -103,7 +105,7 @@ Creates a Class Definition string from a classification input raster for the usa
 Raster
 ~~~~~~
 
-Specify raster with defined class definition, e.g. classification or class fraction raster
+Specify raster with defined class definition, e.g. classification or class probability raster
 
 ....
 
@@ -112,102 +114,40 @@ Create additional Testdata
 
 Based on the testdata additional datasets will be created using existing EnMAP-Box algorithms with predefined settings.
 
-Create 30 m maps
-~~~~~~~~~~~~~~~~
+LandCover L2 Classification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-undocumented parameter
+Specify output path for LandCover L2 Classification.
 
-Create 3.6 m maps
-~~~~~~~~~~~~~~~~~
+LandCover L2 ClassProbability
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-undocumented parameter
+Specify output path for LandCover L2 ClassProbability.
 
-Create labeled Library
-~~~~~~~~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-LandCover Classification for 6 classes at 30 m
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Specify output path for classification raster.
-
-LandCover Fraction for 6 classes at 30 m
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Specify output path for fraction raster.
-
-LandCover Classification for 6 classes at 3.6 m
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Specify output path for classification raster.
-
-LandCover Fraction for 6 classes at 3.6 m
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Specify output path for fraction raster.
-
-Library with 30 m profiles and classification/fraction labels
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-....
-
-Import Library
---------------
-
-Import Library profiles and labels as Raster.
-
-Library
-~~~~~~~
-
-Select path to an ENVI (e.g. .sli or .esl).
-
-Import Profiles
-~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-Import Classification Labels (by classification scheme name)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-Import Regression Labels (by output names)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-Import Fraction Labels (by output names)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-Output Raster
+Output Sample
 ~~~~~~~~~~~~~
 
-Specify output path for raster.
+Specify output path for sample (.pkl).
 
-Output Classification
-~~~~~~~~~~~~~~~~~~~~~
+Output ClassificationSample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Specify output path for classification raster.
+Specify output path for sample (.pkl).
 
-Output Regression
-~~~~~~~~~~~~~~~~~
+Output ClassProbabilitySample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Specify output path for regression raster.
+Specify output path for sample (.pkl).
 
-Output Fraction
-~~~~~~~~~~~~~~~
+Output RegressionSample
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Specify output path for fraction raster.
+Specify output path for sample (.pkl).
 
 ....
 
-Open Test Maps
---------------
+Open Testdata
+-------------
 
 Opens testdata into current QGIS project (LandCov_BerlinUrbanGradient.shp, HighResolution_BerlinUrbanGradient.bsq, EnMAP_BerlinUrbanGradient.bsq, SpecLib_BerlinUrbanGradient.sli).
 
@@ -223,7 +163,7 @@ HyMap (3.6m; Blue, Green, Red, NIR bands)
 
 File name: HighResolution_BerlinUrbanGradient.bsq
 
-HyMap image acquired in August 2009 over south eastern part of Berlin covering an area of 4.32 km^2 (2.4 x 1.8 km). This dataset was reduced to 4 bands (0.483, 0.558, 0.646 and 0.804 micrometers). The spatial resolution is 3.6m.
+HyMap image acquired in August 2009 over south eastern part of Berlin covering an area of 4.32 km² (2.4 x 1.8 km). This dataset was reduced to 4 bands (0.483, 0.558, 0.646 and 0.804 micrometers). The spatial resolution is 3.6m.
 
 LandCover Layer
 ~~~~~~~~~~~~~~~
@@ -236,8 +176,8 @@ Level 1 classes: Impervious; Other; Vegetation; Soil
 
 Level 2 classes: Roof; Low vegetation; Other; Pavement; Tree; Soil
 
-Library as Raster
-~~~~~~~~~~~~~~~~~
+ENVI Spectral Library
+~~~~~~~~~~~~~~~~~~~~~
 
 File name: SpecLib_BerlinUrbanGradient.sli
 
@@ -245,37 +185,26 @@ Spectral library with 75 spectra (material level, level 2 and level 3 class info
 
 ....
 
-Open Test Library
------------------
+Scale Sample Features
+---------------------
 
-....
+Scales the features of a sample by a user defined factor (can be used for matching datasets).
+Use case: A sample from a spectral library should be used for classifying a raster. The spectral library sample has float surface reflectance values between 0 and 1 and the raster integer surface reflectances between 0 and 1000. In order to match the datasets, you can rescale the sample by a factor of 1000.
 
-Unique Values from Raster Band
-------------------------------
-
-This algorithm returns unique values from a raster band as a list. The output will be shown in the log window and can the copied from there accordingly.
-
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
+Specify path to sample file (.pkl).
 
-Band
-~~~~
+Scale factor
+~~~~~~~~~~~~
 
-Specify input raster band.
+Scale factor that is applied to all features.
 
-....
+Output Sample
+~~~~~~~~~~~~~
 
-View Raster Metadata
---------------------
-
-Prints all Raster metadata to log.
-
-Raster
-~~~~~~
-
-Specify input raster.
+Specify output path for sample (.pkl).
 
 ....
 
@@ -304,24 +233,10 @@ Fit GaussianProcessClassifier
 
 Fits Gaussian Process Classifier. See `Gaussian Processes <http://scikit-learn.org/stable/modules/gaussian_process.html>`_ for further information.
 
-Raster
-~~~~~~
+ClassificationSample
+~~~~~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Classification
-~~~~~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -331,7 +246,7 @@ Scikit-learn python code. See `GaussianProcessClassifier <http://scikit-learn.or
 Output Classifier
 ~~~~~~~~~~~~~~~~~
 
-Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassFraction'.
+Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassProbability'.
 
 ....
 
@@ -340,24 +255,10 @@ Fit LinearSVC
 
 Fits a linear Support Vector Classification. Input data will be scaled and grid search is used for model selection.
 
-Raster
-~~~~~~
+ClassificationSample
+~~~~~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Classification
-~~~~~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -367,7 +268,7 @@ Scikit-learn python code. For information on different parameters have a look at
 Output Classifier
 ~~~~~~~~~~~~~~~~~
 
-Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassFraction'.
+Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassProbability'.
 
 ....
 
@@ -376,24 +277,10 @@ Fit RandomForestClassifier
 
 Fits a Random Forest Classifier
 
-Raster
-~~~~~~
+ClassificationSample
+~~~~~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Classification
-~~~~~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -403,7 +290,7 @@ Scikit-learn python code. See `RandomForestClassifier <http://scikit-learn.org/s
 Output Classifier
 ~~~~~~~~~~~~~~~~~
 
-Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassFraction'.
+Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassProbability'.
 
 ....
 
@@ -412,24 +299,10 @@ Fit SVC
 
 Fits a Support Vector Classification. Input data will be scaled and grid search is used for model selection.
 
-Raster
-~~~~~~
+ClassificationSample
+~~~~~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Classification
-~~~~~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -439,7 +312,7 @@ Scikit-learn python code. For information on different parameters have a look at
 Output Classifier
 ~~~~~~~~~~~~~~~~~
 
-Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassFraction'.
+Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassProbability'.
 
 ....
 
@@ -474,8 +347,8 @@ Specify output path for classification raster.
 
 ....
 
-Predict Class Probability
--------------------------
+Predict ClassProbability
+------------------------
 
 Applies a classifier to a raster.
 
@@ -498,10 +371,10 @@ Classifier
 
 Select path to a classifier file (.pkl).
 
-Probability
-~~~~~~~~~~~
+Prediction
+~~~~~~~~~~
 
-Specify output path for fraction raster.
+Specify output path for raster.
 
 ....
 
@@ -513,19 +386,10 @@ Fit AffinityPropagation
 
 Fits a Affinity Propagation clusterer (input data will be scaled).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -544,19 +408,10 @@ Fit Birch
 
 Fits a Birch clusterer (input data will be scaled).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -575,19 +430,10 @@ Fit KMeans
 
 Fits a KMeans clusterer (input data will be scaled).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -606,19 +452,10 @@ Fit MeanShift
 
 Fits a MeanShift clusterer (input data will be scaled).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -663,811 +500,16 @@ Specify output path for classification raster.
 
 ....
 
-Convolution, Morphology and Filtering
-=====================================
-
-Spatial Convolution AiryDisk2DKernel
-------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Convolution Box2DKernel
--------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Convolution Gaussian2DKernel
-------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Convolution MexicanHat2DKernel
---------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Convolution Moffat2DKernel
-----------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Convolution Ring2DKernel
---------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Convolution Tophat2DKernel
-----------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Convolution TrapezoidDisk2DKernel
------------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spectral Convolution Box1DKernel
---------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spectral Convolution Gaussian1DKernel
--------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spectral Convolution MexicanHat1DKernel
----------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spectral Convolution SavitzkyGolay1DKernel
-------------------------------------------
-
-Applies `Savitzki Golay Filter <https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter>`_.
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-Python code. See `scipy.signal.savgol_coeffs <http://scipy.github.io/devdocs/generated/scipy.signal.savgol_coeffs.html#scipy.signal.savgol_coeffs>`_ for information on different parameters.
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spectral Convolution Trapezoid1DKernel
---------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Binary Closing
-------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Binary Dilation
--------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Binary Erosion
-------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Binary Fill Holes
----------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Binary Opening
-------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Binary Propagation
-----------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Black Tophat
-----------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Gradient
-------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Grey Closing
-----------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Grey Dilation
------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Grey Erosion
-----------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Grey Opening
-----------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological Laplace
------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Morphological White Tophat
-----------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Gaussian Gradient Magnitude
-------------------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Generic Filter
------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Laplace
-----------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Maximum Filter
------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Median Filter
-----------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Minimum Filter
------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Percentile Filter
---------------------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Prewitt
-----------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial  Sobel
---------------
-
-undocumented
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Code
-~~~~
-
-undocumented
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
 Create Raster
 =============
 
-Classification from Fraction
-----------------------------
+Classification from ClassProbability
+------------------------------------
 
-Creates classification from class fraction. Winner class is equal to the class with maximum class fraction.
+Creates classification from class probability. Winner class is equal to the class with maximum class probability.
 
-ClassFraction
-~~~~~~~~~~~~~
+ClassProbability
+~~~~~~~~~~~~~~~~
 
 Specify input raster.
 
@@ -1476,8 +518,8 @@ Minimal overall coverage
 
 Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
 
-Minimal dominant coverage
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
 
@@ -1493,8 +535,8 @@ Classification from Vector
 
 Creates a classification from a vector field with class ids.
 
-Pixel Grid
-~~~~~~~~~~
+PixelGrid
+~~~~~~~~~
 
 Specify input raster.
 
@@ -1522,8 +564,8 @@ Minimal overall coverage
 
 Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
 
-Minimal dominant coverage
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
 
@@ -1541,30 +583,30 @@ Specify output path for classification raster.
 
 ....
 
-Fraction from Classification
-----------------------------
+ClassProbability from Classification
+------------------------------------
 
-Derive (binarized) class fractions from a classification.
+Derive (binarized) class probabilities from a classification.
 
 Classification
 ~~~~~~~~~~~~~~
 
 Specify input raster.
 
-Output Fraction
-~~~~~~~~~~~~~~~
+Output ClassProbability
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Specify output path for fraction raster.
+Specify output path for class probability raster.
 
 ....
 
-Fraction from Vector
---------------------
+ClassProbability from Vector
+----------------------------
 
-Derives class fraction raster from a vector file with sufficient class information.
+Derives class probability raster from a vector file with sufficient class information.
 
-Pixel Grid
-~~~~~~~~~~
+PixelGrid
+~~~~~~~~~
 
 Specify input raster.
 
@@ -1592,8 +634,8 @@ Minimal overall coverage
 
 Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
 
-Minimal dominant coverage
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
 
@@ -1604,10 +646,10 @@ Defines the degree of detail by which the class information given by the vector 
 
 Mind that larger values are always better (more accurate), but depending on the inputs, this process can be quite computationally intensive, when a higher factor than 1 is used.
 
-Output Fraction
-~~~~~~~~~~~~~~~
+Output ClassProbability
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Specify output path for fraction raster.
+Specify output path for class probability raster.
 
 ....
 
@@ -1616,8 +658,8 @@ Raster from Vector
 
 Converts vector to raster (using `gdal rasterize <http://gdal.org/python/osgeo.gdal-module.html#RasterizeOptions>`_).
 
-Pixel Grid
-~~~~~~~~~~
+PixelGrid
+~~~~~~~~~
 
 Specify input raster.
 
@@ -1673,18 +715,69 @@ Specify output path for raster.
 Create Sample
 =============
 
-Create Sample from synthetically mixed Endmembers
--------------------------------------------------
+ClassificationSample from ENVI Spectral Library
+-----------------------------------------------
 
-Derives a class fraction sample by synthetically mixing (pure) spectra from a classification sample.
+Derive ClassificationSample from ENVI Spectral Library.
+
+ENVI Spectral Library
+~~~~~~~~~~~~~~~~~~~~~
+
+Select path to an ENVI (e.g. .sli or .esl).
+
+ClassDefinition prefix
+~~~~~~~~~~~~~~~~~~~~~~
+
+Class definition prefixes allow the selection of a specific class definition (i.e. 'class names' and 'class lookup') and class mapping (i.e. 'class spectra names') stored in the spectral library .hdr file).
+
+For example, inside the `EnMAP-Box testdata spectral library <file:///C:\Work\source\enmap-box-testdata\enmapboxtestdata\SpecLib_BerlinUrbanGradient.hdr>`_, the prefixes 'level 1' and 'level 2' are defined.
+
+Output ClassificationSample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+ClassificationSample from ClassProbabilitySample
+------------------------------------------------
+
+Derive ClassificationSample from ClassProbabilitySample. Winner class is selected by the maximum probability decision.
+
+ClassProbabilitySample
+~~~~~~~~~~~~~~~~~~~~~~
+
+Specify path to sample file (.pkl).
+
+Minimal overall coverage
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
+
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
+
+Output ClassificationSample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+ClassificationSample from Raster and ClassProbability
+-----------------------------------------------------
+
+Derives classification sample from raster and class probability raster.
 
 Raster
 ~~~~~~
 
 Specify input raster.
 
-Classification
-~~~~~~~~~~~~~~
+ClassProbability
+~~~~~~~~~~~~~~~~
 
 Specify input raster.
 
@@ -1696,6 +789,95 @@ Specified vector or raster is interpreted as a boolean mask.
 In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
 
 In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+
+Minimal overall coverage
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
+
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
+
+Output ClassificationSample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+ClassificationSample from Raster and Vector
+-------------------------------------------
+
+Derives classification sample from raster and vector.
+
+Raster
+~~~~~~
+
+Specify input raster.
+
+Vector
+~~~~~~
+
+Specify input vector.
+
+Class id attribute
+~~~~~~~~~~~~~~~~~~
+
+Vector field specifying the class ids.
+
+Class Definition
+~~~~~~~~~~~~~~~~
+
+Enter a class definition, e.g.:
+
+ClassDefinition(names=['Urban', 'Forest', 'Water'], colors=['red', '#00FF00', (0, 0, 255)])
+
+For supported named colors see the `W3C recognized color keyword names <https://www.w3.org/TR/SVG/types.html#ColorKeywords>`_.
+
+Minimal overall coverage
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
+
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
+
+Oversampling factor
+~~~~~~~~~~~~~~~~~~~
+
+Defines the degree of detail by which the class information given by the vector is rasterized. An oversampling factor of 1 (default) simply rasterizes the vector on the target pixel grid.An oversampling factor of 2 will rasterize the vector on a target pixel grid with resolution twice as fine.An oversampling factor of 3 will rasterize the vector on a target pixel grid with resolution three times as fine, ... and so on.
+
+Mind that larger values are always better (more accurate), but depending on the inputs, this process can be quite computationally intensive, when a higher factor than 1 is used.
+
+Mask
+~~~~
+
+Specified vector or raster is interpreted as a boolean mask.
+
+In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
+
+In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+
+Output ClassificationSample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+ClassProbabilitySample from synthetically mixed ClassificationSample
+--------------------------------------------------------------------
+
+Derives a class probability sample by synthetically mixing (pure) spectra from a ClassificationSample.
+
+ClassificationSample
+~~~~~~~~~~~~~~~~~~~~
+
+Specify path to sample file (.pkl).
 
 n
 ~
@@ -1721,43 +903,17 @@ In case of 'equalized', all classes have the same likelihhod to be drawn from.
 
 In case of 'proportional', class likelihoods scale with their sizes.
 
-Output Raster
-~~~~~~~~~~~~~
+Output ClassProbabilitySample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Specify output path for raster.
-
-Output Fraction
-~~~~~~~~~~~~~~~
-
-Specify output path for fraction raster.
+Specify output path for sample (.pkl).
 
 ....
 
-Extract samples from raster and mask
-------------------------------------
+ClassificationSample from Raster and Classification
+---------------------------------------------------
 
-Extract samples from raster and mask.
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
-
-....
-
-Extract classification samples from raster and classification
--------------------------------------------------------------
-
-Extract classification samples from raster and classification.
+Derives a classification sample from raster (defines the grid) and classification.
 
 Raster
 ~~~~~~
@@ -1778,12 +934,168 @@ In case of a vector, all pixels covered by features are interpreted as True, all
 
 In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
 
+Minimal overall coverage
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
+
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
+
+Output ClassificationSample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
 ....
 
-Extract regression samples from raster and regression
+ClassProbabilitySample from ClassificationSample
+------------------------------------------------
+
+Derives a class probability sample from a classification sample.
+
+ClassificationSample
+~~~~~~~~~~~~~~~~~~~~
+
+Specify path to sample file (.pkl).
+
+Output ClassProbabilitySample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+ClassProbabilitySample from Raster and Classification
 -----------------------------------------------------
 
-Extract regression samples from raster and regression.
+Derives a class probability sample from raster and classification.
+
+Raster
+~~~~~~
+
+Specify input raster.
+
+Classification
+~~~~~~~~~~~~~~
+
+Specify input raster.
+
+Mask
+~~~~
+
+Specified vector or raster is interpreted as a boolean mask.
+
+In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
+
+In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+
+Output ClassProbabilitySample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+ClassProbabilitySample from Raster and ClassProbability
+-------------------------------------------------------
+
+Derives class probability sample from raster and class probability.
+
+Raster
+~~~~~~
+
+Specify input raster.
+
+ClassProbability
+~~~~~~~~~~~~~~~~
+
+Specify input raster.
+
+Mask
+~~~~
+
+Specified vector or raster is interpreted as a boolean mask.
+
+In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
+
+In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+
+Output ClassProbabilitySample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+ClassProbabilitySample from Raster and Vector
+---------------------------------------------
+
+Derives class probability sample from raster and vector.
+
+Raster
+~~~~~~
+
+Specify input raster.
+
+Vector
+~~~~~~
+
+Specify input vector.
+
+Class id attribute
+~~~~~~~~~~~~~~~~~~
+
+Vector field specifying the class ids.
+
+Class Definition
+~~~~~~~~~~~~~~~~
+
+Enter a class definition, e.g.:
+
+ClassDefinition(names=['Urban', 'Forest', 'Water'], colors=['red', '#00FF00', (0, 0, 255)])
+
+For supported named colors see the `W3C recognized color keyword names <https://www.w3.org/TR/SVG/types.html#ColorKeywords>`_.
+
+Minimal overall coverage
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
+
+Minimal winner class coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
+
+Oversampling factor
+~~~~~~~~~~~~~~~~~~~
+
+Defines the degree of detail by which the class information given by the vector is rasterized. An oversampling factor of 1 (default) simply rasterizes the vector on the target pixel grid.An oversampling factor of 2 will rasterize the vector on a target pixel grid with resolution twice as fine.An oversampling factor of 3 will rasterize the vector on a target pixel grid with resolution three times as fine, ... and so on.
+
+Mind that larger values are always better (more accurate), but depending on the inputs, this process can be quite computationally intensive, when a higher factor than 1 is used.
+
+Mask
+~~~~
+
+Specified vector or raster is interpreted as a boolean mask.
+
+In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
+
+In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+
+Output ClassProbabilitySample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+RegressionSample from Raster and Regression
+-------------------------------------------
+
+Derives Regression sample from raster and regression.
 
 Raster
 ~~~~~~
@@ -1804,20 +1116,37 @@ In case of a vector, all pixels covered by features are interpreted as True, all
 
 In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
 
+Output RegressionSample
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
 ....
 
-Extract fraction samples from raster and fraction
--------------------------------------------------
+UnsupervisedSample from ENVI Spectral Library
+---------------------------------------------
 
-Extract fraction samples from raster and fraction.
+Derives unsupervised sample from ENVI spectral library.
+
+ENVI Spectral Library
+~~~~~~~~~~~~~~~~~~~~~
+
+Select path to an ENVI (e.g. .sli or .esl).
+
+Output Sample
+~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
+
+....
+
+UnsupervisedSample from raster and mask
+---------------------------------------
+
+Derives unsupervised sample from raster and mask.
 
 Raster
 ~~~~~~
-
-Specify input raster.
-
-ClassFraction
-~~~~~~~~~~~~~
 
 Specify input raster.
 
@@ -1829,6 +1158,11 @@ Specified vector or raster is interpreted as a boolean mask.
 In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
 
 In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+
+Output Sample
+~~~~~~~~~~~~~
+
+Specify output path for sample (.pkl).
 
 ....
 
@@ -1848,12 +1182,22 @@ Specify input raster.
 Foreground values
 ~~~~~~~~~~~~~~~~~
 
-List of values and ranges that are mapped to True, e.g. [1, 2, 5, range(5, 10)].
+List of values that are mapped to True, e.g. [1, 2, 5].
+
+Foreground ranges
+~~~~~~~~~~~~~~~~~
+
+List of [min, max] ranges, e.g. [[1, 3], [5, 7]]. Values inside those ranges are mapped to True.
 
 Background values
 ~~~~~~~~~~~~~~~~~
 
-List of values and ranges that are mapped to False, e.g. [-9999, range(-10, 0)].
+List of values that are mapped to False, e.g. [1, 2, 5].
+
+Background ranges
+~~~~~~~~~~~~~~~~~
+
+List of [min, max] ranges, e.g. [[-999, 0], [10, 255]]. Values inside those ranges are mapped to False.
 
 Output Mask
 ~~~~~~~~~~~
@@ -1862,10 +1206,10 @@ Specify output path for mask raster.
 
 ....
 
-Apply Mask to Raster
---------------------
+Apply Mask to Raster. Pixels that are masked out are set to the raster no data value.
+-------------------------------------------------------------------------------------
 
-Pixels that are masked out are set to the raster no data value.
+
 
 Raster
 ~~~~~~
@@ -1891,14 +1235,14 @@ Specify output path for raster.
 Post-Processing
 ===============
 
-Fraction as RGB Raster
-----------------------
+ClassProbability as RGB Raster
+------------------------------
 
-Creates a RGB representation from given class fractions. The RGB color of a specific pixel is the weighted mean value of the original class colors, where the weights are given by the corresponding class propability.
+Creates a RGB representation from given class probabilities. The RGB color of a specific pixel is the weighted mean value of the original class colors, where the weights are given by the corresponding class propability.
 
 
-ClassFraction
-~~~~~~~~~~~~~
+ClassProbability
+~~~~~~~~~~~~~~~~
 
 Specify input raster.
 
@@ -1968,24 +1312,10 @@ Fit GaussianProcessRegressor
 
 Fits Gaussian Process Regression. See `Gaussian Processes <http://scikit-learn.org/stable/modules/gaussian_process.html>`_ for further information.
 
-Raster
-~~~~~~
+RegressionSample
+~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Regression
-~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2004,24 +1334,10 @@ Fit KernelRidge
 
 Fits a KernelRidge Regression. Click `here <http://scikit-learn.org/stable/modules/kernel_ridge.html>`_ for additional information.
 
-Raster
-~~~~~~
+RegressionSample
+~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Regression
-~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2040,24 +1356,10 @@ Fit LinearSVR
 
 Fits a Linear Support Vector Regression.
 
-Raster
-~~~~~~
+RegressionSample
+~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Regression
-~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2076,24 +1378,10 @@ Fit RandomForestRegressor
 
 Fits a Random Forest Regression.
 
-Raster
-~~~~~~
+RegressionSample
+~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Regression
-~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2112,24 +1400,10 @@ Fit SVR
 
 Fits a Support Vector Regression.
 
-Raster
-~~~~~~
+RegressionSample
+~~~~~~~~~~~~~~~~
 
-Specify input raster.
-
-Regression
-~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2174,190 +1448,6 @@ Specify output path for regression raster.
 
 ....
 
-Resampling
-==========
-
-Spatial Resampling (Raster)
----------------------------
-
-Resamples a Raster into a target grid.
-
-Pixel Grid
-~~~~~~~~~~
-
-Specify input raster.
-
-Raster
-~~~~~~
-
-Specify input raster.
-
-Resampling Algorithm
-~~~~~~~~~~~~~~~~~~~~
-
-Specify resampling algorithm.
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
-Spatial Resampling (Mask)
--------------------------
-
-Resamples a Mask into a target grid.
-
-Pixel Grid
-~~~~~~~~~~
-
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
-
-Minimal overall coverage
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
-
-Output Mask
-~~~~~~~~~~~
-
-Specify output path for mask raster.
-
-....
-
-Spatial Resampling (Classification)
------------------------------------
-
-Resamples a Classification into a target grid.
-
-Pixel Grid
-~~~~~~~~~~
-
-Specify input raster.
-
-Classification
-~~~~~~~~~~~~~~
-
-Specify input raster.
-
-Minimal overall coverage
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
-
-Minimal dominant coverage
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.
-
-Output Classification
-~~~~~~~~~~~~~~~~~~~~~
-
-Specify output path for classification raster.
-
-....
-
-Spatial Resampling (Regression)
--------------------------------
-
-Resamples a Regression into a target grid.
-
-Pixel Grid
-~~~~~~~~~~
-
-Specify input raster.
-
-Regression
-~~~~~~~~~~
-
-Specify input raster.
-
-Minimal overall coverage
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
-
-Output Regression
-~~~~~~~~~~~~~~~~~
-
-Specify output path for regression raster.
-
-....
-
-Spatial Resampling (Fraction)
------------------------------
-
-Resamples a Fraction into a target grid.
-
-Pixel Grid
-~~~~~~~~~~
-
-Specify input raster.
-
-ClassFraction
-~~~~~~~~~~~~~
-
-Specify input raster.
-
-Minimal overall coverage
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Mask out all pixels that have an overall coverage less than the specified value. This controls how edges between labeled and no data regions are treated.
-
-Output Fraction
-~~~~~~~~~~~~~~~
-
-Specify output path for fraction raster.
-
-....
-
-Spectral Resampling
--------------------
-
-Spectrally resample a raster.
-
-Raster
-~~~~~~
-
-Select raster file which should be resampled.
-
-[Options 1] Spectral characteristic from predefined sensor
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-[Option 2] Spectral characteristic from Raster
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Raster with defined wavelength and fwhm
-
-[Option 3] Spectral characteristic from response function files.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Select path to an ENVI (e.g. .sli or .esl).
-
-Resampling Algorithm
-~~~~~~~~~~~~~~~~~~~~
-
-undocumented parameter
-
-Output Raster
-~~~~~~~~~~~~~
-
-Specify output path for raster.
-
-....
-
 Transformation
 ==============
 
@@ -2366,19 +1456,10 @@ Fit FactorAnalysis
 
 Fits a Factor Analysis.
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2397,19 +1478,10 @@ Fit FastICA
 
 Fits a FastICA (Independent Component Analysis).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2428,19 +1500,10 @@ Fit FeatureAgglomeration
 
 Fits a Feature Agglomeration.
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2459,19 +1522,10 @@ Fit Imputer
 
 Fits an Imputer (Imputation transformer for completing missing values).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2490,19 +1544,10 @@ Fit KernelPCA
 
 Fits a Kernel PCA (Principal Component Analysis).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2521,19 +1566,10 @@ Fit MaxAbsScaler
 
 Fits a MaxAbsScaler (scale each feature by its maximum absolute value). See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_.
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2552,19 +1588,10 @@ Fit MinMaxScaler
 
 Fits a MinMaxScaler (transforms features by scaling each feature to a given range). See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_.
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2583,19 +1610,10 @@ Fit Normalizer
 
 Fits a Normalizer (normalizes samples individually to unit norm). See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_.
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2614,19 +1632,10 @@ Fit PCA
 
 Fits a PCA (Principal Component Analysis).
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2645,19 +1654,10 @@ Fit QuantileTransformer
 
 Fits a Quantile Transformer (transforms features using quantiles information). See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2676,19 +1676,10 @@ Fit RobustScaler
 
 Fits a Robust Scaler (scales features using statistics that are robust to outliers). Click `here <http://scikit-learn.org/0.18/auto_examples/preprocessing/plot_robust_scaling.html>`_ for example. See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_.
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
@@ -2707,19 +1698,10 @@ Fit StandardScaler
 
 Fits a Standard Scaler (standardizes features by removing the mean and scaling to unit variance). See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_.
 
-Raster
+Sample
 ~~~~~~
 
-Specify input raster.
-
-Mask
-~~~~
-
-Specified vector or raster is interpreted as a boolean mask.
-
-In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False.
-
-In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+Specify path to sample file (.pkl).
 
 Code
 ~~~~
