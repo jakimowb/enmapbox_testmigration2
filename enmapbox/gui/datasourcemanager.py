@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 
-import inspect
+import inspect, pickle
 
 from enmapbox import DIR_TESTDATA
 from enmapbox.gui.treeviews import TreeNode, CRSTreeNode, TreeView, TreeModel, CheckableTreeNode, TreeViewMenuProvider, ClassificationNode, ColorTreeNode
