@@ -810,19 +810,35 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
             canvas = mapNode.dock.mCanvas
 
             lyr = node.layer()
-            action = menu.addAction('Layer properties')
-            action.setToolTip('Set layer properties')
-            action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
 
-            action = menu.addAction('Remove layer')
-            action.setToolTip('Removes layer from map canvas')
-            action.triggered.connect(lambda: parentNode.removeChildNode(node))
+            from enmapbox.gui.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
+            from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
+            actionPasteStyle = menu.addAction('Paste Style')
+            actionPasteStyle.triggered.connect(lambda : pasteStyleFromClipboard(lyr))
+            actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
 
+
+            actionCopyStyle = menu.addAction('Copy Style')
+            actionCopyStyle.triggered.connect(lambda : pasteStyleToClipboard(lyr))
+
+            menu.addSeparator()
             action = menu.addAction('Set layer CRS to map canvas')
             action.triggered.connect(lambda: canvas.setDestinationCrs(lyr.crs()))
 
             action = menu.addAction('Copy layer path')
             action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
+
+            menu.addSeparator()
+
+            action = menu.addAction('Remove layer')
+            action.setToolTip('Removes layer from map canvas')
+            action.triggered.connect(lambda: parentNode.removeChildNode(node))
+
+            action = menu.addAction('Layer properties')
+            action.setToolTip('Set layer properties')
+            action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
+
+
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
@@ -1034,6 +1050,7 @@ class DockManager(QObject):
             kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclibWidget.setMapInteraction(True)
+            dock.speclibWidget.setAddCurrentSpectraToSpeclibMode(False)
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 
