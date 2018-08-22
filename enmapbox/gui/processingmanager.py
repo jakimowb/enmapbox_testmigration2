@@ -27,8 +27,7 @@ from enmapbox.gui.utils import PanelWidgetBase, loadUI
 from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.datasources import *
-from enmapbox.gui import LOAD_PROCESSING_FRAMEWORK
-
+from enmapbox import LOAD_PROCESSING_FRAMEWORK
 
 """
 This module describes the EnMAP-GUI <-> Processing Framework interactions

@@ -9,7 +9,9 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtXml import *
 from xml.etree import ElementTree
 ROOT = os.path.dirname(os.path.dirname(__file__))
-from enmapbox.gui.utils import DIR_UIFILES, DIR_ICONS, DIR_REPO, file_search
+from enmapbox.gui.utils import file_search
+from enmapbox import DIR_REPO, DIR_UIFILES, DIR_ICONS, DIR_TESTDATA
+
 jp = os.path.join
 from osgeo import gdal, ogr, osr
 
@@ -602,7 +604,7 @@ def png2qrc(icondir, pathQrc, pngprefix='enmapbox'):
 
 
 if __name__ == '__main__':
-    from enmapbox.gui.utils import DIR_TESTDATA, DIR_UIFILES, DIR_ICONS, initQgisApplication
+    from enmapbox.gui.utils import DIR_UIFILES, DIR_ICONS, initQgisApplication
 
 
     qgsApp = initQgisApplication()

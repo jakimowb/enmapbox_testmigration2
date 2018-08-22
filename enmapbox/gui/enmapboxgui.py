@@ -16,25 +16,18 @@
 *                                                                         *
 ***************************************************************************
 """
-
-from qgis.core import *
-from qgis.gui import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+import enmapbox
 from qgis import utils as qgsUtils
-import warnings
 import qgis.utils
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
-from enmapbox.gui.utils import *
-from enmapbox.gui.settings import qtSettingsObj
+from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.maptools import *
 # if qgis.utils.iface is None:
 #    qgis.utils.iface = EnMAPBoxQgisInterface()
 
-SETTINGS = qtSettingsObj()
+SETTINGS = enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 class Views(object):
@@ -161,9 +154,6 @@ class EnMAPBox(QgisInterface, QObject):
             self.initEnMAPBoxAsIFACE()
         self.initPanels()
 
-
-
-        from enmapbox.gui import DEBUG
         if not DEBUG:
             msgLog = QgsApplication.instance().messageLog()
             msgLog.messageReceived.connect(self.onLogMessage)
@@ -224,7 +214,7 @@ class EnMAPBox(QgisInterface, QObject):
             lambda pt, canvas: self.ui.cursorLocationValuePanel.loadCursorLocation(pt, canvas))
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
-        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
+        if enmapbox.LOAD_PROCESSING_FRAMEWORK:
             # connect managers with widgets
             splash.showMessage('Connect Processing Algorithm Manager')
             self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
@@ -287,7 +277,6 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self.ui))
 
         area = Qt.BottomDockWidgetArea
-        from enmapbox.gui.spectrallibraries import SpectralLibraryPanel
 
         # add entries to menu panels
         for dock in self.ui.findChildren(QDockWidget):
@@ -306,7 +295,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.iface = self
         qgis.utils.iface = self
 
-        if enmapbox.gui.LOAD_PROCESSING_FRAMEWORK:
+        if enmapbox.LOAD_PROCESSING_FRAMEWORK:
 
             import processing
             qgis.utils.iface = self.iface
@@ -326,8 +315,6 @@ class EnMAPBox(QgisInterface, QObject):
 
     def initQGISProcessingFramework(self):
 
-        from processing.core.Processing import Processing
-        import processing
         from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
         if not self.processingAlgManager.enmapBoxProvider():
             QgsApplication.processingRegistry().addProvider(EnMAPBoxAlgorithmProvider())
@@ -477,21 +464,21 @@ class EnMAPBox(QgisInterface, QObject):
 
         listingBasename = 'enmapboxapplications.txt'
 
-        if enmapbox.gui.LOAD_INTERNAL_APPS:
+        if enmapbox.LOAD_INTERNAL_APPS:
             self.applicationRegistry.addApplicationFolder(INTERNAL_APPS, isRootFolder=True)
         p = os.path.join(INTERNAL_APPS, listingBasename)
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
-        if enmapbox.gui.LOAD_EXTERNAL_APPS:
+        if enmapbox.LOAD_EXTERNAL_APPS:
             self.applicationRegistry.addApplicationFolder(EXTERNAL_APPS, isRootFolder=True)
         p = os.path.join(INTERNAL_APPS, listingBasename)
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
         #find root folders
-        from enmapbox.gui.settings import qtSettingsObj
-        settings = qtSettingsObj()
+        from enmapbox.gui.settings import enmapboxSettings
+        settings = enmapboxSettings()
         for appDir in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
             if os.path.isdir(appDir):
                 self.applicationRegistry.addApplicationFolder(appDir, isRootFolder=True)
@@ -511,7 +498,7 @@ class EnMAPBox(QgisInterface, QObject):
             m = m[0:m.index('')]
         m = '\n'.join(m)
 
-        from enmapbox.gui import DEBUG
+
         if not DEBUG and not re.search('(enmapbox|plugins)', m):
             return
 

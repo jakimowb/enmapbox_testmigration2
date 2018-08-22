@@ -7,28 +7,23 @@
      (at your option) any later version.
 
 """
+import enmapbox
+
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, shutil, sys, os
+import unittest, shutil
 from collections import namedtuple
-from qgis import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from enmapbox.gui.utils import initQgisApplication
-from enmapbox.gui.utils import initQgisApplication
 from enmapbox.gui.utils import *
 
 QGIS_APP = initQgisApplication()
 
-from enmapbox import EnMAPBox
+from enmapbox import EnMAPBox, DIR_ENMAPBOX
 import enmapbox.gui
 from enmapbox.gui.applications import *
-from enmapboxtestdata import enmap, hymap, landcover, speclib
-import numpy as np
 
-from enmapbox.gui.utils import TestObjects, DIR_REPO
+from enmapbox.gui.utils import TestObjects
 
 DIR_TMP = os.path.join(DIR_REPO, *['test', 'tmp_enmapboxApplicationTests'])
 
@@ -41,9 +36,9 @@ class test_applications(unittest.TestCase):
 
     def setUp(self):
 
-        enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.gui.LOAD_INTERNAL_APPS = False
-        enmapbox.gui.LOAD_EXTERNAL_APPS = False
+        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.LOAD_INTERNAL_APPS = False
+        enmapbox.LOAD_EXTERNAL_APPS = False
 
     def tearDown(self):
         eb = EnMAPBox.instance()
@@ -135,12 +130,11 @@ class test_applications(unittest.TestCase):
     def test_applicationRegistry(self):
         TESTDATA = self.createTestData()
 
-        enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.gui.LOAD_INTERNAL_APPS = False
-        enmapbox.gui.LOAD_EXTERNAL_APPS = False
+        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.LOAD_INTERNAL_APPS = False
+        enmapbox.LOAD_EXTERNAL_APPS = False
         EB = EnMAPBox()
-        
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+
         reg = ApplicationRegistry(EB)
         testApp = TestObjects.enmapBoxApplication()
         self.assertIsInstance(reg.applications(), list)
@@ -199,15 +193,13 @@ class test_applications(unittest.TestCase):
 
     def test_apps(self):
 
-        from enmapbox.gui.utils import DIR_ENMAPBOX
-
         pathCoreApps = os.path.join(DIR_ENMAPBOX, 'coreapps')
         pathExternalApps = os.path.join(DIR_ENMAPBOX, 'apps')
         self.assertTrue(os.path.isdir(pathCoreApps))
 
-        enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.gui.LOAD_INTERNAL_APPS = False
-        enmapbox.gui.LOAD_EXTERNAL_APPS = False
+        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.LOAD_INTERNAL_APPS = False
+        enmapbox.LOAD_EXTERNAL_APPS = False
         EB = EnMAPBox()
         reg = ApplicationRegistry(EB)
 
@@ -229,9 +221,9 @@ class test_applications(unittest.TestCase):
 
     def test_enmapbox_start(self):
 
-        enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.gui.LOAD_INTERNAL_APPS = True
-        enmapbox.gui.LOAD_EXTERNAL_APPS = True
+        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.LOAD_INTERNAL_APPS = True
+        enmapbox.LOAD_EXTERNAL_APPS = True
 
         EB = EnMAPBox()
 

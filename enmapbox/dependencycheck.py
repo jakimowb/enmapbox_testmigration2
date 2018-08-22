@@ -141,7 +141,7 @@ def installTestdata():
 
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
-    from enmapbox.gui.utils import DIR_TESTDATA
+    from enmapbox import DIR_TESTDATA
     btn = QMessageBox.question(None, 'Testdata is missing', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
     if btn != QMessageBox.Yes:
         print('Canceled')

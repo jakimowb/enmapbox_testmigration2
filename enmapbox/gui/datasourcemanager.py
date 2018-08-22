@@ -17,19 +17,13 @@
 ***************************************************************************
 """
 
-import sys, os, inspect
-from qgis.core import *
-from qgis.core import QgsVectorLayer, QgsMapLayer, QgsRasterLayer
-from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from enmapbox.gui.utils import *
-from osgeo import gdal, ogr
+import inspect
+
+from enmapbox import DIR_TESTDATA
 from enmapbox.gui.treeviews import TreeNode, CRSTreeNode, TreeView, TreeModel, CheckableTreeNode, TreeViewMenuProvider, ClassificationNode, ColorTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, MDF_URILIST, MDF_SPECTRALLIBRARY
+from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, MDF_URILIST
 from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
@@ -258,8 +252,8 @@ class DataSourceManager(QObject):
         :return:
         """
 
-        from enmapbox.gui.settings import qtSettingsObj
-        SETTINGS = qtSettingsObj()
+        from enmapbox import enmapboxSettings
+        SETTINGS = enmapboxSettings()
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
 
         if lastDataSourceDir is None:
@@ -693,7 +687,7 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
 
-        from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
+        from enmapbox.gui.spectrallibraries import SpectralLibrary
 
         assert isinstance(self.dataSource.mSpeclib, SpectralLibrary)
 

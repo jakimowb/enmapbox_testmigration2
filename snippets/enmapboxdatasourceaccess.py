@@ -21,6 +21,8 @@
 """
 from __future__ import absolute_import
 import os, collections
+
+import enmapbox
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -83,7 +85,7 @@ if __name__ == '__main__':
 
     #start the EnMAP-Box
     import enmapbox.gui.enmapboxgui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    enmapbox.LOAD_PROCESSING_FRAMEWORK = False
 
     emb = EnMAPBox(None)
     emb.run()

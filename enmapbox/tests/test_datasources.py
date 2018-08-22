@@ -440,7 +440,8 @@ class hubflowTestCases(unittest.TestCase):
         Tests to load serialized hubflow objects
         """
 
-        from enmapbox.gui.utils import DIR_REPO, jp, mkdir
+        from enmapbox.gui.utils import jp, mkdir
+        from enmapbox import DIR_REPO
         from enmapbox.gui.datasources import HubFlowDataSource
         from hubflow.core import ClassDefinition, Vector, VectorClassification
 

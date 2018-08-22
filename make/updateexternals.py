@@ -20,7 +20,8 @@
 import os, sys, re, shutil, zipfile, datetime
 import numpy as np
 import enmapbox
-from enmapbox.gui.utils import DIR_REPO, jp, file_search
+from enmapbox.gui.utils import jp, file_search
+from enmapbox import DIR_REPO
 import git
 
 REPO = git.Repo(DIR_REPO)

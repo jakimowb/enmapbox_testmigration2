@@ -23,7 +23,7 @@
 import os
 
 from qgis.core import *
-from qgis.gui import *
+from qgis.gui import QgsDialog
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import numpy as np

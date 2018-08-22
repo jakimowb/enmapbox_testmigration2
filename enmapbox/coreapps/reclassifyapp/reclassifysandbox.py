@@ -60,7 +60,8 @@ def sandboxGuiOnly():
 
     ui1.show()
 
-    from enmapbox.gui.utils import DIR_REPO, jp
+    from enmapbox.gui.utils import jp
+    from enmapbox import DIR_REPO
 
     pathSrc = jp(DIR_REPO, 'tmp/testclassification.tif')
     pathDst = jp(DIR_REPO, 'tmp/reclassified.tif')
