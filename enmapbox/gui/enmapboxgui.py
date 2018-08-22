@@ -19,6 +19,7 @@
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
+from qgis.PyQt.QtGui import QGuiApplication
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
@@ -692,11 +693,27 @@ class EnMAPBox(QgisInterface, QObject):
 
     @staticmethod
     def getIcon():
+        """
+        Returns the EnMAP-Box icon.
+        :return: QIcon
+        """
         return getIcon()
 
     def run(self):
+        """
+        Shows the EnMAP-Box GUI and centers it to the middle of the primary screen.
+        """
         self.ui.show()
-        pass
+        screen = QGuiApplication.primaryScreen()
+        rect = screen.geometry()
+        assert isinstance(rect, QRect)
+        f = 0.8
+        newSize = QSize(int(f * rect.width()), int(f * rect.height()))
+
+        geom = QStyle.alignedRect(Qt.LeftToRight, Qt.AlignCenter,
+                                  newSize, QApplication.instance().desktop().availableGeometry())
+        self.ui.setGeometry(geom)
+
 
     def closeEvent(self, event):
         assert isinstance(event, QCloseEvent)

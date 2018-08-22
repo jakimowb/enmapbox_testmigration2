@@ -282,14 +282,14 @@ class SettingsDialog(QDialog, loadUI('settingsdialog.ui')):
 
         self.modelGlobals = SettingsTableModel(enmapboxSettings(), parent=self)
         self.tableViewGlobalSettings.setModel(self.modelGlobals)
-        self.tableViewGlobalSettings.verticalHeader().setMovable(True)
+        #self.tableViewGlobalSettings.verticalHeader().setMovable(True)
         self.tableViewGlobalSettings.verticalHeader().setDragEnabled(True)
         self.tableViewGlobalSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
         self.tableViewGlobalSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
         self.tableViewGlobalSettings.resizeColumnsToContents()
 
 
-        self.tableViewProjectSettings.verticalHeader().setMovable(True)
+        #self.tableViewProjectSettings.verticalHeader().setMovable(True)
         self.tableViewProjectSettings.verticalHeader().setDragEnabled(True)
         self.tableViewProjectSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
         self.tableViewProjectSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
