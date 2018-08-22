@@ -16,4 +16,4 @@ formats:
   - epub
   - pdf
 
-requirements_file:  doc/source/requirements.txt
+requirements_file:  ./doc/source/requirements.txt
