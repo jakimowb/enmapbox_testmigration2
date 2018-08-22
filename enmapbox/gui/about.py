@@ -24,7 +24,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from enmapbox.gui.utils import loadUI, jp, DIR_REPO
+from enmapbox.gui.utils import loadUI, jp
+from enmapbox import DIR_REPO
+
 
 class AboutDialog(QDialog,
                     loadUI('aboutdialog.ui')):

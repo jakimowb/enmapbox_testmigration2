@@ -35,7 +35,7 @@ class EnMAPBoxPlugin(object):
 
         dirPlugin = os.path.dirname(__file__)
         site.addsitedir(dirPlugin)
-        from enmapbox.gui import DIR_SITEPACKAGES
+        from enmapbox import DIR_SITEPACKAGES
         site.addsitedir(DIR_SITEPACKAGES)
 
         #run a dependency check

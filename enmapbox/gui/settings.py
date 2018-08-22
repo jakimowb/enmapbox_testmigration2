@@ -17,16 +17,17 @@
 ***************************************************************************
 """
 
-import sys, os, site
+import os
+
+from enmapbox import enmapboxSettings
 from qgis.core import *
 from qgis.gui import *
-from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
+from qgis.PyQt.Qt import *
 from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtWidgets import QStyledItemDelegate
 
-ENMAP_BOX_KEY = 'EnMAP-Box'
-def qtSettingsObj():
-    return QSettings('HU-Berlin', ENMAP_BOX_KEY)
+
 
 GLOBAL_DEFAULT_SETTINGS = dict()
 class SettingsInfo(object):
@@ -78,7 +79,7 @@ class SettingsInfo(object):
 
     def saveToQSettings(self, settings=None):
         if not isinstance(settings, QSettings):
-            settings = qtSettingsObj()
+            settings = enmapboxSettings()
 
         settings.setValue(self.mKey, self.mValue)
     def saveToProject(self, project=None):
@@ -104,7 +105,7 @@ def initGlobalSettings():
     by a default values from GLOBAL_DEFAULT_SETTINGS.
     :return:
     """
-    settings = qtSettingsObj()
+    settings = enmapboxSettings()
     for settingsInfo in GLOBAL_DEFAULT_SETTINGS.values():
         assert isinstance(settingsInfo, SettingsInfo)
         if settings.value(settingsInfo.mKey, None) is None:
@@ -113,7 +114,7 @@ def initGlobalSettings():
 initGlobalSettings()
 
 def resetGlobalSettings():
-    settings = qtSettingsObj()
+    settings = enmapboxSettings()
     settings.clear()
     settings.sync()
     for settingsInfo in GLOBAL_DEFAULT_SETTINGS.values():
@@ -279,7 +280,7 @@ class SettingsDialog(QDialog, loadUI('settingsdialog.ui')):
         self.setupUi(self)
 
 
-        self.modelGlobals = SettingsTableModel(qtSettingsObj(), parent=self)
+        self.modelGlobals = SettingsTableModel(enmapboxSettings(), parent=self)
         self.tableViewGlobalSettings.setModel(self.modelGlobals)
         self.tableViewGlobalSettings.verticalHeader().setMovable(True)
         self.tableViewGlobalSettings.verticalHeader().setDragEnabled(True)
@@ -312,7 +313,7 @@ class SettingsDialog(QDialog, loadUI('settingsdialog.ui')):
 
     def resetSettings(self):
         resetGlobalSettings()
-        self.modelGlobals = SettingsTableModel(qtSettingsObj(), parent=self)
+        self.modelGlobals = SettingsTableModel(enmapboxSettings(), parent=self)
         self.tableViewGlobalSettings.setModel(self.modelGlobals)
         self.tableViewGlobalSettings.resizeColumnsToContents()
         self.tableViewProjectSettings.resizeColumnsToContents()

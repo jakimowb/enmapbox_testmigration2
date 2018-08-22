@@ -17,9 +17,9 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import os, sys, unittest, tempfile
+import unittest
 from enmapbox.gui.utils import *
-from enmapboxtestdata import hymap, enmap
+from enmapboxtestdata import hymap
 
 qapp = initQgisApplication(qgisResourceDir=DIR_QGISRESOURCES)
 import gdal

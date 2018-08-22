@@ -719,8 +719,8 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         self.schemeModel.removeClasses(classes)
 
     def loadClasses(self, *args):
-        from enmapbox.gui.settings import qtSettingsObj
-        settings = qtSettingsObj()
+        from enmapbox import enmapboxSettings
+        settings = enmapboxSettings()
         settingsKey = 'DEF_DIR_ClassificationSchemeWidget.loadClasses'
         defDir = settings.value(settingsKey, None)
         path, _ = QFileDialog.getOpenFileName(self, 'Select Raster File', directory=defDir)

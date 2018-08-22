@@ -17,33 +17,25 @@
 ***************************************************************************
 """
 
-import os, sys, importlib, tempfile, re, six, fnmatch, io, pickle, zipfile
-
-
+import os, sys, importlib, re, fnmatch, io, zipfile
 
 from qgis.core import *
+from qgis.core import QgsFeature, QgsPointXY, QgsRectangle
 from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtXml import *
-from PyQt5 import uic
+from qgis.gui import QgisInterface, QgsDockWidget, QgsPluginManagerInterface
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtCore import QMimeData
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtXml import *
+from qgis.PyQt.QtXml import QDomDocument
+from qgis.PyQt import uic
 from osgeo import gdal
 import numpy as np
-import enmapbox.gui
 
-from enmapbox import messageLog
-messageLog = messageLog
+from enmapbox import messageLog, enmapboxSettings, DIR_REPO, DIR_UIFILES
 
 jp = os.path.join
-
-DIR_ENMAPBOX = os.path.dirname(enmapbox.__file__)
-DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
-DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
-DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
-DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
-DIR_TESTDATA = os.path.join(DIR_REPO, 'enmapboxtestdata')
-
 
 #for python development only
 DIR_QGISRESOURCES = jp(DIR_REPO, 'qgisresources')
@@ -536,7 +528,6 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgi
     Initializes the QGIS Environment
     :return: QgsApplication instance of local QGIS installation
     """
-    import site
     if pythonPlugins is None:
         pythonPlugins = []
     assert isinstance(pythonPlugins, list)
@@ -639,8 +630,7 @@ def settings():
     :return:
     """
     print('DEPRECATED CALL enmapbox.gui.utils.settings()')
-    from enmapbox.gui.settings import qtSettingsObj
-    return qtSettingsObj()
+    return enmapboxSettings()
 
 
 def showMessage(message, title, level):
@@ -691,6 +681,10 @@ def gdalDataset(pathOrDataset, eAccess=gdal.GA_ReadOnly):
 
 
 loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
+#def loadUI(basename:str):
+#    path = jp(DIR_UIFILES, basename)
+#    form_class, widget = uic.loadUiType(path, resource_suffix='')
+#    return form_class, widget
 
 # dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()

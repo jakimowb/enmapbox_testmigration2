@@ -19,27 +19,39 @@
 import os
 import sys
 import mock
+from PyQt5 import uic, QtCore, QtGui, QtWidgets, QtXml
+import PyQt5
 
-MOCK_MODULES = [#'qgis','qgis.core','qgis.gui',
-                #'qgis.PyQt','qgis.PyQt.Qt','qgis.PyQt.QtCore','qgis.PyQt.QtGui','qgis.PyQt.QtWidgets',
+#sys.modules['qgis.PyQt'] = PyQt5
+#for m in [uic, QtCore, QtGui, QtWidgets, QtXml]:
+#    sys.modules['qgis.PyQt.{}'.format(m.__name__.split('.')[-1])] = m
+
+if True:
+    MOCK_MODULES = ['qgis','qgis.core','qgis.gui','qgis.utils',
+                'vrtbuilder','vrtbuilder.virtualrasters',
+                'qgis.PyQt','qgis.PyQt.Qt','qgis.PyQt.QtCore','qgis.PyQt.QtGui','qgis.PyQt.QtWidgets','qgis.PyQt.QtXml',
                 'processing','processing.core','processing.core.ProcessingConfig']
 
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
+    for mod_name in MOCK_MODULES:
+        sys.modules[mod_name] = mock.Mock()
+
+if False:
+    pathMockedNames = os.path.join(os.path.dirname(__file__),'mockednameslist.txt')
+    print('Read mocked names list')
+    f = open(pathMockedNames, 'r', encoding='utf-8')
+    lines = f.read().splitlines()
+    f.close()
+    for l in lines:
+
+        sys.modules[l] = mock.NonCallableMagicMock()
 
 
-autodoc_mock_imports = [
+autodoc_mock_imports = ['vrtbuilder',
                 'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
-                'qgis',
+                'qgis','qgis.utils','qgis.core','qgis.gui',
                 'processing', 'processing.core.ProcessingConfig'
 ]
 autodoc_warningiserror = False
-#import PyQt5, PyQt5.Qt, PyQt5.QtWidgets, PyQt5.QtGui, PyQt5.QtCore
-#sys.modules['qgis.PyQt'] = PyQt5
-#sys.modules['qgis.PyQt.Qt'] = PyQt5.Qt
-#sys.modules['qgis.PyQt.QCore'] = PyQt5.QtCore
-#sys.modules['qgis.PyQt.QGui'] = PyQt5.QtGui
-#sys.modules['qgis.PyQt.QWidgets'] = PyQt5.QtWidgets
 
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
@@ -55,6 +67,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
+    #'sphinxcontrib.mockautodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     #'sphinx.ext.autosectionlabel',
@@ -276,6 +289,7 @@ nitpick_ignore = [('py:class', 'QAction'),
                   ('py:class', 'QgsMessageLog'),
                   ('py:class', 'QgsPoint'),
                   ('py:class', 'QgsPointXY'),
+                  ('py:class', 'QgsPluginManagerInterface'),
                   ('py:class', 'QgsProject'),
                   ('py:class', 'QgsRasterLayer'),
                   ('py:class', 'QgsRasterDataProvider'),

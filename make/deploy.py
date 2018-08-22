@@ -27,7 +27,8 @@ import numpy as np
 from pb_tool import pb_tool
 
 import enmapbox
-from enmapbox.gui.utils import DIR_REPO, jp, file_search
+from enmapbox.gui.utils import jp, file_search
+from enmapbox import DIR_REPO
 import git
 
 

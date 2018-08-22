@@ -26,7 +26,7 @@ from collections import OrderedDict
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import qgsfunction
-from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtCore import NULL
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.core import QgsField, QgsFields, QgsFeature, QgsMapLayer, QgsVectorLayer, QgsConditionalStyle

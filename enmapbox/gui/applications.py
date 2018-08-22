@@ -28,7 +28,8 @@ from PyQt5.QtWidgets import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-from enmapbox import messageLog
+from enmapbox import messageLog, DIR_REPO as ROOT
+
 DEBUG = False #set this on True to not hide external-app errors
 
 
@@ -180,8 +181,6 @@ class ApplicationRegistry(QObject):
 
         lines = [l.strip() for l in lines]
         lines = [l for l in lines if len(l) > 0 and not l.startswith('#')]
-
-        from enmapbox.gui.utils import DIR_REPO as ROOT
 
         appFolders = []
         for line in lines:

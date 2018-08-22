@@ -19,6 +19,8 @@
 
 import sys, os, site
 
+import enmapbox
+
 
 def run():
     """
@@ -31,9 +33,9 @@ def run():
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
     import enmapbox.gui
-    enmapbox.gui.DEBUG = False
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-    enmapbox.gui.LOAD_EXTERNAL_APPS = True
+    enmapbox.DEBUG = False
+    enmapbox.LOAD_PROCESSING_FRAMEWORK = True
+    enmapbox.LOAD_EXTERNAL_APPS = True
 
     from qgis.utils import iface
     enmapbox = EnMAPBox(iface)

@@ -20,6 +20,8 @@
 
 
 import os
+
+import enmapbox
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -60,7 +62,7 @@ def sandboxPureGui(dataSources=None, loadProcessingFramework=False, loadExampleD
 
 
     import enmapbox.gui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = loadProcessingFramework
+    enmapbox.LOAD_PROCESSING_FRAMEWORK = loadProcessingFramework
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()
@@ -94,8 +96,8 @@ def sandboxProcessingFramework():
 
 def sandboxUmlaut():
     import enmapbox.gui
-    enmapbox.gui.DEBUG = False
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    enmapbox.DEBUG = False
+    enmapbox.LOAD_PROCESSING_FRAMEWORK = False
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
 
