@@ -1034,6 +1034,7 @@ class DockManager(QObject):
             kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclibWidget.setMapInteraction(True)
+            dock.speclibWidget.setAddCurrentSpectraToSpeclibMode(False)
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 
