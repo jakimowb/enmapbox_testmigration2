@@ -11,8 +11,9 @@ python:
   setup_py_install: false
 
 
-formats: []
-# - epub
-# - pdf
+formats:
+  - htmlzip
+  - epub
+  - pdf
 
 requirements_file:  doc/source/requirements.txt
