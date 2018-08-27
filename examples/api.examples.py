@@ -154,7 +154,9 @@ def example5_connectWithEnMAPBoxSignals():
             text = '{}\n{} : {}'.format(text, t.time(), src)
             self.tb.setPlainText(text)
 
+    from enmapbox import EnMAPBox
     enmapBox = EnMAPBox.instance()
+
     d = ExampleDialog(parent=enmapBox.ui)
     d.setFixedSize(QSize(600, 300))
 

@@ -122,10 +122,17 @@ class EnMAPBox(QgisInterface, QObject):
     def instance():
         return EnMAPBox._instance
 
+
+
     sigDataSourceAdded = pyqtSignal(str)
     sigSpectralLibraryAdded = pyqtSignal(str)
     sigRasterSourceAdded = pyqtSignal(str)
     sigVectorSourceAdded = pyqtSignal(str)
+
+    sigDataSourceRemoved = pyqtSignal(str)
+    sigSpectralLibraryRemoved = pyqtSignal(str)
+    sigRasterSourceRemoved = pyqtSignal(str)
+    sigVectorSourceRemoved = pyqtSignal(str)
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
@@ -186,6 +193,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         # self.enmapBox = enmapboxl
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
+        self.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
         self.dockManager.connectDockArea(self.ui.dockArea)
         self.dockManager.sigDockAdded.connect(self.onDockAdded)
@@ -558,9 +566,18 @@ class EnMAPBox(QgisInterface, QObject):
                     lyrs.append(lyr)
 
                 dock.addLayers(lyrs)
-                s =""
 
 
+
+    def onDataSourceRemoved(self, dataSource:DataSource):
+
+        self.sigDataSourceRemoved.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceRaster):
+            self.sigRasterSourceRemoved.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceVector):
+            self.sigVectorSourceRemoved.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceSpectralLibrary):
+            self.sigSpectralLibraryRemoved.emit(dataSource.uri())
 
     def onDataSourceAdded(self, dataSource:DataSource):
 

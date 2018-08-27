@@ -103,7 +103,7 @@ class DataSourceManager(QObject):
         :param sourceTypes: the sourceType(s) to return
             a) str like 'VECTOR' (see DataSourceManage.SOURCE_TYPES)
             b) class type derived from DataSource
-            c) a list of a or b to filter multpiple source types
+            c) a list of a or b to filter multiple source types
         :return:
         """
         results = self.mSources[:]
@@ -1226,6 +1226,16 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
         selectedNodes = [self.model.index2node(i) for i in selectionModel.selectedIndexes()]
         dataSources = list(set([n.dataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
         srcURIs = list(set([s.uri() for s in dataSources]))
+
+        qgisIFACE = qgisAppQgisInterface()
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+
+        mapDocks = []
+        if isinstance(enmapbox, EnMAPBox):
+            mapDocks = enmapbox.dockManager.docks('MAP')
+
         m = QMenu()
 
         if isinstance(node, DataSourceGroupTreeNode):
@@ -1250,40 +1260,67 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             if isinstance(src, DataSourceSpatial):
                 a = m.addAction('Save as..')
 
-            if isinstance(src, DataSourceRaster):
-                a = m.addAction('Raster statistics')
-                sub = m.addMenu('Open in new map...')
+
+            def appendRasterActions(sub:QMenu, src:DataSourceSpatial, mapDock:MapDock):
+                assert isinstance(src, DataSourceRaster)
                 a = sub.addAction('Default Colors')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='DEFAULT'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='DEFAULT'))
                 a = sub.addAction('True Color')
                 a.setToolTip('Red-Green-Blue true colors')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='R,G,B'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='R,G,B'))
 
                 a = sub.addAction('CIR')
                 a.setToolTip('nIR Red Green')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,R,G'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,R,G'))
 
                 a = sub.addAction('SWIR')
                 a.setToolTip('nIR swIR Red')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,SWIR,R'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,SWIR,R'))
+
+            if isinstance(src, DataSourceRaster):
+                sub = m.addMenu('Open in new map...')
+                appendRasterActions(sub, src, None)
+
+                sub = m.addMenu('Open in existing map...')
+                if len(mapDocks) > 0:
+                    for mapDock in mapDocks:
+                        assert isinstance(mapDock, MapDock)
+                        subsub = sub.addMenu(mapDock.title())
+                        appendRasterActions(subsub, src, mapDock)
+                else:
+                    sub.setEnabled(False)
+                sub = m.addMenu('Open in QGIS')
+                if isinstance(qgisIFACE, QgisInterface):
+                    appendRasterActions(sub, src, qgisIFACE.mapCanvas())
+                else:
+                    sub.setEnabled(False)
 
             if isinstance(src, DataSourceVector):
                 a = m.addAction('Open in new map')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src))
+                a.triggered.connect(lambda: self.openInMap(src,mapCanvas=None))
 
-            if isinstance(src, DataSourceSpectralLibrary):
-                a = m.addAction('Save as...')
-                a.setEnabled(False)
+                sub = m.addMenu('Open in existing map...')
+                if len(mapDocks) > 0:
+                    for mapDock in mapDocks:
+                        assert isinstance(mapDock, MapDock)
+                        a = sub.addAction(mapDock.title())
+                        a.triggered.connect(lambda checked, src=src,mapDock=mapDock : self.openInMap(src, mapCanvas=mapDock))
+                else:
+                    sub.setEnabled(False)
 
-                a = m.addAction('Open')
-                a.setEnabled(False)
+                a = m.addAction('Open in QGIS')
+                if isinstance(qgisIFACE, QgisInterface):
+                    a.triggered.connect(lambda : self.openInMap(src, mapCanvas=qgisIFACE.mapCanvas()))
+                else:
+                    a.setEnabled(False)
+
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
 
             a = m.addAction('Open in new map')
-            a.triggered.connect(lambda : self.onOpenInNewMap(node.mDataSource, rgb=[node.mBandIndex]))
+            a.triggered.connect(lambda : self.openInMap(node.mDataSource, rgb=[node.mBandIndex]))
 
 
         if col == 1 and node.value() != None:
@@ -1299,74 +1336,97 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 a.setParent(m)
         return m
 
-    def onOpenInNewMap(self, dataSource, rgb=None):
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        emb = EnMAPBox.instance()
+    def openInMap(self, dataSource:DataSourceSpatial, mapCanvas=None, rgb=None):
+        """
+        Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
+        :param mapCanvas: QgsMapCanvas. Creates a new MapDock if set to none.
+        :param dataSource: DataSourceSpatial
+        :param rgb:
+        """
 
-        if not isinstance(emb, EnMAPBox):
-            return None
+        if not isinstance(dataSource, DataSourceSpatial):
+            return
 
-        if isinstance(dataSource, DataSourceSpatial):
-            lyr = dataSource.createUnregisteredMapLayer()
+        if mapCanvas is None:
+            from enmapbox.gui.enmapboxgui import EnMAPBox
+            emb = EnMAPBox.instance()
+            if not isinstance(emb, EnMAPBox):
+                return None
             dock = emb.createDock('MAP')
             assert isinstance(dock, MapDock)
-            from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
-            if isinstance(lyr, QgsRasterLayer):
-                r = lyr.renderer()
-                if isinstance(r, QgsRasterRenderer):
-                    ds = gdal.Open(lyr.source())
-                    if isinstance(rgb, str):
-                        if re.search('DEFAULT', rgb):
-                            rgb = defaultBands(ds)
-                        else:
-                            rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
-                            s = ""
-                    assert isinstance(rgb, list)
+            mapCanvas = dock.mCanvas
 
-                    stats = [ds.GetRasterBand(b+1).ComputeRasterMinMax() for b in rgb]
+        if isinstance(mapCanvas, MapDock):
+            mapCanvas = mapCanvas.mapCanvas()
 
-                    def setCE_MinMax(ce, st):
-                        assert isinstance(ce, QgsContrastEnhancement)
-                        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum)
-                        ce.setMinimumValue(st[0])
-                        ce.setMaximumValue(st[1])
+        assert isinstance(mapCanvas, QgsMapCanvas)
 
-                    if len(rgb) == 3:
-                        if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0]+1)
-                            r.setGreenBand(rgb[1]+1)
-                            r.setBlueBand(rgb[2]+1)
-                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.greenContrastEnhancement(), stats[1])
-                            setCE_MinMax(r.blueContrastEnhancement(), stats[2])
+        lyr = dataSource.createUnregisteredMapLayer()
 
-                        if isinstance(r, QgsSingleBandGrayRenderer):
-                            r.setGrayBand(rgb[0])
-                            setCE_MinMax(r.contrastEnhancement(), stats[0])
+        from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
+        if isinstance(lyr, QgsRasterLayer):
+            r = lyr.renderer()
+            if isinstance(r, QgsRasterRenderer):
+                ds = gdal.Open(lyr.source())
+                if isinstance(rgb, str):
+                    if re.search('DEFAULT', rgb):
+                        rgb = defaultBands(ds)
+                    else:
+                        rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
+                        s = ""
+                assert isinstance(rgb, list)
 
-                    elif len(rgb) == 1:
+                stats = [ds.GetRasterBand(b+1).ComputeRasterMinMax() for b in rgb]
 
-                        if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0]+1)
-                            r.setGreenBand(rgb[0]+1)
-                            r.setBlueBand(rgb[0]+1)
-                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.greenContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.blueContrastEnhancement(), stats[0])
+                def setCE_MinMax(ce, st):
+                    assert isinstance(ce, QgsContrastEnhancement)
+                    ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum)
+                    ce.setMinimumValue(st[0])
+                    ce.setMaximumValue(st[1])
 
-                        if isinstance(r, QgsSingleBandGrayRenderer):
-                            r.setGrayBand(rgb[0]+1)
-                            setCE_MinMax(r.contrastEnhancement(), stats[0])
-                            s = ""
+                if len(rgb) == 3:
+                    if isinstance(r, QgsMultiBandColorRenderer):
+                        r.setRedBand(rgb[0]+1)
+                        r.setGreenBand(rgb[1]+1)
+                        r.setBlueBand(rgb[2]+1)
+                        setCE_MinMax(r.redContrastEnhancement(), stats[0])
+                        setCE_MinMax(r.greenContrastEnhancement(), stats[1])
+                        setCE_MinMax(r.blueContrastEnhancement(), stats[2])
 
-                    #get
-                    s = ""
+                    if isinstance(r, QgsSingleBandGrayRenderer):
+                        r.setGrayBand(rgb[0])
+                        setCE_MinMax(r.contrastEnhancement(), stats[0])
 
-            elif isinstance(lyr, QgsVectorLayer):
+                elif len(rgb) == 1:
 
-                pass
+                    if isinstance(r, QgsMultiBandColorRenderer):
+                        r.setRedBand(rgb[0]+1)
+                        r.setGreenBand(rgb[0]+1)
+                        r.setBlueBand(rgb[0]+1)
+                        setCE_MinMax(r.redContrastEnhancement(), stats[0])
+                        setCE_MinMax(r.greenContrastEnhancement(), stats[0])
+                        setCE_MinMax(r.blueContrastEnhancement(), stats[0])
 
-            dock.setLayers([lyr])
+                    if isinstance(r, QgsSingleBandGrayRenderer):
+                        r.setGrayBand(rgb[0]+1)
+                        setCE_MinMax(r.contrastEnhancement(), stats[0])
+                        s = ""
+
+                #get
+                s = ""
+
+        elif isinstance(lyr, QgsVectorLayer):
+
+            pass
+
+        qgisIFACE = qgisAppQgisInterface()
+        if isinstance(qgisIFACE, QgisInterface) and mapCanvas in qgisIFACE.mapCanvases():
+            QgsProject.instance().addMapLayer(lyr)
+
+        allLayers = mapCanvas.layers()
+        allLayers.append(lyr)
+
+        mapCanvas.setLayers(allLayers)
 
 
     def onSaveAs(self, dataSource):

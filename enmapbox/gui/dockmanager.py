@@ -831,7 +831,7 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
             menu.addSeparator()
 
             action = menu.addAction('Remove layer')
-            action.setToolTip('Removes layer from map canvas')
+            action.setToolTip('Remove layer from map canvas')
             action.triggered.connect(lambda: parentNode.removeChildNode(node))
 
             action = menu.addAction('Layer properties')
