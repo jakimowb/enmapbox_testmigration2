@@ -181,8 +181,15 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue((len(dsm) == len(uris)))
         dsm.addSources(uris)
         self.assertTrue((len(dsm) == len(uris)), msg='Redundant sources are not allowed')
+        uriList = dsm.uriList()
+        self.assertIsInstance(uriList, list)
+        self.assertTrue(len(uriList) == len(uris))
+        self.assertListEqual(uris, dsm.uriList())
 
-        self.assertListEqual(uris, dsm.getUriList())
+        self.assertTrue(len(dsm.sources('SPATIAL')) == 5)
+        self.assertTrue(len(dsm.sources('RASTER')) == 2)
+        self.assertTrue(len(dsm.sources('VECTOR')) == 3)
+        self.assertTrue(len(dsm.sources('SPECLIB')) == 1)
 
 
         self.assertTrue(len(reg.mapLayers()) == 0)

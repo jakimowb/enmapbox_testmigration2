@@ -650,7 +650,7 @@ class EnMAPBox(QgisInterface, QObject):
                             see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
         :return: [list-of-datasource-URIs (str)]
         """
-        return self.dataSourceManager.getUriList(sourceType)
+        return self.dataSourceManager.uriList(sourceType)
 
     def createDock(self, *args, **kwds)->Dock:
         """

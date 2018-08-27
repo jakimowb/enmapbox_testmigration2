@@ -28,6 +28,8 @@ from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
 
+SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL', 'SPECLIB']
+
 HIDDEN_DATASOURCE = '__HIDDEN__DATASOURCE'
 try:
     import hubflow.core
@@ -38,6 +40,11 @@ except Exception as ex:
     HUBFLOW = False
 
 class DataSourceManager(QObject):
+    """
+       Keeps control on different data sources handled by EnMAP-Box.
+       Similar like QGIS data registry, but manages non-spatial data sources (text files, spectral libraries etc.) as well.
+    """
+
     _testInstance = None
 
     @staticmethod
@@ -48,27 +55,17 @@ class DataSourceManager(QObject):
         else:
             return DataSourceManager._testInstance
 
-    """
-    Keeps overview on different data sources handled by EnMAP-Box.
-    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well.
-    """
+
 
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-    SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL']
+
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
         DataSourceManager._testInstance = self
         self.mSources = list()
-
-        self.mQgsLayerTreeGroup = None
-        # self.qgsLayerTreeGroup()
-
-        # todo: react on QgsProject changes, e.g. when project is closed
-        # QgsProject.instance().layersAdded.connect(self.updateFromQgsProject)
-        # noinspection PyArgumentList
 
         try:
             from hubflow import signals
@@ -100,41 +97,44 @@ class DataSourceManager(QObject):
     def sources(self, sourceTypes=None) -> list:
         """
         Returns the managed DataSources
-        :param sourceTypes: the sourceType(s) to return
-            a) str like 'VECTOR' (see DataSourceManage.SOURCE_TYPES)
+        :param sourceTypes: filter to return specific DataSource types only
+            a) str like 'VECTOR' (see SOURCE_TYPES)
             b) class type derived from DataSource
-            c) a list of a or b to filter multiple source types
-        :return:
+            c) a list of a or b to filter multiple source types, e.g. ['VECTOR', 'RASTER']
+        :return: [list-of-DataSources]
         """
-        results = self.mSources[:]
 
-        if sourceTypes:
+        if sourceTypes is None:
+            return self.mSources[:]
+        else:
             if not isinstance(sourceTypes, list):
                 sourceTypes = [sourceTypes]
-            filterTypes = []
+
+            filterTypes = set()
             for sourceType in sourceTypes:
-                if sourceType in self.SOURCE_TYPES:
-                    if sourceType == 'VECTOR':
-                        sourceType = DataSourceVector
-                    elif sourceType == 'RASTER':
-                        sourceType = DataSourceRaster
-                    elif sourceType == 'MODEL':
-                        sourceType = HubFlowDataSource
-                    else:
-                        sourceType = None
                 if isinstance(sourceType, type(DataSource)):
                     filterTypes.append(sourceType)
-            results = [r for r in results if type(r) in filterTypes]
+                elif sourceType in SOURCE_TYPES:
+                    if sourceType == 'ALL':
+                        return self.mSources[:]
+                    elif sourceType == 'VECTOR':
+                        filterTypes.add(DataSourceVector)
+                        filterTypes.add(DataSourceSpectralLibrary)
+                    elif sourceType == 'SPATIAL':
+                        filterTypes.add(DataSourceVector)
+                        filterTypes.add(DataSourceRaster)
+                        filterTypes.add(DataSourceSpectralLibrary)
+                    elif sourceType == 'RASTER':
+                        filterTypes.add(DataSourceRaster)
+                    elif sourceType == 'MODEL':
+                        filterTypes.add(HubFlowDataSource)
+                    elif sourceType == 'SPECLIB':
+                        filterTypes.add(DataSourceSpectralLibrary)
+
+            results = [r for r in self.mSources if type(r) in filterTypes]
+
         return results
 
-    def updateFromProcessingFramework(self):
-        if self.processing:
-            # import logging
-            # logging.debug('Todo: Fix processing implementation')
-            return
-            for p, n in zip(self.processing.MODEL_URIS,
-                            self.processing.MODEL_NAMES):
-                self.addSource(p, name=n)
 
     def updateFromQgsProject(self, mapLayers=None):
         """
@@ -147,29 +147,14 @@ class DataSourceManager(QObject):
         added = [self.addSource(lyr) for lyr in mapLayers]
         return [a for a in added if isinstance(a, DataSource)]
 
-    def getUriList(self, sourcetype='ALL') -> list:
+    def uriList(self, sourceTypes='ALL') -> list:
         """
         Returns URIs of registered data sources
-        :param sourcetype: uri filter: 'ALL' (default),'RASTER', 'VECTOR', 'SPATIAL' (raster+vector) or 'MODEL' to return only uri's related to these sources
+        :param sourcetype: uri filter as used in sources(sourceTypes=<types>).
         :return: uri as string (str), e.g. a file path
         """
-        sourcetype = sourcetype.upper()
-        if isinstance(sourcetype, type):
-            return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
+        return [ds.uri() for ds in self.sources(sourceTypes=sourceTypes)]
 
-        assert sourcetype in DataSourceManager.SOURCE_TYPES
-        if sourcetype in ['ALL', 'ANY']:
-            return [ds.uri() for ds in self.mSources]
-        elif sourcetype == 'VECTOR':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
-        elif sourcetype == 'RASTER':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
-        elif sourcetype == 'SPATIAL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceSpatial)]
-        elif sourcetype == 'MODEL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
-        else:
-            return []
 
     def onMapLayerRegistryLayersAdded(self, lyrs:list):
         """
@@ -193,6 +178,11 @@ class DataSourceManager(QObject):
         self.addSources(lyrsToAdd)
 
     def addSources(self, sources) -> list:
+        """
+        Adds a list of new data sources
+        :param sources: list of potential data sources, i.e. QgsDataSources
+        :return: [list-of-added-DataSources]
+        """
         added = []
         for s in sources:
             added.extend(self.addSource(s))

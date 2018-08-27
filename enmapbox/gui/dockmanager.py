@@ -469,6 +469,8 @@ class DockManagerTreeModel(TreeModel):
         self.dockManager.sigDataSourceRemoved.connect(self.removeDataSource)
         self.mimeIndices = []
 
+
+
     def columnCount(self, index):
         node = self.index2node(index)
         if type(node) in [DockTreeNode, QgsLayerTreeGroup, QgsLayerTreeLayer]:
@@ -593,6 +595,11 @@ class DockManagerTreeModel(TreeModel):
         if not parentIndex.isValid():
             return False
 
+        from enmapbox import EnMAPBox
+        layerRegistry = None
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            layerRegistry = EnMAPBox.instance().mapLayerStore()
+
         parentNode = self.index2node(parentIndex)
         # L1 is the first level below the root tree -> to place dock trees
         isL1Node = parentNode.parent() == self.rootNode
@@ -612,7 +619,11 @@ class DockManagerTreeModel(TreeModel):
             parentLayerGroup = parentLayerGroup[0]
 
             mapLayers = extractMapLayers(mimeData)
-            #QgsProject.instance().addMapLayers(mapLayers)
+
+            if isinstance(layerRegistry, QgsMapLayerStore):
+                layerRegistry.addMapLayers(mapLayers)
+
+
             i = parentIndex.row()
             if len(mapLayers) > 0:
                 for l in mapLayers:
@@ -828,6 +839,7 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
             action = menu.addAction('Copy layer path')
             action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
 
+
             menu.addSeparator()
 
             action = menu.addAction('Remove layer')
@@ -940,6 +952,7 @@ class DockManager(QObject):
             layers = []
             textfiles = []
             speclibs = []
+
 
             if MDF_LAYERTREEMODELDATA in mimeData.formats():
                 layers = extractMapLayers(mimeData)
