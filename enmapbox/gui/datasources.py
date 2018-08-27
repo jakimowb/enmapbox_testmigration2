@@ -923,7 +923,7 @@ class DataSourceListModel(QAbstractListModel):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             enmapBox = EnMAPBox.instance()
-            uris = enmapBox.dataSourceManager.getUriList(self.mFileType)
+            uris = enmapBox.dataSourceManager.uriList(self.mFileType)
             del self.mFiles[:]
             self.mFiles.extend(self.mAddedFiles)
             for uri in uris:
