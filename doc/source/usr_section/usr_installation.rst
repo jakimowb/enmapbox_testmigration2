@@ -70,7 +70,7 @@ The EnMAP-Box requires the following python packages in order to run:
 * `scipy <https://www.scipy.org>`_
 * `setuptools <https://pypi.python.org/pypi/setuptools>`_
 * `matplotlib <https://matplotlib.org/>`_
-* `pyqtgraph <https://pypi.python.org/pypi/pip>`_
+* `pyqtgraph <http://pyqtgraph.org/>`_
 * `scikit-learn <http://scikit-learn.org/stable/index.html>`_
 * `astropy <http://docs.astropy.org>`_
 
@@ -160,7 +160,7 @@ Windows
     .. code-block:: batch
 
         python3 -m pip install pyqtgraph
-        python3 -m pip install sklearn
+        python3 -m pip install scikit-learn
         python3 -m pip install astropy
 
     .. image:: ../img/shell_pipinstall.png
@@ -186,7 +186,7 @@ Mac
 
         python3 -m pip install scipy
         python3 -m pip install matplotlib
-        python3 -m pip install sklearn
+        python3 -m pip install scikit-learn
         python3 -m pip install pyqtgraph
         python3 -m pip install astropy
 
