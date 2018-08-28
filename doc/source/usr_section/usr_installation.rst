@@ -169,13 +169,27 @@ Windows
 
 .. _install-packages-linux:
 
+|
+
 Linux
 ~~~~~
 
-.. todo:: Linux installation of a recent QGIS 3 version (not tested yet)
+.. note:: Tested on Ubuntu 18.04
+
+#. Open the terminal and install all missing packages using pip:
+
+    .. code-block:: bash
+
+        python3 -m pip install scipy
+        python3 -m pip install matplotlib
+        python3 -m pip install scikit-learn
+        python3 -m pip install pyqtgraph
+        python3 -m pip install astropy
 
 
 .. _install-packages-mac:
+
+|
 
 Mac
 ~~~
@@ -199,9 +213,11 @@ Install or update the EnMAP-Box
 -------------------------------
 
 
-1. Download the latest EnMAP-Box from |download_link2|.
-2. Start QGIS 3 and open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
-3. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and start *Install plugin*.
+#. Download the latest EnMAP-Box from |download_link2|.
+#. It is recommended to uninstall previous EnMAP-Box versions (delete folder manually, or in QGIS via *Plugins* > *Manage and Install Plugins*
+   > *Installed* > *EnMAP-Box 3* > *Uninstall plugin*)
+#. Open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
+#. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and click *Install plugin*.
 
    .. image:: ../img/installfromzip.png
 
@@ -209,7 +225,7 @@ Install or update the EnMAP-Box
       This may take a few moments!
 
 
-4. Start the EnMAP-Box via the |icon| icon.
+#. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*.
 
 
 
