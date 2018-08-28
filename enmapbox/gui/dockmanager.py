@@ -813,6 +813,8 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
         parentNode = node.parent()
         parentDockNode = findParent(node, DockTreeNode, checkInstance=True)
         menu = QMenu()
+
+        selectedLayerNodes = [n for n in self.treeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
             mapNode = findParent(node, MapDockTreeNode)
@@ -842,9 +844,15 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
             menu.addSeparator()
 
+            def removeLayerTreeNodes(nodes):
+                for node in nodes:
+                    assert isinstance(node, QgsLayerTreeLayer)
+                    parentNode = node.parent()
+                    parentNode.removeChildNode(node)
+
             action = menu.addAction('Remove layer')
             action.setToolTip('Remove layer from map canvas')
-            action.triggered.connect(lambda: parentNode.removeChildNode(node))
+            action.triggered.connect(lambda: removeLayerTreeNodes(selectedLayerNodes))
 
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
