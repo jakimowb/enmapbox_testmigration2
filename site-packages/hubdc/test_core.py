@@ -269,15 +269,11 @@ class TestRaster(TestCase):
     def test_plots(self):
         import enmapboxtestdata
         enmap = openRasterDataset(filename=enmapboxtestdata.enmap)
-        #enmap.plotPixel(pixel=Pixel(x=0, y=0))
+        enmap.plotZProfile(pixel=Pixel(x=0, y=0))
+        a
         #enmap.plotSinglebandGrey(index=0)  # , vmin=0, vmax=9000)
         #enmap.plotSinglebandGrey(index=0, pmin=2, pmax=98)
 
-        rgbWavelengths = [Wavelength(value=value) for value in [855, 650, 550]] #72 44 26)
-        rgbindex = [w.locate(enmap.wavelengths()) for w in rgbWavelengths]
-        rgb = enmap.plotMultibandColor(rgbindex=rgbindex, noPlot=True)
-#        pyplot.plot(rgb[0].flatten(),rgb[1].flatten(), 'x')
-#        pyplot.show()
 
         #enmap.plotMultibandColor(rgbindex=rgbindex, rgbpmin=2, rgbpmax=98)
 
@@ -337,8 +333,14 @@ class TestSpatialGeometry(TestCase):
 class TestResolution(TestCase):
     def test_Resolution(self):
         resolution = Resolution(x=30, y=30)
+        assert resolution.equal(other=Resolution(30))
+        assert resolution.equal(other=Resolution([30, 30]))
+
         self.assertTrue(resolution.equal(other=Resolution(x=30, y=30)))
         self.assertFalse(resolution.equal(other=Resolution(x=10, y=10)))
+        assert (resolution/2).equal(other=Resolution(15))
+
+        print(resolution.zoom(factor=2))
 
 
 class TestGrid(TestCase):

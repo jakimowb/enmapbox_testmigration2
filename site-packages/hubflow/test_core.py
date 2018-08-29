@@ -29,8 +29,9 @@ enmapRegression = hubflow.testdata.enmapRegression(overwrite=overwrite)
 enmapMask = enmapClassification.asMask()
 speclib = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
 
-maps = [enmap, enmapClassification, enmapRegression, enmapFraction, enmapMask,
-        vector, vectorClassification, vectorMask]
+rasterMaps = [enmap, enmapClassification, enmapRegression, enmapFraction, enmapMask]
+vectorsMaps = [vector, vectorClassification, vectorMask]
+maps = rasterMaps + vectorsMaps
 
 enmapSample = hubflow.testdata.enmapSample()
 enmapClassificationSample = hubflow.testdata.enmapClassificationSample()
@@ -84,8 +85,6 @@ class Test(TestCase):
 
     def test_WavebandDefinition(self):
 
-        SensorDefinition
-
         wavebandDefinition = WavebandDefinition.fromFWHM(center=600, fwhm=10)
         print(wavebandDefinition)
         wavebandDefinition.plot()
@@ -101,22 +100,20 @@ class Test(TestCase):
         sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction,
                                                                    isResponseFunction=True)
         print(sentinel2Sensor)
-        #sentinel2Sensor.plot()
+        sentinel2Sensor.plot()
 
         # b) wl+fwhm from ENVI Speclib
         from enmapboxtestdata import speclib
         enmapSensor = SensorDefinition.fromENVISpectralLibrary(library=ENVISpectralLibrary(filename=speclib),
                                                                isResponseFunction=False)
         print(enmapSensor)
-        #enmapSensor.plot()
+        enmapSensor.plot()
 
         # c) wl+fwhm from raster
         enmapSensor = SensorDefinition.fromRaster(raster=enmap)
         print(enmapSensor)
-        #enmapSensor.plot()
+        enmapSensor.plot()
 
-        enmapSensor.wavebandResponses()
-        enmapSensor.wavebandWavelengths()
 
         hymapSensor = SensorDefinition.fromRaster(Raster(r'C:\Work\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image'))
 
@@ -133,12 +130,6 @@ class Test(TestCase):
             outraster.dataset().plotZProfile(pixel, plotWidget=plotWidget, spectral=True, symbol='o', symbolPen='r')
 
         return
-        #weights = sentinel2Response.response(0).weights(centers=enmapResponse.centers())
-        #print(weights)
-        #enmapResponse.plot(pw)
-#        enmapResponse.plot()
-        #enmapResponse =
-        #print(sentinel2Response)
 
     def test_SensorDefinitionResampleArray(self):
 
@@ -234,21 +225,36 @@ class Test(TestCase):
 
     def test_ClassificationSample(self):
 
+        # read from labeled library
+        library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+        classificationSample = ClassificationSample(raster=library.raster(),
+                                                    classification=Classification.fromRasterMetadata(
+                                                        filename='/vsimem/labels.bsq',
+                                                        raster=library.raster(),
+                                                        classificationSchemeName='level 2'))
+        return
+        # syntmix
+
+        fractionSample = enmapClassificationSample.synthMix2(
+                             filenameFeatures=join(outdir, 'ClassificationSampleSynthMix.features.bsq'),
+                             filenameFractions=join(outdir, 'ClassificationSampleSynthMix.fractions.bsq'),
+                             mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='equalized',
+                             n=1000,
+                             target=2, includeWithinclassMixtures=False, includeEndmember=False)
+        features, labels = fractionSample.extractAsArray()
+        print(features.shape, labels.shape)
+
         print(enmapClassificationSample)
         features, labels = enmapClassificationSample.extractAsArray()
         print(features.shape, labels.shape)
 
-#        classificationSample = ClassificationSample(raster=li.fromENVISpectralLibrary(library=ENVISpectralLibrary(filename=enmapboxtestdata.speclib),
-#                                                                            classificationSchemeName='level 2')
-#        features, labels = enmapClassificationSample.extractFeaturesAndLabels()
-#        print(features.shape, labels.shape)
 
-        fractionSample = enmapClassificationSample.synthMix(
-                             filenameFeatures=join(outdir, 'ClassificationSampleSynthMix.features.bsq'),
-                             filenameFractions=join(outdir, 'ClassificationSampleSynthMix.fractions.bsq'),
-                             mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='proportional', n=10)
-        features, labels = fractionSample.extractAsArray()
-        print(features.shape, labels.shape)
+#        fractionSample = enmapClassificationSample.synthMix(
+#                             filenameFeatures=join(outdir, 'ClassificationSampleSynthMix.features.bsq'),
+#                             filenameFractions=join(outdir, 'ClassificationSampleSynthMix.fractions.bsq'),
+#                             mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='proportional', n=10)
+#        features, labels = fractionSample.extractAsArray()
+#        print(features.shape, labels.shape)
 
 
     def test_ClassDefinition(self):
@@ -304,6 +310,9 @@ class Test(TestCase):
 
         # from array
         raster = Raster.fromArray(array=[[[-1, 1, 2, np.inf, np.nan]]], filename='/vsimem/raster.bsq')
+        print(raster.asMask(noDataValues=[-1]).array())
+        return
+
         raster.dataset().setNoDataValue(-1)
         statistics = raster.statistics(calcMean=1, calcStd=1, calcPercentiles=True, percentiles=[0,50,100],
                                        calcHistogram=True, histogramRanges=[(1,3)], histogramBins=[2])
@@ -381,6 +390,21 @@ class Test(TestCase):
         for raster in rasterStack.rasters():
             print(raster)
         print(rasterStack)
+
+        import enmapboxtestdata
+
+        raster = RasterStack(rasters=[Raster.fromArray(array=[[[1, 1], [1, 1]]], filename='/vsimem/raster1.bsq'),
+                                           Raster.fromArray(array=[[[2, 2], [2, 2]]], filename='/vsimem/raster2.bsq')])
+
+        applier = Applier(progressBar=SilentProgressBar())
+        applier.setFlowRaster(name='stack', raster=raster)
+
+        class MyOperator(ApplierOperator):
+            def ufunc(self, raster):
+                array = self.flowRasterArray(name='stack', raster=raster)
+                print(array)
+
+        applier.apply(operatorType=MyOperator, raster=raster)
 
     def test_MapCollection(self):
 
@@ -554,6 +578,14 @@ class Test(TestCase):
         rfc.fit(sample=enmapClassificationSample)
         print(rfc.predict(filename=join(outdir, 'rfcClassification.bsq'), raster=enmap, mask=vector, controls=c))
 
+    def test_applierDefaults(self):
+
+        filename = r'c:\output\applierDefaults.pkl'
+        ApplierDefaults.pickle(filename=filename)
+        ApplierDefaults.blockSize = Size(16)
+        print(ApplierDefaults.unpickle(filename=filename).blockSize)
+
+
     def test_pickle(self):
 
         def printDataset(obj):
@@ -576,20 +608,27 @@ class Test(TestCase):
             print(type(obj))
             print(obj)
 
+    def test_map_array(self):
+
+        for map in rasterMaps:
+            print(type(map))
+            print(map.array()[0,30:40,30:40])
+
+
     def test_debug(self):
 
-        obj = Classifier(sklEstimator=RandomForestClassifier())
-        filename = join(outdir, 'pickle.pkl')
-        obj.pickle(filename=filename)
-        obj2 =obj.unpickle(filename=filename)
-        a=1
+        from sklearn.pipeline import make_pipeline
+        from sklearn.model_selection import GridSearchCV
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.neural_network import MLPRegressor
 
+        param_grid = {'alpha': [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
+        mlpr = GridSearchCV(cv=10, estimator=MLPRegressor(), scoring='neg_mean_absolute_error', param_grid=param_grid)
+        mlpr = make_pipeline(StandardScaler(), mlpr)
+        mlpr = Regressor(sklEstimator=mlpr)
+        print(mlpr)
+        mlpr.fit(sample=enmapRegressionSample)
+        print(mlpr.predict(filename=join(outdir, 'mlprRegression.bsq'), raster=enmap, mask=vector))
 
 if __name__ == '__main__':
     print('output directory: ' + outdir)
-    #Test().test_UnsupervisedSample()
-#    test_Mask()
-
-    #run()
-
-
