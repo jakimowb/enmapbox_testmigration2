@@ -27,7 +27,6 @@ from Bitbucket.
 
     Examples.rst
 
-
 .. toctree::
    :maxdepth: 2
    :caption: API Reference
@@ -35,7 +34,6 @@ from Bitbucket.
 
    hubflow_core.rst
    indices.rst
-
 
 .. codeauthor:: Andreas Rabe
 

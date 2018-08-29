@@ -28,6 +28,7 @@ vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.la
                                                     classDefinition=classDefinitionL2,
                                                     minOverallCoverage=0., minDominantCoverage=0.,
                                                     oversampling=3)
+vectorMask = lambda: VectorMask(filename=enmapboxtestdata.landcover, invert=False)
 hymapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'hymapLandCover.bsq'),
                                                                                     classification=vectorClassification(),
                                                                                     grid=hymap().grid(), overwrite=overwrite)
@@ -48,15 +49,6 @@ enmapSample = lambda:Sample(raster=enmap(), mask=vector())
 enmapClassificationSample = lambda: ClassificationSample(raster=enmap(), classification=enmapClassification(overwrite))
 enmapFractionSample = lambda: FractionSample(raster=enmap(), fraction=enmapFraction(overwrite))
 enmapRegressionSample = lambda: RegressionSample(raster=enmap(), regression=enmapRegression())
-
-#hymapMask = lambda: hymapClassification.asMask()
-#enmapMask = lambda: enmapClassification.asMask()
-#unsupervisedSample = lambda: UnsupervisedSample.fromImageAndMask(image=enmap, mask=enmapMask)
-#classificationSample = lambda: ClassificationSample.fromImageAndClassification(image=enmap, classification=hymapClassification)
-#regressionSample = lambda: RegressionSample.fromImageAndRegression(image=enmap, regression=enmapFraction)
-#fractionSample = lambda: FractionSample.fromImageAndFraction(image=enmap, fraction=enmapFraction)
-#classifier = lambda: Classifier(sklEstimator=RandomForestClassifier()).fit(sample=classificationSample)
-#regressor = lambda: Regressor(sklEstimator=RandomForestRegressor()).fit(sample=regressionSample)
 
 
 if __name__ == '__main__':
