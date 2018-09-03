@@ -553,7 +553,7 @@ class EnMAPBox(QgisInterface, QObject):
             import enmapboxtestdata
             from enmapbox.gui.utils import file_search
             dir = os.path.dirname(enmapboxtestdata.__file__)
-            files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
+            files = file_search(dir, re.compile('.*(bsq|sli|img|shp|pkl)$', re.I), recursive=True)
 
             added = self.addSources(files)
 

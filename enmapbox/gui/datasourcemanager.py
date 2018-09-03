@@ -27,7 +27,7 @@ from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODE
 from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
-
+HUBFLOW_MAX_VALUES = 1024
 SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL', 'SPECLIB']
 
 HIDDEN_DATASOURCE = '__HIDDEN__DATASOURCE'
@@ -38,6 +38,16 @@ try:
 except Exception as ex:
     messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
     HUBFLOW = False
+
+
+def reprNL(obj, replacement=' '):
+    """
+    Repturn repl withouth newline
+    :param obj:
+    :param replacement:
+    :return:
+    """
+    return repr(obj).replace('\n',replacement)
 
 class DataSourceManager(QObject):
     """
@@ -778,7 +788,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
 
                 if re.search('_(vector|raster).*', name):
                     s = ""
-                node = TreeNode(parentTreeNode, name)
+                node = TreeNode(parentTreeNode, name, value=reprNL(value))
                 fetch(value, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
 
         elif isinstance(obj, np.ndarray):
@@ -789,13 +799,13 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                 parentTreeNode.setValue(str(obj))
 
 
-        elif isinstance(obj, list) or isinstance(obj, set):
+        elif isinstance(obj, (list, set, tuple)):
             """Show enumerations"""
 
             for i, item in enumerate(obj):
-                node = TreeNode(parentTreeNode, str(i+1))
+                node = TreeNode(parentTreeNode, str(i+1), value=reprNL(item))
                 fetch(item, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
-                if i > 100:
+                if i > HUBFLOW_MAX_VALUES:
                     node = TreeNode(parentTreeNode, '...')
                     break
         elif isinstance(obj, QColor):
@@ -821,14 +831,21 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                     attributes.append(t[0])
 
             for name in sorted(attributes):
-                node = TreeNode(parentTreeNode, name)
-                fetch(getattr(obj, name, None), parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
+                attr = getattr(obj, name, None)
+                if attr is None:
+                    try:
+                        attr = obj.__dict__[name]
+                    except:
+                        pass
+
+                node = TreeNode(parentTreeNode, name, value=reprNL(attr))
+                fetch(attr, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
                 s =""
 
 
         else:
             #show the object's 'natural' printout as node value
-            parentTreeNode.setValue(str(obj))
+            parentTreeNode.setValue(reprNL(obj))
 
         return parentTreeNode
 
