@@ -371,26 +371,6 @@ if __name__ == '__main__':
         howToStartEnMAPBoxInPython()
         exit(0)
     else:
-
-        p1 = r'Y:\LandsatData\Landsat_NovoProgresso'
-        p2 = r'Y:\Sentinel2'
-        p3 = r'Y:\Spot5'
-        p4 = r'Y:\CBERS'
-        files = []
-        for p in [p1, p2, p3, p4]:
-            files.extend(file_search(p, '*', recursive=True))
-
-        from random import shuffle
-
-        shuffle(files)
-        #files = ['r\'{}\',\\'.format(f) for f in files]
-        w = r'C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\snippets\nutshells\files.csv'
-
-        f = open(w, 'w', encoding='utf-8')
-        f.write('\n'.join(files))
-        f.flush()
-        f.close()
-
         from enmapbox.gui.utils import initQgisApplication
         qgsApp = initQgisApplication()
 
