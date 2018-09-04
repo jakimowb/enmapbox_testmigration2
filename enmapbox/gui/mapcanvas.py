@@ -690,7 +690,7 @@ class CanvasLink(QObject):
         elif self.linkType == LINK_ON_CENTER_SCALE:
             src = ":/enmapbox/icons/link_mapscale_center.svg"
         elif self.linkType == UNLINK:
-            src = ":/enmapbox/icons/link_upenh.svg"
+            src = ":/enmapbox/icons/link_open.svg"
         else:
             raise NotImplementedError('unknown link type: {}'.format(self.linkType))
 
@@ -762,6 +762,9 @@ class CanvasLink(QObject):
         if not isinstance(canvasLink, CanvasLink):
             return False
         return self.isSameCanvasPair(canvasLink)
+
+    def __hash__(self):
+        return hash(repr(self))
 
     def __repr__(self):
         cs = list(self.canvases)
@@ -851,20 +854,24 @@ class MapCanvas(QgsMapCanvas):
         b = isinstance(qgisApp, QgisInterface)
         menu.addSeparator()
         action = menu.addAction('Use QGIS map center')
-        action.triggered.connect(lambda : self.setCenter(SpatialPoint.fromMapCanvasCenter(qgisApp.mapCanvas())))
         action.setEnabled(b)
+        if b: action.triggered.connect(lambda : self.setCenter(SpatialPoint.fromMapCanvasCenter(qgisApp.mapCanvas())))
+
 
         action = menu.addAction('Set QGIS map center')
-        action.triggered.connect(lambda: qgisApp.mapCanvas().setCenter(self.spatialCenter().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
         action.setEnabled(b)
+        if b: action.triggered.connect(lambda: qgisApp.mapCanvas().setCenter(self.spatialCenter().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
+
 
         action = menu.addAction('Use QGIS map extent')
-        action.triggered.connect(lambda: self.setExtent(SpatialExtent.fromMapCanvas(qgisApp.mapCanvas())))
         action.setEnabled(b)
+        if b: action.triggered.connect(lambda: self.setExtent(SpatialExtent.fromMapCanvas(qgisApp.mapCanvas())))
+
 
         action = menu.addAction('Set QGIS map extent')
-        action.triggered.connect(lambda: qgisApp.mapCanvas().setExtent(self.spatialExtent().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
         action.setEnabled(b)
+        if b: action.triggered.connect(lambda: qgisApp.mapCanvas().setExtent(self.spatialExtent().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
+
 
         menu.addSeparator()
 
@@ -1163,9 +1170,13 @@ class MapCanvas(QgsMapCanvas):
         from enmapbox import EnMAPBox
 
         #register map layers (required for drawing on a MapCanvas)
-        store = EnMAPBox.instance().mapLayerStore()
-        store.addMapLayers(newSet)
-
+        try:
+            store = EnMAPBox.instance().mapLayerStore()
+            store.addMapLayers(newSet)
+        except Exception as ex:
+            print(ex, file=sys.stderr)
+            store = QgsProject.instance()
+            store.addMapLayers(newSet)
         super(MapCanvas,self).setLayers(newSet)
 
         if not self.mCrsExtentInitialized and len(newSet) > 0:
