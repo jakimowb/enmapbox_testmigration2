@@ -219,8 +219,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
-        self.sigCurrentLocationChanged[SpatialPoint, MapCanvas].connect(
-            lambda pt, canvas: self.ui.cursorLocationValuePanel.loadCursorLocation(pt, canvas))
+
+
+        self.sigCurrentLocationChanged[SpatialPoint, MapCanvas].connect(self.setCursorLocationValueInfo)
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.LOAD_PROCESSING_FRAMEWORK:
@@ -252,6 +253,11 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
 
+    def setCursorLocationValueInfo(self, spatialPoint:SpatialPoint, mapCanvas:MapCanvas):
+        if not self.ui.cursorLocationValuePanel.isVisible():
+            self.ui.cursorLocationValuePanel.show()
+        self.ui.cursorLocationValuePanel.loadCursorLocation(spatialPoint, mapCanvas)
+
     def mapLayerStore(self)->QgsMapLayerStore:
         """
         Returns the EnMAP-Box internal QgsMapLayerStore
@@ -266,20 +272,23 @@ class EnMAPBox(QgisInterface, QObject):
         import enmapbox.gui.dockmanager
         import enmapbox.gui.datasourcemanager
 
-        def addPanel(panel):
+        def addPanel(panel, show=True):
             """
             shortcut to add a created panel and return it
             :param dock:
             :return:
             """
             self.addDockWidget(area, panel)
+            if not show:
+                panel.hide()
             return panel
 
         area = Qt.LeftDockWidgetArea
         self.ui.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
         self.ui.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self.ui))
         from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
-        self.ui.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self.ui))
+        self.ui.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self.ui), show=False)
+
 
         area = Qt.RightDockWidgetArea
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
@@ -633,6 +642,15 @@ class EnMAPBox(QgisInterface, QObject):
 
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
+
+        #check if any SPECLIB window was opened
+        if len(self.dockManager.docks('SPECLIB')) == 0:
+            #and getattr(self, '_initialSpeclibDockCreated', False) == False:
+            dock = self.createDock('SPECLIB')
+            assert isinstance(dock, SpectralLibraryDock)
+            #self._initialSpeclibDockCreated = True
+
+
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 
     def currentSpectra(self)->list:
