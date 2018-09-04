@@ -101,6 +101,8 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
 
         w = ExampleAppGUI()
         w.show()
+        # keep a reference to the widget. If not, the garbage collector will remove it
+        self.w = w
 
 
 class ExampleAppGUI(QWidget):
@@ -319,7 +321,7 @@ if __name__ == '__main__':
         w.show()
 
     else:
-        from enmapbox.gui.enmapboxgui import EnMAPBox
+        from enmapbox import EnMAPBox
 
         EB = EnMAPBox(None)
         EB.run()

@@ -128,8 +128,8 @@ def sandboxGUI():
     fullsize = desktop.screenGeometry()
     scale = 0.9
     EB.ui.resize(QSize(int(fullsize.width()*scale),int(fullsize.height()*scale)))
-    EB.openExampleData(mapWindows=1)
-    if True:
+    EB.openExampleData(mapWindows=2)
+    if False:
         dock = EB.createDock('SPECLIB')
         s = ""
         #dock.float()
