@@ -74,6 +74,10 @@ def test_ClassDefinitionFromRaster():
 
 def test_Classification():
 
+    alg = ClassificationStatistics()
+    io = {alg.P_CLASSIFICATION: enmapClassification}
+    runalg(alg=alg, io=io)
+
     alg = ClassificationFromFraction()
     io = {alg.P_FRACTION: enmapFraction,
           alg.P_MIN_OVERALL_COVERAGE: 0.5,
@@ -281,6 +285,12 @@ def test_FractionPerformance():
 
 
 def test_Raster():
+
+    alg = RasterStatistics()
+    io = {alg.P_RASTER: enmap,
+          alg.P_BAND: 1}
+    runalg(alg=alg, io=io)
+    return
 
     for alg in ALGORITHMS:
         if isinstance(alg, RasterApplySpatial):
@@ -517,7 +527,7 @@ def printMenu():
 
 
 if __name__ == '__main__':
-    generateRST()
+    test_Classification()
     exit(0)
     test_ClassDefinitionFromRaster()
     test_Classification()

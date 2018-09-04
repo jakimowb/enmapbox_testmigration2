@@ -9,7 +9,6 @@ from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
 
-
 class ApplierDefaultsSetup(EnMAPAlgorithm):
     def displayName(self):
         return 'HUB Datacube Applier Settings'
@@ -112,6 +111,29 @@ class ClassificationFromFraction(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(ClassificationFromFraction())
+
+
+class ClassificationStatistics(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Classification Statistics'
+
+    def description(self):
+        return 'This algorithm returns class count statistics. The output will be shown in the log window and can the copied from there accordingly.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    def defineCharacteristics(self):
+        self.addParameterClassification()
+
+    def processAlgorithm_(self):
+        classification = self.getParameterClassification()
+        values = classification.statistics()
+        for name, n in zip(classification.classDefinition().names(), values):
+            self._progressBar.setText('{}: {}'.format(name, n))
+        return {}
+
+ALGORITHMS.append(ClassificationStatistics())
 
 
 class ClassificationFromVectorClassification(EnMAPAlgorithm):
@@ -279,8 +301,8 @@ class ClassifierFit(EstimatorFit):
         return self.GROUP_CLASSIFICATION
 
     def defineCharacteristics(self):
-        self.addParameterRaster()
-        self.addParameterClassification()
+        self.addParameterRaster(description='Features', help='Raster with training data features.')
+        self.addParameterClassification(description='Labels', help='Classification with training data labels.')
         self.addParameterMask()
         self.addParameterCode()
         self.addParameterOutputClassifier(name=self.P_OUTPUT_ESTIMATOR)
@@ -806,7 +828,7 @@ class FractionFromVectorClassification(EnMAPAlgorithm):
 
     def defineCharacteristics(self):
         self.addParameterGrid()
-        self.addParameterVectorClassification(minCoveragesDefaultValues=(0., 0.))
+        self.addParameterVectorClassification(minCoveragesDefaultValues=(0., 0.), hideMinDominantCoverage=True)
         self.addParameterOutputFraction()
 
     def processAlgorithm_(self):
@@ -1068,6 +1090,39 @@ class RasterUniqueValues(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(RasterUniqueValues())
+
+
+class RasterStatistics(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Raster Band Statistics'
+
+    def description(self):
+        return 'This algorithm returns raster band statistics. The output will be shown in the log window and can the copied from there accordingly.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    def defineCharacteristics(self):
+        self.addParameterRaster()
+        self.addParameterBand()
+
+    def processAlgorithm_(self):
+        raster = self.getParameterRaster()
+        values = raster.statistics(bandIndices=[self.getParameterBand()-1],
+                   calcPercentiles=True, calcHistogram=True, calcMean=True, calcStd=True,
+                   percentiles=[25,50,75])[0]
+
+        self._progressBar.setText('Min: {}'.format(values.min))
+        self._progressBar.setText('Max: {}'.format(values.max))
+        self._progressBar.setText('Mean: {}'.format(values.mean))
+        self._progressBar.setText('StdDev: {}'.format(values.std))
+        self._progressBar.setText('p25: {}'.format(values.percentiles[0].value))
+        self._progressBar.setText('median: {}'.format(values.percentiles[1].value))
+        self._progressBar.setText('p75: {}'.format(values.percentiles[2].value))
+
+        return {}
+
+ALGORITHMS.append(RasterStatistics())
 
 
 class RasterViewMetadata(EnMAPAlgorithm):
