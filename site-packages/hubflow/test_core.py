@@ -66,7 +66,7 @@ class Test(TestCase):
         # init
         speclib = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
         print(speclib)
-        print(speclib.raster().dataset().shape())
+        print(speclib.raster().dataset().metadataDict())
 
         # speclib from raster
         speclib = ENVISpectralLibrary.fromRaster(filename=join(outdir, 'ENVISpectralLibraryFromRaster.sli'),
@@ -169,6 +169,10 @@ class Test(TestCase):
 
     def test_Classification(self):
 
+
+        print(enmapClassification.statistics())
+        return
+
         raster = Raster.fromArray(array=[[[0, 1, 2]]], filename='/vsimem/raster.bsq')
         print(Classification(filename=raster.filename()))
 
@@ -228,33 +232,28 @@ class Test(TestCase):
         # read from labeled library
         library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
         classificationSample = ClassificationSample(raster=library.raster(),
-                                                    classification=Classification.fromRasterMetadata(
+                                                    classification=Classification.fromENVISpectralLibrary(
                                                         filename='/vsimem/labels.bsq',
-                                                        raster=library.raster(),
-                                                        classificationSchemeName='level 2'))
-        return
+                                                        library=library,
+                                                        attribute='level 2'))
+
         # syntmix
 
-        fractionSample = enmapClassificationSample.synthMix2(
-                             filenameFeatures=join(outdir, 'ClassificationSampleSynthMix.features.bsq'),
-                             filenameFractions=join(outdir, 'ClassificationSampleSynthMix.fractions.bsq'),
-                             mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='equalized',
-                             n=1000,
-                             target=2, includeWithinclassMixtures=False, includeEndmember=False)
+        for includeWithinclassMixtures in [True, False]:
+            for includeEndmember in [True, False]:
+                print(includeWithinclassMixtures, includeEndmember)
+                fractionSample = enmapClassificationSample.synthMix2(
+                                     filenameFeatures=join(outdir, 'ClassificationSampleSynthMix.features.bsq'),
+                                     filenameFractions=join(outdir, 'ClassificationSampleSynthMix.fractions.bsq'),
+                                     mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='equalized',
+                                     n=1000, target=2, includeWithinclassMixtures=includeWithinclassMixtures,
+                                     includeEndmember=includeEndmember)
         features, labels = fractionSample.extractAsArray()
         print(features.shape, labels.shape)
 
         print(enmapClassificationSample)
         features, labels = enmapClassificationSample.extractAsArray()
         print(features.shape, labels.shape)
-
-
-#        fractionSample = enmapClassificationSample.synthMix(
-#                             filenameFeatures=join(outdir, 'ClassificationSampleSynthMix.features.bsq'),
-#                             filenameFractions=join(outdir, 'ClassificationSampleSynthMix.fractions.bsq'),
-#                             mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='proportional', n=10)
-#        features, labels = fractionSample.extractAsArray()
-#        print(features.shape, labels.shape)
 
 
     def test_ClassDefinition(self):
@@ -616,19 +615,10 @@ class Test(TestCase):
 
 
     def test_debug(self):
+        import enmapboxtestdata
+        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, classAttribute='level 2')
+        print(vectorClassification)
 
-        from sklearn.pipeline import make_pipeline
-        from sklearn.model_selection import GridSearchCV
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.neural_network import MLPRegressor
-
-        param_grid = {'alpha': [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
-        mlpr = GridSearchCV(cv=10, estimator=MLPRegressor(), scoring='neg_mean_absolute_error', param_grid=param_grid)
-        mlpr = make_pipeline(StandardScaler(), mlpr)
-        mlpr = Regressor(sklEstimator=mlpr)
-        print(mlpr)
-        mlpr.fit(sample=enmapRegressionSample)
-        print(mlpr.predict(filename=join(outdir, 'mlprRegression.bsq'), raster=enmap, mask=vector))
 
 if __name__ == '__main__':
     print('output directory: ' + outdir)
