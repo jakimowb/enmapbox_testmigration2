@@ -33,6 +33,7 @@ class standardDataSources(unittest.TestCase):
     def setUp(self):
 
         self.wmsUri = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
+        self.wmsUri = 'referer=OpenStreetMap%20contributors,%20under%20ODbL&type=xyz&url=http://tiles.wmflabs.org/hikebike/%7Bz%7D/%7Bx%7D/%7By%7D.png&zmax=17&zmin=1'
         self.wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
         pass
 
@@ -347,7 +348,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
         self.assertEqual(M.rowCount(), 0)
 
         #add 2 rasters
-        dsm.addSources([enmapbox, hymap])
+        dsm.addSources([enmap, hymap])
         self.assertEqual(M.rowCount(), 1)
 
         #add

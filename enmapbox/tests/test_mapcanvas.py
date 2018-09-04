@@ -44,7 +44,7 @@ class MapCanvasTests(unittest.TestCase):
         menu = self.mapCanvas.contextMenu()
         lyr = QgsRasterLayer(enmap)
         self.assertTrue(lyr not in QgsProject.instance().mapLayers().values())
-        self.mapCanvas.setLayers(lyr)
+        self.mapCanvas.setLayers([lyr])
         self.assertTrue(lyr in QgsProject.instance().mapLayers().values())
         self.assertTrue(lyr in self.mapCanvas.layers())
 
@@ -62,10 +62,14 @@ class MapCanvasTests(unittest.TestCase):
             except Exception as ex:
                 self.fail('Failed to trigger QAction "{}\n\t{}"'.find(info, ex))
 
+    def test_canvaslinks(self):
+
+        CanvasLink()
 
     def test_dropEvents(self):
 
         from enmapboxtestdata import enmap, hymap, landcover, speclib
+        from enmapbox.gui.utils import TestObjects
         allFiles = [enmap, hymap, landcover, speclib]
         spatialFiles = [enmap, hymap, landcover]
 
@@ -75,8 +79,8 @@ class MapCanvasTests(unittest.TestCase):
 
         #drop URLs
         self.mapCanvas.setLayers([])
-        self.mapCanvas.dropEvent(createDropEvent(md))
-        self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
+        self.mapCanvas.dropEvent(TestObjects.createDropEvent(md))
+        #self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
         for p in self.mapCanvas.layerPaths():
             self.assertTrue(p in spatialFiles)
 
@@ -86,7 +90,7 @@ class MapCanvasTests(unittest.TestCase):
         md = fromLayerList(layers)
 
         self.mapCanvas.setLayers([])
-        self.mapCanvas.dropEvent(createDropEvent(md))
+        self.mapCanvas.dropEvent(TestObjects.createDropEvent(md))
         self.assertTrue(len(self.mapCanvas.layerPaths()) == 2)
         for p in self.mapCanvas.layerPaths():
             self.assertTrue(p in spatialFiles)
@@ -128,6 +132,7 @@ def exampleMapLinking():
 
     qgsApp.exec_()
     qgsApp.exitQgis()
+
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(name='enmapbox',
     version='0.8.15',
-    description='EnMAP-Box setup.py, bascially to run ReadTheDocs only',
+    description='EnMAP-Box setup.py, basically to run ReadTheDocs only',
     author='',
     author_email='',
     packages=[],

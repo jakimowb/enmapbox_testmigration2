@@ -133,8 +133,12 @@ class CanvasLinkTreeNode(TreeNode):
 
     def contextMenu(self):
         m = QMenu()
+
+        #parent canvas
+        canvas = self.parent().canvas
+        otherCanvas = self.canvasLink.theOtherCanvas(canvas)
         a = m.addAction('Remove')
-        a.setToolTip('Removes this link.')
+        a.setToolTip('Remove link to {}.'.format(otherCanvas.name()))
         a.triggered.connect(self.canvasLink.removeMe)
         return m
 
@@ -144,7 +148,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
     A node to show links between difference canvases
     """
 
-    def __init__(self, parent, canvas):
+    def __init__(self, parent, canvas:MapCanvas):
         assert isinstance(canvas, MapCanvas)
         super(CanvasLinkTreeNodeGroup, self).__init__(parent, 'Spatial Links',
                                                       icon=QIcon(":/enmapbox/icons/link_basic.svg"))
@@ -153,7 +157,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
         self.canvas.sigCanvasLinkAdded.connect(self.addCanvasLink)
         self.canvas.sigCanvasLinkRemoved.connect(self.removeCanvasLink)
 
-    def addCanvasLink(self, canvasLink):
+    def addCanvasLink(self, canvasLink:CanvasLink):
         assert isinstance(canvasLink, CanvasLink)
         from enmapbox.gui.utils import findParent
         theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
@@ -176,6 +180,55 @@ class CanvasLinkTreeNodeGroup(TreeNode):
                 node.canvasLink.removeMe()
             else:
                 self.removeChildNode(node)
+
+    def contextMenu(self):
+        m = QMenu()
+        from enmapbox import EnMAPBox
+
+        otherMaps = collections.OrderedDict()
+        for mapDock in EnMAPBox.instance().dockManager.docks('MAP'):
+            assert isinstance(mapDock, MapDock)
+            if mapDock.mapCanvas() == self.canvas:
+                continue
+            otherMaps[mapDock.title()] = mapDock.mapCanvas()
+
+        sub = m.addMenu('Link to all other maps')
+        a = sub.addAction('on center + scale')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER_SCALE) for c2 in canvases])
+
+        a = sub.addAction('on center')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER) for c2 in canvases])
+
+        a = sub.addAction('on scale')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_SCALE) for c2 in canvases])
+
+        a = sub.addAction('unlink')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, UNLINK) for c2 in canvases])
+
+        for name, targetCanvas in otherMaps.items():
+            assert isinstance(targetCanvas, MapCanvas)
+            sub = m.addMenu('Link to "{}"'.format(name))
+            a = sub.addAction('on center + scale')
+            a.triggered.connect(lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1,c2, LINK_ON_CENTER_SCALE))
+
+            a = sub.addAction('on center')
+            a.triggered.connect(
+                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER))
+
+            a = sub.addAction('on scale')
+            a.triggered.connect(
+                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, LINK_ON_SCALE))
+
+            a = sub.addAction('unlink')
+            a.triggered.connect(
+                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, UNLINK))
+
+
+        return m
 
 
 class SpeclibDockTreeNode(DockTreeNode):

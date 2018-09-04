@@ -154,7 +154,7 @@ class DataSourceManager(QObject):
         if mapLayers is None:
             mapLayers = QgsProject.instance().mapLayers().values()
 
-        added = [self.addSource(lyr) for lyr in mapLayers]
+        added = [self.addSource(lyr, name=lyr.name()) for lyr in mapLayers]
         return [a for a in added if isinstance(a, DataSource)]
 
     def uriList(self, sourceTypes='ALL') -> list:
@@ -457,6 +457,7 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
             self.mSrcSize = os.path.getsize(self.dataSource.uri())
             self.nodeSize = TreeNode(self, 'File size', value=fileSizeString(self.mSrcSize))
         else:
+            self.nodeSize = TreeNode(self, 'Size', value='unknown')
             self.mSrcSize = -1
 
 
