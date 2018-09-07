@@ -1,18 +1,17 @@
 from distutils.version import LooseVersion
 from os.path import dirname, join
 
-ENMAPBOXTESTDATA_VERSION = '0.4'
-ENMAPBOXTESTDATA_VERSION_OBJ = LooseVersion(ENMAPBOXTESTDATA_VERSION)
-__version__ = ENMAPBOXTESTDATA_VERSION
-
 enmap = join(dirname(__file__), 'EnMAP_BerlinUrbanGradient.bsq')
 hymap = join(dirname(__file__), 'HighResolution_BerlinUrbanGradient.bsq')
 landcover = join(dirname(__file__), 'LandCov_BerlinUrbanGradient.shp')
+landcoverfractions = join(dirname(__file__), 'LandCovFrac_BerlinUrbanGradient.bsq')
+
 class landcoverAttributes():
     Level_1 = 'Level_1'
     Level_2 = 'Level_2'
     Level_1_ID = 'Level_1_ID'
     Level_2_ID = 'Level_2_ID'
+
 class landcoverClassDefinition():
     class level1():
         names = ['Impervious', 'Vegetation', 'Soil', 'Other']
@@ -27,3 +26,5 @@ class landcoverClassDefinition():
         mappingToLevel1ById = {1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 4}
 
 speclib = join(dirname(__file__), 'SpecLib_BerlinUrbanGradient.sli')
+speclib2 = join(dirname(__file__), 'SpecLib_SynthMix.sli')
+

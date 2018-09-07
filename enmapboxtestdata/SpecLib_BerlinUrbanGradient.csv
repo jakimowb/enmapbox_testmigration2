@@ -1,4 +1,4 @@
-spectra names,level 1 class spectra names,level 2 class spectra names
+spectra names,level 1,level 2
 Red clay tile 1,Impervious,Roof
 Red clay tile 2,Impervious,Roof
 Red clay tile 3,Impervious,Roof
@@ -29,24 +29,24 @@ Asphalt 4,Impervious,Pavement
 Concrete 1,Impervious,Pavement
 Concrete 2,Impervious,Pavement
 Concrete 3,Impervious,Pavement
-Grass (intensively manicured) 1,Vegetation,LowVegetation
-Grass (intensively manicured) 2,Vegetation,LowVegetation
-Grass (extensively manicured),Vegetation,LowVegetation
-Grass (agricultural grassland) 1,Vegetation,LowVegetation
-Grass (agricultural grassland) 2,Vegetation,LowVegetation
-Grass (agricultural grassland)3,Vegetation,LowVegetation
-Grass (meadow clover) 1,Vegetation,LowVegetation
-Grass (meadow clover) 2,Vegetation,LowVegetation
-Grass (meadow alfalfa/lucerne),Vegetation,LowVegetation
-Grass (dry) 1,Vegetation,LowVegetation
-Grass (dry) 2,Vegetation,LowVegetation
-Grass (dry agricultural grassland),Vegetation,LowVegetation
-Sunflower,Vegetation,LowVegetation
-Corn,Vegetation,LowVegetation
-Sorghum,Vegetation,LowVegetation
-Sugarbeet 1,Vegetation,LowVegetation
-Sugarbeet 2,Vegetation,LowVegetation
-Potatoes,Vegetation,LowVegetation
+Grass (intensively manicured) 1,Vegetation,Low vegetation
+Grass (intensively manicured) 2,Vegetation,Low vegetation
+Grass (extensively manicured),Vegetation,Low vegetation
+Grass (agricultural grassland) 1,Vegetation,Low vegetation
+Grass (agricultural grassland) 2,Vegetation,Low vegetation
+Grass (agricultural grassland)3,Vegetation,Low vegetation
+Grass (meadow clover) 1,Vegetation,Low vegetation
+Grass (meadow clover) 2,Vegetation,Low vegetation
+Grass (meadow alfalfa/lucerne),Vegetation,Low vegetation
+Grass (dry) 1,Vegetation,Low vegetation
+Grass (dry) 2,Vegetation,Low vegetation
+Grass (dry agricultural grassland),Vegetation,Low vegetation
+Sunflower,Vegetation,Low vegetation
+Corn,Vegetation,Low vegetation
+Sorghum,Vegetation,Low vegetation
+Sugarbeet 1,Vegetation,Low vegetation
+Sugarbeet 2,Vegetation,Low vegetation
+Potatoes,Vegetation,Low vegetation
 Deciduous tree 1,Vegetation,Tree
 Deciduous tree 2,Vegetation,Tree
 Deciduous tree 3,Vegetation,Tree
