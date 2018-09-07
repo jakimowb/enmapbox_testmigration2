@@ -390,7 +390,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             assert noDataValueSource is not None
             try:  # in case of a normal raster
                 raster = self.inputRaster.raster(key=noDataValueSource)
-                noDataValues = raster.noDataValues(default=0)
+                noDataValues = raster.noDataValues(default=None)
             except:  # in case of a raster stack
                 group = self.inputRaster.group(key=noDataValueSource)
                 keys = sorted([int(key) for key in group.rasterKeys()])
