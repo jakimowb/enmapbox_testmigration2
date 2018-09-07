@@ -39,7 +39,7 @@ REPO = git.Repo(DIR_REPO)
 currentBranch = REPO.active_branch.name
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
 buildID = '{}.{}.{}'.format(enmapbox.__version__, timestamp, re.sub(r'[\\/]','_', currentBranch))
-
+TEST_REPO_XML = os.path.join(DIR_REPO, 'qgis_plugin_tests.xml')
 
 def rm(p):
     """
@@ -61,6 +61,13 @@ def cleanDir(d):
     for root, dirs, files in os.walk(d):
         for p in dirs + files: rm(jp(root, p))
         break
+
+
+
+def updateTestPluginRepoXML(id):
+
+
+    import xml.etree
 
 
 def mkDir(d, delete=False):
@@ -154,6 +161,8 @@ def build():
     zipdir(dirPlugin, pathZip)
     # os.chdir(dirPlugin)
     # shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
+
+    updateTestPluginRepoXML(pathZip)
 
     # 6. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
