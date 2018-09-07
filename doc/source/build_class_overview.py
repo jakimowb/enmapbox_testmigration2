@@ -1,8 +1,7 @@
 from hubflow.core import *
 
 text = list()
-text.append('''
-=======
+text.append('''=======
 Classes
 =======
 ''')

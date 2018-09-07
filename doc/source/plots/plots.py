@@ -77,8 +77,16 @@ def vector_fromRandomPointsFromClassification():
     labels.plotCategoryBand(showPlot=False)
     exportMatplotlibPNG(filename='classification_applyMask.png')
 
-vector_fromRandomPointsFromClassification()
+def classification_plot():
+    classification = Classification.fromArray(array=[[[0, 1], [1, 2]]],
+                                              filename='/vsimem/classification.bsq',
+                                              classDefinition=ClassDefinition(colors=['red','blue']))
+    classification.plot(showPlot=False)
+    exportMatplotlibPNG(filename='classification_fromArray.png')
+
+classification_plot()
 exit(0)
+vector_fromRandomPointsFromClassification()
 vector_fromRandomPointsFromMask()
 wavebandDefinition_plot()
 sensorDefinition_plot()
