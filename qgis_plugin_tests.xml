@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<plugins>
+    <pyqgis_plugin name="EnMAPBox Test Version" version="3.2.20180904T1723">
+        <description>EnMAP-Box snapshot</description>
+        <homepage>https://bitbucket.org/hu-geomatics/enmap-box</homepage>
+        <qgis_minimum_version>3.2</qgis_minimum_version>
+        <file_name>enmapboxplugin.3.2.20180904T1723.develop.snapshot.zip</file_name>
+        <author_name>HU Geomatics</author_name>
+        <download_url>https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.3.2.20180904T1723.develop.snapshot.zip</download_url>
+    </pyqgis_plugin>
+</plugins>
