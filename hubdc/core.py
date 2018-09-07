@@ -1348,14 +1348,14 @@ class RasterDataset(object):
         domains = self._gdalDataset.GetMetadataDomainList()
         return domains if domains is not None else []
 
-    def metadataItem(self, key, domain='', dtype=str, required=False):
+    def metadataItem(self, key, domain='', dtype=str, required=False, default=None):
         '''Returns the value (casted to a specific ``dtype``) of a metadata item.'''
         key = key.replace(' ', '_')
         gdalString = self._gdalDataset.GetMetadataItem(key, domain)
         if gdalString is None:
             if required:
                 raise Exception('missing metadata item: key={}, domain={}'.format(key, domain))
-            return None
+            return default
         return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
 
     def metadataDomain(self, domain=''):

@@ -36,7 +36,7 @@ class ApplierOptions(object):
 
 
 class ApplierDefaults(object):
-    '''Defauls values for various settings used inside an applier processing chain.'''
+    '''Default values for various settings used inside an applier processing chain.'''
 
     autoExtent = ApplierOptions.AutoExtent.intersection
     autoResolution = ApplierOptions.AutoResolution.minimum
@@ -55,6 +55,21 @@ class ApplierDefaults(object):
         errorThreshold = 0.
         memoryLimit = 100 * 2 ** 20
         multithread = False
+
+    @staticmethod
+    def pickle(filename):
+        if not exists(dirname(filename)):
+            makedirs(dirname(filename))
+        with open(filename, 'wb') as f:
+            pickle.dump(obj=ApplierDefaults, file=f, protocol=1)
+
+    @staticmethod
+    def unpickle(filename):
+
+        with open(filename, 'rb') as f:
+            cls = pickle.load(file=f)
+
+        return cls
 
 
 class ApplierIO(object):
