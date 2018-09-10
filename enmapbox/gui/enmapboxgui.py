@@ -85,6 +85,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.setWindowIcon(getIcon())
         self.setVisible(False)
 
+        if sys.platform == 'darwin':
+            self.menuBar().setNativeMenuBar(False)
         # self.showMaximized()
         self.setAcceptDrops(True)
         import enmapbox

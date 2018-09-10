@@ -1,9 +1,8 @@
 from hubflow.core import *
-import enmapboxtestdata
 from sklearn.ensemble import RandomForestRegressor
 
 
-def synthmixRegressionEnsemble(directory, classificationSample, targets, regressor, raster, runs=3, n=100,
+def synthmixRegressionEnsemble(filename, classificationSample, targets, regressor, raster, runs=3, n=100,
                                mixingComplexities={2: 1.}, classLikelihoods='equalized',
                                includeWithinclassMixtures=False, includeEndmember=False,
                                saveSamples=True, saveModels=True, savePredictions=True, saveMedian=True,
@@ -11,6 +10,8 @@ def synthmixRegressionEnsemble(directory, classificationSample, targets, regress
 
     # build ensemble
 
+    directory = dirname(filename)
+    prefix, ext = splitext(basename(filename))
     predictions = {target: list() for target in targets}
     results = list()
 
@@ -28,8 +29,8 @@ def synthmixRegressionEnsemble(directory, classificationSample, targets, regress
 
 
             fractionSample = classificationSample.synthMix2(
-                filenameFeatures=join(directory, 'train', 'features{}.bsq'.format(stamp)),
-                filenameFractions=join(directory, 'train', 'fractions_{}.bsq'.format(stamp)),
+                filenameFeatures=join(directory, 'train', '{}_features{}.{}'.format(prefix, stamp, ext)),
+                filenameFractions=join(directory, 'train', '{}_fractions{}.{}'.format(prefix, stamp, ext)),
                 mixingComplexities=mixingComplexities, classLikelihoods=classLikelihoods,
                 n=n, target=target,
                 includeWithinclassMixtures=includeWithinclassMixtures, includeEndmember=includeEndmember)
@@ -37,10 +38,12 @@ def synthmixRegressionEnsemble(directory, classificationSample, targets, regress
             regressor.fit(sample=fractionSample)
 
             if saveModels:
-                regressor.pickle(filename=join(directory, 'models', 'model{}.pkl'.format(stamp)))
+                regressor.pickle(filename=join(directory, 'models', '{}_model{}.pkl'.format(prefix, stamp)))
 
             if savePredictions or saveMean or saveStd or saveMedian or saveIQR:
-                prediction = regressor.predict(filename=join(directory, 'predictions', 'prediction{}.bsq'.format(stamp)), raster=raster)
+                prediction = regressor.predict(filename=join(directory, 'predictions', '{}_prediction{}.{}'.format(prefix, stamp, ext)),
+                                               raster=raster,
+                                               emitFileCreated=False)
                 predictions[target].append(prediction)
 
     # aggregate
@@ -62,7 +65,7 @@ def synthmixRegressionEnsemble(directory, classificationSample, targets, regress
             applier.setFlowRaster(name=str(target), raster=RasterStack(predictions[target]))
 
         for key in keys:
-            filename = join(directory, 'aggregations', '{}.bsq'.format(key))
+            filename = join(directory, 'aggregations', '{}_{}.{}'.format(prefix, key, ext))
             applier.setOutputRaster(name=key, filename=filename)
             results.append(filename)
         applier.apply(operatorType=Aggregate, predictions=predictions, keys=keys, clip=clip)
@@ -76,10 +79,10 @@ def synthmixRegressionEnsemble(directory, classificationSample, targets, regress
         if saveMean: keys.append('mean')
         if saveMedian: keys.append('median')
         for key in keys:
-            fraction = Fraction(filename=join(directory, 'aggregations', '{}.bsq'.format(key)),
+            fraction = Fraction(filename=join(directory, 'aggregations', '{}_{}.{}'.format(prefix, key, ext)),
                                 classDefinition=classificationSample.classification().classDefinition())
             results.append(fraction.filename())
-            rgb = fraction.asClassColorRGBRaster(filename=join(directory, 'rgb', '{}_rgb.bsq'.format(key)))
+            rgb = fraction.asClassColorRGBRaster(filename=join(directory, 'rgb', '{}_{}_rgb.{}'.format(prefix, key, ext)))
             results.append(rgb.filename())
 
     # clean up
@@ -114,7 +117,7 @@ class Aggregate(ApplierOperator):
                 np.clip(array, a_min=0, a_max=1, out=array)
             if 'mean' in keys:
                 results['mean'].append(np.mean(array, axis=0))
-            if 'mean' in keys:
+            if 'std' in keys:
                 results['std'].append(np.std(array, axis=0))
             if 'median' in keys and 'iqr' in keys:
                 p25, median, p75 = np.percentile(array, q=(25, 50, 75), axis=0)
@@ -136,6 +139,7 @@ class Aggregate(ApplierOperator):
             self.outputRaster.raster(key=key).setArray(results[key])
 
 def test():
+    import enmapboxtestdata
     library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
     labels = Classification.fromENVISpectralLibrary(filename='/vsimem/synthmixRegressionEnsemble/labels.bsq',
                                                     library=library, attribute='level 2')

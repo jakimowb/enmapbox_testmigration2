@@ -27,7 +27,7 @@ vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.la
                                                     classAttribute=enmapboxtestdata.landcoverAttributes.Level_2_ID,
                                                     classDefinition=classDefinitionL2,
                                                     minOverallCoverage=0., minDominantCoverage=0.,
-                                                    oversampling=3)
+                                                    oversampling=10)
 vectorMask = lambda: VectorMask(filename=enmapboxtestdata.landcover, invert=False)
 hymapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'hymapLandCover.bsq'),
                                                                                     classification=vectorClassification(),
