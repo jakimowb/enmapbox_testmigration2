@@ -333,19 +333,6 @@ class Test(TestCase):
 
     def test_Raster(self):
 
-        bandIndicies = 0, 1
-        statistics = enmap.statistics(bandIndicies=bandIndicies, calcPercentiles=True, calcHistogram=True, calcMean=True,
-                               calcStd=True, mask=enmapMask)
-        H, xedges, yedges = enmap.scatterMatrix(raster2=enmap, bandIndex1=bandIndicies[0], bandIndex2=bandIndicies[1],
-                                                range1=(statistics[0].min, statistics[0].max),
-                                                range2=(statistics[1].min, statistics[1].max),
-                                                bins=10,
-                                                mask=enmap)
-                                                #mask = vector)
-
-        print(H)
-
-        return
         # from array
         raster = Raster.fromArray(array=[[[-1, 1, 2, np.inf, np.nan]]], filename='/vsimem/raster.bsq')
         print(raster.asMask(noDataValues=[-1]).array())
@@ -691,6 +678,16 @@ class Test(TestCase):
                                                                      classDefinition=fractionSample.fraction().classDefinition(),
                                                                      filename='/vsimem/fraction.bsq'))
 
+    def test_debug(self):
+
+        rfc = Classifier(sklEstimator=RandomForestClassifier())
+        rfc.fit(enmapClassificationSample)
+
+        grid = enmap.grid()
+        grid = grid.atResolution(300)
+        rfc.predictProbability(filename='/vsimem/rfc.bsq',
+                               raster=enmap,
+                               grid=grid, progressBar=CUIProgressBar())
 
 
 

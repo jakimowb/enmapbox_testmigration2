@@ -568,6 +568,7 @@ class MapCollection(FlowObject):
                [1, 4]])]
         '''
 
+        assert isinstance(masks, list)
         if grid is None:
             grid = self.maps()[0].grid()
         assert isinstance(grid, Grid)
@@ -927,7 +928,6 @@ class Raster(Map):
                 rasterBand.setDescription(value=description)
 
         return cls.fromRasterDataset(rasterDataset=rasterDataset, **kwargs)
-
 
     def uniqueValues(self, index):
         '''
@@ -1316,6 +1316,10 @@ class Raster(Map):
     def plotSinglebandGrey(self, *args, **kwargs):
         '''Forwards :meth:`hubdc.core.RasterDataset.plotSinglebandGrey`'''
         return self.dataset().plotSinglebandGrey(*args, **kwargs)
+
+    def plotMultibandColor(self, *args, **kwargs):
+        '''Forwards :meth:`hubdc.core.RasterDataset.plotSinglebandGrey`'''
+        return self.dataset().plotMultibandColor(*args, **kwargs)
 
     def plotCategoryBand(self, *args, **kwargs):
         '''Forwards :meth:`hubdc.core.RasterDataset.plotCategoryBand`'''
@@ -4487,9 +4491,10 @@ class _EstimatorPredictProbability(ApplierOperator):
         valid *= self.flowMaskArray('mask', mask=mask)
         valid *= self.flowMaskArray('mask2', mask=mask2)
 
-        X = np.float64(self.features[:, valid[0]].T)
-        y = estimator.sklEstimator().predict_proba(X=X)
-        prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
+        if np.any(valid):
+            X = np.float64(self.features[:, valid[0]].T)
+            y = estimator.sklEstimator().predict_proba(X=X)
+            prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
 
         self.outputRaster.raster(key='fraction').setArray(array=prediction)
         self.setFlowMetadataFractionDefinition('fraction',
