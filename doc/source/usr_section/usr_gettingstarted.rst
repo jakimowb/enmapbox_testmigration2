@@ -70,19 +70,19 @@ Loading Testdata
 
     Now your EnMAP-Box project might look something like this...
 
-.. |openmapwindow| image:: ../../../enmapbox/gui/ui/icons/viewlist_mapdock.png
+.. |openmapwindow| image:: ../../../enmapbox/gui/ui/icons/viewlist_mapdock.svg
     :width: 30px
-.. |linkbasic| image:: ../../../enmapbox/gui/ui/icons/link_basic.png
+.. |linkbasic| image:: ../../../enmapbox/gui/ui/icons/link_basic.svg
     :width: 30px
-.. |linkscalecenter| image:: ../../../enmapbox/gui/ui/icons/link_mapscale_center.png
+.. |linkscalecenter| image:: ../../../enmapbox/gui/ui/icons/link_mapscale_center.svg
     :width: 30px
-.. |pan| image:: ../../../enmapbox/gui/ui/icons/mActionPan.png
+.. |pan| image:: ../../../enmapbox/gui/ui/icons/mActionPan.svg
     :width: 30px
-.. |openspeclib| image:: ../../../enmapbox/gui/ui/icons/viewlist_spectrumdock.png
+.. |openspeclib| image:: ../../../enmapbox/gui/ui/icons/viewlist_spectrumdock.svg
     :width: 30px
-.. |selectpixelprofile| image:: ../../../enmapbox/gui/ui/icons/pickrasterspectrum.png
+.. |selectpixelprofile| image:: ../../../enmapbox/gui/ui/icons/pickrasterspectrum.svg
     :width: 30px
-.. |profile2speclib| image:: ../../../enmapbox/gui/ui/icons/profile2speclib.png
+.. |profile2speclib| image:: ../../../enmapbox/gui/ui/icons/profile2speclib.svg
     :width: 30px
 
 |

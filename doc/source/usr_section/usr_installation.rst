@@ -70,7 +70,7 @@ The EnMAP-Box requires the following python packages in order to run:
 * `scipy <https://www.scipy.org>`_
 * `setuptools <https://pypi.python.org/pypi/setuptools>`_
 * `matplotlib <https://matplotlib.org/>`_
-* `pyqtgraph <https://pypi.python.org/pypi/pip>`_
+* `pyqtgraph <http://pyqtgraph.org/>`_
 * `scikit-learn <http://scikit-learn.org/stable/index.html>`_
 * `astropy <http://docs.astropy.org>`_
 
@@ -160,7 +160,7 @@ Windows
     .. code-block:: batch
 
         python3 -m pip install pyqtgraph
-        python3 -m pip install sklearn
+        python3 -m pip install scikit-learn
         python3 -m pip install astropy
 
     .. image:: ../img/shell_pipinstall.png
@@ -169,13 +169,27 @@ Windows
 
 .. _install-packages-linux:
 
+|
+
 Linux
 ~~~~~
 
-.. todo:: Linux installation of a recent QGIS 3 version (not tested yet)
+.. note:: Tested on Ubuntu 18.04
+
+#. Open the terminal and install all missing packages using pip:
+
+    .. code-block:: bash
+
+        python3 -m pip install scipy
+        python3 -m pip install matplotlib
+        python3 -m pip install scikit-learn
+        python3 -m pip install pyqtgraph
+        python3 -m pip install astropy
 
 
 .. _install-packages-mac:
+
+|
 
 Mac
 ~~~
@@ -186,7 +200,7 @@ Mac
 
         python3 -m pip install scipy
         python3 -m pip install matplotlib
-        python3 -m pip install sklearn
+        python3 -m pip install scikit-learn
         python3 -m pip install pyqtgraph
         python3 -m pip install astropy
 
@@ -199,9 +213,11 @@ Install or update the EnMAP-Box
 -------------------------------
 
 
-1. Download the latest EnMAP-Box from |download_link2|.
-2. Start QGIS 3 and open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
-3. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and start *Install plugin*.
+#. Download the latest EnMAP-Box from |download_link2|.
+#. It is recommended to uninstall previous EnMAP-Box versions (delete folder manually, or in QGIS via *Plugins* > *Manage and Install Plugins*
+   > *Installed* > *EnMAP-Box 3* > *Uninstall plugin*)
+#. Open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
+#. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and click *Install plugin*.
 
    .. image:: ../img/installfromzip.png
 
@@ -209,7 +225,7 @@ Install or update the EnMAP-Box
       This may take a few moments!
 
 
-4. Start the EnMAP-Box via the |icon| icon.
+#. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*.
 
 
 
