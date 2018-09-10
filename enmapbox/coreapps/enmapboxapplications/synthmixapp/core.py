@@ -22,7 +22,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
         self.statusBar().addWidget(self.uiInfo_, 1)
         self.initRegressor()
         self.initOutputFolder()
-        self.uiAggregations_.selectAllOptions()
+        self.initAggregations()
         self.uiLabeledLibrary().uiField().currentIndexChanged.connect(self.setTargets)
         self.setTargets(0)
         self.uiRaster_.setFilters(QgsMapLayerProxyModel.RasterLayer)
@@ -57,7 +57,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
         for i in range(self.uiTargets().count()):
             self.uiTargets().removeItem(0)
         if field is not None:
-            names = library.raster().dataset().metadataItem(key='{} class names'.format(field), domain='CSV')[1:]
+            names = library.raster().dataset().metadataItem(key=field, domain='CLASS_NAMES')[1:]
             self.uiTargets().addItems(names)
         self.uiTargets().selectAllOptions()
 
@@ -71,9 +71,16 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
     def initOutputFolder(self):
         assert isinstance(self.uiOutputFolder_, QgsFileWidget)
-        self.uiOutputFolder_.setStorageMode(self.uiOutputFolder_.GetDirectory)
+        self.uiOutputFolder_.setStorageMode(self.uiOutputFolder_.SaveFile)
         import tempfile
-        self.uiOutputFolder_.setFilePath(join(tempfile.gettempdir(), 'synthmixRegressionEnsemble'))
+        self.uiOutputFolder_.setFilePath(join(tempfile.gettempdir(), 'synthmixEnsemble.bsq'))
+
+    def initAggregations(self):
+        #self.uiAggregations_.setItemCheckState(1, True)
+
+        self.uiAggregations_.setCheckedItems(['mean'])
+        #self.uiAggregations_.setItemCheckState(1, True)
+        # self.uiAggregations_.showContextMenu(QPoint(0,0))
 
     def execute(self, *args):
         self.uiInfo().setText('')
@@ -94,7 +101,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                 return
             raster = Raster(filename=self.uiRaster().currentLayer().source())
 
-            names = library.raster().dataset().metadataItem(key='{} class names'.format(field), domain='CSV')
+            names = library.raster().dataset().metadataItem(key=field, domain='CLASS_NAMES')
             targets = [names.index(name) for name in self.uiTargets().checkedItems()]
             if len(targets) == 0:
                 self.uiInfo().setText('Error: no target classes selected')
@@ -118,27 +125,34 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
             includeEndmember = self.uiIncludeLibrarySpectra_.isChecked()
             includeWithinclassMixtures = self.uiIncludeWithinclassMixtures_.isChecked()
+            useEnsemble = self.uiUseEnsemble_.isChecked()
+
 
             try:
                 n = int(self.uiNumberOfSamples_.text())
-                assert n > 0
+                assert n >= 0
             except:
-                self.uiInfo().setText('Error: number of samples must be greater than 0')
+                self.uiInfo().setText('Error: number of samples must be greater than or equal to 0')
                 return
 
-            try:
-                runs = int(self.uiNumberOfEstimators_.text())
-                assert n > 0
-            except:
-                self.uiInfo().setText('Error: number of estimators must be greater than 0')
+            if n == 0 and not includeEndmember:
+                self.uiInfo().setText('Error: number of samples is 0 and endmember from library are not included')
                 return
+
+            if not useEnsemble:
+                runs = 1
+            else:
+                try:
+                    runs = int(self.uiNumberOfEstimators_.text())
+                    assert n > 0
+                except:
+                    self.uiInfo().setText('Error: number of estimators must be greater than 0')
+                    return
 
             namespace = dict()
             code = self.uiCode_.toPlainText()
             exec(code, namespace)
             sklEstimator = namespace['estimator']
-
-            saveAggregations = self.uiSaveAggregations_.isChecked()
 
             classificationSample = ClassificationSample(raster=library.raster(),
                                                         classification=Classification.fromENVISpectralLibrary(
@@ -146,7 +160,9 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                                                             library=library,
                                                             attribute=field))
 
-            synthmixRegressionEnsemble(directory=self.uiOutputFolder_.filePath(),
+            self.uiExecute().setEnabled(False)
+
+            synthmixRegressionEnsemble(filename=self.uiOutputFolder_.filePath(),
                                        classificationSample=classificationSample,
                                        targets=targets,
                                        regressor=Regressor(sklEstimator=sklEstimator),
@@ -159,15 +175,16 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                                        saveSamples=self.uiSaveTraining_.isChecked(),
                                        saveModels=self.uiSaveModels_.isChecked(),
                                        savePredictions=self.uiSavePredictions_.isChecked(),
-                                       saveMedian=self.uiAggregations_.itemCheckState(0) and saveAggregations,
-                                       saveMean=self.uiAggregations_.itemCheckState(1) and saveAggregations,
-                                       saveIQR=self.uiAggregations_.itemCheckState(2) and saveAggregations,
-                                       saveStd=self.uiAggregations_.itemCheckState(3) and saveAggregations,
-                                       saveRGB=self.uiSaveRGB_.isChecked() and saveAggregations,
-                                       clip=self.uiTrimRange_.isChecked(),
+                                       saveMedian=self.uiAggregations_.itemCheckState(0) != 0 and useEnsemble,
+                                       saveMean=self.uiAggregations_.itemCheckState(1) != 0,
+                                       saveIQR=self.uiAggregations_.itemCheckState(2) != 0 and useEnsemble,
+                                       saveStd=self.uiAggregations_.itemCheckState(3) != 0 and useEnsemble,
+                                       saveRGB=self.uiSaveRGB_.isChecked() != 0,
+                                       clip=True,
                                        ui=self)
+
+            self.uiExecute().setEnabled(True)
+
 
         except:
             traceback.print_exc()
-
-
