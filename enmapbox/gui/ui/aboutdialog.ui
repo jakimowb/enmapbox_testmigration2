@@ -280,6 +280,9 @@
                   <property name="text">
                    <string>&lt;version&gt;</string>
                   </property>
+                  <property name="textInteractionFlags">
+                   <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -300,6 +303,9 @@
              </property>
              <property name="openExternalLinks">
               <bool>true</bool>
+             </property>
+             <property name="textInteractionFlags">
+              <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
              </property>
             </widget>
            </item>
@@ -551,7 +557,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionShowCreditsQgis">
    <property name="icon">
     <iconset>
-     <normaloff>:/enmapbox/icons/qgis-icon.png</normaloff>:/enmapbox/icons/qgis-icon.svg</iconset>
+     <normaloff>:/enmapbox/icons/qgis-icon.png</normaloff>:/enmapbox/icons/qgis-icon.png</iconset>
    </property>
    <property name="text">
     <string>showCreditsQgis</string>
