@@ -271,7 +271,7 @@ class RendererWidgetModifications(object):
 
     def comboBoxWithNotSetItem(self, cb):
         assert isinstance(cb, QComboBox)
-        return cb.itemData(0, role=Qt.DisplayRole) == 'not set'
+        return cb.itemData(0, role=Qt.DisplayRole).lower() == 'not set'
 
     def setLayoutItemVisibility(self, grid, isVisible):
         assert isinstance(self, QgsRasterRendererWidget)
@@ -371,12 +371,12 @@ class SingleBandGrayRendererWidget(QgsSingleBandGrayRendererWidget, RendererWidg
             self.mBtnBar.layout().setContentsMargins(0, 0, 0, 0)
             self.mBtnBar.layout().setSpacing(2)
 
-            self.actionSetDefault = QAction('Default')
-            self.actionSetRed = QAction('R')
-            self.actionSetGreen = QAction('G')
-            self.actionSetBlue = QAction('B')
-            self.actionSetNIR = QAction('nIR')
-            self.actionSetSWIR = QAction('swIR')
+            self.actionSetDefault = QAction('Default', None)
+            self.actionSetRed = QAction('R', None)
+            self.actionSetGreen = QAction('G', None)
+            self.actionSetBlue = QAction('B', None)
+            self.actionSetNIR = QAction('nIR', None)
+            self.actionSetSWIR = QAction('swIR', None)
 
             self.actionSetDefault.triggered.connect(lambda: self.setBandSelection('default'))
             self.actionSetRed.triggered.connect(lambda: self.setBandSelection('R'))
@@ -463,12 +463,12 @@ class SingleBandPseudoColorRendererWidget(QgsSingleBandPseudoColorRendererWidget
             self.mBtnBar.layout().setContentsMargins(0, 0, 0, 0)
             self.mBtnBar.layout().setSpacing(2)
 
-            self.actionSetDefault = QAction('Default')
-            self.actionSetRed = QAction('R')
-            self.actionSetGreen = QAction('G')
-            self.actionSetBlue = QAction('B')
-            self.actionSetNIR = QAction('nIR')
-            self.actionSetSWIR = QAction('swIR')
+            self.actionSetDefault = QAction('Default', None)
+            self.actionSetRed = QAction('R', None)
+            self.actionSetGreen = QAction('G', None)
+            self.actionSetBlue = QAction('B', None)
+            self.actionSetNIR = QAction('nIR', None)
+            self.actionSetSWIR = QAction('swIR', None)
 
             self.actionSetDefault.triggered.connect(lambda: self.setBandSelection('default'))
             self.actionSetRed.triggered.connect(lambda: self.setBandSelection('R'))
@@ -573,10 +573,10 @@ class MultiBandColorRendererWidget(QgsMultiBandColorRendererWidget, RendererWidg
         self.wavelengths = wl
         self.wavelengthUnit = wlu
 
-        self.actionSetDefault = QAction('Default')
-        self.actionSetTrueColor = QAction('RGB')
-        self.actionSetCIR = QAction('nIR')
-        self.actionSet453 = QAction('swIR')
+        self.actionSetDefault = QAction('Default', None)
+        self.actionSetTrueColor = QAction('RGB', None)
+        self.actionSetCIR = QAction('nIR', None)
+        self.actionSet453 = QAction('swIR', None)
 
         self.actionSetDefault.triggered.connect(lambda: self.setBandSelection('default'))
         self.actionSetTrueColor.triggered.connect(lambda: self.setBandSelection('R,G,B'))
@@ -702,20 +702,21 @@ class RasterLayerProperties(QgsOptionsDialogBase, loadUI('rasterlayerpropertiesd
 
 
         self.mRenderTypeComboBox.setModel(RASTERRENDERER_CREATE_FUNCTIONSV2)
+        renderer = self.mRasterLayer.renderer()
 
         for func in RASTERRENDERER_CREATE_FUNCTIONSV2.optionValues():
             extent = self.canvas.extent()
             w = func(self.mRasterLayer, extent)
             w.setMapCanvas(self.canvas)
             self.mRendererStackedWidget.addWidget(w)
+            f2 = getattr(w, 'setFromRenderer', None)
+            if f2:
+                f2(renderer)
 
-        renderer = self.mRasterLayer.renderer()
+            #if isinstance(renderer, QgsRasterRenderer) and renderer.type() == w.renderer().type():
+            #    w.renderer().copyCommonProperties(renderer)
 
-        #if renderer:
-        #    self.setRendererWidget(renderer.type())
-         #   pass
 
-        #self.mRenderTypeComboBox.currentIndexChanged.connect(self.setRendererWidget)
 
     def initOptsTransparency(self):
 
