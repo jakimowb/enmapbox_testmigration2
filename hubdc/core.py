@@ -1028,6 +1028,10 @@ class Grid(object):
         '''Returns size as ``(ysize, xsize)`` tuple.'''
         return self.size().y(), self.size().x()
 
+    def atResolution(self, resolution):
+        resolution = Resolution.parse(resolution)
+        return Grid(extent=self.spatialExtent(), resolution=resolution)
+
     def xMapCoordinates(self):
         '''Returns the list of map coordinates in x dimension.'''
         return [self.extent().xmin() + (x + 0.5) * self.resolution().x() for x in range(self.size().x())]
