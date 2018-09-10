@@ -97,7 +97,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'EnMAP-Box 3'
 copyright = u'2018, Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden, Patrick Hostert'
-author = u'Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden, Patrick Hostert'
+author = u'Fabian Thiel,\nAndreas Rabe,\nBenjamin Jakimow,\nSebastian van der Linden,\nPatrick Hostert'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
