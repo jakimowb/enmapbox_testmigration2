@@ -2341,9 +2341,9 @@ def createRasterDatasetFromArray(array, grid=None, filename='', driver=MEMDriver
     return rasterDataset
 
 
-def createVRTDataset(filename, rastersOrFilenames, **kwargs):
+def createVRTDataset(filename, rasterDatasetsOrFilenames, **kwargs):
     '''
-    Creates a virtual raster file (VRT) from rasters or filenames given by ``rastersOrFilenames``.
+    Creates a virtual raster file (VRT) from raster datasets or filenames given by ``rastersOrFilenames``.
 
     :param filename: output filename
     :type filename: str
@@ -2356,11 +2356,11 @@ def createVRTDataset(filename, rastersOrFilenames, **kwargs):
     '''
 
     srcDSOrSrcDSTab = list()
-    for rasterOrFilename in rastersOrFilenames:
-        if isinstance(rasterOrFilename, RasterDataset):
-            srcDSOrSrcDSTab.append(rasterOrFilename.gdalDataset())
-        elif isinstance(rasterOrFilename, str):
-            srcDSOrSrcDSTab.append(rasterOrFilename)
+    for rasterDatasetsOrFilename in rasterDatasetsOrFilenames:
+        if isinstance(rasterDatasetsOrFilename, RasterDataset):
+            srcDSOrSrcDSTab.append(rasterDatasetsOrFilename.gdalDataset())
+        elif isinstance(rasterDatasetsOrFilename, str):
+            srcDSOrSrcDSTab.append(rasterDatasetsOrFilename)
         else:
             assert 0
 
