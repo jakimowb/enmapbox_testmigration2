@@ -29,7 +29,7 @@ from enmapbox.gui.utils import *
 
 import pyqtgraph.dockarea.Dock
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
-
+from enmapbox.gui.utils import KeepRefs
 
 
 
@@ -44,97 +44,7 @@ class DockWindow(QMainWindow):
     def closeEvent(self, *args, **kwargs):
         self.centralWidget().clear()
 
-class DockArea(pyqtgraph.dockarea.DockArea):
-    sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
-    sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
-    sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
-    sigDropEvent = pyqtSignal(QDropEvent)
 
-    def __init__(self, *args, **kwds):
-        super(DockArea, self).__init__(*args, **kwds)
-        self.setAcceptDrops(True)
-
-        s = ""
-
-    def closeEvent(self, closeEvent):
-        assert isinstance(closeEvent, QCloseEvent)
-        s = ""
-
-    def makeContainer(self, typ):
-        c = super(DockArea, self).makeContainer(typ)
-        #c.apoptose = lambda x : DockArea.containerApoptose(c, x)
-        #c.apoptose = lambda p : DockArea.containerApoptose(c,p)
-        #c.apoptose(True)
-        return c
-
-    #todo: somehow manipulate this to solve issue #21
-    #ask user to really close DockArea if more than one dock is opened
-    #"Do you really want to close this window and all contents?"
-    @staticmethod
-    def containerApoptose(self, propagate):
-        ##if there is only one (or zero) item in this container, disappear.
-        cont = self._container
-        c = self.count()
-        if c > 1:
-            return
-        if self.count() == 1:  ## if there is one item, give it to the parent container (unless this is the top)
-            if self is self.area.topContainer:
-                return
-            self.container().insert(self.widget(0), 'before', self)
-        # print "apoptose:", self
-        self.close()
-        if propagate and cont is not None:
-            cont.apoptose()
-
-    def apoptose(self):
-        #print "apoptose area:", self.temporary, self.topContainer, self.topContainer.count()
-        if self.topContainer.count() == 0:
-            self.topContainer = None
-
-            if self.temporary and self.home is not None:
-                self.home.removeTempArea(self)
-        else:
-            s = ""
-
-    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
-        assert enmapboxdock is not None
-        assert isinstance(enmapboxdock, Dock)
-        return super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
-
-
-    def addTempArea(self):
-        #overwrites the original method
-        if self.home is None:
-            area = DockArea(temporary=True, home=self)
-            self.tempAreas.append(area)
-            win = DockWindow(area)
-            area.win = win
-            win.show()
-        else:
-            area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
-        return area
-
-    # forward to EnMAPBox
-    def dragEnterEvent(self, event):
-        self.sigDragEnterEvent.emit(event)
-
-    # forward to EnMAPBox
-    def dragMoveEvent(self, event):
-
-        self.sigDragMoveEvent.emit(event)
-
-    # forward to EnMAPBox
-    def dragLeaveEvent(self, event):
-
-        self.sigDragLeaveEvent.emit(event)
-
-    # forward to EnMAPBox
-    def dropEvent(self, event):
-        self.sigDropEvent.emit(event)
-
-
-from enmapbox.gui.utils import KeepRefs
 class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
     @staticmethod
     def readXml(elem):
@@ -266,6 +176,126 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
         #print "added temp area", area, area.window()
         return area
 
+    def unfloat(self):
+
+        from enmapbox import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+        if isinstance(enmapbox, EnMAPBox):
+            area = enmapbox.ui.dockArea
+            assert isinstance(area, DockArea)
+            area.moveDock(self, 'left', None)
+
+class DockArea(pyqtgraph.dockarea.DockArea):
+    sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
+    sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
+    sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
+    sigDropEvent = pyqtSignal(QDropEvent)
+
+    def __init__(self, *args, **kwds):
+        super(DockArea, self).__init__(*args, **kwds)
+        self.setAcceptDrops(True)
+
+        s = ""
+
+    def closeEvent(self, closeEvent):
+        assert isinstance(closeEvent, QCloseEvent)
+        s = ""
+
+    def makeContainer(self, typ):
+        c = super(DockArea, self).makeContainer(typ)
+        #c.apoptose = lambda x : DockArea.containerApoptose(c, x)
+        #c.apoptose = lambda p : DockArea.containerApoptose(c,p)
+        #c.apoptose(True)
+        return c
+
+    #todo: somehow manipulate this to solve issue #21
+    #ask user to really close DockArea if more than one dock is opened
+    #"Do you really want to close this window and all contents?"
+    @staticmethod
+    def containerApoptose(self, propagate):
+        ##if there is only one (or zero) item in this container, disappear.
+        cont = self._container
+        c = self.count()
+        if c > 1:
+            return
+        if self.count() == 1:  ## if there is one item, give it to the parent container (unless this is the top)
+            if self is self.area.topContainer:
+                return
+            self.container().insert(self.widget(0), 'before', self)
+        # print "apoptose:", self
+        self.close()
+        if propagate and cont is not None:
+            cont.apoptose()
+
+    def fixDock(self, dock):
+
+        s = ""
+
+    def floatDock(self, dock):
+        """Removes *dock* from this DockArea and places it in a new window."""
+
+        lastArea = dock.area
+
+
+        area = self.addTempArea()
+        area.win.resize(dock.size())
+        area.moveDock(dock, 'top', None)
+
+        if isinstance(lastArea, DockArea):
+            lastArea.sigDockRemoved.emit(dock)
+
+    def apoptose(self):
+        #print "apoptose area:", self.temporary, self.topContainer, self.topContainer.count()
+        if self.topContainer.count() == 0:
+            self.topContainer = None
+
+            if self.temporary and self.home is not None:
+                self.home.removeTempArea(self)
+        else:
+            s = ""
+
+    sigDockAdded = pyqtSignal(Dock)
+    sigDockRemoved = pyqtSignal(Dock)
+    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
+        assert enmapboxdock is not None
+        assert isinstance(enmapboxdock, Dock)
+        v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
+        self.sigDockAdded.emit(enmapboxdock)
+        return v
+
+
+    def addTempArea(self):
+        #overwrites the original method
+        if self.home is None:
+            area = DockArea(temporary=True, home=self)
+            self.tempAreas.append(area)
+            win = DockWindow(area)
+            area.win = win
+            win.show()
+        else:
+            area = self.home.addTempArea()
+        #print "added temp area", area, area.window()
+        return area
+
+    # forward to EnMAPBox
+    def dragEnterEvent(self, event):
+        self.sigDragEnterEvent.emit(event)
+
+    # forward to EnMAPBox
+    def dragMoveEvent(self, event):
+
+        self.sigDragMoveEvent.emit(event)
+
+    # forward to EnMAPBox
+    def dragLeaveEvent(self, event):
+
+        self.sigDragLeaveEvent.emit(event)
+
+    # forward to EnMAPBox
+    def dropEvent(self, event):
+        self.sigDropEvent.emit(event)
+
+
 
 
 
@@ -301,6 +331,7 @@ class DockLabel(VerticalLabel):
         closeButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarCloseButton))
         self.buttons.append(closeButton)
 
+
         if allow_floating:
             floatButton = QToolButton(self)
             #testButton.clicked.connect(self.sigNormalClicked)
@@ -308,6 +339,27 @@ class DockLabel(VerticalLabel):
             floatButton.clicked.connect(lambda : self.dock.float())
             floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.buttons.append(floatButton)
+
+            self.btnUnFloat = QToolButton(self)
+            self.btnUnFloat.setText('U')
+            self.btnUnFloat.setToolTip('Unfloat window')
+            self.btnUnFloat.clicked.connect(lambda : self.dock.unfloat())
+            self.buttons.append(self.btnUnFloat)
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+        if isinstance(enmapBox, EnMAPBox):
+            dockArea = enmapBox.ui.dockArea
+            if isinstance(dockArea, DockArea):
+
+                dockArea.sigDockAdded.connect(lambda dock: self._setUnfloatButton(dock, False))
+                dockArea.sigDockRemoved.connect(lambda dock: self._setUnfloatButton(dock, True))
+                pass
+
+    def _setUnfloatButton(self, dock, b:bool):
+        self.btnUnFloat.setVisible(b)
+        self.update()
+
 
     def sizeHint(self):
         s_min = 50

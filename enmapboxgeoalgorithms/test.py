@@ -74,6 +74,10 @@ def test_ClassDefinitionFromRaster():
 
 def test_Classification():
 
+    alg = ClassificationStatistics()
+    io = {alg.P_CLASSIFICATION: enmapClassification}
+    runalg(alg=alg, io=io)
+
     alg = ClassificationFromFraction()
     io = {alg.P_FRACTION: enmapFraction,
           alg.P_MIN_OVERALL_COVERAGE: 0.5,
@@ -180,26 +184,22 @@ def test_CreateAdditionalTestdata():
     alg = CreateAdditionalTestdata()
     io = {alg.P_BOOLEAN_ENMAP: True,
           alg.P_BOOLEAN_HYMAP: True,
-          alg.P_BOOLEAN_LIBRARY: True,
           alg.P_OUTPUT_ENMAP_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataEnmapClassification.bsq'),
           alg.P_OUTPUT_ENMAP_FRACTION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
           alg.P_OUTPUT_HYMAP_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataHymapClassification.bsq'),
-          alg.P_OUTPUT_HYMAP_FRACTION: join(outdir, 'CreateAdditionalTestdataHymapFraction.bsq'),
-          alg.P_OUTPUT_LIBRARY: join(outdir, 'CreateAdditionalTestdataLibrary.bsq')}
+          alg.P_OUTPUT_HYMAP_FRACTION: join(outdir, 'CreateAdditionalTestdataHymapFraction.bsq')}
 
     runalg(alg=alg, io=io)
 
 def test_ImportLibrary():
     alg = ImportLibrary()
-    io = {alg.P_LIBRARY: join(outdir, 'CreateAdditionalTestdataLibrary.bsq'),
+    io = {alg.P_LIBRARY: enmapboxtestdata.speclib,
           alg.P_IMPORT_PROFILES: True,
-          alg.P_CLASSIFICATION_SCHEME_NAME: 'level 2',
-          alg.P_REGRESSION_OUTPUT_NAMES: ', '.join(hubflow.test_core.enmapFraction.outputNames()),
-          alg.P_FRACTION_OUTPUT_NAMES: ', '.join(hubflow.test_core.enmapFraction.outputNames()),
+          alg.P_CLASSIFICATION_ATTRIBUTE: 'level 2',
+          alg.P_REGRESSION__ATTRIBUTE: 'level 2',
           alg.P_OUTPUT_RASTER: join(outdir, 'OpenLibraryRaster.bsq'),
           alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'OpenLibraryClassification.bsq'),
-          alg.P_OUTPUT_REGRESSION: join(outdir, 'OpenLibraryRegression.bsq'),
-          alg.P_OUTPUT_FRACTION: join(outdir, 'OpenLibraryFraction.bsq')}
+          alg.P_OUTPUT_REGRESSION: join(outdir, 'OpenLibraryRegression.bsq')}
     runalg(alg=alg, io=io)
 
 
@@ -281,6 +281,12 @@ def test_FractionPerformance():
 
 
 def test_Raster():
+
+    alg = RasterStatistics()
+    io = {alg.P_RASTER: enmap,
+          alg.P_BAND: 1}
+    runalg(alg=alg, io=io)
+    return
 
     for alg in ALGORITHMS:
         if isinstance(alg, RasterApplySpatial):
@@ -517,8 +523,8 @@ def printMenu():
 
 
 if __name__ == '__main__':
-    generateRST()
-    exit(0)
+    test_ImportLibrary()
+    #exit(0)
     test_ClassDefinitionFromRaster()
     test_Classification()
     test_ClassificationPerformance()

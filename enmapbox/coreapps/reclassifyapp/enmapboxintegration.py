@@ -20,7 +20,8 @@
 """
 
 import os
-from PyQt5.QtGui import QIcon, QMenu, QAction
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from reclassifyapp import APP_DIR
 class ReclassifyTool(EnMAPBoxApplication):

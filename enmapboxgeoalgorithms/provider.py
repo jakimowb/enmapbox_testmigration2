@@ -313,14 +313,14 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_CLASSIDFIELD = 'classIdField'
 
     def addParameterVectorClassification(self, name=P_VECTOR, description='Vector', defaultValue=None, optional=False,
-                                         minCoveragesDefaultValues=(None, None)):
+                                         minCoveragesDefaultValues=(None, None), hideMinDominantCoverage=False):
         self.addParameterVector(name=name, description=description, defaultValue=defaultValue, optional=optional)
         self.addParameterField(name=self.P_CLASSIDFIELD, description='Class id attribute',
                                parentLayerParameterName=name,
                                type=QgsProcessingParameterField.Numeric,
                                help='Vector field specifying the class ids.')
         self.addParameterClassDefinition()
-        self.addParameterMinCoverages(defaultValues=minCoveragesDefaultValues)
+        self.addParameterMinCoverages(defaultValues=minCoveragesDefaultValues, hideMinDominantCoverage=hideMinDominantCoverage)
         self.addParameterOversampling()
 
     def getParameterVectorClassification(self):
@@ -348,15 +348,19 @@ class EnMAPAlgorithm(QgisAlgorithm):
         self.addParameterFloat(name=name, description=description, minValue=0., maxValue=1.,
                                defaultValue=defaultValue, help=help)
 
-    def addParameterMinCoverages(self, defaultValues=(0.5, 0.5)):
+    def addParameterMinCoverages(self, defaultValues=(0.5, 0.5), hideMinDominantCoverage=False):
         self.addParameterMinOverallCoverage(defaultValue=defaultValues[0])
-        self.addParameterMinDominantCoverage(defaultValue=defaultValues[1])
+        if not hideMinDominantCoverage:
+            self.addParameterMinDominantCoverage(defaultValue=defaultValues[1])
 
     def getParameterMinOverallCoverage(self, name=P_MIN_OVERALL_COVERAGE):
         return self.getParameterFloat(name=name)
 
     def getParameterMinDominantCoverage(self, name=P_MIN_DOMINANT_COVERAGE):
-        return self.getParameterFloat(name=name)
+        if name not in self._parameters:
+            return 0.
+        else:
+            return self.getParameterFloat(name=name)
 
     P_OVERSAMPLING = 'oversampling'
 

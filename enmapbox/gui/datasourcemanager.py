@@ -27,6 +27,8 @@ from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODE
 from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
+HUBFLOW_MAX_VALUES = 1024
+SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL', 'SPECLIB']
 
 HIDDEN_DATASOURCE = '__HIDDEN__DATASOURCE'
 try:
@@ -37,7 +39,22 @@ except Exception as ex:
     messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
     HUBFLOW = False
 
+
+def reprNL(obj, replacement=' '):
+    """
+    Repturn repl withouth newline
+    :param obj:
+    :param replacement:
+    :return:
+    """
+    return repr(obj).replace('\n',replacement)
+
 class DataSourceManager(QObject):
+    """
+       Keeps control on different data sources handled by EnMAP-Box.
+       Similar like QGIS data registry, but manages non-spatial data sources (text files, spectral libraries etc.) as well.
+    """
+
     _testInstance = None
 
     @staticmethod
@@ -48,27 +65,17 @@ class DataSourceManager(QObject):
         else:
             return DataSourceManager._testInstance
 
-    """
-    Keeps overview on different data sources handled by EnMAP-Box.
-    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well.
-    """
+
 
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-    SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL']
+
 
     def __init__(self):
         super(DataSourceManager, self).__init__()
         DataSourceManager._testInstance = self
         self.mSources = list()
-
-        self.mQgsLayerTreeGroup = None
-        # self.qgsLayerTreeGroup()
-
-        # todo: react on QgsProject changes, e.g. when project is closed
-        # QgsProject.instance().layersAdded.connect(self.updateFromQgsProject)
-        # noinspection PyArgumentList
 
         try:
             from hubflow import signals
@@ -100,41 +107,44 @@ class DataSourceManager(QObject):
     def sources(self, sourceTypes=None) -> list:
         """
         Returns the managed DataSources
-        :param sourceTypes: the sourceType(s) to return
-            a) str like 'VECTOR' (see DataSourceManage.SOURCE_TYPES)
+        :param sourceTypes: filter to return specific DataSource types only
+            a) str like 'VECTOR' (see SOURCE_TYPES)
             b) class type derived from DataSource
-            c) a list of a or b to filter multpiple source types
-        :return:
+            c) a list of a or b to filter multiple source types, e.g. ['VECTOR', 'RASTER']
+        :return: [list-of-DataSources]
         """
-        results = self.mSources[:]
 
-        if sourceTypes:
+        if sourceTypes is None:
+            return self.mSources[:]
+        else:
             if not isinstance(sourceTypes, list):
                 sourceTypes = [sourceTypes]
-            filterTypes = []
+
+            filterTypes = set()
             for sourceType in sourceTypes:
-                if sourceType in self.SOURCE_TYPES:
-                    if sourceType == 'VECTOR':
-                        sourceType = DataSourceVector
-                    elif sourceType == 'RASTER':
-                        sourceType = DataSourceRaster
-                    elif sourceType == 'MODEL':
-                        sourceType = HubFlowDataSource
-                    else:
-                        sourceType = None
                 if isinstance(sourceType, type(DataSource)):
                     filterTypes.append(sourceType)
-            results = [r for r in results if type(r) in filterTypes]
+                elif sourceType in SOURCE_TYPES:
+                    if sourceType == 'ALL':
+                        return self.mSources[:]
+                    elif sourceType == 'VECTOR':
+                        filterTypes.add(DataSourceVector)
+                        filterTypes.add(DataSourceSpectralLibrary)
+                    elif sourceType == 'SPATIAL':
+                        filterTypes.add(DataSourceVector)
+                        filterTypes.add(DataSourceRaster)
+                        filterTypes.add(DataSourceSpectralLibrary)
+                    elif sourceType == 'RASTER':
+                        filterTypes.add(DataSourceRaster)
+                    elif sourceType == 'MODEL':
+                        filterTypes.add(HubFlowDataSource)
+                    elif sourceType == 'SPECLIB':
+                        filterTypes.add(DataSourceSpectralLibrary)
+
+            results = [r for r in self.mSources if type(r) in filterTypes]
+
         return results
 
-    def updateFromProcessingFramework(self):
-        if self.processing:
-            # import logging
-            # logging.debug('Todo: Fix processing implementation')
-            return
-            for p, n in zip(self.processing.MODEL_URIS,
-                            self.processing.MODEL_NAMES):
-                self.addSource(p, name=n)
 
     def updateFromQgsProject(self, mapLayers=None):
         """
@@ -144,32 +154,17 @@ class DataSourceManager(QObject):
         if mapLayers is None:
             mapLayers = QgsProject.instance().mapLayers().values()
 
-        added = [self.addSource(lyr) for lyr in mapLayers]
+        added = [self.addSource(lyr, name=lyr.name()) for lyr in mapLayers]
         return [a for a in added if isinstance(a, DataSource)]
 
-    def getUriList(self, sourcetype='ALL') -> list:
+    def uriList(self, sourceTypes='ALL') -> list:
         """
         Returns URIs of registered data sources
-        :param sourcetype: uri filter: 'ALL' (default),'RASTER', 'VECTOR', 'SPATIAL' (raster+vector) or 'MODEL' to return only uri's related to these sources
+        :param sourcetype: uri filter as used in sources(sourceTypes=<types>).
         :return: uri as string (str), e.g. a file path
         """
-        sourcetype = sourcetype.upper()
-        if isinstance(sourcetype, type):
-            return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
+        return [ds.uri() for ds in self.sources(sourceTypes=sourceTypes)]
 
-        assert sourcetype in DataSourceManager.SOURCE_TYPES
-        if sourcetype in ['ALL', 'ANY']:
-            return [ds.uri() for ds in self.mSources]
-        elif sourcetype == 'VECTOR':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
-        elif sourcetype == 'RASTER':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
-        elif sourcetype == 'SPATIAL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceSpatial)]
-        elif sourcetype == 'MODEL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
-        else:
-            return []
 
     def onMapLayerRegistryLayersAdded(self, lyrs:list):
         """
@@ -193,6 +188,11 @@ class DataSourceManager(QObject):
         self.addSources(lyrsToAdd)
 
     def addSources(self, sources) -> list:
+        """
+        Adds a list of new data sources
+        :param sources: list of potential data sources, i.e. QgsDataSources
+        :return: [list-of-added-DataSources]
+        """
         added = []
         for s in sources:
             added.extend(self.addSource(s))
@@ -457,6 +457,7 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
             self.mSrcSize = os.path.getsize(self.dataSource.uri())
             self.nodeSize = TreeNode(self, 'File size', value=fileSizeString(self.mSrcSize))
         else:
+            self.nodeSize = TreeNode(self, 'Size', value='unknown')
             self.mSrcSize = -1
 
 
@@ -788,7 +789,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
 
                 if re.search('_(vector|raster).*', name):
                     s = ""
-                node = TreeNode(parentTreeNode, name)
+                node = TreeNode(parentTreeNode, name, value=reprNL(value))
                 fetch(value, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
 
         elif isinstance(obj, np.ndarray):
@@ -799,13 +800,13 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                 parentTreeNode.setValue(str(obj))
 
 
-        elif isinstance(obj, list) or isinstance(obj, set):
+        elif isinstance(obj, (list, set, tuple)):
             """Show enumerations"""
 
             for i, item in enumerate(obj):
-                node = TreeNode(parentTreeNode, str(i+1))
+                node = TreeNode(parentTreeNode, str(i+1), value=reprNL(item))
                 fetch(item, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
-                if i > 100:
+                if i > HUBFLOW_MAX_VALUES:
                     node = TreeNode(parentTreeNode, '...')
                     break
         elif isinstance(obj, QColor):
@@ -831,14 +832,21 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                     attributes.append(t[0])
 
             for name in sorted(attributes):
-                node = TreeNode(parentTreeNode, name)
-                fetch(getattr(obj, name, None), parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
+                attr = getattr(obj, name, None)
+                if attr is None:
+                    try:
+                        attr = obj.__dict__[name]
+                    except:
+                        pass
+
+                node = TreeNode(parentTreeNode, name, value=reprNL(attr))
+                fetch(attr, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
                 s =""
 
 
         else:
             #show the object's 'natural' printout as node value
-            parentTreeNode.setValue(str(obj))
+            parentTreeNode.setValue(reprNL(obj))
 
         return parentTreeNode
 
@@ -1226,6 +1234,16 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
         selectedNodes = [self.model.index2node(i) for i in selectionModel.selectedIndexes()]
         dataSources = list(set([n.dataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
         srcURIs = list(set([s.uri() for s in dataSources]))
+
+        qgisIFACE = qgisAppQgisInterface()
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+
+        mapDocks = []
+        if isinstance(enmapbox, EnMAPBox):
+            mapDocks = enmapbox.dockManager.docks('MAP')
+
         m = QMenu()
 
         if isinstance(node, DataSourceGroupTreeNode):
@@ -1250,40 +1268,67 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
             if isinstance(src, DataSourceSpatial):
                 a = m.addAction('Save as..')
 
-            if isinstance(src, DataSourceRaster):
-                a = m.addAction('Raster statistics')
-                sub = m.addMenu('Open in new map...')
+
+            def appendRasterActions(sub:QMenu, src:DataSourceSpatial, mapDock:MapDock):
+                assert isinstance(src, DataSourceRaster)
                 a = sub.addAction('Default Colors')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='DEFAULT'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='DEFAULT'))
                 a = sub.addAction('True Color')
                 a.setToolTip('Red-Green-Blue true colors')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='R,G,B'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='R,G,B'))
 
                 a = sub.addAction('CIR')
                 a.setToolTip('nIR Red Green')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,R,G'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,R,G'))
 
                 a = sub.addAction('SWIR')
                 a.setToolTip('nIR swIR Red')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,SWIR,R'))
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,SWIR,R'))
+
+            if isinstance(src, DataSourceRaster):
+                sub = m.addMenu('Open in new map...')
+                appendRasterActions(sub, src, None)
+
+                sub = m.addMenu('Open in existing map...')
+                if len(mapDocks) > 0:
+                    for mapDock in mapDocks:
+                        assert isinstance(mapDock, MapDock)
+                        subsub = sub.addMenu(mapDock.title())
+                        appendRasterActions(subsub, src, mapDock)
+                else:
+                    sub.setEnabled(False)
+                sub = m.addMenu('Open in QGIS')
+                if isinstance(qgisIFACE, QgisInterface):
+                    appendRasterActions(sub, src, qgisIFACE.mapCanvas())
+                else:
+                    sub.setEnabled(False)
 
             if isinstance(src, DataSourceVector):
                 a = m.addAction('Open in new map')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src))
+                a.triggered.connect(lambda: self.openInMap(src,mapCanvas=None))
 
-            if isinstance(src, DataSourceSpectralLibrary):
-                a = m.addAction('Save as...')
-                a.setEnabled(False)
+                sub = m.addMenu('Open in existing map...')
+                if len(mapDocks) > 0:
+                    for mapDock in mapDocks:
+                        assert isinstance(mapDock, MapDock)
+                        a = sub.addAction(mapDock.title())
+                        a.triggered.connect(lambda checked, src=src,mapDock=mapDock : self.openInMap(src, mapCanvas=mapDock))
+                else:
+                    sub.setEnabled(False)
 
-                a = m.addAction('Open')
-                a.setEnabled(False)
+                a = m.addAction('Open in QGIS')
+                if isinstance(qgisIFACE, QgisInterface):
+                    a.triggered.connect(lambda : self.openInMap(src, mapCanvas=qgisIFACE.mapCanvas()))
+                else:
+                    a.setEnabled(False)
+
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
 
             a = m.addAction('Open in new map')
-            a.triggered.connect(lambda : self.onOpenInNewMap(node.mDataSource, rgb=[node.mBandIndex]))
+            a.triggered.connect(lambda : self.openInMap(node.mDataSource, rgb=[node.mBandIndex]))
 
 
         if col == 1 and node.value() != None:
@@ -1299,74 +1344,97 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 a.setParent(m)
         return m
 
-    def onOpenInNewMap(self, dataSource, rgb=None):
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        emb = EnMAPBox.instance()
+    def openInMap(self, dataSource:DataSourceSpatial, mapCanvas=None, rgb=None):
+        """
+        Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
+        :param mapCanvas: QgsMapCanvas. Creates a new MapDock if set to none.
+        :param dataSource: DataSourceSpatial
+        :param rgb:
+        """
 
-        if not isinstance(emb, EnMAPBox):
-            return None
+        if not isinstance(dataSource, DataSourceSpatial):
+            return
 
-        if isinstance(dataSource, DataSourceSpatial):
-            lyr = dataSource.createUnregisteredMapLayer()
+        if mapCanvas is None:
+            from enmapbox.gui.enmapboxgui import EnMAPBox
+            emb = EnMAPBox.instance()
+            if not isinstance(emb, EnMAPBox):
+                return None
             dock = emb.createDock('MAP')
             assert isinstance(dock, MapDock)
-            from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
-            if isinstance(lyr, QgsRasterLayer):
-                r = lyr.renderer()
-                if isinstance(r, QgsRasterRenderer):
-                    ds = gdal.Open(lyr.source())
-                    if isinstance(rgb, str):
-                        if re.search('DEFAULT', rgb):
-                            rgb = defaultBands(ds)
-                        else:
-                            rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
-                            s = ""
-                    assert isinstance(rgb, list)
+            mapCanvas = dock.mCanvas
 
-                    stats = [ds.GetRasterBand(b+1).ComputeRasterMinMax() for b in rgb]
+        if isinstance(mapCanvas, MapDock):
+            mapCanvas = mapCanvas.mapCanvas()
 
-                    def setCE_MinMax(ce, st):
-                        assert isinstance(ce, QgsContrastEnhancement)
-                        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum)
-                        ce.setMinimumValue(st[0])
-                        ce.setMaximumValue(st[1])
+        assert isinstance(mapCanvas, QgsMapCanvas)
 
-                    if len(rgb) == 3:
-                        if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0]+1)
-                            r.setGreenBand(rgb[1]+1)
-                            r.setBlueBand(rgb[2]+1)
-                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.greenContrastEnhancement(), stats[1])
-                            setCE_MinMax(r.blueContrastEnhancement(), stats[2])
+        lyr = dataSource.createUnregisteredMapLayer()
 
-                        if isinstance(r, QgsSingleBandGrayRenderer):
-                            r.setGrayBand(rgb[0])
-                            setCE_MinMax(r.contrastEnhancement(), stats[0])
+        from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
+        if isinstance(lyr, QgsRasterLayer):
+            r = lyr.renderer()
+            if isinstance(r, QgsRasterRenderer):
+                ds = gdal.Open(lyr.source())
+                if isinstance(rgb, str):
+                    if re.search('DEFAULT', rgb):
+                        rgb = defaultBands(ds)
+                    else:
+                        rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
+                        s = ""
+                assert isinstance(rgb, list)
 
-                    elif len(rgb) == 1:
+                stats = [ds.GetRasterBand(b+1).ComputeRasterMinMax() for b in rgb]
 
-                        if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0]+1)
-                            r.setGreenBand(rgb[0]+1)
-                            r.setBlueBand(rgb[0]+1)
-                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.greenContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.blueContrastEnhancement(), stats[0])
+                def setCE_MinMax(ce, st):
+                    assert isinstance(ce, QgsContrastEnhancement)
+                    ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum)
+                    ce.setMinimumValue(st[0])
+                    ce.setMaximumValue(st[1])
 
-                        if isinstance(r, QgsSingleBandGrayRenderer):
-                            r.setGrayBand(rgb[0]+1)
-                            setCE_MinMax(r.contrastEnhancement(), stats[0])
-                            s = ""
+                if len(rgb) == 3:
+                    if isinstance(r, QgsMultiBandColorRenderer):
+                        r.setRedBand(rgb[0]+1)
+                        r.setGreenBand(rgb[1]+1)
+                        r.setBlueBand(rgb[2]+1)
+                        setCE_MinMax(r.redContrastEnhancement(), stats[0])
+                        setCE_MinMax(r.greenContrastEnhancement(), stats[1])
+                        setCE_MinMax(r.blueContrastEnhancement(), stats[2])
 
-                    #get
-                    s = ""
+                    if isinstance(r, QgsSingleBandGrayRenderer):
+                        r.setGrayBand(rgb[0])
+                        setCE_MinMax(r.contrastEnhancement(), stats[0])
 
-            elif isinstance(lyr, QgsVectorLayer):
+                elif len(rgb) == 1:
 
-                pass
+                    if isinstance(r, QgsMultiBandColorRenderer):
+                        r.setRedBand(rgb[0]+1)
+                        r.setGreenBand(rgb[0]+1)
+                        r.setBlueBand(rgb[0]+1)
+                        setCE_MinMax(r.redContrastEnhancement(), stats[0])
+                        setCE_MinMax(r.greenContrastEnhancement(), stats[0])
+                        setCE_MinMax(r.blueContrastEnhancement(), stats[0])
 
-            dock.setLayers([lyr])
+                    if isinstance(r, QgsSingleBandGrayRenderer):
+                        r.setGrayBand(rgb[0]+1)
+                        setCE_MinMax(r.contrastEnhancement(), stats[0])
+                        s = ""
+
+                #get
+                s = ""
+
+        elif isinstance(lyr, QgsVectorLayer):
+
+            pass
+
+        qgisIFACE = qgisAppQgisInterface()
+        if isinstance(qgisIFACE, QgisInterface) and mapCanvas in qgisIFACE.mapCanvases():
+            QgsProject.instance().addMapLayer(lyr)
+
+        allLayers = mapCanvas.layers()
+        allLayers.append(lyr)
+
+        mapCanvas.setLayers(allLayers)
 
 
     def onSaveAs(self, dataSource):

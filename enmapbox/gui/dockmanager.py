@@ -133,8 +133,12 @@ class CanvasLinkTreeNode(TreeNode):
 
     def contextMenu(self):
         m = QMenu()
+
+        #parent canvas
+        canvas = self.parent().canvas
+        otherCanvas = self.canvasLink.theOtherCanvas(canvas)
         a = m.addAction('Remove')
-        a.setToolTip('Removes this link.')
+        a.setToolTip('Remove link to {}.'.format(otherCanvas.name()))
         a.triggered.connect(self.canvasLink.removeMe)
         return m
 
@@ -144,7 +148,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
     A node to show links between difference canvases
     """
 
-    def __init__(self, parent, canvas):
+    def __init__(self, parent, canvas:MapCanvas):
         assert isinstance(canvas, MapCanvas)
         super(CanvasLinkTreeNodeGroup, self).__init__(parent, 'Spatial Links',
                                                       icon=QIcon(":/enmapbox/icons/link_basic.svg"))
@@ -153,7 +157,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
         self.canvas.sigCanvasLinkAdded.connect(self.addCanvasLink)
         self.canvas.sigCanvasLinkRemoved.connect(self.removeCanvasLink)
 
-    def addCanvasLink(self, canvasLink):
+    def addCanvasLink(self, canvasLink:CanvasLink):
         assert isinstance(canvasLink, CanvasLink)
         from enmapbox.gui.utils import findParent
         theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
@@ -176,6 +180,55 @@ class CanvasLinkTreeNodeGroup(TreeNode):
                 node.canvasLink.removeMe()
             else:
                 self.removeChildNode(node)
+
+    def contextMenu(self):
+        m = QMenu()
+        from enmapbox import EnMAPBox
+
+        otherMaps = collections.OrderedDict()
+        for mapDock in EnMAPBox.instance().dockManager.docks('MAP'):
+            assert isinstance(mapDock, MapDock)
+            if mapDock.mapCanvas() == self.canvas:
+                continue
+            otherMaps[mapDock.title()] = mapDock.mapCanvas()
+
+        sub = m.addMenu('Link to all other maps')
+        a = sub.addAction('on center + scale')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER_SCALE) for c2 in canvases])
+
+        a = sub.addAction('on center')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER) for c2 in canvases])
+
+        a = sub.addAction('on scale')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_SCALE) for c2 in canvases])
+
+        a = sub.addAction('unlink')
+        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
+                            [CanvasLink.linkMapCanvases(c1, c2, UNLINK) for c2 in canvases])
+
+        for name, targetCanvas in otherMaps.items():
+            assert isinstance(targetCanvas, MapCanvas)
+            sub = m.addMenu('Link to "{}"'.format(name))
+            a = sub.addAction('on center + scale')
+            a.triggered.connect(lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1,c2, LINK_ON_CENTER_SCALE))
+
+            a = sub.addAction('on center')
+            a.triggered.connect(
+                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER))
+
+            a = sub.addAction('on scale')
+            a.triggered.connect(
+                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, LINK_ON_SCALE))
+
+            a = sub.addAction('unlink')
+            a.triggered.connect(
+                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, UNLINK))
+
+
+        return m
 
 
 class SpeclibDockTreeNode(DockTreeNode):
@@ -469,6 +522,8 @@ class DockManagerTreeModel(TreeModel):
         self.dockManager.sigDataSourceRemoved.connect(self.removeDataSource)
         self.mimeIndices = []
 
+
+
     def columnCount(self, index):
         node = self.index2node(index)
         if type(node) in [DockTreeNode, QgsLayerTreeGroup, QgsLayerTreeLayer]:
@@ -593,6 +648,11 @@ class DockManagerTreeModel(TreeModel):
         if not parentIndex.isValid():
             return False
 
+        from enmapbox import EnMAPBox
+        layerRegistry = None
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            layerRegistry = EnMAPBox.instance().mapLayerStore()
+
         parentNode = self.index2node(parentIndex)
         # L1 is the first level below the root tree -> to place dock trees
         isL1Node = parentNode.parent() == self.rootNode
@@ -612,7 +672,11 @@ class DockManagerTreeModel(TreeModel):
             parentLayerGroup = parentLayerGroup[0]
 
             mapLayers = extractMapLayers(mimeData)
-            #QgsProject.instance().addMapLayers(mapLayers)
+
+            if isinstance(layerRegistry, QgsMapLayerStore):
+                layerRegistry.addMapLayers(mapLayers)
+
+
             i = parentIndex.row()
             if len(mapLayers) > 0:
                 for l in mapLayers:
@@ -802,6 +866,8 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
         parentNode = node.parent()
         parentDockNode = findParent(node, DockTreeNode, checkInstance=True)
         menu = QMenu()
+
+        selectedLayerNodes = [n for n in self.treeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
             mapNode = findParent(node, MapDockTreeNode)
@@ -828,11 +894,18 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
             action = menu.addAction('Copy layer path')
             action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
 
+
             menu.addSeparator()
 
+            def removeLayerTreeNodes(nodes):
+                for node in nodes:
+                    assert isinstance(node, QgsLayerTreeLayer)
+                    parentNode = node.parent()
+                    parentNode.removeChildNode(node)
+
             action = menu.addAction('Remove layer')
-            action.setToolTip('Removes layer from map canvas')
-            action.triggered.connect(lambda: parentNode.removeChildNode(node))
+            action.setToolTip('Remove layer from map canvas')
+            action.triggered.connect(lambda: removeLayerTreeNodes(selectedLayerNodes))
 
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
@@ -940,6 +1013,7 @@ class DockManager(QObject):
             layers = []
             textfiles = []
             speclibs = []
+
 
             if MDF_LAYERTREEMODELDATA in mimeData.formats():
                 layers = extractMapLayers(mimeData)

@@ -9,7 +9,6 @@ from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
 
-
 class ApplierDefaultsSetup(EnMAPAlgorithm):
     def displayName(self):
         return 'HUB Datacube Applier Settings'
@@ -54,7 +53,7 @@ class ApplierDefaultsSetup(EnMAPAlgorithm):
         return {}
 
 
-ALGORITHMS.append(ApplierDefaultsSetup())
+#ALGORITHMS.append(ApplierDefaultsSetup())
 
 class ClassDefinitionFromRaster(EnMAPAlgorithm):
     def displayName(self):
@@ -112,6 +111,29 @@ class ClassificationFromFraction(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(ClassificationFromFraction())
+
+
+class ClassificationStatistics(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Classification Statistics'
+
+    def description(self):
+        return 'This algorithm returns class count statistics. The output will be shown in the log window and can the copied from there accordingly.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    def defineCharacteristics(self):
+        self.addParameterClassification()
+
+    def processAlgorithm_(self):
+        classification = self.getParameterClassification()
+        values = classification.statistics()
+        for name, n in zip(classification.classDefinition().names(), values):
+            self._progressBar.setText('{}: {}'.format(name, n))
+        return {}
+
+ALGORITHMS.append(ClassificationStatistics())
 
 
 class ClassificationFromVectorClassification(EnMAPAlgorithm):
@@ -279,8 +301,8 @@ class ClassifierFit(EstimatorFit):
         return self.GROUP_CLASSIFICATION
 
     def defineCharacteristics(self):
-        self.addParameterRaster()
-        self.addParameterClassification()
+        self.addParameterRaster(description='Raster', help='Raster with training data features.')
+        self.addParameterClassification(description='Labels', help='Classification with training data labels.')
         self.addParameterMask()
         self.addParameterCode()
         self.addParameterOutputClassifier(name=self.P_OUTPUT_ESTIMATOR)
@@ -462,11 +484,8 @@ class CreateAdditionalTestdata(EnMAPAlgorithm):
     def defineCharacteristics(self):
         self.addParameterBoolean(name=self.P_BOOLEAN_ENMAP, description='Create 30 m maps', defaultValue=True,
                                  help='Whether or not to create 30 m classification and fraction/regression maps.')
-        self.addParameterBoolean(name=self.P_BOOLEAN_HYMAP, description='Create 3.6 m maps', defaultValue=True,
+        self.addParameterBoolean(name=self.P_BOOLEAN_HYMAP, description='Create 3.6 m maps', defaultValue=False,
                                  help='Whether or not to create 3.6 m classification and fraction/regression maps.')
-        self.addParameterBoolean(name=self.P_BOOLEAN_LIBRARY, description='Create labeled Library', defaultValue=False,
-                                 help='Whether or not to create spectral library with classification and fraction/regression labels at 30 m scale.')
-
         self.addParameterOutputClassification(name=self.P_OUTPUT_ENMAP_CLASSIFICATION,
                                               description='LandCover Classification for 6 classes at 30 m')
         self.addParameterOutputFraction(name=self.P_OUTPUT_ENMAP_FRACTION,
@@ -475,9 +494,6 @@ class CreateAdditionalTestdata(EnMAPAlgorithm):
                                               description='LandCover Classification for 6 classes at 3.6 m')
         self.addParameterOutputFraction(self.P_OUTPUT_HYMAP_FRACTION,
                                         description='LandCover Fraction for 6 classes at 3.6 m')
-        self.addParameterOutputFile(name=self.P_OUTPUT_LIBRARY,
-                                    description='Library with 30 m profiles and classification/fraction labels',
-                                    help='Specify output path for ENVI Spectral Library file.')
 
     def processAlgorithm_(self):
         import enmapboxtestdata
@@ -492,7 +508,7 @@ class CreateAdditionalTestdata(EnMAPAlgorithm):
                                                     oversampling=5)
 
         result = OrderedDict()
-        if self.getParameterBoolean(self.P_BOOLEAN_ENMAP) or self.getParameterBoolean(self.P_BOOLEAN_LIBRARY):
+        if self.getParameterBoolean(self.P_BOOLEAN_ENMAP):
             fractionEnmap = Fraction.fromClassification(
                 filename=self.getParameterOutputFraction(self.P_OUTPUT_ENMAP_FRACTION),
                 classification=vectorClassification, grid=enmap)
@@ -501,22 +517,6 @@ class CreateAdditionalTestdata(EnMAPAlgorithm):
                 filename=self.getParameterOutputClassification(self.P_OUTPUT_ENMAP_CLASSIFICATION),
                 classification=fractionEnmap)
             result[self.P_OUTPUT_ENMAP_CLASSIFICATION] = classificationEnmap.filename()
-
-            if self.getParameterBoolean(self.P_BOOLEAN_LIBRARY):
-                maps = [enmap, classificationEnmap, fractionEnmap]
-                filenames = ['/vsimem/MapCollectionExtractAsRaster/raster.bsq',
-                             '/vsimem/MapCollectionExtractAsRaster/classification.bsq',
-                             '/vsimem/MapCollectionExtractAsRaster/fraction.bsq']
-                raster, classification, fraction = MapCollection(maps=maps).extractAsRaster(filenames=filenames,
-                                                                                            grid=enmap.grid(),
-                                                                                            masks=maps)
-
-                classification.toRasterMetadata(raster=raster, classificationSchemeName='level 2')
-                fraction.toRasterMetadata(raster=raster)
-                library = ENVISpectralLibrary.fromRaster(
-                    filename=self.getParameterOutputClassification(self.P_OUTPUT_LIBRARY),
-                    raster=raster)
-                result[self.P_OUTPUT_LIBRARY] = library.filename()
 
         if self.getParameterBoolean(self.P_BOOLEAN_HYMAP):
             fractionHymap = Fraction.fromClassification(
@@ -580,24 +580,20 @@ class ImportLibrary(EnMAPAlgorithm):
         return self.GROUP_AUXILLIARY
 
     P_IMPORT_PROFILES = 'importProfiles'
-    P_CLASSIFICATION_SCHEME_NAME = 'classificationSchemeName'
-    P_REGRESSION_OUTPUT_NAMES = 'regressionOutputNames'
-    P_FRACTION_OUTPUT_NAMES = 'fractionOutputNames'
+    P_CLASSIFICATION_ATTRIBUTE = 'classificationAttribute'
+    P_REGRESSION__ATTRIBUTE = 'regressionAttribute'
 
     def defineCharacteristics(self):
         self.addParameterLibrary()
         self.addParameterBoolean(name=self.P_IMPORT_PROFILES, description='Import Profiles', defaultValue=True,
                                  optional=True)
-        self.addParameterString(name=self.P_CLASSIFICATION_SCHEME_NAME,
-                                description='Import Classification Labels (by classification scheme name)', optional=True)
-        self.addParameterStringList(name=self.P_REGRESSION_OUTPUT_NAMES,
-                                    description='Import Regression Labels (by output names)', optional=True)
-        self.addParameterStringList(name=self.P_FRACTION_OUTPUT_NAMES,
-                                    description='Import Fraction Labels (by output names)', optional=True)
+        self.addParameterString(name=self.P_CLASSIFICATION_ATTRIBUTE,
+                                description='Import Classification Labels', optional=True)
+        self.addParameterString(name=self.P_REGRESSION__ATTRIBUTE,
+                                description='Import Regression Labels', optional=True)
         self.addParameterOutputRaster()
         self.addParameterOutputClassification()
         self.addParameterOutputRegression()
-        self.addParameterOutputFraction()
 
     def processAlgorithm_(self):
 
@@ -608,26 +604,18 @@ class ImportLibrary(EnMAPAlgorithm):
             Raster.fromENVISpectralLibrary(filename=filename, library=library)
             result[self.P_OUTPUT_RASTER] = filename
 
-        classificationSchemeName = self.getParameterString(self.P_CLASSIFICATION_SCHEME_NAME)
-        if classificationSchemeName != '':
+
+        if self.getParameterString(self.P_CLASSIFICATION_ATTRIBUTE) != '':
             filename = self.getParameterOutputClassification()
-            Classification.fromRasterMetadata(filename=filename, raster=library.raster(),
-                                              classificationSchemeName=classificationSchemeName)
+            Classification.fromENVISpectralLibrary(filename=filename, library=library, attribute=self.getParameterString(self.P_CLASSIFICATION_ATTRIBUTE))
             result[self.P_OUTPUT_CLASSIFICATION] = filename
 
-        regressionOutputNames = self.getParameterStringList(self.P_REGRESSION_OUTPUT_NAMES)
-        if len(regressionOutputNames) != 0:
+        if self.getParameterString(self.P_REGRESSION__ATTRIBUTE) != '':
+            assert 0
             filename = self.getParameterOutputRegression()
             Regression.fromRasterMetadata(filename=filename, raster=library.raster(),
-                                          outputNames=regressionOutputNames)
+                                          outputNames=self.getParameterString(self.P_REGRESSION__ATTRIBUTE))
             result[self.P_OUTPUT_REGRESSION] = filename
-
-        fractionOutputNames = self.getParameterStringList(self.P_FRACTION_OUTPUT_NAMES)
-        if len(fractionOutputNames) != 0:
-            filename = self.getParameterOutputFraction()
-            Fraction.fromRasterMetadata(filename=filename, raster=library.raster(),
-                                        outputNames=regressionOutputNames)
-            result[self.P_OUTPUT_FRACTION] = filename
 
         return result
 
@@ -806,7 +794,7 @@ class FractionFromVectorClassification(EnMAPAlgorithm):
 
     def defineCharacteristics(self):
         self.addParameterGrid()
-        self.addParameterVectorClassification(minCoveragesDefaultValues=(0., 0.))
+        self.addParameterVectorClassification(minCoveragesDefaultValues=(0., 0.), hideMinDominantCoverage=True)
         self.addParameterOutputFraction()
 
     def processAlgorithm_(self):
@@ -1068,6 +1056,39 @@ class RasterUniqueValues(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(RasterUniqueValues())
+
+
+class RasterStatistics(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Raster Band Statistics'
+
+    def description(self):
+        return 'This algorithm returns raster band statistics. The output will be shown in the log window and can the copied from there accordingly.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    def defineCharacteristics(self):
+        self.addParameterRaster()
+        self.addParameterBand()
+
+    def processAlgorithm_(self):
+        raster = self.getParameterRaster()
+        values = raster.statistics(bandIndices=[self.getParameterBand()-1],
+                   calcPercentiles=True, calcHistogram=True, calcMean=True, calcStd=True,
+                   percentiles=[25,50,75])[0]
+
+        self._progressBar.setText('Min: {}'.format(values.min))
+        self._progressBar.setText('Max: {}'.format(values.max))
+        self._progressBar.setText('Mean: {}'.format(values.mean))
+        self._progressBar.setText('StdDev: {}'.format(values.std))
+        self._progressBar.setText('p25: {}'.format(values.percentiles[0].value))
+        self._progressBar.setText('median: {}'.format(values.percentiles[1].value))
+        self._progressBar.setText('p75: {}'.format(values.percentiles[2].value))
+
+        return {}
+
+ALGORITHMS.append(RasterStatistics())
 
 
 class RasterViewMetadata(EnMAPAlgorithm):

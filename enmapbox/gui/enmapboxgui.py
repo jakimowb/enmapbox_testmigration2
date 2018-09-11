@@ -85,6 +85,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         self.setWindowIcon(getIcon())
         self.setVisible(False)
 
+        if sys.platform == 'darwin':
+            self.menuBar().setNativeMenuBar(False)
         # self.showMaximized()
         self.setAcceptDrops(True)
         import enmapbox
@@ -122,10 +124,17 @@ class EnMAPBox(QgisInterface, QObject):
     def instance():
         return EnMAPBox._instance
 
+
+
     sigDataSourceAdded = pyqtSignal(str)
     sigSpectralLibraryAdded = pyqtSignal(str)
     sigRasterSourceAdded = pyqtSignal(str)
     sigVectorSourceAdded = pyqtSignal(str)
+
+    sigDataSourceRemoved = pyqtSignal(str)
+    sigSpectralLibraryRemoved = pyqtSignal(str)
+    sigRasterSourceRemoved = pyqtSignal(str)
+    sigVectorSourceRemoved = pyqtSignal(str)
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
@@ -186,6 +195,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         # self.enmapBox = enmapboxl
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
+        self.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
         self.dockManager.connectDockArea(self.ui.dockArea)
         self.dockManager.sigDockAdded.connect(self.onDockAdded)
@@ -211,8 +221,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
-        self.sigCurrentLocationChanged[SpatialPoint, MapCanvas].connect(
-            lambda pt, canvas: self.ui.cursorLocationValuePanel.loadCursorLocation(pt, canvas))
+
+
+        self.sigCurrentLocationChanged[SpatialPoint, MapCanvas].connect(self.setCursorLocationValueInfo)
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
         if enmapbox.LOAD_PROCESSING_FRAMEWORK:
@@ -244,6 +255,11 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
 
+    def setCursorLocationValueInfo(self, spatialPoint:SpatialPoint, mapCanvas:MapCanvas):
+        if not self.ui.cursorLocationValuePanel.isVisible():
+            self.ui.cursorLocationValuePanel.show()
+        self.ui.cursorLocationValuePanel.loadCursorLocation(spatialPoint, mapCanvas)
+
     def mapLayerStore(self)->QgsMapLayerStore:
         """
         Returns the EnMAP-Box internal QgsMapLayerStore
@@ -258,20 +274,23 @@ class EnMAPBox(QgisInterface, QObject):
         import enmapbox.gui.dockmanager
         import enmapbox.gui.datasourcemanager
 
-        def addPanel(panel):
+        def addPanel(panel, show=True):
             """
             shortcut to add a created panel and return it
             :param dock:
             :return:
             """
             self.addDockWidget(area, panel)
+            if not show:
+                panel.hide()
             return panel
 
         area = Qt.LeftDockWidgetArea
         self.ui.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
         self.ui.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self.ui))
         from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
-        self.ui.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self.ui))
+        self.ui.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self.ui), show=False)
+
 
         area = Qt.RightDockWidgetArea
         from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
@@ -545,7 +564,7 @@ class EnMAPBox(QgisInterface, QObject):
             import enmapboxtestdata
             from enmapbox.gui.utils import file_search
             dir = os.path.dirname(enmapboxtestdata.__file__)
-            files = file_search(dir, re.compile('.*(bsq|sli|img|shp)$', re.I), recursive=True)
+            files = file_search(dir, re.compile('.*(bsq|sli|img|shp|pkl)$', re.I), recursive=True)
 
             added = self.addSources(files)
 
@@ -558,9 +577,18 @@ class EnMAPBox(QgisInterface, QObject):
                     lyrs.append(lyr)
 
                 dock.addLayers(lyrs)
-                s =""
 
 
+
+    def onDataSourceRemoved(self, dataSource:DataSource):
+
+        self.sigDataSourceRemoved.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceRaster):
+            self.sigRasterSourceRemoved.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceVector):
+            self.sigVectorSourceRemoved.emit(dataSource.uri())
+        if isinstance(dataSource, DataSourceSpectralLibrary):
+            self.sigSpectralLibraryRemoved.emit(dataSource.uri())
 
     def onDataSourceAdded(self, dataSource:DataSource):
 
@@ -616,6 +644,15 @@ class EnMAPBox(QgisInterface, QObject):
 
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
+
+        #check if any SPECLIB window was opened
+        if len(self.dockManager.docks('SPECLIB')) == 0:
+            #and getattr(self, '_initialSpeclibDockCreated', False) == False:
+            dock = self.createDock('SPECLIB')
+            assert isinstance(dock, SpectralLibraryDock)
+            #self._initialSpeclibDockCreated = True
+
+
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 
     def currentSpectra(self)->list:
@@ -633,7 +670,7 @@ class EnMAPBox(QgisInterface, QObject):
                             see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
         :return: [list-of-datasource-URIs (str)]
         """
-        return self.dataSourceManager.getUriList(sourceType)
+        return self.dataSourceManager.uriList(sourceType)
 
     def createDock(self, *args, **kwds)->Dock:
         """

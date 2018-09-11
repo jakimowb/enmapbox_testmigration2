@@ -38,8 +38,10 @@ CHECK_COMMITS = False
 REPO = git.Repo(DIR_REPO)
 currentBranch = REPO.active_branch.name
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
-buildID = '{}.{}.{}'.format(enmapbox.__version__, timestamp, re.sub(r'[\\/]','_', currentBranch))
-
+buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group()
+                            , timestamp,
+                            re.sub(r'[\\/]','_', currentBranch))
+TEST_REPO_XML = os.path.join(DIR_REPO, 'qgis_plugin_tests.xml')
 
 def rm(p):
     """
@@ -61,6 +63,13 @@ def cleanDir(d):
     for root, dirs, files in os.walk(d):
         for p in dirs + files: rm(jp(root, p))
         break
+
+
+
+def updateTestPluginRepoXML(id):
+
+
+    import xml.etree
 
 
 def mkDir(d, delete=False):
@@ -94,18 +103,6 @@ def build():
         print('Remove old build folder...')
         shutil.rmtree(dirPlugin, ignore_errors=True)
 
-    if True:  # update metadata
-        pathMetadata = jp(DIR_REPO, 'metadata.txt')
-        # update version number in metadata
-        f = open(pathMetadata)
-        lines = f.readlines()
-        f.close()
-        lines = re.sub('version=.*\n', 'version={}\n'.format(buildID), ''.join(lines))
-        f = open(pathMetadata, 'w')
-        f.write(lines)
-        f.flush()
-        f.close()
-
     # required to choose andy DIR_DEPLOY of choice
     # issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
 
@@ -128,7 +125,11 @@ def build():
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
-        pb_tool.compile_files(cfg)
+        try:
+            pb_tool.compile_files(cfg)
+        except Exception as ex:
+            print('Failed to compile resources')
+            print(ex)
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
@@ -144,6 +145,29 @@ def build():
         for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
             os.remove(f)
 
+    #update metadata version
+    if True:
+        pathMetadata = jp(dirPlugin, 'metadata.txt')
+        # update version number in metadata
+        f = open(pathMetadata)
+        lines = f.readlines()
+        f.close()
+        lines = re.sub('version=.*\n', 'version={}\n'.format(buildID), ''.join(lines))
+        f = open(pathMetadata, 'w')
+        f.write(lines)
+        f.flush()
+        f.close()
+
+        pathPackageInit = jp(dirPlugin, *['enmapbox', '__init__.py'])
+        f = open(pathPackageInit)
+        lines = f.read()
+        f.close()
+        lines = re.sub(r'(__version__\W*=\W*)([^\n]+)', r'__version__ = "{}"\n'.format(buildID), lines)
+        f = open(pathPackageInit, 'w')
+        f.write(lines)
+        f.flush()
+        f.close()
+
     # 5. create a zip
     print('Create zipfile...')
     from enmapbox.gui.utils import zipdir
@@ -155,6 +179,8 @@ def build():
     # os.chdir(dirPlugin)
     # shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
 
+    updateTestPluginRepoXML(pathZip)
+
     # 6. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
         print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
@@ -164,7 +190,7 @@ def build():
         #print('iface.mainWindow().close()\n')
         print('QProcess.startDetached(QgsApplication.arguments()[0], [])')
         print('QgsApplication.quit()\n')
-
+        print('## press ENTER\n')
 
     print('Finished')
 
