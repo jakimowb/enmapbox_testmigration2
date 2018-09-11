@@ -149,7 +149,7 @@ Windows
     * python3-matplotlib
 
     Click on the |osgeoinstaller| symbol once, which should usually change the *Skip* setting to installing the most recent
-    version. Click :guilabel:`Next` **AFTER** you selected all demanded packages.
+    version. Only **AFTER** having selected **ALL** required packages, click :guilabel:`Next`.
 
     .. figure:: ../img/osgeoinstall.gif
 
