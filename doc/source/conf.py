@@ -161,7 +161,8 @@ html_theme_options = {
     'titles_only': False
 }
 
-html_logo = 'img/enmap_box_logo.png'
+#html_logo = 'img/enmap_box_logo.png'
+html_logo = 'img/EnMAP-Box_logo_black_text.svg'
 html_favicon = 'img/icon.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
