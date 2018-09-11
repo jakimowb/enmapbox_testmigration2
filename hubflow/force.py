@@ -1,8 +1,7 @@
 from hubflow.core import *
 
 class ForceDB(FlowObject):
-    def __init__(self, folder, spatialFilter):
-        assert isinstance(spatialFilter, SpatialFilter)
+    def __init__(self, folder, spatialFilter=None):
         self._folder = folder
         self._spatialFilter = spatialFilter
 
@@ -297,6 +296,9 @@ class ForceCollection(FlowObject):
         for name in os.listdir(join(self.tile().folder())):
             raster = Raster(join(self.tile().folder(), name))
 
+            if splitext(raster.filename())[1] in ['.hdr', '.xml']:
+                continue
+
             valid = True
             for filter in self.filters():
                 if not filter.evaluate(raster=raster):
@@ -393,12 +395,18 @@ class SpatialFilter(FlowObject):
 
 class FileFilter(Filter):
 
-    def __init__(self, extensions):
+    def __init__(self, basenames=None, extensions=None):
+        self._basenames = basenames
         self._extensions = extensions
 
     def __getstate__(self):
-        return {'extensions': self._extensions}
+        return {'basenames': self._basenames, 'extensions': self._extensions}
 
     def evaluate(self, raster):
         assert isinstance(raster, Raster)
-        return splitext(raster.filename())[1] in self._extensions
+        valid = True
+        if self._basenames is not None:
+            valid &= splitext(basename(raster.filename()))[0] in self._basenames
+        if self._extensions is not None:
+            valid &= splitext(raster.filename())[1] in self._extensions
+        return valid

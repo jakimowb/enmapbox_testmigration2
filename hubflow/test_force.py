@@ -118,6 +118,21 @@ class Test(TestCase):
         for y, n in result.items():
             print('{} = {}'.format(y, n))
 
+    def test_vrtMosaik(self):
+        filenames = list()
+        level = forceDB.level(levelName='levelClassification', filters=[FileFilter(basenames=['2015_classification'])])
+        level = forceDB.level(levelName='levelComposites', filters=[FileFilter(basenames=['2015_mean'])])
+        for tile in level.tiles():
+            rasters = list(tile.collection().rasters())
+            if len(rasters) == 1:
+                filenames.append(rasters[0].filename())
+
+        rasterDataset = createVRTDataset(filename='/vsimem/mosaik.vrt', rasterDatasetsOrFilenames=filenames)
+        try:
+            rasterDataset.plotCategoryBand()
+        except:
+            rasterDataset.plotMultibandColor(rgbvmin=0, rgbpmax=98, rgbindex=[4-1, 5-1, 3-1])
+
     def test_debug(self):
 
         pass
