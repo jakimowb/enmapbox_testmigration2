@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="https://plugins.qgis.org/plugins/static/style/plugins.xsl"?>
+<?xml-stylesheet type="text/xsl" href="https://plugins.qgis.org/static/style/plugins.xsl"?>
 <plugins>
 	<pyqgis_plugin name="EnMAP-Box (develop version)" version="3.2.20180910T1118.develop.snapshot">
 		<description>EnMAP-Box development version&gt;</description>
