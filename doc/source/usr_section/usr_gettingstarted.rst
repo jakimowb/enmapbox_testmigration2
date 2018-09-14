@@ -46,7 +46,7 @@ Loading Testdata
       .. image:: ../img/mapviewshift.png
 
     * Now, in the ``Data Views`` window, expand the Map #1 list, so that you can see the individual layers. Select
-      *HighResolution_BerlinUrbanGradient.bsq* and *LandCov_BerlinUrbanGradient.shp* (hold :guilabel:`Strg` and click on layers)
+      *HighResolution_BerlinUrbanGradient.bsq* and *LandCov_BerlinUrbanGradient.shp* (hold **Strg** and click on layers)
       and drag them into Map #2 (you can drag them directly into the map views or the respective menu item under ``Data Views``).
     * In the next step we link both map views, so that zoom and center are synchronized between both. First, click the |linkbasic|
       button in the Map #1 window. Now three options become selectable in Map #2: Select |linkscalecenter|, which will link both,
