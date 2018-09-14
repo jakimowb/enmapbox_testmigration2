@@ -294,7 +294,8 @@ def uploadDeveloperPlugin():
     urlRepoXML = 'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/src'
     assert os.path.isfile(PLUGIN_REPO_XML)
 
-    if not 'DIR_ENMAPBOX_WIKI_REPO' in os.environ.keys():
+
+    if False and not 'DIR_ENMAPBOX_WIKI_REPO' in os.environ.keys():
         print('DIR_ENMAPBOX_WIKI_REPO undefined. can not write to wiki pages', file=sys.stderr)
     else:
         DIR_ENMAPBOX_WIKI_REPO = os.environ['DIR_ENMAPBOX_WIKI_REPO']
@@ -312,6 +313,12 @@ def uploadDeveloperPlugin():
         REPO_WIKI.commit('updates')
         REPO_WIKI.git.push('origin')
         """
+
+    if True:
+        #copy to repo root
+        pathNew = os.path.join(DIR_REPO, os.path.basename(PLUGIN_REPO_XML))
+        print('Copy {}\n\tto {}'.format(PLUGIN_REPO_XML, pathNew))
+        shutil.copy(PLUGIN_REPO_XML, pathNew)
 
     LUT = {urlRepoXML:[PLUGIN_REPO_XML],
            urlDownloads:[PLUGIN_REPO_XML]}
