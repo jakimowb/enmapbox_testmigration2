@@ -58,6 +58,18 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 
+import os, sys, re
+from PyQt5.Qt import *
+from PyQt5.QtCore import *
+from PyQt5.QtSvg import *
+
+def convert2png(pathSVG:str):
+    if os.path.isfile(pathSVG) and pathSVG.endswith('.svg'):
+        pathPNG = re.sub('\.svg$','.png', pathSVG)
+        image = QImage(pathSVG)
+        image.save(pathPNG)
+
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
