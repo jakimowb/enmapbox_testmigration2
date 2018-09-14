@@ -181,7 +181,7 @@ def build():
     from enmapbox.gui.utils import zipdir
 
     pluginname = cfg.get('plugin', 'name')
-    pathZip = jp(DIR_DEPLOY, '{}.{}.snapshot.zip'.format(pluginname, buildID))
+    pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname, buildID))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
     zipdir(dirPlugin, pathZip)
     # os.chdir(dirPlugin)
@@ -252,7 +252,7 @@ def updateRepositoryXML(path:str=None):
     plugin = ET.SubElement(root, 'pyqgis_plugin')
     plugin.attrib['name'] = "EnMAP-Box (develop version)"
     plugin.attrib['version'] = '{}'.format(version)
-    ET.SubElement(plugin, 'description').text = r'EnMAP-Box development version>'
+    ET.SubElement(plugin, 'description').text = r'EnMAP-Box development version'
     ET.SubElement(plugin, 'about').text = 'Preview'
     ET.SubElement(plugin, 'version').text = version
     ET.SubElement(plugin, 'qgis_minimum_version').text = '3.2'
@@ -376,8 +376,10 @@ def uploadDeveloperPlugin():
                         if r.status_code == 401:
                             print(info, file=sys.stderr)
                             from qgis.gui import QgsCredentialDialog
+                            #from qgis.core import QgsCredentialsConsole
 
                             d = QgsCredentialDialog()
+                            #d = QgsCredentialsConsole()
                             ok, usr, pwd = d.request(url, auth.username, auth.password)
                             if ok:
                                 auth.username = usr
@@ -401,8 +403,8 @@ def uploadDeveloperPlugin():
 
 
 if __name__ == "__main__":
-    'https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml'
-    build()
-    updateRepositoryXML()
-    uploadDeveloperPlugin()
 
+    #build()
+    #updateRepositoryXML()
+    uploadDeveloperPlugin()
+    s = ""

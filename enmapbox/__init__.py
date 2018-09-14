@@ -4,7 +4,7 @@ import sys, os, site
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt.QtCore import QSettings
 
-__version__ = '3.2.<updated_by_build_script>'
+__version__ = '3.2' #subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
