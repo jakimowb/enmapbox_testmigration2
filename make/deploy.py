@@ -257,12 +257,14 @@ def updateRepositoryXML(path:str=None):
     ET.SubElement(plugin, 'version').text = version
     ET.SubElement(plugin, 'qgis_minimum_version').text = '3.2'
     ET.SubElement(plugin, 'qgis_maximum_version').text = '3.99'
-    ET.SubElement(plugin, 'hompage').text = enmapbox.HOMEPAGE
+    ET.SubElement(plugin, 'homepage').text = enmapbox.HOMEPAGE
     ET.SubElement(plugin, 'file_name').text = bn
     ET.SubElement(plugin, 'icon').text = 'enmapbox.png'
     ET.SubElement(plugin, 'author_name').text = 'Andreas Rabe, Benjamin Jakimow, Fabian Thiel, Sebastian van der Linden'
     ET.SubElement(plugin, 'download_url').text = download_url
     ET.SubElement(plugin, 'deprecated').text = 'False'
+    #is this a supported tag????
+    #ET.SubElement(plugin, 'external_dependencies').text = ','.join(enmapbox.DEPENDENCIES)
     ET.SubElement(plugin, 'tracker').text = enmapbox.ISSUE_TRACKER
     ET.SubElement(plugin, 'repository').text = enmapbox.REPOSITORY
     ET.SubElement(plugin, 'tags').text = 'Remote Sensing, Raster'
@@ -404,7 +406,7 @@ def uploadDeveloperPlugin():
 
 if __name__ == "__main__":
 
-    #build()
-    #updateRepositoryXML()
+    build()
+    updateRepositoryXML()
     uploadDeveloperPlugin()
     s = ""
