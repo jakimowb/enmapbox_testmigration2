@@ -476,7 +476,10 @@ class CanvasLink(QObject):
     A CanvasLink describes how two MapCanvas are linked to each other.
     """
     LINKTYPES = [LINK_ON_SCALE, LINK_ON_CENTER, LINK_ON_CENTER_SCALE]
-
+    LINK_ON_SCALE = LINK_ON_SCALE
+    LINK_ON_CENTER = LINK_ON_CENTER
+    LINK_ON_CENTER_SCALE = LINK_ON_CENTER_SCALE
+    UNLINK = UNLINK
     GLOBAL_LINK_LOCK = False
 
     @staticmethod

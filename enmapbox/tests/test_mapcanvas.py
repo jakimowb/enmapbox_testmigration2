@@ -20,7 +20,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import initQgisApplication
 QGIS_APP = initQgisApplication()
-from enmapboxtestdata import enmap, hymap, speclib
+
+import enmapbox.dependencycheck
+enmapbox.dependencycheck.installTestdata()
+
+from enmapboxtestdata import enmap, hymap, landcover, speclib
 from enmapbox.gui.mapcanvas import *
 
 
@@ -64,11 +68,35 @@ class MapCanvasTests(unittest.TestCase):
 
     def test_canvaslinks(self):
 
-        CanvasLink()
+        canvases = []
+        for i in range(3):
+            c = MapCanvas()
+            lyr = QgsRasterLayer(enmap)
+            QgsProject.instance().addMapLayer(lyr)
+            c.setLayers([lyr])
+            c.setDestinationCrs(lyr.crs())
+            c.setExtent(lyr.extent())
+            canvases.append(c)
+        c1, c2, c3 = canvases
+        center = c1.center()
+        CanvasLink(c1,c2, CanvasLink.LINK_ON_CENTER_SCALE)
+        CanvasLink(c1,c3, CanvasLink.LINK_ON_CENTER_SCALE)
+
+        for c in canvases:
+            self.assertTrue(c.center() == center)
+
+        center2 = QgsPointXY(center)
+        center2.setX(center2.x()+ 100)
+
+        c1.setCenter(center2)
+        for c in canvases:
+            self.assertTrue(c.center() == center2)
+
+        self.assertIsInstance(center, QgsPointXY)
 
     def test_dropEvents(self):
 
-        from enmapboxtestdata import enmap, hymap, landcover, speclib
+
         from enmapbox.gui.utils import TestObjects
         allFiles = [enmap, hymap, landcover, speclib]
         spatialFiles = [enmap, hymap, landcover]

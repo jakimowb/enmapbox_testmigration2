@@ -137,11 +137,11 @@ def missingTestdata()->bool:
         print(ex, file=sys.stderr)
         return True
 
-def installTestdata():
+def installTestdata(overwrite_existing=False):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestdata():
+    if not missingTestdata() and not overwrite_existing:
         print('Testdata already installed.')
         return
 
