@@ -173,8 +173,8 @@ html_theme_options = {
     'titles_only': False
 }
 
-html_logo = 'img/enmap_logo_black.png'
-html_favicon = 'img/enmap_logo_black.png'
+html_logo = 'img/EnMAP-Box_logo_black_text.svg'
+html_favicon = 'img/icon.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

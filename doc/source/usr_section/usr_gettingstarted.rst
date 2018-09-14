@@ -46,7 +46,7 @@ Loading Testdata
       .. image:: ../img/mapviewshift.png
 
     * Now, in the ``Data Views`` window, expand the Map #1 list, so that you can see the individual layers. Select
-      *HighResolution_BerlinUrbanGradient.bsq* and *LandCov_BerlinUrbanGradient.shp* (hold :guilabel:`Strg` and click on layers)
+      *HighResolution_BerlinUrbanGradient.bsq* and *LandCov_BerlinUrbanGradient.shp* (hold **Strg** and click on layers)
       and drag them into Map #2 (you can drag them directly into the map views or the respective menu item under ``Data Views``).
     * In the next step we link both map views, so that zoom and center are synchronized between both. First, click the |linkbasic|
       button in the Map #1 window. Now three options become selectable in Map #2: Select |linkscalecenter|, which will link both,
@@ -109,7 +109,7 @@ Up to now we mainly had a glimpse at the GUI of the EnMAP-Box. Let's take a look
           ClassDefinition(classes=6, names=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other'], colors=['#e60000', '#9c9c9c', '#98e600', '#267300', '#a87000', '#f5f57a'])
 
     * ``Minimal overall coverage``: 0.9
-    * ``Minimal winner class coverage``: 0.7
+    * ``Minimal dominant coverage``: 0.7
     * ``Oversampling factor``: 2
     * Click **Run in Background**
 
@@ -121,11 +121,11 @@ Up to now we mainly had a glimpse at the GUI of the EnMAP-Box. Let's take a look
       to switch back and forth between both layers.
     * Are all pixels that were covered by the vector layer assigned a class? Or are some labeled as *unclassified*?
     * You might want to have a look at the help window again, especially at the parameters *Minimal overall coverage*
-      and *Minimal winner class coverage*, and see if you find out why not all pixels are included, given the settings we used.
+      and *Minimal dominant class coverage*, and see if you find out why not all pixels are included, given the settings we used.
 
 
 |
 
-.. admonition:: Feel comfortable with the EnMAP-Box interface now...?
+.. hint::
 
-    ... then have a look at our :ref:`User Guide <usr_guide>` section, and dive deeper into the matter!
+   Have a look at the :ref:`User Guide <usr_guide>` section for more specific usage examples.

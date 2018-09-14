@@ -3,9 +3,9 @@ About
 =====
 
 
-.. image:: ../img/logo-enmap-box-thumb.jpg
-    :height: 350px
-    :width: 350px
+.. image:: ../img/EnMAP-Box_logo_black_text.svg
+    :height: 400px
+    :width: 400px
     :align: center
 
 
