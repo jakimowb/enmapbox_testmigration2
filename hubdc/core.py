@@ -438,6 +438,16 @@ class SpatialExtent(Extent):
         '''Returns the :class:`~hubdc.model.Projection`.'''
         return self._projection
 
+    def centroid(self):
+        '''
+        Returns the centroid.
+
+        :return:
+        :rtype: SpatialPoint
+        '''
+        ogrCentroid =  self.geometry().ogrGeometry().Centroid()
+        return SpatialPoint(x=ogrCentroid.GetX(), y=ogrCentroid.GetY(), projection=self.projection())
+
     def upperLeft(self):
         '''Returns the upper left corner as a :class:`~hubdc.model.SpatialPoint`'''
         return SpatialPoint(x=self.xmin(), y=self.ymax(), projection=self.projection())
@@ -533,6 +543,18 @@ class Resolution(object):
             assert 0
 
         return Resolution(x=self.x()/fx, y=self.y()/fy)
+
+    def __mul__(self, other):
+
+        if isinstance(other, (int, float)):
+            fx = fy = other
+        elif len(other) == 2:
+            fx, fy = other
+        else:
+            assert 0
+
+        return Resolution(x=self.x()*fx, y=self.y()*fy)
+
 
     @staticmethod
     def parse(obj):
@@ -755,6 +777,13 @@ class Geometry(object):
         assert ogrGeometry is not None
         return Geometry(wkt=ogrGeometry.ExportToWkt())
 
+    def union(self, other):
+        '''Returns the union of self and other.'''
+        assert isinstance(other, Geometry)
+        ogrGeometry = self.ogrGeometry().Union(other.ogrGeometry())
+        assert ogrGeometry is not None
+        return Geometry(wkt=ogrGeometry.ExportToWkt())
+
     def within(self, other):
         '''Returns whether self is within other.'''
         assert isinstance(other, Geometry)
@@ -821,6 +850,14 @@ class SpatialGeometry(Geometry):
         geometry = Geometry.intersection(self, other=other)
         return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
 
+    def union(self, other):
+        '''Returns the union of self and other.'''
+        assert isinstance(other, SpatialGeometry)
+        assert self.projection().equal(other=other.projection())
+        geometry = Geometry.union(self, other=other)
+        return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
+
+
 
 class Point(object):
     '''Class for managing map locations.'''
@@ -862,9 +899,8 @@ class Point(object):
 
     def geometry(self):
         '''Returns self as a :class:`~hubdc.model.Geometry`.'''
-        ogrGeometry = ogr.Geometry(ogr.wkbPoint)
-        ogrGeometry.AddPoint(self.x(), self.y())
-        return Geometry(wkt=ogrGeometry.ExportToWkt())
+        wkt = 'Point({} {})'.format(self.x(), self.y())
+        return Geometry(wkt=wkt)
 
     def reproject(self, sourceProjection, targetProjection):
         assert isinstance(sourceProjection, Projection)
@@ -1019,6 +1055,15 @@ class Grid(object):
     def spatialExtent(self):
         '''Returns the :class:`~hubdc.model.SpatialExtent`.'''
         return SpatialExtent.fromExtent(extent=self.extent(), projection=self.projection())
+
+    def centroid(self):
+        '''
+        Returns the centroid.
+
+        :return:
+        :rtype: SpatialPoint
+        '''
+        return self.spatialExtent().centroid()
 
     def size(self):
         '''Returns the :class:`~hubdc.model.Size`.'''
@@ -1704,9 +1749,15 @@ class RasterDataset(object):
             if pmax is not None:
                 vmax = np.percentile(band, pmax)
             if vmin is None:
-                vmin = np.min(band)
+                if band.dtype == np.uint8:
+                    vmin = 0
+                else:
+                    vmin = np.min(band)
             if vmax is None:
-                vmax = np.max(band)
+                if band.dtype == np.uint8:
+                    vmax = 255
+                else:
+                    vmax = np.max(band)
 
             grey = np.float32(band-vmin)
             grey /= vmax-vmin
@@ -1727,7 +1778,7 @@ class RasterDataset(object):
         return grey
 
     def plotMultibandColor(self, rgbindex=(0, 1, 2), rgbvmin=(None, None, None), rgbvmax=(None, None, None),
-                           rgbpmin=(None, None, None), rgbpmax=(None, None, None), noPlot=False):
+                           rgbpmin=(None, None, None), rgbpmax=(None, None, None), noPlot=False, showPlot=True):
 
         def toTupel(v):
             if not isinstance(v, (list, tuple)):
@@ -1740,10 +1791,11 @@ class RasterDataset(object):
 
         if not noPlot:
             import matplotlib.pyplot as plt
-            fig = plt.imshow(np.array(rgb).transpose((2,1,0)))
+            fig = plt.imshow(np.array(rgb).transpose((1, 2, 0)))
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
-            plt.show()
+            if showPlot:
+                plt.show()
 
         return rgb
 
@@ -2341,7 +2393,7 @@ def createRasterDatasetFromArray(array, grid=None, filename='', driver=MEMDriver
     return rasterDataset
 
 
-def createVRTDataset(filename, rasterDatasetsOrFilenames, **kwargs):
+def createVRTDataset(rasterDatasetsOrFilenames, filename='', **kwargs):
     '''
     Creates a virtual raster file (VRT) from raster datasets or filenames given by ``rastersOrFilenames``.
 
