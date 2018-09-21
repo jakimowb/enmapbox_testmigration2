@@ -621,7 +621,12 @@ class Band(object):
         for tilename in self.tilingScheme().tiles():
             extent = self.tilingScheme().extent(name=tilename)
             if extent.intersects(other=grid.extent()):
-                filenames.append(self.filename(tilename=tilename))
+                filename = self.filename(tilename=tilename)
+                if not filename.startswith('/vsimem/'):
+                    if not exists(filename):
+                        continue # in some cases a tile extent is only touched at the edge
+
+                filenames.append(filename)
 
         vrtSource = createVRTDataset(rasterDatasetsOrFilenames=filenames, bandList=[self.index()+1])
         vrtTarget = vrtSource.warp(grid=grid)
@@ -650,7 +655,7 @@ class Operand(object):
 
     def _connect(self, operator):
         assert isinstance(operator, Operator)
-        if isinstance(self, Raster):
+        if isinstance(self, (Raster, Collection)):
             pipeline = Pipeline(self)
         elif isinstance(self, Pipeline):
             pipeline = self
@@ -666,8 +671,25 @@ class Operand(object):
         if driver is None:
             driver = RasterDriver.fromFilename(filename=filename)
         maskFilename = join(dirname(filename), '.mask.{}'.format(basename(filename)))
+        array, maskArray = operator.calculate(self, grid=grid)
 
-        array, maskArray = operator.calculate(raster=self, grid=grid)
+        msg = 'wrong array or mask array format, check operator: {}'.format(operator)
+        if isinstance(array, list):
+            assert isinstance(array[0], np.ndarray), msq
+            assert array[0].ndim == 2, msg
+        elif isinstance(array, np.ndarray):
+            assert array.ndim == 3, msg
+        else:
+            assert 0, msg
+
+        if isinstance(maskArray, list):
+            assert isinstance(maskArray[0], np.ndarray), msq
+            assert maskArray[0].ndim == 2, msq
+        elif isinstance(maskArray, np.ndarray):
+            assert maskArray.ndim == 3, msq
+        else:
+            raise Exception('wrong mask array format, check operator: {}'.format(operator))
+
 
         if len(array) != len(maskArray):
             raise Exception('number of bands in array and mask array must match')
@@ -687,11 +709,12 @@ class Operand(object):
                                                     driver=driver, options=options)
 
         for i, rasterBandDataset in enumerate(arrayRasterDataset.bands()):
-            rasterBandDataset.setDescription(value=operator.bandName(index=i, raster=self))
-            rasterBandDataset.setNoDataValue(value=operator.noDataValue(index=i, raster=self))
+            rasterBandDataset.setDescription(value=operator.bandName(i, self))
+            if noDataValues is not None:
+                rasterBandDataset.setNoDataValue(value=operator.noDataValue(i, self))
 
-        raster = Raster(name=operator.rasterName(index=None, raster=self),
-                        date=operator.rasterDate(index=None, raster=self))
+        raster = Raster(name=operator.rasterName(self),
+                        date=operator.rasterDate(self))
 
         tilingScheme = TilingScheme().addTile(name=tilename, extent=extent) # should be omitted in the future!!!
         for i in range(len(array)):
@@ -701,9 +724,9 @@ class Operand(object):
                                                                     geometry=grid.extent(), tilingScheme=tilingScheme))
             raster.addBand(band=Band(filename=filename, index=i,
                                      mask=mask,
-                                     name=operator.bandName(index=i, raster=self),
-                                     date=operator.bandDate(index=i, raster=self),
-                                     wavelength=operator.wavelength(index=i, raster=self),
+                                     name=operator.bandName(i, self),
+                                     date=operator.bandDate(i, self),
+                                     wavelength=operator.wavelength(i, self),
                                      geometry=grid.extent(),
                                      tilingScheme=tilingScheme))
 
@@ -760,9 +783,9 @@ class CollectionOperand(Operand):
 
 
 class Pipeline(Operand):
-    def __init__(self, raster):
-        assert isinstance(raster, Raster)
-        self._raster = raster
+    def __init__(self, operand):
+        assert isinstance(operand, (Raster, Collection))
+        self._operand = operand
         self._steps = list()
 
     def connect(self, operator):
@@ -777,32 +800,37 @@ class Pipeline(Operand):
 
         geometry = None
         for tilename in tilingScheme.tiles():
+            print(tilename)
             extent = tilingScheme.extent(name=tilename)
-            raster = self._raster
+            operand = self._operand
             last = len(self._steps) - 1
             tmpfilenames = ['', '']
             for i, operator in enumerate(self._steps):
+                print('  {}'.format(operator))
                 if i != last: # write all intermediate results into mem
                     kwds = {'filename': '/vsimem/step{}/{}'.format(i, filename), 'driver': driver, 'options': None}
                 else:
                     kwds = {'filename': filename, 'driver': driver, 'options': options, 'noDataValues': noDataValues}
 
-                raster, rasterDataset, maskRasterDataset = raster._computeOperatorOnTile(
-                    operator=operator, tilename=tilename, extent=extent, resolution=resolution, **kwds)
+                operand, rasterDataset, maskRasterDataset = operand._computeOperatorOnTile(operator=operator,
+                                                                                           tilename=tilename,
+                                                                                           extent=extent,
+                                                                                           resolution=resolution,
+                                                                                           **kwds)
 
                 for tmpfilename in tmpfilenames: # free memory of step i-1
                     gdal.Unlink(tmpfilename)
                 tmpfilenames = [rasterDataset.filename(), maskRasterDataset.filename()]
 
-                assert isinstance(raster, Raster)
+                assert isinstance(operand, Raster)
 
             if geometry is None:
                 geometry = extent
             else:
                 geometry = geometry.union(other=extent)
 
-        assert isinstance(raster, Raster)
-        for band in raster.bands():
+        assert isinstance(operand, Raster)
+        for band in operand.bands():
             band._geometry = geometry
             band._tilingScheme = tilingScheme
             try:
@@ -811,7 +839,7 @@ class Pipeline(Operand):
                 a=1
             band.mask().band(0).tilingScheme = tilingScheme
 
-        return raster
+        return operand
 
     def raster(self, grid):
         # todo: get ride of the fake TilingScheme, should work directly on the grid raster!!!
@@ -825,16 +853,16 @@ class Pipeline(Operand):
         # todo: see self.raster() performance issue
         raster = self.raster(grid=grid)
         array = openRasterDataset(filename='/vsimem/pipeline/tmp/raster.bsq').readAsArray()
-        gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
-        gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
+        #gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
+        #gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
         return array
 
     def maskArray(self, grid):
         # todo: see self.raster() performance issue
         raster = self.raster(grid=grid)
         marray = openRasterDataset(filename='/vsimem/pipeline/tmp/.mask.raster.bsq').readAsArray()
-        gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
-        gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
+        #gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
+        #gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
         return marray
 
 
@@ -850,16 +878,13 @@ class MapOperator(Operator):
         assert isinstance(grid, Grid)
         assert 0  # overload me!
 
-    def noDataValue(self, index, raster):
-        return None
-
-    def rasterName(self, index, raster):
+    def rasterName(self, raster):
         return raster.name()
 
     def bandName(self, index, raster):
         assert 0  # overload me!
 
-    def rasterDate(self, index, raster):
+    def rasterDate(self, raster):
         return raster.date()
 
     def bandDate(self, index, raster):
@@ -869,11 +894,26 @@ class MapOperator(Operator):
         return None
 
 
-class ReduceOperator(MapOperator):
+class ReduceOperator(Operator):
     def calculate(self, collection, grid):
         assert isinstance(collection, Collection)
         assert isinstance(grid, Grid)
         assert 0  # overload me!
+
+    def rasterName(self, collection):
+        return ''
+
+    def bandName(self, index, collection):
+        assert 0  # overload me!
+
+    def rasterDate(self, collection):
+        return None
+
+    def bandDate(self, index, collection):
+        return None
+
+    def wavelength(self, index, collection):
+        return None
 
 
 class ReduceMedian(ReduceOperator):
@@ -888,15 +928,15 @@ class ReduceMedian(ReduceOperator):
         array = list()
         for raster in collection.rasters():
             raster = raster.select(bandNames=self._bandNames)
-            a = np.float(raster.array(grid=grid))
+            a = np.float32(raster.array(grid=grid))
             m = raster.maskArray(grid=grid)
             a[np.logical_not(m)] = np.nan
             array.append(a)
-        array = np.nanmedian(a, axis=0)
+        array = np.nanmedian(array, axis=0)
         maskArray = np.isfinite(array)
         return array, maskArray
 
-    def bandName(self, index, raster):
+    def bandName(self, index, collection):
         return 'Median_{}'.format(self._bandNames[index])
 
 
@@ -914,11 +954,11 @@ class MapIdentity(MapOperator):
         assert isinstance(raster, Raster)
         return raster.band(index).name()
 
-    def rasterName(self, index, raster):
+    def rasterName(self, raster):
         assert isinstance(raster, Raster)
         return raster.name()
 
-    def rasterDate(self, index, raster):
+    def rasterDate(self, raster):
         assert isinstance(raster, Raster)
         return raster.date()
 
@@ -954,6 +994,9 @@ class MapBinaryElementWise(MapOperator):
     def __init__(self, raster2, method):
         self._raster2 = raster2
         self._method = method
+
+    def __repr__(self):
+        return 'MapBinaryElementWise(method={})'.format(self._method)
 
     def calculate(self, raster, grid):
         assert isinstance(raster, Raster)
@@ -1003,11 +1046,11 @@ class MapWhere(MapOperator):
         assert isinstance(raster, Raster)
         return raster.band(index=index).noDataValue()
 
-    def rasterName(self, index, raster):
+    def rasterName(self, raster):
         assert isinstance(raster, Raster)
         return raster.name()
 
-    def rasterDate(self, index, raster):
+    def rasterDate(self, raster):
         assert isinstance(raster, Raster)
         return raster.date()
 
@@ -1038,11 +1081,11 @@ class MapSelect(MapOperator):
         assert isinstance(raster, Raster)
         return raster.band(index=index).noDataValue()
 
-    def rasterName(self, index, raster):
+    def rasterName(self, raster):
         assert isinstance(raster, Raster)
         return raster.name()
 
-    def rasterDate(self, index, raster):
+    def rasterDate(self, raster):
         assert isinstance(raster, Raster)
         return raster.date()
 
@@ -1071,11 +1114,11 @@ class MapRename(MapOperator):
         assert isinstance(raster, Raster)
         return raster.band(index=index).noDataValue()
 
-    def rasterName(self, index, raster):
+    def rasterName(self, raster):
         assert isinstance(raster, Raster)
         return raster.name()
 
-    def rasterDate(self, index, raster):
+    def rasterDate(self, raster):
         assert isinstance(raster, Raster)
         return raster.date()
 
@@ -1161,7 +1204,7 @@ class Raster(Operand):
         return band
 
     def compute(self, tilingScheme, resolution, filename, noDataValues=None, driver=None, options=None):
-        return (Pipeline(raster=self)
+        return (Pipeline(operand=self)
                     .identity()
                     .compute(tilingScheme=tilingScheme, resolution=resolution, filename=filename,
                              noDataValues=noDataValues, driver=driver, options=options))
@@ -1237,9 +1280,11 @@ class Raster(Operand):
             marray.append(m)
         return marray
 
-    def expression(self, expression, variables, tilingScheme, resolution, filename):
-        assert 0
-        return Raster()
+    def sampleRegions(self, datasource):
+        assert isinstance(datasource, ogr.DataSource)
+        self.arrayAndMaskArray()
+        self.array()
+
 
 
 class Collection(CollectionOperand):
@@ -1265,6 +1310,11 @@ class Collection(CollectionOperand):
 
     def first(self):
         return self._rasters[0]
+
+    def slice(self, start, stop, step=None):
+        collection = Collection()
+        collection._rasters = copy.deepcopy(self._rasters[slice(start, stop, step)])
+        return collection
 
     def filterDate(self, start, end):
         return self.filter(filter=DateFilter(start=Date.parse(start), end=Date.parse(end)))
