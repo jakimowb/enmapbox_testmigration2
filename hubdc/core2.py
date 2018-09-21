@@ -8,7 +8,9 @@ from random import randint
 import tempfile
 from osgeo import gdal, gdal_array, ogr, osr
 import numpy as np
+from sklearn.base import ClassifierMixin
 import hubdc.hubdcerrors as errors
+import hubflow.core as hfc
 
 gdal.UseExceptions()
 
@@ -555,12 +557,12 @@ class Band(object):
     def __init__(self, filename, index, mask, name, date, wavelength, geometry, tilingScheme):
         self._filename = filename
         self._index = index
-        self._mask = mask
+        self.setMask(mask)
         self._name = name
         self._date = date
         self._wavelength = wavelength
         self._geometry = geometry
-        self._tilingScheme = tilingScheme
+        self.setTilingScheme(tilingScheme)
 
     def __str__(self):
         return self._name
@@ -591,18 +593,31 @@ class Band(object):
         assert isinstance(self._geometry, Geometry)
         return self._geometry
 
+    def setGeometry(self, geometry):
+        assert isinstance(geometry, Geometry)
+        self._geometry = geometry
+        return self
+
     def tilingScheme(self):
         assert isinstance(self._tilingScheme, TilingScheme)
         return self._tilingScheme
 
+    def setTilingScheme(self, tilingScheme):
+        assert isinstance(tilingScheme, TilingScheme)
+        self._tilingScheme = tilingScheme
+
+    def setMask(self, mask):
+        assert isinstance(mask, (type(None), Operand))
+        self._mask = mask
+
     def updateMask(self, mask):
         assert isinstance(mask, Operand)
+        band = copy.deepcopy(self)
         if self._mask is None:
-            self._mask = mask
-        elif isinstance(self._mask, Operand):
-            self._mask.multiply(raster2=mask)
+            band.setMask(mask=mask)
         else:
-            assert 0
+            band.setMask(mask=self._mask.multiply(raster2=mask))
+        return band
 
     def rename(self, name):
         band = copy.deepcopy(self)
@@ -615,13 +630,12 @@ class Band(object):
 
     def dataset(self, grid):
         assert isinstance(grid, Grid)
-        import hubflow.core as hfc
         # find all source tiles for given target grid
         filenames = list()
-        for tilename in self.tilingScheme().tiles():
-            extent = self.tilingScheme().extent(name=tilename)
+        for tile in self.tilingScheme().tiles():
+            extent = tile.extent()
             if extent.intersects(other=grid.extent()):
-                filename = self.filename(tilename=tilename)
+                filename = self.filename(tilename=tile.name())
                 if not filename.startswith('/vsimem/'):
                     if not exists(filename):
                         continue # in some cases a tile extent is only touched at the edge
@@ -632,23 +646,20 @@ class Band(object):
         vrtTarget = vrtSource.warp(grid=grid)
         return vrtTarget.band(index=0)
 
-    def array(self, grid):
+    def arrays(self, grid):
         array = self.dataset(grid=grid).readAsArray()
-        return array
-
-    def maskArray(self, grid):
-        if self.mask() is None:
-            return np.full(shape=grid.shape(), fill_value=True)
+        mask = self.mask()
+        if mask is None:
+            maskArray = np.full(shape=grid.shape(), fill_value=True)
+        elif isinstance(mask, Raster):
+            maskArray, _ = mask.arrays(grid=grid) # note: the array is used as the mask!
+            maskArray = maskArray[0]
+        elif isinstance(mask, Pipeline):
+            maskArray, _ = mask.arrays(grid=grid) # note: the array is used as the mask!
+            maskArray = maskArray[0]
         else:
-            if isinstance(self.mask(), Raster):
-                marray = self.mask().array(grid=grid)
-            elif isinstance(self.mask(), Pipeline):
-                marray = self.mask().array(grid=grid)
-            assert len(marray) == 1 # assert single band mask (Do we want to allow multiband masks? If, how to reduce?
-            marray = np.bool8(marray[0])
-        return marray
-
-
+            assert 0
+        return array, maskArray.view(dtype=np.bool8)
 
 
 class Operand(object):
@@ -671,11 +682,18 @@ class Operand(object):
         if driver is None:
             driver = RasterDriver.fromFilename(filename=filename)
         maskFilename = join(dirname(filename), '.mask.{}'.format(basename(filename)))
-        array, maskArray = operator.calculate(self, grid=grid)
+
+        if isinstance(operator, MapOperator):
+            array, maskArray = operator.calculate(raster=self, grid=grid)
+        elif isinstance(operator, ReduceOperator):
+            array, maskArray = operator.calculate(collection=self, grid=grid)
+        else:
+            assert 0
+
 
         msg = 'wrong array or mask array format, check operator: {}'.format(operator)
         if isinstance(array, list):
-            assert isinstance(array[0], np.ndarray), msq
+            assert isinstance(array[0], np.ndarray), msg
             assert array[0].ndim == 2, msg
         elif isinstance(array, np.ndarray):
             assert array.ndim == 3, msg
@@ -683,10 +701,11 @@ class Operand(object):
             assert 0, msg
 
         if isinstance(maskArray, list):
-            assert isinstance(maskArray[0], np.ndarray), msq
-            assert maskArray[0].ndim == 2, msq
+            assert isinstance(maskArray[0], np.ndarray), msg
+            assert maskArray[0].ndim == 2, msg
+            assert maskArray[0].dtype == np.bool8, 'wrong mask array data type, expected numpy.bool8, check operator: {}'.format(operator)
         elif isinstance(maskArray, np.ndarray):
-            assert maskArray.ndim == 3, msq
+            assert maskArray.ndim == 3, msg
         else:
             raise Exception('wrong mask array format, check operator: {}'.format(operator))
 
@@ -704,22 +723,20 @@ class Operand(object):
                                                      driver=driver, options=options)
         arrayRasterDataset.setNoDataValues(values=noDataValues)
         maskTileFilename = join(dirname(filename), tilename, '.mask.{}'.format(basename(filename)))
-        maskRasterDataset = RasterDataset.fromArray(array=array, grid=grid,
+        maskRasterDataset = RasterDataset.fromArray(array=maskArray, grid=grid,
                                                     filename=maskTileFilename,
                                                     driver=driver, options=options)
 
         for i, rasterBandDataset in enumerate(arrayRasterDataset.bands()):
             rasterBandDataset.setDescription(value=operator.bandName(i, self))
-            if noDataValues is not None:
-                rasterBandDataset.setNoDataValue(value=operator.noDataValue(i, self))
 
         raster = Raster(name=operator.rasterName(self),
                         date=operator.rasterDate(self))
 
-        tilingScheme = TilingScheme().addTile(name=tilename, extent=extent) # should be omitted in the future!!!
+        tilingScheme = TilingScheme().addTile(Tile(name=tilename, extent=extent)) # should be omitted in the future!!!
         for i in range(len(array)):
 
-            mask = Raster(name='Mask', date=None).addBand(band=Band(filename=maskFilename, index=i, mask=0,
+            mask = Raster(name='Mask', date=None).addBand(band=Band(filename=maskFilename, index=i, mask=None,
                                                                     name='Mask', date=None, wavelength=None,
                                                                     geometry=grid.extent(), tilingScheme=tilingScheme))
             raster.addBand(band=Band(filename=filename, index=i,
@@ -732,13 +749,8 @@ class Operand(object):
 
         return raster, arrayRasterDataset, maskRasterDataset
 
-    def array(self, grid):
+    def arrays(self, grid):
         assert 0 # overload me!
-        return np.array()
-
-    def maskArray(self, grid):
-        assert 0 # overload me!
-        return np.array()
 
     def identity(self):
         return self._connect(operator=MapIdentity())
@@ -776,6 +788,13 @@ class Operand(object):
     def normalizedDifference(self, bandNames):
         return self._connect(operator=MapNormalizedDifference(bandNames=bandNames))
 
+    def predict(self, estimator):
+        if isinstance(estimator, Classifier):
+            return self._connect(operator=MapPredictClassification(classifier=estimator))
+        else:
+            assert 0
+
+
 class CollectionOperand(Operand):
 
     def median(self, bandNames):
@@ -799,9 +818,9 @@ class Pipeline(Operand):
         assert isinstance(filename, str)
 
         geometry = None
-        for tilename in tilingScheme.tiles():
-            print(tilename)
-            extent = tilingScheme.extent(name=tilename)
+        for tile in tilingScheme.tiles():
+            print(tile.name())
+            extent = tile.extent()
             operand = self._operand
             last = len(self._steps) - 1
             tmpfilenames = ['', '']
@@ -813,7 +832,7 @@ class Pipeline(Operand):
                     kwds = {'filename': filename, 'driver': driver, 'options': options, 'noDataValues': noDataValues}
 
                 operand, rasterDataset, maskRasterDataset = operand._computeOperatorOnTile(operator=operator,
-                                                                                           tilename=tilename,
+                                                                                           tilename=tile.name(),
                                                                                            extent=extent,
                                                                                            resolution=resolution,
                                                                                            **kwds)
@@ -829,53 +848,43 @@ class Pipeline(Operand):
             else:
                 geometry = geometry.union(other=extent)
 
-        assert isinstance(operand, Raster)
+        assert isinstance(operand, Raster) # just take the raster from the last tile and modify it (should be ok!?)
+
         for band in operand.bands():
-            band._geometry = geometry
-            band._tilingScheme = tilingScheme
-            try:
-                band.mask().band(0)._geometry = geometry
-            except:
-                a=1
-            band.mask().band(0).tilingScheme = tilingScheme
+            band.setGeometry(geometry=geometry)
+            band.setTilingScheme(tilingScheme=tilingScheme)
+            if band.mask() is not None:
+                band.mask().setGeometry(geometry)
+                band.mask().setTilingScheme(tilingScheme)
 
         return operand
 
-    def raster(self, grid):
-        # todo: get ride of the fake TilingScheme, should work directly on the grid raster!!!
+    def arrays(self, grid):
+        # todo: get ride of the fake TilingScheme, should work directly on the grid!!!
         assert isinstance(grid, Grid)
-        tilingScheme = TilingScheme().addTile(name='tmp', extent=grid.extent())
+        tilingScheme = TilingScheme().addTile(Tile(name='tmp', extent=grid.extent()))
         raster = self.compute(tilingScheme=tilingScheme, resolution=grid.resolution(),
                               filename='/vsimem/pipeline/raster.bsq', driver=RasterDriver('ENVI'), options=None)
-        return raster
-
-    def array(self, grid):
-        # todo: see self.raster() performance issue
-        raster = self.raster(grid=grid)
         array = openRasterDataset(filename='/vsimem/pipeline/tmp/raster.bsq').readAsArray()
-        #gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
-        #gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
-        return array
-
-    def maskArray(self, grid):
-        # todo: see self.raster() performance issue
-        raster = self.raster(grid=grid)
-        marray = openRasterDataset(filename='/vsimem/pipeline/tmp/.mask.raster.bsq').readAsArray()
-        #gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
-        #gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
-        return marray
+        maskArray = openRasterDataset(filename='/vsimem/pipeline/tmp/.mask.raster.bsq').readAsArray()
+        gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
+        gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
+        return array, maskArray
 
 
 class Operator(object):
-    def calculate(self, operand, grid):
-        assert 0  # overload me!
-
+    pass
 
 class MapOperator(Operator):
+
+    def __repr__(self):
+        return 'MapBinaryElementWise(...)'
 
     def calculate(self, raster, grid):
         assert isinstance(raster, Raster)
         assert isinstance(grid, Grid)
+        array, maskArray = raster.arrays(grid=grid)
+
         assert 0  # overload me!
 
     def rasterName(self, raster):
@@ -928,8 +937,7 @@ class ReduceMedian(ReduceOperator):
         array = list()
         for raster in collection.rasters():
             raster = raster.select(bandNames=self._bandNames)
-            a = np.float32(raster.array(grid=grid))
-            m = raster.maskArray(grid=grid)
+            a, m = np.float32(raster.arrays(grid=grid))
             a[np.logical_not(m)] = np.nan
             array.append(a)
         array = np.nanmedian(array, axis=0)
@@ -946,8 +954,7 @@ class MapIdentity(MapOperator):
         assert isinstance(raster, Raster)
         assert isinstance(grid, Grid)
 
-        array = raster.array(grid=grid)
-        maskArray = raster.maskArray(grid=grid)
+        array, maskArray = raster.arrays(grid=grid)
         return array, maskArray
 
     def bandName(self, index, raster):
@@ -978,16 +985,38 @@ class MapNormalizedDifference(MapOperator):
     def calculate(self, raster, grid):
         assert isinstance(raster, Raster)
         assert isinstance(grid, Grid)
-        print(self)
-        a, b = raster.select(bandNames=self._bandNames).array(grid=grid)
+        (a, b), (ma, mb) = raster.select(bandNames=self._bandNames).arrays(grid=grid)
         array = np.divide(np.float32(a - b), np.float32(a + b))
         np.clip(array, -1, 1, out=array)
-        ma, mb = raster.select(bandNames=self._bandNames).maskArray(grid=grid)
         maskArray = np.logical_and(ma, mb)
         return array[None], maskArray[None]
 
     def bandName(self, index, raster):
         return 'NormalizedDifference({}, {})'.format(self._bandNames[0], self._bandNames[1])
+
+
+class MapPredictClassification(MapOperator):
+    def __init__(self, classifier):
+        assert isinstance(classifier, Classifier)
+        self._classifier = classifier
+
+    def calculate(self, raster, grid):
+        assert isinstance(raster, Raster)
+        assert isinstance(grid, Grid)
+
+        array, maskArray = raster.select(bandNames=self._classifier._inputProperties).arrays(grid=grid)
+        classification = np.zeros(shape=grid.shape())
+
+        valid = np.all(maskArray, axis=0) # skip every pixel that has a missing band value
+        if np.any(valid):
+            X = np.float64(array)[:, valid].T
+            y = self._classifier._sklClassifier.predict(X=X)
+            classification[valid] = y #.reshape(X.shape[0], -1).T
+
+        return classification[None], valid[None]
+
+    def bandName(self, index, raster):
+        return 'Classification'
 
 
 class MapBinaryElementWise(MapOperator):
@@ -996,22 +1025,20 @@ class MapBinaryElementWise(MapOperator):
         self._method = method
 
     def __repr__(self):
-        return 'MapBinaryElementWise(method={})'.format(self._method)
+        return 'MapBinaryElementWise(raster2={}, method={})'.format(self._raster2, self._method.__name__)
 
     def calculate(self, raster, grid):
         assert isinstance(raster, Raster)
         assert isinstance(grid, Grid)
+        aArray, aMaskArray = raster.arrays(grid=grid)
 
-        a = raster.array(grid=grid)
-        ma = raster.maskArray(grid=grid)
         if isinstance(self._raster2, Operand):
-            b = self._raster2.array(grid=grid)
-            mb = self._raster2.maskArray(grid=grid)
+            bArray, bMaskArray = self._raster2.arrays(grid=grid)
         else:
-            b = self._raster2
-            mb = 1
-        array = self._method(a, b)
-        maskArray = np.logical_and(ma, mb)
+            bArray = self._raster2
+            bMaskArray = True
+        array = self._method(aArray, bArray)
+        maskArray = np.logical_and(aMaskArray, bMaskArray)
         return array, maskArray
 
     def bandName(self, index, raster):
@@ -1105,7 +1132,7 @@ class MapRename(MapOperator):
     def calculate(self, raster, grid):
         assert isinstance(raster, Raster)
         assert isinstance(grid, Grid)
-        return raster.array(grid=grid)
+        return raster.arrays(grid=grid)
 
     def bandName(self, index, raster):
         return self._bandNames[index]
@@ -1203,6 +1230,14 @@ class Raster(Operand):
         assert isinstance(band, Band)
         return band
 
+    def setGeometry(self, geometry):
+        for band in self.bands():
+            band.setGeometry(geometry=geometry)
+
+    def setTilingScheme(self, tilingScheme):
+        for band in self.bands():
+            band.setTilingScheme(tilingScheme=tilingScheme)
+
     def compute(self, tilingScheme, resolution, filename, noDataValues=None, driver=None, options=None):
         return (Pipeline(operand=self)
                     .identity()
@@ -1254,19 +1289,19 @@ class Raster(Operand):
         return raster
 
     def updateMask(self, mask):
-        raster = copy.deepcopy(self)
-        for band in raster.bands():
-            band.updateMask(mask=mask)
-        return raster
+        return self.map(lambda band: band.updateMask(mask=mask))
 
-    def array(self, grid):
+    def arrays(self, grid):
         assert isinstance(grid, Grid)
 
         # read array
         array = list()
+        maskArray = list()
         for band in self.bands():
-            array.append(band.array(grid=grid))
-        return array
+            a, m = band.arrays(grid=grid)
+            array.append(a)
+            maskArray.append(m)
+        return array, maskArray
 
     def maskArray(self, grid):
         marray = list()
@@ -1280,12 +1315,65 @@ class Raster(Operand):
             marray.append(m)
         return marray
 
-    def sampleRegions(self, datasource):
-        assert isinstance(datasource, ogr.DataSource)
-        self.arrayAndMaskArray()
-        self.array()
+    def sampleRegions(self, vectorDataset, idProperty, tilingScheme, resolution):
+        assert isinstance(vectorDataset, VectorDataset)
+        assert isinstance(tilingScheme, TilingScheme)
+        resolution = Resolution.parse(resolution)
+
+        isPointGeometry = vectorDataset.ogrLayer().GetGeomType() == ogr.CreateGeometryFromWkt('Point(0 0)').GetGeometryType()
+        assert isPointGeometry
+
+        resultIds = list()
+        resultValues = list()
+        resultProperties = list()
+
+        for tile in tilingScheme.tiles():
+            print(tile.name())
+            extent = tile.extent()
+            grid = Grid(extent, resolution=resolution)
+            array, maskArray = self.arrays(grid)
+            initValue = -np.inf
+            idArray = vectorDataset.rasterize(grid=grid, gdalType=gdal.GDT_Float64,
+                                                  initValue=initValue, burnAttribute=idProperty,
+                                                  allTouched=False, filterSQL=None).readAsArray()
+
+            ids, indices = np.unique(idArray, return_index=True)
+            ids = ids[1:]         # skip init value
+            indices = indices[1:] # skip init value
+
+            values = np.array([a.ravel()[indices] for a in array])
+            valid = np.all([m.ravel()[indices] for m in maskArray], axis=0)
+
+            ids = ids[valid]
+            values = values[:, valid]
+
+            resultIds.append(ids)
+            resultValues.append(values)
+
+        resultIds = np.concatenate(resultIds, axis=0)
+
+        geometry = tilingScheme.geometry().reproject(projection=vectorDataset.projection())
+
+        layer = vectorDataset.ogrLayer()
+        layer.SetSpatialFilter(geometry.ogrGeometry())
+
+        attributes = OrderedDict()
+        for id in resultIds:
+            attributes[id] = None
+        fieldNames = vectorDataset.fieldNames()
+        for feature in layer:
+            id = feature.GetField(idProperty)
+            if id in resultIds:
+                attributes[id] = [feature.GetField(name) for name in fieldNames]
+
+        for v in attributes.values():
+            assert v is not None
+
+        names = self.bandNames() + fieldNames
+        data = np.concatenate((np.concatenate(resultValues, axis=1).T, np.array(list(attributes.values()))), axis=1)
 
 
+        return Table(data=data, names=names)
 
 class Collection(CollectionOperand):
 
@@ -1352,24 +1440,52 @@ class Collection(CollectionOperand):
         return merged
 
 
+class Tile(object):
+
+    def __init__(self, name, extent):
+        assert isinstance(extent, Extent)
+        self._name = name
+        self._extent = extent
+
+    def name(self):
+        assert isinstance(self._name, str)
+        return self._name
+
+    def extent(self):
+        assert isinstance(self._extent, Extent)
+        return self._extent
+
+
 class TilingScheme(object):
 
     def __init__(self):
         self._tiles = OrderedDict()
 
     def tiles(self):
-        return self._tiles
+        for tilename in self._tiles:
+            tile = self._tiles[tilename]
+            assert isinstance(tile, Tile)
+            yield tile
 
-    def addTile(self, name, extent):
-        assert isinstance(extent, Extent)
-        self._tiles[name] = extent
+    def tile(self, name):
+        tile = self._tiles[name]
+        assert isinstance(tile, Tile)
+        return tile
+
+    def addTile(self, tile):
+        assert isinstance(tile, Tile)
+        self._tiles[tile.name()] = tile
         return self
 
-    def extent(self, name):
-        extent = self._tiles[name]
-        assert isinstance(extent, Extent)
-        return extent
-
+    def geometry(self):
+        geometry = None
+        for tile in self.tiles():
+            if isinstance(geometry, Geometry):
+                geometry = geometry.union(other=tile.extent())
+            else:
+                geometry = tile.extent()
+        assert isinstance(geometry, Geometry)
+        return geometry
 
 class Filter(object):
     def matches(self, raster):
@@ -2093,8 +2209,181 @@ class RasterBandDataset():
         return domains if domains is not None else []
 
 
+class VectorDataset(object):
+
+    def __init__(self, ogrDataSource, layerNameOrIndex=0):
+        '''Creates new instance from given ogr.DataSource and layer name or index given by ``nameOrIndex``.'''
+
+        assert isinstance(ogrDataSource, ogr.DataSource), str(ogrDataSource)
+        self._ogrDataSource = ogrDataSource
+        self._ogrLayer = ogrDataSource.GetLayer(iLayer=layerNameOrIndex)
+        self._filename = self._ogrDataSource.GetDescription()
+        self._layerNameOrIndex = layerNameOrIndex
+        self._reprojectionCache = dict()
+
+    def __repr__(self):
+
+        return '{cls}(ogrDataSource={ogrDataSource}, layerNameOrIndex={layerNameOrIndex})'.format(
+            cls=self.__class__.__name__,
+            ogrDataSource=repr(self.ogrDataSource()),
+            layerNameOrIndex=repr(self.layerNameOrIndex()))
+
+    def filename(self):
+        '''Returns the filename.'''
+        return self._filename
+
+    def layerNameOrIndex(self):
+        '''Returns the layer name/index.'''
+        return self._layerNameOrIndex
+
+    def ogrDataSource(self):
+        '''Returns the ogr.DataSource.'''
+        return self._ogrDataSource
+
+    def ogrLayer(self):
+        '''Retrurns the ogr.Layer.'''
+        assert isinstance(self._ogrLayer, ogr.Layer)
+        return self._ogrLayer
+
+    def close(self):
+        '''Closes the ogr.DataSourse and ogr.Layer'''
+        self._ogrLayer = None
+        self._ogrDataSource = None
+
+    def projection(self):
+        '''Returns the :class:`~hubdc.model.Projection`.'''
+        return Projection(wkt=self._ogrLayer.GetSpatialRef())
+
+    def rasterize(self, grid, gdalType=gdal.GDT_Float32,
+                  initValue=0, burnValue=1, burnAttribute=None, allTouched=False,
+                  filterSQL=None, noDataValue=None,
+                  filename='', driver=None, options=None):
+        '''Returns a :class:`~hubdc.model.Raster` that is the rasterization of self into the given ``grid`` as.
+
+        :param grid:
+        :type grid: hubdc.core.Grid
+        :param gdalType: one of the GDAL data types gdal.GDT_*
+        :type gdalType: int
+        :param initValue: value to pre-initialize the output array
+        :type initValue: int
+        :param burnValue: value to burn into the output array for all objects; exclusive with ``burnAttribute``
+        :type burnValue: int
+        :param burnAttribute: identifies an attribute field on the features to be used for a burn-in value; exclusive with ``burnValue``
+        :type burnAttribute: str
+        :param allTouched: whether to enable that all pixels touched by lines or polygons will be updated, not just those on the line render path, or whose center point is within the polygon
+        :type allTouched: bool
+        :param filterSQL: set an SQL WHERE clause which will be used to filter vector features
+        :type filterSQL: str
+        :param noDataValue: output raster no data value
+        :type noDataValue: float
+        :param filename: output filename
+        :type filename: str
+        :param driver:
+        :type driver: RasterDriver
+        :param options: creation options
+        :type options:
+        :return:
+        :rtype: RasterDataset
+        '''
+
+        assert isinstance(grid, Grid)
+        if driver is None:
+            driver = RasterDriver.MEM()
+        assert isinstance(driver, RasterDriver)
+
+        if self.projection().equal(other=grid.extent().projection()):
+            vector = self
+        else:
+            if not grid.extent().projection().wkt() in self._reprojectionCache:
+                self._reprojectionCache[grid.extent().projection().wkt()] = self.reprojectOnTheFly(projection=grid.extent().projection())
+            vector = self._reprojectionCache[grid.extent().projection().wkt()]
+
+        vector.ogrLayer().SetAttributeFilter(filterSQL)
+        vector.ogrLayer().SetSpatialFilter(grid.extent().ogrGeometry())
+
+        if not driver.equal(other=RasterDriver.MEM()) and not exists(dirname(filename)):
+            makedirs(dirname(filename))
+
+        rasterDataset = RasterDataset.fromSpecification(grid=grid, bands=1, gdalType=gdalType, filename=filename, options=options)
+
+        if noDataValue is not None:
+            rasterDataset.setNoDataValue(noDataValue)
+        rasterDataset.band(index=0).fill(value=initValue)
+
+        rasterizeLayerOptions = list()
+        # special options controlling rasterization:
+        #    "ATTRIBUTE": Identifies an attribute field on the features to be used for a burn in value. The value will be burned into all output bands. If specified, padfLayerBurnValues will not be used and can be a NULL pointer.
+        #    "CHUNKYSIZE": The height in lines of the chunk to operate on. The larger the chunk size the less times we need to make a pass through all the shapes. If it is not set or set to zero the default chunk size will be used. Default size will be estimated based on the GDAL cache buffer size using formula: cache_size_bytes/scanline_size_bytes, so the chunk will not exceed the cache.
+        #    "ALL_TOUCHED": May be set to TRUE to set all pixels touched by the line or polygons, not just those whose center is within the polygon or that are selected by brezenhams line algorithm. Defaults to FALSE.
+        #    "BURN_VALUE_FROM": May be set to "Z" to use the Z values of the geometries. The value from padfLayerBurnValues or the attribute field value is added to this before burning. In default case dfBurnValue is burned as it is. This is implemented properly only for points and lines for now. Polygons will be burned using the Z value from the first point. The M value may be supported in the future.
+        #    "MERGE_ALG": May be REPLACE (the default) or ADD. REPLACE results in overwriting of value, while ADD adds the new value to the existing raster, suitable for heatmaps for instance.
+        if allTouched:
+            rasterizeLayerOptions.append('ALL_TOUCHED=TRUE')
+        if burnAttribute:
+            rasterizeLayerOptions.append('ATTRIBUTE=' + burnAttribute)
+
+        gdal.RasterizeLayer(rasterDataset.gdalDataset(), [1], vector.ogrLayer(), burn_values=[burnValue],
+                            options=rasterizeLayerOptions)
+        vector.ogrLayer().SetAttributeFilter(None)
+        return rasterDataset
+
+    def reprojectOnTheFly(self, projection):
+        '''Returns a reprojection of self into the given :class:`~hubdc.model.Projection`.'''
+
+        #todo do this in memory!!!
+
+        # need to temporary create a VRT file
+        vrtDefinition = ['<OGRVRTDataSource>\n',
+                         '    <OGRVRTWarpedLayer>\n',
+                         '        <OGRVRTLayer name="{}">\n'.format(basename(self.filename()).replace('.shp', '')),
+                         '            <SrcDataSource>{ds}</SrcDataSource>\n'.format(ds=self.filename()),
+                         '        </OGRVRTLayer>\n',
+                         '        <TargetSRS>{}</TargetSRS>\n'.format(projection.wkt()),
+                         '    </OGRVRTWarpedLayer>\n',
+                         '</OGRVRTDataSource>\n']
+
+        vrtFilename = join(tempfile.gettempdir(), str(randint(0, 10 ** 10)) + '.vrt')
+        with open(vrtFilename, 'w') as f:
+            f.writelines(vrtDefinition)
+
+        # open VRT vector file
+        ogrDataSource = ogr.Open(vrtFilename)
+        assert ogrDataSource is not None
+        vector = VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=0)
+
+        # delete the VRT file
+        remove(vrtFilename)
+
+        # todo cache result
+
+        return vector
+
+    def featureCount(self):
+        '''Returns the number of features.'''
+        return self._ogrLayer.GetFeatureCount()
+
+    def fieldCount(self):
+        '''Returns the number of attribute fields.'''
+        return self._ogrLayer.GetLayerDefn().GetFieldCount()
+
+    def fieldNames(self):
+        '''Returns the attribute field names.'''
+        names = [self._ogrLayer.GetLayerDefn().GetFieldDefn(i).GetName() for i in range(self.fieldCount())]
+        return names
+
+    def fieldTypeNames(self):
+        '''Returns the attribute field data type names.'''
+        typeNames = [self._ogrLayer.GetLayerDefn().GetFieldDefn(i).GetTypeName() for i in range(self.fieldCount())]
+        return typeNames
+
+    def zsize(self):
+        '''Returns number of layers (i.e. 1).'''
+        return 1
+
+
 class RasterDriver(object):
     '''Class for managing GDAL Drivers'''
+
 
     def __init__(self, name):
         self._name = name
@@ -2102,6 +2391,10 @@ class RasterDriver(object):
 
     def __repr__(self):
         return '{cls}(name={name})'.format(cls=self.__class__.__name__, name=repr(self.name()))
+
+    @staticmethod
+    def MEM():
+        return RasterDriver(name='MEM')
 
     @classmethod
     def fromFilename(cls, filename):
@@ -2128,36 +2421,6 @@ class RasterDriver(object):
         assert isinstance(other, RasterDriver)
         return self.name() == other.name()
 
-    def create(self, grid, bands=1, gdalType=gdal.GDT_Float32, filename='', options=None):
-        '''
-        Creates a new raster file with extent, resolution and projection given by ``grid``.
-
-        :param grid:
-        :type grid: Grid
-        :param bands: number of raster bands
-        :type bands: int
-        :param gdalType: one of the ``gdal.GDT_*`` data types, or use gdal_array.NumericTypeCodeToGDALTypeCode
-        :type gdalType: int
-        :param filename: output filename
-        :type filename: str
-        :param options:
-        :type options: creation options
-        :return:
-        :rtype: RasterDataset
-        '''
-
-        assert isinstance(grid, Grid)
-        assert isinstance(filename, str)
-        if (not self.equal(RasterDriver('MEM'))
-            and not filename.startswith('/vsimem/')
-            and not exists(dirname(filename))):
-            makedirs(dirname(filename))
-
-        gdalDataset = self.gdalDriver().Create(filename, grid.size().x(), grid.size().y(), bands, gdalType,
-                                               options.optionsList())
-        gdalDataset.SetProjection(grid.projection().wkt())
-        gdalDataset.SetGeoTransform(grid.geoTransform())
-        return RasterDataset(gdalDataset=gdalDataset)
 
 def createVRTDataset(rasterDatasetsOrFilenames, filename='', **kwargs):
     '''
@@ -2186,6 +2449,30 @@ def createVRTDataset(rasterDatasetsOrFilenames, filename='', **kwargs):
     gdalDataset = gdal.BuildVRT(destName=filename, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
     return RasterDataset(gdalDataset=gdalDataset)
 
+class Table(object):
+
+    def __init__(self, data, names):
+        assert isinstance(data, np.ndarray)
+        assert data.ndim == 2 # [samples, features]
+        assert data.shape[1] == len(names)
+        self.data = data
+        self.names = names
+
+class Classifier(object):
+
+    def __init__(self, sklClassifier):
+        assert isinstance(sklClassifier, ClassifierMixin)
+        self._sklClassifier = sklClassifier
+
+    def fit(self, features, classProperty, inputProperties):
+        assert isinstance(features, Table)
+        self._inputProperties = inputProperties
+        X = np.float64(features.data[:,[features.names.index(name) for name in inputProperties]])
+        y = np.uint32(features.data[:, features.names.index(classProperty)])
+        self._sklClassifier.fit(X=X, y=y)
+        return self
+
+
 def createPoint(x, y, projection):
     return Geometry(wkt='Point({} {})'.format(x, y), projection=projection)
 
@@ -2210,3 +2497,28 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
         raise errors.InvalidGDALDatasetError(filename)
 
     return RasterDataset(gdalDataset=gdalDataset)
+
+def openVectorDataset(filename, layerNameOrIndex=0, update=False):
+    '''
+    Opens the vector layer given by ``filename`` and ``layerNameOrIndex``.
+
+    :param filename: input filename
+    :type filename: str
+    :param layerNameOrIndex: layer index or name
+    :type layerNameOrIndex: int | str
+    :param update: whether to open in update mode
+    :type update: bool
+    :return:
+    :rtype: hubdc.core.VectorDataset
+    '''
+
+    assert isinstance(filename, str), type(filename)
+    if not exists(filename):
+        raise errors.FileNotExistError(filename)
+    if str(layerNameOrIndex).isdigit():
+        layerNameOrIndex = int(layerNameOrIndex)
+    ogrDataSource = ogr.Open(filename, int(update))
+    if ogrDataSource is None:
+        raise errors.InvalidOGRDataSourceError(filename)
+
+    return VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=layerNameOrIndex)

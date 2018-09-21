@@ -47,20 +47,20 @@ def landsatRaster(folder, date, sensor, ext, geometry, tilingScheme):
 
 
 tilingScheme = TilingScheme()
-tilingScheme.addTile(name='X0069_Y0043',
-                     extent=Extent(xmin=4526026.0, xmax=4556026.0, ymin=3254919.5, ymax=3284919.5,
-                                   projection=Projection(wkt='PROJCS["ETRS89/LAEAEurope",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Lambert_Azimuthal_Equal_Area"],PARAMETER["latitude_of_center",52],PARAMETER["longitude_of_center",10],PARAMETER["false_easting",4321000],PARAMETER["false_northing",3210000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","3035"]]')))
-tilingScheme.addTile(name='X0070_Y0043',
+tilingScheme.addTile(Tile(name='X0069_Y0043',
+                          extent=Extent(xmin=4526026.0, xmax=4556026.0, ymin=3254919.5, ymax=3284919.5,
+                                        projection=Projection(wkt='PROJCS["ETRS89/LAEAEurope",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Lambert_Azimuthal_Equal_Area"],PARAMETER["latitude_of_center",52],PARAMETER["longitude_of_center",10],PARAMETER["false_easting",4321000],PARAMETER["false_northing",3210000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","3035"]]'))))
+tilingScheme.addTile(Tile(name='X0070_Y0043',
                      extent=Extent(xmin=4556026.0, xmax=4586026.0, ymin=3254919.5, ymax=3284919.5,
-                                   projection=Projection(wkt='PROJCS["ETRS89/LAEAEurope",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Lambert_Azimuthal_Equal_Area"],PARAMETER["latitude_of_center",52],PARAMETER["longitude_of_center",10],PARAMETER["false_easting",4321000],PARAMETER["false_northing",3210000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","3035"]]')))
+                                   projection=Projection(wkt='PROJCS["ETRS89/LAEAEurope",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Lambert_Azimuthal_Equal_Area"],PARAMETER["latitude_of_center",52],PARAMETER["longitude_of_center",10],PARAMETER["false_easting",4321000],PARAMETER["false_northing",3210000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","3035"]]'))))
 def collections(folder, ext):
     sensors = LNDS + [SEN2A]
     rasters = {sensor: dict() for sensor in sensors}
     geometries = {sensor: dict() for sensor in sensors}
     patterns = {sensor: '*_LEVEL2_{}_BOA{}'.format(sensor, ext) for sensor in sensors}
-    for tilename in tilingScheme.tiles():
-        extent = tilingScheme.extent(name=tilename)
-        for filename in listdir(join(folder, tilename)):
+    for tile in tilingScheme.tiles():
+        extent = tile.extent()
+        for filename in listdir(join(folder, tile.name())):
             for sensor in sensors:
                 if fnmatch.fnmatch(filename, patterns[sensor]):
                     date = filename[:8]
@@ -79,7 +79,7 @@ def collections(folder, ext):
     for sensor in rasters:
         for key, raster in rasters[sensor].items():
             for band in raster.bands():
-                band._geometry = geometries[sensor][key]
+                band.setGeometry(geometries[sensor][key])
 
     collections = list()
     for sensor in sensors:
