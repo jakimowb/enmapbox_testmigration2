@@ -567,11 +567,13 @@ class Band(object):
     def __str__(self):
         return self._name
 
-    def filename(self, tilename=None):
-        if tilename is None:
+    def filename(self, tile=None):
+        if tile is None:
             return self._filename
+        elif isinstance(tile, Tile):
+            return join(dirname(self._filename), tile.name(), basename(self._filename))
         else:
-            return join(dirname(self._filename), tilename, basename(self._filename))
+            assert 0
 
     def index(self):
         return self._index
@@ -635,7 +637,7 @@ class Band(object):
         for tile in self.tilingScheme().tiles():
             extent = tile.extent()
             if extent.intersects(other=grid.extent()):
-                filename = self.filename(tilename=tile.name())
+                filename = self.filename(tile=tile)
                 if not filename.startswith('/vsimem/'):
                     if not exists(filename):
                         continue # in some cases a tile extent is only touched at the edge
@@ -675,8 +677,21 @@ class Operand(object):
         pipeline.connect(operator=operator)
         return pipeline
 
-    def _computeOperatorOnTile(self, operator, tilename, extent, resolution, filename, noDataValues=None, driver=None, options=None):
+    def _computeOperatorOnTile(self, operator, tile, extent, filename, resolution=None, noDataValues=None, driver=None,
+                               options=None, categoryNames=None):
+
         assert isinstance(operator, Operator)
+        assert isinstance(tile, Tile)
+
+        if resolution is None:
+            if isinstance(self, Raster):  # use resolution of first band
+                resolution = openRasterDataset(filename=self.band(index=0).filename(tile=tile)).grid().resolution()
+            elif isinstance(self, Collection):  # use resolution of first raster
+                resolution = openRasterDataset(filename=self.first().band(index=0).filename(tile=tile)).grid().resolution()
+            else:
+                assert 0
+
+        resolution = Resolution.parse(resolution)
 
         grid = Grid(extent=extent, resolution=resolution)
         if driver is None:
@@ -709,31 +724,38 @@ class Operand(object):
         else:
             raise Exception('wrong mask array format, check operator: {}'.format(operator))
 
-
         if len(array) != len(maskArray):
-            raise Exception('number of bands in array and mask array must match')
+            raise Exception('number of bands in array and mask array must match, check operator: {}'.format(operator))
 
         if noDataValues is not None:
+            assert len(noDataValues) == len(array)
             for a, m, noDataValue in zip(array, maskArray, noDataValues):
                 a[np.logical_not(m)] = noDataValue
 
-        arrayTileFilename = join(dirname(filename), tilename, basename(filename))
+        if categoryNames is not None:
+            assert len(categoryNames) == len(array)
+
+        arrayTileFilename = join(dirname(filename), tile.name(), basename(filename))
         arrayRasterDataset = RasterDataset.fromArray(array=array, grid=grid,
                                                      filename=arrayTileFilename,
                                                      driver=driver, options=options)
         arrayRasterDataset.setNoDataValues(values=noDataValues)
-        maskTileFilename = join(dirname(filename), tilename, '.mask.{}'.format(basename(filename)))
+        maskTileFilename = join(dirname(filename), tile.name(), '.mask.{}'.format(basename(filename)))
         maskRasterDataset = RasterDataset.fromArray(array=maskArray, grid=grid,
                                                     filename=maskTileFilename,
                                                     driver=driver, options=options)
 
         for i, rasterBandDataset in enumerate(arrayRasterDataset.bands()):
             rasterBandDataset.setDescription(value=operator.bandName(i, self))
+            if categoryNames is not None:
+                rasterBandDataset.setCategoryNames(names=categoryNames[i])
+                # classDefinition = hfc.ClassDefinition(names=categoryNames[i])
+                #rasterBandDataset.setCategoryColors(colors=[(c.red(), c.green(), c.blue()) for c in classDefinition.colors()])
 
         raster = Raster(name=operator.rasterName(self),
                         date=operator.rasterDate(self))
 
-        tilingScheme = TilingScheme().addTile(Tile(name=tilename, extent=extent)) # should be omitted in the future!!!
+        tilingScheme = TilingScheme().addTile(Tile(name=tile.name(), extent=extent)) # should be omitted in the future!!!
         for i in range(len(array)):
 
             mask = Raster(name='Mask', date=None).addBand(band=Band(filename=maskFilename, index=i, mask=None,
@@ -785,7 +807,7 @@ class Operand(object):
     def addRaster(self, raster):
         return self._connect(operator=MapAddRaster(raster=raster))
 
-    def normalizedDifference(self, bandNames):
+    def normalizedDifference(self, bandNames=None):
         return self._connect(operator=MapNormalizedDifference(bandNames=bandNames))
 
     def predict(self, estimator):
@@ -794,10 +816,80 @@ class Operand(object):
         else:
             assert 0
 
+    def inflate(self, bandName, offsets, nbits):
+        return self._connect(operator=MapInflate(bandName=bandName, offsets=offsets, nbits=nbits))
+
+    def sampleRegions(self, vectorDataset, idProperty, tilingScheme, resolution):
+        assert isinstance(vectorDataset, VectorDataset)
+        assert isinstance(tilingScheme, TilingScheme)
+        resolution = Resolution.parse(resolution)
+
+        isPointGeometry = vectorDataset.ogrLayer().GetGeomType() == ogr.CreateGeometryFromWkt('Point(0 0)').GetGeometryType()
+        assert isPointGeometry
+
+        resultIds = list()
+        resultValues = list()
+
+        for tile in tilingScheme.tiles():
+            print(tile.name())
+            extent = tile.extent()
+            grid = Grid(extent, resolution=resolution)
+            if isinstance(self, Pipeline):
+                array, maskArray, raster = self.arrays(grid, returnRaster=True)
+            else:
+                array, maskArray = self.arrays(grid)
+
+            initValue = -np.inf
+            idArray = vectorDataset.rasterize(grid=grid, gdalType=gdal.GDT_Float64,
+                                                  initValue=initValue, burnAttribute=idProperty,
+                                                  allTouched=False, filterSQL=None).readAsArray()
+
+            ids, indices = np.unique(idArray, return_index=True)
+            ids = ids[1:]         # skip init value
+            indices = indices[1:] # skip init value
+
+            values = np.array([a.ravel()[indices] for a in array])
+            valid = np.all([m.ravel()[indices] for m in maskArray], axis=0)
+
+            ids = ids[valid]
+            values = values[:, valid]
+
+            resultIds.append(ids)
+            resultValues.append(values)
+
+        resultIds = np.concatenate(resultIds, axis=0)
+
+        geometry = tilingScheme.geometry().reproject(projection=vectorDataset.projection())
+
+        layer = vectorDataset.ogrLayer()
+        layer.SetSpatialFilter(geometry.ogrGeometry())
+
+        attributes = OrderedDict()
+        for id in resultIds:
+            attributes[id] = None
+        fieldNames = vectorDataset.fieldNames()
+        for feature in layer:
+            id = feature.GetField(idProperty)
+            if id in resultIds:
+                attributes[id] = [feature.GetField(name) for name in fieldNames]
+
+        for v in attributes.values():
+            assert v is not None
+
+        if isinstance(self, Pipeline):
+            bandNames = raster.bandNames()
+        else:
+            bandNames = self.bandNames()
+        names = bandNames + fieldNames
+        data = np.concatenate((np.concatenate(resultValues, axis=1).T, np.array(list(attributes.values()))), axis=1)
+
+
+        return Table(data=data, names=names)
+
 
 class CollectionOperand(Operand):
 
-    def median(self, bandNames):
+    def median(self, bandNames=None):
         return self._connect(operator=ReduceMedian(bandNames=bandNames))
 
 
@@ -812,9 +904,21 @@ class Pipeline(Operand):
         self._steps.append(operator)
         return self
 
-    def compute(self, tilingScheme, resolution, filename, noDataValues=None, driver=None, options=None):
+    def compute(self, filename, tilingScheme=None, resolution=None, noDataValues=None, driver=None, options=None,
+                categoryNames=None):
+
+        # derive tiling scheme from inputs if not specified
+        if tilingScheme is None:
+            if isinstance(self._operand, Raster): # use tiling scheme of first band
+                tilingScheme = self._operand.band(index=0).tilingScheme()
+            elif isinstance(self._operand, Collection):  # use tiling scheme of first raster
+                tilingScheme = self._operand.first().band(index=0).tilingScheme()
+            elif isinstance(self._operand, Pipeline): # use tiling scheme of first band
+                tilingScheme = self._operand.band(index=0).tilingScheme()
+            else:
+                assert 0
+
         assert isinstance(tilingScheme, TilingScheme)
-        resolution = Resolution.parse(resolution)
         assert isinstance(filename, str)
 
         geometry = None
@@ -832,9 +936,10 @@ class Pipeline(Operand):
                     kwds = {'filename': filename, 'driver': driver, 'options': options, 'noDataValues': noDataValues}
 
                 operand, rasterDataset, maskRasterDataset = operand._computeOperatorOnTile(operator=operator,
-                                                                                           tilename=tile.name(),
+                                                                                           tile=tile,
                                                                                            extent=extent,
                                                                                            resolution=resolution,
+                                                                                           categoryNames=categoryNames,
                                                                                            **kwds)
 
                 for tmpfilename in tmpfilenames: # free memory of step i-1
@@ -859,18 +964,22 @@ class Pipeline(Operand):
 
         return operand
 
-    def arrays(self, grid):
-        # todo: get ride of the fake TilingScheme, should work directly on the grid!!!
+    def arrays(self, grid, returnRaster=False):
         assert isinstance(grid, Grid)
-        tilingScheme = TilingScheme().addTile(Tile(name='tmp', extent=grid.extent()))
+        tilingScheme = SingleTileTilingScheme(extent=grid.extent())
         raster = self.compute(tilingScheme=tilingScheme, resolution=grid.resolution(),
                               filename='/vsimem/pipeline/raster.bsq', driver=RasterDriver('ENVI'), options=None)
-        array = openRasterDataset(filename='/vsimem/pipeline/tmp/raster.bsq').readAsArray()
-        maskArray = openRasterDataset(filename='/vsimem/pipeline/tmp/.mask.raster.bsq').readAsArray()
-        gdal.Unlink('/vsimem/pipeline/tmp/raster.bsq')
-        gdal.Unlink('/vsimem/pipeline/tmp/.mask.raster.bsq')
-        return array, maskArray
+        array = openRasterDataset(filename='/vsimem/pipeline/./raster.bsq').readAsArray()
+        maskArray = openRasterDataset(filename='/vsimem/pipeline/./.mask.raster.bsq').readAsArray()
+        gdal.Unlink('/vsimem/pipeline/./raster.bsq')
+        gdal.Unlink('/vsimem/pipeline/./.mask.raster.bsq')
+        if returnRaster:
+            return array, maskArray, raster
+        else:
+            return array, maskArray
 
+    def bandNames(self):
+        a=1
 
 class Operator(object):
     pass
@@ -878,7 +987,7 @@ class Operator(object):
 class MapOperator(Operator):
 
     def __repr__(self):
-        return 'MapBinaryElementWise(...)'
+        return '{}(...)'.format(self.__class__.__name__)
 
     def calculate(self, raster, grid):
         assert isinstance(raster, Raster)
@@ -930,13 +1039,19 @@ class ReduceMedian(ReduceOperator):
     def __init__(self, bandNames):
         self._bandNames = bandNames
 
+    def bandNames(self, collection):
+        assert isinstance(collection, Collection)
+        if self._bandNames is None: # use all bands from the first raster
+            return collection.first().bandNames()
+        return self._bandNames
+
     def calculate(self, collection, grid):
         assert isinstance(collection, Collection)
         assert isinstance(grid, Grid)
 
         array = list()
         for raster in collection.rasters():
-            raster = raster.select(bandNames=self._bandNames)
+            raster = raster.select(bandNames=self.bandNames(collection=collection))
             a, m = np.float32(raster.arrays(grid=grid))
             a[np.logical_not(m)] = np.nan
             array.append(a)
@@ -945,7 +1060,7 @@ class ReduceMedian(ReduceOperator):
         return array, maskArray
 
     def bandName(self, index, collection):
-        return 'Median_{}'.format(self._bandNames[index])
+        return 'Median_{}'.format(self.bandNames(collection=collection)[index])
 
 
 class MapIdentity(MapOperator):
@@ -979,7 +1094,9 @@ class MapIdentity(MapOperator):
 
 
 class MapNormalizedDifference(MapOperator):
-    def __init__(self, bandNames):
+    def __init__(self, bandNames=None):
+        if bandNames is None:
+            bandNames = (0, 1)
         self._bandNames = bandNames
 
     def calculate(self, raster, grid):
@@ -992,7 +1109,7 @@ class MapNormalizedDifference(MapOperator):
         return array[None], maskArray[None]
 
     def bandName(self, index, raster):
-        return 'NormalizedDifference({}, {})'.format(self._bandNames[0], self._bandNames[1])
+        return 'NormalizedDifference'
 
 
 class MapPredictClassification(MapOperator):
@@ -1011,7 +1128,7 @@ class MapPredictClassification(MapOperator):
         if np.any(valid):
             X = np.float64(array)[:, valid].T
             y = self._classifier._sklClassifier.predict(X=X)
-            classification[valid] = y #.reshape(X.shape[0], -1).T
+            classification[valid] = y
 
         return classification[None], valid[None]
 
@@ -1044,6 +1161,28 @@ class MapBinaryElementWise(MapOperator):
     def bandName(self, index, raster):
         assert isinstance(raster, Raster)
         return raster.band(index=index).name()
+
+
+class MapInflate(MapOperator):
+    def __init__(self, bandName, offsets, nbits):
+        self._bandName = bandName
+        self._offsets = offsets
+        self._nbits = nbits
+        assert len(self._offsets) == len(self._nbits)
+
+    def calculate(self, raster, grid):
+        assert isinstance(raster, Raster)
+        assert isinstance(grid, Grid)
+        array, maskArray = raster.select(bandNames=self._bandName).arrays(grid=grid)
+
+        inflated = list()
+        for offset, nbit in zip(self._offsets, self._nbits):
+            inflated.append(np.bitwise_and(np.right_shift(array, offset), (2**nbit - 1))[0])
+
+        return np.uint8(inflated), [maskArray[0]]*len(self._offsets)
+
+    def bandName(self, index, raster):
+        return 'Inflated {}'.format(index+1)
 
 
 class MapWhere(MapOperator):
@@ -1090,8 +1229,6 @@ class MapWhere(MapOperator):
         return raster.band(index=index).wavelength()
 
 
-
-
 class MapSelect(MapOperator):
     def __init__(self, bandNames):
         self._bandNames = bandNames
@@ -1099,10 +1236,10 @@ class MapSelect(MapOperator):
     def calculate(self, raster, grid):
         assert isinstance(raster, Raster)
         assert isinstance(grid, Grid)
-        return raster.select(bandNames=self._bandNames).array(grid=grid)
+        return raster.select(bandNames=self._bandNames).arrays(grid=grid)
 
     def bandName(self, index, raster):
-        return self._bandNames[index]
+        return raster.select(self._bandNames).bandNames()[index]
 
     def noDataValue(self, index, raster):
         assert isinstance(raster, Raster)
@@ -1218,15 +1355,30 @@ class Raster(Operand):
     def bandNames(self):
         return [band.name() for band in self.bands()]
 
+    def wavelengths(self):
+        return [band.wavelength() for band in self.bands()]
 
     def addBand(self, band):
         self._bands.append(band)
         return self
 
-    def band(self, index=None, name=None):
-        if index is None:
-            index = [band.name() for band in self.bands()].index(name)
-        band = self._bands[index]
+    def band(self, index=None, name=None, wavelength=None):
+        if index is not None:
+            band = self._bands[index]
+        elif name is not None:
+            try:
+                index = [band.name() for band in self.bands()].index(name)
+            except:
+                a=1
+            band = self._bands[index]
+        elif wavelength is not None:
+            if all([v is None for v in self.wavelengths()]):
+                raise Exception('no wavebands available')
+            index = int(np.argmin([abs(v - wavelength) if v is not None else np.inf for v in self.wavelengths()]))
+            band = self._bands[index]
+        else:
+            assert 0
+
         assert isinstance(band, Band)
         return band
 
@@ -1238,25 +1390,28 @@ class Raster(Operand):
         for band in self.bands():
             band.setTilingScheme(tilingScheme=tilingScheme)
 
-    def compute(self, tilingScheme, resolution, filename, noDataValues=None, driver=None, options=None):
+    def compute(self, filename, tilingScheme=None, resolution=None, noDataValues=None, categoryNames=None, driver=None,
+                options=None):
         return (Pipeline(operand=self)
                     .identity()
-                    .compute(tilingScheme=tilingScheme, resolution=resolution, filename=filename,
-                             noDataValues=noDataValues, driver=driver, options=options))
+                    .compute(filename=filename, tilingScheme=tilingScheme, resolution=resolution,
+                             noDataValues=noDataValues, categoryNames=categoryNames, driver=driver, options=options))
 
     def select(self, bandNames):
 
-        if isinstance(bandNames, (str, int)):
+        if isinstance(bandNames, (str, int, float)):
             bandNames = [bandNames]
         assert isinstance(bandNames, (list, tuple))
         for name in bandNames:
-            assert isinstance(name, (str, int))
+            assert isinstance(name, (str, int, float))
 
         raster = Raster(name=self.name(), date=self.date())
 
         for name in bandNames:
             if isinstance(name, int):
                 band = copy.deepcopy(self.band(index=name))
+            elif isinstance(name, float):
+                band = copy.deepcopy(self.band(wavelength=name))
             else:
                 band = copy.deepcopy(self.band(name=name))
 
@@ -1315,65 +1470,6 @@ class Raster(Operand):
             marray.append(m)
         return marray
 
-    def sampleRegions(self, vectorDataset, idProperty, tilingScheme, resolution):
-        assert isinstance(vectorDataset, VectorDataset)
-        assert isinstance(tilingScheme, TilingScheme)
-        resolution = Resolution.parse(resolution)
-
-        isPointGeometry = vectorDataset.ogrLayer().GetGeomType() == ogr.CreateGeometryFromWkt('Point(0 0)').GetGeometryType()
-        assert isPointGeometry
-
-        resultIds = list()
-        resultValues = list()
-        resultProperties = list()
-
-        for tile in tilingScheme.tiles():
-            print(tile.name())
-            extent = tile.extent()
-            grid = Grid(extent, resolution=resolution)
-            array, maskArray = self.arrays(grid)
-            initValue = -np.inf
-            idArray = vectorDataset.rasterize(grid=grid, gdalType=gdal.GDT_Float64,
-                                                  initValue=initValue, burnAttribute=idProperty,
-                                                  allTouched=False, filterSQL=None).readAsArray()
-
-            ids, indices = np.unique(idArray, return_index=True)
-            ids = ids[1:]         # skip init value
-            indices = indices[1:] # skip init value
-
-            values = np.array([a.ravel()[indices] for a in array])
-            valid = np.all([m.ravel()[indices] for m in maskArray], axis=0)
-
-            ids = ids[valid]
-            values = values[:, valid]
-
-            resultIds.append(ids)
-            resultValues.append(values)
-
-        resultIds = np.concatenate(resultIds, axis=0)
-
-        geometry = tilingScheme.geometry().reproject(projection=vectorDataset.projection())
-
-        layer = vectorDataset.ogrLayer()
-        layer.SetSpatialFilter(geometry.ogrGeometry())
-
-        attributes = OrderedDict()
-        for id in resultIds:
-            attributes[id] = None
-        fieldNames = vectorDataset.fieldNames()
-        for feature in layer:
-            id = feature.GetField(idProperty)
-            if id in resultIds:
-                attributes[id] = [feature.GetField(name) for name in fieldNames]
-
-        for v in attributes.values():
-            assert v is not None
-
-        names = self.bandNames() + fieldNames
-        data = np.concatenate((np.concatenate(resultValues, axis=1).T, np.array(list(attributes.values()))), axis=1)
-
-
-        return Table(data=data, names=names)
 
 class Collection(CollectionOperand):
 
@@ -1486,6 +1582,15 @@ class TilingScheme(object):
                 geometry = tile.extent()
         assert isinstance(geometry, Geometry)
         return geometry
+
+
+class SingleTileTilingScheme(TilingScheme):
+
+    def __init__(self, extent):
+        assert isinstance(extent, Extent)
+        TilingScheme.__init__(self)
+        self.addTile(tile=Tile(name='.', extent=extent))
+
 
 class Filter(object):
     def matches(self, raster):
