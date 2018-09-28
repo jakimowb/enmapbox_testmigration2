@@ -505,8 +505,15 @@ class CanvasLink(QObject):
 
     @staticmethod
     def linkMapCanvases(canvas1, canvas2, linktype):
+        """
+        Use this function to link or unlink two MapCanvases
+        :param canvas1: MapCanvas
+        :param canvas2: MapCanvas
+        :param linktype: str
+
+        """
         from enmapbox.gui.mapcanvas import CanvasLink
-        if linktype == UNLINK:
+        if linktype in [UNLINK, None]:
             CanvasLink.unlinkMapCanvases(canvas1, canvas2)
         else:
             CanvasLink(canvas1, canvas2, linktype)
@@ -592,6 +599,8 @@ class CanvasLink(QObject):
             canvas1.addCanvasLink(self)
             canvas2.addCanvasLink(self)
 
+            self.applyTo(canvas2)
+
     def removeMe(self):
         """Call this to remove this think from both canvases."""
         self.canvases[0].removeCanvasLink(self)
@@ -620,6 +629,10 @@ class CanvasLink(QObject):
 
     @staticmethod
     def applyLinking(initialSrcCanvas):
+        """
+        Applies all link actions related to MapCanvas "initialSrcCanvas"
+        :param initialSrcCanvas: MapCanvas
+        """
         if CanvasLink.GLOBAL_LINK_LOCK:
             #do not disturb ongoing linking by starting a new one
             return
@@ -640,6 +653,63 @@ class CanvasLink(QObject):
 
             handledCanvases = [initialSrcCanvas]
 
+            def nextLinkGeneration(srcCanvases:list):
+                nonlocal handledCanvases
+
+                generations = dict()
+                for srcCanvas in srcCanvases:
+                    assert isinstance(srcCanvas, MapCanvas)
+                    linksToApply = []
+                    for link in srcCanvas.canvasLinks:
+                        assert isinstance(link, CanvasLink)
+                        dstCanvas = link.theOtherCanvas(srcCanvas)
+                        if dstCanvas not in handledCanvases:
+                            linksToApply.append(link)
+                    if len(linksToApply) > 0:
+                        generations[srcCanvas] = linksToApply
+                return generations
+
+            nextGenerations = nextLinkGeneration(handledCanvases)
+
+            while len(nextGenerations) > 0:
+                #get the links that have to be set for the next generation
+                assert isinstance(nextGenerations, dict)
+                for srcCanvas, links in nextGenerations.items():
+                    assert isinstance(srcCanvas, MapCanvas)
+                    assert isinstance(links, list)
+
+                    for link in links:
+                        dstCanvas = link.theOtherCanvas(srcCanvas)
+                        assert dstCanvas not in handledCanvases
+                        assert dstCanvas == link.apply(srcCanvas, dstCanvas)
+                        handledCanvases.append(dstCanvas)
+                nextGenerations.clear()
+                nextGenerations.update(nextLinkGeneration(handledCanvases))
+
+            CanvasLink.GLOBAL_LINK_LOCK = False
+
+
+    @staticmethod
+    def depr_applyLinking(initialSrcCanvas):
+        if CanvasLink.GLOBAL_LINK_LOCK:
+            # do not disturb ongoing linking by starting a new one
+            return
+        else:
+            CanvasLink.GLOBAL_LINK_LOCK = True
+            QTimer.singleShot(500, lambda: CanvasLink.resetLinkLock())
+
+            # G0(A) -> G1(B) -> G3(E)
+            #      -> G1(C) -> G3(A)
+            #               -> G3(E)
+            # Gx = Generation. G1 will be set before G2,...
+            # A,B,..,E = MapCanvas Instances
+            # Order of linking starting from A: B,C,E
+            # Note: G3(A) will be not set, as A is already handled (initial signal)
+            #      G3(E) receives link from G1(B) only.
+            #      change related signals in-between will be blocked by GLOBAL_LINK_LOCK
+
+            handledCanvases = [initialSrcCanvas]
+
             def filterNextGenerationLinks(srcCanvas):
                 linkList = []
                 for link in srcCanvas.canvasLinks:
@@ -648,19 +718,18 @@ class CanvasLink(QObject):
                         linkList.append(link)
                 return srcCanvas, linkList
 
-
             def removeEmptyEntries(nextGen):
                 return [pair for pair in nextGen if len(pair[1]) > 0]
 
             nextGeneration = removeEmptyEntries([filterNextGenerationLinks(initialSrcCanvas)])
 
             while len(nextGeneration) > 0:
-                #get the links that have to be set for the next generation
+                # get the links that have to be set for the next generation
                 _nextGeneration = []
                 for item in nextGeneration:
                     srcCanvas, links = item
 
-                    #apply links
+                    # apply links
                     srcExt = SpatialExtent.fromMapCanvas(srcCanvas)
                     for link in links:
                         dstCanvas = link.theOtherCanvas(srcCanvas)
@@ -699,7 +768,7 @@ class CanvasLink(QObject):
 
         return QIcon(src)
 
-    def apply(self, srcCanvas, dstCanvas):
+    def apply(self, srcCanvas:QgsMapCanvas, dstCanvas:QgsMapCanvas):
         assert isinstance(srcCanvas, QgsMapCanvas)
         assert isinstance(dstCanvas, QgsMapCanvas)
 
@@ -819,6 +888,7 @@ class MapCanvas(QgsMapCanvas):
         # register signals to react on changes
         self.scaleChanged.connect(self.onScaleChanged)
         self.extentsChanged.connect(self.onExtentsChanged)
+
 
         self.destinationCrsChanged.connect(lambda : self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
         #activate default map tool
@@ -1173,13 +1243,12 @@ class MapCanvas(QgsMapCanvas):
         from enmapbox import EnMAPBox
 
         #register map layers (required for drawing on a MapCanvas)
-        try:
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
             store = EnMAPBox.instance().mapLayerStore()
-            store.addMapLayers(newSet)
-        except Exception as ex:
-            print(ex, file=sys.stderr)
+        else:
             store = QgsProject.instance()
-            store.addMapLayers(newSet)
+        store.addMapLayers(newSet)
+
         super(MapCanvas,self).setLayers(newSet)
 
         if not self.mCrsExtentInitialized and len(newSet) > 0:
@@ -1368,24 +1437,4 @@ class MapDock(Dock):
     def removeLayers(self, mapLayers):
         newSet = [l for l in self.mCanvas.layers() if l not in mapLayers]
         self.setLayers(newSet)
-
-
-
-
-
-if __name__ == "__main__":
-    from enmapboxtestdata import enmap, hymap, landcover
-    from enmapbox.gui.utils import initQgisApplication
-    app = initQgisApplication()
-
-    lyr = QgsRasterLayer(enmap)
-    lyr2 = QgsVectorLayer(landcover)
-    from enmapbox.gui.docks import DockArea
-    da = DockArea()
-    mapDock = MapDock()
-    da.addDock(mapDock)
-    da.show()
-    mapDock.addLayers([lyr])
-    mapDock.addLayers([lyr2])
-    app.exec_()
 

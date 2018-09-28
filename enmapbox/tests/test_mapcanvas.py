@@ -76,45 +76,45 @@ class MapCanvasTests(unittest.TestCase):
             c.setLayers([lyr])
             c.setDestinationCrs(lyr.crs())
             c.setExtent(lyr.extent())
-            center = c.center()
-            center.setX(center.x()+ 10*i)
-            c.setCenter(center)
+            center0 = c.center()
+            center0.setX(center0.x()+ 10*i)
+            c.setCenter(center0)
             canvases.append(c)
         c1, c2, c3 = canvases
 
-        center = c1.center()
+        center0 = c1.center()
         CanvasLink(c1,c2, CanvasLink.LINK_ON_CENTER_SCALE)
         CanvasLink(c1,c3, CanvasLink.LINK_ON_CENTER_SCALE)
         CanvasLink.GLOBAL_LINK_LOCK = False
-        self.assertTrue(c1.center() == center)
-        self.assertTrue(c2.center() == center)
-        self.assertTrue(c3.center() == center)
+        self.assertTrue(c1.center() == center0)
+        self.assertTrue(c2.center() == center0)
+        self.assertTrue(c3.center() == center0)
 
-        center2 = QgsPointXY(center)
-        center2.setX(center2.x()+ 200)
-        center3 = QgsPointXY(center)
-        center3.setX(center2.x() + 300)
-        center4 = QgsPointXY(center)
-        center4.setX(center2.x() + 400)
+        center1 = QgsPointXY(center0)
+        center1.setX(center1.x()+ 200)
+        center2 = QgsPointXY(center0)
+        center2.setX(center1.x() + 300)
+        center3 = QgsPointXY(center0)
+        center3.setX(center1.x() + 400)
 
         c1.extentsChanged.connect(lambda : print('Extent C1 changed'))
         c2.extentsChanged.connect(lambda: print('Extent C1 changed'))
         c3.extentsChanged.connect(lambda: print('Extent C1 changed'))
 
-        c1.setCenter(center2)
+        c1.setCenter(center1)
+        self.assertTrue(c1.center() == center1)
+        self.assertTrue(c2.center() == center1)
+        self.assertTrue(c3.center() == center1)
+
+        c2.setCenter(center2)
         self.assertTrue(c1.center() == center2)
         self.assertTrue(c2.center() == center2)
         self.assertTrue(c3.center() == center2)
 
-        c2.setCenter(center3)
+        c3.setCenter(center3)
         self.assertTrue(c1.center() == center3)
         self.assertTrue(c2.center() == center3)
         self.assertTrue(c3.center() == center3)
-
-        c3.setCenter(center4)
-        self.assertTrue(c1.center() == center4)
-        self.assertTrue(c2.center() == center4)
-        self.assertTrue(c3.center() == center4)
 
 
     def test_dropEvents(self):

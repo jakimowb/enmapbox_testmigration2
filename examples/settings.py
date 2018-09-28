@@ -29,5 +29,5 @@ assert isinstance(ok, bool)
 if ok:
     mySettings.setValue('My Text', newText)
 
-#restart this script to see how 'My Number' appears as permantent saved value
+#restart this script to see that 'My Text' was saved permanently.
 
