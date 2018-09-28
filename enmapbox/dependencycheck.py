@@ -185,20 +185,31 @@ def installTestdata(overwrite_existing=False):
 
             if not name.endswith('/'):
                 fullPath = os.path.normpath(os.path.join(targetDir, pathRel))
-                outfile = open(fullPath, 'wb')
-                outfile.write(zf.read(name))
-                outfile.flush()
-                outfile.close()
+                with open(fullPath, 'wb') as outfile:
+                    outfile.write(zf.read(name))
+                    outfile.flush()
 
-        print('Remove {}...'.format(pathLocalZip))
-        os.remove(pathLocalZip)
+        zf.close()
+        del zf
         print('Testdata installed.')
 
     def onDownloadError(messages):
         raise Exception('\n'.join(messages))
 
-    def onDownLoadExited():
+    def deleteFileDownloadedFile():
+
         pass
+        # dirty patch for Issue #167
+        #
+        #print('Remove {}...'.format(pathLocalZip))
+        #os.remove(pathLocalZip)
+
+    def onDownLoadExited():
+
+        from qgis.PyQt.QtCore import QTimer
+        QTimer.singleShot(5000, deleteFileDownloadedFile)
+
+
 
     def onDownloadProgress(received, total):
         if not qgisMainApp and total > 0:
