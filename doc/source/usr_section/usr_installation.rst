@@ -12,6 +12,10 @@ Installation
 
    <a href="https://bitbucket.org/hu-geomatics/enmap-box/downloads/" target="_blank">https://bitbucket.org/hu-geomatics/enmap-box/downloads/</a>
 
+.. |developer_qgis_plugin_repo| raw:: html
+
+    <a href="https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml" target="_blank">https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml</a>
+
 
 .. |icon| image:: ../img/icon.png
    :width: 30px
@@ -23,6 +27,8 @@ Installation
    :height: 30px
 
 .. |osgeoinstaller| image:: ../img/osgeoinstaller.png
+
+
 
 .. important::
 
@@ -49,6 +55,11 @@ Install QGIS (if required)
 --------------------------
 The EnMAP-Box is a plugin for QGIS and therefore QGIS version 3 or higher has to be installed. In case you have not installed
 it yet, you can get QGIS `here <https://www.qgis.org/en/site/forusers/download.html>`_.
+
+Alternatively, you can add our EnMAPBox Developer Plugin Repository `https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml`_
+to your QGIS Plugin Repositories list (Plugins > Manage and Install Plugins > Settings):
+
+.. image:: ../img/developer_repository_details.png
 
 For additional information on the installation you might want to have a look at the
 `QGIS Documentation <https://www.qgis.org/en/site/forusers/alldownloads.html>`_.
