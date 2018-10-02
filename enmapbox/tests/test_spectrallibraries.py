@@ -19,10 +19,11 @@
 # noinspection PyPep8Naming
 import unittest
 from enmapbox.gui.utils import *
-from enmapboxtestdata import hymap
-
+from enmapbox.dependencycheck import installTestdata
+installTestdata(False)
+from enmapboxtestdata import *
 qapp = initQgisApplication(qgisResourceDir=DIR_QGISRESOURCES)
-import gdal
+from osgeo import gdal
 gdal.AllRegister()
 from enmapbox.gui.spectrallibraries import *
 
@@ -125,9 +126,6 @@ class TestInit(unittest.TestCase):
             self.assertIsInstance(p.geometry(), QgsGeometry)
             self.assertTrue(p.hasGeometry())
 
-
-
-
         sp1 = SpectralProfile()
         yVal = [0.23, 0.4, 0.3, 0.8, 0.7]
         xVal = [300,400, 600, 1200, 2500]
@@ -218,8 +216,6 @@ class TestInit(unittest.TestCase):
         sp2.setXValues([450, 500, 750, 1000, 1500])
 
 
-
-
         sl1 = SpectralLibrary()
 
         self.assertEqual(sl1.name(), 'SpectralLibrary')
@@ -228,6 +224,13 @@ class TestInit(unittest.TestCase):
 
         sl1.addProfiles([sp1, sp2])
         self.assertEqual(len(sl1),2)
+
+        a = sl1[0]
+
+        self.assertIsInstance(a, SpectralProfile)
+        self.assertListEqual(a.xValues(), sp1.xValues())
+        self.assertListEqual(a.yValues(), sp1.yValues())
+
         t = sl1[0:1]
 
         refs = list(SpectralLibrary.instances())

@@ -20,7 +20,7 @@
 """
 
 #see http://python-future.org/str_literals.html for str issue discussion
-import os, re, tempfile, pickle, copy, shutil, locale, uuid, csv, io
+import os, pathlib, re, tempfile, pickle, copy, shutil, locale, uuid, csv, io
 import weakref
 from collections import OrderedDict
 from qgis.core import *
@@ -189,10 +189,66 @@ LUT_IDL2GDAL = {1:gdal.GDT_Byte,
                 6:gdal.GDT_CFloat32,
                 9:gdal.GDT_CFloat64}
 
+def ogrStandardFields()->list:
 
+    fields = [
+        ogr.FieldDefn('name', ogr.OFTString),
+        ogr.FieldDefn('x_unit', ogr.OFTString),
+        ogr.FieldDefn('y_unit', ogr.OFTString),
+        ogr.FieldDefn('source', ogr.OFTString),
+        ogr.FieldDefn(SpectralProfile.XVALUES_FIELD, ogr.OFTString),
+        ogr.FieldDefn(SpectralProfile.YVALUES_FIELD, ogr.OFTString),
+        ogr.FieldDefn('px_x', ogr.OFTInteger),
+        ogr.FieldDefn('px_y', ogr.OFTInteger),
+        ogr.FieldDefn(SpectralProfile.STYLE_FIELD, ogr.OFTString),
+        ]
+
+    return fields
 
 def createStandardFields():
+
     fields = QgsFields()
+    for f in ogrStandardFields():
+        assert isinstance(f, ogr.FieldDefn)
+        name = f.GetName()
+        ogrType = f.GetType()
+
+        if ogrType == ogr.OFTString:
+            a,b = QVariant.String, 'varchar'
+        elif ogrType in [ogr.OFTInteger, ogr.OFTInteger64]:
+            a,b = QVariant.Int, 'int'
+        elif ogrType in [ogr.OFTReal]:
+            a,b = QVariant.Double, 'double'
+        else:
+            raise NotImplementedError()
+
+        fields.append(QgsField(name, a, b))
+
+    return fields
+    """
+        t = type(exampleValue)
+        if t in [str]:
+            return QgsField(name, QVariant.String, 'varchar', comment=comment)
+        elif t in [bool]:
+            return QgsField(name, QVariant.Bool, 'int', len=1, comment=comment)
+        elif t in [int, np.int32, np.int64]:
+            return QgsField(name, QVariant.Int, 'int', comment=comment)
+        elif t in [float, np.double, np.float, np.float64]:
+            return QgsField(name, QVariant.Double, 'double', comment=comment)
+        elif isinstance(exampleValue, np.ndarray):
+            return QgsField(name, QVariant.String, 'varchar', comment=comment)
+        elif isinstance(exampleValue, list):
+            assert len(exampleValue) > 0, 'need at least one value in provided list'
+            v = exampleValue[0]
+            prototype = createQgsField(name, v)
+            subType = prototype.type()
+            typeName = prototype.typeName()
+            return QgsField(name, QVariant.List, typeName, comment=comment, subType=subType)
+        else:
+            raise NotImplemented()
+
+        return fields
+    """
 
     """﻿
     Parameters
@@ -291,7 +347,6 @@ class SpectralLibrary(QgsVectorLayer):
 
             return CSVSpectralLibraryIO.fromString(mimeData.text())
 
-
         return None
 
     @staticmethod
@@ -374,26 +429,43 @@ class SpectralLibrary(QgsVectorLayer):
             if r is not None:
                 yield r()
 
-    def __init__(self, name='SpectralLibrary', fields=None):
+    def __init__(self, name='SpectralLibrary', fields=None, uri=None):
 
 
-        crs = SpectralProfile.crs
-        uri = 'Point?crs={}'.format(crs.authid())
+        #crs = SpectralProfile.crs
+        #uri = 'Point?crs={}'.format(crs.authid())
         lyrOptions = QgsVectorLayer.LayerOptions(loadDefaultStyle=False, readExtentFromXml=False)
-        super(SpectralLibrary, self).__init__(uri, name, 'memory', lyrOptions)
+        #super(SpectralLibrary, self).__init__(uri, name, 'memory', lyrOptions)
+
+        if uri is None:
+            #create a new, empty backend
+            #todo: check existing vsi paths
+            uri = '/vsimem/enmapbox_speclibs.gpkg'
+            drv = ogr.GetDriverByName('GPKG')
+            assert isinstance(drv, ogr.Driver)
+            co = ['VERSION=AUTO']
+            dsSrc = drv.CreateDataSource(uri, options=co)
+            assert isinstance(dsSrc, ogr.DataSource)
+            srs = osr.SpatialReference()
+            srs.ImportFromEPSG(4326)
+            co = ['GEOMETRY_NAME=geom',
+                  'GEOMETRY_NULLABLE=YES',
+                  'FID=fid']
+            lyr =dsSrc.CreateLayer(name, srs = srs, geom_type=ogr.wkbPoint, options=co)
+            assert isinstance(lyr, ogr.Layer)
+            ldefn = lyr.GetLayerDefn()
+            assert isinstance(ldefn, ogr.FeatureDefn)
+            for f in ogrStandardFields():
+                lyr.CreateField(f)
+            dsSrc.FlushCache()
+        #consistency check
+        uri2 = '{}|{}'.format(dsSrc.GetName(), lyr.GetName())
+        assert QgsVectorLayer(uri2).isValid()
+        super(SpectralLibrary, self).__init__(uri2, name, 'ogr', lyrOptions)
 
         self.__refs__.append(weakref.ref(self))
 
-        if fields is not None:
-            defaultFields = fields
-        else:
-            defaultFields = createStandardFields()
-
-
-
         assert self.startEditing()
-        assert self.dataProvider().addAttributes(defaultFields)
-        assert self.commitChanges()
         self.initConditionalStyles()
 
     def mimeData(self, formats:list=None)->QMimeData:
@@ -468,13 +540,15 @@ class SpectralLibrary(QgsVectorLayer):
             self.addMissingFields(speclib.fields())
         self.addProfiles([p for p in speclib])
 
-    def addProfiles(self, profiles, index : QModelIndex=QModelIndex(), addMissingFields=False):
+    def addProfiles(self, profiles, index : QModelIndex=QModelIndex(), addMissingFields:bool=None):
+
+        if addMissingFields is None:
+            addMissingFields = isinstance(profiles, SpectralLibrary)
 
         if isinstance(profiles, SpectralProfile):
             profiles = [profiles]
         elif isinstance(profiles, SpectralLibrary):
             profiles = profiles[:]
-
         assert isinstance(profiles, list)
         if len(profiles) == 0:
             return
@@ -485,14 +559,26 @@ class SpectralLibrary(QgsVectorLayer):
         if addMissingFields:
             self.addMissingFields(profiles[0].fields())
 
-        b = self.isEditable()
-        self.startEditing()
+        if True:
+            self.startEditing()
 
-        if not addMissingFields:
-            profiles = [p.copyFieldSubset(self.fields()) for p in profiles]
+            if not addMissingFields:
+                profiles = [p.copyFieldSubset(self.fields()) for p in profiles]
+            n = self.featureCount()
+            assert self.addFeatures(profiles)
+            self.commitChanges()
+            assert self.featureCount() == len(profiles) + n
+            #saveEdits(self, leaveEditable=b)
+        else:
+            uri = self.dataProvider().dataSourceUri()
+            ds = ogr.OpenShared(self.source())
+            lyr = ds.GetLayerByIndex(0)
 
-        assert self.addFeatures(profiles)
-        saveEdits(self, leaveEditable=b)
+            for p in profiles:
+
+
+                s  =""
+        s = ""
 
     def removeProfiles(self, profiles):
         """
@@ -513,7 +599,7 @@ class SpectralLibrary(QgsVectorLayer):
         b = self.isEditable()
         self.startEditing()
         self.deleteFeatures(fids)
-        saveEdits(self, leaveEditable=b)
+        saveEdits(self, leaveEditable=True)
 
 
     def features(self, fids=None):
@@ -1250,22 +1336,24 @@ class SpectralProfile(QgsFeature):
         sp.setGeometry(feature.geometry())
         return sp
 
-    XVALUES_FIELD = HIDDEN_ATTRIBUTE_PREFIX+'xvalues'
-    YVALUES_FIELD = HIDDEN_ATTRIBUTE_PREFIX + 'yvalues'
-    STYLE_FIELD = HIDDEN_ATTRIBUTE_PREFIX + 'style'
+    XVALUES_FIELD = 'xvalues'
+    YVALUES_FIELD = 'yvalues'
+    STYLE_FIELD = 'style'
 
 
 
     def __init__(self, parent=None, fields=None, xUnit='index', yUnit=None):
 
+
         if fields is None:
             fields = createStandardFields()
-
+        assert isinstance(fields, QgsFields)
         #QgsFeature.__init__(self, fields)
         #QObject.__init__(self)
         super(SpectralProfile, self).__init__(fields)
         #QObject.__init__(self)
         fields = self.fields()
+
         assert isinstance(fields, QgsFields)
 
         self.setXUnit(xUnit)
