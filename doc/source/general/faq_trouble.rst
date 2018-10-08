@@ -30,10 +30,10 @@ suggest new entries!
 How do I...
 -----------
 
-... **install QGIS on Windows without having administrative rights**?
+.. ... **install QGIS on Windows without having administrative rights**?
 
-    * yes, it is possible to install and run QGIS withouht any admin rights on windows.
-      Read :ref:`install_qgis_windows` for more details on this.
+..     yes, it is possible to install and run QGIS withouht any admin rights on windows.
+..      Read :ref:`install_qgis_windows` for more details on this.
 
 
 How can I solve the following error...
