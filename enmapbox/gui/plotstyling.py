@@ -20,7 +20,7 @@
 """
 # noinspection PyPep8Naming
 
-import os
+import os, json
 
 from qgis.core import *
 from qgis.gui import QgsDialog
@@ -60,8 +60,71 @@ PENSTYLES = [Option(Qt.SolidLine, '___'),
              Option(Qt.DashDotDotLine, '_ . .'),
              Option(Qt.NoPen, 'No Pen')]
 
+
+
+def brush2tuple(brush:QBrush)->tuple:
+
+    return (
+        QgsSymbolLayerUtils.encodeColor(brush.color()),
+        #setMatrix
+        QgsSymbolLayerUtils.encodeBrushStyle(brush.style())
+        #texture
+        #transform
+    )
+
+def tuple2brush(t:tuple)->QBrush:
+    assert len(t) == 2
+    brush = QBrush()
+    brush.setColor(QgsSymbolLayerUtils.decodeColor(t[0]))
+    brush.setStyle(QgsSymbolLayerUtils.decodeBrushStyle(t[1]))
+    return brush
+
+def pen2tuple(pen:QPen)->tuple:
+    return (
+        pen.width(),
+        brush2tuple(pen.brush()), #1
+        QgsSymbolLayerUtils.encodePenCapStyle(pen.capStyle()),
+        QgsSymbolLayerUtils.encodeColor(pen.color()),
+        pen.isCosmetic(),
+        pen.dashOffset(), #5
+        pen.dashPattern(),
+        QgsSymbolLayerUtils.encodePenJoinStyle(pen.joinStyle()),
+        pen.miterLimit(),
+        QgsSymbolLayerUtils.encodePenStyle(pen.style()) #9
+
+    )
+
+def tuple2pen(t:tuple)->QPen:
+    assert len(t) == 10
+    pen = QPen()
+    pen.setWidth(t[0])
+    pen.setBrush(tuple2brush(t[1]))
+    pen.setCapStyle(QgsSymbolLayerUtils.decodePenCapStyle(t[2]))
+    pen.setColor(QgsSymbolLayerUtils.decodeColor(t[3]))
+    pen.setCosmetic(t[4])
+    pen.setDashOffset(t[5])
+    pen.setDashPattern(t[6])
+    pen.setJoinStyle(QgsSymbolLayerUtils.decodePenJoinStyle(t[7]))
+    pen.setMiterLimit(t[8])
+    pen.setStyle(QgsSymbolLayerUtils.decodePenStyle(t[9]))
+    return pen
+
+
+def pen2json(pen:QPen):
+
+    attributes = []
+
+    return ''
+
+
+def brush2json(brush:QBrush):
+    return ''
+
+
 class PlotStyle(QObject):
     sigUpdated = pyqtSignal()
+
+
     def __init__(self, **kwds):
         plotStyle = kwds.get('plotStyle')
         if plotStyle: kwds.pop('plotStyle')
@@ -73,7 +136,7 @@ class PlotStyle(QObject):
         self.markerBrush.setColor(Qt.green)
         self.markerBrush.setStyle(Qt.SolidPattern)
 
-        self.backgroundColor = Qt.black
+        self.backgroundColor = QColor(Qt.black)
 
         self.markerPen = QPen()
         self.markerPen.setCosmetic(True)
@@ -93,7 +156,40 @@ class PlotStyle(QObject):
         if plotStyle:
             self.copyFrom(plotStyle)
 
+    @staticmethod
+    def fromJSON(jsonString: str):
+        """
+        Takes a ogrFeatureStyle string and returns a corresponding PlotStyle
+        see https://www.gdal.org/ogr_feature_style.html for details
 
+        :param ogrFeatureStyle: str
+        :return: [list-of-PlotStyles], usually of length = 1
+        """
+        obj = json.loads(jsonString)
+
+        plotStyle = PlotStyle()
+        plotStyle.markerPen = tuple2pen(obj['markerPen'])
+        plotStyle.markerBrush = tuple2brush(obj['markerBrush'])
+        plotStyle.markerSymbol = obj['markerSymbol']
+        plotStyle.markerSize = obj['markerSize']
+        plotStyle.linePen = tuple2pen(obj['linePen'])
+        plotStyle.setVisibility(obj['isVisible'])
+        plotStyle.backgroundColor = QgsSymbolLayerUtils.decodeColor(obj['backgroundColor'])
+
+        return plotStyle
+
+    def json(self)->str:
+        """Returns a JSON represenatino of this plot style
+        """
+        style = dict()
+        style['markerPen'] = pen2tuple(self.markerPen)
+        style['markerBrush'] = brush2tuple(self.markerBrush)
+        style['markerSymbol'] = self.markerSymbol
+        style['markerSize'] = self.markerSize
+        style['linePen'] = pen2tuple(self.linePen)
+        style['isVisible'] = self.mIsVisible
+        style['backgroundColor'] = QgsSymbolLayerUtils.encodeColor(self.backgroundColor)
+        return json.dumps(style, sort_keys=True, indent=0, separators=(',', ':'))
 
 
     def setVisibility(self, b):
@@ -150,7 +246,29 @@ class PlotStyle(QObject):
             return False
         for k in self.__dict__.keys():
             if not self.__dict__[k] == other.__dict__[k]:
-                return False
+                #bugfix if two pens are the same but pen1 != pen2
+                if isinstance(self.__dict__[k], QPen):
+                    p1, p2 = self.__dict__[k], other.__dict__[k]
+                    assert isinstance(p1, QPen)
+                    assert isinstance(p2, QPen)
+
+                    if p1.brush() != p2.brush(): return False
+                    if p1.capStyle() != p2.capStyle(): return False
+                    if p1.color() != p2.color(): return False
+                    if p1.dashPattern() != p2.dashPattern(): return False
+                    if p1.dashOffset() != p2.dashOffset(): return False
+                    if p1.isCosmetic() != p2.isCosmetic(): return False
+                    if p1.isSolid() != p2.isSolid(): return False
+                    if p1.joinStyle() != p2.joinStyle(): return False
+                    if p1.miterLimit() != p2.miterLimit(): return False
+                    if p1.style() != p2.style(): return False
+                    if p1.width() != p2.width(): return False
+                    if p1.widthF() != p2.widthF(): return False
+                    s  =""
+
+                else:
+
+                    return False
         return True
 
     def __reduce_ex__(self, protocol):
