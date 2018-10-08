@@ -36,7 +36,7 @@ addClasses(classes=[Raster, Mask, Classification, Fraction, Regression, RasterSt
 addClasses(classes=[Vector, VectorMask, VectorClassification], title='Vector Maps')
 addClasses(classes=[ClassificationSample, FractionSample, RegressionSample, MapCollection], title='Samples')
 addClasses(classes=[Classifier, Regressor, Clusterer, Transformer], title='Estimators')
-addClasses(classes=[ClassificationPerformance, RegressionPerformance, ClusteringPerformance], title='Accuracy Assessment')
+addClasses(classes=[ClassificationPerformance, RegressionPerformance, FractionPerformance, ClusteringPerformance], title='Accuracy Assessment')
 addClasses(classes=[ClassDefinition, SensorDefinition, WavebandDefinition, MetadataEditor], title='Miscellaneous')
 addClasses(classes=[Applier, ApplierOperator], title='Applier')
 

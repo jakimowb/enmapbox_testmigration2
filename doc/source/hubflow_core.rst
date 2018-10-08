@@ -1,4 +1,3 @@
-
 =======
 Classes
 =======
@@ -11,7 +10,7 @@ Raster
 ~~~~~~
 
 - :class:`hubflow.core.Raster`:
-   + :meth:`~hubflow.core.Raster.applyMask` :meth:`~hubflow.core.Raster.applySpatial` :meth:`~hubflow.core.Raster.array` :meth:`~hubflow.core.Raster.asMask` :meth:`~hubflow.core.Raster.convolve` :meth:`~hubflow.core.Raster.dataset` :meth:`~hubflow.core.Raster.dtype` :meth:`~hubflow.core.Raster.filename` :meth:`~hubflow.core.Raster.fromArray` :meth:`~hubflow.core.Raster.fromRasterDataset` :meth:`~hubflow.core.Raster.fromVector` :meth:`~hubflow.core.Raster.grid` :meth:`~hubflow.core.Raster.metadataFWHM` :meth:`~hubflow.core.Raster.metadataWavelength` :meth:`~hubflow.core.Raster.noDataValue` :meth:`~hubflow.core.Raster.plotCategoryBand` :meth:`~hubflow.core.Raster.plotSinglebandGrey` :meth:`~hubflow.core.Raster.plotZProfile` :meth:`~hubflow.core.Raster.readAsArray` :meth:`~hubflow.core.Raster.resample` :meth:`~hubflow.core.Raster.scatterMatrix` :meth:`~hubflow.core.Raster.sensorDefinition` :meth:`~hubflow.core.Raster.shape` :meth:`~hubflow.core.Raster.statistics` :meth:`~hubflow.core.Raster.uniqueValues`
+   + :meth:`~hubflow.core.Raster.applyMask` :meth:`~hubflow.core.Raster.applySpatial` :meth:`~hubflow.core.Raster.array` :meth:`~hubflow.core.Raster.asMask` :meth:`~hubflow.core.Raster.convolve` :meth:`~hubflow.core.Raster.dataset` :meth:`~hubflow.core.Raster.dtype` :meth:`~hubflow.core.Raster.filename` :meth:`~hubflow.core.Raster.fromArray` :meth:`~hubflow.core.Raster.fromRasterDataset` :meth:`~hubflow.core.Raster.fromVector` :meth:`~hubflow.core.Raster.grid` :meth:`~hubflow.core.Raster.metadataDict` :meth:`~hubflow.core.Raster.metadataFWHM` :meth:`~hubflow.core.Raster.metadataWavelength` :meth:`~hubflow.core.Raster.noDataValue` :meth:`~hubflow.core.Raster.noDataValues` :meth:`~hubflow.core.Raster.plotCategoryBand` :meth:`~hubflow.core.Raster.plotMultibandColor` :meth:`~hubflow.core.Raster.plotSinglebandGrey` :meth:`~hubflow.core.Raster.plotZProfile` :meth:`~hubflow.core.Raster.readAsArray` :meth:`~hubflow.core.Raster.resample` :meth:`~hubflow.core.Raster.scatterMatrix` :meth:`~hubflow.core.Raster.sensorDefinition` :meth:`~hubflow.core.Raster.shape` :meth:`~hubflow.core.Raster.statistics` :meth:`~hubflow.core.Raster.uniqueValues`
 
 
 .. autoclass:: hubflow.core.Raster
@@ -35,7 +34,7 @@ Classification
 ~~~~~~~~~~~~~~
 
 - :class:`hubflow.core.Classification`:
-   + :meth:`~hubflow.core.Classification.asMask` :meth:`~hubflow.core.Classification.classDefinition` :meth:`~hubflow.core.Classification.dtype` :meth:`~hubflow.core.Classification.fromClassification` :meth:`~hubflow.core.Classification.fromRasterAndFunction` :meth:`~hubflow.core.Classification.fromRasterMetadata` :meth:`~hubflow.core.Classification.minDominantCoverage` :meth:`~hubflow.core.Classification.minOverallCoverage` :meth:`~hubflow.core.Classification.noDataValues` :meth:`~hubflow.core.Classification.reclassify` :meth:`~hubflow.core.Classification.resample` :meth:`~hubflow.core.Classification.toRasterMetadata`
+   + :meth:`~hubflow.core.Classification.asMask` :meth:`~hubflow.core.Classification.classDefinition` :meth:`~hubflow.core.Classification.dtype` :meth:`~hubflow.core.Classification.fromArray` :meth:`~hubflow.core.Classification.fromClassification` :meth:`~hubflow.core.Classification.fromFraction` :meth:`~hubflow.core.Classification.fromRasterAndFunction` :meth:`~hubflow.core.Classification.minDominantCoverage` :meth:`~hubflow.core.Classification.minOverallCoverage` :meth:`~hubflow.core.Classification.noDataValues` :meth:`~hubflow.core.Classification.plot` :meth:`~hubflow.core.Classification.reclassify` :meth:`~hubflow.core.Classification.resample` :meth:`~hubflow.core.Classification.statistics`
 
 
 .. autoclass:: hubflow.core.Classification
@@ -47,7 +46,7 @@ Fraction
 ~~~~~~~~
 
 - :class:`hubflow.core.Fraction`:
-   + :meth:`~hubflow.core.Fraction.asClassColorRGBRaster` :meth:`~hubflow.core.Fraction.classDefinition` :meth:`~hubflow.core.Fraction.fromClassification` :meth:`~hubflow.core.Fraction.minDominantCoverage` :meth:`~hubflow.core.Fraction.minOverallCoverage` :meth:`~hubflow.core.Fraction.noDataValues` :meth:`~hubflow.core.Fraction.resample` :meth:`~hubflow.core.Fraction.subsetClasses` :meth:`~hubflow.core.Fraction.subsetClassesByName` :meth:`~hubflow.core.Fraction.toRasterMetadata`
+   + :meth:`~hubflow.core.Fraction.asClassColorRGBRaster` :meth:`~hubflow.core.Fraction.classDefinition` :meth:`~hubflow.core.Fraction.fromClassification` :meth:`~hubflow.core.Fraction.fromENVISpectralLibrary` :meth:`~hubflow.core.Fraction.minDominantCoverage` :meth:`~hubflow.core.Fraction.minOverallCoverage` :meth:`~hubflow.core.Fraction.noDataValues` :meth:`~hubflow.core.Fraction.resample` :meth:`~hubflow.core.Fraction.subsetClasses` :meth:`~hubflow.core.Fraction.subsetClassesByName`
 
 
 .. autoclass:: hubflow.core.Fraction
@@ -59,7 +58,7 @@ Regression
 ~~~~~~~~~~
 
 - :class:`hubflow.core.Regression`:
-   + :meth:`~hubflow.core.Regression.asMask` :meth:`~hubflow.core.Regression.minOverallCoverage` :meth:`~hubflow.core.Regression.noDataValues` :meth:`~hubflow.core.Regression.outputNames` :meth:`~hubflow.core.Regression.resample` :meth:`~hubflow.core.Regression.toRasterMetadata`
+   + :meth:`~hubflow.core.Regression.asMask` :meth:`~hubflow.core.Regression.minOverallCoverage` :meth:`~hubflow.core.Regression.noDataValues` :meth:`~hubflow.core.Regression.outputNames` :meth:`~hubflow.core.Regression.outputs` :meth:`~hubflow.core.Regression.resample`
 
 
 .. autoclass:: hubflow.core.Regression
@@ -87,7 +86,7 @@ Vector
 ~~~~~~
 
 - :class:`hubflow.core.Vector`:
-   + :meth:`~hubflow.core.Vector.allTouched` :meth:`~hubflow.core.Vector.burnAttribute` :meth:`~hubflow.core.Vector.burnValue` :meth:`~hubflow.core.Vector.dataset` :meth:`~hubflow.core.Vector.dtype` :meth:`~hubflow.core.Vector.filename` :meth:`~hubflow.core.Vector.filterSQL` :meth:`~hubflow.core.Vector.fromPoints` :meth:`~hubflow.core.Vector.fromRandomPointsFromClassification` :meth:`~hubflow.core.Vector.fromRandomPointsFromMask` :meth:`~hubflow.core.Vector.fromVectorDataset` :meth:`~hubflow.core.Vector.grid` :meth:`~hubflow.core.Vector.initValue` :meth:`~hubflow.core.Vector.layer` :meth:`~hubflow.core.Vector.noDataValue` :meth:`~hubflow.core.Vector.spatialExtent` :meth:`~hubflow.core.Vector.uniqueValues`
+   + :meth:`~hubflow.core.Vector.allTouched` :meth:`~hubflow.core.Vector.burnAttribute` :meth:`~hubflow.core.Vector.burnValue` :meth:`~hubflow.core.Vector.dataset` :meth:`~hubflow.core.Vector.dtype` :meth:`~hubflow.core.Vector.filename` :meth:`~hubflow.core.Vector.filterSQL` :meth:`~hubflow.core.Vector.fromPoints` :meth:`~hubflow.core.Vector.fromRandomPointsFromClassification` :meth:`~hubflow.core.Vector.fromRandomPointsFromMask` :meth:`~hubflow.core.Vector.fromVectorDataset` :meth:`~hubflow.core.Vector.grid` :meth:`~hubflow.core.Vector.initValue` :meth:`~hubflow.core.Vector.layer` :meth:`~hubflow.core.Vector.noDataValue` :meth:`~hubflow.core.Vector.projection` :meth:`~hubflow.core.Vector.spatialExtent` :meth:`~hubflow.core.Vector.uniqueValues`
 
 
 .. autoclass:: hubflow.core.Vector
@@ -127,7 +126,7 @@ ClassificationSample
 ~~~~~~~~~~~~~~~~~~~~
 
 - :class:`hubflow.core.ClassificationSample`:
-   + :meth:`~hubflow.core.ClassificationSample.classification` :meth:`~hubflow.core.ClassificationSample.masks` :meth:`~hubflow.core.ClassificationSample.synthMix`
+   + :meth:`~hubflow.core.ClassificationSample.classification` :meth:`~hubflow.core.ClassificationSample.masks` :meth:`~hubflow.core.ClassificationSample.synthMix` :meth:`~hubflow.core.ClassificationSample.synthMix2`
 
 
 .. autoclass:: hubflow.core.ClassificationSample
@@ -251,6 +250,18 @@ RegressionPerformance
    :show-inheritance:
    :undoc-members:
 
+FractionPerformance
+~~~~~~~~~~~~~~~~~~~
+
+- :class:`hubflow.core.FractionPerformance`:
+   + :meth:`~hubflow.core.FractionPerformance.fromRaster` :meth:`~hubflow.core.FractionPerformance.report`
+
+
+.. autoclass:: hubflow.core.FractionPerformance
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 ClusteringPerformance
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -271,7 +282,7 @@ ClassDefinition
 ~~~~~~~~~~~~~~~
 
 - :class:`hubflow.core.ClassDefinition`:
-   + :meth:`~hubflow.core.ClassDefinition.classes` :meth:`~hubflow.core.ClassDefinition.color` :meth:`~hubflow.core.ClassDefinition.colorByName` :meth:`~hubflow.core.ClassDefinition.colors` :meth:`~hubflow.core.ClassDefinition.colorsFlatRGB` :meth:`~hubflow.core.ClassDefinition.dtype` :meth:`~hubflow.core.ClassDefinition.equal` :meth:`~hubflow.core.ClassDefinition.labelByName` :meth:`~hubflow.core.ClassDefinition.name` :meth:`~hubflow.core.ClassDefinition.names`
+   + :meth:`~hubflow.core.ClassDefinition.classes` :meth:`~hubflow.core.ClassDefinition.color` :meth:`~hubflow.core.ClassDefinition.colorByName` :meth:`~hubflow.core.ClassDefinition.colors` :meth:`~hubflow.core.ClassDefinition.colorsFlatRGB` :meth:`~hubflow.core.ClassDefinition.dtype` :meth:`~hubflow.core.ClassDefinition.equal` :meth:`~hubflow.core.ClassDefinition.labelByName` :meth:`~hubflow.core.ClassDefinition.labels` :meth:`~hubflow.core.ClassDefinition.name` :meth:`~hubflow.core.ClassDefinition.names`
 
 
 .. autoclass:: hubflow.core.ClassDefinition
