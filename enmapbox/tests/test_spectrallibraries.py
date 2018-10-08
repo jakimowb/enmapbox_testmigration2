@@ -17,7 +17,8 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import unittest
+import unittest, json, pickle
+import numpy as np
 from enmapbox.gui.utils import *
 from enmapbox.dependencycheck import installTestdata
 installTestdata(False)
@@ -37,9 +38,6 @@ class TestInit(unittest.TestCase):
         self.lyr2 = QgsRasterLayer(enmap)
         self.layers = [self.lyr1, self.lyr2]
         QgsProject.instance().addMapLayers(self.layers)
-
-
-
 
     def createSpeclib(self):
         from enmapboxtestdata import hymap
@@ -113,6 +111,30 @@ class TestInit(unittest.TestCase):
 
     def test_spectralprofile(self):
 
+        sp = SpectralProfile()
+        d = sp.values()
+        self.assertIsInstance(d, dict)
+        for k in ['x','y','xUnit','yUnit']:
+            self.assertTrue(k in d.keys())
+            v = d[k]
+            self.assertTrue(v == None)
+
+
+        y = [0.23, 0.4, 0.3, 0.8, 0.7]
+        x = [300, 400, 600, 1200, 2500]
+        sp.setValues(y=y)
+        d = sp.values()
+        self.assertIsInstance(d, dict)
+        self.assertListEqual(d['y'], y)
+        self.assertEqual(d['x'], None)
+        self.assertEqual(d['xUnit'], None)
+        self.assertEqual(d['yUnit'], None)
+        sp.setValues(x=x)
+        d = sp.values()
+        self.assertListEqual(d['x'], x)
+        #todo: implement must fail cases
+
+
         canvas = QgsMapCanvas()
         canvas.setLayers(self.layers)
         canvas.setExtent(self.lyr2.extent())
@@ -126,29 +148,12 @@ class TestInit(unittest.TestCase):
             self.assertIsInstance(p.geometry(), QgsGeometry)
             self.assertTrue(p.hasGeometry())
 
-        sp1 = SpectralProfile()
+
         yVal = [0.23, 0.4, 0.3, 0.8, 0.7]
         xVal = [300,400, 600, 1200, 2500]
+        sp1 = SpectralProfile()
+        sp1.setValues(x=xVal, y=yVal)
 
-        #default: empty profile
-        self.assertEqual(sp1.xUnit(), 'index')
-        self.assertEqual(sp1.yUnit(), None)
-
-        sp1.setYValues(yVal)
-        self.assertTrue(np.array_equal(sp1.yValues(), np.asarray(yVal)))
-        self.assertTrue(np.array_equal(sp1.xValues(), np.arange(len(yVal))))
-        self.assertEqual(sp1.xUnit(), 'index')
-        self.assertEqual(sp1.yUnit(), None)
-
-        sp1.setYUnit('reflectance')
-        self.assertEqual(sp1.yUnit(), 'reflectance')
-
-
-
-
-
-        sp1.setXValues(xVal)
-        sp1.setYValues(yVal)
         name = 'missingAttribute'
         sp1.setMetadata(name, 'myvalue')
         self.assertTrue(name not in sp1.fieldNames())
@@ -157,12 +162,9 @@ class TestInit(unittest.TestCase):
         self.assertEqual(sp1.metadata(name), 'myvalue')
         sp1.removeField(name)
         self.assertTrue(name not in sp1.fieldNames())
-        self.assertIsInstance(sp1.xValues(), list)
-        self.assertIsInstance(sp1.yValues(), list)
 
         sp1.setXUnit('nm')
         self.assertEqual(sp1.xUnit(), 'nm')
-        self.assertTrue(np.array_equal(xVal, sp1.xValues()))
 
         self.assertEqual(sp1, sp1)
 
@@ -177,28 +179,26 @@ class TestInit(unittest.TestCase):
 
         self.assertEqual(sp1, sp2)
 
-        sp2 = SpectralProfile(xUnit='nm')
-        #sp2.setValues(yVal, xValues=xVal)
-        sp2.setXValues(xVal)
-        sp2.setYValues(yVal)
-
+        sp2 = SpectralProfile()
+        sp2.setValues(x=xVal, y=yVal, xUnit='um')
         self.assertNotEqual(sp1, sp2)
-
-        sp2.setYUnit('reflectance')
+        sp2.setValues(xUnit='nm')
         self.assertEqual(sp1, sp2)
+        sp2.setYUnit('reflectance')
+        self.assertNotEqual(sp1, sp2)
 
         values = [('key','value'),('key', 100),('Üä','ÜmlÄute')]
         for md in values:
-            k, v = md
-            sp1.setMetadata(k,v)
+            k, d = md
+            sp1.setMetadata(k,d)
             v2 = sp1.metadata(k)
             self.assertEqual(v2, None)
 
         for md in values:
-            k, v = md
-            sp1.setMetadata(k, v, addMissingFields=True)
+            k, d = md
+            sp1.setMetadata(k, d, addMissingFields=True)
             v2 = sp1.metadata(k)
-            self.assertEqual(v, v2)
+            self.assertEqual(d, v2)
 
         self.SP = sp1
 
@@ -206,15 +206,11 @@ class TestInit(unittest.TestCase):
 
         sp1 = SpectralProfile()
         sp1.setName('Name A')
-        sp1.setYValues([0, 4, 3, 2, 1])
-        sp1.setXValues([450, 500, 750, 1000, 1500])
-
+        sp1.setValues(y=[0, 4, 3, 2, 1], x=[450, 500, 750, 1000, 1500])
 
         sp2 = SpectralProfile()
         sp2.setName('Name B')
-        sp2.setYValues([3, 2, 1, 0, 1])
-        sp2.setXValues([450, 500, 750, 1000, 1500])
-
+        sp2.setValues(y=[3, 2, 1, 0, 1], x=[450, 500, 750, 1000, 1500])
 
         sl1 = SpectralLibrary()
 
@@ -607,4 +603,9 @@ class TestInit(unittest.TestCase):
 
 
 if __name__ == '__main__':
+
+    import json
+
+    txt = json.dumps([0,1,2])
+
     unittest.main()

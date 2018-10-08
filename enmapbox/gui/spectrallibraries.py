@@ -20,7 +20,7 @@
 """
 
 #see http://python-future.org/str_literals.html for str issue discussion
-import os, pathlib, re, tempfile, pickle, copy, shutil, locale, uuid, csv, io
+import os, pathlib, re, tempfile, pickle, copy, shutil, locale, uuid, csv, io, json
 import weakref
 from collections import OrderedDict
 from qgis.core import *
@@ -73,6 +73,10 @@ DEFAULT_SPECTRUM_STYLE.linePen.setStyle(Qt.SolidLine)
 DEFAULT_SPECTRUM_STYLE.linePen.setColor(Qt.white)
 
 EMPTY_VALUES = [None, NULL, QVariant(), '']
+
+VALUE_FIELD = 'values'
+STYLE_FIELD = 'style'
+
 
 #CURRENT_SPECTRUM_STYLE.linePen
 #pdi.setPen(fn.mkPen(QColor('green'), width=3))
@@ -136,7 +140,7 @@ def toType(t, arg, empty2None=True):
 @qgsfunction(0, "Spectral Libraries")
 def plotStyleSymbolFillColor(values, feature, parent):
     if isinstance(feature, QgsFeature):
-        i = feature.fieldNameIndex(HIDDEN_ATTRIBUTE_PREFIX+'style')
+        i = feature.fieldNameIndex(STYLE_FIELD)
         if i >= 0:
             style = pickle.loads(feature.attribute(i))
             if isinstance(style, PlotStyle):
@@ -148,7 +152,7 @@ def plotStyleSymbolFillColor(values, feature, parent):
 @qgsfunction(0, "Spectral Libraries")
 def plotStyleSymbol(values, feature, parent):
     if isinstance(feature, QgsFeature):
-        i = feature.fieldNameIndex(HIDDEN_ATTRIBUTE_PREFIX+'style')
+        i = feature.fieldNameIndex(STYLE_FIELD)
         if i >= 0:
             style = pickle.loads(feature.attribute(i))
             if isinstance(style, PlotStyle):
@@ -163,7 +167,7 @@ def plotStyleSymbol(values, feature, parent):
 @qgsfunction(0, "Spectral Libraries")
 def plotStyleSymbolSize(values, feature, parent):
     if isinstance(feature, QgsFeature):
-        i = feature.fieldNameIndex(HIDDEN_ATTRIBUTE_PREFIX+'style')
+        i = feature.fieldNameIndex(STYLE_FIELD)
         if i >= 0:
             style = pickle.loads(feature.attribute(i))
             if isinstance(style, PlotStyle):
@@ -196,11 +200,8 @@ def ogrStandardFields()->list:
         ogr.FieldDefn('x_unit', ogr.OFTString),
         ogr.FieldDefn('y_unit', ogr.OFTString),
         ogr.FieldDefn('source', ogr.OFTString),
-        ogr.FieldDefn(SpectralProfile.XVALUES_FIELD, ogr.OFTString),
-        ogr.FieldDefn(SpectralProfile.YVALUES_FIELD, ogr.OFTString),
-        ogr.FieldDefn('px_x', ogr.OFTInteger),
-        ogr.FieldDefn('px_y', ogr.OFTInteger),
-        ogr.FieldDefn(SpectralProfile.STYLE_FIELD, ogr.OFTString),
+        ogr.FieldDefn(VALUE_FIELD, ogr.OFTString),
+        ogr.FieldDefn(STYLE_FIELD, ogr.OFTString),
         ]
 
     return fields
@@ -224,60 +225,6 @@ def createStandardFields():
 
         fields.append(QgsField(name, a, b))
 
-    return fields
-    """
-        t = type(exampleValue)
-        if t in [str]:
-            return QgsField(name, QVariant.String, 'varchar', comment=comment)
-        elif t in [bool]:
-            return QgsField(name, QVariant.Bool, 'int', len=1, comment=comment)
-        elif t in [int, np.int32, np.int64]:
-            return QgsField(name, QVariant.Int, 'int', comment=comment)
-        elif t in [float, np.double, np.float, np.float64]:
-            return QgsField(name, QVariant.Double, 'double', comment=comment)
-        elif isinstance(exampleValue, np.ndarray):
-            return QgsField(name, QVariant.String, 'varchar', comment=comment)
-        elif isinstance(exampleValue, list):
-            assert len(exampleValue) > 0, 'need at least one value in provided list'
-            v = exampleValue[0]
-            prototype = createQgsField(name, v)
-            subType = prototype.type()
-            typeName = prototype.typeName()
-            return QgsField(name, QVariant.List, typeName, comment=comment, subType=subType)
-        else:
-            raise NotImplemented()
-
-        return fields
-    """
-
-    """﻿
-    Parameters
-    name Field name type Field variant type, currently supported: String / Int / Double 
-    typeName Field type (e.g., char, varchar, text, int, serial, double). Field types are usually unique to the source and are stored exactly as returned from the data store. 
-    len Field length 
-    prec Field precision. Usually decimal places but may also be used in conjunction with other fields types (e.g., variable character fields) 
-    comment Comment for the field 
-    subType If the field is a collection, its element's type. When all the elements don't need to have the same type, leave this to QVariant::Invalid. 
-    """
-    fields.append(createQgsField('name', ''))
-    fields.append(createQgsField('px_x', 0))
-    fields.append(createQgsField('px_y', 0))
-    fields.append(createQgsField('x_unit', ''))
-    fields.append(createQgsField('y_unit', ''))
-    fields.append(createQgsField('source', ''))
-    fields.append(createQgsField(HIDDEN_ATTRIBUTE_PREFIX + 'xvalues', ''))
-    fields.append(createQgsField(HIDDEN_ATTRIBUTE_PREFIX + 'yvalues', ''))
-    fields.append(createQgsField(HIDDEN_ATTRIBUTE_PREFIX + 'style', ''))
-
-
-    """
-    fields.append(QgsField('name', QVariant.String,'varchar', 25))
-    fields.append(QgsField('px_x', QVariant.Int, 'int'))
-    fields.append(QgsField('px_y', QVariant.Int, 'int'))
-    fields.append(QgsField('x_unit', QVariant.String, 'varchar', 5))
-    fields.append(QgsField('y_unit', QVariant.String, 'varchar', 5))
-    fields.append(QgsField('source', QVariant.String, 'varchar', 5))
-    """
     return fields
 
 
@@ -462,7 +409,6 @@ class SpectralLibrary(QgsVectorLayer):
         uri2 = '{}|{}'.format(dsSrc.GetName(), lyr.GetName())
         assert QgsVectorLayer(uri2).isValid()
         super(SpectralLibrary, self).__init__(uri2, name, 'ogr', lyrOptions)
-
         self.__refs__.append(weakref.ref(self))
 
         assert self.startEditing()
@@ -494,7 +440,7 @@ class SpectralLibrary(QgsVectorLayer):
 
     def optionalFields(self)->list:
         """
-        Returns a list of optional fields.
+        Returns the list of optional fields that are not part of the standard field set.
         :return: [list-of-QgsFields]
         """
         standardFields = createStandardFields()
@@ -640,18 +586,19 @@ class SpectralLibrary(QgsVectorLayer):
     def groupBySpectralProperties(self, excludeEmptyProfiles = True):
         """
         Groups the SpectralProfiles by:
-            wavelength (xValues), wavelengthUnit (xUnit) and yUnit
+            xValues, xUnit and yUnit, e.g. wavelength, wavelength unit ('nm') and y unit ('reflectance')
 
         :return: {(xValues, wlU, yUnit):[list-of-profiles]}
         """
 
         d = dict()
         for p in self.profiles():
-            #assert isinstance(p, SpectralProfile)
-            if excludeEmptyProfiles and p.xValues() in [None, QVariant()]:
+            assert isinstance(p, SpectralProfile)
+            d = p.values()
+            if excludeEmptyProfiles and d['y'] is None:
                 continue
 
-            id = pickle.dumps((p.xValues(), p.xUnit(), p.yUnit()))
+            id = pickle.dumps((d['x'], d['xUnit'], d['yUnit']))
             if id not in d.keys():
                 d[id] = list()
             d[id].append(p)
@@ -1298,13 +1245,13 @@ class SpectralProfile(QgsFeature):
         if px.x() > ds.RasterXSize - 1 or px.y() > ds.RasterYSize - 1: return None
 
 
-        values = ds.ReadAsArray(px.x(), px.y(), 1, 1)
+        x = ds.ReadAsArray(px.x(), px.y(), 1, 1)
 
-        values = values.flatten()
+        x = x.flatten()
         for b in range(ds.RasterCount):
             band = ds.GetRasterBand(b+1)
             nodata = band.GetNoDataValue()
-            if nodata and values[b] == nodata:
+            if nodata and x[b] == nodata:
                 return None
 
         wl = ds.GetMetadataItem(str('wavelength'), str('ENVI'))
@@ -1315,12 +1262,11 @@ class SpectralProfile(QgsFeature):
 
         profile = SpectralProfile()
         profile.setName('{} x{} y{}'.format(baseName, px.x(), px.y()))
-        #profile.setValues(values, valuePositions=wl, valuePositionUnit=wlu)
-        profile.setYValues(values)
-        if wl is not None:
-            profile.setXValues(wl, unit=wlu)
 
-        profile.setCoordinates(px=px, pt=SpatialPoint(crs, px2geo(px, gt)))
+
+        profile.setValues(x=x, y=wl, xUnit=wlu)
+
+        profile.setCoordinates(SpatialPoint(crs, px2geo(px, gt)))
         profile.setSource('{}'.format(ds.GetFileList()[0]))
         return profile
 
@@ -1336,13 +1282,8 @@ class SpectralProfile(QgsFeature):
         sp.setGeometry(feature.geometry())
         return sp
 
-    XVALUES_FIELD = 'xvalues'
-    YVALUES_FIELD = 'yvalues'
-    STYLE_FIELD = 'style'
 
-
-
-    def __init__(self, parent=None, fields=None, xUnit='index', yUnit=None):
+    def __init__(self, parent=None, fields=None, values:dict=None):
 
 
         if fields is None:
@@ -1355,10 +1296,11 @@ class SpectralProfile(QgsFeature):
         fields = self.fields()
 
         assert isinstance(fields, QgsFields)
-
-        self.setXUnit(xUnit)
-        self.setYUnit(yUnit)
+        self.mValueCache = None
         self.setStyle(DEFAULT_SPECTRUM_STYLE)
+        if isinstance(values, dict):
+            self.setValues(**values)
+
 
 
     def fieldNames(self):
@@ -1378,22 +1320,13 @@ class SpectralProfile(QgsFeature):
     def source(self):
         return self.metadata('source')
 
-    def setCoordinates(self, px=None, pt=None):
-        if isinstance(px, QPoint):
-
-            self.setAttribute('px_x', px.x())
-            self.setAttribute('px_y', px.y())
-
+    def setCoordinates(self, pt):
         if isinstance(pt, SpatialPoint):
             sp = pt.toCrs(SpectralProfile.crs)
             self.setGeometry(QgsGeometry.fromPointXY(sp))
+        elif isinstance(pt, QgsPointXY):
+            self.setGeometry(QgsGeometry.fromPointXY(pt))
 
-    def pxCoordinate(self):
-        x = self.attribute('px_x')
-        y = self.attribute('px_y')
-        if x == None or y == None:
-            return None
-        return QPoint(x, y)
 
     def geoCoordinate(self):
         return self.geometry()
@@ -1402,33 +1335,29 @@ class SpectralProfile(QgsFeature):
         return len(self.mValues) > 0 and self.mValueUnit is not None
 
 
-    def setXValues(self, values, unit=None):
-        if isinstance(values, np.ndarray):
-            values = values.tolist()
-        assert isinstance(values, list)
 
-        self.setMetadata(SpectralProfile.XVALUES_FIELD, values)
+    def style(self)->PlotStyle:
+        """
+        Returns this features's PlotStyle
+        :return: PlotStyle
+        """
+        styleJson = self.metadata(STYLE_FIELD)
+        try:
+            style = PlotStyle.fromJSON(styleJson)
+        except Exception as ex:
+            style = DEFAULT_SPECTRUM_STYLE
+        return style
 
-        if isinstance(unit, str):
-            self.setMetadata('x_unit', unit)
 
-    def setYValues(self, values, unit=None):
-        if isinstance(values, np.ndarray):
-            values = values.tolist()
-        assert isinstance(values, list)
-        self.setMetadata(SpectralProfile.YVALUES_FIELD, values)
-        if isinstance(unit, str):
-            self.setMetadata('y_unit', unit)
-
-        if self.xValues() is None:
-            self.setXValues(list(range(len(values))), unit='index')
-
-    def style(self):
-        return self.metadata(SpectralProfile.STYLE_FIELD)
-
-    def setStyle(self, style):
-        assert isinstance(style, PlotStyle)
-        self.setMetadata(SpectralProfile.STYLE_FIELD, style)
+    def setStyle(self, style:PlotStyle):
+        """
+        Sets a Spectral Profiles's plot style
+        :param style: PLotStyle
+        """
+        if isinstance(style, PlotStyle):
+            self.setMetadata(STYLE_FIELD, style.json())
+        else:
+            self.setMetadata(STYLE_FIELD, None)
 
     def updateMetadata(self, metaData):
         if isinstance(metaData, dict):
@@ -1455,19 +1384,12 @@ class SpectralProfile(QgsFeature):
         """
         i = self.fieldNameIndex(key)
 
-        if key.startswith('__serialized__'):
-            if value is not None:
-                value = pickle.dumps(value)
-
         if i < 0:
             if value is not None and addMissingFields:
 
                 fields = self.fields()
                 values = self.attributes()
-                if key.startswith('__serialized__'):
-                    fields.append(createQgsField(key, ''))
-                else:
-                    fields.append(createQgsField(key, value))
+                fields.append(createQgsField(key, value))
                 values.append(value)
                 self.setFields(fields)
                 self.setAttributes(values)
@@ -1477,7 +1399,12 @@ class SpectralProfile(QgsFeature):
             return self.setAttribute(key, value)
 
     def metadata(self, key: str, default=None):
-
+        """
+        Returns a field value or None, if not existant
+        :param key: str, field name
+        :param default: default value to be returned
+        :return: value
+        """
         assert isinstance(key, str)
         i = self.fieldNameIndex(key)
         if i < 0:
@@ -1486,30 +1413,78 @@ class SpectralProfile(QgsFeature):
         v = self.attribute(i)
         if v == QVariant(None):
             v = None
-
-        if key.startswith('__serialized__') and v != None:
-            v = pickle.loads(v)
-
         return default if v is None else v
 
+    def values(self)->dict:
+        """
+        Returns a dictionary with 'x', 'y', 'xUnit' and 'yUnit' values.
+        :return: {'x':list,'y':list,'xUnit':str,'yUnit':str}
+        """
+        if self.mValueCache is None:
+            d = {'x':None, 'y':None,'xUnit':None, 'yUnit':None}
+            jsonStr = self.metadata(VALUE_FIELD)
+            if isinstance(jsonStr, str):
+                d2 = json.loads(jsonStr)
+                d.update(d2)
+            self.mValueCache = d
+        return self.mValueCache
+
+    def setValues(self, x=None, y=None, xUnit=None, yUnit=None):
+
+        d = self.values().copy()
+
+        if isinstance(x, np.ndarray):
+            x = x.tolist()
+
+        if isinstance(y, np.ndarray):
+            y = y.tolist()
+
+        if x is not None:
+            d['x'] = x
+        if y is not None:
+            d['y'] = y
+        if xUnit is not None:
+            assert isinstance(xUnit, str)
+            d['xUnit'] = xUnit
+        if yUnit is not None:
+            assert isinstance(yUnit, str)
+            d['yUnit'] = yUnit
+
+        if d['x'] is not None:
+            assert d['y'] != None
+            assert len(d['y']) == len(d['x'])
+
+        #todo: clean empty values to keep json string short
+
+        jsonStr = json.dumps(d, sort_keys=True, separators=(',', ':'))
+        self.setMetadata(VALUE_FIELD, jsonStr)
+        self.mValueCache = d
+
+
+
     def xValues(self):
-        return self.metadata(SpectralProfile.XVALUES_FIELD)
+        return self.values()['x']
 
 
     def yValues(self):
-        return self.metadata(SpectralProfile.YVALUES_FIELD)
+        return self.values()['y']
 
-    def setXUnit(self, unit : str='index'):
-        self.setMetadata('x_unit', unit)
+    def setXUnit(self, unit : str):
+        d = self.values()
+        d['xUnit'] = unit
+        self.setValues(**d)
 
     def xUnit(self):
-        return self.metadata('x_unit', 'index')
+        return self.values()['xUnit']
 
     def setYUnit(self, unit:str=None):
-        self.setMetadata('y_unit', unit)
+        d = self.values()
+        d['yUnit'] = unit
+        self.setValues(**d)
 
-    def yUnit(self):
-        return self.metadata('y_unit', None)
+    def yUnit(self)->str:
+        "Return the semantic unit of y values, e.g. 'reflectances'"
+        return self.values()['yUnit']
 
     def copyFieldSubset(self, fields):
 
@@ -1985,7 +1960,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                 name = 'b{}'.format(b+1)
 
                 suffix = ''
-                if xunit != 'index':
+                if xunit is not None:
                     suffix+=str(xvalue)
                     suffix += xunit
                 elif xvalue != b:
@@ -2003,6 +1978,8 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                 fieldnames += valueNames
 
             W = csv.DictWriter(stream, fieldnames=fieldnames, dialect=dialect)
+
+
             W.writeheader()
 
             for p in profiles:
