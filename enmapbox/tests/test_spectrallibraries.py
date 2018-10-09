@@ -50,23 +50,18 @@ class TestInit(unittest.TestCase):
         speclib = SpectralLibrary()
         p1 = SpectralProfile()
         p1.setName('No Geometry')
-        p1.setXValues([1, 2, 3, 4, 5])
-        p1.setYValues([0.2, 0.3, 0.2, 0.5, 0.7])
 
+        p1.setValues(x=[0.2, 0.3, 0.2, 0.5, 0.7], y = [1, 2, 3, 4, 5])
         p2 = SpectralProfile()
         p2.setName('No Geom & NoData')
 
-
         p3 = SpectralProfile()
-        p3.setXValues([250., 251., 253., 254., 256.])
-        p3.setYValues([0.2, 0.3, 0.2, 0.5, 0.7])
+        p3.setValues(x = [250., 251., 253., 254., 256.], y = [0.2, 0.3, 0.2, 0.5, 0.7])
         p3.setXUnit('nm')
 
         p4 = SpectralProfile()
-        p4.setXValues([0.250, 0.251, 0.253, 0.254, 0.256])
-        p4.setYValues([0.22, 0.333, 0.222, 0.555, 0.777])
+        p4.setValues(x = [0.250, 0.251, 0.253, 0.254, 0.256], y = [0.22, 0.333, 0.222, 0.555, 0.777])
         p4.setXUnit('um')
-
 
         path = hymap
         ext = SpatialExtent.fromRasterSource(path)
@@ -135,6 +130,14 @@ class TestInit(unittest.TestCase):
         #todo: implement must fail cases
 
 
+        sClone = sp.clone()
+        self.assertIsInstance(sClone, SpectralProfile)
+        self.assertEqual(sClone, sp)
+        sClone.setId(-9999)
+        self.assertEqual(sClone, sp)
+
+
+
         canvas = QgsMapCanvas()
         canvas.setLayers(self.layers)
         canvas.setExtent(self.lyr2.extent())
@@ -176,8 +179,22 @@ class TestInit(unittest.TestCase):
 
         dump = pickle.dumps(sp1)
         sp2 = pickle.loads(dump)
-
+        self.assertIsInstance(sp2, SpectralProfile)
         self.assertEqual(sp1, sp2)
+        self.assertEqual(sp1.values(), sp2.values())
+
+
+        dump = pickle.dumps([sp1, sp2])
+        loads = pickle.loads(dump)
+
+        for i, p1 in enumerate([sp1, sp2]):
+            p2 = loads[i]
+            self.assertIsInstance(p1, SpectralProfile)
+            self.assertIsInstance(p2, SpectralProfile)
+            self.assertEqual(p1.values(), p2.values())
+            self.assertEqual(p1.name(), p2.name())
+            self.assertEqual(p1.id(), p2.id())
+
 
         sp2 = SpectralProfile()
         sp2.setValues(x=xVal, y=yVal, xUnit='um')
@@ -186,6 +203,9 @@ class TestInit(unittest.TestCase):
         self.assertEqual(sp1, sp2)
         sp2.setYUnit('reflectance')
         self.assertNotEqual(sp1, sp2)
+
+
+
 
         values = [('key','value'),('key', 100),('Üä','ÜmlÄute')]
         for md in values:
@@ -202,7 +222,24 @@ class TestInit(unittest.TestCase):
 
         self.SP = sp1
 
-    def test_spectralLibrary(self):
+
+        dump = pickle.dumps(sp1)
+
+        unpickled = pickle.loads(dump)
+        self.assertIsInstance(unpickled, SpectralProfile)
+        self.assertEqual(sp1, unpickled)
+        self.assertEqual(sp1.values(), unpickled.values())
+
+        dump = pickle.dumps([sp1, sp2])
+        unpickled = pickle.loads(dump)
+        self.assertIsInstance(unpickled, list)
+        r1, r2 = unpickled
+        self.assertEqual(sp1.values(), r1.values())
+        self.assertEqual(sp2.values(), r2.values())
+
+
+
+    def test_speclib_mimedata(self):
 
         sp1 = SpectralProfile()
         sp1.setName('Name A')
@@ -219,28 +256,6 @@ class TestInit(unittest.TestCase):
         self.assertEqual(sl1.name(), 'MySpecLib')
 
         sl1.addProfiles([sp1, sp2])
-        self.assertEqual(len(sl1),2)
-
-        a = sl1[0]
-
-        self.assertIsInstance(a, SpectralProfile)
-        self.assertIsInstance(a.values(), dict)
-
-        self.assertListEqual(a.xValues(), sp1.xValues())
-        self.assertListEqual(a.yValues(), sp1.yValues())
-
-
-        #self.assertIsInstance(sl1[0], SpectralProfile)
-        self.assertEqual(sl1[0].values(), sp1.values())
-        self.assertEqual(sl1[0].style(), sp1.style())
-        self.assertNotEqual(sl1[0], sp1) #because sl1 has an FID
-
-
-        t = sl1[0:1]
-
-        refs = list(SpectralLibrary.instances())
-        self.assertTrue(len(refs) == 1)
-        self.assertEqual(refs[0], sl1)
 
 
         for format in [MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_SPECLIB_LINK]:
@@ -267,21 +282,89 @@ class TestInit(unittest.TestCase):
             self.assertEqual(sl1, slRetrievd)
 
 
-        sl2 = sl1.speclibFromFeatureIDs(sl1[:][1].id())
-        self.assertIsInstance(sl2, SpectralLibrary)
-        self.assertEqual(len(sl2), 1)
-        self.assertEqual(sl2[0], sl1[1])
+
+    def test_spectralLibrary(self):
 
 
-        dump = pickle.dumps(sl1)
+        self.assertListEqual(vsiSpeclibs(), [])
 
-        sl2 = pickle.loads(dump)
-        self.assertIsInstance(sl2, SpectralLibrary)
-        self.assertEqual(sl1, sl2)
+        sp1 = SpectralProfile()
+        sp1.setName('Name 1')
+        sp1.setValues(y=[1, 1, 1, 1, 1], x=[450, 500, 750, 1000, 1500])
 
-        sl2.addProfiles([sp2])
-        self.assertNotEqual(sl1, sl2)
-        self.assertEqual(sl2[2], sp2)
+        sp2 = SpectralProfile()
+        sp2.setName('Name 2')
+        sp2.setValues(y=[2, 2, 2, 2, 2], x=[450, 500, 750, 1000, 1500])
+
+        speclib = SpectralLibrary()
+        self.assertEqual(len(vsiSpeclibs()), 1)
+        self.assertEqual(len(list(SpectralLibrary.instances())), 1)
+
+        sl2 = SpectralLibrary()
+        self.assertEqual(len(vsiSpeclibs()), 2)
+        self.assertEqual(len(list(SpectralLibrary.instances())), 2)
+
+        del sl2
+        self.assertEqual(len(vsiSpeclibs()), 1)
+
+
+        self.assertEqual(speclib.name(), 'SpectralLibrary')
+        speclib.setName('MySpecLib')
+        self.assertEqual(speclib.name(), 'MySpecLib')
+
+        speclib.addProfiles([sp1, sp2])
+        self.assertEqual(len(speclib),2)
+
+        # test subsetting
+
+        p = speclib[0]
+        self.assertIsInstance(p, SpectralProfile)
+        self.assertIsInstance(p.values(), dict)
+
+        if p.values() != sp1.values():
+            s = ""
+
+        self.assertEqual(p.values(), sp1.values(), msg='Unequal values:\n\t{}\n\t{}'.format(str(p.values()), str(sp1.values())))
+        self.assertEqual(speclib[0].values(), sp1.values())
+        self.assertEqual(speclib[0].style(), sp1.style())
+        self.assertNotEqual(speclib[0], sp1) #because sl1 has an FID
+
+
+        subset = speclib[0:1]
+        self.assertIsInstance(subset, list)
+        self.assertEqual(len(subset), 1)
+
+
+        self.assertEqual(set(speclib.allFeatureIds()), set([1,2]))
+        slSubset = speclib.speclibFromFeatureIDs(fids=2)
+        self.assertEqual(set(speclib.allFeatureIds()), set([1, 2]))
+        self.assertIsInstance(slSubset, SpectralLibrary)
+
+        refs = list(SpectralLibrary.instances())
+        self.assertTrue(len(refs) == 2)
+
+        self.assertEqual(len(slSubset), 1)
+        self.assertEqual(slSubset[0].values(), speclib[1].values())
+
+        n = len(vsiSpeclibs())
+        dump = pickle.dumps(speclib)
+        restoredSpeclib = pickle.loads(dump)
+        self.assertIsInstance(restoredSpeclib, SpectralLibrary)
+        self.assertEqual(len(vsiSpeclibs()), n+1)
+        self.assertEqual(len(speclib), len(restoredSpeclib))
+
+        for i in range(len(speclib)):
+            p1 = speclib[i]
+            r1 = restoredSpeclib[i]
+
+            if p1.values() != r1.values():
+                s  =""
+
+            self.assertEqual(p1.values(), r1.values(), msg='dumped and restored values are not the same')
+
+        restoredSpeclib.addProfiles([sp2])
+        self.assertNotEqual(speclib, restoredSpeclib)
+        self.assertEqual(restoredSpeclib[-1].values(), sp2.values())
 
 
         #read from image
@@ -293,17 +376,25 @@ class TestInit(unittest.TestCase):
             center1 = SpatialExtent.fromRasterSource(self.lyr1.source()).spatialCenter()
             center2 = SpatialExtent.fromRasterSource(self.lyr1.source()).spatialCenter()
             s  =""
-        sl1 = SpectralLibrary.readFromRasterPositions(hymap,center1)
-        sl2 = SpectralLibrary.readFromRasterPositions(hymap,center2)
-        sl3 = SpectralLibrary.readFromRasterPositions(hymap,[center1, center2])
+        speclib = SpectralLibrary.readFromRasterPositions(hymap,center1)
+        slSubset = SpectralLibrary.readFromRasterPositions(hymap,center2)
+        restoredSpeclib = SpectralLibrary.readFromRasterPositions(hymap,[center1, center2])
 
-        for sl in [sl1, sl2]:
+        for sl in [speclib, slSubset]:
             self.assertIsInstance(sl, SpectralLibrary)
             self.assertTrue(len(sl) == 1)
             self.assertIsInstance(sl[0], SpectralProfile)
             self.assertTrue(sl[0].hasGeometry())
 
-        self.assertTrue(len(sl3) == 2)
+        self.assertTrue(len(restoredSpeclib) == 2)
+
+        n1 = len(speclib)
+        n2 = len(slSubset)
+
+        speclib.addProfiles(slSubset[:])
+        self.assertTrue(len(speclib) == n1+n2)
+        speclib.addProfiles(slSubset[:])
+        self.assertTrue(len(speclib) == n1 + n2 + n2)
 
 
     def test_others(self):
@@ -491,8 +582,7 @@ class TestInit(unittest.TestCase):
         p = SpectralProfile()
         p.setName('TEST')
         n = len(TV.spectralLibrary())
-        p.setXValues([1,2,3,4,5,6])
-        p.setYValues([1, 2, 3, 4, 5, 6])
+        p.setValues(x=[1,2,3,4,5,6], y= [1, 2, 3, 4, 5, 6])
         slib.addProfiles([p])
         self.assertTrue(len(slib) == n+1)
 
@@ -560,6 +650,8 @@ class TestInit(unittest.TestCase):
         self.assertTrue(len(p.speclib()) == len(cs))
 
         qapp.exec_()
+
+
     def test_plotWidget(self):
 
         speclib = self.createSpeclib()
