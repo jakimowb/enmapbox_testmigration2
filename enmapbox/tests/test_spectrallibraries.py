@@ -224,8 +224,17 @@ class TestInit(unittest.TestCase):
         a = sl1[0]
 
         self.assertIsInstance(a, SpectralProfile)
+        self.assertIsInstance(a.values(), dict)
+
         self.assertListEqual(a.xValues(), sp1.xValues())
         self.assertListEqual(a.yValues(), sp1.yValues())
+
+
+        #self.assertIsInstance(sl1[0], SpectralProfile)
+        self.assertEqual(sl1[0].values(), sp1.values())
+        self.assertEqual(sl1[0].style(), sp1.style())
+        self.assertNotEqual(sl1[0], sp1) #because sl1 has an FID
+
 
         t = sl1[0:1]
 
@@ -257,11 +266,6 @@ class TestInit(unittest.TestCase):
 
             self.assertEqual(sl1, slRetrievd)
 
-
-        self.assertIsInstance(sl1[0], SpectralProfile)
-        self.assertEqual(sl1[0], sp1)
-        self.assertEqual(sl1[1], sp2)
-        self.assertNotEqual(sl1[0], sp2)
 
         sl2 = sl1.speclibFromFeatureIDs(sl1[:][1].id())
         self.assertIsInstance(sl2, SpectralLibrary)

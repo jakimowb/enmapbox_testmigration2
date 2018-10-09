@@ -197,8 +197,8 @@ def ogrStandardFields()->list:
 
     fields = [
         ogr.FieldDefn('name', ogr.OFTString),
-        ogr.FieldDefn('x_unit', ogr.OFTString),
-        ogr.FieldDefn('y_unit', ogr.OFTString),
+        #ogr.FieldDefn('x_unit', ogr.OFTString),
+        #ogr.FieldDefn('y_unit', ogr.OFTString),
         ogr.FieldDefn('source', ogr.OFTString),
         ogr.FieldDefn(VALUE_FIELD, ogr.OFTString),
         ogr.FieldDefn(STYLE_FIELD, ogr.OFTString),
@@ -388,6 +388,7 @@ class SpectralLibrary(QgsVectorLayer):
             #create a new, empty backend
             #todo: check existing vsi paths
             uri = '/vsimem/enmapbox_speclibs.gpkg'
+
             drv = ogr.GetDriverByName('GPKG')
             assert isinstance(drv, ogr.Driver)
             co = ['VERSION=AUTO']
@@ -548,11 +549,11 @@ class SpectralLibrary(QgsVectorLayer):
         saveEdits(self, leaveEditable=True)
 
 
-    def features(self, fids=None):
+    def features(self, fids=None)->QgsFeatureIterator:
         """
         Returns the QgsFeatures stored in this QgsVectorLayer
         :param fids: optional, [int-list-of-feature-ids] to return
-        :return: [List-of-QgsFeatures]
+        :return: QgsFeatureIterator
         """
         featureRequest = QgsFeatureRequest()
         if fids is not None:
@@ -564,7 +565,7 @@ class SpectralLibrary(QgsVectorLayer):
                 assert isinstance(fid, int)
             featureRequest.setFilterFids(fids)
         # features = [f for f in self.features() if f.id() in fids]
-        return list(self.getFeatures(featureRequest))
+        return self.getFeatures(featureRequest)
 
 
     def profiles(self, fids=None):
@@ -578,7 +579,12 @@ class SpectralLibrary(QgsVectorLayer):
 
 
 
-    def speclibFromFeatureIDs(self, fids):
+    def speclibFromFeatureIDs(self, fids:list):
+        """
+        Returns the SpectralProfiles with feature ids fids
+        :param fids: list, [list-with-featureIDs]
+        :return: SpectralLibrary
+        """
         sp = SpectralLibrary(fields=self.fields())
         sp.addProfiles(self.profiles(fids))
         return sp
@@ -591,18 +597,17 @@ class SpectralLibrary(QgsVectorLayer):
         :return: {(xValues, wlU, yUnit):[list-of-profiles]}
         """
 
-        d = dict()
+        results = dict()
         for p in self.profiles():
             assert isinstance(p, SpectralProfile)
             d = p.values()
             if excludeEmptyProfiles and d['y'] is None:
                 continue
-
-            id = pickle.dumps((d['x'], d['xUnit'], d['yUnit']))
-            if id not in d.keys():
-                d[id] = list()
-            d[id].append(p)
-        return d
+            key = (tuple(d['x']), d['xUnit'], d['yUnit'])
+            if key not in results.keys():
+                results[key] = []
+            results[key].append(p)
+        return results
 
 
     def asTextLines(self, separator='\t'):
@@ -694,7 +699,8 @@ class SpectralLibrary(QgsVectorLayer):
             yield SpectralProfile.fromSpecLibFeature(f)
 
     def __getitem__(self, slice):
-        features = self.features()[slice]
+        #todo: to be made faster
+        features = list(self.features())[slice]
         if isinstance(features, list):
             return [SpectralProfile.fromSpecLibFeature(f) for f in features]
         else:
@@ -1854,7 +1860,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
             addGeometry = 'WKT' in R.fieldnames
             addYValues = False
             xUnit = None
-            xValues = []
+            x = []
 
             if len(bandValueColumnNames) > 0:
                 addYValues = True
@@ -1866,15 +1872,15 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                         xUnit = match.group('xunit')
                     if xValue:
                         t = findTypeFromString(xValue)
-                        xValues.append(toType(t, xValue))
+                        x.append(toType(t, xValue))
 
 
 
-            if len(xValues) > 0 and not len(xValues) == len(bandValueColumnNames):
+            if len(x) > 0 and not len(x) == len(bandValueColumnNames):
                 print('Inconsistant band value column names. Unable to extract xValues (e.g. wavelength)', file=sys.stderr)
-                xValues = None
-            elif len(xValues) == 0:
-                xValues = None
+                x = None
+            elif len(x) == 0:
+                x = None
             missingQgsFields = []
 
             #find data type of missing fields
@@ -1916,16 +1922,12 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                     p.setGeometry(g)
 
                 if addYValues:
-                    yvalues = [columnVectors[n][i] for n in bandValueColumnNames]
-                    if yValueType is None and len(yvalues) > 0:
-                        yValueType = findTypeFromString(yvalues[0])
+                    y = [columnVectors[n][i] for n in bandValueColumnNames]
+                    if yValueType is None and len(y) > 0:
+                        yValueType = findTypeFromString(y[0])
 
-                    yvalues = toType(yValueType, yvalues, True)
-
-                    p.setYValues(yvalues)
-                    p.setXUnit(xUnit)
-                    if xValues:
-                        p.setXValues(xValues)
+                    y = toType(yValueType, y, True)
+                    p.setValues(y=y, x=x, xUnit=xUnit)
 
                 #add other attributes
                 for n in [n for n in p.fieldNames() if n in list(columnVectors.keys())]:
@@ -1950,8 +1952,9 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
         stream = io.StringIO()
         for i, item in enumerate(speclib.groupBySpectralProperties().items()):
 
-            xvalues, xunit, yunit = pickle.loads(item[0])
+            xvalues, xunit, yunit = item[0]
             profiles = item[1]
+            assert isinstance(profiles, list)
             attributeNames = attributeNames[:]
 
             valueNames = []
