@@ -1,11 +1,15 @@
+#set( $MyName = "Ivan Iwanowitch" )
+#set( $MyMail = "ivan.ivanowitch@your.institution.de")
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
 ***************************************************************************
-    <FILE_NAME>
-
-    <FILE_PURPOSE>
+    ${NAME}.py
+    ${FilePurpose}
     ---------------------
-    Date                 : <MMM> <YYYY>
-    Copyright            : (C) <YYYY> by <AUTHOR>
-    Email                : <AUTHOR_MAIL>
+    Date                 : ${MONTH_NAME_SHORT} ${YEAR}
+    Copyright            : (C) ${YEAR} by ${MyName}
+    Email                : ${MyMail}
 ***************************************************************************
 *                                                                         *
 *   This file is part of the EnMAP-Box.                                   *
@@ -24,3 +28,6 @@
 *   along with the EnMAP-Box. If not, see <http://www.gnu.org/licenses/>. *
 *                                                                         *
 ***************************************************************************
+"""
+
+
