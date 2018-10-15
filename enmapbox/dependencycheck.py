@@ -20,7 +20,7 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections, shutil, time
+import sys, os, collections, shutil, time, re
 from qgis.PyQt.Qt import QApplication, QUrl
 from qgis.gui import *
 from qgis.core import *
@@ -63,6 +63,11 @@ def missingPackageInfo(missingPackages):
     info = ['Unable to import the following {} package(s):'.format(n)]
     for pkg, ex in missingPackages.items():
         info.append(pkg)
+
+    info.append('You can install from you shell with pip:')
+    DIR_REPO = os.path.dirname(os.path.dirname(__file__))
+    info.append('$python -m pip install -r {}\n'.format(os.path.join(DIR_REPO, 'requirements.txt')))
+    info.append('use option --force-reinstall to update packages to required minimum version')
 
     info.append('\nSystem info:')
     info.append('Python executable: {}'.format(sys.executable))
@@ -132,11 +137,12 @@ def missingTestdata()->bool:
         print(ex, file=sys.stderr)
         return True
 
-def installTestdata():
+def installTestdata(overwrite_existing=False):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestdata():
+    if not missingTestdata() and not overwrite_existing:
+        print('Testdata already installed.')
         return
 
     from enmapbox import URL_TESTDATA
@@ -160,21 +166,50 @@ def installTestdata():
     def onCompleted():
         print('Download completed')
         print('Unzip {}...'.format(pathLocalZip))
-        unzip(pathLocalZip, DIR_TESTDATA)
-        tmp = os.path.join(DIR_TESTDATA, 'enmapboxtestdata')
-        if os.path.isdir(tmp):
-            files = os.listdir(tmp)
-            for f in files:
-                shutil.move(os.path.join(tmp,f), DIR_TESTDATA)
-        print('Remove {}...'.format(pathLocalZip))
-        os.remove(pathLocalZip)
+
+        targetDir = DIR_TESTDATA
+        os.makedirs(targetDir, exist_ok=True)
+        import zipfile
+        zf = zipfile.ZipFile(pathLocalZip)
+
+
+        names = zf.namelist()
+        names = [n for n in names if re.search(r'[^/]/enmapboxtestdata/..*', n) and not n.endswith('/')]
+        for name in names:
+            # create directory if doesn't exist
+
+            pathRel = re.search(r'[^/]+/enmapboxtestdata/(.*)$',name).group(1)
+            subDir, baseName = os.path.split(pathRel)
+            fullDir = os.path.normpath(os.path.join(targetDir, subDir))
+            os.makedirs(fullDir, exist_ok=True)
+
+            if not name.endswith('/'):
+                fullPath = os.path.normpath(os.path.join(targetDir, pathRel))
+                with open(fullPath, 'wb') as outfile:
+                    outfile.write(zf.read(name))
+                    outfile.flush()
+
+        zf.close()
+        del zf
         print('Testdata installed.')
 
     def onDownloadError(messages):
         raise Exception('\n'.join(messages))
 
-    def onDownLoadExited():
+    def deleteFileDownloadedFile():
+
         pass
+        # dirty patch for Issue #167
+        #
+        #print('Remove {}...'.format(pathLocalZip))
+        #os.remove(pathLocalZip)
+
+    def onDownLoadExited():
+
+        from qgis.PyQt.QtCore import QTimer
+        QTimer.singleShot(5000, deleteFileDownloadedFile)
+
+
 
     def onDownloadProgress(received, total):
         if not qgisMainApp and total > 0:

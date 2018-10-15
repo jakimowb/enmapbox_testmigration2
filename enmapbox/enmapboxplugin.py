@@ -82,7 +82,7 @@ class EnMAPBoxPlugin(object):
         """
 
         missing = []
-        from enmapbox import DEPENDENCIES, messageLog
+        from enmapbox import DEPENDENCIES, messageLog, DIR_REPO
         for package in DEPENDENCIES:
             try:
                 __import__(package)
@@ -93,7 +93,9 @@ class EnMAPBoxPlugin(object):
 
             longText = ['Unable to import the following python package(s):']
             longText.append('<b>{}</b>'.format(', '.join(missing)))
-            longText.append('<p>Please install missing packages using the local package manager like pip3 and root access.')
+            longText.append('<p>Please install missing packages using the local package manager like pip3 and root access:')
+            pathRequirementsTxt = os.path.join(DIR_REPO, 'requirements.txt')
+            longText.append('<code>python3 -m pip install -r {}</code>'.format(pathRequirementsTxt))
             longText.append('More information available under:')
             longText.append('<a href="http://enmap-box.readthedocs.io/en/latest/Installation.html">http://enmap-box.readthedocs.io/en/latest/Installation.html</a> </p>')
 

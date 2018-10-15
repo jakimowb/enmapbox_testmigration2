@@ -290,40 +290,32 @@ def updateRepositoryXML(path:str=None):
 
 def uploadDeveloperPlugin():
     urlDownloads = 'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads'
-    urlRepoXML = 'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/wiki/src'
-    urlRepoXML = 'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/src'
     assert os.path.isfile(PLUGIN_REPO_XML)
 
-    if not 'DIR_ENMAPBOX_WIKI_REPO' in os.environ.keys():
-        print('DIR_ENMAPBOX_WIKI_REPO undefined. can not write to wiki pages', file=sys.stderr)
-    else:
-        DIR_ENMAPBOX_WIKI_REPO = os.environ['DIR_ENMAPBOX_WIKI_REPO']
-
-        assert os.path.isdir(DIR_ENMAPBOX_WIKI_REPO)
-        pathNew = os.path.join(DIR_ENMAPBOX_WIKI_REPO, os.path.basename(PLUGIN_REPO_XML))
+    if True:
+        #copy to head
+        bnXML = os.path.basename(PLUGIN_REPO_XML)
+        pathNew = os.path.join(DIR_REPO, bnXML)
         print('Copy {}\n\tto {}'.format(PLUGIN_REPO_XML, pathNew))
         shutil.copy(PLUGIN_REPO_XML, pathNew)
-
-        print('push wiki repo for updating the web url')
-        """
         import git
-        REPO_WIKI = git.Repo(DIR_ENMAPBOX_WIKI_REPO)
-        REPO_WIKI.git.add(os.path.basename(PLUGIN_REPO_XML))
-        REPO_WIKI.commit('updates')
-        REPO_WIKI.git.push('origin')
-        """
+        REPO = git.Repo(DIR_REPO)
+        for diff in REPO.index.diff(None):
+            if diff.a_path == bnXML:
+                REPO.git.execute(['git', 'commit', '-m', "'updated {}'".format(bnXML), bnXML])
+        REPO.git.push()
 
-    LUT = {urlRepoXML:[PLUGIN_REPO_XML],
-           urlDownloads:[PLUGIN_REPO_XML]}
+    UPLOADS = {urlDownloads:[]}    #urlRepoXML:[PLUGIN_REPO_XML],
+                #urlDownloads:[PLUGIN_REPO_XML]}
     doc = minidom.parse(PLUGIN_REPO_XML)
     for tag in doc.getElementsByTagName('file_name'):
         bn = tag.childNodes[0].nodeValue
         pathFile = os.path.join(DIR_DEPLOY, bn)
         assert os.path.isfile(pathFile)
-        LUT[urlDownloads].append(pathFile)
+        UPLOADS[urlDownloads].append(pathFile)
 
-    for url, paths in LUT.items():
-        LUT[url] = [p.replace('\\','/') for p in paths]
+    for url, paths in UPLOADS.items():
+        UPLOADS[url] = [p.replace('\\','/') for p in paths]
 
     skeyUsr = 'enmapbox-repo-username'
     settings = QSettings('HU Geomatics', 'enmabox-development-team')
@@ -333,9 +325,9 @@ def uploadDeveloperPlugin():
     auth_success = False
     while not auth_success:
         try:
-            if True: #print curl command(s) to be used in shell
+            if False: #print curl command(s) to be used in shell
                 print('# CURL command(s) to upload enmapbox plugin build')
-                for url, paths in LUT.items():
+                for url, paths in UPLOADS.items():
 
                     cmd = ['curl']
                     if auth.username:
@@ -358,7 +350,7 @@ def uploadDeveloperPlugin():
                 session = requests.Session()
                 session.auth = auth
 
-                for url, paths in LUT.items():
+                for url, paths in UPLOADS.items():
                     for path in paths:
                         print('Upload {} \n\t to {}...'.format(path, url))
                         #mimeType = mimetypes.MimeTypes().guess_type(path)[0]
@@ -367,6 +359,7 @@ def uploadDeveloperPlugin():
 
                         r = session.post(url, auth=auth, files=files)
                         #r = requests.post(url, auth=auth, data = open(path, 'rb').read())
+                        r.close()
                         assert isinstance(r, requests.models.Response)
 
                         for f in files.values():
@@ -396,6 +389,7 @@ def uploadDeveloperPlugin():
                         else:
                             print(info)
                             auth_success = True
+
         except Exception as ex:
             pass
 
@@ -406,7 +400,7 @@ def uploadDeveloperPlugin():
 
 if __name__ == "__main__":
 
-    build()
+    #build()
     updateRepositoryXML()
     uploadDeveloperPlugin()
     s = ""

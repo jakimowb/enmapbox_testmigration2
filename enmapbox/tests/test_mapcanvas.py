@@ -20,7 +20,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import initQgisApplication
 QGIS_APP = initQgisApplication()
-from enmapboxtestdata import enmap, hymap, speclib
+
+import enmapbox.dependencycheck
+enmapbox.dependencycheck.installTestdata()
+
+from enmapboxtestdata import enmap, hymap, landcover, speclib
 from enmapbox.gui.mapcanvas import *
 
 
@@ -64,11 +68,58 @@ class MapCanvasTests(unittest.TestCase):
 
     def test_canvaslinks(self):
 
-        CanvasLink()
+        canvases = []
+        for i in range(3):
+            c = MapCanvas()
+            lyr = QgsRasterLayer(enmap)
+            QgsProject.instance().addMapLayer(lyr)
+            c.setLayers([lyr])
+            c.setDestinationCrs(lyr.crs())
+            c.setExtent(lyr.extent())
+            center0 = c.center()
+            center0.setX(center0.x()+ 10*i)
+            c.setCenter(center0)
+            canvases.append(c)
+        c1, c2, c3 = canvases
+
+        center0 = c1.center()
+        CanvasLink(c1,c2, CanvasLink.LINK_ON_CENTER_SCALE)
+        CanvasLink(c1,c3, CanvasLink.LINK_ON_CENTER_SCALE)
+        CanvasLink.GLOBAL_LINK_LOCK = False
+        self.assertTrue(c1.center() == center0)
+        self.assertTrue(c2.center() == center0)
+        self.assertTrue(c3.center() == center0)
+
+        center1 = QgsPointXY(center0)
+        center1.setX(center1.x()+ 200)
+        center2 = QgsPointXY(center0)
+        center2.setX(center1.x() + 300)
+        center3 = QgsPointXY(center0)
+        center3.setX(center1.x() + 400)
+
+        c1.extentsChanged.connect(lambda : print('Extent C1 changed'))
+        c2.extentsChanged.connect(lambda: print('Extent C1 changed'))
+        c3.extentsChanged.connect(lambda: print('Extent C1 changed'))
+
+        c1.setCenter(center1)
+        self.assertTrue(c1.center() == center1)
+        self.assertTrue(c2.center() == center1)
+        self.assertTrue(c3.center() == center1)
+
+        c2.setCenter(center2)
+        self.assertTrue(c1.center() == center2)
+        self.assertTrue(c2.center() == center2)
+        self.assertTrue(c3.center() == center2)
+
+        c3.setCenter(center3)
+        self.assertTrue(c1.center() == center3)
+        self.assertTrue(c2.center() == center3)
+        self.assertTrue(c3.center() == center3)
+
 
     def test_dropEvents(self):
 
-        from enmapboxtestdata import enmap, hymap, landcover, speclib
+
         from enmapbox.gui.utils import TestObjects
         allFiles = [enmap, hymap, landcover, speclib]
         spatialFiles = [enmap, hymap, landcover]
