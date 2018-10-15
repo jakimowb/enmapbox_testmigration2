@@ -35,6 +35,8 @@ How do I...
 ..     yes, it is possible to install and run QGIS withouht any admin rights on windows.
 ..      Read :ref:`install_qgis_windows` for more details on this.
 
+.. todo:: to be continued
+
 
 How can I solve the following error...
 --------------------------------------
@@ -47,6 +49,15 @@ How can I solve the following error...
 
     In that case please make sure you :ref:`installed all missing packages <install-python-packages>`,
     in this example ``pyqtgraph`` and ``sklearn`` are missing.
+
+... **Installation of Astropy fails**
+
+    In some cases using an older version does the trick, using pip you can install older versions using the ``==versionnumber`` synthax. ``--force-reinstall``
+    is used here to ensure clean installation.
+
+    .. code-block:: batch
+
+       python3 -m pip install astropy==3.0.3 --force-reinstall
 
 
 ... **Wrong value for parameter MSYS**

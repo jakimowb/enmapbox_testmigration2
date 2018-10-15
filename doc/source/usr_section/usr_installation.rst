@@ -107,10 +107,12 @@ Install python packages (if required)
 
 The EnMAP-Box requires the following python packages in order to run:
 
+* `numpy <http://www.numpy.org/>`_
 * `scipy <https://www.scipy.org>`_
-* `matplotlib <https://matplotlib.org/>`_
-* `pyqtgraph <http://pyqtgraph.org/>`_
 * `scikit-learn <http://scikit-learn.org/stable/index.html>`_
+* `pyqtgraph <http://pyqtgraph.org/>`_
+* `matplotlib <https://matplotlib.org/>`_
+
 * `astropy <http://docs.astropy.org>`_ (**optional**, relevant e.g. for certain filtering algorithms)
 
 Most of them do not come with the default QGIS installation. Follow the installation instructions
@@ -131,8 +133,7 @@ below in order to install them, in case you have not done so already.
        # or alternatively:
        python3 -m pip install -r <path_to_unzipped_enmapboxpluginfolder>/requirements.txt
 
-
-For more detailed platform-specific instructions see section below.
+For more detailed platform-specific instructions see section below (if the above method worked for you already, you don't have to follow the instructions below).
 
 .. _install-packages-windows:
 
@@ -163,7 +164,7 @@ Windows
     .. image:: ../img/shell_callpy3env.png
 
 
-#. To install packages like *setup-tools*, *scipy* or *matplotlib*, start the OSGeo4W installer by calling
+#. To install packages like *scipy* or *matplotlib*, start the OSGeo4W installer by calling
 
     .. code-block:: batch
 
