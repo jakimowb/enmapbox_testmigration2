@@ -281,6 +281,34 @@ class QgsPluginManagerMockup(QgsPluginManagerInterface):
         super().timerEvent(*args, **kwargs)
 
 
+class PythonRunnerImpl(QgsPythonRunner):
+    """
+    A Qgs PythonRunner implementation
+    """
+
+    def __init__(self):
+        super(PythonRunnerImpl, self).__init__()
+
+
+    def evalCommand(self, cmd:str, result:str):
+        try:
+            o = compile(cmd)
+        except Exception as ex:
+            result = str(ex)
+            return False
+        return True
+
+    def runCommand(self, command, messageOnError=''):
+        try:
+            o = compile(command, 'fakemodule', 'exec')
+            exec(o)
+        except Exception as ex:
+            messageOnError = str(ex)
+            raise ex
+            return False
+        return True
+
+
 def qgisLayerTreeLayers() -> list:
     """
     Returns the layers shown in the QGIS LayerTree
@@ -599,6 +627,10 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgi
 
         QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
 
+        #initiate a PythonRunner instance if None exists
+        if not QgsPythonRunner.isValid():
+            r = PythonRunnerImpl()
+            QgsPythonRunner.setInstance(r)
         return qgsApp
 
 
