@@ -32,43 +32,16 @@ from qgis.gui import *
 from qgis.core import *
 from qgis.PyQt.Qt import *
 from enmapbox.gui.utils import initQgisApplication
-
-class PythonRunnerImpl(QgsPythonRunner):
-
-    def __init__(self):
-        super(PythonRunnerImpl, self).__init__()
-
-
-    def evalCommand(self, cmd:str, result:str):
-        try:
-            o = compile(cmd)
-        except Exception as ex:
-            result = str(ex)
-            return False
-        return True
-
-    def runCommand(self, command, messageOnError=''):
-        try:
-            o = compile(command, 'fakemodule', 'exec')
-            exec(o)
-        except Exception as ex:
-            messageOnError = str(ex)
-            raise ex
-            return False
-        return True
-
-
 #read https://github.com/qgis/QGIS/blob/master/tests/src/python/test_qgsactionmanager.py
-APP = initQgisApplication()
 
-r = PythonRunnerImpl()
-QgsPythonRunner.setInstance(r)
+
+APP = initQgisApplication() #this instantiates a QGIS environment.
+assert QgsPythonRunner.isValid() #this! is important to run QgsAction of type QgsAction.GenericPython
 
 
 def create_vectordataset() -> QgsVectorLayer:
-    vl = QgsVectorLayer("Point?crs=EPSG:4326", 'test', "memory")
+    vl = QgsVectorLayer("Point?crs=EPSG:4326", 'test_layer', "memory")
     vl.startEditing()
-
     vl.addAttribute(QgsField(name='fString', type=QVariant.String, typeName='varchar', len=50))
     vl.addAttribute(QgsField(name='fInt', type=QVariant.Int, typeName='int'))
     vl.addAttribute(QgsField(name='fDouble', type=QVariant.Double))
@@ -101,7 +74,9 @@ myWidget.layout().addWidget(checkBox)
 myWidget.show()
 myWidget.resize(QSize(300, 250))
 
+#get a QgsVectorLayer
 layer = create_vectordataset()
+#fill some testdata
 layer.startEditing()
 for i in range(5):
     f = QgsFeature(layer.fields())
@@ -110,7 +85,11 @@ for i in range(5):
     layer.addFeature(f)
 layer.commitChanges()
 
-conf = layer.attributeTableConfig()
+#we like to see the "Action
+columns =  layer.attributeTableConfig().columns()
+columns = [columns[-1]] + columns[:-1]
+conf = QgsAttributeTableConfig()
+conf.setColumns(columns)
 conf.setActionWidgetVisible(True)
 conf.setActionWidgetStyle(QgsAttributeTableConfig.ButtonList)
 layer.setAttributeTableConfig(conf)
@@ -119,11 +98,8 @@ actionManager = layer.actions()
 assert isinstance(actionManager, QgsActionManager)
 
 iconPath = ':/qt-project.org/styles/commonstyle/images/standardbutton-delete-128.png'
-
 pythonCode = """
-
-print([% @layer %])
-print('Hello')
+print('Remove features from [% @layer_name %]...')
 layer = QgsProject.instance().mapLayer('[% @layer_id %]')
 assert isinstance(layer, QgsVectorLayer)
 if layer.selectedFeatureCount():
@@ -144,15 +120,7 @@ actionManager.addAction(action)
 QgsProject.instance().addMapLayer(layer)
 canvas.setLayers([layer])
 dualView.init(layer, canvas)
-
-conf = layer.attributeTableConfig()
-conf.update(layer.fields())
-columns = conf.columns()
-columns = [columns[-1]] + columns[:-1]
-conf2 = QgsAttributeTableConfig()
-conf2.setColumns(columns)
-conf2.setActionWidgetStyle(QgsAttributeTableConfig.ButtonList)
-dualView.setAttributeTableConfig(conf2)
+dualView.setAttributeTableConfig(layer.attributeTableConfig())
 layer.startEditing()
 
 #dualView.organizeColumns()
