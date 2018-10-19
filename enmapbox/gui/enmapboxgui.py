@@ -19,7 +19,6 @@
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
-from qgis.PyQt.QtGui import QGuiApplication
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
@@ -31,11 +30,17 @@ from enmapbox.gui.maptools import *
 SETTINGS = enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
+
+#init
+
+
+
+
 class Views(object):
     def __init__(self):
         raise Exception('This class is not for any instantiation')
 
-    MapView= 'MAP'
+    MapView = 'MAP'
     SpecLibView = 'SPECLIB'
     TextView = 'TEXT'
     EmptyView = 'EMPTY'
@@ -429,7 +434,7 @@ class EnMAPBox(QgisInterface, QObject):
         for lyr in lyrs:
             assert isinstance(lyr, QgsRasterLayer)
             path = lyr.source()
-            from enmapbox.gui.spectrallibraries import SpectralProfile
+            from enmapbox.gui.speclib.spectrallibraries import SpectralProfile
             p = SpectralProfile.fromRasterSource(path, spatialPoint)
             if isinstance(p, SpectralProfile):
                 currentSpectra.append(p)

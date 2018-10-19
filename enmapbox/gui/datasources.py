@@ -16,17 +16,10 @@
 *                                                                         *
 ***************************************************************************
 """
-import sys, os, re, collections, uuid
+import collections, uuid
 
-from qgis.core import *
-from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtXml import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
-import numpy as np
+from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary, SpectralProfile
 from osgeo import gdal, ogr
 
 
@@ -188,7 +181,7 @@ class DataSourceFactory(object):
 
             if isinstance(src, str):
                 if os.path.exists(src):
-                    from enmapbox.gui.spectrallibraries import AbstractSpectralLibraryIO
+                    from enmapbox.gui.speclib.spectrallibraries import AbstractSpectralLibraryIO
                     for cls in AbstractSpectralLibraryIO.__subclasses__():
                         if cls.canRead(src):
                             uri = src
@@ -647,10 +640,6 @@ class HubFlowDataSource(DataSource):
         return 'hubflow:{}:{}:{}'.format(obj.__class__.__name__, id(obj), uri)
 
     def __init__(self, obj, name=None, icon=None):
-        import hubflow.core
-
-
-
         id = HubFlowDataSource.createID(obj)
         super(HubFlowDataSource, self).__init__(id, name, icon)
 
@@ -782,7 +771,7 @@ class DataSourceRaster(DataSourceSpatial):
             self.mDatasetMetadata = fetchMetadata(ds)
 
 
-            from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
+            from enmapbox.gui.classificationscheme import ClassificationScheme
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b+1)
                 assert isinstance(band, gdal.Band)

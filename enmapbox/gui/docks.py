@@ -18,12 +18,7 @@
 """
 
 
-import itertools, codecs
-import os
-import uuid
-from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+import codecs
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
@@ -721,7 +716,7 @@ class SpectralLibraryDock(Dock):
     def __init__(self,*args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
         self.speclibWidget = SpectralLibraryWidget(self)
         self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.speclibWidget)
@@ -729,7 +724,6 @@ class SpectralLibraryDock(Dock):
 
 
 if __name__ == '__main__':
-    import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
     from enmapbox.gui.utils import initQgisApplication
