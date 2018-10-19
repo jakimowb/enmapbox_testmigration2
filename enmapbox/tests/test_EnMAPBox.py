@@ -19,22 +19,15 @@
 
 
 import unittest
-from unittest import TestCase
-from qgis import *
-from qgis.core import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from enmapbox.gui.sandbox import initQgisApplication
 from enmapbox.gui.utils import *
 
 
 QGIS_APP = initQgisApplication()
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapboxtestdata import enmap, hymap, speclib
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
-from enmapbox.gui.spectrallibraries import *
+from enmapbox.gui.speclib.spectrallibraries import *
 
 class MyOutputRaster(QgsProcessingParameterDefinition):
 

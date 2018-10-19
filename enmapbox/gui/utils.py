@@ -42,6 +42,8 @@ DIR_QGISRESOURCES = jp(DIR_REPO, 'qgisresources')
 if not os.path.isdir(DIR_QGISRESOURCES):
     DIR_QGISRESOURCES = None
 
+MAP_LAYER_STORES = [QgsProject.instance()]
+
 
 REPLACE_TMP = True  # required for loading *.ui files directly
 
@@ -304,9 +306,34 @@ class PythonRunnerImpl(QgsPythonRunner):
             exec(o)
         except Exception as ex:
             messageOnError = str(ex)
+            command = ['{}:{}'.format(i+1, l) for i,l in enumerate(command.splitlines())]
+            print('\n'.join(command), file=sys.stderr)
             raise ex
             return False
         return True
+
+
+def findMapLayer(layer)->QgsMapLayer:
+    """
+    Returns the first QgsMapLayer out of all layers stored in MAP_LAYER_STORES that matches layer
+    :param layer: str layer id or layer name or QgsMapLayer
+    :return: QgsMapLayer
+    """
+    if isinstance(layer, QgsMapLayer):
+        return layer
+    elif isinstance(layer, str):
+        #check for IDs
+        for store in MAP_LAYER_STORES:
+            l = store.mapLayer(layer)
+            if isinstance(l, QgsMapLayer):
+                return l
+        #check for name
+        for store in MAP_LAYER_STORES:
+            l = store.mapLayersByName(layer)
+            if len(l) > 0:
+                return l[0]
+    return None
+
 
 
 def qgisLayerTreeLayers() -> list:

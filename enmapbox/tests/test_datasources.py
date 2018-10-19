@@ -12,17 +12,10 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
-from qgis import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from enmapbox.gui.utils import initQgisApplication
-from enmapbox.gui.utils import initQgisApplication
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisApplication()
-from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
 from enmapboxtestdata import enmap, hymap, landcover, speclib
-import numpy as np
 
 
 class standardDataSources(unittest.TestCase):
@@ -413,7 +406,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                     self.assertTrue(len(mapCanvas.layers()) == 1)
 
                     # drop speclib to spectral library widgets
-                    from enmapbox.gui.spectrallibraries import SpectralLibraryWidget, SpectralLibraryPlotWidget, SpectralLibraryTableView, MIMEDATA_SPECLIB_LINK
+                    from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget, MIMEDATA_SPECLIB_LINK
                     self.assertTrue(MIMEDATA_SPECLIB_LINK in mimeData.formats())
                     w = SpectralLibraryWidget()
                     w.show()
@@ -451,8 +444,6 @@ class hubflowTestCases(unittest.TestCase):
         from enmapbox.gui.utils import jp, mkdir
         from enmapbox import DIR_REPO
         from enmapbox.gui.datasources import HubFlowDataSource
-        from hubflow.core import ClassDefinition, Vector, VectorClassification
-
 
         dirTmp = jp(DIR_REPO, 'tmp')
         mkdir(dirTmp)

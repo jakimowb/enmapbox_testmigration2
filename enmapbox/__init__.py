@@ -2,6 +2,7 @@ import sys, os, site
 
 
 from qgis.core import Qgis, QgsApplication
+from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QSettings
 
 __version__ = '3.2' #subsub-version information is added during build process
@@ -35,13 +36,11 @@ LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
 
 site.addsitedir(DIR_SITEPACKAGES)
 
-
-
 # mockup to make QGIS resources available for uic.loadUiType
-
 if not 'images' in list(sys.modules.keys()):
     import enmapbox.images
     sys.modules['images'] = enmapbox.images
+
 
 def messageLog(msg, level=Qgis.Info):
     """
@@ -71,4 +70,18 @@ except:
 
     pass
 
+
+#init some other requirements
+print('initialize EnMAP-Box editor widget factories')
+from enmapbox.gui.plotstyling import PlotStyleEditorWidgetFactory
+#register Editor widgets, if not done before
+reg = QgsGui.editorWidgetRegistry()
+if len(reg.factories()) == 0:
+    reg.initEditors()
+
+if 'PlotSettings' not in reg.factories().keys():
+    plotStyleEditorWidgetFactory = PlotStyleEditorWidgetFactory('PlotSettings')
+    reg.registerWidget('PlotSettings', plotStyleEditorWidgetFactory)
+else:
+    plotStyleEditorWidgetFactory = reg.factories()['PlotSettings']
 
