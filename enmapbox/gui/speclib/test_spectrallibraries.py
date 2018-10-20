@@ -26,8 +26,166 @@ QAPP = initQgisApplication(qgisResourceDir=DIR_QGISRESOURCES)
 from osgeo import gdal
 gdal.AllRegister()
 from .spectrallibraries import *
+from .csvdata import *
+from .envi import *
+from .asd import *
 
-class TestInit(unittest.TestCase):
+
+def createSpeclib()->SpectralLibrary:
+    from enmapboxtestdata import hymap
+
+    # for dx in range(-120, 120, 90):
+    #    for dy in range(-120, 120, 90):
+    #        pos.append(SpatialPoint(ext.crs(), center.x() + dx, center.y() + dy))
+
+    speclib = SpectralLibrary()
+    p1 = SpectralProfile()
+    p1.setName('No Geometry')
+
+    p1.setValues(x=[0.2, 0.3, 0.2, 0.5, 0.7], y=[1, 2, 3, 4, 5])
+    p2 = SpectralProfile()
+    p2.setName('No Geom & NoData')
+
+    p3 = SpectralProfile()
+    p3.setValues(x=[250., 251., 253., 254., 256.], y=[0.2, 0.3, 0.2, 0.5, 0.7])
+    p3.setXUnit('nm')
+
+    p4 = SpectralProfile()
+    p4.setValues(x=[0.250, 0.251, 0.253, 0.254, 0.256], y=[0.22, 0.333, 0.222, 0.555, 0.777])
+    p4.setXUnit('um')
+
+    path = hymap
+    ext = SpatialExtent.fromRasterSource(path)
+    posA = ext.spatialCenter()
+    posB = SpatialPoint(posA.crs(), posA.x() + 60, posA.y() + 90)
+
+    p5 = SpectralProfile.fromRasterSource(path, posA)
+    p5.setName('Position A')
+    p6 = SpectralProfile.fromRasterSource(path, posB)
+    p6.setName('Position B')
+    speclib.addProfiles([p1, p2, p3, p4, p5, p6])
+
+    return speclib
+
+
+class TestIO(unittest.TestCase):
+
+    def setUp(self):
+
+        pass
+
+
+    def createSpeclib(self)->SpectralLibrary:
+        return createSpeclib()
+
+    def test_CSV(self):
+        # TEST CSV writing
+        writtenFiles = sl1.exportProfiles(pathCSV)
+        self.assertIsInstance(writtenFiles, list)
+        self.assertTrue(len(writtenFiles) == 1)
+
+        n = 0
+        for path in writtenFiles:
+            self.assertTrue(CSVSpectralLibraryIO.canRead(path))
+            sl_read1 = CSVSpectralLibraryIO.readFrom(path)
+            sl_read2 = SpectralLibrary.readFrom(path)
+
+            self.assertIsInstance(sl_read1, SpectralLibrary)
+            self.assertIsInstance(sl_read2, SpectralLibrary)
+
+            n += len(sl_read1)
+        self.assertEqual(n, len(sl1) - 1)
+
+        self.SPECLIB = sl1
+
+    def test_ASD(self):
+        pass
+
+    def test_Clipboard(self):
+        # test clipboard IO
+        QApplication.clipboard().setMimeData(QMimeData())
+        self.assertFalse(ClipboardIO.canRead())
+        writtenFiles = ClipboardIO.write(sl1)
+        self.assertEqual(len(writtenFiles), 0)
+        self.assertTrue(ClipboardIO.canRead())
+        sl1b = ClipboardIO.readFrom()
+        self.assertIsInstance(sl1b, SpectralLibrary)
+        self.assertEqual(sl1, sl1b)
+        # !!! clear clipboard
+        QApplication.clipboard().setMimeData(QMimeData())
+
+    def test_ENVI(self):
+        import enmapboxtestdata
+
+        from .envi import EnviSpectralLibraryIO
+        pathESL = enmapboxtestdata.speclib
+        sl1 = EnviSpectralLibraryIO.readFrom(pathESL)
+
+        self.assertIsInstance(sl1, SpectralLibrary)
+        p0 = sl1[0]
+        self.assertIsInstance(p0, SpectralProfile)
+
+        self.assertEqual(sl1.fieldNames(), ['fid', 'name', 'source', 'values', 'style', 'level 1', 'level 2'])
+        self.assertEqual(p0.fieldNames(), ['fid', 'name', 'source', 'values', 'style', 'level 1', 'level 2'])
+
+        self.assertEqual(p0.attribute('name'), p0.name())
+        self.assertEqual(p0.attribute('name'), 'Red clay tile 1')
+        self.assertEqual(p0.attribute('level 1'), 'Impervious')
+
+
+        sl2 = SpectralLibrary.readFrom(pathESL)
+        self.assertIsInstance(sl2, SpectralLibrary)
+        self.assertEqual(sl1, sl2)
+
+        # test ENVI Spectral Library
+        pathTmp = tempfile.mktemp(prefix='tmpESL', suffix='.sli')
+        pathTmp = os.path.join(os.path.dirname(__file__), 'testOutput.sli')
+        writtenFiles = EnviSpectralLibraryIO.write(sl1, pathTmp)
+
+
+        nWritten = 0
+        for path in writtenFiles:
+            self.assertTrue(os.path.isfile(path))
+            self.assertTrue(path.endswith('.sli'))
+
+            basepath = os.path.splitext(path)[0]
+            pathHDR = basepath + '.hdr'
+            pathCSV = basepath + '.csv'
+            self.assertTrue(os.path.isfile(pathHDR))
+            self.assertTrue(os.path.isfile(pathCSV))
+
+            self.assertTrue(EnviSpectralLibraryIO.canRead(path))
+            sl_read1 = EnviSpectralLibraryIO.readFrom(path)
+            self.assertIsInstance(sl_read1, SpectralLibrary)
+
+            for fieldA in sl1.fields():
+                self.assertIsInstance(fieldA, QgsField)
+                a = sl_read1.fields().lookupField(fieldA.name())
+                self.assertTrue(a >= 0)
+                fieldB = sl_read1.fields().at(a)
+                self.assertIsInstance(fieldB, QgsField)
+                #if fieldA.type() != fieldB.type():
+                #    s  = ""
+                #self.assertEqual(fieldA.type(), fieldB.type())
+
+
+
+
+            sl_read2 = SpectralLibrary.readFrom(path)
+            self.assertIsInstance(sl_read2, SpectralLibrary)
+
+            print(sl_read1)
+
+            self.assertTrue(len(sl_read1) > 0)
+            self.assertEqual(sl_read1, sl_read2)
+            nWritten += len(sl_read1)
+
+        self.assertEqual(len(sl1), nWritten, msg='Written and restored {} instead {}'.format(nWritten, len(sl1)))
+
+
+
+
+class TestCore(unittest.TestCase):
 
     def setUp(self):
 
@@ -38,43 +196,10 @@ class TestInit(unittest.TestCase):
         self.layers = [self.lyr1, self.lyr2]
         QgsProject.instance().addMapLayers(self.layers)
 
+
+
     def createSpeclib(self):
-        from enmapboxtestdata import hymap
-
-
-        #for dx in range(-120, 120, 90):
-        #    for dy in range(-120, 120, 90):
-        #        pos.append(SpatialPoint(ext.crs(), center.x() + dx, center.y() + dy))
-
-        speclib = SpectralLibrary()
-        p1 = SpectralProfile()
-        p1.setName('No Geometry')
-
-        p1.setValues(x=[0.2, 0.3, 0.2, 0.5, 0.7], y = [1, 2, 3, 4, 5])
-        p2 = SpectralProfile()
-        p2.setName('No Geom & NoData')
-
-        p3 = SpectralProfile()
-        p3.setValues(x = [250., 251., 253., 254., 256.], y = [0.2, 0.3, 0.2, 0.5, 0.7])
-        p3.setXUnit('nm')
-
-        p4 = SpectralProfile()
-        p4.setValues(x = [0.250, 0.251, 0.253, 0.254, 0.256], y = [0.22, 0.333, 0.222, 0.555, 0.777])
-        p4.setXUnit('um')
-
-        path = hymap
-        ext = SpatialExtent.fromRasterSource(path)
-        posA = ext.spatialCenter()
-        posB = SpatialPoint(posA.crs(), posA.x()+60, posA.y()+ 90)
-
-        p5 = SpectralProfile.fromRasterSource(path, posA)
-        p5.setName('Position A')
-        p6 = SpectralProfile.fromRasterSource(path, posB)
-        p6.setName('Position B')
-        speclib.addProfiles([p1, p2, p3, p4, p5, p6])
-
-        return speclib
-
+        return createSpeclib()
 
     def test_fields(self):
 
@@ -113,7 +238,7 @@ class TestInit(unittest.TestCase):
 
     def test_AttributeDialog(self):
 
-        speclib = self.createSpeclib()
+        speclib = createSpeclib()
 
         d = AddAttributeDialog(speclib)
         d.exec_()
@@ -334,11 +459,17 @@ class TestInit(unittest.TestCase):
         speclib.setName('MySpecLib')
         self.assertEqual(speclib.name(), 'MySpecLib')
 
+        speclib.startEditing()
         speclib.addProfiles([sp1, sp2])
+        speclib.rollBack()
+        self.assertEqual(len(speclib), 0)
+
+        speclib.startEditing()
+        speclib.addProfiles([sp1, sp2])
+        speclib.commitChanges()
         self.assertEqual(len(speclib),2)
 
         # test subsetting
-
         p = speclib[0]
         self.assertIsInstance(p, SpectralProfile)
         self.assertIsInstance(p.values(), dict)
@@ -384,7 +515,9 @@ class TestInit(unittest.TestCase):
 
             self.assertEqual(p1.values(), r1.values(), msg='dumped and restored values are not the same')
 
+        restoredSpeclib.startEditing()
         restoredSpeclib.addProfiles([sp2])
+        self.assertTrue(restoredSpeclib.commitChanges())
         self.assertNotEqual(speclib, restoredSpeclib)
         self.assertEqual(restoredSpeclib[-1].values(), sp2.values())
 
@@ -413,11 +546,12 @@ class TestInit(unittest.TestCase):
         n1 = len(speclib)
         n2 = len(slSubset)
 
+        speclib.startEditing()
         speclib.addProfiles(slSubset[:])
         self.assertTrue(len(speclib) == n1+n2)
         speclib.addProfiles(slSubset[:])
         self.assertTrue(len(speclib) == n1 + n2 + n2)
-
+        self.assertTrue(speclib.commitChanges())
 
     def test_others(self):
 
@@ -446,77 +580,6 @@ class TestInit(unittest.TestCase):
         self.assertEqual(match.group('band'), '1')
         self.assertEqual(match.group('xvalue'), '23.34')
         self.assertEqual(match.group('xunit'), 'nm')
-
-
-    def test_io(self):
-
-        sl1 = self.createSpeclib()
-        tempDir = tempfile.gettempdir()
-        tempDir = os.path.join(DIR_REPO, *['test','outputs'])
-        pathESL = os.path.join(tempDir,'speclibESL.esl')
-        pathCSV = os.path.join(tempDir,'speclibCSV.csv')
-
-        #test clipboard IO
-        QApplication.clipboard().setMimeData(QMimeData())
-        self.assertFalse(ClipboardIO.canRead())
-        writtenFiles = ClipboardIO.write(sl1)
-        self.assertEqual(len(writtenFiles), 0)
-        self.assertTrue(ClipboardIO.canRead())
-        sl1b = ClipboardIO.readFrom()
-        self.assertIsInstance(sl1b, SpectralLibrary)
-        self.assertEqual(sl1, sl1b)
-
-        #!!! clear clipboard
-        QApplication.clipboard().setMimeData(QMimeData())
-
-
-        #test ENVI Spectral Library
-        writtenFiles = EnviSpectralLibraryIO.write(sl1, pathESL)
-        n = 0
-        for path in writtenFiles:
-            self.assertTrue(os.path.isfile(path))
-            self.assertTrue(path.endswith('.sli'))
-
-            basepath = os.path.splitext(path)[0]
-            pathHDR = basepath + '.hdr'
-            pathCSV = basepath + '.csv'
-            self.assertTrue(os.path.isfile(pathHDR))
-            self.assertTrue(os.path.isfile(pathCSV))
-
-            self.assertTrue(EnviSpectralLibraryIO.canRead(path))
-            sl_read1 = EnviSpectralLibraryIO.readFrom(path)
-            self.assertIsInstance(sl_read1, SpectralLibrary)
-            sl_read2 = SpectralLibrary.readFrom(path)
-            self.assertIsInstance(sl_read2, SpectralLibrary)
-            print(sl_read1)
-            self.assertTrue(len(sl_read1) > 0)
-            self.assertEqual(sl_read1, sl_read2)
-            n += len(sl_read1)
-        self.assertEqual(len(sl1) - 1, n ) #-1 because of a missing data profile
-
-
-        #TEST CSV writing
-        writtenFiles = sl1.exportProfiles(pathCSV)
-        self.assertIsInstance(writtenFiles, list)
-        self.assertTrue(len(writtenFiles) == 1)
-
-        n = 0
-        for path in writtenFiles:
-            self.assertTrue(CSVSpectralLibraryIO.canRead(path))
-            sl_read1 = CSVSpectralLibraryIO.readFrom(path)
-            sl_read2 = SpectralLibrary.readFrom(path)
-
-            self.assertIsInstance(sl_read1, SpectralLibrary)
-            self.assertIsInstance(sl_read2, SpectralLibrary)
-
-            n += len(sl_read1)
-        self.assertEqual(n, len(sl1)-1)
-
-
-
-
-
-        self.SPECLIB = sl1
 
 
     def test_mergeSpeclibs(self):
@@ -559,8 +622,6 @@ class TestInit(unittest.TestCase):
         w.setProfileValues(p)
         w.show()
         QAPP.exec_()
-
-
 
 
     def test_SpectralProfileEditorWidgetFactory(self):

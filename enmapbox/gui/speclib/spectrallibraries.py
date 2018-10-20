@@ -97,6 +97,8 @@ EMPTY_PROFILE_VALUES = {'x':None, 'y':None, 'xUnit':None, 'yUnit':None}
 
 VALUE_FIELD = 'values'
 STYLE_FIELD = 'style'
+NAME_FIELD = 'name'
+FID_FIELD = 'fid'
 
 VSI_DIR = '/vsimem/speclibs/'
 gdal.Mkdir(VSI_DIR, 0)
@@ -188,11 +190,11 @@ runRemoveFeatureActionRoutine(layerId, [% $id %])
 
 def findTypeFromString(value:str):
     """
-    Returns a fitting basic data type of a string value
+    Returns a fitting basic python data type of a string value, i.e.
     :param value: string
-    :return: type
+    :return: type out of [str, int or float]
     """
-    for t in (int, float):
+    for t in (int, float, str):
         try:
             _ = t(value)
         except ValueError:
@@ -201,6 +203,8 @@ def findTypeFromString(value:str):
 
     #every values can be converted into a string
     return str
+
+
 
 def toType(t, arg, empty2None=True):
     """
@@ -298,8 +302,8 @@ LUT_IDL2GDAL = {1:gdal.GDT_Byte,
 def ogrStandardFields()->list:
     """Returns the minimum set of field a Spectral Library has to contain"""
     fields = [
-        ogr.FieldDefn('fid', ogr.OFTInteger),
-        ogr.FieldDefn('name', ogr.OFTString),
+        ogr.FieldDefn(FID_FIELD, ogr.OFTInteger),
+        ogr.FieldDefn(NAME_FIELD, ogr.OFTString),
         #ogr.FieldDefn('x_unit', ogr.OFTString),
         #ogr.FieldDefn('y_unit', ogr.OFTString),
         ogr.FieldDefn('source', ogr.OFTString),
@@ -377,6 +381,17 @@ class AbstractSpectralLibraryIO(object):
         assert isinstance(speclib, SpectralLibrary)
         return []
 
+    @staticmethod
+    def score(uri:str)->int:
+        """
+        Returns a score value for the give uri. E.g. 0 for unlikely/unknown, 20 for yes, probalby thats the file format the reader can read.
+
+        :param uri: str
+        :return: int
+        """
+        return 0
+
+
 class SpectralLibrary(QgsVectorLayer):
     _instances = []
     @staticmethod
@@ -448,19 +463,21 @@ class SpectralLibrary(QgsVectorLayer):
                 i += 1
 
         sl = SpectralLibrary()
+        sl.startEditing()
         sl.addProfiles(profiles)
+        assert sl.commitChanges()
         return sl
 
     @staticmethod
-    def readFrom(uri)->AbstractSpectralLibraryIO:
+    def readFrom(uri):
         """
         Reads a Spectral Library from the source specified in "uri" (path, url, ...)
         :param uri: path or uri of the source from which to read SpectralProfiles and return them in a SpectralLibrary
         :return: SpectralLibrary
         """
         readers = AbstractSpectralLibraryIO.__subclasses__()
-        readers = [r for r in readers if not r is ClipboardIO] + [ClipboardIO]
-        for cls in readers:
+        #readers = [r for r in readers if not r is ClipboardIO] + [ClipboardIO]
+        for cls in sorted(readers, key=lambda r:r.score(uri)):
             if cls.canRead(uri):
                 return cls.readFrom(uri)
         return None
@@ -478,7 +495,7 @@ class SpectralLibrary(QgsVectorLayer):
             if r is not None:
                 yield r()
 
-    def __init__(self, name='SpectralLibrary', fields=None, uri=None):
+    def __init__(self, name='SpectralLibrary', fields:QgsFields=None, uri=None):
 
 
         #crs = SpectralProfile.crs
@@ -617,15 +634,22 @@ class SpectralLibrary(QgsVectorLayer):
         styles.setRowStyles([red])
     """
 
-    def addMissingFields(self, fields):
+    def addMissingFields(self, fields:QgsFields):
+        """Adds missing fields"""
         missingFields = []
         for field in fields:
             assert isinstance(field, QgsField)
-            i = self.dataProvider().fieldNameIndex(field.name())
+            i = self.fields().lookupField(field.name())
             if i == -1:
                 missingFields.append(field)
-        if len(missingFields) > 0:
-            self.dataProvider().addAttributes(missingFields)
+
+        for f in missingFields:
+            self.addAttribute(f)
+            s = ""
+
+        s = ""
+        #if len(missingFields) > 0:
+        #    self.dataProvider().addAttributes(missingFields)
 
 
     def addSpeclib(self, speclib, addMissingFields=True):
@@ -644,49 +668,52 @@ class SpectralLibrary(QgsVectorLayer):
         elif isinstance(profiles, SpectralLibrary):
             profiles = profiles.profiles()
 
-        fid = 0
-
-        nBefore = self.featureCount()
-
-        i = -1
-        fields = self.fields()
-
+        assert isinstance(profiles, list)
+        if len(profiles) == 0:
+            return
 
         for i, p in enumerate(profiles):
             assert isinstance(p, SpectralProfile)
 
-            if i == 0:
-                if addMissingFields:
-                    self.addMissingFields(profiles[0].fields())
-                    fields = self.fields()
+        fields = self.fields()
 
-                self.startEditing()
-                assert self.isEditable()
+        fid = 0
+        assert self.isEditable(), 'SpectralLibrary not editable. call startEditing() first'
 
-                for id in self.allFeatureIds():
-                    if id < 0:
-                        self.commitChanges()
-                        self.startEditing()
-                        break
+        if addMissingFields:
+            self.addMissingFields(profiles[0].fields())
 
-                n = self.featureCount()
-                fids = [abs(fid) for fid in self.allFeatureIds()]
-                if len(fids) > 0:
-                    fid = max(fids)
+        fields = self.fields()
 
-            fid = fid+1
-            p2 = p.copyFieldSubset(fields)
-            p2.setId(fid)
-            p2.setAttribute('fid', fid)
-            self.addFeature(p2)
+        def createCopy(srcFeature:QgsFeature)->QgsFeature:
 
-        if i >= 0:
-            b1 = self.commitChanges()
-            b2 = self.featureCount() == nBefore + i + 1
-            if True:
-                assert b1, 'Unable to commit changes'
-                assert b2, 'Unable to add {} spectral profiles'.format(i+1)
-            #saveEdits(self, leaveEditable=b)
+
+            srcFields = srcFeature.fields()
+            dstFields = self.fields()
+            p2 = QgsFeature(dstFields)
+            for field in dstFields:
+                a = srcFields.lookupField(field.name())
+                if a >= 0:
+                    p2.setAttribute(dstFields.lookupField(field.name()), srcFeature.attribute(a))
+
+            p2.setAttribute(FID_FIELD, None)
+            return p2
+        profiles = [createCopy(p) for p in profiles]
+        self.addFeatures(profiles)
+
+    def speclibFromFeatureIDs(self, fids):
+        if isinstance(fids, int):
+            fids = [fids]
+        assert isinstance(fids, list)
+
+        profiles = list(self.profiles(fids))
+
+        speclib = SpectralLibrary()
+        speclib.startEditing()
+        speclib.addMissingFields(self.fields())
+        speclib.addProfiles(profiles)
+        speclib.commitChanges()
+        return speclib
 
     def removeProfiles(self, profiles):
         """
@@ -742,20 +769,9 @@ class SpectralLibrary(QgsVectorLayer):
 
 
 
-
-    def speclibFromFeatureIDs(self, fids:list):
+    def groupBySpectralProperties(self, excludeEmptyProfiles=True):
         """
-        Returns the SpectralProfiles with feature ids fids
-        :param fids: list, [list-with-featureIDs]
-        :return: SpectralLibrary
-        """
-        sp = SpectralLibrary(fields=self.fields())
-        sp.addProfiles(self.profiles(fids))
-        return sp
-
-    def groupBySpectralProperties(self, excludeEmptyProfiles = True):
-        """
-        Groups the SpectralProfiles by:
+        Returns SpectralProfiles grouped by:
             xValues, xUnit and yUnit, e.g. wavelength, wavelength unit ('nm') and y unit ('reflectance')
 
         :return: {(xValues, wlU, yUnit):[list-of-profiles]}
@@ -893,7 +909,7 @@ class SpectralLibrary(QgsVectorLayer):
             if reoder:
                 attributes = [attributes[i] for i in order]
             feature.setAttributes(attributes)
-            feature.setAttribute('fid', nextFID)
+            feature.setAttribute(FID_FIELD, nextFID)
             feature.setGeometry(QgsGeometry.fromWkt(wkt))
             features.append(feature)
         self.addFeatures(features)
@@ -1603,7 +1619,7 @@ class SpectralProfile(QgsFeature):
         names1 = self.fieldNames()
         names2 = other.fieldNames()
         for i1, n in enumerate(self.fieldNames()):
-            if n == 'fid':
+            if n == FID_FIELD:
                 continue
             i2 = names2.index(n)
             if self.attribute(i1) != other.attribute(i2):
@@ -1616,7 +1632,9 @@ class SpectralProfile(QgsFeature):
         return hash(id(self))
 
     def setId(self, id):
-        self.setAttribute('fid', id)
+        self.setAttribute(FID_FIELD, id)
+        if id is not None:
+            super(SpectralProfile, self).setId(id)
 
     """
     def __eq__(self, other):
