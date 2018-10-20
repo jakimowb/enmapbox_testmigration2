@@ -11,6 +11,12 @@ from hubflow.report import *
 from hubflow.errors import *
 import hubflow.signals
 
+class ApplierOptions(dict):
+
+    def __init__(self, grid=None, progressBar=None, emitFileCreated=None):
+        dict.__init__(self, tuple((k, v) for k, v in locals().items() if v is not None and not k.startswith('_') and k != 'self'))
+
+
 class Applier(hubdc.applier.Applier):
     def __init__(self, defaultGrid=None, **kwargs):
         controls = kwargs.get('controls', ApplierControls())
@@ -452,7 +458,7 @@ class FlowObject(object):
     def __setstate__(self, state):
         self.__init__(**state)
 
-    def pickle(self, filename, progressBar=None):
+    def pickle(self, filename, progressBar=None, emit=True):
         '''
         Pickles itself into the given file.
 
@@ -467,7 +473,9 @@ class FlowObject(object):
             makedirs(dirname(filename))
         with open(filename, 'wb') as f:
             pickle.dump(obj=self, file=f, protocol=1)
-        hubflow.signals.sigFileCreated.emit(filename)
+
+        if emit:
+            hubflow.signals.sigFileCreated.emit(filename)
 
         if progressBar is not None:
             assert isinstance(progressBar, ProgressBar)
@@ -705,8 +713,9 @@ class MapCollection(FlowObject):
             elif isinstance(map, Vector):
                 pass
             elif isinstance(map, Raster):
-                bandCharacteristics = MetadataEditor.bandCharacteristics(rasterDataset=rasterDataset)
+                bandCharacteristics = MetadataEditor.bandCharacteristics(rasterDataset=map.dataset())
                 MetadataEditor.setBandCharacteristics(rasterDataset=rasterDataset, **bandCharacteristics)
+                rasterDataset.setNoDataValues(values=map.noDataValues())
             else:
                 assert 0, repr(map)
 
@@ -901,6 +910,7 @@ class Raster(Map):
         :type noDataValues: List[float]
         :param descriptions: list of band descriptions (i.e. band names)
         :type descriptions: List[str]
+        :param kwargs: passed to constructor (e.g. Raster, Classification, Regression, ...)
         :rtype: Raster
 
         :example:
@@ -2146,6 +2156,7 @@ class ENVISpectralLibrary(FlowObject):
                 # check for classification attribute definition files
 
                 for key in keys:
+                    # todo: replace by ClassDefinition.fromCSV
                     key2 = key.replace(' ', '_')
                     filenameClassDefinition = filenameCSV.replace('.csv', '.{}.classdef.csv'.format(key2))
                     if exists(filenameClassDefinition):
@@ -2846,9 +2857,17 @@ class Vector(Map):
                       filename=filename)
         return Vector(filename=filename)
 
+    def metadataItem(self, key, domain='', dtype=str, required=False, default=None):
+        '''Returns the value (casted to a specific ``dtype``) of a metadata item.'''
+        return self.dataset().metadataItem(key=key, domain=domain, dtype=dtype, required=required, default=default)
+
+    def metadataDict(self):
+        '''Return the metadata dictionary for all domains.'''
+        return self.dataset().metadataDict()
+
     def uniqueValues(self, attribute, spatialFilter=None):
         '''
-        Returns unique values for given attribute.
+        Return unique values for given attribute.
 
         :param attribute:
         :type attribute: str
@@ -3003,6 +3022,8 @@ class _VectorFromRandomPointsFromClassification(ApplierOperator):
         driver.prepareCreation(filename)
 
         ds = driver.ogrDriver().CreateDataSource(filename)
+        if ds is None:
+            raise Exception('OGR data source creation failed: {}'.format(filename))
         srs = grid.projection().osrSpatialReference()
         layer = ds.CreateLayer('random_points', srs, ogr.wkbPoint)
 
@@ -3088,6 +3109,12 @@ class VectorClassification(Vector):
         '''
 
         Vector.__init__(self, filename=filename, layer=layer, burnAttribute=classAttribute, dtype=dtype)
+
+        if classDefinition is None:
+
+            filenameCSV = '{}.{}.classdef.csv'.format(splitext(self.filename())[0], classAttribute.replace(' ', '_'))
+            if exists(filenameCSV):
+                classDefinition = ClassDefinition.fromCSV(filename=filenameCSV)
 
         if classDefinition is None:
             classDefinition = ClassDefinition(classes=max(self.uniqueValues(attribute=classAttribute)))
@@ -3204,8 +3231,8 @@ class ClassDefinition(FlowObject):
         for color in colors:
             if isinstance(color, Color):
                 self._colors.append(color)
-            elif isinstance(color, (list, tuple)):
-                self._colors.append(Color(*color))
+            elif isinstance(color, (list, tuple, np.ndarray)):
+                self._colors.append(Color(*[int(v) for v in color]))
             elif isinstance(color, str):
                 self._colors.append(Color(color))
             else:
@@ -3261,6 +3288,15 @@ class ClassDefinition(FlowObject):
                 statistics = Raster(filename=raster.filename()).statistics()
                 classDefinition = ClassDefinition(classes=int(statistics[0].max))
         return classDefinition
+
+    @staticmethod
+    def fromCSV(filename):
+        '''Create instance from CSV file definition.'''
+
+        array = np.genfromtxt(filename, delimiter=';', dtype=np.str)
+        names = list(array[2:, 0])
+        colors = list(np.array([s[s.find('(') + 1: s.find(')')].split(',') for s in array[2:, 1]]).flatten())
+        return ClassDefinition(names=names, colors=colors)
 
     @staticmethod
     def fromENVIClassification(raster):
@@ -3567,6 +3603,8 @@ class Classification(Raster):
         ordered = OrderedDict()
         spectraNames = library.raster().dataset().metadataItem(key='spectra names', domain='CSV', required=True)
         for name in library.raster().dataset().metadataItem(key='spectra names', domain='ENVI', required=True):
+            if name in ordered:
+                raise Exception('error: spectra names must be unique, check for name: {}'.format(name))
             ordered[name] = array[spectraNames.index(name)]
 
         # write to dataset
@@ -3585,6 +3623,7 @@ class Classification(Raster):
         Forwards :meth:`hubdc.core.RasterDataset.plotCategoryBand`
 
         :example:
+
         >>> classification = Classification.fromArray(array=[[[0, 1],[1,2]]],
         ...                                           filename='/vsimem/classification.bsq',
         ...                                           classDefinition=ClassDefinition(colors=['red', 'blue']))
@@ -3642,6 +3681,19 @@ class Classification(Raster):
         :return:
         :rtype: Classification
 
+        :example:
+
+        Resample into a grid with 2x finer resolution
+
+        >>> classification = Classification.fromArray(array=[[[1,2,3,4]]], filename='/vsimem/classification.bsq')
+        >>> classification.array()
+        array([[[1, 2, 3, 4]]], dtype=uint8)
+        >>> grid = classification.grid()
+        >>> grid2 = grid.atResolution(resolution=grid.resolution()/2)
+        >>> resampled = classification.resample(filename='/vsimem/resampled.bsq', grid=grid2)
+        >>> resampled.array()
+        array([[[1, 1, 2, 2, 3, 3, 4, 4],
+                [1, 1, 2, 2, 3, 3, 4, 4]]], dtype=uint8)
         '''
         applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowClassification('inclassification', classification=self)
@@ -3819,10 +3871,11 @@ class Regression(Raster):
         >>> import enmapboxtestdata
         >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib2)
         >>> Regression.fromENVISpectralLibrary(filename='/vsimem/regression.bsq', library=library, attributes=['Roof'])
-
+        Regression(filename=/vsimem/regression.bsq, noDataValues=[-1.0], outputNames=['Roof'], minOverallCoverage=0.5)
         '''
-        assert isinstance(library, ENVISpectralLibrary)
 
+        assert isinstance(library, ENVISpectralLibrary)
+        assert isinstance(attributes, (list, tuple))
         arrays = list()
         noDataValues = list()
         for attribute in attributes:
@@ -3848,11 +3901,40 @@ class Regression(Raster):
 
 
     def asMask(self, minOverallCoverage=None):
+        '''Creates a mask instance from itself. Optionally, the minimal overall coverage can be changed.'''
         if minOverallCoverage is None:
             minOverallCoverage = self.minOverallCoverage()
         return Raster.asMask(self, noDataValues=self.noDataValues(), minOverallCoverage=minOverallCoverage)
 
     def resample(self, filename, grid, **kwargs):
+        '''
+        Resample itself into the given grid using gdal.GRA_Average resampling.
+
+        :param filename: output filename
+        :type filename:
+        :param grid: hubdc.core.Grid
+        :type grid:
+        :param kwargs: passed to Applier
+        :type kwargs:
+        :return: Regression
+        :rtype:
+
+        :example:
+
+        Resample into a grid that is 1.5x as fine.
+
+        >>> regression = Regression.fromArray([[[0., 0.5, 1.]]], noDataValues=[-1], filename='/vsimem/regression.bsq')
+        >>> regression.array()
+        array([[[ 0. ,  0.5,  1. ]]])
+        >>> grid = regression.grid()
+        >>> grid2 = grid.atResolution(resolution=grid.resolution() / 2)
+        >>> resampled = regression.resample(grid=grid2, filename='/vsimem/resampled.bsq')
+        >>> resampled.array()
+        array([[[ 0. ,  0. ,  0.5,  0.5,  1. ,  1. ],
+                [ 0. ,  0. ,  0.5,  0.5,  1. ,  1. ]]])
+
+        '''
+
         applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowRegression('inregression', regression=self)
         applier.setOutputRaster('outregression', filename=filename)
@@ -3869,7 +3951,21 @@ class _RegressionResample(ApplierOperator):
 
 
 class Fraction(Regression):
-    def __init__(self, filename, classDefinition=None, minOverallCoverage=0.5, minDominantCoverage=0.5):
+    '''Class for managing fraction maps.'''
+
+    def __init__(self, filename, classDefinition=None, minOverallCoverage=0., minDominantCoverage=0.):
+        '''
+        Create a new instance.
+
+        :param filename: input path
+        :type filename:
+        :param classDefinition: provide class definition if not specified inside the metadata
+        :type classDefinition: ClassDefinition
+        :param minOverallCoverage: minOverallCoverage is the threshold under which edge pixels are rejected (i.e. set to no data value)
+        :type minOverallCoverage: float
+        :param minDominantCoverage: minDominantCoverage is the threshold under which "not pure enought" pixels are rejected (i.e. set to no data value)
+        :type minDominantCoverage: float
+        '''
         Raster.__init__(self, filename=filename)
         if classDefinition is None:
             classDefinition = ClassDefinition.fromENVIFraction(raster=self)
@@ -3879,26 +3975,58 @@ class Fraction(Regression):
         self._minOverallCoverage = minOverallCoverage
         self._minDominantCoverage = minDominantCoverage
 
+    def __getstate__(self):
+        return OrderedDict([('filename', self.filename()),
+                            ('classDefinition', self.classDefinition()),
+                            ('minDominantCoverage', self.minDominantCoverage()),
+                            ('minOverallCoverage', self.minOverallCoverage())])
+
     def classDefinition(self):
+        '''Return the class definition.'''
         assert isinstance(self._classDefinition, ClassDefinition)
         return self._classDefinition
 
     def minOverallCoverage(self):
+        '''Return the minimal overall coverage threshold.'''
         return self._minOverallCoverage
 
     def minDominantCoverage(self):
+        '''Return the minimal dominant class coverage threshold.'''
         return self._minDominantCoverage
 
     def noDataValues(self):
+        '''Returns no data values.'''
         return [-1.] * self.classDefinition().classes()
 
-    def __getstate__(self):
-        return OrderedDict([('filename', self.filename()),
-                            ('classDefinition', self.classDefinition())])
-
     @classmethod
-    def fromClassification(cls, filename, classification, grid=None, **kwargs):
-        applier = Applier(defaultGrid=grid, **kwargs)
+    def fromClassification(cls, filename, classification, **kwargs):
+        '''
+        Create instance from given classification. A simple binarization in fractions of 0 and 1 is performed.
+
+        :param filename: output path
+        :type filename:
+        :param classification: input classification
+        :type classification: Classification
+        :param kwargs: passed to Applier
+        :type kwargs:
+        :return: Fraction
+        :rtype:
+
+        :example:
+
+        >>> classification = Classification.fromArray(array=[[[1, 2, 3]]], filename='/vsimem/classification.bsq')
+        >>> classification.array()
+        array([[[1, 2, 3]]], dtype=uint8)
+        >>> fraction = Fraction.fromClassification(classification=classification, filename='/vsimem/fraction.bsq')
+        >>> fraction.array()
+        array([[[ 1.,  0.,  0.]],
+        <BLANKLINE>
+               [[ 0.,  1.,  0.]],
+        <BLANKLINE>
+               [[ 0.,  0.,  1.]]], dtype=float32)
+        '''
+
+        applier = Applier(defaultGrid=classification, **kwargs)
         applier.setFlowClassification('classification', classification=classification)
         applier.setOutputRaster('fraction', filename=filename)
         applier.apply(operatorType=_FractionFromClassification, classification=classification)
@@ -3922,9 +4050,13 @@ class Fraction(Regression):
         >>> import enmapboxtestdata
         >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib2)
         >>> Fraction.fromENVISpectralLibrary(filename='/vsimem/regression.bsq', library=library,
-        ...                                  attributes=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other'])
-
+        ...                                  attributes=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other']) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+        Fraction(filename=/vsimem/regression.bsq,
+                 classDefinition=ClassDefinition(classes=6,
+                                                 names=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other'],
+                                                 colors=[Color(230, 0, 0), Color(156, 156, 156), Color(152, 230, 0), Color(38, 115, 0), Color(168, 112, 0), Color(245, 245, 122)]))
         '''
+
         assert isinstance(library, ENVISpectralLibrary)
         regression = Regression.fromENVISpectralLibrary(filename=filename, library=library, attributes=attributes)
         colors = list()
@@ -3933,9 +4065,41 @@ class Fraction(Regression):
         classDefinition = ClassDefinition(names=attributes, colors=colors)
         MetadataEditor.setFractionDefinition(rasterDataset=regression.dataset(), classDefinition=classDefinition)
         rasterDataset = regression.dataset().flushCache()
-        return Fraction(filename=filename())
+        return Fraction(filename=filename)
 
     def resample(self, filename, grid, **kwargs):
+        '''
+        Resample itself into the given grid using gdal.GRA_Average resampling.
+
+        :param filename: output path
+        :type filename:
+        :param grid:
+        :type grid: hubdc.core.Grid
+        :param kwargs: passed to Applier
+        :type kwargs:
+        :return:
+        :rtype: Fraction
+
+        :example:
+
+        Resample into grid that is 2x as fine.
+
+        >>> fraction = Fraction.fromArray(array=[[[0., 0.5, 1.]],
+        ...                                     [[1., 0.5, 1.]]],
+        ...                               filename='/vsimem/fraction.bsq')
+        >>> fraction.array()
+        array([[[ 0. ,  0.5,  1. ]],
+        <BLANKLINE>
+               [[ 1. ,  0.5,  1. ]]])
+        >>> grid = fraction.grid()
+        >>> grid2 = grid.atResolution(grid.resolution()/(2, 1)) # change only resolution in x dimension
+        >>> resampled = fraction.resample(grid=grid2, filename='/vsimem/resampled.bsq')
+        >>> resampled.array()
+        array([[[ 0. ,  0. ,  0.5,  0.5,  1. ,  1. ]],
+        <BLANKLINE>
+               [[ 1. ,  1. ,  0.5,  0.5,  1. ,  1. ]]])
+
+        '''
         applier = Applier(defaultGrid=grid, **kwargs)
         applier.setFlowFraction('infraction', fraction=self)
         applier.setOutputRaster('outfraction', filename=filename)
@@ -3943,6 +4107,38 @@ class Fraction(Regression):
         return Fraction(filename=filename)
 
     def subsetClasses(self, filename, labels, **kwargs):
+        '''
+        Subset itself by given class labels.
+
+        :param filename: input path
+        :type filename: 
+        :param labels: list of labels to be subsetted
+        :type labels: 
+        :param kwargs: passed to Applier
+        :type kwargs: 
+        :return: 
+        :rtype: Fraction
+
+        :example:
+
+        Subset 2 classes fom a fraction map with 3 classes.
+
+        >>> fraction = Fraction.fromArray(array=[[[0.0, 0.3]],
+        ...                                      [[0.2, 0.5]],
+        ...                                      [[0.8, 0.2]]],
+        ...                               filename='/vsimem/fraction.bsq')
+        >>> fraction.array()
+        array([[[0. , 0.3]],
+        <BLANKLINE>
+               [[0.2, 0.5]],
+        <BLANKLINE>
+               [[0.8, 0.2]]])
+        >>> subsetted = fraction.subsetClasses(labels=[1, 3], filename='/vsimem/subsetted.bsq')
+        >>> subsetted.array()
+        array([[[0. , 0.3]],
+        <BLANKLINE>
+               [[0.8, 0.2]]])
+        '''
         indices = [label - 1 for label in labels]
         applier = Applier(defaultGrid=self, **kwargs)
         applier.setFlowRaster('fraction', raster=self)
@@ -3951,30 +4147,82 @@ class Fraction(Regression):
         return Fraction(filename=filename)
 
     def subsetClassesByName(self, filename, names, **kwargs):
+        '''
+        Subset itself by given class names.
+
+        :param filename: input path
+        :type filename:
+        :param names: list of class names to be subsetted
+        :type names:
+        :param kwargs: passed to Applier
+        :type kwargs:
+        :return:
+        :rtype: Fraction
+
+        :example:
+
+        Subset 2 classes fom a fraction map with 3 classes.
+
+        >>> fraction = Fraction.fromArray(array=[[[0.0, 0.3]],
+        ...                                      [[0.2, 0.5]],
+        ...                                      [[0.8, 0.2]]],
+        ...                               classDefinition=ClassDefinition(names=['a', 'b', 'c']),
+        ...                               filename='/vsimem/fraction.bsq')
+        >>> fraction.classDefinition().names()
+        ['a', 'b', 'c']
+        >>> fraction.array()
+        array([[[0. , 0.3]],
+        <BLANKLINE>
+               [[0.2, 0.5]],
+        <BLANKLINE>
+               [[0.8, 0.2]]])
+        >>> subsetted = fraction.subsetClassesByName(names=['a', 'c'], filename='/vsimem/subsetted.bsq')
+        >>> subsetted.classDefinition().names()
+        ['a', 'c']
+        >>> subsetted.array()
+        array([[[0. , 0.3]],
+        <BLANKLINE>
+               [[0.8, 0.2]]])
+        '''
         labels = [self.classDefinition().names().index(name) + 1 for name in names]
         return self.subsetClasses(filename=filename, labels=labels, **kwargs)
 
-    def asClassColorRGBRaster(self, filename, filterById=None, filterByName=None, **kwargs):
-        filter = []
-        if filterById is not None:
-            filter.extend(filterById)
-        if filterByName is not None:
-            filter.extend([self.classDefinition().names().index[name] for name in filterByName])
+    def asClassColorRGBRaster(self, filename, **kwargs):
+        '''
+        Create RGB image, where the pixel color is the average of the original class colors,
+        weighted by the pixel fractions. Regions with purer pixels (i.e. fraction of a specific class is near 1),
+        appear in the original class colors, and regions with mixed pixels appear in mixed class colors.
+
+        :param filename: input path
+        :type filename:
+        :param kwargs: passed to Applier
+        :type kwargs:
+        :return:
+        :rtype:
+
+        >>> import enmapboxtestdata
+        >>> fraction = Fraction(filename=enmapboxtestdata.landcoverfractions)
+        >>> rgb = fraction.asClassColorRGBRaster(filename='/vsimem/rgb.bsq')
+        >>> rgb.plotMultibandColor()
+
+        .. image:: plots/fracion_asClassColorRGBRaster.png
+
+        '''
+
         applier = Applier(defaultGrid=self, **kwargs)
         applier.setFlowRaster('fraction', raster=self)
         applier.setOutputRaster('raster', filename=filename)
-        applier.apply(operatorType=_FractionAsClassColorRGBRaster, fraction=self, filter=filter)
+        applier.apply(operatorType=_FractionAsClassColorRGBRaster, fraction=self)
         return Raster(filename=filename)
 
 
 class _FractionAsClassColorRGBRaster(ApplierOperator):
-    def ufunc(self, filter, fraction):
+    def ufunc(self, fraction):
         assert isinstance(fraction, Fraction)
         colors = fraction.classDefinition().colors()
         array = self.flowRasterArray('fraction', raster=fraction)
         rgb = self.full(value=0, bands=3, dtype=np.float32)
         for id, (band, color) in enumerate(zip(array, colors), start=1):
-            if len(filter) > 0 and id not in filter: continue
             colorRGB = (color.red(), color.green(), color.blue())
             rgb += band * np.reshape(colorRGB, newshape=(3, 1, 1))
         np.uint8(np.clip(rgb, a_min=0, a_max=255, out=rgb))
@@ -4011,7 +4259,23 @@ class _FractionSubsetClasses(ApplierOperator):
 
 
 class FractionPerformance(FlowObject):
+    '''Class for performing ROC curve analysis.'''
+
     def __init__(self, yP, yT, classDefinitionP, classDefinitionT):
+        '''
+        Create an instance and perform calculations.
+
+        :param yP: predicted probabilities/fractions
+        :type yP: ndarray[samples, classes]
+        :param yT: reference class labels
+        :type yT: ndarray[samples, 1]
+        :param classDefinitionP: class definition for prediction
+        :type classDefinitionP: ClassDefinition
+        :param classDefinitionT: class definition for reference
+        :type classDefinitionT: ClassDefinition
+
+        See example given at :meth:`~FractionPerformance.fromRaster`.
+        '''
         import sklearn.metrics
         assert isinstance(classDefinitionP, ClassDefinition)
         assert isinstance(classDefinitionT, ClassDefinition)
@@ -4045,6 +4309,34 @@ class FractionPerformance(FlowObject):
 
     @classmethod
     def fromRaster(self, prediction, reference, mask=None, **kwargs):
+        '''
+
+        :param prediction:
+        :type prediction: Fraction
+        :param reference:
+        :type reference: Classification
+        :param mask:
+        :type mask: Mask
+        :param kwargs: passed to Applier
+        :type kwargs:
+        :return:
+        :rtype: FractionPerformance
+
+        :example:
+
+        >>> import enmapboxtestdata
+        >>> performance = FractionPerformance.fromRaster(prediction=Fraction(filename=enmapboxtestdata.landcoverfractions),
+        ...                                              reference=Classification(filename=enmapboxtestdata.landcoverclassification))
+        >>> performance.log_loss
+        0.4840965149878993
+        >>> performance.roc_auc_scores
+        {1: 0.9640992638757171, 2: 0.8868830628381189, 3: 0.9586349099478203, 4: 0.9102916036557301, 5: 0.9998604910714286, 6: 0.9966195132099022}
+        >>> performance.report().saveHTML(filename=join(tempfile.gettempdir(), 'report.html'), open=True)
+
+        .. image:: plots/fractionPerformance.png
+
+        '''
+
         assert isinstance(prediction, Fraction)
         assert isinstance(reference, Classification)
 
@@ -4054,6 +4346,11 @@ class FractionPerformance(FlowObject):
                                    classDefinitionT=reference.classDefinition())
 
     def report(self):
+        '''
+        Returns report.
+        :return:
+        :rtype: hubflow.report.Report
+        '''
         classes = self.classDefinitionT.classes()
         names = self.classDefinitionT.names()
         report = Report('Fraction Performance')
@@ -4094,7 +4391,19 @@ class FractionPerformance(FlowObject):
 
 
 class Sample(MapCollection):
+    '''Class for managing unsupervised samples.'''
+
     def __init__(self, raster, mask=None, grid=None):
+        '''
+        Create new instance from given raster (and mask).
+
+        :param raster: raster to sample from
+        :type raster: Raster
+        :param mask:
+        :type mask: map interpreted as mask to restrict valid locations
+        :param grid:
+        :type grid: hubdc.core.Grid
+        '''
         assert isinstance(raster, Raster)
         if grid is None:
             grid = raster.dataset().grid()
@@ -4114,21 +4423,50 @@ class Sample(MapCollection):
             self._mask._initPickle()
 
     def raster(self):
+        '''Return raster.'''
         raster = self.maps()[0]
         assert isinstance(raster, Raster)
         return raster
 
     def mask(self):
+        '''Return mask.'''
         return self._mask
 
     def masks(self):
+        '''Return maps concidered as masks during sampling (i.e. both raster and mask)'''
         return [self.raster(), self.mask()]
 
     def grid(self):
+        '''Return grid.'''
         assert isinstance(self._grid, Grid)
         return self._grid
 
     def extractAsArray(self, grid=None, masks=None, onTheFlyResampling=False, **kwargs):
+        '''
+        Extract profiles from raster as array[
+
+        :param grid: optional grid for on-the-fly resampling
+        :type grid: Grid
+        :param masks: list of masks instead of self.masks()
+        :type masks: List[Map]
+        :param onTheFlyResampling: whether to allow on-the-fly resampling
+        :type onTheFlyResampling: bool
+        :param kwargs: passed to Applier
+        :type kwargs:
+        :return:
+        :rtype: Sample
+
+        :example:
+
+        >>> sample = Sample(raster=Raster.fromArray(array=[[[1, 2, 3]],
+        ...                                               [[1, 2, 3]]],
+        ...                                         filename='/vsimem/fraction.bsq'),
+        ...                 mask=Mask.fromArray(array=[[[1, 0, 1]]],
+        ...                                     filename='/vsimem/mask.bsq'))
+        >>> sample.extractAsArray()[0]
+        array([[1, 3],
+               [1, 3]])
+        '''
         if grid is None:
             grid = self.grid()
         if masks is None:
@@ -4136,6 +4474,8 @@ class Sample(MapCollection):
         return MapCollection.extractAsArray(self, grid=grid, masks=masks, onTheFlyResampling=onTheFlyResampling, **kwargs)
 
     def extractAsRaster(self, filenames, grid=None, masks=None, onTheFlyResampling=False, **kwargs):
+        '''Performes :meth:`~hubflow.core.Sample.extractAsArray` and stores the result as raster.'''
+
         if grid is None:
             grid = self.grid()
         if masks is None:
@@ -4144,7 +4484,23 @@ class Sample(MapCollection):
                                              onTheFlyResampling=onTheFlyResampling, **kwargs)
 
 class ClassificationSample(Sample):
+    '''Class for managing classification samples.'''
+
     def __init__(self, raster, classification, mask=None, grid=None):
+        '''
+        Create new instance.
+
+        :param raster:
+        :type raster: hubflow.core.Raster
+        :param classification:
+        :type classification: hubflow.core.Classification
+        :param mask:
+        :type mask: None
+        :param grid:
+        :type grid: None
+
+        weiter
+        '''
         Sample.__init__(self, raster=raster, mask=mask, grid=grid)
         assert isinstance(classification, Classification)
         self.maps().append(classification)
@@ -4170,13 +4526,12 @@ class ClassificationSample(Sample):
         if classLikelihoods is None:
             classLikelihoods = 'proportional'
         if classLikelihoods is 'proportional':
-            statistics = self.classification().statistics(calcHistogram=True,
+            histogram = self.classification().statistics(calcHistogram=True,
                                                           histogramBins=[classDefinition.classes()],
                                                           histogramRanges=[(1, classDefinition.classes() + 1)])
-            histogram = statistics[0].histo.hist
             classLikelihoods = {i + 1: float(count) / sum(histogram) for i, count in enumerate(histogram)}
         elif classLikelihoods is 'equalized':
-            classLikelihoods = {i + 1: 1. / classDefinition().classes() for i in range(classDefinition().classes())}
+            classLikelihoods = {i + 1: 1. / classDefinition.classes() for i in range(classDefinition.classes())}
 
         assert isinstance(mixingComplexities, dict)
         assert isinstance(classLikelihoods, dict)
@@ -4535,6 +4890,22 @@ class Classifier(Estimator):
     predict = Estimator._predict
     predictProbability = Estimator._predictProbability
 
+    def crossValidation(self, sample=None, cv=3, n_jobs=None):
+        if sample is None:
+            sample = self._sample
+        assert isinstance(sample, ClassificationSample)
+
+
+        features, labels = sample.extractAsArray()
+        X = np.float64(features.T)
+        y = labels.ravel()
+
+        from sklearn.model_selection import cross_val_predict
+        yCV = cross_val_predict(estimator=self.sklEstimator(), X=X, y=y, cv=cv, n_jobs=n_jobs)
+
+        return ClassificationPerformance(yP=yCV, yT=y.flatten(),
+                                         classDefinitionP=sample.classification().classDefinition(),
+                                         classDefinitionT=sample.classification().classDefinition())
 
 class Regressor(Estimator):
     SAMPLE_TYPE = RegressionSample

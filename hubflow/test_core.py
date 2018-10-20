@@ -42,7 +42,7 @@ enmapFractionSample = hubflow.testdata.enmapFractionSample()
 
 samples = [enmapSample, enmapClassificationSample, enmapRegressionSample, enmapFractionSample]
 
-'''objects = maps + samples + [MapCollection([enmap, enmapMask]),
+objects = maps + samples + [MapCollection([enmap, enmapMask]),
                             enmap.sensorDefinition().wavebandDefinition(index=0),
                             enmap.sensorDefinition(),
                             speclib,
@@ -53,7 +53,7 @@ samples = [enmapSample, enmapClassificationSample, enmapRegressionSample, enmapF
                             FractionPerformance.fromRaster(prediction=enmapFraction, reference=enmapClassification),
                             RegressionPerformance.fromRaster(prediction=enmapRegression, reference=enmapRegression),
                             ClusteringPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification),
-                            Color('red')]'''
+                            Color('red')]
 
 outdir = join(gettempdir(), 'hubflow_test')
 openHTML = False
@@ -187,8 +187,13 @@ class Test(TestCase):
 
     def test_Classification(self):
 
+        v = VectorClassification(filename=enmapboxtestdata.landcover, classAttribute='fid') #'Level_2_ID')
+        print(v)
+        return
+        c = Classification.fromClassification(filename='/vsimem/c.bsq',
+                                              classification=vectorClassification, grid=enmap.grid())
+        print(c)
 
-        print(enmapClassification.statistics())
         return
 
         raster = Raster.fromArray(array=[[[0, 1, 2]]], filename='/vsimem/raster.bsq')
@@ -275,6 +280,8 @@ class Test(TestCase):
 
 
     def test_ClassDefinition(self):
+        print(VectorClassification(enmapboxtestdata.landcover, classAttribute='Level_1_ID'))
+        print(ClassDefinition.fromCSV(filename=enmapboxtestdata.speclib.replace('.sli', '.level_2.classdef.csv')))
         print(ClassDefinition.fromENVIClassification(raster=enmapClassification))
         print(ClassDefinition.fromGDALMeta(raster=enmapClassification))
         print(ClassDefinition(colors=['orange', 'blue', 'grey', 'snow', 'white']))
@@ -298,7 +305,7 @@ class Test(TestCase):
         rfc = Classifier(sklEstimator=RandomForestClassifier())
         rfc.fit(sample=sample)
         rfc.predict(raster=enmap, filename='/vsimem/rfcClassification.bsq')
-        return
+        rfc.crossValidation().report().saveHTML(filename=join(outdir, 'report.html'), open=False)
 
         rfc = Classifier(sklEstimator=RandomForestClassifier())
         print(rfc)
@@ -550,6 +557,16 @@ class Test(TestCase):
         #print(features.shape, labels.shape)
 
     def test_Regressor(self):
+        #debug
+        from sklearn.linear_model import LinearRegression
+        olsr = Regressor(sklEstimator=LinearRegression())
+        olsr.fit(sample=enmapRegressionSample)
+        p=RegressionPerformance.fromRaster(prediction=olsr.predict(filename='/vsimem/p.bsq', raster=enmapRegressionSample.raster()),
+                                         reference=enmapRegressionSample.regression())
+        p.r2_score[0]
+        p.n
+        return
+
         rfr = Regressor(sklEstimator=RandomForestRegressor())
         print(rfr)
         rfr.fit(sample=enmapRegressionSample)
@@ -575,6 +592,10 @@ class Test(TestCase):
         print(pcaInverseTransform)
 
     def test_Vector(self):
+
+        vector = Vector(filename=r'C:\output\LandCov_BerlinUrbanGradient_WGS84.gpkg|layername=polygons')
+        Raster.fromVector(filename=r'c:\output\test.bsq', vector=vector, grid=enmap.grid())
+        return
         print(vector.uniqueValues(attribute=hubflow.testdata.landcoverAttributes.Level_2_ID))
         print(vector.uniqueValues(attribute=hubflow.testdata.landcoverAttributes.Level_2))
         print(vector)
@@ -679,15 +700,8 @@ class Test(TestCase):
                                                                      filename='/vsimem/fraction.bsq'))
 
     def test_debug(self):
-
-        rfc = Classifier(sklEstimator=RandomForestClassifier())
-        rfc.fit(enmapClassificationSample)
-
-        grid = enmap.grid()
-        grid = grid.atResolution(300)
-        rfc.predictProbability(filename='/vsimem/rfc.bsq',
-                               raster=enmap,
-                               grid=grid, progressBar=CUIProgressBar())
+        enmap.plotMultibandColor(rgbindex=(0, 100, 150), rgbvmin=0, rgbvmax=3000, showPlot=False)
+        pyplot.savefig(r'c:\output\mask_fromVector.png', bbox_inches='tight')
 
 
 

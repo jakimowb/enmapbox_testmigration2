@@ -2,140 +2,276 @@ import matplotlib
 matplotlib.use('QT5Agg')
 from matplotlib import pyplot
 
+from os.path import join
 from unittest import TestCase
-from hubflow.force import *
+from hubdc.core2 import *
+from hubdc.inputformat import force, generic
+
+
+gdal.UseExceptions()
 
 from sklearn.ensemble import RandomForestClassifier
 
-folderForce = r'C:\Work\data\FORCE\crete'
-forceDB = ForceDB(folder=folderForce, spatialFilter=SpatialFilter(tileNames=['X0107_Y0102', 'X0107_Y0103']))
+folderForce = r'C:\Work\data\FORCE\berlin'
+folderL2 = join(folderForce, 'level2')
 
 outdir = r'c:\output\force'
 
-CUIProgressBar.SILENT = False
+tilingScheme = TilingScheme()
+if 0:
+    tilingScheme.addTile(Tile(name='x1_y1', extent=Extent(xmin=13, xmax=13.5, ymin=52.5, ymax=53, projection=Projection.WGS84())))
+    tilingScheme.addTile(Tile(name='x2_y1', extent=Extent(xmin=13.5, xmax=14, ymin=52.5, ymax=53, projection=Projection.WGS84())))
+    tilingScheme.addTile(Tile(name='x1_y2', extent=Extent(xmin=13, xmax=13.5, ymin=52, ymax=52.5, projection=Projection.WGS84())))
+    tilingScheme.addTile(Tile(name='x2_y2', extent=Extent(xmin=13.5, xmax=14, ymin=52, ymax=52.5, projection=Projection.WGS84())))
+else:
+    tilingScheme.addTile(Tile(name='x1_y1', extent=Extent(xmin=13.0, xmax=14, ymin=52, ymax=53, projection=Projection.WGS84())))
 
+def computeKwds(basename, noDataValues=None, categoryNames=None):
+    return {'tilingScheme': tilingScheme,
+            'resolution': 0.001,
+            'filename': join(outdir, basename),
+            'noDataValues': noDataValues,
+            'categoryNames': categoryNames}
+
+
+Projection.UTM(zone=33, north=True)
 class Test(TestCase):
 
-    def test_ForceDB(self):
-        print(forceDB.folder())
-        print(forceDB.levels())
-        print(forceDB.forceL2DB())
 
-    def test_ForceL2DB(self):
-        forceL2DB = forceDB.level2()
-        for forceTile in forceL2DB.tiles():
-            print(forceTile.name())
+    def test_david(self):
 
-        forceL2DB.mean(basename='2015_mean.bsq', level='levelRabe',
-                       dateRangeFilter=DateRangeFilter(start='20151001', end='20151008'),
-                       sensorFilter=SensorFilter(sensors=['LND07', 'LND08']))
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()\
+                    .select(('NIR', 'RED', 'BLUE', 'GREEN'))\
+                    .cache() # cached die benötigten Bänder
 
+        indexCollection = List((('NIR', 'RED'), ('NIR', 'BLUE'), ('NIR', 'GREEN')))\
+                             .map(function=lambda bandNames: raster.normalizedDifference(bandNames))
 
-    def test_ForceL2Tile(self):
-        tile = forceDB.forceL2DB().forceL2Tile(name='X0107_Y0102')
-        print(tile.name())
-        filters = [DateRangeFilter(start='20151001', end='20151008'),
-                   SensorFilter(sensors=['LND07', 'LND08']),
-                   ProductFilter(products=['BOA'])]
-        collection = tile.collection(filters=filters)
-        print(collection)
+        indexRaster = indexCollection\
+                         .toBands()\
+                         .compute(**computeKwds('stack.tif'))
 
-        mean = tile.mean(filename=r'/vsimem/mean.bsq',
-                         dateRangeFilter=DateRangeFilter(start='20151001', end='20151008'),
-                         sensorFilter=SensorFilter(sensors=['LND07', 'LND08']))
-
-        mean.plotMultibandColor(rgbindex=(4-1, 5-1, 3-1), rgbvmin=300, rgbpmax=98)
+        a=indexRaster
 
 
-    def test_ForceL2Collection(self):
-        filters = [DateRangeFilter(start='20180101', end='20190101'),
-                   SensorFilter(sensors=['LND07', 'LND08'])]
-        tile = forceDB.level2(filters=filters).tile(name='X0107_Y0102')
+    def test_arrays(self):
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()
+        a,m = raster.band(name='NIR').arrays(grid=Grid(extent=tilingScheme.extent(name='x1_y1'), resolution=0.01))
+        print(a.shape)
+        print(m.shape)
 
-        boa = tile.collection(filters=[ProductFilter(products=['BOA'])])
-        cld = tile.collection(filters=[ProductFilter(products=['CLD'])])
+        a,m = raster.arrays(grid=Grid(extent=tilingScheme.extent(name='x1_y1'), resolution=0.001))
+        print(np.shape(a))
+        print(np.shape(m))
 
-        print(boa)
-        print(cld)
+    def test_computeRaster(self):
 
-        for raster in boa.rasters():
-            print(raster)
-        for raster in cld.rasters():
-            print(raster)
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()\
+                      .compute(**computeKwds('landsat-NIR-SWIR1-Red.tif'))
 
-    def test_ClassificationWorkflow(self):
+    def test_cache(self):
+
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first().multiply(1).multiply(1).multiply(1) #.compute(**computeKwds('raster.bsq'))
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()
+        raster = raster.cache()
+        a = raster.select(force.BAND_Red)
+        b = raster.select(force.BAND_Green)
+        ca = a.compute(**computeKwds('red.tif'))
+        cb = b.compute(**computeKwds('green.tif'))
+        #assert 0
+
+    def test_computeRasterUpdateMask(self):
+
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()
+        raster = (raster.select(bandNames=[force.BAND_NearInfrared,
+                                           force.BAND_ShortwaveInfrared1,
+                                           force.BAND_Red])
+                        .updateMask(mask=raster.select(force.BAND_CloudAndCloudShadowDistance).not_equal(0).cache())
+                        .compute(**computeKwds('landsat-NIR-SWIR1-Red.tif', noDataValues=[-1]*3)))
+
+    def test_computeNDVI(self):
+
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()
+        ndvi = (raster.select(bandNames=[force.BAND_NearInfrared, force.BAND_Red])
+                      .updateMask(mask=raster.select(force.BAND_CloudAndCloudShadowDistance).not_equal(0))
+                      .normalizedDifference()#bandNames=['NIR', 'Red'])
+                      .compute(**computeKwds('ndvi.tif', noDataValues=[-1])))
+
+    def test_computeMedian(self):
+        l8 = force.collections(folder=folderL2, ext='.tif').l8
+        median = (l8.filterDate(start='2017', end='2018')
+                    #.slice(0,5)
+                    .map(lambda raster: raster.select(bandNames=[force.BAND_NearInfrared,
+                                                                 force.BAND_ShortwaveInfrared1,
+                                                                 force.BAND_Red])
+                                              .updateMask(mask=raster.select(force.BAND_CloudAndCloudShadowDistance).not_equal(0)))
+                    .median() #bandNames=['NIR', 'SWIR1', 'Red'])
+                    .compute(**computeKwds(basename='2017_median.tif', noDataValues=[-9999]*3)))
+
+        a=median
+
+    def test_sampleRegions(self):
+
+        points = openVectorDataset(filename=r'C:\Work\data\gms\lucas\eu27_lucas_2012_subset1.shp')
+        bandNames = [force.BAND_NearInfrared, force.BAND_ShortwaveInfrared1, force.BAND_Red]
+
+        l8 = force.collections(folder=folderL2, ext='.tif').l8
+        median = (l8.filterDate(start='201711', end='2018')
+                    .map(lambda raster: raster.select(bandNames=bandNames)
+                                              .updateMask(mask=raster.select(force.BAND_CloudAndCloudShadowDistance).not_equal(0)))
+                    .median(bandNames=bandNames).rename(bandNames=bandNames)
+                    #.compute(*computeKwds(basename='2017_median.tif', noDataValues=[-9999] * 3))
+                  )
+
+        training = median.sampleRegions(vectorDataset=points, idProperty='POINT_ID',
+                                        tilingScheme=tilingScheme, resolution=0.001)
+
+        classifier = Classifier(sklClassifier=RandomForestClassifier())
+        classifier.fit(features=training, classProperty='LC4_ID', inputProperties=bandNames)
+        classification = median.predict(estimator=classifier)\
+                               .compute(**computeKwds(basename='rfcClassification.bsq'))
 
 
-        # init database for region of interest (i.e. spatial filter)
+    def test_forceQAI(self):
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()
+        cloudState = raster.inflate(offsets=[1], nbits=[2], bandName=force.BAND_QualityAssuranceInformation) \
+                           .rename('Cloud state') \
+                           .compute(**computeKwds(basename='qai_cloudState.tif'))
+        cloudShadowFlag = raster.inflate(offsets=[3], nbits=[1], bandName=force.BAND_QualityAssuranceInformation) \
+                                .rename('Cloud shadow flag') \
+                                .compute(**computeKwds(basename='qai_cloudShadowFlag.tif'))
 
-        forceDB = ForceDB(folder=r'C:\Work\data\FORCE\crete',
-                          spatialFilter=SpatialFilter(tileNames=['X0107_Y0102', 'X0107_Y0103']))
-
-        # create mean and std composites for year 2015
-
-        # - use date range and sensor filter
-
-        dateRangeFilter = DateRangeFilter(start='20150101', end='20151231')
-        sensorFilter = SensorFilter(sensors=['LND07', 'LND08'])
-
-        # - mean and std methods are called from the "ForceL2Tile" object
-
-        forceDB.level2().mean(basename='2015_mean.bsq', levelName='levelComposites',
-                              dateRangeFilter=dateRangeFilter,
-                              sensorFilter=sensorFilter)
-
-        forceDB.level2().std(basename='2015_std.bsq', levelName='levelComposites',
-                             dateRangeFilter=dateRangeFilter,
-                             sensorFilter=sensorFilter)
-
-        # sample lucas points from composites
-
-        lucas = VectorClassification(filename=r'C:/Work/data/gms/lucas/eu27_lucas_2012_subset1.shp',
-                                     classAttribute='LC4_ID',
-                                     classDefinition=ClassDefinition(classes=12))
-
-        sources = [forceDB.level(levelName='levelComposites',
-                                 filters=[FileFilter(extensions=['.bsq'])])] # use all *.bsq files as input
-
-        sample = forceDB.extractClassificationSample(filename=r'c:\output\sample.pkl', locations=lucas, sources=sources)
-
-        # fit and predict
-
-        rfc = Classifier(sklEstimator=RandomForestClassifier())
-        rfc.fit(sample)
-        forceDB.predict(basename='2015_classification.bsq', levelName='levelClassification', estimator=rfc, sources=sources)
+        allInflated = raster.inflate(bandName=force.BAND_QualityAssuranceInformation,
+                                     offsets=(0, 1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15),
+                                     nbits=(1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1))\
+                            .rename(('Valid data', 'Cloud state', 'Cloud shadow flag', 'Snow flag', 'Water flag',
+                                     'Aerosol state', 'Subzero flag', 'Saturation flag', 'High sun zenith flag',
+                                     'Illumination state', 'Slope flag', 'Water vapor flag', 'Empty'))\
+                            .compute(**computeKwds(basename='qai_inflated.tif'))
 
 
-    def test_Report(self):
+    def test_rasterNoneTiled(self):
+        from enmapboxtestdata import enmap
 
-        print(forceDB)
-        tile = forceDB.level2().tile(name='X0107_Y0102')
-        result = OrderedDict()
-        for raster in tile.collection(filters=[ProductFilter(products=['BOA'])]).rasters():
-            y = basename(raster.filename())[:4]
-            result[y] = result.get(y, 0) + 1
+        from hubdc.inputformat import generic
+        raster = generic.raster(filename=enmap).select([2,1,0])
+        raster.compute(filename=join(outdir, 'hymap.tif'))
 
-        for y, n in result.items():
-            print('{} = {}'.format(y, n))
+    def test_select(self):
 
-    def test_vrtMosaik(self):
-        filenames = list()
-        level = forceDB.level(levelName='levelClassification', filters=[FileFilter(basenames=['2015_classification'])])
-        level = forceDB.level(levelName='levelComposites', filters=[FileFilter(basenames=['2015_mean'])])
-        for tile in level.tiles():
-            rasters = list(tile.collection().rasters())
-            if len(rasters) == 1:
-                filenames.append(rasters[0].filename())
+        sentinel2 = force.collections(folder=folderL2, ext='.tif').s2.first()
 
-        rasterDataset = createVRTDataset(filename='/vsimem/mosaik.vrt', rasterDatasetsOrFilenames=filenames)
-        try:
-            rasterDataset.plotCategoryBand()
-        except:
-            rasterDataset.plotMultibandColor(rgbvmin=0, rgbpmax=98, rgbindex=[4-1, 5-1, 3-1])
+        print(sentinel2.select(0).bandNames())      # by index
+        print(sentinel2.select('Blue').bandNames()) # by name
+        print(sentinel2.select(492.).bandNames())   # by wavelength
 
-    def test_debug(self):
 
-        pass
+
+
+
+
+    def test_median(self):
+
+        medianNDVI = (force.collections(folder=folderL2, ext='.tif').l8
+                           .filterDate('2017', '2018')
+                           .map(lambda raster: (raster.normalizedDifference(['NIR', 'Red'])
+                                                      .updateMask(mask=raster.select('CLD')).not_equal(0)))
+                           .median()
+                           .compute(**computeKwds(basename='medianNDVI.bsq', noDataValues=[-1])))
+
+#        mask = raster.select('CLD').not_equal(0)
+#        nir = raster.select('NIR').updateMask(mask=mask).compute(**computeKwds('nir.bsq', [-1]))
+
+
+    def test_pipeline(self):
+
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()
+
+        ndvi = (raster
+                  .multiply(1)
+                  .select(bandNames=['NIR', 'Red']).compute(**computeKwds('NIR_Red.bsq'))
+                  .normalizedDifference(bandNames=['NIR', 'Red'])
+                  .where(condition=raster.select('CLD').equal(0), raster2=-1)
+                  #.multiply(raster2=raster.select('CLD').not_equal(0))
+
+                .compute(**computeKwds('ndvi.bsq')))
+
+    def test_collectionForce(self):
+
+        #print(force.tilingScheme.tiles()['X0070_Y0043'].projection())
+        #return
+
+
+        point = Geometry(wkt='POINT(13.7 52.5)', projection=Projection.WGS84())
+
+
+
+
+        forceCollections = force.collections(folder=folderL2, ext='.tif')
+        filtered = (forceCollections.l8
+                        .filterDate('20170101', '20171231')
+                        .filterBounds(point)
+                        .map(lambda raster: raster.side(print))
+                        .map(lambda raster: raster.normalizedDifference(bandNames=['NIR', 'Red'], filename=r'c:\ndvi.bsq' )))
+
+
+
+
+        print(len(filtered))
+
+        #for raster in filtered.rasters():
+        #    print(raster)
+        #    break
+
+    def test_Raster(self):
+
+        # get the first landsat 8 raster in the collection
+        raster = force.collections(folder=folderL2, ext='.tif').l8.first()
+
+        # define output tiling scheme
+        tilingScheme = TilingScheme()
+        tilingScheme.addTile(name='x1_y1', extent=Extent(xmin=13, xmax=13.5, ymin=52, ymax=52.5, projection=Projection.WGS84()))
+        tilingScheme.addTile(name='x2_y1', extent=Extent(xmin=13.5, xmax=14, ymin=52, ymax=52.5, projection=Projection.WGS84()))
+        tilingScheme.addTile(name='x1_y2', extent=Extent(xmin=13, xmax=13.5, ymin=52.5, ymax=53, projection=Projection.WGS84()))
+        tilingScheme.addTile(name='x2_y2', extent=Extent(xmin=13.5, xmax=14, ymin=52.5, ymax=53, projection=Projection.WGS84()))
+
+
+
+        # define cloud / cloud shadow mask
+        onTheFly = True
+        cld = raster.select(bandNames=['CLD'])
+        if onTheFly:
+            mask = cld.updateTransform(function=lambda cld: cld == 0)
+        else:
+            mask = cld.expression(expression='cld == 0', variables={'cld': cld},
+                                  tilingScheme=tilingScheme, resolution = 0.001,
+                                  filename = join(outdir, 'ndvi.bsq'))
+
+        raster = raster.updateMask(mask=mask)
+
+        ndvi = raster.normalizedDifference(bandNames=['NIR', 'Red'],
+                                           tilingScheme=tilingScheme, resolution=0.001,
+                                           filename=join(outdir, 'ndvi.bsq'))
+
+        a= ndvi
+
+    def test_collectionNDVI(self):
+
+        l2Collections = force.collections(folder=folderL2, ext='.tif')
+        l8 = l2Collections.l8
+        s2 = l2Collections.s2
+        all = l8 #.merge(s2)
+
+        def addNDVI(raster):
+            assert isinstance(raster, Raster)
+            return (raster.multiply(1).addRaster(raster.normalizedDifference(bandNames=['NIR', 'Red']).rename(['NDVI'])))
+
+        all = (all.filterDate(start='2017-01-01', end='2017-12-31')
+                  .map(function=addNDVI))
+
+        #median = all.median(bandNames=['Red', 'NIR', 'SWIR1', 'NDVI'])
+        #cmean = median.compute(**computeKwds('mean'))
+        a=1
 
 
 
