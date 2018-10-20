@@ -11,6 +11,10 @@ import hubdc.hubdcerrors as errors
 
 gdal.UseExceptions()
 
+def assertType(obj, type):
+    assert isinstance(obj, type)
+    return obj
+
 class RasterCreationOptions(object):
     '''Class for managing raster creation options.'''
 
@@ -212,8 +216,9 @@ class VectorDriver(object):
 
     def ogrDriver(self):
         '''Returns the OGR driver object.'''
-
-        return ogr.GetDriverByName(self._name)
+        driver = ogr.GetDriverByName(self._name)
+        assert isinstance(driver, ogr.Driver)
+        return driver
 
     def name(self):
         '''Returns the driver name.'''
@@ -1367,7 +1372,7 @@ class RasterDataset(object):
         if value is not None:
             self.setNoDataValues(values=[value] * self.zsize())
             if self.driver().equal(other=RasterDriver(name='ENVI')):
-                self.setMetadataItem(key='data ignore value', value=value)
+                self.setMetadataItem(key='data ignore value', value=value, domain='ENVI')
             self.flushCache()
         return self
 
@@ -1422,7 +1427,7 @@ class RasterDataset(object):
             metadataDict[domain] = self.metadataDomain(domain=domain)
         return metadataDict
 
-    def setMetadataItem(self, key, value, domain=''):
+    def setMetadataItem(self, key, value, domain):
         '''Set a metadata item. ``value`` can be a string, a number or a list of strings or numbers.'''
         if value is None:
             return
@@ -1443,8 +1448,6 @@ class RasterDataset(object):
         assert isinstance(metadataDict, dict)
         for domain, metadataDomain in metadataDict.items():
             self.setMetadataDomain(metadataDomain=metadataDomain, domain=domain)
-            #for key, value in metadataDict[domain].items():
-            #    self.setMetadataItem(key=key, value=value, domain=domain)
 
     def copyMetadata(self, other):
         '''Copy raster and raster band metadata from other to self.'''
@@ -1972,11 +1975,27 @@ class RasterBandDataset():
         self._gdalBand.SetMetadataItem(key, gdalString, domain)
 
     def metadataItem(self, key, domain='', dtype=str):
+        '''Return the metadata item.'''
         key = key.replace(' ', '_')
         gdalString = self._gdalBand.GetMetadataItem(key, domain)
         if gdalString is None:
             return None
         return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
+
+    def metadataDomain(self, domain=''):
+        '''Return the metadata dictionary for the given ``domain``.'''
+        metadataDomain = dict()
+        for key in self._gdalBand.GetMetadata(domain):
+            key = key.replace('_', ' ')
+            metadataDomain[key] = self.metadataItem(key=key, domain=domain)
+        return metadataDomain
+
+    def metadataDict(self):
+        '''Return the metadata dictionary for all domains.'''
+        metadataDict = dict()
+        for domain in self.metadataDomainList():
+            metadataDict[domain] = self.metadataDomain(domain=domain)
+        return metadataDict
 
     def copyMetadata(self, other):
         '''Copy raster and raster band metadata from self to other '''
@@ -2069,9 +2088,19 @@ class VectorDataset(object):
     def __init__(self, ogrDataSource, layerNameOrIndex=0):
         '''Creates new instance from given ogr.DataSource and layer name or index given by ``nameOrIndex``.'''
 
-        assert isinstance(ogrDataSource, ogr.DataSource), str(ogrDataSource)
+        #assert isinstance(ogrDataSource, ogr.DataSource), str(ogrDataSource)
+        assert isinstance(ogrDataSource, gdal.Dataset), str(ogrDataSource)
+
         self._ogrDataSource = ogrDataSource
-        self._ogrLayer = ogrDataSource.GetLayer(iLayer=layerNameOrIndex)
+        if isinstance(layerNameOrIndex, int):
+            self._ogrLayer = ogrDataSource.GetLayerByIndex(layerNameOrIndex)
+        elif isinstance(layerNameOrIndex, str):
+            self._ogrLayer = ogrDataSource.GetLayerByName(layerNameOrIndex)
+        else:
+            raise TypeError(str(layerNameOrIndex))
+
+        if self._ogrLayer is None:
+            raise errors.InvalidOGRLayerError(layerNameOrIndex)
         self._filename = self._ogrDataSource.GetDescription()
         self._layerNameOrIndex = layerNameOrIndex
         self._reprojectionCache = dict()
@@ -2117,9 +2146,13 @@ class VectorDataset(object):
         return self._ogrDataSource
 
     def ogrLayer(self):
-        '''Retrurns the ogr.Layer.'''
+        '''Returns the ogr.Layer.'''
         assert isinstance(self._ogrLayer, ogr.Layer)
         return self._ogrLayer
+
+    def geometryTypeName(self):
+        '''Return the geometry type name.'''
+        return ogr.GeometryTypeToName(self.ogrLayer().GetGeomType())
 
     def close(self):
         '''Closes the ogr.DataSourse and ogr.Layer'''
@@ -2209,10 +2242,69 @@ class VectorDataset(object):
         vector.ogrLayer().SetAttributeFilter(None)
         return raster
 
+    def metadataDomainList(self):
+        '''Returns the list of metadata domain names.'''
+        domains = self._ogrLayer.GetMetadataDomainList()
+        return domains if domains is not None else []
+
+    def metadataItem(self, key, domain='', dtype=str, required=False, default=None):
+        '''Returns the value (casted to a specific ``dtype``) of a metadata item.'''
+        key = key.replace(' ', '_')
+        gdalString = self._ogrLayer.GetMetadataItem(key, domain)
+        if gdalString is None:
+            if required:
+                raise Exception('missing metadata item: key={}, domain={}'.format(key, domain))
+            return default
+        return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
+
+    def metadataDomain(self, domain=''):
+        '''Returns the metadata dictionary for the given ``domain``.'''
+        metadataDomain = dict()
+        for key in self._ogrLayer.GetMetadata(domain):
+            key = key.replace('_', ' ')
+            metadataDomain[key] = self.metadataItem(key=key, domain=domain)
+        return metadataDomain
+
+    def metadataDict(self):
+        '''Returns the metadata dictionary for all domains.'''
+        metadataDict = dict()
+        for domain in self.metadataDomainList():
+            metadataDict[domain] = self.metadataDomain(domain=domain)
+        return metadataDict
+
+    def setMetadataItem(self, key, value, domain=''):
+        '''Set a metadata item. ``value`` can be a string, a number or a list of strings or numbers.'''
+        if value is None:
+            return
+        key = key.replace(' ', '_').strip()
+        if domain.upper() == 'ENVI' and key.lower() == 'file_compression':
+            return
+        gdalString = MetadataFormatter.valueToString(value)
+        self._ogrLayer.SetMetadataItem(key, gdalString, domain)
+
+    def setMetadataDomain(self, metadataDomain, domain):
+        '''Set the metadata domain'''
+        assert isinstance(metadataDomain, dict)
+        for key, value in metadataDomain.items():
+            self.setMetadataItem(key=key, value=value, domain=domain)
+
+    def setMetadataDict(self, metadataDict):
+        '''Set the metadata dictionary'''
+        assert isinstance(metadataDict, dict)
+        for domain, metadataDomain in metadataDict.items():
+            self.setMetadataDomain(metadataDomain=metadataDomain, domain=domain)
+            #for key, value in metadataDict[domain].items():
+            #    self.setMetadataItem(key=key, value=value, domain=domain)
+
     def reprojectOnTheFly(self, projection):
         '''Returns a reprojection of self into the given :class:`~hubdc.model.Projection`.'''
 
         # need to temporary create a VRT file
+        assert 0
+        options = gdal.VectorTranslateOptions(format='Memory', layerName='polygons')
+        outDs = gdal.VectorTranslate(filename, vector.ogrDataSource(), options=options)
+
+        assert 0 # implement with gdal.VectorTranslate
         vrtDefinition = ['<OGRVRTDataSource>\n',
                          '    <OGRVRTWarpedLayer>\n',
                          '        <OGRVRTLayer name="{}">\n'.format(basename(self.filename()).replace('.shp', '')),
@@ -2297,7 +2389,7 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     return rasterDataset
 
 
-def openVectorDataset(filename, layerNameOrIndex=0, update=False):
+def openVectorDataset(filename, layerNameOrIndex=None, update=False):
     '''
     Opens the vector layer given by ``filename`` and ``layerNameOrIndex``.
 
@@ -2312,11 +2404,21 @@ def openVectorDataset(filename, layerNameOrIndex=0, update=False):
     '''
 
     assert isinstance(filename, str), type(filename)
-    if not exists(filename):
-        raise errors.FileNotExistError(filename)
+
+    # evaluate "<filename> | layername=<layername>" pattern used by QGIS
+    if len(filename.split('|')) == 2:
+        tmp = filename.split('|')
+        filename = tmp[0].strip()
+        layerNameOrIndex = tmp[1].split('=')[1].strip()
+
+    if layerNameOrIndex is None:
+        layerNameOrIndex = 0
+
     if str(layerNameOrIndex).isdigit():
         layerNameOrIndex = int(layerNameOrIndex)
-    ogrDataSource = ogr.Open(filename, int(update))
+    #ogrDataSource = ogr.Open(filename, int(update))
+    ogrDataSource = gdal.OpenEx(filename, gdal.OF_VECTOR)
+
     if ogrDataSource is None:
         raise errors.InvalidOGRDataSourceError(filename)
 

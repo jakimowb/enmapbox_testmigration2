@@ -14,6 +14,9 @@ import hubflow.core as hfc
 
 gdal.UseExceptions()
 
+CACHE = dict()
+
+
 class Projection(object):
     '''Class for managing projections.'''
 
@@ -546,10 +549,13 @@ class Date(object):
 class List(object):
 
     def __init__(self, items):
-        self.items = list(items)
+        self._items = list(items)
 
     def map(self, function, **kwargs):
-        pass
+        collection = Collection()
+        for item in self._items:
+            collection._addRaster(raster=function(item, **kwargs))
+        return collection
 
 
 class Band(object):
@@ -671,7 +677,7 @@ class Operand(object):
         if isinstance(self, (Raster, Collection)):
             pipeline = Pipeline(self)
         elif isinstance(self, Pipeline):
-            pipeline = self
+            pipeline = copy.deepcopy(self)
         else:
             assert 0
         pipeline.connect(operator=operator)
@@ -892,12 +898,15 @@ class CollectionOperand(Operand):
     def median(self, bandNames=None):
         return self._connect(operator=ReduceMedian(bandNames=bandNames))
 
+    def toBands(self):
+        return self._connect(operator=ReduceToBands())
 
 class Pipeline(Operand):
     def __init__(self, operand):
         assert isinstance(operand, (Raster, Collection))
         self._operand = operand
         self._steps = list()
+        self._cache = False
 
     def connect(self, operator):
         assert isinstance(operator, Operator)
@@ -964,22 +973,45 @@ class Pipeline(Operand):
 
         return operand
 
+    def cache(self):
+        self._cache = True
+        return self
+
+
     def arrays(self, grid, returnRaster=False):
         assert isinstance(grid, Grid)
+
         tilingScheme = SingleTileTilingScheme(extent=grid.extent())
-        raster = self.compute(tilingScheme=tilingScheme, resolution=grid.resolution(),
-                              filename='/vsimem/pipeline/raster.bsq', driver=RasterDriver('ENVI'), options=None)
-        array = openRasterDataset(filename='/vsimem/pipeline/./raster.bsq').readAsArray()
-        maskArray = openRasterDataset(filename='/vsimem/pipeline/./.mask.raster.bsq').readAsArray()
-        gdal.Unlink('/vsimem/pipeline/./raster.bsq')
-        gdal.Unlink('/vsimem/pipeline/./.mask.raster.bsq')
+        filename = '/vsimem/pipeline/raster.bsq'
+        arrayFilename = '/vsimem/pipeline/./raster.bsq'
+        maskArrayFilename = '/vsimem/pipeline/./.mask.raster.bsq'
+
+        if self._cache:
+            filename = filename.replace('pipeline', 'cache/{}'.format(id(self)))
+            arrayFilename = arrayFilename.replace('pipeline', 'cache/{}'.format(id(self)))
+            maskArrayFilename = maskArrayFilename.replace('pipeline', 'cache/{}'.format(id(self)))
+
+
+        key = '{}_{}'.format(id(self), id(grid))
+        if key in CACHE:
+            raster, array, maskArray = CACHE[key]
+        else:
+            raster = self.compute(tilingScheme=tilingScheme, resolution=grid.resolution(),
+                                  filename=filename, driver=RasterDriver('ENVI'), options=None)
+            array = openRasterDataset(filename=arrayFilename).readAsArray()
+            maskArray = openRasterDataset(filename=maskArrayFilename).readAsArray()
+
+        if self._cache:
+            CACHE[key] = raster, array, maskArray
+        else:
+            gdal.Unlink(arrayFilename)
+            gdal.Unlink(maskArrayFilename)
+
         if returnRaster:
             return array, maskArray, raster
         else:
             return array, maskArray
 
-    def bandNames(self):
-        a=1
 
 class Operator(object):
     pass
@@ -1061,6 +1093,27 @@ class ReduceMedian(ReduceOperator):
 
     def bandName(self, index, collection):
         return 'Median_{}'.format(self.bandNames(collection=collection)[index])
+
+
+class ReduceToBands(ReduceOperator):
+
+    def __init__(self):
+        self._bandNames = None
+
+    def calculate(self, collection, grid):
+        assert isinstance(collection, Collection)
+        assert isinstance(grid, Grid)
+
+        array = list()
+        maskArray = list()
+        for raster in collection.rasters():
+            a, m = raster.arrays(grid=grid)
+            array.extend(a)
+            maskArray.extend(np.ndarray.view(m, dtype=np.bool8))
+        return array, maskArray
+
+    def bandName(self, index, collection):
+        return 'band {}'.format(index)
 
 
 class MapIdentity(MapOperator):
@@ -1334,6 +1387,7 @@ class Raster(Operand):
         self._name = name
         self._date = date
         self._bands = list()
+        self._cache = False
 
     def __str__(self):
         return self._name
@@ -1366,10 +1420,7 @@ class Raster(Operand):
         if index is not None:
             band = self._bands[index]
         elif name is not None:
-            try:
-                index = [band.name() for band in self.bands()].index(name)
-            except:
-                a=1
+            index = [band.name() for band in self.bands()].index(name)
             band = self._bands[index]
         elif wavelength is not None:
             if all([v is None for v in self.wavelengths()]):
@@ -1396,6 +1447,10 @@ class Raster(Operand):
                     .identity()
                     .compute(filename=filename, tilingScheme=tilingScheme, resolution=resolution,
                              noDataValues=noDataValues, categoryNames=categoryNames, driver=driver, options=options))
+
+    def cache(self):
+        self._cache = True
+        return self
 
     def select(self, bandNames):
 
@@ -1425,12 +1480,13 @@ class Raster(Operand):
         return raster
 
     def addRaster(self, raster):
-        assert isinstance(raster, Raster)
         result = copy.deepcopy(self)
 
-        for band in raster.bands():
-            result.addBand(band=band)
-
+        if isinstance(raster, Raster):
+            for band in raster.bands():
+                result.addBand(band=band)
+        else:
+            assert 0
         return result
 
     def side(self, function):
@@ -1481,10 +1537,10 @@ class Collection(CollectionOperand):
 
     def rasters(self):
         for raster in self._rasters:
-            assert isinstance(raster, Raster)
+            assert isinstance(raster, (Raster, Pipeline))
             yield raster
 
-    def addRaster(self, raster):
+    def _addRaster(self, raster):
         assert isinstance(raster, Operand)
         self._rasters.append(raster)
 

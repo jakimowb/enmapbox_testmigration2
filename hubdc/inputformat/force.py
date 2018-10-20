@@ -9,10 +9,8 @@ SENTINEL2A, SENTINEL2B = SENTINEL2_SENSORS
 (BAND_Blue, BAND_Green, BAND_Red, BAND_RedEdge1, BAND_RedEdge2, BAND_RedEdge3, BAND_PANNearInfrared, BAND_NearInfrared,
 BAND_ShortwaveInfrared1, BAND_ShortwaveInfrared2, BAND_QualityAssuranceInformation, BAND_AerosolOpticalDepth,
 BAND_CloudAndCloudShadowDistance, BAND_WaterVapor, BAND_ViewZenith, BAND_HazeOptimizedTransformation) = \
-    ('Blue', 'Green', 'Red', 'Red Edge 1', 'Red Edge 2', 'Red Edge 3',
-    'PAN Near Infrared', 'Near Infrared', 'Shortwave Infrared 1', 'Shortwave Infrared 2',
-     'Quality Assurance Information', 'Aerosol Optical Depth', 'Cloud and Cloud Shadow Distance', 'Water Vapor',
-     'View Zenith', 'Haze Optimized Transformation')
+    ('BLUE', 'GREEN', 'RED', 'RE1', 'RE2', 'RE3', 'PNIR', 'NIR', 'SWIR1', 'SWIR2', 'QAI', 'AOD', 'CLD', 'WV',
+     'VZN', 'HOT')
 
 LANDSAT_BOA_BANDS = (BAND_Blue, BAND_Green, BAND_Red, BAND_PANNearInfrared, BAND_NearInfrared, BAND_ShortwaveInfrared1,
                      BAND_ShortwaveInfrared2)
@@ -65,7 +63,7 @@ def landsatRaster(folder, date, sensor, ext, geometry, tilingScheme):
             raster.addBand(band=Band(filename, index=index, mask=None, name=names[index], date=date,
                                      wavelength=wavelength, geometry=geometry, tilingScheme=tilingScheme))
 
-    mask = raster.select(BAND_QualityAssuranceInformation).not_equal(1)
+    mask = raster.select(BAND_QualityAssuranceInformation).not_equal(1).cache()
     raster = raster.updateMask(mask=mask)
     return raster
 
@@ -77,6 +75,10 @@ tilingScheme.addTile(Tile(name='X0069_Y0043',
 tilingScheme.addTile(Tile(name='X0070_Y0043',
                      extent=Extent(xmin=4556026.0, xmax=4586026.0, ymin=3254919.5, ymax=3284919.5,
                                    projection=Projection(wkt='PROJCS["ETRS89/LAEAEurope",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Lambert_Azimuthal_Equal_Area"],PARAMETER["latitude_of_center",52],PARAMETER["longitude_of_center",10],PARAMETER["false_easting",4321000],PARAMETER["false_northing",3210000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","3035"]]'))))
+
+#tilingScheme = TilingSchemeFile(filename=r'C:\Work\data\FORCE\tiling_scheme\europe_3035.shp', )
+
+
 def collections(folder, ext):
     sensors = LANDSAT_SENSORS + SENTINEL2_SENSORS
     rasters = {sensor: dict() for sensor in sensors}
