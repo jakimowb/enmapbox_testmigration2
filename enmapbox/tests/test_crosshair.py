@@ -35,7 +35,7 @@ class CrosshairTests(unittest.TestCase):
         refCanvas.setExtent(lyr.extent())
         refCanvas.setDestinationCrs(lyr.crs())
         refCanvas.show()
-        refCanvas.mCrosshairItem.setShow(True)
+        refCanvas.mCrosshairItem.setVisibility(True)
 
 
         style = CrosshairDialog.getCrosshairStyle(mapCanvas=refCanvas)

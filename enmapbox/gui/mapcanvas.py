@@ -679,6 +679,7 @@ class CanvasLink(QObject):
                     assert isinstance(links, list)
 
                     for link in links:
+                        assert isinstance(link, CanvasLink)
                         dstCanvas = link.theOtherCanvas(srcCanvas)
                         assert dstCanvas not in handledCanvases
                         assert dstCanvas == link.apply(srcCanvas, dstCanvas)
@@ -808,8 +809,6 @@ class CanvasLink(QObject):
         else:
             raise NotImplementedError()
 
-        s = ""
-
         return dstCanvas
 
     def applyTo(self, canvasTo):
@@ -860,7 +859,7 @@ class MapCanvas(QgsMapCanvas):
     sigNameChanged = pyqtSignal(str)
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
-    sigCanvasClicked = pyqtSignal()
+    sigCrosshairPositionChanged = pyqtSignal(SpatialPoint)
 
     _cnt = 0
 
@@ -899,13 +898,32 @@ class MapCanvas(QgsMapCanvas):
 
 
     def mousePressEvent(self, event:QMouseEvent):
-        #print('MapCanvas::mousePressEvent')
+
         b = event.button() == Qt.LeftButton
+        if b and isinstance(self.mapTool(), QgsMapTool):
+            from enmapbox.gui.maptools import CursorLocationMapTool
+            b = isinstance(self.mapTool(), (QgsMapToolIdentify, CursorLocationMapTool))
+
         super(MapCanvas, self).mousePressEvent(event)
+
         if b:
-            pointXY = self.mapSettings().mapToPixel().toMapCoordinates(event.x(), event.y())
-            self.mCrosshairItem.setPosition(pointXY)
-            self.sigCanvasClicked.emit()
+            ms = self.mapSettings()
+            pointXY = ms.mapToPixel().toMapCoordinates(event.x(), event.y())
+            spatialPoint = SpatialPoint(ms.destinationCrs(), pointXY)
+            self.setCrosshairPosition(spatialPoint)
+
+
+    def setCrosshairPosition(self, spatialPoint:SpatialPoint, emitSignal=True):
+        """
+        Sets the position of the Crosshair.
+        :param spatialPoint: SpatialPoint
+        :param emitSignal: True (default). Set False to avoid emitting sigCrosshairPositionChanged
+        :return:
+        """
+        point = spatialPoint.toCrs(self.mapSettings().destinationCrs())
+        self.mCrosshairItem.setPosition(point)
+        if emitSignal:
+            self.sigCrosshairPositionChanged.emit(point)
 
     def mouseMoveEvent(self, event):
         self.mMapMouseEvent = QgsMapMouseEvent(self,event)
@@ -1060,7 +1078,7 @@ class MapCanvas(QgsMapCanvas):
         return self.mCrosshairItem.crosshairStyle
 
     def setShowCrosshair(self,b):
-        self.mCrosshairItem.setShow(b)
+        self.mCrosshairItem.setVisibility(b)
 
     def crosshairIsVisible(self):
         return self.mCrosshairItem.mShow

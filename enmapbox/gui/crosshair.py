@@ -124,7 +124,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         self.sizePixelBox = 1
         self.mShow = True
         self.crosshairStyle = CrosshairStyle()
-        self.crosshairStyle.setShow(False)
+        self.crosshairStyle.setVisibility(False)
         self.setCrosshairStyle(self.crosshairStyle)
         self.mPosition = None
 
@@ -138,7 +138,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         self.mPosition = point
         self.canvas.update()
 
-    def setShow(self, b:bool):
+    def setVisibility(self, b:bool):
         """
         Sets the visibility of a Crosshair
         :param b:
@@ -147,7 +147,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         assert isinstance(b, bool)
         old = self.mShow
         self.mShow = b
-        self.crosshairStyle.setShow(b)
+        self.crosshairStyle.setVisibility(b)
         if old != b:
             self.canvas.update()
 
