@@ -1048,12 +1048,12 @@ class MapCanvas(QgsMapCanvas):
     def setCRSfromDialog(self, *args):
         setMapCanvasCRSfromDialog(self)
 
-    def setCrosshairStyle(self, crosshairStyle):
-        if crosshairStyle is None:
-            self.mCrosshairItem.crosshairStyle.setShow(False)
-            self.mCrosshairItem.update()
-        else:
-            assert isinstance(crosshairStyle, CrosshairStyle)
+    def setCrosshairStyle(self, crosshairStyle:CrosshairStyle):
+        """
+        Sets the crosshair style
+        :param crosshairStyle: CrosshairStyle
+        """
+        if isinstance(crosshairStyle, CrosshairStyle):
             self.mCrosshairItem.setCrosshairStyle(crosshairStyle)
 
     def crosshairStyle(self):

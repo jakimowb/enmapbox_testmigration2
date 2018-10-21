@@ -22,7 +22,7 @@
 
 
 # believe it or not, this module was inspired by the CS:GO Crosshair Generator https://tools.dathost.net/
-import os
+import os, warnings
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtCore import *
@@ -103,9 +103,13 @@ class CrosshairStyle(object):
         self.mShowDot = b
 
     def setShow(self, b):
+        warnings.warn('MapCanvas.setShow was replaced by .setVisibility(b:bool)', DeprecationWarning)
         assert isinstance(b, bool)
         self.mShow = b
 
+    def setVisibility(self, b:bool):
+        assert isinstance(b, bool)
+        self.mShow = b
 
 
 class CrosshairMapCanvasItem(QgsMapCanvasItem):
