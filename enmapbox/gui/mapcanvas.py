@@ -860,6 +860,7 @@ class MapCanvas(QgsMapCanvas):
     sigNameChanged = pyqtSignal(str)
     sigCanvasLinkAdded = pyqtSignal(CanvasLink)
     sigCanvasLinkRemoved = pyqtSignal(CanvasLink)
+    sigCanvasClicked = pyqtSignal()
 
     _cnt = 0
 
@@ -897,6 +898,14 @@ class MapCanvas(QgsMapCanvas):
         MapCanvas._instances.add(self)
 
 
+    def mousePressEvent(self, event:QMouseEvent):
+        #print('MapCanvas::mousePressEvent')
+        b = event.button() == Qt.LeftButton
+        super(MapCanvas, self).mousePressEvent(event)
+        if b:
+            pointXY = self.mapSettings().mapToPixel().toMapCoordinates(event.x(), event.y())
+            self.mCrosshairItem.setPosition(pointXY)
+            self.sigCanvasClicked.emit()
 
     def mouseMoveEvent(self, event):
         self.mMapMouseEvent = QgsMapMouseEvent(self,event)

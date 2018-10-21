@@ -30,25 +30,19 @@ class CrosshairTests(unittest.TestCase):
 
         lyr = QgsRasterLayer(enmap)
         QgsProject.instance().addMapLayer(lyr)
-        refCanvas = QgsMapCanvas()
+        refCanvas = MapCanvas()
         refCanvas.setLayers([lyr])
         refCanvas.setExtent(lyr.extent())
         refCanvas.setDestinationCrs(lyr.crs())
         refCanvas.show()
+        refCanvas.mCrosshairItem.setShow(True)
 
 
         style = CrosshairDialog.getCrosshairStyle(mapCanvas=refCanvas)
-        self.assertIsInstance(style, CrosshairStyle)
+        if style is not None:
+            self.assertIsInstance(style, CrosshairStyle)
 
-        canvas = QgsMapCanvas()
-        canvas.setExtent(QgsRectangle(0, 0, 1, 1))
-        i = CrosshairMapCanvasItem(canvas)
-        i.setShow(True)
-        s = CrosshairStyle()
-        s.setShow(True)
-        i.setCrosshairStyle(s)
-        canvas.show()
-
+        QGIS_APP.exec_()
 
 if __name__ == "__main__":
     unittest.main()

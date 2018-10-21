@@ -20,17 +20,22 @@
 """
 # noinspection PyPep8Naming
 
+
+# believe it or not, this module was inspired by the CS:GO Crosshair Generator https://tools.dathost.net/
 import os
 from qgis.core import *
 from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 import numpy as np
 
 from enmapbox.gui.utils import *
 
 class CrosshairStyle(object):
+    """
+    Defines the style settings of a CrossHair
+    """
     def __init__(self, **kwds):
 
         self.mColor = QColor.fromRgb(255,0,0, 255)
@@ -65,7 +70,12 @@ class CrosshairStyle(object):
         assert size >= 0
         self.mThickness = size
 
-    def setShowPixelBorder(self, b):
+    def setShowPixelBorder(self, b:bool):
+        """
+        Sets if the pixel border of underlying raster layer wil be drawn
+        :param b:
+        :return:
+        """
         assert isinstance(b, bool)
         self.mShowPixelBorder = b
 
@@ -80,6 +90,7 @@ class CrosshairStyle(object):
     def setShowDistanceMarker(self, b):
         assert isinstance(b, bool)
         self.mShowDistanceMarker = b
+
     def _normalize(self, size):
         assert size >= 0 and size <= 100
         size = float(size)
@@ -111,8 +122,24 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         self.crosshairStyle = CrosshairStyle()
         self.crosshairStyle.setShow(False)
         self.setCrosshairStyle(self.crosshairStyle)
+        self.mPosition = None
 
-    def setShow(self, b):
+
+    def setPosition(self, point:QgsPointXY):
+        """
+        Sets the point on which the Crosshair will be shown.
+        :param point: QgsPointXY
+        """
+        #print('set position')
+        self.mPosition = point
+        self.canvas.update()
+
+    def setShow(self, b:bool):
+        """
+        Sets the visibility of a Crosshair
+        :param b:
+        :return:
+        """
         assert isinstance(b, bool)
         old = self.mShow
         self.mShow = b
@@ -128,13 +155,18 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         else:
             self.rasterGridLayer = None
 
-    def setPixelBox(self, nPx):
+    def setPixelBox(self, nPx:int):
         assert nPx >= 0
-        assert nPx == 1 or nPx % 3 == 0, 'Size of pixel box must be an odd integer'
+        assert nPx == 1 or nPx % 3 == 0, 'Size of pixel box must be an odd integer value (1,3,5...)'
         self.sizePixelBox = nPx
 
 
-    def setCrosshairStyle(self, crosshairStyle):
+    def setCrosshairStyle(self, crosshairStyle:CrosshairStyle):
+        """
+        Sets the CrosshairStyle
+        :param crosshairStyle: CrosshairStyle
+        :return:
+        """
         assert isinstance(crosshairStyle, CrosshairStyle)
         self.crosshairStyle = crosshairStyle
 
@@ -143,12 +175,16 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         #self.updateCanvas()
 
     def paint(self, painter, QStyleOptionGraphicsItem=None, QWidget_widget=None):
-        if self.mShow and self.crosshairStyle.mShow:
+        if isinstance(self.mPosition, QgsPointXY) and self.mShow and self.crosshairStyle.mShow:
            #paint the crosshair
             size = self.canvas.size()
             m2p = self.canvas.mapSettings().mapToPixel()
-            centerGeo = self.canvas.center()
-            centerPx = self.toCanvasCoordinates(self.canvas.center())
+            centerGeo = self.mPosition
+
+            if not self.canvas.extent().contains(centerGeo):
+                return
+
+            centerPx = self.toCanvasCoordinates(centerGeo)
 
             x0 = centerPx.x() * (1.0 - self.crosshairStyle.mSize)
             y0 = centerPx.y() * (1.0 - self.crosshairStyle.mSize)
@@ -335,6 +371,9 @@ def nicePredecessor(l):
 
 
 class CrosshairWidget(QWidget, loadUI('crosshairwidget.ui')):
+    """
+    A widget to configurate a CrossHair
+    """
     sigCrosshairStyleChanged = pyqtSignal(CrosshairStyle)
 
     def __init__(self, title='<#>', parent=None):
@@ -470,16 +509,4 @@ class CrosshairDialog(QgsDialog):
         canvas.refreshAllLayers()
 
 
-if __name__ == "__main__":
-    from enmapboxtestdata import enmap
-    from enmapbox.gui.utils import initQgisApplication
-    app = initQgisApplication()
-    from enmapbox.gui.mapcanvas import MapCanvas
-    mapCanvas = MapCanvas()
-
-    r = CrosshairDialog.getCrosshairStyle(
-        crosshairStyle=mapCanvas.crosshairStyle(), mapCanvas=mapCanvas
-    )
-    print(r)
-    app.exec_()
 
