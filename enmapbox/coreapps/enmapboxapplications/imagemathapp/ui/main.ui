@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1626</width>
-    <height>556</height>
+    <height>676</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -171,6 +171,55 @@
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QgsCollapsibleGroupBox" name="mGroupBox_2">
+           <property name="title">
+            <string>Processing</string>
+           </property>
+           <layout class="QFormLayout" name="formLayout">
+            <item row="1" column="1">
+             <widget class="QSpinBox" name="uiBlockOverlap">
+              <property name="suffix">
+               <string> px</string>
+              </property>
+              <property name="maximum">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>Block overlap</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>Block size</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="uiBlockSize">
+              <property name="suffix">
+               <string> px</string>
+              </property>
+              <property name="minimum">
+               <number>128</number>
+              </property>
+              <property name="maximum">
+               <number>999999999</number>
+              </property>
+              <property name="singleStep">
+               <number>128</number>
               </property>
              </widget>
             </item>

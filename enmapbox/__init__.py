@@ -73,15 +73,9 @@ except:
 
 #init some other requirements
 print('initialize EnMAP-Box editor widget factories')
-from enmapbox.gui.plotstyling import PlotStyleEditorWidgetFactory
-#register Editor widgets, if not done before
-reg = QgsGui.editorWidgetRegistry()
-if len(reg.factories()) == 0:
-    reg.initEditors()
+from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
+registerPlotStyleEditorWidget()
 
-if 'PlotSettings' not in reg.factories().keys():
-    plotStyleEditorWidgetFactory = PlotStyleEditorWidgetFactory('PlotSettings')
-    reg.registerWidget('PlotSettings', plotStyleEditorWidgetFactory)
-else:
-    plotStyleEditorWidgetFactory = reg.factories()['PlotSettings']
+from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
+registerSpectralProfileEditorWidget()
 

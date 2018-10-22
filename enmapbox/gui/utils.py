@@ -684,23 +684,20 @@ def guessDataProvider(src:str)->str:
     return None
 
 
-def settings():
-    """
-    Returns the QSettings object with EnMAPBox Settings
-    :return:
-    """
-    print('DEPRECATED CALL enmapbox.gui.utils.settings()')
-    return enmapboxSettings()
 
+def showMessage(message:str, title:str, level):
+    """
+    Shows a message using the QgsMessageViewer
+    :param message: str, message
+    :param title: str, title of viewer
+    :param level:
+    """
 
-def showMessage(message, title, level):
     v = QgsMessageViewer()
     v.setTitle(title)
 
-    v.setMessage(message, QgsMessageOutput.MessageHtml \
-        if message.startswith('<html>')
-    else QgsMessageOutput.MessageText)
-
+    isHtml = message.startswith('<html>')
+    v.setMessage(message, QgsMessageOutput.MessageHtml if isHtml else QgsMessageOutput.MessageText)
     v.showMessage(True)
 
 
