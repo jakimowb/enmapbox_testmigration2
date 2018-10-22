@@ -197,7 +197,12 @@ class ClassificationScheme(QObject):
         return s
 
     @staticmethod
-    def fromRasterBand(band):
+    def fromRasterBand(band:gdal.Band):
+        """
+        Reads the ClassificationScheme of a gdal.Band
+        :param band: gdal.Band
+        :return: ClassificationScheme, None if classes are undefined.
+        """
         assert isinstance(band, gdal.Band)
         cat = band.GetCategoryNames()
         ct = band.GetColorTable()
@@ -216,6 +221,12 @@ class ClassificationScheme(QObject):
 
     @staticmethod
     def fromRasterImage(path, bandIndex=None):
+        """
+        Reads a ClassificationScheme from a gdal.Dataset
+        :param path: str with path to gdal.Dataset or gdal.Dataset instances
+        :param bandIndex: int with band index
+        :return: ClassificationScheme
+        """
         ds = gdalDataset(path)
         assert ds is not None
 
@@ -350,6 +361,10 @@ class ClassificationScheme(QObject):
             c.setLabel(i)
 
     def removeClasses(self, classes):
+        """
+        Removes multiple ClassInfo
+        :param classes: [list-of-ClassInfo]
+        """
         for c in classes:
             assert c in self.mClasses
             i = self.mClasses.index(c)
@@ -358,6 +373,10 @@ class ClassificationScheme(QObject):
         self.sigClassesRemoved.emit(classes[:])
 
     def removeClass(self, c):
+        """
+        Removes a single ClassInfo.
+        :param c: ClassInfo
+        """
         self.removeClasses([c])
 
     def createClasses(self, n:int):
@@ -447,7 +466,12 @@ class ClassificationScheme(QObject):
 
         ds = None
 
-    def toString(self, sep=';'):
+    def toString(self, sep=';')->str:
+        """
+        A quick dump of all ClassInfos
+        :param sep:
+        :return: str
+        """
         lines = [sep.join(['class_value', 'class_name', 'R', 'G', 'B', 'A'])]
         for classInfo in self.mClasses:
             c = classInfo.mColor
@@ -458,6 +482,11 @@ class ClassificationScheme(QObject):
         return '\n'.join(lines)
 
     def saveToCsv(self, path, sep=';'):
+        """
+        Saves the ClassificationScheme as CSV table.
+        :param path: str, path of CSV file
+        :param sep: separator (';' by default)
+        """
         lines = self.toString(sep=sep)
         file = open(path, 'w')
         file.write(lines)
