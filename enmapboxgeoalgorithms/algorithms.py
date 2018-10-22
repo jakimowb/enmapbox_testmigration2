@@ -574,53 +574,115 @@ class ImportLibrary(EnMAPAlgorithm):
         return 'Import Library'
 
     def description(self):
-        return 'Import Library profiles and labels as Raster.'
+        return 'Import Library profiles as single line Raster.'
 
     def group(self):
         return self.GROUP_AUXILLIARY
 
-    P_IMPORT_PROFILES = 'importProfiles'
-    P_CLASSIFICATION_ATTRIBUTE = 'classificationAttribute'
-    P_REGRESSION__ATTRIBUTE = 'regressionAttribute'
+    def defineCharacteristics(self):
+        self.addParameterLibrary()
+        self.addParameterOutputRaster()
+
+    def processAlgorithm_(self):
+
+        library = self.getParameterLibrary()
+        filename = self.getParameterOutputRaster()
+        Raster.fromENVISpectralLibrary(filename=filename, library=library)
+        return {self.P_OUTPUT_RASTER: filename}
+
+
+ALGORITHMS.append(ImportLibrary())
+
+
+class ImportLibraryClassificationAttribute(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Import Library Classification Attribute'
+
+    def description(self):
+        return 'Import Library classification attribute as single line Classification.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    P_ATTRIBUTE = 'attribute'
 
     def defineCharacteristics(self):
         self.addParameterLibrary()
-        self.addParameterBoolean(name=self.P_IMPORT_PROFILES, description='Import Profiles', defaultValue=True,
-                                 optional=True)
-        self.addParameterString(name=self.P_CLASSIFICATION_ATTRIBUTE,
-                                description='Import Classification Labels', optional=True)
-        self.addParameterString(name=self.P_REGRESSION__ATTRIBUTE,
-                                description='Import Regression Labels', optional=True)
-        self.addParameterOutputRaster()
+        self.addParameterString(name=self.P_ATTRIBUTE, description='Classification Attribute',
+                                help='Attribute name as specified in the library CSV attribute file.')
         self.addParameterOutputClassification()
+
+    def processAlgorithm_(self):
+
+        library = self.getParameterLibrary()
+        attribute = self.getParameterString(self.P_ATTRIBUTE)
+
+        filename = self.getParameterOutputClassification()
+        Classification.fromENVISpectralLibrary(filename=filename, library=library, attribute=attribute)
+        return {self.P_OUTPUT_CLASSIFICATION: filename}
+
+
+ALGORITHMS.append(ImportLibraryClassificationAttribute())
+
+
+class ImportLibraryRegressionAttribute(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Import Library Regression Attributes'
+
+    def description(self):
+        return 'Import Library regression attributes as single line Regression.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    P_ATTRIBUTES = 'attributes'
+
+    def defineCharacteristics(self):
+        self.addParameterLibrary()
+        self.addParameterString(name=self.P_ATTRIBUTES, description='Regression Attributes',
+                                help='List of attribute names as specified in the library CSV attribute file.')
         self.addParameterOutputRegression()
 
     def processAlgorithm_(self):
 
-        result = dict()
         library = self.getParameterLibrary()
-        if self.getParameterBoolean(name=self.P_IMPORT_PROFILES):
-            filename = self.getParameterOutputRaster()
-            Raster.fromENVISpectralLibrary(filename=filename, library=library)
-            result[self.P_OUTPUT_RASTER] = filename
+        attributes = [s.strip() for s in self.getParameterString(self.P_ATTRIBUTES).split(',')]
+        filename = self.getParameterOutputRegression()
+        Regression.fromENVISpectralLibrary(filename=filename, library=library, attributes=attributes)
+        return {self.P_OUTPUT_REGRESSION: filename}
 
 
-        if self.getParameterString(self.P_CLASSIFICATION_ATTRIBUTE) != '':
-            filename = self.getParameterOutputClassification()
-            Classification.fromENVISpectralLibrary(filename=filename, library=library, attribute=self.getParameterString(self.P_CLASSIFICATION_ATTRIBUTE))
-            result[self.P_OUTPUT_CLASSIFICATION] = filename
-
-        if self.getParameterString(self.P_REGRESSION__ATTRIBUTE) != '':
-            assert 0
-            filename = self.getParameterOutputRegression()
-            Regression.fromRasterMetadata(filename=filename, raster=library.raster(),
-                                          outputNames=self.getParameterString(self.P_REGRESSION__ATTRIBUTE))
-            result[self.P_OUTPUT_REGRESSION] = filename
-
-        return result
+ALGORITHMS.append(ImportLibraryRegressionAttribute())
 
 
-ALGORITHMS.append(ImportLibrary())
+class ImportLibraryFractionAttribute(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Import Library Fraction Attributes'
+
+    def description(self):
+        return 'Import Library fraction attributes as single line Fraction.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    P_ATTRIBUTES = 'attributes'
+
+    def defineCharacteristics(self):
+        self.addParameterLibrary()
+        self.addParameterString(name=self.P_ATTRIBUTES, description='Fraction Attributes',
+                                help='List of attribute names as specified in the library CSV attribute file.')
+        self.addParameterOutputFraction()
+
+    def processAlgorithm_(self):
+
+        library = self.getParameterLibrary()
+        attributes = [s.strip() for s in self.getParameterString(self.P_ATTRIBUTES).split(',')]
+        filename = self.getParameterOutputFraction()
+        Regression.fromENVISpectralLibrary(filename=filename, library=library, attributes=attributes)
+        return {self.P_OUTPUT_FRACTION: filename}
+
+
+ALGORITHMS.append(ImportLibraryFractionAttribute())
 
 
 class OpenTestMaps_Toolbox(EnMAPAlgorithm):
@@ -675,8 +737,7 @@ class OpenTestLibrary(EnMAPAlgorithm):
         for level in ['level 1', 'level 2']:
             filename = library.raster().filename().replace('.sli.transposed.vrt',
                                                            '.{}.classification.bsq'.format(level.replace(' ', '')))
-            Classification.fromRasterMetadata(filename=filename, raster=library.raster(),
-                                              classificationSchemeName=level)
+            Classification.fromENVISpectralLibrary(filename=filename, library=library, attribute=level)
             qgis.utils.iface.addRasterLayer(filename, basename(filename), 'gdal')
 
         return {}
@@ -1091,29 +1152,46 @@ class RasterStatistics(EnMAPAlgorithm):
 ALGORITHMS.append(RasterStatistics())
 
 
-class RasterViewMetadata(EnMAPAlgorithm):
+class MapViewMetadata(EnMAPAlgorithm):
     def displayName(self):
-        return 'View Raster Metadata'
+        return 'View Map Metadata'
 
     def description(self):
-        return 'Prints all Raster metadata to log.'
+        return 'Prints all Map metadata to log.'
 
     def group(self):
         return self.GROUP_AUXILLIARY
 
     def defineCharacteristics(self):
-        self.addParameterRaster()
+        self.addParameterMap()
 
     def processAlgorithm_(self):
-        raster = self.getParameterRaster()
-        for key, value in raster.dataset().metadataDict().items():
-            self._progressBar.setText(text='\n=======\nDomain: ' + key)
-            for key, value in value.items():
-                self._progressBar.setText(text='{} = {}'.format(key, value))
+        map = self.getParameterMap()
+
+        domainName = lambda key: key if key != '' else '<default>'
+
+        if isinstance(map, Raster):
+            for key, value in map.dataset().metadataDict().items():
+                self._progressBar.setText(text='\n===============\nDataset Domain: {}'.format(domainName(key)))
+                for k, v in value.items():
+                    self._progressBar.setText(text='{} = {}'.format(k, v))
+            for i, band in enumerate(map.dataset().bands()):
+                for key, value in band.metadataDict().items():
+                    self._progressBar.setText(text='\n===============\nBand {} Domain: {}'.format(i+1, domainName(key)))
+                    for k, v in value.items():
+                        self._progressBar.setText(text='{} = {}'.format(k, v))
+        elif isinstance(map, Vector):
+            for key, value in map.dataset().metadataDict().items():
+                self._progressBar.setText(text='\n===============\nLayer Domain: {}'.format(domainName(key)))
+                for k, v in value.items():
+                    self._progressBar.setText(text='{} = {}'.format(k, v))
+
+        else:
+            assert 0
         return {}
 
 
-ALGORITHMS.append(RasterViewMetadata())
+ALGORITHMS.append(MapViewMetadata())
 
 
 class RegressionPerformanceFromRaster(EnMAPAlgorithm):
@@ -1504,7 +1582,12 @@ class VectorFromRandomPointsFromClassification(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         classification = self.getParameterClassification()
-        n = self.getParameterNumberOfPointsPerClass(classification=classification)
+
+        def funcClassTotals():
+            counts = classification.statistics()
+            return counts
+
+        n = self.getParameterNumberOfPointsPerClass(classes=classification.classDefinition().classes(), funcClassTotals=funcClassTotals)
         filename = self.getParameterOutputVector()
         Vector.fromRandomPointsFromClassification(filename=filename, classification=classification, n=n,
                                                   progressBar=self._progressBar)
@@ -1533,8 +1616,14 @@ class VectorFromRandomPointsFromMask(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         filename = self.getParameterOutputVector()
+        mask = self.getParameterInvertableMask()
+        def funcTotal():
+            array = mask.array()
+            return np.sum(array)
+
+
         Vector.fromRandomPointsFromMask(filename=filename,
-                                        mask=self.getParameterInvertableMask(), n=self.getParameterNumberOfPoints(),
+                                        mask=mask, n=self.getParameterNumberOfPoints(funcTotal=funcTotal),
                                         progressBar=self._progressBar)
         return {self.P_OUTPUT_VECTOR: filename}
 

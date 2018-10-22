@@ -192,15 +192,30 @@ def test_CreateAdditionalTestdata():
     runalg(alg=alg, io=io)
 
 def test_ImportLibrary():
+
     alg = ImportLibrary()
     io = {alg.P_LIBRARY: enmapboxtestdata.speclib,
-          alg.P_IMPORT_PROFILES: True,
-          alg.P_CLASSIFICATION_ATTRIBUTE: 'level 2',
-          alg.P_REGRESSION__ATTRIBUTE: 'level 2',
-          alg.P_OUTPUT_RASTER: join(outdir, 'OpenLibraryRaster.bsq'),
-          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'OpenLibraryClassification.bsq'),
-          alg.P_OUTPUT_REGRESSION: join(outdir, 'OpenLibraryRegression.bsq')}
+          alg.P_OUTPUT_RASTER: join(outdir, 'ImportLibraryRaster.bsq')}
     runalg(alg=alg, io=io)
+
+    alg = ImportLibraryClassificationAttribute()
+    io = {alg.P_LIBRARY: enmapboxtestdata.speclib,
+          alg.P_ATTRIBUTE: 'level 2',
+          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ImportLibraryClassification.bsq')}
+    runalg(alg=alg, io=io)
+
+    alg = ImportLibraryRegressionAttribute()
+    io = {alg.P_LIBRARY: enmapboxtestdata.speclib2,
+          alg.P_ATTRIBUTES: 'Roof, Tree',
+          alg.P_OUTPUT_REGRESSION: join(outdir, 'ImportLibraryRegression.bsq')}
+    runalg(alg=alg, io=io)
+
+    alg = ImportLibraryFractionAttribute()
+    io = {alg.P_LIBRARY: enmapboxtestdata.speclib2,
+          alg.P_ATTRIBUTES: 'Roof, Tree',
+          alg.P_OUTPUT_FRACTION: join(outdir, 'ImportLibraryFraction.bsq')}
+    runalg(alg=alg, io=io)
+
 
 
 def test_Mask():
@@ -304,10 +319,6 @@ def test_Raster():
             runalg(alg=alg, io=io)
             break
 
-    alg = RasterViewMetadata()
-    io = {alg.P_RASTER: enmap}
-    runalg(alg=alg, io=io)
-
     alg = RasterUniqueValues()
     io = {alg.P_RASTER: enmapClassification,
           alg.P_BAND: 1}
@@ -333,6 +344,12 @@ def test_Raster():
           alg.P_OUTPUT_RASTER: join(outdir, 'RasterFromVector.bsq')}
     runalg(alg=alg, io=io)
 
+def test_Map():
+    alg = MapViewMetadata()
+    io = {alg.P_MAP: enmap}
+    io = {alg.P_MAP: vector}
+
+    runalg(alg=alg, io=io)
 
 def test_RegressionPerformance():
     alg = RegressionPerformanceFromRaster()
@@ -468,17 +485,19 @@ def test_Transformer():
 
 def test_VectorFromRandomPointsFromMask():
     alg = VectorFromRandomPointsFromMask()
-    io = {alg.P_MASK: enmapMask,
-          alg.P_INVERT_MASK: False,
-          alg.P_NUMBER_OF_POINTS: 100,
-          alg.P_OUTPUT_VECTOR: join(outdir, 'VectorFromRandomPointsFromMask.gpkg')}
-    runalg(alg=alg, io=io)
+
+    for n in [100, 0.1]:
+        io = {alg.P_MASK: enmapMask,
+              alg.P_INVERT_MASK: False,
+              alg.P_NUMBER_OF_POINTS: n,
+              alg.P_OUTPUT_VECTOR: join(outdir, 'VectorFromRandomPointsFromMask.gpkg')}
+        runalg(alg=alg, io=io)
 
 
 def test_VectorFromRandomPointsFromClassification():
     alg = VectorFromRandomPointsFromClassification()
     io = {alg.P_CLASSIFICATION: enmapClassification,
-          alg.P_NUMBER_OF_POINTS_PER_CLASS: 100,
+          alg.P_NUMBER_OF_POINTS_PER_CLASS: 0.1,
           alg.P_OUTPUT_VECTOR: join(outdir, 'VectorFromRandomPointsFromClassification.gpkg')}
     runalg(alg=alg, io=io)
 
@@ -523,8 +542,13 @@ def printMenu():
 
 
 if __name__ == '__main__':
-    test_ImportLibrary()
-    #exit(0)
+    print(QgsProcessingParameterRasterDestination(name=name, description='b').supportedOutputRasterLayerExtensions())
+    #test_CreateAdditionalTestdata()
+#    test_Map()
+    #test_VectorFromRandomPointsFromMask()
+    #test_VectorFromRandomPointsFromClassification()
+
+    exit(0)
     test_ClassDefinitionFromRaster()
     test_Classification()
     test_ClassificationPerformance()

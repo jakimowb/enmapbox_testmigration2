@@ -258,7 +258,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
             if isinstance(mask, Mask):
                 mask = Mask(filename=mask.filename(), noDataValues=mask.noDataValues(),
-                            minOverallCoverage=mask.minOverallCoverage(), index=mask.index(), invert=not mask.invert())
+                            minOverallCoverage=mask.minOverallCoverage(), indices=mask.indices(), invert=not mask.invert())
             elif isinstance(mask, VectorMask):
                 mask = VectorMask(filename=mask.filename(), layer=mask.layer(), invert=True)
             else:
@@ -402,7 +402,6 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def getParameterString(self, name=P_STRING):
         assert name in self._parameters, name
-        # string = self.parameterAsString(parameters=self._parameters, name=name, context=self._context) # this did not work
         string = str(self._parameters[name])
         return string
 
@@ -575,7 +574,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                             help=None):
 
         if help is None:
-            help = 'Select path to an ENVI (e.g. .sli or .esl).'
+            help = 'Select path to an ENVI Spectral Library file (e.g. .sli or .esl).'
         self.addParameterFile(name=name, description=description, optional=optional,
                               # extension='esl *.sli' two extensions seam not to work
                               help=help)
@@ -626,21 +625,26 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def addParameterNumberOfPoints(self, name=P_NUMBER_OF_POINTS, description='Number of Points',
                                          defaultValue=100, optional=False):
-        help = 'Number of points to sample from mask.'
+        help = 'Number of points, given as integer or fraction between 0 and 1, to sample from the mask.'
 
         self.addParameterString(name=name, description=description, defaultValue=str(defaultValue), optional=optional,
                                 help=help)
 
-    def getParameterNumberOfPoints(self, name=P_NUMBER_OF_POINTS):
+    def getParameterNumberOfPoints(self, name=P_NUMBER_OF_POINTS, funcTotal=None):
         string = self.getParameterString(name)
-        parameterDefinition = self.parameterDefinition(name)
+
         if string == '':
             n = None
         else:
             n = eval(string)
-            if not isinstance(n, int) and n >= 0:
-                raise EnMAPAlgorithmParameterValueError('Unexpected parameter value ({}): "{}"'.format(
-                    parameterDefinition.name, string))
+            if isinstance(n, int) and n >= 0:
+                pass
+            elif isinstance(n, float) and n >= 0 and n <= 1:
+                total = funcTotal()
+                n = int(round(n*total))
+            else:
+                parameterDefinition = self.parameterDefinition(name)
+                raise EnMAPAlgorithmParameterValueError('Unexpected parameter value ({}): "{}"'.format(parameterDefinition.name, string))
         return n
 
 
@@ -650,19 +654,14 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                            description='Number of Points per Class',
                                            defaultValue=100, optional=False):
 
-        help = 'Has to be a number or a list of numbers. When a single integer number is given (e.g. 100), equalised random sample will be ' \
-               'taken, i.e. in this case 100 samples per class. For taking a disproportional random sample, where the amount of samples should differ ' \
-               'between classes, provide a list of numbers. This list has to have as many arguments as classes in the classification and has to ' \
-               "be ordered according to the classes (e.g. '[100, 70, 90]' in the case of three classes, 100 samples will be taken from the first class, " \
-               '70 from the second, etc.). For a proportional stratified random sampling provide a float value between 0 and 1 ' \
-               '(e.g. 0.3 for randomly drawing 30% of pixels in each class).'
+        help = 'List of number of points, given as integers or fractions between 0 and 1, to sample from each class. If a scalar is specified, the value is broadcasted to all classes. \n\n'
 
         self.addParameterString(name=name, description=description, defaultValue=str(defaultValue), optional=optional,
                                 help=help)
 
-    def getParameterNumberOfPointsPerClass(self, name=P_NUMBER_OF_POINTS_PER_CLASS, classification=None):
-        assert isinstance(classification, Classification)
-        classDefinition = classification.classDefinition()
+    def getParameterNumberOfPointsPerClass(self, name=P_NUMBER_OF_POINTS_PER_CLASS, classes=None, funcClassTotals=None):
+        assert classes is not None
+
         string = self.getParameterString(name)
         if string == '':
             n = None
@@ -671,23 +670,21 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
             # turn scalars into list, e.g. [10,10,10] or [0.1, 0.1, 0.1]
             if isinstance(n, (int, float)):
-                n = [n] * classDefinition.classes()
+                n = [n] * classes
 
             # check if list if correct
-            if not isinstance(n, list) or len(n) != classDefinition.classes():
+            if not isinstance(n, list) or len(n) != classes:
                 raise EnMAPAlgorithmParameterValueError('Unexpected value (Number of Points per Class): "{}"'.format(
                     string))
 
             # turn all values into absolute numbers
-            histo = None
-            for i in range(classDefinition.classes()):
+            totals = None
+            for i in range(classes):
                 if isinstance(n[i], float):
-                    if histo is None:
-                        histo = classification.statistics(calcHistogram=True,
-                                                          histogramBins=[classDefinition.classes()+1],
-                                                          histogramRanges=[[0, classDefinition.classes()+1]],
-                                                          progressBar=self._progressBar)
-                    n[i] = int(round(n[i] * histo['hist'][i+1], 0))
+                    assert n[i] >= 0 and n[i] <= 1
+                    if totals is None:
+                        totals = funcClassTotals()
+                    n[i] = int(round(n[i] * totals[i], 0))
 
         return n
 
