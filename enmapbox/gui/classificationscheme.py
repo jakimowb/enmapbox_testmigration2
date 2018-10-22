@@ -488,9 +488,9 @@ class ClassificationScheme(QObject):
         :param sep: separator (';' by default)
         """
         lines = self.toString(sep=sep)
-        file = open(path, 'w')
-        file.write(lines)
-        file.close()
+        with open(path, 'w') as f:
+            f.write(lines)
+
 
     @staticmethod
     def fromCsv(path:str):
@@ -501,7 +501,7 @@ class ClassificationScheme(QObject):
         """
         raise NotImplementedError()
 
-    def saveToQML(self, path):
+    def saveToQml(self, path):
         """
         Saves the class infos into a QML file
         :param path: str, path of QML file
@@ -509,26 +509,22 @@ class ClassificationScheme(QObject):
         raise NotImplementedError()
 
     @staticmethod
-    def fromQML(path:str):
+    def fromQml(path:str):
         """
         Reads a ClassificationScheme from a QML file.
-        :param self:
-        :param path:
-        :return:
+        :param path: str, path to QML file
+        :return: ClassificationScheme
         """
         raise NotImplementedError()
 
     @staticmethod
-    def fromVectorFile(self, path, fieldClassName='classname', fieldClassColor='classColor'):
+    def fromVectorLayer(layer:QgsVectorLayer, fieldClassName:str='classname'):
         """
-        Reads a ClassificationScheme from a vector data set
-        :param self:
-        :param path:
-        :param fieldClassName:
-        :param fieldClassColor:
-        :return:
+        :param layer: QgsVectorLayer that contains a ClassificationScheme
+        :param fieldClassName: field name with field that contains the class labels for which the ClassificationScheme is returned
+        :return: ClassificationScheme
         """
-        raise NotImplementedError('ClassificationScheme.fromVectorFile(...)')
+        raise NotImplementedError('ClassificationScheme.fromVectorLayer(...)')
 
 
 class ClassificationSchemeComboBoxItemModel(QAbstractListModel):

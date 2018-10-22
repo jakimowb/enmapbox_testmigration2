@@ -57,8 +57,11 @@ class TestsClassificationScheme(TestCase):
 
     def test_dialog(self):
         w = ClassificationSchemeWidget()
+        w.show()
         w.btnAddClasses.click()
         w.btnAddClasses.click()
+
+
 
 
     def test_io_CSV(self):
@@ -89,16 +92,16 @@ class TestsClassificationScheme(TestCase):
         pathTmp = tempfile.mktemp(suffix='.qml')
         for pathQML in qmFiles:
             # read from QML
-            classScheme = ClassificationScheme.fromQML(pathQML)
+            classScheme = ClassificationScheme.fromQml(pathQML)
             self.assertIsInstance(classScheme, ClassificationScheme)
             self.assertTrue(len(classScheme) > 0)
 
             # todo: other QML specific tests
 
             #write to QML
-            classScheme.saveToQML(pathTmp)
+            classScheme.saveToQml(pathTmp)
 
-            classScheme2 = ClassificationScheme.fromQML(pathTmp)
+            classScheme2 = ClassificationScheme.fromQml(pathTmp)
             self.assertIsInstance(classScheme2, ClassificationScheme)
             self.assertEqual(classScheme, classScheme2)
 
