@@ -7,18 +7,22 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
+
+import tempfile
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.classificationscheme import *
+import enmapboxtestdata
+
 QGIS_APP = initQgisApplication()
 
 
 
 from unittest import TestCase
-class TestReclassify(TestCase):
+class TestsClassificationScheme(TestCase):
 
     def testClassInfo(self):
         name = 'TestName'
@@ -55,6 +59,48 @@ class TestReclassify(TestCase):
         w = ClassificationSchemeWidget()
         w.btnAddClasses.click()
         w.btnAddClasses.click()
+
+
+    def test_io_CSV(self):
+
+        testDir = os.path.dirname(enmapboxtestdata.speclib)
+        csvFiles = file_search(testDir, 'Speclib.*.classdef.csv')
+
+        pathTmp = tempfile.mktemp(suffix='.csv')
+        for pathCSV in csvFiles:
+            #read from CSV
+            classScheme = ClassificationScheme.fromCsv(pathCSV)
+            self.assertIsInstance(classScheme, ClassificationScheme)
+            self.assertTrue(len(classScheme) > 0)
+
+            #todo: other tests
+
+            classScheme.saveToCsv(pathTmp)
+
+            classScheme2 = ClassificationScheme.fromCsv(pathTmp)
+            self.assertIsInstance(classScheme2, ClassificationScheme)
+            self.assertEqual(classScheme, classScheme2)
+
+    def test_io_QML(self):
+
+        testDir = os.path.dirname(enmapboxtestdata.speclib)
+        qmFiles = file_search(testDir, 'LandCov_*.qml')
+
+        pathTmp = tempfile.mktemp(suffix='.qml')
+        for pathQML in qmFiles:
+            # read from QML
+            classScheme = ClassificationScheme.fromQML(pathQML)
+            self.assertIsInstance(classScheme, ClassificationScheme)
+            self.assertTrue(len(classScheme) > 0)
+
+            # todo: other QML specific tests
+
+            #write to QML
+            classScheme.saveToQML(pathTmp)
+
+            classScheme2 = ClassificationScheme.fromQML(pathTmp)
+            self.assertIsInstance(classScheme2, ClassificationScheme)
+            self.assertEqual(classScheme, classScheme2)
 
 
 

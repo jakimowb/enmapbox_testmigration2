@@ -88,40 +88,83 @@ class ClassInfo(QObject):
         if color:
             self.setColor(color)
 
-    def setLabel(self, label):
+
+    def setLabel(self, label:int):
+        """
+        Sets the label value.
+        :param label: int, must be >= 0
+        """
         assert isinstance(label, int)
         assert label >= 0
         self.mLabel = label
         self.sigSettingsChanged.emit()
 
-    def label(self):
+    def label(self)->int:
+        """
+        Returns the class label values
+        :return: int
+        """
         return self.mLabel
 
-    def color(self):
+    def color(self)->QColor:
+        """
+        Returns the class color.
+        :return: QColor
+        """
         return QColor(self.mColor)
 
-    def name(self):
+    def name(self)->str:
+        """
+        Returns the class name
+        :return: str
+        """
         return self.mName
 
-    def setColor(self, color):
+    def setColor(self, color:QColor):
+        """
+        Sets the class color.
+        :param color: QColor
+        """
         assert isinstance(color, QColor)
         self.mColor = color
         self.sigSettingsChanged.emit()
 
-    def setName(self, name):
+    def setName(self, name:str):
+        """
+        Sets thes class name
+        :param name: str
+        """
         assert isinstance(name, str)
         self.mName = name
         self.sigSettingsChanged.emit()
 
-    def icon(self, *args):
+
+    def pixmap(self, *args)->QPixmap:
+        """
+        Returns a QPixmap. Default size is 20x20px
+        :param args: QPixmap arguments.
+        :return: QPixmap
+        """
         if len(args) == 0:
             args = (QSize(20, 20),)
 
         pm = QPixmap(*args)
         pm.fill(self.mColor)
-        return QIcon(pm)
+        return pm
+
+    def icon(self, *args)->QIcon:
+        """
+        Returns the class color as QIcon
+        :param args: QPixmap arguments
+        :return: QIcon
+        """
+        return QIcon(self.pixmap(*args))
 
     def clone(self):
+        """
+        Create a copy of this ClassInfo
+        :return: ClassInfo
+        """
         return ClassInfo(name=self.mName, color=self.mColor)
 
     def __ne__(self, other):
@@ -193,9 +236,6 @@ class ClassificationScheme(QObject):
         band = ds.GetRasterBand(bandIndex + 1)
         return ClassificationScheme.fromRasterBand(band)
 
-    @staticmethod
-    def fromVectorFile(self, path, fieldClassName='classname', fieldClassColor='classColor'):
-        raise NotImplementedError('ClassificationScheme.fromVectorFile(...)')
 
     sigClassesRemoved = pyqtSignal(list)
     sigClassRemoved = pyqtSignal(ClassInfo, int)
@@ -207,10 +247,18 @@ class ClassificationScheme(QObject):
         self.mClasses = []
 
     def clear(self):
+        """
+        Removes all ClassInfos
+        """
         removed = self.mClasses[:]
         del self.mClasses[:]
+        self.sigClassesRemoved.emit(removed)
 
     def clone(self):
+        """
+        Create a copy of this ClassificationScheme
+        :return:
+        """
         cs = ClassificationScheme()
         classes = [c.clone() for c in self.mClasses]
         cs.addClasses(classes)
@@ -312,7 +360,13 @@ class ClassificationScheme(QObject):
     def removeClass(self, c):
         self.removeClasses([c])
 
-    def createClasses(self, n):
+    def createClasses(self, n:int):
+        """
+        Creates n new classes with default initialization
+        :param n: int, number of classes to add.
+        """
+        assert isinstance(n, int)
+        assert n >= 0
         for i in range(n):
             l = len(self)
             if l == 0:
@@ -329,6 +383,13 @@ class ClassificationScheme(QObject):
 
 
     def addClasses(self, classes, index=None):
+        """
+        Adds / inserts a list of ClassInfos
+        :param classes: [list-of-ClassInfo]
+        :param index: int, index to insert the first of the new classes.
+                           defaults to len(ClassificationScheme)
+
+        """
         if len(classes) > 0:
             if index is None:
                 index = len(self.mClasses)
@@ -349,13 +410,27 @@ class ClassificationScheme(QObject):
         self.sigClassInfoChanged.emit(self.sender())
 
     def addClass(self, c, index=None):
+        """
+        Adds a ClassInfo
+        :param c: ClassInfo
+        :param index: int, index to add the ClassInfo. Defaults to the end.
+        """
         assert isinstance(c, ClassInfo)
         self.addClasses([c], index=index)
 
     def saveToRaster(self, path, bandIndex=0):
+        """
+        Saves this ClassificationScheme to an raster image
+        :param path: path (str) of raster image or gdal.Dataset instance
+        :param bandIndex: band index of raster band to set this ClassificationScheme.
+                          Defaults to 0 = the first band
+        """
+        if isinstance(path, str):
+            ds = gdal.Open(path)
+        elif isinstance(path, gdal.Dataset):
+            ds = path
 
-        ds = gdal.Open(path)
-        assert ds is not None
+        assert isinstance(ds, gdal.Dataset)
         assert ds.RasterCount < bandIndex
         band = ds.GetRasterBand(bandIndex + 1)
         ct = gdal.ColorTable()
@@ -387,6 +462,44 @@ class ClassificationScheme(QObject):
         file = open(path, 'w')
         file.write(lines)
         file.close()
+
+    @staticmethod
+    def fromCsv(path:str):
+        """
+        Read the ClassificationScheme from a CSV table
+        :param path: str, path of CSV file
+        :return: ClassificationScheme
+        """
+        raise NotImplementedError()
+
+    def saveToQML(self, path):
+        """
+        Saves the class infos into a QML file
+        :param path: str, path of QML file
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def fromQML(path:str):
+        """
+        Reads a ClassificationScheme from a QML file.
+        :param self:
+        :param path:
+        :return:
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def fromVectorFile(self, path, fieldClassName='classname', fieldClassColor='classColor'):
+        """
+        Reads a ClassificationScheme from a vector data set
+        :param self:
+        :param path:
+        :param fieldClassName:
+        :param fieldClassColor:
+        :return:
+        """
+        raise NotImplementedError('ClassificationScheme.fromVectorFile(...)')
 
 
 class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
