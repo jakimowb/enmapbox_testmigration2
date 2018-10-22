@@ -1,0 +1,10 @@
+{
+  "level_1_id": {
+    "names":  ["impervious", "vegetation", "soil",        "water"],
+    "colors": [[230, 0, 0],  [56, 168, 0], [168, 112, 0], [0,100,255]]
+  },
+  "level_2_id": {
+    "names":  ["impervious", "low vegetation", "tree",       "soil",        "water"],
+    "colors": [[230, 0, 0],  [152, 230, 0],    [38, 115, 0], [168, 112, 0], [0,100,255]]
+  }
+}
