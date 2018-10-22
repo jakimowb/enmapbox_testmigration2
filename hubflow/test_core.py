@@ -7,9 +7,9 @@ from tempfile import gettempdir
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
-import hubflow.testdata
 import enmapboxtestdata
 from hubflow.core import *
+import hubflow.testdata
 import hubdc.testdata
 
 CUIProgressBar.SILENT = False
@@ -280,6 +280,20 @@ class Test(TestCase):
 
 
     def test_ClassDefinition(self):
+
+
+        # csv read / write
+        cd = ClassDefinition.fromCsv(filename=r'C:\source\enmap-box-testdata\enmapboxtestdata\SpecLib_BerlinUrbanGradient.level_2.classdef.csv')
+        filename = cd.saveAsCsv(filename=join(outdir, 'classdef.csv'))
+        cd2 = ClassDefinition.fromCsv(filename=filename)
+        self.assertTrue(cd.equal(cd2))
+
+        # qml read / write
+        print(ClassDefinition.fromQml(filename=r'C:\source\enmap-box-testdata\enmapboxtestdata\LandCov_BerlinUrbanGradient.qml'))
+
+
+
+        return
         print(VectorClassification(enmapboxtestdata.landcover, classAttribute='Level_1_ID'))
         print(ClassDefinition.fromCSV(filename=enmapboxtestdata.speclib.replace('.sli', '.level_2.classdef.csv')))
         print(ClassDefinition.fromENVIClassification(raster=enmapClassification))

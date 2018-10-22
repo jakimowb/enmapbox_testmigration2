@@ -1,8 +1,9 @@
+import warnings
 import random, pickle
 from collections import OrderedDict, namedtuple
 from osgeo import gdal
 import numpy as np
-from PyQt5.Qt import QColor
+from PyQt5.QtGui import QColor
 from hubdc.progressbar import ProgressBar, SilentProgressBar, CUIProgressBar
 from hubdc.core import *
 import hubdc.applier
@@ -3158,7 +3159,10 @@ class VectorClassification(Vector):
 class Color(FlowObject):
 
     def __init__(self, *args, **kwargs):
-        self._qColor = QColor(*args, **kwargs)
+        if isinstance(args[0], Color):
+            self._qColor = args[0]._qColor
+        else:
+            self._qColor = QColor(*args, **kwargs)
         self._args = args
         self._kwargs = kwargs
 
@@ -3290,13 +3294,89 @@ class ClassDefinition(FlowObject):
         return classDefinition
 
     @staticmethod
-    def fromCSV(filename):
-        '''Create instance from CSV file definition.'''
+    def fromCsv(filename, delimiter=';'):
+        '''Create instance from CSV file.'''
 
-        array = np.genfromtxt(filename, delimiter=';', dtype=np.str)
-        names = list(array[2:, 0])
-        colors = list(np.array([s[s.find('(') + 1: s.find(')')].split(',') for s in array[2:, 1]]).flatten())
+        names = list()
+        colors = list()
+        with open(filename) as file:
+            for i, text in enumerate(file.readlines()):
+                if i==0:
+                    continue
+                else:
+                    tmp = text.split(';')
+                    if not len(tmp) == 3:
+                        raise Exception('Format error in line {}: expected value, description and color information seperated by "{}", got "{}" instead.'.format(i+1, delimiter, text))
+                    name = tmp[1].strip()
+                    color = tmp[2].strip()
+                    if ',' in color: # eval rgb tripel
+                        try:
+                            rgb = eval(color)
+                        except:
+                            raise Exception('Format error in line {}: unsupported color format "".'.format(i+1, text))
+                        color = Color(*[int(v) for v in rgb])
+                    color = Color(color)
+
+                    if i==1:
+                        if name.lower() != 'unclassified':
+                            raise Exception('Error: first class has to be the "Unclassified" class with id=0 by convention!')
+                        continue
+
+                    names.append(name)
+                    colors.append(color)
+
         return ClassDefinition(names=names, colors=colors)
+
+    def saveAsCsv(self, filename, delimiter=';'):
+        '''Save as CSV file and returns the filename.'''
+
+        try:
+            makedirs(dirname(filename))
+        except:
+            pass
+
+        with open(filename, 'w') as file:
+            file.write('Value{d} Description{d} Color\n'.format(d=delimiter))
+            file.write('0{d} Unclassified{d} black\n'.format(d=delimiter))
+
+            for i, (name, color) in enumerate(zip(self.names(), self.colors())):
+                file.write('{}{d} {}{d} {}\n'.format(i+1, name, color.name(), d=delimiter))
+
+            return filename
+
+    @staticmethod
+    def fromQml(filename, delimiter=';'):
+        '''Create instance from QGIS QML file.'''
+
+        names = list()
+        colors = list()
+        with open(filename) as file:
+
+            # get categories
+
+            while True:
+                line = file.readline().strip()
+                if line == '</categories>':
+                    break
+                else:
+                    if '<category label=' not in line:
+                        continue
+                    else:
+                        names.append(line.split('"')[1])
+
+            # get colors
+
+            while True:
+                line = file.readline().strip()
+                if line == '</symbols>':
+                    break
+                else:
+                    if 'k="color"' not in line:
+                        continue
+                    else:
+                        colors.append(Color(*eval(line.split('"')[1])))
+
+            return ClassDefinition(names=names, colors=colors)
 
     @staticmethod
     def fromENVIClassification(raster):

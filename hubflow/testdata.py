@@ -7,8 +7,8 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from osgeo import gdal
-import hubdc.progressbar
 from hubflow.core import *
+import hubdc.progressbar
 import enmapboxtestdata
 
 overwrite = not True
