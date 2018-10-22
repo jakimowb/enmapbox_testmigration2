@@ -31,6 +31,7 @@
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import QSettings
 
 from enmapbox.gui.plotstyling import PlotStyleEditorWidgetFactory
 #register Editor widgets, if not done before
@@ -38,11 +39,21 @@ reg = QgsGui.editorWidgetRegistry()
 if len(reg.factories()) == 0:
     reg.initEditors()
 
-if not 'PlotSettings' in reg.factories().keys():
-    plotStyleEditorWidgetFactory = PlotStyleEditorWidgetFactory('PlotSettings')
-    reg.registerWidget('PlotSettings', plotStyleEditorWidgetFactory)
-else:
-    plotStyleEditorWidgetFactory = reg.factories()['PlotSettings']
+
+def speclibSettings()->QSettings:
+    """
+    Returns SPECLIB relevant QSettings
+    :return: QSettings
+    """
+    from enmapbox import enmapboxSettings
+    return enmapboxSettings()
+
+
+from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
+registerPlotStyleEditorWidget()
+
+from .spectrallibraries import registerSpectralProfileEditorWidget
+registerSpectralProfileEditorWidget()
 
 from .qgsfunctions import registerQgsExpressionFunctions
 registerQgsExpressionFunctions()

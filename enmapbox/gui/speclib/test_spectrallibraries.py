@@ -49,6 +49,7 @@ def createSpeclib()->SpectralLibrary:
     p3 = SpectralProfile()
     p3.setValues(x=[250., 251., 253., 254., 256.], y=[0.2, 0.3, 0.2, 0.5, 0.7])
     p3.setXUnit('nm')
+    p3.setYUnit('Reflectance')
 
     p4 = SpectralProfile()
     p4.setValues(x=[0.250, 0.251, 0.253, 0.254, 0.256], y=[0.22, 0.333, 0.222, 0.555, 0.777])
@@ -63,8 +64,10 @@ def createSpeclib()->SpectralLibrary:
     p5.setName('Position A')
     p6 = SpectralProfile.fromRasterSource(path, posB)
     p6.setName('Position B')
-    speclib.addProfiles([p1, p2, p3, p4, p5, p6])
 
+    speclib.startEditing()
+    speclib.addProfiles([p1, p2, p3, p4, p5, p6])
+    speclib.commitChanges()
     return speclib
 
 
@@ -613,6 +616,7 @@ class TestCore(unittest.TestCase):
         self.assertIsInstance(p, SpectralProfile)
         self.assertEqual(p.metadata(fieldName), sp.metadata(fieldName))
 
+
     def test_SpectralProfileEditorWidget(self):
 
         speclib = self.createSpeclib()
@@ -624,31 +628,48 @@ class TestCore(unittest.TestCase):
         QAPP.exec_()
 
 
+    def test_SpectralProfileValueTableModel(self):
+
+        speclib = self.createSpeclib()
+        p3 = speclib[2]
+        self.assertIsInstance(p3, SpectralProfile)
+
+        xUnit = p3.xUnit()
+        yUnit = p3.yUnit()
+
+
+        m = SpectralProfileValueTableModel()
+        self.assertIsInstance(m, SpectralProfileValueTableModel)
+        self.assertTrue(m.rowCount() == 0)
+        self.assertTrue(m.columnCount() == 2)
+        self.assertEqual('Y [-]', m.headerData(0, orientation=Qt.Horizontal, role=Qt.DisplayRole))
+        self.assertEqual('X [-]', m.headerData(1, orientation=Qt.Horizontal, role=Qt.DisplayRole))
+
+        m.setProfileData(p3)
+        self.assertTrue(m.rowCount() == len(p3.values()['x']))
+        self.assertEqual('Y [Reflectance]'.format(yUnit), m.headerData(0, orientation=Qt.Horizontal, role=Qt.DisplayRole))
+        self.assertEqual('X [{}]'.format(xUnit), m.headerData(1, orientation=Qt.Horizontal, role=Qt.DisplayRole))
+
+        m.setColumnValueUnit(0, '')
+
     def test_SpectralProfileEditorWidgetFactory(self):
 
         # init some other requirements
         print('initialize EnMAP-Box editor widget factories')
         # register Editor widgets, if not done before
+
         reg = QgsGui.editorWidgetRegistry()
         if len(reg.factories()) == 0:
             reg.initEditors()
 
-        if not 'SpectralProfile' in reg.factories().keys():
-            spectralProfileEditorWidgetFactory = SpectralProfileEditorWidgetFactory('SpectralProfile')
-            reg.registerWidget('SpectralProfile', spectralProfileEditorWidgetFactory)
-        else:
-            spectralProfileEditorWidgetFactory = reg.factories()['SpectralProfile']
 
-        self.assertTrue('SpectralProfile' in reg.factories().keys())
-
-        factory = reg.factories()['SpectralProfile']
+        registerSpectralProfileEditorWidget()
+        self.assertTrue(EDITOR_WIDGET_REGISTRY_KEY in reg.factories().keys())
+        factory = reg.factories()[EDITOR_WIDGET_REGISTRY_KEY]
         self.assertIsInstance(factory, SpectralProfileEditorWidgetFactory)
-
         vl = self.createSpeclib()
-
         am = vl.actions()
         self.assertIsInstance(am, QgsActionManager)
-
 
         c = QgsMapCanvas()
         w = QWidget()
@@ -670,15 +691,18 @@ class TestCore(unittest.TestCase):
         w.show()
         w.resize(QSize(300,250))
         print(vl.fields().names())
-        self.assertTrue(factory.fieldScore(vl, 0) == 0) #specialized support style + str len > 350
-        self.assertTrue(factory.fieldScore(vl, 1) == 5)
-        self.assertTrue(factory.fieldScore(vl, 2) == 5)
-        self.assertTrue(factory.fieldScore(vl, 3) == 20)
+        look = vl.fields().lookupField
+        self.assertTrue(factory.fieldScore(vl, look(FIELD_FID)) == 0) #specialized support style + str len > 350
+        self.assertTrue(factory.fieldScore(vl, look(FIELD_NAME)) == 5)
+        self.assertTrue(factory.fieldScore(vl, look(FIELD_VALUES)) == 20)
 
+        parent = QWidget()
+        configWidget = factory.configWidget(vl, look(FIELD_VALUES), None)
+        self.assertIsInstance(configWidget, SpectralProfileEditorConfigWidget)
+        configWidget.show()
 
-
-        self.assertIsInstance(factory.configWidget(vl, 0, dv), QgsEditorConfigWidget)
         self.assertIsInstance(factory.createSearchWidget(vl, 0, dv), QgsSearchWidgetWrapper)
+
 
         eww = factory.create(vl, 0, None, dv )
         self.assertIsInstance(eww, SpectralProfileEditorWidgetWrapper)
@@ -700,7 +724,9 @@ class TestCore(unittest.TestCase):
 
         speclib = self.createSpeclib()
         p = SpectralLibraryWidget()
+        p.mSpeclib.startEditing()
         p.addSpeclib(speclib)
+        p.mSpeclib.commitChanges()
         p.show()
         QgsProject.instance().addMapLayer(p.speclib())
 

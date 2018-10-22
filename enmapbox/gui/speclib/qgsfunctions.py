@@ -31,13 +31,15 @@ import pickle
 
 from qgis.core import *
 
-from .spectrallibraries import STYLE_FIELD, VALUE_FIELD, decodeProfileValueDict
+from .spectrallibraries import FIELD_STYLE, FIELD_VALUES, decodeProfileValueDict
 from enmapbox.gui.plotstyling import PlotStyle, MARKERSYMBOLS2QGIS_SYMBOLS
 
-@qgsfunction(0, "Spectral Libraries")
+QGS_FUNCTION_GROUP = "Spectral Libraries"
+
+@qgsfunction(0, QGS_FUNCTION_GROUP)
 def plotStyleSymbolFillColor(values, feature, parent):
     if isinstance(feature, QgsFeature):
-        i = feature.fieldNameIndex(STYLE_FIELD)
+        i = feature.fieldNameIndex(FIELD_STYLE)
         if i >= 0:
             style = pickle.loads(feature.attribute(i))
             if isinstance(style, PlotStyle):
@@ -49,7 +51,7 @@ def plotStyleSymbolFillColor(values, feature, parent):
 @qgsfunction(0, "Spectral Libraries")
 def plotStyleSymbol(values, feature, parent):
     if isinstance(feature, QgsFeature):
-        i = feature.fieldNameIndex(STYLE_FIELD)
+        i = feature.fieldNameIndex(FIELD_STYLE)
         if i >= 0:
             style = pickle.loads(feature.attribute(i))
             if isinstance(style, PlotStyle):
@@ -61,17 +63,17 @@ def plotStyleSymbol(values, feature, parent):
 
     return None
 
-@qgsfunction(0, "Spectral Libraries")
+@qgsfunction(0, QGS_FUNCTION_GROUP)
 def plotStyleSymbolSize(values, feature, parent):
     if isinstance(feature, QgsFeature):
-        i = feature.fieldNameIndex(STYLE_FIELD)
+        i = feature.fieldNameIndex(FIELD_STYLE)
         if i >= 0:
             style = pickle.loads(feature.attribute(i))
             if isinstance(style, PlotStyle):
                 return style.markerSize
     return None
 
-@qgsfunction(0, "Spectral Libraries")
+@qgsfunction(0, QGS_FUNCTION_GROUP)
 def spectralValues(values, feature, parent):
     """
     Returns the spectral values dictionary
@@ -81,7 +83,7 @@ def spectralValues(values, feature, parent):
     :return: dict
     """
     if isinstance(feature, QgsFeature):
-        i = feature.fieldNameIndex(VALUE_FIELD)
+        i = feature.fieldNameIndex(FIELD_VALUES)
         if i >= 0:
             values = decodeProfileValueDict(feature.attribute(i))
             return values
@@ -90,7 +92,7 @@ def spectralValues(values, feature, parent):
 
 def registerQgsExpressionFunctions():
     """
-    Registers all functions
+    Registers functions to support SpectraLibrary handling with QgsExpressions
     """
     QgsExpression.registerFunction(plotStyleSymbolFillColor)
     QgsExpression.registerFunction(plotStyleSymbol)

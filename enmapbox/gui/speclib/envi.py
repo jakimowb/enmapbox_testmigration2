@@ -113,7 +113,6 @@ def readCSVMetadata(pathESL):
     METADATA_LINES = []
     fieldNames = lines[0].split(sep)
 
-
     #read CSV data
     reader = csv.DictReader(lines[1:], fieldnames=fieldNames, delimiter=sep)
     for i, row in enumerate(reader):
@@ -170,7 +169,7 @@ def writeCSVMetadata(pathCSV:str, profiles:list):
     if len(profiles) == 0:
         return
 
-    excludedNames = CSV_PROFILE_NAME_COLUMN_NAMES + [CSV_GEOMETRY_COLUMN, FID_FIELD, VALUE_FIELD, STYLE_FIELD]
+    excludedNames = CSV_PROFILE_NAME_COLUMN_NAMES + [CSV_GEOMETRY_COLUMN, FIELD_FID, FIELD_VALUES, FIELD_STYLE]
     fieldNames = [n for n in profiles[0].fields().names() if n not in excludedNames]
     allFieldNames = ['spectra names'] + fieldNames + [CSV_GEOMETRY_COLUMN]
 
@@ -314,7 +313,7 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
                     #set normal value fields
                     if fieldName in CSV_PROFILE_NAME_COLUMN_NAMES:
                         #map CSV field "spectrum names" or "name" to speclib "name" columns
-                        aSpeclib = speclibFields.lookupField(NAME_FIELD)
+                        aSpeclib = speclibFields.lookupField(FIELD_NAME)
                     else:
                         aSpeclib = speclibFields.lookupField(fieldName)
 

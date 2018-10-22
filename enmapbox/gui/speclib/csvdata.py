@@ -29,6 +29,7 @@
 ***************************************************************************
 """
 import os, sys, re, pathlib
+import csv as pycsv
 from .spectrallibraries import *
 
 class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
@@ -56,7 +57,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
         return found
 
     @staticmethod
-    def write(speclib, path, dialect=csv.excel_tab):
+    def write(speclib, path, dialect=pycsv.excel_tab):
         assert isinstance(speclib, SpectralLibrary)
 
         text = CSVSpectralLibraryIO.asString(speclib, dialect=dialect)
@@ -66,7 +67,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
         return [path]
 
     @staticmethod
-    def readFrom(path=None, dialect=csv.excel_tab):
+    def readFrom(path=None, dialect=pycsv.excel_tab):
         f = open(path, 'r', encoding='utf-8')
         text = f.read()
         f.close()
@@ -74,7 +75,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
         return CSVSpectralLibraryIO.fromString(text, dialect=dialect)
 
     @staticmethod
-    def fromString(text:str, dialect=csv.excel_tab):
+    def fromString(text:str, dialect=pycsv.excel_tab):
         # divide the text into blocks of CSV rows with same columns structure
         lines = text.splitlines(keepends=True)
         blocks = []
@@ -101,7 +102,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
 
         #read and add CSV blocks
         for block in blocks:
-            R = csv.DictReader(block.splitlines(), dialect=dialect)
+            R = pycsv.DictReader(block.splitlines(), dialect=dialect)
 
             #read entire CSV table
             columnVectors = {}
@@ -204,7 +205,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
 
 
     @staticmethod
-    def asString(speclib, dialect=csv.excel_tab, skipValues=False, skipGeometry=False):
+    def asString(speclib, dialect=pycsv.excel_tab, skipValues=False, skipGeometry=False):
 
         assert isinstance(speclib, SpectralLibrary)
 
@@ -241,7 +242,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
             if not skipGeometry:
                 fieldnames += valueNames
 
-            W = csv.DictWriter(stream, fieldnames=fieldnames, dialect=dialect)
+            W = pycsv.DictWriter(stream, fieldnames=fieldnames, dialect=dialect)
 
 
             W.writeheader()
