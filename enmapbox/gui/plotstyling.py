@@ -724,6 +724,7 @@ class PlotStyleEditorWidgetWrapper(QgsEditorWidgetWrapper):
         self.mEditorWidget = None
         self.mEditorButton = None
         self.mLabel = None
+        self.mDefaultValue = None
 
     def createWidget(self, parent: QWidget):
         #log('createWidget')
@@ -733,6 +734,7 @@ class PlotStyleEditorWidgetWrapper(QgsEditorWidgetWrapper):
         else:
             #w = PlotStyleButton(parent)
             w = QLabel(parent)
+
         return w
 
     def initWidget(self, editor:QWidget):
@@ -771,26 +773,29 @@ class PlotStyleEditorWidgetWrapper(QgsEditorWidgetWrapper):
     def value(self, *args, **kwargs):
         #log(' BEGIN value()')
         #value = self.defaultValue()
-        value = None
+        value = self.mDefaultValue
         if isinstance(self.mEditorWidget, PlotStyleWidget):
             value = self.mEditorWidget.plotStyle()
-        if isinstance(self.mEditorButton, PlotStyleButton):
-            value = self.mEditorButton.plotStyle()
+        #if isinstance(self.mEditorButton, PlotStyleButton):
+            #value = self.mEditorButton.plotStyle()
         if isinstance(value, PlotStyle):
             value = value.json()
         return value
 
     def setValue(self, value):
+
         #log(' setValue()')
         if not isinstance(value,str):
             style = PlotStyle()
         else:
             style = PlotStyle.fromJSON(value)
+
         if isinstance(style, PlotStyle):
+            self.mDefaultValue = value
             if isinstance(self.mEditorWidget, PlotStyleWidget):
                 self.mEditorWidget.setPlotStyle(style)
-            if isinstance(self.mEditorButton, PlotStyleButton):
-                self.mEditorButton.setPlotStyle(style)
+            #if isinstance(self.mEditorButton, PlotStyleButton):
+            #    self.mEditorButton.setPlotStyle(style)
             if isinstance(self.mLabel, QLabel):
                 self.mLabel.setPixmap(style.createPixmap(self.mLabel.size()))
         else:
