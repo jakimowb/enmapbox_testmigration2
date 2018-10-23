@@ -6,6 +6,7 @@
 
 -r requirements.txt
 gitpython
+pb_tool
 
 ###### Refers to other requirements files (e.g. for hub-datacube?) ######
 #-r otherfolder/other-requirements.txt
