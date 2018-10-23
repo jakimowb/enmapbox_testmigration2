@@ -165,6 +165,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.initQgisInterface()
         self.iface = iface
         self.mMapLayerStore = QgsMapLayerStore()
+        MAP_LAYER_STORES.insert(0, self.mMapLayerStore)
         if not isinstance(iface, QgisInterface):
             self.initEnMAPBoxAsIFACE()
         self.initPanels()
@@ -401,6 +402,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
+            dock.speclibWidget.plotWidget.backgroundBrush().setColor(QColor('black'))
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):
@@ -655,8 +657,6 @@ class EnMAPBox(QgisInterface, QObject):
             #and getattr(self, '_initialSpeclibDockCreated', False) == False:
             dock = self.createDock('SPECLIB')
             assert isinstance(dock, SpectralLibraryDock)
-            #self._initialSpeclibDockCreated = True
-
 
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 

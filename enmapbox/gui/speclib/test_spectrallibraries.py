@@ -32,7 +32,7 @@ from .asd import *
 
 
 def createSpeclib()->SpectralLibrary:
-    from enmapboxtestdata import hymap
+    from enmapboxtestdata import hires
 
     # for dx in range(-120, 120, 90):
     #    for dy in range(-120, 120, 90):
@@ -55,7 +55,7 @@ def createSpeclib()->SpectralLibrary:
     p4.setValues(x=[0.250, 0.251, 0.253, 0.254, 0.256], y=[0.22, 0.333, 0.222, 0.555, 0.777])
     p4.setXUnit('um')
 
-    path = hymap
+    path = hires
     ext = SpatialExtent.fromRasterSource(path)
     posA = ext.spatialCenter()
     posB = SpatialPoint(posA.crs(), posA.x() + 60, posA.y() + 90)
@@ -194,7 +194,7 @@ class TestCore(unittest.TestCase):
 
         self.SP = None
         self.SPECLIB = None
-        self.lyr1 = QgsRasterLayer(hymap)
+        self.lyr1 = QgsRasterLayer(hires)
         self.lyr2 = QgsRasterLayer(enmap)
         self.layers = [self.lyr1, self.lyr2]
         QgsProject.instance().addMapLayers(self.layers)
@@ -719,69 +719,88 @@ class TestCore(unittest.TestCase):
 
         QAPP.exec_()
 
+    def test_PyQtGraphPlot(self):
+        import pyqtgraph as pg
+        pg.systemInfo()
 
-    def test_speclibWidget(self):
+        plotWidget = pg.plot(title="Three plot curves")
+        plotWidget.show()
+        item1 = pg.PlotItem(x=[1,2,3],   y=[2, 3, 4])
+        plotWidget.plotItem.addItem(item1)
+        plotWidget.plotItem.removeItem(item1)
+        self.assertIsInstance(plotWidget, pg.PlotWidget)
+        QAPP.exec_()
 
+    def test_SpectralLibraryPlotWidget(self):
+
+
+        import enmapboxtestdata
+        speclib = SpectralLibrary.readFrom(enmapboxtestdata.speclib)
+        #speclib = self.createSpeclib()
+        w = QWidget()
+        w.setLayout(QVBoxLayout())
+        pw = SpectralLibraryPlotWidget()
+        btn = QPushButton('Add speclib')
+        btn.clicked.connect(lambda : pw.setSpeclib(speclib))
+        w.layout().addWidget(pw)
+        w.layout().addWidget(btn)
+        w.show()
+        pw.setSpeclib(speclib)
+        if True:
+
+
+            ids = [1,2,3,4,5]
+            speclib.selectByIds(ids)
+
+            n = 0
+            defaultWidth = DEFAULT_SPECTRUM_STYLE.linePen.width()
+            for pdi in pw.plotItem.items:
+                if isinstance(pdi, SpectralProfilePlotDataItem):
+                    print(pdi.mID)
+                    width = pdi.pen().width()
+                    if pdi.mID in ids:
+                        self.assertTrue(width > defaultWidth)
+                    else:
+                        self.assertTrue(width == defaultWidth)
+
+        QAPP.exec_()
+
+
+    def test_SpectralLibraryWidget(self):
+
+
+        #speclib = self.createSpeclib()
+        import enmapboxtestdata
         speclib = self.createSpeclib()
-        p = SpectralLibraryWidget()
-        p.mSpeclib.startEditing()
-        p.addSpeclib(speclib)
-        p.mSpeclib.commitChanges()
-        p.show()
-        QgsProject.instance().addMapLayer(p.speclib())
+        #speclib = SpectralLibrary.readFrom(enmapboxtestdata.speclib)
+        slw = SpectralLibraryWidget(speclib=speclib)
 
-        self.assertEqual(p.speclib(), speclib)
+        #slw.mSpeclib.startEditing()
+        #slw.addSpeclib(speclib)
+        #slw.mSpeclib.commitChanges()
+        slw.show()
+        QgsProject.instance().addMapLayer(slw.speclib())
 
-        self.assertIsInstance(p.speclib(), SpectralLibrary)
-        fieldNames = p.speclib().fieldNames()
+        self.assertEqual(slw.speclib(), speclib)
+        self.assertIsInstance(slw.speclib(), SpectralLibrary)
+        fieldNames = slw.speclib().fieldNames()
         self.assertIsInstance(fieldNames, list)
 
-        if False:
+        if True:
             #self.assertIsInstance(p.mModel, SpectralLibraryTableModel)
             #self.assertTrue(p.mModel.headerData(0, Qt.Horizontal) == fieldNames[0])
             cs = [speclib[0], speclib[3], speclib[-1]]
-            p.setAddCurrentSpectraToSpeclibMode(False)
-            p.setCurrentSpectra(cs)
-            self.assertTrue(len(p.speclib()) == 0)
-            p.addCurrentSpectraToSpeclib()
-            self.assertTrue(len(p.speclib()) == len(cs))
-            #self.assertEqual(p.speclib()[:], cs)
+            l = len(speclib)
+            self.assertTrue(slw.speclib() == speclib)
+            slw.setAddCurrentSpectraToSpeclibMode(False)
+            self.assertTrue(len(slw.currentSpectra()) == 0)
+            slw.setCurrentSpectra(cs)
+            self.assertTrue(len(slw.currentSpectra()) == 3)
 
-            #p.speclib().removeProfiles(p.speclib()[:])
-            #self.assertTrue(len(p.speclib()) == 0)
-
-            #p.setAddCurrentSpectraToSpeclibMode(True)
-            #p.setCurrentSpectra(cs)
-            #self.assertTrue(len(p.speclib()) == len(cs))
 
         QAPP.exec_()
 
 
-    def test_plotWidget(self):
-
-        speclib = self.createSpeclib()
-        model = SpectralLibraryTableModel(speclib=speclib)
-        w = SpectralLibraryPlotWidget()
-        w.setModel(model)
-        w.show()
-        self.assertIsInstance(w, SpectralLibraryPlotWidget)
-
-        pdis = [i for i in w.plotItem.items if isinstance(i, SpectralProfilePlotDataItem)]
-        self.assertTrue(len(speclib), len(pdis))
-        for pdi in pdis:
-            self.assertTrue(pdi.isVisible())
-
-
-        p = speclib[3]
-        fid = p.id()
-
-        speclib.removeProfiles(p)
-
-        pdis = [i for i in w.plotItem.items if isinstance(i, SpectralProfilePlotDataItem)]
-        for pdi in pdis:
-            self.assertFalse(pdi.mProfile.id() == fid)
-
-        QAPP.exec_()
 
     def test_editing(self):
 

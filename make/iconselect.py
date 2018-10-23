@@ -128,8 +128,15 @@ class AvailableIcons(QWidget):
 
 
         for count, btn in enumerate(buttons):
+            btn.setParent(grp)
             gridLayout.addWidget(btn, count / self.colSize, count % self.colSize)
-        grp.setMinimumSize(grp.sizeHint())
+
+        size = grp.sizeHint()
+
+        if size.height() < self.buttonSize.height() * gridLayout.rowCount():
+           size.setHeight(self.buttonSize.height() * gridLayout.rowCount() + 10)
+        grp.setMinimumSize(size)
+
         self.scrollAreaWidget.layout().addWidget(grp)
 
     def findResourceDirs(self, resource:QResource)->list:
@@ -166,7 +173,7 @@ class AvailableIcons(QWidget):
             if r.isFile():
                 icon = QIcon(r.fileName())
                 if not icon.isNull():
-                    btn = QPushButton()
+                    btn = QPushButton(self)
                     btn.clicked.connect(self.onClicked)
                     btn.setToolTip(r.fileName())
                     btn.setIcon(icon)
