@@ -1,7 +1,7 @@
 
-
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+from qgis.PyQt.Qt import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
 
 if __name__ == '__main__':
 
@@ -36,6 +36,7 @@ if __name__ == '__main__':
     btn.setText('click me')
     btn.clicked.connect(onButtonClicked)
     w.layout().addWidget(btn)
+    w.layout().addWidget(QLabel('(and check your command line)'))
     w.show()
 
     app.exec_()

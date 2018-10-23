@@ -64,12 +64,13 @@ class UiLabeledLibrary(QWidget, loadUIFormClass(pathUi=join(pathUi, 'labeledLiba
             self.uiField().removeItem(0)
         library = self.uiLibrary().currentLibrary()
         if library is not None:
-            meta = library.raster().dataset().metadataDomain('CSV')
-            fields = list()
-            for key in meta:
-                if key.endswith('class lookup') or key.endswith('class names') or key == 'spectra names':
-                    continue
-                fields.append(key)
+            table = library.attributeTable()
+            #meta = library.raster().dataset().metadataDomain('CSV')
+            fields = list(table.keys())[1:]
+            #for key in meta:
+            #    if key.endswith('class lookup') or key.endswith('class names') or key == 'spectra names':
+            #        continue
+            #    fields.append(key)
             self.uiField().addItems(fields)
 
     def currentLibrary(self):

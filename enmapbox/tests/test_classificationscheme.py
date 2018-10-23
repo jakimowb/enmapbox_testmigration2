@@ -56,9 +56,10 @@ class TestReclassify(TestCase):
         w.btnAddClasses.click()
         w.btnAddClasses.click()
 
+        w.show()
 
 
-
+        QGIS_APP.exec_()
 
         s = ""
 

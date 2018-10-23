@@ -15,6 +15,8 @@ import hubdc.core
 
 from enmapboxapplications.widgets.core import *
 from enmapboxapplications.synthmixapp.core import SynthmixApp
+from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
+
 
 if __name__ == '__main__':
 
@@ -32,7 +34,7 @@ if __name__ == '__main__':
 
 #    widget = UiLibrary()
     #widget = UiLabeledLibrary()
-    widget = SynthmixApp()
+    widget = ScatterPlotApp()
     widget.show()
 
     qgsApp.exec_()

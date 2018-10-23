@@ -1315,12 +1315,12 @@ class MapDockLabel(DockLabel):
         self.addMapLink = QToolButton(self)
         self.addMapLink.setToolTip('Link with other map(s)')
         self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
-        self.buttons.append(self.addMapLink)
+        self.mButtons.append(self.addMapLink)
 
         self.removeMapLink = QToolButton(self)
         self.removeMapLink.setToolTip('Remove links to this map')
         self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
-        self.buttons.append(self.removeMapLink)
+        self.mButtons.append(self.removeMapLink)
 
 
 def setMapCanvasCRSfromDialog(mapCanvas, crs=None):

@@ -12,7 +12,7 @@ from PyQt5.Qsci import *
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebKit import QWebSettings
 from enmapboxapplications.utils import loadUIFormClass
-from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions
+from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions, ApplierControls
 import hubdc.core
 import hubdc.progressbar
 import hubdc.hubdcerrors
@@ -108,6 +108,7 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         self.setupUi(self)
         self.nameByLayer = True
 
+
         # init layer
         assert isinstance(self.uiLayer, QgsMapLayerComboBox)
         self.uiLayer.setCurrentIndex(0)
@@ -131,9 +132,9 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         self.sigLayerChanged.connect(self.setNameByLayer)
         self.sigLayerChanged.connect(self.showOptions)
         self.uiImportArray.clicked.connect(self.sigImportArray)
-        self.uiImportArray2.clicked.connect(self.sigImportArray)
-        self.uiImportMetadata.clicked.connect(self.sigImportMetadata)
-        self.uiImportNoDataValue.clicked.connect(self.sigImportNoDataValue)
+#        self.uiImportArray2.clicked.connect(self.sigImportArray)
+#        self.uiImportMetadata.clicked.connect(self.sigImportMetadata)
+#        self.uiImportNoDataValue.clicked.connect(self.sigImportNoDataValue)
 
         self.showOptions(layer=self.layer())
 
@@ -192,8 +193,8 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         if isinstance(value['layer'], QgsRasterLayer):
             value['resampleAlg'] = eval('gdal.GRA_' + self.uiResampleAlg.currentText())
         elif isinstance(value['layer'], QgsVectorLayer):
-            value['initValue'] = float(self.uiInitValue.value())
-            value['burnValue'] = float(self.uiBurnValue.value())
+            value['initValue'] = 0.
+            value['burnValue'] = 1.
             value['burnAttribute'] = self.uiBurnAttribute.currentField()
             if value['burnAttribute'] == '':
                 value['burnAttribute'] = None
@@ -266,8 +267,8 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
         self.sigFilenameChanged.connect(self.setNameByFilename)
 
         self.uiSetArray.clicked.connect(self.sigSetArray)
-        self.uiSetMetadata.clicked.connect(self.sigSetMetadata)
-        self.uiSetNoDataValue.clicked.connect(self.sigSetNoDataValue)
+        #self.uiSetMetadata.clicked.connect(self.sigSetMetadata)
+        #self.uiSetNoDataValue.clicked.connect(self.sigSetNoDataValue)
 
     def uiFilename(self):
         assert isinstance(self.uiFilename_, OutputFilename)
@@ -822,7 +823,10 @@ class ImageMathApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')))
 
             code = self.code()
 
-            calculator = Calulator()
+            controls = ApplierControls()
+            controls.setBlockSize(blockSize=self.uiBlockSize.value())
+
+            calculator = Calulator(controls=controls)
             calculator.controls.setProgressBar(progressBar=ProgressBar(log=self.uiLog(), bar=self.uiProgressBar()))
 
             calculator.controls.setProjection(projection=projection)
@@ -881,7 +885,7 @@ class ImageMathApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')))
                     return
 
             try:
-                calculator.applyCode(code=code, options=options, outputKeys=outputKeys)
+                calculator.applyCode(code=code, options=options, overlap=self.uiBlockOverlap.value(), outputKeys=outputKeys)
 
             except hubdc.hubdcerrors.MissingApplierProjectionError:
                 self.uiLog().setText(redHTML(

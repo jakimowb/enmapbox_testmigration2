@@ -2,6 +2,7 @@ import sys, os, site
 
 
 from qgis.core import Qgis, QgsApplication
+from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QSettings
 
 __version__ = '3.2' #subsub-version information is added during build process
@@ -35,13 +36,27 @@ LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
 
 site.addsitedir(DIR_SITEPACKAGES)
 
-
-
 # mockup to make QGIS resources available for uic.loadUiType
-
 if not 'images' in list(sys.modules.keys()):
     import enmapbox.images
     sys.modules['images'] = enmapbox.images
+
+#see https://github.com/pyqtgraph/pyqtgraph/issues/774
+WORKAROUND_PYTGRAPH_ISSUE_774 = True
+if WORKAROUND_PYTGRAPH_ISSUE_774:
+    from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
+
+    from PyQt5.QtCore import QVariant
+    untouched = GraphicsObject.itemChange
+
+    def newFunc(cls, change, value):
+        if value != QVariant(None):
+            return untouched(cls, change, value)
+        else:
+            return untouched(cls, change, None)
+
+    GraphicsObject.itemChange = newFunc
+
 
 def messageLog(msg, level=Qgis.Info):
     """
@@ -72,3 +87,17 @@ except:
     pass
 
 
+
+
+#init some other requirements
+print('initialize EnMAP-Box editor widget factories')
+from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
+registerPlotStyleEditorWidget()
+
+from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
+registerSpectralProfileEditorWidget()
+
+
+def run():
+    import enmapbox.__main__
+    enmapbox.__main__.run()

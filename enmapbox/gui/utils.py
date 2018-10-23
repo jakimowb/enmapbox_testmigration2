@@ -42,6 +42,8 @@ DIR_QGISRESOURCES = jp(DIR_REPO, 'qgisresources')
 if not os.path.isdir(DIR_QGISRESOURCES):
     DIR_QGISRESOURCES = None
 
+MAP_LAYER_STORES = [QgsProject.instance()]
+
 
 REPLACE_TMP = True  # required for loading *.ui files directly
 
@@ -281,6 +283,59 @@ class QgsPluginManagerMockup(QgsPluginManagerInterface):
         super().timerEvent(*args, **kwargs)
 
 
+class PythonRunnerImpl(QgsPythonRunner):
+    """
+    A Qgs PythonRunner implementation
+    """
+
+    def __init__(self):
+        super(PythonRunnerImpl, self).__init__()
+
+
+    def evalCommand(self, cmd:str, result:str):
+        try:
+            o = compile(cmd)
+        except Exception as ex:
+            result = str(ex)
+            return False
+        return True
+
+    def runCommand(self, command, messageOnError=''):
+        try:
+            o = compile(command, 'fakemodule', 'exec')
+            exec(o)
+        except Exception as ex:
+            messageOnError = str(ex)
+            command = ['{}:{}'.format(i+1, l) for i,l in enumerate(command.splitlines())]
+            print('\n'.join(command), file=sys.stderr)
+            raise ex
+            return False
+        return True
+
+
+def findMapLayer(layer)->QgsMapLayer:
+    """
+    Returns the first QgsMapLayer out of all layers stored in MAP_LAYER_STORES that matches layer
+    :param layer: str layer id or layer name or QgsMapLayer
+    :return: QgsMapLayer
+    """
+    if isinstance(layer, QgsMapLayer):
+        return layer
+    elif isinstance(layer, str):
+        #check for IDs
+        for store in MAP_LAYER_STORES:
+            l = store.mapLayer(layer)
+            if isinstance(l, QgsMapLayer):
+                return l
+        #check for name
+        for store in MAP_LAYER_STORES:
+            l = store.mapLayersByName(layer)
+            if len(l) > 0:
+                return l[0]
+    return None
+
+
+
 def qgisLayerTreeLayers() -> list:
     """
     Returns the layers shown in the QGIS LayerTree
@@ -463,6 +518,7 @@ class QgisMockup(QgisInterface):
         super().zoomFull(*args, **kwargs)
 
 
+
 def createQgsField(name : str, exampleValue, comment:str=None):
     """
     Create a QgsField using a Python-datatype exampleValue
@@ -598,6 +654,10 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgi
 
         QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
 
+        #initiate a PythonRunner instance if None exists
+        if not QgsPythonRunner.isValid():
+            r = PythonRunnerImpl()
+            QgsPythonRunner.setInstance(r)
         return qgsApp
 
 
@@ -624,23 +684,20 @@ def guessDataProvider(src:str)->str:
     return None
 
 
-def settings():
-    """
-    Returns the QSettings object with EnMAPBox Settings
-    :return:
-    """
-    print('DEPRECATED CALL enmapbox.gui.utils.settings()')
-    return enmapboxSettings()
 
+def showMessage(message:str, title:str, level):
+    """
+    Shows a message using the QgsMessageViewer
+    :param message: str, message
+    :param title: str, title of viewer
+    :param level:
+    """
 
-def showMessage(message, title, level):
     v = QgsMessageViewer()
     v.setTitle(title)
 
-    v.setMessage(message, QgsMessageOutput.MessageHtml \
-        if message.startswith('<html>')
-    else QgsMessageOutput.MessageText)
-
+    isHtml = message.startswith('<html>')
+    v.setMessage(message, QgsMessageOutput.MessageHtml if isHtml else QgsMessageOutput.MessageText)
     v.showMessage(True)
 
 

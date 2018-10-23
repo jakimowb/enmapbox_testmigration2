@@ -129,9 +129,6 @@ def missingTestdata()->bool:
     try:
         import enmapboxtestdata
         assert os.path.isfile(enmapboxtestdata.enmap)
-        assert os.path.isfile(enmapboxtestdata.hymap)
-        assert os.path.isfile(enmapboxtestdata.landcover)
-        assert os.path.isfile(enmapboxtestdata.speclib)
         return False
     except Exception as ex:
         print(ex, file=sys.stderr)
@@ -145,6 +142,10 @@ def installTestdata(overwrite_existing=False):
         print('Testdata already installed.')
         return
 
+    app = QgsApplication.instance()
+    if app is None:
+        from enmapbox.gui.utils import initQgisApplication
+        app = initQgisApplication()
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
     from enmapbox import DIR_TESTDATA

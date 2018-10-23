@@ -18,16 +18,13 @@
 """
 
 
-import itertools, codecs
-import os
-import uuid
-from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+import codecs
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
-import pyqtgraph.dockarea.Dock
+from pyqtgraph.dockarea.DockArea import DockArea as pgDockArea
+from pyqtgraph.dockarea.Dock import Dock as pgDock
+from pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
 from pyqtgraph.widgets.VerticalLabel import VerticalLabel
 from enmapbox.gui.utils import KeepRefs
 
@@ -45,7 +42,7 @@ class DockWindow(QMainWindow):
         self.centralWidget().clear()
 
 
-class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
+class Dock(pgDock, KeepRefs):
     @staticmethod
     def readXml(elem):
 
@@ -59,56 +56,63 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
 
 
     def __init__(self, name='Data View', closable=True, *args, **kwds):
-        super(Dock, self).__init__(name=name, closable=False, *args, **kwds)
+        super(Dock, self).__init__(name=name, closable=closable, *args, **kwds)
         KeepRefs.__init__(self)
         #ssert enmapboxInstance is not None
         #self.enmapbox = enmapboxInstance
-        self.setStyleSheet('background:#FFF')
+        #self.setStyleSheet('background:#FFF')
 
         #replace PyQtGraph Label by EnmapBox labels (could be done by inheritances as well)
         title = self.title()
-        self.topLayout.removeWidget(self.label)
-        del self.label
-        self.label = self._createLabel(title=title)
-        self.label.setMinimumHeight(50)
-        self.topLayout.addWidget(self.label, 0, 1)
+        if True:
+            #self.topLayout.addWidget(self.label, 0, 1)
+            newLabel = self._createLabel(title=title)
+            oldLabel = self.label
+            widgetItem = self.topLayout.replaceWidget(oldLabel, newLabel)
+            oldLabel.setParent(None)
+            assert isinstance(widgetItem, QWidgetItem)
+            self.label = newLabel
+            if closable:
+                self.label.sigCloseClicked.connect(self.close)
+
+        else:
+            pass
+
         self.uuid = uuid.uuid4()
-        if closable:
-            self.label.sigCloseClicked.connect(self.close)
 
         self.raiseOverlay()
 
+        if False:
+            self.hStyle = """
+            Dock > QWidget {
+                border: 1px solid #000;
+                border-radius: 1px;
+                border-top-left-radius: 0px;
+                border-top-right-radius: 0px;
+                border-top-width: 0px;
+            }
+            """
+            self.vStyle = """
+            Dock > QWidget {
+                border: 1px solid #000;
+                border-radius: 1px;
+                border-top-left-radius: 0px;
+                border-bottom-left-radius: 0px;
+                border-left-width: 0px;
+            }
+            """
+            self.nStyle = """
+            Dock > QWidget {
+                border: 1px solid #000;
+                border-radius: 1px;
+            }"""
+            self.dragStyle = """
+            Dock > QWidget {
+                border: 4px solid #00F;
+                border-radius: 1px;
+            }"""
 
-        self.hStyle = """
-        Dock > QWidget {
-            border: 1px solid #000;
-            border-radius: 5px;
-            border-top-left-radius: 0px;
-            border-top-right-radius: 0px;
-            border-top-width: 0px;
-        }
-        """
-        self.vStyle = """
-        Dock > QWidget {
-            border: 1px solid #000;
-            border-radius: 5px;
-            border-top-left-radius: 0px;
-            border-bottom-left-radius: 0px;
-            border-left-width: 0px;
-        }
-        """
-        self.nStyle = """
-        Dock > QWidget {
-            border: 1px solid #000;
-            border-radius: 5px;
-        }"""
-        self.dragStyle = """
-        Dock > QWidget {
-            border: 4px solid #00F;
-            border-radius: 5px;
-        }"""
-
-        self.widgetArea.setStyleSheet(self.hStyle)
+            self.widgetArea.setStyleSheet(self.hStyle)
         self.topLayout.update()
 
     def contextMenu(self):
@@ -131,7 +135,7 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
         return menu
 
     sigVisibilityChanged = pyqtSignal(bool)
-    def setVisible(self, b):
+    def setVisible(self, b:bool):
 
         i = self.isVisible()
         super(Dock, self).setVisible(b)
@@ -185,7 +189,7 @@ class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
             assert isinstance(area, DockArea)
             area.moveDock(self, 'left', None)
 
-class DockArea(pyqtgraph.dockarea.DockArea):
+class DockArea(pgDockArea):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
     sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
     sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
@@ -208,6 +212,7 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         #c.apoptose(True)
         return c
 
+    """
     #todo: somehow manipulate this to solve issue #21
     #ask user to really close DockArea if more than one dock is opened
     #"Do you really want to close this window and all contents?"
@@ -230,6 +235,7 @@ class DockArea(pyqtgraph.dockarea.DockArea):
     def fixDock(self, dock):
 
         s = ""
+    """
 
     def floatDock(self, dock):
         """Removes *dock* from this DockArea and places it in a new window."""
@@ -245,20 +251,22 @@ class DockArea(pyqtgraph.dockarea.DockArea):
             lastArea.sigDockRemoved.emit(dock)
 
     def apoptose(self):
-        #print "apoptose area:", self.temporary, self.topContainer, self.topContainer.count()
-        if self.topContainer.count() == 0:
+
+        if self.topContainer is not None and self.topContainer.count() == 0:
             self.topContainer = None
 
+        if self.topContainer is None:
             if self.temporary and self.home is not None:
                 self.home.removeTempArea(self)
         else:
-            s = ""
+            pass
 
     sigDockAdded = pyqtSignal(Dock)
     sigDockRemoved = pyqtSignal(Dock)
     def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
         assert enmapboxdock is not None
-        assert isinstance(enmapboxdock, Dock)
+        #assert isinstance(enmapboxdock, Dock)
+
         v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
         self.sigDockAdded.emit(enmapboxdock)
         return v
@@ -300,7 +308,7 @@ class DockArea(pyqtgraph.dockarea.DockArea):
 
 
 
-class DockLabel(VerticalLabel):
+class DockLabel_DEPR(VerticalLabel):
     sigClicked = pyqtSignal(object, object)
     sigCloseClicked = pyqtSignal()
     sigNormalClicked = pyqtSignal()
@@ -481,28 +489,97 @@ class DockLabel(VerticalLabel):
 
 
 
-class CursorLocationValueDock(Dock):
+class DockLabel(pgDockLabel):
+    sigClicked = pyqtSignal(object, object)
+    sigCloseClicked = pyqtSignal()
+    sigNormalClicked = pyqtSignal()
+    sigContextMenuRequest = pyqtSignal(QContextMenuEvent)
+    def __init__(self, dock, title=None, allow_floating=True, showClosebutton=True):
+        if title is None:
+            title = self.dock.title()
+        super(DockLabel, self).__init__(title, dock, showClosebutton)
+        assert isinstance(dock, pgDock)
+        self.mButtons = list()  # think from right to left
 
-    _instance = None
+        self.setMinimumSize(26, 26)
+
+        closeButton = QToolButton(self)
+        closeButton.clicked.connect(self.sigCloseClicked)
+        closeButton.setToolTip('Close window')
+        closeButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        self.mButtons.append(closeButton)
+
+        if allow_floating:
+            floatButton = QToolButton(self)
+            #testButton.clicked.connect(self.sigNormalClicked)
+            floatButton.setToolTip('Float window')
+            floatButton.clicked.connect(lambda : self.dock.float())
+            floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
+            self.mButtons.append(floatButton)
+
+            self.btnUnFloat = QToolButton(self)
+            self.btnUnFloat.setText('U')
+            self.btnUnFloat.setToolTip('Unfloat window')
+            self.btnUnFloat.clicked.connect(lambda : self.dock.unfloat())
+            self.mButtons.append(self.btnUnFloat)
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+        if isinstance(enmapBox, EnMAPBox):
+            dockArea = enmapBox.ui.dockArea
+            if isinstance(dockArea, DockArea):
+
+                dockArea.sigDockAdded.connect(lambda dock: self.setUnfloatButtonVisibility(dock, False))
+                dockArea.sigDockRemoved.connect(lambda dock: self.setUnfloatButtonVisibility(dock, True))
+
+    def setUnfloatButtonVisibility(self, dock, b:bool):
+        self.btnUnFloat.setVisible(b)
+        self.update()
+
+
+    def contextMenuEvent(self, event):
+        assert isinstance(event, QContextMenuEvent)
+        self.sigContextMenuRequest.emit(event)
+
+
+    def mouseMoveEvent(self, ev):
+        if not self.startedDrag and hasattr(self, 'pressPos'):
+            super(DockLabel, self).mouseMoveEvent(ev)
+        else:
+            ev.accept()
 
     """
-    A dock to visualize cursor location values
+    def resizeEvent_BAK(self, ev):
+        if self.closeButton:
+            if self.orientation == 'vertical':
+                size = ev.size().width()
+                pos = QtCore.QPoint(0, 0)
+            else:
+                size = ev.size().height()
+                pos = QtCore.QPoint(ev.size().width() - size, 0)
+            self.closeButton.setFixedSize(QtCore.QSize(size, size))
+            self.closeButton.move(pos)
+        super(DockLabel, self).resizeEvent(ev)
     """
 
-    def __init__(self, *args, **kwds):
-        super(CursorLocationValueDock, self).__init__(*args, **kwds)
-        from enmapbox.gui.cursorlocationvalue import CursorLocationValueWidget
-        self.dataSourceManager = None
-        self.w = CursorLocationValueWidget(self)
-        self.layout.addWidget(self.w)
-        self.setTitle('Cursor Location Values')
 
-    def connectDataSourceManager(self, dataSourceManager):
-        self.w.connectDataSourceManager(dataSourceManager)
+    def resizeEvent(self, ev):
+        if self.orientation == 'vertical':
+            size = ev.size().width()
+        else:
+            size = ev.size().height()
+
+        for i, btn in enumerate([b for b in self.mButtons if not b.isHidden()]):
+            if self.orientation == 'vertical':
+                pos = QtCore.QPoint(0, i * size)
+            else:
+                pos = QtCore.QPoint(ev.size().width() - (i+1)*size, 0)
+            btn.setFixedSize(QtCore.QSize(size, size))
+            btn.move(pos)
+
+        super(DockLabel, self).resizeEvent(ev)
 
 
-    def showLocationValues(self, *args):
-        self.w.showLocationValues(*args)
 
 class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
 
@@ -713,7 +790,7 @@ class MimeDataDock(Dock):
         super(MimeDataDock, self).__init__(*args, **kwds)
 
         self.mimeDataWidget = MimeDataDockWidget(self)
-        self.layout.addWidget(self.mimeDataWidget)
+        self.addWidget(self.mimeDataWidget, 0, 0)
 
 
 class SpectralLibraryDock(Dock):
@@ -721,21 +798,13 @@ class SpectralLibraryDock(Dock):
     def __init__(self,*args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
-        self.speclibWidget = SpectralLibraryWidget(self)
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
+        self.speclibWidget = SpectralLibraryWidget(parent=self)
         self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.speclibWidget)
         self.mShowMapInteraction = True
+        self.speclibWidget.plotItem
 
-
-if __name__ == '__main__':
-    import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
-
-    from enmapbox.gui.utils import initQgisApplication
-    qgsApp = initQgisApplication()
-    da = DockArea()
-    dock = MimeDataDock()
-    da.addDock(dock)
-    da.show()
-    qgsApp.exec_()
+    def speclib(self)->SpectralLibrary:
+        """Returns the underlying spectral library"""
+        return self.speclibWidget.speclib()
