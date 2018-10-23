@@ -445,9 +445,9 @@
   </action>
   <action name="actionSelectProfiles">
    <property name="icon">
-    <iconset>
-     <normaloff>:/enmapbox/icons/pickrasterspectrum.svg</normaloff>
-     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/enmapbox/icons/pickrasterspectrum.svg</iconset>
+    <iconset resource="../speclib/speclibresources.qrc">
+     <normaloff>:/speclib/icons/pickrasterspectrum.svg</normaloff>
+     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/speclib/icons/pickrasterspectrum.svg</iconset>
    </property>
    <property name="text">
     <string>Select pixel profiles</string>
@@ -521,6 +521,7 @@
  </customwidgets>
  <resources>
   <include location="resources.qrc"/>
+  <include location="../speclib/speclibresources.qrc"/>
   <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
