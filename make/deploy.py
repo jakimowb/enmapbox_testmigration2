@@ -49,7 +49,8 @@ buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).gr
                             re.sub(r'[\\/]','_', currentBranch))
 
 DIR_DEPLOY = jp(DIR_REPO, 'deploy')
-PLUGIN_REPO_XML = os.path.join(DIR_DEPLOY, 'qgis_plugin_develop.xml')
+PLUGIN_REPO_XML_REMOTE = os.path.join(DIR_DEPLOY, 'qgis_plugin_develop.xml')
+PLUGIN_REPO_XML_LOCAL  = os.path.join(DIR_DEPLOY, 'qgis_plugin_develop_local.xml')
 URL_DOWNLOADS = r'https://bitbucket.org/hu-geomatics/enmap-box/downloads'
 URL_WIKI = r'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/wiki/src'
 
@@ -204,6 +205,13 @@ def build():
 
 
 def updateRepositoryXML(path:str=None):
+    """
+    Creates the XML files:
+        deploy/qgis_plugin_develop.xml - to be uploaded to the bitbucket repository
+        deploy/qgis_plugin_develop_local.xml - can be used as local QGIS Repository source
+    :param path: str, optional, path of local *.zip which has been build with build()
+    :return:
+    """
     if not isinstance(path, str):
         zipFiles = file_search(DIR_DEPLOY, 'enmapbox*.zip')
         zipFiles.sort(key=lambda f:os.path.getctime(f))
@@ -282,22 +290,30 @@ def updateRepositoryXML(path:str=None):
 
     dom.insertBefore(pi2, dom.firstChild)
 
-    xml = dom.toprettyxml(encoding='utf-8').decode('utf-8')
-    with open(PLUGIN_REPO_XML, 'w') as f:
-        f.write(xml)
+    xmlRemote = dom.toprettyxml(encoding='utf-8').decode('utf-8')
+
+    with open(PLUGIN_REPO_XML_REMOTE, 'w') as f:
+        f.write(xmlRemote)
+
+    import pathlib
+    uri = pathlib.Path(path).as_uri()
+    xmlLocal = re.sub(r'<download_url>.*</download_url>', r'<download_url>{}</download_url>'.format(uri), xmlRemote)
+    with open(PLUGIN_REPO_XML_LOCAL, 'w') as f:
+        f.write(xmlLocal)
+
    # tree.write(pathXML, encoding='utf-8', pretty_print=True, xml_declaration=True)
     #https://bitbucket.org/hu-geomatics/enmap-box/raw/HEAD/qgis_plugin_develop.xml
 
 def uploadDeveloperPlugin():
     urlDownloads = 'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads'
-    assert os.path.isfile(PLUGIN_REPO_XML)
+    assert os.path.isfile(PLUGIN_REPO_XML_REMOTE)
 
     if True:
         #copy to head
-        bnXML = os.path.basename(PLUGIN_REPO_XML)
+        bnXML = os.path.basename(PLUGIN_REPO_XML_REMOTE)
         pathNew = os.path.join(DIR_REPO, bnXML)
-        print('Copy {}\n\tto {}'.format(PLUGIN_REPO_XML, pathNew))
-        shutil.copy(PLUGIN_REPO_XML, pathNew)
+        print('Copy {}\n\tto {}'.format(PLUGIN_REPO_XML_REMOTE, pathNew))
+        shutil.copy(PLUGIN_REPO_XML_REMOTE, pathNew)
         import git
         REPO = git.Repo(DIR_REPO)
         for diff in REPO.index.diff(None):
@@ -307,7 +323,7 @@ def uploadDeveloperPlugin():
 
     UPLOADS = {urlDownloads:[]}    #urlRepoXML:[PLUGIN_REPO_XML],
                 #urlDownloads:[PLUGIN_REPO_XML]}
-    doc = minidom.parse(PLUGIN_REPO_XML)
+    doc = minidom.parse(PLUGIN_REPO_XML_REMOTE)
     for tag in doc.getElementsByTagName('file_name'):
         bn = tag.childNodes[0].nodeValue
         pathFile = os.path.join(DIR_DEPLOY, bn)
@@ -400,7 +416,7 @@ def uploadDeveloperPlugin():
 
 if __name__ == "__main__":
 
-    #build()
+    build()
     updateRepositoryXML()
-    uploadDeveloperPlugin()
-    s = ""
+    #uploadDeveloperPlugin()
+    #s = ""

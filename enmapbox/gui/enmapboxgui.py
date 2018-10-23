@@ -27,7 +27,7 @@ from enmapbox.gui.maptools import *
 # if qgis.utils.iface is None:
 #    qgis.utils.iface = EnMAPBoxQgisInterface()
 
-SETTINGS = enmapboxSettings()
+SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 
@@ -144,9 +144,6 @@ class EnMAPBox(QgisInterface, QObject):
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None
-        # necessary to make the resource file available
-        from enmapbox.gui.ui import resources
-        resources.qInitResources()
         QObject.__init__(self)
         # super(EnMAPBox, self).__init__()
         QgisInterface.__init__(self)

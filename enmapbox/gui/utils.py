@@ -33,7 +33,7 @@ from qgis.PyQt import uic
 from osgeo import gdal
 import numpy as np
 
-from enmapbox import messageLog, enmapboxSettings, DIR_REPO, DIR_UIFILES
+from enmapbox import messageLog, DIR_REPO, DIR_UIFILES
 
 jp = os.path.join
 
@@ -746,6 +746,9 @@ loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 # dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()
 
+#FORM_CLASS_MOCKUP_MODULES = ['images','resources']
+
+
 
 
 def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQGISRessourceFileReferences=True, _modifiedui=None):
@@ -764,14 +767,9 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
 
     if pathUi not in FORM_CLASSES.keys():
         #parse *.ui xml and replace *.h by qgis.gui
-        doc = QDomDocument()
 
-        #remove new-lines. this prevents uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
-        #to mess up the *.ui xml
-
-        f = open(pathUi, 'r')
-        txt = f.read()
-        f.close()
+        with open(pathUi, 'r') as f:
+            txt = f.read()
 
         dirUi = os.path.dirname(pathUi)
 
@@ -780,7 +778,7 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
         for m in re.findall(r'(<include location="(.*\.qrc)"/>)', txt):
             locations.append(m)
 
-        removed = []
+        missing = []
         for t in locations:
             line, path = t
             if not os.path.isabs(path):
@@ -789,25 +787,21 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
                 p = path
 
             if not os.path.isfile(p):
-                txt = txt.replace('<iconset resource="{}">'.format(path), '')
-                txt = txt.replace('<include location="{}">'.format(path), '')
-                removed.append(t)
+                missing.append(t)
+        match = re.search(r'resource="[^:].*/QGIS[^/"]*/images/images.qrc"',txt)
+        if match:
+            txt = txt.replace(match.group(), 'resource=":/images/images.qrc"')
 
-        if len(removed) > 0:
-            print('None-existing resource file(s) in: {}'.format(pathUi), file=sys.stderr)
-            for t in removed:
+        if len(missing) > 0:
+            print('None-existing resource file(s) in: {}'.format(pathUi))
+            for t in missing:
                 line, path = t
                 print('\t{}'.format(line), file=sys.stderr)
-            print(txt)
-        #:/images/themes/default/console/iconRestoreTabsConsole.svg
-        #resource="../../../../../QGIS-master/images/images.qrc"
-        # <include location="../../../../../QGIS-master/images/images.qrc"/>
+            #print(txt)
+
+        doc = QDomDocument()
         doc.setContent(txt)
 
-        # Replace *.h file references in <customwidget> with <class>Qgs...</class>, e.g.
-        #       <header>qgscolorbutton.h</header>
-        # by    <header>qgis.gui</header>
-        # this is require to compile QgsWidgets on-the-fly
         elem = doc.elementsByTagName('customwidget')
         for child in [elem.item(i) for i in range(elem.count())]:
             child = child.toElement()
@@ -830,12 +824,6 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
                 else:
                     p = lpath
                 qrcPaths.append(p)
-        #for child in [elem.item(i) for i in range(elem.count())]:
-        #    path = child.attributes().item(0).nodeValue()
-        #    if path.endswith('.qrc'):
-        #        qrcPathes.append(path)
-
-
 
 
         buffer = io.StringIO()  # buffer to store modified XML
@@ -852,24 +840,42 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
 
 
 
-        #make resource file directories available to the python path (sys.path)
+        #if existent, make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)
         tmpDirs = []
-        for qrcPath in qrcPaths:
-            d = os.path.abspath(os.path.join(baseDir, qrcPath))
-            d = os.path.dirname(d)
-            if d not in sys.path:
-                tmpDirs.append(d)
-        sys.path.extend(tmpDirs)
+        if True:
+            for qrcPath in qrcPaths:
+                d = os.path.abspath(os.path.join(baseDir, qrcPath))
+                d = os.path.dirname(d)
+                if os.path.isdir(d) and d not in sys.path:
+                    tmpDirs.append(d)
+            sys.path.extend(tmpDirs)
+
+        #create requried mockups
+        if True:
+            FORM_CLASS_MOCKUP_MODULES = [os.path.splitext(os.path.basename(p))[0] for p in qrcPaths]
+            FORM_CLASS_MOCKUP_MODULES = [m for m in FORM_CLASS_MOCKUP_MODULES if m not in sys.modules.keys()]
+            for mockupModule in FORM_CLASS_MOCKUP_MODULES:
+                #print('ADD MOCKUP MODULE {}'.format(mockupModule))
+                import enmapbox.gui.resourcemockup
+                sys.modules[mockupModule] = enmapbox.gui.resourcemockup
+
 
         #load form class
         try:
             FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
-        except SyntaxError as ex:
-            FORM_CLASS, _ = uic.loadUiType(pathUi, resource_suffix=RC_SUFFIX)
+        except Exception as ex1:
+            print(doc.toString(), file=sys.stderr)
+            info = 'Unable to load {}'.format(pathUi) + '\n{}'.format(str(ex1))
+            ex = Exception(info)
+            raise ex
+
+        for mockupModule in FORM_CLASS_MOCKUP_MODULES:
+            sys.modules.pop(mockupModule)
+
 
         buffer.close()
-        buffer = None
+
         FORM_CLASSES[pathUi] = FORM_CLASS
 
         #remove temporary added directories from python path

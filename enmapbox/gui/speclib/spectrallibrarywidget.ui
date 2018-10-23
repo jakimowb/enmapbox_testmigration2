@@ -281,7 +281,7 @@
   <action name="actionImportSpeclib">
    <property name="icon">
     <iconset resource="speclibresources.qrc">
-     <normaloff>:/speclib/icons/speclib_add.svg</normaloff>:/speclib/icons/speclib_add.svg</iconset>
+     <normaloff>:/speclibimages/icons/speclib_add.svg</normaloff>:/speclibimages/icons/speclib_add.svg</iconset>
    </property>
    <property name="text">
     <string>importSpeclib</string>
@@ -293,7 +293,7 @@
   <action name="actionSaveSpeclib">
    <property name="icon">
     <iconset resource="speclibresources.qrc">
-     <normaloff>:/speclib/icons/speclib_save.svg</normaloff>:/speclib/icons/speclib_save.svg</iconset>
+     <normaloff>:/speclibimages/icons/speclib_save.svg</normaloff>:/speclibimages/icons/speclib_save.svg</iconset>
    </property>
    <property name="text">
     <string>Save Spectral Library</string>
@@ -304,7 +304,7 @@
   </action>
   <action name="mActionCopySelectedRows">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionEditCopy.svg</normaloff>:/images/themes/default/mActionEditCopy.svg</iconset>
    </property>
    <property name="text">
@@ -319,7 +319,7 @@
   </action>
   <action name="actionAddAttribute">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionNewAttribute.svg</normaloff>:/images/themes/default/mActionNewAttribute.svg</iconset>
    </property>
    <property name="text">
@@ -334,7 +334,7 @@
   </action>
   <action name="actionPasteFeatures">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionEditPaste.svg</normaloff>:/images/themes/default/mActionEditPaste.svg</iconset>
    </property>
    <property name="text">
@@ -349,7 +349,7 @@
   </action>
   <action name="actionRemoveAttribute">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionDeleteAttribute.svg</normaloff>:/images/themes/default/mActionDeleteAttribute.svg</iconset>
    </property>
    <property name="text">
@@ -364,7 +364,7 @@
   </action>
   <action name="actionSaveEdits">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSaveAllEdits.svg</normaloff>:/images/themes/default/mActionSaveAllEdits.svg</iconset>
    </property>
    <property name="text">
@@ -382,7 +382,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionToggleEditing.svg</normaloff>:/images/themes/default/mActionToggleEditing.svg</iconset>
    </property>
    <property name="text">
@@ -398,7 +398,7 @@
   <action name="actionSelectProfilesFromMap">
    <property name="icon">
     <iconset resource="speclibresources.qrc">
-     <normaloff>:/speclib/icons/pickrasterspectrum.svg</normaloff>:/speclib/icons/pickrasterspectrum.svg</iconset>
+     <normaloff>:/speclibimages/icons/pickrasterspectrum.svg</normaloff>:/speclibimages/icons/pickrasterspectrum.svg</iconset>
    </property>
    <property name="text">
     <string>Select Profiles from Map</string>
@@ -413,7 +413,7 @@
    </property>
    <property name="icon">
     <iconset resource="speclibresources.qrc">
-     <normaloff>:/speclib/icons/profile2speclib.svg</normaloff>:/speclib/icons/profile2speclib.svg</iconset>
+     <normaloff>:/speclibimages/icons/profile2speclib.svg</normaloff>:/speclibimages/icons/profile2speclib.svg</iconset>
    </property>
    <property name="text">
     <string>Save current profiles</string>
@@ -427,7 +427,7 @@
   </action>
   <action name="actionReload">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionReload.svg</normaloff>:/images/themes/default/mActionReload.svg</iconset>
    </property>
    <property name="text">
@@ -439,7 +439,7 @@
   </action>
   <action name="actionSelectAll">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSelectAll.svg</normaloff>:/images/themes/default/mActionSelectAll.svg</iconset>
    </property>
    <property name="text">
@@ -454,7 +454,7 @@
   </action>
   <action name="actionInvertSelection">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionInvertSelection.svg</normaloff>:/images/themes/default/mActionInvertSelection.svg</iconset>
    </property>
    <property name="text">
@@ -469,7 +469,7 @@
   </action>
   <action name="actionRemoveSelection">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionDeselectAll.svg</normaloff>:/images/themes/default/mActionDeselectAll.svg</iconset>
    </property>
    <property name="text">
@@ -484,7 +484,7 @@
   </action>
   <action name="actionPanMapToSelectedRows">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionPanToSelected.svg</normaloff>:/images/themes/default/mActionPanToSelected.svg</iconset>
    </property>
    <property name="text">
@@ -499,7 +499,7 @@
   </action>
   <action name="actionZoomMapToSelectedRows">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomToSelected.svg</normaloff>:/images/themes/default/mActionZoomToSelected.svg</iconset>
    </property>
    <property name="text">
@@ -514,7 +514,7 @@
   </action>
   <action name="actionDeleteSelected">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionDeleteSelected.svg</normaloff>:/images/themes/default/mActionDeleteSelected.svg</iconset>
    </property>
    <property name="text">
@@ -529,7 +529,7 @@
   </action>
   <action name="actionCutSelectedRows">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionEditCut.svg</normaloff>:/images/themes/default/mActionEditCut.svg</iconset>
    </property>
    <property name="text">
@@ -544,7 +544,7 @@
   </action>
   <action name="actionCopySelectedRows">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionEditCopy.svg</normaloff>:/images/themes/default/mActionEditCopy.svg</iconset>
    </property>
    <property name="text">
@@ -566,7 +566,7 @@
    </property>
    <property name="icon">
     <iconset resource="speclibresources.qrc">
-     <normaloff>:/speclib/icons/profile2speclib_auto.svg</normaloff>:/speclib/icons/profile2speclib_auto.svg</iconset>
+     <normaloff>:/speclibimages/icons/profile2speclib_auto.svg</normaloff>:/speclibimages/icons/profile2speclib_auto.svg</iconset>
    </property>
    <property name="text">
     <string>AddCurrentProfilesAutomatically</string>
@@ -577,7 +577,7 @@
   </action>
   <action name="actionFormView">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionFormView.svg</normaloff>:/images/themes/default/mActionFormView.svg</iconset>
    </property>
    <property name="text">
@@ -589,7 +589,7 @@
   </action>
   <action name="actionTableView">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionOpenTable.svg</normaloff>:/images/themes/default/mActionOpenTable.svg</iconset>
    </property>
    <property name="text">
@@ -615,7 +615,6 @@
  </customwidgets>
  <resources>
   <include location="speclibresources.qrc"/>
-  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>

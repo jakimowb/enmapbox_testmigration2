@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="speclib">
+  <qresource prefix="speclibimages">
     <file>icons/pickrasterspectrum.svg</file>
     <file>icons/profile2speclib.svg</file>
     <file>icons/profile2speclib_auto.svg</file>

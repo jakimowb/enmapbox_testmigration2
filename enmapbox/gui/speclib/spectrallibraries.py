@@ -58,7 +58,7 @@ from vrtbuilder.virtualrasters import describeRawFile
 from enmapbox.gui.widgets.models import *
 from enmapbox.gui.plotstyling import PlotStyle, PlotStyleDialog, MARKERSYMBOLS2QGIS_SYMBOLS, createSetPlotStyleAction
 from enmapbox.gui.plotstyling import EDITOR_WIDGET_REGISTRY_KEY as PlotSettingsEditorWidgetKey
-import enmapbox.gui.mimedata as mimedata
+
 
 MODULE_IMPORT_PATH = 'enmapbox.gui.speclib.spectrallibraries'
 

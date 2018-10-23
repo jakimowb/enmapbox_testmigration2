@@ -5,7 +5,7 @@ from qgis.core import Qgis, QgsApplication
 from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QSettings
 
-__version__ = '3.2' #subsub-version information is added during build process
+__version__ = '3.3' #subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -22,9 +22,14 @@ DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
 DIR_TESTDATA = os.path.join(DIR_REPO, 'enmapboxtestdata')
 
+ENMAP_BOX_KEY = 'EnMAP-Box'
 
-def enmapboxSettings():
-    ENMAP_BOX_KEY = 'EnMAP-Box'
+
+def enmapboxSettings()->QSettings:
+    """
+    Returns the QSettings object for EnMAP-Box Settings
+    :return: QSettings
+    """
     return QSettings('HU-Berlin', ENMAP_BOX_KEY)
 
 settings = enmapboxSettings()
@@ -36,10 +41,14 @@ LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
 
 site.addsitedir(DIR_SITEPACKAGES)
 
-# mockup to make QGIS resources available for uic.loadUiType
-if not 'images' in list(sys.modules.keys()):
-    import enmapbox.images
-    sys.modules['images'] = enmapbox.images
+# make the EnMAP-Box resources available
+
+if not 'images' in sys.modules.keys():
+    import enmapbox.gui.resourcemockup
+    sys.modules['images'] = enmapbox.gui.resourcemockup
+
+from enmapbox.gui.ui import resources
+resources.qInitResources()
 
 #see https://github.com/pyqtgraph/pyqtgraph/issues/774
 WORKAROUND_PYTGRAPH_ISSUE_774 = True
@@ -88,15 +97,13 @@ except:
 
 
 
-
 #init some other requirements
-print('initialize EnMAP-Box editor widget factories')
+#print('initialize EnMAP-Box editor widget factories')
 from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
 registerPlotStyleEditorWidget()
 
 from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
 registerSpectralProfileEditorWidget()
-
 
 def run():
     import enmapbox.__main__
