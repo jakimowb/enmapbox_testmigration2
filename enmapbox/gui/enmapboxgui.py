@@ -398,6 +398,19 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
         self.ui.actionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
 
+
+
+    def onCrosshairPositionChanged(self, spatialPoint:SpatialPoint):
+        """
+        Synchronizes all crosshair positions. Takes care of CRS differences.
+        :param spatialPoint: SpatialPoint of the new Crosshair position
+        """
+        sender = self.sender()
+        for mapCanvas in self.mapCanvases():
+            if isinstance(mapCanvas, MapCanvas) and mapCanvas != sender:
+                mapCanvas.setCrosshairPosition(spatialPoint, emitSignal=False)
+
+
     sigDockAdded = pyqtSignal(Dock)
 
     def onDockAdded(self, dock):
@@ -410,7 +423,10 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):
-            self.sigMapCanvasAdded.emit(dock.mapCanvas())
+            canvas = dock.mapCanvas()
+            assert isinstance(canvas, MapCanvas)
+            canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
+            self.sigMapCanvasAdded.emit(canvas)
 
         self.sigDockAdded.emit(dock)
 
