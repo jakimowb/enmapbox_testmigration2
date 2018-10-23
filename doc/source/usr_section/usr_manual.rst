@@ -210,6 +210,7 @@ Data Views
 
 The Data Views panel organizes the different windows and their content.
 
+
 .. figure:: ../img/example_data_views.png
 
    Example of how different window types and their contents are organized in the Data Views panel. In this case there
@@ -219,6 +220,10 @@ The Data Views panel organizes the different windows and their content.
 
 Map Window |viewlist_mapdock|
 ~~~~~~~~~~
+
+.. can display raster and vector data (+ layer styling as is QGIS)
+.. a variety of alignment options (maybe show animated gif)
+
 
 **Linking**
 
