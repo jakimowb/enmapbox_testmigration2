@@ -129,9 +129,6 @@ def missingTestdata()->bool:
     try:
         import enmapboxtestdata
         assert os.path.isfile(enmapboxtestdata.enmap)
-        assert os.path.isfile(enmapboxtestdata.hymap)
-        assert os.path.isfile(enmapboxtestdata.landcover)
-        assert os.path.isfile(enmapboxtestdata.speclib)
         return False
     except Exception as ex:
         print(ex, file=sys.stderr)
