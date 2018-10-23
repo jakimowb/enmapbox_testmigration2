@@ -3,7 +3,7 @@ from qgis.core import *
 from hubflow.core import *
 import hubdc.progressbar
 from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
-# from enmapboxgeoalgorithms.algorithms import ALGORITHMS, TESTALGORITHMS
+#from enmapboxgeoalgorithms.algorithms import ALGORITHMS, TESTALGORITHMS
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 
 TESTALGORITHMS = list()
@@ -319,7 +319,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                parentLayerParameterName=name,
                                type=QgsProcessingParameterField.Numeric,
                                help='Vector field specifying the class ids.')
-        self.addParameterClassDefinition()
+        #self.addParameterClassDefinition()
         self.addParameterMinCoverages(defaultValues=minCoveragesDefaultValues, hideMinDominantCoverage=hideMinDominantCoverage)
         self.addParameterOversampling()
 
@@ -328,7 +328,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                     classAttribute=self.getParameterField(self.P_CLASSIDFIELD),
                                     minOverallCoverage=self.getParameterMinOverallCoverage(),
                                     minDominantCoverage=self.getParameterMinDominantCoverage(),
-                                    classDefinition=self.getParameterClassDefinition(),
+                                    #classDefinition=self.getParameterClassDefinition(),
                                     oversampling=self.getParameterOversampling())
 
     P_MIN_OVERALL_COVERAGE = 'minOverallCoverage'
@@ -588,7 +588,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
         return library
 
 
-    P_CLASS_DEFINITION = 'classDefinition'
+    '''P_CLASS_DEFINITION = 'classDefinition'
 
     def addParameterClassDefinition(self, name=P_CLASS_DEFINITION, description='Class Definition', defaultValue=None):
 
@@ -618,7 +618,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
             classDefinition = ClassDefinition(classes=classes)
 
         assert isinstance(classDefinition, ClassDefinition)
-        return classDefinition
+        return classDefinition'''
 
 
     P_NUMBER_OF_POINTS = 'numberOfPoints'

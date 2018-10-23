@@ -15,34 +15,23 @@ overwrite = not True
 progressBar = hubdc.progressbar.CUIProgressBar
 outdir = join(gettempdir(), 'hubflow_testdata')
 
-hymap = lambda: Raster(filename=enmapboxtestdata.hymap)
 enmap = lambda: Raster(filename=enmapboxtestdata.enmap)
-vector = lambda: Vector(filename=enmapboxtestdata.landcover)
-landcoverAttributes = enmapboxtestdata.landcoverAttributes
-classDefinitionL1 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level1.names,
-                                    colors=enmapboxtestdata.landcoverClassDefinition.level1.lookup)
-classDefinitionL2 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
-                                    colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
-vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.landcover,
-                                                    classAttribute=enmapboxtestdata.landcoverAttributes.Level_2_ID,
-                                                    classDefinition=classDefinitionL2,
+vector = lambda: Vector(filename=enmapboxtestdata.landcover_polygons)
+
+vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.landcover_polygons,
+                                                    classAttribute='level_2_id',
                                                     minOverallCoverage=0., minDominantCoverage=0.,
-                                                    oversampling=10)
-vectorMask = lambda: VectorMask(filename=enmapboxtestdata.landcover, invert=False)
-hymapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'hymapLandCover.bsq'),
-                                                                                    classification=vectorClassification(),
-                                                                                    grid=hymap().grid(), overwrite=overwrite)
+                                                    oversampling=5)
+vectorMask = lambda: VectorMask(filename=enmapboxtestdata.landcover_polygons, invert=False)
 
 enmapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'enmapLandCover.bsq'),
                                                                                     classification=vectorClassification(),
                                                                                     grid=enmap().grid(), overwrite=overwrite)
-hymapFraction = lambda overwrite=overwrite: Fraction.fromClassification(filename=join(outdir, 'hymapFraction.bsq'),
-                                                                        classification=vectorClassification(),
-                                                                        grid=hymap().grid(), overwrite=overwrite)
+
 enmapFraction = lambda overwrite=overwrite: Fraction.fromClassification(filename=join(outdir, 'enmapFraction.bsq'),
                                                                         classification=vectorClassification(),
                                                                         grid=enmap().grid(), overwrite=overwrite)
-hymapRegression = lambda overwrite=overwrite: Regression(filename=hymapFraction(overwrite=overwrite).filename())
+
 enmapRegression = lambda overwrite=overwrite: Regression(filename=enmapFraction(overwrite=overwrite).filename())
 
 enmapSample = lambda:Sample(raster=enmap(), mask=vector())
@@ -53,4 +42,3 @@ enmapRegressionSample = lambda: RegressionSample(raster=enmap(), regression=enma
 
 if __name__ == '__main__':
     print('hubflow testdata directory: ' + outdir)
-

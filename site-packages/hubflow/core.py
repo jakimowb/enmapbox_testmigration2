@@ -1,3 +1,4 @@
+import json
 import warnings
 import random, pickle
 from collections import OrderedDict, namedtuple
@@ -249,7 +250,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         elif isinstance(regression, Regression):
             raster = self.inputRaster.raster(key=name)
             array = raster.array(overlap=overlap, resampleAlg=gdal.GRA_Average,
-                                 noDataValue=regression.noDataValues())
+                                 noDataValue=regression.noDataValue())
 
             invalid = self.full(value=np.False_, dtype=np.bool)
             for i, noDataValue in enumerate(regression.noDataValues()):
@@ -626,7 +627,6 @@ class MapCollection(FlowObject):
             # extract values for all masked pixels
             arrays = list()
             for map in self.maps():
-                zsize = map.dataset().zsize()
                 if nothingToExtract:
                     zsize = map.dataset().zsize()
                     profiles = np.empty(shape=(zsize, 0), dtype=np.uint8)
@@ -637,7 +637,9 @@ class MapCollection(FlowObject):
                 arrays.append(profiles)
 
         else:
-            assert onTheFlyResampling is True
+            if not onTheFlyResampling is True:
+                filenames = [str(map.filename()) for map in self.maps() + masks]
+                raise Exception('Grids do not match and on the fly resampling is turned off.\nFilenames: {}'.format(filenames))
             arrays = extractPixels(inputs=self.maps(), masks=masks, grid=grid, **kwargs)
         return arrays
 
@@ -2142,51 +2144,12 @@ class ENVISpectralLibrary(FlowObject):
 
             rasterDataset.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
 
-            # check for attribute table in csv file
-            filenameCSV = ENVI.findHeader(filenameBinary=self.filename(), ext='.csv')
-            if filenameCSV is not None:
-                array = np.genfromtxt(filenameCSV, delimiter=',', dtype=np.str)
-                keys = list(array[0])
-                values = array[1:].T
-                for i, (key, value) in enumerate(zip(keys, values)):
-                    if i == 0:
-                        key = 'spectra names'
-                    value = [str(v) for v in value]
-                    rasterDataset.setMetadataItem(key=key, value=value, domain='CSV')
-
-                # check for classification attribute definition files
-
-                for key in keys:
-                    # todo: replace by ClassDefinition.fromCSV
-                    key2 = key.replace(' ', '_')
-                    filenameClassDefinition = filenameCSV.replace('.csv', '.{}.classdef.csv'.format(key2))
-                    if exists(filenameClassDefinition):
-                        array = np.genfromtxt(filenameClassDefinition, delimiter=';', dtype=np.str)
-                        names = list(array[1:, 0])
-                        colors = list(np.array([s[s.find('(')+1: s.find(')')].split(',') for s in array[1:, 1]]).flatten())
-                        rasterDataset.setMetadataItem(key=key, value=names, domain='CLASS_NAMES')
-                        rasterDataset.setMetadataItem(key=key, value=colors, domain='CLASS_LOOKUP')
-
-                # check for regression attribute definition files
-
-                for key in keys:
-                    key2 = key.replace(' ', '_')
-                    filenameRegrDefinition = filenameCSV.replace('.csv', '.{}.regrdef.csv'.format(key2))
-                    if exists(filenameRegrDefinition):
-                        s = str(np.genfromtxt(filenameRegrDefinition, delimiter=';', dtype=np.str))
-                        head, *tail = s.split('(')
-                        name = head.strip()
-                        color = [int(v) for v in tail[0].replace(')', '').split(',')]
-                        noDataValue = float(tail[1].replace(')', ''))
-                        rasterDataset.setMetadataItem(key=key, value=name, domain='REGR_NAMES')
-                        rasterDataset.setMetadataItem(key=key, value=color, domain='REGR_LOOKUP')
-                        rasterDataset.setMetadataItem(key=key, value=noDataValue, domain='REGR_NODATAVALUE')
-
             rasterDataset.flushCache()
             rasterDataset.close()
             raster = Raster(filename=filename)
 
         return raster
+
 
     @staticmethod
     def fromRaster(filename, raster):
@@ -2242,6 +2205,30 @@ class ENVISpectralLibrary(FlowObject):
             pass
         return ENVISpectralLibrary(filename=filename)
 
+    def attributeTable(self, delimiter=','):
+        '''Return attribute table as dictionary.'''
+
+        result = OrderedDict()
+        filenameCsv = '{}.csv'.format(splitext(self.filename())[0])
+        if filenameCsv is not None:
+            array = np.genfromtxt(filenameCsv, delimiter=delimiter, dtype=np.str)
+            keys = list(array[0])
+            values = array[1:].T
+            for i, (key, value) in enumerate(zip(keys, values)):
+                value = [str(v) for v in value]
+                result[key] = value
+        return result
+
+    def attributeDefinitions(self):
+        '''Return attribute definitions as dictionary.'''
+
+        result = OrderedDict()
+        filenameJson = '{}.json'.format(splitext(self.filename())[0])
+        if filenameJson is not None:
+            return AttributeDefinitionEditor.readFromJson(filename=filenameJson)
+        else:
+            return dict()
+
     def attributeNames(self):
         '''
         Return attribute names.
@@ -2249,10 +2236,10 @@ class ENVISpectralLibrary(FlowObject):
         :example:
 
         >>> import enmapboxtestdata
-        >>> ENVISpectralLibrary(filename=enmapboxtestdata.speclib).attributeNames()
+        >>> ENVISpectralLibrary(filename=enmapboxtestdata.library).attributeNames()
         ['level 1', 'level 2', 'spectra names']
         '''
-        return list(self.raster().dataset().metadataDict()['CSV'].keys())
+        return list(self.attributeTable().keys())
 
     def classificationAttributeNames(self):
         '''
@@ -2893,8 +2880,15 @@ class Vector(Map):
         ...                     spatialFilter=spatialFilter)
         ['Low vegetation', 'Pavement', 'Roof', 'Tree']
         '''
+
+
+
         vector = openVectorDataset(filename=self.filename(), layerNameOrIndex=self.layer())
         layer = vector.ogrLayer()
+
+        if attribute not in vector.fieldNames():
+            raise Exception('Unknown attribute: "{}"'.format(attribute))
+
         layer.SetAttributeFilter(self.filterSQL())
         values = OrderedDict()
         if spatialFilter is not None:
@@ -3111,11 +3105,28 @@ class VectorClassification(Vector):
 
         Vector.__init__(self, filename=filename, layer=layer, burnAttribute=classAttribute, dtype=dtype)
 
+        fieldNames = self.dataset().fieldNames()
+        if classAttribute not in fieldNames:
+            raise Exception('Unknown attribute: {}'.format(classAttribute))
+
+        type = self.dataset().fieldTypeNames()[fieldNames.index(classAttribute)]
+
+        if type == 'Integer':
+            pass
+        else:
+            raise NotImplementedError()
+
+        # try to get definition from json
         if classDefinition is None:
 
-            filenameCSV = '{}.{}.classdef.csv'.format(splitext(self.filename())[0], classAttribute.replace(' ', '_'))
-            if exists(filenameCSV):
-                classDefinition = ClassDefinition.fromCSV(filename=filenameCSV)
+            filenameJson = '{}.json'.format(splitext(self.filename())[0])
+            if exists(filenameJson):
+                definitions = AttributeDefinitionEditor.readFromJson(filename=filenameJson)
+                if classAttribute in definitions:
+                    if isinstance(definitions[classAttribute], ClassDefinition):
+                        classDefinition = definitions[classAttribute]
+
+        # or get definition from unique values
 
         if classDefinition is None:
             classDefinition = ClassDefinition(classes=max(self.uniqueValues(attribute=classAttribute)))
@@ -3189,6 +3200,28 @@ class Color(FlowObject):
 
     def colorNames(self):
         return self._qColor.colorNames()
+
+
+class AttributeDefinitionEditor(object):
+
+    @staticmethod
+    def readFromJson(filename):
+        '''Read from json file.'''
+        with open(filename) as f:
+            definitions = json.load(f)
+
+        for k, v in definitions.items():
+            if 'names' in v:
+                definitions[k] = ClassDefinition(names=v['names'], colors=v.get('colors'))
+            else:
+                assert 0
+        return definitions
+
+    @staticmethod
+    def writeToJson(filename):
+        '''Read from json file.'''
+        pass
+
 
 class ClassDefinition(FlowObject):
     '''Class for managing class definitions.'''
@@ -3294,57 +3327,6 @@ class ClassDefinition(FlowObject):
         return classDefinition
 
     @staticmethod
-    def fromCsv(filename, delimiter=';'):
-        '''Create instance from CSV file.'''
-
-        names = list()
-        colors = list()
-        with open(filename) as file:
-            for i, text in enumerate(file.readlines()):
-                if i==0:
-                    continue
-                else:
-                    tmp = text.split(';')
-                    if not len(tmp) == 3:
-                        raise Exception('Format error in line {}: expected value, description and color information seperated by "{}", got "{}" instead.'.format(i+1, delimiter, text))
-                    name = tmp[1].strip()
-                    color = tmp[2].strip()
-                    if ',' in color: # eval rgb tripel
-                        try:
-                            rgb = eval(color)
-                        except:
-                            raise Exception('Format error in line {}: unsupported color format "".'.format(i+1, text))
-                        color = Color(*[int(v) for v in rgb])
-                    color = Color(color)
-
-                    if i==1:
-                        if name.lower() != 'unclassified':
-                            raise Exception('Error: first class has to be the "Unclassified" class with id=0 by convention!')
-                        continue
-
-                    names.append(name)
-                    colors.append(color)
-
-        return ClassDefinition(names=names, colors=colors)
-
-    def saveAsCsv(self, filename, delimiter=';'):
-        '''Save as CSV file and returns the filename.'''
-
-        try:
-            makedirs(dirname(filename))
-        except:
-            pass
-
-        with open(filename, 'w') as file:
-            file.write('Value{d} Description{d} Color\n'.format(d=delimiter))
-            file.write('0{d} Unclassified{d} black\n'.format(d=delimiter))
-
-            for i, (name, color) in enumerate(zip(self.names(), self.colors())):
-                file.write('{}{d} {}{d} {}\n'.format(i+1, name, color.name(), d=delimiter))
-
-            return filename
-
-    @staticmethod
     def fromQml(filename, delimiter=';'):
         '''Create instance from QGIS QML file.'''
 
@@ -3374,7 +3356,9 @@ class ClassDefinition(FlowObject):
                     if 'k="color"' not in line:
                         continue
                     else:
-                        colors.append(Color(*eval(line.split('"')[1])))
+                        for s in line.split('"'):
+                            if ',' in s:
+                                colors.append(Color(*eval(s)))
 
             return ClassDefinition(names=names, colors=colors)
 
@@ -3655,33 +3639,39 @@ class Classification(Raster):
         :example:
 
         >>> import enmapboxtestdata
-        >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
-        >>> library.attributes()
+        >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
+        >>> Classification.fromENVISpectralLibrary(filename='/vsimem/classification.bsq', library=library, attribute='level_1')
 
         '''
         assert isinstance(library, ENVISpectralLibrary)
 
-        names = library.raster().dataset().metadataItem(key=attribute,
-                                              domain='CLASS_NAMES', required=True)[1:]
-        classes = len(names)
-        colors = library.raster().dataset().metadataItem(key=attribute,
-                                               domain='CLASS_LOOKUP', dtype=int, required=True)[3:]
+        table = library.attributeTable()
+        definitions = library.attributeDefinitions()
 
-        colors = [int(v) for v in colors]
-        classDefinition = ClassDefinition(classes=classes, names=names, colors=colors)
-        labels = np.array(library.raster().dataset().metadataItem(key=attribute,
-                                                        domain='CSV', required=True))
+        if attribute not in table:
+            raise Exception('Unknown attribute: {}'.format(attribute))
+
+        classDefinition = None
+
+        if attribute in definitions:
+            if isinstance(definitions[attribute], ClassDefinition):
+                classDefinition = definitions[attribute]
+
+        if classDefinition is None:
+            assert 0 # get from unique values
+
+        labels = np.array(table[attribute])
 
         # convert names to ids
 
         array = np.zeros(shape=len(labels))
-        for i, name in enumerate(names):
+        for i, name in enumerate(classDefinition.names()):
             array[labels == name] = str(i + 1)
 
         # sort profiles
 
         ordered = OrderedDict()
-        spectraNames = library.raster().dataset().metadataItem(key='spectra names', domain='CSV', required=True)
+        spectraNames = next(iter(table.values()))
         for name in library.raster().dataset().metadataItem(key='spectra names', domain='ENVI', required=True):
             if name in ordered:
                 raise Exception('error: spectra names must be unique, check for name: {}'.format(name))
@@ -3857,6 +3847,85 @@ class _ClassificationFromRasterAndFunction(ApplierOperator):
             self.setFlowMetadataClassDefinition(name='classification', classDefinition=classDefinition)
 
 
+class RegressionDefinition(FlowObject):
+    '''Class for managing regression definitions.'''
+
+    def __init__(self, targets=None, names=None, noDataValues=None, colors=None):
+        '''
+        Create new instance.
+
+        :param targets: number of targets
+        :type targets: int
+        :param names: target names; if not provided, generic names are used
+        :type names: List[str]
+        :param noDataValues: no data values for targets; if not provided, smallest float32 value is used
+        :type noDataValues: List[str]
+        :param colors: class colors as (r, g, b) tripel or '#000000' strings; if not provided, random colors are used;
+        :type colors: List
+
+        :example:
+
+        >>> RegressionDefinition(targets=3)
+        RegressionDefinition(targets=3, ...)
+        '''
+
+        if targets is not None:
+            pass
+        elif names is not None:
+            targets = len(names)
+        elif colors is not None:
+            targets = len(colors)
+        else:
+            assert 0
+
+        if names is None:
+            names = ['target {}'.format(i + 1) for i in range(targets)]
+        if colors is None:  # create random colors
+            colors = [random.randint(1, 255) for i in range(targets * 3)]
+        if len(colors) == targets * 3:  # format as tripels
+            colors = [colors[i * 3: i * 3 + 3] for i in range(targets)]
+        if noDataValues is None:
+            minFloat32 = np.finfo(np.float32).min
+            noDataValues = [minFloat32 for i in range(targets)]
+        assert len(names) == targets
+        assert len(noDataValues) == targets
+        assert len(colors) == targets
+
+
+        self._targets = int(targets)
+        self._names = [str(name) for name in names]
+        self._noDataValues = [float(v) for v in noDataValues]
+        self._colors = list()
+        for color in colors:
+            if isinstance(color, Color):
+                self._colors.append(color)
+            elif isinstance(color, (list, tuple, np.ndarray)):
+                self._colors.append(Color(*[int(v) for v in color]))
+            elif isinstance(color, str):
+                self._colors.append(Color(color))
+            else:
+                assert 0, 'unexpected color format: {}'.format(color)
+
+
+    def __getstate__(self):
+        return OrderedDict([('targets', self.targets()),
+                            ('names', self.names()),
+                            ('noDataValues', self.noDataValues()),
+                            ('colors', self.colors())])
+
+    def targets(self):
+        return self._targets
+
+    def names(self):
+        return self._names
+
+    def noDataValues(self):
+        return self._noDataValues
+
+    def colors(self):
+        return self._colors
+
+
 class Regression(Raster):
     '''Class for managing regression maps.'''
 
@@ -3954,12 +4023,22 @@ class Regression(Raster):
         Regression(filename=/vsimem/regression.bsq, noDataValues=[-1.0], outputNames=['Roof'], minOverallCoverage=0.5)
         '''
 
+        assert 0 # todo
+
         assert isinstance(library, ENVISpectralLibrary)
         assert isinstance(attributes, (list, tuple))
         arrays = list()
         noDataValues = list()
+        table = library.attributeTable()
+        definitions = library.attributeDefinitions()
+
         for attribute in attributes:
-            arrays.append(np.array(library.raster().dataset().metadataItem(key=attribute, domain='CSV', required=True)))
+            if attribute not in table:
+                raise Exception('Unknown attribute: {}'.format(attribute))
+
+            arrays.append(table[attribute])
+
+            #if isinstance(definitions.get(attribute), RegressionDefinition
             noDataValues.append(float(library.raster().dataset().metadataItem(key=attribute, domain='REGR_NODATAVALUE',
                                                                         default=np.finfo(np.float32).min)))
         arrays = np.transpose(np.float32(arrays))

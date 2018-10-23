@@ -1,15 +1,14 @@
 import sys
 from qgis.core import *
 from hubflow.core import *
-from enmapboxgeoalgorithms.provider import EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, TESTALGORITHMS, \
-    ALGORITHMS, Help, Link
+from enmapboxgeoalgorithms.provider import EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, TESTALGORITHMS, ALGORITHMS, Help, Link
 from enmapboxgeoalgorithms.estimators import parseClassifiers, parseClusterers, parseRegressors, parseTransformers
 from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseSpectralKernel
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
 
-class ApplierDefaultsSetup(EnMAPAlgorithm):
+'''class ApplierDefaultsSetup(EnMAPAlgorithm):
     def displayName(self):
         return 'HUB Datacube Applier Settings'
 
@@ -53,7 +52,7 @@ class ApplierDefaultsSetup(EnMAPAlgorithm):
         return {}
 
 
-#ALGORITHMS.append(ApplierDefaultsSetup())
+ALGORITHMS.append(ApplierDefaultsSetup())
 
 class ClassDefinitionFromRaster(EnMAPAlgorithm):
     def displayName(self):
@@ -84,7 +83,7 @@ class ClassDefinitionFromRaster(EnMAPAlgorithm):
         return {}
 
 
-ALGORITHMS.append(ClassDefinitionFromRaster())
+ALGORITHMS.append(ClassDefinitionFromRaster())'''
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):
@@ -462,76 +461,63 @@ class ClusteringPerformanceFromRaster(EnMAPAlgorithm):
 ALGORITHMS.append(ClusteringPerformanceFromRaster())
 
 
-class CreateAdditionalTestdata(EnMAPAlgorithm):
+class CreateTestClassification(EnMAPAlgorithm):
     def displayName(self):
-        return 'Create additional Testdata'
+        return 'Create Classification map from land cover polygons'
 
     def description(self):
-        return 'Based on the testdata additional datasets will be created using existing EnMAP-Box algorithms with predefined settings.'
+        return 'Create a classification map at 30 m resolution by rasterizing the landcover polygons.'
 
     def group(self):
         return self.GROUP_AUXILLIARY
 
-    P_BOOLEAN_ENMAP = 'createEnmap'
-    P_BOOLEAN_HYMAP = 'createHymap'
-    P_BOOLEAN_LIBRARY = 'createLibrary'
-    P_OUTPUT_ENMAP_CLASSIFICATION = 'outEnmapClassification'
-    P_OUTPUT_ENMAP_FRACTION = 'outEnmapFraction'
-    P_OUTPUT_HYMAP_CLASSIFICATION = 'outHymapClassification'
-    P_OUTPUT_HYMAP_FRACTION = 'outHymapFraction'
-    P_OUTPUT_LIBRARY = 'outLibrary'
-
     def defineCharacteristics(self):
-        self.addParameterBoolean(name=self.P_BOOLEAN_ENMAP, description='Create 30 m maps', defaultValue=True,
-                                 help='Whether or not to create 30 m classification and fraction/regression maps.')
-        self.addParameterBoolean(name=self.P_BOOLEAN_HYMAP, description='Create 3.6 m maps', defaultValue=False,
-                                 help='Whether or not to create 3.6 m classification and fraction/regression maps.')
-        self.addParameterOutputClassification(name=self.P_OUTPUT_ENMAP_CLASSIFICATION,
-                                              description='LandCover Classification for 6 classes at 30 m')
-        self.addParameterOutputFraction(name=self.P_OUTPUT_ENMAP_FRACTION,
-                                        description='LandCover Fraction for 6 classes at 30 m')
-        self.addParameterOutputClassification(name=self.P_OUTPUT_HYMAP_CLASSIFICATION,
-                                              description='LandCover Classification for 6 classes at 3.6 m')
-        self.addParameterOutputFraction(self.P_OUTPUT_HYMAP_FRACTION,
-                                        description='LandCover Fraction for 6 classes at 3.6 m')
+        self.addParameterOutputClassification(name=self.P_OUTPUT_CLASSIFICATION)
 
     def processAlgorithm_(self):
         import enmapboxtestdata
         enmap = Raster(filename=enmapboxtestdata.enmap)
-        hymap = Raster(filename=enmapboxtestdata.hymap)
-        classDefinitionL2 = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
-                                            colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
-        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover,
-                                                    classAttribute=enmapboxtestdata.landcoverAttributes.Level_2_ID,
-                                                    classDefinition=classDefinitionL2,
-                                                    minDominantCoverage=0.5, minOverallCoverage=0.5,
+        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover_polygons,
+                                                    classAttribute='level_2_id',
+                                                    minDominantCoverage=0.5, minOverallCoverage=1.,
                                                     oversampling=5)
 
-        result = OrderedDict()
-        if self.getParameterBoolean(self.P_BOOLEAN_ENMAP):
-            fractionEnmap = Fraction.fromClassification(
-                filename=self.getParameterOutputFraction(self.P_OUTPUT_ENMAP_FRACTION),
-                classification=vectorClassification, grid=enmap)
-            result[self.P_OUTPUT_ENMAP_FRACTION] = fractionEnmap.filename()
-            classificationEnmap = Classification.fromClassification(
-                filename=self.getParameterOutputClassification(self.P_OUTPUT_ENMAP_CLASSIFICATION),
-                classification=fractionEnmap)
-            result[self.P_OUTPUT_ENMAP_CLASSIFICATION] = classificationEnmap.filename()
-
-        if self.getParameterBoolean(self.P_BOOLEAN_HYMAP):
-            fractionHymap = Fraction.fromClassification(
-                filename=self.getParameterOutputFraction(self.P_OUTPUT_HYMAP_FRACTION),
-                classification=vectorClassification, grid=hymap)
-            result[self.P_OUTPUT_HYMAP_FRACTION] = fractionHymap.filename()
-            classificationHymap = Classification.fromClassification(
-                filename=self.getParameterOutputClassification(self.P_OUTPUT_HYMAP_CLASSIFICATION),
-                classification=fractionHymap)
-            result[self.P_OUTPUT_HYMAP_CLASSIFICATION] = classificationHymap.filename()
-
-        return result
+        result = Classification.fromClassification(filename=self.getParameterOutputClassification(self.P_OUTPUT_CLASSIFICATION),
+                                                   classification=vectorClassification, grid=enmap.grid())
+        return {self.P_OUTPUT_CLASSIFICATION: result.filename()}
 
 
-ALGORITHMS.append(CreateAdditionalTestdata())
+ALGORITHMS.append(CreateTestClassification())
+
+
+class CreateTestFraction(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Create Fraction map from land cover polygons'
+
+    def description(self):
+        return 'Create a fraction map at 30 m resolution by rasterizing the landcover polygons.'
+
+    def group(self):
+        return self.GROUP_AUXILLIARY
+
+    def defineCharacteristics(self):
+        self.addParameterOutputFraction(name=self.P_OUTPUT_FRACTION)
+
+    def processAlgorithm_(self):
+        import enmapboxtestdata
+        enmap = Raster(filename=enmapboxtestdata.enmap)
+        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover_polygons,
+                                                    classAttribute='level_2_id',
+                                                    minDominantCoverage=0., minOverallCoverage=1.,
+                                                    oversampling=5)
+
+        result = Classification.fromClassification(filename=self.getParameterOutputFraction(),
+                                                   classification=vectorClassification, grid=enmap.grid())
+        return {self.P_OUTPUT_FRACTION: result.filename()}
+
+
+
+ALGORITHMS.append(CreateTestFraction())
 
 
 class MaskBuildFromRaster(EnMAPAlgorithm):
@@ -625,7 +611,7 @@ class ImportLibraryClassificationAttribute(EnMAPAlgorithm):
 ALGORITHMS.append(ImportLibraryClassificationAttribute())
 
 
-class ImportLibraryRegressionAttribute(EnMAPAlgorithm):
+'''class ImportLibraryRegressionAttribute(EnMAPAlgorithm):
     def displayName(self):
         return 'Import Library Regression Attributes'
 
@@ -682,7 +668,7 @@ class ImportLibraryFractionAttribute(EnMAPAlgorithm):
         return {self.P_OUTPUT_FRACTION: filename}
 
 
-ALGORITHMS.append(ImportLibraryFractionAttribute())
+ALGORITHMS.append(ImportLibraryFractionAttribute())'''
 
 
 class OpenTestMaps_Toolbox(EnMAPAlgorithm):
@@ -703,9 +689,10 @@ class OpenTestMaps_Toolbox(EnMAPAlgorithm):
         import qgis.utils
 
         qgis.utils.iface.addRasterLayer(enmapboxtestdata.enmap, basename(enmapboxtestdata.enmap), 'gdal')
-        qgis.utils.iface.addRasterLayer(enmapboxtestdata.hymap, basename(enmapboxtestdata.hymap), 'gdal')
-        qgis.utils.iface.addVectorLayer(enmapboxtestdata.landcover, None,
-                                        'ogr')  # QGIS 3 bug when setting the name, e.g. basename(enmapboxtestdata.landcover)
+        qgis.utils.iface.addRasterLayer(enmapboxtestdata.hires, basename(enmapboxtestdata.hires), 'gdal')
+        qgis.utils.iface.addVectorLayer(enmapboxtestdata.landcover_polygons, None, 'ogr')  # QGIS 3 bug when setting the name, e.g. basename(enmapboxtestdata.landcover)
+        qgis.utils.iface.addVectorLayer(enmapboxtestdata.landcover_points, None, 'ogr')  # QGIS 3 bug when setting the name, e.g. basename(enmapboxtestdata.landcover)
+
         return {}
 
     def flags(self):
@@ -732,9 +719,9 @@ class OpenTestLibrary(EnMAPAlgorithm):
         import enmapboxtestdata
         import qgis.utils
 
-        library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
-        qgis.utils.iface.addRasterLayer(library.raster().filename(), basename(enmapboxtestdata.speclib), 'gdal')
-        for level in ['level 1', 'level 2']:
+        library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
+        qgis.utils.iface.addRasterLayer(library.raster().filename(), basename(enmapboxtestdata.library), 'gdal')
+        for level in ['level_2']:
             filename = library.raster().filename().replace('.sli.transposed.vrt',
                                                            '.{}.classification.bsq'.format(level.replace(' ', '')))
             Classification.fromENVISpectralLibrary(filename=filename, library=library, attribute=level)
