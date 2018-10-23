@@ -2339,6 +2339,10 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
 
 
     def importSpeclib(self, path=None):
+        """
+        Imports a SpectralLibrary
+        :param path: str
+        """
         slib = None
         if path is None:
             slib = SpectralLibrary.readFromSourceDialog(self)
@@ -2346,7 +2350,10 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
             slib = SpectralLibrary.readFrom(path)
 
         if isinstance(slib, SpectralLibrary):
+            b = self.speclib().isEditable()
+            self.speclib().startEditing()
             self.speclib().addSpeclib(slib)
+
 
 
     def speclib(self):
@@ -2807,3 +2814,10 @@ def registerSpectralProfileEditorWidget():
         reg.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, spectralProfileEditorWidgetFactory)
     else:
         spectralProfileEditorWidgetFactory = reg.factories()[EDITOR_WIDGET_REGISTRY_KEY]
+
+
+def registerAbstractLibraryIOs():
+    try:
+        import asd
+    except:
+        s = ""

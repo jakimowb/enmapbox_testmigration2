@@ -135,7 +135,7 @@ class Dock(pgDock, KeepRefs):
         return menu
 
     sigVisibilityChanged = pyqtSignal(bool)
-    def setVisible(self, b):
+    def setVisible(self, b:bool):
 
         i = self.isVisible()
         super(Dock, self).setVisible(b)
@@ -266,6 +266,7 @@ class DockArea(pgDockArea):
     def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
         assert enmapboxdock is not None
         #assert isinstance(enmapboxdock, Dock)
+
         v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
         self.sigDockAdded.emit(enmapboxdock)
         return v
@@ -528,13 +529,24 @@ class DockLabel(pgDockLabel):
             dockArea = enmapBox.ui.dockArea
             if isinstance(dockArea, DockArea):
 
-                dockArea.sigDockAdded.connect(lambda dock: self._setUnfloatButton(dock, False))
-                dockArea.sigDockRemoved.connect(lambda dock: self._setUnfloatButton(dock, True))
+                dockArea.sigDockAdded.connect(lambda dock: self.setUnfloatButtonVisibility(dock, False))
+                dockArea.sigDockRemoved.connect(lambda dock: self.setUnfloatButtonVisibility(dock, True))
+
+    def setUnfloatButtonVisibility(self, dock, b:bool):
+        self.btnUnFloat.setVisible(b)
+        self.update()
 
 
     def contextMenuEvent(self, event):
         assert isinstance(event, QContextMenuEvent)
         self.sigContextMenuRequest.emit(event)
+
+
+    def mouseMoveEvent(self, ev):
+        if not self.startedDrag and hasattr(self, 'pressPos'):
+            super(DockLabel, self).mouseMoveEvent(ev)
+        else:
+            ev.accept()
 
     """
     def resizeEvent_BAK(self, ev):
@@ -549,6 +561,8 @@ class DockLabel(pgDockLabel):
             self.closeButton.move(pos)
         super(DockLabel, self).resizeEvent(ev)
     """
+
+
     def resizeEvent(self, ev):
         if self.orientation == 'vertical':
             size = ev.size().width()
@@ -565,28 +579,7 @@ class DockLabel(pgDockLabel):
 
         super(DockLabel, self).resizeEvent(ev)
 
-class CursorLocationValueDock(Dock):
 
-    _instance = None
-
-    """
-    A dock to visualize cursor location values
-    """
-
-    def __init__(self, *args, **kwds):
-        super(CursorLocationValueDock, self).__init__(*args, **kwds)
-        from enmapbox.gui.cursorlocationvalue import CursorLocationValueWidget
-        self.dataSourceManager = None
-        self.w = CursorLocationValueWidget(self)
-        self.layout.addWidget(self.w)
-        self.setTitle('Cursor Location Values')
-
-    def connectDataSourceManager(self, dataSourceManager):
-        self.w.connectDataSourceManager(dataSourceManager)
-
-
-    def showLocationValues(self, *args):
-        self.w.showLocationValues(*args)
 
 class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
 
@@ -810,6 +803,7 @@ class SpectralLibraryDock(Dock):
         self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.speclibWidget)
         self.mShowMapInteraction = True
+        self.speclibWidget.plotItem
 
     def speclib(self)->SpectralLibrary:
         """Returns the underlying spectral library"""

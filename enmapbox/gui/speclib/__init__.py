@@ -57,3 +57,11 @@ registerSpectralProfileEditorWidget()
 
 from .qgsfunctions import registerQgsExpressionFunctions
 registerQgsExpressionFunctions()
+
+try:
+    from .envi import EnviSpectralLibraryIO
+except:
+    pass
+
+
+

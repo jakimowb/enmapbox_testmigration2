@@ -241,7 +241,7 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
 
         #remove the temporary VRT, as it was created internally only
         ds.GetDriver().Delete(ds.GetFileList()[0])
-        gdal.Unlink(tmpVrt)
+        #gdal.Unlink(ds)
 
 
         nSpectra, nbands = data.shape

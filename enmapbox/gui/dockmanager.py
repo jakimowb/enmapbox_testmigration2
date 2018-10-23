@@ -225,7 +225,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
         super(SpeclibDockTreeNode, self).__init__(parent, dock)
-        self.setIcon(QIcon(':/enmapbox/icons/viewlist_spectrumdock.svg'))
+        self.setIcon(QIcon(':/speclib/icons/speclib.svg'))
 
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
@@ -1192,8 +1192,6 @@ def createDockTreeNode(dock:Dock, parent=None)->DockTreeNode:
             return MapDockTreeNode(parent, dock)
         elif dockType in [TextDock]:
             return TextDockTreeNode(parent, dock)
-        elif dockType is CursorLocationValueDock:
-            return DockTreeNode(parent, dock)
         elif dockType is SpectralLibraryDock:
             return SpeclibDockTreeNode(parent, dock)
         else:

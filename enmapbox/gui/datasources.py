@@ -659,7 +659,9 @@ class HubFlowDataSource(DataSource):
 class DataSourceSpectralLibrary(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None):
-        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='memory')
+        if icon is None:
+            icon = QIcon(':/speclib/icons/speclib.svg')
+        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr')
 
         self.mSpeclib = None
         self.nProfiles = 0

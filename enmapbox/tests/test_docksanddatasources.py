@@ -62,14 +62,17 @@ class testclassData(unittest.TestCase):
 
         self.dataSourceManager.addSource(enmap)
         self.dataSourceManager.addSource(landcover_polygons)
+        self.dataSourceManager.addSource(library)
 
-        self.assertTrue(len(signalArgs) == 2)
+        self.assertTrue(len(signalArgs) == 3)
         self.assertIsInstance(signalArgs[0], DataSourceRaster)
         self.assertIsInstance(signalArgs[1], DataSourceVector)
+        self.assertIsInstance(signalArgs[2], DataSourceSpectralLibrary)
 
         types = self.dataSourceManager.sourceTypes()
         self.assertTrue(DataSourceRaster in types)
         self.assertTrue(DataSourceVector in types)
+        self.assertTrue(DataSourceSpectralLibrary in types)
 
         sources = self.dataSourceManager.sources(sourceTypes=[DataSourceRaster])
         self.assertTrue(len(sources) == 1)
