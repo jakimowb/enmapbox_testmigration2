@@ -14,7 +14,7 @@ Installation
 
 .. |developer_qgis_plugin_repo| raw:: html
 
-    <a href="https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/qgis_plugin_develop.xml" target="_blank">https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/qgis_plugin_develop.xml</a>
+    <a href="https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml" target="_blank">https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml</a>
 
 
 .. |icon| image:: ../img/icon.png
@@ -56,16 +56,47 @@ Install QGIS (if required)
 The EnMAP-Box is a plugin for QGIS and therefore QGIS version 3 or higher has to be installed. In case you have not installed
 it yet, you can get QGIS `here <https://www.qgis.org/en/site/forusers/download.html>`_.
 
-Alternatively, you can add our EnMAPBox Developer Plugin Repository `https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/qgis_plugin_develop.xml`_
-to your QGIS Plugin Repositories list (Plugins > Manage and Install Plugins > Settings):
+.. Alternatively, you can add our EnMAPBox Developer Plugin Repository `https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml`_
+.. to your QGIS Plugin Repositories list (Plugins > Manage and Install Plugins > Settings):
 
-.. image:: ../img/developer_repository_details.png
+.. .. image:: ../img/developer_repository_details.png
 
 For additional information on the installation you might want to have a look at the
 `QGIS Documentation <https://www.qgis.org/en/site/forusers/alldownloads.html>`_.
 
 
 ....
+
+Install or update the EnMAP-Box
+-------------------------------
+
+Install from Repository (recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#. Open QGIS and open *Plugins > Manage and Install Plugins > Settings*
+#. Add  https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/qgis_plugin_develop.xml as additional plugin repository
+   (scroll down and click on :guilabel:`Add...`)
+#. Restart QGIS or click :guilabel:`Reload all repositories` to get aware of EnMAP-Box updates
+#. Now the EnMAP-Box should be listed in the plugin list, where you can select it and click :guilabel:`Install plugin`
+   (or :guilabel:`Upgrade plugin` in case you update to a new version)
+#. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*.
+
+.. figure:: ../img/add_repo.png
+
+   Adding a custom repository in the QGIS plugins menu
+
+
+Install from ZIP (alternative)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#. Download the latest EnMAP-Box from |download_link2|.
+#. It is recommended to uninstall previous EnMAP-Box versions (delete folder manually, or in QGIS via *Plugins* > *Manage and Install Plugins*
+   > *Installed* > *EnMAP-Box 3* > *Uninstall plugin*)
+#. Open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
+#. Under ``ZIP file`` click :menuselection:`...` and select the downloaded
+   *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and click :guilabel:`Install plugin`.
+#. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*.
+
 
 |
 
@@ -76,16 +107,33 @@ Install python packages (if required)
 
 The EnMAP-Box requires the following python packages in order to run:
 
+* `numpy <http://www.numpy.org/>`_
 * `scipy <https://www.scipy.org>`_
-* `setuptools <https://pypi.python.org/pypi/setuptools>`_
-* `matplotlib <https://matplotlib.org/>`_
-* `pyqtgraph <http://pyqtgraph.org/>`_
 * `scikit-learn <http://scikit-learn.org/stable/index.html>`_
+* `pyqtgraph <http://pyqtgraph.org/>`_
+* `matplotlib <https://matplotlib.org/>`_
+
 * `astropy <http://docs.astropy.org>`_ (**optional**, relevant e.g. for certain filtering algorithms)
 
-Most of them do not come with the default QGIS installation. Follow the platform-specific installation instructions
+Most of them do not come with the default QGIS installation. Follow the installation instructions
 below in order to install them, in case you have not done so already.
 
+.. admonition:: The short way:
+
+    Independent of your OS you should be able to install required packages with one line:
+
+    * Open your terminal (i.e. on windows start the OSGeo4W Shell with admin rights) and type:
+
+    .. code-block:: python
+
+       call py3_env.bat # run this line only on windows
+
+       python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+
+       # or alternatively:
+       python3 -m pip install -r <path_to_unzipped_enmapboxpluginfolder>/requirements.txt
+
+For more detailed platform-specific instructions see section below (if the above method worked for you already, you don't have to follow the instructions below).
 
 .. _install-packages-windows:
 
@@ -116,7 +164,7 @@ Windows
     .. image:: ../img/shell_callpy3env.png
 
 
-#. To install packages like *setup-tools*, *scipy* or *matplotlib*, start the OSGeo4W installer by calling
+#. To install packages like *scipy* or *matplotlib*, start the OSGeo4W installer by calling
 
     .. code-block:: batch
 
@@ -151,9 +199,9 @@ Windows
     |
     Then use the textbox to filter, select and install the following packages:
 
-    * setuptools
-    * python3-numpy
+    * python3-setuptools
     * python3-pip
+    * python3-numpy
     * python3-scipy
     * python3-matplotlib
 
@@ -170,6 +218,11 @@ Windows
 
         python3 -m pip install pyqtgraph
         python3 -m pip install scikit-learn
+
+    *and optionally*:
+
+    .. code-block:: batch
+
         python3 -m pip install astropy
 
     .. image:: ../img/shell_pipinstall.png
@@ -189,10 +242,16 @@ Linux
 
     .. code-block:: bash
 
+        python3 -m pip install numpy
         python3 -m pip install scipy
-        python3 -m pip install matplotlib
         python3 -m pip install scikit-learn
         python3 -m pip install pyqtgraph
+        python3 -m pip install matplotlib
+
+   *and optionally*:
+
+    .. code-block:: batch
+
         python3 -m pip install astropy
 
 
@@ -207,53 +266,24 @@ Mac
 
     .. code-block:: bash
 
+        python3 -m pip install numpy
         python3 -m pip install scipy
-        python3 -m pip install matplotlib
         python3 -m pip install scikit-learn
         python3 -m pip install pyqtgraph
+        python3 -m pip install matplotlib
+
+    *and optionally*:
+
+    .. code-block:: batch
+
         python3 -m pip install astropy
+
 
 
 ....
 
 |
 
-Install or update the EnMAP-Box
--------------------------------
-
-Install from Repository (recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#. Open QGIS and open *Plugins > Manage and Install Plugins > Settings*
-#. Add https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/qgis_plugin_develop.xml as additional plugin repository
-   (scroll down and click on :guilabel:`Add...`)
-#. Restart QGIS or click :guilabel:`Reload all repositories` to get aware of EnMAP-Box updates
-#. Now the EnMAP-Box should be listed in the plugin list, where you can select it and click :guilabel:`Install plugin`
-   (or :guilabel:`Upgrade plugin` in case you update to a new version)
-
-.. figure:: ../img/add_repo.png
-
-   Adding a custom repository in the QGIS plugins menu
-
-
-
-
-Install from ZIP
-~~~~~~~~~~~~~~~~
-
-#. Download the latest EnMAP-Box from |download_link2|.
-#. It is recommended to uninstall previous EnMAP-Box versions (delete folder manually, or in QGIS via *Plugins* > *Manage and Install Plugins*
-   > *Installed* > *EnMAP-Box 3* > *Uninstall plugin*)
-#. Open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
-#. Select the downloaded *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and click :guilabel:`Install plugin`.
-
-   .. image:: ../img/installfromzip.png
-
-   .. caution::
-      This may take a few moments!
-
-
-#. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*.
 
 
 
