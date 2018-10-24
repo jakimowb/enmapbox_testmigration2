@@ -32,6 +32,30 @@ class TestsClassificationScheme(TestCase):
         cs.addClass(ClassInfo(name='Class B', color=QColor('blue')))
         return cs
 
+    def createVectorLayer(self)->QgsVectorLayer:
+        # create layer
+        vl = QgsVectorLayer("Point", "temporary_points", "memory")
+        vl.startEditing()
+        # add fields
+        vl.addAttribute(QgsField("name", QVariant.String))
+        vl.addAttribute(QgsField("class_label", QVariant.Int))
+        vl.addAttribute(QgsField("class_name", QVariant.String))
+        f = QgsFeature(vl.fields())
+        f.setAttribute('name', 'f1')
+        f.setAttribute('class_label', 2)
+        f.setAttribute('class_name', 'Class A')
+        vl.addFeature(f)
+        vl.commitChanges()
+
+        cs = self.createClassScheme()
+        confValues = {'classes': cs.json()}
+        conf = vl.attributeTableConfig()
+        vl.setEditorWidgetSetup(vl.fields().lookupField('class_label'), QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, confValues))
+        vl.setEditorWidgetSetup(vl.fields().lookupField('class_name'), QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, confValues))
+
+
+
+        return vl
 
     def testClassInfo(self):
         name = 'TestName'
@@ -88,37 +112,17 @@ class TestsClassificationScheme(TestCase):
 
 
         w = ClassificationSchemeComboBox()
-        p = speclib[-1]
-        w.setProfileValues(p)
         w.show()
-        QAPP.exec_()
+        w.setClassificationScheme(scheme)
+        self.assertIsInstance(w.classificationScheme(), ClassificationScheme)
+        w.setCurrentIndex(2)
+        self.assertIsInstance(w.currentClassInfo(), ClassInfo)
+        self.assertEqual(w.currentClassInfo(), scheme[2])
+
+        QGIS_APP.exec_()
 
 
-    def test_SpectralProfileValueTableModel(self):
-
-        speclib = self.createSpeclib()
-        p3 = speclib[2]
-        self.assertIsInstance(p3, SpectralProfile)
-
-        xUnit = p3.xUnit()
-        yUnit = p3.yUnit()
-
-
-        m = SpectralProfileValueTableModel()
-        self.assertIsInstance(m, SpectralProfileValueTableModel)
-        self.assertTrue(m.rowCount() == 0)
-        self.assertTrue(m.columnCount() == 2)
-        self.assertEqual('Y [-]', m.headerData(0, orientation=Qt.Horizontal, role=Qt.DisplayRole))
-        self.assertEqual('X [-]', m.headerData(1, orientation=Qt.Horizontal, role=Qt.DisplayRole))
-
-        m.setProfileData(p3)
-        self.assertTrue(m.rowCount() == len(p3.values()['x']))
-        self.assertEqual('Y [Reflectance]'.format(yUnit), m.headerData(0, orientation=Qt.Horizontal, role=Qt.DisplayRole))
-        self.assertEqual('X [{}]'.format(xUnit), m.headerData(1, orientation=Qt.Horizontal, role=Qt.DisplayRole))
-
-        m.setColumnValueUnit(0, '')
-
-    def test_SpectralProfileEditorWidgetFactory(self):
+    def test_ClassificationSchemeEditorWidgetFactory(self):
 
         # init some other requirements
         print('initialize EnMAP-Box editor widget factories')
@@ -129,13 +133,14 @@ class TestsClassificationScheme(TestCase):
             reg.initEditors()
 
 
-        registerSpectralProfileEditorWidget()
+        registerClassificationSchemeEditorWidget()
         self.assertTrue(EDITOR_WIDGET_REGISTRY_KEY in reg.factories().keys())
         factory = reg.factories()[EDITOR_WIDGET_REGISTRY_KEY]
-        self.assertIsInstance(factory, SpectralProfileEditorWidgetFactory)
-        vl = self.createSpeclib()
-        am = vl.actions()
-        self.assertIsInstance(am, QgsActionManager)
+        self.assertIsInstance(factory, ClassificationSchemeWidgetFactory)
+
+        vl = self.createVectorLayer()
+
+
 
         c = QgsMapCanvas()
         w = QWidget()
@@ -144,6 +149,7 @@ class TestsClassificationScheme(TestCase):
         dv.init(vl, c)
         dv.setView(QgsDualView.AttributeTable)
         dv.setAttributeTableConfig(vl.attributeTableConfig())
+        dv.show()
         cb = QCheckBox()
         cb.setText('Show Editor')
         def onClicked(b:bool):
@@ -154,36 +160,31 @@ class TestsClassificationScheme(TestCase):
         cb.clicked.connect(onClicked)
         w.layout().addWidget(dv)
         w.layout().addWidget(cb)
+        vl.startEditing()
         w.show()
         w.resize(QSize(300,250))
         print(vl.fields().names())
         look = vl.fields().lookupField
-        self.assertTrue(factory.fieldScore(vl, look(FIELD_FID)) == 0) #specialized support style + str len > 350
-        self.assertTrue(factory.fieldScore(vl, look(FIELD_NAME)) == 5)
-        self.assertTrue(factory.fieldScore(vl, look(FIELD_VALUES)) == 20)
+
+        self.assertTrue(factory.fieldScore(vl, look('class_label')) == 20)
+        self.assertTrue(factory.fieldScore(vl, look('class_name')) == 20)
 
         parent = QWidget()
-        configWidget = factory.configWidget(vl, look(FIELD_VALUES), None)
-        self.assertIsInstance(configWidget, SpectralProfileEditorConfigWidget)
+        configWidget = factory.configWidget(vl, look('class_label'), None)
+        self.assertIsInstance(configWidget, ClassificationSchemeEditorConfigWidget)
         configWidget.show()
 
         self.assertIsInstance(factory.createSearchWidget(vl, 0, dv), QgsSearchWidgetWrapper)
 
-
         eww = factory.create(vl, 0, None, dv )
-        self.assertIsInstance(eww, SpectralProfileEditorWidgetWrapper)
-        self.assertIsInstance(eww.widget(), SpectralProfileEditorWidget)
+        self.assertIsInstance(eww, ClassificationSchemeEditorWidgetWrapper)
+        self.assertIsInstance(eww.widget(), ClassificationSchemeComboBox)
 
         eww.valueChanged.connect(lambda v: print('value changed: {}'.format(v)))
 
-        fields = vl.fields()
-        vl.startEditing()
-        value = eww.value()
-        f = vl.getFeature(1)
-        f.setAttribute('style', value)
-        self.assertTrue(vl.updateFeature(f))
 
-        QAPP.exec_()
+
+        QGIS_APP.exec_()
 
 
 

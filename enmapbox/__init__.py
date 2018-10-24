@@ -105,6 +105,13 @@ registerPlotStyleEditorWidget()
 from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
 registerSpectralProfileEditorWidget()
 
+from enmapbox.gui.classificationscheme import registerClassificationSchemeEditorWidget
+registerClassificationSchemeEditorWidget()
+
 def run():
+    """
+    Call to start the EnMAP-Box
+    :return:
+    """
     import enmapbox.__main__
     enmapbox.__main__.run()

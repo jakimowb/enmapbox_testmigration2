@@ -59,7 +59,7 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 import os, sys, re
-from PyQt5.Qt import *
+from PyQt5.QtGui import QImage
 from PyQt5.QtCore import *
 from PyQt5.QtSvg import *
 

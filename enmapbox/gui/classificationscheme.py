@@ -320,7 +320,7 @@ class ClassificationScheme(QObject):
         """
         removed = self.mClasses[:]
         del self.mClasses[:]
-        self.sigClassesRemoved.emit(removed)
+        self.sigClassesRemoved.emit(removed, list(range(len(removed))))
 
     def clone(self):
         """
@@ -611,6 +611,9 @@ class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
         self.mScheme.sigClassesRemoved.connect(self.onClassRemoved)
         self.mScheme.sigClassInfoChanged.connect(self.onClassInfoChanged)
 
+    def classifcationScheme(self)->ClassificationScheme:
+        return self.mScheme
+
     def onClassInfoChanged(self, classInfo):
         i = self.mScheme.index(classInfo)
         idx = self.createIndex(i, 0)
@@ -684,13 +687,16 @@ class ClassificationSchemeComboBox(QComboBox):
 
     def classificationScheme(self)->ClassificationScheme:
         if isinstance(self.mModel, ClassificationSchemeComboBoxItemModel):
-            pass
+            return self.mModel.mScheme
+        return None
+
 
     def currentClassInfo(self)->ClassInfo:
         if isinstance(self.mModel, ClassificationSchemeComboBoxItemModel):
             i = self.currentIndex()
-            if i >= 0 and i < len(self.m)
-
+            if i >= 0 and i < len(self.mModel.classifcationScheme()):
+                return self.mModel.classifcationScheme()[i]
+        return None
 
 class ClassificationSchemeTableModel(QAbstractTableModel):
     def __init__(self, scheme, parent=None):
@@ -967,10 +973,10 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
             self.setClassificationScheme(classificationScheme)
 
         self.schemeModel = ClassificationSchemeTableModel(self.mScheme, self)
-        self.schemeModel.dataChanged.connect(lambda : self.sigValuesChanged())
-        self.schemeModel.modelReset.connect(lambda : self.sigValuesChanged())
-        self.schemeModel.rowsInserted.connect(lambda :self.sigValuesChanged())
-        self.schemeModel.rowsRemoved.connect(lambda :self.sigValuesChanged())
+        self.schemeModel.dataChanged.connect(lambda : self.sigValuesChanged.emit())
+        self.schemeModel.modelReset.connect(lambda : self.sigValuesChanged.emit())
+        self.schemeModel.rowsInserted.connect(lambda :self.sigValuesChanged.emit())
+        self.schemeModel.rowsRemoved.connect(lambda :self.sigValuesChanged.emit())
 
 
 
@@ -1116,9 +1122,8 @@ class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
 
         if isinstance(editor, ClassificationSchemeComboBox):
             self.mComboBox = editor
-            self.mComboBox.mModel.mScheme.clear()
+            self.mComboBox.setClassificationScheme(classSchemeFromConfig(conf))
             self.mComboBox.currentIndexChanged.connect(self.onValueChanged)
-            #self.mComboBox.mModel.mScheme.addClasses()
 
 
     def onValueChanged(self, *args):
@@ -1126,14 +1131,18 @@ class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
         s = ""
 
     def valid(self, *args, **kwargs)->bool:
-        return isinstance(self.mEditorWidget, ClassificationSchemeWidget) or isinstance(self.mComboBox, QComboBox)
+        return isinstance(self.mComboBox, ClassificationSchemeComboBox)
 
     def value(self, *args, **kwargs):
         value = self.mDefaultValue
         if isinstance(self.mComboBox, ClassificationSchemeComboBox):
-            v = self.mComboBox.selectedClassInfo()
-
-
+            classInfo = self.mComboBox.currentClassInfo()
+            if isinstance(classInfo, ClassInfo):
+                typeCode = self.field().type()
+                if typeCode == QVariant.String:
+                    return classInfo.name()
+                if typeCode in [QVariant.Int, QVariant.Double]:
+                    return classInfo.label()
         return value
 
 
@@ -1144,10 +1153,24 @@ class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
 
 
     def setValue(self, value):
-        if isinstance(self.mComboBox, ClassificationSchemeComboBox):
-            s = ""
 
-        self.mDefaultValue = value
+        if isinstance(self.mComboBox, ClassificationSchemeComboBox):
+            cs = self.mComboBox.classificationScheme()
+            if isinstance(cs, ClassificationScheme):
+                cnames = cs.classNames()
+                n = len(cs)
+                typeCode = self.field().type()
+                i = 0
+                if value not in [None, QVariant(None)]:
+                    if typeCode == QVariant.String:
+                        className = str(value)
+                        if className in cnames:
+                            i = cnames.index(className)
+                    elif typeCode in [QVariant.Int, QVariant.Double]:
+                        label = int(value)
+                        if label >= 0 and label < n:
+                            i = n
+                self.mComboBox.setCurrentIndex(i)
 
 
 class ClassificationSchemeEditorConfigWidget(QgsEditorConfigWidget):
@@ -1155,28 +1178,37 @@ class ClassificationSchemeEditorConfigWidget(QgsEditorConfigWidget):
     def __init__(self, vl:QgsVectorLayer, fieldIdx:int, parent:QWidget):
 
         super(ClassificationSchemeEditorConfigWidget, self).__init__(vl, fieldIdx, parent)
-        self.setupUi(self)
-
+        #self.setupUi(self)
+        self.mSchemeWidget = ClassificationSchemeWidget(parent=self)
+        self.mSchemeWidget.sigValuesChanged.connect(self.changed)
+        self.setLayout(QVBoxLayout())
+        self.layout().addWidget(self.mSchemeWidget)
         self.mLastConfig = {}
 
+
     def config(self, *args, **kwargs)->dict:
-        config = {'xUnitList':self.units('x'),
-                  'yUnitList':self.units('y')
-                  }
-        return config
+        return classSchemeToConfig(self.mSchemeWidget.classificationScheme())
 
     def setConfig(self, config:dict):
-        if 'xUnitList' in config.keys():
-            self.setUnits('x', config['xUnitList'])
-
-        if 'yUnitList' in config.keys():
-            self.setUnits('y', config['yUnitList'])
-
         self.mLastConfig = config
-        print('setConfig')
+        cs = classSchemeFromConfig(config)
+        self.mSchemeWidget.setClassificationScheme(cs)
 
     def resetClassificationScheme(self):
-        pass
+        self.setConfig(self.mLastConfig)
+
+def classSchemeToConfig(classScheme:ClassificationScheme)->dict:
+    config = {'classes': classScheme.json()}
+    return config
+
+def classSchemeFromConfig(conf:dict)->ClassificationScheme:
+    cs = None
+    if 'classes' in conf.keys():
+        cs = ClassificationScheme.fromJSON(conf['classes'])
+    if not isinstance(cs, ClassificationScheme):
+        return ClassificationScheme()
+    else:
+        return cs
 
 
 class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
@@ -1229,8 +1261,6 @@ class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
         :param config: dict with config values
         """
         self.mConfigurations[key] = config
-        print('Save config')
-        print(config)
 
     def readConfig(self, key:tuple):
         """
@@ -1241,10 +1271,7 @@ class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
             conf = self.mConfigurations[key]
         else:
             #return the very default configuration
-            conf = {
-            }
-        print('Read config')
-        print((key, conf))
+            conf = {}
         return conf
 
     def fieldScore(self, vl:QgsVectorLayer, fieldIdx:int)->int:
@@ -1270,7 +1297,6 @@ class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
 
 
 
-"""
 
 EDITOR_WIDGET_REGISTRY_KEY = 'RasterClassification'
 classificationSchemeEditorWidgetFactory = None
@@ -1281,4 +1307,3 @@ def registerClassificationSchemeEditorWidget():
         reg.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, factory)
     else:
         classificationSchemeEditorWidgetFactory = reg.factories()[EDITOR_WIDGET_REGISTRY_KEY]
-"""
