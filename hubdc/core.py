@@ -172,7 +172,7 @@ class GTiffDriver(RasterDriver):
     '''GTiff driver.'''
 
     DEFAULT_OPTIONS = RasterCreationOptions(options={'COMPRESS': 'None', 'INTERLEAVE': 'BAND',
-                                                     'TILED': 'YES', 'BLOCKXSIZE': 256, 'BLOCKYSIZE': 256})
+                                                     'TILED': 'NO', 'BLOCKXSIZE': 256, 'BLOCKYSIZE': 256})
 
     def __init__(self):
         RasterDriver.__init__(self, name='GTiff')
@@ -2297,38 +2297,14 @@ class VectorDataset(object):
             #    self.setMetadataItem(key=key, value=value, domain=domain)
 
     def reprojectOnTheFly(self, projection):
-        '''Returns a reprojection of self into the given :class:`~hubdc.model.Projection`.'''
+        '''Returns a reprojection of self into the given projection.'''
 
         # need to temporary create a VRT file
-        assert 0
-        options = gdal.VectorTranslateOptions(format='Memory', layerName='polygons')
-        outDs = gdal.VectorTranslate(filename, vector.ogrDataSource(), options=options)
+        options = gdal.VectorTranslateOptions(format='Memory', dstSRS=projection.wkt())
+        ogrDataSource = gdal.VectorTranslate('', self.ogrDataSource(), options=options)
 
-        assert 0 # implement with gdal.VectorTranslate
-        vrtDefinition = ['<OGRVRTDataSource>\n',
-                         '    <OGRVRTWarpedLayer>\n',
-                         '        <OGRVRTLayer name="{}">\n'.format(basename(self.filename()).replace('.shp', '')),
-                         '            <SrcDataSource>{ds}</SrcDataSource>\n'.format(ds=self.filename()),
-                         '        </OGRVRTLayer>\n',
-                         '        <TargetSRS>{}</TargetSRS>\n'.format(projection.wkt()),
-                         '    </OGRVRTWarpedLayer>\n',
-                         '</OGRVRTDataSource>\n']
-
-        vrtFilename = join(tempfile.gettempdir(), str(randint(0, 10 ** 10)) + '.vrt')
-        with open(vrtFilename, 'w') as f:
-            f.writelines(vrtDefinition)
-
-        # open VRT vector file
-        ogrDataSource = ogr.Open(vrtFilename)
-        assert ogrDataSource is not None
-        vector = VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=0)
-
-        # delete the VRT file
-        remove(vrtFilename)
-
-        # todo cache result
-
-        return vector
+        vectorDataset = VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=self.layerNameOrIndex())
+        return vectorDataset
 
     def featureCount(self):
         '''Returns the number of features.'''
