@@ -5,7 +5,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import pyqtgraph as pg
-from enmapboxapplications.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass
 from hubflow.core import *
 
 pg.setConfigOption('background', 'w')

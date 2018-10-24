@@ -6,7 +6,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapboxapplications.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass
 from enmapboxapplications.widgets.core import UiLabeledLibrary
 from enmapboxapplications.synthmixapp.script import synthmixRegressionEnsemble
 from hubflow.core import *

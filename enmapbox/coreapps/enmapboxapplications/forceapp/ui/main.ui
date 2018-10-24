@@ -102,7 +102,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/propertyicons/action.svg</normaloff>:/images/themes/default/propertyicons/action.svg</iconset>
         </property>
         <property name="iconSize">
@@ -145,8 +145,6 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../../../../QGIS-master/images/images.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
