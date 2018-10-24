@@ -1,3 +1,7 @@
+import matplotlib
+matplotlib.use('QT5Agg')
+from matplotlib import pyplot
+
 from unittest import TestCase
 import enmapboxtestdata
 from hubflow.core import *
@@ -33,3 +37,7 @@ class Test(TestCase):
         print(Classification.fromENVISpectralLibrary(filename='/vsimem/classification.bsq', library=library, attribute='level_1'))
         print(Classification.fromENVISpectralLibrary(filename='/vsimem/classification.bsq', library=library, attribute='level_2'))
         print(Classification.fromENVISpectralLibrary(filename='/vsimem/classification.bsq', library=library, attribute='level_3'))
+
+    def test_create(self):
+        enmapboxtestdata.createEnmapClassification()
+        enmapboxtestdata.createEnmapFraction()
