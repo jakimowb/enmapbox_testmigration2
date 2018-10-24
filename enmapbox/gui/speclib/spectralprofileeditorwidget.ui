@@ -110,7 +110,7 @@
   </layout>
   <action name="actionReset">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionUndo.svg</normaloff>:/images/themes/default/mActionUndo.svg</iconset>
    </property>
    <property name="text">
@@ -120,7 +120,6 @@
  </widget>
  <resources>
   <include location="speclibresources.qrc"/>
-  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>

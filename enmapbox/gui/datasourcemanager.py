@@ -684,6 +684,13 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
         self.profileNode = None
         self.mSpeclib = None
 
+    def speclib(self)->SpectralLibrary:
+        """
+        Returns the SpectralLibrary
+        :return: SpectralLibrary
+        """
+        return self.mSpeclib
+
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
@@ -1087,7 +1094,7 @@ class DataSourceManagerTreeModel(TreeModel):
             uuidList.append(dataSource.uuid())
 
             if isinstance(dataSource, DataSourceSpectralLibrary):
-                mimeDataSpeclib = dataSource.spectralLibrary().mimeData()
+                mimeDataSpeclib = dataSource.speclib().mimeData()
                 for f in mimeDataSpeclib.formats():
                     if f not in mimeData.formats():
                         mimeData.setData(f, mimeDataSpeclib.data(f))
@@ -1188,6 +1195,9 @@ class DataSourceManagerTreeModel(TreeModel):
             a = menu.addAction('Show report')
             a.triggered.connect(lambda : self.onShowModelReport(node.dataSource))
 
+        if isinstance(node, SpeclibDataSourceTreeNode):
+            a = menu.addAction('Open')
+            a.triggered.connect(lambda : self.onOpenSpeclib(node.speclib()))
         #append node-defined context menu
         menu2 = node.contextMenu()
 
@@ -1202,6 +1212,10 @@ class DataSourceManagerTreeModel(TreeModel):
             """
         menu.setVisible(True)
         return menu
+
+    def onOpenSpeclib(self, speclib:SpectralLibrary):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
 
     def onShowModelReport(self, model):
         assert isinstance(model, HubFlowDataSource)
@@ -1322,6 +1336,10 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 else:
                     a.setEnabled(False)
 
+        if isinstance(src, DataSourceSpectralLibrary):
+            a = m.addAction('Open Editor')
+            a.triggered.connect(lambda : self.onOpenSpeclib(src.speclib()))
+
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
@@ -1441,6 +1459,9 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
         pass
 
+    def onOpenSpeclib(self, speclib:SpectralLibrary):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
 
 def CreateNodeFromDataSource(dataSource:DataSource, parent=None)->DataSourceTreeNode:
     """

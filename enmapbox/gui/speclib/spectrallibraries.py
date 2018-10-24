@@ -66,6 +66,7 @@ MIMEDATA_SPECLIB = 'application/hub-spectrallibrary'
 MIMEDATA_SPECLIB_LINK = 'application/hub-spectrallibrary-link'
 MIMEDATA_XQT_WINDOWS_CSV = 'application/x-qt-windows-mime;value="Csv"'
 MIMEDATA_TEXT = 'text/plain'
+MIMEDATA_URL = 'text/url'
 
 COLOR_CURRENT_SPECTRA = QColor('green')
 COLOR_SELECTED_SPECTRA = QColor('yellow')
@@ -445,8 +446,10 @@ class SpectralLibrary(QgsVectorLayer):
             #unpickle
             return SpectralLibrary.readFromPickleDump(mimeData.data(MIMEDATA_SPECLIB))
         elif MIMEDATA_TEXT in mimeData.formats():
+            return None
+        elif MIMEDATA_URL in mimeData.formats():
+            return SpectralLibrary.readFrom(mimeData.urls()[0])
 
-            return CSVSpectralLibraryIO.fromString(mimeData.text())
 
         return None
 
@@ -512,6 +515,14 @@ class SpectralLibrary(QgsVectorLayer):
         :param uri: path or uri of the source from which to read SpectralProfiles and return them in a SpectralLibrary
         :return: SpectralLibrary
         """
+        if isinstance(uri, str) and uri.startswith(VSI_DIR) and uri.endswith('.gpkg'):
+            try:
+                return SpectralLibrary(uri=uri)
+            except Exception as ex:
+                print(ex)
+                return None
+
+
         readers = AbstractSpectralLibraryIO.__subclasses__()
         #readers = [r for r in readers if not r is ClipboardIO] + [ClipboardIO]
         for cls in sorted(readers, key=lambda r:r.score(uri)):
@@ -568,10 +579,21 @@ class SpectralLibrary(QgsVectorLayer):
             for f in ogrStandardFields():
                 lyr.CreateField(f)
             dsSrc.FlushCache()
+        else:
+            dsSrc = ogr.Open(uri)
+            assert isinstance(dsSrc, ogr.DataSource)
+            names = [dsSrc.GetLayerByIndex(i).GetName() for i in range(dsSrc.GetLayerCount())]
+            i = names.index(name)
+            lyr = dsSrc.GetLayer(i)
+            srs = lyr.GetSpatialRef()
         #consistency check
         uri2 = '{}|{}'.format(dsSrc.GetName(), lyr.GetName())
         assert QgsVectorLayer(uri2).isValid()
         super(SpectralLibrary, self).__init__(uri2, name, 'ogr', lyrOptions)
+        if isinstance(srs, osr.SpatialReference) and not self.crs().isValid():
+            crs = self.crs()
+            crs.fromWkt(srs.ExportToWkt())
+            self.setCrs(crs)
         self.__refs__.append(weakref.ref(self))
 
         self.initTableConfig()
@@ -630,11 +652,13 @@ class SpectralLibrary(QgsVectorLayer):
         mimeData = QMimeData()
 
         for format in formats:
-            assert format in [MIMEDATA_SPECLIB_LINK, MIMEDATA_SPECLIB, MIMEDATA_TEXT]
+            assert format in [MIMEDATA_SPECLIB_LINK, MIMEDATA_SPECLIB, MIMEDATA_TEXT, MIMEDATA_TEXT, MIMEDATA_URL]
             if format == MIMEDATA_SPECLIB_LINK:
                 mimeData.setData(MIMEDATA_SPECLIB_LINK, pickle.dumps(self.id()))
             elif format == MIMEDATA_SPECLIB:
                 mimeData.setData(MIMEDATA_SPECLIB, pickle.dumps(self))
+            elif format == MIMEDATA_URL:
+                mimeData.setUrls([QUrl(self.source())])
             elif format == MIMEDATA_TEXT:
                 txt = CSVSpectralLibraryIO.asString(self)
                 mimeData.setText(txt)
@@ -696,11 +720,9 @@ class SpectralLibrary(QgsVectorLayer):
         :param speclib: SpectralLibrary
         :param addMissingFields: if True, add missing field
         """
-
         assert isinstance(speclib, SpectralLibrary)
-        if addMissingFields:
-            self.addMissingFields(speclib.fields())
-        self.addProfiles([p for p in speclib])
+        self.addProfiles(speclib.profiles(), addMissingFields=addMissingFields)
+        s = ""
 
     def addProfiles(self, profiles, addMissingFields:bool=None):
 
@@ -712,38 +734,42 @@ class SpectralLibrary(QgsVectorLayer):
         elif isinstance(profiles, SpectralLibrary):
             profiles = profiles.profiles()
 
-        assert isinstance(profiles, list)
-        if len(profiles) == 0:
-            return
+        assert self.isEditable(), 'SpectralLibrary "{}" is not editable. call startEditing() first'.format(self.name())
+
+
+
+        i = 0
+        profiles2 = []
+        fieldLookup={}
+        def createCopy(srcFeature:QgsFeature)->QgsFeature:
+            p2 = QgsFeature(self.fields())
+            srcAttributes = srcFeature.attributes()
+            p2.setGeometry(srcFeature.geometry())
+            for i1, i2 in fieldLookup.items():
+                v = srcAttributes[i1]
+                p2.setAttribute(i2, None if v == QVariant(None) else v)
+            return p2
+
 
         for i, p in enumerate(profiles):
-            assert isinstance(p, SpectralProfile)
+            if i == 0:
+                if addMissingFields:
+                    self.addMissingFields(p.fields())
+                for i1, srcName in enumerate(p.fields().names()):
+                    if srcName == FIELD_FID:
+                        continue
+                    i2 = self.fields().lookupField(srcName)
+                    if i2 >= 0:
+                        fieldLookup[i1] = i2
+                    elif addMissingFields:
+                        raise Exception('Missing field: "{}"'.format(srcName))
 
-        fields = self.fields()
+            c = createCopy(p)
+            profiles2.append(c)
 
-        fid = 0
-        assert self.isEditable(), 'SpectralLibrary not editable. call startEditing() first'
-
-        if addMissingFields:
-            self.addMissingFields(profiles[0].fields())
-
-        fields = self.fields()
-
-        def createCopy(srcFeature:QgsFeature)->QgsFeature:
-
-
-            srcFields = srcFeature.fields()
-            dstFields = self.fields()
-            p2 = QgsFeature(dstFields)
-            for field in dstFields:
-                a = srcFields.lookupField(field.name())
-                if a >= 0:
-                    p2.setAttribute(dstFields.lookupField(field.name()), srcFeature.attribute(a))
-
-            p2.setAttribute(FIELD_FID, None)
-            return p2
-        profiles = [createCopy(p) for p in profiles]
-        self.addFeatures(profiles)
+        if not self.addFeatures(profiles2):
+            self.raiseError()
+        s = ""
 
     def speclibFromFeatureIDs(self, fids):
         if isinstance(fids, int):
@@ -2208,23 +2234,33 @@ class SpectralLibraryPlotWidget(PlotWidget):
 
     def dragEnterEvent(self, event):
         assert isinstance(event, QDragEnterEvent)
-        log('dagEnterEvent')
+        if MIMEDATA_SPECLIB_LINK in event.mimeData().formats():
+            event.accept()
+
 
     def dragMoveEvent(self, event):
-        assert isinstance(event, QDragMoveEvent)
-        log('dragMoveEvent')
-        #if containsSpeclib(event.mimeData()):
+        if MIMEDATA_SPECLIB_LINK in event.mimeData().formats():
+            event.accept()
+
+    #if containsSpeclib(event.mimeData()):
         #    event.accept()
 
     def dropEvent(self, event):
         assert isinstance(event, QDropEvent)
-        log('dropEvent')
+        #log('dropEvent')
         mimeData = event.mimeData()
 
         speclib = SpectralLibrary.readFromMimeData(mimeData)
-        if isinstance(speclib, SpectralLibrary):
-            self.speclib().addSpeclib(speclib)
+        if isinstance(speclib, SpectralLibrary) and len(speclib) > 0:
+
+            slib = self.speclib()
+            slib.startEditing()
+            slib.addSpeclib(speclib)
             event.accept()
+
+
+
+
 
 
 

@@ -81,6 +81,16 @@ class TestIO(unittest.TestCase):
     def createSpeclib(self)->SpectralLibrary:
         return createSpeclib()
 
+    def test_VSI(self):
+
+        slib1 = self.createSpeclib()
+        path = slib1.source()
+
+        slib2 = SpectralLibrary.readFrom(path)
+        self.assertIsInstance(slib2, SpectralLibrary)
+        self.assertEqual(slib1, slib2)
+        s = ""
+
     def test_CSV(self):
         # TEST CSV writing
         writtenFiles = sl1.exportProfiles(pathCSV)
@@ -586,35 +596,23 @@ class TestCore(unittest.TestCase):
 
 
     def test_mergeSpeclibs(self):
+        sp1 = self.createSpeclib()
 
-        sp = SpectralProfile()
-        fieldName = 'newField'
-        sp.setMetadata(fieldName, 'foo', addMissingFields=True)
-        sl = SpectralLibrary()
-        sl.startEditing()
-        sl.addAttribute(createQgsField(fieldName, ''))
-        sl.commitChanges()
-        self.assertIn(fieldName, sl.fieldNames())
+        sp2 = SpectralLibrary.readFrom(library)
 
-        sl = SpectralLibrary()
-        sl.addProfiles(sp)
+        self.assertIsInstance(sp1, SpectralLibrary)
+        self.assertIsInstance(sp2, SpectralLibrary)
 
-        sl = SpectralLibrary()
-        self.assertTrue(fieldName not in sl.fieldNames())
-        self.assertTrue(len(sl) == 0)
-        sl.addProfiles(sp, addMissingFields=False)
-        self.assertTrue(fieldName not in sl.fieldNames())
-        self.assertTrue(len(sl) == 1)
+        n = len(sp1)
+        with self.assertRaises(Exception):
+            sp1.addSpeclib(sp2)
+        self.assertTrue(len(sp1), n)
+
+        sp1.startEditing()
+        sp1.addSpeclib(sp2)
+        self.assertTrue(len(sp1), n+len(sp2))
 
 
-        sl = SpectralLibrary()
-        self.assertTrue(fieldName not in sl.fieldNames())
-        sl.addProfiles(sp, addMissingFields=True)
-        self.assertTrue(fieldName in sl.fieldNames())
-        self.assertTrue(len(sl) == 1)
-        p = sl[0]
-        self.assertIsInstance(p, SpectralProfile)
-        self.assertEqual(p.metadata(fieldName), sp.metadata(fieldName))
 
 
     def test_SpectralProfileEditorWidget(self):

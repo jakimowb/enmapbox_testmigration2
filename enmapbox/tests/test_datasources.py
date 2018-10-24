@@ -411,7 +411,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                     w = SpectralLibraryWidget()
                     w.show()
                     w.plotWidget.dropEvent(createDropEvent(mimeData))
-                    self.assertEqual(len(w.speclib()), len(dNode.dataSource.spectralLibrary()))
+                    self.assertEqual(len(w.speclib()), len(dNode.dataSource.speclib()))
 
 
 

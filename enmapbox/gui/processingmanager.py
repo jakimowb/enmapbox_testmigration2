@@ -57,6 +57,7 @@ else:
 class ProcessingAlgorithmsPanelUI(UI_BASE):
     def __init__(self, parent=None):
         UI_BASE.__init__(self)
+        self.setParent(parent)
         if not _PF_AVAILABLE:
             w = QFrame()
             w.setLayout(QVBoxLayout())

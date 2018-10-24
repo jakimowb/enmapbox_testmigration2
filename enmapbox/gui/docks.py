@@ -180,6 +180,27 @@ class Dock(pgDock, KeepRefs):
         #print "added temp area", area, area.window()
         return area
 
+    def setOrientation(self, o='auto', force=False):
+        """
+        Sets the orientation of the title bar for this Dock.
+        Must be one of 'auto', 'horizontal', or 'vertical'.
+        By default ('auto'), the orientation is determined
+        based on the aspect ratio of the Dock.
+        """
+        #print self.name(), "setOrientation", o, force
+        if o == 'auto' and self.autoOrient:
+            #if self.container().type() == 'tab':
+            if self.container() is None or self.container().type() == 'tab':
+                o = 'horizontal'
+            elif self.width() > self.height()*1.5:
+                o = 'vertical'
+            else:
+                o = 'horizontal'
+        if force or self.orientation != o:
+            self.orientation = o
+            self.label.setOrientation(o)
+            self.updateStyle()
+
     def unfloat(self):
 
         from enmapbox import EnMAPBox
@@ -251,24 +272,28 @@ class DockArea(pgDockArea):
             lastArea.sigDockRemoved.emit(dock)
 
     def apoptose(self):
+        try:
+            if self.topContainer is not None and self.topContainer.count() == 0:
+                self.topContainer = None
 
-        if self.topContainer is not None and self.topContainer.count() == 0:
-            self.topContainer = None
-
-        if self.topContainer is None:
-            if self.temporary and self.home is not None:
-                self.home.removeTempArea(self)
-        else:
+            if self.topContainer is None:
+                if self.temporary and self.home is not None:
+                    self.home.removeTempArea(self)
+            else:
+                pass
+        except:
             pass
-
     sigDockAdded = pyqtSignal(Dock)
     sigDockRemoved = pyqtSignal(Dock)
-    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
+    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds)->Dock:
         assert enmapboxdock is not None
         #assert isinstance(enmapboxdock, Dock)
-
-        v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
-        self.sigDockAdded.emit(enmapboxdock)
+        v = None
+        try:
+            v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
+            self.sigDockAdded.emit(enmapboxdock)
+        except:
+            pass
         return v
 
 
@@ -795,11 +820,11 @@ class MimeDataDock(Dock):
 
 class SpectralLibraryDock(Dock):
     sigLoadFromMapRequest = pyqtSignal()
-    def __init__(self,*args, **kwds):
+    def __init__(self,speclib=None, *args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
         from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
-        self.speclibWidget = SpectralLibraryWidget(parent=self)
+        self.speclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
         self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.speclibWidget)
         self.mShowMapInteraction = True

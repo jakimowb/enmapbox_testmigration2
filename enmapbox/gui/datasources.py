@@ -663,29 +663,33 @@ class DataSourceSpectralLibrary(DataSourceSpatial):
             icon = QIcon(':/speclib/icons/speclib.svg')
         super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr')
 
-        self.mSpeclib = None
+        self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
         self.nProfiles = 0
         self.profileNames = []
         self.updateMetadata()
 
     def createUnregisteredMapLayer(self, *args, **kwds)->QgsVectorLayer:
-        #return QgsVectorLayer(self.mSpeclib.source(), self.mSpeclib.name(), 'memory')
-        return self.spectralLibrary()
+        return QgsVectorLayer(self.mSpeclib.source(), self.mSpeclib.name(), self.mProvider)
+        #return self.spectralLibrary()
 
     def updateMetadata(self, *args, **kwds):
-        self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
-        assert isinstance(self.mSpeclib, SpectralLibrary)
-        self.mSpeclib.setName(os.path.basename(self.mUri))
-        self.setName(self.mSpeclib.name())
+        if isinstance(self.mSpeclib, SpectralLibrary):
+            self.mSpeclib.setName(os.path.basename(self.mUri))
+            self.setName(self.mSpeclib.name())
 
-        self.nProfiles = len(self.mSpeclib)
-        self.profileNames = []
-        for p in self.mSpeclib:
-            assert isinstance(p, SpectralProfile)
-            self.profileNames.append(p.name())
+            self.nProfiles = len(self.mSpeclib)
+            self.profileNames = []
+            for p in self.mSpeclib.profiles():
+                assert isinstance(p, SpectralProfile)
+                self.profileNames.append(p.name())
 
-    def spectralLibrary(self)->SpectralLibrary:
+    def speclib(self)->SpectralLibrary:
+        """
+        :return: SpectralLibrary
+        """
         return self.mSpeclib
+
+
 class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None):
