@@ -3,18 +3,18 @@ import numpy
 from numpy import *
 import numpy.random as random
 import traceback
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions
+from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions, ApplierControls
 from enmapboxapplications.imagemathapp.routines import *
 
 
 class Calulator(Applier):
-    def applyCode(self, code, options, outputKeys, overwrite=True):
+    def applyCode(self, code, options, overlap, outputKeys, overwrite=True):
 
         assert isinstance(options, dict)
         assert isinstance(outputKeys, list)
 
         self.apply(operatorType=CalculatorOperator, description='Calculator', overwrite=overwrite,
-                   code=code, options=options)
+                   code=code, options=options, overlap=overlap)
 
         self.controls.progressBar.setPercentage(0)
 
@@ -41,15 +41,14 @@ class CodeExecutionError(Exception):
 
 
 class CalculatorOperator(ApplierOperator):
-    def ufunc(self, code, options, overlap=0):
+    def ufunc(self, code, options, overlap):
 
         global inputRasterByArray, outputRasterByArray, outputNoDataValueByArray, outputMetadataByArray
 
-        ySize, xSize = self.subgrid().shape()
         namespace = dict()
         for key in self.inputRaster.flatRasterKeys():
             raster = self.inputRaster.raster(key=key)
-            namespace['_array'] = raster.array(resampleAlg=options[key]['resampleAlg'])
+            namespace['_array'] = raster.array(resampleAlg=options[key]['resampleAlg'], overlap=overlap)
             # noDataValue=options[key]['noDataValue'])
             try:
                 exec('{key} = _array'.format(key=key), namespace)
@@ -65,7 +64,8 @@ class CalculatorOperator(ApplierOperator):
                                                burnAttribute=options[key]['burnAttribute'],
                                                allTouched=options[key]['allTouched'],
                                                filterSQL=options[key]['filterSQL'],
-                                               dtype=options[key]['dtype'])
+                                               dtype=options[key]['dtype'],
+                                               overlap=overlap)
             exec('{key} = _array'.format(key=key), namespace)
 
         for key in self.outputRaster.flatRasterKeys():
@@ -89,7 +89,7 @@ class CalculatorOperator(ApplierOperator):
             noData = namespace['outputNoDataValueByArray'].get(id(array), None)
             metadata = outputMetadataByArray.get(id(array), None)
             if array is not None:
-                raster.setArray(array=array)
+                raster.setArray(array=array, overlap=overlap)
                 if noData is not None:
                     raster.setNoDataValue(value=noData)
                 if metadata is not None:

@@ -19,7 +19,6 @@
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
-from qgis.PyQt.QtGui import QGuiApplication
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
@@ -28,14 +27,20 @@ from enmapbox.gui.maptools import *
 # if qgis.utils.iface is None:
 #    qgis.utils.iface = EnMAPBoxQgisInterface()
 
-SETTINGS = enmapboxSettings()
+SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
+
+
+#init
+
+
+
 
 class Views(object):
     def __init__(self):
         raise Exception('This class is not for any instantiation')
 
-    MapView= 'MAP'
+    MapView = 'MAP'
     SpecLibView = 'SPECLIB'
     TextView = 'TEXT'
     EmptyView = 'EMPTY'
@@ -139,9 +144,6 @@ class EnMAPBox(QgisInterface, QObject):
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None
-        # necessary to make the resource file available
-        from enmapbox.gui.ui import resources
-        resources.qInitResources()
         QObject.__init__(self)
         # super(EnMAPBox, self).__init__()
         QgisInterface.__init__(self)
@@ -160,6 +162,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.initQgisInterface()
         self.iface = iface
         self.mMapLayerStore = QgsMapLayerStore()
+        MAP_LAYER_STORES.insert(0, self.mMapLayerStore)
         if not isinstance(iface, QgisInterface):
             self.initEnMAPBoxAsIFACE()
         self.initPanels()
@@ -251,6 +254,10 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
+
+        import pyqtgraph
+        pyqtgraph.setConfigOption('background', 'k')
+        pyqtgraph.setConfigOption('foreground', 'w')
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
@@ -409,6 +416,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
+            dock.speclibWidget.plotWidget.backgroundBrush().setColor(QColor('black'))
             self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):
@@ -445,7 +453,7 @@ class EnMAPBox(QgisInterface, QObject):
         for lyr in lyrs:
             assert isinstance(lyr, QgsRasterLayer)
             path = lyr.source()
-            from enmapbox.gui.spectrallibraries import SpectralProfile
+            from enmapbox.gui.speclib.spectrallibraries import SpectralProfile
             p = SpectralProfile.fromRasterSource(path, spatialPoint)
             if isinstance(p, SpectralProfile):
                 currentSpectra.append(p)
@@ -666,8 +674,6 @@ class EnMAPBox(QgisInterface, QObject):
             #and getattr(self, '_initialSpeclibDockCreated', False) == False:
             dock = self.createDock('SPECLIB')
             assert isinstance(dock, SpectralLibraryDock)
-            #self._initialSpeclibDockCreated = True
-
 
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
 
