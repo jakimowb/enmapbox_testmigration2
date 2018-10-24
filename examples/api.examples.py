@@ -51,8 +51,8 @@ def example3_DataSourceHandling():
 
     #add some data sources
     from enmapboxtestdata import enmap as pathEnMAPImage
-    from enmapboxtestdata import landcover as pathVectorFile
-    from enmapboxtestdata import speclib as pathSpectralLibrary
+    from enmapboxtestdata import landcover_polygons as pathVectorFile
+    from enmapboxtestdata import library as pathSpectralLibrary
 
     #add a single source
     enmapBox.addSource(pathEnMAPImage)
@@ -88,9 +88,9 @@ def example4_createWindows():
 
 
 #1. create your own GUI that waits for user input.
-from PyQt5.Qt import *
-from PyQt5.QtGui import *
-
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
 class Example5Dialog(QDialog):
 
     def __init__(self, parent=None):

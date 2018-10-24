@@ -19,7 +19,7 @@
 ***************************************************************************
 """
 
-import os
+import os, json, pickle
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
@@ -33,6 +33,8 @@ from itertools import cycle
 
 DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
 DEFAULT_FIRST_COLOR = QColor('#a6cee3')
+
+MIMEDATA_KEY = 'hub-classscheme'
 
 def hasClassification(pathOrDataset):
     """
@@ -180,8 +182,18 @@ class ClassInfo(QObject):
         return 'ClassInfo' + self.__str__()
 
     def __str__(self):
-        return '{} "{}"'.format(self.mLabel, self.mName, str(self.mColor.toRgb()))
+        return '{} "{}" ({})'.format(self.mLabel, self.mName, self.mColor.name())
 
+    def json(self)->str:
+        return json.dumps([self.label(), self.name(), self.color().name()])
+
+    def fromJSON(self, jsonString:str):
+        try:
+            label, name, color = json.loads(jsonString)
+            color = QColor(color)
+            return ClassInfo(label=label, name=name, color=color)
+        except:
+            return None
 
 class ClassificationScheme(QObject):
     @staticmethod
@@ -247,14 +259,60 @@ class ClassificationScheme(QObject):
         return ClassificationScheme.fromRasterBand(band)
 
 
-    sigClassesRemoved = pyqtSignal(list)
-    sigClassRemoved = pyqtSignal(ClassInfo, int)
-    sigClassAdded = pyqtSignal(ClassInfo, int)
-    sigClassesAdded = pyqtSignal(list)
+    sigClassesRemoved = pyqtSignal(list, list)
+    #sigClassRemoved = pyqtSignal(ClassInfo, int)
+    #sigClassAdded = pyqtSignal(ClassInfo, int)
+    sigClassesAdded = pyqtSignal(list, list)
+    sigNameChanged = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, name:str='Classification'):
         super(ClassificationScheme, self).__init__()
         self.mClasses = []
+        self.mName = name
+
+
+    def setName(self, name:str=''):
+        b = name != self.mName
+        self.mName = name
+        if b:
+            self.sigNameChanged.emit(self.mName)
+
+    def name(self)->str:
+        return self.mName
+
+    def json(self)->str:
+        data = {'name':self.mName,
+                'classes':[(c.label(), c.name(), c.color().name()) for c in self]
+                }
+
+        return json.dumps(data)
+
+    def pickle(self):
+        return pickle.dumps(self.json())
+
+    @staticmethod
+    def fromPickle(pkl):
+        try:
+            jsonStr = pickle.loads(pkl)
+            return ClassificationScheme.fromJSON(jsonStr)
+        except Exception as ex:
+            print(ex)
+        return None
+
+
+    @staticmethod
+    def fromJSON(jsonStr:str):
+        try:
+            data = json.loads(jsonStr)
+            cs = ClassificationScheme(name= data['name'])
+            for classData in data['classes']:
+                label, name, colorName = classData
+                cs.addClass(ClassInfo(label=label, name=name, color=QColor(colorName)))
+            return cs
+        except Exception as ex:
+            print(ex)
+            return None
+
 
     def clear(self):
         """
@@ -364,12 +422,19 @@ class ClassificationScheme(QObject):
         Removes multiple ClassInfo
         :param classes: [list-of-ClassInfo]
         """
+
+        removedIndices = []
         for c in classes:
             assert c in self.mClasses
-            i = self.mClasses.index(c)
+            removedIndices.append(self.mClasses.index(c))
+        removedIndices = list(reversed(sorted(removedIndices)))
+        removedClasses = []
+        for i in removedIndices:
+            c = self.mClasses[i]
             self.mClasses.remove(c)
-            self.sigClassRemoved.emit(c, i)
-        self.sigClassesRemoved.emit(classes[:])
+            removedClasses.append(c)
+
+        self.sigClassesRemoved.emit(removedClasses, removedIndices)
 
     def removeClass(self, c):
         """
@@ -411,16 +476,25 @@ class ClassificationScheme(QObject):
         if len(classes) > 0:
             if index is None:
                 index = len(self.mClasses)
+
+            index = max(index, 0)
+
             addedClasses = []
+            addedIndices = []
             for i, c in enumerate(classes):
                 assert isinstance(c, ClassInfo)
                 j = index + i
-                c.setLabel(j)
+                self.mClasses.insert(j, c)
                 c.sigSettingsChanged.connect(self.onClassInfoSettingChanged)
                 addedClasses.append(c)
-                self.mClasses.insert(j, c)
-                self.sigClassAdded.emit(c,j)
-            self.sigClassesAdded.emit(addedClasses)
+                addedIndices.append(j)
+            self.updateLabels()
+                #self.sigClassAdded.emit(c,j)
+            self.sigClassesAdded.emit(addedClasses, addedIndices)
+
+    def updateLabels(self):
+        for i, c in enumerate(self.mClasses):
+            c.setLabel(i)
 
     sigClassInfoChanged = pyqtSignal(ClassInfo)
 
@@ -435,6 +509,7 @@ class ClassificationScheme(QObject):
         """
         assert isinstance(c, ClassInfo)
         self.addClasses([c], index=index)
+
 
     def saveToRaster(self, path, bandIndex=0):
         """
@@ -586,6 +661,37 @@ class ClassificationSchemeComboBoxItemModel(QAbstractListModel):
         return value
 
 
+class ClassificationSchemeComboBox(QComboBox):
+
+    def __init__(self, parent=None, classification:ClassificationScheme=None):
+        super(ClassificationSchemeComboBox, self).__init__(parent)
+        if not isinstance(classification, ClassificationScheme):
+            classification = ClassificationScheme()
+        self.mSchema = None
+        self.mModel = None
+        if classification:
+            self.setClassificationScheme(classification)
+        self.setModel(self.mModel)
+
+    def setClassificationScheme(self, classScheme):
+
+        if isinstance(classScheme, ClassificationScheme):
+            self.mModel = ClassificationSchemeComboBoxItemModel(classScheme)
+            self.setModel(self.mModel)
+        else:
+            self.mModel = None
+            self.setModel(None)
+
+    def classificationScheme(self)->ClassificationScheme:
+        if isinstance(self.mModel, ClassificationSchemeComboBoxItemModel):
+            pass
+
+    def currentClassInfo(self)->ClassInfo:
+        if isinstance(self.mModel, ClassificationSchemeComboBoxItemModel):
+            i = self.currentIndex()
+            if i >= 0 and i < len(self.m)
+
+
 class ClassificationSchemeTableModel(QAbstractTableModel):
     def __init__(self, scheme, parent=None):
         self.cLABEL = 'Label'
@@ -599,21 +705,20 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
 
         self.mSchema0 = scheme.clone()
         self.scheme = scheme
-        self.scheme.sigClassRemoved.connect(self.onClassRemoved)
-        self.scheme.sigClassAdded.connect(self.onClassAdded)
+        self.scheme.sigClassesRemoved.connect(self.onClassesRemoved)
+        self.scheme.sigClassesAdded.connect(self.onClassesAdded)
 
-    def onClassRemoved(self, classInfo, index):
-        assert isinstance(classInfo, ClassInfo)
-        assert classInfo not in self.scheme
-        assert isinstance(index, int)
-        self.beginRemoveRows(QModelIndex(), index, index)
-        self.endRemoveRows()
+    def onClassesRemoved(self, classes, indices):
+        for index in indices:
+            self.beginRemoveRows(QModelIndex(), index, index)
+            self.endRemoveRows()
 
-    def onClassAdded(self, classInfo, index):
-        assert isinstance(classInfo, ClassInfo)
-        assert isinstance(index, int)
-        self.beginInsertRows(QModelIndex(), index, index)
-        self.endInsertRows()
+    def onClassesAdded(self, classes, indices):
+
+        self.beginResetModel()
+        self.endResetModel()
+        #self.beginInsertRows(QModelIndex(), index, index)
+        #self.endInsertRows()
 
     def removeClasses(self, classes):
         self.scheme.removeClasses(classes)
@@ -641,9 +746,57 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
         return self.createIndex(self.scheme.mClasses.index(classInfo), 0)
 
     def getClassInfoFromIndex(self, index):
-        if index.isValid():
-            return self.scheme[index.row()]
+        if isinstance(index, QModelIndex):
+            index = index.row()
+        if isinstance(index, int):
+            return self.scheme[index]
         return None
+
+    def mimeData(self, indexes:list)->QMimeData:
+
+
+        rows = []
+        for idx in indexes:
+            if isinstance(idx, QModelIndex) and idx.isValid():
+                if idx.row() not in rows:
+                    rows.append(idx.row())
+        classes = [self.getClassInfoFromIndex(r) for r in rows]
+        if len(classes) > 0:
+            mimeData = QMimeData()
+            cs = ClassificationScheme()
+            cs.addClasses(classes)
+            mimeData.setData(MIMEDATA_KEY, cs.pickle())
+            mimeData.setText(cs.json())
+            return mimeData
+        return QMimeData()
+
+    def dropMimeData(self, data:QMimeData, action:Qt.DropAction, row: int, column: int, parent: QModelIndex)->bool:
+
+        if not parent.isValid():
+            return False
+        if not MIMEDATA_KEY in data.formats():
+            return False
+
+        try:
+            cs = ClassificationScheme.fromPickle(bytes(data.data(MIMEDATA_KEY)))
+            if len(cs) > 0:
+                self.insertClasses(cs[:], i=row)
+            return True
+        except Exception as ex:
+            print(ex)
+            return False
+
+
+
+    def canDropMimeData(self, data:QMimeData, action: Qt.DropAction, row: int, column: int, parent: QModelIndex)->bool:
+        if not parent.isValid():
+            return False
+
+        if MIMEDATA_KEY in data.formats():
+            return True
+        else:
+            return False
+
 
     def data(self, index, role=Qt.DisplayRole):
         if role is None or not index.isValid():
@@ -720,12 +873,15 @@ class ClassificationSchemeTableModel(QAbstractTableModel):
     def flags(self, index):
         if index.isValid():
             columnName = self.columnNames[index.column()]
-            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
-            if columnName in [self.cLABEL, self.cNAME]:  # allow check state
-                flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable
+            flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            #if columnName in [self.cLABEL, self.cNAME]:  # allow check state
+            #    flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable
+            if columnName in [self.cNAME]:
+                flags = flags | Qt.ItemIsEditable
+
             return flags
             # return item.qt_flags(index.column())
-        return None
+        return Qt.NoItemFlags
 
     def headerData(self, col, orientation, role):
         if Qt is None:
@@ -799,20 +955,32 @@ class ClassificationWidgetDelegates(QStyledItemDelegate):
 
 
 class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
+
+    sigValuesChanged = pyqtSignal()
+
     def __init__(self, parent=None, classificationScheme=None):
         super(ClassificationSchemeWidget, self).__init__(parent)
         self.setupUi(self)
 
         self.mScheme = ClassificationScheme()
-        self.schemeModel = ClassificationSchemeTableModel(self.mScheme, self)
-
         if classificationScheme is not None:
             self.setClassificationScheme(classificationScheme)
 
+        self.schemeModel = ClassificationSchemeTableModel(self.mScheme, self)
+        self.schemeModel.dataChanged.connect(lambda : self.sigValuesChanged())
+        self.schemeModel.modelReset.connect(lambda : self.sigValuesChanged())
+        self.schemeModel.rowsInserted.connect(lambda :self.sigValuesChanged())
+        self.schemeModel.rowsRemoved.connect(lambda :self.sigValuesChanged())
+
+
 
         #self.tableClassificationScheme.verticalHeader().setMovable(True)
-        self.tableClassificationScheme.verticalHeader().setDragEnabled(True)
-        self.tableClassificationScheme.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
+        assert isinstance(self.tableClassificationScheme, QTableView)
+        #self.tableClassificationScheme.setAcceptDrops(True)
+        #self.tableClassificationScheme.setDragDropMode(QAbstractItemView.InternalMove)
+        #self.tableClassificationScheme.setDragEnabled(True)
+        #self.tableClassificationScheme.setAcceptDrops(True)
+
         #self.tableClassificationScheme.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.tableClassificationScheme.setModel(self.schemeModel)
         self.tableClassificationScheme.doubleClicked.connect(self.onTableDoubleClick)
@@ -927,3 +1095,190 @@ class ClassificationSchemeDialog(QgsDialog):
         assert isinstance(classificationScheme, ClassificationScheme)
         self.w.setClassificationScheme(classificationScheme)
 
+
+class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
+
+    def __init__(self, vl:QgsVectorLayer, fieldIdx:int, editor:QWidget, parent:QWidget):
+        super(ClassificationSchemeEditorWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
+
+        self.mComboBox = None
+        self.mDefaultValue = None
+
+    def createWidget(self, parent: QWidget):
+        #log('createWidget')
+        w = ClassificationSchemeComboBox(parent)
+        w.setVisible(True)
+        return w
+
+    def initWidget(self, editor:QWidget):
+        #log(' initWidget')
+        conf = self.config()
+
+        if isinstance(editor, ClassificationSchemeComboBox):
+            self.mComboBox = editor
+            self.mComboBox.mModel.mScheme.clear()
+            self.mComboBox.currentIndexChanged.connect(self.onValueChanged)
+            #self.mComboBox.mModel.mScheme.addClasses()
+
+
+    def onValueChanged(self, *args):
+        self.valueChanged.emit(self.value())
+        s = ""
+
+    def valid(self, *args, **kwargs)->bool:
+        return isinstance(self.mEditorWidget, ClassificationSchemeWidget) or isinstance(self.mComboBox, QComboBox)
+
+    def value(self, *args, **kwargs):
+        value = self.mDefaultValue
+        if isinstance(self.mComboBox, ClassificationSchemeComboBox):
+            v = self.mComboBox.selectedClassInfo()
+
+
+        return value
+
+
+    def setEnabled(self, enabled:bool):
+
+        if self.mComboBox:
+            self.mComboBox.setEnabled(enabled)
+
+
+    def setValue(self, value):
+        if isinstance(self.mComboBox, ClassificationSchemeComboBox):
+            s = ""
+
+        self.mDefaultValue = value
+
+
+class ClassificationSchemeEditorConfigWidget(QgsEditorConfigWidget):
+
+    def __init__(self, vl:QgsVectorLayer, fieldIdx:int, parent:QWidget):
+
+        super(ClassificationSchemeEditorConfigWidget, self).__init__(vl, fieldIdx, parent)
+        self.setupUi(self)
+
+        self.mLastConfig = {}
+
+    def config(self, *args, **kwargs)->dict:
+        config = {'xUnitList':self.units('x'),
+                  'yUnitList':self.units('y')
+                  }
+        return config
+
+    def setConfig(self, config:dict):
+        if 'xUnitList' in config.keys():
+            self.setUnits('x', config['xUnitList'])
+
+        if 'yUnitList' in config.keys():
+            self.setUnits('y', config['yUnitList'])
+
+        self.mLastConfig = config
+        print('setConfig')
+
+    def resetClassificationScheme(self):
+        pass
+
+
+class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
+
+    def __init__(self, name:str):
+
+        super(ClassificationSchemeWidgetFactory, self).__init__(name)
+
+        self.mConfigurations = {}
+
+    def configWidget(self, layer:QgsVectorLayer, fieldIdx:int, parent=QWidget)->ClassificationSchemeEditorConfigWidget:
+        """
+        Returns a SpectralProfileEditorConfigWidget
+        :param layer: QgsVectorLayer
+        :param fieldIdx: int
+        :param parent: QWidget
+        :return: SpectralProfileEditorConfigWidget
+        """
+
+        w = ClassificationSchemeEditorConfigWidget(layer, fieldIdx, parent)
+        key = self.configKey(layer, fieldIdx)
+        w.setConfig(self.readConfig(key))
+        w.changed.connect(lambda : self.writeConfig(key, w.config()))
+        return w
+
+    def configKey(self, layer:QgsVectorLayer, fieldIdx:int):
+        """
+        Returns a tuple to be used as dictionary key to identify a layer field configuration.
+        :param layer: QgsVectorLayer
+        :param fieldIdx: int
+        :return: (str, int)
+        """
+        return (layer.id(), fieldIdx)
+
+    def create(self, layer:QgsVectorLayer, fieldIdx:int, editor:QWidget, parent:QWidget)->ClassificationSchemeEditorWidgetWrapper:
+        """
+        Create a ClassificationSchemeEditorWidgetWrapper
+        :param layer: QgsVectorLayer
+        :param fieldIdx: int
+        :param editor: QWidget
+        :param parent: QWidget
+        :return: ClassificationSchemeEditorWidgetWrapper
+        """
+        w = ClassificationSchemeEditorWidgetWrapper(layer, fieldIdx, editor, parent)
+        return w
+
+    def writeConfig(self, key:tuple, config:dict):
+        """
+        :param key: tuple (str, int), as created with .configKey(layer, fieldIdx)
+        :param config: dict with config values
+        """
+        self.mConfigurations[key] = config
+        print('Save config')
+        print(config)
+
+    def readConfig(self, key:tuple):
+        """
+        :param key: tuple (str, int), as created with .configKey(layer, fieldIdx)
+        :return: {}
+        """
+        if key in self.mConfigurations.keys():
+            conf = self.mConfigurations[key]
+        else:
+            #return the very default configuration
+            conf = {
+            }
+        print('Read config')
+        print((key, conf))
+        return conf
+
+    def fieldScore(self, vl:QgsVectorLayer, fieldIdx:int)->int:
+        """
+        This method allows disabling this editor widget type for a certain field.
+        0: not supported: none String fields
+        5: maybe support String fields with length <= 400
+        20: specialized support: String fields with length > 400
+
+        :param vl: QgsVectorLayer
+        :param fieldIdx: int
+        :return: int
+        """
+        #log(' fieldScore()')
+        field = vl.fields().at(fieldIdx)
+        assert isinstance(field, QgsField)
+        if field.type() == QVariant.String and field.name():
+            return 20
+        elif field.type() == QVariant.Int:
+            return 20
+        else:
+            return 0 #no support
+
+
+
+"""
+
+EDITOR_WIDGET_REGISTRY_KEY = 'RasterClassification'
+classificationSchemeEditorWidgetFactory = None
+def registerClassificationSchemeEditorWidget():
+    reg = QgsGui.editorWidgetRegistry()
+    if not EDITOR_WIDGET_REGISTRY_KEY in reg.factories().keys():
+        factory = ClassificationSchemeWidgetFactory(EDITOR_WIDGET_REGISTRY_KEY)
+        reg.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, factory)
+    else:
+        classificationSchemeEditorWidgetFactory = reg.factories()[EDITOR_WIDGET_REGISTRY_KEY]
+"""

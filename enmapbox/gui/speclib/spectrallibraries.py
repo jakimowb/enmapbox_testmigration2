@@ -2857,3 +2857,6 @@ def registerAbstractLibraryIOs():
         import asd
     except:
         s = ""
+
+registerSpectralProfileEditorWidget()
+registerAbstractLibraryIOs()
