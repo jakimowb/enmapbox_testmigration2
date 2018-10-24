@@ -22,12 +22,6 @@ from Bitbucket.
 
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Contents
-
-    Examples.rst
-
-.. toctree::
    :maxdepth: 2
    :caption: API Reference
    :glob:
