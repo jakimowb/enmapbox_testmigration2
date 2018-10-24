@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>697</width>
+    <width>852</width>
     <height>364</height>
    </rect>
   </property>
@@ -14,7 +14,7 @@
    <string>Frame</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset>
     <normaloff>:/enmapbox/icons/speclib.svg</normaloff>:/enmapbox/icons/speclib.svg</iconset>
   </property>
   <property name="frameShape">
@@ -180,7 +180,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QFrame" name="listFrame">
+     <widget class="QFrame" name="dualViewFrame">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>1</horstretch>
@@ -210,34 +210,67 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="SpectralLibraryTableView" name="tableViewSpeclib">
-         <property name="acceptDrops">
-          <bool>true</bool>
+        <widget class="QgsDualView" name="mDualView" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>2</verstretch>
+          </sizepolicy>
          </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="btnBarDualViewOptions">
          <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
+          <enum>QFrame::StyledPanel</enum>
          </property>
          <property name="frameShadow">
-          <enum>QFrame::Plain</enum>
+          <enum>QFrame::Raised</enum>
          </property>
-         <property name="dragEnabled">
-          <bool>true</bool>
-         </property>
-         <property name="dragDropMode">
-          <enum>QAbstractItemView::DragDrop</enum>
-         </property>
-         <property name="defaultDropAction">
-          <enum>Qt::CopyAction</enum>
-         </property>
-         <property name="alternatingRowColors">
-          <bool>false</bool>
-         </property>
-         <property name="sortingEnabled">
-          <bool>true</bool>
-         </property>
-         <attribute name="horizontalHeaderStretchLastSection">
-          <bool>false</bool>
-         </attribute>
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <property name="spacing">
+           <number>2</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <spacer name="horizontalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QToolButton" name="btnFormView">
+            <property name="text">
+             <string>F</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="btnTableView">
+            <property name="text">
+             <string>T</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
       </layout>
@@ -247,8 +280,8 @@
   </layout>
   <action name="actionImportSpeclib">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/speclib_add.svg</normaloff>:/enmapbox/icons/speclib_add.svg</iconset>
+    <iconset resource="speclibresources.qrc">
+     <normaloff>:/speclibimages/icons/speclib_add.svg</normaloff>:/speclibimages/icons/speclib_add.svg</iconset>
    </property>
    <property name="text">
     <string>importSpeclib</string>
@@ -259,8 +292,8 @@
   </action>
   <action name="actionSaveSpeclib">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/speclib_save.svg</normaloff>:/enmapbox/icons/speclib_save.svg</iconset>
+    <iconset resource="speclibresources.qrc">
+     <normaloff>:/speclibimages/icons/speclib_save.svg</normaloff>:/speclibimages/icons/speclib_save.svg</iconset>
    </property>
    <property name="text">
     <string>Save Spectral Library</string>
@@ -364,8 +397,8 @@
   </action>
   <action name="actionSelectProfilesFromMap">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/pickrasterspectrum.svg</normaloff>:/enmapbox/icons/pickrasterspectrum.svg</iconset>
+    <iconset resource="speclibresources.qrc">
+     <normaloff>:/speclibimages/icons/pickrasterspectrum.svg</normaloff>:/speclibimages/icons/pickrasterspectrum.svg</iconset>
    </property>
    <property name="text">
     <string>Select Profiles from Map</string>
@@ -379,8 +412,8 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/profile2speclib.svg</normaloff>:/enmapbox/icons/profile2speclib.svg</iconset>
+    <iconset resource="speclibresources.qrc">
+     <normaloff>:/speclibimages/icons/profile2speclib.svg</normaloff>:/speclibimages/icons/profile2speclib.svg</iconset>
    </property>
    <property name="text">
     <string>Save current profiles</string>
@@ -394,8 +427,8 @@
   </action>
   <action name="actionReload">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionRefresh.svg</normaloff>:/enmapbox/icons/mActionRefresh.svg</iconset>
+    <iconset>
+     <normaloff>:/images/themes/default/mActionReload.svg</normaloff>:/images/themes/default/mActionReload.svg</iconset>
    </property>
    <property name="text">
     <string>Reload the table</string>
@@ -532,8 +565,8 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/profile2speclib_auto.svg</normaloff>:/enmapbox/icons/profile2speclib_auto.svg</iconset>
+    <iconset resource="speclibresources.qrc">
+     <normaloff>:/speclibimages/icons/profile2speclib_auto.svg</normaloff>:/speclibimages/icons/profile2speclib_auto.svg</iconset>
    </property>
    <property name="text">
     <string>AddCurrentProfilesAutomatically</string>
@@ -542,21 +575,46 @@
     <string>Add new profiles automatically to opened Spectral Library</string>
    </property>
   </action>
+  <action name="actionFormView">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/themes/default/mActionFormView.svg</normaloff>:/images/themes/default/mActionFormView.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Form View</string>
+   </property>
+   <property name="toolTip">
+    <string>Switch to form view</string>
+   </property>
+  </action>
+  <action name="actionTableView">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/themes/default/mActionOpenTable.svg</normaloff>:/images/themes/default/mActionOpenTable.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Table View</string>
+   </property>
+   <property name="toolTip">
+    <string>Switch to table view</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>SpectralLibraryTableView</class>
-   <extends>QTableView</extends>
-   <header>enmapbox/gui/spectrallibraries</header>
-  </customwidget>
-  <customwidget>
    <class>SpectralLibraryPlotWidget</class>
    <extends>QGraphicsView</extends>
-   <header>enmapbox/gui/spectrallibraries</header>
+   <header>enmapbox.gui.speclib.spectrallibraries</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsDualView</class>
+   <extends>QWidget</extends>
+   <header>qgis.gui</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="speclibresources.qrc"/>
  </resources>
  <connections/>
 </ui>

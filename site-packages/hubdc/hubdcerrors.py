@@ -35,6 +35,8 @@ class InvalidOGRDriverError(HUBDCError):
 class InvalidOGRDataSourceError(HUBDCError):
     '''ogr.Open returned None.'''
 
+class InvalidOGRLayerError(HUBDCError):
+    '''ogr.Open returned None.'''
 
 class ApplierOperatorTypeError(HUBDCError):
     '''Applier operator must be a subclass of :class:`~hubdc.applier.ApplierOperator` or function.'''

@@ -117,7 +117,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         return 'shp'
 
     def supportedOutputRasterLayerExtensions(self)->list:
-        return ['tif','vrt','bil','bsq','bip']
+        return ['bsq','bil','bip','tif']
 
     def supportsNonFileBasedOutput(self)->bool:
         return False

@@ -146,6 +146,8 @@ class ApplierInputRaster(ApplierIO):
         :param grid: explicitly set the :class:`~hubdc.model.Grid`, for which image data is returned
         '''
 
+        assert isinstance(noDataValue, (int, float, type(None)))
+
         if grid is None:
             grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 

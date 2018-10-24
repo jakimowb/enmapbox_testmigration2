@@ -12,17 +12,10 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
-from qgis import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from enmapbox.gui.utils import initQgisApplication
-from enmapbox.gui.utils import initQgisApplication
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisApplication()
-from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
-from enmapboxtestdata import enmap, hymap, landcover, speclib
-import numpy as np
+from enmapboxtestdata import enmap, hires, landcover_polygons, library
 
 
 class standardDataSources(unittest.TestCase):
@@ -41,7 +34,7 @@ class standardDataSources(unittest.TestCase):
         pass
 
     def test_rasters(self):
-        for uri in [None, type(None), landcover, self.wfsUri]:
+        for uri in [None, type(None), landcover_polygons, self.wfsUri]:
             self.assertTrue(rasterProvider(uri) == None)
 
         self.assertTrue(None == rasterProvider(self.wfsUri))
@@ -59,7 +52,7 @@ class standardDataSources(unittest.TestCase):
                 self.assertIsInstance(source.mProvider, str)
 
     def createTestSources(self)->list:
-        return [speclib, self.wfsUri, self.wmsUri, enmap, landcover]
+        return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]
 
     def createTestSourceLayers(self)->list:
         return [QgsRasterLayer(self.wmsUri, '', 'wms'), QgsVectorLayer(self.wfsUri, '', 'WFS'),
@@ -150,9 +143,9 @@ class standardDataSources(unittest.TestCase):
 
         self.assertTrue(vectorProvider(self.wfsUri) == 'WFS')
         self.assertTrue(DataSourceFactory.isVectorSource(self.wfsUri))
-        self.assertTrue(DataSourceFactory.isVectorSource(landcover))
+        self.assertTrue(DataSourceFactory.isVectorSource(landcover_polygons))
 
-        for uri in [self.wfsUri, landcover]:
+        for uri in [self.wfsUri, landcover_polygons]:
             sources = DataSourceFactory.Factory(uri)
             self.assertIsInstance(sources, list)
             self.assertTrue(len(sources) == 1)
@@ -163,7 +156,7 @@ class standardDataSources(unittest.TestCase):
 
     def test_speclibs(self):
 
-        ds = DataSourceFactory.Factory(speclib)
+        ds = DataSourceFactory.Factory(library)
         self.assertIsInstance(ds, list)
         self.assertTrue(len(ds) == 1)
         ds = ds[0]
@@ -176,7 +169,7 @@ class standardDataSources(unittest.TestCase):
         reg = QgsProject.instance()
         reg.removeAllMapLayers()
         dsm = DataSourceManager()
-        uris = [speclib, enmap, landcover, self.wfsUri, self.wmsUri]
+        uris = [library, enmap, landcover_polygons, self.wfsUri, self.wmsUri]
         dsm.addSources(uris)
 
         self.assertTrue((len(dsm) == len(uris)))
@@ -279,7 +272,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
     def createTestSources(self)->list:
 
-        return [speclib, self.wfsUri, self.wmsUri, enmap, landcover]
+        return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]
 
 
     def test_testSources(self):
@@ -291,7 +284,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
         reg.addMapLayer(raster, False)
 
 
-        sl = SpectralLibrary.readFrom(speclib)
+        sl = SpectralLibrary.readFrom(library)
         self.assertIsInstance(sl, SpectralLibrary)
         reg.addMapLayer(sl, False)
 
@@ -348,14 +341,14 @@ class standardDataSourceTreeNodes(unittest.TestCase):
         self.assertEqual(M.rowCount(), 0)
 
         #add 2 rasters
-        dsm.addSources([enmap, hymap])
+        dsm.addSources([enmap, hires])
         self.assertEqual(M.rowCount(), 1)
 
         #add
-        dsm.addSource(landcover)
+        dsm.addSource(landcover_polygons)
         self.assertEqual(M.rowCount(), 2)
 
-        dsm.addSource(speclib)
+        dsm.addSource(library)
         self.assertEqual(M.rowCount(), 3)
 
         from enmapbox.gui.mapcanvas import MapCanvas
@@ -413,12 +406,12 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                     self.assertTrue(len(mapCanvas.layers()) == 1)
 
                     # drop speclib to spectral library widgets
-                    from enmapbox.gui.spectrallibraries import SpectralLibraryWidget, SpectralLibraryPlotWidget, SpectralLibraryTableView, MIMEDATA_SPECLIB_LINK
+                    from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget, MIMEDATA_SPECLIB_LINK
                     self.assertTrue(MIMEDATA_SPECLIB_LINK in mimeData.formats())
                     w = SpectralLibraryWidget()
                     w.show()
                     w.plotWidget.dropEvent(createDropEvent(mimeData))
-                    self.assertEqual(len(w.speclib()), len(dNode.dataSource.spectralLibrary()))
+                    self.assertEqual(len(w.speclib()), len(dNode.dataSource.speclib()))
 
 
 
@@ -451,8 +444,6 @@ class hubflowTestCases(unittest.TestCase):
         from enmapbox.gui.utils import jp, mkdir
         from enmapbox import DIR_REPO
         from enmapbox.gui.datasources import HubFlowDataSource
-        from hubflow.core import ClassDefinition, Vector, VectorClassification
-
 
         dirTmp = jp(DIR_REPO, 'tmp')
         mkdir(dirTmp)

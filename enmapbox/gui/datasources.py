@@ -16,17 +16,10 @@
 *                                                                         *
 ***************************************************************************
 """
-import sys, os, re, collections, uuid
+import collections, uuid
 
-from qgis.core import *
-from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtXml import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
-import numpy as np
+from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary, SpectralProfile
 from osgeo import gdal, ogr
 
 
@@ -188,7 +181,7 @@ class DataSourceFactory(object):
 
             if isinstance(src, str):
                 if os.path.exists(src):
-                    from enmapbox.gui.spectrallibraries import AbstractSpectralLibraryIO
+                    from enmapbox.gui.speclib.spectrallibraries import AbstractSpectralLibraryIO
                     for cls in AbstractSpectralLibraryIO.__subclasses__():
                         if cls.canRead(src):
                             uri = src
@@ -647,10 +640,6 @@ class HubFlowDataSource(DataSource):
         return 'hubflow:{}:{}:{}'.format(obj.__class__.__name__, id(obj), uri)
 
     def __init__(self, obj, name=None, icon=None):
-        import hubflow.core
-
-
-
         id = HubFlowDataSource.createID(obj)
         super(HubFlowDataSource, self).__init__(id, name, icon)
 
@@ -670,31 +659,37 @@ class HubFlowDataSource(DataSource):
 class DataSourceSpectralLibrary(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None):
-        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='memory')
+        if icon is None:
+            icon = QIcon(':/speclib/icons/speclib.svg')
+        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr')
 
-        self.mSpeclib = None
+        self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
         self.nProfiles = 0
         self.profileNames = []
         self.updateMetadata()
 
     def createUnregisteredMapLayer(self, *args, **kwds)->QgsVectorLayer:
-        #return QgsVectorLayer(self.mSpeclib.source(), self.mSpeclib.name(), 'memory')
-        return self.spectralLibrary()
+        return QgsVectorLayer(self.mSpeclib.source(), self.mSpeclib.name(), self.mProvider)
+        #return self.spectralLibrary()
 
     def updateMetadata(self, *args, **kwds):
-        self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
-        assert isinstance(self.mSpeclib, SpectralLibrary)
-        self.mSpeclib.setName(os.path.basename(self.mUri))
-        self.setName(self.mSpeclib.name())
+        if isinstance(self.mSpeclib, SpectralLibrary):
+            self.mSpeclib.setName(os.path.basename(self.mUri))
+            self.setName(self.mSpeclib.name())
 
-        self.nProfiles = len(self.mSpeclib)
-        self.profileNames = []
-        for p in self.mSpeclib:
-            assert isinstance(p, SpectralProfile)
-            self.profileNames.append(p.name())
+            self.nProfiles = len(self.mSpeclib)
+            self.profileNames = []
+            for p in self.mSpeclib.profiles():
+                assert isinstance(p, SpectralProfile)
+                self.profileNames.append(p.name())
 
-    def spectralLibrary(self)->SpectralLibrary:
+    def speclib(self)->SpectralLibrary:
+        """
+        :return: SpectralLibrary
+        """
         return self.mSpeclib
+
+
 class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None):
@@ -782,7 +777,7 @@ class DataSourceRaster(DataSourceSpatial):
             self.mDatasetMetadata = fetchMetadata(ds)
 
 
-            from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
+            from enmapbox.gui.classificationscheme import ClassificationScheme
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b+1)
                 assert isinstance(band, gdal.Band)

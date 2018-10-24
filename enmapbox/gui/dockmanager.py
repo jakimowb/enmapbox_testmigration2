@@ -17,15 +17,6 @@
 ***************************************************************************
 """
 
-import six, sys, os, gc, re, collections
-
-from qgis.core import *
-from qgis.gui import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
-
-from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.utils import *
@@ -234,12 +225,12 @@ class CanvasLinkTreeNodeGroup(TreeNode):
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
         super(SpeclibDockTreeNode, self).__init__(parent, dock)
-        self.setIcon(QIcon(':/enmapbox/icons/viewlist_spectrumdock.svg'))
+        self.setIcon(QIcon(':/speclib/icons/speclib.svg'))
 
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
         super(SpeclibDockTreeNode, self).connectDock(dock)
-        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
         self.speclibWidget = dock.speclibWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
@@ -252,7 +243,7 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.speclibWidget.mSpeclib.committedFeaturesRemoved.connect(self.updateNodes)
 
     def updateNodes(self):
-        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
         self.profilesNode.setValue(len(self.speclibWidget.mSpeclib))
 
@@ -1039,7 +1030,7 @@ class DockManager(QObject):
             if len(speclibs) > 0:
                 NEW_DOCK = self.createDock('SPECLIB')
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
-                from enmapbox.gui.spectrallibraries import SpectralLibrary
+                from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary
                 for speclib in speclibs:
                     NEW_DOCK.speclibWidget.addSpeclib(SpectralLibrary.readFrom(speclib.uri()))
 
@@ -1201,8 +1192,6 @@ def createDockTreeNode(dock:Dock, parent=None)->DockTreeNode:
             return MapDockTreeNode(parent, dock)
         elif dockType in [TextDock]:
             return TextDockTreeNode(parent, dock)
-        elif dockType is CursorLocationValueDock:
-            return DockTreeNode(parent, dock)
         elif dockType is SpectralLibraryDock:
             return SpeclibDockTreeNode(parent, dock)
         else:

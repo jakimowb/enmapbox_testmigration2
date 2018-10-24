@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import tempfile
 from os.path import join
 
@@ -55,7 +53,6 @@ import hubflow.test_core
 import enmapboxtestdata
 
 enmap = hubflow.test_core.enmap.filename()
-hymap = hubflow.test_core.hymap.filename()
 enmapClassification = hubflow.test_core.enmapClassification.filename()
 enmapFraction = hubflow.test_core.enmapFraction.filename()
 enmapMask = hubflow.test_core.enmapMask.filename()
@@ -66,10 +63,10 @@ vector = hubflow.test_core.vector.filename()
 
 
 
-def test_ClassDefinitionFromRaster():
-    alg = ClassDefinitionFromRaster()
-    io = {alg.P_RASTER: enmapClassification}
-    runalg(alg=alg, io=io)
+#def test_ClassDefinitionFromRaster():
+#    alg = ClassDefinitionFromRaster()
+#    io = {alg.P_RASTER: enmapClassification}
+#    runalg(alg=alg, io=io)
 
 
 def test_Classification():
@@ -89,8 +86,8 @@ def test_Classification():
     alg = ClassificationFromVectorClassification()
     io = {alg.P_GRID: enmap,
           alg.P_VECTOR: vector,
-          alg.P_CLASSIDFIELD: enmapboxtestdata.landcoverAttributes.Level_2_ID,
-          alg.P_CLASS_DEFINITION: '',
+          alg.P_CLASSIDFIELD: 'level_2_id',
+          #alg.P_CLASS_DEFINITION: '',
           alg.P_MIN_OVERALL_COVERAGE: 0.5,
           alg.P_MIN_DOMINANT_COVERAGE: 0.5,
           alg.P_OVERSAMPLING: 1,
@@ -180,27 +177,41 @@ def test_ClusteringPerformance():
     runalg(alg=alg, io=io)
 
 
-def test_CreateAdditionalTestdata():
-    alg = CreateAdditionalTestdata()
-    io = {alg.P_BOOLEAN_ENMAP: True,
-          alg.P_BOOLEAN_HYMAP: True,
-          alg.P_OUTPUT_ENMAP_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataEnmapClassification.bsq'),
-          alg.P_OUTPUT_ENMAP_FRACTION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
-          alg.P_OUTPUT_HYMAP_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataHymapClassification.bsq'),
-          alg.P_OUTPUT_HYMAP_FRACTION: join(outdir, 'CreateAdditionalTestdataHymapFraction.bsq')}
-
+def test_CreateTestdata():
+    alg = CreateTestClassification()
+    io = {alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'CreateTestdataClassification.bsq')}
     runalg(alg=alg, io=io)
+
+    alg = CreateTestFraction()
+    io = {alg.P_OUTPUT_FRACTION: join(outdir, 'CreateTestdataFraction.bsq')}
+    runalg(alg=alg, io=io)
+
 
 def test_ImportLibrary():
+
     alg = ImportLibrary()
-    io = {alg.P_LIBRARY: enmapboxtestdata.speclib,
-          alg.P_IMPORT_PROFILES: True,
-          alg.P_CLASSIFICATION_ATTRIBUTE: 'level 2',
-          alg.P_REGRESSION__ATTRIBUTE: 'level 2',
-          alg.P_OUTPUT_RASTER: join(outdir, 'OpenLibraryRaster.bsq'),
-          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'OpenLibraryClassification.bsq'),
-          alg.P_OUTPUT_REGRESSION: join(outdir, 'OpenLibraryRegression.bsq')}
+    io = {alg.P_LIBRARY: enmapboxtestdata.library,
+          alg.P_OUTPUT_RASTER: join(outdir, 'ImportLibraryRaster.bsq')}
     runalg(alg=alg, io=io)
+
+    alg = ImportLibraryClassificationAttribute()
+    io = {alg.P_LIBRARY: enmapboxtestdata.library,
+          alg.P_ATTRIBUTE: 'level_2',
+          alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ImportLibraryClassification.bsq')}
+    runalg(alg=alg, io=io)
+
+    #alg = ImportLibraryRegressionAttribute()
+    #io = {alg.P_LIBRARY: enmapboxtestdata.library,
+    #      alg.P_ATTRIBUTES: 'Roof, Tree',
+    #      alg.P_OUTPUT_REGRESSION: join(outdir, 'ImportLibraryRegression.bsq')}
+    #runalg(alg=alg, io=io)
+
+    #alg = ImportLibraryFractionAttribute()
+    #io = {alg.P_LIBRARY: enmapboxtestdata.library,
+    #      alg.P_ATTRIBUTES: 'Roof, Tree',
+    #      alg.P_OUTPUT_FRACTION: join(outdir, 'ImportLibraryFraction.bsq')}
+    #runalg(alg=alg, io=io)
+
 
 
 def test_Mask():
@@ -221,20 +232,22 @@ def test_ExtractSamples():
     runalg(alg=alg, io=io)
 
 
+    assert exists(join(outdir, 'CreateTestdataClassification.bsq'))
     alg = ExtractClassificationSamples()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
           alg.P_INVERT_MASK: False,
-          alg.P_CLASSIFICATION: join(outdir, 'CreateAdditionalTestdataEnmapClassification.bsq'),
+          alg.P_CLASSIFICATION: join(outdir, 'CreateTestdataClassification.bsq'),
           alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
           alg.P_OUTPUT_CLASSIFICATION: join(outdir, 'ExtractSamplesClassification.bsq')}
     runalg(alg=alg, io=io)
 
+    assert exists(join(outdir, 'CreateTestdataFraction.bsq'))
     alg = ExtractRegressionSamples()
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
           alg.P_INVERT_MASK: False,
-          alg.P_REGRESSION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
+          alg.P_REGRESSION: join(outdir, 'CreateTestdataFraction.bsq'),
           alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
           alg.P_OUTPUT_REGRESSION: join(outdir, 'ExtractSamplesRegression.bsq')}
     runalg(alg=alg, io=io)
@@ -243,7 +256,7 @@ def test_ExtractSamples():
     io = {alg.P_RASTER: enmap,
           alg.P_MASK: enmapMask,
           alg.P_INVERT_MASK: False,
-          alg.P_FRACTION: join(outdir, 'CreateAdditionalTestdataEnmapFraction.bsq'),
+          alg.P_FRACTION: join(outdir, 'CreateTestdataFraction.bsq'),
           alg.P_OUTPUT_RASTER: join(outdir, 'ExtractSamplesRaster.bsq'),
           alg.P_OUTPUT_FRACTION: join(outdir, 'ExtractSamplesFractions.bsq')}
     runalg(alg=alg, io=io)
@@ -263,8 +276,8 @@ def test_Fraction():
     alg = FractionFromVectorClassification()
     io = {alg.P_GRID: enmap,
           alg.P_VECTOR: vector,
-          alg.P_CLASSIDFIELD: enmapboxtestdata.landcoverAttributes.Level_2_ID,
-          alg.P_CLASS_DEFINITION: '',
+          alg.P_CLASSIDFIELD: 'level_2_id',
+          #alg.P_CLASS_DEFINITION: '',
           alg.P_MIN_OVERALL_COVERAGE: 0.,
           alg.P_MIN_DOMINANT_COVERAGE: 0.,
           alg.P_OVERSAMPLING: 10,
@@ -286,7 +299,6 @@ def test_Raster():
     io = {alg.P_RASTER: enmap,
           alg.P_BAND: 1}
     runalg(alg=alg, io=io)
-    return
 
     for alg in ALGORITHMS:
         if isinstance(alg, RasterApplySpatial):
@@ -296,17 +308,14 @@ def test_Raster():
             runalg(alg=alg, io=io)
             break
 
+    assert exists(join(outdir, 'CreateTestdataFraction.bsq'))
     for alg in ALGORITHMS:
         if isinstance(alg, RasterConvolve):
-            io = {alg.P_RASTER: enmap,
+            io = {alg.P_RASTER: join(outdir, 'CreateTestdataFraction.bsq'),  #enmap, EnMAP to slow
                   alg.P_CODE: alg.code(),
                   alg.P_OUTPUT_RASTER: join(outdir, 'RasterConvolve'+alg.name())}
             runalg(alg=alg, io=io)
             break
-
-    alg = RasterViewMetadata()
-    io = {alg.P_RASTER: enmap}
-    runalg(alg=alg, io=io)
 
     alg = RasterUniqueValues()
     io = {alg.P_RASTER: enmapClassification,
@@ -322,15 +331,23 @@ def test_Raster():
 
     alg = RasterFromVector()
     io = {alg.P_GRID: enmap,
-          alg.P_VECTOR: enmapboxtestdata.landcover,
+          alg.P_VECTOR: enmapboxtestdata.landcover_polygons,
           alg.P_INIT_VALUE: 0,
           alg.P_BURN_VALUE: 1,
-          alg.P_BURN_ATTRIBUTE: enmapboxtestdata.landcoverAttributes.Level_2_ID,
+          alg.P_BURN_ATTRIBUTE: 'level_2_id',
           alg.P_ALL_TOUCHED: True,
           alg.P_FILTER_SQL: '',
           alg.P_DATA_TYPE: 3,
           alg.P_NO_DATA_VALUE: 'None',
           alg.P_OUTPUT_RASTER: join(outdir, 'RasterFromVector.bsq')}
+    runalg(alg=alg, io=io)
+
+def test_Map():
+    alg = MapViewMetadata()
+    io = {alg.P_MAP: enmap}
+    runalg(alg=alg, io=io)
+
+    io = {alg.P_MAP: vector}
     runalg(alg=alg, io=io)
 
 
@@ -376,20 +393,20 @@ def test_Resampling():
 
     alg = SpatialResamplingRaster()
     io = {alg.P_GRID: enmap,
-          alg.P_RASTER: hymap,
+          alg.P_RASTER: enmap,
           alg.P_GDAL_RESAMPLING_ALG: 0,
           alg.P_OUTPUT_RASTER: join(outdir, 'SpatialResamplingRaster.bsq')}
     runalg(alg=alg, io=io)
 
     alg = SpatialResamplingMask()
-    io = {alg.P_GRID: hymap,
+    io = {alg.P_GRID: enmap,
           alg.P_MASK: enmapMask,
           alg.P_MIN_OVERALL_COVERAGE: 0.5,
           alg.P_OUTPUT_MASK: join(outdir, 'SpatialResamplingMask.bsq')}
     runalg(alg=alg, io=io)
 
     alg = SpatialResamplingClassification()
-    io = {alg.P_GRID: hymap,
+    io = {alg.P_GRID: enmap,
           alg.P_CLASSIFICATION: enmapClassification,
           alg.P_MIN_OVERALL_COVERAGE: 0.5,
           alg.P_MIN_DOMINANT_COVERAGE: 0.5,
@@ -397,14 +414,14 @@ def test_Resampling():
     runalg(alg=alg, io=io)
 
     alg = SpatialResamplingRegression()
-    io = {alg.P_GRID: hymap,
+    io = {alg.P_GRID: enmap,
           alg.P_REGRESSION: enmapFraction,
           alg.P_MIN_OVERALL_COVERAGE: 0.5,
           alg.P_OUTPUT_REGRESSION: join(outdir, 'SpatialResamplingRegression.bsq')}
     runalg(alg=alg, io=io)
 
     alg = SpatialResamplingFraction()
-    io = {alg.P_GRID: hymap,
+    io = {alg.P_GRID: enmap,
           alg.P_FRACTION: enmapFraction,
           alg.P_MIN_OVERALL_COVERAGE: 0.5,
           alg.P_MIN_DOMINANT_COVERAGE: 0.5,
@@ -417,7 +434,7 @@ def test_SensorDefinitionResampleRaster():
     alg = SensorDefinitionResampleRaster()
     io = {alg.P_RASTER: enmap,
           alg.P_OPTION1: 1,
-          alg.P_OPTION2: hymap,
+          alg.P_OPTION2: None,
           alg.P_OPTION3: None,
           alg.P_ENUM: 0,
           alg.P_OUTPUT_RASTER: join(outdir, 'SensorDefinitionResampleRasterOption1.bsq')}
@@ -468,25 +485,27 @@ def test_Transformer():
 
 def test_VectorFromRandomPointsFromMask():
     alg = VectorFromRandomPointsFromMask()
-    io = {alg.P_MASK: enmapMask,
-          alg.P_INVERT_MASK: False,
-          alg.P_NUMBER_OF_POINTS: 100,
-          alg.P_OUTPUT_VECTOR: join(outdir, 'VectorFromRandomPointsFromMask.gpkg')}
-    runalg(alg=alg, io=io)
+
+    for n in [100, 0.1]:
+        io = {alg.P_MASK: enmapMask,
+              alg.P_INVERT_MASK: False,
+              alg.P_NUMBER_OF_POINTS: n,
+              alg.P_OUTPUT_VECTOR: join(outdir, 'VectorFromRandomPointsFromMask.gpkg')}
+        runalg(alg=alg, io=io)
 
 
 def test_VectorFromRandomPointsFromClassification():
     alg = VectorFromRandomPointsFromClassification()
     io = {alg.P_CLASSIFICATION: enmapClassification,
-          alg.P_NUMBER_OF_POINTS_PER_CLASS: 100,
+          alg.P_NUMBER_OF_POINTS_PER_CLASS: 0.1,
           alg.P_OUTPUT_VECTOR: join(outdir, 'VectorFromRandomPointsFromClassification.gpkg')}
     runalg(alg=alg, io=io)
 
 
 def test_VectorUniqueValues():
     alg = VectorUniqueValues()
-    io = {alg.P_VECTOR: enmapboxtestdata.landcover,
-          alg.P_FIELD: enmapboxtestdata.landcoverAttributes.Level_2}
+    io = {alg.P_VECTOR: enmapboxtestdata.landcover_polygons,
+          alg.P_FIELD: 'level_2'}
     runalg(alg=alg, io=io)
 
 def test_SynthMix():
@@ -523,18 +542,19 @@ def printMenu():
 
 
 if __name__ == '__main__':
-    test_ImportLibrary()
-    #exit(0)
-    test_ClassDefinitionFromRaster()
+    test_Map()
+    exit(0)
+
     test_Classification()
     test_ClassificationPerformance()
     test_Classifier()
     test_Clusterer()
     test_ClusteringPerformance()
-    test_CreateAdditionalTestdata()
+    test_CreateTestdata()
     test_ExtractSamples()
     test_Fraction()
     test_FractionPerformance()
+    test_Map()
     test_Mask()
     test_Raster()
     test_RegressionPerformance()
@@ -547,7 +567,7 @@ if __name__ == '__main__':
     test_VectorUniqueValues()
     test_ImportLibrary()
     test_SynthMix()
-    #generateRST()
+    generateRST()
 
 # printMenu()
 print('done!!!')

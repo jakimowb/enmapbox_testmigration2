@@ -652,7 +652,7 @@ class SpeclibProfilesTreeNode(TreeNode):
 
     def __init__(self, parent, speclib, **kwds):
         super(SpeclibProfilesTreeNode, self).__init__(parent, 'Profiles', **kwds)
-        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary
         assert isinstance(speclib, SpectralLibrary)
         self.mSpeclib = speclib
         speclib.committedFeaturesAdded.connect(self.update)
@@ -665,14 +665,14 @@ class SpeclibProfilesTreeNode(TreeNode):
         self.setValue(len(self.mSpeclib))
 
     def fetchCount(self):
-        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary
         if isinstance(self.mSpeclib, SpectralLibrary):
             return len(self.mSpeclib)
         else:
             return 0
 
     def fetchNext(self):
-        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary
         if isinstance(self.mSpeclib, SpectralLibrary):
             for p in self.mSpeclib:
                 TreeNode(self, p.name())
@@ -684,11 +684,18 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
         self.profileNode = None
         self.mSpeclib = None
 
+    def speclib(self)->SpectralLibrary:
+        """
+        Returns the SpectralLibrary
+        :return: SpectralLibrary
+        """
+        return self.mSpeclib
+
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
 
-        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary
 
         assert isinstance(self.dataSource.mSpeclib, SpectralLibrary)
 
@@ -972,7 +979,7 @@ LUT_DATASOURCTYPES = collections.OrderedDict()
 LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/icons/mIconRasterLayer.svg'))
 LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/enmapbox/icons/mIconLineLayer.svg'))
 LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/enmapbox/icons/alg.svg'))
-LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries',QIcon(':/enmapbox/icons/speclib.svg'))
+LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries',QIcon(':/speclib/icons/speclib.svg'))
 LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files',QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
 LUT_DATASOURCTYPES[DataSource] = ('Other sources',QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
 
@@ -1087,7 +1094,7 @@ class DataSourceManagerTreeModel(TreeModel):
             uuidList.append(dataSource.uuid())
 
             if isinstance(dataSource, DataSourceSpectralLibrary):
-                mimeDataSpeclib = dataSource.spectralLibrary().mimeData()
+                mimeDataSpeclib = dataSource.speclib().mimeData()
                 for f in mimeDataSpeclib.formats():
                     if f not in mimeData.formats():
                         mimeData.setData(f, mimeDataSpeclib.data(f))
@@ -1188,6 +1195,9 @@ class DataSourceManagerTreeModel(TreeModel):
             a = menu.addAction('Show report')
             a.triggered.connect(lambda : self.onShowModelReport(node.dataSource))
 
+        if isinstance(node, SpeclibDataSourceTreeNode):
+            a = menu.addAction('Open')
+            a.triggered.connect(lambda : self.onOpenSpeclib(node.speclib()))
         #append node-defined context menu
         menu2 = node.contextMenu()
 
@@ -1202,6 +1212,10 @@ class DataSourceManagerTreeModel(TreeModel):
             """
         menu.setVisible(True)
         return menu
+
+    def onOpenSpeclib(self, speclib:SpectralLibrary):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
 
     def onShowModelReport(self, model):
         assert isinstance(model, HubFlowDataSource)
@@ -1322,6 +1336,10 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 else:
                     a.setEnabled(False)
 
+        if isinstance(src, DataSourceSpectralLibrary):
+            a = m.addAction('Open Editor')
+            a.triggered.connect(lambda : self.onOpenSpeclib(src.speclib()))
+
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
@@ -1441,6 +1459,9 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
 
         pass
 
+    def onOpenSpeclib(self, speclib:SpectralLibrary):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
 
 def CreateNodeFromDataSource(dataSource:DataSource, parent=None)->DataSourceTreeNode:
     """

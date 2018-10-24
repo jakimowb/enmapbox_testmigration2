@@ -4,18 +4,30 @@ from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
 import pyqtgraph as pg
-#from pyqtgraph.widgets.PlotWidget import PlotWidget as PlotWidget_
-#from pyqtgraph.imageview.ImageView import ImageView as ImageView_
 from enmapboxapplications.utils import loadUIFormClass
 from hubflow.core import *
 
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
+
 pathUi = join(dirname(__file__), 'ui')
 
-class PlotWidget(pg.PlotWidget):
-    def __init__(self, parent, background='#ffffff'):
-        pg.PlotWidget.__init__(self, parent=parent, background=background)
+class ProgressBar(hubdc.progressbar.CUIProgressBar):
+
+    def __init__(self, bar):
+        assert isinstance(bar, QProgressBar)
+        self.bar = bar
+        self.bar.setMinimum(0)
+        self.bar.setMaximum(100)
+
+    def setText(self, text):
+        pass
+
+    def setPercentage(self, percentage):
+        self.bar.setValue(int(percentage))
+        QApplication.processEvents()
+
 
 class ImageView(pg.ImageView):
     def __init__(self, *args, **kwargs):
@@ -32,9 +44,28 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
         self.setupUi(self)
+        self.uiInfo_ = QLabel()
+        self.uiFit_.hide()
+        self.statusBar().addWidget(self.uiInfo_, 1)
         self.uiRaster1().setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.uiRaster2().setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.uiExecute().clicked.connect(self.execute)
+        self.uiImageView().hide()
+
+        self.minMaxLine = self.uiImageView().plotItem().plot([0, 0],[0, 0], pen=pg.mkPen(color=(255, 0, 0), width=2, style=QtCore.Qt.SolidLine))
+        self.fittedLine = self.uiImageView().plotItem().plot([0, 0],[0, 0], pen=pg.mkPen(color=(0, 255, 0), width=2, style=QtCore.Qt.DashLine))
+        self._progressBar = ProgressBar(bar=self.uiProgressBar_)
+
+    def uiShowMinMaxLine(self):
+        assert isinstance(self.uiShowMinMaxLine_, QCheckBox)
+        return self.uiShowMinMaxLine_
+
+    def progressBar(self):
+        return self._progressBar
+
+    def showFittedLine(self):
+        assert isinstance(self.showFittedLine_, QCheckBox)
+        return self.showFittedLine_
 
     def uiRaster1(self):
         assert isinstance(self.uiRaster1_, QgsMapLayerComboBox)
@@ -88,6 +119,10 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
         assert isinstance(self.uiImageView_, ImageView)
         return self.uiImageView_
 
+    def log(self, text):
+        self.uiInfo_.setText(str(text))
+        QCoreApplication.processEvents()
+
     def inputs(self):
         if self.uiRaster1().currentLayer() is not None:
             raster1 = Raster(filename=self.uiRaster1().currentLayer().source())
@@ -128,6 +163,11 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
         return raster1, raster2, band1, band2, min1, min2, max1, max2, mask, bins, fast
 
     def execute(self, *args):
+
+        self.uiImageView().hide()
+        self.uiExecute().setEnabled(False)
+        self.log('')
+        self.uiFit_.hide()
         try:
 
             raster1, raster2, band1, band2, min1, min2, max1, max2, mask, bins, fast  = self.inputs()
@@ -135,7 +175,7 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
             if raster1 is None or raster2 is None:
                 return
 
-            grid = Grid(extent=raster1.grid().spatialExtent().intersection(other=raster2.grid().spatialExtent()),
+            grid = Grid(extent=raster1.grid().spatialExtent().intersection(other=raster2.grid().spatialExtent().reproject(targetProjection=raster1.grid().projection())),
                         resolution=raster1.grid().resolution())
 
             fast = self.uiAccuracy().currentIndex() == 0
@@ -146,7 +186,7 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
                                                    y=max(grid.size().y(), n) / n * grid.resolution().y()))
 
             if min1 is None or max1 is None:
-                statistics1 = raster1.statistics(bandIndices=[band1], mask=mask, grid=grid)[0]
+                statistics1 = raster1.statistics(bandIndices=[band1], mask=mask, grid=grid, **ApplierOptions(progressBar=self.progressBar()))[0]
                 if min1 is None:
                     min1 = statistics1.min
                     self.uiMin1().setText(str(min1))
@@ -155,7 +195,7 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
                     self.uiMax1().setText(str(max1))
 
             if min2 is None or max2 is None:
-                statistics2 = raster2.statistics(bandIndices=[band2], mask=mask, grid=grid)[0]
+                statistics2 = raster2.statistics(bandIndices=[band2], mask=mask, grid=grid, **ApplierOptions(progressBar=self.progressBar()))[0]
                 if min2 is None:
                     min2 = statistics2.min
                     self.uiMin2().setText(str(min2))
@@ -165,7 +205,7 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
 
             scatter = raster1.scatterMatrix(raster2=raster2, bandIndex1=band1, bandIndex2=band2,
                                             range1=[min1, max1], range2=[min2, max2],
-                                            bins=bins, mask=mask, grid=grid)
+                                            bins=bins, mask=mask, grid=grid, **ApplierOptions(progressBar=self.progressBar()))
 
             scale1 = (max1 - min1) / float(bins)
             scale2 = (max2 - min2) / float(bins)
@@ -178,9 +218,45 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
             self.uiImageView().plotItem().getAxis(name='bottom').setLabel(text=xlabel)
             self.uiImageView().plotItem().getAxis(name='left').setLabel(text=ylabel)
 
+            if self.uiShowMinMaxLine().isChecked():
+                self.minMaxLine.setData([min1, max1], [min2, max2])
+            else:
+                self.minMaxLine.clear()
 
-        except:
+            if self.showFittedLine().isChecked():
+                ds1 = raster1.dataset().translate(grid=raster1.grid(), bandList=[band1 + 1])
+                ds2 = raster2.dataset().translate(grid=raster1.grid(), bandList=[band2 + 1])
+
+                sample = RegressionSample(raster=Raster.fromRasterDataset(rasterDataset=ds2),
+                                          regression=Regression.fromRasterDataset(rasterDataset=ds1),
+                                          mask=mask)
+                r2, r1 = sample.extractAsRaster(filenames=['/vsimem/r2.bsq', '/vsimem/r1.bsq'], **ApplierOptions(progressBar=self.progressBar()))
+                sample = RegressionSample(raster=r1, regression=Regression(filename=r2.filename()))
+
+                from sklearn.linear_model import LinearRegression
+                olsr = Regressor(sklEstimator=LinearRegression())
+                olsr.fit(sample=sample)
+                # f(x) = m*x + n
+                n = olsr.sklEstimator().intercept_
+                m = olsr.sklEstimator().coef_[0]
+                self.fittedLine.setData([min1, max1], [m*min1+n, m*max1+n])
+
+                p = RegressionPerformance.fromRaster(prediction=olsr.predict(filename='/vsimem/p.bsq', raster=sample.raster()),
+                                                     reference=sample.regression(), **ApplierOptions(progressBar=self.progressBar(), emitFileCreated=False))
+
+                self.uiFit_.setText('f(x) = {} * x + {}, n = {}, r^2 = {}'.format(round(m, 5), round(n, 5), p.n, p.r2_score[0]))
+                self.uiFit_.show()
+            else:
+                self.fittedLine.clear()
+
+            self.uiImageView().show()
+
+        except Exception as error:
             traceback.print_exc()
+            self.log('Error: {}'.format(str(error)))
+
+        self.progressBar().setPercentage(0)
+        self.uiExecute().setEnabled(True)
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':

@@ -44,8 +44,7 @@ def hasClassification(pathOrDataset):
 
     if isinstance(pathOrDataset, gdal.Dataset):
         ds = pathOrDataset
-    elif (isinstance(pathOrDataset, str) or isinstance(pathOrDataset, unicode)) \
-            and os.path.exists(pathOrDataset):
+    elif isinstance(pathOrDataset, str) and os.path.exists(pathOrDataset):
         ds = gdal.Open(pathOrDataset)
     else:
         return False

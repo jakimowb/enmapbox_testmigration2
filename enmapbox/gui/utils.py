@@ -33,7 +33,7 @@ from qgis.PyQt import uic
 from osgeo import gdal
 import numpy as np
 
-from enmapbox import messageLog, enmapboxSettings, DIR_REPO, DIR_UIFILES
+from enmapbox import messageLog, DIR_REPO, DIR_UIFILES
 
 jp = os.path.join
 
@@ -41,6 +41,8 @@ jp = os.path.join
 DIR_QGISRESOURCES = jp(DIR_REPO, 'qgisresources')
 if not os.path.isdir(DIR_QGISRESOURCES):
     DIR_QGISRESOURCES = None
+
+MAP_LAYER_STORES = [QgsProject.instance()]
 
 
 REPLACE_TMP = True  # required for loading *.ui files directly
@@ -281,6 +283,59 @@ class QgsPluginManagerMockup(QgsPluginManagerInterface):
         super().timerEvent(*args, **kwargs)
 
 
+class PythonRunnerImpl(QgsPythonRunner):
+    """
+    A Qgs PythonRunner implementation
+    """
+
+    def __init__(self):
+        super(PythonRunnerImpl, self).__init__()
+
+
+    def evalCommand(self, cmd:str, result:str):
+        try:
+            o = compile(cmd)
+        except Exception as ex:
+            result = str(ex)
+            return False
+        return True
+
+    def runCommand(self, command, messageOnError=''):
+        try:
+            o = compile(command, 'fakemodule', 'exec')
+            exec(o)
+        except Exception as ex:
+            messageOnError = str(ex)
+            command = ['{}:{}'.format(i+1, l) for i,l in enumerate(command.splitlines())]
+            print('\n'.join(command), file=sys.stderr)
+            raise ex
+            return False
+        return True
+
+
+def findMapLayer(layer)->QgsMapLayer:
+    """
+    Returns the first QgsMapLayer out of all layers stored in MAP_LAYER_STORES that matches layer
+    :param layer: str layer id or layer name or QgsMapLayer
+    :return: QgsMapLayer
+    """
+    if isinstance(layer, QgsMapLayer):
+        return layer
+    elif isinstance(layer, str):
+        #check for IDs
+        for store in MAP_LAYER_STORES:
+            l = store.mapLayer(layer)
+            if isinstance(l, QgsMapLayer):
+                return l
+        #check for name
+        for store in MAP_LAYER_STORES:
+            l = store.mapLayersByName(layer)
+            if len(l) > 0:
+                return l[0]
+    return None
+
+
+
 def qgisLayerTreeLayers() -> list:
     """
     Returns the layers shown in the QGIS LayerTree
@@ -463,6 +518,7 @@ class QgisMockup(QgisInterface):
         super().zoomFull(*args, **kwargs)
 
 
+
 def createQgsField(name : str, exampleValue, comment:str=None):
     """
     Create a QgsField using a Python-datatype exampleValue
@@ -598,6 +654,10 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False, qgi
 
         QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
 
+        #initiate a PythonRunner instance if None exists
+        if not QgsPythonRunner.isValid():
+            r = PythonRunnerImpl()
+            QgsPythonRunner.setInstance(r)
         return qgsApp
 
 
@@ -624,23 +684,20 @@ def guessDataProvider(src:str)->str:
     return None
 
 
-def settings():
-    """
-    Returns the QSettings object with EnMAPBox Settings
-    :return:
-    """
-    print('DEPRECATED CALL enmapbox.gui.utils.settings()')
-    return enmapboxSettings()
 
+def showMessage(message:str, title:str, level):
+    """
+    Shows a message using the QgsMessageViewer
+    :param message: str, message
+    :param title: str, title of viewer
+    :param level:
+    """
 
-def showMessage(message, title, level):
     v = QgsMessageViewer()
     v.setTitle(title)
 
-    v.setMessage(message, QgsMessageOutput.MessageHtml \
-        if message.startswith('<html>')
-    else QgsMessageOutput.MessageText)
-
+    isHtml = message.startswith('<html>')
+    v.setMessage(message, QgsMessageOutput.MessageHtml if isHtml else QgsMessageOutput.MessageText)
     v.showMessage(True)
 
 
@@ -689,6 +746,9 @@ loadUI = lambda basename: loadUIFormClass(jp(DIR_UIFILES, basename))
 # dictionary to store form classes and avoid multiple calls to read <myui>.ui
 FORM_CLASSES = dict()
 
+#FORM_CLASS_MOCKUP_MODULES = ['images','resources']
+
+
 
 
 def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQGISRessourceFileReferences=True, _modifiedui=None):
@@ -707,14 +767,9 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
 
     if pathUi not in FORM_CLASSES.keys():
         #parse *.ui xml and replace *.h by qgis.gui
-        doc = QDomDocument()
 
-        #remove new-lines. this prevents uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
-        #to mess up the *.ui xml
-
-        f = open(pathUi, 'r')
-        txt = f.read()
-        f.close()
+        with open(pathUi, 'r') as f:
+            txt = f.read()
 
         dirUi = os.path.dirname(pathUi)
 
@@ -723,7 +778,7 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
         for m in re.findall(r'(<include location="(.*\.qrc)"/>)', txt):
             locations.append(m)
 
-        removed = []
+        missing = []
         for t in locations:
             line, path = t
             if not os.path.isabs(path):
@@ -732,25 +787,21 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
                 p = path
 
             if not os.path.isfile(p):
-                txt = txt.replace('<iconset resource="{}">'.format(path), '')
-                txt = txt.replace('<include location="{}">'.format(path), '')
-                removed.append(t)
+                missing.append(t)
+        match = re.search(r'resource="[^:].*/QGIS[^/"]*/images/images.qrc"',txt)
+        if match:
+            txt = txt.replace(match.group(), 'resource=":/images/images.qrc"')
 
-        if len(removed) > 0:
-            print('None-existing resource file(s) in: {}'.format(pathUi), file=sys.stderr)
-            for t in removed:
+        if len(missing) > 0:
+            print('None-existing resource file(s) in: {}'.format(pathUi))
+            for t in missing:
                 line, path = t
                 print('\t{}'.format(line), file=sys.stderr)
-            print(txt)
-        #:/images/themes/default/console/iconRestoreTabsConsole.svg
-        #resource="../../../../../QGIS-master/images/images.qrc"
-        # <include location="../../../../../QGIS-master/images/images.qrc"/>
+            #print(txt)
+
+        doc = QDomDocument()
         doc.setContent(txt)
 
-        # Replace *.h file references in <customwidget> with <class>Qgs...</class>, e.g.
-        #       <header>qgscolorbutton.h</header>
-        # by    <header>qgis.gui</header>
-        # this is require to compile QgsWidgets on-the-fly
         elem = doc.elementsByTagName('customwidget')
         for child in [elem.item(i) for i in range(elem.count())]:
             child = child.toElement()
@@ -773,12 +824,6 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
                 else:
                     p = lpath
                 qrcPaths.append(p)
-        #for child in [elem.item(i) for i in range(elem.count())]:
-        #    path = child.attributes().item(0).nodeValue()
-        #    if path.endswith('.qrc'):
-        #        qrcPathes.append(path)
-
-
 
 
         buffer = io.StringIO()  # buffer to store modified XML
@@ -795,24 +840,42 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
 
 
 
-        #make resource file directories available to the python path (sys.path)
+        #if existent, make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)
         tmpDirs = []
-        for qrcPath in qrcPaths:
-            d = os.path.abspath(os.path.join(baseDir, qrcPath))
-            d = os.path.dirname(d)
-            if d not in sys.path:
-                tmpDirs.append(d)
-        sys.path.extend(tmpDirs)
+        if True:
+            for qrcPath in qrcPaths:
+                d = os.path.abspath(os.path.join(baseDir, qrcPath))
+                d = os.path.dirname(d)
+                if os.path.isdir(d) and d not in sys.path:
+                    tmpDirs.append(d)
+            sys.path.extend(tmpDirs)
+
+        #create requried mockups
+        if True:
+            FORM_CLASS_MOCKUP_MODULES = [os.path.splitext(os.path.basename(p))[0] for p in qrcPaths]
+            FORM_CLASS_MOCKUP_MODULES = [m for m in FORM_CLASS_MOCKUP_MODULES if m not in sys.modules.keys()]
+            for mockupModule in FORM_CLASS_MOCKUP_MODULES:
+                #print('ADD MOCKUP MODULE {}'.format(mockupModule))
+                import enmapbox.gui.resourcemockup
+                sys.modules[mockupModule] = enmapbox.gui.resourcemockup
+
 
         #load form class
         try:
             FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
-        except SyntaxError as ex:
-            FORM_CLASS, _ = uic.loadUiType(pathUi, resource_suffix=RC_SUFFIX)
+        except Exception as ex1:
+            print(doc.toString(), file=sys.stderr)
+            info = 'Unable to load {}'.format(pathUi) + '\n{}'.format(str(ex1))
+            ex = Exception(info)
+            raise ex
+
+        for mockupModule in FORM_CLASS_MOCKUP_MODULES:
+            sys.modules.pop(mockupModule)
+
 
         buffer.close()
-        buffer = None
+
         FORM_CLASSES[pathUi] = FORM_CLASS
 
         #remove temporary added directories from python path
