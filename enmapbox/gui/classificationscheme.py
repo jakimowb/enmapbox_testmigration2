@@ -299,12 +299,40 @@ class ClassificationScheme(QObject):
             print(ex)
         return None
 
+    @staticmethod
+    def fromFile(p:str):
+        try:
+            if os.path.isfile(p):
+                if p.endswith('.json'):
+                    jsonStr = None
+                    with open(p, 'r') as f:
+                        jsonStr = f.read()
+                    return ClassificationScheme.fromJSON(jsonStr)
+
+        except Exception as ex:
+            print(ex)
+        return None
 
     @staticmethod
     def fromJSON(jsonStr:str):
         try:
             data = json.loads(jsonStr)
+
+
+            s = ""
+
+
+
+
+
+
+
+
             cs = ClassificationScheme(name= data['name'])
+
+
+
+
             for classData in data['classes']:
                 label, name, colorName = classData
                 cs.addClass(ClassInfo(label=label, name=name, color=QColor(colorName)))
@@ -501,6 +529,28 @@ class ClassificationScheme(QObject):
     def onClassInfoSettingChanged(self, *args):
         self.sigClassInfoChanged.emit(self.sender())
 
+    def classIndexFromValue(self, value)->int:
+        """
+        :param value:
+        :return:
+        """
+        classNames = self.classNames()
+        i = -1
+        if isinstance(value, (int, float)):
+            i = int(value)
+
+        elif isinstance(value, str):
+            if value in classNames:
+                i = classNames.index(value)
+        return i
+
+    def classFromValue(self, value)->ClassInfo:
+        i = self.classIndexFromValue(value)
+        if i != -1:
+            return self[i]
+        else:
+            return None
+
     def addClass(self, c, index=None):
         """
         Adds a ClassInfo
@@ -670,6 +720,7 @@ class ClassificationSchemeComboBox(QComboBox):
         super(ClassificationSchemeComboBox, self).__init__(parent)
         if not isinstance(classification, ClassificationScheme):
             classification = ClassificationScheme()
+        self.view().setMinimumWidth(200)
         self.mSchema = None
         self.mModel = None
         if classification:
@@ -1125,6 +1176,8 @@ class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
             self.mComboBox.setClassificationScheme(classSchemeFromConfig(conf))
             self.mComboBox.currentIndexChanged.connect(self.onValueChanged)
 
+        else:
+            s = ""
 
     def onValueChanged(self, *args):
         self.valueChanged.emit(self.value())
@@ -1134,7 +1187,7 @@ class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
         return isinstance(self.mComboBox, ClassificationSchemeComboBox)
 
     def value(self, *args, **kwargs):
-        value = self.mDefaultValue
+
         if isinstance(self.mComboBox, ClassificationSchemeComboBox):
             classInfo = self.mComboBox.currentClassInfo()
             if isinstance(classInfo, ClassInfo):
@@ -1143,12 +1196,13 @@ class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
                     return classInfo.name()
                 if typeCode in [QVariant.Int, QVariant.Double]:
                     return classInfo.label()
-        return value
+
+        return None
 
 
     def setEnabled(self, enabled:bool):
 
-        if self.mComboBox:
+        if isinstance(self.mComboBox, ClassificationSchemeComboBox):
             self.mComboBox.setEnabled(enabled)
 
 
@@ -1156,21 +1210,9 @@ class ClassificationSchemeEditorWidgetWrapper(QgsEditorWidgetWrapper):
 
         if isinstance(self.mComboBox, ClassificationSchemeComboBox):
             cs = self.mComboBox.classificationScheme()
-            if isinstance(cs, ClassificationScheme):
-                cnames = cs.classNames()
-                n = len(cs)
-                typeCode = self.field().type()
-                i = 0
-                if value not in [None, QVariant(None)]:
-                    if typeCode == QVariant.String:
-                        className = str(value)
-                        if className in cnames:
-                            i = cnames.index(className)
-                    elif typeCode in [QVariant.Int, QVariant.Double]:
-                        label = int(value)
-                        if label >= 0 and label < n:
-                            i = n
-                self.mComboBox.setCurrentIndex(i)
+            if isinstance(cs, ClassificationScheme) and len(cs) > 0:
+                i = cs.classIndexFromValue(value)
+                self.mComboBox.setCurrentIndex(max(i,0))
 
 
 class ClassificationSchemeEditorConfigWidget(QgsEditorConfigWidget):
@@ -1295,7 +1337,11 @@ class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
         else:
             return 0 #no support
 
-
+    def supportsField(self, vl:QgsVectorLayer, idx:int):
+        field = vl.fields().at(idx)
+        if isinstance(field, QgsField) and field.type() in [QVariant.Int, QVariant.String]:
+            return True
+        return False
 
 
 EDITOR_WIDGET_REGISTRY_KEY = 'RasterClassification'

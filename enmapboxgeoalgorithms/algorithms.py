@@ -463,7 +463,7 @@ ALGORITHMS.append(ClusteringPerformanceFromRaster())
 
 class CreateTestClassification(EnMAPAlgorithm):
     def displayName(self):
-        return 'Create Classification map from land cover polygons'
+        return 'Create Test Classification Map'
 
     def description(self):
         return 'Create a classification map at 30 m resolution by rasterizing the landcover polygons.'
@@ -476,14 +476,7 @@ class CreateTestClassification(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         import enmapboxtestdata
-        enmap = Raster(filename=enmapboxtestdata.enmap)
-        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover_polygons,
-                                                    classAttribute='level_2_id',
-                                                    minDominantCoverage=0.5, minOverallCoverage=1.,
-                                                    oversampling=5)
-
-        result = Classification.fromClassification(filename=self.getParameterOutputClassification(self.P_OUTPUT_CLASSIFICATION),
-                                                   classification=vectorClassification, grid=enmap.grid())
+        result = enmapboxtestdata.createEnmapClassification(filename=self.getParameterOutputClassification())
         return {self.P_OUTPUT_CLASSIFICATION: result.filename()}
 
 
@@ -492,7 +485,7 @@ ALGORITHMS.append(CreateTestClassification())
 
 class CreateTestFraction(EnMAPAlgorithm):
     def displayName(self):
-        return 'Create Fraction map from land cover polygons'
+        return 'Create Test Fraction Map'
 
     def description(self):
         return 'Create a fraction map at 30 m resolution by rasterizing the landcover polygons.'
@@ -505,14 +498,7 @@ class CreateTestFraction(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         import enmapboxtestdata
-        enmap = Raster(filename=enmapboxtestdata.enmap)
-        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover_polygons,
-                                                    classAttribute='level_2_id',
-                                                    minDominantCoverage=0., minOverallCoverage=1.,
-                                                    oversampling=5)
-
-        result = Classification.fromClassification(filename=self.getParameterOutputFraction(),
-                                                   classification=vectorClassification, grid=enmap.grid())
+        result = enmapboxtestdata.createEnmapFraction(filename=self.getParameterOutputFraction())
         return {self.P_OUTPUT_FRACTION: result.filename()}
 
 
