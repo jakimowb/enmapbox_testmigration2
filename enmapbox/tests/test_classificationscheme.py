@@ -24,12 +24,26 @@ QGIS_APP = initQgisApplication()
 from unittest import TestCase
 class TestsClassificationScheme(TestCase):
 
-    def createClassScheme(self)->ClassificationScheme:
+    def setUp(self):
+
+        self.nameL1 = 'Level 1 (int)'
+        self.nameL2 = 'Level 2 (str)'
+    def createClassSchemeA(self)->ClassificationScheme:
 
         cs = ClassificationScheme()
         cs.addClass(ClassInfo(name='unclassified', color=QColor('black')))
-        cs.addClass(ClassInfo(name='Class A', color=QColor('green')))
-        cs.addClass(ClassInfo(name='Class B', color=QColor('blue')))
+        cs.addClass(ClassInfo(name='Forest', color=QColor('green')))
+        cs.addClass(ClassInfo(name='None-Forest', color=QColor('blue')))
+        return cs
+
+    def createClassSchemeB(self)->ClassificationScheme:
+
+        cs = ClassificationScheme()
+        cs.addClass(ClassInfo(name='unclassified', color=QColor('black')))
+        cs.addClass(ClassInfo(name='Forest', color=QColor('green')))
+        cs.addClass(ClassInfo(name='Water', color=QColor('blue')))
+        cs.addClass(ClassInfo(name='Urban', color=QColor('red')))
+        cs.addClass(ClassInfo(name='Agriculture', color=QColor('red')))
         return cs
 
     def createVectorLayer(self)->QgsVectorLayer:
@@ -38,20 +52,29 @@ class TestsClassificationScheme(TestCase):
         vl.startEditing()
         # add fields
         vl.addAttribute(QgsField("name", QVariant.String))
-        vl.addAttribute(QgsField("class_label", QVariant.Int))
-        vl.addAttribute(QgsField("class_name", QVariant.String))
+        nameL1 = self.nameL1
+        nameL2 = self.nameL2
+        vl.addAttribute(QgsField(nameL1, QVariant.Int))
+        vl.addAttribute(QgsField(nameL2, QVariant.String))
         f = QgsFeature(vl.fields())
-        f.setAttribute('name', 'f1')
-        f.setAttribute('class_label', 2)
-        f.setAttribute('class_name', 'Class A')
+        f.setAttribute('name', 'an example')
+        f.setAttribute(nameL1, 2)
+        f.setAttribute(nameL2, 'Agriculture')
         vl.addFeature(f)
+
+        f = QgsFeature(vl.fields())
+        f.setAttribute('name', 'another example')
+        f.setAttribute(nameL1, 1)
+        f.setAttribute(nameL2, 'Forest')
+        vl.addFeature(f)
+
         vl.commitChanges()
 
-        cs = self.createClassScheme()
-        confValues = {'classes': cs.json()}
-        conf = vl.attributeTableConfig()
-        vl.setEditorWidgetSetup(vl.fields().lookupField('class_label'), QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, confValues))
-        vl.setEditorWidgetSetup(vl.fields().lookupField('class_name'), QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, confValues))
+
+        confValuesL1 = {'classes': self.createClassSchemeA().json()}
+        confValuesL2 = {'classes': self.createClassSchemeB().json()}
+        vl.setEditorWidgetSetup(vl.fields().lookupField(nameL1), QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, confValuesL1))
+        vl.setEditorWidgetSetup(vl.fields().lookupField(nameL2), QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, confValuesL2))
 
 
 
@@ -88,8 +111,19 @@ class TestsClassificationScheme(TestCase):
         cs.resetLabels()
         self.assertEqual(cs[3].label(), 3)
 
+    def test_json_csv(self):
+
+        import enmapboxtestdata
+        p = enmapboxtestdata.library
+        p = os.path.splitext(p)[0]+'.json'
+
+        self.assertTrue(os.path.isfile(p))
+        cs = ClassificationScheme.fromFile(p)
+        self.assertIsInstance(cs, ClassificationScheme)
+        s = ""
+
     def test_json_pickle(self):
-        cs = self.createClassScheme()
+        cs = self.createClassSchemeA()
 
         j = cs.json()
         self.assertIsInstance(j, str)
@@ -108,7 +142,7 @@ class TestsClassificationScheme(TestCase):
 
 
     def test_ClassInfoComboBox(self):
-        scheme = self.createClassScheme()
+        scheme = self.createClassSchemeA()
 
 
         w = ClassificationSchemeComboBox()
@@ -166,21 +200,8 @@ class TestsClassificationScheme(TestCase):
         print(vl.fields().names())
         look = vl.fields().lookupField
 
-        self.assertTrue(factory.fieldScore(vl, look('class_label')) == 20)
-        self.assertTrue(factory.fieldScore(vl, look('class_name')) == 20)
-
-        parent = QWidget()
-        configWidget = factory.configWidget(vl, look('class_label'), None)
-        self.assertIsInstance(configWidget, ClassificationSchemeEditorConfigWidget)
-        configWidget.show()
-
-        self.assertIsInstance(factory.createSearchWidget(vl, 0, dv), QgsSearchWidgetWrapper)
-
-        eww = factory.create(vl, 0, None, dv )
-        self.assertIsInstance(eww, ClassificationSchemeEditorWidgetWrapper)
-        self.assertIsInstance(eww.widget(), ClassificationSchemeComboBox)
-
-        eww.valueChanged.connect(lambda v: print('value changed: {}'.format(v)))
+        self.assertTrue(factory.fieldScore(vl, look(self.nameL1)) == 20)
+        self.assertTrue(factory.fieldScore(vl, look(self.nameL2)) == 20)
 
 
 
