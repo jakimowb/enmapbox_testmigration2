@@ -159,10 +159,11 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui = EnMAPBoxUI()
         self.ui.closeEvent = self.closeEvent
 
-        self.initQgisInterface()
-        self.iface = iface
         self.mMapLayerStore = QgsMapLayerStore()
         MAP_LAYER_STORES.insert(0, self.mMapLayerStore)
+
+        self.initQgisInterfaceVariables()
+        self.iface = iface
         if not isinstance(iface, QgisInterface):
             self.initEnMAPBoxAsIFACE()
         self.initPanels()
@@ -229,10 +230,15 @@ class EnMAPBox(QgisInterface, QObject):
         self.sigCurrentLocationChanged[SpatialPoint, MapCanvas].connect(self.setCursorLocationValueInfo)
 
         # from now on other routines expect the EnMAP-Box to act like QGIS
-        if enmapbox.LOAD_PROCESSING_FRAMEWORK:
+        from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
+        self.ui.processingPanel = self.addPanel(Qt.RightDockWidgetArea, ProcessingAlgorithmsPanelUI(self.ui))
+        self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
+
+
+        if False and enmapbox.LOAD_PROCESSING_FRAMEWORK:
             # connect managers with widgets
             splash.showMessage('Connect Processing Algorithm Manager')
-            self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
+
 
 
             try:
@@ -274,6 +280,17 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.mMapLayerStore
 
+    def addPanel(self, area, panel, show=True):
+        """
+        shortcut to add a created panel and return it
+        :param dock:
+        :return:
+        """
+        self.addDockWidget(area, panel)
+        if not show:
+            panel.hide()
+        return panel
+
     def initPanels(self):
         # add & register panels
         area = None
@@ -281,27 +298,11 @@ class EnMAPBox(QgisInterface, QObject):
         import enmapbox.gui.dockmanager
         import enmapbox.gui.datasourcemanager
 
-        def addPanel(panel, show=True):
-            """
-            shortcut to add a created panel and return it
-            :param dock:
-            :return:
-            """
-            self.addDockWidget(area, panel)
-            if not show:
-                panel.hide()
-            return panel
-
         area = Qt.LeftDockWidgetArea
-        self.ui.dataSourcePanel = addPanel(enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
-        self.ui.dockPanel = addPanel(enmapbox.gui.dockmanager.DockPanelUI(self.ui))
+        self.ui.dataSourcePanel = self.addPanel(area, enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
+        self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dockmanager.DockPanelUI(self.ui))
         from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
-        self.ui.cursorLocationValuePanel = addPanel(CursorLocationInfoDock(self.ui), show=False)
-
-
-        area = Qt.RightDockWidgetArea
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
-        self.ui.processingPanel = addPanel(ProcessingAlgorithmsPanelUI(self.ui))
+        self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
 
         area = Qt.BottomDockWidgetArea
 
@@ -319,14 +320,25 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Sets the EnMAP-Box as global iface, so that the EnMAPBox instance serves as QGIS instance
         """
+        assert qgis.utils.iface is None
         self.iface = self
-        qgis.utils.iface = self
 
-        if enmapbox.LOAD_PROCESSING_FRAMEWORK:
+        setattr(qgis.utils, 'iface', self)
 
+
+        hasProcessing = False
+        try:
             import processing
-            qgis.utils.iface = self.iface
-            processing.Processing.initialize()
+            hasProcessing = True
+        except Exception as ex:
+            hasProcessing = False
+
+
+        if hasProcessing:
+            import processing
+            setattr(processing,'iface', self)
+            setattr(qgis.utils, 'iface', self)
+            #qgis.utils.iface = self.iface
 
             import pkgutil
             prefix = str(processing.__name__ + '.')
@@ -335,16 +347,25 @@ class EnMAPBox(QgisInterface, QObject):
                     module = __import__(modname, fromlist="dummy")
                     if hasattr(module, 'iface'):
                         #print(modname)
-                        module.iface = self.iface
+                        setattr(module, 'iface', self.iface)
+                        #module.iface = self.iface
                 except:
                     pass
             s = ""
 
     def initQGISProcessingFramework(self):
 
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-        if not self.processingAlgManager.enmapBoxProvider():
-            QgsApplication.processingRegistry().addProvider(EnMAPBoxAlgorithmProvider())
+        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
+
+        registry = QgsApplication.processingRegistry()
+        assert isinstance(registry, QgsProcessingRegistry)
+
+        self._algorithmProvider = registry.providerById(ID)
+        if not isinstance(self._algorithmProvider, EnMAPBoxAlgorithmProvider):
+            self._algorithmProvider = EnMAPBoxAlgorithmProvider()
+            registry.addProvider(self._algorithmProvider)
+            assert isinstance(registry.providerById(ID), EnMAPBoxAlgorithmProvider)
+
 
 
     def addApplication(self, app):
@@ -796,7 +817,7 @@ class EnMAPBox(QgisInterface, QObject):
     Implementation of QGIS Interface 
     """
 
-    def initQgisInterface(self):
+    def initQgisInterfaceVariables(self):
         """
         Initializes internal variables required to provide the QgisInterface
         :return:
