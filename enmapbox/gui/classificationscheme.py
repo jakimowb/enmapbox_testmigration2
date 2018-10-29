@@ -439,19 +439,24 @@ class ClassificationScheme(QAbstractTableModel):
             return None
 
 
-    def rasterRenderer(self)->QgsPalettedRasterRenderer:
+    def rasterRenderer(self, band=0)->QgsPalettedRasterRenderer:
         """
         Returns the ClassificationScheme as QgsPalettedRasterRenderer
         :return: ClassificationScheme
         """
+        #DUMMY_RASTERINTERFACE = QgsSingleBandGrayRenderer(None, 0)
 
 
+        classes = []
+        for classInfo in self:
+            qgsClass = QgsPalettedRasterRenderer.Class(
+                classInfo.label(),
+                classInfo.color(),
+                classInfo.name())
+            classes.append(qgsClass)
+        renderer = QgsPalettedRasterRenderer(None, band, classes)
+        return renderer
 
-
-        r = QgsPalettedRasterRenderer()
-
-
-        return r
     @staticmethod
     def fromRasterRenderer(renderer:QgsRasterRenderer):
         """
@@ -462,7 +467,17 @@ class ClassificationScheme(QAbstractTableModel):
         if not isinstance(renderer, QgsPalettedRasterRenderer):
             return None
 
-        raise NotImplementedError()
+        classes = []
+        for qgsClass in renderer.classes():
+            classInfo = ClassInfo(label=qgsClass.value,
+                                  name=qgsClass.label,
+                                  color=QColor(qgsClass.color))
+            classes.append(classInfo)
+
+        cs = ClassificationScheme()
+        cs.insertClasses(classes)
+
+        return cs
 
     def featureRenderer(self)->QgsCategorizedSymbolRenderer:
         """

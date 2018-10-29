@@ -10,12 +10,17 @@ import unittest
 
 import tempfile
 from qgis import *
+from qgis.core import *
+from qgis.gui import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.classificationscheme import *
 import enmapboxtestdata
+
+
+SHOW_GUIS = True
 
 QGIS_APP = initQgisApplication()
 
@@ -31,6 +36,16 @@ class TestsClassificationScheme(TestCase):
         cs.addClass(ClassInfo(name='Class A', color=QColor('green')))
         cs.addClass(ClassInfo(name='Class B', color=QColor('blue')))
         return cs
+
+    def createRasterLayer(self)->QgsRasterLayer:
+
+        rl = QgsRasterLayer(enmapboxtestdata.hires)
+
+        renderer = QgsPalettedRasterRenderer(rl, 1)
+        assert isinstance(renderer, QgsPalettedRasterRenderer)
+
+
+        return rl
 
     def createVectorLayer(self)->QgsVectorLayer:
         # create layer
@@ -77,7 +92,7 @@ class TestsClassificationScheme(TestCase):
         self.assertEqual(c.color(), color2)
 
 
-    def testClassificationScheme(self):
+    def test_ClassificationScheme(self):
         cs = ClassificationScheme.create(3)
 
         self.assertIsInstance(cs, ClassificationScheme)
@@ -85,15 +100,28 @@ class TestsClassificationScheme(TestCase):
         c = ClassInfo(label=1, name='New Class', color=QColor('red'))
         cs.addClass(c)
         self.assertEqual(cs[3], c)
-        cs.resetLabels()
+        cs._updateLabels()
         self.assertEqual(cs[3].label(), 3)
+
+        self.assertEqual(cs.headerData(0, Qt.Horizontal, Qt.DisplayRole), 'Label')
+        self.assertEqual(cs.headerData(1, Qt.Horizontal, Qt.DisplayRole), 'Name')
+        self.assertEqual(cs.headerData(2, Qt.Horizontal, Qt.DisplayRole), 'Color')
+
+        self.assertEqual(cs.data(cs.createIndex(0,0), Qt.DisplayRole), 0)
+        self.assertEqual(cs.data(cs.createIndex(0,1), Qt.DisplayRole), cs[0].name())
+        self.assertEqual(cs.data(cs.createIndex(0,2), Qt.DisplayRole), cs[0].color().name())
+        self.assertEqual(cs.data(cs.createIndex(0,2), Qt.BackgroundColorRole), cs[0].color())
+
+        self.assertIsInstance(cs.data(cs.createIndex(0,0), role=Qt.UserRole), ClassInfo)
+
+
 
     def test_json_pickle(self):
         cs = self.createClassScheme()
 
         j = cs.json()
         self.assertIsInstance(j, str)
-        cs2 = ClassificationScheme.fromJSON(j)
+        cs2 = ClassificationScheme.fromJson(j)
         self.assertIsInstance(cs2, ClassificationScheme)
         self.assertEqual(cs, cs2)
 
@@ -119,7 +147,8 @@ class TestsClassificationScheme(TestCase):
         self.assertIsInstance(w.currentClassInfo(), ClassInfo)
         self.assertEqual(w.currentClassInfo(), scheme[2])
 
-        QGIS_APP.exec_()
+        if SHOW_GUIS:
+            QGIS_APP.exec_()
 
 
     def test_ClassificationSchemeEditorWidgetFactory(self):
@@ -183,71 +212,97 @@ class TestsClassificationScheme(TestCase):
         eww.valueChanged.connect(lambda v: print('value changed: {}'.format(v)))
 
 
+        if SHOW_GUIS:
+            QGIS_APP.exec_()
 
-        QGIS_APP.exec_()
 
 
+    def test_ClassificationSchemeWidget(self):
 
-    def test_dialog(self):
+        MAP_LAYER_STORES
         w = ClassificationSchemeWidget()
         self.assertIsInstance(w.classificationScheme(), ClassificationScheme)
         w.show()
+
+
+
         w.btnAddClasses.click()
         w.btnAddClasses.click()
 
         self.assertTrue(len(w.classificationScheme()) == 2)
-        QGIS_APP.exec_()
+
+        if SHOW_GUIS:
+            QGIS_APP.exec_()
+
+    def test_ClassificationSchemeComboBox(self):
+
+        cs = self.createClassScheme()
+
+        w = ClassificationSchemeComboBox(classification=cs)
+        w.show()
+
+        self.assertTrue(len(w.classificationScheme()) == 3)
+
+        if SHOW_GUIS:
+            QGIS_APP.exec_()
 
 
     def test_io_CSV(self):
 
-        testDir = os.path.dirname(enmapboxtestdata.speclib)
-        csvFiles = file_search(testDir, 'Speclib.*.classdef.csv')
+        testDir = os.path.dirname(enmapboxtestdata.library)
 
         pathTmp = tempfile.mktemp(suffix='.csv')
-        for pathCSV in csvFiles:
-            #read from CSV
-            classScheme = ClassificationScheme.fromCsv(pathCSV)
-            self.assertIsInstance(classScheme, ClassificationScheme)
-            self.assertTrue(len(classScheme) > 0)
 
-            #todo: other tests
+        cs = self.createClassScheme()
+        self.assertIsInstance(cs, ClassificationScheme)
+        path = cs.saveToCsv(pathTmp)
+        self.assertTrue(os.path.isfile(path))
 
-            classScheme.saveToCsv(pathTmp)
+        cs2 = ClassificationScheme.fromCsv(pathTmp)
+        self.assertIsInstance(cs2, ClassificationScheme)
+        self.assertEqual(cs, cs2)
 
-            classScheme2 = ClassificationScheme.fromCsv(pathTmp)
-            self.assertIsInstance(classScheme2, ClassificationScheme)
-            self.assertEqual(classScheme, classScheme2)
+
+    def test_io_RasterRenderer(self):
+
+
+        cs = self.createClassScheme()
+        self.assertIsInstance(cs, ClassificationScheme)
+
+        r = cs.rasterRenderer()
+        self.assertIsInstance(r, QgsPalettedRasterRenderer)
+
+
+
+        cs2 = ClassificationScheme.fromRasterRenderer(r)
+        self.assertIsInstance(cs2, ClassificationScheme)
+        self.assertEqual(cs, cs2)
+
+    def test_io_FeatureRenderer(self):
+
+
+        cs = self.createClassScheme()
+        self.assertIsInstance(cs, ClassificationScheme)
+
+        r = cs.featureRenderer()
+        self.assertIsInstance(r, QgsCategorizedSymbolRenderer)
+
+        cs2 = ClassificationScheme.fromFeatureRenderer(r)
+        self.assertIsInstance(cs2, ClassificationScheme)
+        self.assertEqual(cs, cs2)
+
 
     def test_io_QML(self):
-
-        testDir = os.path.dirname(enmapboxtestdata.speclib)
-        qmFiles = file_search(testDir, 'LandCov_*.qml')
+        cs = self.createClassScheme()
+        self.assertIsInstance(cs, ClassificationScheme)
 
         pathTmp = tempfile.mktemp(suffix='.qml')
-        for pathQML in qmFiles:
-            # read from QML
-            classScheme = ClassificationScheme.fromQml(pathQML)
-            self.assertIsInstance(classScheme, ClassificationScheme)
-            self.assertTrue(len(classScheme) > 0)
-
-            # todo: other QML specific tests
-
-            #write to QML
-            classScheme.saveToQml(pathTmp)
-
-            classScheme2 = ClassificationScheme.fromQml(pathTmp)
-            self.assertIsInstance(classScheme2, ClassificationScheme)
-            self.assertEqual(classScheme, classScheme2)
-
-
-
-
+        warnings.warn('need QML test', NotImplementedError)
 
         s = ""
-
 if __name__ == "__main__":
 
+    SHOW_GUIS = True
     unittest.main()
 
 
