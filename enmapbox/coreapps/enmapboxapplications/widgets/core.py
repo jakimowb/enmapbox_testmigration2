@@ -9,7 +9,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
-from enmapboxapplications.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.datasources import DataSourceSpectralLibrary
 from hubflow.core import *

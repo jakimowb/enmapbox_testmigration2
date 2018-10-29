@@ -3103,6 +3103,7 @@ class VectorClassification(Vector):
 
         '''
 
+
         Vector.__init__(self, filename=filename, layer=layer, burnAttribute=classAttribute, dtype=dtype)
 
         fieldNames = self.dataset().fieldNames()

@@ -20,7 +20,7 @@ class ProgressBar(hubdc.progressbar.CUIProgressBar):
 
 def classificationWorkflow(sample, classifier, raster, n, cv,
                            saveSampledClassificationComplement, saveSampledClassification,
-                           saveModel, saveClassification, saveProbability, saveReport,
+                           saveModel, saveClassification, saveProbability, saveRGB, saveReport,
                            filenameSampledClassification, filenameSampledClassificationComplement,
                            filenameModel, filenameClassification, filenameProbability, filenameReport,
                            ui=None):
@@ -75,11 +75,13 @@ def classificationWorkflow(sample, classifier, raster, n, cv,
 
     setInfo('Step 4: predict probability')
     if saveProbability:
-        classifier.predictProbability(filename=filenameProbability, raster=raster, progressBar=progressBar)
+        probability = classifier.predictProbability(filename=filenameProbability, raster=raster, progressBar=progressBar)
+        if saveRGB:
+            probability.asClassColorRGBRaster(filename='{}_rgb{}'.format(*splitext(filenameProbability)))
 
     setInfo('Step 5: assess cross-validation performance')
     if saveReport:
-        classifier.crossValidation(cv=cv, n_jobs=-1).report().saveHTML(filename=filenameReport)
+        classifier.crossValidation(cv=cv).report().saveHTML(filename=filenameReport)
 
 
 def test():

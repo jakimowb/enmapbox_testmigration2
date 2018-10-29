@@ -130,9 +130,9 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
 
 RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git',
                   prefixLocal=r'enmapbox/apps/enpt_enmapboxapp',
-                  prefixRemote=r'enpt_enmapboxapp',
+                  prefixRemote=r'enpt_enmapboxapp/enpt_enmapboxapp',
                   #remoteBranch='master'
-                  remoteBranch='bugfix/fix_GUI_EnPT_call'
+                  remoteBranch='master'
                   )
 
 
@@ -200,14 +200,14 @@ if __name__ == "__main__":
                 addRemote(info)
 
     # update remotes
-    to_update = ['hub-datacube'
-                ,'hub-workflow'
-                 ,'enmapboxapplications'
-                 ,'enmapboxgeoalgorithms'
+    to_update = [#'hub-datacube'
+                #,'hub-workflow'
+                 #,'enmapboxapplications'
+                 #,'enmapboxgeoalgorithms'
                  #'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
-                 ,'enpt_enmapboxapp'
+                 'enpt_enmapboxapp'
                 ]
 
     for p in to_update:
