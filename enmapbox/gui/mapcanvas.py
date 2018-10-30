@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-
+import warnings
 from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
@@ -982,10 +982,10 @@ class MapCanvas(QgsMapCanvas):
 
         if self.crosshairIsVisible():
             action = menu.addAction('Hide Crosshair')
-            action.triggered.connect(lambda : self.setShowCrosshair(False))
+            action.triggered.connect(lambda : self.setCrosshairVisibility(False))
         else:
             action = menu.addAction('Show Crosshair')
-            action.triggered.connect(lambda: self.setShowCrosshair(True))
+            action.triggered.connect(lambda: self.setCrosshairVisibility(True))
 
         from enmapbox.gui.crosshair import CrosshairDialog
         action = menu.addAction('Set Crosshair Style')
@@ -1083,6 +1083,12 @@ class MapCanvas(QgsMapCanvas):
         return self.mCrosshairItem.crosshairStyle
 
     def setShowCrosshair(self,b):
+        warnings.warn('Use setCrosshairVisibility', DeprecationWarning)
+        self.setCrosshairVisibility(b)
+
+    def setCrosshairVisibility(self, b:bool):
+        if b and self.mCrosshairItem.mPosition is None:
+            self.mCrosshairItem.setPosition(self.spatialCenter())
         self.mCrosshairItem.setVisibility(b)
 
     def crosshairIsVisible(self):

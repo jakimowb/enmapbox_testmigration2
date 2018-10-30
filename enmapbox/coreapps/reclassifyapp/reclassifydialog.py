@@ -130,9 +130,8 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
 
     def createClassInfoComboBox(self, classScheme):
         assert isinstance(classScheme, ClassificationScheme)
-        box = QComboBox()
+        box = ClassificationSchemeComboBox(classScheme)
         box.setAutoFillBackground(True)
-        box.setModel(ClassificationSchemeComboBoxItemModel(classScheme))
 
         return box
 

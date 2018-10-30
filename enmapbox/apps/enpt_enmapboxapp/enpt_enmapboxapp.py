@@ -71,12 +71,12 @@ class EnPTEnMAPBoxApp(EnMAPBoxApplication):
         # this way you can add your QMenu/QAction to an other menu entry, e.g. 'Tools'
         # appMenu = self.enmapbox.menu('Tools')
 
-        menu = appMenu.addMenu('EnPT (EnMAP Processing Tools)')
+        menu = appMenu.addMenu('My Example App')
         menu.setIcon(self.icon())
 
         # add a QAction that starts a process of your application.
         # In this case it will open your GUI.
-        a = menu.addAction('Start EnPT GUI')
+        a = menu.addAction('Show ExampleApp GUI')
         assert isinstance(a, QAction)
         a.triggered.connect(self.startGUI)
         appMenu.addMenu(menu)
@@ -134,7 +134,6 @@ def printDictionary(parameters):
 
 
 class EnPTAlgorithm(QgsProcessingAlgorithm):
-    # Input parameters
     P_json_config = 'json_config'
     P_CPUs = 'CPUs'
     P_path_l1b_enmap_image = 'path_l1b_enmap_image'
@@ -158,12 +157,6 @@ class EnPTAlgorithm(QgsProcessingAlgorithm):
     P_deadpix_P_algorithm = 'deadpix_P_algorithm'
     P_deadpix_P_interp = 'deadpix_P_interp'
     P_ortho_resampAlg = 'ortho_resampAlg'
-
-    # # Output parameters
-    # P_OUTPUT_RASTER = 'outraster'
-    # P_OUTPUT_VECTOR = 'outvector'
-    # P_OUTPUT_FILE = 'outfile'
-    # P_OUTPUT_FOLDER = 'outfolder'
 
     @staticmethod
     def group():
@@ -329,22 +322,7 @@ class EnPTAlgorithm(QgsProcessingAlgorithm):
         :param cmd: a normal shell command including parameters
         """
 
-        proc = Popen(shlex.split(cmd), stdout=None if no_stdout else PIPE, stderr=None if no_stderr else PIPE, shell=True)
-        out, err = proc.communicate()
-        exitcode = proc.returncode
-
-        return out, exitcode, err
-
-    @staticmethod
-    def _run_cmd_win(cmd, no_stdout=False, no_stderr=False, cwd=''):
-        """Execute external command and get its stdout, exitcode and stderr.
-        :param cmd: a normal shell command including parameters
-        """
-
-        proc = Popen(shlex.split(cmd),
-                     stdout=None if no_stdout else PIPE,
-                     stderr=None if no_stderr else PIPE,
-                     cwd=cwd)
+        proc = Popen(shlex.split(cmd), stdout=None if no_stdout else PIPE, stderr=None if no_stderr else PIPE)
         out, err = proc.communicate()
         exitcode = proc.returncode
 
@@ -359,54 +337,31 @@ class EnPTAlgorithm(QgsProcessingAlgorithm):
         for key in sorted(parameters):
             feedback.pushInfo('{} = {}'.format(key, repr(parameters[key])))
 
-        # # validate that ENPT_PYENV environment variable is correctly set
-        # if 'ENPT_PYENV_ACTIVATION' not in os.environ:
-        #     raise EnvironmentError("Environment variable 'ENPT_PYENV_ACTIVATION' is not set. "
-        #                            "Please check that the EnPT Python environment is correctly installed.")
-        #
-        # if not os.path.exists(os.environ['ENPT_PYENV_ACTIVATION']):
-        #     raise EnvironmentError("The EnPT Python environment activation script cannot be found at %s. "
-        #                            "Please check that the EnPT Python environment is correctly installed."
-        #                            % os.environ['ENPT_PYENV_ACTIVATION'])
+        # validate that ENPT_PYENV environment variable is correctly set
+        if 'ENPT_PYENV_ACTIVATION' not in os.environ:
+            raise EnvironmentError("Environment variable 'ENPT_PYENV_ACTIVATION' is not set. "
+                                   "Please check that the EnPT Python environment is correctly installed.")
+
+        if not os.path.exists(os.environ['ENPT_PYENV_ACTIVATION']):
+            raise EnvironmentError("The EnPT Python environment activation script cannot be found at %s. "
+                                   "Please check that the EnPT Python environment is correctly installed."
+                                   % os.environ['ENPT_PYENV_ACTIVATION'])
 
         # run EnPT via command line
         keyval_str = ' '.join(['--{} {}'.format(key, parameters[key])
-                               for key in sorted(parameters) if parameters[key] is not None and parameters[key] != ''])
+                               for key in sorted(parameters) if parameters[key] is not None])
         if os.name == 'nt':
             # Windows
-            print(keyval_str + '\n\n')
-#             out, exitcode, err = self._run_cmd_win("enpt_run_cmd.bat " + keyval_str,
-#                                                    cwd=r"D://Temp//SPECHOM_py//enpt_enmapboxapp//bin//")
-            # output, exitcode, err = self._run_cmd_win("enpt_run_cmd.bat --path_l1b_enmap_image D:/Temp/SPECHOM_py/EnPT/tests/data/EnMAP_Level_1B/AlpineTest1_CWV2_SM0.zip",
-            #                                           cwd="D://Temp//SPECHOM_py//enpt_enmapboxapp//bin//")
-            output, exitcode, err = self._run_cmd_win("enpt_run_cmd.bat",
-                                                      cwd="D://Temp//SPECHOM_py//enpt_enmapboxapp//bin//")
-            print('DURCH')
-            print(output.decode('UTF-8'))
-
-            # self._run_cmd("""cmd.exe "/K" D:\Temp\SPECHOM_py\enpt_enmapboxapp\bin\enpt_run_cmd.bat """ + keyval_str)
-            # self._run_cmd("call D:\Temp\SPECHOM_py\enpt_enmapboxapp\bin\enpt_run_cmd.bat " + keyval_str)
-            # self._run_cmd("""cmd.exe "/K" D:\Programme\Anaconda3\Scripts\activate.bat; activate enpt; cmd.exe "/K" D:\Temp\SPECHOM_py\enpt_enmapboxapp\bin\enpt_run_cmd.bat """ + keyval_str)
+            self._run_cmd('call enpt_run_cmd.bat ' + keyval_str)
         else:
             # Linux / OSX
-            output, exitcode, err = self._run_cmd('enpt_run_cmd.sh ' + keyval_str)
+            self._run_cmd('enpt_run_cmd.sh ' + keyval_str)
 
-        if exitcode:
-            raise Exception(err.decode('latin-1'))
-        else:
-            if output:
-                print(output.decode('UTF-8'))
-            else:
-                # FIXME actually there should be always an output (also with controller commands 'start' and 'restart'
-                print('success')
-
-        return 'FERTSCH'
-
-        # # return outputs
-        # return {self.P_OUTPUT_RASTER: parameters[self.P_OUTPUT_RASTER],
-        #         self.P_OUTPUT_VECTOR: parameters[self.P_OUTPUT_RASTER],
-        #         self.P_OUTPUT_FILE: parameters[self.P_OUTPUT_RASTER],
-        #         self.P_OUTPUT_FOLDER: parameters[self.P_OUTPUT_RASTER]}
+        # return outputs
+        return {self.P_OUTPUT_RASTER: parameters[self.P_OUTPUT_RASTER],
+                self.P_OUTPUT_VECTOR: parameters[self.P_OUTPUT_RASTER],
+                self.P_OUTPUT_FILE: parameters[self.P_OUTPUT_RASTER],
+                self.P_OUTPUT_FOLDER: parameters[self.P_OUTPUT_RASTER]}
 
     @staticmethod
     def shortHelpString(*args, **kwargs):

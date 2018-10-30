@@ -110,7 +110,7 @@ class ProcessingAlgorithmsManager(QObject):
             #Signals.htmlCreated.connect(self.onFileCreated)
             from processing.gui.ProcessingToolbox import ProcessingToolbox
             self.toolbox = ProcessingToolbox()
-
+            self.toolbox.addProvider('enmapbox')
             if isinstance(enmapBoxInstance, EnMAPBox):
                 self.enmapBox = enmapBoxInstance
                 # 1. create new menu entry

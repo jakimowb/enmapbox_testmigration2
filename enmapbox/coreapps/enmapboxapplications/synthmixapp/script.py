@@ -147,7 +147,7 @@ class Aggregate(ApplierOperator):
                 results['iqr'].append(p75 - p25)
 
         # normalize to 0-1
-        if 1:
+        if False:
             for key in ['mean', 'median']:
                 if key in keys:
                     total = np.sum(results[key], axis=0)
@@ -160,7 +160,7 @@ class Aggregate(ApplierOperator):
 
 def test():
     import enmapboxtestdata
-    library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+    library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
     labels = Classification.fromENVISpectralLibrary(filename='/vsimem/synthmixRegressionEnsemble/labels.bsq',
                                                     library=library, attribute='level 2')
 

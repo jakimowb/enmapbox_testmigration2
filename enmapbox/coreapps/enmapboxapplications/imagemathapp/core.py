@@ -11,7 +11,10 @@ from PyQt5.QtGui import *
 from PyQt5.Qsci import *
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebKit import QWebSettings
+
+
 from enmapbox.gui.utils import loadUIFormClass
+from enmapboxapplications.utils import loadUIFormClass
 
 from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions, ApplierControls
 import hubdc.core
@@ -109,6 +112,7 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         self.setupUi(self)
         self.nameByLayer = True
 
+        self.uiImportArray.hide()
 
         # init layer
         assert isinstance(self.uiLayer, QgsMapLayerComboBox)
@@ -264,6 +268,8 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
+        self.uiSetArray.hide()
 
         # setup name
         self.uiName().textEdited.connect(self.turnNameByFilenameOff)

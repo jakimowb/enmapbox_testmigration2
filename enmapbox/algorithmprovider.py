@@ -168,8 +168,9 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         :param _emitUpdated: bool, True by default. set on False to not call .emitUpdated() automatically
         :return:
         """
-        self.mAlgorithms.append(algorithm)
+
         super(EnMAPBoxAlgorithmProvider,self).addAlgorithm(algorithm)
+        self.mAlgorithms.append(algorithm)
         if _emitUpdated:
             self.emitUpdated()
 

@@ -64,7 +64,7 @@
              <number>0</number>
             </property>
             <property name="topMargin">
-             <number>0</number>
+             <number>11</number>
             </property>
             <property name="rightMargin">
              <number>0</number>
@@ -110,7 +110,7 @@
              <number>0</number>
             </property>
             <property name="topMargin">
-             <number>0</number>
+             <number>11</number>
             </property>
             <property name="rightMargin">
              <number>0</number>
@@ -213,7 +213,7 @@
                <string> px</string>
               </property>
               <property name="minimum">
-               <number>128</number>
+               <number>256</number>
               </property>
               <property name="maximum">
                <number>999999999</number>
@@ -338,7 +338,7 @@
      <x>0</x>
      <y>0</y>
      <width>1626</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

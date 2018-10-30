@@ -776,7 +776,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
 
                 for label in range(obj.classes()):
                     ci = ClassInfo(label=label, name=obj.name(label+1), color=QColor(obj.color(label+1)))
-                    csi.addClass(ci)
+                    csi.insertClass(ci)
                 ClassificationNode(parentTreeNode, csi, name='Classes')
 
             fetch(obj.__dict__, parentTreeNode=parentTreeNode, fetchedObjectIds=fetchedObjectIds)

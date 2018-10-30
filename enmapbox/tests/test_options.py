@@ -51,7 +51,7 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         cb.setModel(m)
         cb.show()
 
-        sources = [enmap, hymap]
+        sources = [enmap, hires]
         options = [Option(source, os.path.basename(source)) for source in sources]
         m.addOptions(options)
 

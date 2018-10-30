@@ -24,7 +24,7 @@ from qgis.core import *
 from osgeo import gdal, ogr
 import numpy as np
 
-from enmapboxtestdata import enmap, hymap, landcover
+from enmapboxtestdata import enmap, hires, landcover
 from enmapbox.gui.classificationscheme import ClassificationScheme
 from metadataeditorapp.metadatakeys import *
 from metadataeditorapp.metadataeditor import *
