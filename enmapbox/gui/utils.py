@@ -107,7 +107,7 @@ def nextColor(color, mode='cat'):
 class TestObjects():
     @staticmethod
     def inMemoryClassification(n=3, nl=10, ns=20, nb=1, crs='EPSG:32632'):
-        from enmapbox.gui.classificationscheme import ClassificationScheme
+        from enmapbox.gui.classification.classificationscheme import ClassificationScheme
         scheme = ClassificationScheme()
         scheme.createClasses(n)
 

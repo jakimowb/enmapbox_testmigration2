@@ -17,18 +17,8 @@
 ***************************************************************************
 """
 
-from PyQt5.QtXml import *
-
-import enmapbox
-from qgis.core import *
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QMimeData
-import numpy as np
-
-
-from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
-from enmapbox.gui.mapcanvas import MapDock
+
 
 #from enmapbox.gui.datasourcemanager import HubFlowObjectTreeNode, \
 #    FileDataSourceTreeNode, RasterDataSourceTreeNode, VectorDataSourceTreeNode, DataSourceTreeNode, \
@@ -329,7 +319,7 @@ class ClassificationNode(TreeNode):
 
     def __init__(self, parent, classificationScheme, name='Classification Scheme'):
         super(ClassificationNode, self).__init__(parent, name)
-        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+        from enmapbox.gui.classification.classificationscheme import ClassificationScheme, ClassInfo
         assert isinstance(classificationScheme, ClassificationScheme)
         self.setName(name)
         for i, ci in enumerate(classificationScheme):

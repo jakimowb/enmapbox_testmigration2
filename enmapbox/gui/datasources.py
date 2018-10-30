@@ -777,7 +777,7 @@ class DataSourceRaster(DataSourceSpatial):
             self.mDatasetMetadata = fetchMetadata(ds)
 
 
-            from enmapbox.gui.classificationscheme import ClassificationScheme
+            from enmapbox.gui.classification.classificationscheme import ClassificationScheme
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b+1)
                 assert isinstance(band, gdal.Band)

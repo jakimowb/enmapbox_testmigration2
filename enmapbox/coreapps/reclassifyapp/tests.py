@@ -1,15 +1,10 @@
-
-import os, re, io, tempfile
-
-from osgeo import gdal
-import numpy as np
 import unittest
 from unittest import TestCase
 from reclassifyapp.reclassify import *
-from enmapbox.gui.classificationscheme import ClassificationScheme
+from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 from enmapbox.gui.utils import *
 APP = initQgisApplication()
-from enmapbox.gui.utils import initQgisApplication
+
 
 class TestReclassify(TestCase):
 
@@ -86,7 +81,7 @@ class TestReclassify(TestCase):
 
         ui1.addSrcRaster(self.pathClassA)
         ui1.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
-        from enmapbox.gui.classificationscheme import ClassificationScheme
+        from enmapbox.gui.classification.classificationscheme import ClassificationScheme
         cs = ClassificationScheme.create(2)
         cs[1].setName('Foobar')
         ui1.setDstClassification(cs)

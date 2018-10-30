@@ -576,7 +576,7 @@ class RasterBandTreeNode(TreeNode):
         self.mBandIndex = bandIndex
 
         md = self.mDataSource.mBandMetadata[bandIndex]
-        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+        from enmapbox.gui.classification.classificationscheme import ClassificationScheme, ClassInfo
         classScheme = md.get('__ClassificationScheme__')
         if isinstance(classScheme, ClassificationScheme):
             for ci in classScheme:
@@ -771,7 +771,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             parentTreeNode.setValue('{}.{}'.format(moduleName, className))
             #ClassDefinitions
             if isinstance(obj, hubflow.core.ClassDefinition):
-                from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+                from enmapbox.gui.classification.classificationscheme import ClassificationScheme, ClassInfo
                 csi = ClassificationScheme()
 
                 for label in range(obj.classes()):

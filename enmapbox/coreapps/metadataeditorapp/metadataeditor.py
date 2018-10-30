@@ -20,19 +20,13 @@
 """
 
 
-import os, collections, copy, re, sys
-from qgis.core import *
-from qgis.gui import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from osgeo import gdal, ogr, osr
+import sys
 
-import numpy as np
 from enmapbox.gui.utils import loadUIFormClass, guessDataProvider
 from enmapbox.gui.widgets.trees import TreeModel, TreeNode
 from metadataeditorapp.metadatakeys import *
-from enmapbox.gui.widgets.models import OptionListModel, Option, currentComboBoxValue
-from enmapbox.gui.classificationscheme import *
+from enmapbox.gui.widgets.models import OptionListModel, Option
+from enmapbox.gui.classification.classificationscheme import *
 
 
 from metadataeditorapp import APP_DIR

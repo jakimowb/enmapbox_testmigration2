@@ -15,11 +15,11 @@
 *                                                                         *
 ***************************************************************************
 """
-import re, typing, copy
+import re, copy
 from osgeo import gdal, ogr
 from qgis.core import *
 from qgis.PyQt.QtCore import QDate
-from enmapbox.gui.classificationscheme import ClassificationScheme
+from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 import numpy as np
 IMMUTABLE_DOMAINS = ['IMAGE_STRUCTURE','SUBDATASETS']
 

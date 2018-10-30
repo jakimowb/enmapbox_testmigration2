@@ -19,9 +19,9 @@
 ***************************************************************************
 """
 
-import collections, sys, os
+import os
 from osgeo import gdal
-from enmapbox.gui.classificationscheme import ClassInfo, ClassificationScheme
+from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QSize
 import numpy as np

@@ -279,8 +279,8 @@ class ClassificationScheme(QAbstractTableModel):
         """
 
         if indexes is None:
-
             indexes = [self.createIndex(r, 0) for r in range(len(self))]
+
         classes = [self[idx.row()] for idx in indexes]
         cs = ClassificationScheme()
         cs.insertClasses(classes)
@@ -1197,6 +1197,17 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
 
         self.initActions()
 
+    def onCopyClasses(self):
+        cb = QApplication.clipboard()
+        assert isinstance(cb, QClipboard)
+        cb.setMimeData(self.mScheme.mimeData())
+
+    def onPasteClasses(self):
+        cb = QApplication.clipboard()
+        assert isinstance(cb, QClipboard)
+        mimeData = QApplication.clipboard().mimeData()
+
+        s  =""
 
     def onSaveClasses(self):
 
@@ -1268,17 +1279,37 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         a = m.addAction('Load from other textfile')
         a.triggered.connect(lambda : self.onLoadClasses('textfile'))
 
+
         self.btnLoadClasses.setMenu(m)
 
         self.actionRemoveClasses.triggered.connect(self.removeSelectedClasses)
         self.actionAddClasses.triggered.connect(lambda : self.createClasses(1))
+
+        self.actionSaveClasses.setIcon(QIcon(r'://images/themes/default/mActionFileSaveAs.svg'))
         self.actionSaveClasses.triggered.connect(self.onSaveClasses)
+
+
+        def onClipboard():
+            mimeData = QApplication.clipboard().mimeData()
+            b = isinstance(mimeData, QMimeData) and MIMEDATA_KEY_TEXT in mimeData.formats()
+            self.actionPasteClasses.setEnabled(b)
+
+        cb = QApplication.clipboard()
+        assert isinstance(cb, QClipboard)
+        cb.dataChanged.connect(onClipboard)
+        self.actionPasteClasses.setIcon(QIcon(r'://images/themes/default/mActionEditPaste.svg'))
+        self.actionPasteClasses.triggerd.connect(self.onPasteClasses)
+
+        self.actionCopyClasses.setIcon(QIcon(r'://images/themes/default/mActionEditCopy.svg'))
+        self.actionCopyClasses.triggerd.connect(self.onCopyClasses)
 
         self.btnSaveClasses.setDefaultAction(self.actionSaveClasses)
         self.btnRemoveClasses.setDefaultAction(self.actionRemoveClasses)
         self.btnAddClasses.setDefaultAction(self.actionAddClasses)
+        self.bntCopyClasses.setDefaultAction(self.actionCopyClasses)
+        self.bntPasteClasses.setDefaultAction(self.actionPasteClasses)
 
-
+        onClipboard()
     def onTableDoubleClick(self, idx):
         model = self.tableClassificationScheme.model()
         assert isinstance(model, ClassificationScheme)

@@ -7,12 +7,11 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
-
 import tempfile
-from enmapbox.gui.utils import *
-from enmapbox.gui.classification.classificationscheme import *
 import enmapboxtestdata
 
+from enmapbox.gui.utils import *
+from .classificationscheme import *
 
 SHOW_GUIS = True
 
@@ -30,19 +29,19 @@ class TestsClassificationScheme(TestCase):
     def createClassSchemeA(self)->ClassificationScheme:
 
         cs = ClassificationScheme()
-        cs.addClass(ClassInfo(name='unclassified', color=QColor('black')))
-        cs.addClass(ClassInfo(name='Forest', color=QColor('green')))
-        cs.addClass(ClassInfo(name='None-Forest', color=QColor('blue')))
+        cs.insertClass(ClassInfo(name='unclassified', color=QColor('black')))
+        cs.insertClass(ClassInfo(name='Forest', color=QColor('green')))
+        cs.insertClass(ClassInfo(name='None-Forest', color=QColor('blue')))
         return cs
 
     def createClassSchemeB(self)->ClassificationScheme:
 
         cs = ClassificationScheme()
-        cs.addClass(ClassInfo(name='unclassified', color=QColor('black')))
-        cs.addClass(ClassInfo(name='Forest', color=QColor('green')))
-        cs.addClass(ClassInfo(name='Water', color=QColor('blue')))
-        cs.addClass(ClassInfo(name='Urban', color=QColor('red')))
-        cs.addClass(ClassInfo(name='Agriculture', color=QColor('red')))
+        cs.insertClass(ClassInfo(name='unclassified', color=QColor('black')))
+        cs.insertClass(ClassInfo(name='Forest', color=QColor('green')))
+        cs.insertClass(ClassInfo(name='Water', color=QColor('blue')))
+        cs.insertClass(ClassInfo(name='Urban', color=QColor('red')))
+        cs.insertClass(ClassInfo(name='Agriculture', color=QColor('red')))
         cs.insertClass(ClassInfo(name='unclassified', color=QColor('black')))
         cs.insertClass(ClassInfo(name='Class A', color=QColor('green')))
         cs.insertClass(ClassInfo(name='Class B', color=QColor('blue')))
@@ -276,19 +275,6 @@ class TestsClassificationScheme(TestCase):
 
         if SHOW_GUIS:
             QGIS_APP.exec_()
-
-    def test_ClassificationSchemeComboBoxItemModel(self):
-
-        cs = self.createClassScheme()
-        m = ClassificationSchemeComboBoxItemModel(None)
-        self.assertIsInstance(m, ClassificationSchemeComboBoxItemModel)
-        m.setClassificationScheme(cs)
-        self.assertTrue(m.hasClassification())
-        self.assertEqual(m.classificationScheme(), cs)
-        self.assertEqual(m.rowCount(), len(cs))
-        self.assertEqual(m.columnCount(), 1)
-        self.assertIsInstance(m.data(m.createIndex(0,0), role=Qt.DecorationRole), QIcon)
-
 
 
     def test_ClassificationSchemeComboBox(self):
