@@ -1209,14 +1209,9 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
 
 
 
-        #self.tableClassificationScheme.verticalHeader().setMovable(True)
-        assert isinstance(self.tableClassificationScheme, QTableView)
-        #self.tableClassificationScheme.setAcceptDrops(True)
-        #self.tableClassificationScheme.setDragDropMode(QAbstractItemView.InternalMove)
-        #self.tableClassificationScheme.setDragEnabled(True)
-        #self.tableClassificationScheme.setAcceptDrops(True)
 
-        #self.tableClassificationScheme.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        assert isinstance(self.tableClassificationScheme, QTableView)
+        self.tableClassificationScheme.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
         self.tableClassificationScheme.setModel(self.mScheme)
         self.tableClassificationScheme.doubleClicked.connect(self.onTableDoubleClick)
         self.tableClassificationScheme.resizeColumnsToContents()
@@ -1225,15 +1220,18 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
         self.onSelectionChanged()  # enable/disabel widgets depending on a selection
         self.tableClassificationScheme.setSelectionModel(self.selectionModel)
 
-        # self.delegate = ClassificationWidgetDelegates(self.tableClassificationScheme)
-        # self.tableClassificationScheme.setItemDelegateForColumn(2, self.delegate)
-
         self.initActions()
 
     def onCopyClasses(self):
+
+        classes = self.selectedClasses()
+        if len(classes) == 0:
+            return
+        cs = ClassificationScheme()
+        cs.insertClasses(classes)
         cb = QApplication.clipboard()
         assert isinstance(cb, QClipboard)
-        cb.setMimeData(self.mScheme.mimeData(None))
+        cb.setMimeData(cs.mimeData(None))
 
     def onPasteClasses(self):
         cb = QApplication.clipboard()
@@ -1244,10 +1242,14 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
         if isinstance(cs, ClassificationScheme):
             self.mScheme.insertClasses(cs[:])
 
-
-        s  =""
-
     def onSaveClasses(self):
+
+        classes = self.selectedClasses()
+        if len(classes) == 0:
+            return
+
+        cs = ClassificationScheme()
+        cs.insertClasses(classes)
 
         filter = "CSV (*.csv *.txt);;JSON (*.json)"
         path, filter = QFileDialog.getSaveFileName(self, "Save classes to file",
@@ -1260,7 +1262,7 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
 
             elif path.endswith('.csv'):
 
-                self.mScheme.saveToCsv(path)
+                cs.saveToCsv(path)
 
             if filter == 'csv':
                 pass
@@ -1358,16 +1360,27 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
             model.setData(idx, c, role=Qt.EditRole)
 
     def onSelectionChanged(self, *args):
-        self.btnRemoveClasses.setEnabled(self.selectionModel is not None and
-                                         len(self.selectionModel.selectedRows()) > 0)
+        b = self.selectionModel is not None and len(self.selectionModel.selectedRows()) > 0
+        self.actionRemoveClasses.setEnabled(b)
+        self.actionCopyClasses.setEnabled(b)
+        self.actionSaveClasses.setEnabled(b)
 
     def createClasses(self, n):
         self.mScheme.createClasses(n)
 
-    def removeSelectedClasses(self):
+
+    def selectedClasses(self)->list:
+        """
+        Returns the list of selected ClassInfos
+        :return: [list-of-ClassInfo]
+        """
         indices = reversed(self.selectionModel.selectedRows())
-        classes = [self.mScheme.index2ClassInfo(idx) for idx in indices]
-        self.mScheme.removeClasses(classes)
+        return [self.mScheme.index2ClassInfo(idx) for idx in indices]
+
+    def removeSelectedClasses(self):
+        classes = self.selectedClasses()
+        if len(classes) > 0:
+            self.mScheme.removeClasses(classes)
 
     def loadClasses(self, *args):
         from enmapbox import enmapboxSettings
@@ -1617,6 +1630,8 @@ class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
         :return: int
         """
         #log(' fieldScore()')
+        if fieldIdx < 0:
+            return 0
         field = vl.fields().at(fieldIdx)
         assert isinstance(field, QgsField)
         if field.type() == QVariant.String and field.name():

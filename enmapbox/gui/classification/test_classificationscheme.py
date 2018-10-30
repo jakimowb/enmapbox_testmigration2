@@ -227,11 +227,11 @@ class TestsClassificationScheme(TestCase):
         print(vl.fields().names())
         look = vl.fields().lookupField
 
-        self.assertTrue(factory.fieldScore(vl, look('class_label')) == 20)
-        self.assertTrue(factory.fieldScore(vl, look('class_name')) == 20)
+        self.assertTrue(factory.fieldScore(vl, look(self.nameL1)) == 20)
+        self.assertTrue(factory.fieldScore(vl, look(self.nameL2)) == 20)
 
         parent = QWidget()
-        configWidget = factory.configWidget(vl, look('class_label'), None)
+        configWidget = factory.configWidget(vl, look(self.nameL1), None)
         self.assertIsInstance(configWidget, ClassificationSchemeEditorConfigWidget)
         configWidget.show()
 
