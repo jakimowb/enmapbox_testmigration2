@@ -46,7 +46,7 @@
         <string>Load</string>
        </property>
        <property name="icon">
-        <iconset resource="resources.qrc">
+        <iconset>
          <normaloff>:/enmapbox/icons/mActionAdd.svg</normaloff>:/enmapbox/icons/mActionAdd.svg</iconset>
        </property>
        <property name="popupMode">
@@ -60,10 +60,10 @@
      <item>
       <widget class="QToolButton" name="btnSaveClasses">
        <property name="text">
-        <string>...</string>
+        <string>Save</string>
        </property>
        <property name="icon">
-        <iconset resource="resources.qrc">
+        <iconset>
          <normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</iconset>
        </property>
        <property name="autoRaise">
@@ -80,7 +80,7 @@
         <string>Add</string>
        </property>
        <property name="icon">
-        <iconset resource="resources.qrc">
+        <iconset>
          <normaloff>:/enmapbox/icons/copyright_label.svg</normaloff>:/enmapbox/icons/copyright_label.svg</iconset>
        </property>
        <property name="autoRaise">
@@ -97,7 +97,7 @@
         <string>Remove</string>
        </property>
        <property name="icon">
-        <iconset resource="resources.qrc">
+        <iconset>
          <normaloff>:/enmapbox/icons/remove_class.svg</normaloff>:/enmapbox/icons/remove_class.svg</iconset>
        </property>
        <property name="autoRaise">
@@ -108,10 +108,10 @@
      <item>
       <widget class="QToolButton" name="btnCopyClasses">
        <property name="text">
-        <string>...</string>
+        <string>Copy</string>
        </property>
        <property name="icon">
-        <iconset resource="resources.qrc">
+        <iconset>
          <normaloff>:/enmapbox/icons/mActionEditCopy.svg</normaloff>:/enmapbox/icons/mActionEditCopy.svg</iconset>
        </property>
        <property name="autoRaise">
@@ -122,10 +122,10 @@
      <item>
       <widget class="QToolButton" name="btnPasteClasses">
        <property name="text">
-        <string>...</string>
+        <string>Paste</string>
        </property>
        <property name="icon">
-        <iconset resource="resources.qrc">
+        <iconset>
          <normaloff>:/enmapbox/icons/mActionEditPaste.svg</normaloff>:/enmapbox/icons/mActionEditPaste.svg</iconset>
        </property>
        <property name="autoRaise">
@@ -176,8 +176,8 @@
   </layout>
   <action name="actionAddClasses">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/add_class.svg</normaloff>:/enmapbox/icons/add_class.svg</iconset>
+    <iconset resource="classification_resources.qrc">
+     <normaloff>:/classificationimages/add_class.svg</normaloff>:/classificationimages/add_class.svg</iconset>
    </property>
    <property name="text">
     <string>Add Class</string>
@@ -185,8 +185,8 @@
   </action>
   <action name="actionRemoveClasses">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/remove_class.svg</normaloff>:/enmapbox/icons/remove_class.svg</iconset>
+    <iconset resource="classification_resources.qrc">
+     <normaloff>:/classificationimages/remove_class.svg</normaloff>:/classificationimages/remove_class.svg</iconset>
    </property>
    <property name="text">
     <string>Remove Classes</string>
@@ -194,7 +194,7 @@
   </action>
   <action name="actionCopyClasses">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset>
      <normaloff>:/enmapbox/icons/mActionEditCopy.svg</normaloff>:/enmapbox/icons/mActionEditCopy.svg</iconset>
    </property>
    <property name="text">
@@ -203,7 +203,7 @@
   </action>
   <action name="actionPasteClasses">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset>
      <normaloff>:/enmapbox/icons/mActionEditPaste.svg</normaloff>:/enmapbox/icons/mActionEditPaste.svg</iconset>
    </property>
    <property name="text">
@@ -212,7 +212,7 @@
   </action>
   <action name="actionSaveClasses">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset>
      <normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</iconset>
    </property>
    <property name="text">
@@ -221,7 +221,7 @@
   </action>
  </widget>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="classification_resources.qrc"/>
  </resources>
  <connections/>
 </ui>
