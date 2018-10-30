@@ -1,7 +1,7 @@
 import sys, os, site
 
 
-from qgis.core import Qgis, QgsApplication
+from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
 from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QSettings
 
@@ -105,8 +105,44 @@ registerPlotStyleEditorWidget()
 from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
 registerSpectralProfileEditorWidget()
 
-from enmapbox.gui.classificationscheme import registerClassificationSchemeEditorWidget
-registerClassificationSchemeEditorWidget()
+
+
+_enmapboxProvider = None
+def initEnMAPBoxProcessingProvider():
+    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
+
+    import processing
+    processing.Processing.initialize()
+
+    registry = QgsApplication.instance().processingRegistry()
+    assert isinstance(registry, QgsProcessingRegistry)
+    global _enmapboxProvider
+    if not isinstance(_enmapboxProvider, QgsProcessingProvider):
+        _enmapboxProvider = registry.providerById(ID)
+    if not isinstance(_enmapboxProvider, QgsProcessingProvider):
+        _enmapboxProvider = EnMAPBoxAlgorithmProvider()
+
+        assert _enmapboxProvider.id() == ID
+        registry.addProvider(_enmapboxProvider)
+    assert registry.providerById(ID) == _enmapboxProvider
+    assert isinstance(_enmapboxProvider, EnMAPBoxAlgorithmProvider)
+
+    try:
+        import enmapboxgeoalgorithms.algorithms
+        existingAlgNames = [a.name() for a in registry.algorithms() if a.groupId() == _enmapboxProvider.id()]
+        missingAlgs = [a for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS if a.name() not in existingAlgNames]
+        _enmapboxProvider.addAlgorithms(missingAlgs)
+        #_enmapboxProvider.refreshAlgorithms()
+        s = ""
+    except Exception as ex:
+        info = ['Failed to load QgsProcessingAlgorithms.\n{}'.format(str(ex))]
+        info.append('PYTHONPATH:')
+
+        for p in sorted(sys.path):
+            info.append(p)
+
+        print('\n'.join(info), file=sys.stderr)
+
 
 def run():
     """

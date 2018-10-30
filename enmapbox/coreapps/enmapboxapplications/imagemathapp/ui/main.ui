@@ -64,7 +64,7 @@
              <number>0</number>
             </property>
             <property name="topMargin">
-             <number>0</number>
+             <number>11</number>
             </property>
             <property name="rightMargin">
              <number>0</number>
@@ -110,7 +110,7 @@
              <number>0</number>
             </property>
             <property name="topMargin">
-             <number>0</number>
+             <number>11</number>
             </property>
             <property name="rightMargin">
              <number>0</number>
@@ -213,7 +213,7 @@
                <string> px</string>
               </property>
               <property name="minimum">
-               <number>128</number>
+               <number>256</number>
               </property>
               <property name="maximum">
                <number>999999999</number>
@@ -310,7 +310,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="../../../../../QGIS-master/images/images.qrc">
+             <iconset>
               <normaloff>:/images/themes/default/propertyicons/action.svg</normaloff>:/images/themes/default/propertyicons/action.svg</iconset>
             </property>
             <property name="iconSize">
@@ -338,7 +338,7 @@
      <x>0</x>
      <y>0</y>
      <width>1626</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -389,7 +389,6 @@
  </customwidgets>
  <resources>
   <include location="../../ressources.qrc"/>
-  <include location="../../../../../QGIS-master/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>

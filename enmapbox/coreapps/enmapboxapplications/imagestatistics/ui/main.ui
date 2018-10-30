@@ -146,7 +146,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/propertyicons/action.svg</normaloff>:/images/themes/default/propertyicons/action.svg</iconset>
         </property>
         <property name="iconSize">
@@ -196,7 +196,7 @@
          <string>clear plots</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/console/iconClearConsole.svg</normaloff>:/images/themes/default/console/iconClearConsole.svg</iconset>
         </property>
         <property name="autoRaise">
@@ -213,7 +213,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/histogram.svg</normaloff>:/images/themes/default/histogram.svg</iconset>
         </property>
         <property name="autoRaise">
@@ -230,7 +230,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
         </property>
         <property name="checkable">
@@ -250,7 +250,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/mIconEditableEdits.svg</normaloff>:/images/themes/default/mIconEditableEdits.svg</iconset>
         </property>
         <property name="checkable">
@@ -332,8 +332,6 @@
    <header>enmapboxapplications.imagestatistics.core</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../../../../QGIS-master/images/images.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

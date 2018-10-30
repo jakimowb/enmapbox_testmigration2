@@ -11,7 +11,11 @@ from PyQt5.QtGui import *
 from PyQt5.Qsci import *
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebKit import QWebSettings
+
+
+from enmapbox.gui.utils import loadUIFormClass
 from enmapboxapplications.utils import loadUIFormClass
+
 from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions, ApplierControls
 import hubdc.core
 import hubdc.progressbar
@@ -108,6 +112,7 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         self.setupUi(self)
         self.nameByLayer = True
 
+        self.uiImportArray.hide()
 
         # init layer
         assert isinstance(self.uiLayer, QgsMapLayerComboBox)
@@ -233,15 +238,24 @@ class OutputFilename(QgsFileWidget):
         super().__init__(parent)
         self.setStorageMode(QgsFileWidget.SaveFile)
 
-    def value(self):
+    def value(self, default):
         filename = self.filePath()
-        if isabs(filename):
+
+        if filename.startswith('/vsimem/'):
             pass
-        elif isabs(join(self._defaultRoot, filename)):
-            filename = join(self._defaultRoot, filename)
         else:
-            raise InvalidOutputPathError(filename)
-        filename = abspath(filename)  # deals with '..' inside the path
+            if isabs(filename):
+                pass
+            elif isabs(join(self._defaultRoot, filename)):
+                filename = join(self._defaultRoot, filename)
+            else:
+                raise InvalidOutputPathError(filename)
+            filename = abspath(filename)  # deals with '..' inside the path
+
+        if filename == self._defaultRoot:
+            filename = default
+            self.setFilePath(default)
+
         return filename
 
 class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
@@ -254,6 +268,8 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
+        self.uiSetArray.hide()
 
         # setup name
         self.uiName().textEdited.connect(self.turnNameByFilenameOff)
@@ -282,7 +298,7 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
         return self.uiName().value()
 
     def filename(self):
-        return self.uiFilename().value()
+        return self.uiFilename().value(default='/vsimem/{}.bsq'.format(self.name()))
 
     def value(self):
         value = dict()
@@ -430,7 +446,8 @@ class ItemList(QWidget, loadUIFormClass(pathUi=join(pathUi, 'itemList.ui'))):
             item = self.uiLayout.itemAt(index).widget()
             if item is None: continue
             value = item.value()
-            if value is None: continue
+            if value is None:
+                continue
             values.append(value)
         return values
 

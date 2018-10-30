@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import pyqtgraph as pg
 from pyqtgraph.widgets.PlotWidget import PlotWidget as PlotWidget_
-from enmapboxapplications.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass
 import hubdc.progressbar
 from hubflow.core import *
 import operator

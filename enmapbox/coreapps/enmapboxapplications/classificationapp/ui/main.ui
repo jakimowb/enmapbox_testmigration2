@@ -631,13 +631,6 @@ p, li { white-space: pre-wrap; }
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="checkBox_5">
-             <property name="text">
-              <string>Probability</string>
-             </property>
-            </widget>
-           </item>
            <item row="2" column="1">
             <widget class="QgsFileWidget" name="uiProbabilityFilename_">
              <property name="enabled">
@@ -667,6 +660,27 @@ p, li { white-space: pre-wrap; }
               <bool>true</bool>
              </property>
             </widget>
+           </item>
+           <item row="2" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QCheckBox" name="checkBox_5">
+               <property name="text">
+                <string>Probability</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="uiRGB_">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="text">
+                <string>RGB</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
@@ -750,7 +764,7 @@ p, li { white-space: pre-wrap; }
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/propertyicons/system.svg</normaloff>:/images/themes/default/propertyicons/system.svg</iconset>
         </property>
         <property name="iconSize">
@@ -776,7 +790,7 @@ p, li { white-space: pre-wrap; }
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/propertyicons/action.svg</normaloff>:/images/themes/default/propertyicons/action.svg</iconset>
         </property>
         <property name="iconSize">
@@ -829,9 +843,7 @@ p, li { white-space: pre-wrap; }
    <header>qgsmaplayercombobox.h</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../../../../QGIS-master/images/images.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>uiClassification_</sender>
@@ -840,12 +852,12 @@ p, li { white-space: pre-wrap; }
    <slot>setLayer(QgsMapLayer*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>220</x>
-     <y>104</y>
+     <x>291</x>
+     <y>100</y>
     </hint>
     <hint type="destinationlabel">
-     <x>615</x>
-     <y>116</y>
+     <x>835</x>
+     <y>100</y>
     </hint>
    </hints>
   </connection>
@@ -856,28 +868,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>90</x>
-     <y>677</y>
+     <x>102</x>
+     <y>695</y>
     </hint>
     <hint type="destinationlabel">
      <x>161</x>
      <y>680</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBox_5</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>uiProbabilityFilename_</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>71</x>
-     <y>706</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>159</x>
-     <y>705</y>
     </hint>
    </hints>
   </connection>
@@ -892,8 +888,8 @@ p, li { white-space: pre-wrap; }
      <y>780</y>
     </hint>
     <hint type="destinationlabel">
-     <x>237</x>
-     <y>786</y>
+     <x>215</x>
+     <y>788</y>
     </hint>
    </hints>
   </connection>
@@ -920,12 +916,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>48</x>
-     <y>579</y>
+     <x>69</x>
+     <y>611</y>
     </hint>
     <hint type="destinationlabel">
-     <x>193</x>
-     <y>579</y>
+     <x>298</x>
+     <y>614</y>
     </hint>
    </hints>
   </connection>
@@ -936,8 +932,8 @@ p, li { white-space: pre-wrap; }
    <slot>setLayer(QgsMapLayer*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>118</x>
-     <y>78</y>
+     <x>188</x>
+     <y>73</y>
     </hint>
     <hint type="destinationlabel">
      <x>174</x>
@@ -952,12 +948,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>123</x>
-     <y>322</y>
+     <x>102</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>214</x>
-     <y>327</y>
+     <x>322</x>
+     <y>298</y>
     </hint>
    </hints>
   </connection>
@@ -968,12 +964,44 @@ p, li { white-space: pre-wrap; }
    <slot>setCurrentIndex(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>161</x>
-     <y>177</y>
+     <x>145</x>
+     <y>160</y>
     </hint>
     <hint type="destinationlabel">
-     <x>234</x>
-     <y>178</y>
+     <x>252</x>
+     <y>160</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_5</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>uiRGB_</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>62</x>
+     <y>717</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>109</x>
+     <y>717</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_5</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>uiProbabilityFilename_</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>32</x>
+     <y>718</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>227</x>
+     <y>721</y>
     </hint>
    </hints>
   </connection>

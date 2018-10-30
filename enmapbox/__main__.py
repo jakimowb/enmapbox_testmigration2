@@ -18,28 +18,28 @@
 """
 
 import sys, os, site
-
+from qgis.core import QgsApplication, QgsProcessingRegistry, QgsProcessingAlgorithm
 import enmapbox
-
 
 def run():
     """
     Starts the EnMAP-Box GUI.
     :return:
     """
-
     from enmapbox.gui.utils import initQgisApplication
     qgisApp = initQgisApplication()
-
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    import enmapbox.gui
+    import enmapbox
     enmapbox.DEBUG = False
     enmapbox.LOAD_PROCESSING_FRAMEWORK = True
     enmapbox.LOAD_EXTERNAL_APPS = True
 
-    from qgis.utils import iface
-    enmapbox = EnMAPBox(iface)
-    enmapbox.run()
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    import qgis.utils
+
+    enmapBox = EnMAPBox(qgis.utils.iface)
+    enmapbox.initEnMAPBoxProcessingProvider()
+    enmapBox.run()
+
     qgisApp.exec_()
 
 
