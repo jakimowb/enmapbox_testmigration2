@@ -24,7 +24,7 @@ QGIS_APP = initQgisApplication()
 import enmapbox.dependencycheck
 enmapbox.dependencycheck.installTestdata()
 
-from enmapboxtestdata import enmap, hymap, landcover, speclib
+from enmapboxtestdata import enmap, hires, landcover, library
 from enmapbox.gui.mapcanvas import *
 
 
@@ -121,8 +121,8 @@ class MapCanvasTests(unittest.TestCase):
 
 
         from enmapbox.gui.utils import TestObjects
-        allFiles = [enmap, hymap, landcover, speclib]
-        spatialFiles = [enmap, hymap, landcover]
+        allFiles = [enmap, hires, landcover, library]
+        spatialFiles = [enmap, hires, landcover]
 
         from enmapbox.gui.mimedata import MDF_URILIST, MDF_DATASOURCETREEMODELDATA, MDF_SPECTRALLIBRARY, MDF_DOCKTREEMODELDATA
         md = QMimeData()
@@ -157,13 +157,13 @@ def exampleMapLinking():
     #add site-packages to sys.path as done by enmapboxplugin.py
 
     from enmapbox.gui.utils import initQgisApplication
-    from enmapboxtestdata import enmap, hymap, landcover
+    from enmapboxtestdata import enmap, hires, landcover
     from enmapbox.gui.mapcanvas import CanvasLinkDialog
     import enmapbox.gui.mapcanvas
     enmapbox.gui.mapcanvas.DEBUG = True
     qgsApp = initQgisApplication()
     import math
-    geoFiles = [enmap, hymap, landcover]
+    geoFiles = [enmap, hires, landcover]
     nMaps = 4
 
     maps = []
