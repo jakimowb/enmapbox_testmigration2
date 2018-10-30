@@ -35,6 +35,8 @@ DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
 DEFAULT_FIRST_COLOR = QColor('#a6cee3')
 
 MIMEDATA_KEY = 'hub-classscheme'
+MIMEDATA_KEY_TEXT = 'text/plain'
+MIMEDATA_INTERNAL_IDs = 'classinfo_ids'
 
 MAP_LAYER_STORES = set([QgsProject.instance()])
 
@@ -222,24 +224,78 @@ class ClassificationScheme(QAbstractTableModel):
         self.mColLabel = 'Label'
 
     def setIsEditable(self, b:bool):
+        """
+        Sets if class names and colors can be changed
+        :param b: bool
+        """
         if b != self.mIsEditable:
             self.mIsEditable = True
             self.dataChanged(self.createIndex(0,0),
                              self.createIndex(self.rowCount()-1, self.columnCount()-1))
 
     def isEditable(self)->bool:
+        """
+        Returns if class names and colors can be changed.
+        :return: bool
+        """
         return self.mIsEditable
 
     def columnNames(self)->list:
         """
-        Returns the column names
+        Returns the column names.
         :return: [list-of-str]
         """
         return [self.mColLabel, self.mColName, self.mColColor]
 
+    def dropMimeData(self, mimeData:QMimeData, action:Qt.DropAction, row:int, column:int, parent:QModelIndex):
+
+        if MIMEDATA_INTERNAL_IDs in mimeData.formats() and action == Qt.MoveAction:
+            ba = bytes(mimeData.data(MIMEDATA_INTERNAL_IDs))
+            ids = pickle.loads(ba)
+
+            classesToBeMoved = [c for c in self if id(c) in ids]
+            for c in reversed(classesToBeMoved):
+                idx = self.classInfo2index(c)
+
+                self.beginMoveRows(QModelIndex(), idx.row(), idx.row(), QModelIndex(), row)
+                del self.mClasses[idx.row()]
+                self.mClasses.insert(row, c)
+                self.endMoveRows()
+
+        elif MIMEDATA_KEY in mimeData.formats():
+            s = ""
+
+
+    def mimeData(self, indexes)->QMimeData:
+        """
+        Returns class infos as QMimeData.
+        :param indexes:
+        :return:
+        """
+
+        if indexes is None:
+
+            indexes = [self.createIndex(r, 0) for r in range(len(self))]
+        classes = [self[idx.row()] for idx in indexes]
+        cs = ClassificationScheme()
+        cs.insertClasses(classes)
+        mimeData = QMimeData()
+        mimeData.setData(MIMEDATA_KEY, cs.qByteArray())
+        mimeData.setData(MIMEDATA_INTERNAL_IDs, QByteArray(pickle.dumps([id(c) for c in classes ])))
+        mimeData.setText(cs.toString())
+        return mimeData
+
+    def mimeTypes(self)->list:
+        """
+        Returns a list of supported mimeTypes.
+        :return: [list-of-str]
+        """
+        return [MIMEDATA_KEY, MIMEDATA_INTERNAL_IDs, MIMEDATA_KEY_TEXT]
+
+
     def rowCount(self, parent:QModelIndex=None):
         """
-        Returns the number of row / ClassInfos
+        Returns the number of row / ClassInfos.
         :param parent: QModelIndex
         :return: int
         """
@@ -429,10 +485,11 @@ class ClassificationScheme(QAbstractTableModel):
 
             s = ""
             cs = ClassificationScheme(name= data['name'])
-
+            classes = []
             for classData in data['classes']:
                 label, name, colorName = classData
-                cs.addClass(ClassInfo(label=label, name=name, color=QColor(colorName)))
+                classes.append(ClassInfo(label=label, name=name, color=QColor(colorName)))
+            cs.insertClasses(classes)
             return cs
         except Exception as ex:
             print(ex)
@@ -523,7 +580,7 @@ class ClassificationScheme(QAbstractTableModel):
         """
         cs = ClassificationScheme()
         classes = [c.clone() for c in self.mClasses]
-        cs.addClasses(classes)
+        cs.insertClasses(classes, 0)
         return cs
 
     def __getitem__(self, slice):
@@ -606,7 +663,9 @@ class ClassificationScheme(QAbstractTableModel):
         for i, c in enumerate(self.mClasses):
             c.mLabel = i
         self.dataChanged.emit(self.createIndex(0,0),
-                              self.createIndex(self.rowCount()-1,0))
+                              self.createIndex(self.rowCount()-1,0),
+                              [Qt.DisplayRole, Qt.ToolTipRole])
+        s = ""
 
     def removeClasses(self, classes):
         """
@@ -642,6 +701,7 @@ class ClassificationScheme(QAbstractTableModel):
         """
         assert isinstance(n, int)
         assert n >= 0
+        classes = []
         for i in range(n):
             l = len(self)
             if l == 0:
@@ -653,8 +713,8 @@ class ClassificationScheme(QAbstractTableModel):
                 else:
                     color = nextColor(self[-1].color())
                 name = 'Class {}'.format(l)
-            c = ClassInfo(label=l, name=name, color=color)
-            self.addClass(c)
+            classes.append(ClassInfo(label=l, name=name, color=color))
+        self.insertClasses(classes)
 
     def addClasses(self, classes, index=None):
         warnings.warn('use insertClasses()', DeprecationWarning)
@@ -677,7 +737,7 @@ class ClassificationScheme(QAbstractTableModel):
 
         for c in classes:
             assert isinstance(c, ClassInfo)
-
+            assert c not in self.mClasses, 'You cannot add the same ClassInfo instance to a ClassificationScheme twice. Create a copy first.'
 
         if index is None:
             #default: add new classes to end of list
@@ -690,22 +750,16 @@ class ClassificationScheme(QAbstractTableModel):
         for i, c in enumerate(classes):
             assert isinstance(c, ClassInfo)
             index = index + i
-            c.sigSettingsChanged.connect(self.onClassInfoSettingChanged)
+            #c.sigSettingsChanged.connect(self.onClassInfoSettingChanged)
             self.mClasses.insert(index, c)
-        self.updateLabels()
         self.endInsertRows()
-
+        self._updateLabels()
         self.sigClassesAdded.emit(classes)
 
 
-    def updateLabels(self):
-        for i, c in enumerate(self.mClasses):
-            c.setLabel(i)
-
-    sigClassInfoChanged = pyqtSignal(ClassInfo)
-
-    def onClassInfoSettingChanged(self, *args):
-        self.sigClassInfoChanged.emit(self.sender())
+    #sigClassInfoChanged = pyqtSignal(ClassInfo)
+    #def onClassInfoSettingChanged(self, *args):
+    #    self.sigClassInfoChanged.emit(self.sender())
 
     def classIndexFromValue(self, value, matchSimilarity=False)->int:
         """
@@ -743,6 +797,10 @@ class ClassificationScheme(QAbstractTableModel):
             return None
 
     def addClass(self, c, index=None):
+        warnings.warn('Use insert class', DeprecationWarning)
+
+
+    def insertClass(self, c, index=None):
         """
         Adds a ClassInfo
         :param c: ClassInfo
@@ -1008,37 +1066,6 @@ class ClassificationScheme(QAbstractTableModel):
         """
         raise NotImplementedError('ClassificationScheme.fromVectorLayer(...)')
 
-class ClassificationSchemeComboBoxItemModel(ClassificationScheme):
-    def __init__(self, scheme, parent=None):
-        super(ClassificationSchemeComboBoxItemModel, self).__init__(parent)
-        if isinstance(scheme, ClassificationScheme):
-            self.insertClasses(scheme[:])
-
-    def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
-        return 1
-
-    def data(self, index, role=Qt.DisplayRole):
-        if not index.isValid():
-            return None
-
-
-        classInfo = self.index2ClassInfo(index)
-        value = None
-        if role == Qt.DisplayRole:
-            value = '{} {}'.format(classInfo.label(), classInfo.name())
-        if role == Qt.DecorationRole:
-            value = classInfo.icon(QSize(20, 20))
-        if role == Qt.UserRole:
-            value = classInfo
-        return value
-
-    def flags(self, index: QModelIndex):
-
-        if not index.isValid():
-            return Qt.NoItemFlags
-
-        return Qt.ItemIsEditable | Qt.ItemIsSelectable
-
 
 class ClassificationSchemeComboBox(QComboBox):
 
@@ -1048,32 +1075,87 @@ class ClassificationSchemeComboBox(QComboBox):
             classification = ClassificationScheme()
         self.view().setMinimumWidth(200)
         self.mSchema = None
-        self.mModel = None
-        if classification:
-            self.setClassificationScheme(classification)
-        self.setModel(self.mModel)
+        self.setClassificationScheme(classification)
+
 
     def setClassificationScheme(self, classScheme):
+        self.clear()
+        self.mSchema = None
+
 
         if isinstance(classScheme, ClassificationScheme):
-            self.mModel = ClassificationSchemeComboBoxItemModel(classScheme)
-            self.setModel(self.mModel)
-        else:
-            self.mModel = None
-            self.setModel(None)
+            self.mSchema = classScheme
+            assert isinstance(self.mSchema, ClassificationScheme)
+            for i, classInfo in enumerate(self.mSchema):
+                self._insertClassInfo(i, classInfo)
+
+            self.mSchema.rowsInserted.connect(self.onRowsInserted)
+            self.mSchema.rowsRemoved.connect(self.onRowsRemoved)
+            self.mSchema.dataChanged.connect(self.onDataChanged)
+
+    def _insertClassInfo(self, i:int, classInfo:ClassInfo):
+        assert isinstance(classInfo, ClassInfo)
+        self.insertItem(i, 'dummy', classInfo)
+        self._updateClassInfo(i, classInfo, roles=[Qt.DisplayRole, Qt.ToolTipRole, Qt.DecorationRole])
+
+        s = ""
+
+    def _updateClassInfo(self, i:int, classInfo:ClassInfo, roles:list=None):
+        if roles is None:
+            roles = [Qt.DisplayRole, Qt.DecorationRole, Qt.ToolTipRole, Qt.UserRole]
+
+        for role in roles:
+
+            if role == Qt.DecorationRole:
+                icon = classInfo.icon(QSize(20, 20))
+                self.setItemData(i, icon, role)
+            elif role == Qt.DisplayRole:
+                text = '{} {}'.format(classInfo.label(), classInfo.name())
+                self.setItemData(i, text, role)
+            elif role == Qt.ToolTipRole:
+                toolTip = 'Label:{} Name:"{}" Color:{}'.format(classInfo.label(),
+                                                               classInfo.name(),
+                                                               classInfo.color().name())
+                self.setItemData(i, toolTip, role)
+            elif role == Qt.UserRole:
+                self.setItemData(i, classInfo, role)
+
+    def onRowsInserted(self, parent:QModelIndex, first:int, last:int):
+        for i in range(first, last+1):
+            self._insertClassInfo(i, self.mSchema[i])
+
+
+
+    def onRowsRemoved(self, parent:QModelIndex, first:int, last:int):
+        for i in reversed(range(first, last+1)):
+            self.removeItem(i)
+
+    def onDataChanged(self, tl:QModelIndex, br:QModelIndex, roles:list):
+        print('{} rows changed'.format(br.row()-tl.row()+1))
+        for i in range(tl.row(), len(self.mSchema)):
+            classInfo = self.mSchema[i]
+            self._updateClassInfo(i, classInfo, roles)
+
+
 
     def classificationScheme(self)->ClassificationScheme:
-        if isinstance(self.mModel, ClassificationSchemeComboBoxItemModel):
-            return self.mModel
-        return None
+        """
+        Returns the ClassificationScheme
+        :return: ClassificationScheme
+        """
+        return self.mSchema
 
 
     def currentClassInfo(self)->ClassInfo:
-        if isinstance(self.mModel, ClassificationSchemeComboBoxItemModel):
-            i = self.currentIndex()
-            if i >= 0 and i < len(self.mModel.classifcationScheme()):
-                return self.mModel.classifcationScheme()[i]
-        return None
+        """
+        Returns the currently selected ClassInfo
+        :return: ClassInfo
+        """
+        i = self.currentIndex()
+        classInfo = None
+        if i >= 0 and i < self.count():
+            classInfo = self.itemData(i, role=Qt.UserRole)
+        return classInfo
 
 class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
 

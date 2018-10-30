@@ -32,9 +32,9 @@ class TestsClassificationScheme(TestCase):
     def createClassScheme(self)->ClassificationScheme:
 
         cs = ClassificationScheme()
-        cs.addClass(ClassInfo(name='unclassified', color=QColor('black')))
-        cs.addClass(ClassInfo(name='Class A', color=QColor('green')))
-        cs.addClass(ClassInfo(name='Class B', color=QColor('blue')))
+        cs.insertClass(ClassInfo(name='unclassified', color=QColor('black')))
+        cs.insertClass(ClassInfo(name='Class A', color=QColor('green')))
+        cs.insertClass(ClassInfo(name='Class B', color=QColor('blue')))
         return cs
 
     def createRasterLayer(self)->QgsRasterLayer:
@@ -98,7 +98,7 @@ class TestsClassificationScheme(TestCase):
         self.assertIsInstance(cs, ClassificationScheme)
         self.assertEqual(cs[0].color(), DEFAULT_UNCLASSIFIEDCOLOR)
         c = ClassInfo(label=1, name='New Class', color=QColor('red'))
-        cs.addClass(c)
+        cs.insertClass(c)
         self.assertEqual(cs[3], c)
         cs._updateLabels()
         self.assertEqual(cs[3].label(), 3)
@@ -114,7 +114,19 @@ class TestsClassificationScheme(TestCase):
 
         self.assertIsInstance(cs.data(cs.createIndex(0,0), role=Qt.UserRole), ClassInfo)
 
+        with self.assertRaises(AssertionError):
+            cs.insertClass(c)
 
+        c2 = ClassInfo(label=5, name='Class 2')
+        cs.insertClass(c2)
+        self.assertTrue(len(cs) == 5)
+
+
+        mimeData = cs.mimeData()
+        self.assertIsInstance(mimeData, QMimeData)
+
+        for key in [MIMEDATA_KEY]:
+            self.assertTrue(key in mimeData.formats())
 
     def test_json_pickle(self):
         cs = self.createClassScheme()
@@ -234,6 +246,20 @@ class TestsClassificationScheme(TestCase):
         if SHOW_GUIS:
             QGIS_APP.exec_()
 
+    def test_ClassificationSchemeComboBoxItemModel(self):
+
+        cs = self.createClassScheme()
+        m = ClassificationSchemeComboBoxItemModel(None)
+        self.assertIsInstance(m, ClassificationSchemeComboBoxItemModel)
+        m.setClassificationScheme(cs)
+        self.assertTrue(m.hasClassification())
+        self.assertEqual(m.classificationScheme(), cs)
+        self.assertEqual(m.rowCount(), len(cs))
+        self.assertEqual(m.columnCount(), 1)
+        self.assertIsInstance(m.data(m.createIndex(0,0), role=Qt.DecorationRole), QIcon)
+
+
+
     def test_ClassificationSchemeComboBox(self):
 
         cs = self.createClassScheme()
@@ -242,6 +268,31 @@ class TestsClassificationScheme(TestCase):
         w.show()
 
         self.assertTrue(len(w.classificationScheme()) == 3)
+        self.assertTrue(w.count() == 3)
+
+        cs.removeClasses([cs[0]])
+        self.assertTrue(w.count() == 2)
+
+        newClasses = [ClassInfo(name='New 1'), ClassInfo(name='New 2')]
+        cs.insertClasses(newClasses, index=0)
+        self.assertTrue(w.count() == 4)
+        self.assertTrue(w.itemData(0, Qt.UserRole) == newClasses[0])
+
+        for i, classInfo in enumerate(w.classificationScheme()):
+            self.assertTrue(classInfo.label() == i)
+
+        newClasses2 = [ClassInfo(name='New 3'), ClassInfo(name='New 4')]
+        cs.insertClasses(newClasses2, index=3)
+
+        for i, classInfo in enumerate(w.classificationScheme()):
+            self.assertIsInstance(classInfo, ClassInfo)
+            self.assertTrue(classInfo.label() == i)
+            text = w.itemData(i, role=Qt.DisplayRole)
+            self.assertTrue(text.startswith('{}'.format(classInfo.label())))
+        self.assertTrue(w.count() == 4+2)
+        self.assertTrue(w.itemData(3, Qt.UserRole) == newClasses2[0])
+
+
 
         if SHOW_GUIS:
             QGIS_APP.exec_()
@@ -302,7 +353,7 @@ class TestsClassificationScheme(TestCase):
         s = ""
 if __name__ == "__main__":
 
-    SHOW_GUIS = True
+    SHOW_GUIS = False
     unittest.main()
 
 
