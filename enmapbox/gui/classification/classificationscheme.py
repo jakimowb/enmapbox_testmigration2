@@ -27,9 +27,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import numpy as np
 from osgeo import gdal
-from enmapbox.gui.utils import loadUI, gdalDataset, nextColor
+from enmapbox.gui.utils import gdalDataset, nextColor, loadUIFormClass
 
 from itertools import cycle
+
+loadClassificationUI = lambda name: loadUIFormClass(os.path.join(os.path.dirname(__file__), name))
 
 DEFAULT_UNCLASSIFIEDCOLOR = QColor('black')
 DEFAULT_FIRST_COLOR = QColor('#a6cee3')
@@ -546,22 +548,35 @@ class ClassificationScheme(QAbstractTableModel):
         Returns the ClassificationScheme as QgsCategorizedSymbolRenderer
         :return: ClassificationScheme
         """
-        raise NotImplementedError()
-        r = QgsPalettedRasterRenderer()
 
+        r = QgsCategorizedSymbolRenderer('dummy', [])
+
+        for c in self:
+            assert isinstance(c, ClassInfo)
+            symbol = QgsMarkerSymbol()
+            symbol.setColor(QColor(c.color()))
+            cat = QgsRendererCategory(c.label(), symbol, c.name(), render=True)
+            r.addCategory(cat)
         return r
 
 
     @staticmethod
-    def fromFeatureRenderer(renderer:QgsFeatureRenderer):
+    def fromFeatureRenderer(renderer:QgsCategorizedSymbolRenderer):
         """
-        Extracts a ClassificatonScheme from a QgsFeatureRenderer
-        :param renderer: QgsRasterRenderer
+        Extracts a ClassificatonScheme from a QgsCategorizedSymbolRenderer
+        :param renderer: QgsCategorizedSymbolRenderer
         :return: ClassificationScheme
         """
         if not isinstance(renderer, QgsCategorizedSymbolRenderer):
             return None
-        raise NotImplementedError()
+        classes = []
+        for cat in sorted(renderer.categories(), key = lambda c:c.value()):
+            assert isinstance(cat, QgsRendererCategory)
+            c = ClassInfo(name=cat.label(), color=QColor(cat.symbol().color()))
+            classes.append(c)
+        cs = ClassificationScheme()
+        cs.insertClasses(classes)
+        return cs
 
 
     def clear(self):
@@ -914,6 +929,24 @@ class ClassificationScheme(QAbstractTableModel):
         return s
 
     @staticmethod
+    def fromMimeData(mimeData:QMimeData):
+
+        if not isinstance(mimeData, QMimeData):
+            return None
+
+        if MIMEDATA_KEY in mimeData.formats():
+            ba = ClassificationScheme.fromQByteArray(mimeData.data(MIMEDATA_KEY))
+            if isinstance(ba, ClassificationScheme):
+                return ba
+        if MIMEDATA_KEY_TEXT in mimeData.formats():
+
+            ba = ClassificationScheme.fromQByteArray(mimeData.data(MIMEDATA_KEY_TEXT))
+            if isinstance(ba, ClassificationScheme):
+                return ba
+
+        return None
+
+    @staticmethod
     def fromRasterBand(band: gdal.Band):
         """
         Reads the ClassificationScheme of a gdal.Band
@@ -1162,7 +1195,7 @@ class ClassificationSchemeComboBox(QComboBox):
             classInfo = self.itemData(i, role=Qt.UserRole)
         return classInfo
 
-class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
+class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationscheme.ui')):
 
     sigValuesChanged = pyqtSignal()
 
@@ -1200,12 +1233,17 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
     def onCopyClasses(self):
         cb = QApplication.clipboard()
         assert isinstance(cb, QClipboard)
-        cb.setMimeData(self.mScheme.mimeData())
+        cb.setMimeData(self.mScheme.mimeData(None))
 
     def onPasteClasses(self):
         cb = QApplication.clipboard()
         assert isinstance(cb, QClipboard)
         mimeData = QApplication.clipboard().mimeData()
+
+        cs = ClassificationScheme.fromMimeData(mimeData)
+        if isinstance(cs, ClassificationScheme):
+            self.mScheme.insertClasses(cs[:])
+
 
         s  =""
 
@@ -1298,16 +1336,16 @@ class ClassificationSchemeWidget(QWidget, loadUI('classificationscheme.ui')):
         assert isinstance(cb, QClipboard)
         cb.dataChanged.connect(onClipboard)
         self.actionPasteClasses.setIcon(QIcon(r'://images/themes/default/mActionEditPaste.svg'))
-        self.actionPasteClasses.triggerd.connect(self.onPasteClasses)
+        self.actionPasteClasses.triggered.connect(self.onPasteClasses)
 
         self.actionCopyClasses.setIcon(QIcon(r'://images/themes/default/mActionEditCopy.svg'))
-        self.actionCopyClasses.triggerd.connect(self.onCopyClasses)
+        self.actionCopyClasses.triggered.connect(self.onCopyClasses)
 
         self.btnSaveClasses.setDefaultAction(self.actionSaveClasses)
         self.btnRemoveClasses.setDefaultAction(self.actionRemoveClasses)
         self.btnAddClasses.setDefaultAction(self.actionAddClasses)
-        self.bntCopyClasses.setDefaultAction(self.actionCopyClasses)
-        self.bntPasteClasses.setDefaultAction(self.actionPasteClasses)
+        self.btnCopyClasses.setDefaultAction(self.actionCopyClasses)
+        self.btnPasteClasses.setDefaultAction(self.actionPasteClasses)
 
         onClipboard()
     def onTableDoubleClick(self, idx):

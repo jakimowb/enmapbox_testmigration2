@@ -141,22 +141,12 @@ class TestsClassificationScheme(TestCase):
         self.assertTrue(len(cs) == 5)
 
 
-        mimeData = cs.mimeData()
+        mimeData = cs.mimeData(None)
         self.assertIsInstance(mimeData, QMimeData)
 
         for key in [MIMEDATA_KEY]:
             self.assertTrue(key in mimeData.formats())
 
-    def test_json_csv(self):
-
-        import enmapboxtestdata
-        p = enmapboxtestdata.library
-        p = os.path.splitext(p)[0]+'.json'
-
-        self.assertTrue(os.path.isfile(p))
-        cs = ClassificationScheme.fromFile(p)
-        self.assertIsInstance(cs, ClassificationScheme)
-        s = ""
 
     def test_json_pickle(self):
         cs = self.createClassSchemeA()
@@ -279,7 +269,7 @@ class TestsClassificationScheme(TestCase):
 
     def test_ClassificationSchemeComboBox(self):
 
-        cs = self.createClassScheme()
+        cs = self.createClassSchemeA()
 
         w = ClassificationSchemeComboBox(classification=cs)
         w.show()
@@ -321,7 +311,7 @@ class TestsClassificationScheme(TestCase):
 
         pathTmp = tempfile.mktemp(suffix='.csv')
 
-        cs = self.createClassScheme()
+        cs = self.createClassSchemeA()
         self.assertIsInstance(cs, ClassificationScheme)
         path = cs.saveToCsv(pathTmp)
         self.assertTrue(os.path.isfile(path))
@@ -334,7 +324,7 @@ class TestsClassificationScheme(TestCase):
     def test_io_RasterRenderer(self):
 
 
-        cs = self.createClassScheme()
+        cs = self.createClassSchemeA()
         self.assertIsInstance(cs, ClassificationScheme)
 
         r = cs.rasterRenderer()
@@ -349,7 +339,7 @@ class TestsClassificationScheme(TestCase):
     def test_io_FeatureRenderer(self):
 
 
-        cs = self.createClassScheme()
+        cs = self.createClassSchemeA()
         self.assertIsInstance(cs, ClassificationScheme)
 
         r = cs.featureRenderer()
@@ -362,7 +352,7 @@ class TestsClassificationScheme(TestCase):
 
     def test_io_QML(self):
 
-        testDir = os.path.dirname(enmapboxtestdata.speclib)
+        testDir = os.path.dirname(enmapboxtestdata.library)
         qmFiles = file_search(testDir, 'LandCov_*.qml')
 
         pathTmp = tempfile.mktemp(suffix='.qml')
