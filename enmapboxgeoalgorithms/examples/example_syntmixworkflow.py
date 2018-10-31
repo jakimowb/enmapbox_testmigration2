@@ -22,7 +22,7 @@ def synthMixRegressionWorkflow():
 
     # create training data
     # - import ENVI speclib
-    speclibFilename = enmapboxtestdata.library # r'c:\my.sli
+    speclibFilename = enmapboxtestdata.speclib # r'c:\my.sli
     unsupervisedSample = Sample.fromENVISpectralLibrary(filename=speclibFilename)
 
     # - label spectra

@@ -16,7 +16,7 @@ from enmapboxapplications.imagestatistics.core import *
 def openTestdata():
     QgsProject.instance().addMapLayers([
         QgsRasterLayer(enmapboxtestdata.enmap, baseName=os.path.basename(enmapboxtestdata.enmap)),
-        QgsRasterLayer(enmapboxtestdata.hires, baseName=os.path.basename(enmapboxtestdata.hires)),
+        QgsRasterLayer(enmapboxtestdata.hymap, baseName=os.path.basename(enmapboxtestdata.hymap)),
         QgsVectorLayer(enmapboxtestdata.landcover, baseName=os.path.basename(enmapboxtestdata.landcover))])
 
 if __name__ == '__main__':

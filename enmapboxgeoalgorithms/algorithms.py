@@ -753,9 +753,9 @@ class OpenTestMaps_Modeler(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         import enmapboxtestdata
-        library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
+        library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
         return {'enmap': enmapboxtestdata.enmap,
-                'hymap': enmapboxtestdata.hires,
+                'hymap': enmapboxtestdata.hymap,
                 'landcover': enmapboxtestdata.landcover,
                 'speclib': library.raster().filename()}
 
