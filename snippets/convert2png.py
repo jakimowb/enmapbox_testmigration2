@@ -1,5 +1,6 @@
 import os, sys, re, fnmatch
-from PyQt5.Qt import *
+
+from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtSvg import *
 

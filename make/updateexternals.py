@@ -18,9 +18,6 @@
 """
 
 import os, sys, re, shutil, zipfile, datetime
-import numpy as np
-import enmapbox
-from enmapbox.gui.utils import jp, file_search
 from enmapbox import DIR_REPO
 import git
 
@@ -78,8 +75,11 @@ class RemoteInfo(object):
 
 
 # specify remote branches
+"""
 RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
-                  prefixLocal=r'site-packages/pyqtgraph')
+                  prefixLocal=r'site-packages/pyqtgraph',
+                  remoteBranch='develop')
+"""
 
 #not required any more
 #RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
@@ -200,14 +200,15 @@ if __name__ == "__main__":
                 addRemote(info)
 
     # update remotes
-    to_update = [#'hub-datacube'
-                #,'hub-workflow'
-                 #,'enmapboxapplications'
-                 #,'enmapboxgeoalgorithms'
+    to_update = ['hub-datacube'
+                ,'hub-workflow'
+                 ,'enmapboxapplications'
+                 ,'enmapboxgeoalgorithms'
                  #'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
-                 'enpt_enmapboxapp'
+                 #'enpt_enmapboxapp'
+                 #'pyqtgraph'
                 ]
 
     for p in to_update:

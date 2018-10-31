@@ -131,7 +131,7 @@ class TestIO(unittest.TestCase):
         import enmapboxtestdata
 
         from .envi import EnviSpectralLibraryIO
-        pathESL = enmapboxtestdata.speclib
+        pathESL = enmapboxtestdata.library
         sl1 = EnviSpectralLibraryIO.readFrom(pathESL)
 
         self.assertIsInstance(sl1, SpectralLibrary)
@@ -544,9 +544,9 @@ class TestCore(unittest.TestCase):
             center1 = SpatialExtent.fromRasterSource(self.lyr1.source()).spatialCenter()
             center2 = SpatialExtent.fromRasterSource(self.lyr1.source()).spatialCenter()
             s  =""
-        speclib = SpectralLibrary.readFromRasterPositions(hymap,center1)
-        slSubset = SpectralLibrary.readFromRasterPositions(hymap,center2)
-        restoredSpeclib = SpectralLibrary.readFromRasterPositions(hymap,[center1, center2])
+        speclib = SpectralLibrary.readFromRasterPositions(hires, center1)
+        slSubset = SpectralLibrary.readFromRasterPositions(hires, center2)
+        restoredSpeclib = SpectralLibrary.readFromRasterPositions(hires, [center1, center2])
 
         for sl in [speclib, slSubset]:
             self.assertIsInstance(sl, SpectralLibrary)
@@ -733,7 +733,7 @@ class TestCore(unittest.TestCase):
 
 
         import enmapboxtestdata
-        speclib = SpectralLibrary.readFrom(enmapboxtestdata.speclib)
+        speclib = SpectralLibrary.readFrom(enmapboxtestdata.library)
         #speclib = self.createSpeclib()
         w = QWidget()
         w.setLayout(QVBoxLayout())

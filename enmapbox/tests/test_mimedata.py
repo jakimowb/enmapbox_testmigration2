@@ -22,7 +22,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import initQgisApplication
 QGIS_APP = initQgisApplication()
-from enmapboxtestdata import enmap, hymap, speclib, landcover
+from enmapboxtestdata import enmap, hires, library, landcover
 import enmapbox.gui.mimedata as mimedata
 
 
@@ -47,7 +47,7 @@ class MimeDataTests(unittest.TestCase):
         from enmapbox.gui.datasourcemanager import DataSourceManager
 
 
-        dataSources = DataSourceFactory.Factory([enmap, hymap, speclib, landcover])
+        dataSources = DataSourceFactory.Factory([enmap, hires, library, landcover])
         dataSourceUUIDs = [ds.uuid() for ds in dataSources]
         dataSourceObjectIDs = [id(ds) for ds in dataSources]
 

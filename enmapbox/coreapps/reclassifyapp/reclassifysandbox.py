@@ -23,7 +23,8 @@
 Sandbox examples that show how to run own EnMAP-box applications without starting a QGIS GUI Instance
 
 """
-import qgis
+
+
 def sandboxWithEnMapBox(loadPF=False):
     """
     A minimum example that shows how to load the EnMAP-Box
@@ -31,7 +32,7 @@ def sandboxWithEnMapBox(loadPF=False):
     :return:
     """
     """Minimum example to the this application"""
-    from enmapbox.gui.utils import initQgisApplication, sandboxPureGui
+    from enmapbox.gui.utils import sandboxPureGui
     qgsApp = initQgisEnvironment()
     sandboxPureGui(loadProcessingFramework=loadPF, loadExampleData=False)
     from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -66,7 +67,7 @@ def sandboxGuiOnly():
     pathSrc = jp(DIR_REPO, 'tmp/testclassification.tif')
     pathDst = jp(DIR_REPO, 'tmp/reclassified.tif')
     ui1.addSrcRaster(pathSrc)
-    from enmapbox.gui.classificationscheme import ClassificationScheme
+    from enmapbox.gui.classification.classificationscheme import ClassificationScheme
     ui1.setDstClassification(ClassificationScheme.create(3))
     ui1.setDstRaster(pathDst)
     def runReclassification(**settings):

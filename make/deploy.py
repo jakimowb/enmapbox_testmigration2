@@ -416,7 +416,7 @@ def uploadDeveloperPlugin():
 
 if __name__ == "__main__":
 
-    build()
+    build() #create a new
     updateRepositoryXML()
     #uploadDeveloperPlugin()
     #s = ""

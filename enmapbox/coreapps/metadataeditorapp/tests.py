@@ -20,13 +20,8 @@
 """
 
 import unittest
-from qgis.core import *
-from osgeo import gdal, ogr
-import numpy as np
 
-from enmapboxtestdata import enmap, hymap, landcover
-from enmapbox.gui.classificationscheme import ClassificationScheme
-from metadataeditorapp.metadatakeys import *
+from enmapboxtestdata import landcover
 from metadataeditorapp.metadataeditor import *
 
 from enmapbox.gui.utils import *

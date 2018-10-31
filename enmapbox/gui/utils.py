@@ -105,22 +105,26 @@ def nextColor(color, mode='cat'):
 
 
 class TestObjects():
+    """
+    Class with static rountines to create test objects
+    """
     @staticmethod
     def inMemoryClassification(n=3, nl=10, ns=20, nb=1, crs='EPSG:32632'):
-        from enmapbox.gui.classificationscheme import ClassificationScheme
+        from enmapbox.gui.classification.classificationscheme import ClassificationScheme
         scheme = ClassificationScheme()
         scheme.createClasses(n)
 
-        drv = gdal.GetDriverByName('MEM')
+        drv = gdal.GetDriverByName('GTiff')
         assert isinstance(drv, gdal.Driver)
-
-
-        ds = drv.Create('', ns, nl, bands=nb, eType=gdal.GDT_Byte)
-
+        import uuid
+        path = '/vsimem/testClassification.{}.tif'.format(str(uuid.uuid4()))
+        ds = drv.Create(path, ns, nl, bands=nb, eType=gdal.GDT_Byte)
+        assert isinstance(ds, gdal.Dataset)
         if isinstance(crs, str):
             c = QgsCoordinateReferenceSystem(crs)
             ds.SetProjection(c.toWkt())
-
+        ds.SetGeoTransform([0,1.0,0, \
+                            0,0,-1.0])
         step = int(np.ceil(float(nl) / len(scheme)))
 
         assert isinstance(ds, gdal.Dataset)

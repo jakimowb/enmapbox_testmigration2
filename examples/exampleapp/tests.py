@@ -59,7 +59,7 @@ class TestExampleEnMAPBoxApp(TestCase):
 
         from exampleapp.userinterfaces import ExampleGUI
         from PyQt5.QtCore import QCoreApplication
-        from PyQt5.Qt import Qt
+
         g = ExampleGUI()
         g.show()
         QCoreApplication.processEvents()
