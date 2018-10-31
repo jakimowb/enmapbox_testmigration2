@@ -2550,11 +2550,24 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
             self.speclib().addSpeclib(speclib)
 
     def setAddCurrentSpectraToSpeclibMode(self, b:bool):
+        """
+        Set if spectral profiles are added to the SpectraLibrary immediately.
+        :param b: bool
+        """
         self.actionAddCurrentProfilesAutomatically.setChecked(b)
 
     def addCurrentSpectraToSpeclib(self, *args):
-        self.speclib().addProfiles(self.mCurrentSpectra)
+        """
+        Adds all current spectral profiles to the "persistant" SpectralLibrary
+        """
+
+        profiles = self.currentSpectra()
         self.setCurrentSpectra([])
+        b = self.speclib().isEditable()
+        self.speclib().startEditing()
+        self.speclib().addProfiles(profiles)
+        if not b:
+            self.speclib().commitChanges()
 
     sigCurrentSpectraChanged = pyqtSignal(list)
     def setCurrentSpectra(self, profiles:list):

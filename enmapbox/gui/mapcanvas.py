@@ -887,7 +887,7 @@ class MapCanvas(QgsMapCanvas):
 
         self.mCrosshairItem = CrosshairMapCanvasItem(self)
 
-        self.setShowCrosshair(False)
+        self.setCrosshairVisibility(False)
 
         self.canvasLinks = []
         # register signals to react on changes
