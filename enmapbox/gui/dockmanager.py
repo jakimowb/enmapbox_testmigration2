@@ -21,7 +21,7 @@ from enmapbox.gui.treeviews import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.mimedata import *
-
+from enmapbox.gui.docks import *
 LUT_DOCKTYPES = {'MAP':MapDock,
                  'TEXT':TextDock,
                  'MIME':MimeDataDock,
