@@ -51,9 +51,9 @@ class TestsClassificationScheme(TestCase):
 
         rl = QgsRasterLayer(enmapboxtestdata.hires)
 
-        renderer = QgsPalettedRasterRenderer(rl, 1)
+        renderer = QgsPalettedRasterRenderer(None, 1, {})
         assert isinstance(renderer, QgsPalettedRasterRenderer)
-
+        rl.setRenderer(renderer)
 
         return rl
 
@@ -248,10 +248,47 @@ class TestsClassificationScheme(TestCase):
             QGIS_APP.exec_()
 
 
+    def test_findMapLayerWithClassInfo(self):
+
+
+        rr = self.createClassSchemeA().rasterRenderer()
+        vr = self.createClassSchemeB().featureRenderer()
+        vl = self.createVectorLayer()
+        rl = self.createRasterLayer()
+        self.assertIsInstance(vl, QgsVectorLayer)
+        self.assertIsInstance(rl, QgsRasterLayer)
+        self.assertIsInstance(rr, QgsRasterRenderer)
+        self.assertIsInstance(vr, QgsFeatureRenderer)
+
+        vl.setRenderer(vr)
+        rl.setRenderer(rr)
+
+        store = QgsMapLayerStore()
+        from . import MAP_LAYER_STORES as ML_STORE
+        ML_STORE.add(store)
+
+        lyrs = findMapLayerWithClassInfo()
+        self.assertIsInstance(lyrs, list)
+        self.assertTrue(len(lyrs) == 0)
+
+        store.addMapLayers([vl, rl])
+
+        lyrs = findMapLayerWithClassInfo()
+        self.assertIsInstance(lyrs, list)
+        self.assertTrue(len(lyrs) == 2)
+        self.assertTrue(vl in lyrs)
+        self.assertTrue(rl in lyrs)
+
+        if SHOW_GUIS:
+            w = ClassificationSchemeWidget()
+            w.show()
+            w.onLoadClasses('layer')
+            QGIS_APP.exec_()
 
     def test_ClassificationSchemeWidget(self):
 
-        MAP_LAYER_STORES
+        from . import MAP_LAYER_STORES as ML
+
         w = ClassificationSchemeWidget()
         self.assertIsInstance(w.classificationScheme(), ClassificationScheme)
         w.show()
@@ -262,6 +299,8 @@ class TestsClassificationScheme(TestCase):
         w.btnAddClasses.click()
 
         self.assertTrue(len(w.classificationScheme()) == 2)
+
+
 
         if SHOW_GUIS:
             QGIS_APP.exec_()

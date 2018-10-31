@@ -22,9 +22,9 @@
 import os, json, pickle, warnings, csv, re
 from qgis.core import *
 from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 import numpy as np
 from osgeo import gdal
 from enmapbox.gui.utils import gdalDataset, nextColor, loadUIFormClass
@@ -40,7 +40,27 @@ MIMEDATA_KEY = 'hub-classscheme'
 MIMEDATA_KEY_TEXT = 'text/plain'
 MIMEDATA_INTERNAL_IDs = 'classinfo_ids'
 
-MAP_LAYER_STORES = set([QgsProject.instance()])
+
+def findMapLayerWithClassInfo()->list:
+    """
+    Returns QgsMapLayers from which a ClassificationScheme can be derived.
+    Searches in all QgsMapLayerStores known to classification.MAP_LAYER_STORES
+    :return: [list-of-QgsMapLayer]
+    """
+    from . import MAP_LAYER_STORES
+    results = []
+    for store in MAP_LAYER_STORES:
+        assert isinstance(store, (QgsProject, QgsMapLayerStore))
+        for lyr in store.mapLayers().values():
+            if isinstance(lyr, QgsVectorLayer) and isinstance(lyr.renderer(), QgsCategorizedSymbolRenderer):
+                results.append(lyr)
+            elif isinstance(lyr, QgsRasterLayer) and isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
+                results.append(lyr)
+
+    return results
+
+
+
 
 def hasClassification(pathOrDataset):
     """
@@ -76,6 +96,7 @@ def getTextColorWithContrast(c:QColor)->QColor:
         return QColor('white')
     else:
         return QColor('black')
+
 
 
 class ClassInfo(QObject):
@@ -258,13 +279,17 @@ class ClassificationScheme(QAbstractTableModel):
                 ids = pickle.loads(ba)
 
                 classesToBeMoved = [c for c in self if id(c) in ids]
+                self.beginResetModel()
                 for c in reversed(classesToBeMoved):
                     idx = self.classInfo2index(c)
 
-                    self.beginMoveRows(QModelIndex(), idx.row(), idx.row(), QModelIndex(), row)
+
+                    #self.beginMoveRows(QModelIndex(), idx.row(), idx.row(), QModelIndex(), row)
                     del self.mClasses[idx.row()]
                     self.mClasses.insert(row, c)
-                    self.endMoveRows()
+                    #self.endMoveRows()
+                self.endResetModel()
+                self._updateLabels()
                 return True
         elif action == Qt.CopyAction:
             if MIMEDATA_KEY in mimeData.formats():
@@ -375,6 +400,11 @@ class ClassificationScheme(QAbstractTableModel):
 
         return None
 
+    def supportedDragActions(self):
+        return Qt.MoveAction
+
+    def supportedDropActions(self):
+        return Qt.MoveAction | Qt.CopyAction
 
     def setData(self, index: QModelIndex, value, role: int):
         if not index.isValid():
@@ -630,6 +660,7 @@ class ClassificationScheme(QAbstractTableModel):
     def __str__(self):
         return self.__repr__() + '{} classes'.format(len(self))
 
+
     def range(self):
         """
         Returns the class label range (min,max).
@@ -722,18 +753,21 @@ class ClassificationScheme(QAbstractTableModel):
         assert isinstance(n, int)
         assert n >= 0
         classes = []
+
+        if len(self) > 0:
+            nextCol = nextColor(self[-1].color())
+        else:
+            nextCol = DEFAULT_FIRST_COLOR
+
         for i in range(n):
-            l = len(self)
-            if l == 0:
+            if i == 0 and len(self) == 0:
                 color = QColor('black')
                 name = 'Unclassified'
             else:
-                if l == 1:
-                    color = DEFAULT_FIRST_COLOR
-                else:
-                    color = nextColor(self[-1].color())
-                name = 'Class {}'.format(l)
-            classes.append(ClassInfo(label=l, name=name, color=color))
+                color = QColor(nextCol)
+                nextCol = nextColor(nextCol)
+                name = 'Class {}'.format(i)
+            classes.append(ClassInfo(name=name, color=color))
         self.insertClasses(classes)
 
     def addClasses(self, classes, index=None):
@@ -1095,15 +1129,6 @@ class ClassificationScheme(QAbstractTableModel):
         """
         raise NotImplementedError()
 
-    @staticmethod
-    def fromVectorLayer(layer:QgsVectorLayer, fieldClassName:str='classname'):
-        """
-        :param layer: QgsVectorLayer that contains a ClassificationScheme
-        :param fieldClassName: field name with field that contains the class labels for which the ClassificationScheme is returned
-        :return: ClassificationScheme
-        """
-        raise NotImplementedError('ClassificationScheme.fromVectorLayer(...)')
-
 
 class ClassificationSchemeComboBox(QComboBox):
 
@@ -1169,7 +1194,7 @@ class ClassificationSchemeComboBox(QComboBox):
             self.removeItem(i)
 
     def onDataChanged(self, tl:QModelIndex, br:QModelIndex, roles:list):
-        print('{} rows changed'.format(br.row()-tl.row()+1))
+        #print('{} rows changed'.format(br.row()-tl.row()+1))
         for i in range(tl.row(), len(self.mSchema)):
             classInfo = self.mSchema[i]
             self._updateClassInfo(i, classInfo, roles)
@@ -1288,12 +1313,27 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
 
 
         if mode == 'layer':
-            layers = []
-            for store in MAP_LAYER_STORES:
-                lyrs = store.mapLayers()
-                s  =""
+            possibleLayers = findMapLayerWithClassInfo()
+            if len(possibleLayers) == 0:
+                QMessageBox.information(self, 'Load classes from layer', 'No layers with categorical render styles available.')
+            else:
+                choices = ['{} ({})'.format(l.name(), l.source()) for l  in possibleLayers]
 
-
+                dialog = QInputDialog(parent=self)
+                dialog.setWindowTitle('Load classes from layer')
+                dialog.setTextValue('Select map layer')
+                dialog.setComboBoxItems(choices)
+                dialog.setOption(QInputDialog.UseListViewForComboBoxItems)
+                if dialog.exec_() == QDialog.Accepted:
+                    selection = dialog.textValue()
+                    i = choices.index(selection)
+                    layer = possibleLayers[i]
+                    if isinstance(layer, QgsVectorLayer):
+                        cs = ClassificationScheme.fromFeatureRenderer(layer.renderer())
+                    elif isinstance(layer, QgsRasterLayer):
+                        cs = ClassificationScheme.fromRasterRenderer(layer.renderer())
+                    if isinstance(cs, ClassificationScheme):
+                        self.mScheme.insertClasses(cs[:])
             pass
 
         if mode == 'textfile':
@@ -1367,6 +1407,8 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
 
     def createClasses(self, n):
         self.mScheme.createClasses(n)
+
+
 
 
     def selectedClasses(self)->list:
