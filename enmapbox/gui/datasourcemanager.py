@@ -1236,8 +1236,15 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
         super(DataSourceManagerTreeModelMenuProvider, self).__init__(treeView)
         assert isinstance(self.treeView.model(), DataSourceManagerTreeModel)
 
-    def createContextMenu(self):
-        col = self.currentIndex().column()
+    def createContextMenu(self) -> QMenu:
+        """
+        Creates the DataSourceManagerTeeModel context menu
+        :return: QMenu
+        """
+        idx = self.currentIndex()
+        if not idx.isValid():
+            return QMenu()
+        col = idx.column()
         node = self.currentNode()
         model = self.treeView.model()
         assert isinstance(model, DataSourceManagerTreeModel)
