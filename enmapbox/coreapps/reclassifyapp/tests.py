@@ -5,7 +5,7 @@ from enmapbox.gui.classification.classificationscheme import ClassificationSchem
 from enmapbox.gui.utils import *
 APP = initQgisApplication()
 
-
+SHOW_GUI = True
 class TestReclassify(TestCase):
 
     @classmethod
@@ -50,7 +50,7 @@ class TestReclassify(TestCase):
         newNames = ['No Class', 'Class B']
         newDef = hubflow.core.ClassDefinition(names=newNames)
 
-        classification.reclassify(filename=pathDst,
+        r = classification.reclassify(filename=pathDst,
                                   classDefinition=newDef,
                                   mapping={0:0,1:1,2:1})
         ds = gdal.Open(pathDst)
@@ -59,14 +59,26 @@ class TestReclassify(TestCase):
         self.assertEqual(newNames, classNames)
 
     def test_reclassify(self):
+
         csDst = ClassificationScheme.create(2)
+        csDst[0].setName('Not specified')
         csDst[1].setName('Test Class')
+        from enmapbox.gui.utils import TestObjects
 
-        dsSrc = self.classA
-        csSrc = ClassificationScheme.fromRasterImage(dsSrc)
         LUT = {0:0, 1:1, 2:1}
-
-        dsDst = reclassify(dsSrc, '', csDst, LUT, drvDst='MEM')
+        classA = TestObjects.inMemoryClassification()
+        self.assertIsInstance(classA, gdal.Dataset)
+        pathSrc = classA.GetFileList()[0]
+        pathDst = '/vsimem/testresult.tif'
+        print('src path: {}'.format(pathSrc))
+        print('src dims (nb, nl, ns) = ({},{},{})'.format(
+            classA.RasterCount, classA.RasterYSize, classA.RasterXSize))
+        print('src geotransform: {}'.format(classA.GetGeoTransform()))
+        print('src projection: {}'.format(classA.GetProjectionRef()))
+        print('src classes: {}'.format(classA.GetRasterBand(1).GetCategoryNames()))
+        print('dst path: {}'.format(pathDst))
+        print('dst classes: {}'.format(csDst.classNames()))
+        dsDst = reclassify(pathSrc, pathDst, csDst, LUT, drvDst='GTiff')
         csDst2 = ClassificationScheme.fromRasterImage(dsDst)
         self.assertIsInstance(csDst2, ClassificationScheme)
         self.assertEqual(csDst,csDst2 )
@@ -75,20 +87,24 @@ class TestReclassify(TestCase):
 
     def test_dialog(self):
         from reclassifyapp.reclassifydialog import ReclassifyDialog
-        ui1 = ReclassifyDialog()
-        ui1.show()
+        dialog = ReclassifyDialog()
+        dialog.show()
 
 
-        ui1.addSrcRaster(self.pathClassA)
-        ui1.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
+        dialog.addSrcRaster(self.pathClassA)
+        dialog.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
         from enmapbox.gui.classification.classificationscheme import ClassificationScheme
         cs = ClassificationScheme.create(2)
         cs[1].setName('Foobar')
-        ui1.setDstClassification(cs)
+        dialog.setDstClassification(cs)
 
-        settings = ui1.reclassificationSettings()
+        settings = dialog.reclassificationSettings()
         self.assertTrue(all(k in settings.keys() for k in ['labelLookup','dstClassScheme','pathDst','pathSrc']))
-        ui1.close()
+
+        if SHOW_GUI:
+            APP.exec_()
+        dialog.close()
+
         dsDst = reclassify(drvDst='ENVI', **settings)
 
         self.assertIsInstance(dsDst, gdal.Dataset)
@@ -96,9 +112,12 @@ class TestReclassify(TestCase):
         dsDst = None
         cs3 = ClassificationScheme.fromRasterImage(settings['pathDst'])
 
-        self.assertEqual(cs, cs2)
-        self.assertEqual(cs, cs3)
+        self.assertIsInstance(cs2, ClassificationScheme)
+        self.assertIsInstance(cs3, ClassificationScheme)
+        self.assertEqual(cs, cs2, msg='Expected:\n{}\nbut got:\n{}'.format(cs.toString(), cs2.toString()))
+        self.assertEqual(cs, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(cs.toString(), cs3.toString()))
 
 if __name__ == "__main__":
 
+    SHOW_GUI = False
     unittest.main()

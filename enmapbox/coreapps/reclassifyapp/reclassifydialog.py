@@ -125,7 +125,7 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
 
     def createClassInfoComboBox(self, classScheme):
         assert isinstance(classScheme, ClassificationScheme)
-        box = ClassificationSchemeComboBox(classScheme)
+        box = ClassificationSchemeComboBox(classification=classScheme)
         box.setAutoFillBackground(True)
 
         return box
@@ -133,6 +133,7 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
 
 
     def refreshTransformationTable(self, *args):
+
         while self.tableWidget.rowCount() > 0:
             self.tableWidget.removeRow(0)
         from difflib import SequenceMatcher
@@ -180,7 +181,9 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
 
 
     def validate(self):
-
+        """
+        Validates GUI inputs and enabled/disabled buttons accordingly.
+        """
         isOk = True
         isOk &= self.mapLayerComboBox.currentIndex() > -1
         isOk &= len(self.dstClassificationSchemeWidget.classificationScheme()) > 0
@@ -191,17 +194,22 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         btnAccept.setEnabled(isOk)
 
 
-    def reclassificationSettings(self):
+    def reclassificationSettings(self)->dict:
+        """
+        Returns the re-classification settings
+        :return: dict with {pathSrc:str, pathDst:str, labelLookup:dict, dstClassScheme:ClassificationScheme
+        """
         pathSrc = self.mapLayerComboBox.itemData(self.mapLayerComboBox.currentIndex())
         pathDst = self.tbDstFile.text()
         LUT = dict()
         dstScheme = None
         for i in range(self.tableWidget.rowCount()):
             cbox = self.tableWidget.cellWidget(i, 1)
-            cDst = cbox.model().mScheme[cbox.currentIndex()]
+            assert isinstance(cbox, ClassificationSchemeComboBox)
+            cDst = cbox.currentClassInfo()
             iSrc = self.tableWidget.item(i,0).data(Qt.UserRole)
             if not dstScheme:
-                dstScheme = cbox.model().mScheme.clone()
+                dstScheme = cbox.classificationScheme().clone()
             cSrc = self.mSrcClassScheme[iSrc]
 
             LUT[cSrc.label()] = cDst.label()

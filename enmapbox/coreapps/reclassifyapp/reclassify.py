@@ -19,7 +19,7 @@
 ***************************************************************************
 """
 
-import os
+import os, re
 from osgeo import gdal
 from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 from PyQt5.QtGui import QColor
@@ -55,7 +55,19 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
 def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
                drvDst = None,
                bandIndices=0, tileSize=None, co=None):
-    assert os.path.isfile(pathSrc)
+    """
+    Interal wrapper to reclassify raster images based on hub-flow API.
+    :param pathSrc: str, path of source image
+    :param pathDst: str, path of destination image
+    :param dstClassScheme: ClassificationScheme
+    :param labelLookup: dict() as lookup table
+    :param drvDst: gdal.Driver with driver of output image
+    :param bandIndices: - not used -
+    :param tileSize: - not used -
+    :param co: - not used -
+    :return: gdal.Dataset of written re-classified image
+    """
+    #assert os.path.isfile(pathSrc)
     assert isinstance(dstClassScheme, ClassificationScheme)
     assert isinstance(labelLookup, dict)
 
@@ -64,8 +76,12 @@ def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
     classification = hubflow.core.Classification(pathSrc)
     names = dstClassScheme.classNames()
     colors = dstClassScheme.classColors()
-    #do not add the unclassified class
-    newDef = hubflow.core.ClassDefinition(names=names, colors=colors)
+    #workaround for https://bitbucket.org/hu-geomatics/enmap-box/issues/203/hubflow-reclassify-unclassified-class-name
+    if len(names) > 0 and re.search(r'unclassified', names[0], re.I):
+        names = names[1:]
+        colors = colors[1:]
+
+    newDef = hubflow.core.ClassDefinition(names=names, colors=[c.name() for c in colors])
     classification.reclassify(filename=pathDst,
                           classDefinition=newDef,
                           mapping=labelLookup)
