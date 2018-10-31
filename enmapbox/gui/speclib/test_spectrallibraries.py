@@ -29,6 +29,10 @@ from .spectrallibraries import *
 from .csvdata import *
 from .envi import *
 from .asd import *
+from .plotting import *
+SHOW_GUI = True
+
+import enmapboxtestdata
 
 
 def createSpeclib()->SpectralLibrary:
@@ -93,6 +97,8 @@ class TestIO(unittest.TestCase):
 
     def test_CSV(self):
         # TEST CSV writing
+        sl1 = self.createSpeclib()
+        pathCSV = tempfile.mktemp(suffix='.csv', prefix='tmpSpeclib')
         writtenFiles = sl1.exportProfiles(pathCSV)
         self.assertIsInstance(writtenFiles, list)
         self.assertTrue(len(writtenFiles) == 1)
@@ -138,12 +144,12 @@ class TestIO(unittest.TestCase):
         p0 = sl1[0]
         self.assertIsInstance(p0, SpectralProfile)
 
-        self.assertEqual(sl1.fieldNames(), ['fid', 'name', 'source', 'values', 'style', 'level 1', 'level 2'])
-        self.assertEqual(p0.fieldNames(), ['fid', 'name', 'source', 'values', 'style', 'level 1', 'level 2'])
+        self.assertEqual(sl1.fieldNames(), ['fid', 'name', 'source', 'values', 'style', 'level_1', 'level_2', 'level_3'])
+        self.assertEqual(p0.fieldNames(), ['fid', 'name', 'source', 'values', 'style', 'level_1', 'level_2', 'level_3'])
 
         self.assertEqual(p0.attribute('name'), p0.name())
-        self.assertEqual(p0.attribute('name'), 'Red clay tile 1')
-        self.assertEqual(p0.attribute('level 1'), 'Impervious')
+        self.assertEqual(p0.attribute('name'), 'red clay tile 1')
+        self.assertEqual(p0.attribute('level_1'), 'impervious')
 
 
         sl2 = SpectralLibrary.readFrom(pathESL)
@@ -254,7 +260,11 @@ class TestCore(unittest.TestCase):
         speclib = createSpeclib()
 
         d = AddAttributeDialog(speclib)
-        d.exec_()
+
+        if SHOW_GUI:
+            d.exec_()
+        else:
+            d.show()
 
         if d.result() == QDialog.Accepted:
             field = d.field()
@@ -271,7 +281,7 @@ class TestCore(unittest.TestCase):
         for k in ['x','y','xUnit','yUnit']:
             self.assertTrue(k in d.keys())
             v = d[k]
-            self.assertTrue(v == None)
+            self.assertTrue(v == EMPTY_PROFILE_VALUES[k])
 
 
         y = [0.23, 0.4, 0.3, 0.8, 0.7]
@@ -280,9 +290,9 @@ class TestCore(unittest.TestCase):
         d = sp.values()
         self.assertIsInstance(d, dict)
         self.assertListEqual(d['y'], y)
-        self.assertEqual(d['x'], None)
-        self.assertEqual(d['xUnit'], None)
-        self.assertEqual(d['yUnit'], None)
+        self.assertEqual(d['x'], EMPTY_PROFILE_VALUES['x'])
+        self.assertEqual(d['xUnit'], EMPTY_PROFILE_VALUES['xUnit'])
+        self.assertEqual(d['yUnit'], EMPTY_PROFILE_VALUES['yUnit'])
         sp.setValues(x=x)
         d = sp.values()
         self.assertListEqual(d['x'], x)
@@ -415,8 +425,9 @@ class TestCore(unittest.TestCase):
         sl1.setName('MySpecLib')
         self.assertEqual(sl1.name(), 'MySpecLib')
 
+        sl1.startEditing()
         sl1.addProfiles([sp1, sp2])
-
+        sl1.commitChanges()
 
         for format in [MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_SPECLIB_LINK]:
             print('Test MimeData I/O "{}"'.format(format))
@@ -623,7 +634,8 @@ class TestCore(unittest.TestCase):
         p = speclib[-1]
         w.setProfileValues(p)
         w.show()
-        QAPP.exec_()
+        if SHOW_GUI:
+            QAPP.exec_()
 
 
     def test_SpectralProfileValueTableModel(self):
@@ -715,7 +727,8 @@ class TestCore(unittest.TestCase):
         f.setAttribute('style', value)
         self.assertTrue(vl.updateFeature(f))
 
-        QAPP.exec_()
+        if SHOW_GUI:
+            QAPP.exec_()
 
     def test_PyQtGraphPlot(self):
         import pyqtgraph as pg
@@ -727,12 +740,13 @@ class TestCore(unittest.TestCase):
         plotWidget.plotItem.addItem(item1)
         plotWidget.plotItem.removeItem(item1)
         self.assertIsInstance(plotWidget, pg.PlotWidget)
-        QAPP.exec_()
+        if SHOW_GUI:
+            QAPP.exec_()
 
     def test_SpectralLibraryPlotWidget(self):
 
 
-        import enmapboxtestdata
+
         speclib = SpectralLibrary.readFrom(enmapboxtestdata.library)
         #speclib = self.createSpeclib()
         w = QWidget()
@@ -761,7 +775,8 @@ class TestCore(unittest.TestCase):
                     else:
                         self.assertTrue(width == defaultWidth)
 
-        QAPP.exec_()
+        if SHOW_GUI:
+            QAPP.exec_()
 
 
     def test_SpectralLibraryWidget(self):
@@ -795,8 +810,8 @@ class TestCore(unittest.TestCase):
             slw.setCurrentSpectra(cs)
             self.assertTrue(len(slw.currentSpectra()) == 3)
 
-
-        QAPP.exec_()
+        if SHOW_GUI:
+            QAPP.exec_()
 
 
 
@@ -805,25 +820,18 @@ class TestCore(unittest.TestCase):
         slib = self.createSpeclib()
         self.assertTrue(len(slib) > 0)
         slw = SpectralLibraryWidget()
+        slw.speclib().startEditing()
         slw.speclib().addSpeclib(slib)
         slw.show()
         slw.actionToggleEditing.setChecked(True)
-        idx = slw.mModel.createIndex(0,slw.speclib().fieldNames().index('name'))
-        f = slw.mModel.feature(idx)
-        self.assertIsInstance(f, QgsFeature)
 
-        p = slw.mModel.spectralProfile(idx)
-        self.assertIsInstance(p, SpectralProfile)
-        slw.mModel.setData(idx, 'mynewname', role=Qt.EditRole)
         #self.assertTrue()
-        QAPP.exec_()
+        if SHOW_GUI:
+            QAPP.exec_()
 
 
 
 if __name__ == '__main__':
 
-    import json
-
-    txt = json.dumps([0,1,2])
-
+    SHOW_GUI = False
     unittest.main()

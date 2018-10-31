@@ -142,39 +142,6 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item>
-           <spacer name="horizontalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>X-Axis</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="cbXUnit">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>Select the unti of x-axis.</string>
-            </property>
-           </widget>
-          </item>
          </layout>
         </widget>
        </item>
@@ -604,7 +571,7 @@
   <customwidget>
    <class>SpectralLibraryPlotWidget</class>
    <extends>QGraphicsView</extends>
-   <header>enmapbox.gui.speclib.spectrallibraries</header>
+   <header>enmapbox.gui.speclib.plotting</header>
   </customwidget>
   <customwidget>
    <class>QgsDualView</class>
