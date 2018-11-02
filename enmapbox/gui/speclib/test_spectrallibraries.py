@@ -745,21 +745,32 @@ class TestCore(unittest.TestCase):
 
     def test_SpectralLibraryPlotWidget(self):
 
-
-
-        speclib = SpectralLibrary.readFrom(enmapboxtestdata.library)
-        #speclib = self.createSpeclib()
+        #speclib = SpectralLibrary.readFrom(enmapboxtestdata.library)
+        speclib = self.createSpeclib()
         w = QWidget()
         w.setLayout(QVBoxLayout())
         pw = SpectralLibraryPlotWidget()
+
         btn = QPushButton('Add speclib')
         btn.clicked.connect(lambda : pw.setSpeclib(speclib))
         w.layout().addWidget(pw)
         w.layout().addWidget(btn)
         w.show()
-        pw.setSpeclib(speclib)
-        if True:
 
+        self.assertIsInstance(pw.plotItem, pg.PlotItem)
+        self.assertIsInstance(pw.plotItem.getViewBox(), SpectralViewBox)
+        self.assertIsInstance(pw.plotItem.getAxis('bottom'), SpectralXAxis)
+
+
+
+        plotItem = pw.getPlotItem()
+        self.assertIsInstance(plotItem, pg.PlotItem)
+        self.assertTrue(len(plotItem.dataItems) == 0)
+        pw.setSpeclib(speclib)
+        self.assertTrue(len(plotItem.dataItems) == len(speclib))
+
+
+        if True:
 
             ids = [1,2,3,4,5]
             speclib.selectByIds(ids)
@@ -768,12 +779,26 @@ class TestCore(unittest.TestCase):
             defaultWidth = DEFAULT_SPECTRUM_STYLE.linePen.width()
             for pdi in pw.plotItem.items:
                 if isinstance(pdi, SpectralProfilePlotDataItem):
-                    print(pdi.mID)
+                    #print(pdi.mID)
                     width = pdi.pen().width()
                     if pdi.mID in ids:
                         self.assertTrue(width > defaultWidth)
                     else:
                         self.assertTrue(width == defaultWidth)
+
+            pdis = pw._spectralProfilePDIs()
+            self.assertTrue(len(pdis) == len(speclib))
+            speclib.startEditing()
+            speclib.removeProfiles(speclib[0:1])
+            pdis = pw._spectralProfilePDIs()
+            self.assertTrue(len(pdis) == len(speclib))
+
+            n = len(speclib)
+            p2 = speclib[0]
+            speclib.addProfiles([p2])
+            pdis =  pw._spectralProfilePDIs()
+            self.assertTrue(len(pdis) == len(speclib))
+            self.assertTrue(len(pdis) == n+1)
 
         if SHOW_GUI:
             QAPP.exec_()

@@ -1209,11 +1209,8 @@ class SpectralLibrary(QgsVectorLayer):
         if len(fids) == 0:
             return
 
-        b = self.isEditable()
-        self.startEditing()
+        assert self.isEditable()
         self.deleteFeatures(fids)
-        self.commitChanges()
-        #saveEdits(self, leaveEditable=True)
 
 
     def features(self, fids=None)->QgsFeatureIterator:
@@ -2022,7 +2019,7 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
     def __init__(self, parent=None, speclib:SpectralLibrary=None):
         super(SpectralLibraryWidget, self).__init__(parent)
         self.setupUi(self)
-        self.plotWidget.backgroundBrush().setColor(COLOR_BACKGROUND)
+
         self.mColorCurrentSpectra = COLOR_SELECTED_SPECTRA
         self.mColorSelectedSpectra = COLOR_SELECTED_SPECTRA
 
@@ -2051,10 +2048,13 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
 
         self.mSpeclib.editingStarted.connect(self.onEditingToggled)
         self.mSpeclib.editingStopped.connect(self.onEditingToggled)
+
         from .plotting import SpectralLibraryPlotWidget
+        self.plotWidget = SpectralLibraryPlotWidget(parent=self.graphicFrame)
+        self.graphicFrame.layout().insertWidget(0, self.plotWidget)
         assert isinstance(self.plotWidget, SpectralLibraryPlotWidget)
         self.plotWidget.setSpeclib(self.mSpeclib)
-
+        self.plotWidget.backgroundBrush().setColor(COLOR_BACKGROUND)
         self.mCanvas = QgsMapCanvas()
 
         assert isinstance(self.mDualView, QgsDualView)
@@ -2064,17 +2064,16 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
 
         self.mCurrentProfiles = collections.OrderedDict() #stores plotDataItems
 
-
         pi = self.plotItem()
         pi.setAcceptDrops(True)
-
         pi.dropEvent = self.dropEvent
-
 
         self.initActions()
 
         self.mMapInteraction = False
         self.setMapInteraction(False)
+
+
 
     def initActions(self):
 
@@ -2353,27 +2352,6 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
             self.mCurrentProfiles.update(newCurrent)
 
         return
-
-
-    def onProfileClicked(self, pdi):
-        m = self.mModel
-
-        idx = m.profile2idx(pdi.mProfile)
-        if idx is None:
-            return
-
-        currentSelection = self.mSelectionModel.selection()
-
-        profileSelection = QItemSelection(m.createIndex(idx.row(), 0), \
-                                          m.createIndex(idx.row(), m.columnCount()-1))
-
-        modifiers = QApplication.keyboardModifiers()
-        if modifiers == Qt.ShiftModifier:
-            profileSelection.merge(currentSelection, QItemSelectionModel.Toggle)
-
-        self.mSelectionModel.select(profileSelection, QItemSelectionModel.ClearAndSelect)
-
-
 
     def currentSpectra(self)->list:
         """

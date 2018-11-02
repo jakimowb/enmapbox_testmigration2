@@ -112,13 +112,6 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="SpectralLibraryPlotWidget" name="plotWidget">
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QFrame" name="btnBarPlotOptions">
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
@@ -568,11 +561,6 @@
   </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>SpectralLibraryPlotWidget</class>
-   <extends>QGraphicsView</extends>
-   <header>enmapbox.gui.speclib.plotting</header>
-  </customwidget>
   <customwidget>
    <class>QgsDualView</class>
    <extends>QWidget</extends>
