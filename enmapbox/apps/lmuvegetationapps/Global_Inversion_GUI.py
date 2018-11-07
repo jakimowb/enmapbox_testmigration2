@@ -68,7 +68,6 @@ class Global_Inversion:
         self.nodat = [-999] * 3
         self.exclude_bands, self.exclude_bands_model = (None, None)
         self.wl_compare = None
-        self.inversion_range = None
         self.n_wl = None
         self.image = None
         self.mask_image = None

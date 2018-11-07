@@ -3112,10 +3112,10 @@ class VectorClassification(Vector):
 
         type = self.dataset().fieldTypeNames()[fieldNames.index(classAttribute)]
 
-        if type == 'Integer':
+        if type.startswith('Integer'):
             pass
         else:
-            raise NotImplementedError()
+            raise Exception('Invalid field type: {}'.format(type))
 
         # try to get definition from json
         if classDefinition is None:
@@ -3202,6 +3202,8 @@ class Color(FlowObject):
     def colorNames(self):
         return self._qColor.colorNames()
 
+    def rgb(self):
+        return self.red(), self. green(), self.blue()
 
 class AttributeDefinitionEditor(object):
 
@@ -3275,7 +3277,7 @@ class ClassDefinition(FlowObject):
                 self._colors.append(Color(color))
             else:
                 assert 0, 'unexpected color format: {}'.format(color)
-
+        self.setNoDataNameAndColor()
 
     def __getstate__(self):
         return OrderedDict([('classes', self.classes()),
@@ -3299,6 +3301,21 @@ class ClassDefinition(FlowObject):
     def labels(self):
         '''Return class labels.'''
         return list(range(1, self.classes()+1))
+
+    def setNoDataNameAndColor(self, name='Unclassified', color='#black'):
+        '''Set no data name and color.'''
+        self._noDataName = name
+        self._noDataColor = Color(color)
+
+    def noDataName(self):
+        '''Return no data name.'''
+        assert isinstance(self._noDataName, str)
+        return self._noDataName
+
+    def noDataColor(self):
+        '''Return no data color.'''
+        assert isinstance(self._noDataColor, Color)
+        return self._noDataColor
 
     @staticmethod
     def fromArray(array):
@@ -5684,10 +5701,12 @@ class MetadataEditor(object):
         assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
         assert isinstance(classDefinition, ClassDefinition)
 
-        names = ['unclassified'] + classDefinition.names()
-        lookup = [0, 0, 0] + list(
-            np.array([(c.red(), c.green(), c.blue()) for c in classDefinition.colors()]).flatten())
+        noDataName = classDefinition.noDataName()
+        noDataColor = classDefinition.noDataColor()
 
+
+        names = [noDataName] + classDefinition.names()
+        lookup = list(np.array([c.rgb() for c in [noDataColor] + classDefinition.colors()]).flatten())
         rasterDataset.setNoDataValue(value=0)
 
         # setup in ENVI domain

@@ -254,10 +254,25 @@ class Test(TestCase):
 
     def test_ClassDefinition(self):
 
+        classification = Classification.fromArray(array=[[[0, 1, 2]]], filename='/vsimem/c.bsq')
+        newNames = ['Class X']
+        mapping = {0: 0, 1: 1, 2: 1}
+        newDef = ClassDefinition(names=newNames)
+        newDef.setNoDataNameAndColor(name='Not specified', color=Color(128, 128, 128))
+        print(classification.classDefinition())
+        print(newDef)
+        reclassified = classification.reclassify(
+            filename='/vsimem/c2.bsq', classDefinition=newDef, mapping=mapping)
 
+        print(reclassified.dataset().band(0).categoryNames())
+        print(reclassified.dataset().band(0).categoryColors())
+
+        return
         # qml read / write
         print(ClassDefinition.fromQml(filename=enmapboxtestdata.landcover_polygons.replace('.shp', '.qml')))
         print(ClassDefinition.fromQml(filename=enmapboxtestdata.landcover_points.replace('.shp', '.qml')))
+
+
         print(ClassDefinition.fromENVIClassification(raster=enmapClassification))
         print(ClassDefinition.fromGDALMeta(raster=enmapClassification))
         print(ClassDefinition(colors=['orange', 'blue', 'grey', 'snow', 'white']))

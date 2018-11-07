@@ -105,7 +105,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   key='enmapboxgeoalgorithms',
-                  prefixLocal='enmapboxgeoalgorithms',
+                  prefixLocal='site-packages/enmapboxgeoalgorithms',
                   prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='develop')
 
@@ -200,15 +200,15 @@ if __name__ == "__main__":
                 addRemote(info)
 
     # update remotes
-    to_update = [#'hub-datacube'
-                #,'hub-workflow'
-                 #,'enmapboxapplications'
-                 'enmapboxgeoalgorithms'
-                 #'enmap-box-lmu-vegetation-apps',
+    to_update = ['hub-datacube'
+                 ,'hub-workflow'
+                 ,'enmapboxapplications'
+                 ,'enmapboxgeoalgorithms'
+                 ,'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                 #'pyqtgraph'
+
                 ]
 
     for p in to_update:

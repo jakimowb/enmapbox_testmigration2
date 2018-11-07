@@ -41,9 +41,12 @@ class RTM_Inversion:
         self.ns = None
         self.tts_LUT, self.tto_LUT, self.psi_LUT, self.nangles_LUT = (None, None, None, None)
 
-        self.para_dict = {0: 'N', 1: 'cab', 2: 'cw', 3: 'cm', 4: 'LAI', 5: 'typeLIDF', 6: 'LIDF', 7: 'hspot',
-                          8: 'psoil', 9: 'car', 10: 'anth', 11: 'cbrown', 12: 'tts', 13: 'tto', 14: 'psi', }
-        self.para_names = [self.para_dict[i] for i in range(len(self.para_dict))]
+        # self.para_dict = {0: 'N', 1: 'cab', 2: 'car', 3: 'cm', 4: 'LAI', 5: 'typeLIDF', 6: 'LIDF', 7: 'hspot',
+        #                   8: 'psoil', 9: 'car', 10: 'anth', 11: 'cbrown', 12: 'tts', 13: 'tto', 14: 'psi', }
+        self.para_dict = {'N': 0, 'cab': 1, 'car': 2, 'anth': 3, 'cw': 4, 'cbrown': 5, 'cm': 6, 'cp': 7, 'ccl': 8,
+                          'LAI': 9, 'typeLIDF': 10, 'LIDF': 11, 'hspot': 12, 'psoil': 13, 'tts': 14, 'tto': 15,
+                          'psi': 16}
+        self.para_names = self.para_dict.keys()
         self.max_npara = len(self.para_dict)
 
     def read_image(self, image, nodat, dtype=np.float16, exclude_bands=[]):
@@ -161,6 +164,7 @@ class RTM_Inversion:
 
 
         self.image_out = image_out
+        self.get_meta(LUT_path)
         self.sensor_setup(sensor=sensor)
         self.nrows, self.ncols, self.nbands, self.image = self.read_image(image=image, nodat=nodat[1], dtype=np.float16,
                                                                           exclude_bands=self.exclude_bands)
@@ -171,7 +175,6 @@ class RTM_Inversion:
             if self.exclude_pixels is None: # Error within self.masking -> self.exclude_pixels is still None
                 return self.error
 
-        self.get_meta(LUT_path)
         self.npara = len(self.whichpara)
         self.get_geometry(geo_image=geo_image, geo_fixed=geo_fixed)  # generate list of LUT-names for each pixel
 
@@ -191,13 +194,13 @@ class RTM_Inversion:
         if sensor == 1: # ASD
             self.offset = 400 - self.wl_sensor[0]  # 400nm as first wavelength in the PROSAIL model family
             # self.exclude_bands = range(0, self.offset) + range(1009, 1129) + range(1371, 1650) # 350-400nm, 1359-1479nm, 1721-200nm
-            self.exclude_bands_model = range(self.max_npara) + [((i - self.offset)) + self.max_npara for i in self.exclude_bands[self.offset:]]
+            self.exclude_bands_model = list(range(self.max_npara)) + [((i - self.offset)) + self.max_npara for i in self.exclude_bands[self.offset:]]
         elif sensor == 2: # EnMAP
             # self.exclude_bands = range(78, 88) + range(128, 138) + range(161, 189) # Überlappung VNIR, Water1, Water2
-            self.exclude_bands_model = range(self.max_npara) + [i + self.max_npara for i in self.exclude_bands]
+            self.exclude_bands_model = list(range(self.max_npara)) + [i + self.max_npara for i in self.exclude_bands]
         elif sensor == 3: # Sentinel-2
             # self.exclude_bands = [10]
-            self.exclude_bands_model = range(self.max_npara) + [i + self.max_npara for i in self.exclude_bands]
+            self.exclude_bands_model = list(range(self.max_npara)) + [i + self.max_npara for i in self.exclude_bands]
 
         self.wl_compare = [self.wl_sensor[i] for i in range(len(self.wl_sensor)) if i not in self.exclude_bands]
         self.n_wl = len(self.wl_compare)
@@ -233,7 +236,7 @@ class RTM_Inversion:
         else:
             self.psi_LUT = []
         self.conversion_factor = int(metacontent[12].split("=")[1])
-
+        self.para_names = metacontent[13].split("=")[1].split(";")[:-1]
 
         self.nangles_LUT = [len(self.tts_LUT), len(self.tto_LUT), len(self.psi_LUT)]
         if self.nbfits_type == "rel":
@@ -241,16 +244,19 @@ class RTM_Inversion:
 
         self.whichpara = []
         if self.lop == "prospect4":
-            self.whichpara.append([0,1,2,3])
+            self.whichpara.append(["N", "cab", "cw", "cm"])
         elif self.lop == "prospect5":
-            self.whichpara.append([0, 1, 2, 3, 9])
+            self.whichpara.append(["N", "cab", "cw", "cm", "car"])
         elif self.lop == "prospect5B":
-            self.whichpara.append([0, 1, 2, 3, 9, 11])
+            self.whichpara.append(["N", "cab", "cw", "cm", "car", "cbrown"])
         elif self.lop == "prospectD":
-            self.whichpara.append([0, 1, 2, 3, 9, 10, 11])
+            self.whichpara.append(["N", "cab", "cw", "cm", "car", "cbrown", "anth"])
+        elif self.lop == "prospectCp":
+            self.whichpara.append(["N", "cab", "cw", "cm", "car", "cbrown", "anth", "cp", "ccl"])
         if self.canopy_arch == "sail":
-            self.whichpara.append([4,5,6,7,8,12,13,14])
+            self.whichpara.append(["LAI", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto", "psi"])
         self.whichpara = [item for sublist in self.whichpara for item in sublist] # flatten list back
+        self.whichpara_num = [self.para_dict[para_key] for para_key in self.whichpara]
 
     def run_inversion(self, prg_widget=None, QGis_app=None):
 
@@ -263,10 +269,11 @@ class RTM_Inversion:
                 pix_current = r*self.ncols + c + 1
 
                 # Check if process shall be aborted
-                if prg_widget.gui.lblCancel.text() == "-1":
-                    prg_widget.gui.lblCancel.setText("")
-                    prg_widget.gui.cmdCancel.setDisabled(False)
-                    raise ValueError("Inversion canceled")
+                if prg_widget:
+                    if prg_widget.gui.lblCancel.text() == "-1":
+                        prg_widget.gui.lblCancel.setText("")
+                        prg_widget.gui.cmdCancel.setDisabled(False)
+                        raise ValueError("Inversion canceled")
 
                 # Check if Pixel shall be excluded
                 if len(self.exclude_pixels) > 0 and self.exclude_pixels[r,c] < 1:
@@ -283,8 +290,9 @@ class RTM_Inversion:
                 estimates = np.zeros(self.ns)
                 lut = np.hstack(np.load(self.LUT_base + "_" + str(self.whichLUT[r,c])+ "_" + str(split) + ".npy")
                                 for split in range(self.splits)) # load all splits of the current geo_ensembles
-                LUT_params = lut[self.whichpara,:] # extract parameters
+                LUT_params = lut[self.whichpara_num,:] # extract parameters
                 lut = np.delete(lut, self.exclude_bands_model, axis=0) # delete exclude_bands_model - members
+
 
                 for run in range(self.ns):
                     if np.sum(lut[:,run]) < 1: continue
@@ -308,18 +316,18 @@ class RTM_Inversion:
 
         if self.out_mode == "single":
             destination = driver.Create(self.image_out, self.ncols, self.nrows, self.npara, gdal.GDT_Float32)
-            for i in range(self.npara):
+            for i, para_key in enumerate(self.whichpara):
                 band = destination.GetRasterBand(i+1)
-                band.SetDescription(self.para_names[self.whichpara[i]])
+                band.SetDescription(para_key)
                 band.WriteArray(self.out_matrix[:,:,i])
             destination.SetMetadataItem('data ignore value', str(self.nodat[2]), 'ENVI')
 
         elif self.out_mode == "individual":
-            for i in range(self.npara):
-                out = os.path.splitext(self.image_out)[0] + "_" + self.para_names[self.whichpara[i]] + '.' + os.path.splitext(self.image_out)[1]
+            for i, para_key in enumerate(self.whichpara):
+                out = os.path.splitext(self.image_out)[0] + "_" + para_key + '.' + os.path.splitext(self.image_out)[1]
                 destination = driver.Create(out, self.ncols, self.nrows, 1, gdal.GDT_Float32)
                 band = destination.GetRasterBand(1)
-                band.SetDescription(self.para_names[self.whichpara[i]])
+                band.SetDescription(para_key)
                 band.WriteArray(self.out_matrix[:,:,i])
                 destination.SetMetadataItem('data ignore value',str(self.nodat[2]),'ENVI')
         
@@ -327,12 +335,14 @@ def example():
     ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
     ResultsOut = "D:/ECST_III/Processor/VegProc/results.bsq"
     GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
-    LUT_dir = "D:/ECST_III/Processor/VegProc/results2/"
-    LUT_name = "Martin_LUT4"
+    LUT_dir = "E:/ECST_III/Processor/LUT/Gamma/"
+    LUT_name = "Martin_LUT_test"
     
     # global Inversion input:
     costfun_type = 1
     nbest_fits = 5.0
+    nbfits_type = "rel" # "rel" or "abs"
+    out_mode = "single" # "single" or "individual"
     noisetype = 2
     noiselevel = 5.0 # percent
     sensor = 1 # ASD
@@ -340,18 +350,32 @@ def example():
     nodat_Image = -999
     nodat_Out = -999
     inversion_range = None
-    
+
+    if sensor == 1:  # ASD
+        exclude_bands = list(range(0, 51)) + list(range(1009, 1129)) + list(
+        range(1371, 1650))  # 350-400nm, 1359-1479nm, 1721-200nm
+    elif sensor == 2:  # EnMAP
+        exclude_bands = list(range(78, 88)) + list(range(128, 138)) + list(
+        range(161, 189))  # Überlappung VNIR, Water1, Water2
+    elif sensor == 3:  # Sentinel-2
+        exclude_bands = [10]
+
+    # LUT-Path
+    LUT_path = LUT_dir + LUT_name + "_00meta.lut"
+
     # Fixed Geometry
     tts = None
     tto = None
     psi = None
     geometry_fixed = [tts, tto, psi]
+
+
     
     rtm = RTM_Inversion()
-    rtm.inversion_setup(image=ImageIn, image_out=ResultsOut, LUT_dir=LUT_dir, LUT_name=LUT_name, ctype=costfun_type,
-                     nbfits=nbest_fits, noisetype=noisetype, noiselevel=noiselevel, inversion_range=inversion_range,
-                     geo_image=GeometryIn, geo_fixed=geometry_fixed, sensor=sensor, exclude_pixels=None,
-                     nodat=[nodat_Geo, nodat_Image, nodat_Out], which_para=range(15))
+    rtm.inversion_setup(image=ImageIn, image_out=ResultsOut, LUT_path=LUT_path, ctype=costfun_type,
+                     nbfits=nbest_fits, nbfits_type=nbfits_type, noisetype=noisetype, noiselevel=noiselevel,
+                     geo_image=GeometryIn, geo_fixed=geometry_fixed, sensor=sensor,
+                     nodat=[nodat_Geo, nodat_Image, nodat_Out], out_mode=out_mode, exclude_bands=exclude_bands)
     
     rtm.run_inversion()
     rtm.write_image()

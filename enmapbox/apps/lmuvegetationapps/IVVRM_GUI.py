@@ -68,7 +68,6 @@ class IVVRM:
         self.gui.lblLAI.setText(u'[m²/m²]')
 
     def initial_values(self):
-        self.typeLIDF = 2
         self.lop = "prospectD"
         self.canopy_arch = "sail"
         self.colors = [tuple([219,183,255]), tuple([51,204,51]), tuple([69,30,234]), tuple([0,255,255]),
@@ -81,8 +80,10 @@ class IVVRM:
                           self.gui.psoil_lineEdit, self.gui.SZA_lineEdit, self.gui.OZA_lineEdit, self.gui.rAA_lineEdit,
                           self.gui.Cp_lineEdit, self.gui.Ccl_lineEdit, self.gui.Car_lineEdit, self.gui.Canth_lineEdit,
                           self.gui.Cbrown_lineEdit]
-        self.para_names = ["N", "Cab", "Cw", "Cm", "LAI", "Fake", "LIDFB/ALIA", "Hspot", "psoil", "SZA", "OZA", "rAA",
-                           "Cp", "Ccl", "Car", "Canth", "Cbrown"]
+        self.para_names = ["N", "cab", "cw", "cm", "LAI", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto", "psi",
+                           "cp", "ccl", "car", "anth", "cbrown"]
+        self.lineEdits_dict = dict(zip(self.para_names, self.lineEdits))
+        self.colors_dict = dict(zip(self.para_names, self.colors))
         self.penStyle = 1
         self.item = 1
         # self.plot_color = dict(zip(range(7), ["g", "r", "b", "y", "m", "c", "w"]))
@@ -90,7 +91,8 @@ class IVVRM:
         self.current_slider = None
 
         self.data_mean = None
-        self.para_list = []
+        self.para_dict = dict(zip(self.para_names, [None]*len(self.para_names)))
+        self.para_dict["typeLIDF"] = 2
         self.bg_spec = None
         self.bg_type = "default"
 
@@ -201,14 +203,14 @@ class IVVRM:
 
     def select_LIDF(self, index):
         if index > 0:
-            self.typeLIDF = 1 # Beta Distribution
-            self.para_list[6] = index - 1
+            self.para_dict["typeLIDF"] = 1 # Beta Distribution
+            self.para_dict["LIDF"] = index - 1
             self.gui.LIDFB_Slide.setDisabled(True)
             self.gui.LIDFB_lineEdit.setDisabled(True)
-            self.mod_exec(item=6)
+            self.mod_exec(item="LIDF")
         else:
-            self.typeLIDF = 2 # Ellipsoidal Distribution
-            self.mod_exec(self.gui.LIDFB_Slide, item=6)
+            self.para_dict["typeLIDF"] = 2 # Ellipsoidal Distribution
+            self.mod_exec(self.gui.LIDFB_Slide, item="LIDF")
             self.gui.LIDFB_Slide.setDisabled(False)
             self.gui.LIDFB_lineEdit.setDisabled(False)
 
@@ -353,42 +355,41 @@ class IVVRM:
 
     def para_init(self):
         self.select_s2s(sensor="default", trigger=False)
-        self.para_list.append(float(self.gui.N_lineEdit.text())) #0
-        self.para_list.append(float(self.gui.Cab_lineEdit.text())) #1
-        self.para_list.append(float(self.gui.Cw_lineEdit.text())) #2
-        self.para_list.append(float(self.gui.Cm_lineEdit.text())) #3
-        self.para_list.append(float(self.gui.LAI_lineEdit.text())) #4
-        self.para_list.append(float(2))  # 5
-        self.para_list.append(float(self.gui.LIDFB_lineEdit.text())) #6
-        self.para_list.append(float(self.gui.hspot_lineEdit.text())) #7
-        self.para_list.append(float(self.gui.psoil_lineEdit.text())) #8
-        self.para_list.append(float(self.gui.SZA_lineEdit.text())) #9
-        self.para_list.append(float(self.gui.OZA_lineEdit.text())) #10
-        self.para_list.append(float(self.gui.rAA_lineEdit.text())) #11
-        self.para_list.append(float(self.gui.Cp_lineEdit.text()))  # 12
-        self.para_list.append(float(self.gui.Ccl_lineEdit.text()))  # 13
-        self.para_list.append(float(self.gui.Car_lineEdit.text())) #14
-        self.para_list.append(float(self.gui.Canth_lineEdit.text())) #15
-        self.para_list.append(float(self.gui.Cbrown_lineEdit.text())) #16
-        self.typeLIDF = 2
+        self.para_dict["N"] = float(self.gui.N_lineEdit.text()) #0
+        self.para_dict["cab"] = float(self.gui.Cab_lineEdit.text()) #1
+        self.para_dict["cw"] = float(self.gui.Cw_lineEdit.text()) #2
+        self.para_dict["cm"] = float(self.gui.Cm_lineEdit.text()) #3
+        self.para_dict["LAI"] = float(self.gui.LAI_lineEdit.text()) #4
+        self.para_dict["typeLIDF"] = float(2)  # 5
+        self.para_dict["LIDF"] = float(self.gui.LIDFB_lineEdit.text()) #6
+        self.para_dict["hspot"] = float(self.gui.hspot_lineEdit.text()) #7
+        self.para_dict["psoil"] = float(self.gui.psoil_lineEdit.text()) #8
+        self.para_dict["tts"] = float(self.gui.SZA_lineEdit.text()) #9
+        self.para_dict["tto"] = float(self.gui.OZA_lineEdit.text()) #10
+        self.para_dict["psi"] = float(self.gui.rAA_lineEdit.text()) #11
+        self.para_dict["cp"] = float(self.gui.Cp_lineEdit.text())  # 12
+        self.para_dict["ccl"] = float(self.gui.Ccl_lineEdit.text())  # 13
+        self.para_dict["car"] = float(self.gui.Car_lineEdit.text()) #14
+        self.para_dict["anth"] = float(self.gui.Canth_lineEdit.text()) #15
+        self.para_dict["cbrown"] = float(self.gui.Cbrown_lineEdit.text()) #16
 
     def mod_interactive(self):
-        self.gui.N_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.N_Slide, item=0))
-        self.gui.Cab_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.Cab_Slide, item=1))
-        self.gui.Cw_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cw_Slide, item=2))
-        self.gui.Cm_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cm_Slide, item=3))
-        self.gui.LAI_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAI_Slide, item=4))
-        self.gui.LIDFB_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LIDFB_Slide, item=6))
-        self.gui.hspot_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.hspot_Slide, item=7))
-        self.gui.psoil_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.psoil_Slide, item=8))
-        self.gui.SZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SZA_Slide, item=9))
-        self.gui.OZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.OZA_Slide, item=10))
-        self.gui.rAA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.rAA_Slide, item=11))
-        self.gui.Cp_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cp_Slide, item=12))
-        self.gui.Ccl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Ccl_Slide, item=13))
-        self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item=14))
-        self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item=15))
-        self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item=16))
+        self.gui.N_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.N_Slide, item="N"))
+        self.gui.Cab_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.Cab_Slide, item="cab"))
+        self.gui.Cw_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cw_Slide, item="cw"))
+        self.gui.Cm_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cm_Slide, item="cm"))
+        self.gui.LAI_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAI_Slide, item="LAI"))
+        self.gui.LIDFB_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LIDFB_Slide, item="LIDF"))
+        self.gui.hspot_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.hspot_Slide, item="hspot"))
+        self.gui.psoil_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.psoil_Slide, item="psoil"))
+        self.gui.SZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SZA_Slide, item="tts"))
+        self.gui.OZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.OZA_Slide, item="tto"))
+        self.gui.rAA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.rAA_Slide, item="psi"))
+        self.gui.Cp_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cp_Slide, item="cp"))
+        self.gui.Ccl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Ccl_Slide, item="ccl"))
+        self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item="car"))
+        self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item="anth"))
+        self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item="cbrown"))
         # self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=17))
         # self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=18))
         # self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=19))
@@ -433,17 +434,15 @@ class IVVRM:
     def mod_exec(self, slider=None, item=None):
 
         if slider is not None and item is not None:
-            self.para_list[item] = slider.value() / 10000.0  # update para_list
+            self.para_dict[item] = slider.value() / 10000.0  # update para_list
 
         mod_I = mod.Init_Model(lop=self.lop, canopy_arch=self.canopy_arch, nodat=-999, int_boost=1.0, s2s=self.sensor)
-        self.myResult = mod_I.initialize_single(tts=self.para_list[9], tto=self.para_list[10], psi=self.para_list[11],
-                                           N=self.para_list[0], cab=self.para_list[1], cw=self.para_list[2],
-                                           cm=self.para_list[3], LAI=self.para_list[4], LIDF=self.para_list[6],
-                                           typeLIDF=self.typeLIDF, hspot=self.para_list[7], psoil=self.para_list[8],
-                                           cp=self.para_list[12], ccl=self.para_list[13], car=self.para_list[14],
-                                           cbrown=self.para_list[16], anth=self.para_list[15], soil=self.bg_spec)
-
-
+        self.myResult = mod_I.initialize_single(tts=self.para_dict["tts"], tto=self.para_dict["tto"], psi=self.para_dict["psi"],
+                                           N=self.para_dict["N"], cab=self.para_dict["cab"], cw=self.para_dict["cw"],
+                                           cm=self.para_dict["cm"], LAI=self.para_dict["LAI"], LIDF=self.para_dict["LIDF"],
+                                           typeLIDF=self.para_dict["typeLIDF"], hspot=self.para_dict["hspot"], psoil=self.para_dict["psoil"],
+                                           cp=self.para_dict["cp"], ccl=self.para_dict["ccl"], car=self.para_dict["car"],
+                                           cbrown=self.para_dict["cbrown"], anth=self.para_dict["anth"], soil=self.bg_spec)
 
         if not item is None: self.item = item
         self.plotting()
@@ -459,7 +458,7 @@ class IVVRM:
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
-            myPen = pg.mkPen(color=self.colors[self.item], style=self.penStyle)
+            myPen = pg.mkPen(color=self.colors_dict[self.item], style=self.penStyle)
             self.plot = self.gui.graphicsView.plot(self.wl, self.myResult, pen=myPen)
             self.plot_own_spec()
             self.gui.graphicsView.setYRange(0, 0.6, padding=0)
@@ -467,9 +466,7 @@ class IVVRM:
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 
         if self.data_mean is not None and not self.gui.CheckPlotAcc.isChecked():
-
             self.plot_own_spec()
-
             warnings.filterwarnings('ignore')
 
             try:
@@ -515,7 +512,7 @@ class IVVRM:
     def clear_plot(self, rescale=False, clearPlots=True):
         if rescale:
             self.gui.graphicsView.setYRange(0, 0.6, padding=0)
-            self.gui.graphicsView.setrange(350, 2550, padding=0)
+            self.gui.graphicsView.setXRange(350, 2550, padding=0)
 
         if clearPlots:
             self.gui.graphicsView.clear()
@@ -533,13 +530,14 @@ class IVVRM:
     def save_paralist(self):
         paralistout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
                                                       filter="Text files (*.txt)"))
+
         if paralistout:
             with open(paralistout, "w") as file:
-                for i in range(len(self.para_list)-1):
-                    if self.lineEdits[i].isEnabled():
-                        file.write("%s\t%f\n" % (self.para_names[i], self.para_list[i]))
-                if self.lineEdits[-1].isEnabled(): # last parameter without eol character
-                    file.write("%s\t%f" % (self.para_names[-1], self.para_list[-1]))
+                for para_key in self.para_dict:
+                    if self.lineEdits_dict[para_key].isEnabled():
+                        file.write("%s\t%f\n" % (para_key, self.para_dict[para_key]))
+
+## todo: accumulative plotting!!
 
 class LoadTxtFile:
     def __init__(self, main):
@@ -584,7 +582,8 @@ class LoadTxtFile:
         self.gui.show()
 
     def open_file(self):
-        file_choice = str(QFileDialog.getOpenFileName(caption='Select Spectrum File', filter="Text-File (*.txt *.csv)"))
+        # file_choice = str(QFileDialog.getOpenFileName(caption='Select Spectrum File', filter="Text-File (*.txt *.csv)"))
+        file_choice, _filter = QFileDialog.getOpenFileName(None, 'Select Spectrum File', '.', "(*.txt *.csv)")
         if not file_choice: # Cancel clicked
             if not self.filenameIn: self.houston(message="No File selected") # no file in memory
             return
@@ -600,11 +599,14 @@ class LoadTxtFile:
         sniffer = csv.Sniffer()
         with open(self.filenameIn, 'r') as raw_file:
             self.dialect = sniffer.sniff(raw_file.readline())
-            if self.dialect.delimiter == "\t": self.gui.cmbDelimiter.setCurrentIndex(0)
-            elif self.dialect.delimiter == " ": self.gui.cmbDelimiter.setCurrentIndex(1)
-            elif self.dialect.delimiter == ",": self.gui.cmbDelimiter.setCurrentIndex(2)
-            elif self.dialect.delimiter == ";": self.gui.cmbDelimiter.setCurrentIndex(3)
-
+            if self.dialect.delimiter == "\t":
+                self.gui.cmbDelimiter.setCurrentIndex(0)
+            elif self.dialect.delimiter == " ":
+                self.gui.cmbDelimiter.setCurrentIndex(1)
+            elif self.dialect.delimiter == ",":
+                self.gui.cmbDelimiter.setCurrentIndex(2)
+            elif self.dialect.delimiter == ";":
+                self.gui.cmbDelimiter.setCurrentIndex(3)
             raw_file.seek(0)
             raw = csv.reader(raw_file, self.dialect)
             try:
@@ -723,9 +725,9 @@ class Select_Wavelengths:
         else: width = 4
 
         if self.main.loadtxtfile.open_type == "in situ":
-            self.default_exclude = range(960, 1021) + range(1390, 1551) + range(2000, 2101)
+            self.default_exclude = [i for j in (range(960, 1021), range(1390, 1551), range(2000, 2101)) for i in j]
         elif self.main.loadtxtfile.open_type == "background":
-            self.default_exclude = range(960, 1021) + range(1390, 1551) + range(2000, 2101)
+            self.default_exclude = [i for j in (range(960, 1021), range(1390, 1551), range(2000, 2101)) for i in j]
 
         for i in range(self.main.loadtxtfile.nbands):
             if i in self.default_exclude:
