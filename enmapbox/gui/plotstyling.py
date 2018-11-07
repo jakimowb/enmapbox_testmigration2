@@ -862,7 +862,7 @@ class PlotStyleEditorWidgetFactory(QgsEditorWidgetFactory):
         #log(' fieldScore()')
         field = vl.fields().at(fieldIdx)
         assert isinstance(field, QgsField)
-        if field.type() == QVariant.String and field.length() > 400:
+        if field.type() == QVariant.String and field.length() > 400 and field.name().upper() == 'STYLE':
             return 20
         elif field.type() == QVariant.String:
             return 5

@@ -299,18 +299,21 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
     #if containsSpeclib(event.mimeData()):
         #    event.accept()
 
-    def dropEvent(self, event):
-        assert isinstance(event, QDropEvent)
-        #log('dropEvent')
-        mimeData = event.mimeData()
 
-        speclib = SpectralLibrary.readFromMimeData(mimeData)
-        if isinstance(speclib, SpectralLibrary) and len(speclib) > 0:
+    def addProfiles(self, profiles, n_total:int):
+        """
+        Adds profiles and shows a progress bar
+        :param profiles: list of profiles
+        """
+        i = 0
+        self.mProgressBar.setRange(0, n_total)
+        self.mProgressBar.setValue(0)
+        for p in profiles:
+            i += 1
+            self.mProgressBar.setValue(i)
+        
+        QTimer.singleShot(500, lambda : self.mProgressBar.setValue(0))
 
-            slib = self.speclib()
-            slib.startEditing()
-            slib.addSpeclib(speclib)
-            event.accept()
 
 
 class SpectralViewBox(pg.ViewBox):

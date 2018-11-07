@@ -1368,15 +1368,7 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
         self.actionSaveClasses.setIcon(QIcon(r'://images/themes/default/mActionFileSaveAs.svg'))
         self.actionSaveClasses.triggered.connect(self.onSaveClasses)
 
-
-        def onClipboard():
-            mimeData = QApplication.clipboard().mimeData()
-            b = isinstance(mimeData, QMimeData) and MIMEDATA_KEY_TEXT in mimeData.formats()
-            self.actionPasteClasses.setEnabled(b)
-
-        cb = QApplication.clipboard()
-        assert isinstance(cb, QClipboard)
-        cb.dataChanged.connect(onClipboard)
+        QApplication.clipboard().dataChanged.connect(self.onClipboard)
         self.actionPasteClasses.setIcon(QIcon(r'://images/themes/default/mActionEditPaste.svg'))
         self.actionPasteClasses.triggered.connect(self.onPasteClasses)
 
@@ -1389,7 +1381,14 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
         self.btnCopyClasses.setDefaultAction(self.actionCopyClasses)
         self.btnPasteClasses.setDefaultAction(self.actionPasteClasses)
 
-        onClipboard()
+        self.onClipboard()
+
+    def onClipboard(self, *args):
+        mimeData = QApplication.clipboard().mimeData()
+        b = isinstance(mimeData, QMimeData) and MIMEDATA_KEY_TEXT in mimeData.formats()
+        self.actionPasteClasses.setEnabled(b)
+
+
     def onTableDoubleClick(self, idx):
         model = self.tableClassificationScheme.model()
         assert isinstance(model, ClassificationScheme)
@@ -1676,9 +1675,7 @@ class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
             return 0
         field = vl.fields().at(fieldIdx)
         assert isinstance(field, QgsField)
-        if field.type() == QVariant.String and field.name():
-            return 20
-        elif field.type() == QVariant.Int:
+        if field.type() in [QVariant.String, QVariant.Int] and re.search(r'.*(class|label).*', field.name(), re.I):
             return 20
         else:
             return 0 #no support

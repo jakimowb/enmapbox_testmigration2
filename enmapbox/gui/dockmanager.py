@@ -920,6 +920,7 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
         return menu
 
     def setLayerStyle(self, layer, canvas):
+
         from enmapbox.gui.layerproperties import showLayerPropertiesDialog
         showLayerPropertiesDialog(layer, canvas, modal=True)
 

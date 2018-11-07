@@ -129,18 +129,20 @@ except:
     pass
 
 
+try:
+    #init some other requirements
+    #print('initialize EnMAP-Box editor widget factories')
+    from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
+    registerPlotStyleEditorWidget()
 
-#init some other requirements
-#print('initialize EnMAP-Box editor widget factories')
-from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
-registerPlotStyleEditorWidget()
+    from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
+    registerSpectralProfileEditorWidget()
 
-from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
-registerSpectralProfileEditorWidget()
+    from enmapbox.gui.classification.classificationscheme import registerClassificationSchemeEditorWidget
+    registerClassificationSchemeEditorWidget()
 
-from enmapbox.gui.classification.classificationscheme import registerClassificationSchemeEditorWidget
-registerClassificationSchemeEditorWidget()
-
+except:
+    pass
 
 _enmapboxProvider = None
 def initEnMAPBoxProcessingProvider():

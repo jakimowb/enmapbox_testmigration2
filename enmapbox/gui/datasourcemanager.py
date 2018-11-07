@@ -1343,9 +1343,9 @@ class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
                 else:
                     a.setEnabled(False)
 
-        if isinstance(src, DataSourceSpectralLibrary):
-            a = m.addAction('Open Editor')
-            a.triggered.connect(lambda : self.onOpenSpeclib(src.speclib()))
+            if isinstance(src, DataSourceSpectralLibrary):
+                a = m.addAction('Open Editor')
+                a.triggered.connect(lambda : self.onOpenSpeclib(src.speclib()))
 
 
         if isinstance(node, RasterBandTreeNode):

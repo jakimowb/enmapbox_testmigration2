@@ -771,6 +771,30 @@ class EnMAPBox(QgisInterface, QObject):
     def getURIList(self, *args, **kwds):
         return self.dataSourceManager.getURIList(*args, **kwds)
 
+
+    def showLayerProperties(self, mapLayer:QgsMapLayer):
+        """
+        Show a map layer property dialog
+        :param mapLayer:
+        :return:
+        """
+        if isinstance(mapLayer, (QgsVectorLayer, QgsRasterLayer)):
+
+            #1. find the map canvas
+            mapCanvas = None
+            for canvas in self.mapCanvases():
+                if mapLayer in canvas.layers():
+                    mapCanvas = canvas
+                    break
+            if mapCanvas is None:
+                mapCanvas = QgsMapCanvas()
+
+            #2.
+            from enmapbox.gui.layerproperties import showLayerPropertiesDialog
+            showLayerPropertiesDialog(mapLayer, mapCanvas, modal=True)
+
+
+
     @staticmethod
     def getIcon():
         """
