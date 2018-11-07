@@ -11,6 +11,7 @@
 gitpython
 git-lfs
 pb_tool
+recommonmark
 sphinx
 sphinx-argparse
 sphinx-markdown

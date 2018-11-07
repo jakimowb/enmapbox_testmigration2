@@ -624,9 +624,7 @@ if __name__ == '__main__':
         #migrateBJexternals()
         compile_rc_files(DIR_UIFILES)
     if True:
-        DIR_SPECLIB = os.path.join(DIR_REPO, 'enmapbox/gui/speclib')
-        compile_rc_files(DIR_SPECLIB)
-        DIR_CLASSIFICATION = os.path.join(DIR_REPO, 'enmapbox/gui/classification')
-        compile_rc_files(DIR_CLASSIFICATION)
+        DIR_ROOT = os.path.join(DIR_REPO, 'enmapbox')
+        compile_rc_files(DIR_ROOT)
     print('Done')
 
