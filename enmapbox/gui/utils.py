@@ -1332,10 +1332,17 @@ class SpatialPoint(QgsPointXY):
     """
 
     @staticmethod
-    def fromMapCanvasCenter(mapCanvas):
+    def fromMapCanvasCenter(mapCanvas:QgsMapLayer):
         assert isinstance(mapCanvas, QgsMapCanvas)
         crs = mapCanvas.mapSettings().destinationCrs()
         return SpatialPoint(crs, mapCanvas.center())
+
+
+    @staticmethod
+    def fromMapLayerCenter(mapLayer:QgsMapLayer):
+        assert isinstance(mapLayer, QgsMapLayer) and mapLayer.isValid()
+        crs = mapLayer.crs()
+        return SpatialPoint(crs, mapLayer.extent().center())
 
     @staticmethod
     def fromSpatialExtent(spatialExtent):
