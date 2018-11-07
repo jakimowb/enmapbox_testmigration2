@@ -50,7 +50,12 @@ def run(debug=False, processing=False, applications=False, sources=None):
     enmapbox.initEnMAPBoxProcessingProvider()
     enmapBox.run()
     if sources is not None:
-        enmapBox.addSources(sourceList=sources)
+        for source in enmapBox.addSources(sourceList=sources):
+            try: # add as map
+                lyr = source.createUnregisteredMapLayer()
+                dock = enmapBox.createDock('MAP')
+                dock.addLayers([lyr])
+            except: pass
 
     qgisApp.exec_()
 
