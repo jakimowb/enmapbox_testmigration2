@@ -8,4 +8,8 @@ classification = Classification.fromClassification(filename='/vsimem/points.bsq'
 sample = ClassificationSample(raster=enmap, classification=classification)
 rfc = Classifier(sklEstimator=RandomForestClassifier())
 rfc.fit(sample=sample)
-print(rfc.predict(raster=enmap, filename='/vsimem/rfcClassification.bsq'))
+prediction = rfc.predict(raster=enmap, filename='/vsimem/rfcClassification.bsq')
+
+if True:
+    from enmapbox.__main__ import run
+    run(sources=[prediction.filename()])
