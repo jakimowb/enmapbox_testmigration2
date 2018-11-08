@@ -116,10 +116,13 @@ class EnMAPBoxPlugin(object):
         for action in self.toolbarActions:
             self.iface.removeToolBarIcon(action)
 
-        QgsApplication.instance().processingRegistry().removeProvider(self.enmapBoxProvider)
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             EnMAPBox.instance().close()
         EnMAPBox._instance = None
+
+        from enmapbox.algorithmprovider import ID
+        QgsApplication.instance().processingRegistry().removeProvider(ID)
+
 
 
 
