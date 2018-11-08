@@ -19,9 +19,12 @@
 ***************************************************************************
 """
 
-from enmapbox.gui.utils import loadUIFormClass
+
+from qgis.core import *
+from qgis.gui import *
 from enmapbox.gui.classification.classificationscheme import *
 from reclassifyapp import APP_DIR
+
 loadUi = lambda name: loadUIFormClass(os.path.join(APP_DIR, name))
 
 
@@ -52,8 +55,22 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         self.tbDstFile.textChanged.connect(self.validate)
         self.mapLayerComboBox.currentIndexChanged.connect(self.validate)
 
-        self.btnSelectSrcfile.clicked.connect(lambda:self.addSrcRaster(QFileDialog.getOpenFileName()))
-        self.btnSelectDstFile.clicked.connect(lambda:self.tbDstFile.setText(QFileDialog.getSaveFileName()))
+        def onAddRaster(*args):
+            filter = QgsProviderRegistry.instance().fileRasterFilters()
+            file, filter = QFileDialog.getOpenFileName()
+
+            if len(file) > 0:
+                self.addSrcRaster(file)
+
+        def onSetDstFile(*args):
+            filter = QgsProviderRegistry.instance().fileRasterFilters()
+            file, filter = QFileDialog.getSaveFileName(self, 'Output classification raster', self.tbDstFile.text(), filter=filter)
+
+            if len(file) > 0:
+                self.tbDstFile.setText(file)
+
+        self.btnSelectSrcfile.clicked.connect(onAddRaster)
+        self.btnSelectDstFile.clicked.connect(onSetDstFile)
         self.widgetDstFile.setType(QgsRasterFormatSaveOptionsWidget.Full)
         self.widgetDstFile.setProvider('gdal')
         self.widgetDstFile.setFormat('GTIFF')
