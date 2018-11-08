@@ -11,10 +11,6 @@ import hubdc.hubdcerrors as errors
 
 gdal.UseExceptions()
 
-def assertType(obj, type):
-    assert isinstance(obj, type)
-    return obj
-
 class RasterCreationOptions(object):
     '''Class for managing raster creation options.'''
 
@@ -1818,6 +1814,7 @@ class RasterDataset(object):
         rgb = np.array([ar, ag, ab]) / 255.
 
         if not noPlot:
+
             import matplotlib.pyplot as plt
             fig = plt.imshow(np.array(rgb).transpose((1,2,0)))
             fig.axes.get_xaxis().set_visible(False)
@@ -2349,11 +2346,13 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
         raise errors.InvalidGDALDatasetError(filename)
 
     if gdalDataset.GetProjection() == '':
-        import warnings
-        warnings.warn('missing SRS for GDAL dataset {}; WGS84 is used'.format(filename), UserWarning)
+        #import warnings
+        #warnings.warn('missing SRS for GDAL dataset {}; WGS84 is used'.format(filename), UserWarning)
 
         # create vrt with WGS84 projection
         filenameVRT = filename + '.wgs84.vrt'
+        filenameVRT = '/vsimem/{}.wgs84.vrt'.format(filename)
+
         gdalDataset2 = gdal.Translate(filenameVRT, filename, format='VRT', outputSRS=Projection.WGS84().wkt())
         gdalDataset2.SetGeoTransform((0.0, 1.0, 0.0, 0.0, 0.0, -1.0))
         rasterDataset = RasterDataset(gdalDataset=gdalDataset2)
