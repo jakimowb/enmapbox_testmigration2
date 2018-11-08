@@ -2219,15 +2219,24 @@ class ENVISpectralLibrary(FlowObject):
                 result[key] = value
         return result
 
-    def attributeDefinitions(self):
+    def attributeDefinitions(self, classification=True, regression=True):
         '''Return attribute definitions as dictionary.'''
 
-        result = OrderedDict()
         filenameJson = '{}.json'.format(splitext(self.filename())[0])
         if filenameJson is not None:
-            return AttributeDefinitionEditor.readFromJson(filename=filenameJson)
+            definitions =  AttributeDefinitionEditor.readFromJson(filename=filenameJson)
         else:
-            return dict()
+            definitions = dict()
+
+        if regression is False:
+            raise NotImplementedError()
+
+        if classification is False:
+            definitions = {k: v for k, v in definitions.items() if isinstance(v, ClassDefinition)}
+
+        return definitions
+
+
 
     def attributeNames(self):
         '''
@@ -2240,31 +2249,6 @@ class ENVISpectralLibrary(FlowObject):
         ['level 1', 'level 2', 'spectra names']
         '''
         return list(self.attributeTable().keys())
-
-    def classificationAttributeNames(self):
-        '''
-        Return attribute names with class definition.
-
-        :example:
-
-        >>> import enmapboxtestdata
-        >>> ENVISpectralLibrary(filename=enmapboxtestdata.speclib).classificationAttributeNames()
-        ['level 1', 'level 2']
-        '''
-        return list(self.raster().dataset().metadataDict()['CLASS_NAMES'].keys())
-
-    def regressionAttributeNames(self):
-        '''
-        Return attribute names with regression definition.
-
-        :example:
-
-        >>> import enmapboxtestdata
-        >>> ENVISpectralLibrary(filename=enmapboxtestdata.speclib2).regressionAttributeNames()
-
-        '''
-        return list(self.raster().dataset().metadataDict()['REGRESSION_NAMES'].keys())
-
 
     @classmethod
     def fromSample(cls, filename, sample):

@@ -56,6 +56,11 @@ openHTML = False
 
 class Test(TestCase):
 
+    def test_(self):
+        filename = splitext(enmapboxtestdata.landcover_polygons)[0] + '.json'
+        print(filename)
+        print(AttributeDefinitionEditor.readFromJson(filename=filename))
+
     def test_ENVI(self):
         ENVI.readHeader(filenameHeader=ENVI.findHeader(filenameBinary=enmapboxtestdata.library))
 
@@ -67,6 +72,8 @@ class Test(TestCase):
         print(speclib.raster().dataset().metadataDict())
 
         print(speclib.attributeNames())
+        print(speclib.attributeDefinitions())
+        print(speclib.attributeTable())
 
         # speclib from raster
         speclib = ENVISpectralLibrary.fromRaster(filename=join(outdir, 'ENVISpectralLibraryFromRaster.sli'),
@@ -644,10 +651,12 @@ class Test(TestCase):
                                                                      filename='/vsimem/fraction.bsq'))
 
     def test_debug(self):
-        enmap.plotMultibandColor(rgbindex=(0, 100, 150), rgbvmin=0, rgbvmax=3000, showPlot=False)
-        pyplot.savefig(r'c:\output\mask_fromVector.png', bbox_inches='tight')
-
-
+        speclib = ENVISpectralLibrary(r'C:\Users\janzandr\Desktop\ao\fullseason_fulllib_clean.sli')
+        print(speclib.attributeNames())
+        print()
+        print(speclib.attributeDefinitions(classification=False))
+        print()
+        print(speclib.attributeTable())
 
 if __name__ == '__main__':
     print('output directory: ' + outdir)
