@@ -52,8 +52,6 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         self.plugin = EnMAPBoxPlugin(self.iface)
         self.assertIsInstance(self.plugin, EnMAPBoxPlugin)
         self.plugin.initGui()
-        #self.plugin.unload()
-        s = ""
 
     def test_loadAlgorithmProvider(self):
 
@@ -71,8 +69,10 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
 
         self.plugin = EnMAPBoxPlugin(self.iface)
         self.assertIsInstance(self.plugin, EnMAPBoxPlugin)
-        self.plugin.initEnMAPBoxProcessingProvider()
+        self.plugin.initGui()
+        self.plugin.unload()
 
+        self.assertTrue(True)
 
     def test_unloadplugin(self):
         pass

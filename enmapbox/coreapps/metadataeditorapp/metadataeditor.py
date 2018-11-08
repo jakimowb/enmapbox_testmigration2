@@ -116,7 +116,7 @@ class MetadataClassificationSchemeTreeNode(MetadataItemTreeNode):
 
         self.mMDKey.mValue.sigClassesAdded.connect(self.updateNode)
         self.mMDKey.mValue.sigClassesRemoved.connect(self.updateNode)
-        self.mMDKey.mValue.sigClassInfoChanged.connect(self.updateNode)
+        #self.mMDKey.mValue.sigClassInfoChanged.connect(self.updateNode)
         self.updateNode()
 
     def updateNode(self, *args):
@@ -259,7 +259,7 @@ class MetadataTreeModel(TreeModel):
     def domainModel(self):
         return self.mDomains
 
-    def differences(self, rootNode=None):
+    def differences(self, rootNode):
         """
         Returns the MDKeys with changed values
         :param rootNode: TreeNode, by default the models rootNode
@@ -275,7 +275,7 @@ class MetadataTreeModel(TreeModel):
             key = rootNode.mMDKey
             assert isinstance(key, MDKeyAbstract)
             if key.valueHasChanged():
-                keys.append(key)
+                keys.append((rootNode, key))
         for childNode in rootNode.childNodes():
             keys += self.differences(childNode)
         return keys
@@ -285,25 +285,33 @@ class MetadataTreeModel(TreeModel):
         # clear metadata domains
         self.mDomains.clear()
 
-        order = ['gdal', 'ogr']
+        ds = self.openSource(path)
 
+        if isinstance(ds, gdal.Dataset):
+            return self.parseRasterMD(ds)
+        if isinstance(ds, ogr.DataSource):
+            return self.parseVectorMD(ds)
+
+        return [TreeNode(None, path, values=['unable to read metadata'])]
+
+
+    def openSource(self, path:str):
+        order = ['gdal', 'ogr']
         if re.search(r'(shp|gpkg|kml|kmz)$', path):
             order = ['ogr', 'gdal']
-
         for t in order:
             try:
                 if t == 'gdal':
                     ds = gdal.Open(path)
                     if isinstance(ds, gdal.Dataset):
-                        return self.parseRasterMD(ds)
+                        return ds
                 elif t == 'ogr':
                     ds = ogr.Open(path)
                     if isinstance(ds, ogr.DataSource):
-                        return self.parseVectorMD(ds)
+                        return ds
             except Exception as ex:
                 pass
-
-        return [TreeNode(None, path, values=['unable to read metadata'])]
+        return None
 
     def parseDomainMetadata(self, parentNode, obj):
         assert isinstance(parentNode, TreeNode)
@@ -488,10 +496,16 @@ class MetadataTreeModel(TreeModel):
 
     def writeMetadata(self):
 
-        differences = self.differences(self)
-        for node in differences:
-            assert isinstance(node, MetadataItemTreeNode)
-            key = node.metadataKey()
+        differences = self.differences(self.mRootNode)
+        if len(differences) > 0:
+            ds = self.openSource(self.mSource)
+            for t in differences:
+                node, key = t
+                assert isinstance(key, MDKeyAbstract)
+                key.writeValueToSource(ds)
+
+            ds = None
+
 
 
 
@@ -900,9 +914,17 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveChanges)
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
+        self.btnSelectSource.setDefaultAction(self.actionSetDataSource)
+        self.actionSetDataSource.triggered.connect(self.onSetDataSource)
+
+    def onSetDataSource(self, *args):
+        result, filter = QFileDialog.getOpenFileName(self, 'Open data source')
+        if len(result) > 0:
+            self.addSources([result])
+
     def onDataChanged(self, *args):
         #print('check diffs')
-        differences = self.mMetadataModel.differences()
+        differences = self.mMetadataModel.differences(None)
         if len(differences) > 0:
             self.buttonBox.button(QDialogButtonBox.Reset).setEnabled(True)
             self.buttonBox.button(QDialogButtonBox.Save).setEnabled(True)

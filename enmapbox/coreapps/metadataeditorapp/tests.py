@@ -21,7 +21,7 @@
 
 import unittest
 
-from enmapboxtestdata import landcover
+from enmapboxtestdata import landcover_polygons
 from metadataeditorapp.metadataeditor import *
 
 from enmapbox.gui.utils import *
@@ -41,7 +41,7 @@ class TestMDMetadataKeys(unittest.TestCase):
 
     def setUp(self):
         self.dsR = gdal.Open(enmap)
-        self.dsV = ogr.Open(landcover)
+        self.dsV = ogr.Open(landcover_polygons)
 
         drv = gdal.GetDriverByName('MEM')
         self.dsRM = drv.CreateCopy('', self.dsR)
@@ -51,7 +51,7 @@ class TestMDMetadataKeys(unittest.TestCase):
 
     def createSupportedSources(self)->list:
 
-        from enmapboxtestdata import enmap, landcover
+        from enmapboxtestdata import enmap, landcover_polygons
 
         sources = []
 
@@ -60,7 +60,7 @@ class TestMDMetadataKeys(unittest.TestCase):
         gdal.Translate(p1, enmap, options=to)
         sources.append(QgsRasterLayer(p1))
 
-        sources.append(QgsVectorLayer(landcover))
+        sources.append(QgsVectorLayer(landcover_polygons))
         return sources
 
     def createNotSupportedSources(self)->list:
@@ -218,11 +218,11 @@ class TestMDMetadataKeys(unittest.TestCase):
 
     def test_metadataTreeModel(self):
 
-        from enmapboxtestdata import landcover
+
 
         m = MetadataTreeModel()
 
-        ds = ogr.Open(landcover)
+        ds = ogr.Open(landcover_polygons)
         self.assertIsInstance(ds, ogr.DataSource)
 
         node = m.parseVectorMD(ds)

@@ -75,19 +75,6 @@
        </item>
       </widget>
      </item>
-     <item row="0" column="4">
-      <widget class="QPushButton" name="btnSelectSource">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>1</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>...</string>
-       </property>
-      </widget>
-     </item>
      <item row="1" column="0">
       <widget class="QLabel" name="labelFilter">
        <property name="text">
@@ -115,6 +102,19 @@
        </property>
        <property name="text">
         <string>.*</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="4">
+      <widget class="QToolButton" name="btnSelectSource">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>...</string>
        </property>
       </widget>
      </item>
@@ -165,8 +165,22 @@ QTreeView::branch:closed:has-children {
     </widget>
    </item>
   </layout>
+  <action name="actionSetDataSource">
+   <property name="icon">
+    <iconset resource="../../gui/ui/resources.qrc">
+     <normaloff>:/enmapbox/icons/add_datasource.svg</normaloff>:/enmapbox/icons/add_datasource.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Set datasource</string>
+   </property>
+   <property name="toolTip">
+    <string>Select the data source to show the metadata from.</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../gui/ui/resources.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>
