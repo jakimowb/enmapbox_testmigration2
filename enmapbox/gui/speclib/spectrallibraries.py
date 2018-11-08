@@ -1144,7 +1144,13 @@ class SpectralLibrary(QgsVectorLayer):
         elif isinstance(profiles, SpectralLibrary):
             profiles = profiles.profiles()
 
+        profiles = list(profiles)
+
+        if len(profiles) == 0:
+            return
+
         assert self.isEditable(), 'SpectralLibrary "{}" is not editable. call startEditing() first'.format(self.name())
+
 
         profiles2 = []
         fieldLookup={}
@@ -1157,21 +1163,34 @@ class SpectralLibrary(QgsVectorLayer):
                 p2.setAttribute(i2, None if v == QVariant(None) else v)
             return p2
 
+        pRef = profiles[0]
+        if addMissingFields:
+            self.addMissingFields(pRef.fields())
 
-        for i, p in enumerate(profiles):
-            if i == 0:
-                if addMissingFields:
-                    self.addMissingFields(p.fields())
-                for i1, srcName in enumerate(p.fields().names()):
-                    if srcName == FIELD_FID:
-                        continue
-                    i2 = self.fields().lookupField(srcName)
-                    if i2 >= 0:
-                        fieldLookup[i1] = i2
-                    elif addMissingFields:
-                        raise Exception('Missing field: "{}"'.format(srcName))
-            c = createCopy(p)
-            profiles2.append(c)
+        iSrcList = []
+        iDstList = []
+        for i1, srcName in enumerate(pRef.fields().names()):
+            if srcName == FIELD_FID:
+                continue
+            i2 = self.fields().lookupField(srcName)
+            if i2 >= 0:
+                iSrcList.append(i1)
+                iDstList.append(i2)
+                fieldLookup[i1] = i2
+            elif addMissingFields:
+                raise Exception('Missing field: "{}"'.format(srcName))
+
+        #create new features + copy geometry
+
+        for pSrc in profiles:
+            pDst = QgsFeature(self.fields())
+            pDst.setGeometry(pSrc.geometry())
+            profiles2.append(pDst)
+
+        for iSrc, iDst in zip(iSrcList,iDstList):
+            for pSrc, pDst in zip(profiles, profiles2):
+                pDst.setAttribute(iDst, pSrc.attribute(iSrc))
+
         if not self.addFeatures(profiles2):
             self.raiseError()
         s = ""
@@ -2094,7 +2113,7 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
         self.actionImportSpeclib.triggered.connect(lambda :self.importSpeclib())
         self.actionSaveSpeclib.triggered.connect(lambda :self.speclib().exportProfiles(parent=self))
 
-        self.actionReload.triggered.connect(lambda : self.speclib().dataProvider().forceReload())
+        self.actionReload.triggered.connect(lambda : self.plotWidget.updatePlot())
         self.actionToggleEditing.toggled.connect(self.onToggleEditing)
         self.actionSaveEdits.triggered.connect(self.onSaveEdits)
         self.actionDeleteSelected.triggered.connect(lambda : deleteSelected(self.speclib()))
@@ -2142,10 +2161,7 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
             slib = SpectralLibrary.readFrom(path)
 
         if isinstance(slib, SpectralLibrary):
-            b = self.speclib().isEditable()
-            self.speclib().startEditing()
-            self.speclib().addSpeclib(slib)
-
+            self.addSpeclib(slib)
 
 
     def speclib(self):
@@ -2306,7 +2322,10 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
         if isinstance(speclib, SpectralLibrary):
             sl = self.speclib()
 
+            b = self.plotWidget.signalsBlocked()
+
             try:
+                self.plotWidget.blockUpdates(True)
                 b = sl.isEditable()
                 sl.startEditing()
 
@@ -2322,20 +2341,28 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
                 chunckSize = 10
                 sl.addMissingFields(speclib.fields())
                 for i in range(0,len(allFids),chunckSize):
+                    sl.startEditing()
                     j = i+chunckSize
                     fids = allFids[i:j]
 
                     profiles = speclib.profiles(fids)
                     sl.addProfiles(profiles, addMissingFields=False)
+                    assert sl.commitChanges()
+
                     self.mProgressBar.setValue(j)
                     QApplication.processEvents(QEventLoop.ExcludeSocketNotifiers)
+
                 if b:
                     sl.commitChanges()
             except:
                 pass
+
             def onReset(*args):
                 self.mProgressBar.setValue(0)
                 self.mInfoLabel.setText('')
+                self.plotWidget.blockUpdates(False)
+                self.plotWidget.syncLibrary()
+
             QTimer.singleShot(500, onReset)
 
     def setAddCurrentSpectraToSpeclibMode(self, b:bool):

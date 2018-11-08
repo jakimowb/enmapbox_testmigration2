@@ -108,7 +108,14 @@ def readCSVMetadata(pathESL):
     match = re.search('spectra names[ ]*([;\t,])', lines[0])
     if match:
         sep = match.group(1)
-        hasSpectrumNames = True
+    else:
+        print('Unable to find column name "spectra names" in {}.'.format(pathCSV), file=sys.stderr)
+        match = re.search('name[ ]*([;\t,])', lines[0], re.I)
+        if match:
+            sep = match.group(1)
+        else:
+            print('Unable to find column name like "*name*" in {}. Use "," as delimiter'.format(pathCSV), file=sys.stderr)
+            sep = ','
 
     METADATA_LINES = []
     fieldNames = lines[0].split(sep)
@@ -258,7 +265,12 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
         speclibFields = createStandardFields()
 
         # check for additional CSV metadata to enhance profile descriptions
-        CSV_METADATA = readCSVMetadata(pathESL)
+        CSV_METADATA = None
+        try:
+            CSV_METADATA = readCSVMetadata(pathESL)
+        except Exception as ex:
+            print(str(ex), file=sys.stderr)
+
         if CSV_METADATA is not None:
             CSV_DATA, CSV_FIELDS = CSV_METADATA
 

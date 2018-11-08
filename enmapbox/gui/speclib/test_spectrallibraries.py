@@ -634,6 +634,9 @@ class TestCore(unittest.TestCase):
         p = speclib[-1]
         w.setProfileValues(p)
         w.show()
+
+
+
         if SHOW_GUI:
             QAPP.exec_()
 
@@ -803,6 +806,49 @@ class TestCore(unittest.TestCase):
         if SHOW_GUI:
             QAPP.exec_()
 
+    def test_largeLibs(self):
+
+        r = r'T:/4bj/20140615_fulllib_clean.sli'
+        if os.path.isfile(r):
+            import time
+
+            pps_min = 1000 #minium number of profiles per second
+
+            t0 = time.time()
+            sl = SpectralLibrary.readFrom(r)
+            self.assertIsInstance(sl, SpectralLibrary)
+            self.assertTrue(len(sl) > 1000)
+
+            t1 = time.time()
+            pps = float(len(sl)) / (t1-t0)
+
+            print('read ESL {}'.format(pps))
+            #self.assertTrue(pps > pps_min, msg='spectra import took tooo long. Need to have {} profiles per second at least. got {}'.format(pps_min, pps))
+
+
+            slw = SpectralLibraryWidget()
+            slw.show()
+
+            QgsApplication.processEvents()
+
+            time0 = time.time()
+            slw.addSpeclib(sl)
+            QgsApplication.processEvents()
+            time1 = time.time()
+
+            pps = float(len(sl)) / (time1 - time0)
+            print('visualize ESL {}'.format(pps))
+
+            QgsApplication.processEvents()
+
+            if SHOW_GUI:
+                QAPP.exec_()
+            else:
+                self.assertTrue(pps > 5*60,
+                                msg='spectra visualization took tooo long. Need to have {} profiles per second at least. got {}'.format(
+                                    pps_min, pps))
+
+        self.assertTrue(True)
 
     def test_SpectralLibraryWidget(self):
 
@@ -810,6 +856,7 @@ class TestCore(unittest.TestCase):
         #speclib = self.createSpeclib()
         import enmapboxtestdata
         speclib = self.createSpeclib()
+
         #speclib = SpectralLibrary.readFrom(enmapboxtestdata.speclib)
         slw = SpectralLibraryWidget(speclib=speclib)
 
@@ -834,6 +881,10 @@ class TestCore(unittest.TestCase):
             self.assertTrue(len(slw.currentSpectra()) == 0)
             slw.setCurrentSpectra(cs)
             self.assertTrue(len(slw.currentSpectra()) == 3)
+
+        if True:
+            sl2 = self.createSpeclib()
+            slw.addSpeclib(sl2)
 
         if SHOW_GUI:
             QAPP.exec_()
