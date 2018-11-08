@@ -4986,7 +4986,7 @@ class _EstimatorPredict(ApplierOperator):
             noutputs = 1
             dtype = np.uint8
         elif etype == 'regressor':
-            X0 = np.float64(np.atleast_2d(self.features[:, 0, 0]))
+            X0 = np.atleast_2d(np.float64(self.features[:, 0, 0]))
             y0 = estimator.sklEstimator().predict(X=X0)
             noutputs = max(y0.shape)
             dtype = np.float32
