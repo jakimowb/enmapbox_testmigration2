@@ -1100,6 +1100,7 @@ class DockManager(QObject):
         if cls == MapDock:
             kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
             dock = MapDock(*args, **kwds)
+            dock.sigLayersAdded.connect(self.dataSourceManager.addSources)
         elif cls == TextDock:
             kwds['name'] = kwds.get('name', 'Text #{}'.format(n))
             dock = TextDock(*args, **kwds)
