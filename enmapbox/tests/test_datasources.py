@@ -56,20 +56,17 @@ class standardDataSources(unittest.TestCase):
 
     def createTestSourceLayers(self)->list:
         return [QgsRasterLayer(self.wmsUri, '', 'wms'), QgsVectorLayer(self.wfsUri, '', 'WFS'),
-                QgsRasterLayer(enmap), QgsVectorLayer(landcover), SpectralLibrary.readFrom(speclib)
+                QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)
                 ]
 
 
     def test_hubflowsources(self):
 
-        from hubflow.testdata import enmapClassification, classDefinitionL1, vector, enmap
+        from hubflow.testdata import enmapClassification, vector, enmap
         from hubflow.core import FlowObject
-        hubFlowObjects = [vector(), enmap(), enmapClassification(), classDefinitionL1]
+        hubFlowObjects = [vector(), enmap(), enmapClassification()]
         #hubFlowObjects = [vector()]
         #hubFlowObjects = [enmapClassification()]
-
-
-
 
         for obj in hubFlowObjects:
             isObj, o = DataSourceFactory.isHubFlowObj(obj)
@@ -111,7 +108,7 @@ class standardDataSources(unittest.TestCase):
     def test_classifier(self):
 
         import pickle
-        pathClassifier = r'O:\Student_Data\Dierkes\5. Semester\Kretastudie\Bachelor arbeit\Classification\Classification_brandnew\classification_2016\classifier.pkl'
+        pathClassifier = r''
         f = open(pathClassifier, 'rb')
         classifier = pickle.load(file=f)
         f.close()

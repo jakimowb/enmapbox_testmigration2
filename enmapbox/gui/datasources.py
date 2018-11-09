@@ -138,20 +138,24 @@ class DataSourceFactory(object):
         return None, None
 
     @staticmethod
-    def isRasterSource(src)->(str,str):
+    def isRasterSource(src)->(str, str, str):
         """
-        Returns the source uri string if it can be handled as known raster data source.
+        Returns the source uri, name and provider keys if it can be handled as known raster data source.
         :param src: any type
-        :return: uri (str) | None
+        :return: (str, str, str) or None
         """
 
         gdal.UseExceptions()
+
         if isinstance(src, QgsRasterLayer) and src.isValid():
-            return DataSourceFactory.isRasterSource(src.dataProvider())
-        if isinstance(src, QgsRasterDataProvider):
-            return DataSourceFactory.isRasterSource(src.dataSourceUri())
+            return src.source(), src.name(), src.providerType()
+
+        if isinstance(src, QgsRasterDataProvider) and src.isValid():
+            return src.dataSourceUri(), os.path.basename(src.dataSourceUri()), src.name()
+
         if isinstance(src, QgsLayerTreeLayer):
             return DataSourceFactory.isRasterSource(src.layer())
+
         if isinstance(src, gdal.Dataset):
             if 'DERIVED_SUBDATASETS' in src.GetMetadataDomainList():
                 return DataSourceFactory.isRasterSource(src.GetDescription())
@@ -161,9 +165,9 @@ class DataSourceFactory(object):
             src = DataSourceFactory.srcToString(src)
             provider = rasterProvider(src)
             if isinstance(provider, str):
-                return src, provider
+                return src, os.path.basename(src), provider
 
-        return None, None
+        return None, None, None
 
 
     @staticmethod
@@ -310,21 +314,30 @@ class DataSourceFactory(object):
         :param kwds: DataSourceRaster-keywords
         :return: [list-of-DataSourceRaster]
         """
-        uri, pkey = DataSourceFactory.isRasterSource(src)
+        uri, name, pkey = DataSourceFactory.isRasterSource(src)
         if uri:
             rasterUris = []
+            names = []
             if pkey == 'gdal':
                 # check for raster containers, like HDFs, and handle them separately
                 ds = gdal.Open(uri)
                 subs = ds.GetSubDatasets()
                 if ds.RasterCount > 0:
                     rasterUris.append(uri)
+                    names.append(name)
                 if len(subs) > 0:
-                    rasterUris.extend([s[0] for s in subs])
+                    subPaths = [s[0] for s in subs]
+                    rasterUris.extend(subPaths)
+                    names.extend([os.path.basename(p) for p in subPaths])
             else:
                 rasterUris.append(uri)
-            return [DataSourceRaster(r, providerKey=pkey, **kwds) for r in rasterUris if
-                    isinstance(r, str)]
+                names.append(name)
+
+            results = []
+            for uri, name in zip(rasterUris, names):
+                ds = DataSourceRaster(uri, name=name, providerKey=pkey)
+                results.append(ds)
+            return results
         return []
 
     @staticmethod
@@ -419,7 +432,7 @@ class DataSource(object):
                 return ds
         return None
 
-    def __init__(self, uri, name=None, icon=None):
+    def __init__(self, uri, name='', icon=None):
         """
         :param uri: uri of data source. must be a string
         :param name: name as it appears in the source file list
@@ -427,8 +440,8 @@ class DataSource(object):
         assert isinstance(uri, str)
         self.mUuid = uuid.uuid4()
         self.mUri = ''
-        self.mIcon = None
-        self.mName = ''
+        self.mIcon = icon
+        self.mName = name
         self.setUri(uri)
         self.mMetadata = {}
         self.__refs__.append(weakref.ref(self))
@@ -474,15 +487,23 @@ class DataSource(object):
         Updates metadata from the file source.
         """
         if icon is None:
+            icon = self.icon()
+
+        if name is None:
+            name = self.name()
+
+
+        if icon is None:
             provider = QFileIconProvider()
             icon = provider.icon(QFileInfo(self.mUri))
+
         if name is None:
             name = os.path.basename(self.mUri)
         assert name is not None
         assert isinstance(icon, QIcon)
 
-        self.mIcon = icon
-        self.mName = name
+        self.setName(name)
+        self.setIcon(icon)
 
     def __eq__(self, other):
         return other is not None and \
@@ -592,7 +613,7 @@ class DataSourceSpatial(DataSource):
     """
     def __init__(self, uri, name=None, icon=None, providerKey:str=None):
 
-        super(DataSourceSpatial, self).__init__(uri, name, icon)
+        super(DataSourceSpatial, self).__init__(uri, name=name, icon=icon)
         assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
 
         self.mProvider = providerKey
@@ -694,7 +715,7 @@ class DataSourceRaster(DataSourceSpatial):
 
     def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None):
 
-        super(DataSourceRaster, self).__init__(uri, name, icon, providerKey)
+        super(DataSourceRaster, self).__init__(uri, name=name, icon=icon, providerKey=providerKey)
 
         self.nSamples = -1
         self.nBands = -1
