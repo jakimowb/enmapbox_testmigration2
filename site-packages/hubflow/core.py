@@ -4963,6 +4963,10 @@ class _EstimatorPredict(ApplierOperator):
         if np.any(valid):
             X = np.float64(self.features[:, valid[0]].T)
             y = estimator.sklEstimator().predict(X=X)
+
+            if isinstance(estimator, Clusterer):
+                y += 1 # start with id=1, because zero is reserved as no data value
+
             prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
 
         self.outputRaster.raster(key='prediction').setArray(array=prediction)
