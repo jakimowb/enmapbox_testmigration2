@@ -132,12 +132,37 @@ def missingTestdata()->bool:
         print(ex, file=sys.stderr)
         return True
 
+
+def outdatedTestdata()->bool:
+    """Returns whether testdata is outdated."""
+
+    try:
+        import warnings
+        import enmapboxtestdata
+        from enmapbox import MIN_VERSION_TESTDATA
+
+        testDataOutdated = float(enmapboxtestdata.__version__) < float(MIN_VERSION_TESTDATA)
+        boxOutdated = float(enmapboxtestdata.__version__) > float(MIN_VERSION_TESTDATA)
+
+        if boxOutdated:
+            warnings.warn('Testdata version {} required by EnMAP-Box, but installed version {} is newer. '
+                          'Installed EnMAP-Box is outdated and may have problems correctly processing the testdata. '
+                          'Consider updating the EnMAP-Box.'
+                          ''.format(MIN_VERSION_TESTDATA, enmapboxtestdata.__version__))
+
+        return testDataOutdated
+
+    except Exception as ex:
+        print(ex, file=sys.stderr)
+        return True
+
+
 def installTestdata(overwrite_existing=False):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestdata() and not overwrite_existing:
-        print('Testdata already installed.')
+    if not missingTestdata() and not outdatedTestdata() and not overwrite_existing:
+        print('Testdata already installed and up to date.')
         return
 
     app = QgsApplication.instance()
@@ -147,7 +172,7 @@ def installTestdata(overwrite_existing=False):
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
     from enmapbox import DIR_TESTDATA
-    btn = QMessageBox.question(None, 'Testdata is missing', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
+    btn = QMessageBox.question(None, 'Testdata is missing or outdated', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
     if btn != QMessageBox.Yes:
         print('Canceled')
         return
