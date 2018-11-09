@@ -41,3 +41,4 @@ class Test(TestCase):
     def test_create(self):
         enmapboxtestdata.createEnmapClassification()
         enmapboxtestdata.createEnmapFraction()
+        print(enmapboxtestdata.createClassifier())
