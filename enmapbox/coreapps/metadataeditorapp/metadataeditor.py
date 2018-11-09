@@ -163,20 +163,31 @@ class RasterBandTreeNode(MetadataItemTreeNode):
 
     def __init__(self, parentNode, band, **kwds):
         assert isinstance(band, gdal.Band)
+
         key = MDKeyDescription(band)
         super(RasterBandTreeNode, self).__init__(parentNode, key, **kwds)
         if not kwds.get('name'):
             self.setName('Band {}'.format(band.GetBand()))
 
+        self.mBandIndex = band.GetBand() - 1
+
+    def bandIndex(self)->int:
+        """Returns the band index"""
+        return self.mBandIndex
 
 class VectorLayerTreeNode(MetadataItemTreeNode):
 
-    def __init__(self, parentNode, layer, **kwds):
+    def __init__(self, parentNode, layer, layerIndex, **kwds):
         assert isinstance(layer, ogr.Layer)
         key = MDKeyDescription(layer)
         super(VectorLayerTreeNode, self).__init__(parentNode, key, **kwds)
         if not kwds.get('name'):
             self.setName('Layer {}'.format(layer.GetDescription()))
+        self.mLayerIndex = layerIndex
+
+    def layerIndex(self)->int:
+        """Returns the layer index"""
+        return self.mLayerIndex
 
 class RasterSourceTreeNode(MetadataItemTreeNode):
 
@@ -259,9 +270,9 @@ class MetadataTreeModel(TreeModel):
     def domainModel(self):
         return self.mDomains
 
-    def differences(self, rootNode):
+    def differences(self, rootNode)->list:
         """
-        Returns the MDKeys with changed values
+        Returns the TreeNodes with changed values
         :param rootNode: TreeNode, by default the models rootNode
         :return: [list-of-changed-MDKeys]
         """
@@ -270,15 +281,15 @@ class MetadataTreeModel(TreeModel):
 
         assert isinstance(rootNode, TreeNode)
 
-        keys = []
+        nodes = []
         if isinstance(rootNode, MetadataItemTreeNode):
             key = rootNode.mMDKey
             assert isinstance(key, MDKeyAbstract)
             if key.valueHasChanged():
-                keys.append((rootNode, key))
+                nodes.append(rootNode)
         for childNode in rootNode.childNodes():
-            keys += self.differences(childNode)
-        return keys
+            nodes += self.differences(childNode)
+        return nodes
 
     def parseSource(self, path: str):
         #print('PARSE {}'.format(path))
@@ -387,7 +398,7 @@ class MetadataTreeModel(TreeModel):
             lyr = ds.GetLayerByIndex(i)
             assert isinstance(lyr, ogr.Layer)
 
-            nLayer = VectorLayerTreeNode(nLayers, lyr)
+            nLayer = VectorLayerTreeNode(nLayers, lyr, i)
             self.parseDomainMetadata(nLayer, lyr)
 
         return root
@@ -500,9 +511,21 @@ class MetadataTreeModel(TreeModel):
         if len(differences) > 0:
             ds = self.openSource(self.mSource)
             for t in differences:
-                node, key = t
-                assert isinstance(key, MDKeyAbstract)
-                key.writeValueToSource(ds)
+
+                assert isinstance(t, TreeNode)
+
+                if isinstance(t, MetadataClassificationSchemeTreeNode):
+                    t.metadataKey().writeValueToSource(ds)
+                elif isinstance(t, RasterBandTreeNode):
+
+                    band = ds.GetRasterBand(t.bandIndex()+1)
+                    t.metadataKey().writeValueToSource(band)
+                elif isinstance(t, VectorLayerTreeNode):
+                    layer = ds.GetLayerByIndex(t.layerIndex())
+                    t.metadataKey().writeValueToSource(layer)
+
+                else:
+                    s = ""
 
             ds = None
 

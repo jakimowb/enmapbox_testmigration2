@@ -21,11 +21,11 @@
 
 import unittest
 
-from enmapboxtestdata import landcover_polygons
+from enmapboxtestdata import landcover_polygons, enmap
 from metadataeditorapp.metadataeditor import *
 
 from enmapbox.gui.utils import *
-
+SHOW_GUI = True
 QGSAPP = initQgisApplication()
 
 class TestMDMetadataKeys(unittest.TestCase):
@@ -255,6 +255,9 @@ class TestMDMetadataKeys(unittest.TestCase):
         d.addSources(sources)
         d.addSources(self.createNotSupportedSources())
         self.assertTrue(len(d.mSourceModel) == len(sources))
+
+        if SHOW_GUI:
+            QGSAPP.exec_()
 
 if __name__ == "__main__":
 
