@@ -39,7 +39,9 @@ class Test(TestCase):
         print(Classification.fromENVISpectralLibrary(filename='/vsimem/classification.bsq', library=library, attribute='level_3'))
 
     def test_create(self):
-        enmapboxtestdata.createEnmapClassification()
-        enmapboxtestdata.createEnmapFraction()
+        print(enmapboxtestdata.createEnmapClassification())
+        print(enmapboxtestdata.createEnmapFraction())
         print(enmapboxtestdata.createClassifier())
         print(enmapboxtestdata.createRegressor())
+        print(enmapboxtestdata.createClusterer())
+        print(enmapboxtestdata.createTransformer())
