@@ -20,7 +20,7 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections, shutil, time, re
+import sys, os, collections, shutil, time, re, importlib
 from qgis.PyQt.Qt import QApplication, QUrl
 from qgis.gui import *
 from qgis.core import *
@@ -48,11 +48,9 @@ def missingPackages(packageNames):
 
     missing = collections.OrderedDict()
     for p in packageNames:
-        try:
-            __import__(p)
-
-        except Exception as ex:
-            missing[p] = str(ex)
+        spec = importlib.util.find_spec(p)
+        if spec is None:
+            missing[p] = 'Can not import python package ""'.format(p)
     LAST_MISSED_PACKAGES = list(missing.keys())
     return missing
 
@@ -192,7 +190,13 @@ def installTestdata(overwrite_existing=False):
 
         zf.close()
         del zf
+
         print('Testdata installed.')
+        spec = importlib.util.spec_from_file_location('enmapboxtestdata', os.path.join(targetDir, '__init__.py'))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules['enmapboxtestdata'] = module
+
 
     def onDownloadError(messages):
         raise Exception('\n'.join(messages))

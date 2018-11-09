@@ -272,7 +272,9 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             assert isinstance(pdi, SpectralProfilePlotDataItem)
             pi.removeItem(pdi)
             assert pdi not in pi.dataItems
-            self.mPlotDataItems.pop(pdi.id())
+            if pdi.id() in self.mPlotDataItems.keys():
+                self.mPlotDataItems.pop(pdi.id())
+
 
 
     def setSpeclib(self, speclib:SpectralLibrary):
