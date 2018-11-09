@@ -1054,14 +1054,15 @@ class MapCanvas(QgsMapCanvas):
         """
         #deprectated
         #return QPixmap(self.map().contentImage().copy())
-        return QPixmap.grabWidget(self)
+        return self.grab()
 
     def saveMapImageDialog(self, fileType):
-        from enmapbox.gui import settings
+        from enmapbox import enmapboxSettings
+        settings = enmapboxSettings()
         lastDir = settings.value('EMB_SAVE_IMG_DIR', os.path.expanduser('~'))
         path = jp(lastDir, 'screenshot.{}'.format(fileType.lower()))
 
-        path = QFileDialog.getSaveFileName(self, 'Save map as {}'.format(fileType), path)
+        path, filter = QFileDialog.getSaveFileName(self, 'Save map as {}'.format(fileType), path)
 
         if len(path) > 0:
             self.saveAsImage(path, None, fileType)
