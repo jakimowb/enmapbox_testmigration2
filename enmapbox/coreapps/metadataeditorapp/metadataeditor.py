@@ -654,8 +654,9 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
 
         scheme = ClassificationSchemeDialog.getClassificationScheme(classificationScheme=value)
-        index = model.node2idx(node)
-        model.setData(index, scheme)
+        if isinstance(scheme, ClassificationScheme):
+            index = model.node2idx(node)
+            model.setData(index, scheme)
 
 
     def inm(self, index):
