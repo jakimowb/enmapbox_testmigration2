@@ -1693,24 +1693,3 @@ class IconProvider:
             w = h = 16
             s = icon.actualSize(QSize(w, h))
 
-
-class EnMAPBoxMimeData(QMimeData):
-    def __init__(self):
-        super(EnMAPBoxMimeData, self).__init__()
-        self.mData = None
-
-    def setEnMAPBoxData(self, data):
-        self.mData = data
-
-    def enmapBoxData(self):
-        return self.mData
-
-    def hasEnMAPBoxData(self):
-        return self.mData != None
-
-
-if __name__ == '__main__':
-    from enmapboxtestdata import enmap
-
-    for b in ['B', 'G', 'R', 'NIR', 'SWIR']:
-        print(bandClosestToWavelength(enmap, b))

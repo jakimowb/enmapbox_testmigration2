@@ -984,11 +984,11 @@ class DockManager(QObject):
             # check mime types we can handle
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
-            if MDF_LAYERTREEMODELDATA in mimeData.formats() or \
-                MDF_DATASOURCETREEMODELDATA in mimeData.formats():
-                event.setDropAction(Qt.CopyAction)
-                event.accept()
-            return
+            for t in [MDF_LAYERTREEMODELDATA, MDF_DATASOURCETREEMODELDATA, MDF_URILIST]:
+                if t in mimeData.formats():
+                    event.setDropAction(Qt.CopyAction)
+                    event.accept()
+                    return
 
 
         elif isinstance(event, QDragMoveEvent):
@@ -1002,18 +1002,13 @@ class DockManager(QObject):
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
 
-            layers = []
+            layers = extractMapLayers(mimeData)
             textfiles = []
             speclibs = []
 
-
-            if MDF_LAYERTREEMODELDATA in mimeData.formats():
-                layers = extractMapLayers(mimeData)
-            elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
+            if MDF_DATASOURCETREEMODELDATA in mimeData.formats():
                 for ds in toDataSourceList(mimeData):
-                    if isinstance(ds, DataSourceSpatial):
-                        layers.append(ds.createUnregisteredMapLayer())
-                    elif isinstance(ds, DataSourceTextFile):
+                    if isinstance(ds, DataSourceTextFile):
                         textfiles.append(ds)
                     elif isinstance(ds, DataSourceSpectralLibrary):
                         speclibs.append(ds)
