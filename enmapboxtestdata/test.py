@@ -42,3 +42,4 @@ class Test(TestCase):
         enmapboxtestdata.createEnmapClassification()
         enmapboxtestdata.createEnmapFraction()
         print(enmapboxtestdata.createClassifier())
+        print(enmapboxtestdata.createRegressor())

@@ -44,3 +44,16 @@ def createClassifier(level='level_2_id'):
     rfc.fit(sample=sample)
     return rfc
 
+def createRegressor(level='level_2_id'):
+    from hubflow.core import VectorClassification, Fraction, RegressionSample, Regressor, Raster
+    from sklearn.ensemble import RandomForestRegressor
+
+    raster = Raster(filename=enmap)
+    vectorClassification = VectorClassification(filename=landcover_polygons, classAttribute=level,
+                                                minOverallCoverage=1., oversampling=5)
+    fraction = Fraction.fromClassification(filename='/vsimem/fraction.bsq', classification=vectorClassification,
+                                           grid=raster.grid())
+    sample = RegressionSample(raster=raster, regression=fraction)
+    rfr = Regressor(sklEstimator=RandomForestRegressor())
+    rfr.fit(sample=sample)
+    return rfr
