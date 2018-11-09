@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import warnings
+import warnings, pathlib
 from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
@@ -1459,15 +1459,27 @@ class MapDock(Dock):
         self.setLayers(mapLayers + self.mCanvas.layers())
 
     def removeLayersByURI(self, uri):
+        """
+        Removes layer by its uri
+        :param uri: str or pathlib.Path
+        """
+        if isinstance(uri, str):
+            path = pathlib.Path(uri)
+        if isinstance(uri, pathlib.Path):
+            path = uri
+
+        assert isinstance(path, pathlib.Path)
+        posix = path.as_posix()
         to_remove = []
-        uri = os.path.abspath(uri)
-
         for lyr in self.mCanvas.layers():
-            lyrUri = os.path.abspath(lyr.dataProvider().dataSourceUri())
-            if uri == lyrUri:
-                to_remove.append(lyr)
+            if isinstance(lyr, QgsMapLayer):
+                srcPath = pathlib.Path(lyr.source())
+                srcPosix = srcPath.as_posix()
+                if srcPosix.startswith(posix):
+                    to_remove.append(lyr)
 
-        self.removeLayers(to_remove)
+        if len(to_remove) > 0:
+            self.removeLayers(to_remove)
 
     def mapCanvas(self)->MapCanvas:
         return self.mCanvas
