@@ -258,9 +258,11 @@ class MDKeyDomainString(MDKeyAbstract):
             if name == 'DBF_DATE_LAST_UPDATE':
                 return MDKeyDomainString(obj, domain, name, valueType=np.datetime64)
             else:
-                return  MDKeyDomainString(obj, domain, name)
+                return MDKeyDomainString(obj, domain, name)
         else:
-            raise NotImplementedError()
+            #default behavior: return a string
+            return MDKeyDomainString(obj, domain, name)
+            #raise NotImplementedError()
 
 
     @staticmethod
