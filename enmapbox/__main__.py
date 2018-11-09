@@ -32,10 +32,6 @@ def run(debug=False, processing=False, applications=False, sources=None):
     :return:
     '''
 
-    """
-    
-    :return:
-    """
     from enmapbox.gui.utils import initQgisApplication
     qgisApp = initQgisApplication()
     import enmapbox

@@ -19,7 +19,7 @@
 
 import os, sys, re, shutil, zipfile, datetime
 from enmapbox import DIR_REPO
-import git
+import git # install with: pip install gitpython
 
 REPO = git.Repo(DIR_REPO)
 
@@ -204,7 +204,7 @@ if __name__ == "__main__":
                  ,'hub-workflow'
                  ,'enmapboxapplications'
                  ,'enmapboxgeoalgorithms'
-                 ,'enmap-box-lmu-vegetation-apps',
+                 #,'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'

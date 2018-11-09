@@ -1,11 +1,9 @@
-
-
 How to testm build and publish the EnMAP-Box
 ============================================
 
 #. Update external APIs / packages, e.g. with ``make/updateexternals.py`` (modify after ``if __name__ == "__main__":``)
 
-    * add/modify remote sources with ``RemoteInfo.create`` to specify external git repository sources to be part of EnMAP-Box Source code
+    .. note:: add/modify remote sources with ``RemoteInfo.create`` to specify external git repository sources to be part of EnMAP-Box Source code
 
 
 #. (optional) Compile Qt resource files.
@@ -16,13 +14,15 @@ How to testm build and publish the EnMAP-Box
 
    use `compile_rc_files(ROOT)` from `make/guimake.py` to list the pyrcc5 commands for all \*.qrc files within directory `ROOT`
 
-#. EnMAP-Box version: if necessary, increase in ``enmapbox/__init__.py``, e.g. ``__version__ = '3.3'``.
+#. EnMAP-Box version: if necessary, increase in ``enmapbox/__init__.py``, e.g.::
 
-    .. note:: subsub-version information is added during build process.
+    __version__ = '3.3'
 
-#. Testdata version: if necessary, increase minimal requirement in ``enmapbox/__init__.py``, e.g. ``MIN_VERSION_TESTDATA = '0.6'``
+   .. note:: subsub-version information is added during build process.
 
-#. Push updated source code!
+#. Testdata version: if necessary, increase minimal requirement in ``enmapbox/__init__.py``, e.g.::
+
+    MIN_VERSION_TESTDATA = '0.6'
 
 #. Start & test the EnMAP-Box from inside your IDE by running `enmapbox/__main__.py`
 
@@ -43,3 +43,4 @@ How to testm build and publish the EnMAP-Box
     # upload deploy/enmapboxplugin.<version>.<branch>.zip to https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads
     uploadDeveloperPlugin()
 
+#. Push updated source code!

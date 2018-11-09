@@ -29,7 +29,7 @@ from xml.dom import minidom
 import qgis.utils
 from qgis.PyQt.QtCore import *
 import numpy as np
-from pb_tool import pb_tool
+from pb_tool import pb_tool # install with: pip install pb_tool
 
 import enmapbox
 from enmapbox.gui.utils import jp, file_search, initQgisApplication
