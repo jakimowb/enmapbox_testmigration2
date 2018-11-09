@@ -762,7 +762,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             s = ""
         fetch = HubFlowObjectTreeNode.fetchInternals
 
-
+        import hubflow.core
         if isinstance(obj, hubflow.core.FlowObject):
             # for all FlowObjects
             moduleName = obj.__class__.__module__
@@ -773,10 +773,12 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             if isinstance(obj, hubflow.core.ClassDefinition):
                 from enmapbox.gui.classification.classificationscheme import ClassificationScheme, ClassInfo
                 csi = ClassificationScheme()
-
-                for label in range(obj.classes()):
-                    ci = ClassInfo(label=label, name=obj.name(label+1), color=QColor(obj.color(label+1)))
-                    csi.insertClass(ci)
+                classes = []
+                classes.append(ClassInfo(name = obj.noDataName(), color=obj.noDataColor()._qColor))
+                import hubflow.core
+                for name, color in zip(obj.names(), obj.colors()):
+                    classes.append(ClassInfo(name=name, color=color._qColor))
+                csi.insertClasses(classes)
                 ClassificationNode(parentTreeNode, csi, name='Classes')
 
             fetch(obj.__dict__, parentTreeNode=parentTreeNode, fetchedObjectIds=fetchedObjectIds)
