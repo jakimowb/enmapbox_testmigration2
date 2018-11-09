@@ -63,6 +63,8 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                     self.names = definitions[field].names()
                 else:
                     assert 0 # todo
+            else:
+                self.names = []
             self.uiTargets().addItems(self.names)
         self.uiTargets().selectAllOptions()
 

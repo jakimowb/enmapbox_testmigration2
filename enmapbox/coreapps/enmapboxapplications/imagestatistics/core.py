@@ -109,6 +109,9 @@ class ImageStatisticsApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.
 
     def clearPlots(self):
         self.uiPlot().clear()
+        self.uiPlot().getAxis('bottom').setPen('#000000')
+        self.uiPlot().getAxis('left').setPen('#000000')
+
 
     def plotSelection(self, index, *args, **kwargs):
         try:

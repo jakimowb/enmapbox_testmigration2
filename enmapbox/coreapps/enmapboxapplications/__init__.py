@@ -58,6 +58,7 @@ class EnMAPBoxImageStatisticsApp(EnMAPBoxApplication):
         return QIcon(None)
 
     def menu(self, appMenu):
+        appMenu = self.enmapbox.menu('Tools')
         assert isinstance(appMenu, QMenu)
         a = appMenu.addAction('ImageStatistics')
         assert isinstance(a, QAction)

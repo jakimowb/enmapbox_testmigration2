@@ -161,16 +161,18 @@ def extractMapLayers(mimeData:QMimeData)->list:
 
                 elif id in attributesLUT.keys():
                     attributes = attributesLUT[id]
+                    name = attributes.get('name')
+                    src = attributes['source']
                     providerKey = attributes.get('providerKey')
-                    if providerKey == 'gdal':
-                        mapLayer = QgsRasterLayer(attributes['source'])
-                    elif providerKey == 'ogr':
-                        mapLayer = QgsVectorLayer(attributes['source'])
-                    else:
-                        s = ""
+
+                    if providerKey in ['gdal','wms']:
+                        mapLayer = QgsRasterLayer(src, name, providerKey)
+                    elif providerKey in ['ogr','WFS']:
+                        mapLayer = QgsVectorLayer(src, name, providerKey)
 
                     if isinstance(mapLayer, QgsMapLayer):
                         mapLayer.setName(attributes['name'])
+
 
             if isinstance(mapLayer, QgsMapLayer):
                 newMapLayers.append(mapLayer)
