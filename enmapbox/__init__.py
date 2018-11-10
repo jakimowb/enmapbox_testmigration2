@@ -1,10 +1,40 @@
+# -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    enmapbox/__init__.py
+    PAckage definition with global settings and initialization routines
+    ---------------------
+    Date                 : Oct 2018
+    Copyright            : (C) 2018 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This file is part of the EnMAP-Box.                                   *
+*                                                                         *
+*   The EnMAP-Box is free software; you can redistribute it and/or modify *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 3 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+*   The EnMAP-Box is distributed in the hope that it will be useful,      *
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the          *
+*   GNU General Public License for more details.                          *
+*                                                                         *
+*   You should have received a copy of the GNU General Public License     *
+*   along with the EnMAP-Box. If not, see <http://www.gnu.org/licenses/>. *
+*                                                                         *
+***************************************************************************
+"""
+
 import sys, os, site
 
 
-from qgis.core import Qgis, QgsApplication
+from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
 from qgis.PyQt.QtCore import QSettings
 
-__version__ = '3.2' #subsub-version information is added during build process
+__version__ = '3.3' #subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -13,6 +43,7 @@ CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
 DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplotlib']
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
+MIN_VERSION_TESTDATA = '0.6'
 
 DIR_ENMAPBOX = os.path.dirname(__file__)
 DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
@@ -21,9 +52,14 @@ DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
 DIR_TESTDATA = os.path.join(DIR_REPO, 'enmapboxtestdata')
 
+ENMAP_BOX_KEY = 'EnMAP-Box'
 
-def enmapboxSettings():
-    ENMAP_BOX_KEY = 'EnMAP-Box'
+
+def enmapboxSettings()->QSettings:
+    """
+    Returns the QSettings object for EnMAP-Box Settings
+    :return: QSettings
+    """
     return QSettings('HU-Berlin', ENMAP_BOX_KEY)
 
 settings = enmapboxSettings()
@@ -35,13 +71,35 @@ LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
 
 site.addsitedir(DIR_SITEPACKAGES)
 
+# make the EnMAP-Box resources available
 
+if not 'images' in sys.modules.keys():
+    import enmapbox.gui.resourcemockup
+    sys.modules['images'] = enmapbox.gui.resourcemockup
 
-# mockup to make QGIS resources available for uic.loadUiType
+#initialize general enmapbox resources
+from enmapbox.gui.ui import resources
+resources.qInitResources()
 
-if not 'images' in list(sys.modules.keys()):
-    import enmapbox.images
-    sys.modules['images'] = enmapbox.images
+import enmapbox.gui.classification
+#this initializes the classification package resources
+
+#see https://github.com/pyqtgraph/pyqtgraph/issues/774
+WORKAROUND_PYTGRAPH_ISSUE_774 = True
+if WORKAROUND_PYTGRAPH_ISSUE_774:
+    from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
+
+    from PyQt5.QtCore import QVariant
+    untouched = GraphicsObject.itemChange
+
+    def newFunc(cls, change, value):
+        if value != QVariant(None):
+            return untouched(cls, change, value)
+        else:
+            return untouched(cls, change, None)
+
+    GraphicsObject.itemChange = newFunc
+
 
 def messageLog(msg, level=Qgis.Info):
     """
@@ -72,3 +130,62 @@ except:
     pass
 
 
+try:
+    #init some other requirements
+    #print('initialize EnMAP-Box editor widget factories')
+    from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
+    registerPlotStyleEditorWidget()
+
+    from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
+    registerSpectralProfileEditorWidget()
+
+    from enmapbox.gui.classification.classificationscheme import registerClassificationSchemeEditorWidget
+    registerClassificationSchemeEditorWidget()
+
+except:
+    pass
+
+_enmapboxProvider = None
+def initEnMAPBoxProcessingProvider():
+    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
+
+    import processing
+    processing.Processing.initialize()
+
+    registry = QgsApplication.instance().processingRegistry()
+    assert isinstance(registry, QgsProcessingRegistry)
+    global _enmapboxProvider
+    if not isinstance(_enmapboxProvider, QgsProcessingProvider):
+        _enmapboxProvider = registry.providerById(ID)
+    if not isinstance(_enmapboxProvider, QgsProcessingProvider):
+        _enmapboxProvider = EnMAPBoxAlgorithmProvider()
+
+        assert _enmapboxProvider.id() == ID
+        registry.addProvider(_enmapboxProvider)
+    assert registry.providerById(ID) == _enmapboxProvider
+    assert isinstance(_enmapboxProvider, EnMAPBoxAlgorithmProvider)
+
+    try:
+        import enmapboxgeoalgorithms.algorithms
+        existingAlgNames = [a.name() for a in registry.algorithms() if a.groupId() == _enmapboxProvider.id()]
+        missingAlgs = [a for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS if a.name() not in existingAlgNames]
+        _enmapboxProvider.addAlgorithms(missingAlgs)
+        #_enmapboxProvider.refreshAlgorithms()
+        s = ""
+    except Exception as ex:
+        info = ['Failed to load QgsProcessingAlgorithms.\n{}'.format(str(ex))]
+        info.append('PYTHONPATH:')
+
+        for p in sorted(sys.path):
+            info.append(p)
+
+        print('\n'.join(info), file=sys.stderr)
+
+
+def run():
+    """
+    Call to start the EnMAP-Box
+    :return:
+    """
+    import enmapbox.__main__
+    enmapbox.__main__.run()

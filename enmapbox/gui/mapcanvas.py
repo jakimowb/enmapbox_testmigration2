@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-
+import warnings, pathlib
 from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
@@ -887,7 +887,7 @@ class MapCanvas(QgsMapCanvas):
 
         self.mCrosshairItem = CrosshairMapCanvasItem(self)
 
-        self.setShowCrosshair(False)
+        self.setCrosshairVisibility(False)
 
         self.canvasLinks = []
         # register signals to react on changes
@@ -982,10 +982,10 @@ class MapCanvas(QgsMapCanvas):
 
         if self.crosshairIsVisible():
             action = menu.addAction('Hide Crosshair')
-            action.triggered.connect(lambda : self.setShowCrosshair(False))
+            action.triggered.connect(lambda : self.setCrosshairVisibility(False))
         else:
             action = menu.addAction('Show Crosshair')
-            action.triggered.connect(lambda: self.setShowCrosshair(True))
+            action.triggered.connect(lambda: self.setCrosshairVisibility(True))
 
         from enmapbox.gui.crosshair import CrosshairDialog
         action = menu.addAction('Set Crosshair Style')
@@ -1054,14 +1054,15 @@ class MapCanvas(QgsMapCanvas):
         """
         #deprectated
         #return QPixmap(self.map().contentImage().copy())
-        return QPixmap.grabWidget(self)
+        return self.grab()
 
     def saveMapImageDialog(self, fileType):
-        from enmapbox.gui import settings
+        from enmapbox import enmapboxSettings
+        settings = enmapboxSettings()
         lastDir = settings.value('EMB_SAVE_IMG_DIR', os.path.expanduser('~'))
         path = jp(lastDir, 'screenshot.{}'.format(fileType.lower()))
 
-        path = QFileDialog.getSaveFileName(self, 'Save map as {}'.format(fileType), path)
+        path, filter = QFileDialog.getSaveFileName(self, 'Save map as {}'.format(fileType), path)
 
         if len(path) > 0:
             self.saveAsImage(path, None, fileType)
@@ -1083,6 +1084,12 @@ class MapCanvas(QgsMapCanvas):
         return self.mCrosshairItem.crosshairStyle
 
     def setShowCrosshair(self,b):
+        warnings.warn('Use setCrosshairVisibility', DeprecationWarning)
+        self.setCrosshairVisibility(b)
+
+    def setCrosshairVisibility(self, b:bool):
+        if b and self.mCrosshairItem.mPosition is None:
+            self.mCrosshairItem.setPosition(self.spatialCenter())
         self.mCrosshairItem.setVisibility(b)
 
     def crosshairIsVisible(self):
@@ -1315,12 +1322,12 @@ class MapDockLabel(DockLabel):
         self.addMapLink = QToolButton(self)
         self.addMapLink.setToolTip('Link with other map(s)')
         self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
-        self.buttons.append(self.addMapLink)
+        self.mButtons.append(self.addMapLink)
 
         self.removeMapLink = QToolButton(self)
         self.removeMapLink.setToolTip('Remove links to this map')
         self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
-        self.buttons.append(self.removeMapLink)
+        self.mButtons.append(self.removeMapLink)
 
 
 def setMapCanvasCRSfromDialog(mapCanvas, crs=None):
@@ -1453,15 +1460,27 @@ class MapDock(Dock):
         self.setLayers(mapLayers + self.mCanvas.layers())
 
     def removeLayersByURI(self, uri):
+        """
+        Removes layer by its uri
+        :param uri: str or pathlib.Path
+        """
+        if isinstance(uri, str):
+            path = pathlib.Path(uri)
+        if isinstance(uri, pathlib.Path):
+            path = uri
+
+        assert isinstance(path, pathlib.Path)
+        posix = path.as_posix()
         to_remove = []
-        uri = os.path.abspath(uri)
-
         for lyr in self.mCanvas.layers():
-            lyrUri = os.path.abspath(lyr.dataProvider().dataSourceUri())
-            if uri == lyrUri:
-                to_remove.append(lyr)
+            if isinstance(lyr, QgsMapLayer):
+                srcPath = pathlib.Path(lyr.source())
+                srcPosix = srcPath.as_posix()
+                if srcPosix.startswith(posix):
+                    to_remove.append(lyr)
 
-        self.removeLayers(to_remove)
+        if len(to_remove) > 0:
+            self.removeLayers(to_remove)
 
     def mapCanvas(self)->MapCanvas:
         return self.mCanvas

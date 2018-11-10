@@ -234,7 +234,7 @@
     <string>Add Text Window</string>
    </property>
    <property name="toolTip">
-    <string>Open an text window</string>
+    <string>Open a text window</string>
    </property>
   </action>
   <action name="actionAddSpeclibView">
@@ -257,6 +257,9 @@
    <property name="text">
     <string>Zoom In</string>
    </property>
+   <property name="toolTip">
+    <string>Zoom in</string>
+   </property>
   </action>
   <action name="actionZoomOut">
    <property name="icon">
@@ -265,6 +268,9 @@
    </property>
    <property name="text">
     <string>Zoom Out</string>
+   </property>
+   <property name="toolTip">
+    <string>Zoom out</string>
    </property>
   </action>
   <action name="actionPan">
@@ -298,7 +304,7 @@
     <string>Add Data Source</string>
    </property>
    <property name="toolTip">
-    <string>Adds a data sourc, e.g. raster or vector file</string>
+    <string>Adds data sources, e.g. raster or vector files</string>
    </property>
   </action>
   <action name="actionZoomFullExtent">
@@ -377,6 +383,10 @@
    </property>
   </action>
   <action name="actionPanToSelected">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
+   </property>
    <property name="text">
     <string>PanToSelected</string>
    </property>
@@ -441,15 +451,15 @@
   </action>
   <action name="actionSelectProfiles">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/pickrasterspectrum.svg</normaloff>
-     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/enmapbox/icons/pickrasterspectrum.svg</iconset>
+    <iconset resource="../speclib/speclibresources.qrc">
+     <normaloff>:/speclibimages/icons/pickrasterspectrum.svg</normaloff>
+     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/speclibimages/icons/pickrasterspectrum.svg</iconset>
    </property>
    <property name="text">
-    <string>Select pixel profiles</string>
+    <string>Select spectral profiles</string>
    </property>
    <property name="toolTip">
-    <string>Select pixel profiles from map</string>
+    <string>Select spectral profiles from map</string>
    </property>
   </action>
   <action name="actionSaveProjectAs">
@@ -517,6 +527,8 @@
  </customwidgets>
  <resources>
   <include location="resources.qrc"/>
+  <include location="../speclib/speclibresources.qrc"/>
+  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>

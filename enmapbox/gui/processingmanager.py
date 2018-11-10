@@ -57,6 +57,7 @@ else:
 class ProcessingAlgorithmsPanelUI(UI_BASE):
     def __init__(self, parent=None):
         UI_BASE.__init__(self)
+        self.setParent(parent)
         if not _PF_AVAILABLE:
             w = QFrame()
             w.setLayout(QVBoxLayout())
@@ -109,7 +110,7 @@ class ProcessingAlgorithmsManager(QObject):
             #Signals.htmlCreated.connect(self.onFileCreated)
             from processing.gui.ProcessingToolbox import ProcessingToolbox
             self.toolbox = ProcessingToolbox()
-
+            self.toolbox.addProvider('enmapbox')
             if isinstance(enmapBoxInstance, EnMAPBox):
                 self.enmapBox = enmapBoxInstance
                 # 1. create new menu entry

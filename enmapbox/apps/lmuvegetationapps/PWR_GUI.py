@@ -65,9 +65,9 @@ class PWR:
 
     def open_file(self, mode):
         if mode == "image":
-            result = str(QFileDialog.getOpenFileName(caption='Select Input Image'))
-            if not result: return
-            self.image = result
+            bsq_input, _filter = QFileDialog.getOpenFileName(None, 'Select Input Image', '.', "ENVI Image (*.bsq)")
+            if not bsq_input: return
+            self.image = bsq_input
             self.image = self.image.replace("\\", "/")
             try:
                 meta = self.get_image_meta(image=self.image, image_type="Input Image")
@@ -80,11 +80,11 @@ class PWR:
                 self.gui.lblInputImage.setText("")
                 return
             else:
-                self.gui.lblInputImage.setText(result)
+                self.gui.lblInputImage.setText(bsq_input)
                 self.gui.lblNodatImage.setText(str(meta[0]))
                 self.nodat[0] = meta[0]
         elif mode == "output":
-            result = str(QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)"))
+            result, _filter = QFileDialog.getSaveFileName(None, 'Specify Output File', '.', "ENVI Image(*.bsq)")
             if not result: return
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")

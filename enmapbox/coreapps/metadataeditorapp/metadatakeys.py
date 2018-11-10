@@ -15,11 +15,11 @@
 *                                                                         *
 ***************************************************************************
 """
-import re, typing, copy
+import re, copy
 from osgeo import gdal, ogr
 from qgis.core import *
 from qgis.PyQt.QtCore import QDate
-from enmapbox.gui.classificationscheme import ClassificationScheme
+from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 import numpy as np
 IMMUTABLE_DOMAINS = ['IMAGE_STRUCTURE','SUBDATASETS']
 
@@ -258,9 +258,11 @@ class MDKeyDomainString(MDKeyAbstract):
             if name == 'DBF_DATE_LAST_UPDATE':
                 return MDKeyDomainString(obj, domain, name, valueType=np.datetime64)
             else:
-                return  MDKeyDomainString(obj, domain, name)
+                return MDKeyDomainString(obj, domain, name)
         else:
-            raise NotImplementedError()
+            #default behavior: return a string
+            return MDKeyDomainString(obj, domain, name)
+            #raise NotImplementedError()
 
 
     @staticmethod

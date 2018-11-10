@@ -18,11 +18,8 @@
 """
 
 import os, sys, re, shutil, zipfile, datetime
-import numpy as np
-import enmapbox
-from enmapbox.gui.utils import jp, file_search
 from enmapbox import DIR_REPO
-import git
+import git # install with: pip install gitpython
 
 REPO = git.Repo(DIR_REPO)
 
@@ -78,8 +75,11 @@ class RemoteInfo(object):
 
 
 # specify remote branches
+"""
 RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
-                  prefixLocal=r'site-packages/pyqtgraph')
+                  prefixLocal=r'site-packages/pyqtgraph',
+                  remoteBranch='develop')
+"""
 
 #not required any more
 #RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
@@ -105,7 +105,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   key='enmapboxgeoalgorithms',
-                  prefixLocal='enmapboxgeoalgorithms',
+                  prefixLocal='site-packages/enmapboxgeoalgorithms',
                   prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='develop')
 
@@ -132,7 +132,7 @@ RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt
                   prefixLocal=r'enmapbox/apps/enpt_enmapboxapp',
                   prefixRemote=r'enpt_enmapboxapp',
                   #remoteBranch='master'
-                  remoteBranch='bugfix/fix_GUI_EnPT_call'
+                  remoteBranch='master'
                   )
 
 
@@ -203,15 +203,15 @@ if __name__ == "__main__":
                     print(ex, file=sys.stderr)
 
     # update remotes
-    to_update = ['hub-datacube',
-                'hub-workflow',
-                 #'enmap-box-testdata',
-                 'enmapboxapplications',
-                 'enmapboxgeoalgorithms'
-                 #'enmap-box-lmu-vegetation-apps',
+    to_update = ['hub-datacube'
+                 ,'hub-workflow'
+                 ,'enmapboxapplications'
+                 ,'enmapboxgeoalgorithms'
+                 #,'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
+
                 ]
 
     for p in to_update:

@@ -35,45 +35,15 @@ class EnMAPBoxPlugin(object):
 
         dirPlugin = os.path.dirname(__file__)
         site.addsitedir(dirPlugin)
-        from enmapbox import DIR_SITEPACKAGES
+        from enmapbox import DIR_SITEPACKAGES, initEnMAPBoxProcessingProvider
         site.addsitedir(DIR_SITEPACKAGES)
 
         #run a dependency check
         self.initialDependencyCheck()
 
-
-
         # add the EnMAP-Box Provider
-        self.initEnMAPBoxProcessingProvider()
-
-    def initEnMAPBoxProcessingProvider(self):
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-        from enmapbox import messageLog
-        self.enmapBoxProvider = QgsApplication.instance().processingRegistry().providerById('enmapbox')
-        if not isinstance(self.enmapBoxProvider, EnMAPBoxAlgorithmProvider):
-            self.enmapBoxProvider = EnMAPBoxAlgorithmProvider()
-            QgsApplication.instance().processingRegistry().addProvider(self.enmapBoxProvider)
-            try:
-                import enmapboxgeoalgorithms.algorithms
-                to_add = []
-                for alg in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
-                    assert isinstance(alg, QgsProcessingAlgorithm)
-                    if not alg in self.enmapBoxProvider.mAlgorithms:
-                        to_add.append(alg)
-                print('Added {} QgsProcessingAlgorithm(s) to EnMAPBoxAlgorithmProvider'.format(len(to_add)))
-                self.enmapBoxProvider.addAlgorithms(to_add)
-                self.enmapBoxProvider.refreshAlgorithms()
-            except Exception as ex:
-                info = ['Failed to load QgsProcessingAlgorithms.\n{}'.format(str(ex))]
-                info.append('PYTHONPATH:')
-
-                for p in sorted(sys.path):
-                    info.append(p)
-
-                messageLog('\n'.join(info), Qgis.Critical)
-                #raise Exception('\n'.join(info))
-
-        assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
+        initEnMAPBoxProcessingProvider()
+        #assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
 
     def initialDependencyCheck(self):
         """
@@ -146,10 +116,13 @@ class EnMAPBoxPlugin(object):
         for action in self.toolbarActions:
             self.iface.removeToolBarIcon(action)
 
-        QgsApplication.instance().processingRegistry().removeProvider(self.enmapBoxProvider)
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             EnMAPBox.instance().close()
         EnMAPBox._instance = None
+
+        from enmapbox.algorithmprovider import ID
+        QgsApplication.instance().processingRegistry().removeProvider(ID)
+
 
 
 

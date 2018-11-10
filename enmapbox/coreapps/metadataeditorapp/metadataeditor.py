@@ -20,19 +20,13 @@
 """
 
 
-import os, collections, copy, re, sys
-from qgis.core import *
-from qgis.gui import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from osgeo import gdal, ogr, osr
+import sys
 
-import numpy as np
 from enmapbox.gui.utils import loadUIFormClass, guessDataProvider
 from enmapbox.gui.widgets.trees import TreeModel, TreeNode
 from metadataeditorapp.metadatakeys import *
-from enmapbox.gui.widgets.models import OptionListModel, Option, currentComboBoxValue
-from enmapbox.gui.classificationscheme import *
+from enmapbox.gui.widgets.models import OptionListModel, Option
+from enmapbox.gui.classification.classificationscheme import *
 
 
 from metadataeditorapp import APP_DIR
@@ -122,7 +116,7 @@ class MetadataClassificationSchemeTreeNode(MetadataItemTreeNode):
 
         self.mMDKey.mValue.sigClassesAdded.connect(self.updateNode)
         self.mMDKey.mValue.sigClassesRemoved.connect(self.updateNode)
-        self.mMDKey.mValue.sigClassInfoChanged.connect(self.updateNode)
+        #self.mMDKey.mValue.sigClassInfoChanged.connect(self.updateNode)
         self.updateNode()
 
     def updateNode(self, *args):
@@ -169,20 +163,31 @@ class RasterBandTreeNode(MetadataItemTreeNode):
 
     def __init__(self, parentNode, band, **kwds):
         assert isinstance(band, gdal.Band)
+
         key = MDKeyDescription(band)
         super(RasterBandTreeNode, self).__init__(parentNode, key, **kwds)
         if not kwds.get('name'):
             self.setName('Band {}'.format(band.GetBand()))
 
+        self.mBandIndex = band.GetBand() - 1
+
+    def bandIndex(self)->int:
+        """Returns the band index"""
+        return self.mBandIndex
 
 class VectorLayerTreeNode(MetadataItemTreeNode):
 
-    def __init__(self, parentNode, layer, **kwds):
+    def __init__(self, parentNode, layer, layerIndex, **kwds):
         assert isinstance(layer, ogr.Layer)
         key = MDKeyDescription(layer)
         super(VectorLayerTreeNode, self).__init__(parentNode, key, **kwds)
         if not kwds.get('name'):
             self.setName('Layer {}'.format(layer.GetDescription()))
+        self.mLayerIndex = layerIndex
+
+    def layerIndex(self)->int:
+        """Returns the layer index"""
+        return self.mLayerIndex
 
 class RasterSourceTreeNode(MetadataItemTreeNode):
 
@@ -265,9 +270,9 @@ class MetadataTreeModel(TreeModel):
     def domainModel(self):
         return self.mDomains
 
-    def differences(self, rootNode=None):
+    def differences(self, rootNode)->list:
         """
-        Returns the MDKeys with changed values
+        Returns the TreeNodes with changed values
         :param rootNode: TreeNode, by default the models rootNode
         :return: [list-of-changed-MDKeys]
         """
@@ -276,40 +281,48 @@ class MetadataTreeModel(TreeModel):
 
         assert isinstance(rootNode, TreeNode)
 
-        keys = []
+        nodes = []
         if isinstance(rootNode, MetadataItemTreeNode):
             key = rootNode.mMDKey
             assert isinstance(key, MDKeyAbstract)
             if key.valueHasChanged():
-                keys.append(key)
+                nodes.append(rootNode)
         for childNode in rootNode.childNodes():
-            keys += self.differences(childNode)
-        return keys
+            nodes += self.differences(childNode)
+        return nodes
 
     def parseSource(self, path: str):
         #print('PARSE {}'.format(path))
         # clear metadata domains
         self.mDomains.clear()
 
-        order = ['gdal', 'ogr']
+        ds = self.openSource(path)
 
+        if isinstance(ds, gdal.Dataset):
+            return self.parseRasterMD(ds)
+        if isinstance(ds, ogr.DataSource):
+            return self.parseVectorMD(ds)
+
+        return [TreeNode(None, path, values=['unable to read metadata'])]
+
+
+    def openSource(self, path:str):
+        order = ['gdal', 'ogr']
         if re.search(r'(shp|gpkg|kml|kmz)$', path):
             order = ['ogr', 'gdal']
-
         for t in order:
             try:
                 if t == 'gdal':
                     ds = gdal.Open(path)
                     if isinstance(ds, gdal.Dataset):
-                        return self.parseRasterMD(ds)
+                        return ds
                 elif t == 'ogr':
                     ds = ogr.Open(path)
                     if isinstance(ds, ogr.DataSource):
-                        return self.parseVectorMD(ds)
+                        return ds
             except Exception as ex:
                 pass
-
-        return [TreeNode(None, path, values=['unable to read metadata'])]
+        return None
 
     def parseDomainMetadata(self, parentNode, obj):
         assert isinstance(parentNode, TreeNode)
@@ -385,7 +398,7 @@ class MetadataTreeModel(TreeModel):
             lyr = ds.GetLayerByIndex(i)
             assert isinstance(lyr, ogr.Layer)
 
-            nLayer = VectorLayerTreeNode(nLayers, lyr)
+            nLayer = VectorLayerTreeNode(nLayers, lyr, i)
             self.parseDomainMetadata(nLayer, lyr)
 
         return root
@@ -494,10 +507,28 @@ class MetadataTreeModel(TreeModel):
 
     def writeMetadata(self):
 
-        differences = self.differences(self)
-        for node in differences:
-            assert isinstance(node, MetadataItemTreeNode)
-            key = node.metadataKey()
+        differences = self.differences(self.mRootNode)
+        if len(differences) > 0:
+            ds = self.openSource(self.mSource)
+            for t in differences:
+
+                assert isinstance(t, TreeNode)
+
+                if isinstance(t, MetadataClassificationSchemeTreeNode):
+                    t.metadataKey().writeValueToSource(ds)
+                elif isinstance(t, RasterBandTreeNode):
+
+                    band = ds.GetRasterBand(t.bandIndex()+1)
+                    t.metadataKey().writeValueToSource(band)
+                elif isinstance(t, VectorLayerTreeNode):
+                    layer = ds.GetLayerByIndex(t.layerIndex())
+                    t.metadataKey().writeValueToSource(layer)
+
+                else:
+                    s = ""
+
+            ds = None
+
 
 
 
@@ -623,8 +654,9 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
 
         scheme = ClassificationSchemeDialog.getClassificationScheme(classificationScheme=value)
-        index = model.node2idx(node)
-        model.setData(index, scheme)
+        if isinstance(scheme, ClassificationScheme):
+            index = model.node2idx(node)
+            model.setData(index, scheme)
 
 
     def inm(self, index):
@@ -906,9 +938,17 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveChanges)
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
+        self.btnSelectSource.setDefaultAction(self.actionSetDataSource)
+        self.actionSetDataSource.triggered.connect(self.onSetDataSource)
+
+    def onSetDataSource(self, *args):
+        result, filter = QFileDialog.getOpenFileName(self, 'Open data source')
+        if len(result) > 0:
+            self.addSources([result])
+
     def onDataChanged(self, *args):
         #print('check diffs')
-        differences = self.mMetadataModel.differences()
+        differences = self.mMetadataModel.differences(None)
         if len(differences) > 0:
             self.buttonBox.button(QDialogButtonBox.Reset).setEnabled(True)
             self.buttonBox.button(QDialogButtonBox.Save).setEnabled(True)

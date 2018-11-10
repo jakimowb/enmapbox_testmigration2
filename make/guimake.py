@@ -604,7 +604,8 @@ def png2qrc(icondir, pathQrc, pngprefix='enmapbox'):
 
 
 if __name__ == '__main__':
-    from enmapbox.gui.utils import DIR_UIFILES, DIR_ICONS, initQgisApplication
+    from enmapbox import DIR_UIFILES, DIR_ICONS
+    from enmapbox.gui.utils import initQgisApplication
 
 
     qgsApp = initQgisApplication()
@@ -619,9 +620,11 @@ if __name__ == '__main__':
         #convert SVG to PNG and add link them into the resource file
         svg2png(icondir, overwrite=False)
         png2qrc(icondir, pathQrc)
-    if True:
-        migrateBJexternals()
+    if False:
+        #migrateBJexternals()
         compile_rc_files(DIR_UIFILES)
-
+    if True:
+        DIR_ROOT = os.path.join(DIR_REPO, 'enmapbox')
+        compile_rc_files(DIR_ROOT)
     print('Done')
 

@@ -17,20 +17,11 @@
 ***************************************************************************
 """
 
-import six, sys, os, gc, re, collections
-
-from qgis.core import *
-from qgis.gui import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
-
-from osgeo import gdal, ogr
 from enmapbox.gui.treeviews import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.mimedata import *
-
+from enmapbox.gui.docks import *
 LUT_DOCKTYPES = {'MAP':MapDock,
                  'TEXT':TextDock,
                  'MIME':MimeDataDock,
@@ -234,12 +225,12 @@ class CanvasLinkTreeNodeGroup(TreeNode):
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
         super(SpeclibDockTreeNode, self).__init__(parent, dock)
-        self.setIcon(QIcon(':/enmapbox/icons/viewlist_spectrumdock.svg'))
+        self.setIcon(QIcon(':/speclib/icons/speclib.svg'))
 
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
         super(SpeclibDockTreeNode, self).connectDock(dock)
-        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
         self.speclibWidget = dock.speclibWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
@@ -252,7 +243,7 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.speclibWidget.mSpeclib.committedFeaturesRemoved.connect(self.updateNodes)
 
     def updateNodes(self):
-        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
+        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
         self.profilesNode.setValue(len(self.speclibWidget.mSpeclib))
 
@@ -929,6 +920,7 @@ class DockManagerTreeModelMenuProvider(TreeViewMenuProvider):
         return menu
 
     def setLayerStyle(self, layer, canvas):
+
         from enmapbox.gui.layerproperties import showLayerPropertiesDialog
         showLayerPropertiesDialog(layer, canvas, modal=True)
 
@@ -992,11 +984,11 @@ class DockManager(QObject):
             # check mime types we can handle
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
-            if MDF_LAYERTREEMODELDATA in mimeData.formats() or \
-                MDF_DATASOURCETREEMODELDATA in mimeData.formats():
-                event.setDropAction(Qt.CopyAction)
-                event.accept()
-            return
+            for t in [MDF_LAYERTREEMODELDATA, MDF_DATASOURCETREEMODELDATA, MDF_URILIST]:
+                if t in mimeData.formats():
+                    event.setDropAction(Qt.CopyAction)
+                    event.accept()
+                    return
 
 
         elif isinstance(event, QDragMoveEvent):
@@ -1010,18 +1002,13 @@ class DockManager(QObject):
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
 
-            layers = []
+            layers = extractMapLayers(mimeData)
             textfiles = []
             speclibs = []
 
-
-            if MDF_LAYERTREEMODELDATA in mimeData.formats():
-                layers = extractMapLayers(mimeData)
-            elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
+            if MDF_DATASOURCETREEMODELDATA in mimeData.formats():
                 for ds in toDataSourceList(mimeData):
-                    if isinstance(ds, DataSourceSpatial):
-                        layers.append(ds.createUnregisteredMapLayer())
-                    elif isinstance(ds, DataSourceTextFile):
+                    if isinstance(ds, DataSourceTextFile):
                         textfiles.append(ds)
                     elif isinstance(ds, DataSourceSpectralLibrary):
                         speclibs.append(ds)
@@ -1039,7 +1026,7 @@ class DockManager(QObject):
             if len(speclibs) > 0:
                 NEW_DOCK = self.createDock('SPECLIB')
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
-                from enmapbox.gui.spectrallibraries import SpectralLibrary
+                from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary
                 for speclib in speclibs:
                     NEW_DOCK.speclibWidget.addSpeclib(SpectralLibrary.readFrom(speclib.uri()))
 
@@ -1108,6 +1095,7 @@ class DockManager(QObject):
         if cls == MapDock:
             kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
             dock = MapDock(*args, **kwds)
+            dock.sigLayersAdded.connect(self.dataSourceManager.addSources)
         elif cls == TextDock:
             kwds['name'] = kwds.get('name', 'Text #{}'.format(n))
             dock = TextDock(*args, **kwds)
@@ -1201,8 +1189,6 @@ def createDockTreeNode(dock:Dock, parent=None)->DockTreeNode:
             return MapDockTreeNode(parent, dock)
         elif dockType in [TextDock]:
             return TextDockTreeNode(parent, dock)
-        elif dockType is CursorLocationValueDock:
-            return DockTreeNode(parent, dock)
         elif dockType is SpectralLibraryDock:
             return SpeclibDockTreeNode(parent, dock)
         else:

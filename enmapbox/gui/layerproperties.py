@@ -414,7 +414,7 @@ class SingleBandPseudoColorRendererWidget(QgsSingleBandPseudoColorRendererWidget
     def __init__(self, layer, extent):
         super(SingleBandPseudoColorRendererWidget, self).__init__(layer, extent)
 
-        self.gridLayout = self.layout()
+        self.gridLayout = self.layout().children()[0]
         assert isinstance(self.gridLayout, QGridLayout)
         for i in range(self.gridLayout.count()):
             w = self.gridLayout.itemAt(i)

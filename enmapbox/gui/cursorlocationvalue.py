@@ -376,47 +376,60 @@ class CursorLocationInfoDock(QDockWidget,
             if not lyrExt.contains(pointWorld):
                 continue
 
-            # transform relquested location into layer CRS coordinates
+            # transform requested location into layer CRS coordinates
             pointLyr = world2lyr.transform(pointWorld)
 
             from enmapbox.gui.utils import geo2px
             if isinstance(l, QgsRasterLayer):
                 renderer = l.renderer()
-                ds = gdal.Open(l.source())
-                if ds.RasterCount == 0:
-                    continue
 
-                if isinstance(renderer, QgsRasterRenderer) and isinstance(ds, gdal.Dataset):
-                    # transform geo into pixel coodinates
-                    px = geo2px(pointLyr, ds.GetGeoTransform())
-                    if px.x() >= 0 and px.x() < ds.RasterXSize and \
-                            px.y() >= 0 and px.y() < ds.RasterYSize:
+                if l.providerType().lower() != 'gdal':
 
-                        v = RasterValueSet(l.source(), crsInfo, ptInfo, px)
+                    return
+                    """
+                        dp = l.dataProvider()
+                        assert isinstance(dp, QgsRasterDataProvider)
+                        result = dp.identify(pointLyr, QgsRaster.IdentifyFormatFeature)
+                        r = dp.identify(pointLyr, QgsRaster.IdentifyFormatValue)
+                    """
 
-                        # !Note: b is not zero-based -> 1st band means b == 1
-                        if rasterbands == 'VISIBLE':
-                            bandNumbers = renderer.usesBands()
-                        elif rasterbands == 'ALL':
-                            bandNumbers = range(1, ds.RasterCount + 1)
-                        else:
-                            bandNumbers = [0]
+                else:
 
-                        for i, b in enumerate(bandNumbers):
+                    ds = gdal.Open(l.source())
+                    if ds.RasterCount == 0:
+                        continue
 
-                            band = ds.GetRasterBand(b)
-                            assert isinstance(band, gdal.Band)
-                            if i == 0:
-                                v.noDataValue = band.GetNoDataValue()
+                    if isinstance(renderer, QgsRasterRenderer) and isinstance(ds, gdal.Dataset):
+                        # transform geo into pixel coodinates
+                        px = geo2px(pointLyr, ds.GetGeoTransform())
+                        if px.x() >= 0 and px.x() < ds.RasterXSize and \
+                                px.y() >= 0 and px.y() < ds.RasterYSize:
 
-                            value = band.ReadAsArray(px.x(), px.y(), 1, 1)
-                            if value is None:
-                                s = ""
-                            value = np.asscalar(value.flatten()[0])
-                            bandInfo = RasterValueSet.BandInfo(b - 1, value, band.GetDescription())
-                            v.bandValues.append(bandInfo)
+                            v = RasterValueSet(l.source(), crsInfo, ptInfo, px)
 
-                        self.mLocationInfoModel.addSourceValues(v)
+                            # !Note: b is not zero-based -> 1st band means b == 1
+                            if rasterbands == 'VISIBLE':
+                                bandNumbers = renderer.usesBands()
+                            elif rasterbands == 'ALL':
+                                bandNumbers = range(1, ds.RasterCount + 1)
+                            else:
+                                bandNumbers = [0]
+
+                            for i, b in enumerate(bandNumbers):
+
+                                band = ds.GetRasterBand(b)
+                                assert isinstance(band, gdal.Band)
+                                if i == 0:
+                                    v.noDataValue = band.GetNoDataValue()
+
+                                value = band.ReadAsArray(px.x(), px.y(), 1, 1)
+                                if value is None:
+                                    s = ""
+                                value = np.asscalar(value.flatten()[0])
+                                bandInfo = RasterValueSet.BandInfo(b - 1, value, band.GetDescription())
+                                v.bandValues.append(bandInfo)
+
+                            self.mLocationInfoModel.addSourceValues(v)
 
             if isinstance(l, QgsVectorLayer):
                 # searchRect = QgsRectangle(pt, pt)

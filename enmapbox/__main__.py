@@ -18,28 +18,41 @@
 """
 
 import sys, os, site
-
+from qgis.core import QgsApplication, QgsProcessingRegistry, QgsProcessingAlgorithm
 import enmapbox
 
-
-def run():
-    """
+def run(debug=False, processing=False, applications=False, sources=None):
+    '''
     Starts the EnMAP-Box GUI.
+
+    :param debug: whether to run in debug mode
+    :param processing: whether to load the processing framework
+    :param applications: whether to load none core application
+    :param sources: list of sources to be added
     :return:
-    """
+    '''
 
     from enmapbox.gui.utils import initQgisApplication
     qgisApp = initQgisApplication()
+    import enmapbox
+    enmapbox.DEBUG = debug
+    enmapbox.LOAD_PROCESSING_FRAMEWORK = processing
+    enmapbox.LOAD_EXTERNAL_APPS = applications
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    import enmapbox.gui
-    enmapbox.DEBUG = False
-    enmapbox.LOAD_PROCESSING_FRAMEWORK = True
-    enmapbox.LOAD_EXTERNAL_APPS = True
+    import qgis.utils
 
-    from qgis.utils import iface
-    enmapbox = EnMAPBox(iface)
-    enmapbox.run()
+    enmapBox = EnMAPBox(qgis.utils.iface)
+    enmapbox.initEnMAPBoxProcessingProvider()
+    enmapBox.run()
+    if sources is not None:
+        for source in enmapBox.addSources(sourceList=sources):
+            try: # add as map
+                lyr = source.createUnregisteredMapLayer()
+                dock = enmapBox.createDock('MAP')
+                dock.addLayers([lyr])
+            except: pass
+
     qgisApp.exec_()
 
 

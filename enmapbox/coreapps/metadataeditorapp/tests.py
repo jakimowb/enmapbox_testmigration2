@@ -20,17 +20,12 @@
 """
 
 import unittest
-from qgis.core import *
-from osgeo import gdal, ogr
-import numpy as np
 
-from enmapboxtestdata import enmap, hymap, landcover
-from enmapbox.gui.classificationscheme import ClassificationScheme
-from metadataeditorapp.metadatakeys import *
+from enmapboxtestdata import landcover_polygons, enmap
 from metadataeditorapp.metadataeditor import *
 
 from enmapbox.gui.utils import *
-
+SHOW_GUI = True
 QGSAPP = initQgisApplication()
 
 class TestMDMetadataKeys(unittest.TestCase):
@@ -46,7 +41,7 @@ class TestMDMetadataKeys(unittest.TestCase):
 
     def setUp(self):
         self.dsR = gdal.Open(enmap)
-        self.dsV = ogr.Open(landcover)
+        self.dsV = ogr.Open(landcover_polygons)
 
         drv = gdal.GetDriverByName('MEM')
         self.dsRM = drv.CreateCopy('', self.dsR)
@@ -56,7 +51,7 @@ class TestMDMetadataKeys(unittest.TestCase):
 
     def createSupportedSources(self)->list:
 
-        from enmapboxtestdata import enmap, landcover
+        from enmapboxtestdata import enmap, landcover_polygons
 
         sources = []
 
@@ -65,7 +60,7 @@ class TestMDMetadataKeys(unittest.TestCase):
         gdal.Translate(p1, enmap, options=to)
         sources.append(QgsRasterLayer(p1))
 
-        sources.append(QgsVectorLayer(landcover))
+        sources.append(QgsVectorLayer(landcover_polygons))
         return sources
 
     def createNotSupportedSources(self)->list:
@@ -223,11 +218,11 @@ class TestMDMetadataKeys(unittest.TestCase):
 
     def test_metadataTreeModel(self):
 
-        from enmapboxtestdata import landcover
+
 
         m = MetadataTreeModel()
 
-        ds = ogr.Open(landcover)
+        ds = ogr.Open(landcover_polygons)
         self.assertIsInstance(ds, ogr.DataSource)
 
         node = m.parseVectorMD(ds)
@@ -260,6 +255,9 @@ class TestMDMetadataKeys(unittest.TestCase):
         d.addSources(sources)
         d.addSources(self.createNotSupportedSources())
         self.assertTrue(len(d.mSourceModel) == len(sources))
+
+        if SHOW_GUI:
+            QGSAPP.exec_()
 
 if __name__ == "__main__":
 

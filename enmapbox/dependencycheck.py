@@ -20,7 +20,7 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections, shutil, time, re
+import sys, os, collections, shutil, time, re, importlib
 from qgis.PyQt.Qt import QApplication, QUrl
 from qgis.gui import *
 from qgis.core import *
@@ -48,11 +48,9 @@ def missingPackages(packageNames):
 
     missing = collections.OrderedDict()
     for p in packageNames:
-        try:
-            __import__(p)
-
-        except Exception as ex:
-            missing[p] = str(ex)
+        spec = importlib.util.find_spec(p)
+        if spec is None:
+            missing[p] = 'Can not import python package ""'.format(p)
     LAST_MISSED_PACKAGES = list(missing.keys())
     return missing
 
@@ -129,26 +127,52 @@ def missingTestdata()->bool:
     try:
         import enmapboxtestdata
         assert os.path.isfile(enmapboxtestdata.enmap)
-        assert os.path.isfile(enmapboxtestdata.hymap)
-        assert os.path.isfile(enmapboxtestdata.landcover)
-        assert os.path.isfile(enmapboxtestdata.speclib)
         return False
     except Exception as ex:
         print(ex, file=sys.stderr)
         return True
 
+
+def outdatedTestdata()->bool:
+    """Returns whether testdata is outdated."""
+
+    try:
+        import warnings
+        import enmapboxtestdata
+        from enmapbox import MIN_VERSION_TESTDATA
+
+        testDataOutdated = float(enmapboxtestdata.__version__) < float(MIN_VERSION_TESTDATA)
+        boxOutdated = float(enmapboxtestdata.__version__) > float(MIN_VERSION_TESTDATA)
+
+        if boxOutdated:
+            warnings.warn('Testdata version {} required by EnMAP-Box, but installed version {} is newer. '
+                          'Installed EnMAP-Box is outdated and may have problems correctly processing the testdata. '
+                          'Consider updating the EnMAP-Box.'
+                          ''.format(MIN_VERSION_TESTDATA, enmapboxtestdata.__version__))
+
+        return testDataOutdated
+
+    except Exception as ex:
+        print(ex, file=sys.stderr)
+        return True
+
+
 def installTestdata(overwrite_existing=False):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestdata() and not overwrite_existing:
-        print('Testdata already installed.')
+    if not missingTestdata() and not outdatedTestdata() and not overwrite_existing:
+        print('Testdata already installed and up to date.')
         return
 
+    app = QgsApplication.instance()
+    if app is None:
+        from enmapbox.gui.utils import initQgisApplication
+        app = initQgisApplication()
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
     from enmapbox import DIR_TESTDATA
-    btn = QMessageBox.question(None, 'Testdata is missing', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
+    btn = QMessageBox.question(None, 'Testdata is missing or outdated', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
     if btn != QMessageBox.Yes:
         print('Canceled')
         return
@@ -191,7 +215,13 @@ def installTestdata(overwrite_existing=False):
 
         zf.close()
         del zf
+
         print('Testdata installed.')
+        spec = importlib.util.spec_from_file_location('enmapboxtestdata', os.path.join(targetDir, '__init__.py'))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules['enmapboxtestdata'] = module
+
 
     def onDownloadError(messages):
         raise Exception('\n'.join(messages))
