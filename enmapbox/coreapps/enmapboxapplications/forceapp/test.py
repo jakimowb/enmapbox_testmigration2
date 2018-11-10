@@ -1,7 +1,5 @@
 from enmapboxapplications.widgets.core import *
-from enmapboxapplications.imagestatistics.core import *
-import enmapboxtestdata
-
+from enmapboxapplications.forceapp.core import ForceApp
 
 if __name__ == '__main__':
 
@@ -13,15 +11,13 @@ if __name__ == '__main__':
 
     enmapBox = EnMAPBox(None)
     enmapBox.run()
-    enmapBox.loadExampleData()
+#    enmapBox.openExampleData(mapWindows=1)
 
-    try:
-        widget = ImageStatisticsApp()
-        widget.show()
-        #widget.execute()
-    except:
-        import traceback
-        traceback.print_exc()
+    widget = ForceApp()
+    widget.show()
+
+    widget.setDB(folder=r'C:\Work\data\FORCE\crete')
+    widget.updateDB(folder=r'C:\Work\data\FORCE\crete')
 
     qgsApp.exec_()
     qgsApp.exitQgis()

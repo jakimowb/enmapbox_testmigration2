@@ -732,7 +732,7 @@ p, li { white-space: pre-wrap; }
          <string>save settings</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/mActionFileOpen.svg</normaloff>:/images/themes/default/mActionFileOpen.svg</iconset>
         </property>
         <property name="autoRaise">
@@ -749,7 +749,7 @@ p, li { white-space: pre-wrap; }
          <string>load settings</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/mActionFileSave.svg</normaloff>:/images/themes/default/mActionFileSave.svg</iconset>
         </property>
         <property name="autoRaise">
@@ -763,7 +763,7 @@ p, li { white-space: pre-wrap; }
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS-master/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/propertyicons/action.svg</normaloff>:/images/themes/default/propertyicons/action.svg</iconset>
         </property>
         <property name="iconSize">
@@ -822,9 +822,7 @@ p, li { white-space: pre-wrap; }
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../../../../QGIS-master/images/images.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>uiUseEnsemble_</sender>

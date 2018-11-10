@@ -11,8 +11,12 @@ from PyQt5.QtGui import *
 from PyQt5.Qsci import *
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebKit import QWebSettings
+
+
+from enmapbox.gui.utils import loadUIFormClass
 from enmapboxapplications.utils import loadUIFormClass
-from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions
+
+from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions, ApplierControls
 import hubdc.core
 import hubdc.progressbar
 import hubdc.hubdcerrors
@@ -108,6 +112,8 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         self.setupUi(self)
         self.nameByLayer = True
 
+        self.uiImportArray.hide()
+
         # init layer
         assert isinstance(self.uiLayer, QgsMapLayerComboBox)
         self.uiLayer.setCurrentIndex(0)
@@ -131,9 +137,9 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         self.sigLayerChanged.connect(self.setNameByLayer)
         self.sigLayerChanged.connect(self.showOptions)
         self.uiImportArray.clicked.connect(self.sigImportArray)
-        self.uiImportArray2.clicked.connect(self.sigImportArray)
-        self.uiImportMetadata.clicked.connect(self.sigImportMetadata)
-        self.uiImportNoDataValue.clicked.connect(self.sigImportNoDataValue)
+#        self.uiImportArray2.clicked.connect(self.sigImportArray)
+#        self.uiImportMetadata.clicked.connect(self.sigImportMetadata)
+#        self.uiImportNoDataValue.clicked.connect(self.sigImportNoDataValue)
 
         self.showOptions(layer=self.layer())
 
@@ -192,8 +198,8 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
         if isinstance(value['layer'], QgsRasterLayer):
             value['resampleAlg'] = eval('gdal.GRA_' + self.uiResampleAlg.currentText())
         elif isinstance(value['layer'], QgsVectorLayer):
-            value['initValue'] = float(self.uiInitValue.value())
-            value['burnValue'] = float(self.uiBurnValue.value())
+            value['initValue'] = 0.
+            value['burnValue'] = 1.
             value['burnAttribute'] = self.uiBurnAttribute.currentField()
             if value['burnAttribute'] == '':
                 value['burnAttribute'] = None
@@ -232,15 +238,24 @@ class OutputFilename(QgsFileWidget):
         super().__init__(parent)
         self.setStorageMode(QgsFileWidget.SaveFile)
 
-    def value(self):
+    def value(self, default):
         filename = self.filePath()
-        if isabs(filename):
+
+        if filename.startswith('/vsimem/'):
             pass
-        elif isabs(join(self._defaultRoot, filename)):
-            filename = join(self._defaultRoot, filename)
         else:
-            raise InvalidOutputPathError(filename)
-        filename = abspath(filename)  # deals with '..' inside the path
+            if isabs(filename):
+                pass
+            elif isabs(join(self._defaultRoot, filename)):
+                filename = join(self._defaultRoot, filename)
+            else:
+                raise InvalidOutputPathError(filename)
+            filename = abspath(filename)  # deals with '..' inside the path
+
+        if filename == self._defaultRoot:
+            filename = default
+            self.setFilePath(default)
+
         return filename
 
 class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
@@ -254,6 +269,8 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
         super().__init__(parent)
         self.setupUi(self)
 
+        self.uiSetArray.hide()
+
         # setup name
         self.uiName().textEdited.connect(self.turnNameByFilenameOff)
 
@@ -266,8 +283,8 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
         self.sigFilenameChanged.connect(self.setNameByFilename)
 
         self.uiSetArray.clicked.connect(self.sigSetArray)
-        self.uiSetMetadata.clicked.connect(self.sigSetMetadata)
-        self.uiSetNoDataValue.clicked.connect(self.sigSetNoDataValue)
+        #self.uiSetMetadata.clicked.connect(self.sigSetMetadata)
+        #self.uiSetNoDataValue.clicked.connect(self.sigSetNoDataValue)
 
     def uiFilename(self):
         assert isinstance(self.uiFilename_, OutputFilename)
@@ -281,7 +298,7 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
         return self.uiName().value()
 
     def filename(self):
-        return self.uiFilename().value()
+        return self.uiFilename().value(default='/vsimem/{}.bsq'.format(self.name()))
 
     def value(self):
         value = dict()
@@ -429,7 +446,8 @@ class ItemList(QWidget, loadUIFormClass(pathUi=join(pathUi, 'itemList.ui'))):
             item = self.uiLayout.itemAt(index).widget()
             if item is None: continue
             value = item.value()
-            if value is None: continue
+            if value is None:
+                continue
             values.append(value)
         return values
 
@@ -822,7 +840,10 @@ class ImageMathApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')))
 
             code = self.code()
 
-            calculator = Calulator()
+            controls = ApplierControls()
+            controls.setBlockSize(blockSize=self.uiBlockSize.value())
+
+            calculator = Calulator(controls=controls)
             calculator.controls.setProgressBar(progressBar=ProgressBar(log=self.uiLog(), bar=self.uiProgressBar()))
 
             calculator.controls.setProjection(projection=projection)
@@ -881,7 +902,7 @@ class ImageMathApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')))
                     return
 
             try:
-                calculator.applyCode(code=code, options=options, outputKeys=outputKeys)
+                calculator.applyCode(code=code, options=options, overlap=self.uiBlockOverlap.value(), outputKeys=outputKeys)
 
             except hubdc.hubdcerrors.MissingApplierProjectionError:
                 self.uiLog().setText(redHTML(

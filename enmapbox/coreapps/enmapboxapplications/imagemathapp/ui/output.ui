@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>297</width>
-    <height>52</height>
+    <width>305</width>
+    <height>30</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -34,6 +34,23 @@
    </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QToolButton" name="uiSetArray">
+       <property name="toolTip">
+        <string>add array &lt;identifier&gt; to code editor </string>
+       </property>
+       <property name="text">
+        <string>ImportArray</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../../ressources.qrc">
+         <normaloff>:/imageMath/imagemathapp/icons/numpy.png</normaloff>:/imageMath/imagemathapp/icons/numpy.png</iconset>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="Identifier" name="uiName_">
        <property name="minimumSize">
@@ -75,68 +92,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QToolButton" name="uiSetArray">
-       <property name="toolTip">
-        <string>add array &lt;identifier&gt; to code editor </string>
-       </property>
-       <property name="text">
-        <string>ImportArray</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../../ressources.qrc">
-         <normaloff>:/imageMath/imagemathapp/icons/numpy.png</normaloff>:/imageMath/imagemathapp/icons/numpy.png</iconset>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="uiSetMetadata">
-       <property name="toolTip">
-        <string>add setMetadata(&lt;identifier&gt;) to code editor</string>
-       </property>
-       <property name="text">
-        <string>ImportMeta</string>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>:/images/themes/default/propertyicons/metadata.svg</normaloff>:/images/themes/default/propertyicons/metadata.svg</iconset>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="uiSetNoDataValue">
-       <property name="toolTip">
-        <string>add setNoDataValue(&lt;identifier&gt;, noDataValue=None) to code editor</string>
-       </property>
-       <property name="text">
-        <string>setNoData</string>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
+    <layout class="QHBoxLayout" name="horizontalLayout_2"/>
    </item>
   </layout>
  </widget>

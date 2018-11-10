@@ -1,6 +1,5 @@
 from enmapboxapplications.widgets.core import *
-from enmapboxapplications.imagestatistics.core import *
-import enmapboxtestdata
+from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
 
 
 if __name__ == '__main__':
@@ -8,20 +7,20 @@ if __name__ == '__main__':
     qgsApp = QgsApplication([], True)
     qgsApp.initQgis()
 
-    import qgisresources.images
-    qgisresources.images.qInitResources()
+    #import qgisresources.images
+    #qgisresources.images.qInitResources()
 
     enmapBox = EnMAPBox(None)
     enmapBox.run()
-    enmapBox.loadExampleData()
+    enmapBox.openExampleData(mapWindows=0)
 
     try:
-        widget = ImageStatisticsApp()
+        widget = ScatterPlotApp()
         widget.show()
-        #widget.execute()
     except:
         import traceback
         traceback.print_exc()
 
     qgsApp.exec_()
     qgsApp.exitQgis()
+

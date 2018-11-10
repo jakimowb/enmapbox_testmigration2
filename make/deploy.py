@@ -400,7 +400,7 @@ def uploadDeveloperPlugin():
 
 if __name__ == "__main__":
 
-    #build()
+    build()
     updateRepositoryXML()
-    uploadDeveloperPlugin()
+    #uploadDeveloperPlugin()
     s = ""

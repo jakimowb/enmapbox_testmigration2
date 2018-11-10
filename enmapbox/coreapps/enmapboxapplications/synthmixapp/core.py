@@ -6,7 +6,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapboxapplications.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass
 from enmapboxapplications.widgets.core import UiLabeledLibrary
 from enmapboxapplications.synthmixapp.script import synthmixRegressionEnsemble
 from hubflow.core import *
@@ -57,8 +57,15 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
         for i in range(self.uiTargets().count()):
             self.uiTargets().removeItem(0)
         if field is not None:
-            names = library.raster().dataset().metadataItem(key=field, domain='CLASS_NAMES')[1:]
-            self.uiTargets().addItems(names)
+            definitions = library.attributeDefinitions()
+            if field in definitions:
+                if isinstance(definitions[field], ClassDefinition):
+                    self.names = definitions[field].names()
+                else:
+                    assert 0 # todo
+            else:
+                self.names = []
+            self.uiTargets().addItems(self.names)
         self.uiTargets().selectAllOptions()
 
     def initRegressor(self):
@@ -101,8 +108,8 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                 return
             raster = Raster(filename=self.uiRaster().currentLayer().source())
 
-            names = library.raster().dataset().metadataItem(key=field, domain='CLASS_NAMES')
-            targets = [names.index(name) for name in self.uiTargets().checkedItems()]
+            #names = library.raster().dataset().metadataItem(key=field, domain='CLASS_NAMES')
+            targets = [self.names.index(name)+1 for name in self.uiTargets().checkedItems()]
             if len(targets) == 0:
                 self.uiInfo().setText('Error: no target classes selected')
                 return

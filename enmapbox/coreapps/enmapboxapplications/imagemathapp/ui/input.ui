@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>821</width>
-    <height>86</height>
+    <width>886</width>
+    <height>26</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -72,6 +72,23 @@
           <number>0</number>
          </property>
          <item>
+          <widget class="QToolButton" name="uiImportArray">
+           <property name="toolTip">
+            <string>add array &lt;identifier&gt; to code editor </string>
+           </property>
+           <property name="text">
+            <string>ImportArray</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../../ressources.qrc">
+             <normaloff>:/imageMath/imagemathapp/icons/numpy.png</normaloff>:/imageMath/imagemathapp/icons/numpy.png</iconset>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="Identifier" name="uiName">
            <property name="minimumSize">
             <size>
@@ -84,6 +101,9 @@
              <width>200</width>
              <height>16777215</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>set identifier</string>
            </property>
            <property name="styleSheet">
             <string notr="true"/>
@@ -105,6 +125,9 @@
          </item>
          <item>
           <widget class="QgsMapLayerComboBox" name="uiLayer">
+           <property name="toolTip">
+            <string>select input map</string>
+           </property>
            <property name="editable">
             <bool>false</bool>
            </property>
@@ -122,230 +145,93 @@
            </property>
           </widget>
          </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="QWidget" name="uiOptions1" native="true">
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <property name="spacing">
-          <number>3</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
          <item>
-          <widget class="QToolButton" name="uiImportArray">
-           <property name="toolTip">
-            <string>add array &lt;identifier&gt; to code editor </string>
-           </property>
-           <property name="text">
-            <string>ImportArray</string>
-           </property>
-           <property name="icon">
-            <iconset resource="../../ressources.qrc">
-             <normaloff>:/imageMath/imagemathapp/icons/numpy.png</normaloff>:/imageMath/imagemathapp/icons/numpy.png</iconset>
-           </property>
-           <property name="autoRaise">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="uiImportMetadata">
-           <property name="toolTip">
-            <string>add metadata(&lt;identifier&gt;) to code editor</string>
-           </property>
-           <property name="text">
-            <string>ImportMeta</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>:/images/themes/default/propertyicons/metadata.svg</normaloff>:/images/themes/default/propertyicons/metadata.svg</iconset>
-           </property>
-           <property name="autoRaise">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="uiImportNoDataValue">
-           <property name="toolTip">
-            <string>add noDataValue(&lt;;identifier&gt;) to code editor</string>
-           </property>
-           <property name="text">
-            <string>noData</string>
-           </property>
-           <property name="autoRaise">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_2">
-           <property name="text">
-            <string>resampling</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="uiResampleAlg">
-           <property name="toolTip">
-            <string>select resampling algorithm</string>
-           </property>
-           <property name="maxVisibleItems">
-            <number>20</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_4">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Expanding</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="QWidget" name="uiOptions2" native="true">
-        <layout class="QHBoxLayout" name="uiVectorOptions1">
-         <property name="spacing">
-          <number>3</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QToolButton" name="uiImportArray2">
-           <property name="toolTip">
-            <string>add array &lt;identifier&gt; to code editor </string>
-           </property>
-           <property name="text">
-            <string>ImportArray</string>
-           </property>
-           <property name="icon">
-            <iconset resource="../../ressources.qrc">
-             <normaloff>:/imageMath/imagemathapp/icons/numpy.png</normaloff>:/imageMath/imagemathapp/icons/numpy.png</iconset>
-           </property>
-           <property name="autoRaise">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_4">
-           <property name="text">
-            <string>init value</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="Float" name="uiInitValue">
-           <property name="minimumSize">
-            <size>
-             <width>50</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>100</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>0</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_5">
-           <property name="text">
-            <string>burn value</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="Float" name="uiBurnValue">
-           <property name="minimumSize">
-            <size>
-             <width>50</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>100</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>1</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_6">
-           <property name="text">
-            <string>burn attribute</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QgsFieldComboBox" name="uiBurnAttribute">
-           <property name="allowEmptyFieldName">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="uiAllTouched">
-           <property name="text">
-            <string>all touched</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QWidget" name="uiOptions1" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_3">
+              <property name="spacing">
+               <number>3</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QComboBox" name="uiResampleAlg">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>1</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="toolTip">
+                 <string>select resampling algorithm</string>
+                </property>
+                <property name="maxVisibleItems">
+                 <number>20</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QWidget" name="uiOptions2" native="true">
+             <layout class="QHBoxLayout" name="uiVectorOptions1">
+              <property name="spacing">
+               <number>3</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QgsFieldComboBox" name="uiBurnAttribute">
+                <property name="toolTip">
+                 <string>select burn attribute</string>
+                </property>
+                <property name="editable">
+                 <bool>false</bool>
+                </property>
+                <property name="currentText">
+                 <string/>
+                </property>
+                <property name="allowEmptyFieldName">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="uiAllTouched">
+                <property name="toolTip">
+                 <string>whether to burn all touched pixels</string>
+                </property>
+                <property name="text">
+                 <string>touched</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>
@@ -379,11 +265,6 @@
    <extends>QLineEdit</extends>
    <header>enmapboxapplications.imagemathapp.core</header>
   </customwidget>
-  <customwidget>
-   <class>Float</class>
-   <extends>QLineEdit</extends>
-   <header>enmapboxapplications.imagemathapp.core</header>
-  </customwidget>
  </customwidgets>
  <resources>
   <include location="../../ressources.qrc"/>
@@ -396,12 +277,12 @@
    <slot>setLayer(QgsMapLayer*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>509</x>
-     <y>26</y>
+     <x>258</x>
+     <y>9</y>
     </hint>
     <hint type="destinationlabel">
-     <x>436</x>
-     <y>75</y>
+     <x>781</x>
+     <y>13</y>
     </hint>
    </hints>
   </connection>

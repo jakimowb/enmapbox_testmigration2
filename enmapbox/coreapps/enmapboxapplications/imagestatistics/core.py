@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import pyqtgraph as pg
 from pyqtgraph.widgets.PlotWidget import PlotWidget as PlotWidget_
-from enmapboxapplications.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass
 import hubdc.progressbar
 from hubflow.core import *
 import operator
@@ -109,6 +109,9 @@ class ImageStatisticsApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.
 
     def clearPlots(self):
         self.uiPlot().clear()
+        self.uiPlot().getAxis('bottom').setPen('#000000')
+        self.uiPlot().getAxis('left').setPen('#000000')
+
 
     def plotSelection(self, index, *args, **kwargs):
         try:

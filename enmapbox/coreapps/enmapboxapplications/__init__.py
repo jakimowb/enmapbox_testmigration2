@@ -5,13 +5,16 @@ from enmapboxapplications.imagemathapp.core import ImageMathApp
 from enmapboxapplications.imagestatistics.core import ImageStatisticsApp
 from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
 from enmapboxapplications.synthmixapp.core import SynthmixApp
-
+from enmapboxapplications.forceapp.core import ForceApp
+from enmapboxapplications.classificationapp.core import ClassificationWorkflowApp
 
 def enmapboxApplicationFactory(enmapBox):
     return [EnMAPBoxImageMathApp(enmapBox),
             EnMAPBoxImageStatisticsApp(enmapBox),
             EnMAPBoxScatterPlotApp(enmapBox),
             EnMAPBoxSynthmixApp(enmapBox),
+            #EnMAPBoxForceMosaikBuilderApp(enmapBox),
+            EnMAPBoxClassificationWorkflowApp(enmapBox)
             ]
 
 class EnMAPBoxImageMathApp(EnMAPBoxApplication):
@@ -55,6 +58,7 @@ class EnMAPBoxImageStatisticsApp(EnMAPBoxApplication):
         return QIcon(None)
 
     def menu(self, appMenu):
+        appMenu = self.enmapbox.menu('Tools')
         assert isinstance(appMenu, QMenu)
         a = appMenu.addAction('ImageStatistics')
         assert isinstance(a, QAction)
@@ -125,6 +129,59 @@ class EnMAPBoxSynthmixApp(EnMAPBoxApplication):
         w.show()
 
 
+class EnMAPBoxClassificationWorkflowApp(EnMAPBoxApplication):
+    def __init__(self, enmapBox, parent=None):
+        super().__init__(enmapBox, parent=parent)
+
+        self.name = 'ClassificationWorkflowApp'
+        self.version = 'dev'
+        self.licence = 'GNU GPL-3'
+
+    def icon(self):
+        return QIcon(None)
+
+    def menu(self, appMenu):
+        assert isinstance(appMenu, QMenu)
+        a = appMenu.addAction('Classification Workflow')
+        assert isinstance(a, QAction)
+        a.setIcon(self.icon())
+        a.triggered.connect(self.startGUI)
+        return appMenu
+
+    def geoAlgorithms(self):
+        return []
+
+    def startGUI(self, *args):
+        w = ClassificationWorkflowApp(parent=self.enmapbox.ui)
+        w.show()
+
+
+class EnMAPBoxForceMosaikBuilderApp(EnMAPBoxApplication):
+    def __init__(self, enmapBox, parent=None):
+        super().__init__(enmapBox, parent=parent)
+        self.name = 'ForceMosaikBuilder'
+        self.version = 'dev'
+        self.licence = 'GNU GPL-3'
+
+    def icon(self):
+        return QIcon(None)
+
+    def menu(self, appMenu):
+        appMenu = self.enmapbox.menu('Tools')
+        assert isinstance(appMenu, QMenu)
+        a = appMenu.addAction('Force Mosaik Builder')
+        assert isinstance(a, QAction)
+        a.setIcon(self.icon())
+        a.triggered.connect(self.startGUI)
+        return appMenu
+
+    def geoAlgorithms(self):
+        return []
+
+    def startGUI(self, *args):
+        w = ForceApp(parent=self.enmapbox.ui)
+        w.show()
+
 if __name__ == '__main__':
 
     from enmapbox.gui.utils import initQgisApplication
@@ -135,7 +192,7 @@ if __name__ == '__main__':
     import qgisresources.images
     qgisresources.images.qInitResources()
 
-    if not True:
+    if True:
 
         #widget = ImageMathApp()
         #widget = ImageStatisticsApp()
