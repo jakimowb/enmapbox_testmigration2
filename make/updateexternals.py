@@ -197,7 +197,10 @@ if __name__ == "__main__":
         if rn not in existingRemoteNames:
             print('Need to add {}'.format(rn))
             for info in REMOTEINFOS[rn]:
-                addRemote(info)
+                try:
+                    addRemote(info)
+                except Exception as ex:
+                    print(ex, file=sys.stderr)
 
     # update remotes
     to_update = ['hub-datacube',
@@ -212,6 +215,9 @@ if __name__ == "__main__":
                 ]
 
     for p in to_update:
-        updateRemote(p)
+        try:
+            updateRemote(p)
+        except Exception as ex:
+            print(ex, file=sys.stderr)
 
     print('Finished')
