@@ -18,11 +18,14 @@
 """
 # noinspection PyPep8Naming
 import unittest
+from enmapboxtesting import initQgisApplication
+QAPP = initQgisApplication()
 from enmapbox.gui.utils import *
 from enmapbox.dependencycheck import installTestdata
 installTestdata(False)
 from enmapboxtestdata import *
-QAPP = initQgisApplication(qgisResourceDir=DIR_QGISRESOURCES)
+
+
 from osgeo import gdal
 gdal.AllRegister()
 from .spectrallibraries import *

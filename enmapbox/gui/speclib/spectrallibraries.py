@@ -112,8 +112,10 @@ FIELD_STYLE = 'style'
 FIELD_NAME = 'name'
 FIELD_FID = 'fid'
 
-VSI_DIR = '/vsimem/speclibs/'
+VSI_DIR = r'/vsimem/speclibs/'
+
 gdal.Mkdir(VSI_DIR, 0)
+
 
 X_UNITS = ['Index','Micrometers','Nanometers','Millimeters', 'Centimeters', 'Meters', 'Wavenumber','Angstroms', 'GHz','MHz', '']
 Y_UNITS = ['DN','Reflectance', 'Radiance', '']

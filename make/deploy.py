@@ -25,19 +25,18 @@ from requests.auth import HTTPBasicAuth
 from http.client import responses
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from qgis.testing import start_app
-app = start_app()
+from enmapboxtesting import initQgisApplication
+qgisApp = initQgisApplication()
 
-from enmapbox.gui.utils import jp, file_search, initQgisApplication
 
-#app = initQgisApplication()
-#import enmapbox
+from enmapbox.gui.utils import jp, file_search
 
 from qgis.PyQt.QtCore import *
 import numpy as np
 from pb_tool import pb_tool # install with: pip install pb_tool
 
-from enmapbox import DIR_REPO
+import enmapbox
+from enmapbox import DIR_REPO, __version__
 import git
 
 CHECK_COMMITS = False
@@ -46,7 +45,7 @@ CHECK_COMMITS = False
 REPO = git.Repo(DIR_REPO)
 currentBranch = REPO.active_branch.name
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
-buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group()
+buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', __version__).group()
                             , timestamp,
                             re.sub(r'[\\/]','_', currentBranch))
 
