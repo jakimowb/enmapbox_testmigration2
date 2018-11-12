@@ -9,8 +9,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtXml import *
 from xml.etree import ElementTree
 ROOT = os.path.dirname(os.path.dirname(__file__))
+from enmapboxtesting import initQgisApplication
+app = initQgisApplication()
 from enmapbox.gui.utils import file_search
-from enmapbox import DIR_REPO, DIR_UIFILES, DIR_ICONS, DIR_TESTDATA
+from enmapbox import DIR_REPO
 
 jp = os.path.join
 from osgeo import gdal, ogr, osr
@@ -208,31 +210,35 @@ def compile_rc_files(ROOT, targetDir=None):
     resourcefiles = list(qrcs)
     assert len(resourcefiles) > 0
 
-    if sys.platform == 'darwin':
-        prefix = '/Applications/QGIS.app/Contents/MacOS/bin/'
-    else:
-        prefix = ''
-
-
-
+    shell_cmds = []
+    subprocess_args = []
     for root_dir, f in resourcefiles:
         #dn = os.path.dirname(f)
         pathQrc = os.path.normpath(jp(root_dir, f))
-        assert os.path.exists(pathQrc), pathQrc
+        if not os.path.exists(pathQrc):
+            print('Resource file does not exist: {}'.format(pathQrc))
+            continue
         bn = os.path.basename(pathQrc)
 
         if isinstance(targetDir, str):
             dn = targetDir
         else:
             dn = os.path.dirname(pathQrc)
-        os.makedirs(dn, exist_ok=True)
+
         bn = os.path.splitext(bn)[0]
         pathPy = os.path.join(dn, bn+'.py' )
+        subprocess_args.append(('pyrcc5','-o', pathPy, pathQrc))
+        shell_cmds.append('pyrcc5 -o {} {}'.format(pathPy, pathQrc))
 
+    print('Call in shell:')
+    for cmd in shell_cmds:
+        print(cmd)
+
+    for args in subprocess_args:
         try:
-            subprocess.call(['pyrcc5', '-o', pathPy, pathQrc])
+            subprocess.call(*args)
         except Exception as ex:
-            print('Failed call: pyrcc5 -o {} {}'.format(pathPy, pathQrc))
+            print('Failed to call: pyrcc5 -o {} {}'.format(args[0], args[1]))
 
 
 def fileNeedsUpdate(file1, file2):
@@ -605,10 +611,7 @@ def png2qrc(icondir, pathQrc, pngprefix='enmapbox'):
 
 if __name__ == '__main__':
     from enmapbox import DIR_UIFILES, DIR_ICONS
-    from enmapbox.gui.utils import initQgisApplication
 
-
-    qgsApp = initQgisApplication()
     icondir = DIR_ICONS
     pathQrc = jp(DIR_UIFILES, 'resources.qrc')
 

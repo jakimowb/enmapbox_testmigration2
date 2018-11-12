@@ -30,7 +30,6 @@
 
 from qgis.gui import *
 from qgis.core import *
-from qgis.PyQt.Qt import *
 from enmapbox.gui.utils import initQgisApplication
 #read https://github.com/qgis/QGIS/blob/master/tests/src/python/test_qgsactionmanager.py
 

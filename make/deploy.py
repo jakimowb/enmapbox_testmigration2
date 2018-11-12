@@ -25,18 +25,20 @@ from requests.auth import HTTPBasicAuth
 from http.client import responses
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from qgis.testing import start_app
+app = start_app()
 
-import qgis.utils
+from enmapbox.gui.utils import jp, file_search, initQgisApplication
+
+#app = initQgisApplication()
+#import enmapbox
+
 from qgis.PyQt.QtCore import *
 import numpy as np
 from pb_tool import pb_tool # install with: pip install pb_tool
 
-import enmapbox
-from enmapbox.gui.utils import jp, file_search, initQgisApplication
 from enmapbox import DIR_REPO
 import git
-
-app = initQgisApplication()
 
 CHECK_COMMITS = False
 

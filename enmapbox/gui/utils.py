@@ -103,129 +103,7 @@ def nextColor(color, mode='cat'):
 
     return QColor.fromHsl(hue, sat, value, alpha)
 
-
-class TestObjects():
-    """
-    Class with static rountines to create test objects
-    """
-    @staticmethod
-    def inMemoryClassification(n=3, nl=10, ns=20, nb=1, crs='EPSG:32632'):
-        from enmapbox.gui.classification.classificationscheme import ClassificationScheme
-        scheme = ClassificationScheme()
-        scheme.createClasses(n)
-
-        drv = gdal.GetDriverByName('GTiff')
-        assert isinstance(drv, gdal.Driver)
-        import uuid
-        path = '/vsimem/testClassification.{}.tif'.format(str(uuid.uuid4()))
-        ds = drv.Create(path, ns, nl, bands=nb, eType=gdal.GDT_Byte)
-        assert isinstance(ds, gdal.Dataset)
-        if isinstance(crs, str):
-            c = QgsCoordinateReferenceSystem(crs)
-            ds.SetProjection(c.toWkt())
-        ds.SetGeoTransform([0,1.0,0, \
-                            0,0,-1.0])
-        step = int(np.ceil(float(nl) / len(scheme)))
-
-        assert isinstance(ds, gdal.Dataset)
-        for b in range(1, nb + 1):
-            band = ds.GetRasterBand(b)
-            array = np.zeros((nl, ns), dtype=np.uint8) - 1
-            y0 = 0
-            for i, c in enumerate(scheme):
-                y1 = min(y0 + step, nl - 1)
-                array[y0:y1, :] = c.label()
-                y0 += y1 + 1
-            band.SetCategoryNames(scheme.classNames())
-            band.SetColorTable(scheme.gdalColorTable())
-        ds.FlushCache()
-        return ds
-
-    @staticmethod
-    def qgisInterfaceMockup():
-
-        return QgisMockup()
-
-    @staticmethod
-    def createDropEvent(mimeData:QMimeData):
-        """Creates a QDropEvent conaining the provided QMimeData"""
-        return QDropEvent(QPointF(0, 0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier)
-
-
-    @staticmethod
-    def processingAlgorithm():
-
-        from qgis.core import QgsProcessingAlgorithm
-
-        class TestProcessingAlgorithm(QgsProcessingAlgorithm):
-
-            def __init__(self):
-                super(TestProcessingAlgorithm, self).__init__()
-                s = ""
-
-            def createInstance(self):
-                return TestProcessingAlgorithm()
-
-            def name(self):
-                return 'exmaplealg'
-
-            def displayName(self):
-                return 'Example Algorithm'
-
-            def groupId(self):
-                return 'exampleapp'
-
-            def group(self):
-                return 'TEST APPS'
-
-            def initAlgorithm(self, configuration=None):
-                self.addParameter(QgsProcessingParameterRasterLayer('pathInput', 'The Input Dataset'))
-                self.addParameter(
-                    QgsProcessingParameterNumber('value', 'The value', QgsProcessingParameterNumber.Double, 1, False,
-                                                 0.00, 999999.99))
-                self.addParameter(QgsProcessingParameterRasterDestination('pathOutput', 'The Output Dataset'))
-
-            def processAlgorithm(self, parameters, context, feedback):
-                assert isinstance(parameters, dict)
-                assert isinstance(context, QgsProcessingContext)
-                assert isinstance(feedback, QgsProcessingFeedback)
-
-
-                outputs = {}
-                return outputs
-
-        return TestProcessingAlgorithm()
-
-
-
-    @staticmethod
-    def enmapBoxApplication():
-
-        from enmapbox.gui.applications import EnMAPBoxApplication
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        enmapbox = EnMAPBox.instance()
-
-        class TestApp(EnMAPBoxApplication):
-            def __init__(self, enmapbox):
-                super(TestApp, self).__init__(enmapbox)
-
-                self.name = 'TestApp'
-                self.licence = 'GPL-3'
-                self.version = '-12345'
-
-            def menu(self, appMenu:QMenu)->QMenu:
-                menu = appMenu.addMenu('Test Menu')
-                action = menu.addAction('Test Action')
-                action.triggered.connect(self.onAction)
-                return menu
-
-            def onAction(self):
-                print('TestApp action called')
-
-            def processingAlgorithms(self):
-                return [TestObjects.processingAlgorithm()]
-
-        return TestApp(enmapbox)
+from enmapboxtesting import TestObjects
 
 class QgsPluginManagerMockup(QgsPluginManagerInterface):
 
@@ -583,23 +461,12 @@ def setQgsFieldValue(feature:QgsFeature, field, value):
 
 
 
+
 def initQgisApplication(PATH_QGIS=None, qgisDebug=False, qgisResourceDir=None):
     """
     Initializes the QGIS Environment
     :return: QgsApplication instance of local QGIS installation
     """
-    if os.path.exists(os.path.join(DIR_REPO, 'qgisresources')):
-        qgisResourceDir = os.path.join(DIR_REPO, 'qgisresources')
-    if isinstance(qgisResourceDir, str):
-        assert os.path.isdir(qgisResourceDir)
-        import importlib, re
-        modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
-        modules = [m[0:-3] for m in modules]
-        for m in modules:
-            mod = importlib.import_module('qgisresources.{}'.format(m))
-            if "qInitResources" in dir(mod):
-                mod.qInitResources()
-
     if isinstance(QgsApplication.instance(), QgsApplication):
         return QgsApplication.instance()
     else:
@@ -634,6 +501,19 @@ def initQgisApplication(PATH_QGIS=None, qgisDebug=False, qgisResourceDir=None):
             qgsApp.setPrefixPath(PATH_QGIS, True)
             qgsApp.initQgis()
 
+        if os.path.exists(os.path.join(DIR_REPO, 'qgisresources')):
+            qgisResourceDir = os.path.join(DIR_REPO, 'qgisresources')
+
+        if isinstance(qgisResourceDir, str):
+            assert os.path.isdir(qgisResourceDir)
+            import importlib, re
+            modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
+            modules = [m[0:-3] for m in modules]
+            for m in modules:
+                mod = importlib.import_module('qgisresources.{}'.format(m))
+                if "qInitResources" in dir(mod):
+                    mod.qInitResources()
+
         def printQgisLog(msg, tag, level):
             if tag not in ['Processing']:
                 if tag in ['Python warning', 'warning']:
@@ -651,7 +531,6 @@ def initQgisApplication(PATH_QGIS=None, qgisDebug=False, qgisResourceDir=None):
             r = PythonRunnerImpl()
             QgsPythonRunner.setInstance(r)
         return qgsApp
-
 
 
 

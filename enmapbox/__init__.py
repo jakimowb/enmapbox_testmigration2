@@ -28,9 +28,9 @@
 ***************************************************************************
 """
 
-import sys, os, site
+import sys, os, site, re
 
-
+import qgis
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
 from qgis.PyQt.QtCore import QSettings
 
@@ -125,14 +125,15 @@ try: #necessary to allow sphinx documentation
     from enmapbox.gui.applications import EnMAPBoxApplication
     EnMAPBoxApplication = EnMAPBoxApplication
 
-except:
-
+except Exception as ex:
+    s = ""
     pass
 
 
-try:
-    #init some other requirements
-    #print('initialize EnMAP-Box editor widget factories')
+def initEditorWidgets():
+    """
+    Initialises QgsEditorWidgets
+    """
     from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
     registerPlotStyleEditorWidget()
 
@@ -142,8 +143,6 @@ try:
     from enmapbox.gui.classification.classificationscheme import registerClassificationSchemeEditorWidget
     registerClassificationSchemeEditorWidget()
 
-except:
-    pass
 
 _enmapboxProvider = None
 def initEnMAPBoxProcessingProvider():
@@ -189,3 +188,4 @@ def run():
     """
     import enmapbox.__main__
     enmapbox.__main__.run()
+

@@ -26,7 +26,7 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.widgets.models import *
+from enmapbox.gui.widgets.trees import *
 
 
 class SourceValueSet(object):

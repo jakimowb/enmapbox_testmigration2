@@ -35,11 +35,14 @@ class EnMAPBoxPlugin(object):
 
         dirPlugin = os.path.dirname(__file__)
         site.addsitedir(dirPlugin)
-        from enmapbox import DIR_SITEPACKAGES, initEnMAPBoxProcessingProvider
+        from enmapbox import DIR_SITEPACKAGES, initEnMAPBoxProcessingProvider, initEditorWidgets
         site.addsitedir(DIR_SITEPACKAGES)
 
         #run a dependency check
         self.initialDependencyCheck()
+
+        initEditorWidgets()
+
 
         # add the EnMAP-Box Provider
         initEnMAPBoxProcessingProvider()
