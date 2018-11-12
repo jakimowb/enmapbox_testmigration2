@@ -2,8 +2,8 @@
 # check http://doc.qt.io/qt-5/qsettings.html#details for details
 
 
-from qgis.PyQt.Qt import QSettings, QApplication
-from qgis.PyQt.QtWidgets import QInputDialog
+from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtWidgets import QApplication, QInputDialog
 from enmapbox import enmapboxSettings
 
 def printSettings(settings:QSettings):

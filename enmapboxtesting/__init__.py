@@ -2,7 +2,7 @@ import os, sys, re
 import qgis
 from qgis.gui import *
 from qgis.core import *
-from qgis.PyQt.Qt import QApplication
+from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 import qgis.testing
