@@ -133,6 +133,21 @@ Path                                                Notes
 macOS
 =====
 
+1. Ensure that the `QGIS_PREFIX_PATH` is available to the macOS shell. If not, edit the users `.bash_profile`:
+
+    PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
+    export PATH
+    QGIS_PREFIX_PATH="/Applications/QGIS3.app/Contents/MacOS"
+    export QGIS_PREFIX_PATH
+
+2. Start your IDE and ensure that following paths are available to your python project:
+
+    /Applications/QGIS3.app/Contents/Resources/python
+    /Applications/QGIS3.app/Contents/Resources/python/plugins
+
+3.
+
+
 .. todo:: macOS descriptions
 
 

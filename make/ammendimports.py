@@ -43,4 +43,4 @@ if __name__ == '__main__':
 
     p = r'C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\gui\utils.py'
 
-    ammendImports(P)
+    ammendImports(p)
