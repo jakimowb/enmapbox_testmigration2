@@ -18,8 +18,8 @@
 """
 
 import sys, os, site
-from qgis.core import QgsApplication, QgsProcessingRegistry, QgsProcessingAlgorithm
-import enmapbox
+import qgis.testing
+import qgis.utils
 
 def run(debug=False, processing=False, applications=False, sources=None):
     '''
@@ -32,7 +32,7 @@ def run(debug=False, processing=False, applications=False, sources=None):
     :return:
     '''
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapboxtesting import initQgisApplication
     qgisApp = initQgisApplication()
     import enmapbox
     enmapbox.DEBUG = debug
@@ -40,7 +40,7 @@ def run(debug=False, processing=False, applications=False, sources=None):
     enmapbox.LOAD_EXTERNAL_APPS = applications
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    import qgis.utils
+
 
     enmapBox = EnMAPBox(qgis.utils.iface)
     enmapbox.initEnMAPBoxProcessingProvider()
@@ -57,11 +57,5 @@ def run(debug=False, processing=False, applications=False, sources=None):
 
 
 if __name__ == '__main__':
-    thisDir = os.path.dirname(__file__)
-    if thisDir in sys.path:
-        sys.path.remove(thisDir)
-
-    args = sys.argv[1:]
-
 
     run()

@@ -21,7 +21,8 @@
 """
 # noinspection PyPep8Naming
 import sys, os, collections, shutil, time, re, importlib
-from qgis.PyQt.Qt import QApplication, QUrl
+from qgis.PyQt.QtWidgets import QApplication
+from qgis.PyQt.QtCore import QUrl
 from qgis.gui import *
 from qgis.core import *
 from qgis.PyQt.QtWidgets import QMessageBox

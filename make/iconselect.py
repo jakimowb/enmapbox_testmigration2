@@ -202,7 +202,7 @@ class AvailableIcons(QWidget):
 
 
 def run():
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapboxtesting import initQgisApplication
     #app = QApplication(sys.argv)
     app = initQgisApplication()
 

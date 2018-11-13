@@ -1,5 +1,6 @@
 
-from qgis.PyQt.Qt import *
+
+from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 

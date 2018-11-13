@@ -20,7 +20,7 @@ from qgis.core import *
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.utils import initQgisApplication
+from enmapboxtesting import initQgisApplication
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *
 from enmapbox.gui.cursorlocationvalue import *
@@ -52,8 +52,9 @@ class CursorLocationTest(unittest.TestCase):
         cldock = CursorLocationInfoDock()
         cldock.show()
         cldock.loadCursorLocation(center, canvas)
-        loc = cldock.cursorLocation()
-        self.assertIsInstance(loc, SpatialPoint)
+        crs, point = cldock.cursorLocation()
+        self.assertIsInstance(point, QgsPointXY)
+        self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
 
         if SHOW_GUI:
             QGIS_APP.exec_()

@@ -30,7 +30,7 @@
 """
 
 #see http://python-future.org/str_literals.html for str issue discussion
-import os, pathlib, re, tempfile, pickle, copy, shutil, locale, uuid, io, json
+import os, sys, pathlib, re, tempfile, pickle, copy, shutil, locale, uuid, io, json
 
 import weakref
 from collections import OrderedDict
@@ -58,7 +58,15 @@ from enmapbox.gui.plotstyling import PlotStyle, PlotStyleDialog, MARKERSYMBOLS2Q
 from enmapbox.gui.plotstyling import EDITOR_WIDGET_REGISTRY_KEY as PlotSettingsEditorWidgetKey
 
 
-MODULE_IMPORT_PATH = 'enmapbox.gui.speclib.spectrallibraries'
+#MODULE_IMPORT_PATH = 'enmapbox.gui.speclib.spectrallibraries'
+#get to now how we can import this module
+MODULE_IMPORT_PATH = None
+#'timeseriesviewer.plotstyling'
+for name, module in sys.modules.items():
+    if hasattr(module, '__file__') and module.__file__ == __file__:
+        MODULE_IMPORT_PATH = name
+        break
+
 
 MIMEDATA_SPECLIB = 'application/hub-spectrallibrary'
 MIMEDATA_SPECLIB_LINK = 'application/hub-spectrallibrary-link'
@@ -104,8 +112,10 @@ FIELD_STYLE = 'style'
 FIELD_NAME = 'name'
 FIELD_FID = 'fid'
 
-VSI_DIR = '/vsimem/speclibs/'
+VSI_DIR = r'/vsimem/speclibs/'
+
 gdal.Mkdir(VSI_DIR, 0)
+
 
 X_UNITS = ['Index','Micrometers','Nanometers','Millimeters', 'Centimeters', 'Meters', 'Wavenumber','Angstroms', 'GHz','MHz', '']
 Y_UNITS = ['DN','Reflectance', 'Radiance', '']
