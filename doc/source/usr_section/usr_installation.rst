@@ -228,6 +228,17 @@ Windows
     .. image:: ../img/shell_pipinstall.png
 
 
+.. caution::
+
+   In case you experience problems with installing **astropy**, you might also try the following:
+
+   #. Go to  https://www.lfd.uci.edu/~gohlke/pythonlibs/ and look for the astropy .whl files. Download the newest version
+      which fits your windows and python setup, e.g. *astropy‑3.0.5‑cp37‑cp37m‑win_amd64.whl* for Python 3.7 (*cp37*) on a 64 bit windows (*win_amd64)*.
+   #. Install the downloaded file using pip (**change path accordingly!**):
+
+     .. code-block:: batch
+
+        python3 -m pip install C:\Downloads\astropy-3.0.5-cp37-cp37m-win_amd64.whl
 
 .. _install-packages-linux:
 

@@ -343,6 +343,13 @@ Image Statistics
 Synthmix Regression Mapper
 ==========================
 
+
+.. _classification_workflow:
+
+Classification Workflow
+=======================
+
+
 EO Time Series Viewer
 =====================
 
@@ -509,6 +516,8 @@ Models
 
 .. include:: ../geoalgorithms/ga.rst
 
+
+.. _test_dataset:
 
 Test dataset
 ############
