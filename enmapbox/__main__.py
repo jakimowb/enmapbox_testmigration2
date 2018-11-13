@@ -21,7 +21,7 @@ import sys, os, site
 import qgis.testing
 import qgis.utils
 
-def run(debug=False, processing=False, applications=False, sources=None):
+def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:list=None):
     '''
     Starts the EnMAP-Box GUI.
 
