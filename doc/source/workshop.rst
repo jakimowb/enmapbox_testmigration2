@@ -48,7 +48,6 @@ priority may be given depending on the relevance of the applicant’s current wo
 
 .. admonition:: Registration
 
-   Information on the registration procedure will follow soon here on this page.
 
    In order to apply for the workshop, please |reg_mailto| and supply the desired information.
 
