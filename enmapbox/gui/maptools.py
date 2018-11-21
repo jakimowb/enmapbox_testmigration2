@@ -268,7 +268,7 @@ class PixelScaleExtentMapTool(QgsMapTool):
                 i = np.nanargmin(unitsPxX)
             unitsPxX = unitsPxX[i]
             unitsPxY = unitsPxY[i]
-            f = 0.2
+            f = 1.0
             width = f * self.canvas.size().width() * unitsPxX #width in map units
             height = f * self.canvas.size().height() * unitsPxY #height in map units
 
