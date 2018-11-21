@@ -989,12 +989,6 @@ class MapCanvas(QgsMapCanvas):
         action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
         action.triggered.connect(lambda: self.refreshAllLayers())
 
-
-        menu.addSeparator()
-
-        action = menu.addAction('Clear map')
-        action.triggered.connect(lambda: self.setLayers([]))
-
         menu.addSeparator()
         action = menu.addAction('Set CRS...')
         action.triggered.connect(self.setCRSfromDialog)
