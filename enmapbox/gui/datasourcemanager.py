@@ -85,6 +85,9 @@ class DataSourceManager(QObject):
 
         self.updateFromQgsProject()
 
+    def __iter__(self):
+        return iter(self.mSources)
+
     def __len__(self) -> int:
         return len(self.mSources)
 
@@ -145,6 +148,28 @@ class DataSourceManager(QObject):
 
         return results
 
+    def classificationSchemata(self)->list:
+        """
+        Reads all DataSource and returns a list of found classification schemata
+        :return: [list-if-ClassificationSchemes]
+        """
+        results = []
+        from .classification.classificationscheme import ClassificationScheme
+        for src in self:
+            scheme = None
+            assert isinstance(src, DataSource)
+            if isinstance(src, DataSourceRaster):
+                scheme = ClassificationScheme.fromRasterImage(src.uri())
+
+            elif isinstance(src, DataSourceVector):
+                lyr = src.createUnregisteredMapLayer()
+                scheme = ClassificationScheme.fromFeatureRenderer(lyr)
+
+            if isinstance(scheme, ClassificationScheme):
+                scheme.setName(src.uri())
+                results.append(scheme)
+
+        return results
 
     def updateFromQgsProject(self, mapLayers=None):
         """
