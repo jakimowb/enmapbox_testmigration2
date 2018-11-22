@@ -624,7 +624,7 @@ class DataSourceSpatial(DataSource):
         Returns the provider name
         :return: str
         """
-        self.mProvider
+        return self.mProvider
 
     def spatialExtent(self)->SpatialExtent:
         """
@@ -722,7 +722,6 @@ class DataSourceRaster(DataSourceSpatial):
         self.nLines = -1
         self.mDataType = -1
         self.mPxSize = QSizeF()
-        self.mProvider=providerKey
         self.mDatasetMetadata = collections.OrderedDict()
         self.mBandMetadata = []
         self.mSpatialExtent = None

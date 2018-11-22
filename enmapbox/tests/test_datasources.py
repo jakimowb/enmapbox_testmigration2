@@ -358,6 +358,10 @@ class standardDataSourceTreeNodes(unittest.TestCase):
             self.assertIsInstance(grpIndex, QModelIndex)
             self.assertTrue(grpIndex.isValid())
             self.assertEqual(grpIndex.row(), i)
+
+
+            rasterSourceNodes = []
+
             for j, dNode in enumerate(grpNode.children()):
                 self.assertIsInstance(dNode, DataSourceTreeNode)
                 nodeIndex = M.node2index(dNode)
@@ -389,7 +393,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                     self.assertIsInstance(dNode.dataSource, DataSourceRaster)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
                     self.assertTrue(len(mapCanvas.layers()) == 1)
-
+                    rasterSourceNodes.append(dNode)
                 if isinstance(dNode, VectorDataSourceTreeNode):
                     self.assertIsInstance(dNode.dataSource, DataSourceVector)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
@@ -414,6 +418,26 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
                 if isinstance(dNode, HubFlowObjectTreeNode):
                     pass
+
+            for node in rasterSourceNodes:
+                self.assertIsInstance(node, RasterDataSourceTreeNode)
+                self.assertIsInstance(node.nodeBands, TreeNode)
+                n0 = len(mapCanvas.layers())
+                for n, child in enumerate(node.nodeBands.children()):
+                    self.assertIsInstance(child, RasterBandTreeNode)
+                    nodeIndex = M.node2index(child)
+                    mimeData = M.mimeData([nodeIndex])
+                    self.assertIsInstance(mimeData, QMimeData)
+                    # drop speclib to mapcanvas
+                    mapCanvas.dropEvent(createDropEvent(mimeData))
+                    self.assertTrue(len(mapCanvas.layers()) == n0 + n + 1)
+
+                    if n > 3:
+                        break
+
+
+
+
         s = ""
 
 

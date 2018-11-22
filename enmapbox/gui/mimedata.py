@@ -1,5 +1,5 @@
 
-import pickle, uuid
+import pickle, uuid, json
 from qgis.core import *
 from PyQt5.QtCore import *
 from PyQt5.QtXml import *
@@ -8,6 +8,8 @@ from qgis.gui import *
 
 MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'
 MDF_DOCKTREEMODELDATA_XML = 'dock_tree_model_data'
+
+MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 
 MDF_DATASOURCETREEMODELDATA = 'application/enmapbox.datasourcetreemodeldata'
 MDF_DATASOURCETREEMODELDATA_XML = 'data_source_tree_model_data'
@@ -177,6 +179,17 @@ def extractMapLayers(mimeData:QMimeData)->list:
             if isinstance(mapLayer, QgsMapLayer):
                 newMapLayers.append(mapLayer)
         s = ""
+    elif MDF_RASTERBANDS in mimeData.formats():
+        data = pickle.loads(mimeData.data(MDF_RASTERBANDS))
+
+        for t in data:
+            uri, baseName, providerKey, band = t
+            lyr = QgsRasterLayer(uri, baseName=baseName, providerKey=providerKey)
+            r = QgsSingleBandGrayRenderer(lyr.dataProvider(), band+1)
+            lyr.setRenderer(r)
+            newMapLayers.append(lyr)
+
+
     elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
         dsUUIDs = pickle.loads(mimeData.data(MDF_DATASOURCETREEMODELDATA))
 

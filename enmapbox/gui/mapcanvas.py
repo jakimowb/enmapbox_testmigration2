@@ -1117,9 +1117,12 @@ class MapCanvas(QgsMapCanvas):
         # check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
 
-        if MDF_DATASOURCETREEMODELDATA in mimeData.formats() or \
-            MDF_URILIST in mimeData.formats() or \
-            MDF_LAYERTREEMODELDATA in mimeData.formats():
+        b = False
+        for format in [MDF_DATASOURCETREEMODELDATA, MDF_RASTERBANDS, MDF_URILIST, MDF_LAYERTREEMODELDATA]:
+            if format in mimeData.formats():
+                b = True
+                break
+        if b:
             event.setDropAction(Qt.CopyAction)  # copy but do not remove
             event.accept()
         else:

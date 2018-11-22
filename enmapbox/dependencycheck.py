@@ -27,6 +27,7 @@ from qgis.gui import *
 from qgis.core import *
 from qgis.PyQt.QtWidgets import QMessageBox
 
+URL_REQUIREMENTS = r'https://bitbucket.org/hu-geomatics/enmap-box/src/develop/requirements.txt'
 LAST_MISSED_PACKAGES = None
 LAST_MISSED_INFO = ''
 
@@ -65,8 +66,8 @@ def missingPackageInfo(missingPackages):
 
     info.append('You can install from you shell with pip:')
     DIR_REPO = os.path.dirname(os.path.dirname(__file__))
-    info.append('$python -m pip install -r {}\n'.format(os.path.join(DIR_REPO, 'requirements.txt')))
-    info.append('use option --force-reinstall to update packages to required minimum version')
+    info.append('$python3 -m pip install -r {}\n'.format(URL_REQUIREMENTS))
+    info.append('use option --force-reinstall to update packages to required minimum versions')
 
     info.append('\nSystem info:')
     info.append('Python executable: {}'.format(sys.executable))

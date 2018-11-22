@@ -268,6 +268,13 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
 
+    def classificationSchemata(self)->list:
+        """
+        Returns a list of ClassificationSchemes, derived from datasets known to the EnMAP-Box
+        :return: [list-of-ClassificationSchemes
+        """
+        return self.dataSourceManager.classificationSchemata()
+
     def setCursorLocationValueInfo(self, spatialPoint:SpatialPoint, mapCanvas:MapCanvas):
         if not self.ui.cursorLocationValuePanel.isVisible():
             self.ui.cursorLocationValuePanel.show()

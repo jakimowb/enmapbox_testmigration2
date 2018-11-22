@@ -984,7 +984,7 @@ class DockManager(QObject):
             # check mime types we can handle
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
-            for t in [MDF_LAYERTREEMODELDATA, MDF_DATASOURCETREEMODELDATA, MDF_URILIST]:
+            for t in [MDF_LAYERTREEMODELDATA, MDF_DATASOURCETREEMODELDATA, MDF_URILIST, MDF_RASTERBANDS]:
                 if t in mimeData.formats():
                     event.setDropAction(Qt.CopyAction)
                     event.accept()

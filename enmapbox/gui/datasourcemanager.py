@@ -17,13 +17,13 @@
 ***************************************************************************
 """
 
-import inspect, pickle
+import inspect, pickle, json
 
 from enmapbox import DIR_TESTDATA
 from enmapbox.gui.treeviews import TreeNode, CRSTreeNode, TreeView, TreeModel, CheckableTreeNode, TreeViewMenuProvider, ClassificationNode, ColorTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, MDF_URILIST
+from enmapbox.gui.mimedata import *
 from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
@@ -1109,24 +1109,39 @@ class DataSourceManagerTreeModel(TreeModel):
                 for n in node.children():
                     exportedNodes.append(n)
 
+            elif isinstance(node, RasterBandTreeNode):
+                exportedNodes.append(node)
+
         uriList = list()
         uuidList =list()
-        dataSourceRefs = []
-        speclib = list()
+
+        bandInfo = list()
 
         for node in exportedNodes:
-            dataSource = node.dataSource
-            assert isinstance(dataSource, DataSource)
-            uriList.append(dataSource.uri())
-            uuidList.append(dataSource.uuid())
+            if isinstance(node, RasterBandTreeNode):
+                uri = node.mDataSource.uri()
+                provider = node.mDataSource.provider()
+                band = node.mBandIndex
+                baseName = '{}:{}'.format(node.mDataSource.name(), node.name())
+                bandInfo.append((uri, baseName, provider, band))
 
-            if isinstance(dataSource, DataSourceSpectralLibrary):
-                mimeDataSpeclib = dataSource.speclib().mimeData()
-                for f in mimeDataSpeclib.formats():
-                    if f not in mimeData.formats():
-                        mimeData.setData(f, mimeDataSpeclib.data(f))
+            elif isinstance(node, DataSourceTreeNode):
+                dataSource = node.dataSource
+                assert isinstance(dataSource, DataSource)
+                uriList.append(dataSource.uri())
+                uuidList.append(dataSource.uuid())
 
-        mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
+                if isinstance(dataSource, DataSourceSpectralLibrary):
+                    mimeDataSpeclib = dataSource.speclib().mimeData()
+                    for f in mimeDataSpeclib.formats():
+                        if f not in mimeData.formats():
+                            mimeData.setData(f, mimeDataSpeclib.data(f))
+
+        if len(uuidList) > 0:
+            mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
+
+        if len(bandInfo) > 0:
+            mimeData.setData(MDF_RASTERBANDS, pickle.dumps(bandInfo))
 
         mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
         return mimeData
@@ -1197,7 +1212,7 @@ class DataSourceManagerTreeModel(TreeModel):
         column = index.column()
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDropEnabled
 
-        if isinstance(node, DataSourceTreeNode):
+        if isinstance(node, (DataSourceTreeNode,RasterBandTreeNode)):
             flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
@@ -1205,6 +1220,9 @@ class DataSourceManagerTreeModel(TreeModel):
 
         if isinstance(node, CheckableTreeNode):
             flags |= Qt.ItemIsUserCheckable
+
+
+
 
         return flags
 
