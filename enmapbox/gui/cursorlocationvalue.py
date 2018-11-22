@@ -135,12 +135,15 @@ class CursorLocationInfoModel(TreeModel):
             weakId = self.weakNodeId(n)
 
             expand = False
-            if self.mNodeExpansion == CursorLocationInfoModel.REMAINDER:
-                expand = self.mExpandedNodeRemainder.get(weakId, False)
-            elif self.mNodeExpansion == CursorLocationInfoModel.NEVER_EXPAND:
-                expand = False
-            elif self.mNodeExpansion == CursorLocationInfoModel.ALWAYS_EXPAND:
+            if not isinstance(root.parentNode(), TreeNode):
                 expand = True
+            else:
+                if self.mNodeExpansion == CursorLocationInfoModel.REMAINDER:
+                    expand = self.mExpandedNodeRemainder.get(weakId, False)
+                elif self.mNodeExpansion == CursorLocationInfoModel.NEVER_EXPAND:
+                    expand = False
+                elif self.mNodeExpansion == CursorLocationInfoModel.ALWAYS_EXPAND:
+                    expand = True
 
             self.mTreeView.setExpanded(self.node2idx(n), expand)
             return n
@@ -352,8 +355,6 @@ class CursorLocationInfoDock(QDockWidget,
             if type == 'RASTER':
                 lyrs = [l for l in lyrs if isinstance(l, QgsRasterLayer)]
 
-            if len(lyrs) > 0 and mode == 'TOP_LAYER':
-                lyrs = [lyrs[0]]
             return lyrs
 
         lyrs = []
@@ -371,6 +372,11 @@ class CursorLocationInfoDock(QDockWidget,
         self.mLocationInfoModel.clear()
 
         for l in lyrs:
+            if mode == 'TOP_LAYER' and  self.mLocationInfoModel.mRootNode.childCount() > 0:
+                s = ""
+                break
+
+
             assert isinstance(l, QgsMapLayer)
             lyr2World = createCRSTransform(l.crs(), crsWorld)
             world2lyr = createCRSTransform(crsWorld, l.crs())
@@ -415,6 +421,7 @@ class CursorLocationInfoDock(QDockWidget,
                         v.bandValues.append(RasterValueSet.BandInfo(band-1, value, l.bandName(band)))
 
                 self.mLocationInfoModel.addSourceValues(v)
+                s = ""
 
             if isinstance(l, QgsVectorLayer):
                 # searchRect = QgsRectangle(pt, pt)
