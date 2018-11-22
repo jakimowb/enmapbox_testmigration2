@@ -103,97 +103,6 @@ def nextColor(color, mode='cat'):
 
     return QColor.fromHsl(hue, sat, value, alpha)
 
-from enmapboxtesting import TestObjects
-
-class QgsPluginManagerMockup(QgsPluginManagerInterface):
-
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
-    def addPluginMetadata(self, *args, **kwargs):
-        super().addPluginMetadata(*args, **kwargs)
-
-    def addToRepositoryList(self, *args, **kwargs):
-        super().addToRepositoryList(*args, **kwargs)
-
-    def childEvent(self, *args, **kwargs):
-        super().childEvent(*args, **kwargs)
-
-    def clearPythonPluginMetadata(self, *args, **kwargs):
-        #super().clearPythonPluginMetadata(*args, **kwargs)
-        pass
-
-    def clearRepositoryList(self, *args, **kwargs):
-        super().clearRepositoryList(*args, **kwargs)
-
-    def connectNotify(self, *args, **kwargs):
-        super().connectNotify(*args, **kwargs)
-
-    def customEvent(self, *args, **kwargs):
-        super().customEvent(*args, **kwargs)
-
-    def disconnectNotify(self, *args, **kwargs):
-        super().disconnectNotify(*args, **kwargs)
-
-    def isSignalConnected(self, *args, **kwargs):
-        return super().isSignalConnected(*args, **kwargs)
-
-    def pluginMetadata(self, *args, **kwargs):
-        super().pluginMetadata(*args, **kwargs)
-
-    def pushMessage(self, *args, **kwargs):
-        super().pushMessage(*args, **kwargs)
-
-    def receivers(self, *args, **kwargs):
-        return super().receivers(*args, **kwargs)
-
-    def reloadModel(self, *args, **kwargs):
-        super().reloadModel(*args, **kwargs)
-
-    def sender(self, *args, **kwargs):
-        return super().sender(*args, **kwargs)
-
-    def senderSignalIndex(self, *args, **kwargs):
-        return super().senderSignalIndex(*args, **kwargs)
-
-    def showPluginManager(self, *args, **kwargs):
-        super().showPluginManager(*args, **kwargs)
-
-    def timerEvent(self, *args, **kwargs):
-        super().timerEvent(*args, **kwargs)
-
-
-class PythonRunnerImpl(QgsPythonRunner):
-    """
-    A Qgs PythonRunner implementation
-    """
-
-    def __init__(self):
-        super(PythonRunnerImpl, self).__init__()
-
-
-    def evalCommand(self, cmd:str, result:str):
-        try:
-            o = compile(cmd)
-        except Exception as ex:
-            result = str(ex)
-            return False
-        return True
-
-    def runCommand(self, command, messageOnError=''):
-        try:
-            o = compile(command, 'fakemodule', 'exec')
-            exec(o)
-        except Exception as ex:
-            messageOnError = str(ex)
-            command = ['{}:{}'.format(i+1, l) for i,l in enumerate(command.splitlines())]
-            print('\n'.join(command), file=sys.stderr)
-            raise ex
-            return False
-        return True
-
 
 def findMapLayer(layer)->QgsMapLayer:
     """
@@ -1054,7 +963,10 @@ def parseWavelength(dataset):
     elif isinstance(dataset, QgsRasterDataProvider):
         return parseWavelength(dataset.dataSourceUri())
     elif isinstance(dataset, QgsRasterLayer):
-        return parseWavelength(dataset.source())
+        if dataset.dataProvider().name() == 'gdal':
+            return parseWavelength(gdal.Open(dataset.source()))
+        else:
+            return None, None
     elif isinstance(dataset, gdal.Dataset):
 
         for domain in dataset.GetMetadataDomainList():
@@ -1167,18 +1079,40 @@ def geo2pxF(geo, gt):
     return QPointF(px,py)
 
 
+
 def geo2px(geo, gt):
     """
     Returns the pixel position related to a Geo-Coordinate as integer number.
     Floating-point coordinate are casted to integer coordinate, e.g. the pixel coordinate (0.815, 23.42) is returned as (0,23)
     :param geo: Geo-Coordinate as QgsPointXY
-    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html
+    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html or
+          gdal.Dataset or QgsRasterLayer
     :return: pixel position as QPpint
     """
-    px = geo2pxF(geo, gt)
-    return QPoint(int(px.x()), int(px.y()))
 
+    if isinstance(gt, QgsRasterLayer):
+        return geo2px(geo, layerGeoTransform(gt))
+    elif isinstance(gt, gdal.Dataset):
+        return geo2px(gt.GetGeoTransform())
+    else:
+        px = geo2pxF(geo, gt)
+        return QPoint(int(px.x()), int(px.y()))
 
+def layerGeoTransform(rasterLayer:QgsRasterLayer)->tuple:
+    """
+    Returns the geo-transform vector from a QgsRasterLayer.
+    See https://www.gdal.org/gdal_datamodel.html
+    :param rasterLayer: QgsRasterLayer
+    :return: [array]
+    """
+    assert isinstance(rasterLayer, QgsRasterLayer)
+    ext = rasterLayer.extent()
+    x0 = ext.xMinimum()
+    y0 = ext.yMaximum()
+
+    gt = (x0, rasterLayer.rasterUnitsPerPixelX(), 0, y0, \
+                0, -1 * rasterLayer.rasterUnitsPerPixelY())
+    return gt
 
 def px2geo(px, gt):
     """

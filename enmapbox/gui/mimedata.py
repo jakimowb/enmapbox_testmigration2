@@ -1,10 +1,13 @@
 
 import pickle, uuid, json
 from qgis.core import *
+
 from PyQt5.QtCore import *
 from PyQt5.QtXml import *
 import re
 from qgis.gui import *
+from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial
+from enmapbox.gui.datasources import DataSource, DataSourceSpatial
 
 MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'
 MDF_DOCKTREEMODELDATA_XML = 'dock_tree_model_data'
@@ -25,6 +28,10 @@ MDF_TEXT_HTML = 'text/html'
 MDF_TEXT_PLAIN = 'text/plain'
 
 MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
+QGIS_URILIST_MIMETYPE = "application/x-vnd.qgis.qgis.uri"
+
+
+
 
 def attributesd2dict(attributes:QDomNamedNodeMap)->str:
     d = {}
@@ -112,6 +119,20 @@ def fromLayerList(mapLayers):
 
 
 
+def containsMapLayers(mimeData:QMimeData)->bool:
+    """
+    Checks if the mimeData contains any format suitable to describe QgsMapLayers
+    :param mimeData:
+    :return:
+    """
+    valid = [MDF_RASTERBANDS, MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, MDF_URILIST]
+
+    for f in valid:
+        if f in mimeData.formats():
+            return True
+    return False
+
+
 
 def extractMapLayers(mimeData:QMimeData)->list:
     """
@@ -188,20 +209,22 @@ def extractMapLayers(mimeData:QMimeData)->list:
             r = QgsSingleBandGrayRenderer(lyr.dataProvider(), band+1)
             lyr.setRenderer(r)
             newMapLayers.append(lyr)
-
-
     elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
         dsUUIDs = pickle.loads(mimeData.data(MDF_DATASOURCETREEMODELDATA))
 
-        from enmapbox.gui.datasources import DataSource, DataSourceSpatial
         for uuid4 in dsUUIDs:
             assert isinstance(uuid4, uuid.UUID)
             ds = DataSource.fromUUID(uuid4)
             if isinstance(ds, DataSourceSpatial):
                 newMapLayers.append(ds.createUnregisteredMapLayer())
+    elif QGIS_URILIST_MIMETYPE in mimeData.formats():
+        for uri in QgsMimeDataUtils.decodeUriList(mimeData):
+            dataSources = DataSourceFactory.Factory(uri)
+            for dataSource in dataSources:
+                if isinstance(dataSource, DataSourceSpatial):
+                    newMapLayers.append(dataSource.createUnregisteredMapLayer())
 
     elif MDF_URILIST in mimeData.formats():
-        from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial
         for url in mimeData.urls():
             dataSources = DataSourceFactory.Factory(url)
             for dataSource in dataSources:

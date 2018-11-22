@@ -111,6 +111,50 @@ def rendererFromXml(xml):
                 s =""
     return None
 
+def defaultRasterRenderer(layer:QgsRasterLayer, bandIndices:list=None)->QgsRasterRenderer:
+    """
+    Returns a default Raster Renderer.
+    See https://bitbucket.org/hu-geomatics/enmap-box/issues/166/default-raster-visualization
+    :param layer: QgsRasterLayer
+    :return: QgsRasterRenderer
+    """
+
+    renderer = None
+
+    if not isinstance(layer, QgsRasterLayer):
+        return None
+
+    nb = layer.bandCount()
+
+    if isinstance(bandIndices, list):
+        bandIndices = [b for b in bandIndices if b >=0 and b < nb]
+        l = len(bandIndices)
+        if l == 0:
+            bandIndices = None
+        if l > 3:
+            bandIndices = bandIndices[0:3]
+        elif l < 3:
+            bandIndices = bandIndices[0]
+
+    if not isinstance(bandIndices, list):
+        if nb > 3:
+            bandIndices = [2,1,0]
+        else:
+            bandIndices = [0]
+
+    assert isinstance(bandIndices, list)
+
+
+    dt0 = layer.dataProvider().dataType(0)
+
+    if nb >= 3:
+        pass
+
+    dt = layer
+    s = ""
+
+
+    return renderer
 
 
 def rendererToXml(layerOrRenderer, geomType:QgsWkbTypes=None):

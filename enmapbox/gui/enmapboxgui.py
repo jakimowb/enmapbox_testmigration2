@@ -478,11 +478,15 @@ class EnMAPBox(QgisInterface, QObject):
         currentSpectra = []
 
         lyrs = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
+
+        #todo: filter files of interest
+
         for lyr in lyrs:
             assert isinstance(lyr, QgsRasterLayer)
             path = lyr.source()
             from enmapbox.gui.speclib.spectrallibraries import SpectralProfile
-            p = SpectralProfile.fromRasterSource(path, spatialPoint)
+            #p = SpectralProfile.fromRasterSource(path, spatialPoint)
+            p = SpectralProfile.fromRasterLayer(lyr, spatialPoint)
             if isinstance(p, SpectralProfile):
                 currentSpectra.append(p)
                 if self.mCurrentMapSpectraLoading == 'TOP':

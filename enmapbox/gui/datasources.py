@@ -253,6 +253,12 @@ class DataSourceFactory(object):
 
             elif isinstance(src, DataSource):
                 return [src]
+            elif isinstance(src, QgsMimeDataUtils.Uri):
+                if src.layerType == 'raster':
+                    return [DataSourceRaster(src.uri, name=src.name, providerKey=src.providerKey)]
+                elif src.layerType == 'vector':
+                    return [DataSourceVector(src.uri, name=src.name, providerKey=src.providerKey)]
+
 
             elif type(src) in [str, QUrl]:
                 src = DataSourceFactory.srcToString(src)
@@ -261,7 +267,7 @@ class DataSourceFactory(object):
             if src in [None, type(None)]:
                 return []
 
-            DataSource.instances()
+            #DataSource.instances()
 
             #run checks on input sources
             if isinstance(src, SpectralLibrary):

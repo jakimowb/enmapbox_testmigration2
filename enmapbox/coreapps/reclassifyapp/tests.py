@@ -14,8 +14,8 @@ class TestReclassify(TestCase):
         from enmapbox.gui.utils import TestObjects
         from tempfile import mkdtemp
         cls.testDir = mkdtemp(prefix='TestDir')
-        cls.classA = TestObjects.inMemoryClassification(3)
-        cls.classB = TestObjects.inMemoryClassification(3)
+        cls.classA = TestObjects.inMemoryClassification(nc=3)
+        cls.classB = TestObjects.inMemoryClassification(nc=3)
 
         cls.pathClassA = os.path.join(cls.testDir, 'classificationA.bsq')
         cls.pathClassTemp = os.path.join(cls.testDir, 'classificationTemp.bsq')

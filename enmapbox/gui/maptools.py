@@ -229,6 +229,7 @@ class CursorLocationMapTool(QgsMapToolEmitPoint):
             pt = SpatialPoint(crs, geoPoint)
             self.sigLocationRequest[SpatialPoint].emit(pt)
             self.sigLocationRequest[SpatialPoint, QgsMapCanvas].emit(pt, self.canvas())
+
     def hideRubberband(self):
         self.rubberband.reset()
 
