@@ -11,9 +11,10 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest
-from enmapbox.gui.utils import *
+import unittest, tempfile
+from enmapboxtesting import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
+from enmapbox.gui.utils import *
 from enmapbox.gui.datasourcemanager import *
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
 
@@ -159,8 +160,40 @@ class standardDataSources(unittest.TestCase):
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceSpectralLibrary)
 
+    def test_datasourceversions(self):
+
+        path = tempfile.mktemp(suffix='image.bsq')
+        TestObjects.inMemoryImage(nb=2, nl=500, path=path)
 
 
+        src1 = DataSourceFactory.Factory(path)[0]
+
+
+        self.assertIsInstance(src1, DataSourceRaster)
+        self.assertTrue(src1.nBands == 2)
+        self.assertTrue(src1.nLines == 500)
+        TestObjects.inMemoryImage(nb=30, nl=1000, path=path)
+
+        src2 = DataSourceFactory.Factory(path)[0]
+
+        src3 = DataSourceFactory.Factory(path)[0]
+        self.assertIsInstance(src2, DataSourceRaster)
+        self.assertTrue(src2.nBands == 30)
+        self.assertTrue(src2.nLines == 1000)
+        self.assertTrue(src1.modificationTime() < src2.modificationTime())
+        self.assertTrue(src2.isNewVersionOf(src1))
+        self.assertFalse(src3.isNewVersionOf(src2))
+
+
+        DSM = DataSourceManager()
+
+        self.assertIsInstance(DSM, DataSourceManager)
+        DSM.addSource(src1)
+        self.assertTrue(len(DSM) == 1)
+        self.assertEqual(DSM.sources()[0], src1)
+        DSM.addSource(src2)
+        self.assertTrue(len(DSM) == 1)
+        self.assertEqual(DSM.sources()[0], src2)
 
     def test_datasourcemanager(self):
         reg = QgsProject.instance()

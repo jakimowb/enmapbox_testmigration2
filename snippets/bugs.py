@@ -49,7 +49,7 @@ class BugTests(TestCase):
     def test_reclassify_issue203(self):
         #see https://bitbucket.org/hu-geomatics/enmap-box/issues/203/hubflow-reclassify-unclassified-class-name
         import hubflow.core
-        classA = TestObjects.inMemoryClassification()
+        classA = TestObjects.inMemoryImage()
         self.assertIsInstance(classA, gdal.Dataset)
         print('old names: {}'.format(classA.GetRasterBand(1).GetCategoryNames()))
         pathSrc = classA.GetFileList()[0]

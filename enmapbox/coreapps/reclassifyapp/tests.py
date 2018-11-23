@@ -1,5 +1,6 @@
 import unittest
 from unittest import TestCase
+from enmapboxtesting import initQgisApplication, TestObjects
 from reclassifyapp.reclassify import *
 from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 from enmapbox.gui.utils import *
@@ -10,12 +11,10 @@ class TestReclassify(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from enmapbox.gui.utils import initQgisApplication
-        from enmapbox.gui.utils import TestObjects
         from tempfile import mkdtemp
         cls.testDir = mkdtemp(prefix='TestDir')
-        cls.classA = TestObjects.inMemoryClassification(nc=3)
-        cls.classB = TestObjects.inMemoryClassification(nc=3)
+        cls.classA = TestObjects.inMemoryImage(nc=3)
+        cls.classB = TestObjects.inMemoryImage(nc=3)
 
         cls.pathClassA = os.path.join(cls.testDir, 'classificationA.bsq')
         cls.pathClassTemp = os.path.join(cls.testDir, 'classificationTemp.bsq')
@@ -63,10 +62,10 @@ class TestReclassify(TestCase):
         csDst = ClassificationScheme.create(2)
         csDst[0].setName('Not specified')
         csDst[1].setName('Test Class')
-        from enmapbox.gui.utils import TestObjects
+
 
         LUT = {0:0, 1:1, 2:1}
-        classA = TestObjects.inMemoryClassification()
+        classA = TestObjects.inMemoryImage()
         self.assertIsInstance(classA, gdal.Dataset)
         pathSrc = classA.GetFileList()[0]
         pathDst = '/vsimem/testresult.tif'

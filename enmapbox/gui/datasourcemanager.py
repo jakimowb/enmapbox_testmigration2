@@ -241,28 +241,24 @@ class DataSourceManager(QObject):
         toAdd = []
         for dsNew in newDataSources:
             assert isinstance(dsNew, DataSource)
-            if not isinstance(dsNew, DataSourceFile):
+            sameSources = [d for d in self.mSources if dsNew.isSameSource(d)]
+            if len(sameSources) == 0:
                 toAdd.append(dsNew)
-
             else:
-
-                sameSources = [d for d in self.mSources if dsNew.isSameSource(d)]
-                if len(sameSources) == 0:
+                #we have similar sources.
+                older = []
+                newer = []
+                for d in sameSources:
+                    if dsNew.isNewVersionOf(d):
+                        older.append(d)
+                    if d.isNewVersionOf(dsNew):
+                        newer.append(d)
+                # do not add this source in case there is a newer one
+                if len(older) > 0:
+                    self.removeSources(older)
+                if len(newer) == 0:
                     toAdd.append(dsNew)
-                else:
-                    older = []
-                    newer = []
-                    for d in sameSources:
-                        if dsNew.isNewVersionOf(d):
-                            older.append(dsNew)
-                        else:
-                            newer.append(d)
-                    # do not add this source in case there is a newer one
-                    if len(newer) == 0:
-                        self.removeSources(older)
-                        toAdd.append(dsNew)
-                    else:
-                        toAdd.extend(newer)  # us ethe reference of the existing one
+
 
         for ds in toAdd:
             if ds not in self.mSources:

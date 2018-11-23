@@ -450,6 +450,12 @@ class DataSource(object):
         self.mName = name
         self.setUri(uri)
         self.mMetadata = {}
+
+        if os.path.isfile(self.mUri):
+            self.mModificationTime = QFileInfo(self.mUri).lastModified()
+        else:
+            self.mModificationTime = QDateTime(0,0,0,0,0,0)
+
         self.__refs__.append(weakref.ref(self))
 
     def isSameSource(self, dataSource)->bool:
@@ -468,11 +474,7 @@ class DataSource(object):
         Optimally returns the last time the data of the data source has been changed.
         :return: QDateTime
         """
-
-        if os.path.isfile(self.mUri):
-            return QFileInfo(self.mUri).lastModified()
-        else:
-            return QDateTime(0,0,0,0,0,0)
+        return self.mModificationTime
 
 
     def isNewVersionOf(self, dataSource)->bool:
@@ -483,7 +485,6 @@ class DataSource(object):
         """
         if type(dataSource) != type(self):
             return False
-        assert isinstance(dataSource, DataSourceFile)
         if self.mUri != dataSource.mUri:
             return False
         return self.modificationTime() > dataSource.modificationTime()
@@ -650,9 +651,7 @@ class DataSourceSpatial(DataSource):
         raise NotImplementedError()
 
 
-    def modificationTime(self)->QDateTime:
-        s = ""
-        return QDateTime()
+
 
 
 class HubFlowDataSource(DataSource):
@@ -737,9 +736,6 @@ class DataSourceRaster(DataSourceSpatial):
         if name is None and providerKey == 'wms':
             self.setName('WMS:'+self.name())
 
-    def modificationTime(self)->QDateTime:
-
-
         if self.mProvider == 'gdal':
             dataSet = gdal.Open(self.mUri)
             times = []
@@ -749,10 +745,9 @@ class DataSourceRaster(DataSourceSpatial):
                             times.append(QFileInfo(path).lastModified())
 
             if len(times) > 0:
-                return max(times)
+                #self.mModificationTime = max(times)
+                self.mModificationTime = times[0]
 
-        #Fallback
-        return super(DataSourceRaster, self).modificationTime()
 
     def spatialExtent(self)->SpatialExtent:
         return self.mSpatialExtent

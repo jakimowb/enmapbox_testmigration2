@@ -251,7 +251,7 @@ class TestObjects():
     Class with static routines to create test objects
     """
     @staticmethod
-    def inMemoryClassification(nl=10, ns=20, nb=1, crs='EPSG:32632', eType=gdal.GDT_Byte, nc:int=0, path:str=None):
+    def inMemoryImage(nl=10, ns=20, nb=1, crs='EPSG:32632', eType=gdal.GDT_Byte, nc:int=0, path:str=None):
         from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 
         scheme = None

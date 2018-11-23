@@ -28,7 +28,7 @@ def createRandomRaster()->gdal.Dataset:
         nc = None
         dt = random.choice([gdal.GDT_Byte, gdal.GDT_Int16, gdal.GDT_Float32])
     print('{}x{}x{} tp {}'.format(nb, nl, ns, path))
-    ds = TestObjects.inMemoryClassification(nl=nl, ns=ns, nb=nb, eType=dt, nc=nc, path=path)
+    ds = TestObjects.inMemoryImage(nl=nl, ns=ns, nb=nb, eType=dt, nc=nc, path=path)
 
     return ds
 
