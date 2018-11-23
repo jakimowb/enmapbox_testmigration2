@@ -9,13 +9,15 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import unittest
 import tempfile
 import enmapboxtestdata
+from enmapboxtesting import initQgisApplication, TestObjects
+QGIS_APP = initQgisApplication()
+
 
 from enmapbox.gui.utils import *
 from .classificationscheme import *
 
 SHOW_GUIS = True
 
-QGIS_APP = initQgisApplication()
 
 
 
@@ -412,7 +414,8 @@ class TestsClassificationScheme(TestCase):
 
 
 
-
+    def test_showcase(self):
+        oass
 
         s = ""
 

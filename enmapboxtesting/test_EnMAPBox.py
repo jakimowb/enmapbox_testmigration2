@@ -19,11 +19,15 @@
 
 
 import unittest
+from enmapboxtesting import initQgisApplication, TestObjects
+QGIS_APP = initQgisApplication()
+
+SHOW_GUI = True
 from enmapbox.gui.utils import *
 
 
-QGIS_APP = initQgisApplication()
 
+from enmapboxtestdata import enmap
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
@@ -192,7 +196,12 @@ class TestEnMAPBox(unittest.TestCase):
         self.fail()
 
     def test_run(self):
-        self.fail()
+
+
+        self.EB.run()
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_close(self):
         self.fail()
@@ -317,5 +326,5 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         s = ""
 
 if __name__ == '__main__':
-
+    SHOW_GUI = False
     unittest.main()

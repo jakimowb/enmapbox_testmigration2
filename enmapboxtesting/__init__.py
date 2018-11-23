@@ -1,4 +1,4 @@
-import os, sys, re, uuid
+import os, sys, re, uuid, importlib
 import numpy as np
 import qgis
 from osgeo import gdal, ogr
@@ -12,7 +12,8 @@ import qgis.testing
 
 SHOW_GUI = True
 
-def initQgisApplication(*args, **kwds):
+
+def initQgisApplication(*args, qgisResourceDir:str=None, **kwds)->QgsApplication:
     """
     Initializes a QGIS Environment
     :return: QgsApplication instance of local QGIS installation
@@ -26,17 +27,27 @@ def initQgisApplication(*args, **kwds):
 
 
         if sys.platform == 'darwin':
-            # search for the QGIS.app
+            # add location of Qt Libraries
             assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
-            PATH_QGIS_APP = re.split(r'\.app[\/]', qgis.__file__)[0] + '.app'
-            PATH_QGIS = os.path.join(PATH_QGIS_APP, *['Contents', 'MacOS'])
-
-
+            PATH_QGIS_APP = re.search(r'.*\.app', qgis.__file__).group()
             QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
             QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns', 'qgis']))
 
-
         qgsApp = qgis.testing.start_app()
+
+        if not isinstance(qgisResourceDir, str):
+            parentDir = os.path.dirname(os.path.dirname(__file__))
+            resourceDir = os.path.join(parentDir, 'qgisresources')
+            if os.path.exists(resourceDir):
+                qgisResourceDir = resourceDir
+
+        if isinstance(qgisResourceDir, str) and os.path.isdir(qgisResourceDir):
+            modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
+            modules = [m[0:-3] for m in modules]
+            for m in modules:
+                mod = importlib.import_module('qgisresources.{}'.format(m))
+                if "qInitResources" in dir(mod):
+                    mod.qInitResources()
 
         #initiate a PythonRunner instance if None exists
         if not QgsPythonRunner.isValid():
@@ -45,35 +56,6 @@ def initQgisApplication(*args, **kwds):
         return qgsApp
 
 
-
-class PythonRunnerImpl(QgsPythonRunner):
-    """
-    A Qgs PythonRunner implementation
-    """
-
-    def __init__(self):
-        super(PythonRunnerImpl, self).__init__()
-
-
-    def evalCommand(self, cmd:str, result:str):
-        try:
-            o = compile(cmd)
-        except Exception as ex:
-            result = str(ex)
-            return False
-        return True
-
-    def runCommand(self, command, messageOnError=''):
-        try:
-            o = compile(command, 'fakemodule', 'exec')
-            exec(o)
-        except Exception as ex:
-            messageOnError = str(ex)
-            command = ['{}:{}'.format(i+1, l) for i,l in enumerate(command.splitlines())]
-            print('\n'.join(command), file=sys.stderr)
-            raise ex
-            return False
-        return True
 
 class QgisMockup(QgisInterface):
     """
