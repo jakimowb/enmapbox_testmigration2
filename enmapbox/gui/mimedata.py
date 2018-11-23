@@ -8,7 +8,7 @@ import re
 from qgis.gui import *
 from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial
 from enmapbox.gui.datasources import DataSource, DataSourceSpatial
-
+from enmapbox.gui.layerproperties import defaultRasterRenderer
 MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'
 MDF_DOCKTREEMODELDATA_XML = 'dock_tree_model_data'
 
@@ -200,36 +200,47 @@ def extractMapLayers(mimeData:QMimeData)->list:
             if isinstance(mapLayer, QgsMapLayer):
                 newMapLayers.append(mapLayer)
         s = ""
+
     elif MDF_RASTERBANDS in mimeData.formats():
         data = pickle.loads(mimeData.data(MDF_RASTERBANDS))
 
         for t in data:
             uri, baseName, providerKey, band = t
             lyr = QgsRasterLayer(uri, baseName=baseName, providerKey=providerKey)
-            r = QgsSingleBandGrayRenderer(lyr.dataProvider(), band+1)
-            lyr.setRenderer(r)
+            lyr.setRenderer(defaultRasterRenderer(lyr, bandIndices=[band]))
             newMapLayers.append(lyr)
+
     elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
         dsUUIDs = pickle.loads(mimeData.data(MDF_DATASOURCETREEMODELDATA))
 
         for uuid4 in dsUUIDs:
             assert isinstance(uuid4, uuid.UUID)
-            ds = DataSource.fromUUID(uuid4)
-            if isinstance(ds, DataSourceSpatial):
-                newMapLayers.append(ds.createUnregisteredMapLayer())
+            dataSource = DataSource.fromUUID(uuid4)
+            if isinstance(dataSource, DataSourceSpatial):
+                lyr = dataSource.createUnregisteredMapLayer()
+                if isinstance(lyr, QgsRasterLayer):
+                    lyr.setRenderer(defaultRasterRenderer(lyr))
+                newMapLayers.append(lyr)
+
     elif QGIS_URILIST_MIMETYPE in mimeData.formats():
         for uri in QgsMimeDataUtils.decodeUriList(mimeData):
             dataSources = DataSourceFactory.Factory(uri)
             for dataSource in dataSources:
                 if isinstance(dataSource, DataSourceSpatial):
-                    newMapLayers.append(dataSource.createUnregisteredMapLayer())
+                    lyr = dataSource.createUnregisteredMapLayer()
+                    if isinstance(lyr, QgsRasterLayer):
+                        lyr.setRenderer(defaultRasterRenderer(lyr))
+                    newMapLayers.append(lyr)
 
     elif MDF_URILIST in mimeData.formats():
         for url in mimeData.urls():
             dataSources = DataSourceFactory.Factory(url)
             for dataSource in dataSources:
                 if isinstance(dataSource, DataSourceSpatial):
-                    newMapLayers.append(dataSource.createUnregisteredMapLayer())
+                    lyr = dataSource.createUnregisteredMapLayer()
+                    if isinstance(lyr, QgsRasterLayer):
+                        lyr.setRenderer(defaultRasterRenderer(lyr))
+                    newMapLayers.append(lyr)
     else:
         s = ""
 

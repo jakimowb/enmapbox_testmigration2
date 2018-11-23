@@ -120,41 +120,113 @@ def defaultRasterRenderer(layer:QgsRasterLayer, bandIndices:list=None)->QgsRaste
     """
 
     renderer = None
-
+    defaultRenderer = layer.renderer()
     if not isinstance(layer, QgsRasterLayer):
         return None
 
+
     nb = layer.bandCount()
+
 
     if isinstance(bandIndices, list):
         bandIndices = [b for b in bandIndices if b >=0 and b < nb]
         l = len(bandIndices)
         if l == 0:
             bandIndices = None
-        if l > 3:
+        if l >= 3:
             bandIndices = bandIndices[0:3]
         elif l < 3:
-            bandIndices = bandIndices[0]
+            bandIndices = bandIndices[0:1]
 
     if not isinstance(bandIndices, list):
-        if nb > 3:
-            bandIndices = [2,1,0]
+        if nb >= 3:
+            if isinstance(defaultRenderer, QgsMultiBandColorRenderer):
+                bandIndices = [defaultRenderer.redBand()-1, defaultRenderer.greenBand()-1, defaultRenderer.blueBand()-1]
+            else:
+                bandIndices = [2,1,0]
         else:
             bandIndices = [0]
 
     assert isinstance(bandIndices, list)
 
+    bandStats = [layer.dataProvider().bandStatistics(b + 1, sampleSize=256) for b in bandIndices]
+    dp = layer.dataProvider()
+    assert isinstance(dp, QgsRasterDataProvider)
 
-    dt0 = layer.dataProvider().dataType(0)
+    #classification ? -> QgsPalettedRasterRenderer
+    from enmapbox.gui.classification.classificationscheme import ClassificationScheme
+    classes = ClassificationScheme.fromMapLayer(layer)
 
+    if isinstance(classes, ClassificationScheme):
+        r = classes.rasterRenderer(band=bandIndices[0])
+        r.setInput(layer.dataProvider())
+        return r
+
+    #single-band / two bands -> QgsSingleBandGrayRenderer
+    if len(bandStats) < 3:
+        b = bandIndices[0]+1
+        stats = bandStats[0]
+        assert isinstance(stats, QgsRasterBandStats)
+        dt = dp.dataType(b)
+        ce = QgsContrastEnhancement(dt)
+
+        assert isinstance(ce, QgsContrastEnhancement)
+        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+
+        if dt == Qgis.Byte:
+            if stats.minimumValue == 0 and stats.maximumValue == 1:
+                #handle mask, strecht them over larger range
+                ce.setMinimumValue(stats.minimumValue)
+                ce.setMaximumValue(stats.maximumValue)
+            else:
+                ce.setMinimumValue(0)
+                ce.setMaximumValue(255)
+        else:
+            vmin, vmax = layer.dataProvider().cumulativeCut(b, 0.02, 0.98)
+            ce.setMinimumValue(vmin)
+            ce.setMaximumValue(vmax)
+
+        r = QgsSingleBandGrayRenderer(layer.dataProvider(), b)
+        r.setContrastEnhancement(ce)
+        return r
+
+    # 3 or more bands -> RGB
+    if len(bandStats) >= 3:
+        bands = [b+1 for b in bandIndices[0:3]]
+        contrastEnhancements = [QgsContrastEnhancement(dp.dataType(b)) for b in bands]
+        ceR, ceG, ceB = contrastEnhancements
+
+        for i, b in enumerate(bands):
+            dt = dp.dataType(b)
+            ce = contrastEnhancements[i]
+
+            assert isinstance(ce, QgsContrastEnhancement)
+            ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+            vmin, vmax = layer.dataProvider().cumulativeCut(b, 0.02, 0.98)
+            if dt == Qgis.Byte:
+                #standard RGB photo?
+                if False and layer.bandCount() == 3:
+                    ce.setMinimumValue(0)
+                    ce.setMaximumValue(255)
+                else:
+                    ce.setMinimumValue(vmin)
+                    ce.setMaximumValue(vmax)
+            else:
+                ce.setMinimumValue(vmin)
+                ce.setMaximumValue(vmax)
+        R, G, B = bands
+        r = QgsMultiBandColorRenderer(layer.dataProvider(), R,G,B, None, None, None)
+        r.setRedContrastEnhancement(ceR)
+        r.setGreenContrastEnhancement(ceG)
+        r.setBlueContrastEnhancement(ceB)
+        r.setRedBand(R)
+        r.setGreenBand(G)
+        r.setBlueBand(B)
+        return r
     if nb >= 3:
         pass
 
-    dt = layer
-    s = ""
-
-
-    return renderer
+    return defaultRenderer
 
 
 def rendererToXml(layerOrRenderer, geomType:QgsWkbTypes=None):
