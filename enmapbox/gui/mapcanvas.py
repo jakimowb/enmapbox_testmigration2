@@ -940,21 +940,56 @@ class MapCanvas(QgsMapCanvas):
 
 
         menu.addSeparator()
+        m = menu.addMenu('Crosshair')
 
         if self.crosshairIsVisible():
-            action = menu.addAction('Hide Crosshair')
+            action = m.addAction('Hide')
             action.triggered.connect(lambda : self.setCrosshairVisibility(False))
         else:
-            action = menu.addAction('Show Crosshair')
+            action = m.addAction('Show')
             action.triggered.connect(lambda: self.setCrosshairVisibility(True))
 
         from enmapbox.gui.crosshair import CrosshairDialog
-        action = menu.addAction('Set Crosshair Style')
+        action = m.addAction('Style')
         action.triggered.connect(lambda : self.setCrosshairStyle(
             CrosshairDialog.getCrosshairStyle(
                 crosshairStyle=self.crosshairStyle(), mapCanvas=self
             )
         ))
+
+        mPxGrid = m.addMenu('Pixel Grid')
+        if self.mCrosshairItem.mCrosshairStyle.mShowPixelBorder:
+            action = mPxGrid.addAction('Hide')
+            action.triggered.connect(lambda : self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(False))
+
+        mPxGrid.addSeparator()
+
+        rasterLayers = [l for l in self.layers() if isinstance(l, QgsRasterLayer) and l.isValid()]
+
+        def onShowRasterGrid(layer:QgsRasterLayer):
+            self.mCrosshairItem.setVisibility(True)
+            self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(True)
+            self.mCrosshairItem.setRasterGridLayer(layer)
+
+
+        actionTop = mPxGrid.addAction('Top Raster')
+        actionBottom = mPxGrid.addAction('Bottom Raster')
+        if len(rasterLayers) == 0:
+            actionTop.setEnabled(False)
+            actionBottom.setEnabled(False)
+
+        else:
+            actionTop.triggered.connect(lambda b, layer=rasterLayers[0]: onShowRasterGrid(layer))
+            actionBottom.triggered.connect(lambda b, layer=rasterLayers[-1]: onShowRasterGrid(layer))
+            mPxGrid.addSeparator()
+            for l in rasterLayers:
+                assert isinstance(l, QgsRasterLayer)
+                ischecked = self.mCrosshairItem.mRasterGridLayer == l
+                action = mPxGrid.addAction(l.name())
+                action.setChecked(ischecked)
+                action.triggered.connect(lambda b, layer=l: onShowRasterGrid(layer))
+
+
 
         menu.addSeparator()
 
@@ -1036,7 +1071,7 @@ class MapCanvas(QgsMapCanvas):
             self.mCrosshairItem.setCrosshairStyle(crosshairStyle)
 
     def crosshairStyle(self):
-        return self.mCrosshairItem.crosshairStyle
+        return self.mCrosshairItem.mCrosshairStyle
 
     def setShowCrosshair(self,b):
         warnings.warn('Use setCrosshairVisibility', DeprecationWarning)
