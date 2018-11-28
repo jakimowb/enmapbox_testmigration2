@@ -36,14 +36,7 @@ See :doc:`ApplierExamples` for more information.
    :glob:
 
    ApplierExamples.rst
-   DataModelExamples.rst
 
-.. note::
-
-   The user guides are created from Jupiter Notebooks. For a more interactive experience and graphical outputs execute
-   these notebooks:
-
-   :download:`Data Model Usage Examples <DataModelExamples.ipynb>`
 
 .. toctree::
    :maxdepth: 2
@@ -51,7 +44,7 @@ See :doc:`ApplierExamples` for more information.
    :glob:
 
    hubdc_applier.rst
-   hubdc_model.rst
+   hubdc_core.rst
    hubdc_testdata.rst
    indices.rst
 

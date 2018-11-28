@@ -13,46 +13,9 @@ Additionally, use the :class:`~hubdc.testdata.BrandenburgDistricts` vector polyg
 
 .. image:: images/ndvi.png
 
-::
+.. literalinclude:: examples/example.py
 
-    """
-    Calculate Normalized Difference Vegetation Index (NDVI) for a Landsat 5 scene and cut the result to the German state Brandenburg.
-    """
-
-    import tempfile
-    import os
-    import numpy
-    from hubdc.applier import *
-    from hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
-
-    # Set up input and output filenames.
-    applier = Applier()
-    applier.inputRaster.setRaster(key='red', value=ApplierInputRaster(filename=LT51940232010189KIS01.red))
-    applier.inputRaster.setRaster(key='nir', value=ApplierInputRaster(filename=LT51940232010189KIS01.nir))
-    applier.inputVector.setVector(key='brandenburg', value=ApplierInputVector(filename=BrandenburgDistricts.shp))
-    applier.outputRaster.setRaster(key='ndvi', value=ApplierOutputRaster(filename=os.path.join(tempfile.gettempdir(), 'ndvi.img')))
-
-    # Set up the operator to be applied
-    class NDVIOperator(ApplierOperator):
-        def ufunc(operator):
-
-            # read image data
-            red = operator.inputRaster.raster(key='red').imageArray()
-            nir = operator.inputRaster.raster(key='nir').imageArray()
-            brandenburg = operator.inputVector.vector(key='brandenburg').imageArray(initValue=0, burnValue=1)
-
-            # calculate ndvi and mask Brandenburg
-            ndvi = numpy.float32(nir-red)/(nir+red)
-            ndvi[brandenburg==0] = -1
-
-            # write ndvi data
-            operator.outputRaster.raster(key='ndvi').setImageArray(array=ndvi)
-
-    # Apply the operator to the inputs, creating the outputs.
-    applier.apply(operatorType=NDVIOperator)
-    print(applier.outputRaster.raster(key='ndvi').filename)
-
-The result is stored in the file called ``ndvi.img`` stored in the user tempdir (e.g. on Windows systems ``c:\users\USER\appdata\local\temp\ndvi.img``).
+The result is stored in the file called ``ndvi.img`` stored in the user tempdir.
 
 HUB-Datacube Applier programs are usually structured in the following way:
 
@@ -104,18 +67,18 @@ HUB-Datacube Applier programs are usually structured in the following way:
         ::
 
             # read image data
-            red = operator.inputRaster.raster(key='red').imageArray()
-            nir = operator.inputRaster.raster(key='nir').imageArray()
-            brandenburg = operator.inputVector.vector(key='brandenburg').imageArray(initValue=0, burnValue=1, dtype=numpy.uint8)
+            red = operator.inputRaster.raster(key='red').array()
+            nir = operator.inputRaster.raster(key='nir').array()
+            brandenburg = operator.inputVector.vector(key='brandenburg').array(initValue=0, burnValue=1, dtype=numpy.uint8)
 
 
         Note that all input datasets are access using different members of the ``operator`` object:
 
         ``operator.inputRaster`` is identical to ``applier.inputRaster`` and used to access previously defined :class:`~hubdc.applier.ApplierInputRaster` objects,
-        which can be used to read raster data, see :meth:`~hubdc.applier.ApplierInputRaster.imageArray`
+        which can be used to read raster data, see :meth:`~hubdc.applier.ApplierInputRaster.array`
 
         ``operator.inputVector`` is identical to ``applier.inputVector`` and is used to access previously defined :class:`~hubdc.applier.ApplierInputVector` objects,
-        which can be used to read and rasterize vector data, see :meth:`~hubdc.applier.ApplierInputVector.imageArray`
+        which can be used to read and rasterize vector data, see :meth:`~hubdc.applier.ApplierInputVector.array`
 
         Also note that input data is presented as numpy arrays, of the datatype corresponding to that in the raster files.
         It is the responsibility of the user to manage all conversions of datatypes.
@@ -130,7 +93,7 @@ HUB-Datacube Applier programs are usually structured in the following way:
 
             # calculate ndvi and mask Brandenburg
             ndvi = numpy.float32(nir-red)/(nir+red)
-            ndvi[brandenburg==0] = -1
+            ...
 
     c) write output data (and metadata - not shown here)
 
@@ -138,10 +101,11 @@ HUB-Datacube Applier programs are usually structured in the following way:
 
             # write ndvi data
             operator.outputRaster.raster(key='ndvi').setImageArray(array=ndvi)
+            ...
 
         Note that output raster datasets are access using the ``operator.outputRaster``, which is identical to ``applier.outputRaster``
         and used to access previously defined :class:`~hubdc.applier.ApplierOutputRaster` objects,
-        which can be used to write output numpy arrays, see :meth:`~hubdc.applier.ApplierOutputRaster.setImageArray`.
+        which can be used to write output numpy arrays, see :meth:`~hubdc.applier.ApplierOutputRaster.setArray`.
 
         The datatype of the output files will be inferred from the datatype of the given numpy arrays.
         So, to control the datatype of the output file, use for example the ``numpy.astype`` function to control the datatype of the output arrays.
