@@ -19,7 +19,7 @@
    :width: 27px
 .. |mActionPan| image:: ../../../enmapbox/gui/ui/icons/mActionPan.svg
    :width: 27px
-.. |pickrasterspectrum| image:: ../../../enmapbox/gui/ui/icons/pickrasterspectrum.svg
+.. |pickrasterspectrum| image:: ../../../enmapbox/gui/speclib/icons/pickrasterspectrum.svg
    :width: 27px
 .. |mActionIdentify| image:: ../../../enmapbox/gui/ui/icons/mActionIdentify.svg
    :width: 27px
@@ -43,7 +43,7 @@
    :width: 27px
 .. |mIconLineLayer| image:: ../img/mIconLineLayer.svg
    :width: 27px
-.. |speclib| image:: ../../../enmapbox/gui/ui/icons/speclib.svg
+.. |speclib| image:: ../../../enmapbox/gui/speclib/icons/speclib.svg
    :width: 27px
 .. |mIconRasterImage| image:: ../../../enmapbox/gui/ui/icons/mIconRasterImage.svg
    :width: 27px
@@ -541,6 +541,8 @@ Fraction
 Spectral Library
 ================
 
+
+
 .. screenshot von der tetslibrary im speclib viewer
 
 .. Auxillary -> Import Library
@@ -549,6 +551,45 @@ Spectral Library
 
 Labelled Spectral Library
 =========================
+
+The labelled spectral library extents the default .sli format by adding additional information to the spectra (e.g., class labels, class colors).
+This information is stored by adding a .csv and .json file to the default spectral library, so that the labelled spectral library consists of
+
+* .sli file (ENVI standard)
+* .hdr file (ENVI standard)
+* .csv file (containing the additional information)
+
+  * should be comma-separated csv
+  * should have same basename as .sli file
+  * first row stores the headers, where the first element has to be the spectra names as specified in the .hdr file:
+  .. code-block:: csv
+
+     spectra names, attribute1, attribute2
+
+  * Example from the EnMAP-Box test dataset:
+
+    .. figure:: ../img/speclib_csv_example.png
+       :width: 100%
+
+* .json file (class name and class color information)
+
+  * should have same basename as .sli file
+  * class name and color information has to be provided for every attribute in the csv:
+  .. code-block:: json
+
+    {
+        "attribute_name": {
+          "names":  ["name1", "name2", "name3", "name4"],
+          "colors": [[230, 0, 0],  [56, 168, 0], [168, 112, 0], [0,100,255]]
+        }
+    }
+
+  * Example from the EnMAP-Box test dataset:
+
+    .. figure:: ../img/speclib_json_example.png
+       :width: 100%
+
+
 
 .. aufbau: .sli + .hdr + csv
 
