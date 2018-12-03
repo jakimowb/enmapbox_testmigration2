@@ -69,19 +69,28 @@ Location
 
 The workshop will take place in **Berlin-Adlershof** in the **Erwin-Schrödinger-Zentrum** and the **Geography Department**.
 
-| *Erwin Schrödinger-Zentrum*
-| *Rudower Chaussee 26*
-| *12489 Berlin*
 
-| *Geography Department (Alfred-Rühl-Haus)*
-| *Rudower Chaussee 16*
-| *12489 Berlin*
+.. list-table::
 
-.. raw:: html
+   * - | *Erwin Schrödinger-Zentrum*
+       | *Rudower Chaussee 26*
+       | *12489 Berlin*
+     - |map_esz|
+   * - | *Geography Department*
+       | *(Alfred-Rühl-Haus)*
+       | *Rudower Chaussee 16*
+       | *12489 Berlin*
+     - |map_gi|
 
-   <iframe width="600" height="400" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=13.527082800865173%2C52.42978814099131%2C13.534753918647766%2C52.43270892541072&amp;layer=mapnik&amp;marker=52.431248557396096%2C13.53091835975647" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.43125&amp;mlon=13.53092#map=18/52.43125/13.53092">Show bigger map</a></small>
 
 
+.. |map_gi| raw:: html
+
+   <iframe width="380" height="280" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=13.532117307186128%2C52.4314660620821%2C13.535952866077425%2C52.43290679910109&amp;layer=mapnik&amp;marker=52.43218643647886%2C13.534035086631775" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.43219&amp;mlon=13.53404#map=19/52.43219/13.53404">Größere Karte anzeigen</a></small>
+
+.. |map_esz| raw:: html
+
+   <iframe width="380" height="280" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://www.openstreetmap.org/export/embed.html?bbox=13.529429733753206%2C52.43039488201405%2C13.533265292644503%2C52.431835654049316&amp;layer=mapnik&amp;marker=52.43111527391899%2C13.531347513198853" style="border: 1px solid black"></iframe><br/><small><a href="https://www.openstreetmap.org/?mlat=52.43112&amp;mlon=13.53135#map=19/52.43112/13.53135">Größere Karte anzeigen</a></small>
 |
 
 Organizers

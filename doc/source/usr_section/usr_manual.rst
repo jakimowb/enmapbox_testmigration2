@@ -401,7 +401,8 @@ Vector
 
 .. figure:: ../img/example_vectordata.png
 
-   Example of a :ref:`LandCov_BerlinUrbanGradient.shp <shp_berlingradient>` with geometries (i.e. polygon) and corresponding attribute table.
+   Example of the vector dataset :ref:`landcover_berlin_polygon.shp <shp_berlingradient>` from the test dataset with
+   geometries (i.e. polygon) and corresponding attribute table.
 
 
 
@@ -411,6 +412,22 @@ Mask
 
 Any GDAL/OGR readable raster or vector file can be interpreted as a boolean mask.
 
+    * In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.
+      Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
+
+    .. list-table::
+       :name: rastermasks
+       :align: left
+       :header-rows: 1
+
+
+       * - Image
+         - Mask Layer (Raster)
+         - Binary Mask
+       * - |mask_image|
+         - |hires|
+         - |mask_raster|
+
 
     * In case of a vector, all pixels covered by features are interpreted as True, all other pixels as False. This means:
 
@@ -418,13 +435,36 @@ Any GDAL/OGR readable raster or vector file can be interpreted as a boolean mask
       * ... for line features: If pixel is on line render path, it is mapped to True
       * ... for polygon features: If the center of the pixel is within the polygon, the pixel is mapped to True
 
-    * In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.
-      Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
 
-    .. figure:: ../img/example_mask.png
+    .. list-table::
+       :name: vectormasks
+       :align: left
+       :header-rows: 1
 
-       Example of using a vector layer as mask (and applying it to an image).
 
+       * - Image
+         - Mask Layer (Vector)
+         - Binary Mask
+       * - |mask_image|
+         - |poly|
+         - |mask_poly|
+       * - |mask_image|
+         - |points|
+         - |mask_point|
+       * - |mask_image|
+         - |line|
+         - |mask_line|
+
+
+.. |mask_image| image:: ../img/mask_examples/mask_image.png
+.. |poly| image:: ../img/mask_examples/poly.png
+.. |mask_poly| image:: ../img/mask_examples/mask_poly.png
+.. |points| image:: ../img/mask_examples/points.png
+.. |mask_point| image:: ../img/mask_examples/mask_point.png
+.. |line| image:: ../img/mask_examples/line.png
+.. |mask_line| image:: ../img/mask_examples/mask_line.png
+.. |hires| image:: ../img/mask_examples/hires.png
+.. |mask_raster| image:: ../img/mask_examples/mask_raster.png
 
 
 Classification
@@ -434,12 +474,19 @@ Classification
 * 0 will be implicitly assumed as nodata value
 * Metadata for class names and colors are saved in the ENVI metadata domain (``class names``, ``class lookup``). If those
   parameters are not defined, classes will be numbered consecutively and random colors will be used.
+* The class *unclassified* is always expected to be 0 and will be treated as nodata.
 
   .. figure:: ../img/classification_metadata.png
 
-     Example of the metadata of a classification viewed in the :ref:`Metadata Editor <metadata_editor>`
+     Example of the metadata of a classification image viewed in the :ref:`Metadata Editor <metadata_editor>`
 
-* The class *unclassified* is always expected to be 0 and will be treated as nodata.
+
+
+
+.. figure:: ../img/example_classification.png
+   :height: 440px
+
+   Example of a classification image with corresponding classes, derived from the EnMAP test dataset
 
 .. is a representation of a map holding categorical information
 .. screenshot + tabelle mit required metadata
@@ -452,8 +499,15 @@ Classification
 .. als no data wert wird implizit immer 0 angenommen
 .. unclassified klasse ist immer ID0 und wird immer als nodata behandelt
 
+
 Regression
 ==========
+
+* A regression is a representation of a map holding quantitative information.
+* The number of bands and the band names are dependent on the number of response variables.
+* The nodata value has to be defined
+* Band names are stored in the GDAL band descriptions
+
 .. is a representation of a map holding quantitative information
 .. multiband raster, bandnames sind namen der targets variables
 .. muss zwingend nodata wert gesetzt haben
@@ -464,12 +518,24 @@ Regression
 Fraction
 ========
 
-.. special form of regression where the quantitative information is representing class fractions
+* Special form of regression, where the quantitative information is representing class fractions (relative coverage of a class inside a pixel).
+* Optional: Metadata for class names and colors are stored in the ENVI metadata domain (``class names``, ``class lookup``).
+  In this case there is no *unclassified* class (compared to Classification)
+
+  .. figure:: ../img/fraction_metadata.png
+
+     Example of the metadata of a fraction image viewed in the :ref:`Metadata Editor <metadata_editor>`
+
 .. muss zwingend nodata wert gesetzt haben
 ..  bedingungen regression
 .. optional: metadaten für klassennamen und farben (in der ENVI Metadatendomäne [key: class names, class lookup]
 .. beachten: hier keine unclassified klasse! (vgl. classification)
 
+.. figure:: ../img/example_fraction.png
+   :height: 440px
+
+   Example of a fraction image holding class fraction information visualized in RGB,
+   where *R = percent impervious*, *G = percent low vegetation* and *B = percent tree*
 
 
 Spectral Library
@@ -500,8 +566,19 @@ Labelled Spectral Library
 Models
 ======
 
-* Certain algorithms produce output files with model information stored as *.pkl* file (e.g. algorithms starting with *Fit ...*)
+* Certain algorithms produce output files with model information stored as **.pkl** file (e.g. algorithms starting with *Fit ...*)
+* There 4 kinds of model files: **Classifiers**, **Clusterers**, **Regressors** and **Transformers**.
 * The content of those files can be inspected in the Data Sources panel
+
+.. note::
+
+   You can generate example model files which are based on the EnMAP-Box test dataset. In the processing algorithms under
+   *EnMAP-Box -> Auxilliary* you can find one algorithm for each kind of model file:
+     * Create Test Classifier (RandomForest)
+     * Create Clusterer (KMeans)
+     * Create Regressor (RandomForest)
+     * Create Transformer (PCA)
+
 
 .. Erwähnen dass manche Algorithmen Regressoren;Klassifikatoren etc. generieren
 
@@ -522,37 +599,59 @@ Models
 Test dataset
 ############
 
+.. note::
+
+   For opening the test dataset go to the menubar :menuselection:`Project --> Load Example Data`
+
+   .. image:: ../img/gui_loadexampledata.png
+
+   If you try to open the test dataset for the first time, you will be asked to download the data from the repository:
+
+   .. figure:: ../img/gui_downloadtestdata.png
+
+   After you downloaded the dataset, you can also use the processing algorithm *Open Test Maps* (in *Auxillary*) to open the dataset.
 
 **EnMAP (30m; 177 bands):**
 
-File name: EnMAP_BerlinUrbanGradient.bsq
+File name: *enmap_berlin.bsq*
 
-Simulated EnMAP data (based on 3.6m HyMap imagery) acquired in August 2009 over south eastern part of Berlin covering an area of 4.32 km^2 (2.4 x 1.8 km). It has a spectral resolution of 177 bands and a spatial resolution of 30m.
-
-
-**HyMap (3.6m; Blue, Green, Red, NIR bands)**
-
-File name: HighResolution_BerlinUrbanGradient.bsq
-
-HyMap image acquired in August 2009 over south eastern part of Berlin covering an area of 4.32 km² (2.4 x 1.8 km). This dataset was reduced to 4 bands (0.483, 0.558, 0.646 and 0.804 micrometers). The spatial resolution is 3.6m.
+Simulated EnMAP data (based on 3.6m HyMap imagery) acquired in August 2009 over south eastern part of Berlin. It has a spectral resolution of 177 bands and a spatial resolution of 30m.
 
 
-**LandCover Layer:**
+**HyMap (3.6m; Blue, Green, Red bands)**
 
-File name: LandCov_BerlinUrbanGradient.shp
+File name: *hires_berlin.bsq*
 
-Polygon shapefile containing land cover information on two classification levels. Derived from very high resolution aerial imagery and cadastral datasets.
+HyMap image acquired in August 2009 over south eastern part of Berlin. This dataset was reduced to 3 bands for true color display. The spatial resolution is 3.6m.
 
-Level 1 classes: Impervious; Other; Vegetation; Soil
 
-Level 2 classes: Roof; Low vegetation; Other; Pavement; Tree; Soil
+**LandCover Vector Layer (Polygon):**
+
+File name: *landcover_berlin_polygon.shp*
+
+Polygon shapefile containing land cover information on three classification levels. Derived from very high resolution aerial imagery and cadastral datasets.
+
+ * Level 1 classes: Impervious, Vegetation, Soil, Water
+ * Level 2 classes: Impervious, Low Vegetation, Soil, Tree, Water
+ * Level 3 classes: Roof, Pavement, Low Vegetation, Soil, Tree, Water
+
+**LandCover Vector Layer (Point):**
+
+File name: *landcover_berlin_point.shp*
+
+Point shapefile containing land cover information on two classification levels.
+
+ * Level 1 classes: Impervious, Vegetation, Soil, Water
+ * Level 2 classes: Impervious, Low Vegetation, Soil, Tree, Water
 
 
 **Spectral Library:**
 
-File name: SpecLib_BerlinUrbanGradient.sli
+File name: *library_berlin.sli*
 
 Spectral library with 75 spectra (material level, level 2 and level 3 class information)
 
+.. figure:: ../img/testdata_speclib.png
 
+   library_berlin.sli opened in the EnMAP-Box Spectral Library Window
 

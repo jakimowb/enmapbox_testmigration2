@@ -135,6 +135,8 @@ below in order to install them, in case you have not done so already.
 
 For more detailed platform-specific instructions see section below (if the above method worked for you already, you don't have to follow the instructions below).
 
+....
+
 .. _install-packages-windows:
 
 Windows
@@ -155,7 +157,7 @@ Windows
 
         If you used the OSGeo4W Installer to install QGIS, the OSGeo4W Shell will be listed under *OSGeo4W* in the Start Menu
 
-#. Activate the Python 3 Environment calling:
+#. Activate the Python 3 environment calling:
 
     .. code-block:: batch
 
@@ -164,7 +166,7 @@ Windows
     .. image:: ../img/shell_callpy3env.png
 
 
-#. To install packages like *scipy* or *matplotlib*, start the OSGeo4W installer by calling
+#. First, we will install the python packages distributed via OSGeo4W, therefore start the OSGeo4W installer by calling
 
     .. code-block:: batch
 
