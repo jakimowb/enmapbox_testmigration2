@@ -19,10 +19,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from osgeo import gdal, ogr, osr
+from enmapboxtesting import initQgisApplication
+QGIS_APP = initQgisApplication()
+
 from enmapbox.gui.utils import *
 from enmapboxtestdata import enmap
-
-QGIS_APP = initQgisApplication()
 
 
 class testClassUtils(unittest.TestCase):
@@ -98,6 +99,12 @@ class testClassUtils(unittest.TestCase):
     def test_coordinateTransformations(self):
 
         ds = gdalDataset(enmap)
+        lyr = QgsRasterLayer(enmap)
+
+        self.assertEquals(ds.GetGeoTransform(), layerGeoTransform(lyr))
+
+        self.assertIsInstance(ds, gdal.Dataset)
+        self.assertIsInstance(lyr, QgsRasterLayer)
         gt = ds.GetGeoTransform()
         crs = QgsCoordinateReferenceSystem(ds.GetProjection())
 
@@ -105,11 +112,12 @@ class testClassUtils(unittest.TestCase):
 
         geoCoordinate = QgsPointXY(gt[0], gt[3])
         pxCoordinate = geo2px(geoCoordinate, gt)
-
+        pxCoordinate2 = geo2px(geoCoordinate, lyr)
         self.assertEqual(pxCoordinate.x(), 0)
         self.assertEqual(pxCoordinate.y(), 0)
         self.assertAlmostEqual(px2geo(pxCoordinate, gt), geoCoordinate)
 
+        self.assertEqual(pxCoordinate, pxCoordinate2)
 
         spatialPoint = SpatialPoint(crs, geoCoordinate)
         pxCoordinate = geo2px(spatialPoint, gt)
@@ -117,7 +125,11 @@ class testClassUtils(unittest.TestCase):
         self.assertEqual(pxCoordinate.y(), 0)
         self.assertAlmostEqual(px2geo(pxCoordinate, gt), geoCoordinate)
 
-        ext = SpatialExtent.fromRasterSource(ds)
+
+
+
+
+
 
 
 

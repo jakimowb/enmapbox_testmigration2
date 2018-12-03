@@ -24,18 +24,21 @@ from qgis import *
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.sandbox import initQgisApplication
+
+from enmapboxtesting import initQgisApplication, TestObjects
+QGIS_APP = initQgisApplication()
+
 from enmapbox.gui.utils import *
 
 
-QGIS_APP = initQgisApplication()
+
 
 
 
 class TestEnMAPBoxPlugin(unittest.TestCase):
 
     def setUp(self):
-        from enmapbox.gui.utils import TestObjects
+
 
         self.iface = TestObjects.qgisInterfaceMockup()
         self.iface.ui.show()

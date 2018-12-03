@@ -253,6 +253,12 @@ class DataSourceFactory(object):
 
             elif isinstance(src, DataSource):
                 return [src]
+            elif isinstance(src, QgsMimeDataUtils.Uri):
+                if src.layerType == 'raster':
+                    return [DataSourceRaster(src.uri, name=src.name, providerKey=src.providerKey)]
+                elif src.layerType == 'vector':
+                    return [DataSourceVector(src.uri, name=src.name, providerKey=src.providerKey)]
+
 
             elif type(src) in [str, QUrl]:
                 src = DataSourceFactory.srcToString(src)
@@ -261,7 +267,7 @@ class DataSourceFactory(object):
             if src in [None, type(None)]:
                 return []
 
-            DataSource.instances()
+            #DataSource.instances()
 
             #run checks on input sources
             if isinstance(src, SpectralLibrary):
@@ -444,6 +450,12 @@ class DataSource(object):
         self.mName = name
         self.setUri(uri)
         self.mMetadata = {}
+
+        if os.path.isfile(self.mUri):
+            self.mModificationTime = QFileInfo(self.mUri).lastModified()
+        else:
+            self.mModificationTime = QDateTime(0,0,0,0,0,0)
+
         self.__refs__.append(weakref.ref(self))
 
     def isSameSource(self, dataSource)->bool:
@@ -462,11 +474,7 @@ class DataSource(object):
         Optimally returns the last time the data of the data source has been changed.
         :return: QDateTime
         """
-
-        if os.path.isfile(self.mUri):
-            return QFileInfo(self.mUri).lastModified()
-        else:
-            return QDateTime(0,0,0,0,0,0)
+        return self.mModificationTime
 
 
     def isNewVersionOf(self, dataSource)->bool:
@@ -477,7 +485,6 @@ class DataSource(object):
         """
         if type(dataSource) != type(self):
             return False
-        assert isinstance(dataSource, DataSourceFile)
         if self.mUri != dataSource.mUri:
             return False
         return self.modificationTime() > dataSource.modificationTime()
@@ -624,7 +631,7 @@ class DataSourceSpatial(DataSource):
         Returns the provider name
         :return: str
         """
-        self.mProvider
+        return self.mProvider
 
     def spatialExtent(self)->SpatialExtent:
         """
@@ -644,9 +651,7 @@ class DataSourceSpatial(DataSource):
         raise NotImplementedError()
 
 
-    def modificationTime(self)->QDateTime:
-        s = ""
-        return QDateTime()
+
 
 
 class HubFlowDataSource(DataSource):
@@ -722,7 +727,6 @@ class DataSourceRaster(DataSourceSpatial):
         self.nLines = -1
         self.mDataType = -1
         self.mPxSize = QSizeF()
-        self.mProvider=providerKey
         self.mDatasetMetadata = collections.OrderedDict()
         self.mBandMetadata = []
         self.mSpatialExtent = None
@@ -731,9 +735,6 @@ class DataSourceRaster(DataSourceSpatial):
 
         if name is None and providerKey == 'wms':
             self.setName('WMS:'+self.name())
-
-    def modificationTime(self)->QDateTime:
-
 
         if self.mProvider == 'gdal':
             dataSet = gdal.Open(self.mUri)
@@ -744,10 +745,9 @@ class DataSourceRaster(DataSourceSpatial):
                             times.append(QFileInfo(path).lastModified())
 
             if len(times) > 0:
-                return max(times)
+                #self.mModificationTime = max(times)
+                self.mModificationTime = times[0]
 
-        #Fallback
-        return super(DataSourceRaster, self).modificationTime()
 
     def spatialExtent(self)->SpatialExtent:
         return self.mSpatialExtent

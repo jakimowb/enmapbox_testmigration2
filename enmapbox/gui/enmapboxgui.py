@@ -268,6 +268,13 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
 
+    def classificationSchemata(self)->list:
+        """
+        Returns a list of ClassificationSchemes, derived from datasets known to the EnMAP-Box
+        :return: [list-of-ClassificationSchemes
+        """
+        return self.dataSourceManager.classificationSchemata()
+
     def setCursorLocationValueInfo(self, spatialPoint:SpatialPoint, mapCanvas:MapCanvas):
         if not self.ui.cursorLocationValuePanel.isVisible():
             self.ui.cursorLocationValuePanel.show()
@@ -471,11 +478,15 @@ class EnMAPBox(QgisInterface, QObject):
         currentSpectra = []
 
         lyrs = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
+
+        #todo: filter files of interest
+
         for lyr in lyrs:
             assert isinstance(lyr, QgsRasterLayer)
             path = lyr.source()
             from enmapbox.gui.speclib.spectrallibraries import SpectralProfile
-            p = SpectralProfile.fromRasterSource(path, spatialPoint)
+            #p = SpectralProfile.fromRasterSource(path, spatialPoint)
+            p = SpectralProfile.fromRasterLayer(lyr, spatialPoint)
             if isinstance(p, SpectralProfile):
                 currentSpectra.append(p)
                 if self.mCurrentMapSpectraLoading == 'TOP':
@@ -787,7 +798,8 @@ class EnMAPBox(QgisInterface, QObject):
                     mapCanvas = canvas
                     break
             if mapCanvas is None:
-                mapCanvas = QgsMapCanvas()
+                mapCanvas = QgsMapCanvas(parent=self.ui)
+                mapCanvas.setVisible(False)
 
             #2.
             from enmapbox.gui.layerproperties import showLayerPropertiesDialog

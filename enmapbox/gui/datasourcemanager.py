@@ -17,13 +17,13 @@
 ***************************************************************************
 """
 
-import inspect, pickle
+import inspect, pickle, json
 
 from enmapbox import DIR_TESTDATA
 from enmapbox.gui.treeviews import TreeNode, CRSTreeNode, TreeView, TreeModel, CheckableTreeNode, TreeViewMenuProvider, ClassificationNode, ColorTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.mimedata import MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, MDF_URILIST
+from enmapbox.gui.mimedata import *
 from enmapbox.gui.mapcanvas import MapDock
 
 HUBFLOW = True
@@ -85,6 +85,9 @@ class DataSourceManager(QObject):
 
         self.updateFromQgsProject()
 
+    def __iter__(self):
+        return iter(self.mSources)
+
     def __len__(self) -> int:
         return len(self.mSources)
 
@@ -145,6 +148,28 @@ class DataSourceManager(QObject):
 
         return results
 
+    def classificationSchemata(self)->list:
+        """
+        Reads all DataSource and returns a list of found classification schemata
+        :return: [list-if-ClassificationSchemes]
+        """
+        results = []
+        from .classification.classificationscheme import ClassificationScheme
+        for src in self:
+            scheme = None
+            assert isinstance(src, DataSource)
+            if isinstance(src, DataSourceRaster):
+                scheme = ClassificationScheme.fromRasterImage(src.uri())
+
+            elif isinstance(src, DataSourceVector):
+                lyr = src.createUnregisteredMapLayer()
+                scheme = ClassificationScheme.fromFeatureRenderer(lyr)
+
+            if isinstance(scheme, ClassificationScheme):
+                scheme.setName(src.uri())
+                results.append(scheme)
+
+        return results
 
     def updateFromQgsProject(self, mapLayers=None):
         """
@@ -216,28 +241,24 @@ class DataSourceManager(QObject):
         toAdd = []
         for dsNew in newDataSources:
             assert isinstance(dsNew, DataSource)
-            if not isinstance(dsNew, DataSourceFile):
+            sameSources = [d for d in self.mSources if dsNew.isSameSource(d)]
+            if len(sameSources) == 0:
                 toAdd.append(dsNew)
-
             else:
-
-                sameSources = [d for d in self.mSources if dsNew.isSameSource(d)]
-                if len(sameSources) == 0:
+                #we have similar sources.
+                older = []
+                newer = []
+                for d in sameSources:
+                    if dsNew.isNewVersionOf(d):
+                        older.append(d)
+                    if d.isNewVersionOf(dsNew):
+                        newer.append(d)
+                # do not add this source in case there is a newer one
+                if len(older) > 0:
+                    self.removeSources(older)
+                if len(newer) == 0:
                     toAdd.append(dsNew)
-                else:
-                    older = []
-                    newer = []
-                    for d in sameSources:
-                        if dsNew.isNewVersionOf(d):
-                            older.append(dsNew)
-                        else:
-                            newer.append(d)
-                    # do not add this source in case there is a newer one
-                    if len(newer) == 0:
-                        self.removeSources(older)
-                        toAdd.append(dsNew)
-                    else:
-                        toAdd.extend(newer)  # us ethe reference of the existing one
+
 
         for ds in toAdd:
             if ds not in self.mSources:
@@ -1084,24 +1105,39 @@ class DataSourceManagerTreeModel(TreeModel):
                 for n in node.children():
                     exportedNodes.append(n)
 
+            elif isinstance(node, RasterBandTreeNode):
+                exportedNodes.append(node)
+
         uriList = list()
         uuidList =list()
-        dataSourceRefs = []
-        speclib = list()
+
+        bandInfo = list()
 
         for node in exportedNodes:
-            dataSource = node.dataSource
-            assert isinstance(dataSource, DataSource)
-            uriList.append(dataSource.uri())
-            uuidList.append(dataSource.uuid())
+            if isinstance(node, RasterBandTreeNode):
+                uri = node.mDataSource.uri()
+                provider = node.mDataSource.provider()
+                band = node.mBandIndex
+                baseName = '{}:{}'.format(node.mDataSource.name(), node.name())
+                bandInfo.append((uri, baseName, provider, band))
 
-            if isinstance(dataSource, DataSourceSpectralLibrary):
-                mimeDataSpeclib = dataSource.speclib().mimeData()
-                for f in mimeDataSpeclib.formats():
-                    if f not in mimeData.formats():
-                        mimeData.setData(f, mimeDataSpeclib.data(f))
+            elif isinstance(node, DataSourceTreeNode):
+                dataSource = node.dataSource
+                assert isinstance(dataSource, DataSource)
+                uriList.append(dataSource.uri())
+                uuidList.append(dataSource.uuid())
 
-        mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
+                if isinstance(dataSource, DataSourceSpectralLibrary):
+                    mimeDataSpeclib = dataSource.speclib().mimeData()
+                    for f in mimeDataSpeclib.formats():
+                        if f not in mimeData.formats():
+                            mimeData.setData(f, mimeDataSpeclib.data(f))
+
+        if len(uuidList) > 0:
+            mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
+
+        if len(bandInfo) > 0:
+            mimeData.setData(MDF_RASTERBANDS, pickle.dumps(bandInfo))
 
         mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
         return mimeData
@@ -1172,7 +1208,7 @@ class DataSourceManagerTreeModel(TreeModel):
         column = index.column()
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDropEnabled
 
-        if isinstance(node, DataSourceTreeNode):
+        if isinstance(node, (DataSourceTreeNode,RasterBandTreeNode)):
             flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
@@ -1180,6 +1216,9 @@ class DataSourceManagerTreeModel(TreeModel):
 
         if isinstance(node, CheckableTreeNode):
             flags |= Qt.ItemIsUserCheckable
+
+
+
 
         return flags
 

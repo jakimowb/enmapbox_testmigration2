@@ -18,13 +18,13 @@ from qgis.gui import *
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.utils import initQgisApplication
+from enmapboxtesting import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
 import enmapbox.dependencycheck
 enmapbox.dependencycheck.installTestdata()
 
-from enmapboxtestdata import enmap, hires, landcover, library
+from enmapboxtestdata import enmap, hires, landcover_polygons, library
 from enmapbox.gui.mapcanvas import *
 
 
@@ -120,7 +120,7 @@ class MapCanvasTests(unittest.TestCase):
     def test_dropEvents(self):
 
 
-        from enmapbox.gui.utils import TestObjects
+
         allFiles = [enmap, hires, landcover, library]
         spatialFiles = [enmap, hires, landcover]
 

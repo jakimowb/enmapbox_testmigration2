@@ -135,12 +135,15 @@ class CursorLocationInfoModel(TreeModel):
             weakId = self.weakNodeId(n)
 
             expand = False
-            if self.mNodeExpansion == CursorLocationInfoModel.REMAINDER:
-                expand = self.mExpandedNodeRemainder.get(weakId, False)
-            elif self.mNodeExpansion == CursorLocationInfoModel.NEVER_EXPAND:
-                expand = False
-            elif self.mNodeExpansion == CursorLocationInfoModel.ALWAYS_EXPAND:
+            if not isinstance(root.parentNode(), TreeNode):
                 expand = True
+            else:
+                if self.mNodeExpansion == CursorLocationInfoModel.REMAINDER:
+                    expand = self.mExpandedNodeRemainder.get(weakId, False)
+                elif self.mNodeExpansion == CursorLocationInfoModel.NEVER_EXPAND:
+                    expand = False
+                elif self.mNodeExpansion == CursorLocationInfoModel.ALWAYS_EXPAND:
+                    expand = True
 
             self.mTreeView.setExpanded(self.node2idx(n), expand)
             return n
@@ -157,10 +160,15 @@ class CursorLocationInfoModel(TreeModel):
             n.setValues('{},{}'.format(sourceValueSet.pxPosition.x(), sourceValueSet.pxPosition.y()))
 
             for bv in sourceValueSet.bandValues:
-                assert isinstance(bv, RasterValueSet.BandInfo)
-                n = gocn(root, 'Band {}'.format(bv.bandIndex + 1))
-                n.setToolTip('Band {} {}'.format(bv.bandIndex + 1, bv.bandName).strip())
-                n.setValues([bv.bandValue, bv.bandName])
+                if isinstance(bv, RasterValueSet.BandInfo):
+                    n = gocn(root, 'Band {}'.format(bv.bandIndex + 1))
+                    n.setToolTip('Band {} {}'.format(bv.bandIndex + 1, bv.bandName).strip())
+                    n.setValues([bv.bandValue, bv.bandName])
+                elif isinstance(bv, QColor):
+                    n = gocn(root, 'Color')
+                    n.setToolTip('Color selected from screen pixel')
+                    n.setValues(bv.getRgb())
+
 
         if isinstance(sourceValueSet, VectorValueSet):
             if len(sourceValueSet.features) == 0:
@@ -347,8 +355,6 @@ class CursorLocationInfoDock(QDockWidget,
             if type == 'RASTER':
                 lyrs = [l for l in lyrs if isinstance(l, QgsRasterLayer)]
 
-            if len(lyrs) > 0 and mode == 'TOP_LAYER':
-                lyrs = [lyrs[0]]
             return lyrs
 
         lyrs = []
@@ -366,6 +372,11 @@ class CursorLocationInfoDock(QDockWidget,
         self.mLocationInfoModel.clear()
 
         for l in lyrs:
+            if mode == 'TOP_LAYER' and  self.mLocationInfoModel.mRootNode.childCount() > 0:
+                s = ""
+                break
+
+
             assert isinstance(l, QgsMapLayer)
             lyr2World = createCRSTransform(l.crs(), crsWorld)
             world2lyr = createCRSTransform(crsWorld, l.crs())
@@ -382,54 +393,35 @@ class CursorLocationInfoDock(QDockWidget,
             from enmapbox.gui.utils import geo2px
             if isinstance(l, QgsRasterLayer):
                 renderer = l.renderer()
+                px = geo2px(pointLyr, l)
+                v = RasterValueSet(l.name(), crsInfo, ptInfo, px)
 
-                if l.providerType().lower() != 'gdal':
+                # !Note: b is not zero-based -> 1st band means b == 1
+                if rasterbands == 'VISIBLE':
+                    bandNumbers = renderer.usesBands()
+                elif rasterbands == 'ALL':
+                    bandNumbers = range(1, l.bandCount()+1)
+                else:
+                    bandNumbers = [1]
 
-                    return
-                    """
-                        dp = l.dataProvider()
-                        assert isinstance(dp, QgsRasterDataProvider)
-                        result = dp.identify(pointLyr, QgsRaster.IdentifyFormatFeature)
-                        r = dp.identify(pointLyr, QgsRaster.IdentifyFormatValue)
-                    """
+                results = l.dataProvider().identify(pointLyr, QgsRaster.IdentifyFormatValue).results()
+                if len(results) == 0:
+                    #fallback: get the colors
+                    pt2 = QgsPointXY(pointLyr.x() + l.rasterUnitsPerPixelX() * 3,
+                                     pointLyr.y() - l.rasterUnitsPerPixelY() * 3)
+                    ext2Px = QgsRectangle(pointLyr.x(), pt2.y(), pt2.x(), pointLyr.y())
+
+                    block = l.renderer().block(1, ext2Px, 3, 3)
+                    color = QColor(block.color(0,0))
+                    v.bandValues.append(color)
 
                 else:
+                    wl, wlu = parseWavelength(l)
+                    for band, value in results.items():
+                        v.bandValues.append(RasterValueSet.BandInfo(band-1, value, l.bandName(band)))
 
-                    ds = gdal.Open(l.source())
-                    if ds.RasterCount == 0:
-                        continue
-
-                    if isinstance(renderer, QgsRasterRenderer) and isinstance(ds, gdal.Dataset):
-                        # transform geo into pixel coodinates
-                        px = geo2px(pointLyr, ds.GetGeoTransform())
-                        if px.x() >= 0 and px.x() < ds.RasterXSize and \
-                                px.y() >= 0 and px.y() < ds.RasterYSize:
-
-                            v = RasterValueSet(l.source(), crsInfo, ptInfo, px)
-
-                            # !Note: b is not zero-based -> 1st band means b == 1
-                            if rasterbands == 'VISIBLE':
-                                bandNumbers = renderer.usesBands()
-                            elif rasterbands == 'ALL':
-                                bandNumbers = range(1, ds.RasterCount + 1)
-                            else:
-                                bandNumbers = [0]
-
-                            for i, b in enumerate(bandNumbers):
-
-                                band = ds.GetRasterBand(b)
-                                assert isinstance(band, gdal.Band)
-                                if i == 0:
-                                    v.noDataValue = band.GetNoDataValue()
-
-                                value = band.ReadAsArray(px.x(), px.y(), 1, 1)
-                                if value is None:
-                                    s = ""
-                                value = np.asscalar(value.flatten()[0])
-                                bandInfo = RasterValueSet.BandInfo(b - 1, value, band.GetDescription())
-                                v.bandValues.append(bandInfo)
-
-                            self.mLocationInfoModel.addSourceValues(v)
+                self.mLocationInfoModel.addSourceValues(v)
+                s = ""
 
             if isinstance(l, QgsVectorLayer):
                 # searchRect = QgsRectangle(pt, pt)

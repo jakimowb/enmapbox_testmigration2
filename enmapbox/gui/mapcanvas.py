@@ -690,57 +690,6 @@ class CanvasLink(QObject):
             CanvasLink.GLOBAL_LINK_LOCK = False
 
 
-    @staticmethod
-    def depr_applyLinking(initialSrcCanvas):
-        if CanvasLink.GLOBAL_LINK_LOCK:
-            # do not disturb ongoing linking by starting a new one
-            return
-        else:
-            CanvasLink.GLOBAL_LINK_LOCK = True
-            QTimer.singleShot(500, lambda: CanvasLink.resetLinkLock())
-
-            # G0(A) -> G1(B) -> G3(E)
-            #      -> G1(C) -> G3(A)
-            #               -> G3(E)
-            # Gx = Generation. G1 will be set before G2,...
-            # A,B,..,E = MapCanvas Instances
-            # Order of linking starting from A: B,C,E
-            # Note: G3(A) will be not set, as A is already handled (initial signal)
-            #      G3(E) receives link from G1(B) only.
-            #      change related signals in-between will be blocked by GLOBAL_LINK_LOCK
-
-            handledCanvases = [initialSrcCanvas]
-
-            def filterNextGenerationLinks(srcCanvas):
-                linkList = []
-                for link in srcCanvas.canvasLinks:
-                    dstCanvas = link.theOtherCanvas(srcCanvas)
-                    if dstCanvas not in handledCanvases:
-                        linkList.append(link)
-                return srcCanvas, linkList
-
-            def removeEmptyEntries(nextGen):
-                return [pair for pair in nextGen if len(pair[1]) > 0]
-
-            nextGeneration = removeEmptyEntries([filterNextGenerationLinks(initialSrcCanvas)])
-
-            while len(nextGeneration) > 0:
-                # get the links that have to be set for the next generation
-                _nextGeneration = []
-                for item in nextGeneration:
-                    srcCanvas, links = item
-
-                    # apply links
-                    srcExt = SpatialExtent.fromMapCanvas(srcCanvas)
-                    for link in links:
-                        dstCanvas = link.theOtherCanvas(srcCanvas)
-                        if dstCanvas not in handledCanvases:
-                            assert dstCanvas == link.apply(srcCanvas, dstCanvas)
-                            handledCanvases.append(dstCanvas)
-
-                    _nextGeneration.extend([filterNextGenerationLinks(srcCanvas)])
-                nextGeneration = removeEmptyEntries(_nextGeneration)
-
 
     def containsCanvas(self, canvas):
         return canvas in self.canvases
@@ -769,7 +718,13 @@ class CanvasLink(QObject):
 
         return QIcon(src)
 
-    def apply(self, srcCanvas:QgsMapCanvas, dstCanvas:QgsMapCanvas):
+    def apply(self, srcCanvas:QgsMapCanvas, dstCanvas:QgsMapCanvas)->QgsMapCanvas:
+        """
+        Applies the linking between src and dst canvas
+        :param srcCanvas: QgsMapCanvas
+        :param dstCanvas: QgsMapCanvas
+        :return: dstCanvas QgsMapCanvas
+        """
         assert isinstance(srcCanvas, QgsMapCanvas)
         assert isinstance(dstCanvas, QgsMapCanvas)
 
@@ -777,46 +732,52 @@ class CanvasLink(QObject):
         srcExt = SpatialExtent.fromMapCanvas(srcCanvas)
 
         # original center and extent
-        centerO = SpatialPoint.fromMapCanvasCenter(dstCanvas)
-        extentO = SpatialExtent.fromMapCanvas(dstCanvas)
+        centerSrc = SpatialPoint.fromMapCanvasCenter(srcCanvas)
+        centerDst = SpatialPoint.fromMapCanvasCenter(dstCanvas)
 
         # transform (T) to target CRS
         dstCrs = dstCanvas.mapSettings().destinationCrs()
         extentT = srcExt.toCrs(dstCrs)
+
+
+
 
         assert isinstance(extentT, SpatialExtent), \
         'Unable to transform {} from {} to {}'.format(srcExt.asWkt(), srcCrs.description(), dstCrs.description())
 
         centerT = SpatialPoint(srcExt.crs(), srcExt.center())
 
-        w, h = srcCanvas.width(), srcCanvas.height()
-        if w == 0:
-            w = max([10, dstCanvas.width()])
-        if h == 0:
-            h = max([10, dstCanvas.height()])
+        srcWidth, srcHeight = srcCanvas.width(), srcCanvas.height()
+        if srcWidth == 0:
+            srcWidth = max([5, dstCanvas.width()])
+        if srcHeight == 0:
+            srcHeight = max([5, dstCanvas.height()])
 
-        mapUnitsPerPx_x = extentT.width() / w
-        mapUnitsPerPx_y = extentT.height() / h
+
+
+        mapUnitsPerPx_x = extentT.width() / srcWidth
+        mapUnitsPerPx_y = extentT.height() / srcHeight
 
         scaledWidth = mapUnitsPerPx_x * dstCanvas.width()
         scaledHeight = mapUnitsPerPx_y * dstCanvas.height()
-        scaledBox = SpatialExtent(dstCrs, scaledWidth, scaledHeight).setCenter(centerO)
-
+        scaledBoxCenterDst = SpatialExtent(dstCrs, scaledWidth, scaledHeight).setCenter(centerDst)
+        scaledBoxCenterSrc = SpatialExtent(dstCrs, scaledWidth, scaledHeight).setCenter(centerSrc.toCrs(dstCrs))
         if self.linkType == LINK_ON_CENTER:
             dstCanvas.setCenter(centerT)
 
         elif self.linkType == LINK_ON_SCALE:
-            dstCanvas.zoomToFeatureExtent(scaledBox)
+
+            dstCanvas.zoomToFeatureExtent(scaledBoxCenterDst)
 
         elif self.linkType == LINK_ON_CENTER_SCALE:
-            dstCanvas.zoomToFeatureExtent(extentT)
+            dstCanvas.zoomToFeatureExtent(scaledBoxCenterSrc)
 
         else:
             raise NotImplementedError()
 
         return dstCanvas
 
-    def applyTo(self, canvasTo):
+    def applyTo(self, canvasTo:QgsMapCanvas):
         assert isinstance(canvasTo, QgsMapCanvas)
         canvasFrom = self.theOtherCanvas(canvasTo)
         return self.apply(canvasFrom, canvasTo)
@@ -941,7 +902,7 @@ class MapCanvas(QgsMapCanvas):
             super(MapCanvas, self).refresh()
             #super(MapCanvas, self).refreshAllLayers()
 
-    def contextMenu(self):
+    def contextMenu(self, spatialPoint:SpatialPoint=None):
         """
         Create a context menu for common MapCanvas operations
         :return: QMenu
@@ -979,21 +940,56 @@ class MapCanvas(QgsMapCanvas):
 
 
         menu.addSeparator()
+        m = menu.addMenu('Crosshair')
 
         if self.crosshairIsVisible():
-            action = menu.addAction('Hide Crosshair')
+            action = m.addAction('Hide')
             action.triggered.connect(lambda : self.setCrosshairVisibility(False))
         else:
-            action = menu.addAction('Show Crosshair')
+            action = m.addAction('Show')
             action.triggered.connect(lambda: self.setCrosshairVisibility(True))
 
         from enmapbox.gui.crosshair import CrosshairDialog
-        action = menu.addAction('Set Crosshair Style')
+        action = m.addAction('Style')
         action.triggered.connect(lambda : self.setCrosshairStyle(
             CrosshairDialog.getCrosshairStyle(
                 crosshairStyle=self.crosshairStyle(), mapCanvas=self
             )
         ))
+
+        mPxGrid = m.addMenu('Pixel Grid')
+        if self.mCrosshairItem.mCrosshairStyle.mShowPixelBorder:
+            action = mPxGrid.addAction('Hide')
+            action.triggered.connect(lambda : self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(False))
+
+        mPxGrid.addSeparator()
+
+        rasterLayers = [l for l in self.layers() if isinstance(l, QgsRasterLayer) and l.isValid()]
+
+        def onShowRasterGrid(layer:QgsRasterLayer):
+            self.mCrosshairItem.setVisibility(True)
+            self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(True)
+            self.mCrosshairItem.setRasterGridLayer(layer)
+
+
+        actionTop = mPxGrid.addAction('Top Raster')
+        actionBottom = mPxGrid.addAction('Bottom Raster')
+        if len(rasterLayers) == 0:
+            actionTop.setEnabled(False)
+            actionBottom.setEnabled(False)
+
+        else:
+            actionTop.triggered.connect(lambda b, layer=rasterLayers[0]: onShowRasterGrid(layer))
+            actionBottom.triggered.connect(lambda b, layer=rasterLayers[-1]: onShowRasterGrid(layer))
+            mPxGrid.addSeparator()
+            for l in rasterLayers:
+                assert isinstance(l, QgsRasterLayer)
+                ischecked = self.mCrosshairItem.mRasterGridLayer == l
+                action = mPxGrid.addAction(l.name())
+                action.setChecked(ischecked)
+                action.triggered.connect(lambda b, layer=l: onShowRasterGrid(layer))
+
+
 
         menu.addSeparator()
 
@@ -1003,7 +999,7 @@ class MapCanvas(QgsMapCanvas):
 
         action = menu.addAction('Zoom Native Resolution')
         action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.svg'))
-        action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
+        action.triggered.connect(lambda: self.zoomToPixelScale(spatialPoint=spatialPoint))
 
         menu.addSeparator()
 
@@ -1027,12 +1023,6 @@ class MapCanvas(QgsMapCanvas):
         action = menu.addAction('Refresh all layers')
         action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
         action.triggered.connect(lambda: self.refreshAllLayers())
-
-
-        menu.addSeparator()
-
-        action = menu.addAction('Clear map')
-        action.triggered.connect(lambda: self.setLayers([]))
 
         menu.addSeparator()
         action = menu.addAction('Set CRS...')
@@ -1081,7 +1071,7 @@ class MapCanvas(QgsMapCanvas):
             self.mCrosshairItem.setCrosshairStyle(crosshairStyle)
 
     def crosshairStyle(self):
-        return self.mCrosshairItem.crosshairStyle
+        return self.mCrosshairItem.mCrosshairStyle
 
     def setShowCrosshair(self,b):
         warnings.warn('Use setCrosshairVisibility', DeprecationWarning)
@@ -1125,30 +1115,25 @@ class MapCanvas(QgsMapCanvas):
     def name(self):
         return self.mName
 
-    def zoomToPixelScale(self):
+    def zoomToPixelScale(self, spatialPoint:SpatialPoint=None):
         unitsPxX = []
         unitsPxY = []
         for lyr in self.layers():
             if isinstance(lyr, QgsRasterLayer):
+                if isinstance(spatialPoint, SpatialPoint):
+                    if not lyr.extent().contains(spatialPoint.toCrs(lyr.crs())):
+                        continue
                 unitsPxX.append(lyr.rasterUnitsPerPixelX())
                 unitsPxY.append(lyr.rasterUnitsPerPixelY())
 
         if len(unitsPxX) > 0:
-            unitsPxX = np.asarray(unitsPxX)
-            unitsPxY = np.asarray(unitsPxY)
-            if True:
-                # zoom to largest pixel size
-                i = np.nanargmax(unitsPxX)
-            else:
-                # zoom to smallest pixel size
-                i = np.nanargmin(unitsPxX)
-            unitsPxX = unitsPxX[i]
-            unitsPxY = unitsPxY[i]
-            f = 0.2
+            unitsPxX = unitsPxX[0]
+            unitsPxY = unitsPxY[0]
+            f = 1.0
             width = f * self.size().width() * unitsPxX  # width in map units
             height = f * self.size().height() * unitsPxY  # height in map units
 
-            center = SpatialPoint.fromMapCanvasCenter(self.canvas)
+            center = SpatialPoint.fromMapCanvasCenter(self)
             extent = SpatialExtent(center.crs(), 0, 0, width, height)
             extent.setCenter(center, center.crs())
             self.setExtent(extent)
@@ -1162,14 +1147,9 @@ class MapCanvas(QgsMapCanvas):
         mimeData = event.mimeData()
         assert isinstance(mimeData, QMimeData)
 
-
-
         # check mime types we can handle
         assert isinstance(event, QDragEnterEvent)
-
-        if MDF_DATASOURCETREEMODELDATA in mimeData.formats() or \
-            MDF_URILIST in mimeData.formats() or \
-            MDF_LAYERTREEMODELDATA in mimeData.formats():
+        if containsMapLayers(mimeData):
             event.setDropAction(Qt.CopyAction)  # copy but do not remove
             event.accept()
         else:
@@ -1195,7 +1175,12 @@ class MapCanvas(QgsMapCanvas):
 
     def contextMenuEvent(self, event):
 
-        menu = self.contextMenu()
+        pos = event.globalPos()
+        pos = self.mapFromGlobal(pos)
+        point = self.mapSettings().mapToPixel().toMapCoordinates(pos.x(), pos.y())
+        point2 = SpatialPoint(self.mapSettings().destinationCrs(), point)
+
+        menu = self.contextMenu(spatialPoint=point2)
         menu.exec_(event.globalPos())
 
         #self.sigContextMenuEvent.emit(event)

@@ -15,15 +15,15 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest, shutil
 from collections import namedtuple
-from enmapbox.gui.utils import *
+from enmapboxtesting import initQgisApplication, TestObjects
 
 QGIS_APP = initQgisApplication()
-
+from enmapbox.gui.utils import *
 from enmapbox import EnMAPBox, DIR_ENMAPBOX
 import enmapbox.gui
 from enmapbox.gui.applications import *
 
-from enmapbox.gui.utils import TestObjects
+
 
 DIR_TMP = os.path.join(DIR_REPO, *['test', 'tmp_enmapboxApplicationTests'])
 

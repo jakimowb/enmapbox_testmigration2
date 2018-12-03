@@ -984,6 +984,26 @@ class ClassificationScheme(QAbstractTableModel):
         return None
 
     @staticmethod
+    def fromMapLayer(layer:QgsMapLayer):
+        """
+
+        :param layer:
+        :return:
+        """
+        scheme = None
+        if isinstance(layer, QgsRasterLayer):
+            scheme = ClassificationScheme.fromRasterRenderer(layer.renderer())
+            if not isinstance(scheme, ClassificationScheme):
+                if layer.dataProvider().name() == 'gdal':
+                    scheme = ClassificationScheme.fromRasterImage(layer.source())
+
+
+        if isinstance(layer, QgsVectorLayer):
+            scheme = ClassificationScheme.fromFeatureRenderer(layer.renderer())
+
+        return scheme
+
+    @staticmethod
     def fromRasterBand(band: gdal.Band):
         """
         Reads the ClassificationScheme of a gdal.Band

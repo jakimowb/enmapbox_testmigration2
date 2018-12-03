@@ -229,6 +229,7 @@ class CursorLocationMapTool(QgsMapToolEmitPoint):
             pt = SpatialPoint(crs, geoPoint)
             self.sigLocationRequest[SpatialPoint].emit(pt)
             self.sigLocationRequest[SpatialPoint, QgsMapCanvas].emit(pt, self.canvas())
+
     def hideRubberband(self):
         self.rubberband.reset()
 
@@ -268,7 +269,7 @@ class PixelScaleExtentMapTool(QgsMapTool):
                 i = np.nanargmin(unitsPxX)
             unitsPxX = unitsPxX[i]
             unitsPxY = unitsPxY[i]
-            f = 0.2
+            f = 1.0
             width = f * self.canvas.size().width() * unitsPxX #width in map units
             height = f * self.canvas.size().height() * unitsPxY #height in map units
 

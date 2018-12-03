@@ -411,9 +411,8 @@ class SpectralProfile(QgsFeature):
         :param position:
         """
         assert isinstance(mapCanvas, QgsMapCanvas)
-        layers = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
-        sources = [l.source() for l in layers]
-        return SpectralProfile.fromRasterSources(sources, position)
+        profiles = [SpectralProfile.fromRasterLayer(lyr, position) for lyr in mapCanvas.layers() if isinstance(lyr, QgsRasterLayer)]
+        return  [p for p in profiles if isinstance(p, SpectralProfile)]
 
     @staticmethod
     def fromRasterSources(sources, position)->list:
@@ -425,6 +424,22 @@ class SpectralProfile(QgsFeature):
         """
         profiles = [SpectralProfile.fromRasterSource(s, position) for s in sources]
         return [p for p in profiles if isinstance(p, SpectralProfile)]
+
+
+
+    @staticmethod
+    def fromRasterLayer(layer:QgsRasterLayer, position:SpatialPoint):
+        position = position.toCrs(layer.crs())
+        results = layer.dataProvider().identify(position, QgsRaster.IdentifyFormatValue).results()
+        wl, wlu = parseWavelength(layer)
+        profile = SpectralProfile()
+        profile.setName('{} {}'.format(layer.name(), position))
+        profile.setValues(x=wl, y=list(results.values()), xUnit=wlu)
+
+        profile.setCoordinates(position)
+        profile.setSource('{}'.format(layer.source()))
+
+        return profile
 
     @staticmethod
     def fromRasterSource(source, position):
@@ -2082,7 +2097,8 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
         assert isinstance(self.plotWidget, SpectralLibraryPlotWidget)
         self.plotWidget.setSpeclib(self.mSpeclib)
         self.plotWidget.backgroundBrush().setColor(COLOR_BACKGROUND)
-        self.mCanvas = QgsMapCanvas()
+        self.mCanvas = QgsMapCanvas(self)
+        self.mCanvas.setVisible(False)
 
         assert isinstance(self.mDualView, QgsDualView)
         self.mDualView.init(self.mSpeclib, self.mCanvas)#, context=self.mAttributeEditorContext)

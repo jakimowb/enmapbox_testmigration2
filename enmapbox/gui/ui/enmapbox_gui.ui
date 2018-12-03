@@ -202,12 +202,12 @@
    <addaction name="actionAddSpeclibView"/>
    <addaction name="actionAddTextView"/>
    <addaction name="separator"/>
-   <addaction name="actionMoveCenter"/>
+   <addaction name="actionPan"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
    <addaction name="actionZoomPixelScale"/>
    <addaction name="actionZoomFullExtent"/>
-   <addaction name="actionPan"/>
+   <addaction name="actionMoveCenter"/>
    <addaction name="separator"/>
    <addaction name="actionSelectProfiles"/>
    <addaction name="actionIdentify"/>
