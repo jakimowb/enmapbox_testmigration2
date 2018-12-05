@@ -47,44 +47,14 @@ priority may be given depending on the relevance of the applicant’s current wo
 
 .. admonition:: Registration
 
-   Information on the application procedure will follow soon!
+   In order to apply for the workshop, please |reg_mailto| providing the information according the supplied template.
+   By sending the email, you confirm that you have noticed the information on data protection regulations provided below [1]_, [2]_ (German only!).
 
-..   In order to apply for the workshop, please |reg_mailto| using the supplied template and provide us with the desired information.
+   | *In case the link above does not work for you, please write an email to*
+   | enmap@humboldt-innovation.de *and provide us with the following information*:
 
-..   *In case the link above does not work for you, please write an email to* fabian.thiel@geo.hu-berlin.de *and provide us with the following information*::
-
-..    Hereby, I apply for participation in the EnMAP-Box Workshop 2019.
-
-    Full name: ...
-    Home institution: ...
-    Working group: ...
-
-    MSc
-    - Awarding university: ...
-    - MSc program title: ...
-    - Year of graduation: ...
-
-    Doctorate/PhD (not mandatory!)
-    - Awarding university: ...
-    - Dissertation title: ...
-    - Year of degree: ...
-
-    Programming language you use most: ...
-    Level: ... (beginner/advanced/"my programs are used by colleagues")
-
-    Programming skills in Python
-    Level: ... (please list number from below)
-
-    [Suggested levels: (1) I have never programmed in python, (2) I know how to execute scripts, (3) I know how to write my own scripts, (4) I develop APIs (pure python), (5) I develop python extension modules in lower level languages using SWIG, Cython, etc.]
-
-    Motivation:
-    ... (max 150-180 words; please motivate your application by addressing the relevance of programming and multi-/hyperspectral data analysis in your daily work, and by referencing work that proves your experience in optical/imaging spectroscopy data analysis)
-
-    Programming project for workshop:
-    ... (max. 50 words; e.g. "BandComp; application for spectral subsetting of (imaging) spectroscopy data using different similarity measures; band pairs are iteratively compared and selected")
-
-    By sending this email, I agree that the provided data is stored for the purpose of the selection process and communication related to workshop organisation.
-
+   .. literalinclude:: workshop_mail.txt
+      :language: none
 
 
 Program (preliminary)
@@ -138,7 +108,13 @@ Contact
 | sebastian.linden@geo.hu-berlin.de
 
 
+....
 
 .. |reg_mailto| raw:: html
 
-    <a href="mailto:fabian.thiel@geo.hu-berlin.de?subject=Registration%20for%20EnMAP-Box%20Workshop%202019&amp;body=Hereby%2C%20I%20apply%20for%20participation%20in%20the%20EnMAP-Box%20Workshop%202019.%20%0A%0AFull%20name%3A%20...%0AHome%20institution%3A%20...%0AWorking%20group%3A%20...%0A%0AMSc%0A-%20Awarding%20university%3A%20...%0A-%20MSc%20program%20title%3A%20...%0A-%20Year%20of%20graduation%3A%20...%0A%0ADoctorate%2FPhD%20(not%20mandatory!)%0A-%20Awarding%20university%3A%20...%0A-%20Dissertation%20title%3A%20...%0A-%20Year%20of%20degree%3A%20...%0A%0AProgramming%20language%20you%20use%20most%3A%20...%0ALevel%3A%20...%20(beginner%2Fadvanced%2F%22my%20programs%20are%20used%20by%20colleagues%22)%0A%0AProgramming%20skills%20in%20Python%0ALevel%3A%20...%20(please%20list%20number%20from%20below)%0A%0A%5BSuggested%20levels%3A%20(1)%20I%20have%20never%20programmed%20in%20python%2C%20(2)%20I%20know%20how%20to%20execute%20scripts%2C%20(3)%20I%20know%20how%20to%20write%20my%20own%20scripts%2C%20(4)%20I%20develop%20APIs%20(pure%20python)%2C%20(5)%20I%20develop%20python%20extension%20modules%20in%20lower%20level%20languages%20using%20SWIG%2C%20Cython%2C%20etc.%5D%0A%0AMotivation%3A%20%0A...%20(max%20150-180%20words%3B%20please%20motivate%20your%20application%20by%20addressing%20the%20relevance%20of%20programming%20and%20multi-%2Fhyperspectral%20data%20analysis%20in%20your%20daily%20work%2C%20and%20by%20referencing%20work%20that%20proves%20your%20experience%20in%20optical%2Fimaging%20spectroscopy%20data%20analysis)%0A%0AProgramming%20project%20for%20workshop%3A%0A...%20(max.%2050%20words%3B%20e.g.%20%22BandComp%3B%20application%20for%20spectral%20subsetting%20of%20(imaging)%20spectroscopy%20data%20using%20different%20similarity%20measures%3B%20band%20pairs%20are%20iteratively%20compared%20and%20selected%22)%0A%0ABy%20sending%20this%20email%2C%20I%20agree%20that%20the%20provided%20data%20is%20stored%20for%20the%20purpose%20of%20the%20selection%20process%20and%20communication%20related%20to%20workshop%20organisation.%20">write us an E-Mail</a>
+   <a href="mailto:enmap@humboldt-innovation.de?subject=Registration%20for%20EnMAP-Box%20Workshop%202019&amp;body=Hereby%2C%20I%20apply%20for%20participation%20in%20the%20EnMAP-Box%20Workshop%202019.%0A%0AFull%20name%3A%0AHome%20institution%3A%0AWork%20group%3A%0A%0AMSc%0A-%20Awarding%20university%3A%0A-%20MSc%20program%20title%3A%0A-%20Year%3A%0A%0ADoctorate%2FPhD%0A-%20Awarding%20university%3A%0A-%20Dissertation%20title%3A%0A-%20Year%3A%0A%0AProgramming%20language%20you%20use%20most%3A%20...%0ALevel%3A%20...%20(beginner%2Fadvanced%2F%22my%20programs%20are%20used%20by%20colleagues%22)%0A%0AProgramming%20skills%20in%20Python%0ALevel%3A%20...%20(please%20list%20number%20from%20below)%0A%5BSuggested%20levels%3A%20(1)%20I%20have%20never%20programmed%20in%20python%2C%20(2)%20I%20know%20how%20to%20execute%20scripts%2C%20(3)%20I%20know%20how%20to%20write%20my%20own%20scripts%2C%20(4)%20I%20develop%20APIs%20(pure%20python)%2C%20(5)%20I%20develop%20python%20extension%20modules%20in%20lower%20level%20languages%20using%20SWIG%2C%20Cython%2C%20etc.%5D%0A%0AMotivation%3A%0A...%20(max%20150-180%20words%3B%20please%20motivate%20your%20application%20by%20addressing%20the%20relevance%20of%20programming%20and%20multi-%2Fhyperspectral%20data%20analysis%20in%20your%20daily%20work%2C%20and%20by%20referencing%20work%20that%20proves%20your%20experience%20in%20optical%2Fimaging%20spectroscopy%20data%20analysis)%0A%0AProgramming%20project%20for%20workshop%3A%0A...%20(max.%2050%20words%3B%20e.g.%20%22BandComp%3B%20application%20for%20spectral%20subsetting%20of%20(imaging)%20spectroscopy%20data%20using%20different%20similarity%20measures%3B%20band%20pairs%20are%20iteratively%20compared%20and%20selected%22)%0A%0ABy%20sending%20the%20email%2C%20I%20confirm%20that%20I%20have%20noticed%20the%20information%20on%20data%20protection%20regulations%20provided%20at%20https%3A%2F%2Fenmap-box.readthedocs.io%2Fen%2Flatest%2Fworkshop.html%20and%20http%3A%2F%2Fhumboldt-innovation.de%2Fde%2Fimprint.html.">write us an E-Mail</a>
+
+
+.. [1] Wenn Sie sich über diese E-Mail für diese Veranstaltung anmelden, erhebt die Humboldt-Innovation GmbH dabei die folgenden Daten: Vor- und Nachname, Unternehmen/Institution, Email-Adresse sowie Ort und Zeitpunkt MSc Abschluss, Ort und Zeitpunkt Promotion, sowie Programmierkenntnisse, Die Gründe der Kontaktaufnahme kennen nur Sie; die Reaktion hierauf beschreibt sogleich den Zweck der Verarbeitung. Soweit es um ein konkretes Schuldverhältnis (hier Zuschauervertrag), sei es im Zusammenhang mit der Anbahnung, Durchführung oder Beendigung, geht, ist die Rechtsgrundlage für die Verarbeitung Artikel 6 Absatz 1 lit. b DSGVO. In diesem Fall speichert die Humboldt-Innovation GmbH die Daten bis zum Ende der gesetzlichen Aufbewahrungsfrist. In allen anderen Fällen ist die Rechtsgrundlage Artikel 6 Absatz 1 Satz 1 lit. f DSGVO,  wonach die Verarbeitung personenbezogener Daten auch ohne Einwilligung des Betroffenen möglich ist, wenn die Verarbeitung zur Wahrung der berechtigten Interessen des Verantwortlichen oder eines Dritten erforderlich ist, sofern nicht die Interessen oder Grundrechte und Grundfreiheiten der betroffenen Person, die den Schutz personenbezogener Daten erfordern, überwiegen, insbesondere dann, wenn es sich bei der betroffenen Person um ein Kind handelt. Die Kommunikation außerhalb eines Schuldverhältnisses ist in beiderseitigen Interesse des Anmelders und der Humboldt-Innovation GmbH. Die Humboldt-Innovation GmbH speichert Ihre Daten, bis der aus dem berechtigten Interesse herrührende Zweck erfüllt ist.
+
+.. [2] General data protection regulation of Humboldt-Innovation GmbH: http://humboldt-innovation.de/de/imprint.html

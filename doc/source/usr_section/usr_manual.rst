@@ -583,7 +583,7 @@ This information is stored by adding a .csv and .json file to the default spectr
           "colors": [[230, 0, 0],  [56, 168, 0], [168, 112, 0], [0,100,255]]
         }
     }
-
+  * The keys ``names`` and ``colors`` should not be altered. But change ``attibute_name`` according to your data.
   * Example from the EnMAP-Box test dataset:
 
     .. figure:: ../img/speclib_json_example.png
@@ -692,7 +692,8 @@ File name: *library_berlin.sli*
 
 Spectral library with 75 spectra (material level, level 2 and level 3 class information)
 
-.. figure:: ../img/testdata_speclib.png
+.. figure:: ../img/testdata_speclib.PNG
+   :width: 100%
 
    library_berlin.sli opened in the EnMAP-Box Spectral Library Window
 
