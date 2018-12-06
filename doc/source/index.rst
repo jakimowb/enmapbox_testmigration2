@@ -5,7 +5,7 @@
 
 .. attention::
 
-   There will be an EnMAP-Box workshop in Berlin in February 2019!
+   There will be a EnMAP-Box workshop in Berlin in February 2019!
 
    .. image:: img/workshop_logo.png
 
