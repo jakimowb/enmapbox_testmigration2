@@ -20,7 +20,7 @@ elaborate the presented work individually or in groups during a Hackathon on day
 
 The EnMAP-Box 3 is a free and open source software tool provided as a python plug-in for QGIS.
 
-Workshop language is English.
+Workshop language is English. There are **no workshop fees**, but participants must cover their own travel and accommodation costs.
 
 
 
@@ -97,8 +97,13 @@ The workshop will take place in **Berlin-Adlershof** in the **Erwin-Schrödinger
 Organizers
 ~~~~~~~~~~
 
-Humboldt-Universität zu Berlin for the EnMAP-Core Science Team
+Humboldt-Universität zu Berlin for the EnMAP-Core Science Team.
 
+The workshop is part of the scientific preparation program of the EnMAP mission funded under the DLR Space Administration with resources from the German Federal Ministry of Economic Affairs and Energy.
+
+.. image:: img/organizers.png
+
+|
 
 Contact
 ~~~~~~~
@@ -107,6 +112,8 @@ Contact
 | **Dr. Sebastian van der Linden**
 | sebastian.linden@geo.hu-berlin.de
 
+
+|
 
 ....
 
