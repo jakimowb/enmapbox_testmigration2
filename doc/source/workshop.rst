@@ -60,7 +60,7 @@ priority may be given depending on the relevance of the applicant’s current wo
 Program (preliminary)
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. .. figure:: img/program.PNG
+.. figure:: img/ebws_table.jpg
 
 
 |
