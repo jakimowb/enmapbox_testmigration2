@@ -8,6 +8,11 @@
 -r requirements.txt
 
 #requirements for developers
+# Required packages to run tests
+pytest
+py
+pytest-cov
+
 gitpython
 git-lfs
 pb_tool
