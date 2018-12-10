@@ -4,7 +4,7 @@
 # see https://www.python.org/dev/peps/pep-0440/#version-specifiers
 ###### Requirements ######
 
-gdal>=2.3
+gdal
 numpy>=1.15
 scipy>=1.1
 scikit-learn>=0.19.2
