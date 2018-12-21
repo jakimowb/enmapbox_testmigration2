@@ -58,7 +58,7 @@ step-by-step tutorials which exemplify the software's capabilities.
 
     usr_section/usr_installation.rst
     usr_section/usr_gettingstarted.rst
-    usr_section/usr_guide.rst
+    usr_section/usr_cookbook.rst
     usr_section/usr_manual.rst
 
 ..  toctree::

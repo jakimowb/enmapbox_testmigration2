@@ -72,9 +72,13 @@ User Manual
 The GUI
 #######
 
+.. figure:: ../img/manual_gui.png
 
-Toolbar
-=======
+
+
+
+1. Toolbar
+==========
 
 In the toolbar you can find the most common tasks. See table below for information on different buttons and their functionality.
 
@@ -134,8 +138,8 @@ In the toolbar you can find the most common tasks. See table below for informati
        | all layers at the selected position.
 
 
-Data Sources
-============
+2. Data Sources
+===============
 
 The Data Sources panel lists the data in your current project, comparable to the Layers panel in QGIS. The following data types and their
 corresponding metadata are available:
@@ -205,10 +209,11 @@ corresponding metadata are available:
      your QGIS project as you normally would, and then click the |mActionRefresh| :superscript:`Synchronize Data Sources with QGIS`
      button. Now they should appear in the data source panel and can be added to a Map View.
 
-Data Views
-==========
+3. Data Views
+=============
 
 The Data Views panel organizes the different windows and their content.
+You may change the name of a Window by double-clicking onto the name in the list.
 
 
 .. figure:: ../img/example_data_views.png
@@ -221,15 +226,78 @@ The Data Views panel organizes the different windows and their content.
 Map Window |viewlist_mapdock|
 ~~~~~~~~~~
 
+The map window allows you to visualize raster and vector data. It is interactive, which means you can move the content or
+zoom in/out.
+
+* In order to add a new Map Window click the |viewlist_mapdock| :superscript:`Open a Map Window` button. Once you added a
+  Map Window, it will be listed in the ``Data Views`` panel.
+* Add layers by either drag-and-dropping them into the Map Window (from the Data Sources list) or right-click onto
+  the layer -> *Open in existing map...*
+* You can also directly create a new Map Window and open a layer by right-clicking the layer -> *Open in new map*
+
+
 .. can display raster and vector data (+ layer styling as is QGIS)
 .. a variety of alignment options (maybe show animated gif)
 
 
-**Linking**
+Linking
+^^^^^^^
+
+You can link multiple Map Windows with each other, so that the contents are synchronized. The following options are
+available:
+
+* |linkscalecenter| Link map scale and center
+* |linkscale| Link map scale
+* |linkcenter| Link map center
+
+In order to link Map Windows, go to :menuselection:`View --> Set Map Linking`, which will open the following dialog:
+
+.. image:: ../img/map_linking.png
+
+Here you can specify the above mentioned link options between the Map Windows. You may either specify linkages between pairs
+or link all canvases at once (the ``All Canvases`` option is only specifiable when the number of Map Windows is > 2). Remove
+created links by clicking |unlink|.
+
+**Alternative:** You can also create linkages between Map Windows directly from the Window itself:
+
+.. warning:: Mind that this method might not work on Linux or Mac systems (due to display problems).
+             In that case just use :menuselection:`View --> Set Map Linking`.
+
+#. Click the |link| button in the Map Window bar (|mapwindowbar|).
+#. Now the linking options/buttons appear the remaining Map Windows:
+
+   .. figure:: ../img/map_linking2.png
+      :width: 100%
+
+#. Select the desired linking type by clicking on the respective button.
+
+
+|
+
+
+.. raw:: html
+
+   <div><video width="450px" controls><source src="../_static/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+   <p><i>Demonstration of linking two Map Windows</i></p></div>
+
+.. |linkscalecenter| image:: ../../../enmapbox/gui/ui/icons/link_mapscale_center.svg
+   :width: 33px
+.. |linkscale| image:: ../../../enmapbox/gui/ui/icons/link_mapscale.svg
+   :width: 33px
+.. |linkcenter| image:: ../../../enmapbox/gui/ui/icons/link_center.svg
+   :width: 33px
+.. |unlink| image:: ../../../enmapbox/gui/ui/icons/link_open.svg
+   :width: 25px
+.. |link| image:: ../../../enmapbox/gui/ui/icons/link_basic.svg
+   :width: 25px
+.. |mapwindowbar| image:: ../img/mapwindowbar.png
 
 
 
-**Crosshair**
+Crosshair
+^^^^^^^^^
+
+
 
 Spectral Library Window |viewlist_spectrumdock|
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -239,8 +307,8 @@ Text Window |viewlist_textview|
 
 
 
-Processing Toolbox
-==================
+4. Processing Toolbox
+=====================
 
 The processing toolbox is basically the same panel as in QGIS, i.e. it is mirrored into the EnMAP-Box GUI. Here you can find all the
 processing algorithms that come with the EnMAP-Box listed under *EnMAP-Box*. In case it is closed/not visible you can open
@@ -248,8 +316,8 @@ it via :menuselection:`View --> Panels --> QGIS Processing Toolbox`.
 
 See `QGIS Documentation - The toolbox <https://docs.qgis.org/2.18/en/docs/user_manual/processing/toolbox.html>`_ for further information.
 
-Cursor Location Values
-======================
+5. Cursor Location Values
+=========================
 
 This tools lets you inspect the values of a layer or multiple layers at the location where you click in the map view. To select a location (e.g. pixel or feature)
 select the :guilabel:`Select Cursor Location` or the |mActionIdentify| :superscript:`Identify` button and click somewhere in the map view.
@@ -522,7 +590,9 @@ Fraction
 * Optional: Metadata for class names and colors are stored in the ENVI metadata domain (``class names``, ``class lookup``).
   In this case there is no *unclassified* class (compared to Classification)
 
+
   .. figure:: ../img/fraction_metadata.png
+     :alt: Screenshot of fraction image metadata
 
      Example of the metadata of a fraction image viewed in the :ref:`Metadata Editor <metadata_editor>`
 

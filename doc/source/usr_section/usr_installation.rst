@@ -210,9 +210,10 @@ Windows
     Click on the |osgeoinstaller| symbol once, which should usually change the *Skip* setting to installing the most recent
     version. Only **AFTER** having selected **ALL** required packages, click :guilabel:`Next`.
 
-    .. figure:: ../img/osgeoinstall.gif
+    .. raw:: html
 
-         Animated walkthrough for the OSGeo4W Setup
+       <div><video width="90%" controls muted><source src="../_static/osgeoinstall.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+       <p><i>Package installation with the OSGeo4W Installer</i></p></div>
 
 #. Install the remaining python packages using ``pip`` in the OSGeo4W Shell
 
