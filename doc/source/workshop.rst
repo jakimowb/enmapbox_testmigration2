@@ -6,6 +6,11 @@ EnMAP-Box Workshop 2019
 .. image:: img/workshop_logo.png
 
 
+.. attention::
+
+    **Application deadline extended:** There are still free slots available. If you are interested,
+    please :ref:`send us your application <application>` until **09.01.2019**.
+
 Aims and scope
 ~~~~~~~~~~~~~~
 
@@ -37,12 +42,13 @@ of the workshop are offered at two levels of experience to comply with the needs
 those who have joined previous EnMAP workshops.
 
 
+.. _application:
 
 Application procedure
 ~~~~~~~~~~~~~~~~~~~~~
 
 The workshop is limited to 24 participants who have successfully passed the application procedure. Application deadline
-is 2 January 2019. Successful applicants are informed by 7 January 2019. During the selection process,
+is **extended until 9 January 2019**. Successful applicants are informed by 7 January 2019. During the selection process,
 priority may be given depending on the relevance of the applicant’s current work for the EnMAP mission and her/his programming experience.
 
 .. admonition:: Registration
@@ -114,6 +120,8 @@ Contact
 
 
 |
+
+*Page updated 07.01.2019*
 
 ....
 
