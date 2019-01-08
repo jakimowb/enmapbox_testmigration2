@@ -7,19 +7,22 @@
 
 
 
-.. _usr_guide:
+.. _usr_cookbook:
 
-==========
-User Guide
-==========
+========
+Cookbook
+========
+
+This section is a collection of 'recipes' for common tasks you can perform in the EnMAP-Box. If you miss topics,
+feel free to suggest new entries here!
 
 
 Working with the GUI
 ====================
 
 
-Processing Algorithms
-=====================
+Using Processing Algorithms
+===========================
 
 
 .. _graphical_modeler:
@@ -40,22 +43,21 @@ Graphical Modeler
    items or building blocks, which are the ``Inputs`` and ``Alogrithms``. The latter basically lists all algorithms
    available in the QGIS Processing Toolbox and the first lists all available types of inputs, which can be used by the
    processing algorithms.
-#. For image classification we need at least an input raster and a reference dataset. Mind that in case of the EnMAP-Box testdata
-   the reference dataset is a polygon shapefile. Under ``Inputs`` search for *Raster Layer* and select it (double-click or drag-and-drop).
+#. For image classification we need at least an input raster and a reference dataset. In case of the EnMAP-Box testdata
+   the reference dataset is a point shapefile. Under ``Inputs`` search for *Raster Layer* and select it (double-click or drag-and-drop).
    As ``Parameter Name`` you can for example choose *input_image*. Mind how this input graphically appears in the main window.
-   Now again, look for *Vector Layer*, double-click, and assign a name, e.g. *reference_polygon*.
+   Now again, look for *Vector Layer*, double-click, and assign a name, e.g. *reference_vector*.
 
    .. note:: You can of course change the ``Parameter name`` as you wish, but it might be easier to follow this guide when you use the suggestions.
 
-#. Add a *Vector Field* input to the model. Enter *reference_field* as ``Parameter name`` and *reference_polygon* as ``Parent layer``.
+#. Add a *Vector Field* input to the model. Enter *reference_field* as ``Parameter name`` and *reference_vector* as ``Parent layer``.
    Furthermore, add a *String input*, name it *cd_text* and deselect the ``Mandatory`` option. We are going to need those
    inputs for the following algorithm.
 #. Now we need the *Classification from Vector* algorithm in order to rasterize the reference dataset. Find it in the
    ``Algorithms`` tab and select it.  Now enter the following parameters:
     * ``Pixel grid``: input_image
-    * ``Vector``: reference_polygon
+    * ``Vector``: reference_vector
     * ``Class id attribute``: reference_field
-    * ``Class Definition``: cd_text
     * ``Minimal overall coverage``: 0.0
     * ``Minimal dominant coverage``: 0.0
     * ``Oversampling factor``: 1
@@ -76,15 +78,9 @@ Graphical Modeler
 #. Under ``Model properties`` you can specify a name and a group for your model and save it.
 #. Click the run button or press F5 to test your model. Use the following settings:
 
-    * input_image: EnMAP_BerlinUrbanGradient.bsq
-    * reference_polygon: LandCov_BerlinUrbanGradient.shp
-    * reference_field: Level_2_ID
-    * cd_text:
-
-      .. code-block:: batch
-
-         ClassDefinition(classes=6, names=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other'], colors=['#e60000', '#9c9c9c', '#98e600', '#267300', '#a87000', '#f5f57a'])
-
+    * ``input_image``: enmap_berlin.bsq
+    * ``reference_vector``: landcover_berlin_point.shp
+    * ``reference_field``: level_2_id
 
    .. figure:: ../img/screenshot_graphical_model.png
 
