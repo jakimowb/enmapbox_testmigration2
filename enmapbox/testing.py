@@ -20,14 +20,15 @@
 """
 # noinspection PyPep8Naming
 
-import os, sys, re, io, importlib, uuid
-
+import os, sys, re, io, importlib, uuid, warnings
+import sip
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 import qgis.testing
+import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
 import enmapboxtestdata
@@ -58,6 +59,7 @@ def initQgisApplication(*args, qgisResourceDir:str=None, **kwds)->QgsApplication
 
         qgsApp = qgis.testing.start_app()
 
+        # initialize things not done by qgis.test.start_app()...
         if not isinstance(qgisResourceDir, str):
             parentDir = os.path.dirname(os.path.dirname(__file__))
             resourceDir = os.path.join(parentDir, 'qgisresources')
@@ -72,16 +74,50 @@ def initQgisApplication(*args, qgisResourceDir:str=None, **kwds)->QgsApplication
                 if "qInitResources" in dir(mod):
                     mod.qInitResources()
 
-        #initiate a PythonRunner instance if None exists
+        # initiate a PythonRunner instance if None exists
         if not QgsPythonRunner.isValid():
             r = PythonRunnerImpl()
             QgsPythonRunner.setInstance(r)
 
-        #initiate the QGIS processing framework
-        from processing.core.Processing import Processing
         from qgis.analysis import QgsNativeAlgorithms
-        Processing.initialize()
         QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+
+        # import processing
+        # p = processing.classFactory(iface)
+        if not isinstance(qgis.utils.iface, QgisInterface):
+
+            iface = QgisMockup()
+            qgis.utils.initInterface(sip.unwrapinstance(iface))
+            assert iface == qgis.utils.iface
+            """
+            import processing
+            processing.Processing.initialize()
+            import processing
+            import pkgutil
+            prefix = str(processing.__name__ + '.')
+            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
+                try:
+                    module = __import__(modname, fromlist="dummy")
+                    if hasattr(module, 'iface'):
+                        print(modname)
+                        module.iface = iface
+                except:
+                    pass
+            """
+        # set 'home_plugin_path', which is required from the QGIS Plugin manager
+        qgis.utils.home_plugin_path = os.path.join(QgsApplication.instance().qgisSettingsDirPath(),
+                                                   *['python', 'plugins'])
+
+        # initiate the QGIS processing framework
+
+        from processing.core.Processing import Processing
+        Processing.initialize()
+
+        #
+        providers = QgsProviderRegistry.instance().providerList()
+        for p in ['DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']:
+            if p not in providers:
+                warnings.warn('Missing QGIS provider "{}"'.format(p), Exception)
 
         from enmapbox import initEnMAPBoxProcessingProvider
         initEnMAPBoxProcessingProvider()
@@ -97,39 +133,6 @@ class QgisMockup(QgisInterface):
 
     def pluginManagerInterface(self)->QgsPluginManagerInterface:
         return self.mPluginManager
-
-    @staticmethod
-    def create()->QgisInterface:
-        """
-        Create the QgisMockup and sets the global variables
-        :return: QgisInterface
-        """
-
-        iface = QgisMockup()
-
-        import qgis.utils
-        # import processing
-        # p = processing.classFactory(iface)
-        if not isinstance(qgis.utils.iface, QgisInterface):
-
-            import processing
-            qgis.utils.iface = iface
-            processing.Processing.initialize()
-
-            import pkgutil
-            prefix = str(processing.__name__ + '.')
-            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
-                try:
-                    module = __import__(modname, fromlist="dummy")
-                    if hasattr(module, 'iface'):
-                        print(modname)
-                        module.iface = iface
-                except:
-                    pass
-        #set 'home_plugin_path', which is required from the QGIS Plugin manager
-        assert qgis.utils.iface == iface
-        qgis.utils.home_plugin_path = os.path.join(QgsApplication.instance().qgisSettingsDirPath(), *['python', 'plugins'])
-        return iface
 
     def __init__(self, *args):
         # QgisInterface.__init__(self)
