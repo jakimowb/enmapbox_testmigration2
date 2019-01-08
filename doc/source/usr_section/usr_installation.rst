@@ -122,6 +122,7 @@ below in order to install them, in case you have not done so already.
 
     Independent of your OS you should be able to install required packages with one line:
 
+    * pip has to be available in you python environment
     * Open your terminal (i.e. on windows start the OSGeo4W Shell with admin rights) and type:
 
     .. code-block:: python
@@ -184,7 +185,7 @@ Windows
 
        Visit `OSGeo FAQ page <https://trac.osgeo.org/osgeo4w/wiki/FAQ>`_ for information on the installer.
 
-    Now navigate through the first pages of the dialog, by selecting the following settings (see animated Figure below for help):
+    Now navigate through the first pages of the dialog, by selecting the following settings (see video below for help):
 
     * Advanced Installation :guilabel:`Next`
 
@@ -212,7 +213,7 @@ Windows
 
     .. raw:: html
 
-       <div><video width="90%" controls muted><source src="../_static/osgeoinstall.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+       <div><video width="90%" controls muted><source src="../_static/osgeo_install.webm" type="video/webm">Your browser does not support HTML5 video.</video>
        <p><i>Package installation with the OSGeo4W Installer</i></p></div>
 
 #. Install the remaining python packages using ``pip`` in the OSGeo4W Shell
