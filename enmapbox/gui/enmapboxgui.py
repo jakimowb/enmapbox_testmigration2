@@ -24,6 +24,7 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.maptools import *
+from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 # if qgis.utils.iface is None:
 #    qgis.utils.iface = EnMAPBoxQgisInterface()
 
@@ -239,8 +240,6 @@ class EnMAPBox(QgisInterface, QObject):
             # connect managers with widgets
             splash.showMessage('Connect Processing Algorithm Manager')
 
-
-
             try:
                 messageLog('initializes an own QGIS Processing framework')
                 self.initQGISProcessingFramework()
@@ -267,6 +266,14 @@ class EnMAPBox(QgisInterface, QObject):
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
+
+
+    def processingProvider(self)->EnMAPBoxAlgorithmProvider:
+        """
+        Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
+        :return:
+        """
+        return self.processingAlgManager.enmapBoxProvider()
 
     def classificationSchemata(self)->list:
         """

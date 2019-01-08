@@ -33,7 +33,7 @@ Installation
 .. important::
 
 
-     * The EnMAP-Box plugin requires **QGIS Version 3.0** or higher
+     * The EnMAP-Box plugin requires **QGIS Version 3.4** or higher
 
       **AND**
 
@@ -53,7 +53,7 @@ Installation
 
 Install QGIS (if required)
 --------------------------
-The EnMAP-Box is a plugin for QGIS and therefore QGIS version 3 or higher has to be installed. In case you have not installed
+The EnMAP-Box is a plugin for QGIS and therefore QGIS version 3.4 or higher has to be installed. In case you have not installed
 it yet, you can get QGIS `here <https://www.qgis.org/en/site/forusers/download.html>`_.
 
 .. Alternatively, you can add our EnMAPBox Developer Plugin Repository `https://bytebucket.org/hu-geomatics/enmap-box/wiki/qgis_plugin_develop.xml`_
@@ -102,8 +102,8 @@ Install from ZIP (alternative)
 
 .. _install-python-packages:
 
-Install python packages (if required)
--------------------------------------
+Install required python packages
+--------------------------------
 
 The EnMAP-Box requires the following python packages in order to run:
 

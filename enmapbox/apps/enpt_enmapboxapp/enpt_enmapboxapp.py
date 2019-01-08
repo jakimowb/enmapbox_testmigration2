@@ -48,8 +48,8 @@ class EnPTEnMAPBoxApp(EnMAPBoxApplication):
         self.version = VERSION
         self.licence = LICENSE
 
-    @staticmethod
-    def icon():
+
+    def icon(self):
         """
         This function returns the QIcon of your Application
         :return: QIcon()
@@ -83,8 +83,7 @@ class EnPTEnMAPBoxApp(EnMAPBoxApplication):
 
         return menu
 
-    @staticmethod
-    def geoAlgorithms():
+    def processingAlgorithms(self):
         """
         This function returns the QGIS Processing Framework GeoAlgorithms specified by your application
         :return: [list-of-GeoAlgorithms]
@@ -92,15 +91,15 @@ class EnPTEnMAPBoxApp(EnMAPBoxApplication):
 
         return [EnPTAlgorithm(), ]
 
-    @staticmethod
-    def startGUI(*args):
+
+    def startGUI(self):
         """
         Opens a GUI
         :param args:
         :return:
         """
 
-        w = ExampleAppGUI()
+        w = ExampleAppGUI(self.enmapbox.ui)
         w.show()
 
 

@@ -1,17 +1,41 @@
-import os, sys, re, uuid, importlib
-import numpy as np
-import qgis
-from osgeo import gdal, ogr, osr
-from qgis.gui import *
-from qgis.core import *
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
-import qgis.testing
+        # -*- coding: utf-8 -*-
+"""
+/***************************************************************************
+                              EO Time Series Viewer
+                              -------------------
+        begin                : 2015-08-20
+        git sha              : $Format:%H$
+        copyright            : (C) 2017 by HU-Berlin
+        email                : benjamin.jakimow@geo.hu-berlin.de
+ ***************************************************************************/
 
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
+# noinspection PyPep8Naming
+
+import os, sys, re, io, importlib, uuid
+
+from qgis.core import *
+from qgis.gui import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
+import qgis.testing
+import numpy as np
+from osgeo import gdal, ogr, osr
+import enmapboxtestdata
+from enmapbox.gui.utils import file_search
+from enmapbox import DIR_TESTDATA
+from unittest import TestCase
 
 SHOW_GUI = True
-
 
 def initQgisApplication(*args, qgisResourceDir:str=None, **kwds)->QgsApplication:
     """
@@ -24,7 +48,6 @@ def initQgisApplication(*args, qgisResourceDir:str=None, **kwds)->QgsApplication
 
         if not 'QGIS_PREFIX_PATH' in os.environ.keys():
             raise Exception('env variable QGIS_PREFIX_PATH not set')
-
 
         if sys.platform == 'darwin':
             # add location of Qt Libraries
@@ -53,6 +76,16 @@ def initQgisApplication(*args, qgisResourceDir:str=None, **kwds)->QgsApplication
         if not QgsPythonRunner.isValid():
             r = PythonRunnerImpl()
             QgsPythonRunner.setInstance(r)
+
+        #initiate the QGIS processing framework
+        from processing.core.Processing import Processing
+        from qgis.analysis import QgsNativeAlgorithms
+        Processing.initialize()
+        QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+
+        from enmapbox import initEnMAPBoxProcessingProvider
+        initEnMAPBoxProcessingProvider()
+
         return qgsApp
 
 
@@ -227,8 +260,43 @@ class QgisMockup(QgisInterface):
     def zoomFull(self, *args, **kwargs):
         super().zoomFull(*args, **kwargs)
 
-
 class TestObjects():
+    """
+    Creates objects to be used for testing. It is preferred to generate objects in-memory.
+    """
+
+
+    @staticmethod
+    def spectralProfiles(n):
+        """
+        Returns n random spectral profiles from the test data
+        :return: lost of (N,3) array of floats specifying point locations.
+        """
+
+        files = file_search(DIR_TESTDATA, '*.tif', recursive=True)
+        results = []
+        import random
+        for file in random.choices(files, k=n):
+            ds = gdal.Open(file)
+            assert isinstance(ds, gdal.Dataset)
+            b1 = ds.GetRasterBand(1)
+            noData = b1.GetNoDataValue()
+            assert isinstance(b1, gdal.Band)
+            x = None
+            y = None
+            while x is None:
+                x = random.randint(0, ds.RasterXSize - 1)
+                y = random.randint(0, ds.RasterYSize - 1)
+
+                if noData is not None:
+                    v = b1.ReadAsArray(x, y, 1, 1)
+                    if v == noData:
+                        x = None
+            profile = ds.ReadAsArray(x, y, 1, 1).flatten()
+            results.append(profile)
+
+        return results
+
     """
     Class with static routines to create test objects
     """
@@ -296,59 +364,17 @@ class TestObjects():
         return ds
 
     @staticmethod
-    def inMemoryVector(geomType:str='POINT', nFeatures:int=10,  crs='EPSG:32632', path: str = None, drvName:str='ESRI Shapefile'):
-        assert geomType in ['POINT','LINE','POLYGON']
-        assert nFeatures >= 0
-
-        if not isinstance(path, str):
-            path = '/vsimem/testVector.{}.shp'.format(str(uuid.uuid4()))
-
-        drv = ogr.GetDriverByName(drvName)
+    def createVectorDataSet()->ogr.DataSource:
+        path = '/vsimem/tmp' + str(uuid.uuid4()) + '.shp'
+        files = list(file_search(DIR_TESTDATA, '*.shp', recursive=True))
+        assert len(files) > 0
+        dsSrc = ogr.Open(files[0])
+        assert isinstance(dsSrc, ogr.DataSource)
+        drv = dsSrc.GetDriver()
         assert isinstance(drv, ogr.Driver)
-        ds = drv.CreateDataSource(path)
-        assert isinstance(ds, ogr.DataSource)
-        srs= None
-        crs = None
-        if isinstance(crs, str):
-            crs = QgsCoordinateReferenceSystem(crs)
-            srs = osr.SpatialReference()
-            srs.ImportFromWkt(crs.toWkt())
-        lyr = ds.CreateLayer('layer_1', srs=srs)
-        assert isinstance(lyr, ogr.Layer)
-        lyr.CreateField(ogr.FieldDefn('name', ogr.OFTString))
-        if isinstance(crs, QgsCoordinateReferenceSystem):
-            bounds = crs.bounds()
-            transBounds2CRS = QgsCoordinateTransform()
-            transBounds2CRS.setDestinationCrs(crs)
-            transBounds2CRS.setSourceCrs(QgsCoordinateReferenceSystem('EPSG:4326'))
-
-        else:
-            bounds = QgsRectangle(-1, -1, 1, 1)
-            transBounds2CRS = None
-
-
-        if geomType == 'POINT':
-            points = []
-            for i in range(nFeatures):
-                x = np.random.uniform(bounds.xMinimum(), bounds.xMaximum())
-                y = np.random.uniform(bounds.yMinimum(), bounds.yMaximum())
-                points.append(QgsPointXY(x,y))
-
-            if isinstance(transBounds2CRS, QgsCoordinateReferenceSystem):
-                points = [transBounds2CRS.transform(p) for p in points]
-
-            for i, p in enumerate(points):
-                ogrPoint = ogr.Geometry(ogr.wkbPoint)
-                ogrPoint.AddPoint(p.x(), p.y())
-
-                feature = ogr.Feature(lyr.GetLayerDefn())
-                feature.SetGeometry(ogrPoint)
-                feature.SetField('name', 'feature {}'.format(i+1))
-                lyr.CreateFeature(feature)
-        else:
-            raise NotImplementedError()
-
-        return ds
+        dsDst = drv.CopyDataSource(dsSrc, path)
+        assert isinstance(dsDst, ogr.DataSource)
+        return dsDst
 
     @staticmethod
     def createDropEvent(mimeData:QMimeData):
@@ -400,36 +426,6 @@ class TestObjects():
 
         return TestProcessingAlgorithm()
 
-
-
-    @staticmethod
-    def enmapBoxApplication():
-
-        from enmapbox.gui.applications import EnMAPBoxApplication
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        enmapbox = EnMAPBox.instance()
-
-        class TestApp(EnMAPBoxApplication):
-            def __init__(self, enmapbox):
-                super(TestApp, self).__init__(enmapbox)
-
-                self.name = 'TestApp'
-                self.licence = 'GPL-3'
-                self.version = '-12345'
-
-            def menu(self, appMenu:QMenu)->QMenu:
-                menu = appMenu.addMenu('Test Menu')
-                action = menu.addAction('Test Action')
-                action.triggered.connect(self.onAction)
-                return menu
-
-            def onAction(self):
-                print('TestApp action called')
-
-            def processingAlgorithms(self):
-                return [TestObjects.processingAlgorithm()]
-
-        return TestApp(enmapbox)
 
 
 
@@ -521,3 +517,5 @@ class PythonRunnerImpl(QgsPythonRunner):
             raise ex
             return False
         return True
+
+

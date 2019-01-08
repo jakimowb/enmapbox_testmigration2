@@ -6,52 +6,100 @@ Installation (Dev)
 Background
 ==========
 
-The EnMAP-Box 3 is a QGIS plugin and therefore uses the Python distribution that is delivered with or linked into QGIS.
-If you like to use an Integrated Development Environment (IDE) to develop and debug python applications for the EnMAP-Box,
-or in general QGIS, we recommend that your IDE runs under the same environmental settings as your QGIS does.
 
-The following sections describe which settings are needed to run and debug the EnMAP-Box from
-inside an IDE *without* the need to start a heavy QGIS instance.
+If you like to develop an EnMAP-Box application (or more general: a Qt or QGIS application), you really like to
+use the comfort of an up-to-date Integrated Development Environment (IDE) (yes, you do!).
+And because the EnMAP-Box 3 is a QGIS plugin, your IDE should run in the same environment as the QGIS desktop
+application will do when your application is ready to be used by other users.
 
-We mainly tested in for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE and it worked well on `PyDev <http://www.pydev.org/>`_, too.
+
+In the following we describe how to run and debug the EnMAP-Box from an IDE *without* the need to start the QGIS desktop application.
+We tested it for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE, but in principle the approach should work with other IDEs like `PyDev <http://www.pydev.org/>`_ as well.
 
 To setup your IDE for developing EnMAP-Box Applications, you need to:
 
-    1. Clone the EnMAP-Box git repository and add it to your project sources
+    1. Start your IDE using the same environmental settings as QGIS and create a new project ("your EnMAP-Box application")
 
-    2. Start your IDE using the same environmental settings as QGIS
+    2. Set the QGIS python as python interpreter of your project
 
-    3. Set the QGIS python as python interpreter of your project
-
-    4. Ensure that all python packages your application depends on are accessible in your QGIS python and
+    3. Ensure that all python packages your application depends on are accessible in your QGIS python and
        your IDE (:ref:`install-python-packages`):
 
         * gdal, numpy, scipy, scikit-learn
 
         * pyqtgraph, matplotlib
 
-
         * sphinx and the sphinx-rtd-theme fro documentation
 
+    4. Link the EnMAP-Box source code into your IDE project
+
     5. Start the EnMAP-Box from your IDE (:ref:`dev_start_enmapbox_from_ide`)
+
+The more you get into the details of EnMAP-Box/QGIS/Qt Application Development, you might want to explore the respective APIs.
+For this is is helpful to use the Qt documentation files (instead of slow online webpages). See XXX for more details
+
 
 
 Windows
 =======
 
+
 The following description is based on http://spatialgalaxy.net/2018/02/13/quick-guide-to-getting-started-with-pyqgis3-on-windows/
 
-QGIS for Windows is based on an OSGeo4W installation that uses a set of cascading batch (``*.bat``) files to setup the QGIS environment. We use a similar approach to start the IDE.
+QGIS for Windows (OSGeo4W) uses a set of cascading batch (``*.bat``) files to setup up the QGIS environment.
+We recommend to use similar approaches to start the IDE and other application that require to operate in the same environment as the desktop QGIS does.
 
-1. First, locate the root folder of your QGIS3/OSGeo4W installation, e.g. ``C:\Program Files\QGIS 3.0\`` or ``C:\Program Files\OSGeo4W\``
+First, we need to know the root folder of our QGIS3/OSGeo4W installation, hereafter refered as ``OSGEO4W_ROOT``, e.g. ````OSGEO4W_ROOT=C:\Program Files\QGIS 3.0\`` or ````OSGEO4W_ROOT=C:\Program Files\OSGeo4W\``
 
-2. Create a ``start_IDE_with_QGIS.bat`` to start your IDE in the same QGIS environment:
+OSGeo4W Shell
+-------------
+
+The following script shows how to setup and start the QGIS shell with a Python 3 and Qt 5 environment:
+
+.. code-block:: bat
+
+    ::STARTUP Script to start a IDE like PyCharm under the same environment as QGIS
+    ::OSGeo4W/QGIS installation folder
+    set OSGEO4W_ROOT="C:\Program Files\QGIS 3.4"
+
+    ::set defaults, clean path, load OSGeo4W modules (incrementally)
+    call %OSGEO4W_ROOT%\bin\o4w_env.bat
+    call qt5_env.bat
+    call py3_env.bat
+
+
+Now you can type ``python`` to start a python 3 shell. Please note that without calling ```py3_env.bat`` before, the QGIS shell would start a python 2 shell instead.
+
+Commands available in the QGIS shell can be listed with ``o-help``. E.g. calling ``qgis`` will start the QGIS desktop and ``setup`` the graphical OSGeo Installer.
+Some of the most important for developen QGIS or EnMAP-Box applications might be:
+
+=====================     ============================================================================
+Command                   Description
+=====================     ============================================================================
+``qgis``                  QGIS desktop application
+``setup``                 OSGeo4W graphical installer
+``designer``              Qt Designer to draw graphical user interfaces
+``qgis-designer``         Qt Designer + additional QGIS widgets
+``assistant``             Qt Assistant to browse Qt + QGIS API reference
+``python``                python shell. call ``py3_env.bat`` before to activate python 3
+``pip``                   python package installer (similar to ``python -m pip``)
+=====================     ============================================================================
+
+
+Depending on previous setup steps some of these commands might not be installed by default.
+The Qt Designer and Qt Assistant, for example, require to have the ``qt5-doc`` and ``qt5-devel`` packages installed.
+
+
+IDE Start script
+----------------
+
+1. Create a ``start_IDE_with_QGIS.bat`` to start your IDE in the same environment as the QGIS desktop application:
 
 .. code-block:: bat
 
     ::STARTUP Script to start a IDE like PyCharm under the same environment as QGIS
     ::OSGeo4W or QQGIS installation folder
-    set OSGEO4W_ROOT="C:\Program Files\QGIS 3.0"
+    set OSGEO4W_ROOT="C:\Program Files\QGIS 3.4"
 
     ::Executable of your IDE
     set IDE="C:\Program Files\JetBrains\PyCharm 2017.3.4\bin\pycharm64.exe"
@@ -157,6 +205,13 @@ Linux
 .. todo:: Linux descriptions
 
 
+
+Setup the project
+=================
+
+
+
+
 .. _dev_start_enmapbox_from_ide:
 
 Start the EnMAP-Box
@@ -179,11 +234,19 @@ If everything is set up correctly, you should be able to start the EnMAP-Box usi
         qgsApp.quit()
 
 
+
 Build the EnMAP-Box Plugin for QGIS
 ===================================
 
+Building the EnMAP-Box requires additional python packages, e.g. Sphinx for building the documentation etc. You can install these requirements with:
 
-The `make` folder contains some helper scripts required to build (parts) of the EnMAP-Box Plugin:
+.. code-block:: batch
+
+    pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/requirements_developer.txt
+
+
+
+The EnMAP-Box repositories `make` folder contains some helper scripts required to build (parts) of the EnMAP-Box Plugin:
 
 make/deploy.py - create the EnMAP-Box Plugin ZIP file
 make/guimake.py - routines to handle PyQt5 issues, e.g. to create the Qt resource files
@@ -193,6 +256,40 @@ make/updateexternals.py - update parts of the EnMAP-Box code which are hosted in
 
 If you like to build and install the EnMAP-Box Plugin from repository code you need to
 run the `build()` function in `deploy.py`.
+
+
+Explore the Qt and QGIS API
+===========================
+
+API references can be found at:
+
+* https://qgis.org/api/ (C++ API)
+
+* https://qgis.org/pyqgis/master/ (autogenerated Python API)
+
+* http://doc.qt.io/qt-5/ (Qt5 API)
+
+However, it is recommended to use Qt help files (*.qch), which can be used offline and allow for much faster browsing and searching.
+
+1. Download / locate the help *.qch files
+* QGIS API https://qgis.org/api/qgis.qch
+* Qt API
+
+    * C:\Program Files\QGIS 3.4\apps\Qt5\doc (Windows)
+    * ~/Qt/Docs/Qt-5.11.2/ (macOS)
+
+2. Open the Qt Assistant / Qt Creator settings and add the required *.qch files, in particular ``qgis.qch``, ``qtcore.qch``, ``qtwidgets.qch`` and ``qtgui.qch``.
+
+
+
+
+
+
+
+
+
+
+
 
 
 

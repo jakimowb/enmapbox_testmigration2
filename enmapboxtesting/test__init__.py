@@ -14,7 +14,7 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapboxtesting import *
+from enmapbox.testing import *
 QGIS_APP = initQgisApplication()
 
 class Tests(unittest.TestCase):
@@ -23,7 +23,7 @@ class Tests(unittest.TestCase):
         self.assertIsInstance(TestObjects.inMemoryImage(), gdal.Dataset)
 
     def test_inMemoryVector(self):
-        ds = TestObjects.inMemoryVector()
+        ds = TestObjects.createVectorDataSet()
         self.assertIsInstance(ds, ogr.DataSource)
         self.assertTrue(ds.GetLayerCount() == 1)
         self.assertIsInstance(ds.GetLayerByIndex(0), ogr.Layer)
