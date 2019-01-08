@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 
-import os, sys, importlib, re, fnmatch, io, zipfile
+import os, sys, importlib, re, fnmatch, io, zipfile, warnings
 
 from qgis.core import *
 from qgis.core import QgsFeature, QgsPointXY, QgsRectangle
@@ -371,76 +371,10 @@ def setQgsFieldValue(feature:QgsFeature, field, value):
 
 
 
-def initQgisApplication(PATH_QGIS=None, qgisDebug=False, qgisResourceDir=None):
-    """
-    Initializes the QGIS Environment
-    :return: QgsApplication instance of local QGIS installation
-    """
-    if isinstance(QgsApplication.instance(), QgsApplication):
-        return QgsApplication.instance()
-    else:
-        if PATH_QGIS is None:
-            # find QGIS_PREFIX_PATH
-            if sys.platform == 'darwin':
-                # search for the QGIS.app
-                import qgis, re
-                assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
-                PATH_QGIS_APP = re.split(r'\.app[\/]', qgis.__file__)[0] + '.app'
-                PATH_QGIS = os.path.join(PATH_QGIS_APP, *['Contents', 'MacOS'])
-
-                if not 'GDAL_DATA' in os.environ.keys():
-                    os.environ['GDAL_DATA'] = r'/Library/Frameworks/GDAL.framework/Versions/Current/Resources/gdal'
-
-                QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
-                QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns', 'qgis']))
-
-
-            else:
-                # assume OSGeo4W startup
-                PATH_QGIS = os.environ['QGIS_PREFIX_PATH']
-        assert os.path.exists(PATH_QGIS)
-
-        try:
-            import qgis.testing
-            qgsApp = qgis.testing.start_app()
-        except Exception as ex:
-            print(ex)
-
-            qgsApp = QgsApplication([], True)
-            qgsApp.setPrefixPath(PATH_QGIS, True)
-            qgsApp.initQgis()
-
-        if os.path.exists(os.path.join(DIR_REPO, 'qgisresources')):
-            qgisResourceDir = os.path.join(DIR_REPO, 'qgisresources')
-
-        if isinstance(qgisResourceDir, str):
-            assert os.path.isdir(qgisResourceDir)
-            import importlib, re
-            modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
-            modules = [m[0:-3] for m in modules]
-            for m in modules:
-                mod = importlib.import_module('qgisresources.{}'.format(m))
-                if "qInitResources" in dir(mod):
-                    mod.qInitResources()
-
-        def printQgisLog(msg, tag, level):
-            if tag not in ['Processing']:
-                if tag in ['Python warning', 'warning']:
-                    import re
-                    if re.search('(Deprecation|Import)Warning', msg) is not None:
-                        return
-                    else:
-                        return
-                print(msg)
-
-        QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
-
-        #initiate a PythonRunner instance if None exists
-        if not QgsPythonRunner.isValid():
-            r = PythonRunnerImpl()
-            QgsPythonRunner.setInstance(r)
-        return qgsApp
-
+def initQgisApplication(*arg, **kwds):
+    warnings.warn('Use testing.initQgisApplication', DeprecationWarning)
+    import enmapbox.testing
+    return enmapbox.testing.initQgisApplication(*arg, **kwds)
 
 
 def guessDataProvider(src:str)->str:
@@ -1077,8 +1011,6 @@ def geo2pxF(geo, gt):
     px = (geo.x() - gt[0]) / gt[1]  # x pixel
     py = (geo.y() - gt[3]) / gt[5]  # y pixel
     return QPointF(px,py)
-
-
 
 def geo2px(geo, gt):
     """

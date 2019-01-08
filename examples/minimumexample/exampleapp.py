@@ -7,14 +7,14 @@
     This module defines the interactions between an application and
     the EnMAPBox.
     ---------------------
-    Date                 : Juli 2017
-    Copyright            : (C) 2017 by Benjamin Jakimow
+    Date                 : Juli 2019
+    Copyright            : (C) 2019 by Benjamin Jakimow
     Email                : benjamin.jakimow@geo.hu-berlin.de
 ***************************************************************************
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
+*   the Free Software Foundation; either version 3 of the License, or     *
 *   (at your option) any later version.                                   *
 *                                                                         *
 ***************************************************************************
@@ -32,13 +32,14 @@ LICENSE = 'GNU GPL-3'
 APP_DIR = os.path.dirname(__file__)
 
 APP_NAME = 'My First EnMAPBox App'
+GROUP_ID = 'mininmumexampleapp'
 
-class ExampleEnMAPBoxApp(EnMAPBoxApplication):
+class ExampleApplication(EnMAPBoxApplication):
     """
     This Class inherits from an EnMAPBoxApplication
     """
     def __init__(self, enmapBox, parent=None):
-        super(ExampleEnMAPBoxApp, self).__init__(enmapBox, parent=parent)
+        super(ExampleApplication, self).__init__(enmapBox, parent=parent)
 
         #specify the name of this app
         self.name = APP_NAME
@@ -50,14 +51,14 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         #specify a licence under which you distribute this application
         self.licence = LICENSE
 
-    def icon(self):
+    def icon(self)->QIcon:
         """
         This function returns the QIcon of your Application
         :return: QIcon()
         """
         return QIcon(os.path.join(APP_DIR, 'icon.png'))
 
-    def menu(self, appMenu):
+    def menu(self, appMenu)->QMenu:
         """
         Returns a QMenu that will be added to the parent `appMenu`
         :param appMenu:
@@ -72,25 +73,25 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         # this way you can add your QMenu/QAction to an other menu entry, e.g. 'Tools'
         # appMenu = self.enmapbox.menu('Tools')
 
-        menu = appMenu.addMenu('My Example App')
+        menu = appMenu.addMenu('Mininum Example App')
         menu.setIcon(self.icon())
 
         #add a QAction that starts a process of your application.
         #In this case it will open your GUI.
-        a = menu.addAction('Show ExampleApp GUI')
+        a = menu.addAction('Show Minimum Example GUI')
         assert isinstance(a, QAction)
         a.triggered.connect(self.startGUI)
         appMenu.addMenu(menu)
 
         return menu
 
-    def geoAlgorithms(self):
+    def processingAlgorithms(self)->list:
         """
         This function returns the QGIS Processing Framework GeoAlgorithms specified by your application
         :return: [list-of-GeoAlgorithms]
         """
 
-        return [ExampleGeoAlgorithm(), ExampleAlgorithmWithManyWidgets()]
+        return [ExampleProcessingAlgorithm(), ExampleProcessingAlgorithmWithManyWidgets()]
 
     def startGUI(self, *args):
         """
@@ -98,19 +99,18 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         :param args:
         :return:
         """
-
-        w = ExampleAppGUI()
+        w = ExampleApplicationGUI(parent=self.enmapbox.ui)
         w.show()
         # keep a reference to the widget. If not, the garbage collector will remove it
         self.w = w
 
 
-class ExampleAppGUI(QWidget):
+class ExampleApplicationGUI(QWidget):
     """
     A minimal graphical user interface
     """
     def __init__(self, parent=None):
-        super(ExampleAppGUI, self).__init__(parent)
+        super(ExampleApplicationGUI, self).__init__(parent)
         self.setWindowTitle(APP_NAME)
         self.setWindowIcon(QIcon(os.path.join(APP_DIR, 'icon.png')))
         self.setMinimumWidth(400)
@@ -119,60 +119,109 @@ class ExampleAppGUI(QWidget):
         self.btn = QPushButton('Click me')
 
         #clicking the button will print "Hello World" to the python CLI
-        self.btn.clicked.connect(lambda: print('Hello World'))
+
+        self.mNumberOfClicks = 0
+
+        self.btn.clicked.connect(self.exampleSlot)
+        self.btn.clicked.connect(lambda : print('Lambda functions are great to write less code!'))
         l.addWidget(self.btn)
         self.setLayout(l)
 
+    def exampleSlot(self, *args):
+        """
+        A 'slot' is just a function or method that is called by a signal.
+        """
+        self.mNumberOfClicks += 1
+        print('Hello World ({})'.format(self.mNumberOfClicks))
 
+    def numberOfClicks(self)->int:
+        """
+        A method to return something.
+        :return: int
+        """
+        return self.mNumberOfClicks
 
-class ExampleGeoAlgorithm(QgsProcessingAlgorithm):
-
+class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
+    """
+    Exemplary implementation of a QgsProcessingAlgorithm.
+    See https://qgis.org/api/classQgsProcessingAlgorithm.html for API documentation
+    """
     def __init__(self):
+        super(ExampleProcessingAlgorithm, self).__init__()
 
-        super(ExampleGeoAlgorithm, self).__init__()
-        s = ""
+    def createInstance(self)->QgsProcessingAlgorithm:
+        """
+        Creates a new instance of the algorithm class.
+        :return: QgsProcessingAlgorithm
+        """
+        return ExampleProcessingAlgorithm()
 
-    def createInstance(self):
-        return ExampleGeoAlgorithm()
-
-    def name(self):
-        return 'exmaplealg'
+    def name(self)->str:
+        return 'examplealgorithm'
 
     def displayName(self):
-        return 'Example Algorithm'
+        return 'Minimal Example Algorithm'
 
-    def groupId(self):
+    def groupId(self)->str:
+        """
+        Returns the unique ID of the group this algorithm belongs to.
+        :return: str
+        """
+        return GROUP_ID
 
-        return 'exampleapp'
-
-    def group(self):
+    def group(self)->str:
+        """
+        Returns the name of the group this algorithm belongs to.
+        :return: str
+        """
         return APP_NAME
 
-    def initAlgorithm(self, configuration=None):
+    def initAlgorithm(self, configuration:dict=None):
+        """
+        Initializes the algorithm using the specified configuration.
+        :param configuration: dict
+        """
         self.addParameter(QgsProcessingParameterRasterLayer('pathInput', 'The Input Dataset'))
         self.addParameter(QgsProcessingParameterNumber('value','The value', QgsProcessingParameterNumber.Double, 1, False, 0.00, 999999.99))
         self.addParameter(QgsProcessingParameterRasterDestination('pathOutput', 'The Output Dataset'))
 
-    def processAlgorithm(self, parameters, context, feedback):
-
+    def processAlgorithm(self, parameters:dict, context:QgsProcessingContext, feedback:QgsProcessingFeedback):
+        """
+        Runs the algorithm using the specified parameters.
+        :param parameters: dict
+        :param context: QgsProcessingContext
+        :param feedback: QgsProcessingFeedback
+        :return: dict
+        """
         assert isinstance(parameters, dict)
         assert isinstance(context, QgsProcessingContext)
         assert isinstance(feedback, QgsProcessingFeedback)
 
-        printDictionary(parameters)
-        outputs = {}
+        args, kwds  = exampleAlgorithm(parameters)
+
+        outputs = {'args' : args, 'kwds': kwds}
         return outputs
 
-def printDictionary(parameters):
+def exampleAlgorithm(*args, **kwds)->list:
     """
-    An algorithm that just prints the provided parameter dictionary
+    An dummy algorithm that prints the provided arguments and keywords and returns its inputs.
     """
-    print('Parameters:')
-    for key, parameter in parameters.items():
-        print('{} = {}'.format(key, parameter))
+    print('Start exampleAlgorithm...')
+
+    text = ['Arguments: {}'.format(len(args))]
+    for i, a in enumerate(args):
+        text.append('Argument {} = {}'.format(i+1, str(a)))
+
+    text.append('Keywords: {}'.format(len(kwds)))
+    for key, parameter in kwds.items():
+        text.append('{} = {}'.format(key, parameter))
+    print('\n'.join(text))
+    print('exampleAlgorithm finished')
+
+    return args, kwds
 
 
-class ExampleAlgorithmWithManyWidgets(QgsProcessingAlgorithm):
+class ExampleProcessingAlgorithmWithManyWidgets(QgsProcessingAlgorithm):
 
     P_RASTER = 'raster'
     P_RASTER_BAND = 'raster_band'
@@ -191,13 +240,24 @@ class ExampleAlgorithmWithManyWidgets(QgsProcessingAlgorithm):
     P_OUTPUT_FILE = 'outfile'
     P_OUTPUT_FOLDER = 'outfolder'
 
-    def group(self):
+    def group(self)->str:
+        """
+        Returns the name of the group this algorithm belongs to.
+        :return: str
+        """
         return APP_NAME
 
-    def name(self):
-        return 'ExampleAlgorithmWithManyWidgets'
+    def groupId(self)->str:
+        """
+        Returns the unique ID of the group this algorithm belongs to.
+        :return: str
+        """
+        return GROUP_ID
 
-    def displayName(self):
+    def name(self)->str:
+        return 'examplealgorithmwithmanywidgets'
+
+    def displayName(self)->str:
         return 'Example Algorithm with many Widgets'
 
     def createInstance(self, *args, **kwargs):
@@ -305,29 +365,3 @@ class ExampleAlgorithmWithManyWidgets(QgsProcessingAlgorithm):
     def helpUrl(self, *args, **kwargs):
         return 'www.google.de'
 
-
-if __name__ == '__main__':
-
-
-    from enmapbox.gui.utils import initQgisApplication
-
-    #this will initialize the QApplication/QgsApplication which runs in the background
-    #see https://qgis.org/api/classQgsApplication.html for details
-    qgsApp = initQgisApplication()
-
-
-    if False: #test GUI without EnMAP-Box
-        w = ExampleAppGUI()
-        w.show()
-
-    else:
-        from enmapbox import EnMAPBox
-
-        EB = EnMAPBox(None)
-        EB.run()
-        EB.openExampleData(mapWindows=2)
-        app = ExampleEnMAPBoxApp(EB)
-        EB.addApplication(app)
-
-    #start the GUI thread
-    qgsApp.exec_()

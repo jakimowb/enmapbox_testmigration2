@@ -32,7 +32,7 @@ def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:
     :return:
     '''
 
-    from enmapboxtesting import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     qgisApp = initQgisApplication()
     import enmapbox
     enmapbox.DEBUG = debug
@@ -43,7 +43,6 @@ def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:
 
 
     enmapBox = EnMAPBox(qgis.utils.iface)
-    enmapbox.initEnMAPBoxProcessingProvider()
     enmapBox.run()
     if sources is not None:
         for source in enmapBox.addSources(sourceList=sources):

@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 
-import os, sys, site, collections, re, inspect, traceback, typing
+import os, sys, site, collections, re, inspect, traceback, typing, warnings
 
 from qgis.core import *
 from qgis.core import Qgis
@@ -105,8 +105,8 @@ class EnMAPBoxApplication(QObject):
         """
         Deprecated. Use processingAlgorithms() to return a list of QgsProcessingAlgorithms
         """
-        messageLog('Deprecated method "geoAlgorithms". Use "processingAlgorithms" instead.')
-        return []
+        raise Exception('Use "processingAlgorithms" instead.')
+
 
     def processingAlgorithms(self)->list:
 
@@ -354,7 +354,7 @@ class ApplicationRegistry(QObject):
         #load QGIS Processing Framework Integration
         if self.mProcessingAlgManager.isInitialized():
             if DEBUG:
-                print('Load GeoAlgorithms...')
+                print('Load Processing Algorithm...')
             self.loadProcessingAlgorithms(appWrapper)
 
         if DEBUG:
@@ -382,8 +382,7 @@ class ApplicationRegistry(QObject):
             if isinstance(provider, EnMAPBoxAlgorithmProvider):
                 provider.addAlgorithms(processingAlgorithms)
             else:
-                if DEBUG:
-                    print('Can not find EnMAPBoxAlgorithmProvider')
+                print('Can not find EnMAPBoxAlgorithmProvider')
 
 
     def loadMenuItems(self, appWrapper:ApplicationWrapper, parentMenuName = 'Applications'):

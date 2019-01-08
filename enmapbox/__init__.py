@@ -145,11 +145,10 @@ def initEditorWidgets():
 
 
 _enmapboxProvider = None
-def initEnMAPBoxProcessingProvider():
-    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
 
-    import processing
-    processing.Processing.initialize()
+def initEnMAPBoxProcessingProvider():
+    """Initializes the EnMAPBoxProcessingProvider"""
+    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
 
     registry = QgsApplication.instance().processingRegistry()
     assert isinstance(registry, QgsProcessingRegistry)
@@ -174,10 +173,8 @@ def initEnMAPBoxProcessingProvider():
     except Exception as ex:
         info = ['Failed to load QgsProcessingAlgorithms.\n{}'.format(str(ex))]
         info.append('PYTHONPATH:')
-
         for p in sorted(sys.path):
             info.append(p)
-
         print('\n'.join(info), file=sys.stderr)
 
 

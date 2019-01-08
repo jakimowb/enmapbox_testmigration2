@@ -15,7 +15,7 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest, shutil
 from collections import namedtuple
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *

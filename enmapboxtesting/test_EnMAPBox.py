@@ -19,7 +19,7 @@
 
 
 import unittest
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
 SHOW_GUI = True
@@ -88,8 +88,8 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
         a = appMenu.addAction('Call dummy action')
         a.triggered.connect(self.dummySlot)
 
-    def geoAlgorithms(self):
-        return MyGeoAlgorithmus()
+    def processingAlgorithms(self):
+        return [MyGeoAlgorithmus()]
 
     def dummySlot(self, *arg, **kwds):
         print('Dummy Slot called.')
@@ -99,80 +99,23 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
 class TestEnMAPBox(unittest.TestCase):
 
-    def setUp(self):
-        self.EB = EnMAPBox(None)
-
-    def tearDown(self):
-        self.EB.close()
-        del self.EB
-
-
     def test_instance(self):
+
         emb = EnMAPBox.instance()
-        self.assertIsInstance(emb, EnMAPBox)
-        self.assertEqual(emb, self.EB)
+        self.assertTrue(emb == None)
+        E = EnMAPBox(None)
 
-    def test_initQGISProcessingFramework(self):
-        self.fail()
+        self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
+        self.assertEqual(E, EnMAPBox.instance())
 
-    def test_addApplication(self):
-        myApp = TestEnMAPBoxApp(self.EB)
-        self.EB.addApplication(myApp)
-
-    def test_loadCurrentMapSpectra(self):
-        self.fail()
-
-    def test_activateMapTool(self):
-        self.fail()
-
-    def test_setMapTool(self):
-        self.fail()
-
-    def test_initEnMAPBoxApplications(self):
-        self.fail()
-
-    def test_exit(self):
-        self.fail()
-
-    def test_onLogMessage(self):
-        self.fail()
-
-    def test_onDataDropped(self):
-        self.fail()
-
-    def test_openExampleData(self):
-        self.fail()
-
-    def test_onAddDataSource(self):
-        self.fail()
-
-    def test_onDataSourceAdded(self):
-        self.fail()
-
-    def test_saveProject(self):
-        self.fail()
-
-    def test_restoreProject(self):
-        self.fail()
-
-    def test_setCurrentLocation(self):
-        self.fail()
-
-    def test_setCurrentSpectra(self):
-        self.fail()
-
-    def test_currentSpectra(self):
-        self.fail()
-
-    def test_dataSources(self):
-        self.fail()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_createDock(self):
-        from enmapbox.gui.dockmanager import LUT_DOCKTYPES
+        E = EnMAPBox(None)
         for d in ['MAP','TEXT','SPECLIB', 'MIME']:
-            dock = self.EB.createDock(d)
+            dock = E.createDock(d)
             self.assertIsInstance(dock, Dock)
-            self.assertIsInstance(dock, LUT_DOCKTYPES[d])
 
     def test_removeDock(self):
         self.fail()

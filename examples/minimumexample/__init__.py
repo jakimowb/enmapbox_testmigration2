@@ -7,8 +7,8 @@ def enmapboxApplicationFactory(enmapBox):
     """
 
 
-    from minimumexample.exampleapp import ExampleEnMAPBoxApp
+    from minimumexample.exampleapp import ExampleApplication
 
     # returns a list of EnMAP-Box Applications. Usually only one is returned,
     # but you might provide as many as you like.
-    return [ExampleEnMAPBoxApp(enmapBox)]
+    return [ExampleApplication(enmapBox)]
