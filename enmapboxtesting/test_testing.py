@@ -29,6 +29,12 @@ class Tests(unittest.TestCase):
         self.assertIsInstance(ds.GetLayerByIndex(0), ogr.Layer)
         self.assertTrue(ds.GetLayerByIndex(0).GetFeatureCount() > 0)
 
+    def test_initQgsApplication(self):
+
+        self.assertIsInstance(QGIS_APP, QGuiApplication)
+
+        import qgis.utils
+        self.assertIsInstance(qgis.utils.iface, QgisInterface)
 
 if __name__ == "__main__":
     unittest.main()

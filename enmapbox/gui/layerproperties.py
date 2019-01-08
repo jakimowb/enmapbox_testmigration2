@@ -982,7 +982,7 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     qgsApp = initQgisApplication()
     from enmapboxtestdata import enmap as pathL
     from enmapboxtestdata import landcover as pathV

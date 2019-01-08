@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtXml import *
 from xml.etree import ElementTree
 ROOT = os.path.dirname(os.path.dirname(__file__))
-from enmapboxtesting import initQgisApplication
+from enmapbox.testing import initQgisApplication
 app = initQgisApplication()
 from enmapbox.gui.utils import file_search
 from enmapbox import DIR_REPO

@@ -1468,6 +1468,10 @@ class MapDock(Dock):
             self.removeLayers(to_remove)
 
     def mapCanvas(self)->MapCanvas:
+        """
+        Returns the MapCanvas
+        :return: MapCanvas
+        """
         return self.mCanvas
 
     def removeLayers(self, mapLayers):

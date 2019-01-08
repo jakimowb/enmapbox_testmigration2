@@ -9,7 +9,7 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import unittest
 import tempfile
 import enmapboxtestdata
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
 

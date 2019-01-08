@@ -160,7 +160,7 @@ class PenDialog(QDialog):
 
 if __name__ == '__main__':
     import site, sys
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
 
     DEBUG = True
     qgsApp = initQgisApplication()

@@ -31,7 +31,7 @@ QGSAPP = initQgisApplication()
 class TestMDMetadataKeys(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from enmapbox.gui.utils import initQgisApplication
+        from enmapbox.testing import initQgisApplication
         cls.qgsApp = initQgisApplication()
 
     @classmethod

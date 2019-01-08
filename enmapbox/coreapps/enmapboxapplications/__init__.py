@@ -185,7 +185,7 @@ class EnMAPBoxForceMosaikBuilderApp(EnMAPBoxApplication):
 
 if __name__ == '__main__':
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     from enmapbox.gui.enmapboxgui import EnMAPBox
 
     qgsApp = initQgisApplication()

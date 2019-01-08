@@ -164,9 +164,13 @@ class EnMAPBox(QgisInterface, QObject):
         MAP_LAYER_STORES.insert(0, self.mMapLayerStore)
 
         self.initQgisInterfaceVariables()
-        self.iface = iface
         if not isinstance(iface, QgisInterface):
-            self.initEnMAPBoxAsIFACE()
+            iface = qgis.utils.iface
+        self.iface = iface
+        assert isinstance(iface, QgisInterface)
+
+
+
         self.initPanels()
 
         if not DEBUG:

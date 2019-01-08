@@ -47,7 +47,7 @@ def sandboxGuiOnly():
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
     """
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     qgsApp = initQgisApplication()
     from reclassifyapp.reclassifydialog import ReclassifyDialog
     ui1 = ReclassifyDialog()

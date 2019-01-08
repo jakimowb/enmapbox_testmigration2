@@ -12,9 +12,9 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
 import unittest
 from qgis import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from enmapbox.gui.utils import initQgisApplication
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
+from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *

@@ -25,7 +25,7 @@ from requests.auth import HTTPBasicAuth
 from http.client import responses
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from enmapboxtesting import initQgisApplication
+from enmapbox.testing import initQgisApplication
 qgisApp = initQgisApplication()
 
 

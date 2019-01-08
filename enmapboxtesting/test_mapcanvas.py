@@ -18,7 +18,7 @@ from qgis.gui import *
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
 import enmapbox.dependencycheck
@@ -156,7 +156,7 @@ def exampleMapLinking():
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     from enmapboxtestdata import enmap, hires, landcover
     from enmapbox.gui.mapcanvas import CanvasLinkDialog
     import enmapbox.gui.mapcanvas

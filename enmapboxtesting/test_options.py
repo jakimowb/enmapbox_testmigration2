@@ -24,13 +24,13 @@ from qgis import *
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.sandbox import initQgisApplication
+from enmapbox.testing import initQgisApplication
 from enmapbox.gui.utils import *
 from enmapbox.gui.widgets.models import *
 from enmapboxtestdata import *
 
 QGIS_APP = initQgisApplication()
-
+SHOW_GUI = False
 
 
 class TestEnMAPBoxPlugin(unittest.TestCase):
@@ -56,8 +56,8 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         m.addOptions(options)
 
         #m.removeOptions(options)
-
-        QGIS_APP.exec_()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 if __name__ == '__main__':
 

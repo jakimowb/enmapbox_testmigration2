@@ -2423,6 +2423,7 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
                 p = SpectralProfile.fromSpecLibFeature(p)
                 profiles[i] = p
 
+        newCurrent = collections.OrderedDict()
 
         if self.actionAddCurrentProfilesAutomatically.isChecked():
             #add SpectralProfiles into the SpectralLibrary
@@ -2433,15 +2434,14 @@ class SpectralLibraryWidget(QFrame, loadSpeclibUI('spectrallibrarywidget.ui')):
                 self.mSpeclib.commitChanges()
         else:
             #do not add, but show SpectralProfiles
-
-            newCurrent = collections.OrderedDict()
             for i, p in enumerate(profiles):
                 pdi = SpectralProfilePlotDataItem(p)
                 pdi.setStyle(CURRENT_SPECTRUM_STYLE)
                 newCurrent[p] = pdi
             self.plotWidget.setPlotOverlayItems(list(newCurrent.values()))
-            self.mCurrentProfiles.clear()
-            self.mCurrentProfiles.update(newCurrent)
+
+        self.mCurrentProfiles.clear()
+        self.mCurrentProfiles.update(newCurrent)
 
         return
 

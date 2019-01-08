@@ -80,7 +80,7 @@ def comboboxExample(isEditable):
     w.show()
 
 if __name__ == '__main__':
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     app = initQgisApplication()
 
     #start the EnMAP-Box

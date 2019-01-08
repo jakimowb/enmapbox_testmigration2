@@ -14,14 +14,14 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
 from qgis import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtWidgets import *
 
 
-from enmapbox.gui.utils import initQgisApplication
+from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
-
+SHOW_GUI = False
 
 
 from enmapboxtestdata import *
@@ -83,7 +83,7 @@ class testclassData(unittest.TestCase):
         self.assertIsInstance(sources[0], DataSourceRaster)
         self.assertIsInstance(sources[1], DataSourceVector)
 
-        self.assertTrue(len(self.dataSourceManager.sources()) == 2)
+        self.assertTrue(len(self.dataSourceManager.sources()) == 3)
         sources = self.dataSourceManager.sources(sourceTypes=DataSourceRaster)
         self.assertTrue(len(sources) == 1)
         self.assertIsInstance(sources[0], DataSourceRaster)
@@ -120,7 +120,8 @@ class testDocks(unittest.TestCase):
         dock = pgDock('Test')
         da.addDock(dock)
         da.show()
-        QGIS_APP.exec_()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 
     def test_MimeDataDock(self):
@@ -128,14 +129,17 @@ class testDocks(unittest.TestCase):
         dock = MimeDataDock()
         da.addDock(dock)
         da.show()
-        QGIS_APP.exec_()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_SpeclibDock(self):
         da = DockArea()
         dock = SpectralLibraryDock()
         da.addDock(dock)
         da.show()
-        QGIS_APP.exec_()
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_MapDock(self):
         da = DockArea()
@@ -143,7 +147,9 @@ class testDocks(unittest.TestCase):
         dock = MapDock()
         da.addDock(dock)
         da.show()
-        QGIS_APP.exec_()
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 if __name__ == "__main__":
     suite = unittest.makeSuite(testclassData)

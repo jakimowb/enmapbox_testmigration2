@@ -12,7 +12,7 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest, tempfile
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *
 from enmapbox.gui.datasourcemanager import *

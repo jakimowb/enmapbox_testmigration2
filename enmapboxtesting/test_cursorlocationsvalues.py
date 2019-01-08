@@ -18,14 +18,14 @@ from qgis.gui import *
 
 from qgis.core import *
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from enmapboxtesting import initQgisApplication
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
+from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *
 from enmapbox.gui.cursorlocationvalue import *
 
-SHOW_GUI = True
+SHOW_GUI = False
 
 class CursorLocationTest(unittest.TestCase):
 

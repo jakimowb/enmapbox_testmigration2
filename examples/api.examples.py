@@ -28,7 +28,7 @@ from qgis.core import *
 
 def example1_startEnMAPBoxWithoutQGIS():
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
 
     qgsApp = initQgisApplication()
     enmapBox = EnMAPBox(None)
@@ -181,7 +181,7 @@ if __name__ == '__main__':
 
         # the following 4 lines and the last 2 are not required if the EnMAP-Box was already started,
         # e.g. inside QGIS
-        from enmapbox.gui.utils import initQgisApplication
+        from enmapbox.testing import initQgisApplication
         from enmapbox.gui.enmapboxgui import EnMAPBox
         qgsApp = initQgisApplication()
 

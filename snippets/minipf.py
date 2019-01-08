@@ -20,7 +20,7 @@ from __future__ import absolute_import
 import qgis
 
 
-from enmapbox.gui.utils import initQgisApplication
+from enmapbox.testing import initQgisApplication
 qapp = initQgisApplication()
 
 from processing.gui.ProcessingToolbox import ProcessingToolbox

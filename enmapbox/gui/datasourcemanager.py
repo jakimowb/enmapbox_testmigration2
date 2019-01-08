@@ -126,7 +126,7 @@ class DataSourceManager(QObject):
             filterTypes = set()
             for sourceType in sourceTypes:
                 if isinstance(sourceType, type(DataSource)):
-                    filterTypes.append(sourceType)
+                    filterTypes.add(sourceType)
                 elif sourceType in SOURCE_TYPES:
                     if sourceType == 'ALL':
                         return self.mSources[:]
@@ -349,19 +349,22 @@ class DataSourceManager(QObject):
         removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
         return [r for r in removed if isinstance(r, DataSource)]
 
-    def removeSource(self, dataSource):
+    def removeSource(self, dataSource:DataSource):
         """
-        Removes the datasource from the DataSourceManager
-        :param dataSource: the DataSource to be removed
+        Removes the DataSource from the DataSourceManager
+        :param dataSource: the DataSource or datataource uri (str) to be removed
         :return: the removed DataSource. None if dataSource was not in the DataSourceManager
         """
-        assert isinstance(dataSource, DataSource)
-        if dataSource in self.mSources:
-            self.mSources.remove(dataSource)
-            self.sigDataSourceRemoved.emit(dataSource)
-            return dataSource
+        if isinstance(dataSource, str):
+            self.removeSources([ds for ds in self.mSources if ds.uri() == dataSource])
         else:
-            messageLog('can not remove {}'.format(dataSource))
+            assert isinstance(dataSource, DataSource)
+            if dataSource in self.mSources:
+                self.mSources.remove(dataSource)
+                self.sigDataSourceRemoved.emit(dataSource)
+                return dataSource
+            else:
+                messageLog('can not remove {}'.format(dataSource))
 
     def sourceTypes(self):
         """

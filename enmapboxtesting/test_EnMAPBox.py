@@ -23,9 +23,6 @@ from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
 SHOW_GUI = True
-from enmapbox.gui.utils import *
-
-
 
 from enmapboxtestdata import enmap
 from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -99,113 +96,63 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
 class TestEnMAPBox(unittest.TestCase):
 
+    def setUp(self):
+
+        self.E = EnMAPBox(None)
+
+    def tearDown(self):
+        self.E.close()
+        self.E = None
+
     def test_instance(self):
 
-        emb = EnMAPBox.instance()
-        self.assertTrue(emb == None)
-        E = EnMAPBox(None)
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
-        self.assertEqual(E, EnMAPBox.instance())
+        self.assertEqual(self.E, EnMAPBox.instance())
 
         if SHOW_GUI:
             QGIS_APP.exec_()
 
     def test_createDock(self):
-        E = EnMAPBox(None)
+
         for d in ['MAP','TEXT','SPECLIB', 'MIME']:
-            dock = E.createDock(d)
+            dock = self.E.createDock(d)
             self.assertIsInstance(dock, Dock)
 
-    def test_removeDock(self):
-        self.fail()
-
-    def test_isLinkedWithQGIS(self):
-        self.fail()
 
     def test_addSources(self):
-        self.EB.removeSources(self.EB.dataSources())
-        self.assertTrue(len(self.EB.dataSources()) == 0)
-        self.EB.addSource(enmap)
-        self.assertTrue(len(self.EB.dataSources()) == 1)
+        E = self.E
+        E.loadExampleData()
+        E.removeSources(E.dataSources())
+        self.assertTrue(len(E.dataSources()) == 0)
+        E.addSource(enmap)
+        self.assertTrue(len(E.dataSources()) == 1)
 
-    def test_removeSources(self):
-        self.fail()
-
-    def test_removeSource(self):
-        self.fail()
-
-    def test_menu(self):
-        self.fail()
-
-    def test_run(self):
-
-
-        self.EB.run()
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
-
-    def test_close(self):
-        self.fail()
-
-    def test_initQgisInterface(self):
-        self.fail()
 
     def test_mapCanvas(self):
-        self.assertTrue(self.EB.mapCanvas() is None)
-        self.assertIsInstance(self.EB.mapCanvas(virtual=True), MapCanvas)
-        canvases = self.EB.mapCanvases()
+        E = self.E
+        self.assertTrue(E.mapCanvas() is None)
+        self.assertIsInstance(E.mapCanvas(virtual=True), MapCanvas)
+        canvases = E.mapCanvases()
         self.assertIsInstance(canvases, list)
         self.assertTrue(len(canvases) == 0)
 
-        self.EB.loadExampleData()
-        self.assertTrue(len(self.EB.mapCanvases()) == 1)
+        E.loadExampleData()
+        self.assertTrue(len(E.mapCanvases()) == 1)
 
-        self.EB.createDock('MAP')
-        self.assertTrue(len(self.EB.mapCanvases()) == 2)
-        for c in self.EB.mapCanvases():
+        E.createDock('MAP')
+        self.assertTrue(len(E.mapCanvases()) == 2)
+        for c in E.mapCanvases():
             self.assertIsInstance(c, MapCanvas)
 
 
     def test_loadExampleData(self):
-        self.EB.loadExampleData()
-        self.assertTrue(len(self.EB.dataSources()) > 0)
-        self.EB.removeSources()
-        self.assertTrue(len(self.EB.dataSources()) == 0)
+        E = self.E
+        E.loadExampleData()
+        self.assertTrue(len(E.dataSources()) > 0)
+        E.removeSources()
+        self.assertTrue(len(E.dataSources()) == 0)
 
-    def test_openMessageLog(self):
-        self.fail()
-
-    def test_addLayers(self):
-        self.fail()
-
-    def test_addLayer(self):
-        self.fail()
-
-    def test_removeAllLayers(self):
-        self.fail()
-
-    def test_newProject(self):
-        self.fail()
-
-    def test_addVectorLayer(self):
-        self.fail()
-
-    def test_addRasterLayer(self):
-        self.fail()
-
-    def test_activeLayer(self):
-        self.fail()
-
-    def test_addToolBarIcon(self):
-        self.fail()
-
-    def test_removeToolBarIcon(self):
-        self.fail()
-
-    def test_addToolBar(self):
-        self.fail()
 
 
 class TestEnMAPBoxWorkflows(unittest.TestCase):
@@ -228,21 +175,21 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         slw = speclibDock.speclibWidget
         self.assertIsInstance(slw, SpectralLibraryWidget)
         self.assertTrue(len(slw.speclib()) == 0)
-        center = SpatialPoint.fromMapCanvasCenter(mapDock.canvas)
+        center = SpatialPoint.fromMapCanvasCenter(mapDock.mapCanvas())
 
 
-        profiles = SpectralProfile.fromMapCanvas(mapDock.canvas, center)
+        profiles = SpectralProfile.fromMapCanvas(mapDock.mapCanvas(), center)
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
 
         EMB.setCurrentMapSpectraLoading('ALL')
-        EMB.loadCurrentMapSpectra(center, mapDock.canvas)
+        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
         self.assertEqual(profiles, EMB.currentSpectra())
         for s in EMB.currentSpectra():
             self.assertIsInstance(s, SpectralProfile)
 
         EMB.setCurrentMapSpectraLoading('TOP')
-        EMB.loadCurrentMapSpectra(center, mapDock.canvas)
+        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
         self.assertEqual(profiles[0:1], EMB.currentSpectra())
 
         slw.setAddCurrentSpectraToSpeclibMode(True)
@@ -250,6 +197,7 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         slw.setCurrentSpectra(profiles)
         self.assertTrue(len(slw.speclib()) == n+len(profiles))
         self.assertTrue(len(slw.currentSpectra()) == 0)
+
         EMB.setCurrentSpectra(profiles)
         self.assertTrue(len(slw.speclib()) == n + len(profiles)*2)
 

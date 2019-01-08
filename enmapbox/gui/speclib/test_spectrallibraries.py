@@ -18,7 +18,7 @@
 """
 # noinspection PyPep8Naming
 import unittest
-from enmapboxtesting import initQgisApplication
+from enmapbox.testing import initQgisApplication
 QAPP = initQgisApplication()
 from enmapbox.gui.utils import *
 from enmapbox.dependencycheck import installTestdata

@@ -25,7 +25,7 @@ from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
 from enmapbox.gui.utils import *

@@ -1,6 +1,6 @@
 import unittest
 from unittest import TestCase
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 from reclassifyapp.reclassify import *
 from enmapbox.gui.classification.classificationscheme import ClassificationScheme
 from enmapbox.gui.utils import *

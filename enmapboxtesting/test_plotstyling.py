@@ -25,7 +25,7 @@ import numpy as np
 from osgeo import gdal
 
 
-from enmapbox.gui.utils import initQgisApplication, MAP_LAYER_STORES
+from enmapbox.testing import initQgisApplication, MAP_LAYER_STORES
 
 QAPP = initQgisApplication()
 
