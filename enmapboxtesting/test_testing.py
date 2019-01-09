@@ -29,6 +29,20 @@ class Tests(unittest.TestCase):
         self.assertIsInstance(ds.GetLayerByIndex(0), ogr.Layer)
         self.assertTrue(ds.GetLayerByIndex(0).GetFeatureCount() > 0)
 
+    def test_enmapboxApplication(self):
+        from enmapbox import EnMAPBox
+        eb = EnMAPBox(None)
+
+        from enmapbox import EnMAPBoxApplication
+        ea = TestObjects.enmapboxApplication()
+        self.assertIsInstance(ea, EnMAPBoxApplication)
+        parentMenu = QMenu()
+        self.assertIsInstance(ea.menu(parentMenu), QMenu)
+
+        self.assertIsInstance(ea.processingAlgorithms(), list)
+        for a in ea.processingAlgorithms():
+            self.assertIsInstance(a, QgsProcessingAlgorithm)
+
     def test_initQgsApplication(self):
 
         self.assertIsInstance(QGIS_APP, QGuiApplication)

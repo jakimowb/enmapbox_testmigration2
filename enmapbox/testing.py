@@ -268,6 +268,106 @@ class TestObjects():
     Creates objects to be used for testing. It is preferred to generate objects in-memory.
     """
 
+    @staticmethod
+    def enmapboxApplication():
+        from enmapbox.gui.applications import EnMAPBoxApplication
+        from enmapbox import EnMAPBox
+        assert isinstance(EnMAPBox.instance(), EnMAPBox), 'Please initialize an EnMAP-Box instance first'
+
+        def testAlgorithm(self, *args):
+            v = 'Hello World'
+            print(v)
+            return v
+
+        class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
+            """
+            Exemplary implementation of a QgsProcessingAlgorithm.
+            See https://qgis.org/api/classQgsProcessingAlgorithm.html for API documentation
+            """
+            def __init__(self):
+                super(ExampleProcessingAlgorithm, self).__init__()
+
+            def createInstance(self) -> QgsProcessingAlgorithm:
+                """
+                Creates a new instance of the algorithm class.
+                :return: QgsProcessingAlgorithm
+                """
+                return TestObjects.ExampleProcessingAlgorithm()
+
+            def name(self) -> str:
+                return 'examplealgorithm'
+
+            def displayName(self):
+                return 'Minimal Example Algorithm'
+
+            def groupId(self) -> str:
+                """
+                Returns the unique ID of the group this algorithm belongs to.
+                :return: str
+                """
+                return 'testgroup'
+
+            def group(self) -> str:
+                """
+                Returns the name of the group this algorithm belongs to.
+                :return: str
+                """
+                return 'testgroup'
+
+            def initAlgorithm(self, configuration: dict = None):
+                """
+                Initializes the algorithm using the specified configuration.
+                :param configuration: dict
+                """
+                self.addParameter(QgsProcessingParameterRasterLayer('pathInput', 'The Input Dataset'))
+                self.addParameter(
+                    QgsProcessingParameterNumber('value', 'The value', QgsProcessingParameterNumber.Double, 1, False,
+                                                 0.00, 999999.99))
+                self.addParameter(QgsProcessingParameterRasterDestination('pathOutput', 'The Output Dataset'))
+
+            def processAlgorithm(self, parameters: dict, context: QgsProcessingContext,
+                                 feedback: QgsProcessingFeedback):
+                """
+                Runs the algorithm using the specified parameters.
+                :param parameters: dict
+                :param context: QgsProcessingContext
+                :param feedback: QgsProcessingFeedback
+                :return: dict
+                """
+                assert isinstance(parameters, dict)
+                assert isinstance(context, QgsProcessingContext)
+                assert isinstance(feedback, QgsProcessingFeedback)
+
+                results = testAlgorithm(parameters)
+                outputs = {'results': results}
+                return outputs
+
+        class ExampleApp(EnMAPBoxApplication):
+
+            def __init__(self, enmapbox:EnMAPBox, parent):
+                super(ExampleApp, self).__init__(enmapbox, parent)
+
+                self.name = 'TestApp'
+                self.licence = 'GPL-3'
+                self.description = 'test app'
+
+            def icon(self)->QIcon:
+                return EnMAPBox.getIcon()
+
+            def menu(self, parentMenu)->QMenu:
+
+                assert isinstance(parentMenu, QMenu)
+                action = parentMenu.addAction('Hello')
+                action.triggered.connect(testAlgorithm)
+                return parentMenu
+
+            def processingAlgorithms(self)->list:
+
+
+                return [ExampleProcessingAlgorithm()]
+
+        emb = EnMAPBox.instance()
+        return ExampleApp(emb, emb.ui)
 
     @staticmethod
     def spectralProfiles(n):
@@ -428,7 +528,6 @@ class TestObjects():
                 return outputs
 
         return TestProcessingAlgorithm()
-
 
 
 

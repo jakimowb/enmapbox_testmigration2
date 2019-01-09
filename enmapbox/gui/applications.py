@@ -39,7 +39,6 @@ class EnMAPBoxApplication(QObject):
     Base class to describe components of an EnMAPBoxApplication
     and to provide interfaces the main EnMAP-Box
     """
-
     @staticmethod
     def checkRequirements(enmapBoxApp)->(bool,str):
         """
