@@ -388,14 +388,19 @@ class EnMAPBox(QgisInterface, QObject):
 
     def addApplication(self, app):
         """
-        :param app: Can be the path of a directory which contains an EnMAP-Box Application or
-                    an instance of an EnMAPBoxApplication
+        Adds an EnMAPBoxApplication
+        :param app: EnMAPBoxApplication or string to EnMAPBoxApplication folder or file with EnMAPBoxApplication listing.
         """
         from enmapbox.gui.applications import EnMAPBoxApplication
         if isinstance(app, EnMAPBoxApplication):
             self.applicationRegistry.addApplication(app)
-        elif type(app) in [str]:
-            self.applicationRegistry.addApplicationPackageSavely(app)
+        elif isinstance(app, str):
+            if os.path.isfile(app):
+                self.applicationRegistry.addApplicationListing(app)
+            elif os.path.isdir(app):
+                self.applicationRegistry.addApplicationFolder(app)
+            else:
+                raise Exception('Unable to load EnMAPBoxApplication from "{}"'.format(app))
         else:
             raise Exception('argument "app" has unknown type: {}. '.format(str(app)))
 
@@ -543,36 +548,51 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     def initEnMAPBoxApplications(self):
+        """
+        Initialized EnMAPBoxApplications
+        """
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
 
-        INTERNAL_APPS = jp(DIR_ENMAPBOX, *['coreapps'])
-        EXTERNAL_APPS = jp(DIR_ENMAPBOX, *['apps'])
+
+
 
         listingBasename = 'enmapboxapplications.txt'
 
+        # load internal "core" apps
+        INTERNAL_APPS = jp(DIR_ENMAPBOX, *['coreapps'])
         if enmapbox.LOAD_INTERNAL_APPS:
             self.applicationRegistry.addApplicationFolder(INTERNAL_APPS, isRootFolder=True)
+        # check for listing file
         p = os.path.join(INTERNAL_APPS, listingBasename)
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
+        # load external / standard apps
+        EXTERNAL_APPS = jp(DIR_ENMAPBOX, *['apps'])
         if enmapbox.LOAD_EXTERNAL_APPS:
             self.applicationRegistry.addApplicationFolder(EXTERNAL_APPS, isRootFolder=True)
-        p = os.path.join(INTERNAL_APPS, listingBasename)
+
+        # check for listing file
+        p = os.path.join(EXTERNAL_APPS, listingBasename)
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
-        #find root folders
+        # check for listing file in root
+        p = os.path.join(DIR_ENMAPBOX, listingBasename)
+        if os.path.isfile(p):
+            self.applicationRegistry.addApplicationListing(p)
+
+        #find other app-folders or listing files folders
         from enmapbox.gui.settings import enmapboxSettings
         settings = enmapboxSettings()
-        for appDir in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
-            if os.path.isdir(appDir):
-                self.applicationRegistry.addApplicationFolder(appDir, isRootFolder=True)
-            p = os.path.join(INTERNAL_APPS, listingBasename)
-            if os.path.isfile(p):
+        for appPath in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
+            if os.path.isdir(appPath):
+                self.applicationRegistry.addApplicationFolder(appPath, isRootFolder=True)
+            elif os.path.isfile(p):
                 self.applicationRegistry.addApplicationListing(p)
-
+            else:
+                print('Unable to load EnMAPBoxApplication(s) from path: "{}"'.format(p))
 
 
     def exit(self):

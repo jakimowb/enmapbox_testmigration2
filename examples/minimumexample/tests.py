@@ -102,6 +102,7 @@ class TestExampleEnMAPBoxApp(TestCase):
         if SHOW_GUI:
             APP.exec_()
 
+
 if __name__ == "__main__":
     import unittest
     SHOW_GUI = False

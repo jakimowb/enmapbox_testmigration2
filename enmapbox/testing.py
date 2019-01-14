@@ -292,7 +292,7 @@ class TestObjects():
                 Creates a new instance of the algorithm class.
                 :return: QgsProcessingAlgorithm
                 """
-                return TestObjects.ExampleProcessingAlgorithm()
+                return ExampleProcessingAlgorithm()
 
             def name(self) -> str:
                 return 'examplealgorithm'
@@ -349,6 +349,7 @@ class TestObjects():
 
                 self.name = 'TestApp'
                 self.licence = 'GPL-3'
+                self.version = '0.8.15'
                 self.description = 'test app'
 
             def icon(self)->QIcon:

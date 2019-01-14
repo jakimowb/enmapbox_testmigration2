@@ -243,7 +243,6 @@ class ApplicationRegistry(QObject):
                                directory without any __init__.py which contains EnMAPBoxApplication folders
         :return: bool, True if any EnMAPBoxApplication was added
         """
-
         if isRootFolder:
             assert (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath))
             subDirs = []
