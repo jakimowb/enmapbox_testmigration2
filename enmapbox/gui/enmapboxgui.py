@@ -500,7 +500,6 @@ class EnMAPBox(QgisInterface, QObject):
         for lyr in lyrs:
             assert isinstance(lyr, QgsRasterLayer)
             path = lyr.source()
-            from enmapbox.gui.speclib.spectrallibraries import SpectralProfile
             #p = SpectralProfile.fromRasterSource(path, spatialPoint)
             p = SpectralProfile.fromRasterLayer(lyr, spatialPoint)
             if isinstance(p, SpectralProfile):
