@@ -823,7 +823,6 @@ class SpectralLibraryDock(Dock):
     def __init__(self,speclib=None, *args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
         self.speclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
         self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.speclibWidget)

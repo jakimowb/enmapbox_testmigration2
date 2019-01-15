@@ -34,6 +34,7 @@ import qgis
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
 from qgis.PyQt.QtCore import QSettings
 
+
 __version__ = '3.3' #subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
@@ -71,34 +72,22 @@ LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
 
 site.addsitedir(DIR_SITEPACKAGES)
 
+
 # make the EnMAP-Box resources available
 
-if not 'images' in sys.modules.keys():
-    import enmapbox.gui.resourcemockup
-    sys.modules['images'] = enmapbox.gui.resourcemockup
+try:
+    from qps import resourcemockup
+    if not 'images' in sys.modules.keys():
+        sys.modules['images'] = resourcemockup
 
-#initialize general enmapbox resources
-from enmapbox.gui.ui import resources
-resources.qInitResources()
+    #initialize general enmapbox resources
+    from enmapbox.gui.ui import resources
+    resources.qInitResources()
 
-import enmapbox.gui.classification
-#this initializes the classification package resources
+except:
+    pass
 
-#see https://github.com/pyqtgraph/pyqtgraph/issues/774
-WORKAROUND_PYTGRAPH_ISSUE_774 = True
-if WORKAROUND_PYTGRAPH_ISSUE_774:
-    from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
 
-    from PyQt5.QtCore import QVariant
-    untouched = GraphicsObject.itemChange
-
-    def newFunc(cls, change, value):
-        if value != QVariant(None):
-            return untouched(cls, change, value)
-        else:
-            return untouched(cls, change, None)
-
-    GraphicsObject.itemChange = newFunc
 
 
 def messageLog(msg, level=Qgis.Info):
@@ -118,7 +107,7 @@ def messageLog(msg, level=Qgis.Info):
 EnMAPBox = None
 EnMAPBoxApplication = None
 
-try: #necessary to allow sphinx documentation
+try: #exception necessary to allow sphinx documentation
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EnMAPBox = EnMAPBox
 
@@ -130,17 +119,18 @@ except Exception as ex:
     pass
 
 
+
 def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
-    from enmapbox.gui.plotstyling import registerPlotStyleEditorWidget
+    from enmapbox.gui import registerPlotStyleEditorWidget
     registerPlotStyleEditorWidget()
 
-    from enmapbox.gui.speclib import registerSpectralProfileEditorWidget
+    from enmapbox.gui import registerSpectralProfileEditorWidget
     registerSpectralProfileEditorWidget()
 
-    from enmapbox.gui.classification.classificationscheme import registerClassificationSchemeEditorWidget
+    from enmapbox.gui import registerClassificationSchemeEditorWidget
     registerClassificationSchemeEditorWidget()
 
 
@@ -153,15 +143,13 @@ def initEnMAPBoxProcessingProvider():
     registry = QgsApplication.instance().processingRegistry()
     assert isinstance(registry, QgsProcessingRegistry)
     global _enmapboxProvider
-    if not isinstance(_enmapboxProvider, QgsProcessingProvider):
-        _enmapboxProvider = registry.providerById(ID)
-    if not isinstance(_enmapboxProvider, QgsProcessingProvider):
+    prov = registry.providerById(ID)
+    if not isinstance(prov, QgsProcessingProvider):
         _enmapboxProvider = EnMAPBoxAlgorithmProvider()
-
-        assert _enmapboxProvider.id() == ID
+        assert isinstance(_enmapboxProvider, EnMAPBoxAlgorithmProvider)
         registry.addProvider(_enmapboxProvider)
-    assert registry.providerById(ID) == _enmapboxProvider
-    assert isinstance(_enmapboxProvider, EnMAPBoxAlgorithmProvider)
+
+        assert registry.providerById(ID) == _enmapboxProvider
 
     try:
         import enmapboxgeoalgorithms.algorithms

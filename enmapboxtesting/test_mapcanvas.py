@@ -20,6 +20,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
+SHOW_GUI = False
 
 import enmapbox.dependencycheck
 enmapbox.dependencycheck.installTestdata()
@@ -119,10 +120,8 @@ class MapCanvasTests(unittest.TestCase):
 
     def test_dropEvents(self):
 
-
-
-        allFiles = [enmap, hires, landcover, library]
-        spatialFiles = [enmap, hires, landcover]
+        allFiles = [enmap, hires, landcover_polygons, library]
+        spatialFiles = [enmap, hires, landcover_polygons]
 
         from enmapbox.gui.mimedata import MDF_URILIST, MDF_DATASOURCETREEMODELDATA, MDF_SPECTRALLIBRARY, MDF_DOCKTREEMODELDATA
         md = QMimeData()
@@ -132,12 +131,12 @@ class MapCanvasTests(unittest.TestCase):
         self.mapCanvas.setLayers([])
         self.mapCanvas.dropEvent(TestObjects.createDropEvent(md))
         #self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
-        for p in self.mapCanvas.layerPaths():
-            self.assertTrue(p in spatialFiles)
+        for p in spatialFiles:
+            self.assertTrue(p in self.mapCanvas.layerPaths())
 
         #drop layertree
 
-        layers = [QgsVectorLayer(landcover), QgsRasterLayer(enmap)]
+        layers = [QgsVectorLayer(landcover_polygons), QgsRasterLayer(enmap)]
         md = fromLayerList(layers)
 
         self.mapCanvas.setLayers([])
@@ -148,7 +147,7 @@ class MapCanvasTests(unittest.TestCase):
 
 
         #drop registered layers
-        layers = [QgsVectorLayer(landcover), QgsRasterLayer(enmap)]
+        layers = [QgsVectorLayer(landcover_polygons), QgsRasterLayer(enmap)]
         QgsProject.instance().addMapLayers(layers)
 
 
@@ -157,13 +156,13 @@ def exampleMapLinking():
     #add site-packages to sys.path as done by enmapboxplugin.py
 
     from enmapbox.testing import initQgisApplication
-    from enmapboxtestdata import enmap, hires, landcover
+    from enmapboxtestdata import enmap, hires, landcover_polygons
     from enmapbox.gui.mapcanvas import CanvasLinkDialog
     import enmapbox.gui.mapcanvas
     enmapbox.gui.mapcanvas.DEBUG = True
     qgsApp = initQgisApplication()
     import math
-    geoFiles = [enmap, hires, landcover]
+    geoFiles = [enmap, hires, landcover_polygons]
     nMaps = 4
 
     maps = []
@@ -181,14 +180,15 @@ def exampleMapLinking():
     d.setSourceCanvas(maps[0])
     d.show()
 
-    qgsApp.exec_()
-    qgsApp.exitQgis()
+    if SHOW_GUI:
+        qgsApp.exec_()
+        qgsApp.exitQgis()
 
 
 
 if __name__ == "__main__":
+    SHOW_GUI = False
 
-    #exampleMapLinking()
     unittest.main()
 
 

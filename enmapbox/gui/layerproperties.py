@@ -22,7 +22,7 @@ import collections
 import os
 import re
 
-from osgeo import gdal, ogr
+from osgeo import gdal, ogr, osr
 import numpy as np
 from qgis.gui import *
 from qgis.core import *
@@ -31,8 +31,7 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtXml import QDomDocument
 
-from enmapbox.gui.utils import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames, write_vsimem
-from enmapbox.gui.widgets.models import *
+from enmapbox.gui import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames, write_vsimem, OptionListModel, Option, ClassificationScheme, ClassInfo
 import enmapbox.gui.mimedata
 """
 class RasterLayerProperties(QgsOptionsDialogBase):
@@ -154,7 +153,6 @@ def defaultRasterRenderer(layer:QgsRasterLayer, bandIndices:list=None)->QgsRaste
     assert isinstance(dp, QgsRasterDataProvider)
 
     #classification ? -> QgsPalettedRasterRenderer
-    from enmapbox.gui.classification.classificationscheme import ClassificationScheme
     classes = ClassificationScheme.fromMapLayer(layer)
 
     if isinstance(classes, ClassificationScheme):

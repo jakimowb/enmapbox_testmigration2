@@ -28,7 +28,7 @@ from enmapboxtestdata import enmap
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
-from enmapbox.gui.speclib.spectrallibraries import *
+from enmapbox.gui import *
 
 class MyOutputRaster(QgsProcessingParameterDefinition):
 
@@ -153,6 +153,8 @@ class TestEnMAPBox(unittest.TestCase):
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
 
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 
 class TestEnMAPBoxWorkflows(unittest.TestCase):

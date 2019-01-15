@@ -19,6 +19,7 @@
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
+from enmapbox.gui import *
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
@@ -319,7 +320,6 @@ class EnMAPBox(QgisInterface, QObject):
         area = Qt.LeftDockWidgetArea
         self.ui.dataSourcePanel = self.addPanel(area, enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
         self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dockmanager.DockPanelUI(self.ui))
-        from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
 
         area = Qt.BottomDockWidgetArea

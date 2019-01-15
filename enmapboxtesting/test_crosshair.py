@@ -18,9 +18,9 @@ from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
-from enmapbox.gui.crosshair import *
+from enmapbox.gui import CrosshairDialog
 
-
+SHOW_GUI = False
 class CrosshairTests(unittest.TestCase):
 
     def test_crosshair(self):
@@ -42,7 +42,8 @@ class CrosshairTests(unittest.TestCase):
         if style is not None:
             self.assertIsInstance(style, CrosshairStyle)
 
-        QGIS_APP.exec_()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 if __name__ == "__main__":
     unittest.main()
