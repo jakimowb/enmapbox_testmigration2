@@ -13,10 +13,12 @@ from hubflow.report import *
 from hubflow.errors import *
 import hubflow.signals
 
+
 class ApplierOptions(dict):
 
-    def __init__(self, grid=None, progressBar=None, emitFileCreated=None):
-        dict.__init__(self, tuple((k, v) for k, v in locals().items() if v is not None and not k.startswith('_') and k != 'self'))
+    def __init__(self, grid=None, progressBar=None, progressCallback=None, emitFileCreated=None):
+        dict.__init__(self, tuple(
+            (k, v) for k, v in locals().items() if v is not None and not k.startswith('_') and k != 'self'))
 
 
 class Applier(hubdc.applier.Applier):
@@ -29,6 +31,8 @@ class Applier(hubdc.applier.Applier):
             grid = grid.grid()
 
         self.controls.setProgressBar(kwargs.get('progressBar', None))
+        self.controls.setProgressCallback(kwargs.get('progressCallback', None))
+
         self.controls.setGrid(grid)
         self.controls.setEmitFileCreated(kwargs.get('emitFileCreated', True))
 
@@ -345,19 +349,19 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
 
     def setFlowMetadataClassDefinition(self, name, classDefinition):
         MetadataEditor.setClassDefinition(rasterDataset=self.outputRaster.raster(key=name),
-                                                       classDefinition=classDefinition)
+                                          classDefinition=classDefinition)
 
     def setFlowMetadataFractionDefinition(self, name, classDefinition):
         return MetadataEditor.setFractionDefinition(rasterDataset=self.outputRaster.raster(key=name),
-                                                                 classDefinition=classDefinition)
+                                                    classDefinition=classDefinition)
 
     def setFlowMetadataRegressionDefinition(self, name, noDataValues, outputNames):
         return MetadataEditor.setRegressionDefinition(rasterDataset=self.outputRaster.raster(key=name),
-                                                                   noDataValues=noDataValues, outputNames=outputNames)
+                                                      noDataValues=noDataValues, outputNames=outputNames)
 
     def setFlowMetadataBandNames(self, name, bandNames):
         return MetadataEditor.setBandNames(rasterDataset=self.outputRaster.raster(key=name),
-                                                        bandNames=bandNames)
+                                           bandNames=bandNames)
 
     def setFlowMetadataNoDataValues(self, name, noDataValues):
         self.outputRaster.raster(key=name).setNoDataValues(values=noDataValues)
@@ -428,6 +432,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
         else:
             return maskArray
 
+
 class ApplierControls(hubdc.applier.ApplierControls):
 
     def setEmitFileCreated(self, bool):
@@ -445,11 +450,11 @@ class FlowObject(object):
         for key, value in self.__getstate__().items():
             if isinstance(value, str):
                 valueRepr = value
-            elif isinstance(value,np.ndarray):
+            elif isinstance(value, np.ndarray):
                 valueRepr = 'array[{}]'.format(', '.join([str(n) for n in value.shape]))
             else:
                 valueRepr = repr(value)
-            kwarg =  '{}={}'.format(key, valueRepr)
+            kwarg = '{}={}'.format(key, valueRepr)
             kwargs.append(kwarg)
 
         return '{}({})'.format(type(self).__name__, ', '.join(kwargs))
@@ -523,6 +528,7 @@ class FlowObject(object):
     def browse(self):
         import objbrowser
         objbrowser.browse({type(self).__name__: self})
+
 
 class MapCollection(FlowObject):
     '''Class for managing a collection of :class:`~Map` 's.'''
@@ -638,8 +644,9 @@ class MapCollection(FlowObject):
 
         else:
             if not onTheFlyResampling is True:
-                filenames = [str(map.filename()) for map in self.maps() + masks]
-                raise Exception('Grids do not match and on the fly resampling is turned off.\nFilenames: {}'.format(filenames))
+                filenames = set([str(map.filename()) for map in self.maps() + masks if map is not None])
+                raise Exception(
+                    'Grids do not match and on the fly resampling is turned off.\nFilenames: {}'.format(filenames))
             arrays = extractPixels(inputs=self.maps(), masks=masks, grid=grid, **kwargs)
         return arrays
 
@@ -694,7 +701,7 @@ class MapCollection(FlowObject):
             bands = array.shape[0]
             lines = min(3600, array.shape[1])
             samples = ceil(array.shape[1] / float(lines))
-            array2 = np.full(shape=(bands, lines*samples, 1), fill_value=map.noDataValue(default=np.nan),
+            array2 = np.full(shape=(bands, lines * samples, 1), fill_value=map.noDataValue(default=np.nan),
                              dtype=map.dtype())
             array2[:, :array.shape[1]] = array[:]
             array2 = np.reshape(array2, (bands, lines, samples))
@@ -1066,6 +1073,67 @@ class Raster(Map):
         applier.apply(operatorType=_RasterResample, raster=self, resampleAlg=resampleAlg)
         return Raster(filename=filename)
 
+    def subsetBands(self, filename, indices, invert=False, **kwargs):
+        '''
+        Return the band subset given by ``indices``.
+
+        :param filename: output path
+        :type filename: str
+        :param indices:
+        :type indices: list
+        :param invert: wether to invert the indices list (i.e. dropping bands instead of selecting)
+        :type invert: bool
+        :param kwargs: passed to gdal.Translate
+        :type kwargs: dict
+
+        :rtype: Raster
+
+        :example:
+
+        TODO
+
+        >>> raster = Raster.fromArray(array=[[[1]], [[2]], [[3]]], filename='/vsimem/raster.bsq')
+        >>> raster.array()
+        array([[[1, 2, 3]]])
+        '''
+
+        # prepare bandList for gdal.Translate
+        bandList = list()
+        zsize = self.dataset().zsize()
+        for index in indices:
+            index = int(index)
+            if index < 0:
+                index = zsize + index
+            if index < 0 or index >= zsize:
+                raise Exception('Index is out of valid bounds: {}'.format(index))
+            bandList.append(index + 1)
+
+        if invert:
+            bandList = [i + 1 for i in range(zsize) if i + 1 not in bandList]
+
+        # subset raster
+        rasterDataset = self.dataset().translate(filename=filename, driver=RasterDriver.fromFilename(filename),
+                                                 bandList=bandList)
+
+        # copy metadata and especially subset some band related items in the ENVI domain
+        indices = [b - 1 for b in bandList]
+        meta = self.dataset().metadataDict()
+        envi = meta.get('ENVI', dict())
+        envi.pop('bands', None)
+
+        if 'band names' in envi:
+            MetadataEditor.setBandNames(rasterDataset, [envi['band names'][i] for i in indices])
+        for key in ['band names', 'wavelength', 'fwhm']:
+            if key in envi:
+                envi[key] = [envi[key][i] for i in indices]
+        rasterDataset.setMetadataDict(meta)
+
+        noDataValues = self.noDataValues()
+        rasterDataset.setNoDataValues(values=[noDataValues[i] for i in indices])
+
+        raster = type(self).fromRasterDataset(rasterDataset)
+        return raster
+
     def asMask(self, noDataValues=None, minOverallCoverage=0.5, indices=None, invert=False):
         '''
         Return itself as a :class:`~hubflow.core.Mask`.
@@ -1162,7 +1230,8 @@ class Raster(Map):
         applier.setFlowMask('mask', mask=mask)
         return applier.apply(operatorType=_RasterStatistics, raster=self, bandIndices=bandIndices, mask=mask,
                              calcPercentiles=calcPercentiles, calcMean=calcMean, calcStd=calcStd,
-                             calcHistogram=calcHistogram, percentiles=percentiles, histogramRanges=histogramRanges, histogramBins=histogramBins)
+                             calcHistogram=calcHistogram, percentiles=percentiles, histogramRanges=histogramRanges,
+                             histogramBins=histogramBins)
 
     def scatterMatrix(self, raster2, bandIndex1, bandIndex2, range1, range2, bins=256, mask=None, stratification=None,
                       **kwargs):
@@ -1367,23 +1436,22 @@ class _RasterConvolve(ApplierOperator):
         inraster = self.inputRaster.raster(key='inraster')
         outraster = self.outputRaster.raster(key='outraster')
         zsize, ysize, xsize = kernel.shape
-        overlap = int((max(ysize, xsize)+1)/2.)
+        overlap = int((max(ysize, xsize) + 1) / 2.)
         array = np.float32(inraster.array(overlap=overlap))
         noDataValues = self.inputRaster.raster(key='inraster').noDataValues()
         for band, noDataValue in zip(array, noDataValues):
             if noDataValue is not None:
-                band[band==noDataValue] = np.nan
+                band[band == noDataValue] = np.nan
         outarray = convolve(array=array, kernel=kernel,
                             fill_value=np.nan, nan_treatment='fill',
                             normalize_kernel=False)
         outraster.setArray(array=outarray, overlap=overlap)
-        #outraster.setMetadataDict(metadataDict=inraster.metadataDict())
+        # outraster.setMetadataDict(metadataDict=inraster.metadataDict())
         outraster.setNoDataValue(value=np.nan)
 
 
 class _RasterApplySpatial(ApplierOperator):
     def ufunc(self, raster, function):
-
         inraster = self.inputRaster.raster(key='inraster')
         outraster = self.outputRaster.raster(key='outraster')
         outraster.setZsize(zsize=inraster.dataset().zsize())
@@ -1465,6 +1533,7 @@ class _RasterStatistics(ApplierOperator):
     def aggregate(blockResults, grid, *args, **kwargs):
         return blockResults[0]
 
+
 class _RasterFromVector(ApplierOperator):
     def ufunc(self, vector, noDataValue):
         array = self.flowVectorArray('vector', vector=vector)
@@ -1518,7 +1587,6 @@ class _RasterApplyMask(ApplierOperator):
 
 class WavebandDefinition(FlowObject):
     '''Class for managing waveband definitions.'''
-
 
     def __init__(self, center, fwhm=None, responses=None, name=None):
         '''
@@ -1975,6 +2043,7 @@ class SensorDefinition(FlowObject):
         outarray = outraster.dataset().readAsArray().T[0]
         return outarray
 
+
 class _SensorDefinitionResampleRaster(ApplierOperator):
     def ufunc(self, raster, targetSensor, sourceSensor, minResponse, resampleAlg):
         assert isinstance(targetSensor, SensorDefinition)
@@ -2016,8 +2085,8 @@ class _SensorDefinitionResampleRaster(ApplierOperator):
                 if weight > self.minResponse:
                     weightsSum += weight
                     invalues = self.flowRasterArray(name='raster',
-                                                   raster=self.raster,
-                                                   indices=[inindex])[self.marray]
+                                                    raster=self.raster,
+                                                    indices=[inindex])[self.marray]
                     outarray[outindex][self.marray[0]] += weight * invalues
             if weightsSum == 0:  # if no source bands are inside the responsive region of the target band
                 import warnings
@@ -2031,7 +2100,6 @@ class _SensorDefinitionResampleRaster(ApplierOperator):
 
         return outarray
 
-
     def resampleWithLinearInterpolation(self):
         outarray = self.full(value=0, bands=self.targetSensor.wavebandCount(), dtype=np.float32)
         incenters = [wd.center() for wd in self.sourceSensor.wavebandDefinitions()]
@@ -2042,15 +2110,15 @@ class _SensorDefinitionResampleRaster(ApplierOperator):
                 indexA = indexB = 0
                 wA = wB = 0.5
             elif outcenter >= incenters[-1]:
-                indexA = indexB = len(incenters)-1
+                indexA = indexB = len(incenters) - 1
                 wA = wB = 0.5
             else:
                 for inindex, incenter in enumerate(incenters):
                     if incenter > outcenter:
                         indexA = inindex - 1
                         indexB = inindex
-                        distanceA = np.abs(incenters[indexA]-outcenter)
-                        distanceB = np.abs(incenters[indexB]-outcenter)
+                        distanceA = np.abs(incenters[indexA] - outcenter)
+                        distanceB = np.abs(incenters[indexB] - outcenter)
                         wA = 1. - distanceA / (distanceA + distanceB)
                         wB = 1. - wA
                         break
@@ -2150,7 +2218,6 @@ class ENVISpectralLibrary(FlowObject):
 
         return raster
 
-
     @staticmethod
     def fromRaster(filename, raster):
         '''
@@ -2224,7 +2291,7 @@ class ENVISpectralLibrary(FlowObject):
 
         filenameJson = '{}.json'.format(splitext(self.filename())[0])
         if filenameJson is not None:
-            definitions =  AttributeDefinitionEditor.readFromJson(filename=filenameJson)
+            definitions = AttributeDefinitionEditor.readFromJson(filename=filenameJson)
         else:
             definitions = dict()
 
@@ -2235,8 +2302,6 @@ class ENVISpectralLibrary(FlowObject):
             definitions = {k: v for k, v in definitions.items() if isinstance(v, ClassDefinition)}
 
         return definitions
-
-
 
     def attributeNames(self):
         '''
@@ -2268,17 +2333,19 @@ class ENVISpectralLibrary(FlowObject):
             with open(filenameCSV, 'w') as file:
                 file.write(','.join(['spectra names'] + labels.outputNames()) + '\n')
                 for i, values in enumerate(labels.readAsArray().reshape(labels.outputs(), -1).T):
-                    file.write('profile {},{}\n'.format(i+1, ','.join([str(v).strip() for v in values])))
-                    a='Red clay tile 1,Impervious,Roof'
+                    file.write('profile {},{}\n'.format(i + 1, ','.join([str(v).strip() for v in values])))
+                    a = 'Red clay tile 1,Impervious,Roof'
 
         # write regression attribute definition as csv
         for i, name in enumerate(labels.outputNames()):
-            filenameCSV = ENVI.findHeader(filenameBinary=filename).replace('.hdr', '.{}.regrdef.csv'.format(name.replace(' ', '_')))
+            filenameCSV = ENVI.findHeader(filenameBinary=filename).replace('.hdr', '.{}.regrdef.csv'.format(
+                name.replace(' ', '_')))
             noDataVaue = labels.noDataValues()[i]
             with open(filenameCSV, 'w') as file:
                 if isinstance(labels, Fraction):
-                    color = labels.classDefinition().color(label=i+1)
-                    file.write('{} ({}, {}, {}) ({})'.format(name, color.red(), color.green(), color.blue(), noDataVaue))
+                    color = labels.classDefinition().color(label=i + 1)
+                    file.write(
+                        '{} ({}, {}, {}) ({})'.format(name, color.red(), color.green(), color.blue(), noDataVaue))
                 else:
                     file.write('{} ({})'.format(name, noDataVaue))
 
@@ -2293,7 +2360,6 @@ class ENVISpectralLibrary(FlowObject):
         75
         '''
         return self.raster().shape()[1]
-
 
 
 class RasterStack(FlowObject):
@@ -2865,8 +2931,6 @@ class Vector(Map):
         ['Low vegetation', 'Pavement', 'Roof', 'Tree']
         '''
 
-
-
         vector = openVectorDataset(filename=self.filename(), layerNameOrIndex=self.layer())
         layer = vector.ogrLayer()
 
@@ -3048,6 +3112,7 @@ class VectorMask(Vector):
         'Returns additional keyword arguments.'
         return self._kwargs
 
+
 class VectorClassification(Vector):
     '''Class for manaing vector classifications.'''
 
@@ -3086,7 +3151,6 @@ class VectorClassification(Vector):
         VectorClassification(filename=...LandCov_BerlinUrbanGradient.shp, classDefinition=ClassDefinition(classes=6, names=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other'], colors=['#e60000', '#9c9c9c', '#98e600', '#267300', '#a87000', '#f5f57a']), classAttribute=Level_2_ID, minOverallCoverage=0.5, minDominantCoverage=0.5, oversampling=1)
 
         '''
-
 
         Vector.__init__(self, filename=filename, layer=layer, burnAttribute=classAttribute, dtype=dtype)
 
@@ -3187,7 +3251,8 @@ class Color(FlowObject):
         return self._qColor.colorNames()
 
     def rgb(self):
-        return self.red(), self. green(), self.blue()
+        return self.red(), self.green(), self.blue()
+
 
 class AttributeDefinitionEditor(object):
 
@@ -3284,9 +3349,9 @@ class ClassDefinition(FlowObject):
 
     def labels(self):
         '''Return class labels.'''
-        return list(range(1, self.classes()+1))
+        return list(range(1, self.classes() + 1))
 
-    def setNoDataNameAndColor(self, name='Unclassified', color='#black'):
+    def setNoDataNameAndColor(self, name='Unclassified', color='black'):
         '''Set no data name and color.'''
         self._noDataName = name
         self._noDataColor = Color(color)
@@ -3660,7 +3725,7 @@ class Classification(Raster):
                 classDefinition = definitions[attribute]
 
         if classDefinition is None:
-            assert 0 # get from unique values
+            assert 0  # get from unique values
 
         labels = np.array(table[attribute])
 
@@ -3794,14 +3859,14 @@ class Classification(Raster):
         applier.setFlowMask('mask', mask=mask)
         return list(applier.apply(operatorType=_ClassificationStatistics, classification=self, mask=mask))
 
+
 class _ClassificationStatistics(ApplierOperator):
     def ufunc(self, classification, mask):
-
         array = self.flowClassificationArray('classification', classification=classification)
         array[np.logical_not(self.flowMaskArray('mask', mask=mask))] = 0
         hist, bin_edges = np.histogram(array,
                                        bins=classification.classDefinition().classes(),
-                                       range=[1, classification.classDefinition().classes()+1,])
+                                       range=[1, classification.classDefinition().classes() + 1, ])
         return hist
 
     @staticmethod
@@ -3893,7 +3958,6 @@ class RegressionDefinition(FlowObject):
         assert len(noDataValues) == targets
         assert len(colors) == targets
 
-
         self._targets = int(targets)
         self._names = [str(name) for name in names]
         self._noDataValues = [float(v) for v in noDataValues]
@@ -3907,7 +3971,6 @@ class RegressionDefinition(FlowObject):
                 self._colors.append(Color(color))
             else:
                 assert 0, 'unexpected color format: {}'.format(color)
-
 
     def __getstate__(self):
         return OrderedDict([('targets', self.targets()),
@@ -4025,7 +4088,7 @@ class Regression(Raster):
         Regression(filename=/vsimem/regression.bsq, noDataValues=[-1.0], outputNames=['Roof'], minOverallCoverage=0.5)
         '''
 
-        assert 0 # todo
+        assert 0  # todo
 
         assert isinstance(library, ENVISpectralLibrary)
         assert isinstance(attributes, (list, tuple))
@@ -4040,16 +4103,16 @@ class Regression(Raster):
 
             arrays.append(table[attribute])
 
-            #if isinstance(definitions.get(attribute), RegressionDefinition
+            # if isinstance(definitions.get(attribute), RegressionDefinition
             noDataValues.append(float(library.raster().dataset().metadataItem(key=attribute, domain='REGR_NODATAVALUE',
-                                                                        default=np.finfo(np.float32).min)))
+                                                                              default=np.finfo(np.float32).min)))
         arrays = np.transpose(np.float32(arrays))
         # sort profiles
 
         ordered = OrderedDict()
         spectraNames = library.raster().dataset().metadataItem(key='spectra names', domain='CSV', required=True)
 
-        defaultNames = ['profile {}'.format(i+1) for i in range(library.profiles())]
+        defaultNames = ['profile {}'.format(i + 1) for i in range(library.profiles())]
         for name in library.raster().dataset().metadataItem(key='spectra names', domain='ENVI', default=defaultNames):
             ordered[name] = arrays[spectraNames.index(name)]
 
@@ -4059,7 +4122,6 @@ class Regression(Raster):
         regression = Regression.fromArray(array=array, filename=filename, noDataValues=noDataValues,
                                           descriptions=attributes)
         return regression
-
 
     def asMask(self, minOverallCoverage=None):
         '''Creates a mask instance from itself. Optionally, the minimal overall coverage can be changed.'''
@@ -4222,7 +4284,9 @@ class Fraction(Regression):
         regression = Regression.fromENVISpectralLibrary(filename=filename, library=library, attributes=attributes)
         colors = list()
         for attribute in attributes:
-            colors.append(Color(*[int(v) for v in library.raster().dataset().metadataItem(key=attribute, domain='REGR_LOOKUP', required=True)]))
+            colors.append(Color(*[int(v) for v in
+                                  library.raster().dataset().metadataItem(key=attribute, domain='REGR_LOOKUP',
+                                                                          required=True)]))
         classDefinition = ClassDefinition(names=attributes, colors=colors)
         MetadataEditor.setFractionDefinition(rasterDataset=regression.dataset(), classDefinition=classDefinition)
         rasterDataset = regression.dataset().flushCache()
@@ -4501,7 +4565,8 @@ class FractionPerformance(FlowObject):
         assert isinstance(prediction, Fraction)
         assert isinstance(reference, Classification)
 
-        yP, yT = MapCollection(maps=[prediction, reference]).extractAsArray(masks=[prediction, reference, mask], **kwargs)
+        yP, yT = MapCollection(maps=[prediction, reference]).extractAsArray(masks=[prediction, reference, mask],
+                                                                            **kwargs)
 
         return FractionPerformance(yP=yP, yT=yT, classDefinitionP=prediction.classDefinition(),
                                    classDefinitionT=reference.classDefinition())
@@ -4514,7 +4579,7 @@ class FractionPerformance(FlowObject):
         '''
         classes = self.classDefinitionT.classes()
         names = self.classDefinitionT.names()
-        report = Report('Fraction Performance')
+        report = Report('ROC Curve and AUC Performance')
         report.append(ReportHeading('Performance Measures'))
         colHeaders = [['', 'AUC'], ['n', 'Log loss'] + names]
         colSpans = [[2, classes], [1] * (classes + 2)]
@@ -4632,7 +4697,8 @@ class Sample(MapCollection):
             grid = self.grid()
         if masks is None:
             masks = self.masks()
-        return MapCollection.extractAsArray(self, grid=grid, masks=masks, onTheFlyResampling=onTheFlyResampling, **kwargs)
+        return MapCollection.extractAsArray(self, grid=grid, masks=masks, onTheFlyResampling=onTheFlyResampling,
+                                            **kwargs)
 
     def extractAsRaster(self, filenames, grid=None, masks=None, onTheFlyResampling=False, **kwargs):
         '''Performes :meth:`~hubflow.core.Sample.extractAsArray` and stores the result as raster.'''
@@ -4643,6 +4709,7 @@ class Sample(MapCollection):
             masks = self.masks()
         return MapCollection.extractAsRaster(self, filenames=filenames, grid=grid, masks=masks,
                                              onTheFlyResampling=onTheFlyResampling, **kwargs)
+
 
 class ClassificationSample(Sample):
     '''Class for managing classification samples.'''
@@ -4680,7 +4747,6 @@ class ClassificationSample(Sample):
         assert isinstance(classification, Classification)
         return classification
 
-
     def synthMix(self, filenameFeatures, filenameFractions, mixingComplexities, classLikelihoods=None, n=10, **kwargs):
 
         classDefinition = self.classification().classDefinition()
@@ -4688,8 +4754,8 @@ class ClassificationSample(Sample):
             classLikelihoods = 'proportional'
         if classLikelihoods is 'proportional':
             histogram = self.classification().statistics(calcHistogram=True,
-                                                          histogramBins=[classDefinition.classes()],
-                                                          histogramRanges=[(1, classDefinition.classes() + 1)])
+                                                         histogramBins=[classDefinition.classes()],
+                                                         histogramRanges=[(1, classDefinition.classes() + 1)])
             classLikelihoods = {i + 1: float(count) / sum(histogram) for i, count in enumerate(histogram)}
         elif classLikelihoods is 'equalized':
             classLikelihoods = {i + 1: 1. / classDefinition.classes() for i in range(classDefinition.classes())}
@@ -4765,13 +4831,13 @@ class ClassificationSample(Sample):
         mixtures = list()
         fractions = list()
 
-        classLikelihoods2 = {k: v / (1-classLikelihoods[target]) for k, v in classLikelihoods.items() if k != target}
+        classLikelihoods2 = {k: v / (1 - classLikelihoods[target]) for k, v in classLikelihoods.items() if k != target}
         for i in range(n):
             complexity = np.random.choice(list(mixingComplexities.keys()), p=list(mixingComplexities.values()))
             drawnLabels = [target]
 
             if includeWithinclassMixtures:
-                drawnLabels.extend(np.random.choice(list(classLikelihoods.keys()), size=complexity-1, replace=True,
+                drawnLabels.extend(np.random.choice(list(classLikelihoods.keys()), size=complexity - 1, replace=True,
                                                     p=list(classLikelihoods.values())))
             else:
                 drawnLabels.extend(np.random.choice(list(classLikelihoods2.keys()), size=complexity - 1, replace=False,
@@ -4782,21 +4848,21 @@ class ClassificationSample(Sample):
             drawnFractions = zeroOneFractions[:, drawnIndices]
 
             randomWeights = list()
-            for i in range(complexity-1):
+            for i in range(complexity - 1):
                 if i == 0:
                     weight = numpy.random.random() * (targetRange[1] - targetRange[0]) + targetRange[0]
                 else:
-                    weight = numpy.random.random() * (1.-sum(randomWeights))
+                    weight = numpy.random.random() * (1. - sum(randomWeights))
                 randomWeights.append(weight)
             randomWeights.append(1. - sum(randomWeights))
 
             assert sum(randomWeights) == 1.
             mixtures.append(np.sum(drawnFeatures * randomWeights, axis=1))
-            fractions.append(np.sum(drawnFractions * randomWeights, axis=1)[target-1])
+            fractions.append(np.sum(drawnFractions * randomWeights, axis=1)[target - 1])
 
         if includeEndmember:
             mixtures.extend(features.T)
-            fractions.extend(np.float32(labels == target)[0]) # 1. for target class, 0. for the rest
+            fractions.extend(np.float32(labels == target)[0])  # 1. for target class, 0. for the rest
 
         mixtures = np.atleast_3d(np.transpose(mixtures))
         fractions = np.atleast_3d(np.transpose(fractions))
@@ -4965,7 +5031,7 @@ class _EstimatorPredict(ApplierOperator):
             y = estimator.sklEstimator().predict(X=X)
 
             if isinstance(estimator, Clusterer):
-                y += 1 # start with id=1, because zero is reserved as no data value
+                y += 1  # start with id=1, because zero is reserved as no data value
 
             prediction[:, valid[0]] = y.reshape(X.shape[0], -1).T
 
@@ -5060,7 +5126,6 @@ class Classifier(Estimator):
             sample = self._sample
         assert isinstance(sample, ClassificationSample)
 
-
         features, labels = sample.extractAsArray()
         X = np.float64(features.T)
         y = labels.ravel()
@@ -5071,6 +5136,7 @@ class Classifier(Estimator):
         return ClassificationPerformance(yP=yCV, yT=y.flatten(),
                                          classDefinitionP=sample.classification().classDefinition(),
                                          classDefinitionT=sample.classification().classDefinition())
+
 
 class Regressor(Estimator):
     SAMPLE_TYPE = RegressionSample
@@ -5200,7 +5266,7 @@ class ClassificationPerformance(FlowObject):
 
         self.OverallAccuracySSE = 0.
         for i in range(self.classDefinitionT.classes()): self.OverallAccuracySSE += self.pij[i, i] * (
-            self.Wi[i] - self.pij[i, i]) / (self.Wi[i] * self.m)
+                self.Wi[i] - self.pij[i, i]) / (self.Wi[i] * self.m)
 
         a1 = self.mii.sum() / self.m
         a2 = (self.mi_ * self.m_j).sum() / self.m ** 2
@@ -5222,7 +5288,7 @@ class ClassificationPerformance(FlowObject):
                 if i == j: continue
                 sum += self.pij[i, j] * (self.Wi[j] - self.pij[i, j]) / (self.Wi[j] * self.m)
                 self.ProducerAccuracySSE[i] = self.pij[i, i] * self.p_j[i] ** (-4) * (
-                    self.pij[i, i] * sum + (self.Wi[i] - self.pij[i, i]) * (self.p_j[i] - self.pij[i, i]) ** 2 / (
+                        self.pij[i, i] * sum + (self.Wi[i] - self.pij[i, i]) * (self.p_j[i] - self.pij[i, i]) ** 2 / (
                         self.Wi[i] * self.m))
 
         self.UserAccuracySSE = np.zeros(self.classDefinitionT.classes(), dtype=np.float64)
@@ -5233,7 +5299,7 @@ class ClassificationPerformance(FlowObject):
             2 * self.UserAccuracySSE * self.ProducerAccuracySSE / (self.UserAccuracySSE + self.ProducerAccuracySSE))
 
         self.ConditionalKappaAccuracySSE = self.m * (self.mi_ - self.mii) / (self.mi_ * (self.m - self.m_j)) ** 3 * (
-            (self.mi_ - self.mii) * (self.mi_ * self.m_j - self.m * self.mii) + self.m * self.mii * (
+                (self.mi_ - self.mii) * (self.mi_ * self.m_j - self.m * self.mii) + self.m * self.mii * (
                 self.m - self.mi_ - self.m_j + self.mii))
 
         self.ClassProportion = self.m_j / self.m
@@ -5241,7 +5307,7 @@ class ClassificationPerformance(FlowObject):
         for j in range(self.classDefinitionT.classes()):
             for i in range(self.classDefinitionT.classes()):
                 self.ClassProportionSSE[j] += self.Wi[i] ** 2 * (
-                    (self.mij[i, j] / self.mi_[i]) * (1 - self.mij[i, j] / self.mi_[i])) / (self.mi_[i] - 1)
+                        (self.mij[i, j] / self.mi_[i]) * (1 - self.mij[i, j] / self.mi_[i])) / (self.mi_[i] - 1)
 
         np.seterr(**old_error_state)
 
@@ -5375,6 +5441,15 @@ class RegressionPerformance(FlowObject):
         self.median_absolute_error = [sklearn.metrics.median_absolute_error(self.yT[i], self.yP[i]) for i, _ in
                                       enumerate(outputNamesT)]
         self.r2_score = [sklearn.metrics.r2_score(self.yT[i], self.yP[i]) for i, _ in enumerate(outputNamesT)]
+        self.mean_error = [np.mean(self.yP[i] - self.yT[i]) for i, _ in enumerate(outputNamesT)]
+
+        import scipy.stats
+        self.squared_pearson_correlation_score = [scipy.stats.pearsonr(self.yT[i], self.yP[i])[0] ** 2 for i, _ in
+                                                  enumerate(outputNamesT)]
+
+
+        # f(x) = m*x + n
+        self.fitted_line = [np.polyfit(self.yT[i], self.yP[i], 1) for i, _ in enumerate(outputNamesT)]
 
     def __getstate__(self):
         return OrderedDict([('yP', self.yP),
@@ -5385,7 +5460,7 @@ class RegressionPerformance(FlowObject):
     @classmethod
     def fromRaster(self, prediction, reference, mask=None, **kwargs):
         assert isinstance(prediction, Regression)
-        assert isinstance(reference, Regression)
+        assert isinstance(reference, Regression), reference
 
         yP, yT = MapCollection(maps=[prediction, reference]).extractAsArray(masks=[prediction, reference, mask])
 
@@ -5413,19 +5488,27 @@ class RegressionPerformance(FlowObject):
 
         colHeaders = [['Outputs'], self.outputNamesT]
         colSpans = [[len(self.outputNamesT)], [1] * len(self.outputNamesT)]
-        rowHeaders = [['Explained variance score',
-                       'Mean absolute error (MAE)',
-                       'Mean squared error (MSE)',
-                       'Root MSE (RMSE)',
-                       'Median absolute error (MedAE)',
-                       'Coefficient of determination (R^2)']]
+        rowHeaders = [[
+            'Mean absolute error (MAE)',
+            'Root MSE (RMSE)',
+            'Mean error (ME)',
+            'Mean squared error (MSE)',
+            'Median absolute error (MedAE)',
+            'Squared pearson correlation (r^2)',
+            'Explained variance score',
+            'Coefficient of determination (R^2)',
+        ]]
 
-        data = np.array([np.round(np.array(self.explained_variance_score).astype(float), 4),
-                         np.round(np.array(self.mean_absolute_error).astype(float), 4),
-                         np.round(np.array(self.mean_squared_error).astype(float), 4),
-                         np.round(np.sqrt(np.array(self.mean_squared_error)).astype(float), 4),
-                         np.round(np.array(self.median_absolute_error).astype(float), 4),
-                         np.round(np.array(self.r2_score).astype(float), 4)])
+        data = np.array([
+            np.round(np.array(self.mean_absolute_error).astype(float), 4),
+            np.round(np.sqrt(np.array(self.mean_squared_error)).astype(float), 4),
+            np.round(np.array(self.mean_error).astype(float), 4),
+            np.round(np.array(self.mean_squared_error).astype(float), 4),
+            np.round(np.array(self.median_absolute_error).astype(float), 4),
+            np.round(np.array(self.squared_pearson_correlation_score).astype(float), 4),
+            np.round(np.array(self.explained_variance_score).astype(float), 4),
+            np.round(np.array(self.r2_score).astype(float), 4),
+        ])
 
         report.append(
             ReportTable(data, colHeaders=colHeaders, colSpans=colSpans, rowHeaders=rowHeaders, attribs_align='left'))
@@ -5433,6 +5516,10 @@ class RegressionPerformance(FlowObject):
         report.append(
             ReportHyperlink(url=r'http://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics',
                             text='See Scikit-Learn documentation for details.'))
+
+        report.append(
+            ReportHyperlink(url=r'https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html',
+                            text='See Scipy documentation for details on pearson correlation.'))
 
         report.append(ReportHeading('Scatter and Residuals Plots'))
 
@@ -5479,9 +5566,21 @@ class RegressionPerformance(FlowObject):
             pyplot.xlabel('Observed')
             pyplot.ylabel('Predicted')
 
+            minX = np.min(self.yT[i])
+            maxX = np.max(self.yT[i])
             # 1:1 line
-            pyplot.plot([np.min(self.yT[i]), np.max(self.yT[i])], [np.min(self.yT[i]), np.max(self.yT[i])],
-                        'k-')
+            pyplot.plot([minX, maxX], [minX, maxX], 'k-')
+            # fitted line
+            m, n = self.fitted_line[i]
+            if n > 0:
+                fittedLineText = 'f(x) = {} * x + {}'.format(round(m, 5), round(n, 5))
+            else:
+                fittedLineText = 'f(x) = {} * x - {}'.format(round(m, 5), abs(round(n, 5)))
+
+            pyplot.plot([minX, maxX], [m * minX + n, m * maxX + n], 'r--', label=fittedLineText)
+            #pyplot.legend(loc='upper left')
+            pyplot.legend(bbox_to_anchor=(0.75, -0.15))
+
 
             # Colorbar
             # cbaxes = fig.add_axes([0.05, 0.1, 0.05, 0.35])
@@ -5489,7 +5588,7 @@ class RegressionPerformance(FlowObject):
             # cBar.ax.set_ylabel('label')
 
             fig.tight_layout()
-            report.append(ReportPlot(fig))
+            report.append(ReportPlot(fig))#, caption=fittedLineText))
             pyplot.close()
 
             fig, ax = pyplot.subplots(facecolor='white', figsize=(7, 5))
@@ -5532,8 +5631,6 @@ class ClusteringPerformance(FlowObject):
                                                                             **kwargs)
 
         return ClusteringPerformance(yP=yP, yT=yT)
-
-
 
     def report(self):
         report = Report('Clustering Performance')
@@ -5691,7 +5788,6 @@ class MetadataEditor(object):
 
         noDataName = classDefinition.noDataName()
         noDataColor = classDefinition.noDataColor()
-
 
         names = [noDataName] + classDefinition.names()
         lookup = list(np.array([c.rgb() for c in [noDataColor] + classDefinition.colors()]).flatten())
