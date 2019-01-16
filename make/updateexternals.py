@@ -210,15 +210,15 @@ if __name__ == "__main__":
                     print(ex, file=sys.stderr)
 
     # update remotes
-    to_update = [#'hub-datacube'
-                 #,'hub-workflow'
-                 #,'enmapboxapplications'
-                 #,'enmapboxgeoalgorithms'
+    to_update = ['hub-datacube'
+                 ,'hub-workflow'
+                 ,'enmapboxapplications'
+                 ,'enmapboxgeoalgorithms'
                  #,'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                'qps'
+                #,'qps'
                 ]
 
     for p in to_update:
