@@ -115,7 +115,7 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_createDock(self):
 
-        for d in ['MAP','TEXT','SPECLIB', 'MIME']:
+        for d in ['MAP', 'TEXT', 'SPECLIB', 'MIME']:
             dock = self.E.createDock(d)
             self.assertIsInstance(dock, Dock)
 

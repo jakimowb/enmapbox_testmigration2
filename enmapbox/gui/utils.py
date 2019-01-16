@@ -43,11 +43,6 @@ def guessDataProvider(src:str)->str:
     return None
 
 
-
-
-
-
-
 class IconProvider:
     """
     Provides icons
