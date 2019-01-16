@@ -21,6 +21,7 @@
 
 import unittest
 
+from enmapbox.testing import initQgisApplication
 from enmapboxtestdata import landcover_polygons, enmap
 from metadataeditorapp.metadataeditor import *
 

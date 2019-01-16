@@ -19,7 +19,7 @@ import re, copy
 from osgeo import gdal, ogr
 from qgis.core import *
 from qgis.PyQt.QtCore import QDate
-from enmapbox.gui.classification.classificationscheme import ClassificationScheme
+from enmapbox.gui import ClassificationScheme
 import numpy as np
 IMMUTABLE_DOMAINS = ['IMAGE_STRUCTURE','SUBDATASETS']
 

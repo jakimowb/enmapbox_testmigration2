@@ -19,9 +19,8 @@
 
 import inspect, pickle, json
 
-from enmapbox import DIR_TESTDATA
-#from enmapbox.gui.treeviews import LayerTreeNode, CRSLayerTreeNode, LayerTreeView, LayerTreeModel, CheckableLayerTreeNode, LayerTreeViewMenuProvider, ClassificationNodeLayer, ColorLayerTreeNode
-from enmapbox.gui import ClassificationScheme
+from enmapbox import DIR_TESTDATA, messageLog
+from enmapbox.gui import ClassificationScheme, TreeNode, TreeView
 from enmapbox.gui.utils import *
 from enmapbox.gui.mimedata import *
 from enmapbox.gui.mapcanvas import MapDock

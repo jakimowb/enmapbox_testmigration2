@@ -3,38 +3,20 @@
 """
 ***************************************************************************
     enmapbox/gui/utils.py
+
     ---------------------
-    Date                 : August 2017
-    Copyright            : (C) 2017 by Benjamin Jakimow
+    Date                 : January 2019
+    Copyright            : (C) 2018 by Benjamin Jakimow
     Email                : benjamin.jakimow@geo.hu-berlin.de
 ***************************************************************************
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
+*   the Free Software Foundation; either version 3 of the License, or     *
 *   (at your option) any later version.                                   *
 *                                                                         *
 ***************************************************************************
 """
-
-import os, sys, importlib, re, fnmatch, io, zipfile, warnings
-
-from qgis.core import *
-from qgis.core import QgsFeature, QgsPointXY, QgsRectangle
-from qgis.gui import *
-from qgis.gui import QgisInterface, QgsDockWidget, QgsPluginManagerInterface
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtCore import QMimeData
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtXml import *
-from qgis.PyQt.QtXml import QDomDocument
-from qgis.PyQt import uic
-from osgeo import gdal
-import numpy as np
-
-from enmapbox import messageLog, DIR_REPO, DIR_UIFILES
-
 
 from qps.utils import *
 from enmapbox import DIR_UIFILES

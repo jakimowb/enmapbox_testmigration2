@@ -128,6 +128,8 @@ class TestEnMAPBox(unittest.TestCase):
         E.addSource(enmap)
         self.assertTrue(len(E.dataSources()) == 1)
 
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_mapCanvas(self):
         E = self.E

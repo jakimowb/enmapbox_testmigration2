@@ -1,10 +1,9 @@
 
 #import QPS modules
-from qps.crosshair.crosshair import *
-from qps.plotstyling.plotstyling import *
-from qps.speclib.spectrallibraries import *
-from qps.classification.classificationscheme import *
-from qps.cursorlocationvalue import *
-from qps.crosshair import *
-from qps.crosshair import crosshair
+from qps.crosshair.crosshair import CrosshairStyle, CrosshairWidget, CrosshairMapCanvasItem, CrosshairDialog
+from qps.plotstyling.plotstyling import PlotStyle, PlotStyleDialog, PlotStyleButton, PlotStyleWidget
+from qps.speclib.spectrallibraries import SpectralLibrary, SpectralProfile, SpectralLibraryWidget
+from qps.classification.classificationscheme import ClassificationScheme, ClassInfo, ClassificationSchemeComboBox, ClassificationSchemeWidget, ClassificationSchemeDialog
+from qps.models import Option, OptionListModel, TreeNode, TreeModel, TreeView
+from qps.maptools import *
 

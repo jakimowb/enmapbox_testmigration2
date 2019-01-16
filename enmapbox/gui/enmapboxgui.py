@@ -19,15 +19,14 @@
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
+from enmapbox import messageLog
 from enmapbox.gui import *
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
-from enmapbox.gui.maptools import *
+from qps.cursorlocationvalue import CursorLocationInfoDock
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-# if qgis.utils.iface is None:
-#    qgis.utils.iface = EnMAPBoxQgisInterface()
 
 SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)

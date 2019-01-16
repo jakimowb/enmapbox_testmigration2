@@ -27,9 +27,8 @@ from qgis.PyQt.QtWidgets import *
 
 import numpy as np
 
+from enmapbox.gui import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.utils import KeepRefs
-from enmapbox.gui import CrosshairMapCanvasItem, CrosshairStyle, CrosshairDialog
 from enmapbox.gui.mimedata import *
 
 LINK_ON_SCALE = 'SCALE'
@@ -867,7 +866,6 @@ class MapCanvas(QgsMapCanvas):
 
         b = event.button() == Qt.LeftButton
         if b and isinstance(self.mapTool(), QgsMapTool):
-            from enmapbox.gui.maptools import CursorLocationMapTool
             b = isinstance(self.mapTool(), (QgsMapToolIdentify, CursorLocationMapTool))
 
         super(MapCanvas, self).mousePressEvent(event)

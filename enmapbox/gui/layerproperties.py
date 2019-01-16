@@ -31,7 +31,8 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtXml import QDomDocument
 
-from enmapbox.gui import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames, write_vsimem, OptionListModel, Option, ClassificationScheme, ClassInfo
+from enmapbox.gui.utils import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames, write_vsimem
+from enmapbox.gui import Option, OptionListModel, ClassificationScheme, ClassInfo
 import enmapbox.gui.mimedata
 """
 class RasterLayerProperties(QgsOptionsDialogBase):
