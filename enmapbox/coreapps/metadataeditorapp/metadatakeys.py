@@ -569,7 +569,7 @@ class MDKeyClassification(MDKeyAbstract):
 
         self.mValue.clear()
         if isinstance(value, ClassificationScheme):
-            self.mValue.addClasses(value[:])
+            self.mValue.insertClasses(value[:])
 
     def readValueFromSource(self, obj):
         classScheme = None

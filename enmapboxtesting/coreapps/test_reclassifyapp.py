@@ -1,12 +1,14 @@
 import unittest
 from unittest import TestCase
 from enmapbox.testing import initQgisApplication, TestObjects
+import enmapboxtestdata
 from reclassifyapp.reclassify import *
-from enmapbox.gui.classification.classificationscheme import ClassificationScheme
+from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
-APP = initQgisApplication()
+QGIS_APP = initQgisApplication()
 
-SHOW_GUI = True
+SHOW_GUI = False
+
 class TestReclassify(TestCase):
 
     @classmethod
@@ -40,22 +42,63 @@ class TestReclassify(TestCase):
         pass
 
     def test_hubflow_reclassify(self):
-        pathSrc = self.pathClassA
-        pathDst = self.pathClassTemp
-
         import hubflow.core
-        classification = hubflow.core.Classification(pathSrc)
-        # do not add the unclassified class
-        newNames = ['No Class', 'Class B']
-        newDef = hubflow.core.ClassDefinition(names=newNames)
+        from enmapbox.testing import TestObjects
+        dsSrc = TestObjects.inMemoryImage(10,20,nc=5)
+        self.assertIsInstance(dsSrc, gdal.Dataset)
+        classNamesOld = ['Unclassified', 'Class 1', 'Class 2', 'Class 3', 'Class 4']
+        self.assertEqual(dsSrc.GetRasterBand(1).GetCategoryNames(), classNamesOld)
+        pathSrc = dsSrc.GetFileList()[0]
+        self.assertTrue(pathSrc.startswith('/vsimem/'))
 
-        r = classification.reclassify(filename=pathDst,
-                                  classDefinition=newDef,
-                                  mapping={0:0,1:1,2:1})
-        ds = gdal.Open(pathDst)
-        band = ds.GetRasterBand(1)
-        classNames = band.GetCategoryNames()
-        self.assertEqual(newNames, classNames)
+        for i, ext in enumerate(['bsq', 'bil','bip', 'tif']):
+
+            pathDst = r'/vsimem/testclasstiff{}.{}'.format(i, ext)
+
+            classification = hubflow.core.Classification(pathSrc)
+            oldDef = classification.classDefinition()
+            self.assertEqual(oldDef.names(), classNamesOld[1:])
+
+            newNames = ['No Class', 'Class B', 'Class D']
+            newColors = [QColor('black'), QColor('yellow'), QColor('brown')]
+
+            # this works
+            c = hubflow.core.Color(QColor('black'))
+
+            # but this does'nt
+            #newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=newColors[1:])
+
+
+            newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=[c.name() for c in newColors[1:]])
+            newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
+
+            driver = guessRasterDriver(pathDst)
+            r = classification.reclassify(filename=pathDst,
+                                      classDefinition=newDef,
+                                      mapping={0:0,1:1,2:1},
+                                        outclassificationDriver=driver)
+
+            ds = gdal.Open(pathDst)
+
+            self.assertIsInstance(ds, gdal.Dataset)
+            if re.search('\.(bsq|bil|bip)$', pathDst, re.I):
+                self.assertTrue(ds.GetDriver().ShortName == 'ENVI')
+            elif re.search('\.tif$', pathDst, re.I):
+                self.assertTrue(ds.GetDriver().ShortName == 'GTiff')
+            band = ds.GetRasterBand(1)
+            self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set category names to "{}"'.format(pathDst))
+            self.assertEqual(newNames, band.GetCategoryNames(), msg='Failed to set all category names to "{}"'.format(pathDst))
+
+    def test_hubflowrasterdriverguess(self):
+
+        self.assertIsInstance(guessRasterDriver('foo.bsq'), hubflow.core.ENVIBSQDriver)
+        self.assertIsInstance(guessRasterDriver('foo.bip'), hubflow.core.ENVIBIPDriver)
+        self.assertIsInstance(guessRasterDriver('foo.bil'), hubflow.core.ENVIBILDriver)
+        self.assertIsInstance(guessRasterDriver('foo.vrt'), hubflow.core.VRTDriver)
+        self.assertIsInstance(guessRasterDriver('foo.tif'), hubflow.core.GTiffDriver)
+        self.assertIsInstance(guessRasterDriver('foo.tiff'), hubflow.core.GTiffDriver)
+        self.assertIsInstance(guessRasterDriver('foo.gtiff'), hubflow.core.GTiffDriver)
+
 
     def test_reclassify(self):
 
@@ -68,7 +111,7 @@ class TestReclassify(TestCase):
         classA = TestObjects.inMemoryImage()
         self.assertIsInstance(classA, gdal.Dataset)
         pathSrc = classA.GetFileList()[0]
-        pathDst = '/vsimem/testresult.tif'
+        pathDst = '/vsimem/testresult.bsq'
         print('src path: {}'.format(pathSrc))
         print('src dims (nb, nl, ns) = ({},{},{})'.format(
             classA.RasterCount, classA.RasterYSize, classA.RasterXSize))
@@ -77,7 +120,7 @@ class TestReclassify(TestCase):
         print('src classes: {}'.format(classA.GetRasterBand(1).GetCategoryNames()))
         print('dst path: {}'.format(pathDst))
         print('dst classes: {}'.format(csDst.classNames()))
-        dsDst = reclassify(pathSrc, pathDst, csDst, LUT, drvDst='GTiff')
+        dsDst = reclassify(pathSrc, pathDst, csDst, LUT, drvDst='ENVI')
         csDst2 = ClassificationScheme.fromRasterImage(dsDst)
         self.assertIsInstance(csDst2, ClassificationScheme)
         self.assertEqual(csDst,csDst2 )
@@ -92,7 +135,6 @@ class TestReclassify(TestCase):
 
         dialog.addSrcRaster(self.pathClassA)
         dialog.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
-        from enmapbox.gui.classification.classificationscheme import ClassificationScheme
         cs = ClassificationScheme.create(2)
         cs[1].setName('Foobar')
         dialog.setDstClassification(cs)
@@ -101,7 +143,7 @@ class TestReclassify(TestCase):
         self.assertTrue(all(k in settings.keys() for k in ['labelLookup','dstClassScheme','pathDst','pathSrc']))
 
         if SHOW_GUI:
-            APP.exec_()
+            QGIS_APP.exec_()
         dialog.close()
 
         dsDst = reclassify(drvDst='ENVI', **settings)

@@ -3,7 +3,7 @@
 """
 ***************************************************************************
     enmapbox/__init__.py
-    PAckage definition with global settings and initialization routines
+    Package definition with global settings and initialization routines
     ---------------------
     Date                 : Oct 2018
     Copyright            : (C) 2018 by Benjamin Jakimow
@@ -124,13 +124,13 @@ def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
-    from enmapbox.gui import registerPlotStyleEditorWidget
+    from qps.plotstyling.plotstyling import registerPlotStyleEditorWidget
     registerPlotStyleEditorWidget()
 
-    from enmapbox.gui import registerSpectralProfileEditorWidget
+    from qps.speclib.spectrallibraries import registerSpectralProfileEditorWidget
     registerSpectralProfileEditorWidget()
 
-    from enmapbox.gui import registerClassificationSchemeEditorWidget
+    from qps.classification.classificationscheme import registerClassificationSchemeEditorWidget
     registerClassificationSchemeEditorWidget()
 
 
