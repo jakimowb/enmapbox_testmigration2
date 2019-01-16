@@ -19,14 +19,14 @@
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
+from enmapbox import messageLog
+from enmapbox.gui import *
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
-from enmapbox.gui.maptools import *
+from qps.cursorlocationvalue import CursorLocationInfoDock
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-# if qgis.utils.iface is None:
-#    qgis.utils.iface = EnMAPBoxQgisInterface()
 
 SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
@@ -319,7 +319,6 @@ class EnMAPBox(QgisInterface, QObject):
         area = Qt.LeftDockWidgetArea
         self.ui.dataSourcePanel = self.addPanel(area, enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
         self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dockmanager.DockPanelUI(self.ui))
-        from enmapbox.gui.cursorlocationvalue import CursorLocationInfoDock
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
 
         area = Qt.BottomDockWidgetArea
@@ -500,7 +499,6 @@ class EnMAPBox(QgisInterface, QObject):
         for lyr in lyrs:
             assert isinstance(lyr, QgsRasterLayer)
             path = lyr.source()
-            from enmapbox.gui.speclib.spectrallibraries import SpectralProfile
             #p = SpectralProfile.fromRasterSource(path, spatialPoint)
             p = SpectralProfile.fromRasterLayer(lyr, spatialPoint)
             if isinstance(p, SpectralProfile):

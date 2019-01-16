@@ -26,15 +26,16 @@ if __name__ == '__main__':
     import qgisresources.images
     qgisresources.images.qInitResources()
 
-    enmapBox = EnMAPBox(None)
-    enmapBox.run()
-    enmapBox.openExampleData(mapWindows=1)
+    #enmapBox = EnMAPBox(None)
+    #enmapBox.run()
+    #enmapBox.openExampleData(mapWindows=1)
 #    enmapBox.addSource(r'C:\Work\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\speclib\EndmemberSpeclib')
 #    enmapBox.addSource(enmapboxtestdata.speclib)
 
 #    widget = UiLibrary()
     #widget = UiLabeledLibrary()
-    widget = ScatterPlotApp()
+    #widget = ScatterPlotApp()
+    widget = UiWorkflowMainWindow()
     widget.show()
 
     qgsApp.exec_()

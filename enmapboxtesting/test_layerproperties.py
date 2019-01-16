@@ -51,8 +51,6 @@ class LayerRendererTests(unittest.TestCase):
         r = defaultRasterRenderer(lyr)
         self.assertIsInstance(r, QgsMultiBandColorRenderer)
 
-
-        s = ""
 if __name__ == "__main__":
     unittest.main()
 

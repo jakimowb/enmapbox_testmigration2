@@ -23,9 +23,8 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from enmapbox.gui.utils import PanelWidgetBase, loadUI
 from osgeo import gdal, ogr
-from enmapbox.gui.treeviews import *
+from enmapbox.gui import *
 from enmapbox.gui.datasources import *
 from enmapbox import LOAD_PROCESSING_FRAMEWORK
 
@@ -134,20 +133,24 @@ class ProcessingAlgorithmsManager(QObject):
         return self.processingRegistry is not None
 
     def onProviderRemoved(self, key):
-        messageLog('Provider removed {}'.format(key))
+        pass
+        #messageLog('Provider removed {}'.format(key))
 
     def onProviderAdded(self, key):
-        messageLog('Provider added {}'.format(key))
+        pass
+        #messageLog('Provider added {}'.format(key))
 
 
 
     def onFileCreated(self, path):
-        messageLog('File created from processing framework:\n{}'.format(path))
+        pass
+        #messageLog('File created from processing framework:\n{}'.format(path))
         if self.enmapBox:
             self.enmapBox.dataSourceManager.addSource(path)
 
     def onHtmlCreated(self, path):
-        messageLog('HTML report created from processing framework:\n{}'.format(path))
+        #messageLog('HTML report created from processing framework:\n{}'.format(path))
+
         if self.enmapBox:
             src = self.enmapBox.dataSourceManager.addSource(path)
             self.enmapBox.dockManager.createDock('TEXT', initSrc=src)
@@ -185,20 +188,3 @@ class ProcessingAlgorithmsManager(QObject):
         from processing.gui.ConfigDialog import ConfigDialog
         dlg = ConfigDialog(self.toolbox)
         dlg.show()
-
-
-if __name__ == '__main__':
-    from enmapbox.gui.utils import *
-    app = initQgisApplication()
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-
-    p = EnMAPBoxAlgorithmProvider()
-
-    emb = EnMAPBox(None)
-    reg = QgsApplication.processingRegistry()
-    reg.addProvider(p)
-    PAM = ProcessingAlgorithmsManager(emb)
-    PAM.openConfig()
-
-    app.exec_()

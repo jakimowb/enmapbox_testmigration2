@@ -33,28 +33,17 @@ from enmapbox.gui.utils import *
 
 
 
-
+from qgis.utils import iface
 
 class TestEnMAPBoxPlugin(unittest.TestCase):
 
-    def setUp(self):
-
-
-        self.iface = TestObjects.qgisInterfaceMockup()
-        self.iface.ui.show()
-        self.plugin = None
-
-    def tearDown(self):
-        self.iface.mainWindow().close()
-        self.iface = None
-        pass
 
     def test_loadplugin(self):
         from enmapbox.enmapboxplugin import EnMAPBoxPlugin
 
-        self.plugin = EnMAPBoxPlugin(self.iface)
-        self.assertIsInstance(self.plugin, EnMAPBoxPlugin)
-        self.plugin.initGui()
+        plugin = EnMAPBoxPlugin(iface)
+        self.assertIsInstance(plugin, EnMAPBoxPlugin)
+        plugin.initGui()
 
     def test_loadAlgorithmProvider(self):
 
@@ -70,15 +59,14 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
 
 
 
-        self.plugin = EnMAPBoxPlugin(self.iface)
-        self.assertIsInstance(self.plugin, EnMAPBoxPlugin)
-        self.plugin.initGui()
-        self.plugin.unload()
+        plugin = EnMAPBoxPlugin(iface)
+        self.assertIsInstance(plugin, EnMAPBoxPlugin)
+        plugin.initGui()
+        plugin.unload()
 
         self.assertTrue(True)
 
-    def test_unloadplugin(self):
-        pass
+
 
 
 if __name__ == '__main__':

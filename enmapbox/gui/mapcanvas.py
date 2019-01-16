@@ -27,9 +27,8 @@ from qgis.PyQt.QtWidgets import *
 
 import numpy as np
 
+from enmapbox.gui import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.utils import KeepRefs
-from enmapbox.gui.crosshair import CrosshairMapCanvasItem, CrosshairStyle
 from enmapbox.gui.mimedata import *
 
 LINK_ON_SCALE = 'SCALE'
@@ -867,7 +866,6 @@ class MapCanvas(QgsMapCanvas):
 
         b = event.button() == Qt.LeftButton
         if b and isinstance(self.mapTool(), QgsMapTool):
-            from enmapbox.gui.maptools import CursorLocationMapTool
             b = isinstance(self.mapTool(), (QgsMapToolIdentify, CursorLocationMapTool))
 
         super(MapCanvas, self).mousePressEvent(event)
@@ -949,7 +947,7 @@ class MapCanvas(QgsMapCanvas):
             action = m.addAction('Show')
             action.triggered.connect(lambda: self.setCrosshairVisibility(True))
 
-        from enmapbox.gui.crosshair import CrosshairDialog
+
         action = m.addAction('Style')
         action.triggered.connect(lambda : self.setCrosshairStyle(
             CrosshairDialog.getCrosshairStyle(
@@ -958,9 +956,9 @@ class MapCanvas(QgsMapCanvas):
         ))
 
         mPxGrid = m.addMenu('Pixel Grid')
-        if self.mCrosshairItem.mCrosshairStyle.mShowPixelBorder:
+        if self.mCrosshairItem.crosshairStyle().mShowPixelBorder:
             action = mPxGrid.addAction('Hide')
-            action.triggered.connect(lambda : self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(False))
+            action.triggered.connect(lambda : self.mCrosshairItem.crosshairStyle().setShowPixelBorder(False))
 
         mPxGrid.addSeparator()
 
@@ -968,7 +966,7 @@ class MapCanvas(QgsMapCanvas):
 
         def onShowRasterGrid(layer:QgsRasterLayer):
             self.mCrosshairItem.setVisibility(True)
-            self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(True)
+            self.mCrosshairItem.crosshairStyle().setShowPixelBorder(True)
             self.mCrosshairItem.setRasterGridLayer(layer)
 
 

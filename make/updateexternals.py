@@ -11,7 +11,7 @@
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
+*   the Free Software Foundation; either version 3 of the License, or     *
 *   (at your option) any later version.                                   *
 *                                                                         *
 ***************************************************************************
@@ -86,6 +86,13 @@ RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
 #                  prefixLocal=r'enmapboxtestdata',
 #                  prefixRemote=r'enmapboxtestdata',
 #                  remoteBranch='master')
+
+RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
+                  key='qps',
+                  prefixLocal='site-packages/qps',
+                  prefixRemote=r'qps',
+                  remoteBranch='master')
+
 
 RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetation-apps.git',
                   prefixLocal=r'enmapbox/apps/lmuvegetationapps',
@@ -203,15 +210,15 @@ if __name__ == "__main__":
                     print(ex, file=sys.stderr)
 
     # update remotes
-    to_update = ['hub-datacube'
-                 ,'hub-workflow'
-                 ,'enmapboxapplications'
-                 ,'enmapboxgeoalgorithms'
+    to_update = [#'hub-datacube'
+                 #,'hub-workflow'
+                 #,'enmapboxapplications'
+                 #,'enmapboxgeoalgorithms'
                  #,'enmap-box-lmu-vegetation-apps',
                  #'virtual-raster-builder',
                  # 'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-
+                'qps'
                 ]
 
     for p in to_update:

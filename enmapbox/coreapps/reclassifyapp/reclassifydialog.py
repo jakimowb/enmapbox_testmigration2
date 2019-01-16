@@ -22,7 +22,7 @@
 
 from qgis.core import *
 from qgis.gui import *
-from enmapbox.gui.classification.classificationscheme import *
+from enmapbox.gui import *
 from reclassifyapp import APP_DIR
 
 loadUi = lambda name: loadUIFormClass(os.path.join(APP_DIR, name))
@@ -100,17 +100,26 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         Sets the destination ClassificationScheme
         :param classScheme: path of classification file or ClassificationScheme
         """
-        if (isinstance(classScheme, str) or isinstance(classScheme, unicode)) and os.path.isfile(classScheme):
+        if isinstance(classScheme, str) and os.path.isfile(classScheme):
             classScheme = ClassificationScheme.fromRasterImage(classScheme)
         self.dstClassificationSchemeWidget.setClassificationScheme(classScheme)
 
 
-    def setDstRaster(self,path):
+    def setDstRaster(self, path:str):
+        """
+        Sets the path of the reclassified raster
+        :param path: str
+        """
         self.tbDstFile.setText(path)
         self.widgetDstFile.setRasterFileName(path)
 
 
     def addSrcRaster(self, src):
+        """
+        Adds a new source raster
+        :param src: object
+        :return:
+        """
         addedItems = [self.mapLayerComboBox.itemData(i, role=Qt.UserRole) for
                       i in range(self.mapLayerComboBox.count())]
         if hasClassification(src) and src not in addedItems:

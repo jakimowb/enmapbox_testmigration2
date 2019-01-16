@@ -22,8 +22,8 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
-from enmapbox.gui.utils import *
-from enmapbox.gui.cursorlocationvalue import *
+from enmapbox.gui import *
+
 
 SHOW_GUI = False
 

@@ -1,6 +1,5 @@
 from os.path import join, dirname, basename
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMenu, QAction
+from PyQt5.Qt import QIcon, QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapboxapplications.imagemathapp.core import ImageMathApp
 from enmapboxapplications.imagestatistics.core import ImageStatisticsApp
@@ -185,7 +184,7 @@ class EnMAPBoxForceMosaikBuilderApp(EnMAPBoxApplication):
 
 if __name__ == '__main__':
 
-    from enmapbox.testing import initQgisApplication
+    from enmapbox.gui.utils import initQgisApplication
     from enmapbox.gui.enmapboxgui import EnMAPBox
 
     qgsApp = initQgisApplication()

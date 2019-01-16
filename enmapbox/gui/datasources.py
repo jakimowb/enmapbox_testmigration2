@@ -17,9 +17,11 @@
 ***************************************************************************
 """
 import collections, uuid
-
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from enmapbox.gui import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary, SpectralProfile
+from qps.speclib.spectrallibraries import AbstractSpectralLibraryIO
 from osgeo import gdal, ogr
 
 
@@ -185,7 +187,7 @@ class DataSourceFactory(object):
 
             if isinstance(src, str):
                 if os.path.exists(src):
-                    from enmapbox.gui.speclib.spectrallibraries import AbstractSpectralLibraryIO
+
                     for cls in AbstractSpectralLibraryIO.__subclasses__():
                         if cls.canRead(src):
                             uri = src
@@ -778,7 +780,7 @@ class DataSourceRaster(DataSourceSpatial):
 
             gt = ds.GetGeoTransform()
 
-            from enmapbox.gui.utils import px2geo
+
             v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)
             self.mPxSize = QSizeF(abs(v.x()), abs(v.y()))
 
@@ -798,7 +800,6 @@ class DataSourceRaster(DataSourceSpatial):
             self.mDatasetMetadata = fetchMetadata(ds)
 
 
-            from enmapbox.gui.classification.classificationscheme import ClassificationScheme
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b+1)
                 assert isinstance(band, gdal.Band)

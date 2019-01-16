@@ -1020,6 +1020,7 @@ class Applier(object):
         results = self._runProcessSubgrids()
         self._runClose()
         self.controls.progressBar.setPercentage(percentage=100)
+        self.controls.progressCallback(100)
 
         s = (now() - runT0);
         m = s / 60;
@@ -1157,7 +1158,10 @@ class _Worker(object):
 
     @classmethod
     def processSubgrid(cls, i, n, iy, ix, ny, nx, workingGrid):
-        cls.operator.progressBar.setPercentage(float(i) / n * 100)
+        percent = float(i) / n * 100
+        cls.operator.progressBar.setPercentage(percent)
+        cls.operator._controls.progressCallback(percent)
+
         return cls.operator._apply(workingGrid=workingGrid, iblock=i, nblock=n, yblock=iy, xblock=ix, nyblock=ny,
                                    nxblock=nx)
 
@@ -1356,6 +1360,15 @@ class ApplierControls(object):
             progressBar = CUIProgressBar()
 
         self.progressBar = progressBar
+        return self
+
+    def setProgressCallback(self, progressCallback=None):
+        """
+        Set the progress callback function.
+        """
+        if progressCallback is None:
+            progressCallback = lambda percent: None
+        self.progressCallback = progressCallback
         return self
 
     def setBlockSize(self, blockSize=ApplierDefaults.blockSize):

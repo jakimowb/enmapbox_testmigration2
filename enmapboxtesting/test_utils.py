@@ -44,20 +44,6 @@ class testClassUtils(unittest.TestCase):
         self.w.close()
 
 
-    def test_loadformClass(self):
-        #from enmapbox import EnMAPBox
-        #EB = EnMAPBox()
-        #import qgisresources.images
-        #qgisresources.images.qInitResources()
-        pathUi = r'C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\coreapps\enmapboxapplications\imagemathapp\ui\main.ui'
-
-        pathChangedUI = os.path.join(os.path.dirname(__file__), 'modified.ui')
-        self.assertTrue(os.path.isfile(pathUi))
-        t = loadUIFormClass(pathUi, _modifiedui=pathChangedUI)
-        self.assertTrue(os.path.isfile(pathChangedUI))
-        s = ""
-
-
     def test_spatialObjects(self):
         from enmapbox.gui.utils import SpatialPoint, SpatialExtent
 

@@ -11,6 +11,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
+SHOW_GUI = False
 import unittest, tempfile
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
@@ -86,10 +87,10 @@ class standardDataSources(unittest.TestCase):
 
             n = node.fetchInternals(ds.flowObject())
             self.assertIsInstance(n, TreeNode)
-            self.assertTrue(len(n.children()) > 0)
+            self.assertTrue(len(n.childNodes()) > 0)
             node.connectDataSource(ds)
-            self.assertIsInstance(node.children(), list)
-            self.assertTrue(len(node.children()) > 0)
+            self.assertIsInstance(node.childNodes(), list)
+            self.assertTrue(len(node.childNodes()) > 0)
             s = ""
 
         DSM = DataSourceManager()
@@ -104,12 +105,17 @@ class standardDataSources(unittest.TestCase):
         DSM.addSources(hubFlowObjects)
         self.assertTrue(len(DSM) == len(hubFlowObjects))
 
-        QGIS_APP.exec_()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_classifier(self):
 
         import pickle
+
         pathClassifier = r''
+        if not os.path.isfile(pathClassifier):
+            self.fail('missing hub flow classifier')
+            return
         f = open(pathClassifier, 'rb')
         classifier = pickle.load(file=f)
         f.close()
@@ -127,7 +133,9 @@ class standardDataSources(unittest.TestCase):
 
         DSM.addSource(classifier)
         self.assertTrue(1 > 0)
-        QGIS_APP.exec_()
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_testSources(self):
 
@@ -188,6 +196,8 @@ class standardDataSources(unittest.TestCase):
         DSM = DataSourceManager()
 
         self.assertIsInstance(DSM, DataSourceManager)
+        self.assertTrue(len(DSM) == 0)
+
         DSM.addSource(src1)
         self.assertTrue(len(DSM) == 1)
         self.assertEqual(DSM.sources()[0], src1)
@@ -262,15 +272,12 @@ class standardDataSources(unittest.TestCase):
             dsm.addSource(uri)
 
         self.assertEqual(len(dsm), len(uriList))
-        self.assertEqual(TM.rowCount(), 3)
+        self.assertEqual(TM.rowCount(None), 3, msg='More than 3 RasterSource type nodes. Should be raster, vector, speclibs = 3 only.')
 
-        for grpNode in TM.rootGroup().children():
+        for grpNode in TM.rootNode().children():
             self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
-            for dsNode in grpNode.children():
+            for dsNode in grpNode.childNodes():
                 self.assertIsInstance(dsNode, DataSourceTreeNode)
-
-
-            s =""
 
 
 
@@ -282,7 +289,7 @@ class standardDataSources(unittest.TestCase):
         for uri in uriList:
             print('Test "{}"'.format(uri))
             ds = EB.addSource(uri)
-        #qApp.exec_()
+
 
 
 
@@ -367,25 +374,25 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
         dsm = DataSourceManager()
         M = DataSourceManagerTreeModel(None, dsm)
+        self.assertIsInstance(M, DataSourceManagerTreeModel)
 
-        self.assertEqual(M.rowCount(), 0)
+        self.assertEqual(M.rowCount(None), 0)
 
         #add 2 rasters
         dsm.addSources([enmap, hires])
-        self.assertEqual(M.rowCount(), 1)
+        self.assertEqual(M.rowCount(None), 1)
 
         #add
         dsm.addSource(landcover_polygons)
-        self.assertEqual(M.rowCount(), 2)
+        self.assertEqual(M.rowCount(None), 2)
 
         dsm.addSource(library)
-        self.assertEqual(M.rowCount(), 3)
+        self.assertEqual(M.rowCount(None), 3)
 
         from enmapbox.gui.mapcanvas import MapCanvas
 
 
-        rootIndex = M.node2index(M.rootGroup())
-        for i, grpNode in enumerate(M.rootNode.children()):
+        for i, grpNode in enumerate(M.rootNode().children()):
             self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
             grpIndex = M.node2index(grpNode)
             self.assertIsInstance(grpIndex, QModelIndex)
@@ -419,21 +426,21 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                     return QDropEvent(QPointF(0, 0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier, QEvent.Drop)
 
                 formats = mimeData.formats()
-                self.assertIsInstance(dNode.dataSource, DataSource)
+                self.assertIsInstance(dNode.mDataSource, DataSource)
                 self.assertIn(MDF_DATASOURCETREEMODELDATA, formats)
 
                 if isinstance(dNode, RasterDataSourceTreeNode):
-                    self.assertIsInstance(dNode.dataSource, DataSourceRaster)
+                    self.assertIsInstance(dNode.mDataSource, DataSourceRaster)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
                     self.assertTrue(len(mapCanvas.layers()) == 1)
                     rasterSourceNodes.append(dNode)
                 if isinstance(dNode, VectorDataSourceTreeNode):
-                    self.assertIsInstance(dNode.dataSource, DataSourceVector)
+                    self.assertIsInstance(dNode.mDataSource, DataSourceVector)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
                     self.assertTrue(len(mapCanvas.layers()) == 1)
 
                 if isinstance(dNode, SpeclibDataSourceTreeNode):
-                    self.assertIsInstance(dNode.dataSource, DataSourceSpectralLibrary)
+                    self.assertIsInstance(dNode.mDataSource, DataSourceSpectralLibrary)
 
                     # drop speclib to mapcanvas
                     mapCanvas.dropEvent(createDropEvent(mimeData))
@@ -445,7 +452,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
                     w = SpectralLibraryWidget()
                     w.show()
                     w.plotWidget.dropEvent(createDropEvent(mimeData))
-                    self.assertEqual(len(w.speclib()), len(dNode.dataSource.speclib()))
+                    self.assertEqual(len(w.speclib()), len(dNode.mDataSource.speclib()))
 
 
 
@@ -454,9 +461,9 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
             for node in rasterSourceNodes:
                 self.assertIsInstance(node, RasterDataSourceTreeNode)
-                self.assertIsInstance(node.nodeBands, TreeNode)
+                self.assertIsInstance(node.childNodes(), TreeNode)
                 n0 = len(mapCanvas.layers())
-                for n, child in enumerate(node.nodeBands.children()):
+                for n, child in enumerate(node.mNodeBands.children()):
                     self.assertIsInstance(child, RasterBandTreeNode)
                     nodeIndex = M.node2index(child)
                     mimeData = M.mimeData([nodeIndex])

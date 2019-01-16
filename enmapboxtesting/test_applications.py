@@ -194,6 +194,8 @@ class test_applications(unittest.TestCase):
     def test_loadListing(self):
 
         eb = EnMAPBox(None)
+        eb.loadExampleData()
+
 
 
     def test_externalApp(self):
@@ -213,6 +215,7 @@ class test_applications(unittest.TestCase):
             EB.addApplication(pathAppDir)
             self.assertTrue(len(EB.applicationRegistry) == 1)
             s = ""
+
     def test_deployed_apps(self):
 
         pathCoreApps = os.path.join(DIR_ENMAPBOX, 'coreapps')
