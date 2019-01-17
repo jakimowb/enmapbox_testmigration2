@@ -51,7 +51,8 @@ class TestReclassify(TestCase):
         pathSrc = dsSrc.GetFileList()[0]
         self.assertTrue(pathSrc.startswith('/vsimem/'))
 
-        for i, ext in enumerate(['bsq', 'bil','bip', 'tif']):
+        pathResultFiles = []
+        for i, ext in enumerate(['bsq','BSQ', 'bil','BIL', 'bip','BIP', 'tif', 'TIF', 'tiff', 'TIFF', 'gtiff', 'GTIFF']):
 
             pathDst = r'/vsimem/testclasstiff{}.{}'.format(i, ext)
 
@@ -72,24 +73,38 @@ class TestReclassify(TestCase):
             newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=[c.name() for c in newColors[1:]])
             newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
 
-            driver = guessRasterDriver(pathDst)
+            #driver = guessRasterDriver(pathDst)
             r = classification.reclassify(filename=pathDst,
                                       classDefinition=newDef,
-                                      mapping={0:0,1:1,2:1},
-                                        outclassificationDriver=driver)
+                                      mapping={0:0,1:1,2:1})#,
+                                        #outclassificationDriver=driver)
+
 
             ds = gdal.Open(pathDst)
 
             self.assertIsInstance(ds, gdal.Dataset)
             if re.search('\.(bsq|bil|bip)$', pathDst, re.I):
-                self.assertTrue(ds.GetDriver().ShortName == 'ENVI')
-            elif re.search('\.tif$', pathDst, re.I):
-                self.assertTrue(ds.GetDriver().ShortName == 'GTiff')
+                self.assertTrue(ds.GetDriver().ShortName == 'ENVI'
+                        , msg='Not opened with ENVI driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
+            elif re.search('\.g?tiff?$', pathDst, re.I):
+                self.assertTrue(ds.GetDriver().ShortName == 'GTiff'
+                        , msg='Not opened with GTiff driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
+            elif re.search('\.vrt$', pathDst, re.I):
+                self.assertTrue(ds.GetDriver().ShortName == 'VRT'
+                        , msg='Not opened with VRT driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
+            else:
+                self.fail('Unknown extension {}'.format(pathDst))
+            pathResultFiles.append(pathDst)
+
+        for pathDst in pathResultFiles:
+            ds = gdal.Open(pathDst)
             band = ds.GetRasterBand(1)
             self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set category names to "{}"'.format(pathDst))
             self.assertEqual(newNames, band.GetCategoryNames(), msg='Failed to set all category names to "{}"'.format(pathDst))
 
     def test_hubflowrasterdriverguess(self):
+
+
 
         self.assertIsInstance(guessRasterDriver('foo.bsq'), hubflow.core.ENVIBSQDriver)
         self.assertIsInstance(guessRasterDriver('foo.bip'), hubflow.core.ENVIBIPDriver)
@@ -98,6 +113,7 @@ class TestReclassify(TestCase):
         self.assertIsInstance(guessRasterDriver('foo.tif'), hubflow.core.GTiffDriver)
         self.assertIsInstance(guessRasterDriver('foo.tiff'), hubflow.core.GTiffDriver)
         self.assertIsInstance(guessRasterDriver('foo.gtiff'), hubflow.core.GTiffDriver)
+
 
 
     def test_reclassify(self):

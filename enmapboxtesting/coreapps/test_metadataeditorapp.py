@@ -26,7 +26,7 @@ from enmapboxtestdata import landcover_polygons, enmap
 from metadataeditorapp.metadataeditor import *
 
 from enmapbox.gui.utils import *
-SHOW_GUI = True
+SHOW_GUI = False
 QGSAPP = initQgisApplication()
 
 class TestMDMetadataKeys(unittest.TestCase):
