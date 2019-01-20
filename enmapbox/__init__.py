@@ -44,7 +44,7 @@ CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
 DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplotlib']
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
-MIN_VERSION_TESTDATA = '0.6'
+MIN_VERSION_TESTDATA = '0.8'
 
 DIR_ENMAPBOX = os.path.dirname(__file__)
 DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
