@@ -1,10 +1,15 @@
-from os.path import join, basename, dirname, isdir
+import warnings
+from os.path import join, basename, dirname, isdir, splitext, exists
 from os import listdir
+from collections import OrderedDict, namedtuple
+import json
+import fnmatch
+import random
 import pickle
 import time
 import copy
 import numpy as np
-from osgeo import gdal, gdal_array
+from osgeo import gdal, gdal_array, ogr, osr
 
 import ee
 import ee.ee_string
@@ -14,9 +19,22 @@ from ee.apifunction import ApiFunction as eeApiFunction
 from ee.computedobject import ComputedObject as eeComputedObject
 import ee.ee_types
 
-from hubdc.core import Grid, Projection, openRasterDataset, VRTDriver
-import hubee.signatures
+from types import MethodType
 
+# add methods to ee.Image
+# class eeImage(object):
+
+#    def cache(self):
+#        name = 'Image.cache'
+#        signature = dict(args=[], description='', returns='Image', type='Algorithm', hidden=False, name=name)
+#        return ee.Image(func=eeApiFunction(name=name, opt_signature=signature), args=[])
+
+# setattr(ee.Image, 'cache', eeImage.cache)
+
+import dask
+import dask.distributed
+from hubdc.core import Grid, Projection, openRasterDataset, RasterDataset, RasterDriver, VrtDriver, createVRTDataset
+import hubee.signatures
 
 with open('ApiFunction.pkl', 'rb') as f:
     vars = pickle.load(file=f)
@@ -24,176 +42,236 @@ with open('ApiFunction.pkl', 'rb') as f:
 eeApiFunction._api = vars['ee.apifunction.ApiFunction._api']
 eeApiFunction._bound_signatures = vars['ee.apifunction.ApiFunction._bound_signatures']
 
+# add api functions that are not present in GEE
+name = 'Image.cache'
+eeApiFunction._bound_signatures.add(name)
+eeApiFunction._api[name] = eeApiFunction(name=name,
+                                         opt_signature=dict(args=[dict(description='', name='image', type='Image'),
+                                                                  dict(description='', name='key', type='String')],
+                                                            description='', returns='Image', type='Algorithm',
+                                                            hidden=False, name=name))
+
 ee._InitializeGeneratedClasses()
 
 
-class Export(object):
+class Environment(object):
+    debug = False
 
-    class image(object):
+    class Force(object):
 
-        @staticmethod
-        def toDrive(image, description='myExportImageTask', folder=None,
-                    fileNamePrefix=None, dimensions=None, region=None,
-                    scale=None, crs=None, crsTransform=None,
-                    maxPixels=None, shardSize=None, fileDimensions=None,
-                    skipEmptyTiles=None, fileFormat=None, formatOptions=None,
-                    noDataValues=None):
+        _idPrefix = 'force/'
+        _root = ''
+        _tiles = list()
 
-            config = ee.batch._CopyDictFilterNone(locals())
+        class Tile(object):
 
-            if 'fileNamePrefix' not in config:
-                config['fileNamePrefix'] = description
+            def __init__(self, name, grid):
+                assert isinstance(name, str)
+                assert isinstance(grid, Grid)
+                self.name = name
+                self.grid = grid
 
-            ee.batch._ConvertToServerParams(config, 'image', Task.ExportDestination.DRIVE)
-            ee.batch.ConvertFormatSpecificParams(config)
+        @classmethod
+        def idPrefix(cls):
+            return cls._idPrefix
 
-            return Task(task_type=Task.Type.EXPORT_IMAGE, ee_object=image, description=description, config=config)
+        @classmethod
+        def root(cls):
+            if not exists(cls._root):
+                raise Exception(
+                    'Invalid Force root folder: {}\nUse Environment.Force.setRoot to define the root folder'.format(
+                        cls._root))
+            return cls._root
 
+        @classmethod
+        def setRoot(cls, path):
+            cls._root = path
 
-ee.batch.Export = Export
+        @classmethod
+        def tiles(cls):
+            for tile in cls._tiles:
+                assert isinstance(tile, cls.Tile), tile
+                yield tile
 
-class Task(object):
+        @classmethod
+        def setTiles(cls, tiles, extend=True):
 
-    class Type(object):
-        EXPORT_IMAGE = 'EXPORT_IMAGE'
-        EXPORT_MAP = 'EXPORT_TILES'
-        EXPORT_TABLE = 'EXPORT_FEATURES'
-        EXPORT_VIDEO = 'EXPORT_VIDEO'
+            for tile in tiles:
+                assert isinstance(tile, cls.Tile)
 
-    class State(object):
-        UNSUBMITTED = 'UNSUBMITTED'
-        READY = 'READY'
-        RUNNING = 'RUNNING'
-        COMPLETED = 'COMPLETED'
-        FAILED = 'FAILED'
-        CANCEL_REQUESTED = 'CANCEL_REQUESTED'
-        CANCELLED = 'CANCELLED'
-
-    class ExportDestination(object):
-        DRIVE = 'DRIVE'
-        GCS = 'GOOGLE_CLOUD_STORAGE'
-        ASSET = 'ASSET'
-
-    def __init__(self, task_type, ee_object, description, config):
-        self.task_type = task_type
-        self.creation_timestamp_ms = int(round(time.time()*1000))
-        self.ee_object = ee_object
-        self.description = description
-        self.config = config
-        self.id = ''.join(np.random.choice(list('1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 24))
-        self._status = dict()
-
-    def start(self):
-
-        self._status = {'id': self.id, 'state': ee.batch.Task.State.COMPLETED,
-                        'creation_timestamp_ms': self.creation_timestamp_ms, 'description': self.description,
-                        'task_type': self.task_type, 'start_timestamp_ms': int(round(time.time()*1000))}
-        object = fetch(self.ee_object)
-        if self.task_type == ee.batch.Task.Type.EXPORT_IMAGE:
-
-            # check object type
-            if not isinstance(object, Image):
-                raise Exception("Invalid argument: 'image' must be of type Image.")
-
-            # check data type
-            isinstance(object, Image)
-            dataType0 = object.band(0).dataType()
-            for band in object.bands():
-                if not band.dataType().equal(dataType0):
-                    raise Exception('Exported bands must have compatible data types; found inconsistent types: {} and {}'.format(band.dataType().precision(), dataType0.precision()))
-
-
-
-            shardSize = self.config.get('shardSize', 256)
-            description = self.config.get('description')
-            folder = self.config.get('folder', '')
-            fileNamePrefix = self.config.get('fileNamePrefix', description) # object.id().split('/')[-1])
-            fileFormat = 'GTiff'
-            fileExtension = '.tif'
-
-            filename = join(r'c:\outputs\Google Drive', folder, fileNamePrefix + fileExtension)
-
-            from hubdc.core import RasterDriver, Grid, Extent, SpatialExtent, Projection, Resolution, Size
-            driver = RasterDriver(name=fileFormat)
-            xScale, xShearing, xTranslation, yShearing, yScale, yTranslation = object.crsTransform()
-            crs = object.crs()
-            yScale *= -1
-
-            if 'dimensions' in self.config:
-                xSize, ySize = Size.parse(self.config['dimensions'])
+            if extend:
+                cls._tiles.extend(tiles)
             else:
-                try:
-                    xSize, ySize = object.dimension()
-                except:
-                    pass
+                cls._tiles = tiles
 
-            if 'scale' in self.config:
-                resolution = Resolution.parse(self.config['scale'])
-                xScale = resolution.x()
-                yScale = resolution.y()
+    class Cache(object):
 
-            if 'crs' in self.config:
-                crs = self.config['crs']
+        _enabled = True
+        _arrays = dict()
+        _maskArrays = dict()
 
-            projection = Projection.fromEPSG(epsg=crs.split(':')[1])
+        @classmethod
+        def clear(cls):
+            cls._arrays = dict()
+            cls._maskArrays = dict()
 
-            if 'region' in self.config:
-                bounds = np.array(self.config['region'])[0]
-                extentWgs84 = SpatialExtent(xmin=np.min(bounds[:, 0]), xmax=np.max(bounds[:, 0]),
-                                            ymin=np.min(bounds[:, 1]), ymax=np.max(bounds[:, 1]),
-                                            projection=Projection.WGS84())
-                extent = extentWgs84.reproject(targetProjection=projection)
+        @classmethod
+        def enable(cls, bool=True):
+            cls._enabled = bool
 
+        @classmethod
+        def setArray(cls, obj, value):
+            if obj._hashKey is None:
+                assert 0
+            if cls._enabled:
+                cls._arrays[obj._hashKey] = value
+
+        @classmethod
+        def setMaskArray(cls, obj, value):
+            if obj._hashKey is None:
+                assert 0
+            if cls._enabled:
+                cls._maskArrays[obj._hashKey] = value
+
+        @classmethod
+        def array(cls, obj):
+            if obj._hashKey in cls._arrays:
+                return cls._arrays[obj._hashKey]
             else:
-                extent = Extent(xmin=xTranslation, ymin=yTranslation - ySize * yScale,
-                                xmax=xTranslation + xSize * xScale, ymax=yTranslation),
+                return None
 
-            if projection.equal(other=Projection.WGS84()):
-                print('TODO: UMRECHNUNG GRAD -> m')
-                resolution = Resolution(0.01)
+        @classmethod
+        def maskArray(cls, obj):
+            if obj._hashKey in cls._maskArrays:
+                return cls._maskArrays[obj._hashKey]
             else:
-                resolution = Resolution(x=xScale, y=yScale),
+                return None
 
-            grid = Grid(extent=extent, resolution=resolution, projection=projection)
+    class Debug(object):
+
+        enabled = False
+
+        @classmethod
+        def print(cls, *args, **kwargs):
+            if cls.enabled:
+                print(*args, **kwargs)
 
 
-            gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(dataType0.dtype())
-            ds = driver.create(grid=grid, bands=len(object), gdalType=gdalType,
-                               filename=filename)
+def computeImage(eeObject, filename, noDataValues=None):
+    image = fetch(eeObject)
 
-            noDataValues = self.config.get('noDataValues', [None] * len(object))
+    # check object type
+    if not isinstance(image, Image):
+        raise Exception("Invalid argument: 'image' must be of type Image.")
 
-            for i in range(len(object)):
-                print('*', end='')
-                band = object.band(i)
-                array, maskArray = band.compute(grid=grid)
+    # check data type
+    isinstance(image, Image)
+    dataType0 = image.band(0).dataType()
+    for band in image.bands():
+        if not band.dataType().equal(dataType0):
+            raise Exception(
+                'Exported bands must have compatible data types; found inconsistent types: {} and {}'.format(
+                    band.dataType().precision(), dataType0.precision()))
 
-                # EE masks are "fuzzy" booleans between 0 (False) and 1 (True)
-                # When writing to a GDAL file, the fuzzyness is lost, by replaced 0 with the no data value.
+    if noDataValues is None:
+        noDataValues = [None] * len(image)
+    else:
+        if not len(noDataValues) == len(image):
+            raise Exception('Number of bands ({}) does not match number of no data values ({}).'.format(len(image), len(
+                noDataValues)))
 
-                noDataValue = noDataValues[i]
-                if noDataValue is not None:
-                    print(noDataValue)
-                    array[np.logical_not(maskArray)] = noDataValue
-                    #ds.band(i).setNoDataValue(value=noDataValues[i]) did not work (?!)
-                ds.band(i).writeArray(array=array)
-                ds.setNoDataValues(noDataValues)
-            self._status['output_url'] = [filename]
+    jobs = list()
+    for tile in Environment.Force.tiles():
+        jobs.append(computeImageTile(image, noDataValues, filename, tile))
 
-        else:
+    # compute jobs
+    if Environment.debug:
+        filenames, = dask.compute(jobs, scheduler="single-threaded")
+    else:
+        client = dask.distributed.Client(set_as_default=True, processes=True)
+        print(client)
+        filenames, = dask.compute(jobs)  # , scheduler="single-threaded")
+
+    filenames = [f for f in filenames if f is not None]  # remove tiles that are not covered
+
+    if len(filenames) != 0:
+        filename_ = filename.format(tilename='.', band='.vrt')
+        createVRTDataset(filenames, filename=filename_)
+    else:
+        filename_ = None
+        warnings.warn('Not a single tile is covered. {} is not created.'.format(filename))
+
+    return filename_
+
+
+@dask.delayed
+def computeImageTile(image, noDataValues, filename, tile):
+    Environment.Cache.clear()
+
+    assert isinstance(tile, Environment.Force.Tile)
+
+    Environment.Debug.print('Tile: {}'.format(tile.name))
+    filenames = list()
+    tileNotCovered = False
+    for i in range(len(image)):
+
+        band = image.band(i)
+        array, maskArray = band.compute(tile=tile)
+
+        if array is None or maskArray is None:
+            # Do not create a file if the current tile is not covered.
+            # (Or should we create an empty file with no data values?)
+            # If this happens in one band it should happen in all bands,
+            # so we can break out of the loop and do not create the VRT stack
+
+            tileNotCovered = True
+            warnings.warn('Tile {} not covered. Tile is skipped and no output file is created.'.format(tile.name))
+            break
+
+        # EE masks are "fuzzy" booleans between 0 (False) and 1 (True)
+        # When writing to a GDAL file, the fuzzyness is lost, by replacing zero-pixels with the no data value.
+
+        noDataValue = noDataValues[i]
+        if noDataValue is not None:
+            array[np.logical_not(maskArray)] = noDataValue
+            # ds.band(i).setNoDataValue(value=noDataValues[i]) did not work (?!)
+
+        filename_ = filename.format(tilename=tile.name, band='.{}.bsq'.format(band.id()))
+        driver = RasterDriver.fromFilename(filename_)
+        rasterDataset = RasterDataset.fromArray(array=array, grid=tile.grid, filename=filename_, driver=driver)
+        # ds.band(i).writeArray(array=array)
+        rasterDataset.band(0).setNoDataValue(noDataValue)
+        if band.id() is None:
+            print('WARNING: band id not set:', filename_)
             assert 0
+        else:
+            rasterDataset.band(0).setDescription(band.id())
+        rasterDataset.close()
+        filenames.append(filename_)
 
-    def active(self):
-        return False
+    if tileNotCovered:
+        filename_ = None
+    else:
+        filename_ = filename.format(tilename=tile.name, band='.vrt')
+        rasterDataset = createVRTDataset(filenames, filename=filename_, separate=True)
+        rasterDataset.setNoDataValues(noDataValues)
+        for i in range(len(image)):
+            if band.id() is None:
+                print('WARNING: band id not set:', filename_)
+            else:
+                rasterDataset.band(i).setDescription(image.band(i).id())
 
-    def status(self):
-        return self._status
+    return filename_
+
 
 def fetch(obj):
     if isinstance(obj, (ComputedObject, str, int, float)):
         return obj
     elif isinstance(obj, (list, tuple)):
         return type(obj)(fetch(item) for item in obj)
+    elif isinstance(obj, dict):
+        return obj
+        # return {k: fetch(v) for k, v in obj.items()} # do we need to fetch dict values?
     elif isinstance(obj, ee.Number):
         return obj._number
     elif isinstance(obj, ee.String):
@@ -202,42 +280,113 @@ def fetch(obj):
         return [fetch(item) for item in obj._list]
     elif isinstance(obj, ee.CustomFunction):
         return fetch(obj._body)
-    elif isinstance(obj, (ee.Image, ee.ImageCollection, ee.Reducer)):
-        if isinstance(obj.func, ee.ApiFunction):
-            pass
-        #elif obj.func is None:
-        #    return obj.varName
-        else:
-            assert 0
+    elif isinstance(obj, (ee.Geometry, ee.Feature, ee.Image, ee.Collection,
+                          ee.Reducer, ee.Classifier)):
+
+        if not isinstance(obj.func, ee.ApiFunction):
+            if isinstance(obj, ee.Image):
+                if obj.varName == '_MAPPING_VAR_0_0':
+                    return lambda image: image
+                else:
+                    assert 0
+            elif isinstance(obj, ee.Geometry):
+                return Geometry(obj.toGeoJSON())
+            else:
+                assert 0
+
         funcname = obj.func.getSignature()['name']
-        cls, method = funcname.split('.')
-        print(cls)
-        cls = eval(cls)
 
-        if funcname == 'Collection.map':
+        if funcname.startswith('reduce.'):
             collection = fetch(obj.args['collection'])
-            args = dict()
-            for i, signature in enumerate(obj.args['baseAlgorithm']._body.func._signature['args']):
-                name = signature['name']
-                if i == 0: continue
-                if name in obj.args['baseAlgorithm']._body.args:
-                    args[name] = fetch(obj.args['baseAlgorithm']._body.args[name])
+            assert isinstance(collection, ImageCollection)
+            reducerName = funcname.split('.')[1]
+            reducer = getattr(Reducer, reducerName)()
+            fetched = collection.reduce(reducer=reducer)
 
-            baseAlgorithm = eval(obj.args['baseAlgorithm']._body.func._signature['name'])
-            algorithm = lambda image: baseAlgorithm(image, **args)
+        elif funcname == 'Collection.map':
+            collection = fetch(obj.args['collection'])
+
+            # fetch map function
+            def fetchMapFunction(obj):
+                if isinstance(obj, ee.CustomFunction):
+                    if obj._body.varName == '_MAPPING_VAR_0_0':
+                        mapFunction = lambda image: image
+                    else:
+                        mapFunction = fetchMapFunction(obj._body)
+                elif isinstance(obj, ee.Image):
+                    if obj.varName == '_MAPPING_VAR_0_0':
+                        mapFunction = lambda image: image
+                    elif obj.varName is None:
+                        method = obj.func._signature['name'].split('.')[-1]
+
+                        args = dict()
+
+                        signatures = obj.func._signature['args']
+                        for i, signature in enumerate(signatures):
+                            name = signature['name']
+                            # if i == 0:
+                            #    continue
+                            if name in obj.args:
+                                args[name] = fetchMapFunction(obj.args[name])
+
+                        def mapFunction(image):
+                            fetchedArgs = dict()
+                            for k, f in args.items():
+                                fetchedArgs[k] = f(image)
+
+                            if type(getattr(image,
+                                            method)).__name__ == 'method':  # skip first arg in case of instance method
+                                #    fetchedArgs.pop(signatures[0]['name'])
+                                result = getattr(Image, method)(**fetchedArgs)
+                            else:
+                                result = getattr(image, method)(**fetchedArgs)
+
+                            return result
+
+                        mapFunction = mapFunction
+
+                    else:
+                        assert 0
+                elif isinstance(obj, ee.ApiFunction):
+                    mapFunction = lambda image: image
+
+                elif isinstance(obj, (int, float, ee.List, ee.Number, ee.String)):
+                    obj = fetch(obj)
+                    mapFunction = lambda image: obj
+
+                else:
+                    assert 0, obj
+
+                return mapFunction
+                # mapFunction = lambda image:
+
+            algorithm = fetchMapFunction(obj.args['baseAlgorithm'])
+
             fetched = collection.map(algorithm=algorithm, dropNulls=obj.args.get('dropNulls'))
+
         else:
+
             args = dict()
             for k, arg in obj.args.items():
                 args[k] = fetch(arg)
 
-            if method in ['and', 'or']:
-                method = method.title()
+            tmp = funcname.split('.')
+            if len(tmp) == 1:  # class constructor
+                cls = eval(funcname)
+                method = cls
+            elif len(tmp) == 2:  # class methode
+                cls = eval(tmp[0])
+                method = getattr(cls, tmp[1])
+                if method in ['and', 'or']:
+                    method = method.title()
+            else:
+                assert 0, funcname
 
             try:
-                fetched = fetch(getattr(cls, method)(**args))
+                fetched = fetch(method(**args))
             except AttributeError:
-                print('missing or corrupted EE backend function\n\n' + obj.func.getSignature()['name'] + '\n' + str(obj.func))
+                print('missing or corrupted EE backend function\n\n' + obj.func.getSignature()['name'] + '\n' + str(
+                    obj.func))
                 raise
         returnCls = eval(obj.func.getSignature()['returns'])
         if not isinstance(fetched, returnCls):
@@ -251,16 +400,23 @@ def fetch(obj):
 
 def getInfo(obj):
     """Fetch and return information about this object."""
+
+    if obj is None:
+        return None
+
     fetched = fetch(obj)
     info = fetched.getInfo()
     return info
 
+
 eeComputedObject.getInfo = getInfo
+
 
 class PixelType(object):
     '''A representation of an Earth Engine pixel type.'''
 
-    EE_TYPENAMES =    ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'byte', 'short', 'int', 'long', 'float', 'double']
+    EE_TYPENAMES = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'byte', 'short', 'int', 'long',
+                    'float', 'double']
 
     def __init__(self, precision):
 
@@ -285,7 +441,6 @@ class PixelType(object):
                 return PixelType(precision=eetype)
         raise Exception('Unknown numpy type: {}'.format(dtype))
 
-
     def precision(self):
         return self._precision
 
@@ -301,6 +456,7 @@ class PixelType(object):
         assert isinstance(other, PixelType)
         return self.precision() == other.precision()
 
+
 class ComputedObject(object):
     '''
     A representation of an Earth Engine computed object.
@@ -309,18 +465,37 @@ class ComputedObject(object):
     '''
 
     def getInfo(self):
-        raise NotImplementedError
+        raise NotImplementedError('getInfo is not implemented for {}'.format(self.__class__))
 
     def copy(self):
         return copy.deepcopy(self)
 
 
 class Element(ComputedObject):
-  """Base class for ImageCollection and FeatureCollection."""
+    """Base class for ImageCollection and FeatureCollection."""
 
-  @staticmethod
-  def name():
-    return 'Element'
+    def __init__(self):
+        self._properties = dict()
+
+    @staticmethod
+    def name():
+        return 'Element'
+
+    def _shallowCopy(self):
+        raise NotImplementedError('{}._shallowCopy not implemented'.format(self.__class__.__name__))
+        return Element()
+
+    def properties(self):
+        return self._properties
+
+    def set(object, key, value):
+        element = object._shallowCopy()
+        assert isinstance(element, object.__class__)
+        element.properties()[key] = value
+        return element
+
+    def get(self):
+        assert 0
 
 
 class Band(object):
@@ -328,12 +503,21 @@ class Band(object):
 
     def __init__(self):
         self._mask = None
+        self._cache = False
+        self._hashKey = None
+
+    def cache(self, key, enabled=True):
+        self._cache = enabled
+        self._hashKey = key
 
     def mask(self):
         if self._mask is None:
-            return Image(ConstantBand(np.float32(1.)))
+            return self._defaultMask()
         assert isinstance(self._mask, Image)
         return self._mask
+
+    def _defaultMask(self):
+        return Image(ConstantBand(np.float32(1.)))
 
     def copy(self):
         return copy.deepcopy(self)
@@ -345,20 +529,10 @@ class Band(object):
         result._mask = mask.min(self.mask())
         return result
 
-    def compute(self, grid, returnMaskArray=True):
-        assert isinstance(grid, Grid)
+    def compute(self, tile, returnMaskArray=True):
         raise NotImplementedError
 
     def dataType(self):
-        raise NotImplementedError
-
-    def dimensions(self):
-        raise NotImplementedError
-
-    def crs(self):
-        raise NotImplementedError
-
-    def crsTransform(self):
         raise NotImplementedError
 
     def id(self):
@@ -367,18 +541,20 @@ class Band(object):
     def properties(self):
         raise NotImplementedError
 
+
 class WrittenBand(Band):
 
-    def __init__(self, filename, index, noDataValue, id, data_type, dimensions, crs, crs_transform):
+    def __init__(self, filename, index, noDataValue, id, data_type):
         Band.__init__(self)
         self._filename = filename
         self._index = index
         self._noDataValue = noDataValue
         self._id = id
         self._data_type = data_type
-        self._dimensions = dimensions
-        self._crs = crs
-        self._crs_transform = crs_transform
+        self._hashKey = '{}[{}]'.format(self._filename, self._id)
+
+    def __repr__(self):
+        return '{}[{}]'.format(basename(self._filename), self._id)
 
     def id(self):
         return self._id
@@ -386,29 +562,36 @@ class WrittenBand(Band):
     def dataType(self):
         return self._data_type
 
-    def dimensions(self):
-        return self._dimensions
+    def _defaultMask(self):
+        assert self._noDataValue is not None
+        return Image(self).neq(self._noDataValue)
 
-    def crs(self):
-        return self._crs
+    def compute(self, tile, returnMaskArray=True, raiseFileNotFoundError=False):
 
-    def crsTransform(self):
-        return self._crs_transform
+        # key = self._filename, self._index, tile[0]
 
-    def compute(self, grid, returnMaskArray=True):
-        assert isinstance(grid, Grid)
-        projection = Projection.fromEPSG(self.crs().split(':')[1])
-        ds = openRasterDataset(filename=self._filename)
-        if not grid.projection().equal(projection):
-            dsWarped = ds.warp(grid=grid, filename=join('/vsimem/', self._filename)+'.vrt', driver=VRTDriver(),
-                               srcNodata=self._noDataValue, dstNodata=self._noDataValue)
-        else:
-            assert 0 # check if transpose is needed!
-            dsWarped = ds
-        array = dsWarped.band(self._index).readAsArray()
+        array = Environment.Cache.array(self)
+        if array is None:
+            filename = self._filename.format(tilename=tile.name)
+
+            if exists(filename):
+                ds = gdal.Open(filename)
+                array = ds.GetRasterBand(self._index + 1).ReadAsArray()
+                Environment.Cache.setArray(self, array)
+            else:
+                if raiseFileNotFoundError:
+                    raise FileNotFoundError(
+                        '{}: No such file or directory. You may want to set raiseFileNotFoundError=False to return None instead of raising an error.'.format(
+                            filename))
+                array = None
+
+            # Debug.print(self._filename.format(tilename=tile[0]), self._index + 1)
 
         if returnMaskArray:
-            maskArray = self.mask().band(0).compute(grid=grid, returnMaskArray=False)
+            maskArray = Environment.Cache.maskArray(self)
+            if maskArray is None:
+                maskArray = self.mask().band(0).compute(tile=tile, returnMaskArray=False)
+                Environment.Cache.setMaskArray(self, maskArray)
             return array, maskArray
         else:
             return array
@@ -420,6 +603,9 @@ class ConstantBand(Band):
     def __init__(self, constant):
         Band.__init__(self)
         self._constant = constant
+
+    def __repr__(self):
+        return str(self._constant)
 
     def id(self):
         return 'constant'
@@ -436,23 +622,59 @@ class ConstantBand(Band):
     def crsTransform(self):
         return (1, 0, 0, 0, 1, 0)
 
-    def compute(self, grid, returnMaskArray=True):
-        assert isinstance(grid, Grid)
-        array = np.full(shape=grid.shape(), fill_value=self._constant)
+    def compute(self, tile, returnMaskArray=True):
+        assert isinstance(tile, Environment.Force.Tile)
+        array = np.full(shape=tile.grid.shape(), fill_value=self._constant)
         if returnMaskArray:
-            maskArray = self.mask().band(0).compute(grid=grid, returnMaskArray=False)
+            maskArray = self.mask().band(0).compute(tile=tile, returnMaskArray=False)
             return array, maskArray
         else:
             return array
+
+
+class Geometry(Element):
+    '''Representation for an Earth Engine Geometry.'''
+
+    def __init__(self, type, coordinates):
+        self.type = type
+        self.coordinates = coordinates
+
+    def json(self):
+        return json.dumps(self.__dict__)
+
+    def getInfo(self):
+        return self.json()
+
+
+class Feature(Element):
+    '''Representation for an Earth Engine Feature.'''
+
+    def __init__(self, geometry=None, metadata=None):
+
+        if isinstance(geometry, (Geometry, type(None))):
+            self._geometry = geometry
+            self._properties = metadata
+        elif isinstance(geometry, (ComputedObject, Feature, Geometry)):
+            raise NotImplementedError(str(geometry))
+        else:
+            assert 0
+
+    def properties(self):
+        return self._properties
+
+    def getInfo(self):
+        return {'geometry': getInfo(self._geometry),
+                'properties': self._properties}
 
 
 class Image(Element):
     '''Representation for an Earth Engine Image.'''
 
     def __init__(self, args=None):
+        Element.__init__(self)
+
         self._id = None
         self._bands = list()
-        self._properties = None
 
         if ee.types.isNumber(args):
             # A constant image.
@@ -461,38 +683,32 @@ class Image(Element):
             # An ID.
             self._id = str(args)
 
-            for bandid in ['B{}'.format(i+1) for i in range(11)] + ['pixel_qa', 'radsat_qa', 'sr_aerosol']:
-                if bandid in ['B8', 'B9']: continue
-                filename = join(r'C:\Work\data\EE', self.id(), '{}.{}.tif'.format(basename(self.id()), bandid))
+            if self._id.startswith('force/'):
+                root = Environment.Force.root()  # r'C:\Work\data\FORCE\crete'
+                date, level, sensor = basename(self._id).split('_')
 
-                if bandid == 'B1':
-                    ds = gdal.Open(filename)
-                    dimensions = ds.RasterXSize, ds.RasterYSize
-                    crs = str(ds.GetProjection())
-                    crs = 'EPSG:' + ''.join([c for c in crs.split('EPSG')[-1] if c in '0123456789'])
+                # BOA
+                data_type = PixelType(precision=np.int16().dtype.name)
+                noDataValue = -9999
+                filename = join(root, level.lower(), '{tilename}', '{}_BOA.tif'.format(basename(self._id)))
+                for index, bandid in enumerate(['B{}'.format(i + 1) for i in range(6)]):
+                    self.bands().append(WrittenBand(filename=filename, index=index, noDataValue=noDataValue, id=bandid,
+                                                    data_type=data_type))
+                    self._properties['system:time_start'] = date
 
-                    # convert from GDAL GeoTransform tuple
-                    # [xTranslation, xScale, xShearing, yTranslation, yShearing, yScale] ...
-                    gdalGeoTransform = ds.GetGeoTransform()
-                    # ... to EE tuple
-                    # [xScale, xShearing, xTranslation, yShearing, yScale, yTranslation]
-                    crs_transform = tuple([gdalGeoTransform[i] for i in [1, 2, 0, 4, 5, 3]])
-                    data_type = PixelType(precision=gdal_array.GDALTypeCodeToNumericTypeCode(ds.GetRasterBand(1).DataType)().dtype.name)
+                #  QAI
+                filename = join(root, level.lower(), '{tilename}', '{}_QAI.tif'.format(basename(self._id)))
+                self.bands().append(WrittenBand(filename=filename, index=0, noDataValue=1, id='QAI',
+                                                data_type=PixelType(precision=np.int16().dtype.name)))
 
-                if bandid in ['pixel_qa', 'radsat_qa', 'sr_aerosol']:
-                    noDataValue = 1
-                else:
-                    noDataValue = -9999
+                #  CLD
+                filename = join(root, level.lower(), '{tilename}', '{}_CLD.tif'.format(basename(self._id)))
+                self.bands().append(WrittenBand(filename=filename, index=0, noDataValue=-9999, id='CLD',
+                                                data_type=PixelType(precision=np.int16().dtype.name)))
 
-                self.bands().append(WrittenBand(filename=filename, index=0, noDataValue=noDataValue, id=bandid,
-                                                data_type=data_type, dimensions=dimensions,
-                                                crs=crs, crs_transform=crs_transform))
+            else:
+                assert 0
 
-            import json
-            filename = join(r'C:\Work\data\EE', self.id(), 'info.json')
-            with open(filename) as f:
-                info = json.load(f)
-            self._properties = info['properties']
         elif isinstance(args, (list, tuple)):
             # Make an image out of each element.
             assert 0
@@ -506,6 +722,9 @@ class Image(Element):
         else:
             raise Exception('Unrecognized argument type to convert to an Image: {}'.format(args))
 
+        # assert self.id() is not None
+        for band in self.bands():
+            assert band.id() is not None
 
     '''elif isinstance(args, computedobject.ComputedObject):
       if args.name() == 'Array':
@@ -527,6 +746,18 @@ class Image(Element):
 
     def __len__(self):
         return len(self._bands)
+
+    def _shallowCopy(self):
+        image = Image()
+        image._id = self._id
+        image._bands = self._bands
+        image._properties = copy.deepcopy(self._properties)
+        return image
+
+    def cache(image, key):
+        for band in image.bands():
+            band.cache(key)
+        return image
 
     def bands(self):
         return self._bands
@@ -579,9 +810,6 @@ class Image(Element):
                     bandInfo['id'] = band.id()
                 bandInfo['data_type'] = {'type': 'PixelType',
                                          'precision': band.dataType().precision()}
-                bandInfo['dimensions'] = band.dimensions()
-                bandInfo['crs'] = band.crs()
-                bandInfo['crs_transform'] = band.crsTransform()
             else:
                 assert 0
             info['bands'].append(bandInfo)
@@ -591,7 +819,7 @@ class Image(Element):
 
     def updateMask(image, mask):
         assert isinstance(mask, Image)
-
+        # Debug.print('Image.updateMask', image.id(), [band.id() for band in image.bands()])
         result = image.copy()
         result._bands = list()
         for i, band in enumerate(image.bands()):
@@ -600,7 +828,9 @@ class Image(Element):
             elif len(mask) == len(image):
                 mask_ = mask.select([i])
             else:
-                raise Exception('Image.updateMask: Incompatible number of bands in the mask image: {}. Expected {} or 1.'.format(len(mask), len(image)))
+                raise Exception(
+                    'Image.updateMask: Incompatible number of bands in the mask image: {}. Expected {} or 1.'.format(
+                        len(mask), len(image)))
             result.addBands(Image(band.updateMask(mask=mask_)))
         return result.rename(image.bandNames())
 
@@ -633,7 +863,7 @@ class Image(Element):
         return result
 
     def select(input, bandSelectors, newNames=None):
-        assert isinstance(bandSelectors, (list, tuple))
+        assert isinstance(bandSelectors, (list, tuple)), bandSelectors
         result = Image()
         if hasattr(input, 'id'):
             result._id = input.id()
@@ -649,7 +879,8 @@ class Image(Element):
                 try:
                     i = input.bandNames().index(bandSelector)
                 except:
-                    raise Exception("Image.select: Band selector Pattern '{}' did not match any bands.".format(bandSelector))
+                    raise Exception(
+                        "Image.select: Band selector Pattern '{}' did not match any bands.".format(bandSelector))
             else:
                 assert 0
             result.bands().append(copy.deepcopy(input.bands()[i]))
@@ -680,6 +911,9 @@ class Image(Element):
     def neq(image1, image2):
         return image1._binaryMapOperator(image2=image2, function=np.not_equal)
 
+    def gt(image1, image2):
+        return image1._binaryMapOperator(image2=image2, function=np.greater)
+
     def And(image1, image2):
         return image1._binaryMapOperator(image2=image2, function=np.logical_and)
 
@@ -691,28 +925,33 @@ class Image(Element):
 
     def _binaryMapOperator(image1, image2, function):
 
+        if not isinstance(image2, Image):
+            image2 = Image(image2)
+
         n1, n2 = len(image1), len(image2)
         n = max(n1, n2)
         if n > 1:
             if n1 != n2:
                 if n1 != 1 and n2 != 1:
-                    raise Exception('Image.{}: Images must contain the same number of bands or only 1 band. Got {} and {}.'.format(function.__name__, n1, n2))
+                    raise Exception(
+                        'Image.{}: Images must contain the same number of bands or only 1 band. Got {} and {}.'.format(
+                            function.__name__, n1, n2))
 
         if n1 == n:
             bandNames1 = image1.bandNames()
         else:
-            bandNames1 = image1.bandNames() * n # replicate bands
+            bandNames1 = image1.bandNames() * n  # replicate bands
 
         if n2 == n:
-            if n1==n:
-                try: # match by band names
+            if n1 == n:
+                try:  # match by band names
                     bandNames2 = image2.select(image1.bandNames()).bandNames()
-                except: # match by natural order
+                except:  # match by natural order
                     bandNames2 = image2.bandNames()
             else:
                 bandNames2 = image2.bandNames()
         else:
-            bandNames2 = image2.bands() * n # replicate bands
+            bandNames2 = image2.bandNames() * n  # replicate bands
 
         result = Image()
         for b1, b2 in zip(bandNames1, bandNames2):
@@ -721,6 +960,115 @@ class Image(Element):
                                                                     function=function)))
         return result
 
+    def int16(value):
+        raise NotImplementedError()
+
+    def sampleRegions(image, collection, properties=None, scale=None, projection=None, tileScale=1, geometries=True):
+        '''
+        Samples the pixels of an image in one or more regions, returning them as a FeatureCollection.
+        Each output feature will have 1 property per band in the input image, as well as any specified properties
+        copied from the input feature. Note that geometries will be snapped to pixel centers.
+
+        Arguments:
+
+            image (Image):
+            The image to sample.
+
+            collection (FeatureCollection):
+            The regions to sample over.
+
+            properties (List, default: null):
+            The list of properties to copy from each input feature. Defaults to all non-system properties.
+
+            scale (Float, default: null):
+            A nominal scale in meters of the projection to sample in. If unspecified,the scale of the image's first band is used.
+
+            projection (Projection, default: null):
+            The projection in which to sample. If unspecified, the projection of the image's first band is used. If specified in addition to scale, rescaled to the specified scale.
+
+            tileScale (Float, default: 1):
+            A scaling factor used to reduce aggregation tile size; using a larger tileScale (e.g. 2 or 4) may enable computations that run out of memory with the default.
+
+            geometries (Boolean, default: false):
+            If true, the results will include a geometry per sampled pixel. Otherwise, geometries will be omitted (saving memory).
+
+            Returns: FeatureCollection
+        '''
+
+        if scale is not None or projection is not None or tileScale != 1 or geometries is not True:
+            raise NotImplementedError()
+
+        if properties is None:
+            if collection.features()[0].properties() is not None:
+                properties = list(collection.features()[0].properties().keys())
+            else:
+                properties = list()
+
+            # create vector layer
+
+        def rasterizeFID(grid):
+
+            assert isinstance(grid, Grid)
+            sr = osr.SpatialReference(grid.projection().wkt())
+            from hubdc.core import VectorDataset, RasterDriver, EnviBsqDriver
+
+            # Create a memory layer to rasterize from.
+            ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
+            layer = ds.CreateLayer('layer', srs=sr)
+            field = ogr.FieldDefn('fid', ogr.OFTInteger)
+            layer.CreateField(field)
+
+            for fid, feature in enumerate(collection.features()):
+                ogrFeature = ogr.Feature(layer.GetLayerDefn())
+                ogrGeometry = ogr.CreateGeometryFromJson(feature._geometry.json())
+                ogrFeature.SetGeometryDirectly(ogrGeometry)
+                ogrFeature.SetField('fid', fid)
+                layer.CreateFeature(ogrFeature)
+
+            vectorDataset = VectorDataset(ogrDataSource=ds)
+            rasterDataset = vectorDataset.rasterize(grid=grid, gdalType=gdal.GDT_Int32,
+                                                    initValue=-1, burnAttribute='fid')
+            fidArray = rasterDataset.readAsArray()[0]
+            rasterDataset.close()
+            return fidArray
+
+        # sample data
+        print('NOTE: in Image.sampleRegion, maybe only calculate the image at the pixels of interest?')
+        print('NOTE: in Image.sampleRegion, how to consider mask information?')
+
+        fids = list()
+        values = {name: list() for name in image.bandNames()}
+        maskValues = {name: list() for name in image.bandNames()}
+
+        for tile in Environment.Force.tiles():
+            fidArray = rasterizeFID(tile.grid)
+            valid = np.where(fidArray != -1)
+            assert len(valid[0]) != 0  # handle empty tile (better not even rasterize the fid)
+            fids.extend(fidArray[valid])
+
+            for band in image.bands():
+                bandName = band.id()
+                array, maskArray = band.compute(tile=tile)
+                if array is None:
+                    assert 0  # handle missing tile case
+                values[band.id()].extend(array[valid])
+                maskValues[band.id()].extend(maskArray[valid])
+
+        features = [Feature(geometry=None,
+                            metadata={key: collection.features()[fid].properties()[key] for key in properties})
+                    for fid in fids]
+
+        for name in image.bandNames():
+            for value, maskValue, feature in zip(values[name], maskValues[name], features):
+                feature.properties()[name] = value
+
+        featureCollection = FeatureCollection(features=features)\
+            .set('band_order', image.bandNames())
+        return featureCollection
+
+
+class MapVariable(Image):
+    pass
 
 
 class MapOperator(Band):
@@ -757,6 +1105,7 @@ class MapNormalizedDifference(MapOperator):
     def properties(self):
         return {self.image.properties().get(k) for k in ['system:footprint'] if k in self.image.properties()}
 
+
 class MapBinaryValueWiseOperator(MapOperator):
 
     def __init__(self, band1, band2, function):
@@ -767,19 +1116,37 @@ class MapBinaryValueWiseOperator(MapOperator):
         self.band2 = band2
         self.function = function
 
-    def compute(self, grid, returnMaskArray=True):
-        assert isinstance(grid, Grid)
+    def __repr__(self):
+        return '{}({}, {})'.format(self.function.__name__, self.band1, self.band2)
 
+    def compute(self, tile, returnMaskArray=True):
+
+        Environment.Debug.print(self)
         if returnMaskArray:
-            array1, maskArray1 = self.band1.compute(grid=grid)
-            array2, maskArray2 = self.band2.compute(grid=grid)
-            array = self.function(array1, array2)
-            maskArray = np.minimum(maskArray1, maskArray2)
+            array = Environment.Cache.array(self)
+            maskArray = Environment.Cache.maskArray(self)
+            if array is None or maskArray is None:
+                array1, maskArray1 = self.band1.compute(tile=tile)
+                array2, maskArray2 = self.band2.compute(tile=tile)
+                if array1 is None or array2 is None:
+                    array = None
+                else:
+                    array = self.function(array1, array2)
+                if maskArray1 is None or maskArray2 is None:
+                    maskArray = None
+                else:
+                    maskArray = np.minimum(maskArray1, maskArray2)
+                if self._cache:
+                    Environment.Cache.setArray(self, array)
+                    Environment.Cache.setMaskArray(self, maskArray)
             return array, maskArray
         else:
-            array1 = self.band1.compute(grid=grid, returnMaskArray=False)
-            array2 = self.band2.compute(grid=grid, returnMaskArray=False)
-            array = self.function(array1, array2)
+            array1 = self.band1.compute(tile=tile, returnMaskArray=False)
+            array2 = self.band2.compute(tile=tile, returnMaskArray=False)
+            if array1 is None or array2 is None:
+                array = None
+            else:
+                array = self.function(array1, array2)
             return array
 
     def dataType(self, ):
@@ -791,20 +1158,12 @@ class MapBinaryValueWiseOperator(MapOperator):
 
         return PixelType.fromNumpyType(dtype)
 
-    def dimensions(self):
-        return self.band1.dimensions()
-
-    def crs(self):
-        return self.band1.crs()
-
-    def crsTransform(self):
-        return self.band1.crsTransform()
-
     def id(self):
         if isinstance(self.band1, ConstantBand):
             return self.band2.id()
         else:
             return self.band1.id()
+
 
 class MapReduceOperator(MapOperator):
 
@@ -815,19 +1174,24 @@ class MapReduceOperator(MapOperator):
         self.collection = collection
         self.reducer = reducer
 
-    def compute(self, grid, returnMaskArray=True):
-        assert isinstance(grid, Grid)
-
+    def compute(self, tile, returnMaskArray=True):
+        assert isinstance(tile, Environment.Force.Tile)
+        print('TODO: cache inside MapReduceOperator.compute')
         nanarrays = list()
-        maskArray = np.zeros(shape=grid.shape(), dtype=np.float32)
+        maskArray = np.zeros(shape=tile.grid.shape(), dtype=np.float32)
         for image in self.collection.features():
             assert len(image) == 1
             band = image.band(0)
-            array, maskArray_ = band.compute(grid=grid)
+            array, maskArray_ = band.compute(tile=tile)
+
+            if array is None or maskArray_ is None:
+                # Just skip missing datasets. This is equivalent to treating all pixels as nan, but faster!
+                continue
+
             array = np.float32(array)
             array[np.logical_not(maskArray_)] = np.nan
             nanarrays.append(array)
-            np.maximum(maskArray, maskArray_, out=maskArray) # calculate final mask inplace
+            np.maximum(maskArray, maskArray_, out=maskArray)  # calculate final mask inplace
 
         array = self.reducer.aggregate(array=nanarrays)
         if returnMaskArray:
@@ -838,25 +1202,59 @@ class MapReduceOperator(MapOperator):
     def dataType(self):
         return PixelType.fromNumpyType(np.float32)
 
-    def dimensions(self):
-        return None
-
-    def crs(self):
-        return 'EPSG:4326'
-
-    def crsTransform(self):
-        return (1, 0, 0, 0, 1, 0)
-
     def id(self):
-        return None
+        return '{}_{}'.format(self.collection.first().band(0).id(), self.reducer.name())
 
 
 class Collection(Element):
     '''Base class for ImageCollection and FeatureCollection.'''
 
-    def __init__(self):
-        self._features = list()
-        pass
+    def __init__(self, features):
+        assert isinstance(features, list)
+        Element.__init__(self)
+        self._id = None
+        self._features = features
+        self.__class__ = FeatureCollection
+        assert isinstance(self, FeatureCollection)  # a bit strange to cast to a sub type, but that is what GEE demands
+
+    def __len__(self):
+        return len(self.features())
+
+    @staticmethod
+    def loadTable(tableId, geometryColumn=None, version=None):
+        '''
+        Args:
+            tableId: The ID of the table to load. Either an asset ID or a
+                Fusion Table DocID prefixed with 'ft:'.
+            geometryColumn: The name of the column to use as the
+                main feature geometry. Not used if tableId is an
+                asset ID.
+            version: The version of the asset. -1 signifies the latest
+                version. Ignored unless tableId is an asset ID.
+        '''
+
+        if geometryColumn is not None or version is not None:
+            raise NotImplementedError()
+
+        # from hubflow.core import VectorDataset
+        # VectorDataset.geometryTypeName()
+        ds = ogr.Open(tableId)
+        if ds is None:
+            raise Exception('Invalid vector dataset: {}'.format(tableId))
+        layer = ds.GetLayer(0)
+        geometryTypeName = ogr.GeometryTypeToName(layer.GetGeomType())
+
+        # assert geometryTypeName in
+
+        # names = [self._ogrLayer.GetLayerDefn().GetFieldDefn(i).GetName() for i in range(self.fieldCount())]
+        #    return names
+
+        features = list()
+        for ogrFeature in layer:
+            jsonDict = ogrFeature.ExportToJson(as_object=True, options=None)
+            features.append(Feature(geometry=Geometry(**jsonDict['geometry']), metadata=jsonDict['properties']))
+
+        return FeatureCollection(features=features)
 
     def features(self):
         return self._features
@@ -887,7 +1285,6 @@ class Collection(Element):
             raise Exception('Empty collection has no first element.')
         return copy.deepcopy(collection._features[0])
 
-
     def filter(self, new_filter):
         """Apply a filter to this collection.
 
@@ -900,7 +1297,7 @@ class Collection(Element):
         if not new_filter:
             raise Exception('Empty filters.')
         assert 0
-        #return self._cast(apifunction.ApiFunction.call_('Collection.filter', self, new_filter))
+        # return self._cast(apifunction.ApiFunction.call_('Collection.filter', self, new_filter))
 
     def filterMetadata(self, name, operator, value):
         raise NotImplementedError
@@ -957,9 +1354,9 @@ class Collection(Element):
         assert 0
         args = {'collection': self, 'limit': maximum}
         if opt_property is not None:
-          args['key'] = opt_property
+            args['key'] = opt_property
         if opt_ascending is not None:
-          args['ascending'] = opt_ascending
+            args['ascending'] = opt_ascending
         return self._cast(apifunction.ApiFunction.apply_('Collection.limit', args))
 
     def sort(self, prop, opt_ascending=None):
@@ -976,7 +1373,7 @@ class Collection(Element):
         assert 0
         args = {'collection': self, 'key': prop}
         if opt_ascending is not None:
-          args['ascending'] = opt_ascending
+            args['ascending'] = opt_ascending
         return self._cast(apifunction.ApiFunction.apply_('Collection.limit', args))
 
     @staticmethod
@@ -1014,6 +1411,10 @@ class Collection(Element):
             mapped = algorithm(element_type(element))
             if mapped is not None:
                 collection._features.append(mapped)
+            else:
+                if not dropNulls:
+                    raise ValueError()
+
         return collection
 
     def iterate(self, algorithm, first=None):
@@ -1042,11 +1443,37 @@ class Collection(Element):
         with_cast = lambda e, prev: algorithm(element_type(e), prev)
         return apifunction.ApiFunction.call_('Collection.iterate', self, with_cast, first)
 
+
 class FeatureCollection(Collection):
     '''Representation for an Earth Engine FeatureCollection.'''
-    pass
 
-class ImageCollection(FeatureCollection):
+    def _shallowCopy(self):
+        collection = FeatureCollection(features=[])
+        collection._id = self._id
+        collection._features = self._features
+        collection._properties = copy.deepcopy(self._properties)
+        return collection
+
+    def getInfo(self):
+        info = dict()
+        info['type'] = self.name()
+        info['id'] = self.id()
+        info['properties'] = self.properties()
+        info['features'] = list()
+        for feature in self._features:
+            assert isinstance(feature, Feature)
+            info['features'].append(feature.getInfo())
+        return info
+
+    @staticmethod
+    def name():
+        return 'FeatureCollection'
+
+    def id(self):
+        return self._id
+
+
+class ImageCollection(Collection):
     '''Representation for an Earth Engine ImageCollection.'''
 
     def __init__(self, args):
@@ -1075,39 +1502,44 @@ class ImageCollection(FeatureCollection):
         if ee.types.isString(args):
             # An ID.
             self._id = args
-            eeDir = r'C:\Work\data\EE'
-            for name in listdir(join(eeDir, self.id())):
-                if isdir(join(eeDir, self.id(), name)):
-                    self._features.append(Image.load(id='{}/{}'.format(self.id(), name)))
 
-            import json
-            filename = join(r'C:\Work\data\EE', self.id(), 'properties.json')
-            with open(filename) as f:
-                self._properties = json.load(f)
+            if self._id.startswith(Environment.Force.idPrefix()):
+                level, sensor = basename(self._id).split('_')
+                if len(sensor) == 3:
+                    pattern = '*{}*_BOA.tif'.format(basename(self._id))
+                elif len(sensor) == 5:
+                    pattern = '*{}_BOA.tif'.format(basename(self._id))
+                else:
+                    raise Exception('Invalid collection id.')
+
+                print('WARNING: products are found by looking into the tile X0107_Y0102')
+                for name in listdir(join(Environment.Force.root(), level.lower(), 'X0107_Y0102')):
+                    if fnmatch.fnmatch(name, pattern):
+
+                        if not name.startswith('1984'):
+                            continue
+
+                        id = '{}{}'.format(Environment.Force.idPrefix(), name[:-8])
+                        self._features.append(Image.load(id=id))
 
         elif isinstance(args, (list, tuple)):
             # A list of images.
             for arg in args:
                 assert isinstance(arg, Image)
                 self._features.append(arg.copy())
-        elif isinstance(args, ee.List):
-            # A computed list of images.
-            assert 0
-            #super(ImageCollection, self).__init__(apifunction.ApiFunction.lookup('ImageCollection.fromImages'), {'images': args})
         elif isinstance(args, ComputedObject):
             # A custom object to reinterpret as a ImageCollection.
             super(ImageCollection, self).__init__(args.func, args.args, args.varName)
         elif args is None:
             pass
         else:
-          raise Exception('Unrecognized argument type to convert to a ImageCollection: {}'.format(args))
+            raise Exception('Unrecognized argument type to convert to a ImageCollection: {}'.format(args))
 
     def id(self):
         return self._id
 
     def properties(self):
         return self._properties
-
 
     @staticmethod
     def load(id, version=None):
@@ -1186,11 +1618,16 @@ class ImageCollection(FeatureCollection):
 
         return reduction
 
+
 class Reducer(ComputedObject):
 
     @staticmethod
     def median(**kwargs):
         return ReducerMedian(**kwargs)
+
+    @staticmethod
+    def mean():
+        return ReducerMean()
 
     def getInfo(self):
         name = type(self).__name__.replace('Reducer', '')
@@ -1203,6 +1640,10 @@ class Reducer(ComputedObject):
     def aggregate(self, array):
         raise NotImplementedError()
 
+    def name(self):
+        return self.__class__.__name__.replace('Reducer', '').lower()
+
+
 class ReducerMedian(Reducer):
 
     def __init__(self, maxBuckets=None, minBucketWidth=None, maxRaw=None):
@@ -1212,3 +1653,52 @@ class ReducerMedian(Reducer):
 
     def aggregate(self, array):
         return np.nanmedian(array, axis=0)
+
+
+class ReducerMean(Reducer):
+
+    def __init__(self):
+        pass
+
+    def aggregate(self, array):
+        return np.nanmean(array, axis=0)
+
+
+class Classifier(ComputedObject):
+
+    @staticmethod
+    def randomForest(**kwargs):
+        return ClassifierRandomForest(**kwargs)
+
+    def train(classifier, features, classProperty, inputProperties=None):
+
+        assert isinstance(features, FeatureCollection)
+        assert isinstance(classProperty, str)
+
+        if inputProperties is None:
+            if 'band_order' in features.properties():
+                inputProperties = features.properties()['band_order']
+            else:
+                raise Exception('inputProperties not defined')
+
+        from sklearn.ensemble import RandomForestClassifier
+
+        X = np.zeros(shape=(len(features), len(inputProperties)))
+
+
+        assert 0
+
+    def getInfo(self):
+        name = type(self).__name__.replace('Classifier', '')
+        name = name[0].lower() + name[1:]
+        info = {'type': 'Classifier.{}'.format(name)}
+        for k, v in self.__dict__.items():
+            info[k] = v
+        return info
+
+
+class ClassifierRandomForest(Classifier):
+
+    def __init__(self, numberOfTrees):
+        self.numberOfTrees = numberOfTrees
+

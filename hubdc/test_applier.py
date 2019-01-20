@@ -17,7 +17,7 @@ class TestApplierInputRaster(TestCase):
                 cfmask = operator.inputRaster.raster(key='cfmask')
                 cfmaskArray = cfmask.array()
                 print(cfmaskArray.shape)
-                print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
+                print(cfmask.array(indices=[0], overlap=overlap).shape)
 
                 print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
                 print(cfmask.sample(mask=cfmaskArray == 1).shape)  # water sample
@@ -28,16 +28,18 @@ class TestApplierInputRaster(TestCase):
                 print(cfmask.metadataDict())
                 print(cfmask.noDataValues())
                 print(cfmask.noDataValue())
+                print(cfmask.categoryColors(index=0))
+                print(cfmask.categoryNames(index=0))
 
         applier = Applier()
         applier.inputRaster.setRaster(key='cfmask', value=ApplierInputRaster(filename=LT51940232010189KIS01.cfmask))
         print(applier.inputRaster.raster(key='cfmask'))
         applier.apply(operatorType=Operator)
 
-        applier.controls.setProjection(projection=Projection.WGS84())
+        applier.controls.setProjection(projection=Projection.wgs84())
         applier.controls.setExtent(
-            extent=openRasterDataset(filename=LT51940232010189KIS01.cfmask).grid().spatialExtent().reproject(
-                targetProjection=Projection.WGS84()))
+            extent=openRasterDataset(filename=LT51940232010189KIS01.cfmask).grid().extent().reproject(
+                projection=Projection.wgs84()))
         applier.controls.setResolution(resolution=0.01)
         applier.apply(operatorType=Operator)
 
@@ -49,7 +51,6 @@ class TestApplierInputRasterGroup(TestCase):
                 cfmask = operator.inputRaster.raster(key='LT51940242010189KIS01/LT51940242010189KIS01_cfmask')
                 cfmaskArray = cfmask.array()
                 print(cfmaskArray.shape)
-                print(cfmask.bandArray(indicies=[0], overlap=overlap).shape)
                 print(cfmask.fractionArray(categories=[0, 1, 2, 3, 4, 255], overlap=overlap).shape)
                 print(applier.inputRaster.findRaster(ufunc=lambda key, raster: key.endswith('cfmask')))
                 print(applier.inputRaster.findRaster(ufunc=lambda key, raster: False))
@@ -82,7 +83,7 @@ class TestApplierInputRasterGroup(TestCase):
         # archive folder
         print(ApplierInputRasterGroup.fromFolder(folder=root, extensions=['.img']))
 
-
+'''
 class TestApplierInputRasterIndex(TestCase):
 
     def test(self):
@@ -103,7 +104,7 @@ class TestApplierInputRasterIndex(TestCase):
         index3 = index.intersection(grid=grid)
         print(index3)
         print(ApplierInputRasterGroup.fromIndex(index=index))
-
+'''
 
 
 class TestApplierInputVector(TestCase):
@@ -138,18 +139,18 @@ class TestApplierOutputRaster(TestCase):
         class Operator(ApplierOperator):
             def ufunc(operator, *args, **kwargs):
                 overlap = 10
-                array = operator.full(value=42, bands=3, overlap=overlap)
+                array = operator.full(value=42, bands=1, overlap=overlap)
 
                 # write bands individual
                 stack = operator.outputRaster.raster(key='stack')
 
                 # - try writing without initialization
                 try:
-                    stack.bands()
-                except errors.ApplierOutputRasterNotInitializedError:
-                    pass
-
-                stack.setZsize(zsize=3)
+                    stack.zsize()
+                except errors.ApplierOutputRasterNotInitializedError as error:
+                    print(error)
+                stack.setZsize(zsize=1)
+                print(stack.zsize())
                 for band, bandArray in zip(stack.bands(), array):
                     band.setArray(array=bandArray, overlap=overlap)  # 2d
                     band.setArray(array=bandArray[None], overlap=overlap)  # 3d
@@ -158,9 +159,11 @@ class TestApplierOutputRaster(TestCase):
                 # write stack at once
                 stack.setArray(array=array, overlap=overlap)  # 3d
                 stack.setArray(array=list(array), overlap=overlap)  # list of 2d
+                stack.setArray(array=array[0], overlap=overlap)  # 2d
 
                 # set image no data, metadata and category names/colors
                 stack.setNoDataValue(value=0)
+                stack.setNoDataValues(values=[0])
                 stack.setMetadataItem(key='my key', value=42, domain='ENVI')
                 stack.setMetadataDict({'ENVI': {'my key': 42}})
                 stack.band(0).setCategoryNames(['a', 'b', 'c'])
@@ -171,6 +174,10 @@ class TestApplierOutputRaster(TestCase):
                     band.setNoDataValue(value=0)
                     band.setMetadataItem(key='my key', value=42, domain='ENVI')
                     band.setDescription(value='Hello World')
+
+                # set/get categories
+                stack.setCategoryColors([(0,0,0)])
+                stack.setCategoryNames(['class 1'])
 
                 # assess key/values
                 print(list(applier.outputRaster.flatRasters()))
@@ -187,6 +194,18 @@ class TestApplierOutputRaster(TestCase):
 
         applier.inputRaster.operator()
         applier.inputRaster._freeUnpickableResources()
+
+    def test_multiprocessing(self):
+
+        applier = Applier()
+        applier.controls.setNumThreads(nworker=2)
+        applier.controls.setNumWriter(nwriter=2)
+        applier.controls.setGrid(grid=openRasterDataset(LT51940242010189KIS01.cfmask).grid())
+        applier.apply(operatorType=Operator)
+
+class Operator(ApplierOperator):
+    def ufunc(operator, *args, **kwargs):
+        pass
 
 
 class TestApplier(TestCase):
@@ -207,6 +226,7 @@ class TestApplier(TestCase):
                 self.xblockOffset()
                 self.grid()
                 constArray = self.full(value=42)
+                constArray = self.full(value=[1, 2, 3], bands=3)
 
         applier = Applier()
         applier.controls.setGrid(grid=openRasterDataset(LT51940232010189KIS01.cfmask).grid())
@@ -237,7 +257,7 @@ class TestApplierControls(TestCase):
 
         applier.controls.setBlockSize(255)
         applier.controls.setBlockSize((255, 255))
-        applier.controls.setBlockSize(Size(x=255, y=255))
+        applier.controls.setBlockSize(RasterSize(x=255, y=255))
         applier.controls.setBlockFullSize()
 
         with self.assertRaises(ValueError):
@@ -249,12 +269,9 @@ class TestApplierControls(TestCase):
         applier.controls.setResolution(Resolution(x=30, y=30))
 
         applier.controls.setExtent(None)
-        applier.controls.setExtent((0, 1, 0, 1))
         applier.controls.setExtent(ds.grid().extent())
 
-        applier.controls.setProjection(Projection.WGS84().wkt())
-        applier.controls.setProjection(Projection.WGS84())
-        applier.controls.setProjection(4326)
+        applier.controls.setProjection(Projection.wgs84())
 
         applier.controls.setGrid(ds.grid())
         applier.controls.setGrid(None)

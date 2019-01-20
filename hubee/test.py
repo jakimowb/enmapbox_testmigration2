@@ -2,7 +2,7 @@ import time
 from os.path import join, dirname
 from os import makedirs
 
-if 1: # run on desktop
+if 0: # run on desktop
     from hubee.core import ee
     ee.Initialize()
 
@@ -101,17 +101,16 @@ def run():
             'folder': 'ee_export',
             'noDataValues': [-9999] * 9 + [1] * 3}
 
-
     task = ee.batch.Export.image.toDrive(image=median, description='medianX2', **kwds)
 #    task.start()
 
-    task = ee.batch.Export.image.toDrive(image=image193, description='image193', **kwds)
-    task.start()
+    #task = ee.batch.Export.image.toDrive(image=image193, description='image193', **kwds)
+    #task.start()
 
-    task = ee.batch.Export.image.toDrive(image=image194, description='image194', **kwds)
-    task.start()
+    #task = ee.batch.Export.image.toDrive(image=image194, description='image194', **kwds)
+    #task.start()
     print('done')
-    return
+    #return
 
     #image194 = ee.Image('LANDSAT/LC08/C01/T1_SR/LC08_194023_20170321')
     #image194 = maskL8sr(image194).select(['B5', 'B6', 'B4'])
