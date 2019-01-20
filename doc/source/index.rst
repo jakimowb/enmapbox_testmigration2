@@ -1,41 +1,23 @@
-==========================================
-Welcome to the HUB-Datacube documentation!
-==========================================
+HUB-Datacube documentation
+==========================
 
-The HUB-Datacube (HUBDC) offers a high level interface for integrating heterogeneous raster and vector datasets
-into a user-defined reference pixel grid, resulting in an analysis-ready datacube.
-
-Please provide feedback to `Andreas Rabe`_ (andreas.rabe\@geo.hu-berlin.de),
-or open an issue on `Bitbucket`_.
-
-.. _Andreas Rabe: https://www.geographie.hu-berlin.de/de/Members/rabe_andreas
-.. _Bitbucket: https://bitbucket.org/hu-geomatics/hub-datacube/issues/new
-
-Setting up
-==========
-
-Install the latest release with pip::
-
-    python -m pip install https://bitbucket.org/hu-geomatics/hub-datacube/get/master.tar.gz
-
-Or manually `download a release <https://bitbucket.org/hu-geomatics/hub-datacube/downloads/?tab=tags>`_
-from Bitbucket.
-
-Example
-=======
-
-.. image:: images/ndvi.png
-
-.. literalinclude:: examples/example.py
-
-See :doc:`ApplierExamples` for more information.
+**This documentation is structured as follows:**
 
 .. toctree::
-   :maxdepth: 1
-   :caption: User Guides:
+    :maxdepth: 2
+    :caption: General
+
+    general/about.rst
+    general/contact.rst
+    general/installation.rst
+
+.. toctree::
+   :maxdepth: 4
+   :caption: Usage Guide:
    :glob:
 
-   ApplierExamples.rst
+   usage/core.rst
+   usage/applier.rst
 
 
 .. toctree::
@@ -43,10 +25,15 @@ See :doc:`ApplierExamples` for more information.
    :caption: API Reference:
    :glob:
 
-   hubdc_applier.rst
-   hubdc_core.rst
-   hubdc_testdata.rst
-   indices.rst
+   api/hubdc_core.rst
+   api/hubdc_applier.rst
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
 
 .. codeauthor:: Andreas Rabe <andreas.rabe@geo.hu-berlin.de>

@@ -1,6 +1,6 @@
-=================
-Core (hubdc.core)
-=================
+==========
+hubdc.core
+==========
 
 .. automodule:: hubdc.core
     :members:

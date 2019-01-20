@@ -11,9 +11,9 @@ Simple Example (explained in detail)
 Use the Red and NIR bands of the Landsat :class:`~hubdc.testdata.LT51940232010189KIS01` scene to calculate the Normalized Difference Vegetation Index (NDVI).
 Additionally, use the :class:`~hubdc.testdata.BrandenburgDistricts` vector polygon layer to mask the result.
 
-.. image:: images/ndvi.png
+.. image:: ../images/ndvi.png
 
-.. literalinclude:: examples/example.py
+.. literalinclude:: ../examples/example.py
 
 The result is stored in the file called ``ndvi.img`` stored in the user tempdir.
 

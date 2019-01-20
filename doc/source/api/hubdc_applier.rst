@@ -1,6 +1,6 @@
-=======================
-Applier (hubdc.applier)
-=======================
+=============
+hubdc.applier
+=============
 
 .. automodule:: hubdc.applier
     :members:
