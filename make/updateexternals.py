@@ -18,68 +18,13 @@
 """
 
 import os, sys, re, shutil, zipfile, datetime
+from qps.make import updateexternals
+from qps.make.updateexternals import RemoteInfo
 from enmapbox import DIR_REPO
 import git # install with: pip install gitpython
 
-REPO = git.Repo(DIR_REPO)
+updateexternals.setProjectRepository(DIR_REPO)
 
-REMOTEINFOS = dict()
-
-
-class RemoteInfo(object):
-    @staticmethod
-    def create(*args, **kwds):
-        info = RemoteInfo(*args, **kwds)
-        if not info.key in REMOTEINFOS.keys():
-            REMOTEINFOS[info.key] = []
-        REMOTEINFOS[info.key].append(info)
-
-    def __init__(self, uri, key=None, prefixLocal=None, prefixRemote=None, remoteBranch='master', excluded=[],
-                 postupdatehook=None):
-        """
-        Describes how a remote repository is connected to this repository
-        :param uri: uri of remote repository. Needs to end with  '.git'
-        :param key: name under which the remote repo will be knows.
-            Defaults to remote-repo if uri is like ..remote-repo.git
-        :param prefixLocal: local location. Defaults to <this-repo>/<key>
-        :param prefixRemote: remote location behind <remoteBranch>,
-            e.g. "subfolder" to get "<remoteBranch>:subfolder" only.
-            Defaults to root of remote repository
-        :param remoteBranch: the remote branch. Defaults to "master"
-        """
-        assert uri.endswith('.git')
-        self.uri = uri
-        self.key = key if key is not None else os.path.splitext(os.path.basename(self.uri))[0]
-        assert prefixLocal is not ''
-        assert prefixRemote is not ''
-        self.prefixLocal = self.key if prefixLocal is None else prefixLocal
-        self.prefixRemote = prefixRemote
-        self.remoteBranch = remoteBranch
-        self.excluded = excluded
-        self.postupdatehook = None
-
-    def __repr__(self):
-        infos = ['RemoteInfo: "{}"'.format(os.path.basename(self.uri))]
-
-        for attribute, value in self.__dict__.items():
-            if not attribute.startswith('_'):
-                infos.append('\t{}:{}'.format(attribute, value))
-
-        return '\n'.join(infos)
-
-    def remotePath(self):
-        if self.prefixRemote is None or len(self.prefixRemote) == 0:
-            return self.remoteBranch
-        else:
-            return self.remoteBranch + ':' + self.prefixRemote
-
-
-# specify remote branches
-"""
-RemoteInfo.create(r'https://github.com/pyqtgraph/pyqtgraph.git',
-                  prefixLocal=r'site-packages/pyqtgraph',
-                  remoteBranch='develop')
-"""
 
 #not required any more
 #RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
@@ -142,89 +87,19 @@ RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt
                   remoteBranch='master'
                   )
 
-
-def updateRemote(remoteInfo):
-    if isinstance(remoteInfo, str):
-        remoteInfos = REMOTEINFOS[remoteInfo]
-
-    # see https://stackoverflow.com/questions/23937436/add-subdirectory-of-remote-repo-with-git-subtree
-    # see https://blisqu.wordpress.com/2012/09/08/merge-subdirectory-from-another-git-repository/
-    for remoteInfo in remoteInfos:
-        print('Update {}'.format(remoteInfo))
-        assert isinstance(remoteInfo, RemoteInfo)
-        remote = REPO.remote(remoteInfo.key)
-        print('Fetch {}...'.format(remoteInfo.remotePath()))
-        remote.fetch(remoteInfo.remotePath())
-        files = REPO.git.execute(
-            ['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
-        if len(files) > 0:
-
-            p = os.path.join(DIR_REPO, remoteInfo.prefixLocal)
-            if os.path.exists(p):
-                info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal, r=True, f=True)])
-                print(info)
-
-
-        info = ''.join([i for i in REPO.git.read_tree(prefix=remoteInfo.prefixLocal, u='{key}/{path}'.format(
-            key=remoteInfo.key, path=remoteInfo.remotePath()
-        ))])
-        print(info)
-
-        # remove excluded files
-        for e in remoteInfo.excluded:
-            info = ''.join([i for i in REPO.git.rm(remoteInfo.prefixLocal + '/' + e, r=True, f=True)])
-            print(info)
-
-        print('Update {} done'.format(remoteInfo.key))
-
-
-def addRemote(remoteInfo):
-    assert isinstance(remoteInfo, RemoteInfo)
-    """
-    :param name: Desired name of the remote
-    :param url: URL which corresponds to the remote's name
-    :param kwargs: Additional arguments to be passed to the git-remote add command
-    :return: New Remote instance
-    :raise GitCommandError: in case an origin with that name already exists
-    """
-    newRemote = REPO.create_remote(remoteInfo.key, remoteInfo.uri)
-    newRemote.fetch(remoteInfo.remoteBranch)
-
-
 if __name__ == "__main__":
 
-    # check existing remotes
-    print('Remotes:')
-    existingRemoteNames = [r.name for r in REPO.remotes if r.name != 'origin']
-    for rn in existingRemoteNames:
-        if rn not in REMOTEINFOS.keys():
-            print('Not described in RemoteInfos: {}'.format(rn))
-
-    for rn in REMOTEINFOS.keys():
-        if rn not in existingRemoteNames:
-            print('Need to add {}'.format(rn))
-            for info in REMOTEINFOS[rn]:
-                try:
-                    addRemote(info)
-                except Exception as ex:
-                    print(ex, file=sys.stderr)
 
     # update remotes
     to_update = [#'hub-datacube'
                  #,'hub-workflow'
                  #,'enmapboxapplications'
                  #,'enmapboxgeoalgorithms'
-                 #,'enmap-box-lmu-vegetation-apps',
+                 #,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
-                 # 'enmapboxgeoalgorithmsdoc'
+                 #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
                 'qps'
                 ]
-
-    for p in to_update:
-        try:
-            updateRemote(p)
-        except Exception as ex:
-            print(ex, file=sys.stderr)
-
-    print('Finished')
+    import qps.make.updateexternals
+    qps.make.updateexternals.updateRemoteLocations(to_update)

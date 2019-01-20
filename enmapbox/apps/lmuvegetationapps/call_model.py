@@ -9,6 +9,7 @@ import numpy as np
 from scipy.stats import truncnorm
 
 import lmuvegetationapps.prospect as prospect
+import lmuvegetationapps.INFORM as INFORM
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
 
 # Model class
@@ -66,6 +67,36 @@ class Call_model:
                                            self.soil)  # call 4SAIL from the SAIL instance
 
         return self.sail
+
+    def call_inform(self):
+
+        try:
+            self.prospect.any()
+        except ValueError:
+            raise ValueError("A leaf optical properties model needs to be run first!")
+        sail_instance = SAIL.Sail(radians(self.par["tts"]), radians(self.par["tto"]), radians(self.par["psi"])) # Create Instance of SAIL and initialize angles
+        # call Pro4sail to calculate understory reflectance
+        self.sail_understory_refl = sail_instance.Pro4sail(self.prospect[:, 1], self.prospect[:,2], self.par["LIDF"],
+                                           self.par["typeLIDF"], self.par["LAIu"], self.par["hspot"], self.par["psoil"],
+                                           self.soil)  # call 4SAIL from the SAIL instance
+        # call Pro4sail with understory as soil to calculate infinite crown reflectance
+        self.sail_inf_refl = sail_instance.Pro4sail_inf(self.prospect[:, 1], self.prospect[:,2], self.par["LIDF"],
+                                           self.par["typeLIDF"], 15, self.par["hspot"],
+                                                   self.sail_understory_refl)
+
+        self.sail_tts_trans = sail_instance.Sail_tts_trans(self.prospect[:,1], self.prospect[:,2], self.par["LIDF"],
+                                           self.par["typeLIDF"], self.par["LAI"], 0,
+                                                      self.sail_understory_refl)
+
+        self.sail_tto_trans = sail_instance.Sail_tto_trans(self.prospect[:, 1], self.prospect[:, 2], self.par["LIDF"],
+                                           self.par["typeLIDF"], self.par["LAI"], 0,
+                                           self.sail_understory_refl)  # call 4SAIL from the SAIL instance)
+
+        inform_instance = INFORM.INFORM(sail_instance.costts, sail_instance.costto, sail_instance.cospsi)
+        inform = inform_instance.inform(self.par["cd"], self.par["sd"], self.par["h"], self.sail_understory_refl,
+                                        self.sail_inf_refl, self.sail_tts_trans, self.sail_tto_trans)
+
+        return inform
 
 class Setup_multiple:
 
@@ -347,8 +378,10 @@ class Init_Model:
 
         if self.canopy_arch=="sail":
             result = iModel.call_4sail()*self.int_boost
+        elif self.canopy_arch=="inform":
+            result = iModel.call_inform()*self.int_boost
         else:
-            result = iModel.prospect[:,1]*self.int_boost
+            result = iModel.prospect[:, 1]*self.int_boost
 
         if self.s2s == "default":
             return result
@@ -369,6 +402,7 @@ def example_single():
     cbrown = 0.1
     cw = 0.03
     cm = 0.0065
+    LAIu = 3.0
     LAI = 5.5
     hspot = 0.1
     psoil = 0.5
@@ -378,13 +412,13 @@ def example_single():
     lop = "prospectCp"
     canopy_arch = "sail"
     s2s = "default"
-    int_boost = 1000
+    int_boost = 1
     nodat = -999
     soil = [0.1]*2101
 
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     return model_I.initialize_single(tts=tts, tto=tto, psi=psi, N=N, cab=cab, cw=cw, cm=cm,
-                                    LAI=LAI, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, cp=cp, ccl=ccl,
+                                    LAI=LAI, LAIu=LAIu, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, cp=cp, ccl=ccl,
                                     car=car, cbrown=cbrown, anth=anth, soil=soil)
 
 def example_multi():
@@ -435,7 +469,8 @@ if __name__ == '__main__':
     # print(example_single() / 1000.0)
     # plt.plot(range(len(example_single())), example_single() / 1000.0)
     # plt.show()
-    example_multi()
+    x = example_single()
+    print(x.shape)
 
 
 

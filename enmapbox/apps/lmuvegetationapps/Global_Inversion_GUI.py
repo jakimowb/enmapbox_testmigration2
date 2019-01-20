@@ -132,7 +132,7 @@ class Global_Inversion:
 
     def open_file(self, mode):
         if mode=="image":
-            result = str(QFileDialog.getOpenFileName(caption='Select Input Image'))
+            result = str(QFileDialog.getOpenFileName(caption='Select Input Image')[0])
             if not result: return
             self.image = result
             self.image = self.image.replace("\\", "/")
@@ -151,7 +151,7 @@ class Global_Inversion:
                 self.gui.lblNodatImage.setText(str(meta[0]))
                 self.nodat[0] = meta[0]
         elif mode=="lut":
-            result = str(QFileDialog.getOpenFileName(caption='Select LUT meta-file', filter="LUT-file (*.lut)"))
+            result = str(QFileDialog.getOpenFileName(caption='Select LUT meta-file', filter="LUT-file (*.lut)")[0])
             if not result: return
             self.LUT_path = result
             self.LUT_path = self.LUT_path.replace("\\", "/")
@@ -176,7 +176,7 @@ class Global_Inversion:
             self.out_path = self.out_path.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)
         elif mode=="geo":
-            result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image'))
+            result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image')[0])
             if not result: return
             self.geo_file = result
             self.geo_file = self.geo_file.replace("\\", "/")
@@ -191,7 +191,7 @@ class Global_Inversion:
                 self.gui.lblNodatGeoImage.setText(str(meta[0]))
                 self.nodat[1] = meta[0]
         elif mode=="mask":
-            result = str(QFileDialog.getOpenFileName(caption='Select Mask Image'))
+            result = str(QFileDialog.getOpenFileName(caption='Select Mask Image')[0])
             if not result: return
             self.mask_image = result
             self.mask_image = self.mask_image.replace("\\", "/")

@@ -14,7 +14,7 @@
    <string>EnMAP-Box</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset>
     <normaloff>:/enmapbox/icons/enmapbox.svg</normaloff>:/enmapbox/icons/enmapbox.svg</iconset>
   </property>
   <property name="dockOptions">
@@ -195,7 +195,7 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>false</bool>
+    <bool>true</bool>
    </attribute>
    <addaction name="actionAddDataSource"/>
    <addaction name="actionAddMapView"/>
@@ -208,15 +208,16 @@
    <addaction name="actionZoomPixelScale"/>
    <addaction name="actionZoomFullExtent"/>
    <addaction name="separator"/>
-   <addaction name="actionMoveCenter"/>
-   <addaction name="actionSelectProfiles"/>
    <addaction name="actionIdentify"/>
+   <addaction name="optionsIdentifyCursorLocation"/>
+   <addaction name="optionIdentifyProfile"/>
+   <addaction name="optionMoveCenter"/>
    <addaction name="separator"/>
   </widget>
   <action name="actionAddMapView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_mapdock.svg</normaloff>:/enmapbox/icons/viewlist_mapdock.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_mapdock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_mapdock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Map Window</string>
@@ -227,8 +228,8 @@
   </action>
   <action name="actionAddTextView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_textview.svg</normaloff>:/enmapbox/icons/viewlist_textview.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_textview.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_textview.svg</iconset>
    </property>
    <property name="text">
     <string>Add Text Window</string>
@@ -239,8 +240,8 @@
   </action>
   <action name="actionAddSpeclibView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_spectrumdock.svg</normaloff>:/enmapbox/icons/viewlist_spectrumdock.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Spectral Library Window</string>
@@ -250,9 +251,12 @@
    </property>
   </action>
   <action name="actionZoomIn">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomIn.svg</normaloff>:/enmapbox/icons/mActionZoomIn.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom In</string>
@@ -262,9 +266,12 @@
    </property>
   </action>
   <action name="actionZoomOut">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomOut.svg</normaloff>:/enmapbox/icons/mActionZoomOut.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionZoomOut.svg</normaloff>:/enmapbox/gui/ui/icons/mActionZoomOut.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom Out</string>
@@ -274,19 +281,25 @@
    </property>
   </action>
   <action name="actionPan">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionPan.svg</normaloff>:/enmapbox/icons/mActionPan.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionPan.svg</normaloff>:/enmapbox/gui/ui/icons/mActionPan.svg</iconset>
    </property>
    <property name="text">
     <string>Pan Map</string>
    </property>
   </action>
   <action name="actionIdentify">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionIdentify.svg</normaloff>
-     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/enmapbox/icons/mActionIdentify.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionWhatsThis.svg</normaloff>
+     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/images/themes/default/mActionWhatsThis.svg</iconset>
    </property>
    <property name="text">
     <string>Identify Pixels and Features</string>
@@ -297,8 +310,8 @@
   </action>
   <action name="actionAddDataSource">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/add_datasource.svg</normaloff>:/enmapbox/icons/add_datasource.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/add_datasource.svg</normaloff>:/enmapbox/gui/ui/icons/add_datasource.svg</iconset>
    </property>
    <property name="text">
     <string>Add Data Source</string>
@@ -308,9 +321,12 @@
    </property>
   </action>
   <action name="actionZoomFullExtent">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomFullExtent.svg</normaloff>:/enmapbox/icons/mActionZoomFullExtent.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom Full</string>
@@ -321,17 +337,20 @@
   </action>
   <action name="actionAddMimeView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_dock.svg</normaloff>:/enmapbox/icons/viewlist_dock.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</iconset>
    </property>
    <property name="text">
     <string>Add MimeData Viewer (experimental)</string>
    </property>
   </action>
   <action name="actionZoomPixelScale">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomActual.svg</normaloff>:/enmapbox/icons/mActionZoomActual.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionZoomActual.svg</normaloff>:/enmapbox/gui/ui/icons/mActionZoomActual.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom 1:1</string>
@@ -342,29 +361,35 @@
   </action>
   <action name="actionAbout">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/metadata.svg</normaloff>:/enmapbox/icons/metadata.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/metadata.svg</normaloff>:/enmapbox/gui/ui/icons/metadata.svg</iconset>
    </property>
    <property name="text">
     <string>About</string>
    </property>
   </action>
-  <action name="actionIdentifyMapLayers">
+  <action name="optionsIdentifyCursorLocation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionIdentify.svg</normaloff>:/enmapbox/icons/mActionIdentify.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionPropertiesWidget.svg</normaloff>:/images/themes/default/mActionPropertiesWidget.svg</iconset>
    </property>
    <property name="text">
-    <string>Identify</string>
+    <string>CLV</string>
    </property>
    <property name="toolTip">
-    <string>Identify map layers</string>
+    <string>Identify cursor location values</string>
    </property>
   </action>
   <action name="actionProjectSettings">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/system.svg</normaloff>:/enmapbox/icons/system.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/propertyicons/settings.svg</normaloff>:/images/themes/default/propertyicons/settings.svg</iconset>
    </property>
    <property name="text">
     <string>Project Settings</string>
@@ -375,8 +400,8 @@
   </action>
   <action name="actionExit">
    <property name="icon">
-    <iconset>
-     <normaloff>:/enmapbox/icons/mActionFileExit.svg</normaloff>:/enmapbox/icons/mActionFileExit.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mIconClose.svg</normaloff>:/images/themes/default/mIconClose.svg</iconset>
    </property>
    <property name="text">
     <string>Exit EnMAP-Box</string>
@@ -392,11 +417,19 @@
    </property>
   </action>
   <action name="actionPasteLayerStyle">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionEditPaste.svg</normaloff>:/enmapbox/gui/ui/icons/mActionEditPaste.svg</iconset>
+   </property>
    <property name="text">
     <string>Paste Laye rStyle</string>
    </property>
   </action>
   <action name="actionProjectProperties">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/settings.svg</normaloff>:/enmapbox/gui/ui/icons/settings.svg</iconset>
+   </property>
    <property name="text">
     <string>Project Properties</string>
    </property>
@@ -405,19 +438,27 @@
    </property>
   </action>
   <action name="actionQgisHomePage">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/qgis_icon.svg</normaloff>:/enmapbox/gui/ui/icons/qgis_icon.svg</iconset>
+   </property>
    <property name="text">
     <string>QgisHomePage</string>
    </property>
   </action>
   <action name="actionEnMAPBoxHomePage">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</iconset>
+   </property>
    <property name="text">
     <string>EnMAP-Box Home Page</string>
    </property>
   </action>
   <action name="actionSaveProject">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileSave.svg</normaloff>:/enmapbox/icons/mActionFileSave.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionFileSave.svg</normaloff>:/enmapbox/gui/ui/icons/mActionFileSave.svg</iconset>
    </property>
    <property name="text">
     <string>Save Project</string>
@@ -425,8 +466,8 @@
   </action>
   <action name="actionAddWebView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_dock.svg</normaloff>:/enmapbox/icons/viewlist_dock.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Web View</string>
@@ -435,16 +476,19 @@
     <string>Opens WebViewDock to show HTML pages</string>
    </property>
   </action>
-  <action name="actionMoveCenter">
+  <action name="optionMoveCenter">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomPoint.svg</normaloff>:/enmapbox/icons/mActionZoomPoint.svg</iconset>
+    <iconset resource="../../../site-packages/qps/qpsresources.qrc">
+     <normaloff>:/qps/ui/icons/pan_center.svg</normaloff>:/qps/ui/icons/pan_center.svg</iconset>
    </property>
    <property name="text">
     <string>Move to Point</string>
+   </property>
+   <property name="toolTip">
+    <string>Center map on clicked location</string>
    </property>
   </action>
   <action name="actionLoadExampleData">
@@ -452,23 +496,10 @@
     <string>Load Example Data</string>
    </property>
   </action>
-  <action name="actionSelectProfiles">
-   <property name="icon">
-    <iconset resource="../speclib/speclibresources.qrc">
-     <normaloff>:/speclibimages/icons/pickrasterspectrum.svg</normaloff>
-     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/speclibimages/icons/pickrasterspectrum.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Select spectral profiles</string>
-   </property>
-   <property name="toolTip">
-    <string>Select spectral profiles from map</string>
-   </property>
-  </action>
   <action name="actionSaveProjectAs">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</normaloff>:/enmapbox/icons/mActionFileSaveAs.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionFileSaveAs.svg</normaloff>:/images/themes/default/mActionFileSaveAs.svg</iconset>
    </property>
    <property name="text">
     <string>Save Projects as</string>
@@ -492,8 +523,8 @@
   </action>
   <action name="actionMapLinking">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/link_basic.svg</normaloff>:/enmapbox/icons/link_basic.svg</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/link_basic.svg</normaloff>:/enmapbox/gui/ui/icons/link_basic.svg</iconset>
    </property>
    <property name="text">
     <string>Set map linking</string>
@@ -505,6 +536,21 @@
   <action name="actionOpenOnlineDocumentation">
    <property name="text">
     <string>Online Documentation</string>
+   </property>
+  </action>
+  <action name="optionIdentifyProfile">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../../site-packages/qps/qpsresources.qrc">
+     <normaloff>:/qps/ui/icons/profile.svg</normaloff>:/qps/ui/icons/profile.svg</iconset>
+   </property>
+   <property name="text">
+    <string>RP</string>
+   </property>
+   <property name="toolTip">
+    <string>Identify raster profiles to be shown in a Spectral Library.</string>
    </property>
   </action>
  </widget>
@@ -529,9 +575,9 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="resources.qrc"/>
-  <include location="../speclib/speclibresources.qrc"/>
   <include location="../../../../../QGIS/images/images.qrc"/>
+  <include location="../../resources.qrc"/>
+  <include location="../../../site-packages/qps/qpsresources.qrc"/>
  </resources>
  <connections/>
 </ui>
