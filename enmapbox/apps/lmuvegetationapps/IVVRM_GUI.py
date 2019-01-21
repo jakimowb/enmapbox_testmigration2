@@ -1,44 +1,45 @@
 # -*- coding: utf-8 -*-
 
 
-import sys, os
+import sys
+import os
 import numpy as np
 from scipy.interpolate import interp1d
-
-
 from qgis.gui import *
+
 #ensure to call QGIS before PyQtGraph
-import pyqtgraph as pg
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
+
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
-import lmuvegetationapps.call_model as mod
+import pyqtgraph as pg
+from lmuvegetationapps import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
 import warnings
 import csv
-import time
 
-pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVRM.ui')
-pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_LoadTxtFile.ui')
-pathUI3 = os.path.join(os.path.dirname(__file__),'GUI_Select_Wavelengths.ui')
 from enmapbox.gui.utils import loadUIFormClass
 
+#import time
+
+pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVRM_Inform_alpha.ui')
+pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_LoadTxtFile.ui')
+pathUI3 = os.path.join(os.path.dirname(__file__), 'GUI_Select_Wavelengths.ui')
+
+
 class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
-    
     def __init__(self, parent=None):
         super(IVVRM_GUI, self).__init__(parent)
         self.setupUi(self)
 
 class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
-
     def __init__(self, parent=None):
         super(Load_Txt_File_GUI, self).__init__(parent)
         self.setupUi(self)
 
 class Select_Wavelengths_GUI(QDialog, loadUIFormClass(pathUI3)):
-
     def __init__(self, parent=None):
         super(Select_Wavelengths_GUI, self).__init__(parent)
         self.setupUi(self)
@@ -58,6 +59,7 @@ class IVVRM:
         self.mod_interactive()
         self.mod_exec()
 
+
     def special_chars(self):
         self.gui.lblCab.setText(u'[µg/cm²]')
         self.gui.lblCm.setText(u'[g/cm²]')
@@ -74,14 +76,16 @@ class IVVRM:
                         tuple([255,255,0]), tuple([0,0,0]), tuple([255,0,0]), tuple([255,255,255]),
                         tuple([255,124,128]), tuple([178,178,178]), tuple([144, 204, 154]),
                         tuple([255,153,255]), tuple([25,41,70]), tuple([169,139,100]),
-                       tuple([255,153,51]), tuple([204, 0, 153]), tuple([172, 86, 38])]
+                       tuple([255,153,51]), tuple([204, 0, 153]), tuple([172, 86, 38]), tuple([0,100,0]),
+                       tuple([255,128,0]), tuple([153,76,0]), tuple([153,0,0])]
         self.lineEdits = [self.gui.N_lineEdit, self.gui.Cab_lineEdit, self.gui.Cw_lineEdit, self.gui.Cm_lineEdit,
                           self.gui.LAI_lineEdit, self.gui.lblFake, self.gui.LIDFB_lineEdit, self.gui.hspot_lineEdit,
                           self.gui.psoil_lineEdit, self.gui.SZA_lineEdit, self.gui.OZA_lineEdit, self.gui.rAA_lineEdit,
                           self.gui.Cp_lineEdit, self.gui.Ccl_lineEdit, self.gui.Car_lineEdit, self.gui.Canth_lineEdit,
-                          self.gui.Cbrown_lineEdit]
+                          self.gui.Cbrown_lineEdit, self.gui.LAIu_lineEdit, self.gui.CD_lineEdit, self.gui.SD_lineEdit,
+                          self.gui.TreeH_lineEdit]
         self.para_names = ["N", "cab", "cw", "cm", "LAI", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto", "psi",
-                           "cp", "ccl", "car", "anth", "cbrown"]
+                           "cp", "ccl", "car", "anth", "cbrown", "LAIu", "cd", "sd", "h"]
         self.lineEdits_dict = dict(zip(self.para_names, self.lineEdits))
         self.colors_dict = dict(zip(self.para_names, self.colors))
         self.penStyle = 1
@@ -189,7 +193,9 @@ class IVVRM:
             self.gui.psoil_Slide.setEnabled(False)
             self.gui.psoil_lineEdit.setEnabled(False)
             self.gui.push_SelectFile.setEnabled(True)
+            self.gui.push_SelectFile.setText('Select File...')
             self.gui.BackSpec_label.setEnabled(True)
+
 
     def makePen(self, sensor):
         if sensor == "default":
@@ -225,7 +231,8 @@ class IVVRM:
 
         self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch=None))
         self.gui.B_4Sail.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail"))
-        self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
+        self.gui.B_Inform.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="inform"))
+
 
     def select_model(self, lop="prospectD", canopy_arch="sail"):
         self.lop = lop
@@ -233,6 +240,7 @@ class IVVRM:
         if canopy_arch is None:
             self.canopy_arch = None
             self.gui.CanopyMP_Box.setDisabled(True)
+            self.gui.ForestMP_Box.setDisabled(True)
             self.gui.BrightFac_Text.setEnabled(False)
             self.gui.psoil_Slide.setEnabled(False)
             self.gui.psoil_lineEdit.setEnabled(False)
@@ -240,11 +248,21 @@ class IVVRM:
             self.gui.BackSpec_label.setEnabled(False)
             self.gui.B_DefSoilSpec.setEnabled(False)
             self.gui.B_LoadBackSpec.setEnabled(False)
-        else:
+            self.gui.LAI_Text.setText("Leaf Area Index (LAI)")
+
+        elif canopy_arch == "inform":
             self.canopy_arch = canopy_arch
+            self.gui.LAI_Text.setText("Single Tree Leaf Area Index (LAI)")
             self.gui.CanopyMP_Box.setDisabled(False)
+            self.gui.ForestMP_Box.setDisabled(False)
             self.select_background(bg_type=self.bg_type)
 
+        else:
+            self.canopy_arch = canopy_arch
+            self.gui.LAI_Text.setText("Leaf Area Index (LAI)")
+            self.gui.CanopyMP_Box.setDisabled(False)
+            self.gui.ForestMP_Box.setDisabled(True)
+            self.select_background(bg_type=self.bg_type)
 
         if lop == "prospectD":
             self.gui.Canth_Slide.setDisabled(False)
@@ -372,6 +390,10 @@ class IVVRM:
         self.para_dict["car"] = float(self.gui.Car_lineEdit.text()) #14
         self.para_dict["anth"] = float(self.gui.Canth_lineEdit.text()) #15
         self.para_dict["cbrown"] = float(self.gui.Cbrown_lineEdit.text()) #16
+        self.para_dict["LAIu"] = float(self.gui.LAIu_lineEdit.text()) #17
+        self.para_dict["cd"] = float(self.gui.CD_lineEdit.text()) #18
+        self.para_dict["sd"] = float(self.gui.SD_lineEdit.text()) #19
+        self.para_dict["h"] = float(self.gui.TreeH_lineEdit.text()) #20
 
     def mod_interactive(self):
         self.gui.N_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.N_Slide, item="N"))
@@ -390,10 +412,10 @@ class IVVRM:
         self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item="car"))
         self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item="anth"))
         self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item="cbrown"))
-        # self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item=17))
-        # self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item=18))
-        # self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item=19))
-        # self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item=20))
+        self.gui.LAIu_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.LAIu_Slide, item="LAIu"))
+        self.gui.SD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.SD_Slide, item="sd"))
+        self.gui.TreeH_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.TreeH_Slide, item="h"))
+        self.gui.CD_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.CD_Slide, item="cd"))
 
         self.gui.SType_None_B.clicked.connect(lambda: self.select_s2s(sensor="default"))
         self.gui.SType_Sentinel_B.clicked.connect(lambda: self.select_s2s(sensor="Sentinel2"))
@@ -402,7 +424,8 @@ class IVVRM:
 
         self.gui.B_DefSoilSpec.clicked.connect(lambda: self.select_background(bg_type="default"))
         self.gui.B_LoadBackSpec.clicked.connect(lambda: self.select_background(bg_type="load"))
-        # self.gui.push_SelectFile.clicked.connect(self.open_soil)
+        self.gui.B_LoadBackSpec.pressed.connect(lambda: self.select_background(bg_type="load"))
+
 
         self.gui.LIDF_combobox.currentIndexChanged.connect(self.select_LIDF)
 
@@ -411,6 +434,7 @@ class IVVRM:
         self.gui.cmdResetScale.clicked.connect(lambda: self.clear_plot(rescale=True, clearPlots=False))
         self.gui.Push_LoadInSitu.clicked.connect(lambda: self.open_file(type="in situ"))  #load own spectrum
         self.gui.push_SelectFile.clicked.connect(lambda: self.open_file(type="background"))  # load own spectrum
+
         self.gui.Push_Exit.clicked.connect(self.gui.accept)  #exit app
         self.gui.Push_ResetInSitu.clicked.connect(self.reset_in_situ)  #remove own spectrum from plot canvas
 
@@ -442,26 +466,30 @@ class IVVRM:
                                            cm=self.para_dict["cm"], LAI=self.para_dict["LAI"], LIDF=self.para_dict["LIDF"],
                                            typeLIDF=self.para_dict["typeLIDF"], hspot=self.para_dict["hspot"], psoil=self.para_dict["psoil"],
                                            cp=self.para_dict["cp"], ccl=self.para_dict["ccl"], car=self.para_dict["car"],
-                                           cbrown=self.para_dict["cbrown"], anth=self.para_dict["anth"], soil=self.bg_spec)
+                                           cbrown=self.para_dict["cbrown"], anth=self.para_dict["anth"], soil=self.bg_spec,
+                                                LAIu=self.para_dict["LAIu"], cd=self.para_dict["cd"], sd=self.para_dict["sd"],
+                                                h=self.para_dict["h"])
 
-        if not item is None: self.item = item
+        if item is not None:
+            self.item = item
+
         self.plotting()
 
     def plotting(self):
 
         if not self.gui.CheckPlotAcc.isChecked():
-            self.clear_plot()
-            self.gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
+            #self.clear_plot()
+            self.gui.graphicsView.plot(self.wl, self.myResult, clear=True, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
                                         name='modelled')
 
-            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
+            self.gui.graphicsView.setYRange(0, 0.8, padding=0)
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
             myPen = pg.mkPen(color=self.colors_dict[self.item], style=self.penStyle)
             self.plot = self.gui.graphicsView.plot(self.wl, self.myResult, pen=myPen)
             self.plot_own_spec()
-            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
+            self.gui.graphicsView.setYRange(0, 0.8, padding=0)
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 
@@ -509,7 +537,7 @@ class IVVRM:
         if self.data_mean is not None:
             self.gui.graphicsView.plot(self.wl_open, self.data_mean, name='observed')
 
-    def clear_plot(self, rescale=False, clearPlots=True):
+    def clear_plot(self, rescale=False, clearPlots=False):
         if rescale:
             self.gui.graphicsView.setYRange(0, 0.6, padding=0)
             self.gui.graphicsView.setXRange(350, 2550, padding=0)
@@ -519,25 +547,25 @@ class IVVRM:
             self.plot_count = 0
 
     def save_spectrum(self):
-        specnameout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
-                                                      filter="Text files (*.txt)"))
+        specnameout = QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
+                                                      filter="Text files (*.txt)")
         if not specnameout: return
         save_matrix = np.zeros(shape=(len(self.wl),2))
-        save_matrix[:,0] = self.wl
-        save_matrix[:,1] = self.myResult
-        np.savetxt(specnameout, save_matrix, delimiter="\t", header="Wavelength_nm\tReflectance")
+        save_matrix[:, 0] = self.wl
+        save_matrix[:, 1] = self.myResult
+
+        np.savetxt(specnameout[0],save_matrix, delimiter="\t", header="Wavelength_nm\tReflectance")
 
     def save_paralist(self):
-        paralistout = str(QFileDialog.getSaveFileName(caption='Save Modelled Spectrum',
-                                                      filter="Text files (*.txt)"))
-
+        paralistout = QFileDialog.getSaveFileName(caption='Save Modelled Spectrum Parameters',
+                                                      filter="Text files (*.txt)")
         if paralistout:
-            with open(paralistout, "w") as file:
+            with open(paralistout[0], "w") as file:
                 for para_key in self.para_dict:
                     if self.lineEdits_dict[para_key].isEnabled():
                         file.write("%s\t%f\n" % (para_key, self.para_dict[para_key]))
+            file.close()
 
-## todo: accumulative plotting!!
 
 class LoadTxtFile:
     def __init__(self, main):
@@ -689,7 +717,7 @@ class LoadTxtFile:
         self.gui.label.setText("Ok. No Errors")
         self.gui.cmdOK.setEnabled(True)
 
-    def houston(self, message): # we have a problem
+    def houston(self, message):  # we have a problem
         self.gui.label.setStyleSheet("color: rgb(170, 0, 0);")
         self.gui.label.setText(message)
         self.gui.tablePreview.setRowCount(0)
@@ -793,6 +821,8 @@ class Select_Wavelengths:
 
             self.main.ivvrm.bg_spec = self.main.loadtxtfile.data_mean
             self.main.ivvrm.gui.BackSpec_label.setText(os.path.basename(self.main.loadtxtfile.filenameIn))
+            self.main.ivvrm.gui.push_SelectFile.setEnabled(False)
+            self.main.ivvrm.gui.push_SelectFile.setText('File:')
 
         for list_object in [self.gui.lstIncluded, self.gui.lstExcluded]:
             list_object.clear()
@@ -816,18 +846,26 @@ class Select_Wavelengths:
 
 class MainUiFunc:
     def __init__(self):
+        self.QGis_app = QApplication.instance()  # the QGIS-Application made accessible within the code
+
         self.ivvrm = IVVRM(self)
+
         self.loadtxtfile = LoadTxtFile(self)
         self.select_wavelengths = Select_Wavelengths(self)
 
     def show(self):
         self.ivvrm.gui.show()
 
+
 if __name__ == '__main__':
-    from enmapbox.gui.sandbox import initQgisEnvironment
-    app = initQgisEnvironment()
+
+    from enmapbox.gui.utils import initQgisApplication
+    #from enmapbox.gui.sandbox import initQgisEnvironment
+    app = initQgisApplication()
     m = MainUiFunc()
     m.show()
-    sys.exit(app.exec_())
+    #sys.exit(app.exec_())
+    app.exec_()
+    app.exitQgis()
 
 

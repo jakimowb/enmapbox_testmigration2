@@ -63,7 +63,7 @@ class PWR_core:
         #     wl_enmap_corr = np.delete(self.wl, 82)  # delete band 82 (944 nm) to avoid duplicate using enumerate
         #
         #     self.valid_bands = [i for i, x in enumerate(wl_enmap_corr) if x in list(self.valid_wl)]
-        # else:
+        #else:
         self.valid_bands = [i for i, x in enumerate(self.wl) if x in list(self.valid_wl)]  # indices of input image bands used
 
 
@@ -182,7 +182,7 @@ class PWR_core:
         band.WriteArray(result)
         destination.SetMetadataItem('data ignore value', str(self.nodat_val[1]), 'ENVI')
 
-        out_raster = None
+        destination = None
         driver = None
 
     def prgbar_process(self, pixel_no):

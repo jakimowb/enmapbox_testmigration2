@@ -358,9 +358,9 @@ class Prospect:
         RN=ra+s1/s3
         TN=s2/s3
         LRT = np.zeros((self.nlambd, 3))
-        LRT[:,0] = lambd
-        LRT[:,1] = RN
-        LRT[:,2] = TN
+        LRT[:, 0] = lambd
+        LRT[:, 1] = RN
+        LRT[:, 2] = TN
 
         return LRT
 
@@ -382,4 +382,11 @@ class Prospect:
 # or transmitted through a pile of plates, Proc. Roy. Soc. Lond.,
 # 11:545-556.
 
-
+if __name__ == '__main__':
+    from matplotlib import pyplot as plt
+    prospect = Prospect()
+    test = prospect.prospect_4(1.0, 50.0, 0.05, 0.005)
+    plt.plot(test[:, 0], test[:, 1])
+    plt.plot(test[:, 0], 1-test[:, 2])
+    plt.ylim(0,1)
+    plt.show()

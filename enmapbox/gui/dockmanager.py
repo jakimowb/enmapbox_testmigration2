@@ -1324,6 +1324,11 @@ class DockManager(QObject):
         return None
 
     def removeDock(self, dock):
+        """
+        Removes a Dock instances
+        :param dock:
+        :return:
+        """
         if dock in self.mDocks:
             self.mDocks.remove(dock)
             self.sigDockRemoved.emit(dock)
@@ -1348,6 +1353,7 @@ class DockManager(QObject):
         dock = None
         if cls == MapDock:
             kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
+
             dock = MapDock(*args, **kwds)
             if isinstance(self.mDataSourceManager, DataSourceManager):
                 dock.sigLayersAdded.connect(self.mDataSourceManager.addSources)
@@ -1367,7 +1373,7 @@ class DockManager(QObject):
             kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclibWidget.setMapInteraction(True)
-            dock.speclibWidget.setAddCurrentSpectraToSpeclibMode(False)
+
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 

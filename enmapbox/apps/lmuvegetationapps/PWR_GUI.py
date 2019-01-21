@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import sys, os
-import numpy as np
-from qgis.gui import *
+#import numpy as np
+#from qgis.gui import *
 #ensure to call QGIS before PyQtGraph
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
+#from qgis.PyQt.QtCore import *
+#from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-from qgis.PyQt import uic
+#from qgis.PyQt import uic
 from osgeo import gdal
 from lmuvegetationapps.PWR_core import PWR_core
-from enmapbox.gui.applications import EnMAPBoxApplication
+#from enmapbox.gui.applications import EnMAPBoxApplication
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_PWR.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
