@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>897</width>
-    <height>510</height>
+    <height>509</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -297,9 +297,9 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
-     <normaloff>:/images/themes/default/mActionWhatsThis.svg</normaloff>
-     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/images/themes/default/mActionWhatsThis.svg</iconset>
+    <iconset resource="../../../site-packages/qps/qpsresources.qrc">
+     <normaloff>:/qps/ui/icons/select_location.svg</normaloff>
+     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/qps/ui/icons/select_location.svg</iconset>
    </property>
    <property name="text">
     <string>Identify Pixels and Features</string>
@@ -488,7 +488,7 @@
     <string>Move to Point</string>
    </property>
    <property name="toolTip">
-    <string>Center map on clicked location</string>
+    <string>Center map on clicked locations</string>
    </property>
   </action>
   <action name="actionLoadExampleData">

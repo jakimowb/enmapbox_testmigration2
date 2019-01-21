@@ -22,7 +22,7 @@ import unittest
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
-SHOW_GUI = False
+SHOW_GUI = True
 
 from enmapboxtestdata import enmap
 from enmapbox.gui.enmapboxgui import EnMAPBox

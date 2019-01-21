@@ -35,17 +35,20 @@ class EnMAPBoxPlugin(object):
 
         dirPlugin = os.path.dirname(__file__)
         site.addsitedir(dirPlugin)
-        from enmapbox import DIR_SITEPACKAGES, initEnMAPBoxProcessingProvider, initEditorWidgets
-        site.addsitedir(DIR_SITEPACKAGES)
+        import enmapbox
+
+        site.addsitedir(enmapbox.DIR_SITEPACKAGES)
 
         #run a dependency check
         self.initialDependencyCheck()
 
-        initEditorWidgets()
+        # initialize resources etc.
+        enmapbox.initEnMAPBoxResources()
+        enmapbox.initEditorWidgets()
 
 
         # add the EnMAP-Box Provider
-        initEnMAPBoxProcessingProvider()
+        enmapbox.initEnMAPBoxProcessingProvider()
         #assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
 
     def initialDependencyCheck(self):

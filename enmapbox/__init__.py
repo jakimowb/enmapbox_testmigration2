@@ -165,6 +165,18 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
 
+def initEnMAPBoxResources():
+    """
+    Loads (or reloads) EnMAP-Box Resources
+    """
+
+
+    import enmapbox.resources
+    enmapbox.resources.qInitResources()
+
+    import qps.qpsresources
+    qps.qpsresources.qInitResources()
+
 
 def run():
     """

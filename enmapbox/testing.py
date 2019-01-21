@@ -50,89 +50,11 @@ def initQgisApplication(*args, **kwds)->QgsApplication:
 
         app = qps.testing.initQgisApplication(*args, **kwds)
 
-        from enmapbox import initEnMAPBoxProcessingProvider
-        initEnMAPBoxProcessingProvider()
+        import enmapbox
+        enmapbox.initEnMAPBoxResources()
+        enmapbox.initEnMAPBoxProcessingProvider()
 
         return app
-
-        if not 'QGIS_PREFIX_PATH' in os.environ.keys():
-            raise Exception('env variable QGIS_PREFIX_PATH not set')
-
-        if sys.platform == 'darwin':
-            # add location of Qt Libraries
-            assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
-            PATH_QGIS_APP = re.search(r'.*\.app', qgis.__file__).group()
-            QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
-            QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns', 'qgis']))
-
-        qgsApp = qgis.testing.start_app()
-
-        # initialize things not done by qgis.test.start_app()...
-        if not isinstance(qgisResourceDir, str):
-            parentDir = os.path.dirname(os.path.dirname(__file__))
-            resourceDir = os.path.join(parentDir, 'qgisresources')
-            if os.path.exists(resourceDir):
-                qgisResourceDir = resourceDir
-
-        if isinstance(qgisResourceDir, str) and os.path.isdir(qgisResourceDir):
-            modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
-            modules = [m[0:-3] for m in modules]
-            for m in modules:
-                mod = importlib.import_module('qgisresources.{}'.format(m))
-                if "qInitResources" in dir(mod):
-                    mod.qInitResources()
-
-        # initiate a PythonRunner instance if None exists
-        if not QgsPythonRunner.isValid():
-            r = PythonRunnerImpl()
-            QgsPythonRunner.setInstance(r)
-
-        from qgis.analysis import QgsNativeAlgorithms
-        QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
-
-        # import processing
-        # p = processing.classFactory(iface)
-        if not isinstance(qgis.utils.iface, QgisInterface):
-
-            iface = QgisMockup()
-            qgis.utils.initInterface(sip.unwrapinstance(iface))
-            assert iface == qgis.utils.iface
-            """
-            import processing
-            processing.Processing.initialize()
-            import processing
-            import pkgutil
-            prefix = str(processing.__name__ + '.')
-            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
-                try:
-                    module = __import__(modname, fromlist="dummy")
-                    if hasattr(module, 'iface'):
-                        print(modname)
-                        module.iface = iface
-                except:
-                    pass
-            """
-        # set 'home_plugin_path', which is required from the QGIS Plugin manager
-        qgis.utils.home_plugin_path = os.path.join(QgsApplication.instance().qgisSettingsDirPath(),
-                                                   *['python', 'plugins'])
-
-        # initiate the QGIS processing framework
-
-        from processing.core.Processing import Processing
-        Processing.initialize()
-
-        #
-        providers = QgsProviderRegistry.instance().providerList()
-        for p in ['DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']:
-            if p not in providers:
-                warnings.warn('Missing QGIS provider "{}"'.format(p), Exception)
-
-        from enmapbox import initEnMAPBoxProcessingProvider
-        initEnMAPBoxProcessingProvider()
-
-        return qgsApp
-
-
 
 class TestObjects(qps.testing.TestObjects):
     """
