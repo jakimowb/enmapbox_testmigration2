@@ -1,6 +1,13 @@
+try:
+    import matplotlib.pyplot as plt
+except:
+    import matplotlib
+    matplotlib.use('QT5Agg')
+    import matplotlib.pyplot as plt
+
 from collections import OrderedDict
 from os import makedirs, remove
-from os.path import dirname, exists, join, basename, splitext
+from os.path import dirname, exists, join, basename, splitext, abspath, isabs
 from shutil import copyfile, rmtree
 import datetime
 from random import randint
@@ -11,40 +18,14 @@ import hubdc.hubdcerrors as errors
 
 gdal.UseExceptions()
 
-class RasterCreationOptions(object):
-    '''Class for managing raster creation options.'''
-
-    def __init__(self, options=None):
-        '''Create a new instance from dictionary given by ``options``.'''
-        if options is None:
-            options = dict()
-        assert isinstance(options, dict)
-        self._options = options
-
-    def __repr__(self):
-        return '{cls}(options={options})'.format(cls=self.__class__.__name__, options=repr(self.options()))
-
-    def options(self):
-        '''Returns options dictionary.'''
-        return self._options
-
-    def optionsList(self):
-        '''Returns options as list.'''
-        return ['{}={}'.format(key, value) for key, value in self.options().items()]
-
-
 class RasterDriver(object):
-    '''Class for managing GDAL Drivers'''
+    '''Class for managing raster drivers'''
 
-    DEFAULT_OPTIONS = RasterCreationOptions()
-
-    def __init__(self, name):
-        '''
-        :param name: e.g. 'GTiff' or 'ENVI'
-        :type name: str
-        '''
+    def __init__(self, name, options=None):
+        '''Create instance from GDAL driver name and (optional) a list of default creation options.'''
 
         self._name = name
+        self._options = options
         if self.gdalDriver() is None:
             raise errors.InvalidGDALDriverError()
 
@@ -56,17 +37,21 @@ class RasterDriver(object):
 
         ext = splitext(filename)[1][1:].lower()
         if ext in ['bsq', 'sli', 'esl']:
-            driver = ENVIBSQDriver()
+            driver = EnviDriver()
         elif ext == 'bil':
-            driver = ENVIBILDriver()
+            driver = EnviDriver()
+            driver.setOptions(options=[EnviDriver.Option.INTERLEAVE.BIL])
         elif ext == 'bip':
-            driver = ENVIBIPDriver()
-        elif ext == 'tif':
+            driver = EnviDriver()
+            driver.setOptions(options=[EnviDriver.Option.INTERLEAVE.BIP])
+        elif ext in ['tif', 'tiff']:
             driver = GTiffDriver()
         elif ext == 'img':
             driver = ErdasDriver()
+        elif ext == 'vrt':
+            driver = VrtDriver()
         else:
-            driver = ENVIBSQDriver()
+            driver = EnviDriver()
         return driver
 
     def gdalDriver(self):
@@ -79,15 +64,25 @@ class RasterDriver(object):
 
         return self._name
 
+    def options(self):
+        '''Returns default creation options.'''
+        if self._options is None:
+            options = list()
+        else:
+            options = self._options
+        assert isinstance(options, list)
+        return options
+
+    def setOptions(self, options=None):
+        '''Set the default options.'''
+        assert isinstance(options, (list, type(None)))
+        self._options = options
+
     def equal(self, other):
         '''Returns whether self is equal to the other driver.'''
 
-        assert isinstance(other, RasterDriver)
+        assert isinstance(other, RasterDriver), other
         return self.name() == other.name()
-
-    def defaultOptions(self):
-        '''Returns default creation options.'''
-        return self.DEFAULT_OPTIONS
 
     def create(self, grid, bands=1, gdalType=gdal.GDT_Float32, filename='', options=None):
         '''
@@ -101,86 +96,215 @@ class RasterDriver(object):
         :type gdalType: int
         :param filename: output filename
         :type filename: str
-        :param options:
-        :type options: hubdc.core.RasterCreationOptions
+        :param options: raster creation options
+        :type options: list
         :return:
         :rtype: hubdc.core.RasterDataset
         '''
 
         assert isinstance(grid, Grid)
         if options is None:
-            options = self.defaultOptions()
-        assert isinstance(options, RasterCreationOptions)
+            options = self.options()
+        assert isinstance(options, list)
 
-        assert isinstance(filename, str)
-        if (not self.equal(RasterDriver('MEM'))
-            and not filename.startswith('/vsimem/')
-            and not exists(dirname(filename))):
-            makedirs(dirname(filename))
+        filename = self.prepareCreation(filename)
 
-        gdalDataset = self.gdalDriver().Create(filename, grid.size().x(), grid.size().y(), bands, gdalType,
-                                               options.optionsList())
+        gdalDataset = self.gdalDriver().Create(filename, grid.size().x(), grid.size().y(), bands, gdalType, options)
         gdalDataset.SetProjection(grid.projection().wkt())
         gdalDataset.SetGeoTransform(grid.geoTransform())
         return RasterDataset(gdalDataset=gdalDataset)
 
+    def prepareCreation(self, filename):
+        '''Returns absolute filename and creates root folders if not existing.'''
 
-class MEMDriver(RasterDriver):
+        assert isinstance(filename, str)
+        if not self.equal(MemDriver()) and not filename.startswith('/vsimem/'):
+            if not isabs(filename):
+                filename = abspath(filename)
+            if not exists(dirname(filename)):
+                makedirs(dirname(filename))
+
+        return filename
+
+class MemDriver(RasterDriver):
     '''MEM driver.'''
 
     def __init__(self):
         RasterDriver.__init__(self, name='MEM')
 
-class VRTDriver(RasterDriver):
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
+
+
+class VrtDriver(RasterDriver):
     '''VRT driver.'''
 
     def __init__(self):
         RasterDriver.__init__(self, name='VRT')
 
-class ENVIBSQDriver(RasterDriver):
-    '''ENVI BSQ driver.'''
-
-    DEFAULT_OPTIONS = RasterCreationOptions(options={'INTERLEAVE': 'BSQ'})
-
-    def __init__(self):
-        RasterDriver.__init__(self, name='ENVI')
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
 
 
-class ENVIBILDriver(RasterDriver):
-    '''ENVI BIL driver.'''
-
-    DEFAULT_OPTIONS = RasterCreationOptions(options={'INTERLEAVE': 'BIL'})
+class EnviDriver(RasterDriver):
+    '''ENVI driver.'''
 
     def __init__(self):
         RasterDriver.__init__(self, name='ENVI')
 
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
 
-class ENVIBIPDriver(RasterDriver):
-    '''ENVI BIP driver.'''
+    class Option(object):
 
-    DEFAULT_OPTIONS = RasterCreationOptions(options={'INTERLEAVE': 'BIP'})
+        class INTERLEAVE(object):
+            BSQ = 'INTERLEAVE=BSQ'
+            BIL = 'INTERLEAVE=BIL'
+            BIP = 'INTERLEAVE=BIP'
 
-    def __init__(self):
-        RasterDriver.__init__(self, name='ENVI')
+
+        class SUFFIX(object):
+            REPLACE = 'SUFFIX=REPLACE'
+            ADD = 'SUFFIX=ADD'
 
 
 class GTiffDriver(RasterDriver):
     '''GTiff driver.'''
 
-    DEFAULT_OPTIONS = RasterCreationOptions(options={'COMPRESS': 'None', 'INTERLEAVE': 'BAND',
-                                                     'TILED': 'NO', 'BLOCKXSIZE': 256, 'BLOCKYSIZE': 256})
-
     def __init__(self):
-        RasterDriver.__init__(self, name='GTiff')
+        RasterDriver.__init__(self, name='GTiff', options=[self.Option.INTERLEAVE.BAND])
+
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
+
+    class Option(object):
+
+        class INTERLEAVE(object):
+            BAND = 'INTERLEAVE=BAND'
+            PIXEL = 'INTERLEAVE=PIXEL'
+
+        class TILED(object):
+            YES = 'TILED=YES'
+            NO = 'TILED=NO'
+
+        @staticmethod
+        def BLOCKXSIZE(n=256):
+            return 'BLOCKXSIZE={}'.format(n)
+
+        @staticmethod
+        def BLOCKYSIZE(n=256):
+            return 'BLOCKYSIZE={}'.format(n)
+
+        @staticmethod
+        def NBITS(n):
+            return 'NBITS={}'.format(n)
+
+        class PREDICTOR(object):
+            NONE = 'PREDICTOR=1'
+            HorizontalDifferencing = 'PREDICTOR=2'
+            FloatingPoint = 'PREDICTOR=3'
+
+        class SPARSE_OK(object):
+            TRUE = 'SPARSE_OK=TRUE'
+            FALSE = 'SPARSE_OK=FALSE'
+
+        @staticmethod
+        def JPEG_QUALITY(n=75):
+            assert n >= 1 and n <= 100
+            return 'JPEG_QUALITY={}'.format(n)
+
+        @staticmethod
+        def ZLEVEL(n=6):
+            assert n >= 1 and n <= 9
+            return 'ZLEVEL={}'.format(n)
+
+        @staticmethod
+        def ZSTD_LEVEL(n=9):
+            assert n >= 1 and n <= 22
+            return 'ZSTD_LEVEL={}'.format(n)
+
+        @staticmethod
+        def MAX_Z_ERROR(threshold=0):
+            assert threshold >= 0
+            return 'MAX_Z_ERROR={}'.format(threshold)
+
+        @staticmethod
+        def WEBP_LEVEL(n=75):
+            assert n >= 1 and n <= 100
+            return 'WEBP_LEVEL={}'.format(n)
+
+        class WEBP_LOSSLESS(object):
+            TRUE = 'WEBP_LOSSLESS=TRUE'
+            FALSE = 'WEBP_LOSSLESS=FALSE'
+
+        class PHOTOMETRIC(object):
+            MINISBLACK = 'PHOTOMETRIC=MINISBLACK'
+            MINISWHITE = 'PHOTOMETRIC=MINISWHITE'
+            RGB = 'PHOTOMETRIC=RGB'
+            CMYK = 'PHOTOMETRIC=CMYK'
+            YCBCR = 'PHOTOMETRIC=YCBCR'
+            CIELAB = 'PHOTOMETRIC=CIELAB'
+            ICCLAB = 'PHOTOMETRIC=ICCLAB'
+            ITULAB = 'PHOTOMETRIC=ITULAB'
+
+        class ALPHA(object):
+            YES = 'ALPHA=YES'
+            NON_PREMULTIPLIED = 'ALPHA=NON-PREMULTIPLIED'
+            PREMULTIPLIED = 'ALPHA=PREMULTIPLIED'
+            UNSPECIFIED = 'ALPHA=UNSPECIFIED'
+
+        class PROFILE(object):
+            GDALGeoTIFF = 'PROFILE=GDALGeoTIFF'
+            GeoTIFF = 'PROFILE=GeoTIFF'
+            BASELINE = 'PROFILE=BASELINE'
+
+        class BIGTIFF(object):
+            YES = 'BIGTIFF=YES'
+            NO = 'BIGTIFF=NO'
+            IF_NEEDED = 'BIGTIFF=IF_NEEDED'
+            IF_SAFER = 'BIGTIFF=IF_SAFER'
+
+        class PIXELTYPE(object):
+            DEFAULT = 'PIXELTYPE=DEFAULT'
+            SIGNEDBYTE = 'PIXELTYPE=SIGNEDBYTE'
+
+        class COPY_SRC_OVERVIEWS(object):
+            YES = 'COPY_SRC_OVERVIEWS=YES'
+            NO = 'COPY_SRC_OVERVIEWS=NO'
+
+        class GEOTIFF_KEYS_FLAVOR(object):
+            STANDARD = 'GEOTIFF_KEYS_FLAVOR=STANDARD'
+            ESRI_PE = 'GEOTIFF_KEYS_FLAVOR=ESRI_PE'
+
+        @staticmethod
+        def NUM_THREADS(n='ALL_CPUS'):
+            return 'NUM_THREADS={}'.format(n)
+
+        class COMPRESS(object):
+            JPEG = 'COMPRESS=JPEG'
+            LZW = 'COMPRESS=LZW'
+            PACKBITS = 'COMPRESS=JPEG'
+            DEFLATE = 'COMPRESS=PACKBITS'
+            CCITTRLE = 'COMPRESS=CCITTRLE'
+            CCITTFAX3 = 'COMPRESS=CCITTFAX3'
+            CCITTFAX4 = 'COMPRESS=CCITTFAX4'
+            LZMA = 'COMPRESS=LZMA'
+            ZSTD = 'COMPRESS=ZSTD'
+            LERC = 'COMPRESS=LERC'
+            LERC_DEFLATE = 'COMPRESS=LERC_DEFLATE'
+            LERC_ZSTD = 'COMPRESS=LERC_ZSTD'
+            WEBP = 'COMPRESS=WEBP'
+            NONE = 'COMPRESS=NONE'
 
 
 class ErdasDriver(RasterDriver):
     '''Erdas Imagine driver.'''
 
-    DEFAULT_OPTIONS = RasterCreationOptions(options={})
-
     def __init__(self):
         RasterDriver.__init__(self, name='HFA')
+
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
 
 
 class VectorDriver(object):
@@ -194,7 +318,7 @@ class VectorDriver(object):
 
         self._name = name
         if self.ogrDriver() is None:
-            raise errors.InvalidGDALDriverError()
+            raise errors.InvalidOGRDriverError()
 
     def __repr__(self):
         return '{cls}(name={name})'.format(cls=self.__class__.__name__, name=repr(self.name()))
@@ -207,14 +331,16 @@ class VectorDriver(object):
         elif ext == 'gpkg':
             driver = GeoPackageDriver()
         else:
-            assert 0
+            if filename == '':
+                driver = MemoryDriver()
+            else:
+                raise errors.InvalidOGRDriverError()
+
         return driver
 
     def ogrDriver(self):
         '''Returns the OGR driver object.'''
-        driver = ogr.GetDriverByName(self._name)
-        assert isinstance(driver, ogr.Driver)
-        return driver
+        return ogr.GetDriverByName(self._name)
 
     def name(self):
         '''Returns the driver name.'''
@@ -230,10 +356,16 @@ class VectorDriver(object):
     def prepareCreation(self, filename):
         '''Deletes filename if it already exist and creates subfolders if needed.'''
 
-        if exists(filename):
-            self.ogrDriver().DeleteDataSource(filename)
-        if not exists(dirname(filename)):
-            makedirs(dirname(filename))
+        assert isinstance(filename, str)
+        if (not self.equal(MemoryDriver()) and not filename.startswith('/vsimem/')):
+            if not isabs(filename):
+                filename = abspath(filename)
+            if not exists(dirname(filename)):
+                makedirs(dirname(filename))
+            if exists(filename):
+                result = self.ogrDriver().DeleteDataSource(filename)
+
+        return filename
 
 
 class ESRIShapefileDriver(VectorDriver):
@@ -242,6 +374,9 @@ class ESRIShapefileDriver(VectorDriver):
     def __init__(self):
         VectorDriver.__init__(self, name='ESRI Shapefile')
 
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
+
 
 class GeoPackageDriver(VectorDriver):
     '''ESRI Shapefile driver.'''
@@ -249,22 +384,37 @@ class GeoPackageDriver(VectorDriver):
     def __init__(self):
         VectorDriver.__init__(self, name='GPKG')
 
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
+
+
+class MemoryDriver(VectorDriver):
+    '''Memory driver.'''
+
+    def __init__(self):
+        VectorDriver.__init__(self, name='Memory')
+
+    def __repr__(self):
+        return '{cls}()'.format(cls=self.__class__.__name__)
+
 
 class Extent(object):
     '''Class for managing extents (i.e. bounding boxes).'''
 
-    def __init__(self, xmin, xmax, ymin, ymax):
+    def __init__(self, xmin, xmax, ymin, ymax, projection):
         '''
         :param xmin:
-        :type xmin: float
+        :type xmin: number
         :param xmax:
-        :type xmax: float
+        :type xmax: number
         :param ymin:
-        :type ymin: float
+        :type ymin: number
         :param ymax:
-        :type ymax: float
+        :type ymax: number
+        :param projection:
+        :type projection: hubdc.core.Projection
         '''
-
+        assert isinstance(projection, Projection)
         self._xmin = float(xmin)
         self._xmax = float(xmax)
         self._ymin = float(ymin)
@@ -272,13 +422,16 @@ class Extent(object):
         assert self._xmax > self._xmin
         assert self._ymax > self._ymin
 
+        self._projection = projection
+
     def __repr__(self):
-        return '{cls}(xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax})'.format(
+        return '{cls}(xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}, projection={projection})'.format(
             cls=self.__class__.__name__,
             xmin=repr(self.xmin()),
             xmax=repr(self.xmax()),
             ymin=repr(self.ymin()),
-            ymax=repr(self.ymax()))
+            ymax=repr(self.ymax()),
+            projection=repr(self.projection()))
 
     @staticmethod
     def fromGeometry(geometry):
@@ -286,7 +439,7 @@ class Extent(object):
 
         assert isinstance(geometry, Geometry)
         xmin, xmax, ymin, ymax = geometry.ogrGeometry().GetEnvelope()
-        return Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+        return Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, projection=geometry.projection())
 
     def xmin(self):
         '''Returns the xmin.'''
@@ -304,12 +457,18 @@ class Extent(object):
         '''Returns the ymax.'''
         return self._ymax
 
+    def projection(self):
+        '''Returns the :class:`~hubdc.model.Projection`.'''
+        return self._projection
+
     def equal(self, other, tol=0.):
+        '''Returns wether self is equal to other.'''
         assert isinstance(other, Extent)
         equal = abs(self.xmin() - other.xmin()) <= tol
         equal &= abs(self.xmax() - other.xmax()) <= tol
         equal &= abs(self.ymin() - other.ymin()) <= tol
         equal &= abs(self.ymax() - other.ymax()) <= tol
+        equal &= self.projection().equal(other=other.projection())
         return equal
 
     def geometry(self):
@@ -320,211 +479,62 @@ class Extent(object):
             ring.AddPoint(x, y)
         geometry = ogr.Geometry(ogr.wkbPolygon)
         geometry.AddGeometry(ring)
-        return Geometry(wkt=geometry.ExportToWkt())
+        return Geometry(wkt=geometry.ExportToWkt(), projection=self.projection())
 
     def upperLeft(self):
-        '''Returns the upper left corner as a :class:`~hubdc.model.Point`'''
-        return Point(x=self.xmin(), y=self.ymax())
+        '''Returns the upper left corner.'''
+        return Point(x=self.xmin(), y=self.ymax(), projection=self.projection())
 
     def upperRight(self):
-        '''Returns the upper right corner as a :class:`~hubdc.model.Point`'''
-        return Point(x=self.xmax(), y=self.ymax())
+        '''Returns the upper right corner.'''
+        return Point(x=self.xmax(), y=self.ymax(), projection=self.projection())
 
     def lowerRight(self):
-        '''Returns the lower right corner as a :class:`~hubdc.model.Point`'''
-        return Point(x=self.xmax(), y=self.ymin())
+        '''Returns the lower right corner.'''
+        return Point(x=self.xmax(), y=self.ymin(), projection=self.projection())
 
     def lowerLeft(self):
-        '''Returns the lower left corner as a :class:`~hubdc.model.Point`'''
-        return Point(x=self.xmin(), y=self.ymin())
-
-    def reproject(self, sourceProjection, targetProjection):
-        '''
-        Returns a new intsance which is the reprojection of self from ``sourceProjection`` into ``targetProjection``.
-
-        :param sourceProjection: projection of self
-        :type sourceProjection: hubdc.core.Projection
-        :param targetProjection: target projection
-        :type targetProjection: hubdc.core.Projection
-        :return:
-        :rtype: hubdc.core.Extent
-        '''
-        geometry = self.geometry().reproject(sourceProjection=sourceProjection, targetProjection=targetProjection)
-        return Extent.fromGeometry(geometry=geometry)
+        '''Returns the lower left corner.'''
+        return Point(x=self.xmin(), y=self.ymin(), projection=self.projection())
 
     def intersects(self, other):
         '''Returns whether self and other intersects.'''
-
         assert isinstance(other, Extent)
-        return self.geometry().intersects(other.geometry())
+        geometry = other.geometry().reproject(projection=self.projection())
+        return self.geometry().intersects(geometry)
 
     def intersection(self, other):
-        """
-        Returns a new instance which is the intersection of self and other.
-        """
-
+        """Returns a new instance which is the intersection of self and other in the projection of self."""
         assert isinstance(other, Extent)
-        xmin = max(self.xmin(), other.xmin())
-        xmax = min(self.xmax(), other.xmax())
-        ymin = max(self.ymin(), other.ymin())
-        ymax = min(self.ymax(), other.ymax())
-
-        if xmin >= xmax or ymin >= ymax:
-            raise Exception('Extents do not intersect')
-
-        return Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+        return Extent.fromGeometry(geometry=self.geometry().intersection(other=other.geometry()))
 
     def union(self, other):
-        '''Returns a new instance which is the union of self with other.'''
-
-        xmin = min(self.xmin(), other.xmin())
-        xmax = max(self.xmax(), other.xmax())
-        ymin = min(self.ymin(), other.ymin())
-        ymax = max(self.ymax(), other.ymax())
-
-        return Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-
-    def size(self, resolution):
-        '''Returns the grid :class:`~hubdc.model.Size` that corresponds to the given :class:`~hubdc.model.Resolution`.'''
-
-        assert isinstance(resolution, Resolution)
-        return Size(x=int(round(float(self.xmax() - self.xmin()) / resolution.x())),
-                    y=int(round(float(self.ymax() - self.ymin()) / resolution.y())))
-
-
-class SpatialExtent(Extent):
-    '''Class for managing spatial extents (i.e. bounding boxes with associated projection).'''
-
-    def __init__(self, xmin, xmax, ymin, ymax, projection):
-        '''
-        :param xmin:
-        :type xmin: float
-        :param xmax:
-        :type xmax: float
-        :param ymin:
-        :type ymin: float
-        :param ymax:
-        :type ymax: float
-        :param projection:
-        :type projection: hubdc.core.Projection
-        '''
-        assert isinstance(projection, Projection)
-        Extent.__init__(self, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-        self._projection = projection
-
-    def __repr__(self):
-        return '{cls}(xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}, projection={projection})'.format(
-            cls=self.__class__.__name__,
-            xmin=repr(self.xmin()),
-            xmax=repr(self.xmax()),
-            ymin=repr(self.ymin()),
-            ymax=repr(self.ymax()),
-            projection=repr(self.projection()))
-
-    @staticmethod
-    def fromExtent(extent, projection):
-        '''Create an instance from an :class:`~hubdc.model.Extent` and a :class:`~hubdc.model.Projection`.'''
-        assert isinstance(extent, Extent)
-        return SpatialExtent(xmin=extent.xmin(), xmax=extent.xmax(), ymin=extent.ymin(), ymax=extent.ymax(),
-                             projection=projection)
-
-    @staticmethod
-    def fromGeometry(geometry):
-        '''Create an instance from a :class:`~hubdc.model.SpatialGeometry`.'''
-        assert isinstance(geometry, SpatialGeometry)
-        extent = Extent.fromGeometry(geometry=geometry)
-        return SpatialExtent.fromExtent(extent=extent, projection=geometry.projection())
-
-    def projection(self):
-        '''Returns the :class:`~hubdc.model.Projection`.'''
-        return self._projection
+        '''Returns a new instance which is the union of self with other in the projection of self.'''
+        assert isinstance(other, Extent)
+        return Extent.fromGeometry(geometry=self.geometry().union(other=other.geometry()))
 
     def centroid(self):
-        '''
-        Returns the centroid.
-
-        :return:
-        :rtype: SpatialPoint
-        '''
+        '''Returns the centroid.'''
         ogrCentroid =  self.geometry().ogrGeometry().Centroid()
-        return SpatialPoint(x=ogrCentroid.GetX(), y=ogrCentroid.GetY(), projection=self.projection())
+        return Point(x=ogrCentroid.GetX(), y=ogrCentroid.GetY(), projection=self.projection())
 
-    def upperLeft(self):
-        '''Returns the upper left corner as a :class:`~hubdc.model.SpatialPoint`'''
-        return SpatialPoint(x=self.xmin(), y=self.ymax(), projection=self.projection())
+    def reproject(self, projection):
+        '''Reproject self into the given ``projection``.'''
 
-    def upperRight(self):
-        '''Returns the upper right corner as a :class:`~hubdc.model.SpatialPoint`'''
-        return SpatialPoint(x=self.xmax(), y=self.ymax(), projection=self.projection())
-
-    def lowerRight(self):
-        '''Returns the lower right corner as a :class:`~hubdc.model.SpatialPoint`'''
-        return SpatialPoint(x=self.xmax(), y=self.ymin(), projection=self.projection())
-
-    def lowerLeft(self):
-        '''Returns the lower left corner as a :class:`~hubdc.model.SpatialPoint`'''
-        return SpatialPoint(x=self.xmin(), y=self.ymin(), projection=self.projection())
-
-    def reproject(self, targetProjection, sourceProjection=None):
-        '''
-        Returns a new intsance which is the reprojection of self into ``targetProjection``.
-        The ``sourceProjection`` is for internal use only.
-
-        :param targetProjection: target projection
-        :type targetProjection: hubdc.core.Projection
-        :return:
-        :rtype: hubdc.core.SpatialExtent
-        '''
-
-        assert isinstance(targetProjection, Projection)
-        if sourceProjection is not None:
-            assert self.projection().equal(other=sourceProjection)
-        extent = Extent.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
-        return SpatialExtent.fromExtent(extent=extent, projection=targetProjection)
-
-    def intersects(self, other):
-        '''Returns whether self and other intersect.'''
-        assert isinstance(other, SpatialExtent)
-        assert self.projection().equal(other=other.projection())
-        return Extent.intersects(self, other=other)
-
-    def intersection(self, other):
-        '''Returns the intersection of self and other.'''
-        assert isinstance(other, SpatialExtent)
-        assert self.projection().equal(other=other.projection())
-        return SpatialExtent.fromExtent(extent=Extent.intersection(self, other=other), projection=self.projection())
-
-    def union(self, other):
-        '''Returns the union of self and other.'''
-        assert isinstance(other, SpatialExtent)
-        assert self.projection().equal(other=other.projection())
-        return SpatialExtent.fromExtent(extent=Extent.union(self, other=other), projection=self.projection())
-
-    def geometry(self):
-        '''Returns self as a :class:`~hubdc.model.SpatialGeometry`.'''
-        geometry = Extent.geometry(self)
-        return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
+        assert isinstance(projection, Projection)
+        return Extent.fromGeometry(geometry=self.geometry().reproject(projection=projection))
 
 
 class Resolution(object):
     '''Class for managing pixel resolutions.'''
 
-    def __init__(self, x, y=None):
+    def __init__(self, x, y):
         '''
         :param x: resolution in x dimension
         :type x: float > 0
         :param y: resolution in y dimension
         :type y: float > 0
         '''
-
-        if y is None:
-            if isinstance(x, (int, float)):
-                y = x
-            elif isinstance(x, (list, tuple)):
-                assert len(x) == 2
-                x, y = x[0], x[1]
-            else:
-                assert 0
 
         self._x = float(x)
         self._y = float(y)
@@ -534,40 +544,40 @@ class Resolution(object):
     def __repr__(self):
         return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
 
-    def __truediv__(self, other):
+    def __truediv__(self, f):
 
-        if isinstance(other, (int, float)):
-            fx = fy = other
-        elif len(other) == 2:
-            fx, fy = other
+        if isinstance(f, (int, float, str)):
+            fx = fy = float(f)
+        elif len(f) == 2:
+            fx, fy = map(float, f)
         else:
-            assert 0
+            raise errors.TypeError(f)
 
         return Resolution(x=self.x()/fx, y=self.y()/fy)
 
-    def __mul__(self, other):
+    def __mul__(self, f):
 
-        if isinstance(other, (int, float)):
-            fx = fy = other
-        elif len(other) == 2:
-            fx, fy = other
+        if isinstance(f, (int, float, str)):
+            fx = fy = float(f)
+        elif len(f) == 2:
+            fx, fy = map(float, f)
         else:
-            assert 0
+            raise errors.TypeError(f)
 
         return Resolution(x=self.x()*fx, y=self.y()*fy)
 
-
     @staticmethod
     def parse(obj):
+        '''Create new instance from given Resolution object, number or (number, number) object.'''
+
         if isinstance(obj, Resolution):
             resolution = obj
-        elif isinstance(obj, (float, int)):
-            resolution = Resolution(x=obj, y=obj)
-        elif isinstance(obj, (list, tuple)):
-            assert len(obj) == 2
-            resolution = Resolution(x=obj[0], y=obj[1])
+        elif isinstance(obj, (int, float, str)):
+            resolution = Resolution(x=float(obj), y=float(obj))
+        elif isinstance(obj, (list, tuple)) and len(obj) == 2:
+            resolution = Resolution(x=float(obj[0]), y=float(obj[1]))
         else:
-            assert 0
+            raise errors.ObjectParserError(obj, Resolution)
         return resolution
 
     def x(self):
@@ -585,20 +595,6 @@ class Resolution(object):
         equal &= abs(self.y() - other.y()) <= tol
         return equal
 
-    def zoom(self, factor):
-        '''
-        Returns a new instance, where the resolution of self is divided by the given ``factor``.
-
-        :param factor: zoom factor by which the current resolution is devided by; can be a single number for both x and y
-                       resolution or a tuple of size 2 for individual x and y factors
-        :type factor: number or (number, number)
-        :return:
-        :rtype: hubdc.core.Resolution
-        '''
-        if isinstance(factor, (int, float)):
-            factor = factor, factor
-        assert len(factor) == 2
-        return Resolution(x=self.x() / float(factor[0]), y=self.y() / float(factor[1]))
 
 class Projection(object):
     '''Class for managing projections.'''
@@ -608,7 +604,7 @@ class Projection(object):
         self._wkt = str(wkt)
 
     def __repr__(self):
-        wkt = self.wkt().replace(' ', '').replace('\n', ' ')
+        wkt = self.wkt().replace(' ', ' ').replace('\n', ' ')
         return '{cls}(wkt={wkt})'.format(cls=self.__class__.__name__, wkt=wkt)
 
     def wkt(self):
@@ -616,30 +612,30 @@ class Projection(object):
         return self._wkt
 
     @staticmethod
-    def fromEPSG(epsg):
+    def fromEpsg(epsg):
         '''Create by given ``epsg`` authority ID.'''
         projection = osr.SpatialReference()
         projection.ImportFromEPSG(int(epsg))
         return Projection(wkt=projection)
 
     @staticmethod
-    def WGS84WebMercator():
+    def wgs84WebMercator():
         '''Create WGS84 Web Mercator projection (epsg=3857), also see http://spatialreference.org/ref/sr-org/7483/'''
-        return Projection.fromEPSG(epsg=3857)
+        return Projection.fromEpsg(epsg=3857)
 
     @staticmethod
-    def WGS84():
+    def wgs84():
         '''Create WGS84 projection (epsg=4326), also see http://spatialreference.org/ref/epsg/wgs-84/'''
-        return Projection.fromEPSG(epsg=4326)
+        return Projection.fromEpsg(epsg=4326)
 
     @classmethod
-    def UTM(cls, zone, north=True):
+    def utm(cls, zone, north=True):
         '''Create UTM projection of given ``zone``.'''
         assert zone >= 1 and zone <= 60
         if north:
-            return cls.fromEPSG(epsg=32600 + zone)
+            return cls.fromEpsg(epsg=32600 + zone)
         else:
-            return cls.fromEPSG(epsg=32700 + zone)
+            return cls.fromEpsg(epsg=32700 + zone)
 
     def osrSpatialReference(self):
         '''Returns osr.SpatialReference object.'''
@@ -669,6 +665,19 @@ class Pixel(object):
 
     def __repr__(self):
         return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
+
+    @staticmethod
+    def parse(obj):
+        '''Create instance from given Pixel or (number, number) object.'''
+
+        if isinstance(obj, Pixel):
+            pixel = obj
+        elif isinstance(obj, (list, tuple)) and len(obj) == 2:
+            pixel = Pixel(x=obj[0], y=obj[1])
+        else:
+            raise errors.ObjectParserError(obj, Pixel)
+
+        return pixel
 
     def x(self):
         '''Returns pixel x coordinate.'''
@@ -731,164 +740,87 @@ class Row(object):
 class Geometry(object):
     '''Class for managing geometries.'''
 
-    def __init__(self, wkt):
-        '''Create by given well known text string.'''
-        assert isinstance(wkt, str)
-        self._wkt = wkt
-
-    def __repr__(self):
-        return '{cls}(wkt={wkt})'.format(cls=self.__class__.__name__, wkt=repr(self.wkt()))
-
-    def wkt(self):
-        '''Returns well known text string.'''
-        return self._wkt
-
-    def ogrGeometry(self):
-        '''Returns ogr.Geometry object.'''
-        ogrGeometry = ogr.CreateGeometryFromWkt(self._wkt)
-        return ogrGeometry
-
-    def reproject(self, sourceProjection, targetProjection):
-        '''
-        Returns a new intsance which is the reprojection of self from ``sourceProjection`` into ``targetProjection``.
-
-        :param sourceProjection: projection of self
-        :type sourceProjection: hubdc.core.Projection
-        :param targetProjection: target projection
-        :type targetProjection: hubdc.core.Projection
-        :return:
-        :rtype: hubdc.core.Geometry
-        '''
-        transformation = osr.CoordinateTransformation(sourceProjection.osrSpatialReference(),
-                                                      targetProjection.osrSpatialReference())
-
-        ogrGeometry = self.ogrGeometry()
-        ogrGeometry.Transform(transformation)
-        return Geometry(wkt=ogrGeometry.ExportToWkt())
-
-    def intersects(self, other):
-        '''Returns whether self and other intersect.'''
-        assert isinstance(other, Geometry)
-        return self.ogrGeometry().Intersects(other.ogrGeometry())
-
-    def intersection(self, other):
-        '''Returns the intersection of self and other.'''
-        assert isinstance(other, Geometry)
-        ogrGeometry = self.ogrGeometry().Intersection(other.ogrGeometry())
-        assert ogrGeometry is not None
-        return Geometry(wkt=ogrGeometry.ExportToWkt())
-
-    def union(self, other):
-        '''Returns the union of self and other.'''
-        assert isinstance(other, Geometry)
-        ogrGeometry = self.ogrGeometry().Union(other.ogrGeometry())
-        assert ogrGeometry is not None
-        return Geometry(wkt=ogrGeometry.ExportToWkt())
-
-    def within(self, other):
-        '''Returns whether self is within other.'''
-        assert isinstance(other, Geometry)
-        return self.ogrGeometry().Within(other.ogrGeometry())
-
-
-class SpatialGeometry(Geometry):
-    '''Class for managing spatial geometries (i.e. geometries with associated projection).'''
-
     def __init__(self, wkt, projection):
         '''Create by given well known text string and :class:`~hubdc.model.Projection`.'''
 
+        assert isinstance(wkt, str)
         assert isinstance(projection, Projection)
-        Geometry.__init__(self, wkt=wkt)
+        self._wkt = wkt
         self._projection = projection
 
     def __repr__(self):
         return '{cls}(wkt={wkt}, projection={projection})'.format(cls=self.__class__.__name__, wkt=repr(self.wkt()),
                                                                   projection=repr(self.projection()))
 
-    @staticmethod
-    def fromVector(vector):
-        '''Create by given :class:`~hubdc.model.Vector`.'''
-
-        assert isinstance(vector, VectorDataset)
-        layer = vector.ogrLayer()
-        ogrGeometry = ogr.Geometry(ogr.wkbMultiPolygon)
-        for feature in layer:
-            ogrGeometry.AddGeometry(feature.GetGeometryRef())
-        ogrGeometry = ogrGeometry.UnionCascaded()
-
-        return SpatialGeometry(wkt=ogrGeometry.ExportToWkt(), projection=vector.projection())
+    def wkt(self):
+        '''Returns well known text string.'''
+        return self._wkt
 
     def projection(self):
         '''Returns the :class:`~hubdc.model.Projection`.'''
         return self._projection
 
-    def reproject(self, targetProjection, sourceProjection=None):
-        '''
-        Returns a new intsance which is the reprojection of self into ``targetProjection``.
-        The ``sourceProjection`` is for internal use only.
-
-        :param targetProjection: target projection
-        :type targetProjection: hubdc.core.Projection
-        :return:
-        :rtype: hubdc.core.SpatialGeometry
-        '''
-
-        if sourceProjection is not None:
-            assert self.projection().equal(other=sourceProjection)
-        geometry = Geometry.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
-        return SpatialGeometry(wkt=geometry.wkt(), projection=targetProjection)
+    def ogrGeometry(self):
+        '''Returns ogr.Geometry object.'''
+        ogrGeometry = ogr.CreateGeometryFromWkt(self._wkt)
+        return ogrGeometry
 
     def intersects(self, other):
         '''Returns whether self and other intersect.'''
-        assert isinstance(other, SpatialGeometry)
-        assert self.projection().equal(other.projection())
-        return Geometry.intersects(self, other=other)
+        assert isinstance(other, Geometry)
+        geometry = other.reproject(projection=self.projection())
+        return self.ogrGeometry().Intersects(geometry.ogrGeometry())
 
     def intersection(self, other):
         '''Returns the intersection of self and other.'''
-        assert isinstance(other, SpatialGeometry)
-        assert self.projection().equal(other=other.projection())
-        geometry = Geometry.intersection(self, other=other)
-        return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
+        assert isinstance(other, Geometry)
+        geometry = other.reproject(projection=self.projection())
+        ogrGeometry = self.ogrGeometry().Intersection(geometry.ogrGeometry())
+        if ogrGeometry is None:
+            raise errors.GeometryIntersectionError()
+        return Geometry(wkt=ogrGeometry.ExportToWkt(), projection=self.projection())
 
     def union(self, other):
         '''Returns the union of self and other.'''
-        assert isinstance(other, SpatialGeometry)
-        assert self.projection().equal(other=other.projection())
-        geometry = Geometry.union(self, other=other)
-        return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
+        assert isinstance(other, Geometry)
+        geometry = other.reproject(projection=self.projection())
+        ogrGeometry = self.ogrGeometry().Union(geometry.ogrGeometry())
+        assert ogrGeometry is not None
+        return Geometry(wkt=ogrGeometry.ExportToWkt(), projection=self.projection())
+
+    def within(self, other):
+        '''Returns whether self is within other.'''
+        assert isinstance(other, Geometry)
+        geometry = other.reproject(projection=self.projection())
+        return self.ogrGeometry().Within(geometry.ogrGeometry())
+
+    def reproject(self, projection):
+        '''Reproject self into given ``projection``.'''
+
+        transformation = osr.CoordinateTransformation(self.projection().osrSpatialReference(),
+                                                      projection.osrSpatialReference())
+        ogrGeometry = self.ogrGeometry()
+        ogrGeometry.Transform(transformation)
+        return Geometry(wkt=ogrGeometry.ExportToWkt(), projection=projection)
 
 
-
-class Point(object):
+class Point(Geometry):
     '''Class for managing map locations.'''
 
-    def __init__(self, x, y):
-        '''Create by given ``x`` and ``y`` coordinates.
-        :param x:
-        :type x: float
-        :param y:
-        :type y: float
-        '''
-        assert isinstance(x, (float, int))
-        assert isinstance(y, (float, int))
+    def __init__(self, x, y, projection):
+        '''Create point geometry by ``x`` and ``y`` coordinates and ``projection``.'''
+
+        assert isinstance(projection, Projection)
         self._x = float(x)
         self._y = float(y)
+        self._projection = projection
+        Geometry.__init__(self, wkt='POINT({} {})'.format(float(x), float(y)), projection=projection)
 
     def __repr__(self):
-        return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
-
-    @staticmethod
-    def parse(obj):
-        if isinstance(obj, Point):
-            point = obj
-        elif isinstance(obj, (list, tuple)):
-            assert len(obj) == 2
-            point = Point(x=obj[0], y=obj[1])
-        else:
-            assert 0
-
-        return point
+        return '{cls}(x={x}, y={y}, projection={projection})'.format(cls=self.__class__.__name__,
+                                                                     x=repr(self.x()),
+                                                                     y=repr(self.y()),
+                                                                     projection=repr(self.projection()))
 
     def x(self):
         '''Returns map x coordinate.'''
@@ -898,103 +830,47 @@ class Point(object):
         '''Returns map y coordinate.'''
         return self._y
 
-    def geometry(self):
-        '''Returns self as a :class:`~hubdc.model.Geometry`.'''
-        wkt = 'Point({} {})'.format(self.x(), self.y())
-        return Geometry(wkt=wkt)
-
-    def reproject(self, sourceProjection, targetProjection):
-        assert isinstance(sourceProjection, Projection)
-        assert isinstance(targetProjection, Projection)
-        transformation = osr.CoordinateTransformation(sourceProjection.osrSpatialReference(),
-                                                      targetProjection.osrSpatialReference())
-        x, y, z = transformation.TransformPoint(self.x(), self.y())
-        return Point(x=x, y=y)
-
-
-class SpatialPoint(Point):
-    '''Class for managing map location with associated projection.'''
-
-    def __init__(self, x, y, projection):
-        assert isinstance(projection, Projection)
-        Point.__init__(self, x=x, y=y)
-        self._projection = projection
-
-    def __repr__(self):
-        return '{cls}(x={x}, y={y}, projection={projection})'.format(
-            cls=self.__class__.__name__,
-            x=repr(self.x()),
-            y=repr(self.y()),
-            projection=repr(self.projection()))
-
-    def geometry(self):
-        '''Returns self as a :class:`~hubdc.model.SpatialGeometry`.'''
-        geometry = Point.geometry(self)
-        return SpatialGeometry(wkt=geometry.wkt(), projection=self.projection())
-
     def projection(self):
         '''Returns the :class:`~hubdc.model.Projection`.'''
         return self._projection
 
-    def reproject(self, targetProjection, sourceProjection=None):
-        '''
-        Returns a new intsance which is the reprojection of self into ``targetProjection``.
-        The ``sourceProjection`` is for internal use only.
+    def reproject(self, projection):
+        '''Reproject self into given ``projection``.'''
+        geometry = Geometry.reproject(self, projection=projection)
+        ogrGeometry = geometry.ogrGeometry()
+        return Point(x=ogrGeometry.GetX(), y=ogrGeometry.GetY(), projection=projection)
 
-        :param targetProjection: target projection
-        :type targetProjection: hubdc.core.Projection
-        :return:
-        :rtype: hubdc.core.SpatialPoint
-        '''
-        assert isinstance(targetProjection, Projection)
-        if sourceProjection is not None:
-            assert self.projection().equal(other=sourceProjection)
-        point = Point.reproject(self, sourceProjection=self.projection(), targetProjection=targetProjection)
-        return SpatialPoint(x=point.x(), y=point.y(), projection=targetProjection)
-
-    def withinExtent(self, extent):
-        '''Returns whether self is within the :class:`~hubdc.model.SpatialExtent` given by ``extent``.'''
-        assert isinstance(extent, SpatialExtent)
-        point = self.reproject(targetProjection=extent.projection())
-        return point.geometry().within(other=extent.geometry())
-
-
-class Size(object):
+class RasterSize(object):
     '''Class for managing image sizes.'''
 
-    def __init__(self, x, y=None):
+    def __init__(self, x, y):
         '''
         :param x:
-        :type x: int
+        :type x: number
         :param y:
-        :type y: int
+        :type y: number
         '''
-
-        if y is None:
-            if isinstance(x, int):
-                y = x
-            elif isinstance(x, (list, tuple)):
-                assert len(x) == 2
-                x, y = x[0], x[1]
-            else:
-                assert 0
 
         self._x = int(x)
         self._y = int(y)
-        assert self._x > 0
-        assert self._y > 0
+        if self._x <= 0:
+            raise errors.InvalidRasterSize('raster x size must be greater then zero, got {} '.format(self._x))
+        if self._y <= 0:
+            raise errors.InvalidRasterSize('raster y size must be greater then zero, got {} '.format(self._y))
 
     def __repr__(self):
         return '{cls}(x={x}, y={y})'.format(cls=self.__class__.__name__, x=repr(self.x()), y=repr(self.y()))
 
     @staticmethod
     def parse(obj):
-        if isinstance(obj, Size):
+        '''Create instance by parsing the given RasterSize object, a (number, number) tuple or list '''
+
+        if isinstance(obj, RasterSize):
             size = obj
-        elif isinstance(obj, (tuple, list)):
-            size = Size(*obj)
+        elif isinstance(obj, (tuple, list)) and len(obj) == 2:
+            size = RasterSize(*obj)
         else:
-            raise errors.ObjectParserError(obj=obj, type=Size)
+            raise errors.ObjectParserError(obj=obj, type=RasterSize)
         return size
 
     def x(self):
@@ -1009,30 +885,26 @@ class Size(object):
 class Grid(object):
     '''Class for managing raster grids in terms of extent, resolution and projection.'''
 
-    def __init__(self, extent, resolution, projection=None):
+    def __init__(self, extent, resolution):
         '''
         :param extent:
         :type extent: hubdc.core.Extent
         :param resolution:
         :type resolution: hubdc.core.Resolution
-        :param projection: if ``extent`` is a :class:`~hubdc.model.SpatialExtent`, then the extents ``projection`` is used.
-        :type projection: hubdc.core.Projection
         '''
-        if isinstance(extent, SpatialExtent):
-            projection = extent.projection()
+
         assert isinstance(extent, Extent)
         resolution = Resolution.parse(resolution)
-        assert isinstance(resolution, Resolution)
-        assert isinstance(projection, Projection)
         self._resolution = resolution
 
-        size = extent.size(resolution=resolution)
-
+        # round extent to fit into a multiple of the given resolution
+        xsize = int(round(float(extent.xmax() - extent.xmin()) / resolution.x()))
+        ysize = int(round(float(extent.ymax() - extent.ymin()) / resolution.y()))
         self._extent = Extent(xmin=extent.xmin(),
-                              xmax=extent.xmin() + size.x() * resolution.x(),
+                              xmax=extent.xmin() + xsize * resolution.x(),
                               ymin=extent.ymin(),
-                              ymax=extent.ymin() + size.y() * resolution.y())
-        self._projection = projection
+                              ymax=extent.ymin() + ysize * resolution.y(),
+                              projection=extent.projection())
 
     def __repr__(self):
         return '{cls}(extent={extent}, resolution={resolution}, projection={projection}'.format(
@@ -1051,32 +923,21 @@ class Grid(object):
 
     def projection(self):
         '''Returns the :class:`~hubdc.model.Projection`.'''
-        return self._projection
-
-    def spatialExtent(self):
-        '''Returns the :class:`~hubdc.model.SpatialExtent`.'''
-        return SpatialExtent.fromExtent(extent=self.extent(), projection=self.projection())
-
-    def centroid(self):
-        '''
-        Returns the centroid.
-
-        :return:
-        :rtype: SpatialPoint
-        '''
-        return self.spatialExtent().centroid()
+        return self.extent().projection()
 
     def size(self):
         '''Returns the :class:`~hubdc.model.Size`.'''
-        return self.extent().size(resolution=self.resolution())
+        return RasterSize(x=round((self.extent().xmax() - self.extent().xmin()) / self.resolution().x()),
+                          y=round((self.extent().ymax() - self.extent().ymin()) / self.resolution().y()))
 
     def shape(self):
         '''Returns size as ``(ysize, xsize)`` tuple.'''
-        return self.size().y(), self.size().x()
+        size = self.size()
+        return size.y(), size.x()
 
     def atResolution(self, resolution):
-        resolution = Resolution.parse(resolution)
-        return Grid(extent=self.spatialExtent(), resolution=resolution)
+        '''Return grid with same extent and projection, but new resolution.'''
+        return Grid(extent=self.extent(), resolution=resolution)
 
     def xMapCoordinates(self):
         '''Returns the list of map coordinates in x dimension.'''
@@ -1126,7 +987,7 @@ class Grid(object):
         equal &= self.resolution().equal(other=other.resolution(), tol=tol)
         return equal
 
-    def reproject(self, other):
+    def reproject_OLD(self, other):
         '''
         Returns a new instance with:
         a) extent reprojected into the projection of other,
@@ -1134,10 +995,16 @@ class Grid(object):
         c) anchored to other.
         '''
         assert isinstance(other, Grid)
-        extent = self.extent().reproject(sourceProjection=self.projection(), targetProjection=other.projection())
-        grid = Grid(extent=extent, resolution=other.resolution(), projection=other.projection())
-        grid = grid.anchor(point=Point(x=other.extent().xmin(), y=other.extent().ymin()))
+        extent = self.extent().reproject(projection=other.projection())
+        grid = Grid(extent=extent, resolution=other.resolution())
+        grid = grid.anchor(point=other.extent().upperLeft())
         return grid
+
+    def clip_OLD(self, extent):
+        '''Return self clipped by given extent.'''
+        assert isinstance(extent, Extent)
+        extent = self.extent().intersection(other=extent)
+        return Grid(extent=extent, resolution=self.resolution()).anchor(point=self.extent().upperLeft())
 
     def pixelBuffer(self, buffer, left=True, right=True, up=True, down=True):
         '''Returns a new instance with a pixel buffer applied in different directions.
@@ -1156,21 +1023,19 @@ class Grid(object):
         :rtype: hubdc.core.Grid
         '''
         assert isinstance(buffer, int)
-        extent = Extent(xmin=self.extent().xmin() - buffer * self.resolution().x() if left else 0,
-                        xmax=self.extent().xmax() + buffer * self.resolution().x() if right else 0,
-                        ymin=self.extent().ymin() - buffer * self.resolution().y() if down else 0,
-                        ymax=self.extent().ymax() + buffer * self.resolution().y() if up else 0)
-        return Grid(extent=extent, resolution=self.resolution(), projection=self.projection())
+        extent = Extent(xmin=self.extent().xmin() - buffer * (self.resolution().x() if left else 0),
+                        xmax=self.extent().xmax() + buffer * (self.resolution().x() if right else 0),
+                        ymin=self.extent().ymin() - buffer * (self.resolution().y() if down else 0),
+                        ymax=self.extent().ymax() + buffer * (self.resolution().y() if up else 0),
+                        projection = self.projection())
+        return Grid(extent=extent, resolution=self.resolution())
 
     def anchor(self, point):
-        '''
-        Returns a new instance that is anchored to a :class:`~hubdc.model.Point`.
+        '''Returns a new instance that is anchored to the given ``point``.
         Anchoring will result in a subpixel shift.
         See the source code for implementation details.'''
         assert isinstance(point, Point)
-        if isinstance(point, SpatialPoint):
-            assert self.projection().equal(other=point.projection())
-
+        point = point.reproject(projection=self.projection())
         xoff = (self.extent().xmin() - point.x()) % self.resolution().x()
         yoff = (self.extent().ymin() - point.y()) % self.resolution().y()
 
@@ -1184,40 +1049,40 @@ class Grid(object):
         extent = Extent(xmin=self.extent().xmin() - xoff,
                         ymin=self.extent().ymin() - yoff,
                         xmax=self.extent().xmax() - xoff,
-                        ymax=self.extent().ymax() - yoff)
-        return Grid(extent=extent, resolution=self.resolution(), projection=self.projection())
+                        ymax=self.extent().ymax() - yoff,
+                        projection=self.projection())
+        return Grid(extent=extent, resolution=self.resolution())
 
     def subset(self, offset, size, trim=False):
         '''
-        Returns a new instance that is a subset given by a :class:`~hubdc.model.Pixel` location (i.e. ``offset``)
-        and a raster :class:`~hubdc.model.Size` (i.e. ``size``).
+        Returns a new instance that is a subset given by an ``offset`` location and a raster ``size``.
         Optionally set ``trim=True`` to restrain the grid extent to the extent of self.
         '''
+        offset = Pixel.parse(offset)
+        size = RasterSize.parse(size)
         assert isinstance(offset, Pixel)
-        assert isinstance(size, Size)
+        assert isinstance(size, RasterSize)
         if trim:
             offset = Pixel(x=max(offset.x(), 0), y=max(offset.y(), 0))
-            size = Size(x=min(size.x(), self.size().x() - offset.x()),
-                        y=min(size.y(), self.size().y() - offset.y()))
+            size = RasterSize(x=min(size.x(), self.size().x() - offset.x()),
+                              y=min(size.y(), self.size().y() - offset.y()))
 
         xmin = self.extent().xmin() + offset.x() * self.resolution().x()
         xmax = xmin + size.x() * self.resolution().x()
         ymax = self.extent().ymax() - offset.y() * self.resolution().y()
         ymin = ymax - size.y() * self.resolution().y()
 
-        return Grid(projection=self.projection(),
-                    resolution=self.resolution(),
-                    extent=Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax))
+        return Grid(extent=Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, projection=self.projection()),
+                    resolution=self.resolution())
 
     def subgrids(self, size):
         '''
-        Returns the decomposition of self into subgrids of given :class:`~hubdc.model.Size`.
+        Returns the decomposition of self into subgrids of given ``size``.
         Subgrids at the border are trimmed to the extent of self.
         '''
-        assert isinstance(size, Size)
-        size = Size(x=min(size.x(), self.size().x()), y=min(size.y(), self.size().y()))
+        assert isinstance(size, RasterSize)
+        size = RasterSize(x=min(size.x(), self.size().x()), y=min(size.y(), self.size().y()))
         result = list()
-
         offset = Pixel(x=0, y=0)
         i = iy = 0
         while offset.y() < self.size().y():
@@ -1225,8 +1090,6 @@ class Grid(object):
             ix = 0
             while offset.x() < self.size().x():
                 subgrid = self.subset(offset=offset, size=size, trim=True)
-                # subgridTrimmed = Grid(extent=subgrid.extent().intersection(self.extent()),
-                #                      resolution=self.resolution(), projection=self.projection())
                 result.append((subgrid, i, iy, ix))
                 offset = Pixel(x=offset.x() + size.x(), y=offset.y())
                 ix += 1
@@ -1240,29 +1103,69 @@ class RasterDataset(object):
 
     def __init__(self, gdalDataset):
         '''Create an instance by a given gdal.Dataset.'''
-        assert isinstance(gdalDataset, gdal.Dataset)
+        assert isinstance(gdalDataset, gdal.Dataset), str(gdalDataset)
         self._gdalDataset = gdalDataset
 
         projection = Projection(wkt=self._gdalDataset.GetProjection())
-        if projection == '':
-            assert 0
         geotransform = self._gdalDataset.GetGeoTransform()
         resolution = Resolution(x=geotransform[1], y=abs(geotransform[5]))
         extent = Extent(xmin=geotransform[0],
                         xmax=geotransform[0] + self._gdalDataset.RasterXSize * resolution.x(),
                         ymin=geotransform[3] - self._gdalDataset.RasterYSize * resolution.y(),
-                        ymax=geotransform[3])
+                        ymax=geotransform[3],
+                        projection=projection)
 
-        self._grid = Grid(extent=extent, resolution=resolution, projection=projection)
+        self._grid = Grid(extent=extent, resolution=resolution)
 
     def __repr__(self):
         return '{cls}(gdalDataset={gdalDataset})'.format(cls=self.__class__.__name__,
                                                          gdalDataset=repr(self.gdalDataset()))
 
     @staticmethod
-    def fromArray(array, grid=None, filename='', driver=MEMDriver(), options=None):
-        '''Forwards :func:`~hubdc.core.createRasterDatasetFromArray` result.'''
-        return createRasterDatasetFromArray(array, grid=grid, filename=filename, driver=driver, options=options)
+    def fromArray(array, grid=None, filename='', driver=MemDriver(), options=None):
+        '''
+        Creates a new raster file with content, data type and number of bands given by ``array``
+        and with extent, resolution and projection given by ``grid``.
+
+        :param array:
+        :type array: numpy.ndarray
+        :param grid:
+        :type grid: hubdc.core.Grid
+        :param filename: output filename
+        :type filename: str
+        :param driver:
+        :type driver: hubdc.core.RasterDriver
+        :param options: raster creation options
+        :type options: list
+        :return:
+        :rtype: hubdc.core.RasterDataset
+        '''
+
+        if isinstance(array, list):
+            array = np.array(array)
+
+        if grid is None:
+            grid = PseudoGrid.fromArray(array)
+
+        if isinstance(array, np.ndarray):
+            if array.ndim == 2:
+                array = array[None]
+            assert array.ndim == 3
+        elif isinstance(array, list):
+            assert all([subarray.ndim == 2 for subarray in array])
+        else:
+            raise TypeError()
+
+        bands = len(array)
+        dtype = array[0].dtype
+        if dtype == np.bool:
+            dtype = np.uint8
+
+        gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
+        rasterDataset = driver.create(grid=grid, bands=bands, gdalType=gdalType, filename=filename, options=options)
+        rasterDataset.writeArray(array=array, grid=grid)
+        rasterDataset.flushCache()
+        return rasterDataset
 
     def gdalDataset(self):
         '''Return the gdal.Dataset.'''
@@ -1284,6 +1187,14 @@ class RasterDataset(object):
     def grid(self):
         '''Return the :class:`~hubdc.model.Grid`.'''
         return self._grid
+
+    def projection(self):
+        '''Return the :class:`~hubdc.model.Projection`.'''
+        return self._grid.projection()
+
+    def extent(self):
+        '''Return the :class:`~hubdc.model.Extent`.'''
+        return self._grid.extent()
 
     def band(self, index):
         '''Return the :class:`~hubdc.model.RasterBandDataset` given by ``index``.'''
@@ -1360,7 +1271,8 @@ class RasterDataset(object):
         self.flushCache()
 
     def noDataValues(self, default=None, required=False):
-        '''Returns band no data values. For bands without a no data value, ``default`` is returned.'''
+        '''Returns band no data values. For bands without a no data value, ``default`` is returned,
+        or if ``required`` is True, an error is raised'''
         return [band.noDataValue(default=default, required=required) for band in self.bands()]
 
     def setNoDataValue(self, value):
@@ -1372,22 +1284,29 @@ class RasterDataset(object):
             self.flushCache()
         return self
 
-    def noDataValue(self, default=None):
+    def noDataValue(self, default=None, required=False):
         '''
-        Returns a single no data value. Raises an exception if not all bands share the same no data value.
+        Returns no data value.
+        Returns ``default`` if all band no data values are undefined, or raises
+        Raises an exception if not all bands share the same no data value.
+
         If all bands are without a no data value, ``default`` is returned.
         '''
         noDataValues = self.noDataValues()
         if len(set(noDataValues)) != 1:
-            raise Exception('there are multiple no data values, use getNoDataValues() instead')
+            raise errors.HubDcError('there are multiple no data values, use noDataValues() instead')
         noDataValue = noDataValues[0]
         if noDataValue is None:
             noDataValue = default
+        if required and noDataValue is None:
+            raise errors.MissingNoDataValueError(filename=self.filename(), index='all')
+
         return noDataValue
 
     def setDescription(self, value):
         '''Set the description.'''
         self._gdalDataset.SetDescription(value)
+        self.flushCache()
 
     def description(self):
         '''Returns the description.'''
@@ -1404,7 +1323,7 @@ class RasterDataset(object):
         gdalString = self._gdalDataset.GetMetadataItem(key, domain)
         if gdalString is None:
             if required:
-                raise Exception('missing metadata item: key={}, domain={}'.format(key, domain))
+                raise errors.MissingMetadataItemError(key=key, domain=domain)
             return default
         return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
 
@@ -1432,18 +1351,21 @@ class RasterDataset(object):
             return
         gdalString = MetadataFormatter.valueToString(value)
         self._gdalDataset.SetMetadataItem(key, gdalString, domain)
+        self.flushCache()
 
     def setMetadataDomain(self, metadataDomain, domain):
         '''Set the metadata domain'''
         assert isinstance(metadataDomain, dict)
         for key, value in metadataDomain.items():
             self.setMetadataItem(key=key, value=value, domain=domain)
+        self.flushCache()
 
     def setMetadataDict(self, metadataDict):
         '''Set the metadata dictionary'''
         assert isinstance(metadataDict, dict)
         for domain, metadataDomain in metadataDict.items():
             self.setMetadataDomain(metadataDomain=metadataDomain, domain=domain)
+        self.flushCache()
 
     def copyMetadata(self, other):
         '''Copy raster and raster band metadata from other to self.'''
@@ -1456,6 +1378,7 @@ class RasterDataset(object):
         for band, otherBand in zip(self.bands(), other.bands()):
             for domain in otherBand.metadataDomainList():
                 band.gdalBand().SetMetadata(otherBand.gdalBand().GetMetadata(domain), domain)
+        self.flushCache()
 
     def setAcquisitionTime(self, acquisitionTime):
         '''Set the acquisition time. Store it as 'acquisition time' metadata item inside the 'ENVI' domain.
@@ -1466,6 +1389,7 @@ class RasterDataset(object):
 
         assert isinstance(acquisitionTime, datetime.datetime)
         self.setMetadataItem(key='acquisition time', value=str(acquisitionTime), domain='ENVI')
+        self.flushCache()
 
     def acquisitionTime(self):
         '''Returns the acquisition time. Restore it from 'acquisition time' metadata item inside the 'ENVI' domain.
@@ -1481,40 +1405,7 @@ class RasterDataset(object):
                                             minute=int(minute), second=int(second))
         return acquisitionTime
 
-    '''def writeENVIHeader(self): # this won't work for files written to /vsimem/
-        
-        Creates an ENVI header file containing all metadata of the 'ENVI' metadata domain.
-        This ensures the correct interpretation of all metadata items by the ENVI software.
-        Currently only ENVI and GTiff formats are supported.
-
-        filename = self._gdalDataset.GetFileList()[0]
-        driver = self.driver()
-        if driver.equal(other=ENVIBSQDriver()):
-            fileType = self.metadataItem(key='file type', domain='ENVI')
-            filenameHeader = self._gdalDataset.GetFileList()[-1]
-        elif driver.equal(other=GTiffDriver()):
-            fileType = 'TIFF'
-            filenameHeader = filename + '.hdr'
-        else:
-            return
-
-        metadata = self.gdalDataset().GetMetadata('ENVI')
-        metadata['file type'] = fileType
-        metadata['samples'] = self._gdalDataset.RasterXSize
-        metadata['lines'] = self._gdalDataset.RasterYSize
-        metadata['bands'] = self._gdalDataset.RasterCount
-        self._gdalDataset = None
-
-        # copy map info and coordinate system string written by GDAL
-        if driver.equal(other=ENVIBSQDriver()):
-            metadataOnDisk = ENVI.readHeader(filenameHeader=filenameHeader)
-            for key in ['map info', 'coordinate system string']:
-                metadata[key] = metadataOnDisk[key]
-
-        # create ENVI header
-        ENVI.writeHeader(filenameHeader=filenameHeader, metadata=metadata)'''
-
-    def warp(self, grid, filename='', driver=MEMDriver(), options=None, **kwargs):
+    def warp(self, grid=None, filename='', driver=MemDriver(), options=None, **kwargs):
         '''Returns a new instance of self warped into the given ``grid`` (default is self.grid()).
 
         :param grid:
@@ -1523,32 +1414,33 @@ class RasterDataset(object):
         :type filename: str
         :param driver:
         :type driver: hubdc.core.RasterDriver
-        :param options:
-        :type options: hubdc.core.RasterCreationOptions
+        :param options: creation options
+        :type options: list
         :param kwargs: passed to gdal.WarpOptions
         :type kwargs:
         :return:
         :rtype: hubdc.core.RasterDataset
         '''
 
+        if grid is None:
+            grid = self.grid()
         assert isinstance(grid, Grid)
         assert isinstance(driver, RasterDriver)
         if options is None:
-            options = driver.defaultOptions()
-        assert isinstance(options, RasterCreationOptions)
+            options = driver.options()
+        assert isinstance(options, list)
 
-        if not driver.equal(other=MEMDriver()) and not exists(dirname(filename)):
-            makedirs(dirname(filename))
+        filename = driver.prepareCreation(filename=filename)
 
         outputBounds = (grid.extent().xmin(), grid.extent().ymin(), grid.extent().xmax(), grid.extent().ymax())
         warpOptions = gdal.WarpOptions(format=driver.name(), outputBounds=outputBounds, xRes=grid.resolution().x(),
                                        yRes=grid.resolution().y(), dstSRS=grid.projection().wkt(),
-                                       creationOptions=options.optionsList(), **kwargs)
+                                       creationOptions=options, **kwargs)
         gdalDataset = gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=self._gdalDataset, options=warpOptions)
 
         return RasterDataset(gdalDataset=gdalDataset)
 
-    def translate(self, grid=None, filename='', driver=MEMDriver(), options=None, **kwargs):
+    def translate(self, grid=None, filename='', driver=MemDriver(), options=None, **kwargs):
         '''Returns a new instance of self translated into the given ``grid`` (default is self.grid()).
 
         :param grid:
@@ -1557,8 +1449,8 @@ class RasterDataset(object):
         :type filename: str
         :param driver:
         :type driver: hubdc.core.RasterDriver
-        :param options:
-        :type options: hubdc.core.RasterCreationOptions
+        :param options: raster creation options
+        :type options: list
         :param kwargs: passed to gdal.TranslateOptions
         :type kwargs:
         :return:
@@ -1572,11 +1464,10 @@ class RasterDataset(object):
         assert self.grid().projection().equal(other=grid.projection())
         assert isinstance(driver, RasterDriver)
         if options is None:
-            options = driver.defaultOptions()
-        assert isinstance(options, RasterCreationOptions)
+            options = driver.options()
+        assert isinstance(options, list)
 
-        if not driver.equal(other=MEMDriver()) and not exists(dirname(filename)):
-            makedirs(dirname(filename))
+        filename = driver.prepareCreation(filename)
 
         ul = grid.extent().upperLeft()
         lr = grid.extent().lowerRight()
@@ -1588,46 +1479,47 @@ class RasterDataset(object):
 
         isOversamplingCase = self.grid().resolution().x() > xRes or self.grid().resolution().y() > yRes
         if isOversamplingCase:
-            if not driver.equal(other=MEMDriver()):
+            if not driver.equal(other=MemDriver()):
+                # todo: solve this problem with /vsimem/
                 raise Exception('spatial resolution oversampling is only supported for MEM format')
 
             # read one extra source column and line
-            translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options.optionsList(),
+            translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options,
                                                      projWin=[ul.x(), ul.y(), lr.x() + self.grid().resolution().x(),
                                                               lr.y() - self.grid().resolution().y()],
                                                      xRes=xRes, yRes=yRes, **kwargs)
             tmpGdalDataset = gdal.Translate(destName='', srcDS=self._gdalDataset, options=translateOptions)
 
             # subset to the exact target grid
-            translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options.optionsList(),
+            translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options,
                                                      srcWin=[0, 0, grid.size().x(), grid.size().y()])
             gdalDataset = gdal.Translate(destName='', srcDS=tmpGdalDataset, options=translateOptions)
 
         else:
 
-            translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options.optionsList(),
+            translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options,
                                                      projWin=[ul.x(), ul.y(), lr.x(), lr.y()],
-                                                     #projWin=[ul.x(), min(ul.y(), lr.y()),
-                                                     #         lr.x(), max(ul.y(), lr.y())],
-
                                                      xRes=xRes, yRes=yRes, **kwargs)
             gdalDataset = gdal.Translate(destName=filename, srcDS=self._gdalDataset, options=translateOptions)
 
+        rasterDataset = RasterDataset(gdalDataset=gdalDataset)
+#        assert grid.equal(other=rasterDataset.grid())
+        return rasterDataset
 
-        return RasterDataset(gdalDataset=gdalDataset)
-
-    def array(self, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noData=None, errorThreshold=0.,
+    def array(self, indices=None, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None, errorThreshold=0.,
               warpMemoryLimit=100 * 2 ** 20, multithread=False):
         '''
         Returns raster data as 3d array of shape = (zsize, ysize, xsize) for the given ``grid``,
         where zsize is the number of raster bands, and ysize, xsize = grid.shape().
 
+        :param indices: band indices to read (default is all bands)
+        :type indices: list
         :param grid: if not specified self.grid() is used
         :type grid: hubdc.core.Grid
         :param resampleAlg: one of the GDAL resampling algorithms gdal.GRA_*
         :type resampleAlg: int
-        :param noData: if not specified, no data value of self is used
-        :type noData: float
+        :param noDataValue: if not specified, no data value of self is used
+        :type noDataValue: float
         :param errorThreshold: error threshold for approximation transformer (in pixels)
         :type errorThreshold: float
         :param warpMemoryLimit: size of working buffer in bytes
@@ -1641,13 +1533,29 @@ class RasterDataset(object):
         if grid is None:
             grid = self.grid()
 
-        if self.grid().projection().equal(other=grid.projection()):
-            datasetResampled = self.translate(grid=grid, filename='', driver=MEMDriver(), resampleAlg=resampleAlg,
-                                              noData=noData)
+        if indices is not None:
+            bandList = [i+1 for i in indices]
         else:
-            datasetResampled = self.warp(grid=grid, filename='', driver=MEMDriver(), resampleAlg=resampleAlg,
-                                         errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit,
-                                         multithread=multithread, srcNodata=noData)
+            bandList = None
+
+        if self.grid().projection().equal(other=grid.projection()):
+            datasetResampled = self.translate(grid=grid, filename='', driver=MemDriver(), resampleAlg=resampleAlg,
+                                              noData=noDataValue,
+                                              bandList=bandList) # subset via bandList
+        else:
+            if bandList is None:
+                datasetResampled = self.warp(grid=grid, filename='', driver=MemDriver(), resampleAlg=resampleAlg,
+                                             errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit,
+                                             multithread=multithread, srcNodata=noDataValue)
+            else:
+                # subset bands via in-memory VRT
+                datasetSubsetted = self.translate(filename='/vsimem/hubdc.core.RasterDataset.array.vrt',
+                                                  driver=VrtDriver(), noData=noDataValue, bandList=bandList)
+                datasetResampled = self.warp(grid=grid, filename='', driver=MemDriver(), resampleAlg=resampleAlg,
+                                             errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit,
+                                             multithread=multithread, srcNodata=noDataValue)
+                gdal.Unlink(datasetSubsetted.filename())
+
 
         array = datasetResampled.readAsArray()
         datasetResampled.close()
@@ -1691,7 +1599,7 @@ class RasterDataset(object):
         '''
         Returns raster data as 1d array for the given ``pixel``.
         '''
-        grid = self.grid().subset(offset=pixel, size=Size(x=1, y=1))
+        grid = self.grid().subset(offset=pixel, size=RasterSize(x=1, y=1))
         profile = self.readAsArray(grid=grid).flatten()
         return profile
 
@@ -1744,30 +1652,34 @@ class RasterDataset(object):
         '''
         def stretch(band, vmin=None, vmax=None, pmin=None, pmax=None):
             if pmin is not None:
-                vmin = np.percentile(band, pmin)
+                vmin = np.nanpercentile(band, pmin)
             if pmax is not None:
-                vmax = np.percentile(band, pmax)
+                vmax = np.nanpercentile(band, pmax)
             if vmin is None:
                 if band.dtype == np.uint8:
                     vmin = 0
                 else:
-                    vmin = np.min(band)
+                    vmin = np.nanmin(band)
             if vmax is None:
                 if band.dtype == np.uint8:
                     vmax = 255
                 else:
-                    vmax = np.max(band)
+                    vmax = np.nanmax(band)
 
             grey = np.float32(band-vmin)
             grey /= vmax-vmin
             np.clip(grey, 0, 1, grey)
             return grey
 
-        band = self.array()[index]
+        band = self.band(index=index).readAsArray().astype(dtype=np.float32)
+        noDataValue = self.band(index=index).noDataValue()
+        if noDataValue is not None:
+            band[band==noDataValue] = np.nan
+
+
         grey = stretch(band, vmin, vmax, pmin, pmax)
 
         if not noPlot:
-            import matplotlib.pyplot as plt
             fig = plt.imshow(grey, cmap=cmap)
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
@@ -1789,7 +1701,6 @@ class RasterDataset(object):
                                                        toTupel(rgbpmin), toTupel(rgbpmax))]
 
         if not noPlot:
-            import matplotlib.pyplot as plt
             fig = plt.imshow(np.array(rgb).transpose((1, 2, 0)))
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
@@ -1814,8 +1725,6 @@ class RasterDataset(object):
         rgb = np.array([ar, ag, ab]) / 255.
 
         if not noPlot:
-
-            import matplotlib.pyplot as plt
             fig = plt.imshow(np.array(rgb).transpose((1,2,0)))
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
@@ -1868,7 +1777,7 @@ class RasterBandDataset():
         '''Creating a new instance given a :class:`~hubdc.model.Raster` and a raster band ``index``.'''
         assert isinstance(raster, RasterDataset)
         if index < 0 or index > raster.zsize() - 1:
-            raise IndexError()
+            raise errors.IndexError(index=index, min=0, max=raster.zsize()-1)
 
         self._raster = raster
         self._index = index
@@ -1893,6 +1802,9 @@ class RasterBandDataset():
         '''Return the gdal.Band.'''
         return self._gdalBand
 
+    def flushCache(self):
+        '''Flush the cache.'''
+        self.gdalBand().FlushCache()
 
     def readAsArray(self, grid=None, resample_alg=gdal.GRA_NearestNeighbour):
         '''Returns raster band data as 2d array.
@@ -1926,6 +1838,39 @@ class RasterBandDataset():
         assert array.ndim == 2
         return array
 
+    def array(self, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noData=None, errorThreshold=0.,
+              warpMemoryLimit=100 * 2 ** 20, multithread=False):
+        '''
+        Returns raster band data as 2d array of shape = (ysize, xsize) for the given ``grid``,
+        where zsize is the number of raster bands, and ysize, xsize = grid.shape().
+
+        :param grid: if not specified self.grid() is used
+        :type grid: hubdc.core.Grid
+        :param resampleAlg: one of the GDAL resampling algorithms gdal.GRA_*
+        :type resampleAlg: int
+        :param noData: if not specified, no data value of self is used
+        :type noData: float
+        :param errorThreshold: error threshold for approximation transformer (in pixels)
+        :type errorThreshold: float
+        :param warpMemoryLimit: size of working buffer in bytes
+        :type warpMemoryLimit: int
+        :param multithread: whether to multithread computation and I/O operations
+        :type multithread: bool
+        :return:
+        :rtype: numpy.ndarray
+        '''
+
+        if grid is None:
+            grid = self.raster().grid()
+
+        # make single band in-memory VRT raster and re-use RasterDataset.array
+        filename = '/vsimem/hubdc.core.RasterBandDataset.array.vrt'
+        vrt = self.raster().translate(filename=filename, driver=VrtDriver(), bandList=[self.index()+1])
+        array = vrt.array(grid=grid, resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
+                          warpMemoryLimit=warpMemoryLimit, multithread=multithread)
+        gdal.Unlink(filename)
+        return array[0]
+
     def writeArray(self, array, grid=None):
         '''Writes raster data.
 
@@ -1957,6 +1902,7 @@ class RasterBandDataset():
             self._gdalBand.WriteArray(array, xoff=xoff, yoff=yoff)
         except ValueError:
             raise errors.AccessGridOutOfRangeError
+        self.flushCache()
 
     def fill(self, value):
         '''Write constant ``value`` to the whole raster band.'''
@@ -1970,13 +1916,17 @@ class RasterBandDataset():
         key = key.replace(' ', '_')
         gdalString = MetadataFormatter.valueToString(value)
         self._gdalBand.SetMetadataItem(key, gdalString, domain)
+        self.flushCache()
 
-    def metadataItem(self, key, domain='', dtype=str):
+    def metadataItem(self, key, domain='', default=None, required=False, dtype=str):
         '''Return the metadata item.'''
         key = key.replace(' ', '_')
         gdalString = self._gdalBand.GetMetadataItem(key, domain)
         if gdalString is None:
-            return None
+            if required:
+                raise errors.MissingMetadataItemError(key=key, domain=domain)
+            return default
+
         return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
 
     def metadataDomain(self, domain=''):
@@ -2006,19 +1956,21 @@ class RasterBandDataset():
         '''Set no data value.'''
         if value is not None:
             self._gdalBand.SetNoDataValue(float(value))
+            self.flushCache()
 
     def noDataValue(self, default=None, required=False):
-        '''Returns band no data value, or ``default`` if no data value is unfefined.'''
+        '''Returns band no data value. Returns ``default`` if no data value is undefined, or raises an error if ``required``.'''
         noDataValue = self._gdalBand.GetNoDataValue()
         if noDataValue is None:
             noDataValue = default
         if noDataValue is None and required:
-            raise Exception('required no data value is missing')
+            raise errors.MissingNoDataValueError(filename=self.raster().filename(), index=self.index()+1)
         return noDataValue
 
     def setDescription(self, value):
         '''Set band description.'''
         self._gdalBand.SetDescription(value)
+        self.flushCache()
 
     def description(self):
         '''Returns band description.'''
@@ -2028,6 +1980,7 @@ class RasterBandDataset():
         '''Set band category names.'''
         if names is not None:
             self._gdalBand.SetCategoryNames(names)
+            self.flushCache()
 
     def categoryNames(self):
         '''Returns band category names.'''
@@ -2045,6 +1998,7 @@ class RasterBandDataset():
                 assert len(color) == 4
                 colorTable.SetColorEntry(i, color)
             self._gdalBand.SetColorTable(colorTable)
+            self.flushCache()
 
     def categoryColors(self):
         '''Returns band category colors as list of rgba tuples.'''
@@ -2067,7 +2021,7 @@ class RasterBandDataset():
         '''
         Returns raster data as 1d array for the given row ``y``.
         '''
-        grid = self.raster().grid().subset(offset=Pixel(x=0, y=y), size=Size(x=self.raster().xsize(), y=1))
+        grid = self.raster().grid().subset(offset=Pixel(x=0, y=y), size=RasterSize(x=self.raster().xsize(), y=1))
         profile = self.readAsArray(grid=grid).flatten()
         return profile
 
@@ -2075,7 +2029,7 @@ class RasterBandDataset():
         '''
         Returns raster data as 1d array for the given column ``x``.
         '''
-        grid = self.raster().grid().subset(offset=Pixel(x=x, y=0), size=Size(x=1, y=self.raster().ysize()))
+        grid = self.raster().grid().subset(offset=Pixel(x=x, y=0), size=RasterSize(x=1, y=self.raster().ysize()))
         profile = self.readAsArray(grid=grid).flatten()
         return profile
 
@@ -2086,7 +2040,7 @@ class VectorDataset(object):
         '''Creates new instance from given ogr.DataSource and layer name or index given by ``nameOrIndex``.'''
 
         #assert isinstance(ogrDataSource, ogr.DataSource), str(ogrDataSource)
-        assert isinstance(ogrDataSource, gdal.Dataset), str(ogrDataSource)
+        assert isinstance(ogrDataSource, (gdal.Dataset, ogr.DataSource)), str(ogrDataSource)
 
         self._ogrDataSource = ogrDataSource
         if isinstance(layerNameOrIndex, int):
@@ -2094,7 +2048,7 @@ class VectorDataset(object):
         elif isinstance(layerNameOrIndex, str):
             self._ogrLayer = ogrDataSource.GetLayerByName(layerNameOrIndex)
         else:
-            raise TypeError(str(layerNameOrIndex))
+            raise errors.ObjectParserError(obj=layerNameOrIndex, type=[int, str])
 
         if self._ogrLayer is None:
             raise errors.InvalidOGRLayerError(layerNameOrIndex)
@@ -2110,15 +2064,19 @@ class VectorDataset(object):
             layerNameOrIndex=repr(self.layerNameOrIndex()))
 
     @staticmethod
-    def fromPoints(filename, points, projection):
+    def fromPoints(points, filename='', driver=MemoryDriver()):
+        '''Create instance from given ``points``. Projection is taken from the first point.'''
 
-        assert isinstance(projection, Projection)
-        ogrDriver = VectorDriver.fromFilename(filename=filename).ogrDriver()
+        assert isinstance(driver, VectorDriver)
+        assert isinstance(points[0], Point)
+        projection = points[0].projection()
+        driver.prepareCreation(filename=filename)
+        ogrDriver = driver.ogrDriver()
         ogrDataSource = ogrDriver.CreateDataSource(filename)
         ogrLayer = ogrDataSource.CreateLayer('points', projection.osrSpatialReference(), ogr.wkbPoint)
 
         for p in points:
-            p = Point.parse(p)
+            assert isinstance(p, Point)
             point = ogr.Geometry(ogr.wkbPoint)
             point.AddPoint(p.x(), p.y())
             ogrFeature = ogr.Feature(ogrLayer.GetLayerDefn())
@@ -2126,8 +2084,14 @@ class VectorDataset(object):
             ogrLayer.CreateFeature(ogrFeature)
             ogrFeature = None
             point = None
-        ogrDataSource = None
-        return openVectorDataset(filename=filename)
+
+        if driver.equal(other=MemoryDriver()):
+            vectorDataset = VectorDataset(ogrDataSource=ogrDataSource)
+        else:
+            ogrDataSource = None
+            vectorDataset = openVectorDataset(filename=filename)
+
+        return vectorDataset
 
 
     def filename(self):
@@ -2147,10 +2111,6 @@ class VectorDataset(object):
         assert isinstance(self._ogrLayer, ogr.Layer)
         return self._ogrLayer
 
-    def geometryTypeName(self):
-        '''Return the geometry type name.'''
-        return ogr.GeometryTypeToName(self.ogrLayer().GetGeomType())
-
     def close(self):
         '''Closes the ogr.DataSourse and ogr.Layer'''
         self._ogrLayer = None
@@ -2160,16 +2120,23 @@ class VectorDataset(object):
         '''Returns the :class:`~hubdc.model.Projection`.'''
         return Projection(wkt=self._ogrLayer.GetSpatialRef())
 
-    def spatialExtent(self):
-        '''Returns the :class:`~hubdc.model.SpatialExtent`.'''
+    def geometryTypeName(self):
+        '''Return the geometry type name.'''
+        return ogr.GeometryTypeToName(self.ogrLayer().GetGeomType())
 
+    def extent(self):
+        '''Returns the :class:`~hubdc.model.Extent`.'''
         xmin, xmax, ymin, ymax = self._ogrLayer.GetExtent()
-        return SpatialExtent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, projection=self.projection())
+        return Extent(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, projection=self.projection())
+
+    def grid(self, resolution):
+        '''Returns grid with extent of self and given resolution.'''
+        return Grid(extent=self.extent(), resolution=resolution)
 
     def rasterize(self, grid, gdalType=gdal.GDT_Float32,
                   initValue=0, burnValue=1, burnAttribute=None, allTouched=False,
                   filterSQL=None, noDataValue=None,
-                  filename='', driver=MEMDriver(), options=None):
+                  filename='', driver=MemDriver(), options=None):
         '''Returns a :class:`~hubdc.model.Raster` that is the rasterization of self into the given ``grid`` as.
 
         :param grid:
@@ -2192,8 +2159,8 @@ class VectorDataset(object):
         :type filename: str
         :param driver:
         :type driver: hubdc.core.RasterDriver
-        :param options:
-        :type options: hubdc.core.RasterCreationOptions
+        :param options: raster creation options
+        :type options: list
         :return:
         :rtype: hubdc.core.RasterDataset
         '''
@@ -2201,21 +2168,18 @@ class VectorDataset(object):
         assert isinstance(grid, Grid)
         assert isinstance(driver, RasterDriver)
         if options is None:
-            options = driver.defaultOptions()
-        assert isinstance(options, RasterCreationOptions)
+            options = driver.options()
+        assert isinstance(options, list)
 
         if self.projection().equal(other=grid.projection()):
             vector = self
         else:
             if not grid.projection().wkt() in self._reprojectionCache:
-                self._reprojectionCache[grid.projection().wkt()] = self.reprojectOnTheFly(projection=grid.projection())
+                self._reprojectionCache[grid.projection().wkt()] = self.reproject(projection=grid.projection())
             vector = self._reprojectionCache[grid.projection().wkt()]
 
         vector.ogrLayer().SetAttributeFilter(filterSQL)
-        vector.ogrLayer().SetSpatialFilter(grid.spatialExtent().geometry().ogrGeometry())
-
-        if not driver.equal(other=MEMDriver()) and not exists(dirname(filename)):
-            makedirs(dirname(filename))
+        vector.ogrLayer().SetSpatialFilter(grid.extent().geometry().ogrGeometry())
 
         raster = driver.create(grid=grid, bands=1, gdalType=gdalType, filename=filename, options=options)
         if noDataValue is not None:
@@ -2293,13 +2257,13 @@ class VectorDataset(object):
             #for key, value in metadataDict[domain].items():
             #    self.setMetadataItem(key=key, value=value, domain=domain)
 
-    def reprojectOnTheFly(self, projection):
-        '''Returns a reprojection of self into the given projection.'''
+    def reproject(self, projection, filename='', driver=MemoryDriver(), **kwargs):
+        '''Returns a reprojection of self into the given projection. Optional kwargs are passed to gdal.VectorTranslateOptions.'''
 
-        # need to temporary create a VRT file
-        options = gdal.VectorTranslateOptions(format='Memory', dstSRS=projection.wkt())
-        ogrDataSource = gdal.VectorTranslate('', self.ogrDataSource(), options=options)
-
+        assert isinstance(driver, VectorDriver)
+        filename = driver.prepareCreation(filename)
+        options = gdal.VectorTranslateOptions(format=driver.name(), dstSRS=projection.wkt(), **kwargs)
+        ogrDataSource = gdal.VectorTranslate(destNameOrDestDS=filename, srcDS=self.ogrDataSource(), options=options)
         vectorDataset = VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=self.layerNameOrIndex())
         return vectorDataset
 
@@ -2340,7 +2304,11 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     assert isinstance(filename, str), type(filename)
     if not filename.startswith('/vsimem/') and not exists(filename):
         raise errors.FileNotExistError(filename)
-    gdalDataset = gdal.Open(filename, eAccess)
+
+    try:
+        gdalDataset = gdal.Open(filename, eAccess)
+    except RuntimeError:
+        raise errors.InvalidGDALDatasetError(filename)
 
     if gdalDataset is None:
         raise errors.InvalidGDALDatasetError(filename)
@@ -2353,7 +2321,7 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
         filenameVRT = filename + '.wgs84.vrt'
         filenameVRT = '/vsimem/{}.wgs84.vrt'.format(filename)
 
-        gdalDataset2 = gdal.Translate(filenameVRT, filename, format='VRT', outputSRS=Projection.WGS84().wkt())
+        gdalDataset2 = gdal.Translate(filenameVRT, filename, format='VRT', outputSRS=Projection.wgs84().wkt())
         gdalDataset2.SetGeoTransform((0.0, 1.0, 0.0, 0.0, 0.0, -1.0))
         rasterDataset = RasterDataset(gdalDataset=gdalDataset2)
         rasterDataset.copyMetadata(other=RasterDataset(gdalDataset=gdalDataset))
@@ -2399,77 +2367,6 @@ def openVectorDataset(filename, layerNameOrIndex=None, update=False):
 
     return VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=layerNameOrIndex)
 
-
-def createRasterDataset(grid, bands=1, gdalType=gdal.GDT_Float32, filename='', driver=MEMDriver(), options=None):
-    '''
-    Creates a new raster file with extent, resolution and projection given by ``grid``.
-
-    :param grid:
-    :type grid: hubdc.core.Grid
-    :param bands: number of raster bands
-    :type bands: int
-    :param gdalType: one of the ``gdal.GDT_*`` data types, or use gdal_array.NumericTypeCodeToGDALTypeCode
-    :type gdalType: int
-    :param filename: output filename
-    :type filename: str
-    :param driver:
-    :type driver: hubdc.core.RasterDriver
-    :param options:
-    :type options: hubdc.core.RasterCreationOptions
-    :return:
-    :rtype: hubdc.core.RasterDataset
-    '''
-    assert isinstance(driver, RasterDriver)
-    return driver.create(grid, bands=bands, gdalType=gdalType, filename=filename, options=options)
-
-
-def createRasterDatasetFromArray(array, grid=None, filename='', driver=MEMDriver(), options=None):
-    '''
-    Creates a new raster file with content, data type and number of bands given by ``array``
-    and with extent, resolution and projection given by ``grid``.
-
-    :param array:
-    :type array: numpy.ndarray
-    :param grid:
-    :type grid: hubdc.core.Grid
-    :param filename: output filename
-    :type filename: str
-    :param driver:
-    :type driver: hubdc.core.RasterDriver
-    :param options:
-    :type options: hubdc.core.RasterCreationOptions
-    :return:
-    :rtype: hubdc.core.RasterDataset
-    '''
-
-    if isinstance(array, list):
-        array = np.array(array)
-
-    if grid is None:
-        grid = PseudoGrid.fromArray(array)
-
-    if isinstance(array, np.ndarray):
-        if array.ndim == 2:
-            array = array[None]
-        assert array.ndim == 3
-    elif isinstance(array, list):
-        assert all([subarray.ndim == 2 for subarray in array])
-    else:
-        raise TypeError()
-
-    bands = len(array)
-    dtype = array[0].dtype
-    if dtype == np.bool:
-        dtype = np.uint8
-
-    gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
-    rasterDataset = createRasterDataset(grid=grid, bands=bands, gdalType=gdalType, filename=filename, driver=driver,
-                                 options=options)
-    rasterDataset.writeArray(array=array, grid=grid)
-    rasterDataset.flushCache()
-    return rasterDataset
-
-
 def createVRTDataset(rasterDatasetsOrFilenames, filename='', **kwargs):
     '''
     Creates a virtual raster file (VRT) from raster datasets or filenames given by ``rastersOrFilenames``.
@@ -2495,20 +2392,20 @@ def createVRTDataset(rasterDatasetsOrFilenames, filename='', **kwargs):
 
     options = gdal.BuildVRTOptions(**kwargs)
     gdalDataset = gdal.BuildVRT(destName=filename, srcDSOrSrcDSTab=srcDSOrSrcDSTab, options=options)
-    return RasterDataset(gdalDataset=gdalDataset)
+    gdalDataset = None
+    return openRasterDataset(filename=filename)
 
 class PseudoGrid(Grid):
     def __init__(self, size):
-        size = Size.parse(size)
+        size = RasterSize.parse(size)
         res = 1 / 3600. # 1 second of arc
-        Grid.__init__(self, extent=Extent(xmin=0, xmax=size.x() * res, ymin=0, ymax=size.y() * res),
-                      resolution=Resolution(x=res, y=res), # 1 second of arc
-                      projection=Projection.WGS84())
+        extent = Extent(xmin=0, xmax=size.x() * res, ymin=0, ymax=size.y() * res, projection=Projection.wgs84())
+        Grid.__init__(self, extent=extent, resolution=Resolution(x=res, y=res))
 
     @staticmethod
     def fromArray(array):
         isinstance(array, np.ndarray)
-        size = Size(x=array.shape[-1], y=array.shape[-2])
+        size = RasterSize(x=array.shape[-1], y=array.shape[-2])
         return PseudoGrid(size=size)
 
 class ENVI():
