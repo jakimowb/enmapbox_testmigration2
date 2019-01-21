@@ -106,7 +106,7 @@ class EnMAPBoxSynthmixApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super().__init__(enmapBox, parent=parent)
 
-        self.name = 'SynthmixRegressionMapper'
+        self.name = 'Regression-based unmixing (synthMix)'
         self.version = 'dev'
         self.licence = 'GNU GPL-3'
 
@@ -115,7 +115,7 @@ class EnMAPBoxSynthmixApp(EnMAPBoxApplication):
 
     def menu(self, appMenu):
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('Synthmix Regression Mapper')
+        a = appMenu.addAction('Regression-based unmixing (synthMix)')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)

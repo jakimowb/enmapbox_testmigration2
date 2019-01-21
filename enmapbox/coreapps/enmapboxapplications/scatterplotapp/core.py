@@ -39,6 +39,11 @@ class ImageView(pg.ImageView):
         assert isinstance(self.plotItem_, pg.PlotItem)
         return self.plotItem_
 
+    def setSidePlotVisible(self, bool):
+        self.ui.roiBtn.setVisible(bool)
+        self.ui.menuBtn.setVisible(bool)
+        self.ui.histogram.setVisible(bool)
+
 class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
     def __init__(self, parent=None):
@@ -51,9 +56,16 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
         self.uiRaster2().setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.uiExecute().clicked.connect(self.execute)
         self.uiImageView().hide()
+        self.uiImageView().view.invertY(False)
 
-        self.minMaxLine = self.uiImageView().plotItem().plot([0, 0],[0, 0], pen=pg.mkPen(color=(255, 0, 0), width=2, style=QtCore.Qt.SolidLine))
-        self.fittedLine = self.uiImageView().plotItem().plot([0, 0],[0, 0], pen=pg.mkPen(color=(0, 255, 0), width=2, style=QtCore.Qt.DashLine))
+        self.actualPoints = pg.ScatterPlotItem(pen=pg.mkPen(width=1, color=(255, 255, 255)), symbol='o', size=1)
+        self.uiImageView().plotItem().addItem(self.actualPoints)
+
+        self.minMaxLine = self.uiImageView().plotItem().plot([0, 0],[0, 0], pen=pg.mkPen(color=(255, 0, 0), width=2,
+                                                                                         style=QtCore.Qt.SolidLine))
+        self.fittedLine = self.uiImageView().plotItem().plot([0, 0], [0, 0], pen=pg.mkPen(color=(0, 255, 0), width=2,
+                                                                                          style=QtCore.Qt.DashLine))
+
         self._progressBar = ProgressBar(bar=self.uiProgressBar_)
 
     def uiShowMinMaxLine(self):
@@ -157,7 +169,11 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
         else:
             mask = None
 
-        bins = self.uiBins().value()
+        if self.uiBins().isEnabled():
+            bins = self.uiBins().value()
+        else:
+            bins = None
+
         fast = self.uiAccuracy().currentIndex() == 0
 
         return raster1, raster2, band1, band2, min1, min2, max1, max2, mask, bins, fast
@@ -165,23 +181,29 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
     def execute(self, *args):
 
         self.uiImageView().hide()
+        self.fittedLine.clear()
+        self.minMaxLine.clear()
+        self.actualPoints.clear()
         self.uiExecute().setEnabled(False)
         self.log('')
         self.uiFit_.hide()
         try:
 
             raster1, raster2, band1, band2, min1, min2, max1, max2, mask, bins, fast  = self.inputs()
+            plotBinnedData = bins is not None
+            plotActualData = not plotBinnedData
+            plotFittedLine = self.showFittedLine().isChecked()
 
             if raster1 is None or raster2 is None:
                 return
 
-            grid = Grid(extent=raster1.grid().spatialExtent().intersection(other=raster2.grid().spatialExtent().reproject(targetProjection=raster1.grid().projection())),
+            grid = Grid(extent=raster1.grid().extent().intersection(other=raster2.grid().extent().reproject(projection=raster1.grid().projection())),
                         resolution=raster1.grid().resolution())
 
             fast = self.uiAccuracy().currentIndex() == 0
             if fast:
                 n = 100
-                grid = Grid(extent=grid.spatialExtent(),
+                grid = Grid(extent=grid.extent(),
                              resolution=Resolution(x=max(grid.size().x(), n) / n * grid.resolution().x(),
                                                    y=max(grid.size().y(), n) / n * grid.resolution().y()))
 
@@ -203,15 +225,20 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
                     max2 = statistics2.max
                     self.uiMax2().setText(str(max2))
 
-            scatter = raster1.scatterMatrix(raster2=raster2, bandIndex1=band1, bandIndex2=band2,
-                                            range1=[min1, max1], range2=[min2, max2],
-                                            bins=bins, mask=mask, grid=grid, **ApplierOptions(progressBar=self.progressBar()))
+            if plotBinnedData:
+                self.uiImageView().setSidePlotVisible(True)
+                scatter = raster1.scatterMatrix(raster2=raster2, bandIndex1=band1, bandIndex2=band2,
+                                                range1=[min1, max1], range2=[min2, max2],
+                                                bins=bins, mask=mask, grid=grid, **ApplierOptions(progressBar=self.progressBar()))
 
-            scale1 = (max1 - min1) / float(bins)
-            scale2 = (max2 - min2) / float(bins)
+                scale1 = (max1 - min1) / float(bins)
+                scale2 = (max2 - min2) / float(bins)
 
-            self.uiImageView().setImage(scatter.H, pos=[min1,min2], scale=[scale1, scale2])
-            self.uiImageView().view.invertY(False)
+                self.uiImageView().setImage(scatter.H, pos=[min1,min2], scale=[scale1, scale2])
+                self.uiImageView().setLevels(*np.percentile(scatter.H, (2,98))) # stretch ramp between 2% - 98%
+            else:
+                self.uiImageView().clear()
+
             xlabel = '{}: {} in {}'.format(band1+1, raster1.dataset().band(index=band1).description(), basename(raster1.filename()))
             ylabel = '{}: {} in {}'.format(band2+1, raster2.dataset().band(index=band2).description(), basename(raster2.filename()))
 
@@ -220,12 +247,13 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
 
             if self.uiShowMinMaxLine().isChecked():
                 self.minMaxLine.setData([min1, max1], [min2, max2])
-            else:
-                self.minMaxLine.clear()
 
-            if self.showFittedLine().isChecked():
-                ds1 = raster1.dataset().translate(grid=raster1.grid(), bandList=[band1 + 1])
-                ds2 = raster2.dataset().translate(grid=raster1.grid(), bandList=[band2 + 1])
+            if plotActualData or plotFittedLine:
+                self.uiImageView().setSidePlotVisible(False)
+                self.progressBar().setPercentage(99)
+
+                ds1 = raster1.dataset().translate(grid=grid, bandList=[band1 + 1])
+                ds2 = raster2.dataset().translate(grid=grid, bandList=[band2 + 1])
 
                 sample = RegressionSample(raster=Raster.fromRasterDataset(rasterDataset=ds2),
                                           regression=Regression.fromRasterDataset(rasterDataset=ds1),
@@ -233,27 +261,31 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
                 r2, r1 = sample.extractAsRaster(filenames=['/vsimem/r2.bsq', '/vsimem/r1.bsq'], **ApplierOptions(progressBar=self.progressBar()))
                 sample = RegressionSample(raster=r1, regression=Regression(filename=r2.filename()))
 
-                from sklearn.linear_model import LinearRegression
-                olsr = Regressor(sklEstimator=LinearRegression())
-                olsr.fit(sample=sample)
-                # f(x) = m*x + n
-                n = olsr.sklEstimator().intercept_
-                m = olsr.sklEstimator().coef_[0]
-                self.fittedLine.setData([min1, max1], [m*min1+n, m*max1+n])
+                if plotFittedLine:
+                    from sklearn.linear_model import LinearRegression
+                    olsr = Regressor(sklEstimator=LinearRegression())
+                    olsr.fit(sample=sample)
+                    # f(x) = m*x + n
+                    n = olsr.sklEstimator().intercept_
+                    m = olsr.sklEstimator().coef_[0]
+                    self.fittedLine.setData([min1, max1], [m*min1+n, m*max1+n])
 
-                p = RegressionPerformance.fromRaster(prediction=olsr.predict(filename='/vsimem/p.bsq', raster=sample.raster()),
-                                                     reference=sample.regression(), **ApplierOptions(progressBar=self.progressBar(), emitFileCreated=False))
+                    p = RegressionPerformance.fromRaster(prediction=olsr.predict(filename='/vsimem/p.bsq', raster=sample.raster()),
+                                                         reference=sample.regression(), **ApplierOptions(progressBar=self.progressBar(), emitFileCreated=False))
 
-                self.uiFit_.setText('f(x) = {} * x + {}, n = {}, r^2 = {}'.format(round(m, 5), round(n, 5), p.n, p.r2_score[0]))
-                self.uiFit_.show()
-            else:
-                self.fittedLine.clear()
+                    self.uiFit_.setText('f(x) = {} * x + {}, n = {}, r^2 = {}'.format(round(m, 5), round(n, 5), p.n, p.r2_score[0]))
+                    self.uiFit_.show()
+
+                if plotActualData:
+                    x, y = sample.extractAsArray()
+                    self.actualPoints.setData(x.ravel(), y.ravel())
 
             self.uiImageView().show()
 
         except Exception as error:
             traceback.print_exc()
-            self.log('Error: {}'.format(str(error)))
+            message = traceback.format_exc()
+            self.log('Error: {}'.format(message))# str(error)))
 
         self.progressBar().setPercentage(0)
         self.uiExecute().setEnabled(True)

@@ -6,7 +6,8 @@ def synthmixRegressionEnsemble(filename, classificationSample, targets, regresso
                                mixingComplexities, classLikelihoods='equalized',
                                includeWithinclassMixtures=False, includeEndmember=False,
                                saveSamples=True, saveModels=True, savePredictions=True, saveMedian=True,
-                               saveMean=True, saveIQR=True, saveStd=True, saveRGB=True, clip=True, ui=None):
+                               saveMean=True, saveIQR=True, saveStd=True, saveRGB=True, saveClassification=True,
+                               clip=True, ui=None):
 
     # build ensemble
 
@@ -30,7 +31,7 @@ def synthmixRegressionEnsemble(filename, classificationSample, targets, regresso
             else:
                 print(stamp)
 
-            fractionSample = classificationSample.synthMix2(
+            fractionSample = classificationSample.synthMix(
                 filenameFeatures=join(directory, 'train', '{}_features{}{}'.format(prefix, stamp, ext)),
                 filenameFractions=join(directory, 'train', '{}_fractions{}{}'.format(prefix, stamp, ext)),
                 mixingComplexities=mixingComplexities, classLikelihoods=classLikelihoods,
@@ -69,10 +70,15 @@ def synthmixRegressionEnsemble(filename, classificationSample, targets, regresso
     if len(keys) > 0:
         applier = Applier()
         for target in predictions:
-            applier.setFlowRaster(name=str(target), raster=RasterStack(predictions[target]))
+            vrtFilename = '/vsimem/synthmixapp/{}.vrt'.format(target)
+            print(vrtFilename)
+            vrtDataset = createVRTDataset(rasterDatasetsOrFilenames=[raster.filename() for raster in predictions[target]],
+                                          filename=vrtFilename,
+                                          separate=True)
+            applier.setFlowRaster(name=str(target), raster=Raster(vrtFilename))
 
         for key in keys:
-            filename = join(directory, 'aggregations', '{}_{}{}'.format(prefix, key, ext))
+            filename = join(directory, '{}_{}{}'.format(prefix, key, ext))
             applier.setOutputRaster(name=key, filename=filename)
             results.append(filename)
         applier.apply(operatorType=Aggregate, predictions=predictions, keys=keys, clip=clip)
@@ -86,6 +92,7 @@ def synthmixRegressionEnsemble(filename, classificationSample, targets, regresso
                 if key in keys:
                     rasterDataset = openRasterDataset(applier.outputRaster.raster(key=key).filename())
                     MetadataEditor.setBandNames(rasterDataset=rasterDataset, bandNames=classDefinition.names())
+
     # RGB
 
     if saveRGB:
@@ -93,11 +100,25 @@ def synthmixRegressionEnsemble(filename, classificationSample, targets, regresso
         if saveMean: keys.append('mean')
         if saveMedian: keys.append('median')
         for key in keys:
-            fraction = Fraction(filename=join(directory, 'aggregations', '{}_{}{}'.format(prefix, key, ext)),
+            fraction = Fraction(filename=join(directory, '{}_{}{}'.format(prefix, key, ext)),
                                 classDefinition=classDefinition)
             results.append(fraction.filename())
-            rgb = fraction.asClassColorRGBRaster(filename=join(directory, 'rgb', '{}_{}_rgb{}'.format(prefix, key, ext)))
+            rgb = fraction.asClassColorRGBRaster(filename=join(directory, '{}_{}_rgb{}'.format(prefix, key, ext)))
             results.append(rgb.filename())
+
+    # Classification
+
+    if saveClassification:
+        keys = list()
+        if saveMean: keys.append('mean')
+        if saveMedian: keys.append('median')
+        for key in keys:
+            fraction = Fraction(filename=join(directory, '{}_{}{}'.format(prefix, key, ext)),
+                                classDefinition=classDefinition)
+            results.append(fraction.filename())
+            classification = Classification.fromClassification(filename=join(directory, '{}_{}_classification{}'.format(prefix, key, ext)),
+                                                               classification=fraction)
+            results.append(classification.filename())
 
     # open files
     from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -129,7 +150,8 @@ class Aggregate(ApplierOperator):
 
         # reduce over runs and stack targets
         for target in predictions:
-            array = self.flowRasterArray(name=str(target), raster=RasterStack(predictions[target]))
+            #array = self.flowRasterArray(name=str(target), raster=RasterStack(predictions[target]))
+            array = self.inputRaster.raster(key=str(target)).array()
             if clip:
                 np.clip(array, a_min=0, a_max=1, out=array)
             if 'mean' in keys:
@@ -146,13 +168,6 @@ class Aggregate(ApplierOperator):
                 p25, p75 = np.percentile(array, q=(25, 75), axis=0)
                 results['iqr'].append(p75 - p25)
 
-        # normalize to 0-1
-        if False:
-            for key in ['mean', 'median']:
-                if key in keys:
-                    total = np.sum(results[key], axis=0)
-                    results[key] = [a / total for a in results[key]]
-
         for key in keys:
             self.outputRaster.raster(key=key).setArray(results[key])
 
@@ -160,16 +175,16 @@ class Aggregate(ApplierOperator):
 
 def test():
     import enmapboxtestdata
-    library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+    library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
     labels = Classification.fromENVISpectralLibrary(filename='/vsimem/synthmixRegressionEnsemble/labels.bsq',
-                                                    library=library, attribute='level 2')
+                                                    library=library, attribute='level_2')
 
     synthmixRegressionEnsemble(filename=r'c:\output\synthmixRegressionEnsemble\ar.bsq',
                                classificationSample=ClassificationSample(raster=library.raster(), classification=labels),
-                               targets=labels.classDefinition().labels()[0:1],
+                               targets=labels.classDefinition().labels()[0:2],
                                regressor=Regressor(sklEstimator=RandomForestRegressor(n_estimators=10, n_jobs=-1)),
                                raster=Raster(filename=enmapboxtestdata.enmap),
-                               runs=2, n=100,
+                               runs=3, n=100,
                                mixingComplexities={2: 0.5, 3: 0.5},
                                classLikelihoods='equalized',
                                includeWithinclassMixtures=False,
@@ -178,3 +193,4 @@ def test():
 
 if __name__ == '__main__':
     test()
+

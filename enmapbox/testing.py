@@ -31,7 +31,7 @@ import qps.testing
 import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
-import enmapboxtestdata
+
 
 from enmapbox.gui.utils import file_search
 from enmapbox import DIR_TESTDATA

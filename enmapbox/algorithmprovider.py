@@ -89,8 +89,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         Returns the EnMAPBox icon
         :return: QIcon
         """
-        from enmapbox.gui.enmapboxgui import getIcon
-        return getIcon()
+        return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
     def name(self)->str:
         """

@@ -168,7 +168,7 @@ class ImageStatisticsApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.
                 fast = self.uiAccuracy().currentIndex() == 0
                 if fast:
                     n = 100
-                    grid = Grid(extent=grid.spatialExtent(),
+                    grid = Grid(extent=grid.extent(),
                                  resolution=Resolution(x=max(grid.size().x(), n) / n * grid.resolution().x(),
                                                        y=max(grid.size().y(), n) / n * grid.resolution().y()))
 
