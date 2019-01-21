@@ -392,7 +392,7 @@ class SpeclibDockTreeNode(DockTreeNode):
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
         super(SpeclibDockTreeNode, self).connectDock(dock)
-        self.speclibWidget = dock.speclibWidget
+        self.speclibWidget = dock.mSpeclibWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
         self.showMapSpectra = CheckableLayerTreeNode(self, 'Show map profiles', checked=Qt.Checked)
@@ -1372,7 +1372,7 @@ class DockManager(QObject):
         elif cls == SpectralLibraryDock:
             kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
-            dock.speclibWidget.setMapInteraction(True)
+            dock.mSpeclibWidget.setMapInteraction(True)
 
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
@@ -1414,6 +1414,16 @@ class DockPanelUI(QgsDockWidget, loadUI('dockpanel.ui')):
         self.setupUi(self)
         self.dockManager = None
         assert isinstance(self.dockTreeView, DockTreeView)
+
+        self.initActions()
+
+    def initActions(self):
+
+        self.btnCollapse.setDefaultAction(self.actionCollapseTreeNodes)
+        self.btnExpand.setDefaultAction(self.actionExpandTreeNodes)
+
+        self.actionCollapseTreeNodes.triggered.connect(self.dockTreeView.collapseAllNodes)
+        self.actionExpandTreeNodes.triggered.connect(self.dockTreeView.expandAllNodes)
 
 
     def connectDockManager(self, dockManager:DockManager):

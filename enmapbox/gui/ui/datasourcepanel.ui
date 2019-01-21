@@ -50,8 +50,8 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionAdd.svg</normaloff>:/enmapbox/icons/mActionAdd.svg</iconset>
+         <iconset resource="../../../../../QGIS/images/images.qrc">
+          <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -64,8 +64,8 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionRemove.svg</normaloff>:/enmapbox/icons/mActionRemove.svg</iconset>
+         <iconset resource="../../../../../QGIS/images/images.qrc">
+          <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -78,8 +78,8 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionCollapseTree.svg</normaloff>:/enmapbox/icons/mActionCollapseTree.svg</iconset>
+         <iconset resource="../../../../../QGIS/images/images.qrc">
+          <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
         </property>
         <property name="popupMode">
          <enum>QToolButton::DelayedPopup</enum>
@@ -95,8 +95,8 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionExpandTree.svg</normaloff>:/enmapbox/icons/mActionExpandTree.svg</iconset>
+         <iconset resource="../../../../../QGIS/images/images.qrc">
+          <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
         </property>
         <property name="popupMode">
          <enum>QToolButton::DelayedPopup</enum>
@@ -112,8 +112,8 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionRefresh.svg</normaloff>:/enmapbox/icons/mActionRefresh.svg</iconset>
+         <iconset resource="../../../../../QGIS/images/images.qrc">
+          <normaloff>:/images/themes/default/providerQgis.svg</normaloff>:/images/themes/default/providerQgis.svg</iconset>
         </property>
         <property name="popupMode">
          <enum>QToolButton::DelayedPopup</enum>
@@ -161,8 +161,8 @@
   </widget>
   <action name="actionAddDataSource">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionAdd.svg</normaloff>:/enmapbox/icons/mActionAdd.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
    </property>
    <property name="text">
     <string>Add Data Source</string>
@@ -173,8 +173,8 @@
   </action>
   <action name="actionRemoveDataSource">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionRemove.svg</normaloff>:/enmapbox/icons/mActionRemove.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
    </property>
    <property name="text">
     <string>RemoveDataSource</string>
@@ -182,14 +182,32 @@
   </action>
   <action name="actionSyncWithQGIS">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionRefresh.svg</normaloff>:/enmapbox/icons/mActionRefresh.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/providerQgis.svg</normaloff>:/images/themes/default/providerQgis.svg</iconset>
    </property>
    <property name="text">
     <string>Sync</string>
    </property>
    <property name="toolTip">
     <string>Synchronize data sources with QGIS</string>
+   </property>
+  </action>
+  <action name="actionCollapseTreeNodes">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Collapse Tree Nodes</string>
+   </property>
+  </action>
+  <action name="actionExpandTreeNodes">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Expand Tree Nodes</string>
    </property>
   </action>
  </widget>
@@ -201,7 +219,8 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="../../resources.qrc"/>
+  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>

@@ -819,16 +819,19 @@ class MimeDataDock(Dock):
 
 
 class SpectralLibraryDock(Dock):
+    """
+    A Dock to show SpectraLProfiles
+    """
     sigLoadFromMapRequest = pyqtSignal()
     def __init__(self,speclib=None, *args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        self.speclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
-        self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
-        self.layout.addWidget(self.speclibWidget)
-        self.mShowMapInteraction = True
-        self.speclibWidget.plotItem
+        self.mSpeclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
+        self.mSpeclibWidget.setMapInteraction(False)
+        self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
+        self.layout.addWidget(self.mSpeclibWidget)
+        self.mSpeclibWidget.plotItem
 
     def speclib(self)->SpectralLibrary:
         """Returns the underlying spectral library"""
-        return self.speclibWidget.speclib()
+        return self.mSpeclibWidget.speclib()

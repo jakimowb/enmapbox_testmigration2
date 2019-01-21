@@ -10,6 +10,7 @@ qgisresources
 qgisresources/
 
 enmapbox/gui/ui/resources.py
+enmapbox/resources.py
 enmapboxtestdata.zip
 
 # Untrack compiled files

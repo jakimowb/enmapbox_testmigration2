@@ -24,7 +24,7 @@ QGIS_APP = initQgisApplication()
 
 SHOW_GUI = True
 
-from enmapboxtestdata import enmap
+
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
@@ -125,6 +125,7 @@ class TestEnMAPBox(unittest.TestCase):
         E.loadExampleData()
         E.removeSources(E.dataSources())
         self.assertTrue(len(E.dataSources()) == 0)
+        from enmapboxtestdata import enmap
         E.addSource(enmap)
         self.assertTrue(len(E.dataSources()) == 1)
 

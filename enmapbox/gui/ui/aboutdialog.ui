@@ -35,8 +35,8 @@
    <string>About EnMAP-Box</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
-    <normaloff>:/enmapbox/icons/enmapbox.svg</normaloff>:/enmapbox/icons/enmapbox.svg</iconset>
+   <iconset resource="../../resources.qrc">
+    <normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</iconset>
   </property>
   <property name="sizeGripEnabled">
    <bool>false</bool>
@@ -178,7 +178,7 @@
           <enum>QFrame::NoFrame</enum>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>3</number>
          </property>
          <widget class="QWidget" name="pageAbout">
           <property name="sizePolicy">
@@ -214,7 +214,7 @@
                 <enum>Qt::PlainText</enum>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/enmapbox.svg</pixmap>
+                <pixmap resource="../../resources.qrc">:/enmapbox/gui/ui/icons/enmapbox.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>false</bool>
@@ -348,7 +348,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_gfz.svg</pixmap>
+                <pixmap resource="../../resources.qrc">:/enmapbox/gui/ui/icons/logo_gfz.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -382,7 +382,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_dlr.svg</pixmap>
+                <pixmap resource="../../resources.qrc">:/enmapbox/gui/ui/icons/logo_dlr.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -407,7 +407,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap resource="resources.qrc">:/enmapbox/icons/logo_hu-berlin.svg</pixmap>
+                <pixmap resource="../../resources.qrc">:/enmapbox/gui/ui/icons/logo_hub.svg</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -570,6 +570,7 @@ p, li { white-space: pre-wrap; }
   </action>
  </widget>
  <resources>
+  <include location="../../resources.qrc"/>
   <include location="resources.qrc"/>
  </resources>
  <connections>

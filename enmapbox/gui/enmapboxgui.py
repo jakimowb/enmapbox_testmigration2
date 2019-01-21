@@ -115,14 +115,24 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         def onActionToggled(b:bool):
             action = QApplication.instance().sender()
             assert isinstance(action, QAction)
+            otherActions = [a for a in self.mMapToolActions if a != action]
+
+            # enable / disable the other maptool actions
             if b == True:
-                for a in self.mMapToolActions:
-                    if a != action:
-                        a.setChecked(False)
+                for a in otherActions:
+                    a.setChecked(False)
+
+                isIdentifyAction = action == self.actionIdentify
+
             else:
-                otherSelected = [a for a in self.mMapToolActions if a.isChecked()]
+                otherSelected = [a for a in otherActions if a.isChecked()]
                 if len(otherSelected) == 0:
                     action.setChecked(True)
+
+            if action == self.actionIdentify:
+                self.optionIdentifyCursorLocation.setEnabled(b)
+                self.optionIdentifyProfile.setEnabled(b)
+                self.optionMoveCenter.setEnabled(b)
 
         for a in self.mMapToolActions:
             assert isinstance(a, QAction)
@@ -143,8 +153,12 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         pass
 
 
-def getIcon():
-    return QIcon(':/enmapbox/icons/enmapbox.svg')
+def getIcon()->QIcon:
+    """
+    Returns the EnMAP icon
+    :return: QIcon
+    """
+    return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
 
 
@@ -511,8 +525,8 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
-            dock.speclibWidget.plotWidget.backgroundBrush().setColor(QColor('black'))
-            self.sigCurrentSpectraChanged.connect(dock.speclibWidget.setCurrentSpectra)
+            dock.mSpeclibWidget.plotWidget.backgroundBrush().setColor(QColor('black'))
+            self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):
             canvas = dock.mapCanvas()
@@ -807,7 +821,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         assert isinstance(spatialPoint, SpatialPoint)
 
-        bCLV = self.ui.optionsIdentifyCursorLocation.isChecked()
+        bCLV = self.ui.optionIdentifyCursorLocation.isChecked()
         bSP = self.ui.optionIdentifyProfile.isChecked()
         bCenter = self.ui.optionMoveCenter.isChecked()
 
@@ -885,10 +899,9 @@ class EnMAPBox(QgisInterface, QObject):
     def removeDock(self, *args, **kwds):
         """
         Removes a Dock instance.
-        See `enmapbox\gui\dockmanager.py` for details
+        See `enmapbox/gui/dockmanager.py` for details
         :param args:
         :param kwds:
-
         """
         self.dockManager.removeDock(*args, **kwds)
 

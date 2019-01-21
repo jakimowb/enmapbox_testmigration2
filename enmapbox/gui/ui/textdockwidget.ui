@@ -79,8 +79,8 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/enmapbox/icons/mActionFileSave.svg</normaloff>:/enmapbox/icons/mActionFileSave.svg</iconset>
+         <iconset resource="../../../../../QGIS/images/images.qrc">
+          <normaloff>:/images/themes/default/mActionFileSave.svg</normaloff>:/images/themes/default/mActionFileSave.svg</iconset>
         </property>
         <property name="shortcut">
          <string>Ctrl+S</string>
@@ -129,7 +129,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="../../resources.qrc"/>
   <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>

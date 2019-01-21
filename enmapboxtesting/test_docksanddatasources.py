@@ -19,7 +19,7 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
 
 
-from enmapbox.testing import initQgisApplication
+from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 SHOW_GUI = False
 
@@ -88,6 +88,17 @@ class testDataSources(unittest.TestCase):
         self.assertTrue(len(DM) == 0)
         dock = DM.createDock('MAP')
         self.assertIsInstance(dock, MapDock)
+
+    def test_DockPanelUI(self):
+
+        w = DockPanelUI()
+        DM = DockManager()
+        self.assertIsInstance(w, DockPanelUI)
+        self.assertIsInstance(DM, DockManager)
+        w.connectDockManager(DM)
+
+
+
 
 class testDocks(unittest.TestCase):
 

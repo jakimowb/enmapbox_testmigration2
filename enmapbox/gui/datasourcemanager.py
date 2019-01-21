@@ -431,6 +431,7 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
 
         super(DataSourceTreeNode, self).__init__(parent, '<empty>')
         KeepRefs.__init__(self)
+
         self.disconnectDataSource()
         if dataSource:
             self.connectDataSource(dataSource)
@@ -527,6 +528,14 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
 
         geomType = ['Point','Line','Polygon','Unknown','Null'][lyr.geometryType()]
         wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
+
+        if re.search('polygon', wkbType, re.I):
+            self.setIcon(QIcon(r':/images/themes/default/mIconPolygonLayer.svg'))
+        elif re.search('line', wkbType, re.I):
+            self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
+        elif re.search('point', wkbType, re.I):
+            self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
+
         #self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
         self.nodeFeatures = TreeNode(self, 'Features',
                                           values='{}'.format(nFeat))
@@ -558,7 +567,7 @@ class CRSLayerTreeNode(TreeNode):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         super(CRSLayerTreeNode, self).__init__(parent, crs.description())
         self.setName('CRS')
-        self.setIcon(QIcon(':/enmapbox/icons/crs.svg'))
+        self.setIcon(QIcon(':/images/themes/default/propertyicons/CRS.svg'))
         self.setToolTip('Coordinate Reference System')
         self.mCrs = None
         self.nodeDescription = TreeNode(self, 'Name', toolTip='Description')
@@ -698,7 +707,7 @@ class SpeclibProfilesTreeNode(TreeNode):
 
     def __init__(self, parent, speclib, **kwds):
         super(SpeclibProfilesTreeNode, self).__init__(parent, 'Profiles', **kwds)
-
+        self.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
         assert isinstance(speclib, SpectralLibrary)
         self.mSpeclib = speclib
         speclib.committedFeaturesAdded.connect(self.update)
@@ -724,7 +733,7 @@ class SpeclibProfilesTreeNode(TreeNode):
 class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(SpeclibDataSourceTreeNode, self).__init__(*args, **kwds)
-
+        self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
         self.profileNode = None
         self.mSpeclib = None
 
@@ -1199,13 +1208,16 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
         hasQGIS = qgisAppQgisInterface() is not None
         self.actionSyncWithQGIS.setEnabled(hasQGIS)
 
+        self.initActions()
+
+    def initActions(self):
 
         self.btnAddSource.setDefaultAction(self.actionAddDataSource)
         self.btnSync.setDefaultAction(self.actionSyncWithQGIS)
         self.btnRemoveSource.setDefaultAction(self.actionRemoveDataSource)
         self.btnCollapse.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, False))
         self.btnExpand.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, True))
-        #self.onSelectionChanged(None, None)
+
 
     def expandSelectedNodes(self, treeView, expand):
         assert isinstance(treeView, QTreeView)
@@ -1253,12 +1265,12 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
         return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
-LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/icons/mIconRasterLayer.svg'))
-LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/enmapbox/icons/mIconLineLayer.svg'))
-LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/enmapbox/icons/alg.svg'))
-LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/speclib/icons/speclib.svg'))
-LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files',QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
-LUT_DATASOURCTYPES[DataSource] = ('Other sources',QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
+LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/gui/ui/icons/mIconRasterLayer.svg'))
+LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/images/themes/default/mIconVector.svg'))
+LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/images/themes/default/processingAlgorithm.svg'))
+LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/qps/ui/icons/speclib.svg'))
+LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files', QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
+LUT_DATASOURCTYPES[DataSource] = ('Other sources', QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
 
 
 class DataSourceManagerTreeModel(TreeModel):
@@ -1373,7 +1385,8 @@ class DataSourceManagerTreeModel(TreeModel):
                 uuidList.append(dataSource.uuid())
 
                 if isinstance(dataSource, DataSourceSpectralLibrary):
-                    mimeDataSpeclib = dataSource.speclib().mimeData()
+                    from qps.speclib.spectrallibraries import MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_URL, MIMEDATA_SPECLIB_LINK
+                    mimeDataSpeclib = dataSource.speclib().mimeData(formats=[MIMEDATA_SPECLIB_LINK])
                     for f in mimeDataSpeclib.formats():
                         if f not in mimeData.formats():
                             mimeData.setData(f, mimeDataSpeclib.data(f))
