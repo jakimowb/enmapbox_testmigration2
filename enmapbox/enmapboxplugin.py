@@ -90,9 +90,6 @@ class EnMAPBoxPlugin(object):
 
         self.toolbarActions = []
 
-        from enmapbox.gui.ui.resources import qInitResources
-        qInitResources()
-
         from enmapbox.gui.enmapboxgui import EnMAPBox
 
         self.enmapBox = None

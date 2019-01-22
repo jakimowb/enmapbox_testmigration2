@@ -19,7 +19,7 @@ from enmapbox.testing import initQgisApplication, TestObjects
 
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *
-from enmapbox import EnMAPBox, DIR_ENMAPBOX
+from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
 import enmapbox.gui
 from enmapbox.gui.applications import *
 

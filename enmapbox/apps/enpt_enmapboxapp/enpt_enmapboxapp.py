@@ -25,6 +25,7 @@ from subprocess import Popen, PIPE
 from multiprocessing import cpu_count
 
 from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QDialog
 from qgis.PyQt.QtWidgets import QMenu, QAction, QWidget, QHBoxLayout, QLabel, QPushButton
 from enmapbox.gui.applications import EnMAPBoxApplication
 from qgis.core import *
@@ -71,12 +72,12 @@ class EnPTEnMAPBoxApp(EnMAPBoxApplication):
         # this way you can add your QMenu/QAction to an other menu entry, e.g. 'Tools'
         # appMenu = self.enmapbox.menu('Tools')
 
-        menu = appMenu.addMenu('My Example App')
+        menu = appMenu.addMenu('EnPT App Placeholder')
         menu.setIcon(self.icon())
 
         # add a QAction that starts a process of your application.
         # In this case it will open your GUI.
-        a = menu.addAction('Show ExampleApp GUI')
+        a = menu.addAction('Start EnPT GUI')
         assert isinstance(a, QAction)
         a.triggered.connect(self.startGUI)
         appMenu.addMenu(menu)
@@ -103,7 +104,7 @@ class EnPTEnMAPBoxApp(EnMAPBoxApplication):
         w.show()
 
 
-class ExampleAppGUI(QWidget):
+class ExampleAppGUI(QDialog):
     """
     A minimal graphical user interface
     """
@@ -114,13 +115,14 @@ class ExampleAppGUI(QWidget):
         self.setWindowIcon(QIcon(os.path.join(APP_DIR, 'icon.png')))
         self.setMinimumWidth(400)
         layout = QHBoxLayout()
+        self.setLayout(layout)
         layout.addWidget(QLabel('Hello World'))
         self.btn = QPushButton('Click me')
 
         # clicking the button will print "Hello World" to the python CLI
         self.btn.clicked.connect(lambda: print('Hello World'))
         layout.addWidget(self.btn)
-        self.setLayout(layout)
+        self.setMinimumSize(self.sizeHint())
 
 
 def printDictionary(parameters):
