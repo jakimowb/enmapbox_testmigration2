@@ -195,7 +195,7 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>true</bool>
+    <bool>false</bool>
    </attribute>
    <addaction name="actionAddDataSource"/>
    <addaction name="actionAddMapView"/>
@@ -208,6 +208,7 @@
    <addaction name="actionZoomPixelScale"/>
    <addaction name="actionZoomFullExtent"/>
    <addaction name="actionIdentify"/>
+   <addaction name="separator"/>
    <addaction name="optionIdentifyCursorLocation"/>
    <addaction name="optionIdentifyProfile"/>
    <addaction name="optionMoveCenter"/>

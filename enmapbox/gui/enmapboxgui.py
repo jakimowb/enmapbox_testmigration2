@@ -120,19 +120,20 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
             # enable / disable the other maptool actions
             if b == True:
                 for a in otherActions:
+                    assert isinstance(a, QAction)
                     a.setChecked(False)
 
-                isIdentifyAction = action == self.actionIdentify
-
             else:
+                #keep it checked if no other maptool is defined
                 otherSelected = [a for a in otherActions if a.isChecked()]
                 if len(otherSelected) == 0:
                     action.setChecked(True)
 
-            if action == self.actionIdentify:
-                self.optionIdentifyCursorLocation.setEnabled(b)
-                self.optionIdentifyProfile.setEnabled(b)
-                self.optionMoveCenter.setEnabled(b)
+
+            b = self.actionIdentify.isChecked()
+            self.optionIdentifyCursorLocation.setEnabled(b)
+            self.optionIdentifyProfile.setEnabled(b)
+            self.optionMoveCenter.setEnabled(b)
 
         for a in self.mMapToolActions:
             assert isinstance(a, QAction)

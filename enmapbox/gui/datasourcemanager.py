@@ -963,14 +963,13 @@ class DataSourceTreeView(TreeView):
         if not idx.isValid():
             return QMenu()
         col = idx.column()
-        node = self.currentNode()
-        model = self.treeView.model()
+        model = self.model()
         assert isinstance(model, DataSourceManagerTreeModel)
 
-        selectionModel = self.treeView.selectionModel()
-        assert isinstance(selectionModel, QItemSelectionModel)
 
-        selectedNodes = [self.model.index2node(i) for i in selectionModel.selectedIndexes()]
+
+        selectedNodes = self.selectedNodes()
+        node = self.selectedNode()
         dataSources = list(set([n.mDataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
         srcURIs = list(set([s.uri() for s in dataSources]))
 
@@ -1078,11 +1077,12 @@ class DataSourceTreeView(TreeView):
 
         if isinstance(node, TreeNode):
             m2 = node.contextMenu()
-            for a in m2.actions():
-                a.setParent(None)
-                m.addAction(a)
-                a.setParent(m)
-        m.exec_(self.treeViewVRT.viewport().mapToGlobal(event.pos()))
+            if isinstance(m2, QMenu):
+                for a in m2.actions():
+                    a.setParent(None)
+                    m.addAction(a)
+                    a.setParent(m)
+        m.exec_(self.viewport().mapToGlobal(event.pos()))
 
     def openInMap(self, dataSource: DataSourceSpatial, mapCanvas=None, rgb=None):
         """

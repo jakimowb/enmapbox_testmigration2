@@ -844,7 +844,7 @@ class MapCanvas(QgsMapCanvas):
         #self.mapdock = parentMapDock
         #self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
-
+        self.setExtent(QgsRectangle(-1,-1,1,1))
 
         self.mCrosshairItem = CrosshairMapCanvasItem(self)
 
@@ -1059,6 +1059,10 @@ class MapCanvas(QgsMapCanvas):
 
 
     def setCRSfromDialog(self, *args):
+        """
+        Opens a dialog to specify the QgsCoordinateReferenceSystem
+        :param args:
+        """
         setMapCanvasCRSfromDialog(self)
 
     def setCrosshairStyle(self, crosshairStyle:CrosshairStyle):
@@ -1069,7 +1073,11 @@ class MapCanvas(QgsMapCanvas):
         if isinstance(crosshairStyle, CrosshairStyle):
             self.mCrosshairItem.setCrosshairStyle(crosshairStyle)
 
-    def crosshairStyle(self):
+    def crosshairStyle(self)->CrosshairStyle:
+        """
+        Returns the CrosshairStyle
+        :return: CrosshairStyle
+        """
         return self.mCrosshairItem.mCrosshairStyle
 
     def setShowCrosshair(self,b):
@@ -1077,8 +1085,6 @@ class MapCanvas(QgsMapCanvas):
         self.setCrosshairVisibility(b)
 
     def setCrosshairVisibility(self, b:bool):
-        if b and self.mCrosshairItem.mPosition is None:
-            self.mCrosshairItem.setPosition(self.spatialCenter())
         self.mCrosshairItem.setVisibility(b)
 
     def crosshairIsVisible(self):

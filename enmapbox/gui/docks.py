@@ -830,7 +830,7 @@ class SpectralLibraryDock(Dock):
         self.mSpeclibWidget.setMapInteraction(False)
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
-        self.mSpeclibWidget.plotItem
+
 
     def speclibWidget(self)->SpectralLibraryWidget:
         """
