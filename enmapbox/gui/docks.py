@@ -832,6 +832,13 @@ class SpectralLibraryDock(Dock):
         self.layout.addWidget(self.mSpeclibWidget)
         self.mSpeclibWidget.plotItem
 
+    def speclibWidget(self)->SpectralLibraryWidget:
+        """
+        Returns the SpectralLibraryWidget
+        :return: SpectralLibraryWidget
+        """
+        return self.mSpeclibWidget
+
     def speclib(self)->SpectralLibrary:
         """Returns the underlying spectral library"""
         return self.mSpeclibWidget.speclib()

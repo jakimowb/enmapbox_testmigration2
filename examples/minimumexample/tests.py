@@ -31,7 +31,7 @@ from minimumexample.exampleapp import *
 APP = initQgisApplication()
 
 #set on True to show widgets and wait until a user closes them.
-SHOW_GUI = False
+SHOW_GUI = True
 
 class TestExampleEnMAPBoxApp(TestCase):
 
@@ -98,6 +98,7 @@ class TestExampleEnMAPBoxApp(TestCase):
         algorithmNames = [a.name() for a in provider.algorithms()]
         for name in ['examplealgorithm', 'examplealgorithmwithmanywidgets']:
             self.assertTrue(name in algorithmNames)
+
 
         if SHOW_GUI:
             APP.exec_()

@@ -22,7 +22,7 @@ import unittest
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
-SHOW_GUI = True
+SHOW_GUI = False
 
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -177,7 +177,7 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
 
         speclibDock = EMB.createDock('SPECLIB')
         self.assertIsInstance(speclibDock, SpectralLibraryDock)
-        slw = speclibDock.speclibWidget
+        slw = speclibDock.speclibWidget()
         self.assertIsInstance(slw, SpectralLibraryWidget)
         self.assertTrue(len(slw.speclib()) == 0)
         center = SpatialPoint.fromMapCanvasCenter(mapDock.mapCanvas())
@@ -197,29 +197,7 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
         self.assertEqual(profiles[0:1], EMB.currentSpectra())
 
-        slw.setAddCurrentSpectraToSpeclibMode(True)
-        n = len(slw.speclib())
-        slw.setCurrentSpectra(profiles)
-        self.assertTrue(len(slw.speclib()) == n+len(profiles))
-        self.assertTrue(len(slw.currentSpectra()) == 0)
 
-        EMB.setCurrentSpectra(profiles)
-        self.assertTrue(len(slw.speclib()) == n + len(profiles)*2)
-
-
-        slw.setAddCurrentSpectraToSpeclibMode(False)
-
-        n = len(slw.speclib())
-        EMB.setCurrentSpectra(profiles)
-
-        self.assertTrue(len(slw.currentSpectra()) == len(profiles))
-        self.assertTrue(len(slw.speclib()) == n)
-
-        EMB.setCurrentSpectra([])
-        self.assertTrue(len(slw.currentSpectra()) == 0)
-        self.assertTrue(len(slw.speclib()) == n)
-
-        s = ""
 
 if __name__ == '__main__':
     SHOW_GUI = False

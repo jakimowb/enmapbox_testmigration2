@@ -243,11 +243,11 @@ class EnMAPBox(QgisInterface, QObject):
         import enmapbox.gui
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
+
 
         self.dataSourceManager = DataSourceManager()
 
-        #if qgisAppQgisInterface():
+        # if qgisAppQgisInterface():
         self.dataSourceManager.sigDataSourceAdded.connect(lambda: self.dataSourceManager.exportSourcesToQGISRegistry(False))
 
 
@@ -262,8 +262,6 @@ class EnMAPBox(QgisInterface, QObject):
         self.dockManager.sigDockAdded.connect(self.onDockAdded)
         self.dockManager.sigDockRemoved.connect(self.onDockRemoved)
 
-        splash.showMessage('Load Processing Algorithms Manager')
-        self.processingAlgManager = ProcessingAlgorithmsManager(self)
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
 
@@ -278,37 +276,15 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.initActions()
 
-
-
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
-
-
-
-
-        # from now on other routines expect the EnMAP-Box to act like QGIS
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsPanelUI
-        self.ui.processingPanel = self.addPanel(Qt.RightDockWidgetArea, ProcessingAlgorithmsPanelUI(self.ui))
-        self.ui.processingPanel.connectProcessingAlgManager(self.processingAlgManager)
-
-
-        if False and enmapbox.LOAD_PROCESSING_FRAMEWORK:
-            # connect managers with widgets
-            splash.showMessage('Connect Processing Algorithm Manager')
-
-            try:
-                messageLog('initializes an own QGIS Processing framework')
-                self.initQGISProcessingFramework()
-                #installQPFExtensions()
-                self.ui.menuProcessing.setEnabled(True)
-                self.ui.menuProcessing.setVisible(True)
-                messageLog('QGIS Processing framework initialized')
-
-            except Exception as ex:
-                self.ui.menuProcessing.setEnabled(False)
-                self.ui.menuProcessing.setVisible(False)
-                messageLog('Failed to initialize QGIS Processing framework')
-                messageLog('{}'.format(ex))
+        try:
+            import processing.gui.ProcessingToolbox
+            panel = processing.gui.ProcessingToolbox.ProcessingToolbox()
+            self.ui.processingPanel = self.addPanel(Qt.RightDockWidgetArea, panel)
+        except Exception as ex:
+            print('Failed to import processing.gui.ProcessingToolbox')
+            print('Ensure to have folder `<QGIS_ROOT>/qgis/python/plugins` added to sys.path!')
 
         # load EnMAP-Box applications
         self.initEnMAPBoxApplications()
@@ -329,7 +305,8 @@ class EnMAPBox(QgisInterface, QObject):
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         :return:
         """
-        return self.processingAlgManager.enmapBoxProvider()
+        import enmapbox.algorithmprovider
+        return enmapbox.algorithmprovider.instance()
 
     def classificationSchemata(self)->list:
         """
@@ -428,20 +405,6 @@ class EnMAPBox(QgisInterface, QObject):
                 except:
                     pass
             s = ""
-
-    def initQGISProcessingFramework(self):
-
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
-
-        registry = QgsApplication.processingRegistry()
-        assert isinstance(registry, QgsProcessingRegistry)
-
-        self._algorithmProvider = registry.providerById(ID)
-        if not isinstance(self._algorithmProvider, EnMAPBoxAlgorithmProvider):
-            self._algorithmProvider = EnMAPBoxAlgorithmProvider()
-            registry.addProvider(self._algorithmProvider)
-            assert isinstance(registry.providerById(ID), EnMAPBoxAlgorithmProvider)
-
 
 
     def addApplication(self, app):

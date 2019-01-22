@@ -30,6 +30,9 @@ ID = 'enmapbox'
 NAME = 'EnMAP-Box'
 LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
 
+
+
+
 class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
 
 
@@ -63,8 +66,9 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         """
         Will inform the ProcessingConfig that Provider settings have been changed.
         """
-        import processing.core.ProcessingConfig
-        processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
+        #import processing.core.ProcessingConfig
+        #processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
+        self.algorithmsLoaded.emit()
 
     def getName(self):
         raise DeprecationWarning('Use id() instead')
@@ -218,4 +222,12 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         for alg in self.mAlgorithms:
             alg.provider = self
         self.addAlgorithms(self.mAlgorithms)
+
+
+def instance()->EnMAPBoxAlgorithmProvider:
+    """
+    Returns the EnMAPBoxAlgorithmProvider instance registered to QgsProcessingRegistry
+    :return:
+    """
+    return QgsApplication.instance().processingRegistry().providerById(ID)
 
