@@ -66,9 +66,9 @@ def sandboxGuiOnly():
 
     pathSrc = jp(DIR_REPO, 'tmp/testclassification.tif')
     pathDst = jp(DIR_REPO, 'tmp/reclassified.tif')
-    ui1.addSrcRaster(pathSrc)
+    ui1.setSrcRaster(pathSrc)
     from enmapbox.gui.classification.classificationscheme import ClassificationScheme
-    ui1.setDstClassification(ClassificationScheme.create(3))
+    ui1.setDstClassificationScheme(ClassificationScheme.create(3))
     ui1.setDstRaster(pathDst)
     def runReclassification(**settings):
         # return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,

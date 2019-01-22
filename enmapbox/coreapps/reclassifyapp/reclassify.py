@@ -82,12 +82,10 @@ def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
     newDef = hubflow.core.ClassDefinition(names=names[1:], colors=[c.name() for c in colors[1:]])
     newDef.setNoDataNameAndColor(names[0], colors[0])
 
-    rasterDriver = guessRasterDriver(pathDst)
 
     classification.reclassify(filename=pathDst,
                           classDefinition=newDef,
-                          mapping=labelLookup,
-                          outclassificationDriver=rasterDriver)
+                          mapping=labelLookup)
     return gdal.Open(pathDst)
 
 
@@ -99,20 +97,15 @@ def guessRasterDriver(path:str)->hubflow.core.RasterDriver:
     """
     assert isinstance(path, str)
 
-    if re.search(r'\.bsq$', path, re.I):
-        return hubflow.core.ENVIBSQDriver()
-    elif re.search(r'\.bil$', path, re.I):
-        return hubflow.core.ENVIBILDriver()
-    elif re.search(r'\.bip$', path, re.I):
-        return hubflow.core.ENVIBIPDriver()
+    if re.search(r'\.(bsq|bil|bip)$', path, re.I):
+        return hubflow.core.EnviDriver
     elif re.search(r'\.g?tiff?$', path, re.I):
         return hubflow.core.GTiffDriver()
     elif re.search(r'\.vrt$', path,  re.I):
-        return hubflow.core.VRTDriver()
+        return hubflow.core.VrtDriver()
     elif re.search(r'\.(img|hfa)', path , re.I):
         return hubflow.core.ErdasDriver()
-
-    return hubflow.core.ENVIBSQDriver()
+    return hubflow.core.EnviDriver()
 
 
 def depr_reclassify(pathSrc, pathDst, labelLookup,

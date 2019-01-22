@@ -7,7 +7,7 @@ from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
 QGIS_APP = initQgisApplication()
 
-SHOW_GUI = False
+SHOW_GUI = True
 
 class TestReclassify(TestCase):
 
@@ -15,10 +15,11 @@ class TestReclassify(TestCase):
     def setUpClass(cls):
         from tempfile import mkdtemp
         cls.testDir = mkdtemp(prefix='TestDir')
-        cls.classA = TestObjects.inMemoryImage(nc=3)
-        cls.classB = TestObjects.inMemoryImage(nc=3)
+        cls.classA = TestObjects.inMemoryImage(nc=2)
+        cls.classB = TestObjects.inMemoryImage(nc=5)
 
-        cls.pathClassA = os.path.join(cls.testDir, 'classificationA.bsq')
+        cls.pathClassA = cls.classA.GetDescription()
+        cls.pathClassB = cls.classB.GetDescription()
         cls.pathClassTemp = os.path.join(cls.testDir, 'classificationTemp.bsq')
         drv = gdal.GetDriverByName('ENVI')
         drv.CreateCopy(cls.pathClassA, cls.classA)
@@ -146,20 +147,37 @@ class TestReclassify(TestCase):
     def test_dialog(self):
         from reclassifyapp.reclassifydialog import ReclassifyDialog
         dialog = ReclassifyDialog()
-        dialog.show()
+        self.assertIsInstance(dialog, ReclassifyDialog)
 
 
-        dialog.addSrcRaster(self.pathClassA)
+        self.assertIs(dialog.srcRaster(), None)
+        self.assertListEqual(dialog.knownRasterSources(), [])
+
+        dialog.setSrcRaster(self.pathClassA)
+        self.assertListEqual(dialog.knownRasterSources(), [self.pathClassA])
+        self.assertEqual(dialog.srcRaster(), self.pathClassA)
+        dialog.setSrcRaster(self.pathClassB)
+        self.assertEqual(dialog.srcRaster(), self.pathClassB)
+        dialog.setSrcRaster(self.pathClassA)
+        self.assertEqual(dialog.srcRaster(), self.pathClassA)
+
+
+
         dialog.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
-        cs = ClassificationScheme.create(2)
-        cs[1].setName('Foobar')
-        dialog.setDstClassification(cs)
+        dstCS = ClassificationScheme.create(2)
+        dstCS[1].setName('Foobar')
+        dialog.setDstClassificationScheme(dstCS)
+        self.assertEqual(dstCS, dialog.dstClassificationScheme())
 
         settings = dialog.reclassificationSettings()
-        self.assertTrue(all(k in settings.keys() for k in ['labelLookup','dstClassScheme','pathDst','pathSrc']))
+        for key in ['labelLookup','dstClassScheme','pathDst','pathSrc']:
+            self.assertTrue(key in settings.keys(), msg='Missing setting key "{}"'.format(key))
 
         if SHOW_GUI:
+            dialog.show()
             QGIS_APP.exec_()
+
+        dstCS = dialog.dstClassificationScheme()
         dialog.close()
 
         dsDst = reclassify(drvDst='ENVI', **settings)
@@ -171,8 +189,9 @@ class TestReclassify(TestCase):
 
         self.assertIsInstance(cs2, ClassificationScheme)
         self.assertIsInstance(cs3, ClassificationScheme)
-        self.assertEqual(cs, cs2, msg='Expected:\n{}\nbut got:\n{}'.format(cs.toString(), cs2.toString()))
-        self.assertEqual(cs, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(cs.toString(), cs3.toString()))
+        self.assertEqual(cs2, cs3)
+        self.assertEqual(dstCS, cs2, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs2.toString()))
+        self.assertEqual(dstCS, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs3.toString()))
 
 if __name__ == "__main__":
 
