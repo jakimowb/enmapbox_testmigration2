@@ -22,10 +22,10 @@ import unittest
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
-SHOW_GUI = True
+SHOW_GUI = False
 
 
-from enmapbox.gui.enmapboxgui import EnMAPBox
+from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import *
@@ -93,6 +93,34 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
 
 
+class TestEnMAPBoxSplashScreen(unittest.TestCase):
+
+    def test_splashScreen(self):
+
+        import time
+        import enmapbox
+        w = QWidget()
+        enmapbox.initEnMAPBoxResources()
+        splash = EnMAPBoxSplashScreen(parent=w)
+        self.assertIsInstance(splash, EnMAPBoxSplashScreen)
+        i = 0
+        splash.showMessage('Message {} {}'.format(i, str(time.time())))
+        def onTimeOut(*args):
+            nonlocal i
+            splash.showMessage('Message {} {}'.format(i, str(time.time())))
+            i += 1
+        self.assertEqual(splash.size(), QSize(600,287))
+        timer = QTimer()
+        timer.startTimer(500)
+        timer.timeout.connect(onTimeOut)
+
+        if SHOW_GUI:
+            w.show()
+            splash.show()
+            QGIS_APP.processEvents()
+            QGIS_APP.exec_()
+
+
 
 class TestEnMAPBox(unittest.TestCase):
 
@@ -158,6 +186,10 @@ class TestEnMAPBox(unittest.TestCase):
 
         if SHOW_GUI:
             QGIS_APP.exec_()
+
+
+
+
 
 
 class TestEnMAPBoxWorkflows(unittest.TestCase):

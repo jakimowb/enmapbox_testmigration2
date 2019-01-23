@@ -164,15 +164,25 @@ def getIcon()->QIcon:
 
 
 class EnMAPBoxSplashScreen(QSplashScreen):
+    """
+    Thr EnMAP-Box Splash Screen
+    """
     def __init__(self, parent=None):
-        pm = QPixmap(':/enmapbox/splashscreen.png')
-        super(EnMAPBoxSplashScreen, self).__init__(pm)
+        pm = QPixmap(':/enmapbox/gui/ui/splashscreen.png')
+        super(EnMAPBoxSplashScreen, self).__init__(parent, pixmap=pm)
 
-    def showMessage(self, text, alignment=None, color=None):
+    def showMessage(self, text:str, alignment:Qt.Alignment=None, color:QColor=None):
+        """
+        Shows a message
+        :param text:
+        :param alignment:
+        :param color:
+        :return:
+        """
         if alignment is None:
-            alignment = Qt.AlignLeft | Qt.AlignBottom
+            alignment = Qt.AlignCenter | Qt.AlignBottom
         if color is None:
-            color = QColor('white')
+            color = QColor('black')
         super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
         QApplication.processEvents()
 
