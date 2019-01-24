@@ -31,10 +31,14 @@ def compileResourceFiles():
 if __name__ == '__main__':
 
     if False:
+        # Run this to compile all QGIS *.qrc files from the QGIS repository in `pathQGISRepo`
+        # They will be written to <enmapbox-repository>/qgisresources and be loaded
+        # when initializing a QgsApplication with ` enmapbox.testing.initQgisApplication()`
         pathQGISRepo = r'C:\Users\geo_beja\Repositories\QGIS'
         copyQGISRessourceFile(pathQGISRepo)
 
     if True:
+        # Run this to compile all QGIS *.qrc files from the EnMAP-Box Repository
         compileResourceFiles()
     print('Done')
 
