@@ -22,6 +22,7 @@ from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.mimedata import *
 from enmapbox.gui.docks import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
+from enmapbox.gui import SpectralLibrary
 LUT_DOCKTYPES = {'MAP':MapDock,
                  'TEXT':TextDock,
                  'MIME':MimeDataDock,
@@ -1236,20 +1237,27 @@ class DockManager(QObject):
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
 
+            speclibs = extractSpectralLibraries(mimeData)
+            speclibUris = [s.source() for s in speclibs]
             layers = extractMapLayers(mimeData)
+            layers = [l for l in layers if l.source() not in speclibUris]
             textfiles = []
-            speclibs = []
 
-            if MDF_DATASOURCETREEMODELDATA in mimeData.formats():
-                for ds in toDataSourceList(mimeData):
-                    if isinstance(ds, DataSourceTextFile):
-                        textfiles.append(ds)
-                    elif isinstance(ds, DataSourceSpectralLibrary):
-                        speclibs.append(ds)
 
             # register datasources
             for src in layers + textfiles + speclibs:
                 self.mDataSourceManager.addSource(src)
+
+            # open map dock for new layers
+            if len(speclibs) > 0:
+                NEW_DOCK = self.createDock('SPECLIB')
+                assert isinstance(NEW_DOCK, SpectralLibraryDock)
+                sl = NEW_DOCK.speclib()
+                assert isinstance(sl, SpectralLibrary)
+                sl.startEditing()
+                for speclib in speclibs:
+                    NEW_DOCK.speclib().addSpeclib(speclib, addMissingFields=True)
+                sl.commitChanges()
 
             # open map dock for new layers
             if len(layers) > 0:
@@ -1257,12 +1265,6 @@ class DockManager(QObject):
                 assert isinstance(NEW_DOCK, MapDock)
                 NEW_DOCK.addLayers(layers)
 
-            if len(speclibs) > 0:
-                NEW_DOCK = self.createDock('SPECLIB')
-                assert isinstance(NEW_DOCK, SpectralLibraryDock)
-                from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary
-                for speclib in speclibs:
-                    NEW_DOCK.speclibWidget.addSpeclib(SpectralLibrary.readFrom(speclib.uri()))
 
             # open test dock for new text files
             for textSource in textfiles:
@@ -1274,9 +1276,16 @@ class DockManager(QObject):
             event.accept()
 
     def __len__(self):
+        """
+        Returns the number of Docks.
+        :return: int
+        """
         return len(self.mDocks)
 
     def __iter__(self):
+        """
+        Iterator over all Docks.
+        """
         return iter(self.mDocks)
 
     def docks(self, dockType=None)->list:

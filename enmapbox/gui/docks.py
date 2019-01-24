@@ -886,7 +886,7 @@ class SpectralLibraryDock(Dock):
     A Dock to show SpectraLProfiles
     """
     sigLoadFromMapRequest = pyqtSignal()
-    def __init__(self,speclib=None, *args, **kwds):
+    def __init__(self, speclib=None, *args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
         self.mSpeclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
