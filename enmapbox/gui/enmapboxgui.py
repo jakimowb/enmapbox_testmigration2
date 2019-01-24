@@ -16,6 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
+import enum
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
@@ -32,23 +33,12 @@ SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 
-#init
-
-
-
-
-class Views(object):
-    def __init__(self):
-        raise Exception('This class is not for any instantiation')
-
-    MapView = 'MAP'
-    SpecLibView = 'SPECLIB'
-    TextView = 'TEXT'
+class EnMAPBoxDocks(enum.Enum):
+    MapDock = 'MAP'
+    SpectralLibraryDock = 'SPECLIB'
+    TextViewDock = 'TEXT'
+    MimeDataDock = 'MIME'
     EmptyView = 'EMPTY'
-
-
-
-
 
 
 class CentralFrame(QFrame):
@@ -76,6 +66,30 @@ class CentralFrame(QFrame):
     def dropEvent(self, event):
         pass
         # self.sigDropEvent.emit(event)
+
+
+class EnMAPBoxSplashScreen(QSplashScreen):
+    """
+    Thr EnMAP-Box Splash Screen
+    """
+    def __init__(self, parent=None):
+        pm = QPixmap(':/enmapbox/gui/ui/splashscreen.png')
+        super(EnMAPBoxSplashScreen, self).__init__(parent, pixmap=pm)
+
+    def showMessage(self, text:str, alignment:Qt.Alignment=None, color:QColor=None):
+        """
+        Shows a message
+        :param text:
+        :param alignment:
+        :param color:
+        :return:
+        """
+        if alignment is None:
+            alignment = Qt.AlignCenter | Qt.AlignBottom
+        if color is None:
+            color = QColor('black')
+        super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
+        QApplication.processEvents()
 
 
 class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
@@ -163,29 +177,6 @@ def getIcon()->QIcon:
 
 
 
-class EnMAPBoxSplashScreen(QSplashScreen):
-    """
-    Thr EnMAP-Box Splash Screen
-    """
-    def __init__(self, parent=None):
-        pm = QPixmap(':/enmapbox/gui/ui/splashscreen.png')
-        super(EnMAPBoxSplashScreen, self).__init__(parent, pixmap=pm)
-
-    def showMessage(self, text:str, alignment:Qt.Alignment=None, color:QColor=None):
-        """
-        Shows a message
-        :param text:
-        :param alignment:
-        :param color:
-        :return:
-        """
-        if alignment is None:
-            alignment = Qt.AlignCenter | Qt.AlignBottom
-        if color is None:
-            color = QColor('black')
-        super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
-        QApplication.processEvents()
-
 class EnMAPBox(QgisInterface, QObject):
 
     _instance = None
@@ -208,19 +199,20 @@ class EnMAPBox(QgisInterface, QObject):
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None
-        QObject.__init__(self)
-        # super(EnMAPBox, self).__init__()
-        QgisInterface.__init__(self)
-        splash = EnMAPBoxSplashScreen(self)
+
+        splash = EnMAPBoxSplashScreen(parent=None)
         if not HIDE_SPLASHSCREEN:
             splash.show()
+
+        splash.showMessage('Load UI')
         QApplication.processEvents()
 
-        splash.showMessage('Load Interfaces')
+        QObject.__init__(self)
+        QgisInterface.__init__(self)
 
-        # register loggers etc.
-        splash.showMessage('Load UI')
         self.ui = EnMAPBoxUI()
+
+
         self.ui.closeEvent = self.closeEvent
 
         self.mMapLayerStore = QgsMapLayerStore()
@@ -244,10 +236,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.mCurrentSpectra = []  # set of currently selected spectral profiles
         self.mCurrentMapSpectraLoading = 'TOP'
-
         self.mCurrentMapLocation = None
-
-
         self.mMapTools = []
 
         # define managers
@@ -255,17 +244,17 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
 
-
+        #
+        splash.showMessage('Init DataSourceManager')
         self.dataSourceManager = DataSourceManager()
-
-        # if qgisAppQgisInterface():
         self.dataSourceManager.sigDataSourceAdded.connect(lambda: self.dataSourceManager.exportSourcesToQGISRegistry(False))
 
 
         self.dockManager = DockManager()
         self.dockManager.connectDataSourceManager(self.dataSourceManager)
 
-        # self.enmapBox = enmapboxl
+        #
+
         self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
@@ -289,27 +278,32 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
+        splash.showMessage('Load ProcessingToolbox...')
         try:
             import processing.gui.ProcessingToolbox
             panel = processing.gui.ProcessingToolbox.ProcessingToolbox()
             self.ui.processingPanel = self.addPanel(Qt.RightDockWidgetArea, panel)
         except Exception as ex:
+            splash.showMessage('Failed to import processing.gui.ProcessingToolbox')
             print('Failed to import processing.gui.ProcessingToolbox')
             print('Ensure to have folder `<QGIS_ROOT>/qgis/python/plugins` added to sys.path!')
 
         # load EnMAP-Box applications
+        splash.showMessage('Load EnMAPBoxApplications...')
         self.initEnMAPBoxApplications()
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
 
         import pyqtgraph
+        splash.showMessage('Load EnMAPBoxApplications...')
         pyqtgraph.setConfigOption('background', 'k')
         pyqtgraph.setConfigOption('foreground', 'w')
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
-
+        QApplication.processEvents()
+        splash.hide()
 
     def processingProvider(self)->EnMAPBoxAlgorithmProvider:
         """
@@ -499,7 +493,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
-            dock.mSpeclibWidget.plotWidget.backgroundBrush().setColor(QColor('black'))
+            dock.speclibWidget().plotWidget().backgroundBrush().setColor(QColor('black'))
             self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):

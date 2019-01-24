@@ -257,6 +257,11 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue(len(reg.mapLayers()) == l, msg='Do not export source uri if they are already known to QGIS')
 
 
+        # test doubles input
+        l = len(dsm)
+        dsm.addSources(enmap)
+        self.assertTrue(len(dsm) == l, msg='DataSourceManager should not contain the same source multiple times')
+
 
     def test_datasourcmanagertreemodel(self):
         reg = QgsProject.instance()
@@ -279,6 +284,12 @@ class standardDataSources(unittest.TestCase):
             for dsNode in grpNode.childNodes():
                 self.assertIsInstance(dsNode, DataSourceTreeNode)
 
+
+        rasterGroupNode = [n for n in TM.rootNode() if n.name() == 'Raster Data'][0]
+        n = len(rasterGroupNode.childNodes())
+        dsm.addSources(enmap)
+
+        self.assertEqual(n, len(rasterGroupNode.childNodes()))
 
 
     def test_enmapbox(self):

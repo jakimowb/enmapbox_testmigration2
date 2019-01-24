@@ -12,7 +12,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest
+import unittest, tempfile
 from qgis import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
@@ -96,8 +96,11 @@ class testDataSources(unittest.TestCase):
         self.assertIsInstance(w, DockPanelUI)
         self.assertIsInstance(DM, DockManager)
         w.connectDockManager(DM)
-
-
+        DM.createDock('MAP')
+        DM.createDock('SPECLIB')
+        if SHOW_GUI:
+            w.show()
+            QGIS_APP.exec_()
 
 
 class testDocks(unittest.TestCase):
@@ -128,6 +131,43 @@ class testDocks(unittest.TestCase):
         da.show()
         if SHOW_GUI:
             QGIS_APP.exec_()
+
+
+    def test_TextDock(self):
+        da = DockArea()
+        dock = TextDock()
+        self.assertIsInstance(dock, TextDock)
+        tw = dock.textDockWidget()
+        self.assertIsInstance(tw, TextDockWidget)
+
+        testText = """
+        foo
+        bar
+        """
+        tw.setText(testText)
+        self.assertEqual(testText, tw.text())
+        pathTxt = os.path.join(tempfile.gettempdir(), 'testfile.txt')
+        tw.mFile = pathTxt
+        tw.save()
+
+
+        checkTxt = None
+        with open(pathTxt, encoding='utf-8') as f:
+            checkTxt = f.read()
+        self.assertEqual(checkTxt, testText)
+        tw.mFile = None
+
+
+        tw.setText('')
+        self.assertEqual(tw.text(), '')
+        tw.loadFile(pathTxt)
+        self.assertEqual(checkTxt, tw.text())
+
+        da.addDock(dock)
+        da.show()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
+
 
     def test_SpeclibDock(self):
         da = DockArea()

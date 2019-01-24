@@ -280,7 +280,7 @@ def rendererToXml(layerOrRenderer, geomType:QgsWkbTypes=None):
         lyr = QgsRasterLayer(path)
         assert lyr.isValid()
         lyr.setRenderer(layerOrRenderer.clone())
-        lyr.exportNamedStyle(doc, err)
+        err = lyr.exportNamedStyle(doc)
         #remove dummy raster layer
         lyr = None
         drv.Delete(path)
@@ -290,7 +290,7 @@ def rendererToXml(layerOrRenderer, geomType:QgsWkbTypes=None):
         typeName = QgsWkbTypes.geometryDisplayString(geomType)
         lyr = QgsVectorLayer('{}?crs=epsg:4326&field=id:integer'.format(typeName), 'dummy', 'memory')
         lyr.setRenderer(layerOrRenderer.clone())
-        lyr.exportNamedStyle(doc, err)
+        err = lyr.exportNamedStyle(doc)
         lyr = None
     else:
         raise NotImplementedError()

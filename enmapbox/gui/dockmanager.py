@@ -270,8 +270,8 @@ class TextDockTreeNode(DockTreeNode):
         super(TextDockTreeNode, self).connectDock(dock)
 
         self.fileNode = LayerTreeNode(self, 'File')
-        dock.textDockWidget.sigSourceChanged.connect(self.setLinkedFile)
-        self.setLinkedFile(dock.textDockWidget.mFile)
+        dock.mTextDockWidget.sigSourceChanged.connect(self.setLinkedFile)
+        self.setLinkedFile(dock.mTextDockWidget.mFile)
 
     def setLinkedFile(self, path):
         self.fileNode.setValue(path)
@@ -418,7 +418,7 @@ class MapDockTreeNode(DockTreeNode):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
         # KeepRefs.__init__(self)
-        self.setIcon(QIcon(':/enmapbox/icons/viewlist_mapdock.svg'))
+        self.setIcon(QIcon(':/enmapbox/gui/ui/icons/viewlist_mapdock.svg'))
         self.addedChildren.connect(lambda: self.updateCanvas())
         self.removedChildren.connect(lambda: self.updateCanvas())
 
@@ -427,32 +427,17 @@ class MapDockTreeNode(DockTreeNode):
         super(MapDockTreeNode, self).connectDock(dock)
         # TreeNode(self, 'Layers')
         assert isinstance(self.dock, MapDock)
-        self.layerNode = QgsLayerTree()
-        self.layerNode.setName('Layers')
-        self.addChildNode(self.layerNode)
+        #self.layerNode = QgsLayerTree()
+        #self.layerNode.setName('Layers')
+        #self.addChildNode(self.layerNode)
 
         #self.mTreeCanvasBridge = QgsLayerTreeMapCanvasBridge(self.layerNode, self.dock.canvas)
 
         assert isinstance(dock, MapDock)
         canvas = self.dock.mapCanvas()
         assert isinstance(canvas, MapCanvas)
-        self.mTreeCanvasBridge = MapCanvasBridge(self.layerNode, canvas)
-        #self.mTreeCanvasBridge = QgsLayerTreeMapCanvasBridge(self.layerNode, canvas)
-        #canvas.sigLayersAdded.connect(self.)
-        # self.layerNode = TreeNode(self, 'Layers')
-
-        #self.crsNode = CRSLayerTreeNode(self, canvas.mapSettings().destinationCrs())
-        #self.crsNode.setExpanded(False)
-
-        #self.linkNode = CanvasLinkTreeNodeGroup(self, canvas)
-        #self.linkNode.setExpanded(False)
-
-        #canvas.destinationCrsChanged.connect(lambda : self.crsNode.setCrs(canvas.mapSettings().destinationCrs()))
-
-        #self.dock.sigLayersAdded.connect(self.updateChildNodes)
-        #self.dock.sigLayersRemoved.connect(self.updateChildNodes)
-        #self.dock.sigCrsChanged.connect(self.crsNode.setCrs)
-        #self.updateChildNodes()
+        #self.mTreeCanvasBridge = MapCanvasBridge(self.layerNode, canvas)
+        self.mTreeCanvasBridge = MapCanvasBridge(self, canvas)
 
 
     def onAddedChildren(self, node, idxFrom, idxTo):
@@ -469,7 +454,8 @@ class MapDockTreeNode(DockTreeNode):
         """
         if self.dock:
             canvasLayers = self.dock.layers()
-            treeNodeLayerNodes = self.layerNode.findLayers()
+            #treeNodeLayerNodes = self.layerNode.findLayers()
+            treeNodeLayerNodes = self.findLayers()
             treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
 
             # new layers to add?
@@ -564,22 +550,12 @@ class MapDockTreeNode(DockTreeNode):
             dsm.addSources(mapLayers)
 
 
-        #    newLayers = [s.createUnregisteredMapLayer() for s in sources if isinstance(s, DataSourceSpatial)]
-
-        #    for l in newLayers:
-        #        if renderer is not None:
-        #            l.setRenderer(renderer)
-        #        layerTreeLayers.append(QgsLayerTreeLayer(l))
-        #        ""
-        #elif isinstance(layerSource, QgsMapLayer):
-        #    layerTreeLayers.append(QgsLayerTreeLayer(layerSource))
-
-        layerTreeLayers = []
         for mapLayer in mapLayers:
             assert isinstance(mapLayer, QgsMapLayer)
             #QgsProject.instance().addMapLayer(mapLayer)
             l = QgsLayerTreeLayer(mapLayer)
-            self.layerNode.insertChildNode(idx, l)
+            #self.layerNode.insertChildNode(idx, l)
+            self.insertChildNode(idx, l)
 
 
 
@@ -818,8 +794,9 @@ class DockManagerTreeModel(DockTreeModel):
                 if column == 0:
                     flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
 
-                if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
-                    flags |= Qt.ItemIsDragEnabled
+                #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
+                #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
+                #    flags |= Qt.ItemIsDragEnabled
             elif not isinstance(node, QgsLayerTree):
                 s = ""
 
@@ -1099,19 +1076,19 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
     def __init__(self, treeView:DockTreeView):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
         assert isinstance(treeView, DockTreeView)
-        self.treeView = treeView
-        assert isinstance(self.treeView.model(), DockManagerTreeModel)
+        self.mDockTreeView = treeView
+        assert isinstance(self.mDockTreeView.model(), DockManagerTreeModel)
 
     def createContextMenu(self):
-        col = self.currentIndex().column()
-        node = self.currentNode()
+        col = self.mDockTreeView.currentIndex().column()
+        node = self.mDockTreeView.currentNode()
         if node is None:
             return
         parentNode = node.parent()
         parentDockNode = findParent(node, DockTreeNode, checkInstance=True)
         menu = QMenu()
 
-        selectedLayerNodes = [n for n in self.treeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
+        selectedLayerNodes = [n for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
             mapNode = findParent(node, MapDockTreeNode)

@@ -1279,7 +1279,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         super(DataSourceManagerTreeModel, self).__init__(parent)
         assert isinstance(dataSourceManager, DataSourceManager)
-
+        self.mColumnNames[0] = 'Source'
         self.dataSourceManager = dataSourceManager
         self.dataSourceManager.sigDataSourceAdded.connect(self.addDataSource)
         self.dataSourceManager.sigDataSourceRemoved.connect(self.removeDataSource)
@@ -1454,8 +1454,10 @@ class DataSourceManagerTreeModel(TreeModel):
         sourceGroup = self.sourceGroup(dataSource)
         to_remove = []
 
-        for node in sourceGroup.children():
-            if node.dataSource == dataSource:
+        for node in sourceGroup.childNodes():
+            assert isinstance(node, DataSourceTreeNode)
+
+            if node.dataSource() == dataSource:
                 to_remove.append(node)
 
         for node in to_remove:

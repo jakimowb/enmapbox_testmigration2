@@ -22,7 +22,7 @@ import unittest
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
-SHOW_GUI = False
+SHOW_GUI = True
 
 
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
@@ -180,7 +180,12 @@ class TestEnMAPBox(unittest.TestCase):
     def test_loadExampleData(self):
         E = self.E
         E.loadExampleData()
-        self.assertTrue(len(E.dataSources()) > 0)
+        n = len(E.dataSources())
+        self.assertTrue(n > 0)
+
+        E.loadExampleData()
+        self.assertEqual(n, len(E.dataSources()))
+
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
 
