@@ -9,6 +9,8 @@ enmapboxtestdata/
 qgisresources
 qgisresources/
 
+site-packages/qps/qpsresources.py
+
 enmapbox/gui/ui/resources.py
 enmapbox/resources.py
 enmapboxtestdata.zip
