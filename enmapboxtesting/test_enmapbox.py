@@ -126,17 +126,17 @@ class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
 
-        self.E = EnMAPBox(None)
+        self.EMB = EnMAPBox(None)
 
     def tearDown(self):
-        self.E.close()
-        self.E = None
+        self.EMB.close()
+        self.EMB = None
 
     def test_instance(self):
 
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
-        self.assertEqual(self.E, EnMAPBox.instance())
+        self.assertEqual(self.EMB, EnMAPBox.instance())
 
         if SHOW_GUI:
             QGIS_APP.exec_()
@@ -144,24 +144,25 @@ class TestEnMAPBox(unittest.TestCase):
     def test_createDock(self):
 
         for d in ['MAP', 'TEXT', 'SPECLIB', 'MIME']:
-            dock = self.E.createDock(d)
+            dock = self.EMB.createDock(d)
             self.assertIsInstance(dock, Dock)
 
 
     def test_addSources(self):
-        E = self.E
+        E = self.EMB
         E.loadExampleData()
         E.removeSources(E.dataSources())
         self.assertTrue(len(E.dataSources()) == 0)
-        from enmapboxtestdata import enmap
+        from enmapboxtestdata import enmap, landcover_polygons
         E.addSource(enmap)
         self.assertTrue(len(E.dataSources()) == 1)
-
+        E.addSource(landcover_polygons)
+        self.assertTrue(len(E.dataSources()) == 2)
         if SHOW_GUI:
             QGIS_APP.exec_()
 
     def test_mapCanvas(self):
-        E = self.E
+        E = self.EMB
         self.assertTrue(E.mapCanvas() is None)
         self.assertIsInstance(E.mapCanvas(virtual=True), MapCanvas)
         canvases = E.mapCanvases()
@@ -178,16 +179,22 @@ class TestEnMAPBox(unittest.TestCase):
 
 
     def test_loadExampleData(self):
-        E = self.E
+        E = self.EMB
         E.loadExampleData()
         n = len(E.dataSources())
         self.assertTrue(n > 0)
 
+        # load
         E.loadExampleData()
         self.assertEqual(n, len(E.dataSources()))
 
+        # unload
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
+
+
+        # load again
+        E.loadExampleData()
 
         if SHOW_GUI:
             QGIS_APP.exec_()

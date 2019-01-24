@@ -44,6 +44,14 @@ class MapCanvasTests(unittest.TestCase):
     def tearDown(self):
         self.w.close()
 
+    def test_mapDock(self):
+
+        dock = MapDock()
+        self.assertIsInstance(dock, MapDock)
+
+        m = dock.contextMenu()
+        self.assertIsInstance(m, QMenu)
+
     def test_mapCanvas(self):
 
         menu = self.mapCanvas.contextMenu()

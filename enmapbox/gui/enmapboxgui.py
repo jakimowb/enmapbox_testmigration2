@@ -254,10 +254,9 @@ class EnMAPBox(QgisInterface, QObject):
         self.dockManager.connectDataSourceManager(self.dataSourceManager)
 
         #
-
-        self.dataSourceManager.sigDataSourceRemoved.connect(self.dockManager.removeDataSource)
         self.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
+
         self.dockManager.connectDockArea(self.ui.dockArea)
         self.dockManager.sigDockAdded.connect(self.onDockAdded)
         self.dockManager.sigDockRemoved.connect(self.onDockRemoved)
@@ -738,6 +737,11 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     def onDataSourceRemoved(self, dataSource:DataSource):
+        """
+        Reacts on removed data sources
+        :param dataSource: DataSource
+        """
+
 
         self.sigDataSourceRemoved.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceRaster):
@@ -746,6 +750,8 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigVectorSourceRemoved.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceSpectralLibrary):
             self.sigSpectralLibraryRemoved.emit(dataSource.uri())
+
+        self.dockManager.removeDataSource(dataSource)
 
     def onDataSourceAdded(self, dataSource:DataSource):
 
@@ -892,9 +898,18 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     def removeSources(self, dataSourceList:list=None):
+        """
+        Removes data sources.
+        Removes all sources available if `dataSourceList` remains unspecified.
+        :param dataSourceList:[list-of-data-sources]
+        """
         self.dataSourceManager.removeSources(dataSourceList)
 
     def removeSource(self, source):
+        """
+        Removes a single datasource
+        :param source: DataSource or str
+        """
         self.dataSourceManager.removeSource(source)
 
     def menu(self, title)->QMenu:

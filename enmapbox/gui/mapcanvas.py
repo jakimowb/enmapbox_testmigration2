@@ -819,6 +819,7 @@ class MapCanvas(QgsMapCanvas):
     sigSpatialExtentChanged = pyqtSignal(SpatialExtent)
     sigCrsChanged  = pyqtSignal(QgsCoordinateReferenceSystem)
 
+    sigLayersCleared = pyqtSignal()
     sigLayersRemoved = pyqtSignal(list)
     sigLayersAdded = pyqtSignal(list)
 
@@ -918,25 +919,25 @@ class MapCanvas(QgsMapCanvas):
         qgisApp = qgisAppQgisInterface()
         b = isinstance(qgisApp, QgisInterface)
         menu.addSeparator()
-        action = menu.addAction('Use QGIS map center')
+        m = menu.addMenu('QGIS...')
+        m.setIcon(QIcon(r':/images/themes/default/providerQgis.svg'))
+        action = m.addAction('Use map center')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda : self.setCenter(SpatialPoint.fromMapCanvasCenter(qgisApp.mapCanvas())))
 
 
-        action = menu.addAction('Set QGIS map center')
+        action = m.addAction('Set map center')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda: qgisApp.mapCanvas().setCenter(self.spatialCenter().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
 
 
-        action = menu.addAction('Use QGIS map extent')
+        action = m.addAction('Use map extent')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda: self.setExtent(SpatialExtent.fromMapCanvas(qgisApp.mapCanvas())))
 
-
-        action = menu.addAction('Set QGIS map extent')
+        action = m.addAction('Set map extent')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda: qgisApp.mapCanvas().setExtent(self.spatialExtent().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
-
 
         menu.addSeparator()
         m = menu.addMenu('Crosshair')
@@ -1023,11 +1024,19 @@ class MapCanvas(QgsMapCanvas):
         action.setIcon(QIcon(":/qps/ui/icons/refresh_green.svg"))
         action.triggered.connect(lambda: self.refreshAllLayers())
 
+        action = menu.addAction('Clear')
+        action.triggered.connect(self.clearLayers)
+
         menu.addSeparator()
         action = menu.addAction('Set CRS...')
         action.triggered.connect(self.setCRSfromDialog)
 
         return menu
+
+
+    def clearLayers(self, *args):
+        self.setLayers([])
+        self.sigLayersCleared.emit()
 
     def layerPaths(self):
         """
@@ -1215,10 +1224,6 @@ class MapCanvas(QgsMapCanvas):
         """
         return SpatialPoint.fromMapCanvasCenter(self)
 
-    def setLayerSet(self, *arg, **kwds):
-        raise Exception('Deprecated: Not supported any more (QGIS 3)')
-
-
     def createCanvasLink(self, otherCanvas:QgsMapCanvas, linkType):
         assert isinstance(otherCanvas, MapCanvas)
         return self.addCanvasLink(CanvasLink(self, otherCanvas, linkType))
@@ -1348,7 +1353,6 @@ class MapDock(Dock):
     #sigCursorLocationRequest = pyqtSignal(SpatialPoint)
     #sigSpectrumRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)
-    sigLayersRemoved = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
 
     def __init__(self, *args, **kwds):
@@ -1356,44 +1360,19 @@ class MapDock(Dock):
         super(MapDock, self).__init__(*args, **kwds)
         self.mBaseName = self.title()
 
-        #self.actionLinkExtent = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Link to map extent', self)
-        #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
-        #self.label.buttons.append(self.actionLinkCenter.getButton())
-
         self.mCanvas = MapCanvas(self)
         self.mCanvas.setName(self.title())
         self.mCanvas.sigNameChanged.connect(self.setTitle)
+
         self.sigTitleChanged.connect(self.mCanvas.setName)
-        #self.label.setText(self.basename)
-        #self.canvas.setScaleLocked(True)
-        #self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenuEvent)
-        #self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
         self.mCanvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
-        self.mCanvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
         self.mCanvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
 
         settings = QSettings()
         assert isinstance(self.mCanvas, QgsMapCanvas)
         self.mCanvas.setCanvasColor(Qt.black)
         self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
-        #self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
         self.layout.addWidget(self.mCanvas)
-
-        """
-        The problem still exists in QGis 2.0.1-3 available through OSGeo4W distribution. New style connection always return the same error:
-        TypeError: connect() failed between geometryChanged(QgsFeatureId,QgsGeometry) and unislot()
-        A possible workaround is to use old signal/slot code:
-
-        QObject.connect(my_vectlayer,SIGNAL("geometryChanged(QgsFeatureId, QgsGeometry&)"),mynicehandler)
-        instead of expected:
-
-        my_vectlayer.geometryChanged.connect(mynicehandler)
-        """
-        #QObject.connect(self.toolIdentify,
-        #                SIGNAL("changedRasterResults(QList<QgsMapToolIdentify::IdentifyResult>&)"),
-        #                self.identifyChangedRasterResults)
-        #self.toolIdentify.changedRasterResults.connect(self.identifyChangedRasterResults)
-
 
         self.label.addMapLink.clicked.connect(lambda:CanvasLink.ShowMapLinkTargets(self))
         self.label.removeMapLink.clicked.connect(lambda: self.mCanvas.removeAllCanvasLinks())
@@ -1405,14 +1384,16 @@ class MapDock(Dock):
             if len(lyrs) > 0:
                 self.mCanvas.setLayers(lyrs)
 
-    def cursorLocationValueRequest(self,*args):
-        self.sigCursorLocationRequest.emit(*args)
-
     def contextMenu(self)->QMenu:
-        m = super(MapDock, self).contextMenu()
-        from enmapbox.gui.utils import appendItemsToMenu
+        """
+        Returns the MapDock context menu
+        :return: QMenu
+        """
 
-        return appendItemsToMenu(m, self.mCanvas.contextMenu())
+        menuDock = super(MapDock, self).contextMenu()
+
+        menuCanvas = self.mCanvas.contextMenu()
+        return appendItemsToMenu(menuDock, menuCanvas)
 
     def _createLabel(self, *args, **kwds)->MapDockLabel:
         return MapDockLabel(self, *args, **kwds)
@@ -1432,12 +1413,18 @@ class MapDock(Dock):
         assert isinstance(canvas, QgsMapCanvas)
         canvas.createCanvasLink(canvas, linkType)
 
-
-
     def layers(self)->list:
+        """
+        Returns the list of QgsMapLayers shown in the MapCanvas
+        :return: [list-of-QgsMapLayers]
+        """
         return self.mCanvas.layers()
 
-    def setLayers(self, mapLayers):
+    def setLayers(self, mapLayers:list):
+        """
+        Sets the QgsMapLayers to be shown in the QgsMapCanvas
+        :param mapLayers: [list-of-QgsMapLayers]
+        """
         assert isinstance(mapLayers, list)
         self.mCanvas.setLayers(mapLayers)
 
