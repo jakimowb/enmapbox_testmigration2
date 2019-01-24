@@ -706,13 +706,13 @@ class CanvasLink(QObject):
     def icon(self):
 
         if self.linkType == LINK_ON_SCALE:
-            src = ":/enmapbox/icons/link_mapscale.svg"
+            src = ":/enmapbox/gui/ui/icons/link_mapscale.svg"
         elif self.linkType == LINK_ON_CENTER:
-            src = ":/enmapbox/icons/link_center.svg"
+            src = ":/enmapbox/gui/ui/icons/link_center.svg"
         elif self.linkType == LINK_ON_CENTER_SCALE:
-            src = ":/enmapbox/icons/link_mapscale_center.svg"
+            src = ":/enmapbox/gui/ui/icons/link_mapscale_center.svg"
         elif self.linkType == UNLINK:
-            src = ":/enmapbox/icons/link_open.svg"
+            src = ":/enmapbox/gui/ui/icons/link_open.svg"
         else:
             raise NotImplementedError('unknown link type: {}'.format(self.linkType))
 
@@ -1015,12 +1015,12 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
 
         action = menu.addAction('Refresh')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
+        action.setIcon(QIcon(":/qps/ui/icons/refresh_green.svg"))
         action.triggered.connect(lambda: self.refresh())
 
 
         action = menu.addAction('Refresh all layers')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
+        action.setIcon(QIcon(":/qps/ui/icons/refresh_green.svg"))
         action.triggered.connect(lambda: self.refreshAllLayers())
 
         menu.addSeparator()

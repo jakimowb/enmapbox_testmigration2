@@ -684,7 +684,7 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
 
 
         for b, bandName in enumerate(dataSource.mBandNames):
-            bandNode = RasterBandTreeNode(dataSource, b, self.mNodeBands, bandName, bandName)
+            bandNode = RasterBandTreeNode(dataSource, b, self.mNodeBands, str(b+1), bandName)
 
 
 

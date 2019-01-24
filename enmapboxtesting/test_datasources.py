@@ -52,6 +52,8 @@ class standardDataSources(unittest.TestCase):
                 self.assertIsInstance(source, DataSourceRaster)
                 self.assertIsInstance(source.spatialExtent(), SpatialExtent)
                 self.assertIsInstance(source.mProvider, str)
+                self.assertIsInstance(source.icon(), QIcon)
+
 
     def createTestSources(self)->list:
         return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]

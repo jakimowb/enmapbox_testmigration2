@@ -235,7 +235,7 @@ class DockTreeNode(LayerTreeNode):
         self.dock = dock
         super(DockTreeNode, self).__init__(parent, '<dockname not available>')
 
-        self.mIcon = QIcon(':/enmapbox/icons/viewlist_dock.svg')
+        self.mIcon = QIcon(':/enmapbox/gui/ui/icons/viewlist_dock.svg')
         if isinstance(dock, Dock):
             self.connectDock(dock)
 
@@ -304,7 +304,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
     def __init__(self, parent, canvas:MapCanvas):
         assert isinstance(canvas, MapCanvas)
         super(CanvasLinkTreeNodeGroup, self).__init__(parent, 'Spatial Links',
-                                                      icon=QIcon(":/enmapbox/icons/link_basic.svg"))
+                                                      icon=QIcon(":/enmapbox/gui/ui/icons/link_basic.svg"))
 
         self.canvas = canvas
         self.canvas.sigCanvasLinkAdded.connect(self.addCanvasLink)
