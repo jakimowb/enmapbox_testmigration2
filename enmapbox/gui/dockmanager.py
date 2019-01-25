@@ -574,7 +574,19 @@ class DockTreeModel(QgsLayerTreeModel):
 
         return None
 
+    def removeLayers(self, layers:list):
+        assert isinstance(layers, list)
 
+        mapDockTreeNodes = [n for n in self.rootNode.children() if isinstance(n, MapDockTreeNode)]
+        for mapDockTreeNode in mapDockTreeNodes:
+            assert isinstance(mapDockTreeNode, MapDockTreeNode)
+            for lyr in layers:
+                assert isinstance(lyr, QgsMapLayer)
+                mapDockTreeNode.removeLayer(lyr)
+
+    def removeLayerByIDs(self, ids):
+
+        s = ""
 
     def columnCount(self, index):
         node = self.index2node(index)
@@ -1100,6 +1112,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         menu = QMenu()
 
         selectedLayerNodes = [n for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
+        selectedMapLayers = [n.layer() for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
+        selectedLayerIDs = [n.layer().id() for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
             mapNode = findParent(node, MapDockTreeNode)
@@ -1137,7 +1151,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
             action = menu.addAction('Remove layer')
             action.setToolTip('Remove layer from map canvas')
-            action.triggered.connect(lambda: removeLayerTreeNodes(selectedLayerNodes))
+            action._refToNodes = selectedLayerNodes
+            action.triggered.connect(lambda: self.mDockTreeView.model().removeLayers(selectedMapLayers))
 
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')

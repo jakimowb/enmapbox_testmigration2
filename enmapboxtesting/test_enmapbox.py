@@ -147,6 +147,11 @@ class TestEnMAPBox(unittest.TestCase):
             dock = self.EMB.createDock(d)
             self.assertIsInstance(dock, Dock)
 
+    def test_mapDockInteraction(self):
+        E = self.EMB
+        E.loadExampleData()
+        self.assertTrue(len(E.dataSources()) > 0)
+
 
     def test_addSources(self):
         E = self.EMB
@@ -158,6 +163,7 @@ class TestEnMAPBox(unittest.TestCase):
         self.assertTrue(len(E.dataSources()) == 1)
         E.addSource(landcover_polygons)
         self.assertTrue(len(E.dataSources()) == 2)
+
         if SHOW_GUI:
             QGIS_APP.exec_()
 
@@ -169,14 +175,16 @@ class TestEnMAPBox(unittest.TestCase):
         self.assertIsInstance(canvases, list)
         self.assertTrue(len(canvases) == 0)
 
-        E.loadExampleData()
-        self.assertTrue(len(E.mapCanvases()) == 1)
+        #E.loadExampleData()
+        #self.assertTrue(len(E.mapCanvases()) == 1)
 
         E.createDock('MAP')
         self.assertTrue(len(E.mapCanvases()) == 2)
         for c in E.mapCanvases():
             self.assertIsInstance(c, MapCanvas)
 
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_loadExampleData(self):
         E = self.EMB

@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import *
 
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
-SHOW_GUI = False
+SHOW_GUI = True
 
 
 from enmapboxtestdata import *

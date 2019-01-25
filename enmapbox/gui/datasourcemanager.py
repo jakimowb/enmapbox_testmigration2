@@ -382,9 +382,29 @@ class DataSourceGroupTreeNode(TreeNode):
             icon = QApplication.style().standardIcon(QStyle.SP_DirOpenIcon)
 
         super(DataSourceGroupTreeNode, self).__init__(parentNode, name=groupName, icon=icon)
+        self.mFlag1stSource = False
+        self.mGroupName = groupName
         self.mChildClass = classDef
+        self.sigAddedChildren.connect(self.onChildsChanged)
+        self.sigRemovedChildren.connect(self.onChildsChanged)
 
-    def dataSources(self):
+    def groupName(self)->str:
+        return self.mGroupName
+
+    def onChildsChanged(self, *args):
+
+        n = len(self.childNodes())
+        name = '{} ({})'.format(self.mGroupName, n)
+        self.setName(name)
+
+        if n > 0 and self.mFlag1stSource == False:
+            pass
+
+    def dataSources(self)->list:
+        """
+        Returns the DataSource instances part of this group.
+        :return: [list-of-DataSources]
+        """
         return [d.mDataSource for d in self.childNodes()
                 if isinstance(d, DataSourceTreeNode)]
 
@@ -1306,15 +1326,16 @@ class DataSourceManagerTreeModel(TreeModel):
         assert isinstance(data, QMimeData)
 
         result = False
+
         if action in [Qt.MoveAction, Qt.CopyAction]:
             # collect nodes
             nodes = []
 
-            if data.hasFormat("application/enmapbox.datasourcetreemodeldata"):
+            if data.hasFormat(MDF_DATASOURCETREEMODELDATA):
                 return False  # do not allow moving within DataSourceTree
 
             # add new data from external sources
-            elif data.hasFormat('text/uri-list'):
+            elif data.hasFormat(MDF_URILIST):
                 for url in data.urls():
                     self.dataSourceManager.addSource(url)
 
@@ -1400,6 +1421,8 @@ class DataSourceManagerTreeModel(TreeModel):
         mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
         return mimeData
 
+    def sourceGroups(self)->list:
+        return [n for n in self.rootNode().childNodes() if isinstance(n, DataSourceGroupTreeNode)]
 
     def sourceGroup(self, dataSource:DataSource)->DataSourceGroupTreeNode:
         """
@@ -1418,7 +1441,9 @@ class DataSourceManagerTreeModel(TreeModel):
         if groupName is None:
             groupName, groupIcon = LUT_DATASOURCTYPES[DataSource]
             groupDataType = DataSource
-        srcGrp = [c for c in self.rootNode().childNodes() if c.name() == groupName]
+
+        srcGroups = self.sourceGroups()
+        srcGrp = [c for c in srcGroups if c.groupName() == groupName]
         if len(srcGrp) == 0:
                 # group node does not exist.
                 # create new group node and add it to the model

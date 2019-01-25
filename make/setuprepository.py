@@ -4,10 +4,10 @@ Run this script after having cloned the EnMAP-Box repostitory
 """
 
 # specify the local path to the cloned QGIS repository
-
-DIR_QGIS_REPO = None
-
 import os, sys
+DIR_QGIS_REPO = os.environ.get('DIR_QGIS_REPO', None)
+
+
 from os.path import dirname as dn
 from os.path import join as jn
 DIR_ENMAPBOX_REPO = dn(dn(__file__))
