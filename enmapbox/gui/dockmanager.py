@@ -712,9 +712,15 @@ class DockManagerTreeModel(DockTreeModel):
         s = ""
 
     def supportedDragActions(self):
+        """
+        """
         return Qt.CopyAction | Qt.MoveAction
 
-    def supportedDropActions(self):
+    def supportedDropActions(self)->Qt.DropActions:
+        """
+
+        :return:
+        """
         return Qt.CopyAction | Qt.MoveAction
 
     def addDock(self, dock:Dock)->DockTreeNode:
@@ -794,12 +800,14 @@ class DockManagerTreeModel(DockTreeModel):
                         # mapCanvas Layer Tree Nodes
             elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
                 if column == 0:
-                    flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled
+                    flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
 
                 #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
                 #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
                 #    flags |= Qt.ItemIsDragEnabled
             elif not isinstance(node, QgsLayerTree):
+                s = ""
+            else:
                 s = ""
 
             return flags
@@ -847,7 +855,6 @@ class DockManagerTreeModel(DockTreeModel):
 
             if isinstance(layerRegistry, QgsMapLayerStore):
                 layerRegistry.addMapLayers(mapLayers)
-
 
             i = parentIndex.row()
             if len(mapLayers) > 0:
@@ -1223,7 +1230,7 @@ class DockManager(QObject):
             if containsMapLayers(mimeData):
                 event.setDropAction(Qt.CopyAction)
                 event.accept()
-            return
+                return
 
 
         elif isinstance(event, QDragMoveEvent):
