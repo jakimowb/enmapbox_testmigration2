@@ -3,7 +3,7 @@
 """
 ***************************************************************************
     deploy.py
-    Script to build the EnMAP-Box from Repository code
+    Script to build the EnMAP-Box QGIS Plugin from Repository code
     ---------------------
     Date                 : August 2017
     Copyright            : (C) 2017 by Benjamin Jakimow

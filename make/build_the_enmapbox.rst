@@ -1,5 +1,21 @@
-How to testm build and publish the EnMAP-Box
+How to test, build and publish the EnMAP-Box
 ============================================
+#. After an initial repository checkout of if any resource paths were modified, you need to compile the Qt resource (`*.qrc`) into corresponding python modules (`*.py`).
+For this you use `make/guimake.py` and call::
+
+        compileResourceFiles()
+
+The EnMAP-Box uses a couple of icons that are provided by the QGIS Desktop application.
+
+
+        #2. run updateRepositoryXML() to create QGIS Plugin Repository XMLs
+        # deploy/qgis_plugin_develop.xml (remote, points on https://bitbucket.org/hu-geomatics/enmap-box/src/<branch>/qgis_plugin_develop.xml)
+        # deploy/qgis_plugin_develop.xml (local, points on deploy/enmapboxplugin.<version>.<branch>.zip
+        updateRepositoryXML()
+
+if your
+
+
 
 #. Update external APIs / packages, e.g. with ``make/updateexternals.py`` (modify after ``if __name__ == "__main__":``)
 

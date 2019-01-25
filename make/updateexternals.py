@@ -18,9 +18,10 @@
 """
 
 import os, sys, re, shutil, zipfile, datetime
+from enmapbox import DIR_REPO
 from qps.make import updateexternals
 from qps.make.updateexternals import RemoteInfo
-from enmapbox import DIR_REPO
+
 import git # install with: pip install gitpython
 
 updateexternals.setProjectRepository(DIR_REPO)
