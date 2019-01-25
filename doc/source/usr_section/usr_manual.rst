@@ -217,6 +217,7 @@ You may change the name of a Window by double-clicking onto the name in the list
 
 
 .. figure:: ../img/example_data_views.png
+   :width: 100%
 
    Example of how different window types and their contents are organized in the Data Views panel. In this case there
    are two Map Windows and one Spectral Library Window in the project.
@@ -297,6 +298,11 @@ created links by clicking |unlink|.
 Crosshair
 ^^^^^^^^^
 
+* Activate the crosshair by right-clicking into a Map Window and select ``Show Crosshair``
+* You can alter the style of the crosshair by right-clicking into a Map Window and select ``Set Crosshair Style``
+
+  .. image:: ../img/crosshair_style.png
+
 
 
 Spectral Library Window |viewlist_spectrumdock|
@@ -314,7 +320,9 @@ The processing toolbox is basically the same panel as in QGIS, i.e. it is mirror
 processing algorithms that come with the EnMAP-Box listed under *EnMAP-Box*. In case it is closed/not visible you can open
 it via :menuselection:`View --> Panels --> QGIS Processing Toolbox`.
 
-See `QGIS Documentation - The toolbox <https://docs.qgis.org/2.18/en/docs/user_manual/processing/toolbox.html>`_ for further information.
+.. image:: ../img/processing_toolbox.png
+
+See `QGIS Documentation - The toolbox <https://docs.qgis.org/testing/en/docs/user_manual/processing/toolbox.html>`_ for further information.
 
 5. Cursor Location Values
 =========================
@@ -444,6 +452,7 @@ IVVRM
 Processing Data Types
 #####################
 
+.. specify supported drivers for output
 
 Raster
 ======
@@ -473,7 +482,7 @@ Vector
    geometries (i.e. polygon) and corresponding attribute table.
 
 
-
+.. _mask:
 
 Mask
 ====
@@ -611,18 +620,20 @@ Fraction
 Spectral Library
 ================
 
+The EnMAP-Box supports the ENVI standard spectral library format (.sli + .hdr file). Spectral libraries can be imported
+as single line raster using the processing algorithm *Auxillary -> Import Library*.
 
+.. todo:: Support for further formats will be implemented soon (e.g. import spectral library from ASD field spectrometer)
 
 .. screenshot von der tetslibrary im speclib viewer
 
 .. Auxillary -> Import Library
 
-.. für csv files und hdr beispiel code block von testdaten
 
 Labelled Spectral Library
 =========================
 
-The labelled spectral library extents the default .sli format by adding additional information to the spectra (e.g., class labels, class colors).
+The labelled spectral library extents the default .sli format by adding additional metadata information (e.g., class labels, class colors).
 This information is stored by adding a .csv and .json file to the default spectral library, so that the labelled spectral library consists of
 
 * .sli file (ENVI standard)
@@ -632,28 +643,38 @@ This information is stored by adding a .csv and .json file to the default spectr
   * should be comma-separated csv
   * should have same basename as .sli file
   * first row stores the headers, where the first element has to be the spectra names as specified in the .hdr file:
-  .. code-block:: csv
 
-     spectra names, attribute1, attribute2
+    .. code-block:: csv
+
+       spectra names, attribute1, attribute2
 
   * Example from the EnMAP-Box test dataset:
 
     .. figure:: ../img/speclib_csv_example.png
        :width: 100%
 
-* .json file (class name and class color information)
+* .json file (stores class name and class color information)
 
   * should have same basename as .sli file
-  * class name and color information has to be provided for every attribute in the csv:
-  .. code-block:: json
+  * class name and color information should be provided for every attribute in the csv:
 
-    {
+    .. code-block:: json
+
+      {
         "attribute_name": {
-          "names":  ["name1", "name2", "name3", "name4"],
-          "colors": [[230, 0, 0],  [56, 168, 0], [168, 112, 0], [0,100,255]]
-        }
-    }
-  * The keys ``names`` and ``colors`` should not be altered. But change ``attibute_name`` according to your data.
+          "categories":  [
+            [0, "unclassified", [0, 0, 0]],
+            [1, "class1", [230, 0, 0]],
+            [2, "class2", [56, 168, 0]],
+            [3, "class3", [168, 112, 0]],
+            [4, "class4", [0,100,255]]
+          ],
+          "no data value": 0,
+          "description": "Classification"
+      }
+
+  * The keys ``categories``, ``no data value`` and ``description`` should not be altered. But change ``attribute_name`` according to your data.
+  * ``no data value`` should be supplied
   * Example from the EnMAP-Box test dataset:
 
     .. figure:: ../img/speclib_json_example.png

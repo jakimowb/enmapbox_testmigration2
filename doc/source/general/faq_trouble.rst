@@ -10,7 +10,7 @@ Bug report & feedback
    <a href="https://bitbucket.org/hu-geomatics/enmap-box/issues/new" target="_blank">Bitbucket Repository</a>
 
 
-.. note:: Your feedback is more than welcome! In case you encounter any problems with the EnMap-Box or have
+.. note:: Your feedback is more than welcome! In case you encounter any problems with the EnMAP-Box or have
           suggestions of any kind for improving it (or this documentation), please let us know!
 
 .. attention:: **It's best to report issues (bugs, suggestions etc.)

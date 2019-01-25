@@ -3,17 +3,6 @@
     You can adapt this file completely to your liking, but it should at least
     contain the root `toctree` directive.
 
-.. attention::
-
-   There will be a EnMAP-Box workshop in Berlin in February 2019!
-
-   .. image:: img/workshop_logo.png
-
-   |
-
-   **Click** :ref:`HERE <workshop>` **for more information**
-
-
 
 
 EnMAP-Box 3 Documentation
@@ -32,7 +21,6 @@ step-by-step tutorials which exemplify the software's capabilities.
 
 **Find our Bitbucket repository here:** https://bitbucket.org/hu-geomatics/enmap-box/wiki/Home
 
-|
 |
 |
 
